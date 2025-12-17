@@ -1,5 +1,5 @@
-import Skeleton from "../layouts/Skeleton.jsx";
-import Header from "../components/Header.jsx";
+import SkeletonA from "../layouts/SkeletonA.jsx";
+import HeaderA from "../components/HeaderA.jsx";
 import FormNavigation from "../components/FormNavigation.jsx";
 import styles from "../styles/Form.module.sass";
 import {useNavigate, useParams} from "react-router-dom";
@@ -52,8 +52,8 @@ const AssessmentForm = () => {
     };
 
     return (
-        <Skeleton
-            header={<Header role={'Instructor'} name={'NORTON, MONICA'} />}
+        <SkeletonA
+            header={<HeaderA role={'Instructor'} name={'NORTON, MONICA'} />}
             nav={<SideNavigation />}
             content={
                 <div className={styles.container}>

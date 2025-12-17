@@ -1,20 +1,19 @@
-
 .container
   display: flex
   padding: 0 0 0 20px
   flex-direction: column
   align-items: flex-start
-  //gap: 5px
   width: 100%
   height: max-content
 
 .label
   color: #000
   text-align: left
-  font-family: Manrope,sans-serif
+  font-family: Manrope, sans-serif
   font-size: 16px
   font-weight: 500
   line-height: normal
+  margin-bottom: 5px
 
 .dropdown
   font-size: 16px
@@ -27,17 +26,36 @@
   overflow-x: auto
   padding: 10px
   min-height: 40px
+  transition: border-color 0.2s ease-in-out
+  background: #FFF
 
+  // NEW: Error State
+  &.error
+    border: 1px solid #FF5252 !important
+    background-color: #FFF4F4
 
 .disabled-style
   background: #F8F9F9
+  pointer-events: none
 
 .option
-  gap: 5px
+  gap: 8px // Increased gap slightly
   display: flex
   flex-direction: row
   font-size: 16px
   font-weight: 400
+  margin-bottom: 5px
+  align-items: center
 
 .option input[type=checkbox]
   width: 18px
+  height: 18px
+  cursor: pointer
+
+// NEW: Error Message Text
+.errorMessage
+  color: #FF5252
+  font-size: 12px
+  font-weight: 500
+  margin-top: 5px
+  font-family: Manrope, sans-serif

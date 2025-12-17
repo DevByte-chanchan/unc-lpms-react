@@ -1,4 +1,3 @@
-
 .container
   display: flex
   padding: 0 0 0 20px
@@ -24,6 +23,12 @@
   align-self: stretch
   border-radius: 3px
   border: 1px solid #DCE2F0
+  transition: border-color 0.2s ease-in-out
+
+  // NEW: Error State for the wrapper
+  &.error
+    border: 1px solid #FF5252 !important
+    background-color: #FFF4F4
 
 .textfield input
   width: 100%
@@ -33,6 +38,7 @@
   border-radius: 3px
   border: 0
   font-size: 14px
+  background: transparent // Added to ensure error background shows through
 
 .textfield textarea
   width: 100%
@@ -42,7 +48,15 @@
   border-radius: 3px
   border: 0
   font-size: 14px
+  background: transparent // Added to ensure error background shows through
 
 .disabled-style
   background: #F8F9F9
 
+// NEW: Error Message Text
+.errorMessage
+  color: #FF5252
+  font-size: 12px
+  font-weight: 500
+  margin-top: 5px
+  font-family: Manrope, sans-serif

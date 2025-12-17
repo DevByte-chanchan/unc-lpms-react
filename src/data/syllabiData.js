@@ -8,6 +8,7 @@ export const syllabiData = [
         revision: '0',
         credits: '2 LEC, 1 LAB',
         contact: '3',
+        prerequisites: 'BCS222L Web Development 2',
         class: 'Professional Courses',
         cmo: '25 S, 2015',
         year: 'THIRD YEAR',
@@ -19,242 +20,585 @@ export const syllabiData = [
             'Through lectures, hands-on projects, and usability testing, learners will develop practical skills in designing intuitive and user-friendly interfaces that address real human needs. Drawing from foundational theories in psychology, design, and computer science, this course prepares students to create digital products that are both functional and forward-thinking, aligning with current and future developments\n' +
             'in UI/UX design.\n' +
             '\n',
-        references:  [
+        references: [
+            // --- TEXTBOOKS (Needs ISBN, Year) ---
+            {
+                id: "TB1",
+                title: "The Design of Everyday Things",
+                type: "Textbook",
+                authors: "Don Norman",
+                year: 2013,
+                isbn: "978-0465050659",
+                link: ""
+            },
+            {
+                id: "TB2",
+                title: "Don't Make Me Think, Revisited",
+                type: "Textbook",
+                authors: "Steve Krug",
+                year: 2014,
+                isbn: "978-0321965516",
+                link: ""
+            },
+            {
+                id: "TB3",
+                title: "About Face: The Essentials of Interaction Design",
+                type: "Textbook",
+                authors: "Alan Cooper, Robert Reimann, David Cronin",
+                year: 2014,
+                isbn: "978-1118766576",
+                link: ""
+            },
+            {
+                id: "TB4",
+                title: "Designing with the Mind in Mind",
+                type: "Textbook",
+                authors: "Jeff Johnson",
+                year: 2020,
+                isbn: "978-0128182024",
+                link: ""
+            },
+            {
+                id: "TB5",
+                title: "Universal Principles of Design",
+                type: "Textbook",
+                authors: "William Lidwell, Kritina Holden, Jill Butler",
+                year: 2010,
+                isbn: "978-1592535873",
+                link: ""
+            },
+
+            // --- ONLINE RESOURCES (Needs Link, Year optional) ---
             {
                 id: "OR1",
-                title: "UI PRINCIPLES",
-                type: "Textbook",
-                authors: "Author Name(s)",
-                year: 2020
+                title: "10 Usability Heuristics for User Interface Design",
+                type: "Online Resources",
+                authors: "Jakob Nielsen",
+                year: 2020, // Updated article date
+                isbn: "",
+                link: "https://www.nngroup.com/articles/ten-usability-heuristics/"
             },
             {
                 id: "OR2",
-                title: "Design Guidelines",
+                title: "Material Design 3 Guidelines",
                 type: "Online Resources",
-                authors: "Author Name(s)",
-                year: 2021
+                authors: "Google Design Team",
+                year: 2023,
+                isbn: "",
+                link: "https://m3.material.io/"
             },
             {
                 id: "OR3",
-                title: "Imagery",
-                type: "Textbook",
-                authors: "Author Name(s)",
-                year: 2019
+                title: "Human Interface Guidelines",
+                type: "Online Resources",
+                authors: "Apple Inc.",
+                year: 2024,
+                isbn: "",
+                link: "https://developer.apple.com/design/human-interface-guidelines"
             },
             {
+                id: "OR4",
+                title: "Laws of UX",
+                type: "Online Resources",
+                authors: "Jon Yablonski",
+                year: 2021,
+                isbn: "",
+                link: "https://lawsofux.com/"
+            },
+            {
+                id: "OR5",
+                title: "Smashing Magazine: UX Design Category",
+                type: "Online Resources",
+                authors: "Various Authors",
+                year: 2024,
+                isbn: "",
+                link: "https://www.smashingmagazine.com/category/ux"
+            },
+
+            // --- OPEN EDUCATIONAL RESOURCES (Needs Link, Year) ---
+            {
                 id: "OE1",
-                title: "UI PRINCIPLES",
+                title: "The Encyclopedia of Human-Computer Interaction, 2nd Ed.",
                 type: "Open Educational Resources",
-                authors: "Author Name(s)",
-                year: 2022
+                authors: "Mads Soegaard, Rikke Friis Dam",
+                year: 2014,
+                isbn: "",
+                link: "https://www.interaction-design.org/literature/book/the-encyclopedia-of-human-computer-interaction-2nd-ed"
             },
             {
                 id: "OE2",
-                title: "Introduction to Generative AI",
-                type: "Online Resources",
-                authors: "Author Name(s)",
-                year: 2023
+                title: "Web Content Accessibility Guidelines (WCAG) 2.2",
+                type: "Open Educational Resources",
+                authors: "W3C Web Accessibility Initiative",
+                year: 2023,
+                isbn: "",
+                link: "https://www.w3.org/TR/WCAG22/"
+            },
+            {
+                id: "OE3",
+                title: "MIT OpenCourseWare: User Interface Design and Implementation",
+                type: "Open Educational Resources",
+                authors: "Prof. Robert Miller",
+                year: 2011,
+                isbn: "",
+                link: "https://ocw.mit.edu/courses/electrical-engineering-and-computer-science/6-831-user-interface-design-and-implementation-spring-2011/"
+            },
+            {
+                id: "OE4",
+                title: "Usability.gov: User Experience Basics",
+                type: "Open Educational Resources",
+                authors: "GSA Technology Transformation Services",
+                year: 2019,
+                isbn: "",
+                link: "https://www.usability.gov/what-and-why/user-experience.html"
+            },
+            {
+                id: "OE5",
+                title: "The A11Y Project Checklist",
+                type: "Open Educational Resources",
+                authors: "The A11Y Project Team",
+                year: 2023,
+                isbn: "",
+                link: "https://www.a11yproject.com/checklist/"
             }
         ],
         topics: [
             {
                 id: "T1",
-                title: "HCI Models",
+                title: "Introduction to HCI & Cognitive Foundations",
                 subtopics: [
-                    { id: "S1", value: "Example Subtopic 1" },
-                    { id: "S2", value: "Example Subtopic 2" }
+                    { id: "S1", value: "History and Evolution of HCI" },
+                    { id: "S2", value: "The Human Information Processor" },
+                    { id: "S3", value: "Mental Models and Metaphors" },
+                    { id: "S4", value: "Gulf of Execution and Evaluation" }
                 ],
                 tlas: [
                     {
                         id: "TLA1",
-                        classPhase: "Pre-class",      // or "In-class", "Post-class"
-                        performedBy: "Instructor",    // or "Student"
-                        tlaName: "Lecture on HCI Models",
-                        tlaDescription: "Introduce different models of HCI and their applications.",
+                        classPhase: "Pre-class",
+                        performedBy: "Instructor",
+                        tlaName: "Foundations Lecture",
+                        tlaDescription: "An in-depth overview of the multi-disciplinary nature of HCI, exploring how psychology, design, and computer science intersect. This session introduces Don Norman’s fundamental principles of design.",
                         laboratory: false
                     },
                     {
                         id: "TLA2",
                         classPhase: "In-class",
                         performedBy: "Student",
-                        tlaName: "Group Activity",
-                        tlaDescription: "Students analyze case studies of HCI models.",
+                        tlaName: "Bad Design Hunt",
+                        tlaDescription: "Students explore the campus or digital environments to capture examples of 'bad design.' They must analyze and present which cognitive principles (e.g., affordance, signifiers, mapping) were violated.",
                         laboratory: true
                     }
                 ]
             },
             {
                 id: "T2",
-                title: "Introduction to HCI",
+                title: "User Research Methodologies",
                 subtopics: [
-                    { id: "S3", value: "History of HCI" },
-                    { id: "S4", value: "Importance of HCI" }
+                    { id: "S5", value: "Quantitative vs. Qualitative Research" },
+                    { id: "S6", value: "Contextual Inquiry and Observation" },
+                    { id: "S7", value: "Interview Techniques" },
+                    { id: "S8", value: "Ethical Considerations in Research" }
                 ],
                 tlas: [
                     {
                         id: "TLA3",
-                        classPhase: "Pre-class",
-                        performedBy: "Instructor",
-                        tlaName: "Overview Lecture",
-                        tlaDescription: "Provide background and context for HCI.",
+                        classPhase: "In-class",
+                        performedBy: "Student",
+                        tlaName: "Mock Interview Session",
+                        tlaDescription: "Students pair up to conduct semi-structured user interviews based on a provided problem statement. One acts as the researcher and the other as the user, focusing on avoiding leading questions.",
+                        laboratory: false
+                    },
+                    {
+                        id: "TLA4",
+                        classPhase: "Post-class",
+                        performedBy: "Student",
+                        tlaName: "Research Plan Proposal",
+                        tlaDescription: "Students draft a formal research plan outlining their objectives, target methodology, and recruitment screener for their term project.",
                         laboratory: false
                     }
                 ]
             },
             {
                 id: "T3",
-                title: "User Centered Design",
+                title: "User Modeling & Requirements",
                 subtopics: [
-                    { id: "S5", value: "Principles of UCD" },
-                    { id: "S6", value: "Iterative Design" }
+                    { id: "S9", value: "Creating User Personas" },
+                    { id: "S10", value: "Empathy Mapping" },
+                    { id: "S11", value: "User Stories and Scenarios" },
+                    { id: "S12", value: "Journey Mapping" }
                 ],
                 tlas: [
                     {
-                        id: "TLA4",
+                        id: "TLA5",
                         classPhase: "In-class",
                         performedBy: "Student",
-                        tlaName: "Design Workshop",
-                        tlaDescription: "Students create prototypes following UCD principles.",
+                        tlaName: "Persona Workshop",
+                        tlaDescription: "Using data gathered from the research phase, student groups synthesize findings into three distinct personas (Primary, Secondary, Negative) using professional templates.",
                         laboratory: true
                     }
                 ]
             },
             {
                 id: "T4",
-                title: "Front End Prototyping",
+                title: "Information Architecture (IA)",
                 subtopics: [
-                    { id: "S7", value: "Wireframing" },
-                    { id: "S8", value: "Interactive Mockups" }
+                    { id: "S13", value: "Organization Schemes and Structures" },
+                    { id: "S14", value: "Labeling Systems" },
+                    { id: "S15", value: "Navigation Design Patterns" },
+                    { id: "S16", value: "Card Sorting Techniques" }
                 ],
                 tlas: [
                     {
-                        id: "TLA5",
-                        classPhase: "Post-class",
+                        id: "TLA6",
+                        classPhase: "In-class",
+                        performedBy: "Student",
+                        tlaName: "Card Sorting Exercise",
+                        tlaDescription: "Groups perform an open card sort activity using sticky notes to organize 50+ content items into logical categories, creating a proposed site map for an e-commerce application.",
+                        laboratory: true
+                    }
+                ]
+            },
+            {
+                id: "T5",
+                title: "Interaction Design Principles",
+                subtopics: [
+                    { id: "S17", value: "Nielsen’s 10 Usability Heuristics" },
+                    { id: "S18", value: "Shneiderman’s Eight Golden Rules" },
+                    { id: "S19", value: "Fitts’ Law and Hick’s Law" },
+                    { id: "S20", value: "Error Prevention and Recovery" }
+                ],
+                tlas: [
+                    {
+                        id: "TLA7",
+                        classPhase: "Pre-class",
                         performedBy: "Instructor",
-                        tlaName: "Prototype Review",
-                        tlaDescription: "Evaluate student prototypes and provide feedback.",
+                        tlaName: "Heuristics Deep Dive",
+                        tlaDescription: "A lecture analyzing real-world interfaces against Nielsen’s heuristics, demonstrating both violations and adherences in popular software products.",
                         laboratory: false
+                    },
+                    {
+                        id: "TLA8",
+                        classPhase: "Post-class",
+                        performedBy: "Student",
+                        tlaName: "Heuristic Evaluation Report",
+                        tlaDescription: "Students select a mobile application and perform a rigorous heuristic evaluation, documenting at least 5 major usability issues with severity ratings.",
+                        laboratory: false
+                    }
+                ]
+            },
+            {
+                id: "T6",
+                title: "Visual Design & UI Fundamentals",
+                subtopics: [
+                    { id: "S21", value: "Color Theory and Psychology" },
+                    { id: "S22", value: "Typography and Readability" },
+                    { id: "S23", value: "Grid Systems and Layout" },
+                    { id: "S24", value: "Gestalt Principles in UI" }
+                ],
+                tlas: [
+                    {
+                        id: "TLA9",
+                        classPhase: "In-class",
+                        performedBy: "Student",
+                        tlaName: "UI Component Audit",
+                        tlaDescription: "Students audit a design system (e.g., Material Design), analyzing how atoms, molecules, and organisms are constructed visually.",
+                        laboratory: true
+                    }
+                ]
+            },
+            {
+                id: "T7",
+                title: "Low-Fidelity Prototyping",
+                subtopics: [
+                    { id: "S25", value: "Sketching and Storyboarding" },
+                    { id: "S26", value: "Paper Prototyping" },
+                    { id: "S27", value: "Wireframing Concepts" },
+                    { id: "S28", value: "Design Fidelity Levels" }
+                ],
+                tlas: [
+                    {
+                        id: "TLA10",
+                        classPhase: "In-class",
+                        performedBy: "Student",
+                        tlaName: "Crazy 8s Sketching",
+                        tlaDescription: "A rapid ideation exercise where students must generate 8 distinct interface layout ideas for a single screen in 8 minutes to overcome design fixation.",
+                        laboratory: true
+                    },
+                    {
+                        id: "TLA11",
+                        classPhase: "In-class",
+                        performedBy: "Instructor",
+                        tlaName: "Paper Prototype Demo",
+                        tlaDescription: "Instructor demonstrates how to simulate user interactions (clicks, scrolls, transitions) using only paper, scissors, and transparency sheets.",
+                        laboratory: false
+                    }
+                ]
+            },
+            {
+                id: "T8",
+                title: "High-Fidelity Prototyping",
+                subtopics: [
+                    { id: "S29", value: "Introduction to Figma/Adobe XD" },
+                    { id: "S30", value: "Components, Variants, and Auto-Layout" },
+                    { id: "S31", value: "Interactive States (Hover, Pressed)" },
+                    { id: "S32", value: "Micro-interactions" }
+                ],
+                tlas: [
+                    {
+                        id: "TLA12",
+                        classPhase: "In-class",
+                        performedBy: "Instructor",
+                        tlaName: "Figma Masterclass",
+                        tlaDescription: "Live coding/design session covering advanced Figma features including component properties, boolean variables, and prototyping smart animate transitions.",
+                        laboratory: true
+                    },
+                    {
+                        id: "TLA13",
+                        classPhase: "Post-class",
+                        performedBy: "Student",
+                        tlaName: "Clickable Prototype Build",
+                        tlaDescription: "Students translate their wireframes into a fully functional high-fidelity prototype with linked screens and realistic data.",
+                        laboratory: true
+                    }
+                ]
+            },
+            {
+                id: "T9",
+                title: "Usability Testing",
+                subtopics: [
+                    { id: "S33", value: "Planning a Usability Test" },
+                    { id: "S34", value: "Recruiting Participants" },
+                    { id: "S35", value: "Moderated vs. Unmoderated Testing" },
+                    { id: "S36", value: "Measuring Success (Success Rate, Time on Task)" }
+                ],
+                tlas: [
+                    {
+                        id: "TLA14",
+                        classPhase: "In-class",
+                        performedBy: "Student",
+                        tlaName: "Live Usability Test",
+                        tlaDescription: "Students perform a moderated usability test on their high-fidelity prototypes with invited participants, recording observations and critical incidents.",
+                        laboratory: true
+                    }
+                ]
+            },
+            {
+                id: "T10",
+                title: "Accessibility & Ethics in AI",
+                subtopics: [
+                    { id: "S37", value: "WCAG 2.1 Guidelines (POUR)" },
+                    { id: "S38", value: "Assistive Technologies (Screen Readers)" },
+                    { id: "S39", value: "Dark Patterns in UX" },
+                    { id: "S40", value: "Designing for AI Trust" }
+                ],
+                tlas: [
+                    {
+                        id: "TLA15",
+                        classPhase: "Pre-class",
+                        performedBy: "Instructor",
+                        tlaName: "Accessibility Lecture",
+                        tlaDescription: "Discussion on the importance of inclusive design, demonstrating how screen readers interpret semantic HTML and ARIA labels.",
+                        laboratory: false
+                    },
+                    {
+                        id: "TLA16",
+                        classPhase: "In-class",
+                        performedBy: "Student",
+                        tlaName: "Accessibility Audit",
+                        tlaDescription: "Students use automated tools (like WAVE or Lighthouse) and manual checks to audit a government website for accessibility violations.",
+                        laboratory: true
                     }
                 ]
             }
         ],
         ilos: [
-            {
-                id: "CO0-ILO0",
-                courseOutcome: "Apply core concepts, theories, and principles of Human-Computer Interface (HCI)...",
-                intendedLearningOutcome: "Understand the role of HCI models in UI design.",
-                deliveryWeek: "Week 1",
-                allocatedTime: "1 hour",
-                topics: ["HCI Models", "Introduction to HCI"],   // multiple topics
-                references: ["OR1 - UI PRINCIPLES", "OR2 - Design Guidelines"] // multiple references
-            },
+            // --- CO1: Foundations & Analysis ---
             {
                 id: "CO1-ILO1",
-                courseOutcome: "Apply core concepts, theories, and principles of Human-Computer Interface (HCI)...",
-                intendedLearningOutcome: "Introduce fundamental concepts of HCI.",
-                deliveryWeek: "Week 2",
-                allocatedTime: "1.5 hour",
-                topics: ["User Centered Design", "Front End Prototyping"],
-                references: ["OR3 - Imagery", "OE1 - UI PRINCIPLES"]
+                courseOutcome: "Apply core concepts, theories, and principles of Human-Computer Interface (HCI) in proposing a User Interface (UI) design using Figma to translate a design brief into interactive screen layouts and UI components with a high-fidelity prototype demonstrating clarity, consistency, and appropriate use of visual hierarchy.",
+                intendedLearningOutcome: "Analyze the relationship between cognitive psychology and human-computer interaction.",
+                deliveryWeek: "Week 1",
+                allocatedTime: "3 hours",
+                topics: [
+                    "Introduction to HCI & Cognitive Foundations",
+                    "User Research Methodologies"
+                ],
+                references: [
+                    "TB1 - The Design of Everyday Things",
+                    "TB4 - Designing with the Mind in Mind"
+                ]
             },
             {
                 id: "CO1-ILO2",
-                courseOutcome: "Apply core concepts, theories, and principles of Human-Computer Interface (HCI)...",
-                intendedLearningOutcome: "Apply user-centered design principles in prototype creation.",
-                deliveryWeek: "Week 3",
-                allocatedTime: "2 hours",
-                topics: ["Front End Prototyping", "HCI Models"],
-                references: ["OE2 - Introduction to Generative AI", "OR2 - Design Guidelines"]
+                courseOutcome: "Apply core concepts, theories, and principles of Human-Computer Interface (HCI) in proposing a User Interface (UI) design using Figma to translate a design brief into interactive screen layouts and UI components with a high-fidelity prototype demonstrating clarity, consistency, and appropriate use of visual hierarchy.",
+                intendedLearningOutcome: "Synthesize user research data into actionable user personas and empathy maps.",
+                deliveryWeek: "Week 2",
+                allocatedTime: "3 hours",
+                topics: [
+                    "User Research Methodologies",
+                    "User Modeling & Requirements"
+                ],
+                references: [
+                    "OE1 - The Encyclopedia of Human-Computer Interaction, 2nd Ed.",
+                    "TB3 - About Face: The Essentials of Interaction Design"
+                ]
             },
             {
                 id: "CO1-ILO3",
-                courseOutcome: "Apply core concepts, theories, and principles of Human-Computer Interface (HCI)...",
-                intendedLearningOutcome: "Develop front-end prototypes using modern tools.",
-                deliveryWeek: "Week 4",
+                courseOutcome: "Apply core concepts, theories, and principles of Human-Computer Interface (HCI) in proposing a User Interface (UI) design using Figma to translate a design brief into interactive screen layouts and UI components with a high-fidelity prototype demonstrating clarity, consistency, and appropriate use of visual hierarchy.",
+                intendedLearningOutcome: "Structure information architecture effectively using card sorting techniques.",
+                deliveryWeek: "Week 3",
                 allocatedTime: "2 hours",
-                topics: ["Introduction to HCI", "User Centered Design"],
-                references: ["OR1 - UI PRINCIPLES", "OE2 - Introduction to Generative AI"]
+                topics: [
+                    "Information Architecture (IA)",
+                    "User Modeling & Requirements"
+                ],
+                references: [
+                    "TB2 - Don't Make Me Think, Revisited",
+                    "OE4 - Usability.gov: User Experience Basics"
+                ]
             },
+
+            // --- CO2: Design Strategy & Low-Fi ---
             {
                 id: "CO2-ILO1",
-                courseOutcome: "Apply core concepts, theories, and principles of Human-Computer Interface (HCI)...",
-                intendedLearningOutcome: "Evaluate usability principles in interactive systems.",
-                deliveryWeek: "Week 5",
-                allocatedTime: "1 hour",
-                topics: ["HCI Models", "Front End Prototyping"],
-                references: ["OR3 - Imagery", "OE1 - UI PRINCIPLES"]
+                courseOutcome: "User-Centered Design (UCD) principles and ISO 9241-210 standards with given user personas, contextual task flows, and feedback artifacts to develop a User Experience (UX) design that demonstrates user involvement, iterative refinement, and contextual understanding, as evaluated against established UX design criteria.",
+                intendedLearningOutcome: "Apply Nielsen's 10 Usability Heuristics to critique existing interface designs.",
+                deliveryWeek: "Week 4",
+                allocatedTime: "3 hours",
+                topics: [
+                    "Interaction Design Principles",
+                    "Introduction to HCI & Cognitive Foundations"
+                ],
+                references: [
+                    "OR1 - 10 Usability Heuristics for User Interface Design",
+                    "TB5 - Universal Principles of Design"
+                ]
             },
             {
                 id: "CO2-ILO2",
-                courseOutcome: "Apply core concepts, theories, and principles of Human-Computer Interface (HCI)...",
-                intendedLearningOutcome: "Analyze design guidelines for effective UI.",
-                deliveryWeek: "Week 6",
-                allocatedTime: "1.5 hour",
-                topics: ["Introduction to HCI", "User Centered Design"],
-                references: ["OR2 - Design Guidelines", "OE2 - Introduction to Generative AI"]
+                courseOutcome: "User-Centered Design (UCD) principles and ISO 9241-210 standards with given user personas, contextual task flows, and feedback artifacts to develop a User Experience (UX) design that demonstrates user involvement, iterative refinement, and contextual understanding, as evaluated against established UX design criteria.",
+                intendedLearningOutcome: "Create low-fidelity wireframes that solve specific user pain points.",
+                deliveryWeek: "Week 5",
+                allocatedTime: "3 hours",
+                topics: [
+                    "Low-Fidelity Prototyping",
+                    "Visual Design & UI Fundamentals"
+                ],
+                references: [
+                    "OR4 - Laws of UX",
+                    "TB3 - About Face: The Essentials of Interaction Design"
+                ]
             },
             {
                 id: "CO2-ILO3",
-                courseOutcome: "Apply core concepts, theories, and principles of Human-Computer Interface (HCI)...",
-                intendedLearningOutcome: "Integrate imagery and visual hierarchy in UI design.",
-                deliveryWeek: "Week 7",
+                courseOutcome: "User-Centered Design (UCD) principles and ISO 9241-210 standards with given user personas, contextual task flows, and feedback artifacts to develop a User Experience (UX) design that demonstrates user involvement, iterative refinement, and contextual understanding, as evaluated against established UX design criteria.",
+                intendedLearningOutcome: "Apply Gestalt principles and color theory to enhance UI readability.",
+                deliveryWeek: "Week 6",
                 allocatedTime: "2 hours",
-                topics: ["Front End Prototyping", "HCI Models"],
-                references: ["OR3 - Imagery", "OR1 - UI PRINCIPLES"]
+                topics: [
+                    "Visual Design & UI Fundamentals",
+                    "Interaction Design Principles"
+                ],
+                references: [
+                    "OR2 - Material Design 3 Guidelines",
+                    "OR3 - Human Interface Guidelines"
+                ]
             },
+
+            // --- CO3: High-Fi Construction ---
             {
                 id: "CO3-ILO1",
-                courseOutcome: "Apply core concepts, theories, and principles of Human-Computer Interface (HCI)...",
-                intendedLearningOutcome: "Design prototypes with clarity and consistency.",
+                courseOutcome: "Construct a front-end prototype for a proposed software application by applying HCI design principles, UI/UX laws, accessibility standards, and web accessibility guidelines that demonstrate compliance with best practices in usability, inclusivity, and user engagement.",
+                intendedLearningOutcome: "Develop high-fidelity interactive prototypes using Figma components and variants.",
                 deliveryWeek: "Week 8",
-                allocatedTime: "1 hour",
-                topics: ["User Centered Design", "Front End Prototyping"],
-                references: ["OE1 - UI PRINCIPLES", "OR2 - Design Guidelines"]
+                allocatedTime: "4 hours",
+                topics: [
+                    "High-Fidelity Prototyping",
+                    "Visual Design & UI Fundamentals"
+                ],
+                references: [
+                    "OR2 - Material Design 3 Guidelines",
+                    "OR5 - Smashing Magazine: UX Design Category"
+                ]
             },
             {
                 id: "CO3-ILO2",
-                courseOutcome: "Apply core concepts, theories, and principles of Human-Computer Interface (HCI)...",
-                intendedLearningOutcome: "Apply visual hierarchy in UI layouts.",
+                courseOutcome: "Construct a front-end prototype for a proposed software application by applying HCI design principles, UI/UX laws, accessibility standards, and web accessibility guidelines that demonstrate compliance with best practices in usability, inclusivity, and user engagement.",
+                intendedLearningOutcome: "Integrate micro-interactions to provide feedback and feedforward mechanisms.",
                 deliveryWeek: "Week 9",
-                allocatedTime: "1.5 hour",
-                topics: ["Front End Prototyping", "Introduction to HCI"],
-                references: ["OE2 - Introduction to Generative AI", "OR3 - Imagery"]
+                allocatedTime: "3 hours",
+                topics: [
+                    "High-Fidelity Prototyping",
+                    "Interaction Design Principles"
+                ],
+                references: [
+                    "TB4 - Designing with the Mind in Mind",
+                    "OR3 - Human Interface Guidelines"
+                ]
             },
             {
                 id: "CO3-ILO3",
-                courseOutcome: "Apply core concepts, theories, and principles of Human-Computer Interface (HCI)...",
-                intendedLearningOutcome: "Evaluate prototypes through usability testing.",
+                courseOutcome: "Construct a front-end prototype for a proposed software application by applying HCI design principles, UI/UX laws, accessibility standards, and web accessibility guidelines that demonstrate compliance with best practices in usability, inclusivity, and user engagement.",
+                intendedLearningOutcome: "Evaluate interfaces against WCAG 2.1 accessibility standards.",
                 deliveryWeek: "Week 10",
                 allocatedTime: "2 hours",
-                topics: ["HCI Models", "User Centered Design"],
-                references: ["OR1 - UI PRINCIPLES", "OE2 - Introduction to Generative AI"]
+                topics: [
+                    "Accessibility & Ethics in AI",
+                    "User Research Methodologies"
+                ],
+                references: [
+                    "OE2 - Web Content Accessibility Guidelines (WCAG) 2.2",
+                    "OE5 - The A11Y Project Checklist"
+                ]
             },
+
+            // --- CO4: Justification & Testing ---
             {
                 id: "CO4-ILO1",
-                courseOutcome: "Apply core concepts, theories, and principles of Human-Computer Interface (HCI)...",
-                intendedLearningOutcome: "Demonstrate consistency in UI component design.",
+                courseOutcome: "Justify the front-end prototype of a proposed software application based on usability testing results and user feedback by providing evidence-based rationale that addresses at least 80% of identified usability issues and aligns with user experience goals.",
+                intendedLearningOutcome: "Formulate a usability testing plan with clear metrics and tasks.",
                 deliveryWeek: "Week 11",
-                allocatedTime: "1 hour",
-                topics: ["Introduction to HCI", "Front End Prototyping"],
-                references: ["OR2 - Design Guidelines", "OE1 - UI PRINCIPLES"]
+                allocatedTime: "2 hours",
+                topics: [
+                    "Usability Testing",
+                    "User Research Methodologies"
+                ],
+                references: [
+                    "OE4 - Usability.gov: User Experience Basics",
+                    "TB2 - Don't Make Me Think, Revisited"
+                ]
             },
             {
                 id: "CO4-ILO2",
-                courseOutcome: "Apply core concepts, theories, and principles of Human-Computer Interface (HCI)...",
-                intendedLearningOutcome: "Apply advanced prototyping techniques.",
+                courseOutcome: "Justify the front-end prototype of a proposed software application based on usability testing results and user feedback by providing evidence-based rationale that addresses at least 80% of identified usability issues and aligns with user experience goals.",
+                intendedLearningOutcome: "Conduct moderated usability tests to gather qualitative and quantitative feedback.",
                 deliveryWeek: "Week 12",
-                allocatedTime: "1.5 hour",
-                topics: ["Front End Prototyping", "HCI Models"],
-                references: ["OR3 - Imagery", "OE2 - Introduction to Generative AI"]
+                allocatedTime: "4 hours",
+                topics: [
+                    "Usability Testing",
+                    "High-Fidelity Prototyping"
+                ],
+                references: [
+                    "OR1 - 10 Usability Heuristics for User Interface Design",
+                    "TB1 - The Design of Everyday Things"
+                ]
             },
             {
                 id: "CO4-ILO3",
-                courseOutcome: "Apply core concepts, theories, and principles of Human-Computer Interface (HCI)...",
-                intendedLearningOutcome: "Integrate generative AI concepts in UI design.",
+                courseOutcome: "Justify the front-end prototype of a proposed software application based on usability testing results and user feedback by providing evidence-based rationale that addresses at least 80% of identified usability issues and aligns with user experience goals.",
+                intendedLearningOutcome: "Propose design iterations based on empirical evidence from usability testing.",
                 deliveryWeek: "Week 13",
-                allocatedTime: "2 hours",
-                topics: ["User Centered Design", "Introduction to HCI"],
-                references: ["OE2 - Introduction to Generative AI", "OR1 - UI PRINCIPLES"]
+                allocatedTime: "3 hours",
+                topics: [
+                    "Usability Testing",
+                    "Interaction Design Principles"
+                ],
+                references: [
+                    "OE3 - MIT OpenCourseWare: User Interface Design and Implementation",
+                    "OR4 - Laws of UX"
+                ]
             }
         ],
         assessments: [

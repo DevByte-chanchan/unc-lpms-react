@@ -1,7 +1,7 @@
 
-import styles from '../styles/Header.module.sass'
+import styles from '../styles/HeaderA.module.sass'
 
-const Header = ({department, name, role}) => {
+const HeaderA = ({department, name, role}) => {
     return (
         <div className={styles.header}>
             <div className={styles.department}>
@@ -16,4 +16,4 @@ const Header = ({department, name, role}) => {
     )
 }
 
-export default Header
+export default HeaderA

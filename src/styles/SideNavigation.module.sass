@@ -52,10 +52,8 @@
   justify-content: left
   flex-direction: row
   cursor: pointer
-  flex-grow: 1
-  min-height: 100px
-  align-items: flex-end
-  margin-bottom: 50px
+  // compact; wrapper controls bottom positioning
+  flex-grow: 0
   font-size: 16px
   font-weight: 400
   color: #F94545
@@ -64,3 +62,46 @@
 //  color: white
 //  background: #F94545
 //  transition: .3s ease
+
+// --- Logout role popup ---
+.logoutWrapper
+  position: relative
+  margin-top: auto
+  display: flex
+  flex-direction: column
+  padding-bottom: 50px
+
+.rolePopup
+  position: absolute
+  left: 12.5px
+  right: 12.5px
+  bottom: calc(100% + 10px)
+  background: #ffffff
+  border: 1px solid #E5E7EB
+  border-radius: 10px
+  box-shadow: 0 8px 24px rgba(0,0,0,0.12)
+  padding: 10px
+  display: flex
+  flex-direction: column
+  gap: 8px
+  z-index: 10
+
+.popupTitle
+  font-size: 14px
+  font-weight: 600
+  color: #6B7280
+  padding: 0 4px 6px 4px
+  border-bottom: 1px solid #F3F4F6
+
+.popupItem
+  text-align: left
+  background: #fff
+  border: none
+  padding: 8px
+  border-radius: 8px
+  font-size: 14px
+  cursor: pointer
+  color: #111827
+
+.popupItem:hover
+  background: #F3F4F6

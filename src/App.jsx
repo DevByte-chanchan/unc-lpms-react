@@ -1,7 +1,6 @@
 
 import './App.css'
 import {BrowserRouter as Router, Routes, Route} from 'react-router-dom'
-import SyllabusSections from "./components/SyllabusSections.jsx";
 import AssignedCourses from "./pages/AssignedCourses.jsx";
 import Syllabus from "./pages/Syllabus.jsx";
 import ReferenceForm from "./pages/ReferenceForm.jsx";

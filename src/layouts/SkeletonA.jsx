@@ -1,7 +1,7 @@
-import styles from '../styles/Skeleton.module.sass'
+import styles from '../styles/SkeletonA.module.sass'
 import {useState} from "react";
 
-const Skeleton = ({ nav, header, content }) => {
+const SkeletonA = ({ nav, header, content }) => {
     // const [formVisibility, setFormVisibility] = useState(false)
     //
     // const handleFormVisibilityChange = (event) => {
@@ -33,4 +33,4 @@ const Skeleton = ({ nav, header, content }) => {
     )
 }
 
-export default Skeleton;
+export default SkeletonA;
