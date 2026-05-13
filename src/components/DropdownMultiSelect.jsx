@@ -1,9 +1,8 @@
 import { useState, useRef, useEffect } from "react";
 import styles from "../styles/CriteriaForGradingForm.module.sass";
 
-const DropdownMultiSelect = ({ options = [], initialValue = [], onChange }) => {
+const DropdownMultiSelect = ({ options = [], value = [], onChange }) => {
     const [open, setOpen] = useState(false);
-    const [selected, setSelected] = useState(initialValue);
     const ref = useRef(null);
 
     useEffect(() => {
@@ -17,21 +16,17 @@ const DropdownMultiSelect = ({ options = [], initialValue = [], onChange }) => {
     }, []);
 
     const toggleOption = (option) => {
-        const updated = selected.includes(option)
-            ? selected.filter(o => o !== option)
-            : [...selected, option];
+        const updated = value.includes(option)
+            ? value.filter(o => o !== option)
+            : [...value, option];
 
-        setSelected(updated);
-        onChange?.(updated);
+        onChange(updated);
     };
 
     return (
         <div className={styles.multiSelect} ref={ref}>
-            <div
-                className={styles.dropdown}
-                onClick={() => setOpen(!open)}
-            >
-                {selected.length ? selected.join(", ") : "Select assessments"}
+            <div className={styles.dropdown} onClick={() => setOpen(!open)}>
+                {value.length ? value.join(", ") : "Select assessments"}
             </div>
 
             {open && (
@@ -47,8 +42,8 @@ const DropdownMultiSelect = ({ options = [], initialValue = [], onChange }) => {
                         >
                             <input
                                 type="checkbox"
-                                checked={selected.includes(opt)}
-                                readOnly             // prevents React warnings
+                                checked={value.includes(opt)}
+                                readOnly
                             />
                             {opt}
                         </label>

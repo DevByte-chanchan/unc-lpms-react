@@ -37,8 +37,6 @@ const SideNavigation = () => {
                     <FileText size={24}/> TOS
                 </div>
 
-                <div className={'fill'}></div>
-
 
 
                 <div className={styles.listB}>

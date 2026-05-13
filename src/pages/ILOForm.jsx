@@ -1,16 +1,15 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import SkeletonA from "../layouts/SkeletonA.jsx";
 import HeaderA from "../components/HeaderA.jsx";
 import FormNavigation from "../components/FormNavigation.jsx";
 import styles from "../styles/Form.module.sass";
 import { useNavigate, useParams } from "react-router-dom";
-import TextField from "../components/TextField.jsx"; // Not used in this form specifically but good to keep
 import DropdownA from "../components/DropdownA.jsx";
 import TextArea from "../components/TextArea.jsx";
 import MultiSelectA from "../components/MultiSelectA.jsx";
 import SideNavigation from "../components/SideNavigation.jsx";
 import { getSyllabusByCode } from "../data/syllabiData";
-import { X, AlertCircle, CheckCircle } from "react-feather"; // Import Icons
+import { X, AlertCircle, CheckCircle } from "react-feather";
 
 const ILOForm = () => {
     const navigate = useNavigate();
@@ -35,11 +34,12 @@ const ILOForm = () => {
         : [];
 
     // 2. Initialize State
-    // Note: courseOutcome is read-only usually, but we keep it in state for consistency
     const [courseOutcome] = useState(iloData.courseOutcome || '');
     const [intendedLearningOutcome, setIntendedLearningOutcome] = useState(iloData.intendedLearningOutcome || '');
     const [deliveryWeek, setDeliveryWeek] = useState(iloData.deliveryWeek || '');
     const [allocatedTime, setAllocatedTime] = useState(iloData.allocatedTime || '');
+
+    // selectedTopics contains an array of Topic Titles (strings)
     const [selectedTopics, setSelectedTopics] = useState(iloData.topics || []);
     const [selectedReferences, setSelectedReferences] = useState(iloData.references || []);
 
@@ -49,6 +49,64 @@ const ILOForm = () => {
     // Modal States
     const [showConfirmModal, setShowConfirmModal] = useState(false);
     const [showErrorModal, setShowErrorModal] = useState(false);
+
+    // --- NEW LOGIC: GENERATE TLA STRING ---
+    // This calculates the text whenever 'selectedTopics' changes
+    const derivedTLAText = useMemo(() => {
+        if (!syllabus || !selectedTopics || selectedTopics.length === 0) {
+            return "Select topics above to view associated Teaching & Learning Activities.";
+        }
+
+        // 1. Find the full topic objects for the selected titles
+        const matchingTopics = syllabus.topics.filter(t =>
+            selectedTopics.includes(t.title)
+        );
+
+        // 2. Aggregate all TLAs from these topics
+        let allTLAs = [];
+        matchingTopics.forEach(topic => {
+            if (topic.tlas) {
+                allTLAs = [...allTLAs, ...topic.tlas];
+            }
+        });
+
+        if (allTLAs.length === 0) return "No TLAs found for the selected topics.";
+
+        // 3. Define the order and buckets
+        const phases = ["Pre-class", "In-class", "Post-class"];
+        let resultString = "";
+
+        // 4. Loop through phases to create the grouped string
+        phases.forEach(phase => {
+            // Find TLAs that match this phase
+            const phaseTLAs = allTLAs.filter(t => t.classPhase === phase);
+
+            if (phaseTLAs.length > 0) {
+                // Add Header (e.g., "PRE-CLASS:")
+                resultString += `${phase.toUpperCase()}:\n`;
+
+                // Add each TLA details
+                phaseTLAs.forEach(tla => {
+                    // Logic 1: Determine Actor Tag [I] or [S]
+                    // Checks first letter of 'performedBy' (e.g., "Student" -> "S")
+                    const actorChar = tla.performedBy ? tla.performedBy.charAt(0).toUpperCase() : 'S';
+
+                    // Logic 2: Determine Lab Tag (LAB)
+                    // Checks if activityType is explicitly 'Laboratory'
+                    const isLab = tla.activityType && tla.activityType.toLowerCase() === 'laboratory';
+                    const labSuffix = isLab ? " (LAB)" : "";
+
+                    // Construct String: • [S] Name (LAB): Description
+                    resultString += `• [${actorChar}] ${tla.tlaName}${labSuffix}: ${tla.tlaDescription}\n`;
+                });
+
+                // Add spacing between groups
+                resultString += `\n`;
+            }
+        });
+
+        return resultString.trim();
+    }, [selectedTopics, syllabus]);
 
     // --- HANDLERS ---
 
@@ -67,18 +125,15 @@ const ILOForm = () => {
     const validateForm = () => {
         let newErrors = {};
 
-        // 1. Validate ILO Text
         if (!intendedLearningOutcome.trim()) {
             newErrors.intendedLearningOutcome = "Intended Learning Outcome is required.";
         } else if (intendedLearningOutcome.length < 10) {
             newErrors.intendedLearningOutcome = "Description is too short.";
         }
 
-        // 2. Validate Dropdowns
         if (!deliveryWeek) newErrors.deliveryWeek = "Delivery Week is required.";
         if (!allocatedTime) newErrors.allocatedTime = "Allocated Time is required.";
 
-        // 3. Validate MultiSelects (Must have at least 1 selected)
         if (selectedTopics.length === 0) {
             newErrors.topics = "Please select at least one topic.";
         }
@@ -127,7 +182,7 @@ const ILOForm = () => {
                             disabled={true}
                             label={'Course Outcome'}
                             value={courseOutcome}
-                            // No error needed here as it's disabled
+                            readOnly={true}
                         />
 
                         <TextArea
@@ -155,18 +210,27 @@ const ILOForm = () => {
                             />
                         </div>
 
-                        <h2>Topics</h2>
+                        <h2>Topics & TLAs</h2>
                         <MultiSelectA
-                            label={'Name(s)'}
+                            label={'Select Topics'}
                             options={availableTopics}
                             value={selectedTopics}
                             onChange={(val) => handleMultiSelectChange(setSelectedTopics, 'topics', val)}
                             error={errors.topics}
                         />
 
+                        {/* --- UPDATED TEXT AREA FOR TLAS --- */}
+                        <TextArea
+                            label={'Associated Teaching & Learning Activities (TLAs)'}
+                            value={derivedTLAText}
+                            disabled={true}
+                            readOnly={true}
+                            rows={15} // Kept static rows as requested
+                        />
+
                         <h2>References</h2>
                         <MultiSelectA
-                            label={'Title(s)'}
+                            label={'Select Title(s)'}
                             options={availableReferences}
                             value={selectedReferences}
                             onChange={(val) => handleMultiSelectChange(setSelectedReferences, 'references', val)}
@@ -176,8 +240,6 @@ const ILOForm = () => {
                     </div>
 
                     {/* --- POPUPS / MODALS --- */}
-
-                    {/* 1. CONFIRMATION POPUP */}
                     {showConfirmModal && (
                         <div className={styles.modalOverlay}>
                             <div className={styles.modal}>
@@ -196,7 +258,6 @@ const ILOForm = () => {
                         </div>
                     )}
 
-                    {/* 2. ERROR POPUP */}
                     {showErrorModal && (
                         <div className={styles.modalOverlay}>
                             <div className={styles.modal}>
@@ -215,7 +276,6 @@ const ILOForm = () => {
                                     <ul className={styles.errorList}>
                                         {Object.entries(errors).map(([key, err], idx) => (
                                             <li key={idx}>
-                                                {/* Formatting the key to look nicer */}
                                                 {key === 'intendedLearningOutcome' ? 'ILO Description' :
                                                     key.charAt(0).toUpperCase() + key.slice(1)}: {err}
                                             </li>

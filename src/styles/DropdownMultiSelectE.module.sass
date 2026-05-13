@@ -1,0 +1,134 @@
+// --- Main Container ---
+.multiSelect
+  position: relative
+  width: 100%
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif
+
+// --- The Clickable Input Box ---
+.dropdown
+  width: 100%
+  min-height: 42px
+  padding: 8px 12px
+  border: 1px solid rgba(17, 24, 39, 0.1) // Subtle border
+  border-radius: 6px
+  background: #FBFCFD
+  cursor: pointer
+  display: flex
+  align-items: flex-start // Aligns text to top if multiline
+  justify-content: space-between
+  gap: 10px
+  transition: all 0.2s ease
+
+  &:hover
+    border-color: #98A2B3
+    background: #fff
+
+  &.active
+    border-color: #3b82f6
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1)
+
+// --- Selected Items Display ---
+.selectedContainer
+  flex: 1
+
+.tags
+  display: flex
+  flex-wrap: wrap
+  gap: 6px
+
+.tag
+  background: #E5E7EB
+  color: #374151
+  padding: 2px 8px
+  border-radius: 4px
+  font-size: 13px
+  font-weight: 500
+  line-height: 1.4
+
+.placeholder
+  color: #9CA3AF
+  font-size: 14px
+
+.chevron
+  color: #6B7280
+  margin-top: 4px // Aligns slightly better with text
+
+// --- Dropdown Menu (Popup) ---
+.dropdownMenu
+  position: absolute
+  top: calc(100% + 6px)
+  left: 0
+  width: 100%
+  background: white
+  border: 1px solid #E5E7EB
+  border-radius: 6px
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)
+  z-index: 1000
+  overflow: hidden
+  display: flex
+  flex-direction: column
+
+// --- Search Bar Section ---
+.searchWrapper
+  padding: 8px
+  border-bottom: 1px solid #F3F4F6
+  display: flex
+  align-items: center
+  gap: 8px
+  background: #FAFAFA
+
+.searchIcon
+  color: #9CA3AF
+
+.searchInput
+  width: 100%
+  border: none
+  outline: none
+  background: transparent
+  font-size: 14px
+  color: #374151
+  padding: 4px 0
+
+  &::placeholder
+    color: #9CA3AF
+
+// --- Options List ---
+.optionsList
+  max-height: 200px
+  overflow-y: auto
+  padding: 4px 0
+
+  // Scrollbar styling
+  &::-webkit-scrollbar
+    width: 6px
+  &::-webkit-scrollbar-thumb
+    background-color: #D1D5DB
+    border-radius: 3px
+
+.option
+  cursor: pointer
+  width: 100%
+  padding: 8px 12px
+  display: flex
+  align-items: center
+  gap: 10px
+  font-size: 14px
+  color: #374151
+  user-select: none
+  transition: background 0.1s
+
+  &:hover
+    background: #F3F4F6
+
+  input[type="checkbox"]
+    accent-color: #3b82f6
+    width: 16px
+    height: 16px
+    cursor: pointer
+
+.noResults
+  padding: 12px
+  text-align: center
+  color: #9CA3AF
+  font-size: 13px
+  font-style: italic

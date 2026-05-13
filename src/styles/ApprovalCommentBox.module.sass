@@ -1,0 +1,247 @@
+.overlay
+  position: fixed
+  inset: 0
+  display: flex
+  align-items: center
+  justify-content: center
+  background: rgba(0,0,0,0.45)
+  z-index: 3000
+  padding: 16px
+  box-sizing: border-box
+
+.modal
+  width: min(960px, 98%)
+  max-width: 100%
+  background: #fff
+  border-radius: 10px
+  padding: 12px
+  box-shadow: 0 10px 30px rgba(0,0,0,0.25)
+  max-height: 72vh
+  display: flex
+  flex-direction: column
+  overflow: hidden
+
+.header
+  display: flex
+  justify-content: space-between
+  align-items: center
+  margin-bottom: 8px
+
+  h3
+    margin: 0
+    font-size: 18px
+
+/* adjust buttons width and save color */
+.returnBtn
+  background: #dc2626
+  color: #fff
+  border: none
+  padding: 8px 12px
+  border-radius: 6px
+  cursor: pointer
+  font-weight: 600
+  height: 44px
+  min-width: 160px
+  max-width: 320px
+  text-align: center
+
+.body
+  /* scrollable area: grid + comments */
+  overflow: auto
+  padding: 8px 4px
+  display: block
+
+.grid
+  display: grid
+  grid-template-columns: 1fr 1fr
+  gap: 12px
+  margin-bottom: 12px
+
+.field
+  display: flex
+  flex-direction: column
+
+.label
+  font-size: 13px
+  margin-bottom: 6px
+
+.select
+  width: 100%
+  padding: 8px
+  border: 1px solid #dcdcdc
+  border-radius: 4px
+  background: #fff
+
+/* sectionized comment styling to match instructor form visual blocks */
+.commentListWrapper
+  display: flex
+  flex-direction: column
+  gap: 12px
+  margin-bottom: 6px
+
+/* limit the comment list height so body can scroll when many comments */
+.commentList
+  display: flex
+  flex-direction: column
+  gap: 12px
+  max-height: calc(72vh - 220px)
+  overflow: auto
+  padding-right: 6px
+
+.commentItem
+  background: #fff
+  border: 1px solid #DDDFDF
+  border-radius: 6px
+  padding: 12px
+  box-shadow: 0 1px 2px rgba(0,0,0,0.06)
+
+.commentHeader
+  display: flex
+  justify-content: space-between
+  align-items: center
+  margin-bottom: 8px
+  font-weight: 600
+  font-size: 14px
+
+.commentControls
+  display: flex
+  gap: 8px
+
+.removeBtn
+  background: #ef4444
+  color: white
+  border: none
+  padding: 6px
+  border-radius: 6px
+  cursor: pointer
+  font-size: 13px
+  display: inline-flex
+  align-items: center
+  justify-content: center
+  width: 34px
+  height: 34px
+
+.commentBody
+  display: flex
+  flex-direction: column
+  gap: 8px
+
+.componentsRow
+  display: flex
+  flex-wrap: wrap
+  gap: 10px
+
+.addCommentRow
+  display: flex
+  justify-content: flex-start
+  margin-top: 6px
+
+.addButton
+  background: transparent
+  border: 1px dashed #9aa4b2
+  padding: 8px 12px
+  border-radius: 6px
+  cursor: pointer
+  color: #374151
+  font-weight: 600
+  height: 40px
+  min-width: 140px
+
+.textarea
+  width: 100%
+  padding: 10px
+  box-sizing: border-box
+  resize: vertical
+  border: 1px solid #dcdcdc
+  border-radius: 4px
+
+/* actions layout: centered buttons with gap, buttons match returnBtn sizing but larger */
+/* actions layout: horizontal row with space between */
+.actions
+  display: flex
+  flex-direction: row
+  justify-content: space-between
+  gap: 12px
+  margin-top: 12px
+  width: 100%
+
+.cancel, .submit
+  flex: 1
+  padding: 10px 18px
+  border: none
+  margin: 0
+  text-align: center
+  font-weight: 600
+  border-radius: 6px
+  height: 44px
+
+.cancel
+  background: #f3f3f3
+  color: #111
+  cursor: pointer
+  border: 1px solid rgba(0,0,0,0.06)
+
+.submit
+  background: #000
+  color: #fff
+  cursor: pointer
+
+.disabled
+  opacity: 0.6
+  cursor: not-allowed
+
+/* disable styles for selects / textarea when coverage not selected handled via disabled attribute */
+.addButton[disabled]
+  opacity: 0.6
+  cursor: not-allowed
+
+/* minor spacing tweaks for component labels inside comment item */
+.commentItem .componentsRow label
+  font-size: 13px
+  color: #374151
+
+/* keep responsive behavior */
+@media (max-width: 640px)
+  .modal
+    padding: 10px
+  .grid
+    grid-template-columns: 1fr
+  .commentList
+    max-height: calc(72vh - 200px)
+  .actions
+    flex-direction: column
+    gap: 8px
+  .cancel, .submit
+    width: 100%
+    min-width: 0
+    max-width: none
+    padding: 10px
+    border-radius: 6px
+  .returnBtn
+    min-width: 120px
+
+/* Append these styles at end of file */
+
+.courseCoverageContainer
+  background: #fff
+  border: 1px solid rgba(15,23,42,0.06)
+  border-radius: 8px
+  padding: 12px
+  display: flex
+  flex-direction: column
+  gap: 12px
+
+.courseCoverageTitle
+  margin: 0
+  font-size: 15px
+  font-weight: 700
+  color: #111827
+
+/* ensure the grid inside fits nicely in the container */
+.courseCoverageContainer .grid
+  grid-template-columns: 1fr 1fr 1fr
+  gap: 12px
+
+@media (max-width: 640px)
+  .courseCoverageContainer .grid
+    grid-template-columns: 1fr

@@ -601,149 +601,308 @@ export const syllabiData = [
                 ]
             }
         ],
+
+        coAssessmentMethodSets: {
+            CO1: [
+                {
+                    value: "Observation Report",
+                    description: "Students observe interfaces or environments and document how cognitive and design principles are applied or violated."
+                },
+                {
+                    value: "Interview Synthesis",
+                    description: "Students analyze and synthesize interview data into meaningful insights about user behavior and needs."
+                },
+                {
+                    value: "Persona Creation",
+                    description: "Students convert research data into representative user personas and empathy profiles."
+                }
+            ],
+
+            CO2: [
+                {
+                    value: "Heuristic Evaluation",
+                    description: "Students evaluate interfaces using Nielsen’s usability heuristics to identify usability problems."
+                },
+                {
+                    value: "Wireframe Output",
+                    description: "Students produce low‑fidelity wireframes that solve identified user and usability problems."
+                },
+                {
+                    value: "UX Critique",
+                    description: "Students justify design decisions using UX principles and user‑centered design standards."
+                }
+            ],
+
+            CO3: [
+                {
+                    value: "High‑Fidelity Prototype",
+                    description: "Students construct interactive high‑fidelity UI prototypes using professional design tools."
+                },
+                {
+                    value: "Usability Test Log",
+                    description: "Students record, categorize, and interpret usability testing observations and issues."
+                },
+                {
+                    value: "Interaction Demo",
+                    description: "Students demonstrate interactive UI behavior including feedback, micro‑interactions, and transitions."
+                }
+            ],
+
+            CO4: [
+                {
+                    value: "Evaluation Report",
+                    description: "Students analyze usability test results and justify design quality using evidence."
+                },
+                {
+                    value: "Redesign Proposal",
+                    description: "Students propose interface improvements based on usability findings and UX principles."
+                },
+                {
+                    value: "Reflection Paper",
+                    description: "Students critically reflect on design, testing, and iteration decisions using UX frameworks."
+                }
+            ]
+        },
         assessments: [
             {
                 id: 'A1',
-                tlaName: 'UI Evaluation Checklist',
-                topic: 'Interface Design Principles',
-                phase: 'Pre-Class',
-                tlaDescription:
-                    'Students review and analyze UI components against established interface design principles, identifying inconsistencies and potential usability issues before starting their own designs...',
-
-                assessmentMethod: 'Checklist-Based Evaluation',
+                tlaName: 'Bad Design Hunt',
+                phase: 'In-class',
+                assessmentMethod: 'Observation Report',
                 assessmentDescription:
-                    'Students will evaluate existing UI samples using a structured checklist based on usability heuristics and interface design principles. The goal is to familiarize students with identifying issues and articulating UI flaws clearly.',
+                    'Students document "bad design" examples and present an analysis of violated cognitive principles (affordance, signifiers, mapping).',
                 hasRubric: false
             },
+
             {
                 id: 'A2',
-                tlaName: 'Prototype Usability Test',
-                topic: 'Interface Design Principles',
-                phase: 'In-Class',
-                tlaDescription:
-                    'Students conduct usability testing on prototypes, observing user interactions and documenting pain points and successes...',
-
-                assessmentMethod: 'Usability Testing Session',
+                tlaName: 'Mock Interview Session',
+                phase: 'In-class',
+                assessmentMethod: 'Interview Synthesis',
                 assessmentDescription:
-                    'Students carry out structured usability tests, record user behavior, summarize findings, and identify key pain points. Observations will be used to propose improvements.',
+                    'Students summarize the interview findings and reflect on the effectiveness of their non-leading questioning technique.',
                 hasRubric: false
             },
+
             {
                 id: 'A3',
-                tlaName: 'Redesign & Reflection Output',
-                topic: 'Interface Design Principles',
-                phase: 'Post-Class',
-                tlaDescription:
-                    'After usability testing, students produce a redesigned version of the interface along with a detailed reflection report...',
-
-                assessmentMethod: 'Redesign Project + Reflection Essay',
+                tlaName: 'Research Plan Proposal',
+                phase: 'Post-class',
+                assessmentMethod: 'Research Plan Document',
                 assessmentDescription:
-                    'Students improve their UI design based on usability test feedback and submit a reflection explaining all design changes and the reasoning behind them.',
+                    'Submission of a formal research plan including objectives, methodology, and screener questions.',
                 hasRubric: true,
                 rubrics: [
-                    { id: 1, criteria: 'Quality of Redesigned Interface', maxScore: '20', weight: '50' },
-                    { id: 2, criteria: 'Justification of Design Decisions', maxScore: '10', weight: '30' },
-                    { id: 3, criteria: 'Reflection Depth', maxScore: '10', weight: '20' }
+                    { id: 1, criteria: 'Clarity of research objectives', maxScore: '25' },
+                    { id: 2, criteria: 'Appropriateness of methodology', maxScore: '25' },
+                    { id: 3, criteria: 'Quality of participant screener', maxScore: '10' },
+                    { id: 4, criteria: 'Ethical considerations addressed', maxScore: '10' },
+                    { id: 5, criteria: 'Organization and completeness', maxScore: '30' }
                 ]
             },
+
             {
                 id: 'A4',
-                tlaName: 'User Requirements Review',
-                topic: 'User-Centered Design',
-                phase: 'Pre-Class',
-                tlaDescription:
-                    'Students review the collected user requirements and analyze them to ensure clarity and alignment with project goals...',
-
-                assessmentMethod: 'Requirements Analysis Task',
+                tlaName: 'Persona Workshop',
+                phase: 'In-class',
+                assessmentMethod: 'Persona Creation',
                 assessmentDescription:
-                    'Students analyze a set of user requirements, verify completeness, identify missing information, and check alignment with user goals and system constraints.',
-                hasRubric: false
+                    'Group submission of three distinct user personas (Primary, Secondary, Negative) based on research data.',
+                hasRubric: true,
+                rubrics: [
+                    { id: 1, criteria: 'Accuracy of persona data', maxScore: '10' },
+                    { id: 2, criteria: 'Behavioral realism', maxScore: '10' },
+                    { id: 3, criteria: 'Use of research evidence', maxScore: '15' },
+                    { id: 4, criteria: 'Clarity of goals and pain points', maxScore: '15' },
+                    { id: 5, criteria: 'Professional presentation', maxScore: '20' }
+                ]
             },
+
             {
                 id: 'A5',
-                tlaName: 'Persona & Scenario Workshop',
-                topic: 'User-Centered Design',
-                phase: 'In-Class',
-                tlaDescription:
-                    'Students create detailed personas and scenarios to represent different user types...',
-
-                assessmentMethod: 'Persona & Scenario Creation Activity',
+                tlaName: 'Card Sorting Exercise',
+                phase: 'In-class',
+                assessmentMethod: 'Information Architecture Map',
                 assessmentDescription:
-                    'Students work individually or in groups to create realistic user personas and usage scenarios that reflect actual user needs and behaviors.',
-                hasRubric: true,
-                rubrics: [
-                    { id: 1, criteria: 'Persona Detail & Realism', maxScore: '15', weight: '40' },
-                    { id: 2, criteria: 'Scenario Completeness', maxScore: '10', weight: '15' },
-                    { id: 3, criteria: 'Correctness', maxScore: '10', weight: '20' },
-                    { id: 4, criteria: 'Presentation & Clarity', maxScore: '10', weight: '25' }
-
-                ]
-            },
-            {
-                id: 'A6',
-                tlaName: 'Refined User Flow Output',
-                topic: 'User-Centered Design',
-                phase: 'Post-Class',
-                tlaDescription: 'Students document and present a refined user flow that incorporates feedback from previous design iterations. The exercise emphasizes improving navigation, interaction clarity, and overall usability while reflecting on design decisions.',
-                assessmentMethod: 'User Flow Refinement Task',
-                assessmentDescription: 'Students produce an improved user flow based on collected feedback and usability findings. The submission must clearly highlight changes, demonstrate logical interaction paths, and explain improvements made for usability and user clarity.',
-                hasRubric: true,
-                rubrics: [
-                    { id: 1, criteria: 'Flow Clarity & Structure', maxScore: '15', weight: '40' },
-                    { id: 2, criteria: 'Integration of Feedback', maxScore: '10', weight: '35' },
-                    { id: 3, criteria: 'Consistency & Accuracy', maxScore: '10', weight: '25' }
-                ]
-            },
-            {
-                id: 'A7',
-                tlaName: 'Intro to Heuristics Brief',
-                topic: 'Usability Principles',
-                phase: 'Pre-Class',
-                tlaDescription: 'Students read and analyze heuristic evaluation guidelines, learning to identify common usability issues. They prepare notes and examples to apply these principles in subsequent evaluation exercises.',
-                assessmentMethod: 'Heuristic Principles Summary',
-                assessmentDescription: 'Students create a written brief summarizing key heuristic principles, including interpretations and examples. The output should reflect understanding of usability heuristics and their relevance to interface evaluation.',
+                    'Proposed site map for an e-commerce application derived from the card sorting activity.',
                 hasRubric: false
             },
+
             {
-                id: 'A8',
-                tlaName: 'Heuristic Evaluation Activity',
-                topic: 'Usability Principles',
-                phase: 'In-Class',
-                tlaDescription:
-                    'In a collaborative exercise, students perform heuristic evaluations on sample interfaces...',
-                assessmentMethod: 'Heuristic Evaluation Submission',
+                id: 'A6',
+                tlaName: 'Heuristic Evaluation Report',
+                phase: 'Post-class',
+                assessmentMethod: 'Evaluation Report',
                 assessmentDescription:
-                    'Students evaluate sample interfaces using standard heuristic principles. They document usability issues, classify them by severity, and propose actionable recommendations.',
+                    'Document detailing at least 5 major usability issues in a selected app with severity ratings.',
                 hasRubric: true,
                 rubrics: [
-                    { id: 1, criteria: 'Correct Identification of Usability Issues', maxScore: '15', weight: '25' },
-                    { id: 2, criteria: 'Severity Rating Accuracy', maxScore: '10', weight: '20' },
-                    { id: 3, criteria: 'Quality of Recommendations', maxScore: '15', weight: '25' },
-                    { id: 4, criteria: 'Clarity & Organization of Report', maxScore: '10', weight: '15' },
-                    { id: 5, criteria: 'Application of Heuristic Principles', maxScore: '10', weight: '15' }
+                    { id: 1, criteria: 'Correct use of heuristics', maxScore: '25' },
+                    { id: 2, criteria: 'Quality of issue identification', maxScore: '5' },
+                    { id: 3, criteria: 'Severity rating accuracy', maxScore: '10' },
+                    { id: 4, criteria: 'Clarity of explanations', maxScore: '40' },
+                    { id: 5, criteria: 'Report structure and readability', maxScore: '20' }
+                ]
+            },
+
+            {
+                id: 'A7',
+                tlaName: 'UI Component Audit',
+                phase: 'In-class',
+                assessmentMethod: 'Audit Checklist',
+                assessmentDescription:
+                    'Analysis of atomic, molecular, and organism components within a chosen design system.',
+                hasRubric: false
+            },
+
+            {
+                id: 'A8',
+                tlaName: 'Crazy 8s Sketching',
+                phase: 'In-class',
+                assessmentMethod: 'Sketch Output',
+                assessmentDescription:
+                    'Submission of 8 distinct interface layout sketches generated during the rapid ideation session.',
+                hasRubric: false
+            },
+
+            {
+                id: 'A9',
+                tlaName: 'Clickable Prototype Build',
+                phase: 'Post-class',
+                assessmentMethod: 'High-Fidelity Prototype',
+                assessmentDescription:
+                    'Fully functional high-fidelity prototype with linked screens submitted via Figma link.',
+                hasRubric: true,
+                rubrics: [
+                    { id: 1, criteria: 'Screen completeness', maxScore: '20' },
+                    { id: 2, criteria: 'Navigation and flow', maxScore: '20' },
+                    { id: 3, criteria: 'Visual consistency', maxScore: '20' },
+                    { id: 4, criteria: 'Interaction quality', maxScore: '20' },
+                    { id: 5, criteria: 'Prototype fidelity', maxScore: '20' }
+                ]
+            },
+
+            {
+                id: 'A10',
+                tlaName: 'Live Usability Test',
+                phase: 'In-class',
+                assessmentMethod: 'Usability Test Log',
+                assessmentDescription:
+                    'Record of observations and critical incidents captured during the moderated testing session.',
+                hasRubric: false
+            },
+
+            {
+                id: 'A11',
+                tlaName: 'Accessibility Audit',
+                phase: 'In-class',
+                assessmentMethod: 'Audit Report',
+                assessmentDescription:
+                    'Report highlighting accessibility violations found using automated tools and manual checks.',
+                hasRubric: true,
+                rubrics: [
+                    { id: 1, criteria: 'Correct WCAG identification', maxScore: '25' },
+                    { id: 2, criteria: 'Accuracy of violations', maxScore: '15' },
+                    { id: 3, criteria: 'Use of testing tools', maxScore: '30' },
+                    { id: 4, criteria: 'Clarity of explanations', maxScore: '10' },
+                    { id: 5, criteria: 'Quality of recommendations', maxScore: '20' }
+                ]
+            }
+        ],
+        gradingSystem: [
+            {
+                co: "CO1",
+                ilos: [
+                    {
+                        id: "ILO1", // Clean ID
+                        assessments: ["Intro to Heuristics Brief"],
+                        weight: { prelim: "30", midterm: "", semi: "", final: "" },
+                        minPassing: "60"
+                    },
+                    {
+                        id: "ILO2",
+                        assessments: ["Persona & Scenario Workshop"],
+                        weight: { prelim: "40", midterm: "", semi: "", final: "" },
+                        minPassing: "60"
+                    },
+                    {
+                        id: "ILO3",
+                        assessments: ["User Requirements Review"],
+                        weight: { prelim: "30", midterm: "", semi: "", final: "" },
+                        minPassing: "60"
+                    }
                 ]
             },
             {
-                id: 'A9',
-                tlaName: 'Usability Issue Prioritization Report',
-                topic: 'Usability Principles',
-                phase: 'Post-Class',
-                tlaDescription:
-                    'Students compile all identified usability issues and prioritize them based on impact...',
-                assessmentMethod: 'Issue Prioritization Analysis Report',
-                assessmentDescription:
-                    'Students document usability issues, categorize them, justify prioritization levels, and propose feasible solutions supported by design reasoning.',
-                hasRubric: true,
-                rubrics: [
-                    { id: 1, criteria: 'Completeness of Identified Issues', maxScore: '10', weight: '15' },
-                    { id: 2, criteria: 'Accuracy of Prioritization Logic', maxScore: '15', weight: '25' },
-                    { id: 3, criteria: 'Quality & Feasibility of Proposed Solutions', maxScore: '15', weight: '25' },
-                    { id: 4, criteria: 'Justification & Critical Reasoning', maxScore: '10', weight: '15' },
-                    { id: 5, criteria: 'Report Structure & Organization', maxScore: '5', weight: '10' },
-                    { id: 6, criteria: 'Clarity & Professionalism of Writing', maxScore: '5', weight: '10' }
+                co: "CO2",
+                ilos: [
+                    {
+                        id: "ILO1",
+                        assessments: ["UI Evaluation Checklist"],
+                        weight: { prelim: "", midterm: "30", semi: "", final: "" },
+                        minPassing: "60"
+                    },
+                    {
+                        id: "ILO2",
+                        assessments: ["Refined User Flow Output"],
+                        weight: { prelim: "", midterm: "40", semi: "", final: "" },
+                        minPassing: "60"
+                    },
+                    {
+                        id: "ILO3",
+                        assessments: ["Heuristic Evaluation Activity"],
+                        weight: { prelim: "", midterm: "30", semi: "", final: "" },
+                        minPassing: "60"
+                    }
+                ]
+            },
+            {
+                co: "CO3",
+                ilos: [
+                    {
+                        id: "ILO1",
+                        assessments: ["Prototype Usability Test"],
+                        weight: { prelim: "", midterm: "", semi: "40", final: "" },
+                        minPassing: "60"
+                    },
+                    {
+                        id: "ILO2",
+                        assessments: ["Redesign & Reflection Output"],
+                        weight: { prelim: "", midterm: "", semi: "30", final: "" },
+                        minPassing: "60"
+                    },
+                    {
+                        id: "ILO3",
+                        assessments: ["Usability Issue Prioritization Report"],
+                        weight: { prelim: "", midterm: "", semi: "30", final: "" },
+                        minPassing: "60"
+                    }
+                ]
+            },
+            {
+                co: "CO4",
+                ilos: [
+                    {
+                        id: "ILO1",
+                        assessments: ["User Requirements Review"],
+                        weight: { prelim: "", midterm: "", semi: "", final: "30" },
+                        minPassing: "60"
+                    },
+                    {
+                        id: "ILO2",
+                        assessments: ["Prototype Usability Test"],
+                        weight: { prelim: "", midterm: "", semi: "", final: "40" },
+                        minPassing: "60"
+                    },
+                    {
+                        id: "ILO3",
+                        assessments: ["Redesign & Reflection Output"],
+                        weight: { prelim: "", midterm: "", semi: "", final: "30" },
+                        minPassing: "60"
+                    }
                 ]
             }
-        ]
+        ],
     },
 ]
 

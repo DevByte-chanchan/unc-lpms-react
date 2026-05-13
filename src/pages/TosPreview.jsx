@@ -1,14 +1,12 @@
 import React from "react";
 import layout from "../styles/TOSPreview.module.sass";
-import {syllabiData} from "../data/syllabiData.js";  // Dedicated SASS file for TOSPreview
 import { useNavigate } from "react-router-dom";
 
 const TOSPreview = ({ isOpen, onClose, outcomeData, questions, courseName = "Human & Computer Interaction", semester = "1st Sem", schoolYear = "2024 - 2025" }) => {
     if (!isOpen) return null;
 
-const navigate = useNavigate();
+    const navigate = useNavigate();
 
-    // Cognitive levels
     const cognitiveLevels = [
         'Remembering',
         'Understanding',
@@ -42,11 +40,10 @@ const navigate = useNavigate();
     };
 
     const aggregatedData = getAggregatedData();
-
-    // Calculate totals
     const totalHours = outcomeData.reduce((sum, co) => sum + (co.totalHours || 0), 0);
     const totalPercentage = outcomeData.reduce((sum, co) => sum + (co.totalPercentage || 0), 0);
-    const totalPoints = outcomeData.reduce((sum, co) => sum + (co.totalPoints || 0), 0);
+    const totalItems = outcomeData.reduce((sum, co) => sum + (co.totalItems || 0), 0);
+
     const totalCognitive = cognitiveLevels.map(level => {
         return outcomeData.reduce((sum, co) => {
             return sum + co.ilos.reduce((iloSum, ilo) => iloSum + (aggregatedData[co.co][ilo.id][level].sumPoints || 0), 0);
@@ -56,12 +53,9 @@ const navigate = useNavigate();
     return (
         <div className={layout.modalOverlay}>
             <div className={layout.modalContent}>
-                {/* Close Button */}
                 <button className={layout.closeButton} onClick={onClose}>×</button>
-
                 <h2 className={layout.previewTitle}>TOS Document Preview</h2>
 
-                {/* Header Fields - Revised for Grid Alignment */}
                 <div className={layout.headerFields}>
                     <div className={layout.topRow}>
                         <label>Course:</label>
@@ -96,7 +90,6 @@ const navigate = useNavigate();
                         />
                     </div>
                 </div>
-
                 {/* Table */}
                 <table className={`${layout.qctable} ${layout.TOSTable}`} style={{ width: '100%', marginBottom: '20px' }}>
                     <thead>
@@ -104,7 +97,7 @@ const navigate = useNavigate();
                         <th>COs & ILOs</th>
                         <th>No. of Hours</th>
                         <th>%</th>
-                        <th>No. of Points</th>
+                        <th>No. of Items</th>
                         <th style={{justifyContent: "center", width: "800px"}}>
                             Cognitive Levels
                         </th>
@@ -134,7 +127,7 @@ const navigate = useNavigate();
                                     <div className={layout.cellBox} style={{fontSize: '16px'}}>{co.totalPercentage || 0}</div>
                                 </td>
                                 <td>
-                                    <div className={layout.cellBox} style={{fontSize: '16px'}}>{co.totalPoints || 0}</div>
+                                    <div className={layout.cellBox} style={{fontSize: '16px'}}>{co.totalItems || 0}</div>
                                 </td>
                                 {cognitiveLevels.map(level => (
                                     <td key={level}>
@@ -154,12 +147,15 @@ const navigate = useNavigate();
                                         <div className={layout.cellBox}>{ilo.percentage || 0}</div>
                                     </td>
                                     <td>
-                                        <div className={layout.cellBox}>{ilo.points || 0}</div>
+                                        <div className={layout.cellBox}>{ilo.items || 0}</div>
                                     </td>
                                     {cognitiveLevels.map(level => (
                                         <td key={level}>
                                             <div className={layout.cellBox}>
-                                                {aggregatedData[co.co][ilo.id][level].count} x {aggregatedData[co.co][ilo.id][level].sumPoints}
+                                                {aggregatedData[co.co][ilo.id][level].count > 0
+                                                    ? `${aggregatedData[co.co][ilo.id][level].count} x ${aggregatedData[co.co][ilo.id][level].sumPoints}`
+                                                    : ''
+                                                }
                                             </div>
                                         </td>
                                     ))}
@@ -176,10 +172,10 @@ const navigate = useNavigate();
                             <div className={layout.cellBox}>{totalHours}</div>
                         </td>
                         <td>
-                            <div className={layout.cellBox}>100</div>
+                            <div className={layout.cellBox}>{totalPercentage}</div>
                         </td>
                         <td>
-                            <div className={layout.cellBox}>{totalPoints}</div>
+                            <div className={layout.cellBox}>{totalItems}</div>
                         </td>
                         {totalCognitive.map((total, index) => (
                             <td key={index}>
@@ -189,12 +185,10 @@ const navigate = useNavigate();
                     </tr>
                     </tbody>
                 </table>
-
-                {/* Export Button - Sticky at Bottom */}
                 <div className={layout.exportButtonContainer}>
                     <button
                         className={layout.export}
-                        onClick={() => navigate("/assignedTOS")}
+                        onClick={() => navigate("/assignedtos")}
                     >
                         Export TOS
                     </button>

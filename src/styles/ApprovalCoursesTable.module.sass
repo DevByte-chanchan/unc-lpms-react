@@ -1,0 +1,165 @@
+.courses-table
+  display: flex
+  flex-direction: column
+  width: 100%
+  height: 100%
+  min-height: 200px
+  gap: 10px
+  padding: 20px 30px
+  background: white
+
+.header
+  display: flex
+  width: 100%
+  flex-direction: row
+  height: 40px
+  align-items: center
+  gap: 15px
+  margin-bottom: 20px
+
+.filterA
+  display: flex
+  padding: 6px 10px
+  gap: 20px
+  background: #FFF
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.25)
+
+.header .header-select
+  font-size: 14px
+  outline: none
+  border: 0
+  color: #DC2626
+  background: transparent
+
+select option
+  font-size: 12px
+
+::-webkit-scrollbar
+  display: none
+
+.table-container
+  width: 100%
+  max-width: 100%
+  display: block
+  overflow-x: auto
+  padding-right: 6px
+
+.table-container table
+  width: 100%
+  border-collapse: collapse
+  table-layout: fixed
+  min-width: 900px
+
+.table-container thead tr th
+  text-align: left
+  font-size: 13px
+  font-weight: 600
+  color: #374151
+  padding: 10px 12px
+  vertical-align: middle
+  background: transparent
+
+.sub-column th
+  font-weight: 300
+  font-size: 14px
+  padding: 6px 12px
+  text-align: center
+
+.status
+  justify-content: center
+  align-items: center
+  border-width: 0 5px 2px 5px
+  border-color: white
+  border-style: solid
+
+.fill
+  flex-grow: 1
+  padding-right: 25px
+  display: flex
+  justify-content: end
+  align-items: center
+  gap: 5px
+  min-width: 200px
+  font-weight: 500 !important
+
+
+.lighten
+  background: #f9f9f9
+  color: #374151
+  font-weight: 500
+  padding: 8px 10px
+  text-align: center
+
+// Shared action styles for table links/icons
+.actionLink
+  display: inline-flex
+  align-items: center
+  gap: 8px
+  color: #111827
+  text-decoration: none
+
+.actionIcon
+  display: inline-flex
+  align-items: center
+
+.table-container tbody tr
+  border-top: 1px solid #eef2f6
+
+.table-container tbody td
+  padding: 10px 12px
+  vertical-align: middle
+  font-size: 14px
+  color: #111827
+  overflow: hidden
+  text-overflow: ellipsis
+  white-space: nowrap
+
+/* Reviewer progress / status chips (kept from approval styles) */
+.reviewerProgressHorizontal
+  display: flex
+  gap: 8px
+  align-items: center
+  justify-content: center
+  width: 100%
+
+.dot
+  width: 14px
+  height: 14px
+  border-radius: 50%
+  display: inline-block
+  margin: 0
+  flex-shrink: 0
+
+  &[data-status="approved"]
+    background-color: #22c55e
+  &[data-status="pending"]
+    background-color: #f59e0b
+  &[data-status="revision"]
+    background-color: #ef4444
+
+.statusText
+  display: inline-block
+  padding: 6px 10px
+  border-radius: 6px
+  background: transparent
+  color: #111827
+  font-size: 13px
+  text-align: center
+  min-width: 88px
+
+@media (max-width: 900px)
+  .table-container table
+    min-width: 720px
+
+  .statusText
+    min-width: 72px
+    font-size: 12px
+
+@media (max-width: 640px)
+  .header
+    flex-direction: column
+    align-items: flex-start
+    gap: 8px
+
+  .table-container
+    padding: 0 4px 12px 4px

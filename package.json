@@ -10,10 +10,13 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "express": "^5.2.1",
+    "mysql2": "^3.22.3",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "react-feather": "^2.0.10",
-    "react-router-dom": "^7.9.6"
+    "react-router-dom": "^7.9.6",
+    "sequelize": "^6.37.8"
   },
   "devDependencies": {
     "@eslint/js": "^9.36.0",
@@ -27,5 +30,18 @@
     "globals": "^16.4.0",
     "sass": "^1.93.2",
     "vite": "^7.1.7"
-  }
+  },
+  "description": "This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.",
+  "main": "eslint.config.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/DevByte-chanchan/unc-lpms-react.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/DevByte-chanchan/unc-lpms-react/issues"
+  },
+  "homepage": "https://github.com/DevByte-chanchan/unc-lpms-react#readme"
 }

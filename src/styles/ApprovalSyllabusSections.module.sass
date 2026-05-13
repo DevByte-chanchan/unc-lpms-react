@@ -1,0 +1,659 @@
+.container
+  width: 100%
+  height: 100%
+  display: flex
+  flex-direction: column
+  gap: 6px
+  overflow: hidden
+  min-height: 200px
+
+.navi
+  width: 100%
+  background: white
+  display: flex
+  padding: 10px
+  gap: 8px
+
+.return
+  padding: 10px 20px
+  border-radius: 5px
+  display: flex
+  background: #8B999D
+  align-items: center
+  font-size: 14px
+  font-weight: 500
+  gap: 5px
+  cursor: pointer
+  color: white
+
+.section-select
+  border-radius: 5px
+  background: #F2F3F4
+  flex-grow: 1
+  padding-right: 20px
+  display: flex
+  align-items: center
+
+  select
+    border: 0
+    border-radius: 5px
+    width: 100%
+    height: 100%
+    outline: none
+    padding: 10px 15px
+    background: transparent
+    font-size: 14px
+    font-weight: 500
+    cursor: pointer
+
+  select option
+    background: #F2F3F4
+    font-size: 14px
+
+.dynamic-sections
+  display: flex
+  width: 100%
+  flex-grow: 1
+  background: white
+  padding: 20px 30px
+  flex-direction: column
+  gap: 30px
+  min-height: 200px
+  overflow-y: auto
+  -webkit-overflow-scrolling: touch
+  // allow this flex item to shrink when sidebar expands
+  min-width: 0
+
+  &::-webkit-scrollbar
+    width: 8px
+  &::-webkit-scrollbar-track
+    background: #f1f1f1
+    border-radius: 4px
+  &::-webkit-scrollbar-thumb
+    background: #ccc
+    border-radius: 4px
+  &::-webkit-scrollbar-thumb:hover
+    background: #999
+
+section
+  width: 100%
+  height: 100%
+  display: flex
+  overflow: auto
+  // allow inner sections to shrink inside flex container
+  min-width: 0
+
+/* =========================
+   Approval Buttons
+   ========================= */
+
+.approvalButtons
+  display: flex
+  gap: 10px
+  margin-left: auto
+
+.requestRevision
+  padding: 10px 15px
+  border-radius: 5px
+  font-size: 14px
+  font-weight: 500
+  background: #F2F3F4
+  cursor: pointer
+  border: none
+  outline: none
+
+.approve
+  padding: 10px 15px
+  border-radius: 5px
+  border: 1px solid #8B999D
+  font-size: 14px
+  font-weight: 500
+  background: #19282C
+  color: white
+  cursor: pointer
+  outline: none
+
+/* =========================
+   COURSE DETAILS TABLE
+   ========================= */
+
+.courseDetailsContainer
+  width: 1800px
+  padding-bottom: 20px
+  font-family: Arial, sans-serif
+
+.documentTable
+  width: 100%
+  border-collapse: collapse !important
+  border: 1px solid #000
+  margin-top: 10px
+
+  // OVERRIDE GLOBAL FLEX STYLES
+  display: table !important
+  flex-direction: unset !important
+  gap: unset !important
+  overflow: visible !important
+
+  tbody
+    display: table-row-group !important
+    gap: unset !important
+    padding: unset !important
+    overflow: visible !important
+    box-shadow: none !important
+
+  tr
+    display: table-row !important
+    background: transparent !important
+    box-shadow: none !important
+    border-bottom: 1px solid #000
+
+  th, td
+    display: table-cell !important
+    padding: 8px 12px !important
+    border: 1px solid #000 !important
+    vertical-align: middle
+    font-size: 14px
+    color: #000
+    gap: unset !important
+    align-items: unset !important
+    line-height: 1.4
+
+.labelCell
+  background-color: #EFEFEF
+  font-weight: 600
+  width: 180px
+  text-align: left
+
+.valueCell
+  background-color: #FFF
+  text-align: left
+  min-width: 200px
+
+.descHeader
+  background-color: #EFEFEF
+  font-weight: 600
+  text-align: left
+  border-bottom: 1px solid #000
+
+.descCell
+  vertical-align: top !important
+  text-align: justify
+  background-color: #FFF
+  padding: 15px !important
+  width: 45%
+
+/* =========================
+   COURSE & PROGRAM ALIGNMENT
+   ========================= */
+
+.cpa-container
+  display: flex
+  flex-direction: column
+  width: 2000px
+  height: 100%
+  overflow: hidden
+
+.legend
+  margin-bottom: 15px
+  display: flex
+  align-items: center
+  gap: 10px
+  font-size: 14px
+  color: #333
+
+.legendTitle
+  font-weight: 700
+
+.legendItems
+  display: flex
+  gap: 20px
+  strong
+    font-weight: 600
+
+.tableScrollWrapper
+  flex-grow: 1
+  overflow: auto
+  border: 1px solid #000
+  max-height: 60vh
+
+  &::-webkit-scrollbar
+    width: 10px
+    height: 10px
+  &::-webkit-scrollbar-thumb
+    background: #ccc
+    border-radius: 5px
+
+.alignmentTable
+  width: 100%
+  min-width: 1000px
+  border-collapse: collapse !important
+
+  display: table !important
+  flex-direction: unset !important
+  gap: unset !important
+
+  thead
+    display: table-header-group !important
+    position: sticky
+    top: 0
+    z-index: 10
+
+    tr
+      display: table-row !important
+      background: unset !important
+      box-shadow: none !important
+
+  tbody
+    display: table-row-group !important
+    box-shadow: none !important
+
+  tr
+    display: table-row !important
+    background: transparent !important
+    box-shadow: none !important
+    &:nth-child(even)
+      background-color: #f9f9f9 !important
+
+  th, td
+    display: table-cell !important
+    border: 1px solid #000 !important
+    padding: 8px 10px !important
+    vertical-align: middle
+    font-size: 14px
+    color: #000
+    gap: unset !important
+    align-items: unset !important
+
+.firstColHeader
+  background-color: #EFEFEF
+  font-weight: 600
+  text-align: left
+  min-width: 400px
+  position: sticky
+  top: 0
+  border: 1px solid #000 !important
+  z-index: 20
+
+.descCell
+  text-align: left
+  line-height: 1.5
+  strong
+    font-weight: 700
+    margin-right: 5px
+
+.poHeader
+  background-color: #EFEFEF
+  font-weight: 600
+  text-align: center
+  width: 60px
+  min-width: 60px
+  position: sticky
+  top: 0
+  border: 1px solid #000 !important
+  z-index: 20
+
+.mappingCell
+  text-align: center
+  font-weight: 600
+  width: 60px
+
+/* =========================
+   COURSE COVERAGE SECTION
+   ========================= */
+
+.ccContainer
+  display: flex
+  flex-direction: column
+  width: 100%
+  height: 100%
+  overflow: hidden
+
+.ccScrollWrapper
+  flex-grow: 1
+  overflow: auto
+  border: 1px solid #000
+  max-height: 70vh
+  background: #fff
+
+  &::-webkit-scrollbar
+    width: 10px
+    height: 10px
+  &::-webkit-scrollbar-thumb
+    background: #ccc
+    border-radius: 5px
+
+.ccTable
+  width: max-content
+  min-width: 100%
+  border-collapse: collapse !important
+  display: table !important
+
+  thead
+    display: table-header-group !important
+    position: sticky
+    top: 0
+    z-index: 20
+
+    tr
+      display: table-row !important
+      background: #EFEFEF !important
+
+  tbody
+    display: table-row-group !important
+
+  tr
+    display: table-row !important
+    background: transparent !important
+    border-bottom: 1px solid #000 !important
+
+  th, td
+    display: table-cell !important
+    border: 1px solid #000 !important
+    padding: 10px 8px !important
+    vertical-align: top
+    font-size: 14px
+    color: #000
+    line-height: 1.4
+    word-wrap: break-word
+
+.ccHeader
+  background-color: #EFEFEF
+  font-weight: 600
+  text-transform: uppercase
+  text-align: center
+  vertical-align: middle !important
+
+.ccCell
+  background-color: #fff
+
+.centerText
+  text-align: center
+  vertical-align: middle !important
+
+.boldText
+  font-weight: 700
+
+.topicBlock
+  margin-bottom: 15px
+  &:last-child
+    margin-bottom: 0
+
+.topicTitle
+  font-weight: 700
+  text-decoration: underline
+  margin-bottom: 4px
+
+.subtopicList
+  list-style-type: disc
+  padding-left: 15px
+  margin: 0
+  font-size: 13px
+  li
+    margin-bottom: 2px
+
+.tlaGroupBlock
+  margin-bottom: 15px
+  &:last-child
+    margin-bottom: 0
+
+.tlaPhaseHeader
+  font-weight: 700
+  text-decoration: underline
+  margin-bottom: 5px
+  text-transform: uppercase
+  font-size: 13px
+
+.tlaItem
+  margin-bottom: 8px
+  padding-left: 5px
+  &:last-child
+    margin-bottom: 0
+
+.tlaNameLine
+  margin-bottom: 2px
+
+.perfTag
+  font-size: 12px
+  color: #555
+  font-weight: 700
+  margin-right: 4px
+
+.labTag
+  font-size: 12px
+  color: #d9534f
+  font-weight: 700
+  text-transform: uppercase
+
+.descText
+  font-size: 13px
+  color: #333
+  font-style: italic
+  line-height: 1.3
+
+.assessItem
+  margin-bottom: 10px
+  padding-bottom: 5px
+  border-bottom: 1px dashed #eee
+  &:last-child
+    border-bottom: none
+    margin-bottom: 0
+
+.rubricTag
+  font-size: 10px
+  background: #f0f0f0
+  display: inline-block
+  padding: 2px 4px
+  border-radius: 3px
+  margin-top: 2px
+  border: 1px solid #ccc
+
+/* =========================
+   REFERENCES SECTION
+   ========================= */
+
+.refContainer
+  display: flex
+  flex-direction: column
+  width: 100%
+  height: 100%
+  overflow: hidden
+
+.refHeaderBar
+  background-color: #EFEFEF
+  border: 1px solid #000
+  border-bottom: none
+  height: 50px
+  position: relative
+  display: flex
+  align-items: center
+  justify-content: center
+  flex-shrink: 0
+  overflow: hidden
+
+  .refSelect
+    appearance: none
+    background: transparent
+    border: none
+    width: 100%
+    height: 100%
+    text-align: center
+    text-align-last: center
+    font-weight: 700
+    font-size: 16px
+    text-transform: uppercase
+    cursor: pointer
+    outline: none
+    color: #000
+
+  .refArrow
+    position: absolute
+    right: 20px
+    pointer-events: none
+    font-size: 12px
+    color: #000
+
+.refScrollWrapper
+  flex-grow: 1
+  overflow: auto
+  border: 1px solid #000
+  max-height: 60vh
+
+  &::-webkit-scrollbar
+    width: 10px
+    height: 10px
+  &::-webkit-scrollbar-thumb
+    background: #ccc
+    border-radius: 5px
+
+.refTable
+  width: max-content
+  min-width: 100%
+  border-collapse: collapse !important
+
+  display: table !important
+  flex-direction: unset !important
+  gap: unset !important
+
+  thead
+    display: table-header-group !important
+    position: sticky
+    top: 0
+    z-index: 10
+    background: #fff
+
+    tr
+      display: table-row !important
+      box-shadow: none !important
+      background: #fff !important
+
+  tbody
+    display: table-row-group !important
+    box-shadow: none !important
+
+  tr
+    display: table-row !important
+    background: transparent !important
+    box-shadow: none !important
+    border-bottom: 1px solid #000 !important
+
+  th, td
+    display: table-cell !important
+    border: 1px solid #000 !important
+    padding: 10px 8px !important
+    vertical-align: middle
+    font-size: 16px
+    color: #000
+    line-height: 1.4
+
+.refHeaderCell
+  font-weight: 600
+  text-transform: uppercase
+  text-align: center
+  background-color: #fff
+
+.refDataCellCenter
+  text-align: center
+
+.refDataCellLeft
+  text-align: left
+
+  a
+    color: #0000EE
+    text-decoration: underline
+    word-break: break-all
+
+.refEmpty
+  text-align: center
+  padding: 40px
+  font-style: italic
+
+/* =========================
+   CRITERIA FOR GRADING
+   ========================= */
+
+.criteriaContainer
+  display: flex
+  flex-direction: column
+  width: 100%
+  height: 100%
+  overflow: hidden
+
+.criteriaTable
+  width: 100%
+  min-width: 900px
+  border-collapse: collapse !important
+
+  display: table !important
+  flex-direction: unset !important
+  gap: unset !important
+
+  thead
+    display: table-header-group !important
+    position: sticky
+    top: 0
+    z-index: 10
+    background: #fff
+    border-bottom: 1px solid #000
+
+    tr
+      display: table-row !important
+      box-shadow: none !important
+      background: #EFEFEF !important
+
+  tbody
+    display: table-row-group !important
+    box-shadow: none !important
+
+  tr
+    display: table-row !important
+    background: transparent !important
+    box-shadow: none !important
+    border-bottom: 1px solid #000 !important
+
+  th, td
+    display: table-cell !important
+    border: 1px solid #000 !important
+    padding: 8px 10px !important
+    vertical-align: middle
+    font-size: 14px
+    color: #000
+    line-height: 1.4
+
+.headerCell
+  background-color: #EFEFEF
+  font-weight: 700
+  text-align: center
+  text-transform: uppercase
+  position: sticky
+  top: 0
+  z-index: 20
+  border: 1px solid #000 !important
+
+.subHeaderRow th
+  top: 40px
+
+.subHeader
+  background-color: #EFEFEF
+  font-weight: 600
+  text-align: center
+  font-size: 13px
+
+.dataCellCenter
+  text-align: center
+
+.dataCellLeft
+  text-align: left
+
+.coCell
+  background-color: #fff
+  text-align: center
+  vertical-align: middle !important
+  font-weight: 700
+
+.totalRow
+  background-color: #f9f9f9 !important
+  font-weight: 700
+
+.totalLabel
+  text-align: right
+  padding-right: 20px !important

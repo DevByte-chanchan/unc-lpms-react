@@ -1,8 +1,7 @@
 import React from "react";
-import layout from "../styles/QuestionCognitiveMapping.module.sass";  // Reuse styles for consistency
+import layout from "../styles/QuestionCognitiveMapping.module.sass";
 
 const TOSSummary = ({ outcomeData, questions }) => {
-    // Cognitive levels (matching QuestionCognitiveMapping)
     const cognitiveLevels = [
         'Remembering',
         'Understanding',
@@ -11,6 +10,12 @@ const TOSSummary = ({ outcomeData, questions }) => {
         'Evaluating',
         'Creating'
     ];
+
+    const getCoComputedTotal = (coId) => {
+        return questions
+            .filter(q => q.co === coId && q.points)
+            .reduce((sum, q) => sum + Number(q.points), 0);
+    };
 
     // Aggregate data from questions: For each CO-ILO-cognitive level, get count (no. of items) and sumPoints (equi points/total)
     const getAggregatedData = () => {
@@ -24,14 +29,12 @@ const TOSSummary = ({ outcomeData, questions }) => {
                 });
             });
         });
-
         questions.forEach(q => {
             if (q.co && q.ilo && q.cognitiveLevel && q.points) {
                 data[q.co][q.ilo][q.cognitiveLevel].count += 1;
                 data[q.co][q.ilo][q.cognitiveLevel].sumPoints += Number(q.points);
             }
         });
-
         return data;
     };
 
@@ -41,7 +44,6 @@ const TOSSummary = ({ outcomeData, questions }) => {
         <div className={layout.container}>
             {outcomeData.map(co => (
                 <div key={co.co} className={layout.section}>
-                    {/* Flex container for h2 left, Total Points right */}
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                         <h2>{co.co}</h2>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
@@ -49,37 +51,31 @@ const TOSSummary = ({ outcomeData, questions }) => {
                             <input
                                 type="text"
                                 disabled
-                                value={co.totalPoints || 0}
+                                value={getCoComputedTotal(co.co)}
                                 className={layout.numberInput}
-                                style={{ width: '50px', textAlign: 'center', fontWeight: '500', backgroundColor: '#FFFFFF', color: '#000000' }}  // Improved readability: white background, black text
+                                style={{ width: '50px', textAlign: 'center', fontWeight: '500', backgroundColor: '#FFFFFF', color: '#000000' }}
                             />
                         </div>
                     </div>
-
-                    {/* Disabled textarea with CO description (now wraps text and adjusts to content) */}
                     <div style={{ marginBottom: '16px' }}>
                         <textarea
                             disabled
-                            value={co.description || `Generated description for ${co.co}`}  // Generated content if empty
+                            value={co.description || `Description`}
                             className={layout.numberInput}
-                            style={{ width: '100%', backgroundColor: '#FFFFFF', color: '#000000', textAlign: 'left', resize: 'none', minHeight: '60px' }}  // Improved readability: white background, black text
-                            rows={3}  // Adjust rows as needed for initial height
+                            style={{ width: '100%', backgroundColor: '#FFFFFF', color: '#000000', textAlign: 'left', resize: 'none', minHeight: '60px' }}
+                            rows={3}
                         />
                     </div>
-
-                    {/* Loop over ILOs for this CO */}
                     {co.ilos.map(ilo => (
                         <div key={ilo.id} style={{ marginBottom: '20px' }}>
                             <h3>{ilo.id}</h3>
-
-                            {/* Disabled textarea with ILO description (left-aligned, wraps text) */}
                             <div style={{ marginBottom: '10px' }}>
                                 <textarea
                                     disabled
-                                    value={ilo.description || ''}  // ILO description from outcomeData
+                                    value={ilo.description || ''}
                                     className={layout.numberInput}
-                                    style={{ width: '100%', backgroundColor: '#FFFFFF', color: '#000000', textAlign: 'left', resize: 'none', minHeight: '40px' }}  // Improved readability: white background, black text
-                                    rows={2}  // Adjust rows as needed for initial height
+                                    style={{ width: '100%', backgroundColor: '#FFFFFF', color: '#000000', textAlign: 'left', resize: 'none', minHeight: '40px' }}
+                                    rows={2}
                                 />
                             </div>
 
@@ -88,11 +84,11 @@ const TOSSummary = ({ outcomeData, questions }) => {
                                 <thead>
                                 <tr>
                                     <th>
-                                        <div className={`${layout.cellBox} ${layout.mainHeader}`}></div>  {/* Empty header cell with styling */}
+                                        <div className={`${layout.cellBox} ${layout.mainHeader}`}></div>
                                     </th>
                                     {cognitiveLevels.map(level => (
                                         <th key={level}>
-                                            <div className={`${layout.cellBox} ${layout.mainHeader}`}>{level}</div>  {/* Header with .cellBox and .mainHeader */}
+                                            <div className={`${layout.cellBox} ${layout.mainHeader}`}>{level}</div>
                                         </th>
                                     ))}
                                 </tr>
@@ -101,7 +97,7 @@ const TOSSummary = ({ outcomeData, questions }) => {
                                 {/* Row: no. of items */}
                                 <tr>
                                     <td>
-                                        <div className={`${layout.cellBox} ${layout.leftAlign}`}>Number of Items</div>  {/* Left-aligned */}
+                                        <div className={`${layout.cellBox} ${layout.leftAlign}`}>Number of Items</div>
                                     </td>
                                     {cognitiveLevels.map(level => (
                                         <td key={level}>
@@ -114,7 +110,7 @@ const TOSSummary = ({ outcomeData, questions }) => {
                                 {/* Row: equi points */}
                                 <tr>
                                     <td>
-                                        <div className={`${layout.cellBox} ${layout.leftAlign}`}>Equivalent Points</div>  {/* Left-aligned */}
+                                        <div className={`${layout.cellBox} ${layout.leftAlign}`}>Equivalent Points</div>
                                     </td>
                                     {cognitiveLevels.map(level => (
                                         <td key={level}>
@@ -124,15 +120,15 @@ const TOSSummary = ({ outcomeData, questions }) => {
                                         </td>
                                     ))}
                                 </tr>
-                                {/* Row: total (items times points, i.e., sum of points) */}
+                                {/* Row: total */}
                                 <tr>
                                     <td>
-                                        <div className={`${layout.cellBox} ${layout.leftAlign}`} style={{ fontWeight: '500' }}>Total</div>  {/* Left-aligned and bold */}
+                                        <div className={`${layout.cellBox} ${layout.leftAlign}`} style={{ fontWeight: '500' }}>Total</div>
                                     </td>
                                     {cognitiveLevels.map(level => (
                                         <td key={level}>
                                             <div className={layout.cellBox} style={{ fontWeight: '500' }}>  {/* Bold text for data */}
-                                                {aggregatedData[co.co][ilo.id][level].sumPoints}  {/* Same as equi points, as per "items times points" */}
+                                                {aggregatedData[co.co][ilo.id][level].sumPoints}
                                             </div>
                                         </td>
                                     ))}

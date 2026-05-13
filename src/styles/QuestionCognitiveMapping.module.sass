@@ -79,7 +79,7 @@
 
   &.TOSTable
     th, td
-      padding: 0px
+      padding: 0
 
 .qctable
   width: 100%
@@ -101,11 +101,10 @@
 
   &.TOSTable
     th, td
-      padding: 0px
+      padding: 0
 
-    // Added for TOSSummary table alignment (7 columns)
     th:nth-child(1), td:nth-child(1)
-      width: 20%  // Labels column (e.g., "no. of items")
+      width: 20%
 
     th:nth-child(2), td:nth-child(2)
       width: 13.33%  // Remembering
@@ -124,8 +123,6 @@
 
     th:nth-child(7), td:nth-child(7)
       width: 13.33%  // Creating
-
-// Rest of your CSS remains the same...
 
 .cellBox
   width: 100%
@@ -193,7 +190,7 @@
   font-weight: 500
   color: #333
   gap: 20px
-  margin: 0px 0px 10px 0px
+  margin: 0 0 10px 0
 
 .headerCell
   text-align: center
@@ -215,8 +212,8 @@
 
 .questionInput
   width: 100%
-  min-height: 25px
-  padding: 10px
+  min-height: 10px
+  padding: 5px 10px
   border: 1px solid #DDDFDF
   border-radius: 5px
   font-size: 14px
@@ -271,6 +268,110 @@
     background: #F1F3F5
     color: #777
 
+.rubricHeader
+  display: flex
+  justify-content: space-between
+  align-items: center
+  margin-bottom: 12px
+
+.rubricTools
+  display: flex
+  align-items: center
+  gap: 10px
+
+.rubricSelectWrap
+  position: relative
+  display: flex
+  align-items: center
+  width: 240px
+
+  select
+    width: 100%
+    height: 40px
+    padding: 0 10px 0 12px   // space for arrow
+    border: 1px solid #DDDFDF
+    border-radius: 5px
+    font-size: 14px
+    appearance: none
+    background: white
+
+  option
+    font-size: 14px
+
+.dropdownArrow
+  position: absolute
+  right: 12px
+  pointer-events: none
+  color: #555
+
+.clearRubricBtn
+  height: 40px
+  width: 40px
+  border-radius: 5px
+  border: none
+  background: #F94545
+  color: white
+  display: flex
+  align-items: center
+  justify-content: center
+  cursor: pointer
+
+  &:hover
+    background: #DC2626
+
+.clearRubricIcon
+  width: 18px
+  height: 18px
+  stroke-width: 2.5
+  flex-shrink: 0
+
+.rubricContainer
+  display: flex
+  flex-direction: column
+  width: 100%
+
+.rubricLabel
+  color: #000
+  text-align: left
+  font-family: Manrope, sans-serif
+  font-size: 16px
+  font-weight: 500
+  line-height: normal
+
+.rubricDropdown
+  font-size: 16px
+  display: flex
+  align-items: center
+  gap: 10px
+  align-self: stretch
+  border-radius: 3px
+  border: 1px solid #DCE2F0
+  padding-right: 20px
+  transition: border-color 0.2s ease-in-out
+  background: white
+
+  select
+    width: 100%
+    height: 100%
+    padding: 8px 15px
+    outline: none
+    border-radius: 3px
+    border: 0
+    font-size: 14px
+    background: transparent
+
+    option
+      font-size: 14px
+
+.disabled-style
+  background: #F8F9F9
+  pointer-events: none
+
+.over
+  background: #ffe4e4
+  border: 1px solid #ff5252
+  color: #b00000
+  font-weight: 600
 
 //   &.upperHeader
 //    background: #F1F3F5
