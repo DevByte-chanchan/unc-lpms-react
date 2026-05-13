@@ -3,7 +3,10 @@ import { Link, useSearchParams, useParams, useNavigate } from 'react-router-dom'
 import { ChevronLeft, Info } from 'react-feather'
 import styles from '../styles/ApprovalSyllabusSections.module.sass'
 import ApprovalCommentBox from './ApprovalCommentBox.jsx'
+import UploadPanel from './UploadPanel/UploadPanel.jsx'
+import WorkflowStepper from './WorkflowStepper/WorkflowStepper.jsx'
 import { getSyllabusByCode, syllabiData } from '../data/syllabiData.js'
+import { getWorkflow, setWorkflow, advanceWorkflow } from '../utils/workflowHelpers'
 
 const defaultSections = [
   'Course Details',
@@ -13,7 +16,7 @@ const defaultSections = [
   'Criteria for Grading'
 ]
 
-const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', courseCode = '', embedded = false, externalSelectedSection = null }) => {
+const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', courseCode = '', embedded = false, externalSelectedSection = null, workflow: workflowProp = null }) => {
   const [searchParams] = useSearchParams()
   const [selectedSection, setSelectedSection] = useState(defaultSections[0])
   const statusParam = searchParams.get('status')
@@ -22,6 +25,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
   const navigate = useNavigate()
 
   const [showCommentModal, setShowCommentModal] = useState(false)
+  const [workflowState, setWorkflowState] = useState(() => workflowProp || getWorkflow(courseCode || ''))
 
   // refs to sections for auto-scroll
   const courseDetailsRef = useRef(null)
@@ -40,6 +44,12 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
   if (!routeCode && courseCode) console.debug('ApprovalSyllabusSections: using courseCode prop as fallback:', courseCode)
   if (!routeCode && !courseCode) console.debug('ApprovalSyllabusSections: no code param or prop; using first syllabiData entry:', codeToUse)
   const syllabus = getSyllabusByCode(codeToUse) || (syllabiData && syllabiData.length ? syllabiData[0] : undefined)
+
+  // keep workflowState in sync
+  useEffect(() => {
+    const wf = getWorkflow(codeToUse || '')
+    setWorkflowState(wf)
+  }, [codeToUse])
 
   // References view type
   const [viewType, setViewType] = useState('Textbook')
@@ -100,6 +110,17 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
               : 'approver'
 
   const backPath = roleKey === 'instructor' ? '/' : `/role/${roleKey}/approval-course-table`
+
+  // determine whether actions are allowed for this role per workflow
+  const isRoleActive = () => {
+    const wf = workflowState || getWorkflow(codeToUse || '')
+    const stage = wf?.currentStage || 'submitted'
+    if (stage === 'submitted') return roleKey === 'instructor'
+    if (stage === 'parallel_review') return roleKey === 'director-of-libraries' || roleKey === 'industry-consultant'
+    if (stage === 'program_head') return roleKey === 'program-head'
+    if (stage === 'dean') return roleKey === 'dean'
+    return false
+  }
 
   // COURSE & PROGRAM ALIGNMENT data (copied from SyllabusPreview)
   const courseOutcomes = [
@@ -174,6 +195,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
         createdAt: new Date().toISOString(),
         reviewer,
         role: roleLabel,
+        recipientRole: (roleKey === 'dean' ? 'program_head' : (c.recipientRole || 'program_head')),
         components: c.components || {},
         comment: c.text || '',
         courseOutcome: c.courseOutcome || null,
@@ -187,6 +209,32 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
       existingForCode[sectionToSave] = [...existingSection, ...prepared]
       all[code] = existingForCode
       localStorage.setItem(storageKey, JSON.stringify(all))
+
+      // Update workflow state: mark reviewer stage done when they submit
+      try {
+        const wf = getWorkflow(code)
+        const nowIso = new Date().toISOString()
+        if (roleKey === 'director-of-libraries') {
+          wf.parallelReview = wf.parallelReview || {}
+          wf.parallelReview.library_director = { status: 'done', completedAt: nowIso }
+        }
+        if (roleKey === 'industry-consultant') {
+          wf.parallelReview = wf.parallelReview || {}
+          wf.parallelReview.industry_consultant = { status: 'done', completedAt: nowIso }
+        }
+        if (roleKey === 'program-head') {
+          wf.programHead = { status: 'done', completedAt: nowIso }
+        }
+        if (roleKey === 'dean') {
+          wf.dean = { status: 'done', completedAt: nowIso }
+        }
+        setWorkflow(code, wf)
+        // try to advance stages
+        advanceWorkflow(code)
+        setWorkflowState(getWorkflow(code))
+      } catch (e) {
+        console.error('Failed to update workflow state', e)
+      }
 
       console.debug('Saved approver comments', { code, section: selectedSection, count: prepared.length })
     } catch (e) {
@@ -676,6 +724,31 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
             </section>
           )
         })()}
+
+        {/* Upload panel for role-based uploads (rendered below sections) */}
+        {roleKey === 'program-head' && (
+          <div style={{ marginTop: 18 }}>
+            <UploadPanel
+              role={'program-head'}
+              courseCode={codeToUse}
+              uploadSlots={[
+                { id: 'program_outcomes_peo_alignment', label: 'Program Outcome and PEO Alignment', acceptedTypes: '.pdf,.docx' },
+                { id: 'coaep', label: 'COAEP', acceptedTypes: '.pdf,.docx' },
+                { id: 'course_outcomes_po_alignment', label: 'Course Outcomes & PO Alignment', acceptedTypes: '.pdf,.docx' }
+              ]}
+            />
+          </div>
+        )}
+
+        {roleKey === 'director-of-libraries' && (
+          <div style={{ marginTop: 18 }}>
+            <UploadPanel
+              role={'director-of-libraries'}
+              courseCode={codeToUse}
+              uploadSlots={[{ id: 'references', label: 'References', acceptedTypes: '.pdf,.docx,.xlsx' }]}
+            />
+          </div>
+        )}
 
         {/* Approval comment box (preserved) */}
         <ApprovalCommentBox

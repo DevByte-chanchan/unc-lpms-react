@@ -4,6 +4,8 @@ import Skeleton from "../layouts/SkeletonA.jsx";
 import Header from "../components/HeaderA.jsx";
 import SideNavigation from "../components/SideNavigation.jsx";
 import ApprovalSyllabusSections from "../components/ApprovalSyllabusSections.jsx";
+import WorkflowStepper from "../components/WorkflowStepper/WorkflowStepper.jsx";
+import { getWorkflow } from '../utils/workflowHelpers'
 
 const roleNames = {
   'program-head': 'Program Head',
@@ -34,10 +36,12 @@ const ApprovalSyllabus = () => {
   // decode courseName for display
   const decodedCourse = courseName ? decodeURIComponent(courseName) : '';
 
+  const workflow = getWorkflow(decodedCourse || '')
+
   return (
     <Skeleton
       header={<Header role={formattedRole} name={approverName} />}
-      content={<ApprovalSyllabusSections currentRole={roleKey} courseCode={decodedCourse} />}
+      content={<div><WorkflowStepper courseCode={decodedCourse} workflow={workflow} /><ApprovalSyllabusSections currentRole={roleKey} courseCode={decodedCourse} workflow={workflow} /></div>}
       nav={<SideNavigation mode={roleKey} />}
     />
   );

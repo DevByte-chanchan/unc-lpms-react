@@ -12,6 +12,7 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
     createdAt: new Date().toISOString(),
     reviewer: '',
     role: '',
+    recipientRole: '',
     coverageType: '',
     courseOutcome: '',
     ilo: ''
@@ -62,6 +63,17 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
     return reviewerSeeds[index % reviewerSeeds.length]
   }
 
+  const normalizeRoleKey = (raw) => {
+    if (!raw) return ''
+    const r = String(raw).toLowerCase()
+    if (r.includes('program')) return 'program-head'
+    if (r.includes('dean')) return 'dean'
+    if (r.includes('industry')) return 'industry-consultant'
+    if (r.includes('library') || r.includes('libraries')) return 'director-of-libraries'
+    if (r.includes('instructor')) return 'instructor'
+    return r.replace(/_/g, '-').replace(/ /g, '-')
+  }
+
   // Get current approver identity based on approverRole or fallback
   const getApproverIdentity = (index = 0) => {
     try {
@@ -98,6 +110,7 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
         const seedData = approver || getReviewerSeedData(idx)
         const reviewer = c.reviewer || seedData.name || ''
         const role = c.role || seedData.role || ''
+        const recipientRole = c.recipientRole || ''
 
         return {
           ...defaultComment(),
@@ -105,11 +118,19 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
           comment: c.comment || c.text || '',
           createdAt: c.createdAt || new Date().toISOString(),
           reviewer: reviewer,
-          role: role
+          role: role,
+          recipientRole: recipientRole
         }
       })
 
-      setComments(normalized)
+      // If current approver is dean, ensure recipientRole defaults to program_head
+      const roleKeyCheck = normalizeRoleKey(approverRole || (JSON.parse(localStorage.getItem('user')||'null')?.role))
+      if (roleKeyCheck === 'dean') {
+        const forced = normalized.map(n => ({ ...n, recipientRole: 'program_head' }))
+        setComments(forced)
+      } else {
+        setComments(normalized)
+      }
     } catch (e) {
       // ignore parse errors
     }
@@ -164,6 +185,10 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
     setComments((prev) => prev.map((c) => (c.id === commentId ? { ...c, ilo } : c)))
   }
 
+  const updateRecipientRole = (commentId, recipientRole) => {
+    setComments((prev) => prev.map((c) => (c.id === commentId ? { ...c, recipientRole } : c)))
+  }
+
   const addCommentSection = () => {
     const seedData = approverRole ? getReviewerByRole(approverRole) : getReviewerSeedData(comments.length)
     setComments((prev) => [
@@ -172,7 +197,8 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
         ...defaultComment(),
         id: Date.now() + Math.random(),
         reviewer: seedData.name,
-        role: seedData.role
+        role: seedData.role,
+        recipientRole: normalizeRoleKey(approverRole) === 'dean' ? 'program_head' : ''
       }
     ])
   }
@@ -396,6 +422,21 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
                           </select>
                         </div>
                       </div>
+
+                      {/* Recipient selector: hidden for Dean and forced to program_head */}
+                      {normalizeRoleKey(approverRole || JSON.parse(localStorage.getItem('user') || 'null')?.role) !== 'dean' ? (
+                        <div style={{ marginBottom: 8 }}>
+                          <label className={styles.label}>Recipient</label>
+                          <select className={styles.select} value={c.recipientRole || ''} onChange={(e) => updateRecipientRole(c.id, e.target.value)}>
+                            <option value="">-- select recipient --</option>
+                            <option value="instructor">Instructor</option>
+                            <option value="program_head">Program Head</option>
+                            <option value="program-head">Program Head</option>
+                            <option value="director-of-libraries">Director of Libraries</option>
+                            <option value="industry-consultant">Industry Consultant</option>
+                          </select>
+                        </div>
+                      ) : null}
 
                       <textarea className={styles.textarea} value={c.text} onChange={(e) => updateCommentText(c.id, e.target.value)} placeholder={'Enter your comment...'} rows={4} />
                     </div>
