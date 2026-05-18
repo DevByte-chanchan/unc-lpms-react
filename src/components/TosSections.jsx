@@ -11,8 +11,7 @@ const tosSections = ({status}) => {
 
     const [questions, setQuestions] = useState([]);
     const [isPreviewOpen, setIsPreviewOpen] = useState(false);
-    const [assessmentMode, setAssessmentMode] = useState(null);
-    const [isAssessmentLoading, setIsAssessmentLoading] = useState(false);
+    const [assessmentMode] = useState("question");
     const [rubricCategories, setRubricCategories] = useState([]);
     const navigate = useNavigate();
     const [searchParams, setSearchParams] = useSearchParams();
@@ -33,7 +32,8 @@ const tosSections = ({status}) => {
         },
         {
             co: "CO2",
-            description: "User-Centered Design (UCD) principles and ISO 9241-210 standards with given user personas, contextual task flows, and feedback artifacts to develop a User Experience (UX) design that demonstrates user involvement, iterative refinement, and contextual understanding, as evaluated against established UX design criteria.",         totalHours: 12,
+            description: "User-Centered Design (UCD) principles and ISO 9241-210 standards with given user personas, contextual task flows, and feedback artifacts to develop a User Experience (UX) design that demonstrates user involvement, iterative refinement, and contextual understanding, as evaluated against established UX design criteria.",
+            totalHours: 12,
             totalPercentage: 100,
             totalItems: 30,
             ilos: [
@@ -48,83 +48,66 @@ const tosSections = ({status}) => {
     const [tosErrors, setTosErrors] = useState([]);
     const [showTosErrorModal, setShowTosErrorModal] = useState(false);
 
-    const handleAssessmentModeSelect = (mode) => {
-        setIsAssessmentLoading(true);
+    // ── Outcome Overview helpers ──────────────────────────────────────────────
 
-        setTimeout(() => {
-            setAssessmentMode(mode);
-
-            if (mode === "question") {
-                setRubricCategories([]);
-                setQuestions([]);
-            }
-
-            if (mode === "rubric") {
-                setQuestions([]);
-            }
-
-            setIsAssessmentLoading(false);
-        }, 600);
-    };
-
-    const getDistributedItems = (coIndex, totalItems) => {
-        if (!totalItems || totalItems === "") return rows[coIndex].ilos.map(ilo => ilo.items);
-
-        const total = Number(totalItems);
-        const co = rows[coIndex];
-
-        const calculated = co.ilos.map(ilo => {
-            return Math.round((ilo.percentage / 100) * total);
-        });
-
-        const sum = calculated.reduce((acc, val) => acc + val, 0);
-        const diff = total - sum;
-
-        if (diff !== 0) {
-            calculated[calculated.length - 1] += diff;
-        }
-
-        return calculated;
-    };
-
-    const handleItemsChange = (coIndex, iloIndex, value) => {
-        setRows(prev => {
-            const updated = [...prev];
-            updated[coIndex].ilos[iloIndex].items = value === "" ? "" : Number(value);
-            return updated;
-        });
-    };
-
+    // When total CO items changes → redistribute to ILOs by percentage
     const handleTotalItemsChange = (coIndex, value) => {
         setRows(prev => {
-            const updated = [...prev];
-            updated[coIndex].totalItems = value === "" ? "" : Number(value);
+            const updated = prev.map((co, i) => {
+                if (i !== coIndex) return co;
+                const cleaned = value.replace(/[^0-9]/g, '');
+                const total = cleaned === "" ? "" : Number(cleaned);
+                const newIlos = co.ilos.map(ilo => ({ ...ilo }));
 
-            if (value !== "") {
-                const distributedItems = getDistributedItems(coIndex, value);
-                updated[coIndex].ilos.forEach((ilo, idx) => {
-                    ilo.items = distributedItems[idx];
-                });
-            }
+                if (total !== "") {
+                    let runningSum = 0;
+                    newIlos.forEach((ilo, idx) => {
+                        if (idx < newIlos.length - 1) {
+                            const allocated = Math.round((ilo.percentage / 100) * total);
+                            ilo.items = allocated;
+                            runningSum += allocated;
+                        } else {
+                            ilo.items = total - runningSum;
+                        }
+                    });
+                }
 
+                return { ...co, totalItems: total, ilos: newIlos };
+            });
             return updated;
         });
     };
 
+    // When an individual ILO item count changes → recalculate CO total as sum of ILOs
+    const handleItemsChange = (coIndex, iloIndex, value) => {
+        setRows(prev => {
+            const updated = prev.map((co, i) => {
+                if (i !== coIndex) return co;
+                const cleaned = value.replace(/[^0-9]/g, '');
+                const newIlos = co.ilos.map((ilo, j) => {
+                    if (j !== iloIndex) return { ...ilo };
+                    return { ...ilo, items: cleaned === "" ? "" : Number(cleaned) };
+                });
+                const newTotal = newIlos.reduce((sum, ilo) => sum + Number(ilo.items || 0), 0);
+                return { ...co, ilos: newIlos, totalItems: newTotal };
+            });
+            return updated;
+        });
+    };
+
+    // ── TOS validation ────────────────────────────────────────────────────────
     const validateTOS = () => {
         const errors = [];
 
         const counts = {};
         rows.forEach(co => {
             counts[co.co] = { ilos: {} };
-            co.ilos.forEach(ilo => {
-                counts[co.co].ilos[ilo.id] = 0;
-            });
+            co.ilos.forEach(ilo => { counts[co.co].ilos[ilo.id] = 0; });
         });
 
         questions.forEach(q => {
             if (q.co && q.ilo) {
-                counts[q.co].ilos[q.ilo] += 1;
+                counts[q.co].ilos[q.ilo] += (q.span || 1);
             }
         });
 
@@ -132,28 +115,18 @@ const tosSections = ({status}) => {
             co.ilos.forEach(ilo => {
                 const required = ilo.items;
                 const actual = counts[co.co].ilos[ilo.id];
-
                 if (actual !== required) {
-                    errors.push(
-                        `${co.co}-${ilo.id}: requires ${required} items`
-                    );
+                    errors.push(`${co.co}-${ilo.id}: requires ${required} item(s), currently has ${actual}`);
                 }
             });
         });
 
         questions.forEach((q, i) => {
             const row = i + 1;
-
-            if (assessmentMode === "question") {
-                if (!q.question) errors.push(`Question is empty: Row ${row}`);
-            }
-            if (assessmentMode === "rubric") {
-                if (!q.rubricItem) errors.push(`Rubric category missing: Row ${row}`);
-            }
-
-            if (!q.co) errors.push(`CO not selected: Row ${row}`);
-            if (!q.ilo) errors.push(`ILO not selected: Row ${row}`);
-            if (!q.points) errors.push(`Points missing: Row ${row}`);
+            if (!q.question && !q.rubricItem) errors.push(`Item text is empty: Row ${row}`);
+            if (!q.co)             errors.push(`CO not selected: Row ${row}`);
+            if (!q.ilo)            errors.push(`ILO not selected: Row ${row}`);
+            if (!q.points)         errors.push(`Points missing: Row ${row}`);
             if (!q.cognitiveLevel) errors.push(`Cognitive level missing: Row ${row}`);
         });
 
@@ -168,11 +141,7 @@ const tosSections = ({status}) => {
 
     useEffect(() => {
         setIsLoading(true);
-
-        const timer = setTimeout(() => {
-            setIsLoading(false);
-        }, 500);
-
+        const timer = setTimeout(() => { setIsLoading(false); }, 500);
         return () => clearTimeout(timer);
     }, [selectedSection]);
 
@@ -180,10 +149,7 @@ const tosSections = ({status}) => {
         <>
             <div className={styles.container}>
                 <div className={styles.navi}>
-                    <div
-                        className={styles.return}
-                        onClick={() => navigate('/assignedtos')}
-                    >
+                    <div className={styles.return} onClick={() => navigate('/assignedtos')}>
                         <ChevronLeft size={22}/>
                     </div>
 
@@ -195,10 +161,7 @@ const tosSections = ({status}) => {
                         </select>
                     </div>
 
-                    <div
-                        className={styles.draft}
-                        onClick={() => navigate('/assignedtos')}
-                    >
+                    <div className={styles.draft} onClick={() => navigate('/assignedtos')}>
                         Save as Draft
                     </div>
 
@@ -221,135 +184,117 @@ const tosSections = ({status}) => {
                 </div>
 
                 <div className={styles['dynamic-sections']}>
-
                     {isLoading ? (
                         <div className={styles.loadingContainer}>
                             <div className={styles.spinner}></div>
                         </div>
                     ) : (
-                    <>
-                    {selectedSection === 'Outcome Overview' &&
-                        <section>
-                            <table className={`${layout.table} ${layout.TOSTable}`}>
-                                <thead>
-                                <tr>
-                                    <th>ILOs</th>
-                                    <th>DESCRIPTION</th>
-                                    <th>NO. OF HOURS</th>
-                                    <th>%</th>
-                                    <th>NO. OF ITEMS</th>
-                                </tr>
-                                </thead>
-
-                                <tbody>
-                                {rows.map((co, coIndex) => (
-                                    <>
-                                        {/* CO Header Row */}
-                                        <tr key={`${co.co}-header`}>
-                                            <td>
-                                                <div className={`${layout.cellBox} ${layout.blankCell}`}>
-                                                    {co.co}
-                                                </div>
-                                            </td>
-                                            <td>
-                                                <div className={layout.blankCell}>
-                                                </div>
-                                            </td>
-                                            <td>
-                                                <div className={`${layout.cellBox} ${layout.blankCell}`}>
-                                                    {co.totalHours}
-                                                </div>
-                                            </td>
-                                            <td>
-                                                <div className={`${layout.cellBox} ${layout.blankCell}`}>
-                                                    {co.totalPercentage}
-                                                </div>
-                                            </td>
-                                            <td>
-                                                <div className={layout.cellBox}>
-                                                    <input
-                                                        className={`${layout.totalCoPoint} ${layout.input}`}
-                                                        type="number"
-                                                        value={co.totalItems}
-                                                        onChange={(e) => handleTotalItemsChange(coIndex, e.target.value)}
-                                                    />
-                                                </div>
-                                            </td>
+                        <>
+                            {selectedSection === 'Outcome Overview' &&
+                                <section>
+                                    <table className={`${layout.table} ${layout.TOSTable}`}>
+                                        <thead>
+                                        <tr>
+                                            <th>ILOs</th>
+                                            <th>DESCRIPTION</th>
+                                            <th>NO. OF HOURS</th>
+                                            <th>%</th>
+                                            <th>NO. OF ITEMS</th>
                                         </tr>
+                                        </thead>
+                                        <tbody>
+                                        {rows.map((co, coIndex) => (
+                                            <React.Fragment key={co.co}>
+                                                <tr>
+                                                    <td>
+                                                        <div className={`${layout.cellBox} ${layout.blankCell}`}>
+                                                            {co.co}
+                                                        </div>
+                                                    </td>
+                                                    <td>
+                                                        <div className={layout.blankCell}></div>
+                                                    </td>
+                                                    <td>
+                                                        <div className={`${layout.cellBox} ${layout.blankCell}`}>
+                                                            {co.totalHours}
+                                                        </div>
+                                                    </td>
+                                                    <td>
+                                                        <div className={`${layout.cellBox} ${layout.blankCell}`}>
+                                                            {co.totalPercentage}
+                                                        </div>
+                                                    </td>
+                                                    <td>
+                                                        <div className={layout.cellBox}>
+                                                            <input
+                                                                className={`${layout.totalCoPoint} ${layout.input}`}
+                                                                type="text"
+                                                                inputMode="numeric"
+                                                                value={co.totalItems}
+                                                                onChange={(e) => handleTotalItemsChange(coIndex, e.target.value)}
+                                                                onKeyDown={(e) => {
+                                                                    if (!/[0-9]/.test(e.key) && !['Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+                                                                        e.preventDefault();
+                                                                    }
+                                                                }}
+                                                            />
+                                                        </div>
+                                                    </td>
+                                                </tr>
 
-                                        {/* ILO Rows */}
-                                        {co.ilos.map((ilo, iloIndex) => (
-                                            <tr key={`${co.co}-${ilo.id}`}>
-                                                <td>
-                                                    <div className={`${layout.cellBox} ${layout.mutedBold}`}>
-                                                        {ilo.id}
-                                                    </div>
-                                                </td>
-                                                <td>
-                                                    <div className={`${layout.cellBox} ${layout.readable}`}>
-                                                        {ilo.description}
-                                                    </div>
-                                                </td>
-                                                <td>
-                                                    <div className={`${layout.cellBox} ${layout.muted}`}>
-                                                        {ilo.hours}
-                                                    </div>
-                                                </td>
-                                                <td>
-                                                    <div className={`${layout.cellBox} ${layout.muted}`}>
-                                                        {ilo.percentage}
-                                                    </div>
-                                                </td>
-                                                <td>
-                                                    <div className={layout.cellBox}>
-                                                        <input
-                                                            className={`${layout.point} ${layout.input}`}
-                                                            type="number"
-                                                            value={ilo.items}
-                                                            onChange={(e) => handleItemsChange(coIndex, iloIndex, e.target.value)}
-                                                        />
-                                                    </div>
-                                                </td>
-                                            </tr>
+                                                {co.ilos.map((ilo, iloIndex) => (
+                                                    <tr key={`${co.co}-${ilo.id}`}>
+                                                        <td>
+                                                            <div className={`${layout.cellBox} ${layout.mutedBold}`}>
+                                                                {ilo.id}
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            <div className={`${layout.cellBox} ${layout.readable}`}>
+                                                                {ilo.description}
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            <div className={`${layout.cellBox} ${layout.muted}`}>
+                                                                {ilo.hours}
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            <div className={`${layout.cellBox} ${layout.muted}`}>
+                                                                {ilo.percentage}
+                                                            </div>
+                                                        </td>
+                                                    <td>
+                                                        <div className={layout.cellBox}>
+                                                            <input
+                                                                className={`${layout.point} ${layout.input}`}
+                                                                type="text"
+                                                                inputMode="numeric"
+                                                                value={ilo.items}
+                                                                onChange={(e) => handleItemsChange(coIndex, iloIndex, e.target.value)}
+                                                                onKeyDown={(e) => {
+                                                                    if (!/[0-9]/.test(e.key) && !['Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+                                                                        e.preventDefault();
+                                                                    }
+                                                                }}
+                                                            />
+                                                        </div>
+                                                    </td>
+                                                    </tr>
+                                                ))}
+
+                                                {coIndex < rows.length - 1 && (
+                                                    <tr key={`${co.co}-spacer`} style={{height: '16px'}} />
+                                                )}
+                                            </React.Fragment>
                                         ))}
+                                        </tbody>
+                                    </table>
+                                </section>
+                            }
 
-                                        {coIndex < rows.length - 1 && (
-                                            <tr key={`${co.co}-spacer`} style={{height: '16px'}}>
-                                            </tr>
-                                        )}
-                                    </>
-                                ))}
-                                </tbody>
-                            </table>
-                        </section>
-                    }
-                        {selectedSection === 'Assessment Item-Cognitive Level Alignment' && (
-                            <section>
-
-                                {!assessmentMode && !isAssessmentLoading && (
-                                    <div className={layout.modeOverlay}>
-                                        <div className={layout.modeBox}>
-                                            <h3>Select Assessment Type</h3>
-                                            <p>What assessment will be mapped?</p>
-                                            <div className={layout.modeButtons}>
-                                                <button onClick={() => handleAssessmentModeSelect("question")}>
-                                                    Question Bank
-                                                </button>
-                                                <button onClick={() => handleAssessmentModeSelect("rubric")}>
-                                                    Rubric-Based
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
-
-                                {isAssessmentLoading && (
-                                    <div className={styles.loadingContainer}>
-                                        <div className={styles.spinner}></div>
-                                    </div>
-                                )}
-
-                                {assessmentMode && !isAssessmentLoading && (
+                            {selectedSection === 'Assessment Item-Cognitive Level Alignment' && (
+                                <section>
                                     <QuestionCognitiveMapping
                                         outcomeData={rows}
                                         questions={questions}
@@ -358,18 +303,16 @@ const tosSections = ({status}) => {
                                         rubricCategories={rubricCategories}
                                         setRubricCategories={setRubricCategories}
                                     />
-                                )}
+                                </section>
+                            )}
 
-                            </section>
-                        )}
-                    {selectedSection === 'TOS Summary' &&
-                        <section>
-                            <TOSSummary outcomeData={rows} questions={questions} />
-                        </section>
-                    }
-                    </>
-                )}
-
+                            {selectedSection === 'TOS Summary' &&
+                                <section>
+                                    <TOSSummary outcomeData={rows} questions={questions} />
+                                </section>
+                            }
+                        </>
+                    )}
                 </div>
             </div>
 
@@ -385,48 +328,28 @@ const tosSections = ({status}) => {
                     <div className={layout.modal}>
                         <div className={layout.modalHeader} style={{ borderBottomColor: "#FF5252" }}>
                             <h3 style={{ color: "#FF5252" }}>TOS Validation Errors</h3>
-                            <span
-                                style={{ cursor: "pointer", fontSize: "20px" }}
-                                onClick={() => setShowTosErrorModal(false)}
-                            >
-          ×
-        </span>
+                            <span style={{ cursor: "pointer", fontSize: "20px" }} onClick={() => setShowTosErrorModal(false)}>×</span>
                         </div>
-
                         <div className={layout.modalBody}>
                             <p>Please fix the following before exporting:</p>
-                            <ul
-                                className={layout.errorList}
-                                style={{
-                                    listStyle: "none",
-                                    paddingLeft: 20,
-                                    margin: 0,
-                                    textAlign: "left"
-                                }}
-                            >
-                                {tosErrors.map((err, i) => (
-                                    <li key={i}>{err}</li>
-                                ))}
+                            <ul className={layout.errorList} style={{ listStyle: "none", paddingLeft: 20, margin: 0, textAlign: "left" }}>
+                                {tosErrors.map((err, i) => <li key={i}>{err}</li>)}
                             </ul>
                         </div>
-
                         <div className={layout.modalActions}>
                             <button
                                 className={layout.confirmBtn}
-                                style={{
-                                    backgroundColor: "#FF5252"
-                                }}
+                                style={{ backgroundColor: "#FF5252" }}
                                 onClick={() => setShowTosErrorModal(false)}
                             >
-                                Okay, I’ll fix it
+                                Okay, I'll fix it
                             </button>
                         </div>
                     </div>
                 </div>
             )}
-
         </>
-    )
-}
+    );
+};
 
 export default tosSections;

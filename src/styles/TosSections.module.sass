@@ -90,6 +90,19 @@
   text-align: center
   background: transparent
   font-size: 14px
+  border-radius: 4px
+  transition: background 0.15s
+
+  &::-webkit-outer-spin-button,
+  &::-webkit-inner-spin-button
+    -webkit-appearance: none
+    margin: 0
+
+  -moz-appearance: textfield
+
+  &:focus
+    outline: none
+    background: rgba(0, 0, 0, 0.04)
 
   &:disabled
     background: #F1F3F5
@@ -108,6 +121,13 @@
   padding: 0 6px
   background: transparent
   text-align: center
+
+  &::-webkit-outer-spin-button,
+  &::-webkit-inner-spin-button
+    -webkit-appearance: none
+    margin: 0
+
+  -moz-appearance: textfield
 
 .section
   flex-grow: 1

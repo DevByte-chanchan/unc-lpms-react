@@ -17,7 +17,6 @@ const TOSSummary = ({ outcomeData, questions }) => {
             .reduce((sum, q) => sum + Number(q.points), 0);
     };
 
-    // Aggregate data from questions: For each CO-ILO-cognitive level, get count (no. of items) and sumPoints (equi points/total)
     const getAggregatedData = () => {
         const data = {};
         outcomeData.forEach(co => {
@@ -30,9 +29,11 @@ const TOSSummary = ({ outcomeData, questions }) => {
             });
         });
         questions.forEach(q => {
-            if (q.co && q.ilo && q.cognitiveLevel && q.points) {
-                data[q.co][q.ilo][q.cognitiveLevel].count += 1;
-                data[q.co][q.ilo][q.cognitiveLevel].sumPoints += Number(q.points);
+            if (q.co && q.ilo && q.cognitiveLevel) {
+                const span = q.span || 1;
+                const pts = Number(q.points) || 0;
+                data[q.co][q.ilo][q.cognitiveLevel].count += span;
+                data[q.co][q.ilo][q.cognitiveLevel].sumPoints += pts;
             }
         });
         return data;
@@ -79,7 +80,6 @@ const TOSSummary = ({ outcomeData, questions }) => {
                                 />
                             </div>
 
-                            {/* Table for cognitive levels */}
                             <table className={`${layout.qctable} ${layout.TOSTable}`}>
                                 <thead>
                                 <tr>
@@ -94,7 +94,6 @@ const TOSSummary = ({ outcomeData, questions }) => {
                                 </tr>
                                 </thead>
                                 <tbody>
-                                {/* Row: no. of items */}
                                 <tr>
                                     <td>
                                         <div className={`${layout.cellBox} ${layout.leftAlign}`}>Number of Items</div>
@@ -107,27 +106,13 @@ const TOSSummary = ({ outcomeData, questions }) => {
                                         </td>
                                     ))}
                                 </tr>
-                                {/* Row: equi points */}
                                 <tr>
                                     <td>
-                                        <div className={`${layout.cellBox} ${layout.leftAlign}`}>Equivalent Points</div>
+                                        <div className={`${layout.cellBox} ${layout.leftAlign}`} style={{ fontWeight: '500' }}>Total Points</div>
                                     </td>
                                     {cognitiveLevels.map(level => (
                                         <td key={level}>
-                                            <div className={layout.cellBox}>
-                                                {aggregatedData[co.co][ilo.id][level].sumPoints}
-                                            </div>
-                                        </td>
-                                    ))}
-                                </tr>
-                                {/* Row: total */}
-                                <tr>
-                                    <td>
-                                        <div className={`${layout.cellBox} ${layout.leftAlign}`} style={{ fontWeight: '500' }}>Total</div>
-                                    </td>
-                                    {cognitiveLevels.map(level => (
-                                        <td key={level}>
-                                            <div className={layout.cellBox} style={{ fontWeight: '500' }}>  {/* Bold text for data */}
+                                            <div className={layout.cellBox} style={{ fontWeight: '500' }}>
                                                 {aggregatedData[co.co][ilo.id][level].sumPoints}
                                             </div>
                                         </td>
