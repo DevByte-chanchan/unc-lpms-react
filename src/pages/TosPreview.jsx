@@ -1,5 +1,5 @@
 import React from "react";
-import layout from "../styles/TOSPreview.module.sass";
+import layout from "../styles/TosPreview.module.sass";
 import { useNavigate } from "react-router-dom";
 
 const TOSPreview = ({ isOpen, onClose, outcomeData, questions, courseName = "Human & Computer Interaction", semester = "1st Sem", schoolYear = "2024 - 2025" }) => {

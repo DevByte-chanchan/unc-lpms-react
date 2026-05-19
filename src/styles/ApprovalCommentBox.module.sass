@@ -46,10 +46,12 @@
   text-align: center
 
 .body
-  /* scrollable area: grid + comments */
+  flex: 1
+  min-height: 0
   overflow: auto
   padding: 8px 4px
-  display: block
+  display: flex
+  flex-direction: column
 
 .grid
   display: grid
@@ -78,13 +80,16 @@
   flex-direction: column
   gap: 12px
   margin-bottom: 6px
+  flex: 1
+  min-height: 0
 
 /* limit the comment list height so body can scroll when many comments */
 .commentList
   display: flex
   flex-direction: column
   gap: 12px
-  max-height: calc(72vh - 220px)
+  flex: 1
+  min-height: 0
   overflow: auto
   padding-right: 6px
 
@@ -182,7 +187,7 @@
   border: 1px solid rgba(0,0,0,0.06)
 
 .submit
-  background: #000
+  background: #19282C
   color: #fff
   cursor: pointer
 
@@ -206,8 +211,6 @@
     padding: 10px
   .grid
     grid-template-columns: 1fr
-  .commentList
-    max-height: calc(72vh - 200px)
   .actions
     flex-direction: column
     gap: 8px

@@ -6,7 +6,7 @@ import styles from "../styles/CriteriaForGradingForm.module.sass";
 const CriteriaForGradingForm = ({ syllabusCode }) => {
     const syllabus = getSyllabusByCode(syllabusCode);
 
-    const courseOutcomes = [
+    const courseOutcomes = (syllabus && syllabus.courseOutcomes && syllabus.courseOutcomes.length) ? syllabus.courseOutcomes : [
         { id: "CO1" },
         { id: "CO2" },
         { id: "CO3" },

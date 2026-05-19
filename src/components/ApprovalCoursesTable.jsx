@@ -1,7 +1,9 @@
-import React, { useState } from 'react'
+import React, { useState, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import styles from '../styles/CoursesTable.module.sass'
 import { ChevronRight, Download } from 'react-feather'
+import { getWorkflow } from '../utils/workflowHelpers'
+import { syllabiData, getSyllabusByCode } from '../data/syllabiData.js'
 
 const ApprovalCoursesTable = ({ role = 'approver' }) => {
   const currentYear = new Date().getFullYear()
@@ -13,108 +15,102 @@ const ApprovalCoursesTable = ({ role = 'approver' }) => {
     yearOptions.push(<option key={i} value={i}>{i}</option>)
   }
 
-  const Courses = [
-    { code: 'BSCS214L', name: 'Human & Computer Interaction', update: 'Sept 20, 2025', status: 'PENDING', approved: '', reviewers: [
-      { role: 'Library Director', status: 'approved' },
-      { role: 'Industry Consultant', status: 'pending' },
-      { role: 'Program Head', status: 'pending' },
-      { role: 'Dean', status: 'pending' },
-    ]},
-    { code: 'BSCS322L', name: 'Software Engineering', update: 'Oct 12, 2025', status: 'PENDING', approved: '', reviewers: [
-      { role: 'Library Director', status: 'approved' },
-      { role: 'Industry Consultant', status: 'approved' },
-      { role: 'Program Head', status: 'revision' },
-      { role: 'Dean', status: 'pending' },
-    ]},
-    { code: 'BSCS351L', name: 'Cybersecurity Fundamentals', update: 'Nov 10, 2025', status: 'PENDING', approved: '', reviewers: [
-      { role: 'Library Director', status: 'pending' },
-      { role: 'Industry Consultant', status: 'pending' },
-      { role: 'Program Head', status: 'pending' },
-      { role: 'Dean', status: 'pending' },
-    ]},
-    { code: 'BSCS313L', name: 'Operating Systems', update: 'Oct 02, 2025', status: 'APPROVED', approved: 'Oct 10, 2025' },
-    { code: 'BSCS331L', name: 'Computer Networks', update: 'Oct 18, 2025', status: 'APPROVED', approved: 'Oct 25, 2025' },
-  ]
+  const fmt = (iso) => {
+    if (!iso) return ''
+    return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' })
+  }
+
+  // ── COURSE DATA ─────────────────────────────────────────────────────
+  // All courses from unified syllabiData — statuses derived live from workflow
+  const baseCourses = syllabiData.map(s => ({
+    code: s.code,
+    name: s.name,
+    instructor: 'Danny Casimero'
+  }))
+
+  // ── DERIVE STATUS FROM WORKFLOW ─────────────────────────────────────
+  const getReviewerStatuses = (courseCode) => {
+    const wf = getWorkflow(courseCode)
+    const stage = wf.currentStage || 'submitted'
+
+    const mapStatus = (raw, activeStages) => {
+      if (raw === 'done') return 'approved'
+      if (raw === 'returned') return 'returned'
+      return activeStages ? 'pending' : 'waiting'
+    }
+
+    const libStatus = mapStatus(wf.parallelReview?.library_director?.status, stage === 'parallel_review' || stage === 'program_head' || stage === 'dean' || stage === 'approved')
+    const icStatus = mapStatus(wf.parallelReview?.industry_consultant?.status, stage === 'parallel_review' || stage === 'program_head' || stage === 'dean' || stage === 'approved')
+    const phStatus = mapStatus(wf.programHead?.status, stage === 'program_head')
+    const deanStatus = mapStatus(wf.dean?.status, stage === 'dean')
+
+    return [
+      { role: 'Director of Libraries', name: 'Maria Santos', status: libStatus, completedAt: wf.parallelReview?.library_director?.completedAt },
+      { role: 'Industry Consultant', name: 'Roberto Cruz', status: icStatus, completedAt: wf.parallelReview?.industry_consultant?.completedAt },
+      { role: 'Program Head', name: 'Junar Danila', status: phStatus, completedAt: wf.programHead?.completedAt },
+      { role: 'Dean', name: 'Agnes Reyes', status: deanStatus, completedAt: wf.dean?.completedAt },
+    ]
+  }
+
+  const getOverallStatus = (courseCode) => {
+    const wf = getWorkflow(courseCode)
+    if (wf.currentStage === 'approved') return 'APPROVED'
+    if (wf.currentStage === 'returned') return 'RETURNED'
+    if (wf.currentStage === 'submitted') return 'DRAFT'
+    return 'PENDING'
+  }
+
+  const getSubmittedDate = (courseCode) => {
+    const wf = getWorkflow(courseCode)
+    return fmt(wf.submittedAt)
+  }
+
+  const getApprovedDate = (courseCode) => {
+    const wf = getWorkflow(courseCode)
+    if (wf.currentStage === 'approved') return fmt(wf.dean?.completedAt)
+    return ''
+  }
+
+  // Force re-render on interval to catch workflow changes
+  const [tick, setTick] = useState(0)
+  React.useEffect(() => {
+    const interval = setInterval(() => setTick(t => t + 1), 2000)
+    return () => clearInterval(interval)
+  }, [])
+
+  const Courses = useMemo(() => {
+    return baseCourses
+      .map(c => ({
+        ...c,
+        status: getOverallStatus(c.code),
+        submittedDate: getSubmittedDate(c.code),
+        approved: getApprovedDate(c.code),
+        reviewers: getReviewerStatuses(c.code)
+      }))
+      .filter(c => c.status !== 'DRAFT')
+  }, [tick])
 
   const [selectedStatus, setSelectedStatus] = useState('PENDING')
   const handleStatusChange = (e) => setSelectedStatus(e.target.value)
 
-  // Mock syllabus data - in real app, fetch this based on course code
   const getSyllabusData = (courseCode) => {
-    return {
+    return getSyllabusByCode(courseCode) || {
       code: courseCode,
-      name: 'Human & Computer Interaction',
-      credits: '2 LEC, 1 LAB',
-      contact: '3',
-      prerequisites: 'BCS222L Web Development 2',
-      class: 'Professional Courses',
-      cmo: '25 S, 2015',
+      name: 'Unknown Course',
+      credits: '',
+      contact: '',
+      prerequisites: '',
+      class: '',
+      cmo: '',
       revision: '0',
-      year: 'THIRD YEAR',
-      sem: '1st Semester',
-      description: 'This course explores the principles and practices of Human-Computer Interaction (HCI), focusing on how people engage with digital systems and how to design technology that enhances user experience.',
-      courseOutcomes: [
-        {
-          id: 'CO1',
-          description: 'Apply core concepts, theories, and principles of HCI',
-          poMappings: ['E', '', 'I', '', '', 'E', '', '', 'I']
-        },
-        {
-          id: 'CO2',
-          description: 'User-Centered Design principles and ISO 9241-210 standards',
-          poMappings: ['', 'E', '', '', '', 'E', '', 'I', '']
-        },
-      ],
-      references: [
-        { id: 'TB1', type: 'Textbook', title: 'The Design of Everyday Things', authors: 'Don Norman', year: 2013, isbn: '978-0465050659' },
-        { id: 'OE1', type: 'Open Educational Resources', title: 'The Encyclopedia of HCI', authors: 'Mads Soegaard', year: 2014, link: 'https://interaction-design.org' },
-        { id: 'OR1', type: 'Online Resources', title: '10 Usability Heuristics', authors: 'Jakob Nielsen', year: 2020, link: 'https://nngroup.com' },
-      ],
-      gradingSystem: [
-        {
-          co: "CO1",
-          ilos: [
-            { id: "ILO1", assessments: ["Intro to Heuristics Brief"], weight: { prelim: "30", midterm: "", semi: "", final: "" }, minPassing: "60" },
-            { id: "ILO2", assessments: ["Persona Workshop"], weight: { prelim: "40", midterm: "", semi: "", final: "" }, minPassing: "60" },
-          ]
-        },
-        {
-          co: "CO2",
-          ilos: [
-            { id: "ILO1", assessments: ["UI Evaluation"], weight: { prelim: "", midterm: "30", semi: "", final: "" }, minPassing: "60" },
-          ]
-        },
-      ],
-      ilos: [
-        {
-          id: "CO1-ILO1",
-          intendedLearningOutcome: "Analyze the relationship between cognitive psychology and HCI",
-          deliveryWeek: "Week 1",
-          allocatedTime: "3 hours",
-          topics: ["Introduction to HCI & Cognitive Foundations"],
-          references: ["TB1 - The Design of Everyday Things"]
-        },
-      ],
-      topics: [
-        {
-          id: "T1",
-          title: "Introduction to HCI & Cognitive Foundations",
-          subtopics: [
-            { id: "S1", value: "History and Evolution of HCI" },
-            { id: "S2", value: "Mental Models and Metaphors" }
-          ],
-          tlas: [
-            {
-              id: "TLA1",
-              classPhase: "Pre-class",
-              performedBy: "Instructor",
-              tlaName: "Foundations Lecture",
-              tlaDescription: "Overview of HCI principles",
-              laboratory: false
-            }
-          ]
-        }
-      ]
+      year: '',
+      sem: '',
+      description: '',
+      courseOutcomes: [],
+      references: [],
+      gradingSystem: [],
+      ilos: [],
+      topics: []
     }
   }
 
@@ -139,237 +135,40 @@ const ApprovalCoursesTable = ({ role = 'approver' }) => {
       <head>
         <title>${course.code}_syllabus_report</title>
         <style>
-          @page {
-            size: A4;
-            margin: 15mm;
-          }
-          
-          body {
-            font-family: Arial, sans-serif;
-            font-size: 10pt;
-            color: #333;
-            line-height: 1.4;
-          }
-          
-          h1 {
-            color: #2563eb;
-            font-size: 18pt;
-            border-bottom: 3px solid #2563eb;
-            padding-bottom: 8px;
-            margin-bottom: 15px;
-            text-align: center;
-          }
-          
-          h2 {
-            color: #1e40af;
-            font-size: 13pt;
-            margin-top: 20px;
-            margin-bottom: 10px;
-            border-bottom: 2px solid #93c5fd;
-            padding-bottom: 5px;
-          }
-          
-          .section {
-            margin-bottom: 20px;
-            page-break-inside: avoid;
-          }
-          
-          table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 15px;
-            page-break-inside: auto;
-          }
-          
-          tr {
-            page-break-inside: avoid;
-            page-break-after: auto;
-          }
-          
-          th {
-            background-color: #2563eb;
-            color: white;
-            padding: 8px;
-            text-align: left;
-            font-size: 9pt;
-            font-weight: bold;
-            border: 1px solid #1e40af;
-          }
-          
-          td {
-            padding: 6px 8px;
-            border: 1px solid #ddd;
-            font-size: 9pt;
-            vertical-align: top;
-          }
-          
-          .course-details-table th {
-            background-color: #f3f4f6;
-            color: #374151;
-            font-weight: 600;
-            width: 30%;
-          }
-          
-          .course-details-table td {
-            background-color: white;
-          }
-          
-          .desc-cell {
-            background-color: #f9fafb;
-            padding: 10px;
-            line-height: 1.6;
-          }
-          
-          tr:nth-child(even) td {
-            background-color: #f9fafb;
-          }
-          
-          .center {
-            text-align: center;
-          }
-          
-          .bold {
-            font-weight: 600;
-          }
-          
-          .legend {
-            background-color: #fef3c7;
-            border-left: 4px solid #f59e0b;
-            padding: 10px;
-            margin-bottom: 15px;
-            font-size: 9pt;
-          }
-          
-          .legend strong {
-            color: #92400e;
-          }
-          
-          .total-row {
-            background-color: #dbeafe !important;
-            font-weight: bold;
-          }
-          
-          .total-row td {
-            background-color: #dbeafe !important;
-            border-top: 2px solid #2563eb;
-          }
-          
-          .footer {
-            margin-top: 30px;
-            padding-top: 10px;
-            border-top: 1px solid #ddd;
-            font-size: 8pt;
-            color: #6b7280;
-            text-align: center;
-          }
-          
-          .sub-header {
-            background-color: #60a5fa !important;
-            font-size: 8pt;
-          }
-          
-          .topic-block {
-            margin-bottom: 8px;
-          }
-          
-          .topic-title {
-            font-weight: 600;
-            margin-bottom: 3px;
-          }
-          
-          ul {
-            margin: 3px 0;
-            padding-left: 15px;
-          }
-          
-          li {
-            margin: 2px 0;
-            font-size: 8.5pt;
-          }
-          
-          .tla-group {
-            margin-bottom: 10px;
-          }
-          
-          .tla-phase {
-            font-weight: 600;
-            color: #1e40af;
-            margin-bottom: 5px;
-            font-size: 9pt;
-          }
-          
-          .tla-item {
-            margin-bottom: 6px;
-            padding-left: 10px;
-          }
-          
-          .tla-name {
-            font-weight: 600;
-          }
-          
-          .assessment-item {
-            margin-bottom: 6px;
-          }
+          @page { size: A4; margin: 15mm; }
+          body { font-family: Arial, sans-serif; font-size: 10pt; color: #333; line-height: 1.4; }
+          h1 { color: #1e3a5f; font-size: 18pt; border-bottom: 3px solid #1e3a5f; padding-bottom: 8px; margin-bottom: 15px; text-align: center; }
+          h2 { color: #1e3a5f; font-size: 13pt; margin-top: 20px; margin-bottom: 10px; border-bottom: 2px solid #9ca3af; padding-bottom: 5px; }
+          .section { margin-bottom: 20px; page-break-inside: avoid; }
+          table { width: 100%; border-collapse: collapse; margin-bottom: 15px; }
+          tr { page-break-inside: avoid; }
+          th { background-color: #1e3a5f; color: white; padding: 8px; text-align: left; font-size: 9pt; font-weight: bold; border: 1px solid #1e3a5f; }
+          td { padding: 6px 8px; border: 1px solid #ddd; font-size: 9pt; vertical-align: top; }
+          .course-details-table th { background-color: #f3f4f6; color: #374151; font-weight: 600; width: 30%; }
+          .center { text-align: center; }
+          .bold { font-weight: 600; }
+          .legend { background-color: #fef3c7; border-left: 4px solid #f59e0b; padding: 10px; margin-bottom: 15px; font-size: 9pt; }
+          .total-row td { background-color: #e5e7eb !important; border-top: 2px solid #1e3a5f; }
+          .footer { margin-top: 30px; padding-top: 10px; border-top: 1px solid #ddd; font-size: 8pt; color: #6b7280; text-align: center; }
         </style>
       </head>
       <body>
         <h1>COURSE SYLLABUS</h1>
-        
-        <!-- COURSE DETAILS -->
         <div class="section">
           <h2>Course Details</h2>
           <table class="course-details-table">
-            <tr>
-              <th>Course No.</th>
-              <td>${syllabus.code}</td>
-              <th rowspan="9" style="vertical-align: top;">Course Description</th>
-            </tr>
-            <tr>
-              <th>Course Title</th>
-              <td class="bold">${syllabus.name}</td>
-              <td rowspan="9" class="desc-cell">${syllabus.description}</td>
-            </tr>
-            <tr>
-              <th>Credit</th>
-              <td>${syllabus.credits}</td>
-            </tr>
-            <tr>
-              <th>Contact Hours/Week</th>
-              <td>${syllabus.contact}</td>
-            </tr>
-            <tr>
-              <th>Pre-requisites</th>
-              <td>${syllabus.prerequisites}</td>
-            </tr>
-            <tr>
-              <th>Classification/Field</th>
-              <td>${syllabus.class}</td>
-            </tr>
-            <tr>
-              <th>CMO</th>
-              <td>${syllabus.cmo}</td>
-            </tr>
-            <tr>
-              <th>Syllabus Revision No.</th>
-              <td>${syllabus.revision}</td>
-            </tr>
-            <tr>
-              <th>Year Level</th>
-              <td>${syllabus.year}</td>
-            </tr>
-            <tr>
-              <th>Term</th>
-              <td>${syllabus.sem}</td>
-            </tr>
+            <tr><th>Course No.</th><td>${syllabus.code}</td></tr>
+            <tr><th>Course Title</th><td class="bold">${syllabus.name}</td></tr>
+            <tr><th>Credit</th><td>${syllabus.credits}</td></tr>
+            <tr><th>Contact Hours/Week</th><td>${syllabus.contact}</td></tr>
+            <tr><th>Pre-requisites</th><td>${syllabus.prerequisites}</td></tr>
+            <tr><th>Year Level</th><td>${syllabus.year}</td></tr>
+            <tr><th>Term</th><td>${syllabus.sem}</td></tr>
           </table>
         </div>
-
-        <!-- COURSE AND PROGRAM OUTCOME ALIGNMENT -->
         <div class="section">
           <h2>Course and Program Outcome Alignment</h2>
-          <div class="legend">
-            <strong>Legend:</strong> I – Introductory | E – Enabling | D – Demonstrative
-          </div>
+          <div class="legend"><strong>Legend:</strong> I – Introductory | E – Enabling | D – Demonstrative</div>
           <table>
             <thead>
               <tr>
@@ -389,104 +188,26 @@ const ApprovalCoursesTable = ({ role = 'approver' }) => {
             </tbody>
           </table>
         </div>
-
-        <!-- REFERENCES -->
         <div class="section">
-          <h2>References - Textbooks</h2>
+          <h2>References</h2>
           <table>
-            <thead>
-              <tr>
-                <th style="width: 8%;">ID</th>
-                <th style="width: 35%;">TITLE</th>
-                <th style="width: 25%;">AUTHOR/S</th>
-                <th style="width: 22%;">ISBN</th>
-                <th style="width: 10%;">YEAR</th>
-              </tr>
-            </thead>
+            <thead><tr><th>ID</th><th>TITLE</th><th>AUTHOR/S</th><th>YEAR</th></tr></thead>
             <tbody>
-              ${syllabus.references.filter(r => r.type === 'Textbook').map((ref, i) => `
-                <tr>
-                  <td class="center">TB${i + 1}</td>
-                  <td>${ref.title}</td>
-                  <td>${ref.authors}</td>
-                  <td>${ref.isbn || '-'}</td>
-                  <td class="center">${ref.year}</td>
-                </tr>
+              ${syllabus.references.map((ref, i) => `
+                <tr><td class="center">${ref.id}</td><td>${ref.title}</td><td>${ref.authors}</td><td class="center">${ref.year}</td></tr>
               `).join('')}
             </tbody>
           </table>
         </div>
-
-        <div class="section">
-          <h2>References - Open Educational Resources</h2>
-          <table>
-            <thead>
-              <tr>
-                <th style="width: 8%;">ID</th>
-                <th style="width: 30%;">TITLE</th>
-                <th style="width: 22%;">AUTHOR/S</th>
-                <th style="width: 30%;">LINK</th>
-                <th style="width: 10%;">YEAR</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${syllabus.references.filter(r => r.type === 'Open Educational Resources').map((ref, i) => `
-                <tr>
-                  <td class="center">OE${i + 1}</td>
-                  <td>${ref.title}</td>
-                  <td>${ref.authors}</td>
-                  <td style="word-break: break-all; font-size: 8pt;">${ref.link}</td>
-                  <td class="center">${ref.year}</td>
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
-        </div>
-
-        <div class="section">
-          <h2>References - Online Resources</h2>
-          <table>
-            <thead>
-              <tr>
-                <th style="width: 8%;">ID</th>
-                <th style="width: 30%;">TITLE</th>
-                <th style="width: 22%;">AUTHOR/S</th>
-                <th style="width: 30%;">LINK</th>
-                <th style="width: 10%;">YEAR</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${syllabus.references.filter(r => r.type === 'Online Resources').map((ref, i) => `
-                <tr>
-                  <td class="center">OR${i + 1}</td>
-                  <td>${ref.title}</td>
-                  <td>${ref.authors}</td>
-                  <td style="word-break: break-all; font-size: 8pt;">${ref.link}</td>
-                  <td class="center">${ref.year}</td>
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
-        </div>
-
-        <!-- CRITERIA FOR GRADING -->
         <div class="section">
           <h2>Criteria for Grading</h2>
           <table>
             <thead>
               <tr>
-                <th rowspan="2" style="width: 12%;">COURSE OUTCOME</th>
-                <th rowspan="2" style="width: 10%;">ILO #</th>
-                <th rowspan="2" style="width: 30%;">ASSESSMENTS</th>
-                <th colspan="4" class="center">WEIGHT %</th>
-                <th rowspan="2" style="width: 12%;">MIN PASSING %</th>
+                <th rowspan="2">CO</th><th rowspan="2">ILO #</th><th rowspan="2">ASSESSMENTS</th>
+                <th colspan="4" class="center">WEIGHT %</th><th rowspan="2">MIN PASSING %</th>
               </tr>
-              <tr class="sub-header">
-                <th class="center" style="width: 9%;">Prelim</th>
-                <th class="center" style="width: 9%;">Midterm</th>
-                <th class="center" style="width: 9%;">Semi</th>
-                <th class="center" style="width: 9%;">Final</th>
-              </tr>
+              <tr><th class="center">Prelim</th><th class="center">Midterm</th><th class="center">Semi</th><th class="center">Final</th></tr>
             </thead>
             <tbody>
               ${syllabus.gradingSystem.map(group => 
@@ -514,101 +235,6 @@ const ApprovalCoursesTable = ({ role = 'approver' }) => {
             </tbody>
           </table>
         </div>
-
-        <!-- COURSE COVERAGE -->
-        <div class="section">
-          <h2>Course Coverage</h2>
-          <table>
-            <thead>
-              <tr>
-                <th style="width: 8%;">CO</th>
-                <th style="width: 22%;">ILO</th>
-                <th style="width: 20%;">TOPIC</th>
-                <th style="width: 10%;">PERIOD</th>
-                <th style="width: 25%;">TEACHING & LEARNING ACTIVITIES</th>
-                <th style="width: 10%;">RESOURCES</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${syllabus.ilos.map((ilo, index) => {
-                const isFirstOfCO = index % 3 === 0
-                const cleanILOId = ilo.id.includes('-') ? ilo.id.split('-')[1] : ilo.id
-                const coId = ilo.id.split('-')[0]
-                
-                // Get topics data
-                const rowTopics = ilo.topics.map(topicTitle =>
-                  syllabus.topics.find(t => t.title === topicTitle)
-                ).filter(Boolean)
-                
-                // Group TLAs
-                const getTLAsByPhase = (topics, phase) => {
-                  let tlas = []
-                  topics.forEach(topic => {
-                    if (topic.tlas) {
-                      const filtered = topic.tlas.filter(t => t.classPhase.toLowerCase() === phase.toLowerCase())
-                      tlas = [...tlas, ...filtered]
-                    }
-                  })
-                  return tlas
-                }
-                
-                const preTLAs = getTLAsByPhase(rowTopics, 'Pre-class')
-                const inTLAs = getTLAsByPhase(rowTopics, 'In-class')
-                const postTLAs = getTLAsByPhase(rowTopics, 'Post-class')
-                
-                const renderTLAGroup = (title, tlas) => {
-                  if (!tlas || tlas.length === 0) return ''
-                  return `
-                    <div class="tla-group">
-                      <div class="tla-phase">${title}</div>
-                      ${tlas.map(tla => `
-                        <div class="tla-item">
-                          <div class="tla-name">[${tla.performedBy === 'Instructor' ? 'I' : 'S'}] ${tla.tlaName}${tla.laboratory ? ' (Lab)' : ''}</div>
-                          <div>${tla.tlaDescription}</div>
-                        </div>
-                      `).join('')}
-                    </div>
-                  `
-                }
-                
-                return `
-                  <tr>
-                    ${isFirstOfCO ? `<td rowspan="3" class="center bold">${coId}</td>` : ''}
-                    <td>
-                      <div class="bold">${cleanILOId}</div>
-                      <div>${ilo.intendedLearningOutcome}</div>
-                    </td>
-                    <td>
-                      ${rowTopics.map(t => `
-                        <div class="topic-block">
-                          <div class="topic-title">${t.title}</div>
-                          ${t.subtopics ? `
-                            <ul>
-                              ${t.subtopics.map(sub => `<li>${sub.value}</li>`).join('')}
-                            </ul>
-                          ` : ''}
-                        </div>
-                      `).join('')}
-                    </td>
-                    <td class="center">
-                      <div class="bold">${ilo.deliveryWeek}</div>
-                      <div>${ilo.allocatedTime}</div>
-                    </td>
-                    <td>
-                      ${renderTLAGroup('PRE-CLASS', preTLAs)}
-                      ${renderTLAGroup('IN-CLASS', inTLAs)}
-                      ${renderTLAGroup('POST-CLASS', postTLAs)}
-                    </td>
-                    <td class="center">
-                      ${ilo.references.map(ref => `<div>${ref.split(' - ')[0]}</div>`).join('')}
-                    </td>
-                  </tr>
-                `
-              }).join('')}
-            </tbody>
-          </table>
-        </div>
-
         <div class="footer">
           <p>Generated on: ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}</p>
           <p>Course Code: ${course.code} | ${course.name}</p>
@@ -631,16 +257,29 @@ const ApprovalCoursesTable = ({ role = 'approver' }) => {
     return statusParam ? `${base}?status=${encodeURIComponent(statusParam)}` : base
   }
 
-  const reviewerRoles = Courses.find(c => c.reviewers)?.reviewers.map(r => r.role) || []
+  const reviewerRoles = ['Director of Libraries', 'Industry Consultant', 'Program Head', 'Dean']
 
   const mapStatusToLabel = (status) => {
     if (!status) return ''
     const s = status.toLowerCase()
-    if (s === 'approved') return 'Approved'
+    if (s === 'approved' || s === 'done') return 'Approved'
     if (s === 'pending') return 'Pending'
+    if (s === 'waiting') return '—'
     if (s === 'revision' || s === 'returned') return 'Returned'
     return status
   }
+
+  const getStatusBadgeStyle = (status) => {
+    const s = (status || '').toLowerCase()
+    if (s === 'approved' || s === 'done') return { color: '#047857', background: '#ecfdf5', padding: '3px 10px', borderRadius: 99, fontWeight: 600, fontSize: 12 }
+    if (s === 'pending') return { color: '#b45309', background: '#fffbeb', padding: '3px 10px', borderRadius: 99, fontWeight: 600, fontSize: 12 }
+    if (s === 'waiting') return { color: '#9ca3af', fontSize: 12 }
+    if (s === 'revision' || s === 'returned') return { color: '#dc2626', background: '#fef2f2', padding: '3px 10px', borderRadius: 99, fontWeight: 600, fontSize: 12 }
+    return {}
+  }
+
+  const pendingCourses = Courses.filter(r => r.status === 'PENDING' || r.status === 'RETURNED')
+  const approvedCourses = Courses.filter(r => r.status === 'APPROVED')
 
   return (
     <div className={styles['courses-table']}>
@@ -658,8 +297,8 @@ const ApprovalCoursesTable = ({ role = 'approver' }) => {
         <div className={'filter-container'}>
           <p>Filter by <strong>Status</strong>:</p>
           <select onChange={handleStatusChange} value={selectedStatus}>
-            <option value="PENDING">Pending</option>
-            <option value="APPROVED">Approved</option>
+            <option value="PENDING">For Review ({pendingCourses.length})</option>
+            <option value="APPROVED">Approved ({approvedCourses.length})</option>
           </select>
         </div>
       </div>
@@ -679,13 +318,13 @@ const ApprovalCoursesTable = ({ role = 'approver' }) => {
               </tr>
             </thead>
             <tbody>
-              {Courses.filter(r => r.status === 'APPROVED').map((row, i) => (
+              {approvedCourses.length > 0 ? approvedCourses.map((row, i) => (
                 <tr key={i}>
                   <td width={150}>{row.code}</td>
                   <td width={350}>{row.name}</td>
-                  <td width={200}>{row.update}</td>
+                  <td width={200}>{row.submittedDate}</td>
                   <td width={200}>{row.approved}</td>
-                  <td width={120}>{row.status}</td>
+                  <td width={120}><span style={getStatusBadgeStyle('approved')}>Approved</span></td>
                   {role === 'dean' && (
                     <td width={100}>
                       <button 
@@ -703,7 +342,9 @@ const ApprovalCoursesTable = ({ role = 'approver' }) => {
                     </Link>
                   </td>
                 </tr>
-              ))}
+              )) : (
+                <tr><td colSpan={role === 'dean' ? 7 : 6} style={{ textAlign: 'center', padding: 30, color: '#9ca3af' }}>No approved courses yet</td></tr>
+              )}
             </tbody>
           </table>
         )}
@@ -729,12 +370,12 @@ const ApprovalCoursesTable = ({ role = 'approver' }) => {
               </tr>
             </thead>
             <tbody>
-              {Courses.filter(r => r.status === 'PENDING').map((row, i) => {
+              {pendingCourses.length > 0 ? pendingCourses.map((row, i) => {
                 return (
                   <tr key={i}>
                     <td width={150}>{row.code}</td>
                     <td width={350}>{row.name}</td>
-                    <td width={200}>{row.update}</td>
+                    <td width={200}>{row.submittedDate}</td>
 
                     {row.reviewers.map((r, idx) => {
                       const isDean = r.role.toLowerCase() === 'dean'
@@ -744,13 +385,17 @@ const ApprovalCoursesTable = ({ role = 'approver' }) => {
                           .every(rr => rr.status.toLowerCase() === 'approved')
                         return (
                           <td key={idx} className={styles.lighten} width={200}>
-                            {firstThreeApproved ? mapStatusToLabel(r.status) : ''}
+                            <span style={getStatusBadgeStyle(firstThreeApproved ? r.status : 'waiting')}>
+                              {firstThreeApproved ? mapStatusToLabel(r.status) : '—'}
+                            </span>
                           </td>
                         )
                       }
                       return (
                         <td key={idx} className={styles.lighten} width={200}>
-                          {mapStatusToLabel(r.status)}
+                          <span style={getStatusBadgeStyle(r.status)}>
+                            {mapStatusToLabel(r.status)}
+                          </span>
                         </td>
                       )
                     })}
@@ -762,7 +407,9 @@ const ApprovalCoursesTable = ({ role = 'approver' }) => {
                     </td>
                   </tr>
                 )
-              })}
+              }) : (
+                <tr><td colSpan={8} style={{ textAlign: 'center', padding: 30, color: '#9ca3af' }}>All courses have been approved!</td></tr>
+              )}
             </tbody>
           </table>
         )}

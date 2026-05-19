@@ -4,7 +4,7 @@ import {Link, useParams} from "react-router-dom";
 import {getSyllabusByCode, syllabiData} from "../data/syllabiData.js";
 
 
-const SyllabusPreview = ({ isOpen, onClose }) => {
+const SyllabusPreview = ({ isOpen, onClose, onSubmit }) => {
     // 1. Guard clause for modal visibility
     if (!isOpen) return null;
 
@@ -20,29 +20,7 @@ const SyllabusPreview = ({ isOpen, onClose }) => {
     }
 
     // COURSE AND PROGRAM OUTCOME ALIGNMENT
-    const courseOutcomes = [
-        {
-            id: 'CO1',
-            description: 'Apply core concepts, theories, and principles of Human-Computer Interface (HCI) in proposing a User Interface (UI) design using Figma to translate a design brief into interactive screen layouts and UI components with a high-fidelity prototype demonstrating clarity, consistency, and appropriate use of visual hierarchy.',
-            // Mappings for columns 1-9
-            poMappings: ['E', '', 'I', '', '', 'E', '', '', 'I']
-        },
-        {
-            id: 'CO2',
-            description: 'User-Centered Design (UCD) principles and ISO 9241-210 standards with given user personas, contextual task flows, and feedback artifacts to develop a User Experience (UX) design that demonstrates user involvement, iterative refinement, and contextual understanding, as evaluated against established UX design criteria.',
-            poMappings: ['', 'E', '', '', '', 'E', '', 'I', '']
-        },
-        {
-            id: 'CO3',
-            description: 'Construct a front-end prototype for a proposed software application by applying HCI design principles, UI/UX laws, accessibility standards, and web accessibility guidelines that demonstrate compliance with best practices in usability, inclusivity, and user engagement.',
-            poMappings: ['', '', 'D', '', 'D', '', 'I', '', '']
-        },
-        {
-            id: 'CO4',
-            description: 'Justify the front-end prototype of a proposed software application based on usability testing results and user feedback by providing evidence-based rationale that addresses at least 80% of identified usability issues and aligns with user experience goals.',
-            poMappings: ['D', '', '', 'E', '', '', '', 'I', '']
-        },
-    ];
+    const courseOutcomes = (syllabus && syllabus.courseOutcomes) || [];
 
 
 // --- STATE ---
@@ -90,7 +68,7 @@ const SyllabusPreview = ({ isOpen, onClose }) => {
                     </div>
 
                     <div className={styles.actions}>
-                        <div className={styles.submit}>Submit</div>
+                        <div className={styles.submit} onClick={() => onSubmit ? onSubmit() : onClose()}>Submit</div>
                     </div>
                 </div>
 

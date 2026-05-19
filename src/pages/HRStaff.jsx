@@ -51,7 +51,7 @@ const HRStaff = () => {
 
   return (
     <SkeletonA
-      header={<HeaderA role="HR Staff" name="NORTON, MONICA" />}
+      header={<HeaderA role="HR Staff" name="DELA CRUZ, ANA" />}
       nav={<SideNavigation mode="hr-staff" />}
       content={
         <div style={{ padding: 20, background: '#FFFFFF', minHeight: 'calc(100vh - 100px)', display: 'flex', flexDirection: 'column' }}>

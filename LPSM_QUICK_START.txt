@@ -1,0 +1,135 @@
+╔════════════════════════════════════════════════════════════════════════════╗
+║                    LPSM MODULE - QUICK START GUIDE                         ║
+╚════════════════════════════════════════════════════════════════════════════╝
+
+█ STEP 1: Backend Setup
+  $ cd backend/lpsm
+  $ npm install
+  $ cp .env.example .env
+
+█ STEP 2: Docker Database & Auto-Migrations
+  $ cd ../..  # Back to project root
+  $ docker-compose -f docker-compose.lpsm.yml up --build
+  
+  This will:
+  ✓ Start MySQL (port 3308)
+  ✓ Run migrations automatically
+  ✓ Seed sample data (6 users, 3 learning plans)
+  ✓ Start Express server (port 4002)
+
+█ STEP 3: Frontend Setup
+  $ npm install axios  # If needed
+  $ npm run dev       # Vite dev server on http://localhost:5173
+
+█ STEP 4: Test the System
+  
+  TEST SCENARIO (Follow in order):
+  
+  1. Program Head uploads documents
+     URL: http://localhost:5173/lpsm/program-head/upload
+     User ID: 10, Role: program_head
+     → Select "CS301 - Algorithms"
+     → Upload 3 documents (PEO, COAEP, Course Outcomes)
+  
+  2. Director of Libraries uploads references
+     URL: http://localhost:5173/lpsm/director-of-libraries/upload
+     User ID: 20, Role: director_of_libraries
+     → Select "CS301 - Algorithms"
+     → Upload References
+  
+  3. Instructor submits for review
+     URL: http://localhost:5173/lpsm/instructor
+     User ID: 1, Role: instructor
+     → Click CS301 → "Submit for Review"
+  
+  4. Industry Consultant reviews
+     URL: http://localhost:5173/lpsm/industry-consultant/review
+     User ID: 30, Role: industry_consultant
+     → Select CS301 → Submit review notes
+  
+  5. Director of Libraries reviews
+     URL: http://localhost:5173/lpsm/director-of-libraries/review
+     User ID: 20, Role: director_of_libraries
+     → Select CS301 → Submit review notes
+  
+  6. Program Head approves
+     URL: http://localhost:5173/lpsm/program-head/approval
+     User ID: 10, Role: program_head
+     → Select CS301 → Approve
+  
+  7. Dean approves (final)
+     URL: http://localhost:5173/lpsm/dean/approval
+     User ID: 40, Role: dean
+     → Select CS301 → Approve
+
+█ SEED DATA
+  
+  Users:
+  ID  Name                    Role                    Email
+  ──  ──────────────────────  ──────────────────────  ──────────────────────
+  1   Dr. Sarah Wilson        instructor              sarah.wilson@unc.edu
+  2   Mr. James Chen          instructor              james.chen@unc.edu
+  10  Dr. Patricia Moore      program_head            patricia.moore@unc.edu
+  20  Ms. Linda Rodriguez     director_of_libraries   linda.rodriguez@unc.edu
+  30  Mr. Robert Thompson     industry_consultant     robert.thompson@example.com
+  40  Dr. Michael Johnson     dean                    michael.johnson@unc.edu
+
+  Learning Plans:
+  ID  Course                      Instructor  Status
+  ──  ──────────────────────────  ──────────  ──────
+  1   CS301 - Algorithms          1           draft
+  2   CS401 - Database Systems    1           draft
+  3   MATH201 - Calculus II       2           draft
+
+█ API ENDPOINTS
+
+  POST   /api/learning-plans                    Create plan
+  GET    /api/learning-plans                    List plans
+  GET    /api/learning-plans/:id                Get plan details
+  POST   /api/learning-plans/:id/documents      Upload document
+  DELETE /api/learning-plans/:id/documents/:docId   Delete document
+  POST   /api/learning-plans/:id/submit         Submit for review
+  POST   /api/learning-plans/:id/review         Submit review
+  POST   /api/learning-plans/:id/approve        Approve/return
+
+  All requests require headers:
+  X-User-Role: instructor | program_head | director_of_libraries | 
+               industry_consultant | dean
+  X-User-Id: <user_id>
+
+█ TROUBLESHOOTING
+
+  Backend not starting?
+  → docker logs backend_lpsm
+  → docker exec backend_lpsm npm run db:migrate
+
+  Frontend can't reach backend?
+  → Check API_BASE_URL in src/services/learningPlanService.js
+  → Verify X-User-Role and X-User-Id headers are set
+  → Check browser console for CORS errors
+
+  Database connection failed?
+  → docker ps | grep db_lpsm
+  → docker logs db_lpsm
+
+  Reset everything?
+  → docker-compose -f docker-compose.lpsm.yml down -v
+  → docker-compose -f docker-compose.lpsm.yml up --build
+
+█ KEY FEATURES
+
+  ✓ Role-based document uploads (Program Head & Director of Libraries)
+  ✓ Parallel review workflow (IC & Director review simultaneously)
+  ✓ Sequential approval (Program Head → Dean)
+  ✓ Dean comment relay (to Program Head only, never to Instructor)
+  ✓ LocalStorage persistence + Backend database
+  ✓ Workflow step visualization (StatusTracker component)
+  ✓ File upload validation by role and document type
+  ✓ SASS module styling (responsive, no inline styles)
+
+█ DOCUMENTATION
+
+  Full setup guide: LPSM_SETUP.md
+  This file: LPSM_QUICK_START.txt
+
+═══════════════════════════════════════════════════════════════════════════════

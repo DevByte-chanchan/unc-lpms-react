@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  db_lpsm:
+    image: mysql:8.0
+    container_name: db_lpsm
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_DATABASE: lpsm_db
+      MYSQL_USER: lpsm_user
+      MYSQL_PASSWORD: lpsm_password
+    ports:
+      - "3308:3306"
+    volumes:
+      - lpsm_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend_lpsm:
+    build:
+      context: ./backend/lpsm
+    container_name: backend_lpsm
+    ports:
+      - "4002:4002"
+    environment:
+      NODE_ENV: development
+      DB_HOST: db_lpsm
+      DB_PORT: 3306
+      DB_USER: lpsm_user
+      DB_PASSWORD: lpsm_password
+      DB_NAME: lpsm_db
+    depends_on:
+      db_lpsm:
+        condition: service_healthy
+    command: sh -c "npm run db:migrate && npm run db:seed && npm start"
+
+volumes:
+  lpsm_data:
+    driver: local

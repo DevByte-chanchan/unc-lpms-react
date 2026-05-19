@@ -31,10 +31,10 @@ const ApprovalILOForm = () => {
 
   const displayRole = roleKey.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
   const defaultNames = {
-    'program-head': 'Dr. Smith',
-    'dean': 'Dean Johnson',
-    'industry-consultant': 'Consultant Lee',
-    'director-of-libraries': 'Director Brown'
+    'program-head': 'DANILA, JUNAR',
+    'dean': 'REYES, AGNES',
+    'industry-consultant': 'CRUZ, ROBERTO',
+    'director-of-libraries': 'SANTOS, MARIA'
   };
   const storedUser = JSON.parse(localStorage.getItem('user') || 'null');
   const approverName = storedUser?.name || defaultNames[roleKey] || displayRole;

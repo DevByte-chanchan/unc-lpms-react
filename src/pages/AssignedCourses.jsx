@@ -8,7 +8,7 @@ const Syllabus = ({}) => {
 
     return (
         <SkeletonA
-            header={<HeaderA role="Instructor" name="NORTON, MONICA"  />}
+            header={<HeaderA role="Instructor" name="CASIMERO, DANNY"  />}
             content={ <CoursesTable /> }
             nav={<SideNavigation/> }
         />

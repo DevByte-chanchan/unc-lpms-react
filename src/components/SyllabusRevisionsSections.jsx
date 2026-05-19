@@ -1,11 +1,13 @@
 import styles from '../styles/SyllabusSections.module.sass'
 import {ChevronLeft, ChevronRight, Plus, Search, Inbox, MessageSquare} from 'react-feather';
 import { Info } from 'react-feather';
-import React, {useEffect, useState} from "react";
+import React, {useEffect, useMemo, useState} from "react";
 import TextField from "./TextField.jsx";
 import TextArea from "./TextArea.jsx";
 import {Link, useNavigate, useParams, useSearchParams} from "react-router-dom";
 import {getSyllabusByCode, syllabiData} from "../data/syllabiData.js";
+import { getWorkflow, setWorkflow } from '../utils/workflowHelpers.js';
+import { getSuggestions, acceptSuggestion, rejectSuggestion } from '../utils/dataStore.js';
 import SyllabusPreview from "./SyllabusPreview.jsx";
 
 const SyllabusRevisionsSections = ({status}) => {
@@ -18,6 +20,93 @@ const SyllabusRevisionsSections = ({status}) => {
 
     // Loading State
     const [isLoading, setIsLoading] = useState(false);
+
+    // Workflow state (lazy-init from localStorage)
+    const [workflow, setWorkflowState] = useState(() => code ? getWorkflow(code) : null);
+    const navigate = useNavigate();
+    const [toast, setToast] = useState(null);
+    const showToast = (msg, type = 'success') => {
+        setToast({ msg, type });
+        setTimeout(() => setToast(null), 3000);
+    }
+
+    const [suggestions, setSuggestions] = useState([]);
+    const [suggestionRefreshKey, setSuggestionRefreshKey] = useState(0);
+
+    useEffect(() => {
+        if (code) {
+            setSuggestions(getSuggestions(code))
+        }
+    }, [code, suggestionRefreshKey]);
+
+    const handleAcceptSuggestion = (id) => {
+        acceptSuggestion(id);
+        setSuggestionRefreshKey(k => k + 1);
+    };
+
+    const handleRejectSuggestion = (id) => {
+        rejectSuggestion(id);
+        setSuggestionRefreshKey(k => k + 1);
+    };
+
+    const handleSaveDraft = () => {
+        const existing = getWorkflow(code)
+        const stage = existing?.currentStage
+        if (!stage || stage === 'submitted') {
+            const wf = existing
+                ? { ...existing, currentStage: 'submitted' }
+                : {
+                    courseCode: code,
+                    currentStage: 'submitted',
+                    parallelReview: { library_director: { status: 'pending', completedAt: null }, industry_consultant: { status: 'pending', completedAt: null } },
+                    programHead: { status: 'pending', completedAt: null },
+                    dean: { status: 'pending', completedAt: null }
+                  }
+            setWorkflow(code, wf)
+            setWorkflowState(getWorkflow(code))
+            showToast('Saved as draft!')
+        } else {
+            setWorkflow(code, existing)
+            setWorkflowState(getWorkflow(code))
+            showToast('Progress saved!')
+        }
+    }
+
+    const handleSubmitConfirm = () => {
+        const existing = getWorkflow(code)
+        const stage = existing?.currentStage
+
+        if (stage && stage !== 'submitted' && stage !== 'returned') {
+            showToast('Cannot submit at this stage.', 'warning')
+            return
+        }
+
+        const wf = existing
+            ? {
+                ...existing,
+                currentStage: 'parallel_review',
+                submittedAt: existing.submittedAt || new Date().toISOString(),
+                parallelReview: {
+                    library_director: { status: 'pending', completedAt: null },
+                    industry_consultant: { status: 'pending', completedAt: null }
+                },
+                programHead: existing.programHead?.status === 'done' ? existing.programHead : { status: 'pending', completedAt: null },
+                dean: existing.dean?.status === 'done' ? existing.dean : { status: 'pending', completedAt: null }
+              }
+            : {
+                courseCode: code,
+                currentStage: 'parallel_review',
+                submittedAt: new Date().toISOString(),
+                parallelReview: { library_director: { status: 'pending', completedAt: null }, industry_consultant: { status: 'pending', completedAt: null } },
+                programHead: { status: 'pending', completedAt: null },
+                dean: { status: 'pending', completedAt: null }
+              }
+        setWorkflow(code, wf)
+        setWorkflowState(getWorkflow(code))
+        setIsPreviewOpen(false)
+        showToast('Syllabus submitted for review!')
+        setTimeout(() => navigate('/'), 800)
+    }
 
     // globalComments holds a single list of reviewer comments shown across all sections
     const [globalComments, setGlobalComments] = useState([]);
@@ -32,7 +121,9 @@ const SyllabusRevisionsSections = ({status}) => {
             try {
                 const raw = localStorage.getItem('approval_comments_v1')
                 const all = raw ? JSON.parse(raw) : []
-                setGlobalComments(Array.isArray(all) ? all : [])
+                const commentsArray = Array.isArray(all) ? all : []
+                const filtered = commentsArray.filter(c => c.courseCode === code)
+                setGlobalComments(filtered)
             } catch (e) {
                 setGlobalComments([])
             }
@@ -47,10 +138,26 @@ const SyllabusRevisionsSections = ({status}) => {
 
     // Get comments to display (global)
     const currentComments = globalComments || [];
+    const visibleComments = useMemo(() => {
+        // Instructor view: hide unresolved Dean relay comments
+        return currentComments.filter(c => {
+            if (c.recipientRole === 'program_head' && !c.resolved) return false
+            return true
+        })
+    }, [currentComments]);
 
-    const saveGlobalCommentsToStorage = (updated) => {
+    const saveGlobalCommentsToStorage = (updatedGlobalComments) => {
         try {
-            localStorage.setItem('approval_comments_v1', JSON.stringify(updated || []))
+            const raw = localStorage.getItem('approval_comments_v1')
+            const all = raw ? JSON.parse(raw) : []
+            const commentsArray = Array.isArray(all) ? all : []
+            
+            const newAll = commentsArray.map(c => {
+                const updated = updatedGlobalComments.find(u => u.id === c.id)
+                return updated || c
+            })
+            
+            localStorage.setItem('approval_comments_v1', JSON.stringify(newAll))
         } catch (e) {
             console.error('Failed to persist global comments', e)
         }
@@ -62,39 +169,16 @@ const SyllabusRevisionsSections = ({status}) => {
         saveGlobalCommentsToStorage(updated)
     }
 
-    // COURSE AND PROGRAM OUTCOME ALIGNMENT
-    const courseOutcomes = [
-        {
-            id: 'CO1',
-            description: 'Apply core concepts, theories, and principles of Human-Computer Interface (HCI) in proposing a User Interface (UI) design using Figma to translate a design brief into interactive screen layouts and UI components with a high-fidelity prototype demonstrating clarity, consistency, and appropriate use of visual hierarchy.',
-            // Mappings for columns 1-9
-            poMappings: ['E', '', 'I', '', '', 'E', '', '', 'I']
-        },
-        {
-            id: 'CO2',
-            description: 'User-Centered Design (UCD) principles and ISO 9241-210 standards with given user personas, contextual task flows, and feedback artifacts to develop a User Experience (UX) design that demonstrates user involvement, iterative refinement, and contextual understanding, as evaluated against established UX design criteria.',
-            poMappings: ['', 'E', '', '', '', 'E', '', 'I', '']
-        },
-        {
-            id: 'CO3',
-            description: 'Construct a front-end prototype for a proposed software application by applying HCI design principles, UI/UX laws, accessibility standards, and web accessibility guidelines that demonstrate compliance with best practices in usability, inclusivity, and user engagement.',
-            poMappings: ['', '', 'D', '', 'D', '', 'I', '', '']
-        },
-        {
-            id: 'CO4',
-            description: 'Justify the front-end prototype of a proposed software application based on usability testing results and user feedback by providing evidence-based rationale that addresses at least 80% of identified usability issues and aligns with user experience goals.',
-            poMappings: ['D', '', '', 'E', '', '', '', 'I', '']
-        },
-    ];
-
-    const programOutcomes = ['PO1', 'PO2', 'PO3', 'PO4', 'PO5', 'PO6', 'PO7', 'PO8', 'PO9'];
-
-    const CriteriaForm = React.lazy(() => import('../pages/CriteriaForGradingForm.jsx'));
-
     // Use the canonical syllabi data source. If the route `code` doesn't match any
     // syllabus, fall back to the first syllabus in `syllabiData` so the revisions
     // page always displays data from `src/data/syllabiData.js` (e.g. BSCS313L).
     const syllabus = getSyllabusByCode(code) || (syllabiData && syllabiData.length ? syllabiData[0] : null);
+
+    const courseOutcomes = (syllabus && syllabus.courseOutcomes) || [];
+
+    const programOutcomes = ['PO1', 'PO2', 'PO3', 'PO4', 'PO5', 'PO6', 'PO7', 'PO8', 'PO9'];
+
+    const CriteriaForm = React.lazy(() => import('../pages/CriteriaForGradingForm.jsx'));
 
     // local editable copy so Open buttons can edit inline (prompt-based)
     const [editableSyllabus, setEditableSyllabus] = useState(syllabus)
@@ -127,10 +211,10 @@ const SyllabusRevisionsSections = ({status}) => {
     // Hard-coded seed data for reviewers
     const getReviewerSeedData = (index = 0) => {
         const reviewerSeeds = [
-            { name: 'NORTON, MONICA', role: 'Director of Libraries' },
-            { name: 'JOHNSON, DEAN', role: 'Dean' },
-            { name: 'SMITH, DR. ROBERT', role: 'Program Head' },
-            { name: 'LEE, CONSULTANT', role: 'Industry Consultant' },
+            { name: 'SANTOS, MARIA', role: 'Director of Libraries' },
+            { name: 'REYES, AGNES', role: 'Dean' },
+            { name: 'DANILA, JUNAR', role: 'Program Head' },
+            { name: 'CRUZ, ROBERTO', role: 'Industry Consultant' },
         ]
         return reviewerSeeds[index % reviewerSeeds.length]
     }
@@ -186,7 +270,7 @@ const SyllabusRevisionsSections = ({status}) => {
             <div style={{position: 'relative', display: 'flex', gap: '4px', paddingRight: '0', alignItems: 'stretch', minHeight: 'calc(100vh - 80px)'}}>
                 <div style={{flex: 1, maxWidth: 'calc(100% - 364px)', display: 'flex', flexDirection: 'column', height: '100%', paddingRight: '8px'}}>
                     <div className={styles.navi}>
-                        <Link  to={`/`} className={'actionLink'} >
+                        <Link  to={`/`} className={'actionLink'} state={{ from: '/' }}>
                             <div className={styles.return}>
                                 <ChevronLeft size={22}/>
                             </div>
@@ -205,9 +289,19 @@ const SyllabusRevisionsSections = ({status}) => {
                             </select>
                         </div>
 
-                        <div className={styles.draft}>Save as Draft</div>
+                        <div onClick={handleSaveDraft} className={styles.draft}>{workflow?.currentStage && workflow?.currentStage !== 'submitted' ? 'Save' : 'Save as Draft'}</div>
 
-                        <div onClick={() => setIsPreviewOpen(true)} className={styles.submit}>Submit Revision</div>
+                        <div onClick={() => {
+                            const stage = workflow?.currentStage
+                            if (stage === 'returned') {
+                                const hasUnresolved = (globalComments || []).some(c => !c.resolved)
+                                if (hasUnresolved) {
+                                    showToast('Please address all reviewer comments first before submitting your revision.', 'warning')
+                                    return
+                                }
+                            }
+                            setIsPreviewOpen(true)
+                        }} className={styles.submit}>{workflow?.currentStage === 'returned' ? 'Submit Revision' : 'Submit'}</div>
                     </div>
 
                     <div className={styles['dynamic-sections']} style={{marginTop: '8px'}}>
@@ -355,6 +449,27 @@ const SyllabusRevisionsSections = ({status}) => {
 
                                 {selectedSection === 'References' &&
                                     <section>
+                                        {suggestions.filter(s => s.status === 'pending').length > 0 && (
+                                            <div style={{ marginTop: 16, marginBottom: 16, padding: '16px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8 }}>
+                                                <h4 style={{ margin: '0 0 12px 0', fontSize: 15, fontWeight: 600, color: '#92400e' }}>
+                                                    Pending Suggestions from Approval Review
+                                                </h4>
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                                                    {suggestions.filter(s => s.status === 'pending').map(s => (
+                                                        <div key={s.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', background: 'white', borderRadius: 6, border: '1px solid #fde68a' }}>
+                                                            <div style={{ flex: 1 }}>
+                                                                <div style={{ fontWeight: 600, fontSize: 14, color: '#1f2937' }}>{s.reference.title}</div>
+                                                                <div style={{ fontSize: 13, color: '#6b7280' }}>{s.reference.authors} &middot; {s.reference.year || 'N/A'} &middot; Suggested by {s.suggestedBy} on {new Date(s.suggestedAt).toLocaleDateString()}</div>
+                                                            </div>
+                                                            <div style={{ display: 'flex', gap: 8, marginLeft: 16 }}>
+                                                                <button onClick={() => handleAcceptSuggestion(s.id)} style={{ padding: '6px 14px', background: '#047857', color: 'white', border: 'none', borderRadius: 4, fontSize: 13, fontWeight: 500, cursor: 'pointer' }}>Accept</button>
+                                                                <button onClick={() => handleRejectSuggestion(s.id)} style={{ padding: '6px 14px', background: '#ef4444', color: 'white', border: 'none', borderRadius: 4, fontSize: 13, fontWeight: 500, cursor: 'pointer' }}>Reject</button>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
                                         <div className={styles['references-container']}>
                                             <div className={styles['references-header']}>
                                                 <div className={'search-container'}>
@@ -581,6 +696,7 @@ const SyllabusRevisionsSections = ({status}) => {
                                     isOpen={isPreviewOpen}
                                     onClose={() => setIsPreviewOpen(false)}
                                     syllabus={syllabus}
+                                    onSubmit={handleSubmitConfirm}
                                 />
                             </>
                         )}
@@ -637,7 +753,7 @@ const SyllabusRevisionsSections = ({status}) => {
                                     color: '#718096',
                                     fontWeight: 500
                                 }}>
-                                    {currentComments.length} {currentComments.length === 1 ? 'comment' : 'comments'}
+                                    {visibleComments.length} {visibleComments.length === 1 ? 'comment' : 'comments'}
                                 </span>
                             </div>
                         </div>
@@ -658,7 +774,7 @@ const SyllabusRevisionsSections = ({status}) => {
                         boxSizing: 'border-box',
                         width: '100%'
                     }}>
-                        {currentComments.length === 0 ? (
+                        {visibleComments.length === 0 ? (
                             <div style={{
                                 textAlign: 'center',
                                 padding: '40px 20px',
@@ -673,7 +789,7 @@ const SyllabusRevisionsSections = ({status}) => {
                                 {
                                     (() => {
                                         const groups = {}
-                                        currentComments.forEach((c) => {
+                                        visibleComments.forEach((c) => {
                                             const sid = c.submissionId || 'single'
                                             groups[sid] = groups[sid] || { submissionLabel: c.submissionLabel || sid, submittedAt: c.submittedAt || c.createdAt || null, items: [] }
                                             groups[sid].items.push(c)
@@ -724,11 +840,11 @@ const SyllabusRevisionsSections = ({status}) => {
                                                                                 const role = comment.role && String(comment.role).trim()
                                                                                 
                                                                                 // Use seed data if name or role is missing
-                                                                                const seedIndex = currentComments.indexOf(comment)
-                                                                                const seedData = getReviewerSeedData(seedIndex)
+                                                                                const seedIndex = visibleComments.indexOf(comment)
+                                                                                const seedData = getReviewerSeedData(seedIndex) || {}
                                                                                 
-                                                                                const displayName = name || seedData.name
-                                                                                const displayRole = role || seedData.role
+                                                                                const displayName = name || seedData.name || 'Reviewer'
+                                                                                const displayRole = role || seedData.role || 'Approver'
                                                                                 
                                                                                 return (
                                                                                     <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -837,6 +953,17 @@ const SyllabusRevisionsSections = ({status}) => {
                                                                 {comment.comment}
                                                             </p>
 
+                                                            {comment.suggestedRefs && comment.suggestedRefs.length > 0 && (
+                                                                <div style={{ marginTop: 8, padding: '8px 12px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 6 }}>
+                                                                    <div style={{ fontSize: 11, fontWeight: 600, color: '#92400e', marginBottom: 4 }}>Suggested References:</div>
+                                                                    {comment.suggestedRefs.map((sr, si) => (
+                                                                        <div key={si} style={{ fontSize: 12, color: '#78350f', marginBottom: 2 }}>
+                                                                            {sr.title}{sr.authors ? ` — ${sr.authors}` : ''}{sr.year ? ` (${sr.year})` : ''}
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                            )}
+
                                                             <div style={{
                                                                 fontSize: '11px',
                                                                 color: '#a0aec0',
@@ -846,27 +973,30 @@ const SyllabusRevisionsSections = ({status}) => {
                                                                     const ts = comment.createdAt || comment.submittedAt || comment.timestamp || null
                                                                     return ts ? new Date(ts).toLocaleString() : ''
                                                                 })()}
-                                                                {comment.resolved ? (
-    <span style={{ marginLeft: 8, color: '#38a169', fontWeight: 600 }}>
-        Resolved {comment.resolvedAt ? `— ${new Date(comment.resolvedAt).toLocaleString()}` : ''}
-    </span>
-) : (
-    <button 
-        onClick={() => markCommentResolved(comment.id)} 
-        style={{ 
-            marginLeft: 8, 
-            fontSize: 12, 
-            padding: '4px 8px', 
-            color: '#ffffff',
-            backgroundColor: '#3182ce',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: 'pointer'
-        }}
-    >
-        Mark addressed
-    </button>
-)}
+                                                                {(() => {
+                                                                    const roleCanMark = { 'instructor': 'instructor', 'program-head': 'program_head' }
+                                                                    const roleKeyToLabel = { 'instructor': 'Instructor', 'program-head': 'Program Head', 'dean': 'Dean', 'director-of-libraries': 'Director of Libraries', 'industry-consultant': 'Industry Consultant' }
+                                                                    const isRecipient = roleCanMark['instructor'] === comment.recipientRole
+                                                                    const isSender = comment.role === roleKeyToLabel['instructor']
+                                                                    if (comment.resolved) {
+                                                                        const label = isSender ? 'Addressed ✓' : 'Resolved'
+                                                                        return (
+                                                                            <span style={{ marginLeft: 8, color: '#38a169', fontWeight: 600 }}>
+                                                                                {label}{comment.resolvedAt ? `— ${new Date(comment.resolvedAt).toLocaleString()}` : ''}
+                                                                            </span>
+                                                                        )
+                                                                    } else if (isRecipient) {
+                                                                        return (
+                                                                            <button 
+                                                                                onClick={() => markCommentResolved(comment.id)} 
+                                                                                style={{ marginLeft: 8, fontSize: 12, padding: '4px 8px', color: '#ffffff', backgroundColor: '#3182ce', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+                                                                            >
+                                                                                Mark addressed
+                                                                            </button>
+                                                                        )
+                                                                    }
+                                                                    return null
+                                                                })()}
                                                             </div>
                                                         </div>
                                                     )
@@ -880,6 +1010,25 @@ const SyllabusRevisionsSections = ({status}) => {
                     </div>
                 </aside>
             </div>
+
+            {toast && (
+                <div style={{
+                    position: 'fixed', bottom: 32, right: 32, zIndex: 1100,
+                    background: toast.type === 'warning' ? '#dc2626' : '#047857',
+                    color: 'white', padding: '14px 24px',
+                    borderRadius: 12, boxShadow: '0 8px 30px rgba(0,0,0,0.15)',
+                    fontFamily: "'Poppins', sans-serif", fontSize: 14, fontWeight: 500,
+                    display: 'flex', alignItems: 'center', gap: 10,
+                    animation: 'slideIn 0.3s ease'
+                }}>
+                    {toast.type === 'warning' ? (
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></svg>
+                    ) : (
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><polyline points="16 8 10 16 7 13" /></svg>
+                    )}
+                    {toast.msg}
+                </div>
+            )}
         </div>
     )
 }

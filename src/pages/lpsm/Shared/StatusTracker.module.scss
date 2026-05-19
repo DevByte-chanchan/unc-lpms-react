@@ -1,0 +1,81 @@
+.tracker {
+  background: #f9f9f9;
+  padding: 20px;
+  border-radius: 8px;
+  margin-bottom: 30px;
+  border-left: 4px solid #2c3e50;
+}
+
+.stepper {
+  display: flex;
+  align-items: center;
+  margin-bottom: 16px;
+  overflow-x: auto;
+  padding-bottom: 10px;
+}
+
+.step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  min-width: 100px;
+  opacity: 0.5;
+
+  &.completed {
+    opacity: 1;
+    color: #27ae60;
+  }
+
+  &.current {
+    opacity: 1;
+    color: #3498db;
+    font-weight: bold;
+  }
+
+  &.pending {
+    opacity: 0.5;
+    color: #95a5a6;
+  }
+}
+
+.circle {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid currentColor;
+  font-weight: bold;
+  font-size: 18px;
+}
+
+.label {
+  font-size: 12px;
+  text-align: center;
+  max-width: 80px;
+  line-height: 1.2;
+}
+
+.connector {
+  flex: 1;
+  height: 2px;
+  background: #95a5a6;
+  margin: 0 8px;
+  min-width: 20px;
+
+  &.completed {
+    background: #27ae60;
+  }
+}
+
+.status {
+  text-align: center;
+  font-size: 14px;
+  color: #2c3e50;
+
+  strong {
+    font-weight: 600;
+  }
+}

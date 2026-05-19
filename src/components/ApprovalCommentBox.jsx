@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react'
+import { Search } from 'react-feather'
 import styles from '../styles/ApprovalCommentBox.module.sass'
+import { getReferences } from '../utils/referenceLibrary.js'
 
 const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = [], ilos = [], approverRole = null }) => {
   const storageKey = 'approval_comments_v1'
@@ -19,6 +21,32 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
   })
 
   const [comments, setComments] = useState([defaultComment()])
+  const [searchTerm, setSearchTerm] = useState('')
+  const [selectedRefs, setSelectedRefs] = useState([])
+  const [libraryRefs, setLibraryRefs] = useState([])
+
+  useEffect(() => {
+    setLibraryRefs(getReferences())
+  }, [])
+
+  // Save draft on every change (will be restored on next open via load effect)
+  useEffect(() => {
+    if (!show) return
+    try {
+      const approver = approverRole ? getReviewerByRole(approverRole) : null
+      const normalized = comments.map((c, idx) => {
+        const seedData = approver || getReviewerSeedData(idx)
+        return {
+          ...c,
+          comment: c.comment || c.text || '',
+          createdAt: c.createdAt || new Date().toISOString(),
+          reviewer: c.reviewer || seedData.name,
+          role: c.role || seedData.role
+        }
+      })
+      localStorage.setItem('approval_comment_draft_v1', JSON.stringify({ comments: normalized, selectedRefs, searchTerm }))
+    } catch (e) {}
+  }, [comments, selectedRefs, searchTerm, show, approverRole])
 
   // Fallback course outcomes and ILOs
   const resolvedCourseOutcomes = (courseOutcomes && courseOutcomes.length)
@@ -42,19 +70,19 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
 
   // Hard-coded seed data for reviewers
   const reviewerSeeds = [
-    { name: 'NORTON, MONICA', role: 'Director of Libraries' },
-    { name: 'JOHNSON, DEAN', role: 'Dean' },
-    { name: 'SMITH, DR. ROBERT', role: 'Program Head' },
-    { name: 'LEE, CONSULTANT', role: 'Industry Consultant' },
+    { name: 'SANTOS, MARIA', role: 'Director of Libraries' },
+    { name: 'REYES, AGNES', role: 'Dean' },
+    { name: 'DANILA, JUNAR', role: 'Program Head' },
+    { name: 'CRUZ, ROBERTO', role: 'Industry Consultant' },
   ]
 
   // Map approver URL param to reviewer data
   const getReviewerByRole = (role) => {
     const roleMap = {
-      'director-of-libraries': reviewerSeeds[0], // NORTON, MONICA
-      'dean': reviewerSeeds[1], // JOHNSON, DEAN
-      'program-head': reviewerSeeds[2], // SMITH, DR. ROBERT
-      'industry-consultant': reviewerSeeds[3], // LEE, CONSULTANT
+      'director-of-libraries': reviewerSeeds[0], // SANTOS, MARIA
+      'dean': reviewerSeeds[1], // REYES, AGNES
+      'program-head': reviewerSeeds[2], // DANILA, JUNAR
+      'industry-consultant': reviewerSeeds[3], // CRUZ, ROBERTO
     }
     return roleMap[role] || reviewerSeeds[0]
   }
@@ -82,12 +110,12 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
         return getReviewerByRole(approverRole)
       }
 
-      // Otherwise try localStorage
+      // Otherwise fallback to localStorage (role-based mapping preferred)
       const storedUser = JSON.parse(localStorage.getItem('user') || 'null')
       const seedData = getReviewerSeedData(index)
       
-      const name = storedUser?.name || localStorage.getItem('approver_name') || seedData.name
-      const role = storedUser?.role || localStorage.getItem('approver_role') || seedData.role
+      const name = seedData.name || storedUser?.name || localStorage.getItem('approver_name') || 'Reviewer'
+      const role = seedData.role || storedUser?.role || localStorage.getItem('approver_role') || 'Approver'
       return { name, role }
     } catch (e) {
       const seedData = getReviewerSeedData(index)
@@ -95,66 +123,41 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
     }
   }
 
-  // Load persisted comments and normalize reviewer/role with seed fallback
+  // Load draft from localStorage when modal opens
   useEffect(() => {
+    if (!show) return
     try {
-      const raw = localStorage.getItem(storageKey)
+      const raw = localStorage.getItem('approval_comment_draft_v1')
       if (!raw) return
 
       const parsed = JSON.parse(raw)
-      if (!Array.isArray(parsed) || parsed.length === 0) return
-
-      const approver = approverRole ? getReviewerByRole(approverRole) : null
-
-      const normalized = parsed.map((c, idx) => {
-        const seedData = approver || getReviewerSeedData(idx)
-        const reviewer = c.reviewer || seedData.name || ''
-        const role = c.role || seedData.role || ''
-        const recipientRole = c.recipientRole || ''
-
-        return {
-          ...defaultComment(),
-          ...c,
-          comment: c.comment || c.text || '',
-          createdAt: c.createdAt || new Date().toISOString(),
-          reviewer: reviewer,
-          role: role,
-          recipientRole: recipientRole
-        }
-      })
-
-      // If current approver is dean, ensure recipientRole defaults to program_head
-      const roleKeyCheck = normalizeRoleKey(approverRole || (JSON.parse(localStorage.getItem('user')||'null')?.role))
-      if (roleKeyCheck === 'dean') {
-        const forced = normalized.map(n => ({ ...n, recipientRole: 'program_head' }))
+      if (parsed.comments && Array.isArray(parsed.comments)) {
+        const approver = approverRole ? getReviewerByRole(approverRole) : null
+        const normalized = parsed.comments.map((c, idx) => {
+          const seedData = approver || getReviewerSeedData(idx)
+          return {
+            ...defaultComment(),
+            ...c,
+            comment: c.comment || c.text || '',
+            createdAt: c.createdAt || new Date().toISOString(),
+            reviewer: c.reviewer || seedData.name,
+            role: c.role || seedData.role
+          }
+        })
+        const roleKeyCheck = normalizeRoleKey(approverRole || (JSON.parse(localStorage.getItem('user')||'null')?.role))
+        const forced = normalized.map(n => ({ ...n, recipientRole: roleKeyCheck === 'dean' ? 'program_head' : 'instructor' }))
         setComments(forced)
-      } else {
-        setComments(normalized)
       }
-    } catch (e) {
-      // ignore parse errors
-    }
-  }, [approverRole])
-
-  // Persist comments whenever they change
-  useEffect(() => {
-    try {
-      const approver = approverRole ? getReviewerByRole(approverRole) : null
-      const normalized = comments.map((c, idx) => {
-        const seedData = approver || getReviewerSeedData(idx)
-        return {
-          ...c,
-          comment: c.comment || c.text || '',
-          createdAt: c.createdAt || new Date().toISOString(),
-          reviewer: c.reviewer || seedData.name,
-          role: c.role || seedData.role
-        }
-      })
-      localStorage.setItem(storageKey, JSON.stringify(normalized))
+      if (parsed.selectedRefs) setSelectedRefs(parsed.selectedRefs)
+      if (parsed.searchTerm) setSearchTerm(parsed.searchTerm)
     } catch (e) {
       // ignore
     }
-  }, [comments, approverRole])
+  }, [show, approverRole])
+
+  const clearDraft = () => {
+    try { localStorage.removeItem('approval_comment_draft_v1') } catch (e) {}
+  }
 
   const toggleCommentComponent = (commentId, key) => {
     setComments((prev) =>
@@ -198,7 +201,7 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
         id: Date.now() + Math.random(),
         reviewer: seedData.name,
         role: seedData.role,
-        recipientRole: normalizeRoleKey(approverRole) === 'dean' ? 'program_head' : ''
+        recipientRole: normalizeRoleKey(approverRole) === 'dean' ? 'program_head' : 'instructor'
       }
     ])
   }
@@ -241,9 +244,11 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
       ilo: filledComments.find((c) => c.ilo)?.ilo || null,
       courseCoverage: filledComments.some((c) => c.components.topics || c.components.assessments || c.components.tlas),
       comments: filledComments,
+      suggestedReferences: selectedRefs,
       createdAt: new Date().toISOString()
     }
     onSubmit && onSubmit(payload)
+    clearDraft()
   }
 
   if (!show) return null
@@ -273,189 +278,305 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
   
   const saveDisabled = !allCommentsValid
 
+  const isDirector = (() => {
+    if (!approverRole) return false
+    const r = String(approverRole).toLowerCase()
+    return r.includes('library') || r.includes('libraries')
+  })()
+
+  const CURRENT_YEAR = new Date().getFullYear()
+  const isDeprecated = (ref) => ref.year && (CURRENT_YEAR - ref.year >= 5)
+  const hasIssues = (ref) => ref.hasIssue === true
+
+  const filteredLibraryRefs = libraryRefs.filter(ref => {
+    if (!searchTerm) return true
+    const q = searchTerm.toLowerCase()
+    return ref.title?.toLowerCase().includes(q)
+      || ref.authors?.toLowerCase().includes(q)
+      || ref.type?.toLowerCase().includes(q)
+  })
+
+  const toggleRefSelection = (ref) => {
+    setSelectedRefs(prev =>
+      prev.some(r => r.id === ref.id)
+        ? prev.filter(r => r.id !== ref.id)
+        : [...prev, ref]
+    )
+  }
+
+  const getTypeBadgeStyle = (type) => {
+    switch (type) {
+      case 'Textbook': return { background: '#dcfce7', color: '#047857' }
+      case 'Open Educational Resources': return { background: '#e0f2fe', color: '#0284c7' }
+      case 'Online Resources': return { background: '#f3e8ff', color: '#7c3aed' }
+      default: return { background: '#f3f4f6', color: '#374151' }
+    }
+  }
+
+  const renderRefBrowser = () => (
+    <div style={{ marginTop: 16, border: '1px solid #e5e7eb', borderRadius: 12, padding: 20, background: '#fafafa' }}>
+      <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 14, color: '#111827' }}>Suggest References from Library</div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, border: '1px solid #A4A9AF', borderRadius: 24, padding: '10px 16px', marginBottom: 14, background: '#fff' }}>
+        <Search size={16} color="#9ca3af" />
+        <input
+          type="text"
+          placeholder="Search by title, author, or type..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          style={{ border: 'none', outline: 'none', width: '100%', fontSize: 14, fontFamily: "'Poppins', sans-serif" }}
+        />
+      </div>
+      <div style={{ maxHeight: 300, overflow: 'auto', display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {filteredLibraryRefs.length > 0 ? filteredLibraryRefs.map(ref => {
+          const badgeStyle = getTypeBadgeStyle(ref.type)
+          const deprecated = isDeprecated(ref)
+          const issues = hasIssues(ref)
+          const isSelected = selectedRefs.some(r => r.id === ref.id)
+          return (
+            <label key={ref.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 14, padding: '14px 16px', borderRadius: 10, cursor: 'pointer', background: isSelected ? '#e0f2fe' : '#fff', border: isSelected ? '2px solid #1e3a5f' : '1px solid #e5e7eb', transition: 'all 0.15s ease' }}>
+              <input
+                type="checkbox"
+                checked={isSelected}
+                onChange={() => toggleRefSelection(ref)}
+                style={{ accentColor: '#1e3a5f', width: 18, height: 18, marginTop: 3, flexShrink: 0 }}
+              />
+              <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: 11, fontWeight: 600, padding: '3px 10px', borderRadius: 99, ...badgeStyle, whiteSpace: 'nowrap' }}>{ref.type}</span>
+                  <span style={{ fontSize: 14, fontWeight: 600, color: '#111827' }}>{ref.title}</span>
+                </div>
+                <div style={{ fontSize: 13, color: '#6b7280' }}>{ref.authors} &middot; {ref.year || 'N/A'}</div>
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                  {!deprecated && !issues && <span style={{ fontSize: 11, fontWeight: 500, padding: '2px 8px', borderRadius: 99, background: '#f0fdf4', color: '#16a34a' }}>Active</span>}
+                  {deprecated && !issues && <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 99, background: '#fef3c7', color: '#b45309' }}>Deprecated</span>}
+                  {issues && <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 99, background: '#fef2f2', color: '#dc2626' }}>Has Issue</span>}
+                </div>
+              </div>
+            </label>
+          )
+        }) : (
+          <div style={{ padding: 30, textAlign: 'center', color: '#9ca3af', fontSize: 14 }}>
+            {searchTerm ? 'No matching references found.' : 'No references in library yet. Add references first in the Reference Library page.'}
+          </div>
+        )}
+      </div>
+      {selectedRefs.length > 0 && (
+        <div style={{ marginTop: 12, padding: '10px 14px', background: '#f0fdf4', borderRadius: 8, fontSize: 13, color: '#047857', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+          {selectedRefs.length} reference{selectedRefs.length > 1 ? 's' : ''} selected to suggest
+        </div>
+      )}
+    </div>
+  )
+
   return (
     <div role="dialog" aria-modal="true" aria-label="Comments" className={styles.overlay}>
       <div className={styles.modal}>
         <div className={styles.header}>
-          <h3>Comments</h3>
-          <button onClick={onClose} aria-label="Return Syllabus" className={styles.returnBtn}>
-            Return Syllabus
-          </button>
+          <h3>{isDirector ? 'Comment & Suggest References' : 'Comments'}</h3>
+          <button onClick={onClose} aria-label="Close" style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: 22, color: '#6b7280', width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8 }}>✕</button>
         </div>
 
         <div className={styles.body}>
-          <div className={styles.commentListWrapper}>
-            <div className={styles.commentList}>
-              {comments.map((c, idx) => {
-                const courseCoverageSelected = !!(c.components && c.components.topics && c.components.assessments && c.components.tlas)
-                return (
-                  <div key={c.id} className={styles.commentItem}>
-                    <div className={styles.commentHeader}>
-                      <div>Comment {idx + 1}</div>
-                      <div className={styles.commentControls}>
-                        <button className={styles.removeBtn} onClick={() => removeCommentSection(c.id)} aria-label="Delete comment" title="Delete comment">
-                          ✕
-                        </button>
+          {isDirector ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div className={styles.commentItem}>
+                <div className={styles.commentBody}>
+                  <textarea
+                    className={styles.textarea}
+                    value={comments[0]?.text || ''}
+                    onChange={(e) => updateCommentText(comments[0]?.id, e.target.value)}
+                    placeholder={'Enter your comment about the syllabus references...'}
+                    rows={4}
+                  />
+                </div>
+              </div>
+              {renderRefBrowser()}
+            </div>
+          ) : (
+            <div className={styles.commentListWrapper}>
+              <div className={styles.commentList}>
+                {comments.map((c, idx) => {
+                  const courseCoverageSelected = !!(c.components && c.components.topics && c.components.assessments && c.components.tlas)
+                  return (
+                    <div key={c.id} className={styles.commentItem}>
+                      <div className={styles.commentHeader}>
+                        <div>Comment {idx + 1}</div>
+                        <div className={styles.commentControls}>
+                          <button className={styles.removeBtn} onClick={() => removeCommentSection(c.id)} aria-label="Delete comment" title="Delete comment">
+                            ✕
+                          </button>
+                        </div>
                       </div>
-                    </div>
 
-                    <div className={styles.commentBody}>
-                      <div className={styles.componentsRow} style={{ marginBottom: 8 }}>
-                        <label style={{ display: 'flex', alignItems: 'center', gap: 8, opacity: (c.components.references || c.components.grading) ? 0.5 : 1, cursor: (c.components.references || c.components.grading) ? 'not-allowed' : 'pointer' }}>
-                          <input
-                            type="checkbox"
-                            checked={courseCoverageSelected}
-                            disabled={c.components.references || c.components.grading}
-                            onChange={() =>
-                              setComments((prev) =>
-                                prev.map((item) =>
-                                  item.id === c.id
-                                    ? (() => {
-                                        const allOn = !!(item.components && item.components.topics && item.components.assessments && item.components.tlas)
-                                        const target = !allOn
-                                        return {
+                      <div className={styles.commentBody}>
+                        <div className={styles.componentsRow} style={{ marginBottom: 8 }}>
+                          <label style={{ display: 'flex', alignItems: 'center', gap: 8, opacity: (c.components.references || c.components.grading) ? 0.5 : 1, cursor: (c.components.references || c.components.grading) ? 'not-allowed' : 'pointer' }}>
+                            <input
+                              type="checkbox"
+                              checked={courseCoverageSelected}
+                              disabled={c.components.references || c.components.grading}
+                              onChange={() =>
+                                setComments((prev) =>
+                                  prev.map((item) =>
+                                    item.id === c.id
+                                      ? (() => {
+                                          const allOn = !!(item.components && item.components.topics && item.components.assessments && item.components.tlas)
+                                          const target = !allOn
+                                          return {
+                                            ...item,
+                                            components: {
+                                              references: false,
+                                              grading: false,
+                                              topics: target,
+                                              assessments: target,
+                                              tlas: target
+                                            }
+                                          }
+                                        })()
+                                      : item
+                                  )
+                                )
+                              }
+                            />
+                            <span>Course Coverage</span>
+                          </label>
+
+                          <label style={{ display: 'flex', alignItems: 'center', gap: 8, opacity: courseCoverageSelected || c.components.grading ? 0.5 : 1, cursor: courseCoverageSelected || c.components.grading ? 'not-allowed' : 'pointer' }}>
+                            <input 
+                              type="checkbox" 
+                              checked={c.components.references} 
+                              disabled={courseCoverageSelected || c.components.grading}
+                              onChange={() => {
+                                setComments((prev) =>
+                                  prev.map((item) =>
+                                    item.id === c.id
+                                      ? {
                                           ...item,
                                           components: {
-                                            references: false,
-                                            grading: false,
-                                            topics: target,
-                                            assessments: target,
-                                            tlas: target
+                                            ...item.components,
+                                            references: !item.components.references,
+                                            topics: false,
+                                            assessments: false,
+                                            tlas: false,
+                                            grading: false
                                           }
                                         }
-                                      })()
-                                    : item
+                                      : item
+                                  )
                                 )
-                              )
-                            }
-                          />
-                          <span>Course Coverage</span>
-                        </label>
+                              }}
+                            />
+                            <span>References</span>
+                          </label>
 
-                        <label style={{ display: 'flex', alignItems: 'center', gap: 8, opacity: courseCoverageSelected || c.components.grading ? 0.5 : 1, cursor: courseCoverageSelected || c.components.grading ? 'not-allowed' : 'pointer' }}>
-                          <input 
-                            type="checkbox" 
-                            checked={c.components.references} 
-                            disabled={courseCoverageSelected || c.components.grading}
-                            onChange={() => {
-                              setComments((prev) =>
-                                prev.map((item) =>
-                                  item.id === c.id
-                                    ? {
-                                        ...item,
-                                        components: {
-                                          ...item.components,
-                                          references: !item.components.references,
-                                          topics: false,
-                                          assessments: false,
-                                          tlas: false,
-                                          grading: false
+                          <label style={{ display: 'flex', alignItems: 'center', gap: 8, opacity: courseCoverageSelected || c.components.references ? 0.5 : 1, cursor: courseCoverageSelected || c.components.references ? 'not-allowed' : 'pointer' }}>
+                            <input 
+                              type="checkbox" 
+                              checked={c.components.grading} 
+                              disabled={courseCoverageSelected || c.components.references}
+                              onChange={() => {
+                                setComments((prev) =>
+                                  prev.map((item) =>
+                                    item.id === c.id
+                                      ? {
+                                          ...item,
+                                          components: {
+                                            ...item.components,
+                                            grading: !item.components.grading,
+                                            topics: false,
+                                            assessments: false,
+                                            tlas: false,
+                                            references: false
+                                          }
                                         }
-                                      }
-                                    : item
+                                      : item
+                                  )
                                 )
-                              )
-                            }}
-                          />
-                          <span>References</span>
-                        </label>
+                              }}
+                            />
+                            <span>Grading Criteria</span>
+                          </label>
+                        </div>
 
-                        <label style={{ display: 'flex', alignItems: 'center', gap: 8, opacity: courseCoverageSelected || c.components.references ? 0.5 : 1, cursor: courseCoverageSelected || c.components.references ? 'not-allowed' : 'pointer' }}>
-                          <input 
-                            type="checkbox" 
-                            checked={c.components.grading} 
-                            disabled={courseCoverageSelected || c.components.references}
-                            onChange={() => {
-                              setComments((prev) =>
-                                prev.map((item) =>
-                                  item.id === c.id
-                                    ? {
-                                        ...item,
-                                        components: {
-                                          ...item.components,
-                                          grading: !item.components.grading,
-                                          topics: false,
-                                          assessments: false,
-                                          tlas: false,
-                                          references: false
-                                        }
-                                      }
-                                    : item
-                                )
-                              )
-                            }}
-                          />
-                          <span>Grading Criteria</span>
-                        </label>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginBottom: 8 }}>
+                          <div className={styles.field}>
+                            <label className={styles.label}>Coverage Type</label>
+                            <select className={styles.select} value={c.coverageType} onChange={(e) => updateCommentCoverageType(c.id, e.target.value)} disabled={!courseCoverageSelected}>
+                              <option value="">-- select type --</option>
+                              <option value="Topic">Topic</option>
+                              <option value="Assessment">Assessment</option>
+                              <option value="TLA">TLA</option>
+                            </select>
+                          </div>
+
+                          <div className={styles.field}>
+                            <label className={styles.label}>Course Outcome</label>
+                            <select className={styles.select} value={c.courseOutcome} onChange={(e) => updateCommentCourseOutcome(c.id, e.target.value)} disabled={!courseCoverageSelected}>
+                              <option value="">-- select course outcome --</option>
+                              {resolvedCourseOutcomes.map((co) => (
+                                <option key={co.id || co} value={co.id || co}>
+                                  {co.id ? `${co.id} — ${String(co.description || '').slice(0, 60)}` : co}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+
+                          <div className={styles.field}>
+                            <label className={styles.label}>Intended Learning Outcome (ILO)</label>
+                            <select className={styles.select} value={c.ilo} onChange={(e) => updateCommentIlo(c.id, e.target.value)} disabled={!courseCoverageSelected || !c.courseOutcome}>
+                              <option value="">-- select ILO --</option>
+                              {((c.courseOutcome && coToIlos[c.courseOutcome]) || resolvedIlos).map((i) => (
+                                <option key={i} value={i}>{i}</option>
+                              ))}
+                            </select>
+                          </div>
+                        </div>
+
+                        <textarea className={styles.textarea} value={c.text} onChange={(e) => updateCommentText(c.id, e.target.value)} placeholder={'Enter your comment...'} rows={4} />
+
+                        {c.components.references && renderRefBrowser()}
                       </div>
-
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginBottom: 8 }}>
-                        <div className={styles.field}>
-                          <label className={styles.label}>Coverage Type</label>
-                          <select className={styles.select} value={c.coverageType} onChange={(e) => updateCommentCoverageType(c.id, e.target.value)} disabled={!courseCoverageSelected}>
-                            <option value="">-- select type --</option>
-                            <option value="Topic">Topic</option>
-                            <option value="Assessment">Assessment</option>
-                            <option value="TLA">TLA</option>
-                          </select>
-                        </div>
-
-                        <div className={styles.field}>
-                          <label className={styles.label}>Course Outcome</label>
-                          <select className={styles.select} value={c.courseOutcome} onChange={(e) => updateCommentCourseOutcome(c.id, e.target.value)} disabled={!courseCoverageSelected}>
-                            <option value="">-- select course outcome --</option>
-                            {resolvedCourseOutcomes.map((co) => (
-                              <option key={co.id || co} value={co.id || co}>
-                                {co.id ? `${co.id} — ${String(co.description || '').slice(0, 60)}` : co}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-
-                        <div className={styles.field}>
-                          <label className={styles.label}>Intended Learning Outcome (ILO)</label>
-                          <select className={styles.select} value={c.ilo} onChange={(e) => updateCommentIlo(c.id, e.target.value)} disabled={!courseCoverageSelected || !c.courseOutcome}>
-                            <option value="">-- select ILO --</option>
-                            {((c.courseOutcome && coToIlos[c.courseOutcome]) || resolvedIlos).map((i) => (
-                              <option key={i} value={i}>{i}</option>
-                            ))}
-                          </select>
-                        </div>
-                      </div>
-
-                      {/* Recipient selector: hidden for Dean and forced to program_head */}
-                      {normalizeRoleKey(approverRole || JSON.parse(localStorage.getItem('user') || 'null')?.role) !== 'dean' ? (
-                        <div style={{ marginBottom: 8 }}>
-                          <label className={styles.label}>Recipient</label>
-                          <select className={styles.select} value={c.recipientRole || ''} onChange={(e) => updateRecipientRole(c.id, e.target.value)}>
-                            <option value="">-- select recipient --</option>
-                            <option value="instructor">Instructor</option>
-                            <option value="program_head">Program Head</option>
-                            <option value="program-head">Program Head</option>
-                            <option value="director-of-libraries">Director of Libraries</option>
-                            <option value="industry-consultant">Industry Consultant</option>
-                          </select>
-                        </div>
-                      ) : null}
-
-                      <textarea className={styles.textarea} value={c.text} onChange={(e) => updateCommentText(c.id, e.target.value)} placeholder={'Enter your comment...'} rows={4} />
                     </div>
-                  </div>
-                )
-              })}
-            </div>
+                  )
+                })}
+              </div>
 
-            <div className={styles.addCommentRow}>
-              <button onClick={addCommentSection} className={styles.addButton}>
-                + Add another comment
-              </button>
+              <div className={styles.addCommentRow}>
+                <button onClick={addCommentSection} className={styles.addButton}>
+                  + Add another comment
+                </button>
+              </div>
             </div>
-          </div>
-
-          <div className={styles.actions}>
-            <button onClick={onClose} className={`${styles.cancel}`}>Cancel</button>
-            <button onClick={handleSubmit} disabled={saveDisabled} className={`${styles.submit} ${saveDisabled ? styles.disabled : ''}`}>Save</button>
-          </div>
+          )}
+        </div>
+        <div className={styles.actions}>
+          <button onClick={onClose} className={`${styles.cancel}`}>Cancel</button>
+          {isDirector ? (
+            <button
+              onClick={() => {
+                const hasText = comments[0]?.text?.trim()
+                if (!hasText && selectedRefs.length === 0) return
+                const payload = {
+                  comments: [{
+                    ...comments[0],
+                    text: comments[0]?.text || '',
+                    components: { references: true }
+                  }],
+                  suggestedReferences: selectedRefs,
+                  createdAt: new Date().toISOString()
+                }
+                onSubmit && onSubmit(payload)
+                clearDraft()
+              }}
+              disabled={!comments[0]?.text?.trim() && selectedRefs.length === 0}
+              className={`${styles.submit} ${!comments[0]?.text?.trim() && selectedRefs.length === 0 ? styles.disabled : ''}`}
+            >
+              Return with Comments
+            </button>
+          ) : (
+            <button onClick={handleSubmit} disabled={saveDisabled} className={`${styles.submit} ${saveDisabled ? styles.disabled : ''}`}>Return with Comments</button>
+          )}
         </div>
       </div>
     </div>

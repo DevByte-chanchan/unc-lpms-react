@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import SkeletonA from "../layouts/SkeletonA.jsx";
 import HeaderA from "../components/HeaderA.jsx";
 import FormNavigation from "../components/FormNavigation.jsx";
@@ -8,6 +8,7 @@ import TextField from "../components/TextField.jsx";
 import DropdownA from "../components/DropdownA.jsx";
 import SideNavigation from "../components/SideNavigation.jsx";
 import { getSyllabusByCode } from "../data/syllabiData.js";
+import { getReferenceComments } from "../utils/referenceLibrary.js";
 import { X, AlertCircle, CheckCircle } from 'react-feather';
 
 const ReferenceForm = () => {
@@ -37,6 +38,15 @@ const ReferenceForm = () => {
     // 4. Modal State
     const [showConfirmModal, setShowConfirmModal] = useState(false);
     const [showErrorModal, setShowErrorModal] = useState(false);
+
+    // 5. Comment State
+    const [formComments, setFormComments] = useState([]);
+
+    useEffect(() => {
+        if (refId) {
+            setFormComments(getReferenceComments(refId));
+        }
+    }, [refId]);
 
     // --- HANDLERS ---
 
@@ -116,7 +126,7 @@ const ReferenceForm = () => {
 
     return(
         <SkeletonA
-            header={<HeaderA role={'Instructor'} name={'NORTON, MONICA'} />}
+            header={<HeaderA role={'Instructor'} name={'CASIMERO, DANNY'} />}
             nav={<SideNavigation/> }
             content={
                 <div className={styles.container}>
@@ -184,6 +194,22 @@ const ReferenceForm = () => {
                                 placeholder="https://..."
                             />
                         )}
+
+                        <div style={{ marginTop: 24, borderTop: '1px solid #e5e7eb', paddingTop: 16 }}>
+                            <h4 style={{ margin: '0 0 8px 0', fontSize: 14, fontWeight: 600, color: '#374151' }}>Comments</h4>
+                            {formComments.length === 0 ? (
+                                <p style={{ margin: '0 0 8px 0', fontSize: 13, color: '#9ca3af' }}>No comments yet.</p>
+                            ) : (
+                                <div style={{ marginBottom: 8, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                                    {formComments.map(c => (
+                                        <div key={c.id} style={{ padding: '10px 12px', background: '#f9fafb', borderRadius: 6, border: '1px solid #e5e7eb' }}>
+                                            <div style={{ fontSize: 13, color: '#111827', marginBottom: 4 }}>{c.text}</div>
+                                            <div style={{ fontSize: 11, color: '#9ca3af' }}>{c.author} &middot; {new Date(c.createdAt).toLocaleString()}</div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
                     </div>
 
                     {/* --- POPUPS / MODALS --- */}

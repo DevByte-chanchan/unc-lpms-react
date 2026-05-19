@@ -1,6 +1,6 @@
 import styles from '../styles/SideNavigation.module.sass'
 import unclogo from '../assets/unclogo.png'
-import { FileText, LogOut, Users, BookOpen } from 'react-feather'
+import { FileText, LogOut, Users, BookOpen, Upload } from 'react-feather'
 import { useSearchParams, useNavigate, useLocation } from 'react-router-dom'
 import { useEffect, useRef, useState } from 'react'
 
@@ -16,6 +16,27 @@ const SideNavigation = ({ mode = 'instructor' }) => {
         selected = 'TOS';
     }
 
+    // LPSM Instructor pages
+    if (location.pathname.startsWith('/lpsm/instructor')) {
+        selected = 'Syllabus';
+    }
+
+    // LPSM Program Head upload pages
+    if (location.pathname.startsWith('/role/program-head/upload-documents')) {
+        selected = 'COAEP';
+    }
+
+    // LPSM Director of Libraries pages
+    if (location.pathname.startsWith('/role/director-of-libraries/reference-library') ||
+        location.pathname.startsWith('/role/director-of-libraries/add-reference') ||
+        location.pathname.startsWith('/role/director-of-libraries/view-reference') ||
+        location.pathname.startsWith('/role/director-of-libraries/edit-reference')) {
+        selected = 'Reference Library';
+    }
+    if (location.pathname.startsWith('/role/director-of-libraries/upload-documents')) {
+        selected = 'Upload Documents';
+    }
+
     const [showPopup, setShowPopup] = useState(false)
     const [isExpanded, setIsExpanded] = useState(false)
     const logoutRef = useRef(null)
@@ -26,6 +47,8 @@ const SideNavigation = ({ mode = 'instructor' }) => {
         if (page === 'Syllabus') {
             if (mode === 'program-head') navigate('/role/program-head/approval-course-table?page=Syllabus');
             else if (mode === 'dean') navigate('/role/dean?page=Syllabus');
+            else if (mode === 'director-of-libraries') navigate('/role/director-of-libraries/approval-course-table?page=Syllabus');
+            else if (mode === 'industry-consultant') navigate('/role/industry-consultant/approval-course-table?page=Syllabus');
             else navigate('/');
         }
         else if (page === 'TOS') {
@@ -136,13 +159,15 @@ const SideNavigation = ({ mode = 'instructor' }) => {
                 )}
 
                 {mode === 'instructor' && (
-                    <div
-                        onClick={() => handlePageChange('TOS')}
-                        className={`${styles.list} ${selected === 'TOS' ? styles.selected : ''}`}
-                    >
-                        <FileText size={24} />
-                        <span className={styles.listText}>TOS</span>
-                    </div>
+                    <>
+                        <div
+                            onClick={() => handlePageChange('TOS')}
+                            className={`${styles.list} ${selected === 'TOS' ? styles.selected : ''}`}
+                        >
+                            <FileText size={24} />
+                            <span className={styles.listText}>TOS</span>
+                        </div>
+                    </>
                 )}
 
                 {mode === 'program-head' && (
@@ -154,10 +179,20 @@ const SideNavigation = ({ mode = 'instructor' }) => {
                         <div onClick={() => { navigate('/role/program-head/course-offerings?page=Course%20Offerings') }} className={`${styles.list} ${selected === 'Course Offerings' ? styles.selected : ''}`}>
                             <BookOpen size={24} /> <span className={styles.listText}>Course Offerings</span>
                         </div>
+
+                        <div onClick={() => { navigate('/role/program-head/upload-documents') }} className={`${styles.list} ${selected === 'COAEP' ? styles.selected : ''}`}>
+                            <FileText size={24} /> <span className={styles.listText}>COAEP</span>
+                        </div>
                     </>
                 )}
 
-                {mode === 'dean' && (
+                {mode === 'director-of-libraries' && (
+                    <div onClick={() => { navigate('/role/director-of-libraries/reference-library') }} className={`${styles.list} ${selected === 'Reference Library' ? styles.selected : ''}`}>
+                        <BookOpen size={24} /> <span className={styles.listText}>Reference Library</span>
+                    </div>
+                )}
+
+                                {mode === 'dean' && (
                     <>
                         <div onClick={() => { navigate('/role/dean?page=Faculty') }} className={`${styles.list} ${selected === 'Faculty' ? styles.selected : ''}`}>
                             <Users size={24} /> <span className={styles.listText}>Faculty</span>

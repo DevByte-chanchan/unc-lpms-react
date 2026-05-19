@@ -19,7 +19,7 @@ const IndustryConsultant = () => {
 
   return (
       <Skeleton
-          header={<Header role="Industry Consultant" name="NORTON, MONICA" />}
+          header={<Header role="Industry Consultant" name="CRUZ, ROBERTO" />}
           nav={<SideNavigation mode="industry-consultant" />}
           content={<ApprovalCoursesTable role="industry-consultant" />}
       />

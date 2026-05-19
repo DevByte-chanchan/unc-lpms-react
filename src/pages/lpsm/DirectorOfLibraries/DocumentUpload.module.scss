@@ -1,0 +1,282 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  min-height: 200px;
+  gap: 10px;
+  padding: 20px 30px;
+  background: white;
+  font-family: 'Poppins', sans-serif;
+  overflow-y: auto;
+
+  h1 {
+    margin-bottom: 12px;
+    color: black;
+    font-size: 24px;
+    font-weight: 600;
+  }
+}
+
+.subtitle {
+  margin-bottom: 22px;
+  color: #444444;
+  font-size: 15px;
+  max-width: 780px;
+  line-height: 1.6;
+}
+
+.error {
+  background: #fdecea;
+  color: #991b1b;
+  padding: 14px 16px;
+  border-radius: 8px;
+  margin-bottom: 24px;
+  border: 1px solid #f5c2c7;
+}
+
+.section {
+  background: #ffffff;
+  border: 1px solid #111111;
+  border-radius: 10px;
+  padding: 24px;
+  margin-bottom: 24px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
+
+  label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 700;
+    color: #111111;
+    font-size: 14px;
+  }
+
+  select {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #333333;
+    border-radius: 6px;
+    font-size: 14px;
+    color: #111111;
+    background: #fafafa;
+  }
+
+  h2 {
+    margin: 0 0 16px 0;
+    font-size: 18px;
+    color: #111111;
+  }
+}
+
+.planSummary {
+  margin-bottom: 24px;
+  padding: 22px 24px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #111111 0%, #333333 100%);
+  color: #ffffff;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+}
+
+.planLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffeded;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 12px;
+}
+
+.planSummary h2 {
+  margin: 0 0 10px 0;
+  font-size: 26px;
+}
+
+.planMeta {
+  margin: 0;
+  color: #f8f4f4;
+  max-width: 760px;
+  line-height: 1.7;
+}
+
+.groupHeader {
+  border-left: 4px solid #c0392b;
+  padding-left: 16px;
+  margin-bottom: 20px;
+}
+
+.groupHeader h2 {
+  margin: 0 0 8px 0;
+  color: #111111;
+  font-size: 22px;
+}
+
+.groupHeader p {
+  margin: 0;
+  color: #555555;
+  line-height: 1.6;
+}
+
+.uploadGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 18px;
+}
+
+.uploadCard {
+  border: 1px solid #111111;
+  border-radius: 16px;
+  overflow: hidden;
+  background: #ffffff;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.05);
+}
+
+.uploadCardHeader {
+  padding: 18px 20px;
+  border-bottom: 1px solid #111111;
+  background: #111111;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+
+  h3 {
+    margin: 0;
+    font-size: 15px;
+    color: #ffffff;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+  }
+}
+
+.statusBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 12px;
+  border-radius: 999px;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 700;
+  background: #c0392b;
+}
+
+.statusBadge:empty {
+  display: none;
+}
+
+.cardDescription {
+  margin: 0 0 18px 0;
+  color: #5f5f5f;
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.uploadCardBody {
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.uploadInput {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 32px;
+  border: 2px dashed #c0392b;
+  border-radius: 16px;
+  background: #fffafa;
+  transition: background 0.3s, border-color 0.3s;
+
+  input[type="file"] {
+    display: none;
+  }
+
+  span {
+    color: #c0392b;
+    font-weight: 700;
+    font-size: 15px;
+  }
+
+  &:hover {
+    background: #fff1f1;
+    border-color: #b03a2e;
+
+    span {
+      color: #b03a2e;
+    }
+  }
+}
+
+.uploadedFile {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.fileName {
+  font-weight: 700;
+  color: #111111;
+  word-break: break-word;
+  font-size: 15px;
+}
+
+.fileInfo {
+  color: #6b6b6b;
+  font-size: 13px;
+}
+
+.fileActions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.btnReplace,
+.btnDelete {
+  flex: 1;
+  padding: 10px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 700;
+  transition: all 0.25s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btnReplace {
+  background: #111111;
+  color: #ffffff;
+  border: 1px solid #111111;
+
+  input {
+    display: none;
+  }
+
+  &:hover {
+    background: #333333;
+    border-color: #333333;
+  }
+}
+
+.btnDelete {
+  background: #c0392b;
+  color: white;
+  border-color: #c0392b;
+
+  &:hover {
+    background: #992d22;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}

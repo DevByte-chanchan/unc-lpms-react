@@ -1,0 +1,163 @@
+version: '3.8'
+
+services:
+  db_course_assignment:
+    image: mysql:8.0
+    container_name: db_course_assignment
+    environment:
+      MYSQL_ROOT_PASSWORD: "${DB_ROOT_PASSWORD:-rootpassword}"
+      MYSQL_DATABASE: "${DB_COURSE_ASSIGNMENT_NAME:-db_course_assignment}"
+      MYSQL_USER: "${DB_COURSE_ASSIGNMENT_USER:-ca_user}"
+      MYSQL_PASSWORD: "${DB_COURSE_ASSIGNMENT_PASSWORD:-ca_pass}"
+    ports:
+      - "3306:3306"
+    volumes:
+      - ca_data:/var/lib/mysql
+    networks:
+      - lpms_net
+
+  db_learning_plan_comp:
+    image: mysql:8.0
+    container_name: db_learning_plan_comp
+    environment:
+      MYSQL_ROOT_PASSWORD: "${DB_ROOT_PASSWORD:-rootpassword}"
+      MYSQL_DATABASE: "${DB_LEARNING_PLAN_COMP_NAME:-db_learning_plan_comp}"
+      MYSQL_USER: "${DB_LEARNING_PLAN_COMP_USER:-lpc_user}"
+      MYSQL_PASSWORD: "${DB_LEARNING_PLAN_COMP_PASSWORD:-lpc_pass}"
+    ports:
+      - "3307:3306"
+    volumes:
+      - lpc_data:/var/lib/mysql
+    networks:
+      - lpms_net
+
+  db_lpsm:
+    image: mysql:8.0
+    container_name: db_lpsm
+    environment:
+      MYSQL_ROOT_PASSWORD: "${DB_ROOT_PASSWORD:-rootpassword}"
+      MYSQL_DATABASE: "${DB_LPSM_NAME:-db_lpsm}"
+      MYSQL_USER: "${DB_LPSM_USER:-lpsm_user}"
+      MYSQL_PASSWORD: "${DB_LPSM_PASSWORD:-lpsm_pass}"
+    ports:
+      - "3308:3306"
+    volumes:
+      - lpsm_data:/var/lib/mysql
+    networks:
+      - lpms_net
+
+  db_tos:
+    image: mysql:8.0
+    container_name: db_tos
+    environment:
+      MYSQL_ROOT_PASSWORD: "${DB_ROOT_PASSWORD:-rootpassword}"
+      MYSQL_DATABASE: "${DB_TOS_NAME:-db_tos}"
+      MYSQL_USER: "${DB_TOS_USER:-tos_user}"
+      MYSQL_PASSWORD: "${DB_TOS_PASSWORD:-tos_pass}"
+    ports:
+      - "3309:3306"
+    volumes:
+      - tos_data:/var/lib/mysql
+    networks:
+      - lpms_net
+
+  adminer:
+    image: adminer
+    container_name: adminer
+    restart: always
+    ports:
+      - "8080:8080"
+    networks:
+      - lpms_net
+
+  backend_course_assignment:
+    build:
+      context: ./backend/course-assignment
+      dockerfile: Dockerfile
+    container_name: backend_course_assignment
+    env_file:
+      - .env
+    environment:
+      - DB_HOST=db_course_assignment
+      - DB_NAME=${DB_COURSE_ASSIGNMENT_NAME:-db_course_assignment}
+      - DB_USER=${DB_COURSE_ASSIGNMENT_USER:-ca_user}
+      - DB_PASS=${DB_COURSE_ASSIGNMENT_PASSWORD:-ca_pass}
+      - DB_PORT=3306
+    ports:
+      - "4000:4000"
+    depends_on:
+      - db_course_assignment
+    networks:
+      - lpms_net
+
+  backend_learning_plan_composition:
+    build:
+      context: ./backend/learning-plan-composition
+      dockerfile: Dockerfile
+    container_name: backend_learning_plan_composition
+    env_file:
+      - .env
+    environment:
+      - DB_HOST=db_learning_plan_comp
+      - DB_NAME=${DB_LEARNING_PLAN_COMP_NAME:-db_learning_plan_comp}
+      - DB_USER=${DB_LEARNING_PLAN_COMP_USER:-lpc_user}
+      - DB_PASS=${DB_LEARNING_PLAN_COMP_PASSWORD:-lpc_pass}
+      - DB_PORT=3306
+    ports:
+      - "4001:4000"
+    depends_on:
+      - db_learning_plan_comp
+    networks:
+      - lpms_net
+
+  backend_lpsm:
+    build:
+      context: ./backend/lpsm
+      dockerfile: Dockerfile.prod
+    container_name: backend_lpsm
+    env_file:
+      - .env
+    environment:
+      - DB_HOST=db_lpsm
+      - DB_NAME=${DB_LPSM_NAME:-db_lpsm}
+      - DB_USER=${DB_LPSM_USER:-lpsm_user}
+      - DB_PASS=${DB_LPSM_PASSWORD:-lpsm_pass}
+      - DB_PORT=3306
+      - PORT=4002
+      - JWT_SECRET=${JWT_SECRET:-changeme}
+    ports:
+      - "4002:4002"
+    depends_on:
+      - db_lpsm
+    networks:
+      - lpms_net
+
+  backend_tos:
+    build:
+      context: ./backend/tos
+      dockerfile: Dockerfile
+    container_name: backend_tos
+    env_file:
+      - .env
+    environment:
+      - DB_HOST=db_tos
+      - DB_NAME=${DB_TOS_NAME:-db_tos}
+      - DB_USER=${DB_TOS_USER:-tos_user}
+      - DB_PASS=${DB_TOS_PASSWORD:-tos_pass}
+      - DB_PORT=3306
+    ports:
+      - "4003:4000"
+    depends_on:
+      - db_tos
+    networks:
+      - lpms_net
+
+volumes:
+  ca_data:
+  lpc_data:
+  lpsm_data:
+  tos_data:
+
+networks:
+  lpms_net:
+    driver: bridge

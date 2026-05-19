@@ -53,12 +53,14 @@
 
 .dynamic-sections
   width: 100%
+  height: 100%
   flex-grow: 1
-  min-height: 200px
   background: white
   padding: 20px 30px
+  display: flex
   flex-direction: column
   position: relative
+  overflow-y: auto
 
 // NEW: Loading Overlay
 .loadingContainer
@@ -86,8 +88,8 @@
 
 section
   width: 100%
-  height: 100%
   display: flex
+  flex-direction: column
   overflow: auto
 
 .draft

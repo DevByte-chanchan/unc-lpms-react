@@ -2,6 +2,8 @@ import React, {useState} from 'react';
 import {Link} from 'react-router-dom'
 import styles from '../styles/CoursesTable.module.sass';
 import { ChevronRight } from 'react-feather';
+import { syllabiData } from '../data/syllabiData';
+
 const TOSCoursesTable = ({}) => {
 
     const currentYear = new Date().getFullYear();
@@ -12,18 +14,13 @@ const TOSCoursesTable = ({}) => {
     for (let i = currentYear; i >= startYear; i--) {
         yearOptions.push(<option key={i} value={i}>{i}</option>);
     }
-    const Courses = [
-        { code: 'BSCS313L', name: 'Human & Computer Interaction', update: 'Sept 01, 2025', status: 'DRAFT',    exported: '' },
-        { code: 'BSCS212L', name: 'Web Development I',            update: 'Aug 15, 2025', status: 'DRAFT',    exported: '' },
-        { code: 'BSCS111L', name: 'Fundamentals of Programming',  update: 'Aug 25, 2025', status: 'DRAFT',    exported: '' },
-        { code: 'BSCS214L', name: 'Data Structures and Algorithms', update: 'Sept 20, 2025', status: 'EXPORTED', exported: 'Sept 28, 2025' },
-        { code: 'BSCS315L', name: 'Operating Systems',             update: 'Oct 02, 2025', status: 'EXPORTED', exported: 'Oct 10, 2025' },
-        { code: 'BSCS321L', name: 'Database Management Systems',   update: 'Sept 05, 2025', status: 'DRAFT',    exported: '' },
-        { code: 'BSCS322L', name: 'Software Engineering',          update: 'Sept 12, 2025', status: 'EXPORTED', exported: 'Sept 22, 2025' },
-        { code: 'BSCS331L', name: 'Computer Networks',             update: 'Sept 18, 2025', status: 'EXPORTED', exported: 'Oct 25, 2025' },
-        { code: 'BSCS341L', name: 'Artificial Intelligence',       update: 'Sept 01, 2025', status: 'DRAFT',    exported: '' },
-        { code: 'BSCS351L', name: 'Cybersecurity Fundamentals',    update: 'Sept 10, 2025', status: 'EXPORTED', exported: 'Sept 30, 2025' },
-    ];
+    const Courses = syllabiData.map(s => ({
+        code: s.code,
+        name: s.name,
+        update: s.update || 'TBA',
+        status: s.status || 'DRAFT',
+        exported: s.exported || ''
+    }));
 
     const [selectedStatus, setSelectedStatus] = useState('DRAFT');
     const handleStatusChange = (e) => {

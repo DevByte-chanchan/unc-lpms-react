@@ -1,0 +1,235 @@
+╔════════════════════════════════════════════════════════════════════════════╗
+║                    LPSM MODULE - FILES CHECKLIST                           ║
+╚════════════════════════════════════════════════════════════════════════════╝
+
+═══════════════════════════════════════════════════════════════════════════════
+BACKEND FILES (24 total)
+═══════════════════════════════════════════════════════════════════════════════
+
+CORE CONFIG
+═══════════
+✓ backend/lpsm/package.json
+✓ backend/lpsm/.sequelizerc
+✓ backend/lpsm/.env.example
+✓ backend/lpsm/Dockerfile
+✓ backend/lpsm/src/app.js
+✓ backend/lpsm/src/config/config.js
+
+MODELS (6)
+══════════
+✓ backend/lpsm/src/models/index.js (Sequelize loader)
+✓ backend/lpsm/src/models/LearningPlan.js
+✓ backend/lpsm/src/models/LearningPlanDocument.js
+✓ backend/lpsm/src/models/ApprovalStage.js
+✓ backend/lpsm/src/models/ApprovalComment.js
+✓ backend/lpsm/src/models/User.js
+
+MIGRATIONS (5)
+══════════════
+✓ backend/lpsm/src/migrations/20260512000001-create-learning-plans.js
+✓ backend/lpsm/src/migrations/20260512000002-create-learning-plan-documents.js
+✓ backend/lpsm/src/migrations/20260512000003-create-approval-stages.js
+✓ backend/lpsm/src/migrations/20260512000004-create-approval-comments.js
+✓ backend/lpsm/src/migrations/20260512000005-create-users.js
+
+SEEDERS (2)
+═══════════
+✓ backend/lpsm/src/seeders/20260512000001-seed-users.js
+✓ backend/lpsm/src/seeders/20260512000002-seed-learning-plans.js
+
+CONTROLLERS & ROUTES
+════════════════════
+✓ backend/lpsm/src/controllers/learningPlanController.js
+✓ backend/lpsm/src/routes/learningPlans.js
+✓ backend/lpsm/src/middleware/roleCheck.js
+
+═══════════════════════════════════════════════════════════════════════════════
+FRONTEND FILES (18 total)
+═══════════════════════════════════════════════════════════════════════════════
+
+API SERVICE
+═══════════
+✓ src/services/learningPlanService.js (Axios HTTP client)
+
+INSTRUCTOR PAGES (2 components × 2 files)
+══════════════════════════════════════════
+✓ src/pages/lpsm/Instructor/LearningPlanList.jsx
+✓ src/pages/lpsm/Instructor/LearningPlanList.module.scss
+✓ src/pages/lpsm/Instructor/LearningPlanCompose.jsx
+✓ src/pages/lpsm/Instructor/LearningPlanCompose.module.scss
+
+PROGRAM HEAD PAGES (2 components × 2 files)
+═════════════════════════════════════════════
+✓ src/pages/lpsm/ProgramHead/DocumentUpload.jsx
+✓ src/pages/lpsm/ProgramHead/DocumentUpload.module.scss
+✓ src/pages/lpsm/ProgramHead/ApprovalPanel.jsx
+✓ src/pages/lpsm/ProgramHead/ApprovalPanel.module.scss
+
+DIRECTOR OF LIBRARIES PAGES (2 components × 2 files)
+████████████████████████████████████████████████████
+✓ src/pages/lpsm/DirectorOfLibraries/DocumentUpload.jsx
+✓ src/pages/lpsm/DirectorOfLibraries/DocumentUpload.module.scss
+✓ src/pages/lpsm/DirectorOfLibraries/ReviewPanel.jsx
+✓ src/pages/lpsm/DirectorOfLibraries/ReviewPanel.module.scss
+
+INDUSTRY CONSULTANT PAGES (1 component × 2 files)
+██████████████████████████████████████████████████
+✓ src/pages/lpsm/IndustryConsultant/ReviewPanel.jsx
+✓ src/pages/lpsm/IndustryConsultant/ReviewPanel.module.scss
+
+DEAN PAGES (1 component × 2 files)
+███████████████████████████████████
+✓ src/pages/lpsm/Dean/ApprovalPanel.jsx
+✓ src/pages/lpsm/Dean/ApprovalPanel.module.scss
+
+SHARED COMPONENTS (1 component × 2 files)
+███████████████████████████████████████████
+✓ src/pages/lpsm/Shared/StatusTracker.jsx
+✓ src/pages/lpsm/Shared/StatusTracker.module.scss
+
+═══════════════════════════════════════════════════════════════════════════════
+MODIFIED FILES
+═══════════════════════════════════════════════════════════════════════════════
+
+✓ src/App.jsx (added LPSM imports + 10 new routes)
+
+═══════════════════════════════════════════════════════════════════════════════
+DOCKER & INFRASTRUCTURE
+═══════════════════════════════════════════════════════════════════════════════
+
+✓ docker-compose.lpsm.yml (MySQL + Backend service orchestration)
+
+═══════════════════════════════════════════════════════════════════════════════
+DOCUMENTATION
+═══════════════════════════════════════════════════════════════════════════════
+
+✓ LPSM_SETUP.md (Full setup guide - 13KB, comprehensive)
+✓ LPSM_QUICK_START.txt (Quick reference - 3KB, fast)
+✓ LPSM_IMPLEMENTATION_SUMMARY.md (Architecture overview - 20KB)
+✓ LPSM_FILES_CHECKLIST.txt (This file - 4KB)
+
+═══════════════════════════════════════════════════════════════════════════════
+VERIFICATION CHECKLIST
+═══════════════════════════════════════════════════════════════════════════════
+
+Backend Setup
+─────────────
+[ ] npm install in backend/lpsm/
+[ ] .env.example exists
+[ ] All 6 models present
+[ ] All 5 migrations present
+[ ] All 2 seeders present
+[ ] Controllers and routes exist
+[ ] Dockerfile can build
+
+Frontend Setup
+──────────────
+[ ] learningPlanService.js exists
+[ ] All 9 page components exist
+[ ] All 9 SCSS modules exist
+[ ] All components import correctly
+[ ] App.jsx routes added
+[ ] No import errors
+
+Database
+────────
+[ ] docker-compose.lpsm.yml can start
+[ ] MySQL port 3308 accessible
+[ ] Migrations auto-run
+[ ] Seeders populate 6 users + 3 plans
+[ ] Backend connects successfully
+
+Feature Validation
+──────────────────
+[ ] Instructor can view/create/edit/submit plans
+[ ] Program Head can upload documents
+[ ] Director of Libraries can upload references
+[ ] Industry Consultant can submit reviews
+[ ] Program Head can approve/return
+[ ] Dean can approve/return
+[ ] Dean comments don't reach Instructor
+[ ] Parallel reviews work (IC + Director simultaneous)
+[ ] Workflow advances correctly after each stage
+[ ] Status tracker shows correct stage
+
+UI/UX
+─────
+[ ] All pages responsive (mobile/tablet/desktop)
+[ ] SASS modules properly scoped
+[ ] No inline styles
+[ ] Status badges color-coded
+[ ] Forms have proper validation
+[ ] Error messages display
+[ ] Loading states work
+[ ] Workflow visualization clear
+
+API Validation
+──────────────
+[ ] POST /api/learning-plans works
+[ ] GET /api/learning-plans works
+[ ] POST /api/learning-plans/:id/documents works
+[ ] DELETE /api/learning-plans/:id/documents/:id works
+[ ] POST /api/learning-plans/:id/submit works
+[ ] POST /api/learning-plans/:id/review works
+[ ] POST /api/learning-plans/:id/approve works
+[ ] Role-based access control enforced
+[ ] Headers validation works
+
+═══════════════════════════════════════════════════════════════════════════════
+QUICK START COMMANDS
+═══════════════════════════════════════════════════════════════════════════════
+
+Backend:
+  $ cd backend/lpsm
+  $ npm install
+
+Database & Services:
+  $ cd ../..
+  $ docker-compose -f docker-compose.lpsm.yml up --build
+
+Frontend:
+  $ npm run dev
+
+Test:
+  Open http://localhost:5173/lpsm/instructor
+
+═══════════════════════════════════════════════════════════════════════════════
+KEY FEATURES IMPLEMENTED
+═══════════════════════════════════════════════════════════════════════════════
+
+✓ Role-Based Access Control (5 roles)
+✓ Document Upload & Validation (per role)
+✓ Parallel Review Workflow (IC + Director simultaneous)
+✓ Sequential Approval (Program Head → Dean)
+✓ Dean Comment Relay (to Program Head only)
+✓ Workflow State Management (localStorage + database)
+✓ Status Visualization (StatusTracker component)
+✓ File Upload with Multipart/FormData
+✓ RESTful API with 8 endpoints
+✓ Sequelize ORM with migrations & seeders
+✓ MySQL in Docker
+✓ SASS Module Styling (responsive)
+✓ Role-Based UI Restrictions
+✓ Form Validation & Error Handling
+✓ API Response Filtering (strip dean comments from instructor)
+
+═══════════════════════════════════════════════════════════════════════════════
+TOTAL FILE COUNT
+═══════════════════════════════════════════════════════════════════════════════
+
+Backend Files:     24
+Frontend Files:    18
+Documentation:      4
+Infrastructure:     1
+Modified Files:     1
+───────────────────────
+TOTAL:             48 files created/modified
+
+Code Statistics:
+  Backend Controllers:     ~350 lines of logic
+  Frontend Components:     ~3000 lines of React
+  Database Schemas:        5 tables with relationships
+  API Endpoints:           8 RESTful endpoints
+  Frontend Routes:         10 LPSM-specific routes
+
+═══════════════════════════════════════════════════════════════════════════════

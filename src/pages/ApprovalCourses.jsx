@@ -30,7 +30,17 @@ const ApprovalCourses = ({ isEmbedded = false, roleOverride = null }) => {
       'hr-staff': 'HR Staff'
     }
 
+    const roleDisplayNames = {
+      'program-head': 'DANILA, JUNAR',
+      'director-of-libraries': 'SANTOS, MARIA',
+      'industry-consultant': 'CRUZ, ROBERTO',
+      'dean': 'REYES, AGNES',
+      'instructor': 'CASIMERO, DANNY',
+      'hr-staff': 'DELA CRUZ, ANA'
+    }
+
     const displayRole = role ? (roleNames[role] || role.split('-').map(w => w[0].toUpperCase() + w.slice(1)).join(' ')) : 'Approver';
+    const displayName = role ? (roleDisplayNames[role] || 'CASIMERO, DANNY') : 'Approver';
 
     const content = <ApprovalCoursesTable role={role} />;
 
@@ -42,7 +52,7 @@ const ApprovalCourses = ({ isEmbedded = false, roleOverride = null }) => {
     // Otherwise, wrap with full layout
     return (
         <Skeleton
-            header={<Header role={displayRole} name="DANILA, JUN ARREB" />}
+            header={<Header role={displayRole} name={displayName} />}
             content={content}
             nav={<SideNavigation mode={approver || 'program-head'} />}
         />

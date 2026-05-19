@@ -1,8 +1,10 @@
-import {useState} from 'react';
+import {useState, useMemo} from 'react';
+import React from 'react';
 import {Link} from 'react-router-dom'
 import styles from '../styles/CoursesTable.module.sass';
 import { ChevronRight, Edit, CheckCircle, Clock, XCircle, Download } from 'react-feather';
 import { syllabiData } from '../data/syllabiData';
+import { getWorkflow } from '../utils/workflowHelpers';
 
 const CoursesTable = ({}) => {
 
@@ -15,24 +17,135 @@ const CoursesTable = ({}) => {
         yearOptions.push(<option key={i} value={i}>{i}</option>);
     }
 
-    const Courses = [
-        { code: 'BSCS313L', name: 'Human & Computer Interaction', update: 'Aug 01, 2025', status: 'DRAFT', approved: '' },
-        { code: 'BSCS212L', name: 'Web Development I', update: 'Sept 15, 2025', status: 'DRAFT', approved: '' },
-        { code: 'BSCS111L', name: 'Fundamentals of Programming', update: 'Aug 05, 2025', status: 'DRAFT', approved: '' },
-        { code: 'BSCS313L', name: 'Human & Computer Interaction', update: 'Sept 20, 2025', status: 'PPR', approved: '' },
-        { code: 'BSCS315L', name: 'Operating Systems', update: 'Oct 02, 2025', status: 'APPROVED', approved: 'Oct 10, 2025' },
-        { code: 'BSCS321L', name: 'Database Management Systems', update: 'Oct 05, 2025', status: 'DRAFT', approved: '' },
-        { code: 'BSCS322L', name: 'Software Engineering', update: 'Oct 12, 2025', status: 'AAAP', approved: '' },
-        { code: 'BSCS331L', name: 'Computer Networks', update: 'Oct 18, 2025', status: 'APPROVED', approved: 'Oct 25, 2025' },
-        { code: 'BSCS341L', name: 'Artificial Intelligence', update: 'Nov 01, 2025', status: 'DRAFT', approved: '' },
-        { code: 'BSCS351L', name: 'Cybersecurity Fundamentals', update: 'Nov 10, 2025', status: 'PAR', approved: '' },
-    ];
+    const fmt = (iso) => {
+        if (!iso) return ''
+        return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' })
+    }
 
+    const baseCourses = syllabiData.map(s => ({
+        code: s.code,
+        name: s.name,
+        lastUpdated: s.update || 'TBA',
+        program: 'Computer Science',
+        docsUploaded: 3,
+        docsTotal: 3,
+    }));
 
+    // Derive status from workflow
+    const getDerivedStatus = (code) => {
+        const wf = getWorkflow(code)
+        const stage = wf.currentStage || 'submitted'
+        if (stage === 'approved') return 'APPROVED'
+        if (stage === 'returned') return 'RETURNED'
+        if (stage === 'submitted') return 'DRAFT'
+        return 'PENDING' // parallel_review, program_head, dean
+    }
 
+    const getSubmittedDate = (code) => {
+        const wf = getWorkflow(code)
+        return fmt(wf.submittedAt)
+    }
+
+    const getApprovedDate = (code) => {
+        const wf = getWorkflow(code)
+        return fmt(wf.dean?.completedAt)
+    }
+
+    const getReviewerStatuses = (code) => {
+        const wf = getWorkflow(code)
+        const stage = wf.currentStage || 'submitted'
+
+        const stageOrder = ['submitted', 'parallel_review', 'program_head', 'dean', 'approved']
+        const stageIndex = stageOrder.indexOf(stage)
+        // For 'returned', only show statuses of reviewers who actually acted
+        const effectiveIndex = stageIndex
+
+        const reviewerStageMap = {
+            library_director: 'parallel_review',
+            industry_consultant: 'parallel_review',
+            programHead: 'program_head',
+            dean: 'dean',
+        }
+
+        const isReviewerReached = (reviewerKey) => {
+            const revStageIndex = stageOrder.indexOf(reviewerStageMap[reviewerKey])
+            return effectiveIndex >= revStageIndex
+        }
+
+        const checkStatus = (revStatus, reviewerKey) => {
+            if (revStatus === 'done') return 'A'
+            if (revStatus === 'returned') return 'R'
+            if (revStatus === 'pending' && isReviewerReached(reviewerKey)) return 'P'
+            return ''
+        }
+
+        const lib = checkStatus(wf.parallelReview?.library_director?.status, 'library_director')
+        const ic = checkStatus(wf.parallelReview?.industry_consultant?.status, 'industry_consultant')
+        const ph = checkStatus(wf.programHead?.status, 'programHead')
+        const dean = checkStatus(wf.dean?.status, 'dean')
+
+        return [lib, ic, ph, dean]
+    }
+
+    // Force re-render on interval
+    const [tick, setTick] = useState(0)
+    React.useEffect(() => {
+        const interval = setInterval(() => setTick(t => t + 1), 2000)
+        return () => clearInterval(interval)
+    }, [])
+
+    const Courses = useMemo(() => baseCourses.map(c => ({
+        ...c,
+        status: getDerivedStatus(c.code),
+        submittedDate: getSubmittedDate(c.code),
+        approved: getApprovedDate(c.code),
+    })), [tick])
 
     const [selectedStatus, setSelectedStatus] = useState('DRAFT');
     const handleStatusChange = (e) => {setSelectedStatus(e.target.value)}
+
+    const getStatusBadge = (text, type) => {
+        const styles_map = {
+            approved: { color: '#047857', background: '#ecfdf5', padding: '3px 10px', borderRadius: 99, fontWeight: 600, fontSize: 12 },
+            pending: { color: '#b45309', background: '#fffbeb', padding: '3px 10px', borderRadius: 99, fontWeight: 600, fontSize: 12 },
+            draft: { color: '#6b7280', background: '#f3f4f6', padding: '3px 10px', borderRadius: 99, fontWeight: 600, fontSize: 12 },
+            returned: { color: '#dc2626', background: '#fef2f2', padding: '3px 10px', borderRadius: 99, fontWeight: 600, fontSize: 12 },
+        }
+        return <span style={styles_map[type] || styles_map.draft}>{text}</span>
+    }
+
+    const getStatusText = (char) => {
+        if (char === 'A') return getStatusBadge('Approved', 'approved')
+        if (char === 'P') return getStatusBadge('Pending', 'pending')
+        if (char === 'R') return getStatusBadge('Returned', 'returned')
+        return <span style={{ color: '#d1d5db' }}>—</span>
+    }
+
+    const getDocumentStatusBadge = (uploaded, total) => {
+        let color, background;
+        if (uploaded === total) {
+            color = '#047857';
+            background = '#ecfdf5';
+        } else if (uploaded > 0) {
+            color = '#b45309';
+            background = '#fffbeb';
+        } else {
+            color = '#dc2626';
+            background = '#fef2f2';
+        }
+        return (
+            <span style={{ 
+                color, 
+                background, 
+                padding: '3px 10px', 
+                borderRadius: 99, 
+                fontWeight: 600, 
+                fontSize: 12 
+            }}>
+                {uploaded}/{total}
+            </span>
+        );
+    }
 
     const getSyllabusData = (courseCode) => {
         return {
@@ -507,10 +620,10 @@ const CoursesTable = ({}) => {
 
                 <div className={'filter-container'}>
                         <p>Filter by <strong>Status</strong>:</p>
-                    <select onChange={handleStatusChange} >
-                        <option value="DRAFT">Draft</option>
-                        <option value="PENDING">Pending</option>
-                        <option value="APPROVED">Approved</option>
+                    <select onChange={handleStatusChange} value={selectedStatus}>
+                        <option value="DRAFT">Draft ({Courses.filter(r => r.status === 'DRAFT').length})</option>
+                        <option value="PENDING">Pending ({Courses.filter(r => r.status === 'PENDING' || r.status === 'RETURNED').length})</option>
+                        <option value="APPROVED">Approved ({Courses.filter(r => r.status === 'APPROVED').length})</option>
                     </select>
                 </div>
             </div>
@@ -522,12 +635,10 @@ const CoursesTable = ({}) => {
                         <thead>
                         <tr>
                             <th width={150}>CODE</th>
-                            <th width={350}>COURSE NAME</th>
-                            {selectedStatus === 'DRAFT'
-                                ?<th width={200}>LAST UPDATED</th>
-                                :<th width={200}>DATE APPROVED</th>
-                            }
-                            <th width={120}>STATUS</th>
+                            <th width={300}>COURSE NAME</th>
+                            <th width={150}>PROGRAM</th>
+                            <th width={150}>LAST UPDATED</th>
+                            <th width={100}>STATUS</th>
                             {selectedStatus === 'APPROVED' && <th width={100}>EXPORT</th>}
                             <th className={styles.fill}></th>
                         </tr>
@@ -539,13 +650,12 @@ const CoursesTable = ({}) => {
                             .map((row, index) => (
                                 <tr key={index}>
                                     <td width={150}>{row.code}</td>
-                                    <td width={350}>{row.name}</td>
-
-                                    {selectedStatus === 'DRAFT'
-                                        ? <td width={200}>{row.update}</td>
-                                        : <td width={200}>{row.approved}</td>}
-
-                                    <td width={120}>{row.status}</td>
+                                    <td width={300}>{row.name}</td>
+                                    <td width={150}>{row.program}</td>
+                                    <td width={150}>{row.lastUpdated}</td>
+                                    <td width={100}>
+                                        {selectedStatus === 'DRAFT' ? getStatusBadge('Draft', 'draft') : getStatusBadge('Approved', 'approved')}
+                                    </td>
                                     {selectedStatus === 'APPROVED' && (
                                         <td width={100}>
                                             <button 
@@ -558,7 +668,14 @@ const CoursesTable = ({}) => {
                                         </td>
                                     )}
                                     <td className={styles.fill}>
-                                        <Link className={'actionLink'} to={selectedStatus === 'APPROVED' ? `/role/instructor/courses/${row.code}?status=approved` : `/courses/${row.code}`}>
+                                        <Link className={'actionLink'} to={selectedStatus === 'APPROVED' ? `/role/instructor/courses/${encodeURIComponent(row.code)}?status=approved` : `/courses/${encodeURIComponent(row.code)}`}
+                                            state={{ from: '/' }}
+                                            style={{
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '6px'
+                                            }}
+                                        >
                                             {row.status === 'DRAFT' ? 'Compose' : 'View'}
                                             <ChevronRight size={18} />
                                         </Link>
@@ -566,28 +683,34 @@ const CoursesTable = ({}) => {
                                     </td>
                                 </tr>
                             ))}
+                        {Courses.filter(row => row.status === selectedStatus).length === 0 && (
+                            <tr><td colSpan={selectedStatus === 'APPROVED' ? 7 : 6} style={{ textAlign: 'center', padding: 30, color: '#9ca3af' }}>
+                                {selectedStatus === 'DRAFT' ? 'No draft courses' : 'No approved courses yet'}
+                            </td></tr>
+                        )}
                         </tbody>
                     </table>
                 }
-                {(selectedStatus !== 'DRAFT' &&
-                        selectedStatus !== 'APPROVED') &&
+                {selectedStatus === 'PENDING' &&
                     <table>
                         <thead>
                             <tr>
                                 <th width={150}>CODE</th>
-                                <th width={300}>COURSE NAME</th>
-                                <th width={160}>DATE SUBMITTED</th>
-                                <th className={styles.status} width={800}>STATUS</th>
+                                <th width={250}>COURSE NAME</th>
+                                <th width={120}>PROGRAM</th>
+                                <th width={140}>DATE SUBMITTED</th>
+                                <th className={styles.status} width={650}>STATUS</th>
                                 <th className={styles.fill}></th>
                             </tr>
                             <tr className={styles['sub-column']}>
                                 <th width={150}></th>
-                                <th width={300}></th>
-                                <th width={160}></th>
-                                <th style={{borderLeft: "5px solid white"}} className={styles.lighten} width={200}>Library Director</th>
-                                <th className={styles.lighten} width={200}>Industry Consultant</th>
-                                <th className={styles.lighten} width={200}>Program Head</th>
-                                <th style={{borderRight: "5px solid white"}} className={styles.lighten} width={200}>Dean</th>
+                                <th width={250}></th>
+                                <th width={120}></th>
+                                <th width={140}></th>
+                                <th style={{borderLeft: "5px solid white"}} className={styles.lighten} width={162.5}>Library Director</th>
+                                <th className={styles.lighten} width={162.5}>Industry Consultant</th>
+                                <th className={styles.lighten} width={162.5}>Program Head</th>
+                                <th style={{borderRight: "5px solid white"}} className={styles.lighten} width={162.5}>Dean</th>
                                 <th className={styles.fill}></th>
                             </tr>
                         </thead>
@@ -595,58 +718,46 @@ const CoursesTable = ({}) => {
 
                         <tbody>
                         {Courses
-                            .filter(row => row.status !== 'DRAFT' && row.status !== 'APPROVED')
+                            .filter(row => row.status === 'PENDING' || row.status === 'RETURNED')
                             .map((row, index) => {
-
-                                // 1. Split status string into array (e.g. "PPR" -> ['P','P','R'])
-                                const s = row.status.split('');
-
-                                // 2. Check for 'R' to determine Action
-                                const isReturned = row.status.includes('R');
-
-                                // 3. Helper to map Char to Text
-                                const getStatusText = (char) => {
-                                    if (char === 'A') return 'Approved';
-                                    if (char === 'P') return 'Pending';
-                                    if (char === 'R') return 'Returned';
-                                    return ''; // Returns empty if char (index 3) doesn't exist
-                                };
+                                const s = getReviewerStatuses(row.code)
 
                                 return (
                                     <tr key={index}>
                                         <td width={150}>{row.code}</td>
-                                        <td width={300}>{row.name}</td>
-                                        <td width={160}>{row.update}</td>
+                                        <td width={250}>{row.name}</td>
+                                        <td width={120}>{row.program}</td>
+                                        <td width={140}>{row.submittedDate}</td>
 
                                         {/* Library Director */}
-                                        <td className={styles.lighten} width={200}>
+                                        <td className={styles.lighten} width={162.5}>
                                             {getStatusText(s[0])}
                                         </td>
 
                                         {/* Industry Consultant */}
-                                        <td className={styles.lighten} width={200}>
+                                        <td className={styles.lighten} width={162.5}>
                                             {getStatusText(s[1])}
                                         </td>
 
                                         {/* Program Head */}
-                                        <td className={styles.lighten} width={200}>
+                                        <td className={styles.lighten} width={162.5}>
                                             {getStatusText(s[2])}
                                         </td>
 
-                                        {/* Dean (Only appears if string length > 3) */}
-                                        <td className={styles.lighten} width={200}>
+                                        {/* Dean */}
+                                        <td className={styles.lighten} width={162.5}>
                                             {getStatusText(s[3])}
                                         </td>
 
                                         {/* Action Column */}
                                         <td className={styles.fill}>
-                                            {isReturned ? (
-                                                <Link className={'actionLink'} to={`/revisions/${row.code}`}>
+                                            {row.status === 'RETURNED' ? (
+                                                <Link className={'actionLink'} to={`/revisions/${encodeURIComponent(row.code)}`} state={{ from: '/' }}>
                                                     Update
-                                                    <Edit size={18} />
+                                                    <ChevronRight size={18} />
                                                 </Link>
                                             ) : (
-                                                <Link className={'actionLink'} to={`/role/instructor/courses/${row.code}`}>
+                                                <Link className={'actionLink'} to={`/role/instructor/courses/${encodeURIComponent(row.code)}`} state={{ from: '/' }}>
                                                     View
                                                     <ChevronRight size={18} />
                                                 </Link>
@@ -655,6 +766,9 @@ const CoursesTable = ({}) => {
                                     </tr>
                                 )
                             })}
+                        {Courses.filter(row => row.status === 'PENDING' || row.status === 'RETURNED').length === 0 && (
+                            <tr><td colSpan={9} style={{ textAlign: 'center', padding: 30, color: '#9ca3af' }}>No pending courses</td></tr>
+                        )}
                         </tbody>
                     </table>
 

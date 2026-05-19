@@ -37,14 +37,22 @@
 select option
   font-size: 12px
 
-::-webkit-scrollbar
-  display: none
-
 .table-container
   width: 100%
   max-width: 100%
   display: flex
   overflow: auto
+
+  &::-webkit-scrollbar
+    display: block
+    height: 8px
+    
+  &::-webkit-scrollbar-track
+    background: transparent
+    
+  &::-webkit-scrollbar-thumb
+    background: #cbd5e1
+    border-radius: 4px
 
 .status
   justify-content: center
@@ -63,6 +71,10 @@ select option
   gap: 5px
   min-width: 200px
   font-weight: 500 !important
+  position: sticky
+  right: 0
+  z-index: 2
+  background: inherit
 
 
 .sub-column th

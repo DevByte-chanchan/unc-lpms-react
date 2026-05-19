@@ -109,7 +109,11 @@ const SideNavigation = ({ mode = 'instructor' }) => {
                             if (mode === 'program-head') {
                                 navigate('/role/program-head/approval-course-table?page=Syllabus')
                             } else if (mode === 'dean') {
-                                handlePageChange('Syllabus')
+                                navigate('/role/dean?page=Syllabus')
+                            } else if (mode === 'director-of-libraries') {
+                                navigate('/role/director-of-libraries/approval-course-table?page=Syllabus')
+                            } else if (mode === 'industry-consultant') {
+                                navigate('/role/industry-consultant/approval-course-table?page=Syllabus')
                             } else {
                                 handlePageChange('Syllabus')
                             }

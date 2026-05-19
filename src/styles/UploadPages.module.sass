@@ -1,0 +1,136 @@
+.pageGrid
+  display: grid
+  gap: 16px
+
+.subtleText
+  margin: 0
+  color: #6b7280
+  font-size: 14px
+
+.sectionLabel
+  margin: 0
+  font-size: 14px
+  font-weight: 700
+  color: #111827
+
+.bottomActions
+  display: flex
+  flex-wrap: wrap
+  justify-content: space-between
+  gap: 12px
+  margin-top: 10px
+
+.btnPrimary
+  background: black
+  color: white
+  border: none
+  border-radius: 8px
+  padding: 12px 20px
+  font-size: 14px
+  font-weight: 600
+  cursor: pointer
+
+.btnPrimary:hover:not(:disabled)
+  background: #1f2937
+
+.btnPrimary:disabled
+  opacity: 0.55
+  cursor: not-allowed
+
+.btnOutline
+  background: transparent
+  color: black
+  border: 1px solid #d1d5db
+  border-radius: 8px
+  padding: 12px 20px
+  font-size: 14px
+  font-weight: 500
+  cursor: pointer
+
+.btnOutline:hover
+  background: #f3f4f6
+
+.table
+  width: 100%
+  border-collapse: collapse
+
+.table th,
+.table td
+  padding: 12px 10px
+  text-align: left
+  font-size: 14px
+  color: #111827
+  vertical-align: middle
+
+.table th
+  font-weight: 600
+  border-bottom: 1px solid #e5e7eb
+
+.table tbody tr
+  border-bottom: 1px dashed #e5e7eb
+
+.table tbody tr:last-child
+  border-bottom: none
+
+.tableAction
+  background: transparent
+  border: none
+  color: black
+  cursor: pointer
+  font-size: 13px
+  font-weight: 600
+  padding: 0
+
+.tableAction:hover
+  text-decoration: underline
+
+.emptyState
+  margin: 0
+  color: #6b7280
+  font-size: 13px
+  font-style: italic
+
+.searchRow
+  display: flex
+  align-items: center
+  justify-content: space-between
+  gap: 12px
+  flex-wrap: wrap
+
+.searchInput,
+.filterSelect
+  background: white
+  border: 1px solid #d1d5db
+  border-radius: 8px
+  padding: 10px 14px
+  font-size: 14px
+  color: #111827
+  min-width: 250px
+
+.filterSelect
+  min-width: 220px
+
+.pill
+  display: inline-flex
+  align-items: center
+  justify-content: center
+  border-radius: 999px
+  padding: 4px 10px
+  font-size: 12px
+  font-weight: 700
+
+.pillApproved
+  background: #dcfce7
+  color: #166534
+
+.pillReview
+  background: #ffedd5
+  color: #9a3412
+
+.pillRejected
+  background: #fef2f2
+  color: #dc2626
+
+.pillRejected
+  background: #fee2e2
+  color: #991b1b

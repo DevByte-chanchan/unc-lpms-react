@@ -17,10 +17,10 @@ const roleNames = {
 }
 
 const approverDisplayNames = {
-  'program-head': 'Dr. Smith',
-  'dean': 'Dean Johnson',
-  'industry-consultant': 'Consultant Lee',
-  'director-of-libraries': 'Director Brown'
+  'program-head': 'DANILA, JUNAR',
+  'dean': 'REYES, AGNES',
+  'industry-consultant': 'CRUZ, ROBERTO',
+  'director-of-libraries': 'SANTOS, MARIA'
 }
 
 const ApprovalSyllabus = () => {
@@ -28,7 +28,7 @@ const ApprovalSyllabus = () => {
 
   const formattedRole = approver ? (roleNames[approver] || approver.split('-').map(w => w[0].toUpperCase() + w.slice(1)).join(' ')) : 'Approver';
   const storedUser = JSON.parse(localStorage.getItem('user') || 'null');
-  const approverName = storedUser?.name || (approver ? (approverDisplayNames[approver] || 'NORTON, MONICA') : 'Approver');
+  const approverName = approver ? (approverDisplayNames[approver] || storedUser?.name || 'CASIMERO, DANNY') : (storedUser?.name || 'Approver');
 
   // normalized role key (pass to SideNavigation and sections)
   const roleKey = approver || 'program-head';
@@ -41,7 +41,7 @@ const ApprovalSyllabus = () => {
   return (
     <Skeleton
       header={<Header role={formattedRole} name={approverName} />}
-      content={<div><WorkflowStepper courseCode={decodedCourse} workflow={workflow} /><ApprovalSyllabusSections currentRole={roleKey} courseCode={decodedCourse} workflow={workflow} /></div>}
+      content={<div style={{display:'flex',flexDirection:'column',height:'100%',minHeight:0}}>{roleKey !== 'director-of-libraries' && roleKey !== 'industry-consultant' && <WorkflowStepper courseCode={decodedCourse} />}<div style={{flex:1,minHeight:0}}><ApprovalSyllabusSections currentRole={roleKey} courseCode={decodedCourse} /></div></div>}
       nav={<SideNavigation mode={roleKey} />}
     />
   );

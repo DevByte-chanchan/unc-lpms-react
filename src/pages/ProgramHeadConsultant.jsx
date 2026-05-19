@@ -49,7 +49,7 @@ const ProgramHeadConsultant = () => {
 
   return (
     <Skeleton
-      header={<Header role="Program Head" name="DANILA, JUNE ARREB C." />}
+      header={<Header role="Program Head" name="DANILA, JUNAR" />}
       nav={<SideNavigation mode="program-head" />}
       content={
         <div style={{ padding: 20, background: '#FFFFFF' }}>

@@ -1,22 +1,165 @@
 
 import styles from '../styles/SyllabusSections.module.sass'
-import {ChevronLeft, ChevronRight, Plus, Search, Inbox} from 'react-feather';
+import {ChevronLeft, ChevronRight, Plus, Search, Inbox, MessageCircle, X, ExternalLink, Book} from 'react-feather';
 import { Info } from 'react-feather';
 import React, {useEffect, useState} from "react";
 import TextField from "./TextField.jsx";
 import TextArea from "./TextArea.jsx";
 import {Link, useNavigate, useParams, useSearchParams} from "react-router-dom";
 import {getSyllabusByCode} from "../data/syllabiData.js";
+import {getWorkflow, setWorkflow} from "../utils/workflowHelpers.js";
+import { getReferences, getReferenceById } from '../utils/referenceLibrary';
 import TOSPreview from "../pages/TosPreview.jsx";
+import LibraryDirectorSuggestions from "./LibraryDirectorSuggestions.jsx";
+import { getSuggestions, acceptSuggestion, rejectSuggestion } from '../utils/dataStore.js'
 import SyllabusPreview from "./SyllabusPreview.jsx";
 
-const syllabusSections = ({status}) => {
+
+
+const SyllabusSections = ({status}) => {
+
+    // MUST: Get route params first before any hooks that use code
+    const { code } = useParams();
+    const navigate = useNavigate();
 
     const [searchParams, setSearchParams] = useSearchParams();
     const selectedSection = searchParams.get('section') || 'Course Details';
 
+    // Workflow state (lazy-init from localStorage to avoid flash)
+    const [workflow, setWorkflowState] = useState(() => code ? getWorkflow(code) : null);
+
     // NEW: Loading State
     const [isLoading, setIsLoading] = useState(false);
+
+    const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+    const [toast, setToast] = useState(null);
+
+    const showToast = (msg, type = 'success') => {
+        setToast({ msg, type })
+        setTimeout(() => setToast(null), 3000)
+    }
+
+    const handleSaveDraft = () => {
+        const existing = getWorkflow(code)
+        const stage = existing?.currentStage
+        if (!stage || stage === 'submitted') {
+            const wf = existing
+                ? { ...existing, currentStage: 'submitted' }
+                : {
+                    courseCode: code,
+                    currentStage: 'submitted',
+                    parallelReview: { library_director: { status: 'pending', completedAt: null }, industry_consultant: { status: 'pending', completedAt: null } },
+                    programHead: { status: 'pending', completedAt: null },
+                    dean: { status: 'pending', completedAt: null }
+                  }
+            setWorkflow(code, wf)
+            setWorkflowState(getWorkflow(code))
+            showToast('Saved as draft!')
+        } else {
+            setWorkflow(code, existing)
+            setWorkflowState(getWorkflow(code))
+            showToast('Progress saved!')
+        }
+    }
+
+    const handleSubmitConfirm = () => {
+        const existing = getWorkflow(code)
+        const stage = existing?.currentStage
+
+        if (stage && stage !== 'submitted' && stage !== 'returned') {
+            showToast('Cannot submit at this stage.', 'warning')
+            return
+        }
+
+        const wf = existing
+            ? {
+                ...existing,
+                currentStage: 'parallel_review',
+                submittedAt: existing.submittedAt || new Date().toISOString(),
+                parallelReview: {
+                    library_director: { status: 'pending', completedAt: null },
+                    industry_consultant: { status: 'pending', completedAt: null }
+                },
+                programHead: existing.programHead?.status === 'done' ? existing.programHead : { status: 'pending', completedAt: null },
+                dean: existing.dean?.status === 'done' ? existing.dean : { status: 'pending', completedAt: null }
+              }
+            : {
+                courseCode: code,
+                currentStage: 'parallel_review',
+                submittedAt: new Date().toISOString(),
+                parallelReview: { library_director: { status: 'pending', completedAt: null }, industry_consultant: { status: 'pending', completedAt: null } },
+                programHead: { status: 'pending', completedAt: null },
+                dean: { status: 'pending', completedAt: null }
+              }
+        setWorkflow(code, wf)
+        setWorkflowState(getWorkflow(code))
+        setIsPreviewOpen(false)
+        showToast('Syllabus submitted for review!')
+        setTimeout(() => navigate('/'), 800)
+    }
+
+    // Reference search and filter state
+    const [refSearchTerm, setRefSearchTerm] = useState('');
+    const [refFilterType, setRefFilterType] = useState('');
+    const [refDeleteKey, setRefDeleteKey] = useState(0);
+
+    // Suggestion state
+    const [suggestions, setSuggestions] = useState([]);
+    const [suggestionRefreshKey, setSuggestionRefreshKey] = useState(0);
+
+    // Get syllabus data
+    const syllabus = getSyllabusByCode(code);
+
+    // Filtered references
+    const filteredReferences = React.useMemo(() => {
+        const refs = syllabus?.references || [];
+        let result = refs;
+        if (refFilterType) {
+            result = result.filter(r => r.type === refFilterType);
+        }
+        if (refSearchTerm) {
+            const term = refSearchTerm.toLowerCase();
+            result = result.filter(r =>
+                (r.title || '').toLowerCase().includes(term) ||
+                (r.authors || '').toLowerCase().includes(term) ||
+                (r.id || '').toLowerCase().includes(term)
+            );
+        }
+        return result;
+    }, [syllabus, refSearchTerm, refFilterType, refDeleteKey]);
+
+    // Reference library enrichment + actions
+    const [viewRef, setViewRef] = useState(null);
+    const [deleteConfirmRef, setDeleteConfirmRef] = useState(null);
+    const CURRENT_YEAR = new Date().getFullYear();
+    const isDeprecated = (ref) => {
+        if (!ref.year) return false;
+        const y = typeof ref.year === 'string' ? parseInt(ref.year) : ref.year;
+        return !isNaN(y) && CURRENT_YEAR - y >= 5;
+    };
+    const hasIssues = (ref) => ref.hasIssue === true;
+
+    // COURSE AND PROGRAM OUTCOME ALIGNMENT
+    const courseOutcomes = (syllabus && syllabus.courseOutcomes) || [];
+
+    const programOutcomes = ['PO1', 'PO2', 'PO3', 'PO4', 'PO5', 'PO6', 'PO7', 'PO8', 'PO9'];
+
+    const CriteriaForm = React.lazy(() => import('../pages/CriteriaForGradingForm.jsx'));
+
+    const handleSectionChange = (e) => {
+        setSearchParams({ section: e.target.value })
+    }
+
+    const handleAcceptSuggestion = (id) => {
+        acceptSuggestion(id);
+        setSuggestionRefreshKey(k => k + 1);
+        setRefDeleteKey(k => k + 1);
+    };
+
+    const handleRejectSuggestion = (id) => {
+        rejectSuggestion(id);
+        setSuggestionRefreshKey(k => k + 1);
+    };
 
     // NEW: Effect to trigger loading whenever selectedSection changes
     useEffect(() => {
@@ -29,46 +172,29 @@ const syllabusSections = ({status}) => {
         return () => clearTimeout(timer);
     }, [selectedSection]);
 
-    const handleSectionChange = (e) => {
-        setSearchParams({ section: e.target.value })
+    // Load workflow status
+    useEffect(() => {
+        if (code) {
+            const wf = getWorkflow(code);
+            setWorkflowState(wf);
+        }
+    }, [code]);
 
-    }
+    // Load suggestions from approval flow
+    useEffect(() => {
+        if (code) {
+            setSuggestions(getSuggestions(code))
+        }
+    }, [code, suggestionRefreshKey]);
 
-    // COURSE AND PROGRAM OUTCOME ALIGNMENT
-    const courseOutcomes = [
-        {
-            id: 'CO1',
-            description: 'Apply core concepts, theories, and principles of Human-Computer Interface (HCI) in proposing a User Interface (UI) design using Figma to translate a design brief into interactive screen layouts and UI components with a high-fidelity prototype demonstrating clarity, consistency, and appropriate use of visual hierarchy.',
-            // Mappings for columns 1-9
-            poMappings: ['E', '', 'I', '', '', 'E', '', '', 'I']
-        },
-        {
-            id: 'CO2',
-            description: 'User-Centered Design (UCD) principles and ISO 9241-210 standards with given user personas, contextual task flows, and feedback artifacts to develop a User Experience (UX) design that demonstrates user involvement, iterative refinement, and contextual understanding, as evaluated against established UX design criteria.',
-            poMappings: ['', 'E', '', '', '', 'E', '', 'I', '']
-        },
-        {
-            id: 'CO3',
-            description: 'Construct a front-end prototype for a proposed software application by applying HCI design principles, UI/UX laws, accessibility standards, and web accessibility guidelines that demonstrate compliance with best practices in usability, inclusivity, and user engagement.',
-            poMappings: ['', '', 'D', '', 'D', '', 'I', '', '']
-        },
-        {
-            id: 'CO4',
-            description: 'Justify the front-end prototype of a proposed software application based on usability testing results and user feedback by providing evidence-based rationale that addresses at least 80% of identified usability issues and aligns with user experience goals.',
-            poMappings: ['D', '', '', 'E', '', '', '', 'I', '']
-        },
-    ];
-
-    const programOutcomes = ['PO1', 'PO2', 'PO3', 'PO4', 'PO5', 'PO6', 'PO7', 'PO8', 'PO9'];
-
-    const CriteriaForm = React.lazy(() => import('../pages/CriteriaForGradingForm.jsx'));
-
-    const { code } = useParams();
-    const syllabus = getSyllabusByCode(code);
-
-    const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+    // Debug logging
+    useEffect(() => {
+        console.log('SyllabusSections - Code:', code);
+        console.log('SyllabusSections - Syllabus:', syllabus);
+    }, [code, syllabus]);
 
     const getTopicByTlaName = (tlaName) => {
+        if (!syllabus || !syllabus.topics) return "—";
         for (const topic of syllabus.topics) {
             const found = topic.tlas.find(tla => tla.tlaName === tlaName);
             if (found) return topic.title;
@@ -77,6 +203,7 @@ const syllabusSections = ({status}) => {
     };
 
     const getCoIloByTlaName = (tlaName) => {
+        if (!syllabus || !syllabus.topics || !syllabus.ilos) return "—";
         const topic = syllabus.topics
             .find(t => t.tlas.some(tla => tla.tlaName === tlaName));
 
@@ -87,6 +214,18 @@ const syllabusSections = ({status}) => {
 
         return ilo?.id || "—";
     };
+
+    // If no course code or syllabus not found, show loading/error state
+    if (!code || !syllabus) {
+        return (
+            <div className={styles.container} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
+                <div style={{ textAlign: 'center', color: '#9ca3af' }}>
+                    <p style={{ fontSize: '18px', marginBottom: '10px' }}>Loading course syllabus...</p>
+                    <p style={{ fontSize: '14px' }}>If this page doesn't load, please go back and try again.</p>
+                </div>
+            </div>
+        );
+    }
 
     return(
         <div className={styles.container}>
@@ -110,9 +249,9 @@ const syllabusSections = ({status}) => {
                     </select>
                 </div>
 
-                <div className={styles.draft}>Save as Draft</div>
+                <div onClick={handleSaveDraft} className={styles.draft}>{workflow?.currentStage && workflow?.currentStage !== 'submitted' ? 'Save' : 'Save as Draft'}</div>
 
-                <div onClick={() => setIsPreviewOpen(true)} className={styles.submit}>Submit</div>
+                <div onClick={() => setIsPreviewOpen(true)} className={styles.submit}>{workflow?.currentStage === 'returned' ? 'Submit Revision' : 'Submit'}</div>
             </div>
 
             <div className={styles['dynamic-sections']}>
@@ -270,21 +409,55 @@ const syllabusSections = ({status}) => {
                         {selectedSection === 'References' &&
                             <section>
                                 <div className={styles['references-container']}>
-                                    {/* ... HeaderA stays the same ... */}
+                                    <LibraryDirectorSuggestions 
+                                        courseCode={code} 
+                                        onAddReferences={(selectedRefs) => {
+                                            if (!syllabus.references) syllabus.references = [];
+                                            selectedRefs.forEach(ref => {
+                                                if (!syllabus.references.find(r => r.id === ref.id)) {
+                                                    syllabus.references.push(ref);
+                                                }
+                                            });
+                                        }}
+                                    />
+
+                                    {suggestions.filter(s => s.status === 'pending').length > 0 && (
+                                        <div style={{ marginTop: 16, marginBottom: 16, padding: '16px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8 }}>
+                                            <h4 style={{ margin: '0 0 12px 0', fontSize: 15, fontWeight: 600, color: '#92400e' }}>
+                                                Pending Suggestions from Approval Review
+                                            </h4>
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                                                {suggestions.filter(s => s.status === 'pending').map(s => (
+                                                    <div key={s.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', background: 'white', borderRadius: 6, border: '1px solid #fde68a' }}>
+                                                        <div style={{ flex: 1 }}>
+                                                            <div style={{ fontWeight: 600, fontSize: 14, color: '#1f2937' }}>{s.reference.title}</div>
+                                                            <div style={{ fontSize: 13, color: '#6b7280' }}>{s.reference.authors} &middot; {s.reference.year || 'N/A'} &middot; Suggested by {s.suggestedBy} on {new Date(s.suggestedAt).toLocaleDateString()}</div>
+                                                        </div>
+                                                        <div style={{ display: 'flex', gap: 8, marginLeft: 16 }}>
+                                                            <button onClick={() => handleAcceptSuggestion(s.id)} style={{ padding: '6px 14px', background: '#047857', color: 'white', border: 'none', borderRadius: 4, fontSize: 13, fontWeight: 500, cursor: 'pointer' }}>Accept</button>
+                                                            <button onClick={() => handleRejectSuggestion(s.id)} style={{ padding: '6px 14px', background: '#ef4444', color: 'white', border: 'none', borderRadius: 4, fontSize: 13, fontWeight: 500, cursor: 'pointer' }}>Reject</button>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
                                     <div className={styles['references-header']}>
-                                        <div className={'search-container'}>
-                                            <div className={'search-bar'}>
+                                        <div className={'search-container'} style={{ flex: 1, maxWidth: 'none' }}>
+                                            <div className={'search-bar'} style={{ maxWidth: 'none', width: '100%' }}>
                                                 <Search size={18}/>
-                                                <input placeholder={"Search reference name"} type="text"/>
+                                                <input placeholder={"Search reference name"} type="text" value={refSearchTerm} onChange={(e) => setRefSearchTerm(e.target.value)}/>
                                             </div>
                                         </div>
 
                                         <div className={'filter-container'}>
                                             <p>Filter by <strong>Reference Type</strong>:</p>
-                                            <select name="" >
-                                                <option value="">Textbook</option>
-                                                <option value="">Open Educational Resources</option>
-                                                <option value="">Online Resources</option>
+                                            <select value={refFilterType} onChange={(e) => setRefFilterType(e.target.value)}>
+                                                <option value="">All Types</option>
+                                                <option value="Textbook">Textbook</option>
+                                                <option value="Open Educational Resources">Open Educational Resources</option>
+                                                <option value="Online Resources">Online Resources</option>
                                             </select>
                                         </div>
 
@@ -295,32 +468,61 @@ const syllabusSections = ({status}) => {
                                         </Link>
                                     </div>
 
-                                    <table>
+                                    <div style={{ overflow: 'auto', width: '100%' }}>
+                                    <table style={{ borderCollapse: 'collapse', width: 'max-content', minWidth: '100%' }}>
                                         <thead>
                                         <tr>
-                                            <th width={200}>REFERENCE ID</th>
-                                            <th width={400}>TITLE</th>
-                                            <th className={styles.fill} ></th>
+                                            <th style={{ width: 80, padding: '10px 12px', textAlign: 'left', borderBottom: '2px solid #e5e7eb', fontSize: 14, fontWeight: 600, color: '#000' }}>ID</th>
+                                            <th style={{ width: 340, padding: '10px 12px', textAlign: 'left', borderBottom: '2px solid #e5e7eb', fontSize: 14, fontWeight: 600, color: '#000' }}>TITLE</th>
+                                            <th style={{ width: 180, padding: '10px 12px', textAlign: 'left', borderBottom: '2px solid #e5e7eb', fontSize: 14, fontWeight: 600, color: '#000' }}>AUTHOR(S)</th>
+                                            <th style={{ width: 200, padding: '10px 12px', textAlign: 'left', borderBottom: '2px solid #e5e7eb', fontSize: 14, fontWeight: 600, color: '#000' }}>TYPE</th>
+                                            <th style={{ width: 80, padding: '10px 12px', textAlign: 'center', borderBottom: '2px solid #e5e7eb', fontSize: 14, fontWeight: 600, color: '#000' }}>YEAR</th>
+                                            <th style={{ width: 150, padding: '10px 12px', textAlign: 'center', borderBottom: '2px solid #e5e7eb', fontSize: 14, fontWeight: 600, color: '#000' }}>STATUS</th>
+                                            <th style={{ textAlign: 'right', padding: '10px 12px', borderBottom: '2px solid #e5e7eb', fontSize: 14, fontWeight: 600, color: '#000', whiteSpace: 'nowrap', flex: 1 }}>ACTIONS</th>
                                         </tr>
                                         </thead>
                                         <tbody>
-                                        {/* CHECK: Are there references? */}
-                                        {syllabus.references && syllabus.references.length > 0 ? (
-                                            syllabus.references.map((ref) => (
-                                                <tr key={ref.id}>
-                                                    <td width={200}>{ref.id}</td>
-                                                    <td width={400}>{ref.title}</td>
-                                                    <td className={styles.fill}>
-                                                        <Link className={'actionLink'} to={`/references/form/${code}/${ref.id}`}>
-                                                            Open <ChevronRight size={18} />
-                                                        </Link>
-                                                    </td>
-                                                </tr>
-                                            ))
+                                        {filteredReferences && filteredReferences.length > 0 ? (
+                                            filteredReferences.map((ref) => {
+                                                const refType = ref.type || '';
+                                                const prefix = refType === 'Textbook' ? 'TB' : refType === 'Online Resources' ? 'OR' : refType === 'Open Educational Resources' ? 'OE' : 'RF';
+                                                const refId = ref.id || `${prefix}${filteredReferences.indexOf(ref) + 1}`;
+                                                const tc = { bg: refType === 'Textbook' ? '#dcfce7' : refType === 'Open Educational Resources' ? '#e0f2fe' : '#f3e8ff', color: refType === 'Textbook' ? '#047857' : refType === 'Open Educational Resources' ? '#0284c7' : '#7c3aed' };
+                                                let statusLabel = 'Active';
+                                                let statusStyle = { bg: '#ecfdf5', color: '#047857' };
+                                                const libRef = getReferences().find(r => r.id === ref.id);
+                                                const enriched = libRef ? { ...ref, ...libRef } : ref;
+                                                if (hasIssues(enriched)) { statusLabel = 'Has Issue'; statusStyle = { bg: '#fef2f2', color: '#dc2626' }; }
+                                                else if (isDeprecated(enriched)) { statusLabel = 'Deprecated'; statusStyle = { bg: '#fef3c7', color: '#b45309' }; }
+                                                return (
+                                                    <tr key={ref.id || ref.title}>
+                                                        <td style={{ width: 80, padding: '10px 12px', borderBottom: '1px solid #e5e7eb', fontSize: 14, color: '#000' }}>{refId}</td>
+                                                        <td style={{ width: 340, padding: '10px 12px', borderBottom: '1px solid #e5e7eb', fontSize: 14, color: '#000', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ref.title}</td>
+                                                        <td style={{ width: 180, padding: '10px 12px', borderBottom: '1px solid #e5e7eb', fontSize: 14, color: '#000', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ref.authors || '—'}</td>
+                                                        <td style={{ width: 200, padding: '10px 12px', borderBottom: '1px solid #e5e7eb', fontSize: 14, color: '#000' }}>
+                                                            {ref.type ? (
+                                                                <span style={{ padding: '3px 10px', borderRadius: 99, fontSize: 12, fontWeight: 500, background: tc.bg, color: tc.color }}>{ref.type}</span>
+                                                            ) : '—'}
+                                                        </td>
+                                                        <td style={{ width: 80, padding: '10px 12px', borderBottom: '1px solid #e5e7eb', fontSize: 14, color: '#000', textAlign: 'center' }}>{ref.year || '—'}</td>
+                                                        <td style={{ width: 150, padding: '10px 12px', borderBottom: '1px solid #e5e7eb', fontSize: 14, color: '#000', textAlign: 'center' }}>
+                                                            <span style={{ fontSize: 12, fontWeight: 600, padding: '3px 10px', borderRadius: 99, background: statusStyle.bg, color: statusStyle.color }}>{statusLabel}</span>
+                                                        </td>
+                                                        <td style={{ flex: 1, padding: '10px 0 10px 12px', borderBottom: '1px solid #e5e7eb' }}>
+                                                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'flex-end' }}>
+                                                                <button onClick={() => setViewRef(enriched)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: 14, fontWeight: 500, color: '#111827', fontFamily: "'Poppins', sans-serif" }}>View</button>
+                                                                <span style={{ color: '#d1d5db', fontSize: 18 }}>·</span>
+                                                                <Link to={`/references/form/${code}/${ref.id}`} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: 14, fontWeight: 500, color: '#111827', textDecoration: 'none', fontFamily: "'Poppins', sans-serif" }}>Edit</Link>
+                                                                <span style={{ color: '#d1d5db', fontSize: 18 }}>·</span>
+                                                                <button onClick={() => setDeleteConfirmRef(ref)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: 14, fontWeight: 500, color: '#dc2626', fontFamily: "'Poppins', sans-serif" }}>Delete</button>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })
                                         ) : (
-                                            /* EMPTY STATE */
                                             <tr className={styles.emptyRow}>
-                                                <td colSpan={3}>
+                                                <td colSpan={6}>
                                                     <div className={styles.emptyStateContainer}>
                                                         <Inbox size={40} strokeWidth={1} />
                                                         <span>No references added yet.</span>
@@ -330,6 +532,7 @@ const syllabusSections = ({status}) => {
                                         )}
                                         </tbody>
                                     </table>
+                                    </div>
                                 </div>
                             </section>
                         }
@@ -508,8 +711,113 @@ const syllabusSections = ({status}) => {
                         <SyllabusPreview
                             isOpen={isPreviewOpen}
                             onClose={() => setIsPreviewOpen(false)}
+                            onSubmit={handleSubmitConfirm}
                         />
+
                     </>
+                )}
+
+                {/* ── VIEW REFERENCE MODAL (director style) ──────────────────── */}
+                {viewRef && (
+                    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(2px)' }} onClick={() => setViewRef(null)}>
+                        <div style={{ background: 'white', borderRadius: 16, width: 560, maxWidth: '90vw', maxHeight: '85vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.15)', fontFamily: "'Poppins', sans-serif" }} onClick={(e) => e.stopPropagation()}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '24px 28px 16px', borderBottom: '1px solid #f3f4f6' }}>
+                                <h2 style={{ margin: 0, fontSize: 18, fontWeight: 600, color: '#000' }}>REFERENCE DETAILS</h2>
+                                <button onClick={() => setViewRef(null)} style={{ background: 'none', border: 'none', fontSize: 20, color: '#9ca3af', cursor: 'pointer', padding: '4px 8px', borderRadius: 6 }}>✕</button>
+                            </div>
+                            <div style={{ padding: '20px 28px', display: 'flex', flexDirection: 'column', gap: 18 }}>
+                                {isDeprecated(viewRef) && (
+                                    <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8, padding: '12px 16px', fontSize: 13, color: '#b45309', fontWeight: 500, display: 'flex', alignItems: 'center', gap: 8 }}>
+                                        <span>⚠️</span> This reference is over 5 years old and may be outdated.
+                                    </div>
+                                )}
+                                {hasIssues(viewRef) && (
+                                    <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, padding: '12px 16px', fontSize: 13, color: '#dc2626', fontWeight: 500, display: 'flex', alignItems: 'center', gap: 8 }}>
+                                        <span>🚫</span> This reference has a reported issue and instructors cannot use it.
+                                    </div>
+                                )}
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                    <span style={{ fontSize: 11, fontWeight: 500, color: '#9ca3af', letterSpacing: '0.06em' }}>REFERENCE ID</span>
+                                    <span style={{ fontSize: 15, color: '#000' }}>{viewRef.id}</span>
+                                </div>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                    <span style={{ fontSize: 11, fontWeight: 500, color: '#9ca3af', letterSpacing: '0.06em' }}>TITLE</span>
+                                    <span style={{ fontSize: 15, color: '#000' }}>{viewRef.title}</span>
+                                </div>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                    <span style={{ fontSize: 11, fontWeight: 500, color: '#9ca3af', letterSpacing: '0.06em' }}>AUTHOR(S)</span>
+                                    <span style={{ fontSize: 15, color: '#000' }}>{viewRef.authors}</span>
+                                </div>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                        <span style={{ fontSize: 11, fontWeight: 500, color: '#9ca3af', letterSpacing: '0.06em' }}>TYPE</span>
+                                        <span style={{ fontSize: 15, color: '#000' }}>{viewRef.type || '—'}</span>
+                                    </div>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                        <span style={{ fontSize: 11, fontWeight: 500, color: '#9ca3af', letterSpacing: '0.06em' }}>YEAR</span>
+                                        <span style={{ fontSize: 15, color: '#000' }}>{viewRef.year || '—'}</span>
+                                    </div>
+                                </div>
+                                {viewRef.type === 'Textbook' && viewRef.isbn && (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                        <span style={{ fontSize: 11, fontWeight: 500, color: '#9ca3af', letterSpacing: '0.06em' }}>ISBN</span>
+                                        <span style={{ fontSize: 15, color: '#000' }}>{viewRef.isbn}</span>
+                                    </div>
+                                )}
+                                {viewRef.type !== 'Textbook' && viewRef.link && (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                        <span style={{ fontSize: 11, fontWeight: 500, color: '#9ca3af', letterSpacing: '0.06em' }}>LINK</span>
+                                        <a href={viewRef.link} target="_blank" rel="noopener noreferrer" style={{ fontSize: 15, color: '#00f', textDecoration: 'underline' }}>{viewRef.link}</a>
+                                    </div>
+                                )}
+                                {viewRef.publisher && (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                        <span style={{ fontSize: 11, fontWeight: 500, color: '#9ca3af', letterSpacing: '0.06em' }}>PUBLISHER</span>
+                                        <span style={{ fontSize: 15, color: '#000' }}>{viewRef.publisher}</span>
+                                    </div>
+                                )}
+                            </div>
+                            <div style={{ display: 'flex', gap: 10, padding: '16px 28px 24px', borderTop: '1px solid #f3f4f6', justifyContent: 'flex-end' }}>
+                                <button onClick={() => setViewRef(null)} style={{ padding: '10px 20px', background: 'transparent', color: '#000', border: '1px solid #A4A9AF', borderRadius: 20, fontSize: 14, fontWeight: 500, cursor: 'pointer', fontFamily: "'Poppins', sans-serif" }}>Close</button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* ── TOAST ──────────────────────────────────────────────────── */}
+                {toast && (
+                    <div style={{ position: 'fixed', bottom: 32, right: 32, zIndex: 1100, background: toast.type === 'warning' ? '#dc2626' : '#047857', color: 'white', padding: '14px 24px', borderRadius: 12, boxShadow: '0 8px 30px rgba(0,0,0,0.15)', fontFamily: "'Poppins', sans-serif", fontSize: 14, fontWeight: 500, display: 'flex', alignItems: 'center', gap: 10, animation: 'slideIn 0.3s ease' }}>
+                        {toast.type === 'warning' ? (
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></svg>
+                        ) : (
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><polyline points="16 8 10 16 7 13" /></svg>
+                        )}
+                        {toast.msg}
+                    </div>
+                )}
+
+                {/* ── DELETE CONFIRMATION MODAL ──────────────────────────────── */}
+                {deleteConfirmRef && (
+                    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000 }} onClick={() => setDeleteConfirmRef(null)}>
+                        <div style={{ background: 'white', borderRadius: 14, width: 420, maxWidth: '90vw', padding: 32, textAlign: 'center', boxShadow: '0 20px 60px rgba(0,0,0,0.15)', fontFamily: "'Poppins', sans-serif" }} onClick={(e) => e.stopPropagation()}>
+                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: 16 }}>
+                                <circle cx="12" cy="12" r="10" /><line x1="15" y1="9" x2="9" y2="15" /><line x1="9" y1="9" x2="15" y2="15" />
+                            </svg>
+                            <h3 style={{ fontSize: 18, fontWeight: 600, color: '#111827', margin: '0 0 10px' }}>Remove Reference</h3>
+                            <p style={{ fontSize: 14, color: '#6b7280', margin: '0 0 24px', lineHeight: 1.5 }}>
+                                Are you sure you want to remove <strong>"{deleteConfirmRef.title}"</strong> from this syllabus? This action cannot be undone.
+                            </p>
+                            <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
+                                <button onClick={() => setDeleteConfirmRef(null)} style={{ padding: '10px 24px', background: 'transparent', color: '#374151', border: '1px solid #d1d5db', borderRadius: 20, fontSize: 14, fontWeight: 500, cursor: 'pointer', fontFamily: "'Poppins', sans-serif" }}>Cancel</button>
+                                <button onClick={() => {
+                                    const idx = syllabus.references.findIndex(r => r.id === deleteConfirmRef.id);
+                                    if (idx !== -1) syllabus.references.splice(idx, 1);
+                                    setRefDeleteKey(k => k + 1);
+                                    setDeleteConfirmRef(null);
+                                }} style={{ padding: '10px 24px', background: '#dc2626', color: 'white', border: 'none', borderRadius: 20, fontSize: 14, fontWeight: 500, cursor: 'pointer', fontFamily: "'Poppins', sans-serif" }}>Remove</button>
+                            </div>
+                        </div>
+                    </div>
                 )}
 
 
@@ -518,4 +826,4 @@ const syllabusSections = ({status}) => {
     )
 }
 
-export default syllabusSections;
+export default SyllabusSections;

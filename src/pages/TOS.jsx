@@ -6,7 +6,7 @@ import SideNavigation from "../components/SideNavigation.jsx";
 const TOS = ({}) => {
     return (
         <Skeleton
-            header={<Header role="Instructor" name="NORTON, MONICA"  />}
+            header={<Header role="Instructor" name="CASIMERO, DANNY"  />}
             content={<TosSections />}
             nav={<SideNavigation/> }
         />

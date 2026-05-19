@@ -1,0 +1,104 @@
+:root {
+  --panel-bg: #fff;
+  --muted: #6b7280;
+  --border: #e5e7eb;
+  --accent: black;
+  --success: #16a34a;
+}
+
+.panel {
+  background: var(--panel-bg);
+  border: 1px solid var(--border);
+  padding: 12px;
+  border-radius: 6px;
+}
+
+.title {
+  margin: 0 0 8px 0;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.slots {
+  display: grid;
+  gap: 10px;
+}
+
+.slot {
+  border: 1px dashed var(--border);
+  padding: 10px;
+  border-radius: 4px;
+}
+
+.slotHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.slotLabel {
+  font-weight: 600;
+}
+
+.uploadBtn {
+  background: var(--accent);
+  color: white;
+  padding: 10px 18px;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.uploadBtn input[type='file'] {
+  display: none;
+}
+
+.replaceBtn {
+  background: transparent;
+  border: 1px solid var(--border);
+  padding: 6px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.slotBody {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.fileInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.fileName {
+  font-weight: 600;
+}
+
+.metaRow {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.metaItem {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.statusBadge {
+  margin-left: auto;
+  background: var(--success);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 16px;
+  font-size: 12px;
+}
+
+.empty {
+  color: var(--muted);
+  font-style: italic;
+}

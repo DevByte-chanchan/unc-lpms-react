@@ -1,0 +1,18 @@
+FROM node:18-alpine
+
+WORKDIR /usr/src/app
+
+RUN apk add --no-cache netcat-openbsd
+
+COPY package*.json ./
+RUN npm ci --production
+
+COPY . .
+
+RUN chmod +x entrypoint.sh
+
+EXPOSE 4002
+
+ENV NODE_ENV=production
+
+CMD ["./entrypoint.sh"]
