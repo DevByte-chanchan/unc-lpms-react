@@ -1,0 +1,40 @@
+{
+  "hash": "4c164b20",
+  "configHash": "9c393752",
+  "lockfileHash": "434f0869",
+  "browserHash": "bc6b1894",
+  "optimized": {
+    "react": {
+      "src": "../../../node_modules/react/index.js",
+      "file": "react.js",
+      "fileHash": "79d817e7",
+      "needsInterop": true
+    },
+    "react-dom/client": {
+      "src": "../../../node_modules/react-dom/client.js",
+      "file": "react-dom_client.js",
+      "fileHash": "add6cfc3",
+      "needsInterop": true
+    },
+    "react-router-dom": {
+      "src": "../../../node_modules/react-router-dom/dist/index.mjs",
+      "file": "react-router-dom.js",
+      "fileHash": "abc049df",
+      "needsInterop": false
+    },
+    "react-feather": {
+      "src": "../../../node_modules/react-feather/dist/index.js",
+      "file": "react-feather.js",
+      "fileHash": "5c7c1052",
+      "needsInterop": false
+    }
+  },
+  "chunks": {
+    "chunk-CY5HB32M": {
+      "file": "chunk-CY5HB32M.js"
+    },
+    "chunk-EYTWN75N": {
+      "file": "chunk-EYTWN75N.js"
+    }
+  }
+}
