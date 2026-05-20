@@ -1,0 +1,704 @@
+
+.container
+  width: 100%
+  height: 100%
+  display: flex
+  flex-direction: column
+  gap: 6px
+  overflow: hidden
+
+.modalOverlay
+  position: fixed
+  top: 0
+  left: 0
+  width: 100%
+  height: 100%
+  background: rgba(0, 0, 0, 0.7)
+  z-index: 1000
+  display: flex
+  justify-content: center
+  align-items: center
+
+.modalContent
+  background: #FFFFFF
+  padding: 30px
+  border-radius: 8px
+  width: 95vw
+  height: 90vh
+  display: flex
+  flex-direction: column
+  position: relative
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2)
+
+.closeButton
+  position: absolute
+  top: 15px
+  right: 0
+  background: none
+  border: none
+  font-size: 28px
+  cursor: pointer
+  color: #888
+  line-height: 1
+  outline: none
+  &:hover
+    color: #000
+    border: none
+    outline: none
+
+.previewTitle
+  margin: 0 0 10px 0
+  font-size: 24px
+  font-weight: 600
+  color: #333
+
+.navi
+  display: flex
+  justify-content: space-between
+  align-items: center
+  margin-top: 10px
+  margin-bottom: 20px
+  gap: 20px
+
+.section-select
+  display: flex
+  align-items: center
+  border: 1px solid #b6b8b8
+  border-radius: 5px
+  padding-right: 20px
+  flex-grow: 1
+
+  select
+    padding: 10px 15px
+    font-size: 14px
+    width: 100%
+    border-radius: 5px
+    background-color: #fff
+    cursor: pointer
+    border: 0
+    outline: none
+
+  select option
+    font-size: 14px
+
+
+// --- 4. Action Buttons (Draft & Submit) ---
+.actions
+  display: flex
+  gap: 12px
+
+
+.submit
+  padding: 10px 20px
+  background: #19282C
+  color: white
+  border: none
+  border-radius: 5px
+  cursor: pointer
+  font-size: 14px
+  font-weight: 500
+  transition: background 0.2s
+
+
+// --- 5. Dynamic Content Area (Scrollable) ---
+.dynamic-sections
+  flex: 1                 // Take up remaining height
+  overflow-y: auto        // Scroll vertically if content is long
+  //border-radius: 5px
+  // Scrollbar styling for cleanliness
+  &::-webkit-scrollbar
+    width: 8px
+  &::-webkit-scrollbar-track
+    background: #f1f1f1
+    border-radius: 4px
+  &::-webkit-scrollbar-thumb
+    background: #ccc
+    border-radius: 4px
+  &::-webkit-scrollbar-thumb:hover
+    background: #999
+
+section
+  width: 100%
+  height: 100%
+  display: flex
+  overflow: auto
+
+// course details
+.courseDetailsContainer
+  width: 100%
+  padding-bottom: 20px
+  font-family: Arial, sans-serif
+
+.documentTable
+  width: 100%
+  border-collapse: collapse !important
+  border: 1px solid #000
+  margin-top: 10px
+
+  // OVERRIDE GLOBAL FLEX STYLES
+  // We force it back to standard table behavior
+  display: table !important
+  flex-direction: unset !important
+  gap: unset !important
+  overflow: visible !important
+
+  tbody
+    display: table-row-group !important
+    gap: unset !important
+    padding: unset !important
+    overflow: visible !important
+    box-shadow: none !important
+
+  tr
+    display: table-row !important
+    background: transparent !important
+    box-shadow: none !important
+    border-bottom: 1px solid #000
+
+  // Common styles for all cells in this specific table
+  th, td
+    display: table-cell !important
+    padding: 8px 12px !important
+    border: 1px solid #000 !important
+    vertical-align: middle
+    font-size: 14px
+    color: #000
+    gap: unset !important
+    align-items: unset !important
+    line-height: 1.4
+
+// --- Specific Cell Styling to Match Image ---
+
+// Left Column Labels (Gray Background)
+.labelCell
+  background-color: #EFEFEF
+  font-weight: 600
+  width: 180px // Adjust width as needed
+  text-align: left
+
+// Middle Column Values (White Background)
+.valueCell
+  background-color: #FFF
+  text-align: left
+  min-width: 200px
+
+// Right Column Header (Course Description)
+.descHeader
+  background-color: #EFEFEF
+  font-weight: 600
+  text-align: left
+  border-bottom: 1px solid #000
+
+// The Large Description Content
+.descCell
+  vertical-align: top !important // Forces text to start at the top
+  text-align: justify
+  background-color: #FFF
+  padding: 15px !important
+  width: 45% // Gives the description plenty of space
+
+// cpa alignment
+// --- Container & Legend ---
+.cpa-container
+  display: flex
+  flex-direction: column
+  width: 100%
+  height: 100%
+  overflow: hidden // Prevent double scrollbars, let wrapper handle it
+
+.legend
+  margin-bottom: 15px
+  display: flex
+  align-items: center
+  gap: 10px
+  font-size: 14px
+  color: #333
+
+.legendTitle
+  font-weight: 700
+
+.legendItems
+  display: flex
+  gap: 20px
+  strong
+    font-weight: 600
+
+// --- Scroll Wrapper ---
+.tableScrollWrapper
+  flex-grow: 1
+  overflow: auto // Enables Vertical & Horizontal scrolling
+  border: 1px solid #000 // Outer border for the table area
+  max-height: 60vh // Adjust based on your modal height
+
+  // styled scrollbar
+  &::-webkit-scrollbar
+    width: 10px
+    height: 10px
+  &::-webkit-scrollbar-thumb
+    background: #ccc
+    border-radius: 5px
+
+// --- Strict Table Override ---
+.alignmentTable
+  width: 100%
+  min-width: 1000px // Forces horizontal scroll on small screens
+  border-collapse: collapse !important
+
+  // RESET GLOBAL FLEX STYLES
+  display: table !important
+  flex-direction: unset !important
+  gap: unset !important
+
+  thead
+    display: table-header-group !important
+    // Sticky Header Logic
+    position: sticky
+    top: 0
+    z-index: 10 // Stays on top of content
+
+    tr
+      display: table-row !important
+      background: unset !important
+      box-shadow: none !important
+
+  tbody
+    display: table-row-group !important
+    box-shadow: none !important
+
+  tr
+    display: table-row !important
+    background: transparent !important
+    box-shadow: none !important
+    &:nth-child(even)
+      background-color: #f9f9f9 !important // Optional zebra striping
+
+  th, td
+    display: table-cell !important
+    border: 1px solid #000 !important
+    padding: 8px 10px !important
+    vertical-align: middle
+    font-size: 14px
+    color: #000
+    gap: unset !important
+    align-items: unset !important
+
+// --- Specific Column Styling ---
+
+// 1. First Column (Description)
+.firstColHeader
+  background-color: #EFEFEF // Header Gray
+  font-weight: 600
+  text-align: left
+  min-width: 400px // Fixed width for description
+  position: sticky
+  top: 0
+  border: 1px solid #000 !important
+  z-index: 20
+
+.descCell
+  text-align: left
+  line-height: 1.5
+  strong
+    font-weight: 700
+    margin-right: 5px
+
+// 2. PO Columns (Small & Centered)
+.poHeader
+  background-color: #EFEFEF // Header Gray
+  font-weight: 600
+  text-align: center
+  width: 60px
+  min-width: 60px
+  position: sticky
+  top: 0
+  border: 1px solid #000 !important
+  z-index: 20
+
+.mappingCell
+  text-align: center
+  font-weight: 600 // Makes the I/E/D letters pop
+  width: 60px
+
+
+// criteria for grading
+
+// --- Container & Scroll Wrapper ---
+.criteriaContainer
+  display: flex
+  flex-direction: column
+  width: 100%
+  height: 100%
+  overflow: hidden
+
+.tableScrollWrapper
+  flex-grow: 1
+  overflow: auto
+  border: 1px solid #000
+  max-height: 60vh
+
+  // Custom scrollbar
+  &::-webkit-scrollbar
+    width: 10px
+    height: 10px
+  &::-webkit-scrollbar-thumb
+    background: #ccc
+    border-radius: 5px
+
+// --- Strict Table Override (Document Style) ---
+.criteriaTable
+  width: 100%
+  min-width: 900px // Ensure it doesn't squish too much
+  border-collapse: collapse !important
+
+  // RESET GLOBAL FLEX STYLES
+  display: table !important
+  flex-direction: unset !important
+  gap: unset !important
+
+  thead
+    display: table-header-group !important
+    position: sticky
+    top: 0
+    z-index: 10
+    background: #fff
+    border-bottom: 1px solid #000
+
+    tr
+      display: table-row !important
+      box-shadow: none !important
+      background: #EFEFEF !important // Gray header background
+
+  tbody
+    display: table-row-group !important
+    box-shadow: none !important
+
+  tr
+    display: table-row !important
+    background: transparent !important
+    box-shadow: none !important
+    border-bottom: 1px solid #000 !important
+
+  th, td
+    display: table-cell !important
+    border: 1px solid #000 !important
+    padding: 8px 10px !important
+    vertical-align: middle
+    font-size: 14px
+    color: #000
+    line-height: 1.4
+
+// --- Header Specifics ---
+.headerCell
+  background-color: #EFEFEF // Match document gray
+  font-weight: 700
+  text-align: center
+  text-transform: uppercase
+  position: sticky // Helper for main headers
+  top: 0
+  z-index: 20
+  border: 1px solid #000 !important
+
+// Sub-headers (Prelim, Midterm...) need to be sticky but below the main header
+.subHeaderRow th
+  top: 40px // Adjust based on height of the first header row
+
+.subHeader
+  background-color: #EFEFEF
+  font-weight: 600
+  text-align: center
+  font-size: 13px
+
+// --- Cell Variations ---
+.dataCellCenter
+  text-align: center
+
+.dataCellLeft
+  text-align: left
+
+// --- Total Row ---
+.totalRow
+  background-color: #f9f9f9 !important
+  font-weight: 700
+
+.totalLabel
+  text-align: right
+  padding-right: 20px !important
+
+// references
+
+// --- REFERENCE SECTION WRAPPER ---
+.refContainer
+  display: flex
+  flex-direction: column
+  width: 100%
+  height: 100%
+  overflow: hidden // Keeps the page from scrolling, forces inner scroll
+
+// --- 1. DROPDOWN HEADER BAR ---
+.refHeaderBar
+  background-color: #EFEFEF // Requested Grey
+  border: 1px solid #000
+  border-bottom: none // The table header will provide the bottom line look
+  height: 50px
+  position: relative
+  display: flex
+  align-items: center
+  justify-content: center
+  flex-shrink: 0 // Prevents this from squishing
+  overflow: hidden
+
+  .refSelect
+    appearance: none
+    background: transparent
+    border: none
+    width: 100%
+    height: 100%
+    text-align: center
+    text-align-last: center
+    font-weight: 700
+    font-size: 16px
+    text-transform: uppercase
+    cursor: pointer
+    outline: none
+    color: #000
+
+  .refArrow
+    position: absolute
+    right: 20px
+    pointer-events: none
+    font-size: 12px
+    color: #000
+
+// --- 2. SCROLL WRAPPER (Mirrors 'tableScrollWrapper') ---
+.refScrollWrapper
+  flex-grow: 1
+  overflow: auto // Enables X and Y scroll
+  border: 1px solid #000
+  max-height: 60vh // Matches your example height constraint
+
+  // Custom scrollbar (Optional, matches your example)
+  &::-webkit-scrollbar
+    width: 10px
+    height: 10px
+  &::-webkit-scrollbar-thumb
+    background: #ccc
+    border-radius: 5px
+
+// --- 3. THE TABLE (Mirrors 'criteriaTable') ---
+.refTable
+  width: max-content // Allows table to expand based on fixed column widths
+  min-width: 100%
+  border-collapse: collapse !important // FIXES DOUBLE BORDERS
+
+  // RESET GLOBAL FLEX STYLES (Your 'Strict Table Override')
+  display: table !important
+  flex-direction: unset !important
+  gap: unset !important
+
+  thead
+    display: table-header-group !important
+    position: sticky
+    top: 0
+    z-index: 10
+    background: #fff // Opacity for scroll
+
+    tr
+      display: table-row !important
+      box-shadow: none !important
+      background: #fff !important
+
+  tbody
+    display: table-row-group !important
+    box-shadow: none !important
+
+  tr
+    display: table-row !important
+    background: transparent !important
+    box-shadow: none !important
+    border-bottom: 1px solid #000 !important
+
+  // SHARED CELL STYLES
+  th, td
+    display: table-cell !important
+    border: 1px solid #000 !important // 1px Border
+    padding: 10px 8px !important
+    vertical-align: middle
+    font-size: 16px // Requested 16px
+    color: #000
+    line-height: 1.4
+
+// --- HEADER CELLS ---
+.refHeaderCell
+  font-weight: 600 // Requested 600
+  text-transform: uppercase
+  text-align: center
+  background-color: #fff
+// No need for 'top' here because the thead is sticky
+
+// --- DATA CELLS ---
+.refDataCellCenter
+  text-align: center
+
+.refDataCellLeft
+  text-align: left
+
+  a
+    color: #0000EE
+    text-decoration: underline
+    word-break: break-all
+
+.refEmpty
+  text-align: center
+  padding: 40px
+  font-style: italic
+
+// --- COURSE COVERAGE SECTION ---
+.ccContainer
+  display: flex
+  flex-direction: column
+  width: 100%
+  height: 100%
+  overflow: hidden
+
+.ccScrollWrapper
+  flex-grow: 1
+  overflow: auto
+  border: 1px solid #000
+  max-height: 70vh
+  background: #fff
+
+  &::-webkit-scrollbar
+    width: 10px
+    height: 10px
+  &::-webkit-scrollbar-thumb
+    background: #ccc
+    border-radius: 5px
+
+.ccTable
+  width: max-content
+  min-width: 100%
+  border-collapse: collapse !important
+  display: table !important
+
+  thead
+    display: table-header-group !important
+    position: sticky
+    top: 0
+    z-index: 20
+
+    tr
+      display: table-row !important
+      background: #EFEFEF !important
+
+  tbody
+    display: table-row-group !important
+
+  tr
+    display: table-row !important
+    background: transparent !important
+    border-bottom: 1px solid #000 !important
+
+  th, td
+    display: table-cell !important
+    border: 1px solid #000 !important
+    padding: 10px 8px !important
+    vertical-align: top
+    font-size: 14px
+    color: #000
+    line-height: 1.4
+    word-wrap: break-word
+
+.ccHeader
+  background-color: #EFEFEF
+  font-weight: 600
+  text-transform: uppercase
+  text-align: center
+  vertical-align: middle !important
+
+.ccCell
+  background-color: #fff
+
+// --- CONTENT STYLING ---
+.centerText
+  text-align: center
+  vertical-align: middle !important
+
+.boldText
+  font-weight: 700
+
+// Topic List
+.topicBlock
+  margin-bottom: 15px
+  &:last-child
+    margin-bottom: 0
+
+.topicTitle
+  font-weight: 700
+  text-decoration: underline
+  margin-bottom: 4px
+
+.subtopicList
+  list-style-type: disc
+  padding-left: 15px
+  margin: 0
+  font-size: 13px
+  li
+    margin-bottom: 2px
+
+// --- TLA STYLING (NEW) ---
+.tlaGroupBlock
+  margin-bottom: 15px
+  &:last-child
+    margin-bottom: 0
+
+.tlaPhaseHeader
+  font-weight: 700
+  text-decoration: underline
+  margin-bottom: 5px
+  text-transform: uppercase
+  font-size: 13px // Slightly smaller than Topic but distinct
+
+.tlaItem
+  margin-bottom: 8px
+  padding-left: 5px // Indent slightly under the header
+  &:last-child
+    margin-bottom: 0
+
+.tlaNameLine
+  margin-bottom: 2px
+
+.perfTag
+  font-size: 12px
+  color: #555
+  font-weight: 700
+  margin-right: 4px
+
+.labTag
+  font-size: 12px
+  color: #d9534f // Red-ish color for Lab emphasis
+  font-weight: 700
+  text-transform: uppercase
+
+.descText
+  font-size: 13px
+  color: #333
+  font-style: italic
+  line-height: 1.3
+
+// Assessment Items
+.assessItem
+  margin-bottom: 10px
+  padding-bottom: 5px
+  border-bottom: 1px dashed #eee
+  &:last-child
+    border-bottom: none
+    margin-bottom: 0
+
+.rubricTag
+  font-size: 10px
+  background: #f0f0f0
+  display: inline-block
+  padding: 2px 4px
+  border-radius: 3px
+  margin-top: 2px
+  border: 1px solid #ccc

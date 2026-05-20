@@ -1,0 +1,129 @@
+.container
+  width: 100%
+  height: 100%
+  display: flex
+  flex-direction: column
+  overflow: hidden
+
+.logo
+  width: 100%
+  padding: 10px 20px
+  display: flex
+  justify-content: flex-start
+
+.logo img
+  width: 50px
+  display: block
+
+.lpms
+  font-weight: 700
+  font-size: 16px
+  padding: 0 20px 40px 23px
+  margin-top: 10px
+  color: #374151
+  line-height: 1.4 // Comfortable spacing for the 3 lines
+  // white-space: nowrap // REMOVED: Must allow wrapping for <br/> to work
+  text-overflow: ellipsis
+  transition: opacity 0.2s ease
+  min-height: 24px
+
+.nav-list
+  margin: 20px 20px 0 20px
+  height: 100%
+  overflow: hidden
+  display: flex
+  flex-direction: column
+  gap: 10px
+
+.list
+  padding: 10px 12px
+  border-radius: 10px
+  display: flex
+  align-items: center
+  gap: 16px
+  cursor: pointer
+  font-size: 15px
+  font-weight: 500
+  color: #4B5563
+  white-space: nowrap
+  transition: background 0.2s ease
+
+  &:hover
+    background: #F3F4F6
+    color: #111827
+
+  &.selected
+    background: #E5E7EB
+    color: #111827
+    font-weight: 600
+
+.list svg
+  flex-shrink: 0
+
+.listText
+  white-space: nowrap
+
+.listB
+  padding: 10px 12px
+  border-radius: 10px
+  display: flex
+  align-items: center
+  gap: 16px
+  cursor: pointer
+  font-size: 15px
+  font-weight: 500
+  color: #F94545
+  white-space: nowrap
+
+  svg
+    flex-shrink: 0
+
+  &:hover
+    background: #FEF2F2
+
+// --- Logout role popup ---
+.logoutWrapper
+  position: relative
+  margin-top: auto
+  display: flex
+  flex-direction: column
+  padding-bottom: 30px
+
+.rolePopup
+  position: absolute
+  left: 0
+  right: 0
+  bottom: calc(100% + 10px)
+  background: #ffffff
+  border: 1px solid #E5E7EB
+  border-radius: 10px
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)
+  padding: 8px
+  display: flex
+  flex-direction: column
+  gap: 4px
+  z-index: 50
+  width: 180px
+
+.popupTitle
+  font-size: 13px
+  font-weight: 600
+  color: #6B7280
+  padding: 8px
+  border-bottom: 1px solid #F3F4F6
+  margin-bottom: 4px
+
+.popupItem
+  text-align: left
+  background: transparent
+  border: none
+  padding: 8px 10px
+  border-radius: 6px
+  font-size: 14px
+  cursor: pointer
+  color: #374151
+  transition: all 0.2s
+
+  &:hover
+    background: #F3F4F6
+    color: #111827

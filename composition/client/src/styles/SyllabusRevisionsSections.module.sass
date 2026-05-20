@@ -1,0 +1,255 @@
+.container
+  width: 100%
+  height: 100%
+  display: flex
+  flex-direction: column
+  gap: 6px
+  overflow: hidden
+
+.navi
+  width: 100%
+  background: white
+  display: flex
+  padding: 10px 10px 10px 10px
+  gap: 8px
+
+
+.return
+  padding: 10px 20px
+  border-radius: 5px
+  //border: 1px solid #8B999D
+  display: flex
+  background: #8B999D
+  align-items: center
+  font-size: 14px
+  font-weight: 500
+  gap: 5px
+  cursor: pointer
+  color: white
+
+.section-select
+  border-radius: 5px
+  background: #F2F3F4
+  flex-grow: 1
+  padding-right: 20px
+  //border: 1px solid #9D9696
+
+.navi select
+  border: 0
+  border-radius: 5px
+  width: 100%
+  height: 100%
+  outline: none
+  padding-left: 10px
+  background: transparent
+  font-size: 14px
+  font-weight: 500
+
+.navi select option
+  background: #F2F3F4
+  font-size: 14px
+
+
+.dynamic-sections
+  width: 100%
+  flex-grow: 1
+  min-height: 200px
+  background: white
+  padding: 20px 30px
+  flex-direction: column
+  position: relative
+
+// NEW: Loading Overlay
+.loadingContainer
+  width: 100%
+  height: 100%
+  display: flex
+  justify-content: center
+  align-items: center
+  min-height: 300px
+
+// NEW: The Spinning Circle
+.spinner
+  width: 40px
+  height: 40px
+  border: 4px solid rgba(0, 0, 0, 0.1)
+  border-left-color: #19282C // Match your theme color
+  border-radius: 50%
+  animation: spin 0.8s linear infinite
+
+@keyframes spin
+  0%
+    transform: rotate(0deg)
+  100%
+    transform: rotate(360deg)
+
+section
+  width: 100%
+  height: 100%
+  display: flex
+  overflow: auto
+
+.draft
+  padding: 10px 15px
+  border-radius: 5px
+  //border: 1px solid #8B999D
+  font-size: 14px
+  font-weight: 500
+  background: #F2F3F4
+  cursor: pointer
+
+.submit
+  padding: 10px 15px
+  border-radius: 5px
+  border: 1px solid #8B999D
+  font-size: 14px
+  font-weight: 500
+  background: #19282C
+  color: white
+  cursor: pointer
+
+
+.header
+  width: 100%
+  display: flex
+  height: 40px
+  align-items: center
+  margin-bottom: 20px
+
+.form
+  width: 100%
+  flex-grow: 1
+  gap: 16px
+  display: flex
+  flex-direction: column
+
+
+.double-field
+  display: flex
+  flex-direction: row
+
+.colA, .colB
+  flex-grow: 1
+  display: flex
+  flex-direction: column
+  padding: 0
+  gap: 16px
+
+.cpa-container
+  display: flex
+  width: 100%
+  height: 100%
+  flex-direction: column
+  overflow: auto
+
+.legend
+  width: 100%
+  height: auto
+  display: flex
+  flex-direction: row
+  gap: 15px
+  align-items: center
+
+.legend p
+  font-weight: 600
+  font-size: 16px
+.legend .legends
+  display: flex
+  flex-direction: row
+  gap: 10px
+
+.legends p
+  font-weight: 400
+  font-size: 14px
+
+
+.course-descrip
+  width: 505px
+
+.courseNo
+  align-content: center
+  width: 60px
+  font-weight: 500
+
+.courseDescripInput
+  width: 445px
+
+.dropdownOptions
+  width: 82px
+  display: flex
+  justify-content: center
+  //border-right: 1px solid #dadada
+
+.dropdownOptions select
+  width: 100%
+  border: 0
+  padding: 10px
+  outline: none
+  font-weight: 500
+  font-size: 14px
+  cursor: pointer
+
+.references-container, .assessments-container
+  display: flex
+  width: 100%
+  height: 100%
+  flex-direction: column
+  overflow: auto
+
+.fill
+  flex-grow: 1
+  padding-right: 25px
+  display: flex
+  justify-content: end
+  align-items: center
+  gap: 5px
+  cursor: pointer
+  font-weight: 400
+
+.references-header, .assessments-header
+  display: flex
+  width: 100%
+  align-items: center
+  gap: 15px
+  margin-bottom: 10px
+
+.topics-container
+  display: flex
+  width: 100%
+  height: 100%
+  flex-direction: column
+  overflow: auto
+
+.topics-header
+  display: flex
+  width: 100%
+  align-items: center
+  gap: 15px
+  margin-bottom: 10px
+
+.ilo-container
+  display: flex
+  width: 100%
+  height: 100%
+  flex-direction: column
+  overflow: auto
+
+.emptyStateContainer
+  display: flex
+  flex-direction: row
+  align-items: center
+  justify-content: center
+  padding: 10px 0
+  color: #8B999D
+  gap: 12px
+
+  span
+    font-size: 14px
+    font-weight: 500
+
+.emptyRow
+  height: fit-content
+  background: #fff
+
+.emptyRow td
+  border-bottom: none

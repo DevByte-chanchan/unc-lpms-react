@@ -1,0 +1,28 @@
+
+
+ASSIGNED COURSES PAGE
+
+Additional Course Offering Attributes:
+- Date Assigned
+
+
+Draft Table Columns
+- Code
+- Course Name
+- Revision Number
+- Date Assigned
+
+Pending Table Columns
+
+
+TO DO:
+Update UI to fixed Fields:
+Course Details
+Course and Program Outcome Alignment
+Criteria for Grading
+
+Remove References
+
+
+docker compose down -v
+docker compose up -d

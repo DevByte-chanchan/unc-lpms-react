@@ -1,0 +1,307 @@
+.container
+  width: 100%
+  font-family: 'Manrope', sans-serif
+
+.label
+  font-weight: 600
+  font-size: 14px
+  margin-bottom: 8px
+  display: block
+  color: #2D3748
+
+.mainWrapper
+  border: 1px solid #DCE2F0
+  border-radius: 8px
+  background: #fff
+  height: 350px
+  display: flex
+  flex-direction: column
+  overflow: hidden
+  position: relative
+  &.error
+    border-color: #ff5252
+
+.stickyHeader
+  background: #F8FAFC
+  border-bottom: 1px solid #DCE2F0
+  padding: 12px
+  position: sticky
+  top: 0
+  z-index: 10
+
+.searchBar
+  display: flex
+  align-items: center
+  gap: 10px
+  background: #fff
+  border: 1px solid #E2E8F0
+  padding: 8px 12px
+  border-radius: 6px
+  input
+    border: none
+    outline: none
+    flex: 1
+    font-size: 14px
+
+.addManualBtnInline
+  background: #3182CE
+  color: white
+  border: none
+  padding: 4px 10px
+  border-radius: 4px
+  font-size: 11px
+  cursor: pointer
+  white-space: nowrap
+
+.chevron
+  color: #718096
+  cursor: pointer
+  transition: transform 0.2s
+  &.up
+    transform: rotate(180deg)
+
+.pickerDropdown
+  position: absolute
+  top: 100%
+  left: 12px
+  right: 12px
+  background: white
+  z-index: 100
+  border: 1px solid #DCE2F0
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1)
+  border-radius: 0 0 8px 8px
+
+.optionsList
+  max-height: 200px
+  overflow-y: auto
+
+.optionItem
+  padding: 12px 15px
+  display: flex
+  align-items: center
+  gap: 12px
+  cursor: pointer
+  border-bottom: 1px solid #EDF2F7
+  font-size: 14px
+  &:hover
+    background: #F7FAFC
+  &.selectedOpt
+    background: #EBF8FF
+  .subCount
+    margin-left: auto
+    font-size: 11px
+    color: #A0AEC0
+
+.pickerFooter
+  padding: 10px
+  display: flex
+  justify-content: space-between
+  background: #F8FAFC
+  border-top: 1px solid #EDF2F7
+
+.footerAddBtn
+  background: #2D3748
+  color: white
+  border: none
+  padding: 6px 12px
+  border-radius: 4px
+  font-size: 12px
+  cursor: pointer
+  font-weight: 600
+
+.closeBtn
+  background: none
+  border: none
+  color: #3182CE
+  font-size: 12px
+  cursor: pointer
+  font-weight: 600
+
+// --- SCROLLING AREA ---
+
+.scrollContainer
+  flex: 1
+  overflow-y: auto
+  background: #fdfdfd
+  display: flex
+  flex-direction: column
+
+.configArea
+  padding: 15px
+  display: flex
+  flex-direction: column
+  gap: 15px
+
+.emptyState
+  flex: 1
+  display: flex
+  flex-direction: column
+  align-items: center
+  justify-content: center
+  text-align: center
+  padding: 40px
+  color: #A0AEC0
+  p
+    font-size: 14px
+    margin-top: 12px
+    max-width: 250px
+
+.topicCard
+  border: 1px solid #E2E8F0
+  border-radius: 8px
+  background: white
+  overflow: hidden
+  transition: all 0.3s ease
+
+.newEntry
+  animation: slideInHighlight 0.6s ease-out
+
+@keyframes slideInHighlight
+  0%
+    transform: translateY(-10px)
+    background: #EBF8FF
+  100%
+    transform: translateY(0)
+    background: white
+
+.topicHeaderCard
+  padding: 10px 15px
+  background: #F8FAFC
+  border-bottom: 1px solid #E2E8F0
+  display: flex
+  justify-content: space-between
+  align-items: center
+  gap: 10px
+
+.topicTitleGroup
+  display: flex
+  align-items: center
+  gap: 10px
+  flex: 1
+  min-width: 0
+
+.topicBadge
+  font-size: 10px
+  font-weight: 800
+  background: #2D3748
+  color: white
+  padding: 2px 6px
+  border-radius: 4px
+  text-transform: uppercase
+  flex-shrink: 0
+
+.inputWrapper
+  display: flex
+  align-items: center
+  gap: 6px
+  flex: 1
+  min-width: 0
+
+.topicTitleInput
+  font-weight: 700
+  font-size: 15px
+  border: none
+  background: transparent
+  color: #1A202C
+  width: 100%
+  outline: none
+  white-space: nowrap
+  overflow: hidden
+  text-overflow: ellipsis
+
+.editIcon
+  color: #CBD5E0
+  flex-shrink: 0
+
+.removeTopicBtn
+  background: #2D3748 !important
+  border: none
+  border-radius: 6px
+  display: flex
+  align-items: center
+  justify-content: center
+  cursor: pointer
+  flex-shrink: 0
+  padding: 6px 12px
+  &:hover
+    background: #E53E3E
+
+// --- SUBTOPIC STYLING (REVERTED & FIXED) ---
+
+.subtopicsContainer
+  padding: 12px 15px
+  display: flex
+  flex-direction: column
+  gap: 8px
+
+.subtopicRow
+  display: flex
+  align-items: center
+  gap: 10px
+  background: #fff
+  border: 1px solid #EDF2F7
+  padding: 5px 10px
+  border-radius: 6px
+  input
+    flex: 1
+    border: none
+    font-size: 13px
+    color: #4A5568
+    outline: none
+    background: transparent
+
+.bullet
+  color: #CBD5E0
+  font-weight: bold
+
+.actions
+  display: flex
+  gap: 5px
+  button
+    background: #F7FAFC
+    border: 1px solid #E2E8F0
+    padding: 4px
+    border-radius: 4px
+    color: #718096
+    cursor: pointer
+    display: flex
+    align-items: center
+    justify-content: center
+    &:hover
+      background: #EDF2F7
+      color: #3182CE
+    &.delete:hover
+      color: #E53E3E
+      border-color: #FEB2B2
+
+.addSubBtn
+  margin-top: 4px
+  background: none
+  border: 1px dashed #CBD5E0
+  color: #718096
+  padding: 6px
+  border-radius: 6px
+  font-size: 12px
+  cursor: pointer
+  display: flex
+  align-items: center
+  justify-content: center
+  gap: 5px
+  width: 100% // Button fills width but stays thin/dashed
+  &:hover
+    background: #F7FAFC
+    border-color: #A0AEC0
+    color: #4A5568
+
+.errorText
+  color: #ff5252
+  font-size: 12px
+  margin-top: 6px
+  font-weight: 500
+
+.noResults
+  padding: 24px
+  text-align: center
+  font-size: 13px
+  color: #A0AEC0
+  font-style: italic
