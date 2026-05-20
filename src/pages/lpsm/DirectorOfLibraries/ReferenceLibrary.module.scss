@@ -94,20 +94,21 @@
 .controlsBar {
   display: flex;
   gap: 12px;
-  margin-bottom: 10px;
+  margin-bottom: 16px;
   align-items: center;
+  flex-wrap: wrap;
 }
 
 .searchWrapper {
   display: flex;
   flex-grow: 1;
+  min-width: 280px;
   border: 1px solid #A4A9AF;
   border-radius: 20px;
   height: 40px;
   padding: 0 15px;
   gap: 15px;
   align-items: center;
-  max-width: 480px;
 }
 
 .searchIconSvg {
@@ -452,6 +453,100 @@ table {
 }
 
 /* ── View Modal ──────────────────────────────────────────────────────── */
+
+.viewModal {
+  background: white;
+  border-radius: 16px;
+  width: 720px;
+  max-width: 90vw;
+  max-height: 85vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+  font-family: 'Poppins', sans-serif;
+}
+
+.modalSection {
+  padding: 16px 0;
+  border-top: 1px solid #f3f4f6;
+
+  &:first-child {
+    border-top: none;
+    padding-top: 0;
+  }
+}
+
+.modalSectionTitle {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1e3a5f;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 0 0 14px 0;
+}
+
+.deptBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  margin-right: 6px;
+  margin-bottom: 4px;
+}
+
+.deptBadgeShort {
+  font-weight: 700;
+  font-size: 12px;
+}
+
+.deptBadgeFull {
+  font-weight: 400;
+  font-size: 11px;
+  opacity: 0.8;
+}
+
+.modalProgramBadge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  background: #e0e7ff;
+  color: #3730a3;
+  margin-right: 4px;
+  margin-bottom: 4px;
+}
+
+.courseGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.courseCodeBadge {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  background: #fef3c7;
+  color: #b45309;
+  font-family: 'Courier New', monospace;
+}
+
+.modalLink {
+  font-size: 14px;
+  color: #2563eb;
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
 
 .modal {
   background: white;

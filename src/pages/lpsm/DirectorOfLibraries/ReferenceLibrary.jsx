@@ -11,11 +11,120 @@ import { getRoleName } from '../../../utils/roleIdentities.js';
 import { syllabiData } from '../../../data/syllabiData.js';
 import * as XLSX from 'xlsx';
 
+const PROGRAM_MAP = {
+  'BSCS': 'BS Computer Science',
+  'BSIT': 'BS Information Technology',
+  'BSBA': 'BS Business Administration',
+  'BSE': 'BS Education',
+  'BSN': 'BS Nursing',
+  'BSA': 'BS Accountancy',
+  'BSPsych': 'BS Psychology',
+  'BSMA': 'BS Management Accounting',
+  'BSHM': 'BS Hospitality Management',
+  'BSTM': 'BS Tourism Management',
+  'BSRT': 'BS Radiologic Technology',
+  'BSMT': 'BS Medical Technology',
+  'BSPH': 'BS Public Health',
+  'BSPT': 'BS Physical Therapy',
+  'BSNursing': 'BS Nursing',
+  'BSARCH': 'BS Architecture',
+  'BSCpE': 'BS Computer Engineering',
+  'BSEE': 'BS Electrical Engineering',
+  'BSCIE': 'BS Civil Engineering',
+  'BSME': 'BS Mechanical Engineering',
+  'BSChE': 'BS Chemical Engineering',
+  'BSIE': 'BS Industrial Engineering',
+  'BSECE': 'BS Electronics Engineering',
+  'GE': 'General Education',
+};
+
+const DEPARTMENT_MAP = {
+  'BSCS': 'School of Computing and Information Sciences',
+  'BSIT': 'School of Computing and Information Sciences',
+  'BSCpE': 'School of Computing and Information Sciences',
+  'BSBA': 'College of Business and Accountancy',
+  'BSA': 'College of Business and Accountancy',
+  'BSMA': 'College of Business and Accountancy',
+  'BSHM': 'College of Business and Accountancy',
+  'BSTM': 'College of Business and Accountancy',
+  'BSE': 'College of Education and Arts & Sciences',
+  'BSPsych': 'College of Education and Arts & Sciences',
+  'BSN': 'College of Nursing and Allied Health Sciences',
+  'BSRT': 'College of Nursing and Allied Health Sciences',
+  'BSMT': 'College of Nursing and Allied Health Sciences',
+  'BSPH': 'College of Nursing and Allied Health Sciences',
+  'BSPT': 'College of Nursing and Allied Health Sciences',
+  'BSARCH': 'College of Engineering and Architecture',
+  'BSEE': 'College of Engineering and Architecture',
+  'BSCIE': 'College of Engineering and Architecture',
+  'BSME': 'College of Engineering and Architecture',
+  'BSChE': 'College of Engineering and Architecture',
+  'BSIE': 'College of Engineering and Architecture',
+  'BSECE': 'College of Engineering and Architecture',
+  'GE': 'General Education Department',
+};
+
+const extractProgramPrefix = (code) => {
+  if (!code) return 'GE';
+  const match = code.match(/^([A-Za-z]+)/);
+  if (!match) return 'GE';
+  const prefix = match[1].toUpperCase();
+  if (prefix.startsWith('BSCS')) return 'BSCS';
+  if (prefix.startsWith('BSIT')) return 'BSIT';
+  if (prefix.startsWith('BSCPE') || prefix.startsWith('BSCP')) return 'BSCpE';
+  if (prefix.startsWith('BSBA')) return 'BSBA';
+  if (prefix.startsWith('BSA')) return 'BSA';
+  if (prefix.startsWith('BSMA')) return 'BSMA';
+  if (prefix.startsWith('BSHM')) return 'BSHM';
+  if (prefix.startsWith('BSTM')) return 'BSTM';
+  if (prefix.startsWith('BSE')) return 'BSE';
+  if (prefix.startsWith('BSPSYCH')) return 'BSPsych';
+  if (prefix.startsWith('BSN')) return 'BSN';
+  if (prefix.startsWith('BSRT')) return 'BSRT';
+  if (prefix.startsWith('BSMT')) return 'BSMT';
+  if (prefix.startsWith('BSPH')) return 'BSPH';
+  if (prefix.startsWith('BSPT')) return 'BSPT';
+  if (prefix.startsWith('BSARCH')) return 'BSARCH';
+  if (prefix.startsWith('BSEE')) return 'BSEE';
+  if (prefix.startsWith('BSCIE') || prefix.startsWith('BSCE')) return 'BSCIE';
+  if (prefix.startsWith('BSME')) return 'BSME';
+  if (prefix.startsWith('BSCH')) return 'BSChE';
+  if (prefix.startsWith('BSIE')) return 'BSIE';
+  if (prefix.startsWith('BSECE') || prefix.startsWith('BSELEC')) return 'BSECE';
+  return 'GE';
+};
+
+const getProgramName = (prefix) => PROGRAM_MAP[prefix] || PROGRAM_MAP['GE'];
+const getDepartmentName = (prefix) => DEPARTMENT_MAP[prefix] || DEPARTMENT_MAP['GE'];
+
+const DEPARTMENT_COLORS = {
+  'School of Computing and Information Sciences': '#3b82f6',
+  'College of Business and Accountancy': '#f97316',
+  'College of Education and Arts & Sciences': '#ec4899',
+  'College of Nursing and Allied Health Sciences': '#14b8a6',
+  'College of Engineering and Architecture': '#a855f7',
+  'General Education Department': '#6b7280',
+};
+
+const DEPARTMENT_SHORT = {
+  'School of Computing and Information Sciences': 'SCIS',
+  'College of Business and Accountancy': 'CBA',
+  'College of Education and Arts & Sciences': 'CEAS',
+  'College of Nursing and Allied Health Sciences': 'CNAHS',
+  'College of Engineering and Architecture': 'CEA',
+  'General Education Department': 'GenEd',
+};
+
+const getDeptColor = (dept) => DEPARTMENT_COLORS[dept] || '#9ca3af';
+const getDeptShort = (dept) => DEPARTMENT_SHORT[dept] || dept;
+
 const ReferenceLibrary = () => {
   const navigate = useNavigate();
   const [references, setReferencesState] = useState(() => getReferences(true));
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('');
+  const [filterDepartment, setFilterDepartment] = useState('');
+  const [filterProgram, setFilterProgram] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [tab, setTab] = useState('active');
   const activeRefs = useMemo(() => references.filter(r => !r.archived), [references]);
@@ -31,17 +140,96 @@ const ReferenceLibrary = () => {
   /* ── Seed from instructor data on first load ─────────────────────── */
   useEffect(() => {
     const existing = getReferences(true);
+
+    // Force migration: populate departments/programs/usedInCourses for ALL existing refs
+    const courseRefMap = {};
+    syllabiData.forEach(s => {
+      const prefix = extractProgramPrefix(s.code);
+      const program = getProgramName(prefix);
+      const department = getDepartmentName(prefix);
+      if (s.references && Array.isArray(s.references)) {
+        s.references.forEach(ref => {
+          if (!courseRefMap[ref.id]) courseRefMap[ref.id] = { departments: [], programs: [], usedInCourses: [] };
+          if (!courseRefMap[ref.id].departments.includes(department)) courseRefMap[ref.id].departments.push(department);
+          if (!courseRefMap[ref.id].programs.includes(program)) courseRefMap[ref.id].programs.push(program);
+          if (!courseRefMap[ref.id].usedInCourses.includes(s.code)) courseRefMap[ref.id].usedInCourses.push(s.code);
+        });
+      }
+    });
+
+    let migrated = false;
+    const migratedRefs = existing.map(r => {
+      const mapped = courseRefMap[r.id];
+      const hasData = (r.departments && r.departments.length > 0) || (r.programs && r.programs.length > 0);
+      if (mapped && !hasData) {
+        migrated = true;
+        return { ...r, ...mapped };
+      }
+      if (!r.departments || !r.programs || !r.usedInCourses) {
+        migrated = true;
+        return {
+          ...r,
+          departments: r.departments || [],
+          programs: r.programs || [],
+          usedInCourses: r.usedInCourses || [],
+        };
+      }
+      return r;
+    });
+
+    if (migrated) {
+      setReferences(migratedRefs);
+      setReferencesState(migratedRefs);
+      setReferences(migratedRefs);
+    }
+
+    // Ensure dummy data is always present (add missing entries)
+    const dummyIds = ['TB-DEP-001', 'OR-ISS-001', 'OE-DEP-002', 'TB-BUS-001', 'TB-EDU-001', 'OE-NUR-001', 'OR-ENG-001', 'TB-CS-002', 'OE-BUS-002', 'TB-ENG-002'];
+    const currentRefs = getReferences(true);
+    const existingIds = new Set(currentRefs.map(r => r.id));
+    const missingDummies = dummyIds.filter(id => !existingIds.has(id));
+
+    if (missingDummies.length > 0) {
+      const allDummyRefs = [
+        { id: 'TB-DEP-001', numericId: 9991, title: 'Introduction to Algorithms (3rd Edition)', authors: 'Cormen, T., Leiserson, C., Rivest, R., Stein, C.', type: 'Textbook', year: 2009, isbn: '978-0-262-03384-8', link: '', publisher: 'MIT Press', filename: '', uploadDate: '2015-06-01', hasIssue: false, archived: false, departments: ['School of Computing and Information Sciences'], programs: ['BS Computer Science', 'BS Information Technology'], usedInCourses: ['BSCS331L', 'BSCS411L', 'BSIT312'] },
+        { id: 'OR-ISS-001', numericId: 9992, title: 'Legacy Software Architecture Patterns', authors: 'Garcia, M.', type: 'Online Resources', year: 2014, isbn: '', link: 'https://example.com/legacy-arch', publisher: '', filename: '', uploadDate: '2016-03-15', hasIssue: true, archived: false, departments: ['School of Computing and Information Sciences'], programs: ['BS Information Technology'], usedInCourses: ['BSIT312'] },
+        { id: 'OE-DEP-002', numericId: 9993, title: 'Foundations of Computer Science (Outdated Edition)', authors: 'Aho, A., Ullman, J.', type: 'Open Educational Resources', year: 2010, isbn: '', link: 'https://example.com/old-cs-foundations', publisher: 'Stanford Open Library', filename: '', uploadDate: '2012-11-20', hasIssue: false, archived: false, departments: ['General Education Department'], programs: ['General Education'], usedInCourses: ['GE101'] },
+        { id: 'TB-BUS-001', numericId: 9994, title: 'Principles of Marketing', authors: 'Kotler, P., Armstrong, G.', type: 'Textbook', year: 2021, isbn: '978-0-13-384163-0', link: '', publisher: 'Pearson', filename: '', uploadDate: '2022-01-15', hasIssue: false, archived: false, departments: ['College of Business and Accountancy'], programs: ['BS Business Administration', 'BS Accountancy'], usedInCourses: ['BSBA101', 'BSA201'] },
+        { id: 'TB-EDU-001', numericId: 9995, title: 'Educational Psychology: Theory and Practice', authors: 'Slavin, R.E.', type: 'Textbook', year: 2020, isbn: '978-0-13-499409-4', link: '', publisher: 'Pearson', filename: '', uploadDate: '2021-06-10', hasIssue: false, archived: false, departments: ['College of Education and Arts & Sciences'], programs: ['BS Education', 'BS Psychology'], usedInCourses: ['BSE201', 'BSPsych101'] },
+        { id: 'OE-NUR-001', numericId: 9996, title: 'Fundamentals of Nursing', authors: 'Potter, P.A., Perry, A.G.', type: 'Open Educational Resources', year: 2022, isbn: '978-0-323-59620-8', link: 'https://example.com/nursing-fundamentals', publisher: 'Elsevier', filename: '', uploadDate: '2023-02-20', hasIssue: false, archived: false, departments: ['College of Nursing and Allied Health Sciences'], programs: ['BS Nursing', 'BS Medical Technology'], usedInCourses: ['BSN101', 'BSMT201'] },
+        { id: 'OR-ENG-001', numericId: 9997, title: 'Structural Analysis and Design', authors: 'Hibbeler, R.C.', type: 'Online Resources', year: 2019, isbn: '', link: 'https://example.com/structural-analysis', publisher: 'McGraw-Hill', filename: '', uploadDate: '2020-08-15', hasIssue: false, archived: false, departments: ['College of Engineering and Architecture'], programs: ['BS Civil Engineering', 'BS Architecture'], usedInCourses: ['BSCIE301', 'BSARCH201'] },
+        { id: 'TB-CS-002', numericId: 9998, title: 'Database Management Systems', authors: 'Ramakrishnan, R., Gehrke, J.', type: 'Textbook', year: 2023, isbn: '978-0-07-246563-1', link: '', publisher: 'McGraw-Hill', filename: '', uploadDate: '2024-01-10', hasIssue: false, archived: false, departments: ['School of Computing and Information Sciences'], programs: ['BS Computer Science', 'BS Information Technology', 'BS Computer Engineering'], usedInCourses: ['BSCS301L', 'BSIT213L', 'BSCpE301'] },
+        { id: 'OE-BUS-002', numericId: 9999, title: 'Financial Accounting and Reporting', authors: 'Valix, P., Valix, C.', type: 'Open Educational Resources', year: 2022, isbn: '', link: 'https://example.com/financial-accounting', publisher: 'GIC Enterprises', filename: '', uploadDate: '2023-07-01', hasIssue: false, archived: false, departments: ['College of Business and Accountancy'], programs: ['BS Accountancy', 'BS Management Accounting'], usedInCourses: ['BSA301', 'BSMA201'] },
+        { id: 'TB-ENG-002', numericId: 10000, title: 'Electrical Circuits and Electronics', authors: 'Boylestad, R.L.', type: 'Textbook', year: 2020, isbn: '978-0-13-487444-4', link: '', publisher: 'Pearson', filename: '', uploadDate: '2021-09-15', hasIssue: false, archived: false, departments: ['College of Engineering and Architecture'], programs: ['BS Electrical Engineering', 'BS Electronics Engineering'], usedInCourses: ['BSEE201', 'BSECE301'] },
+      ];
+
+      missingDummies.forEach(id => {
+        const dummy = allDummyRefs.find(r => r.id === id);
+        if (dummy) addReference(dummy);
+      });
+
+      const updated = getReferences(true);
+      setReferences(updated);
+      setReferencesState(updated);
+    }
+
     if (existing.length === 0) {
       const seeded = [];
       let numericId = 0;
       const seenIds = new Set();
+      const courseRefMap = {};
+
       syllabiData.forEach(s => {
+        const prefix = extractProgramPrefix(s.code);
+        const program = getProgramName(prefix);
+        const department = getDepartmentName(prefix);
+
         if (s.references && Array.isArray(s.references)) {
           s.references.forEach(ref => {
             if (!seenIds.has(ref.id)) {
               seenIds.add(ref.id);
               numericId++;
-              seeded.push({
+              const refData = {
                 id: ref.id,
                 numericId,
                 title: ref.title,
@@ -55,11 +243,24 @@ const ReferenceLibrary = () => {
                 uploadDate: new Date().toISOString().split('T')[0],
                 hasIssue: false,
                 archived: false,
-              });
+                departments: [department],
+                programs: [program],
+                usedInCourses: [s.code],
+              };
+              seeded.push(refData);
+              courseRefMap[ref.id] = refData;
+            } else {
+              const existingRef = courseRefMap[ref.id];
+              if (existingRef) {
+                if (!existingRef.departments.includes(department)) existingRef.departments.push(department);
+                if (!existingRef.programs.includes(program)) existingRef.programs.push(program);
+                if (!existingRef.usedInCourses.includes(s.code)) existingRef.usedInCourses.push(s.code);
+              }
             }
           });
         }
       });
+
       setReferences(seeded);
       setReferencesState(seeded);
 
@@ -80,6 +281,9 @@ const ReferenceLibrary = () => {
           uploadDate: '2015-06-01',
           hasIssue: false,
           archived: false,
+          departments: ['School of Computing and Information Sciences'],
+          programs: ['BS Computer Science', 'BS Information Technology'],
+          usedInCourses: ['BSCS331L', 'BSCS411L', 'BSIT312'],
         },
         {
           id: 'OR-ISS-001',
@@ -95,6 +299,9 @@ const ReferenceLibrary = () => {
           uploadDate: '2016-03-15',
           hasIssue: true,
           archived: false,
+          departments: ['School of Computing and Information Sciences'],
+          programs: ['BS Information Technology'],
+          usedInCourses: ['BSIT312'],
         },
         {
           id: 'OE-DEP-002',
@@ -110,6 +317,135 @@ const ReferenceLibrary = () => {
           uploadDate: '2012-11-20',
           hasIssue: false,
           archived: false,
+          departments: ['General Education Department'],
+          programs: ['General Education'],
+          usedInCourses: ['GE101'],
+        },
+        {
+          id: 'TB-BUS-001',
+          numericId: 9994,
+          title: 'Principles of Marketing',
+          authors: 'Kotler, P., Armstrong, G.',
+          type: 'Textbook',
+          year: 2021,
+          isbn: '978-0-13-384163-0',
+          link: '',
+          publisher: 'Pearson',
+          filename: '',
+          uploadDate: '2022-01-15',
+          hasIssue: false,
+          archived: false,
+          departments: ['College of Business and Accountancy'],
+          programs: ['BS Business Administration', 'BS Accountancy'],
+          usedInCourses: ['BSBA101', 'BSA201'],
+        },
+        {
+          id: 'TB-EDU-001',
+          numericId: 9995,
+          title: 'Educational Psychology: Theory and Practice',
+          authors: 'Slavin, R.E.',
+          type: 'Textbook',
+          year: 2020,
+          isbn: '978-0-13-499409-4',
+          link: '',
+          publisher: 'Pearson',
+          filename: '',
+          uploadDate: '2021-06-10',
+          hasIssue: false,
+          archived: false,
+          departments: ['College of Education and Arts & Sciences'],
+          programs: ['BS Education', 'BS Psychology'],
+          usedInCourses: ['BSE201', 'BSPsych101'],
+        },
+        {
+          id: 'OE-NUR-001',
+          numericId: 9996,
+          title: 'Fundamentals of Nursing',
+          authors: 'Potter, P.A., Perry, A.G.',
+          type: 'Open Educational Resources',
+          year: 2022,
+          isbn: '978-0-323-59620-8',
+          link: 'https://example.com/nursing-fundamentals',
+          publisher: 'Elsevier',
+          filename: '',
+          uploadDate: '2023-02-20',
+          hasIssue: false,
+          archived: false,
+          departments: ['College of Nursing and Allied Health Sciences'],
+          programs: ['BS Nursing', 'BS Medical Technology'],
+          usedInCourses: ['BSN101', 'BSMT201'],
+        },
+        {
+          id: 'OR-ENG-001',
+          numericId: 9997,
+          title: 'Structural Analysis and Design',
+          authors: 'Hibbeler, R.C.',
+          type: 'Online Resources',
+          year: 2019,
+          isbn: '',
+          link: 'https://example.com/structural-analysis',
+          publisher: 'McGraw-Hill',
+          filename: '',
+          uploadDate: '2020-08-15',
+          hasIssue: false,
+          archived: false,
+          departments: ['College of Engineering and Architecture'],
+          programs: ['BS Civil Engineering', 'BS Architecture'],
+          usedInCourses: ['BSCIE301', 'BSARCH201'],
+        },
+        {
+          id: 'TB-CS-002',
+          numericId: 9998,
+          title: 'Database Management Systems',
+          authors: 'Ramakrishnan, R., Gehrke, J.',
+          type: 'Textbook',
+          year: 2023,
+          isbn: '978-0-07-246563-1',
+          link: '',
+          publisher: 'McGraw-Hill',
+          filename: '',
+          uploadDate: '2024-01-10',
+          hasIssue: false,
+          archived: false,
+          departments: ['School of Computing and Information Sciences'],
+          programs: ['BS Computer Science', 'BS Information Technology', 'BS Computer Engineering'],
+          usedInCourses: ['BSCS301L', 'BSIT213L', 'BSCpE301'],
+        },
+        {
+          id: 'OE-BUS-002',
+          numericId: 9999,
+          title: 'Financial Accounting and Reporting',
+          authors: 'Valix, P., Valix, C.',
+          type: 'Open Educational Resources',
+          year: 2022,
+          isbn: '',
+          link: 'https://example.com/financial-accounting',
+          publisher: 'GIC Enterprises',
+          filename: '',
+          uploadDate: '2023-07-01',
+          hasIssue: false,
+          archived: false,
+          departments: ['College of Business and Accountancy'],
+          programs: ['BS Accountancy', 'BS Management Accounting'],
+          usedInCourses: ['BSA301', 'BSMA201'],
+        },
+        {
+          id: 'TB-ENG-002',
+          numericId: 10000,
+          title: 'Electrical Circuits and Electronics',
+          authors: 'Boylestad, R.L.',
+          type: 'Textbook',
+          year: 2020,
+          isbn: '978-0-13-487444-4',
+          link: '',
+          publisher: 'Pearson',
+          filename: '',
+          uploadDate: '2021-09-15',
+          hasIssue: false,
+          archived: false,
+          departments: ['College of Engineering and Architecture'],
+          programs: ['BS Electrical Engineering', 'BS Electronics Engineering'],
+          usedInCourses: ['BSEE201', 'BSECE301'],
         },
       ];
       extraRefs.forEach(r => addReference(r));
@@ -147,6 +483,9 @@ const ReferenceLibrary = () => {
           const year = row['Year'] || row['year'] || '';
           const isbn = (row['ISBN'] || row['isbn'] || '').toString().trim();
           const link = (row['Link'] || row['link'] || row['URL'] || row['url'] || '').toString().trim();
+          const department = (row['Department'] || row['department'] || '').toString().trim();
+          const program = (row['Program'] || row['program'] || '').toString().trim();
+          const courseCode = (row['Course Code'] || row['courseCode'] || row['Course'] || row['course'] || '').toString().trim();
 
           if (!title || !type) {
             skipped++;
@@ -172,6 +511,9 @@ const ReferenceLibrary = () => {
             uploadDate: new Date().toISOString().split('T')[0],
             hasIssue: false,
             archived: false,
+            departments: department ? [department] : [],
+            programs: program ? [program] : [],
+            usedInCourses: courseCode ? [courseCode] : [],
           });
 
           existingIds.add(refId);
@@ -221,22 +563,43 @@ const ReferenceLibrary = () => {
 
   /* ── Filter ────────────────────────────────────────────────────────── */
   const sourceRefs = tab === 'archived' ? archivedRefs : activeRefs;
+
+  const allDepartments = useMemo(() => {
+    const deps = new Set();
+    activeRefs.forEach(r => (r.departments || []).forEach(d => deps.add(d)));
+    return Array.from(deps).sort();
+  }, [activeRefs]);
+
+  const allPrograms = useMemo(() => {
+    const progs = new Set();
+    activeRefs.forEach(r => (r.programs || []).forEach(p => progs.add(p)));
+    return Array.from(progs).sort();
+  }, [activeRefs]);
+
   const filtered = useMemo(() => {
     const term = searchTerm.toLowerCase();
     let result = sourceRefs;
     if (filterType) {
       result = result.filter((r) => r.type === filterType);
     }
+    if (filterDepartment) {
+      result = result.filter((r) => (r.departments || []).includes(filterDepartment));
+    }
+    if (filterProgram) {
+      result = result.filter((r) => (r.programs || []).includes(filterProgram));
+    }
     if (term) {
       result = result.filter(
         (r) =>
           r.title.toLowerCase().includes(term) ||
           r.authors.toLowerCase().includes(term) ||
-          (r.publisher || '').toLowerCase().includes(term)
+          (r.publisher || '').toLowerCase().includes(term) ||
+          (r.programs || []).some(p => p.toLowerCase().includes(term)) ||
+          (r.departments || []).some(d => d.toLowerCase().includes(term))
       );
     }
     return result;
-  }, [sourceRefs, searchTerm, filterType]);
+  }, [sourceRefs, searchTerm, filterType, filterDepartment, filterProgram]);
 
   /* ── Handlers ──────────────────────────────────────────────────────── */
   const confirmArchive = () => {
@@ -316,26 +679,46 @@ const ReferenceLibrary = () => {
 
       {/* Controls */}
       <div className={styles.controlsBar}>
-        <div className={styles.searchWrapper} style={{ maxWidth: 'none', flex: 1 }}>
+        <div className={styles.searchWrapper}>
           <Search size={16} className={styles.searchIconSvg} />
-          <input type="text" placeholder="Search references by title, author, or keyword..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className={styles.searchInput} />
+          <input type="text" placeholder="Search references by title, author, program, or keyword..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className={styles.searchInput} />
         </div>
-        <div className={'filter-container'} style={{ flexShrink: 0 }}>
-          <p>Filter by <strong>Reference Type</strong>:</p>
-          <select
-            value={filterType}
-            onChange={(e) => setFilterType(e.target.value)}
-          >
+        <div className={'filter-container'}>
+          <p>Filter by <strong>Department</strong>:</p>
+          <select value={filterDepartment} onChange={(e) => { setFilterDepartment(e.target.value); setFilterProgram(''); }}>
+            <option value="">All Departments</option>
+            {allDepartments.map(d => <option key={d} value={d}>{d}</option>)}
+          </select>
+        </div>
+        <div className={'filter-container'}>
+          <p>Filter by <strong>Program</strong>:</p>
+          <select value={filterProgram} onChange={(e) => setFilterProgram(e.target.value)}>
+            <option value="">All Programs</option>
+            {(filterProgram ? [filterProgram] : allPrograms).length > 0
+              ? (filterDepartment
+                  ? allPrograms.filter(p => {
+                      const refsForDept = activeRefs.filter(r => r.departments?.includes(filterDepartment));
+                      return refsForDept.some(r => r.programs?.includes(p));
+                    })
+                  : allPrograms
+                ).map(p => <option key={p} value={p}>{p}</option>)
+              : <option value="">No programs available</option>
+            }
+          </select>
+        </div>
+        <div className={'filter-container'}>
+          <p>Filter by <strong>Type</strong>:</p>
+          <select value={filterType} onChange={(e) => setFilterType(e.target.value)}>
             <option value="">All Types</option>
             <option value="Textbook">Textbook</option>
             <option value="Open Educational Resources">Open Educational Resources</option>
             <option value="Online Resources">Online Resources</option>
           </select>
         </div>
-        <button className={styles.addBtn} type="button" onClick={() => navigate('/role/director-of-libraries/add-reference')} style={{ flexShrink: 0 }}>
+        <button className={styles.addBtn} type="button" onClick={() => navigate('/role/director-of-libraries/add-reference')}>
           <Plus size={16} /><span>Add Reference</span>
         </button>
-        <button className={styles.bulkBtn} type="button" onClick={() => fileInputRef.current?.click()} style={{ flexShrink: 0 }}>
+        <button className={styles.bulkBtn} type="button" onClick={() => fileInputRef.current?.click()}>
           <Upload size={16} /><span>Bulk Upload</span>
         </button>
         <input
@@ -393,17 +776,15 @@ const ReferenceLibrary = () => {
                   <td className="fill">
                     <div className={styles.actionGroup}>
                       <button className={styles.actionView} type="button" onClick={() => setViewRef(ref)}>View</button>
+                      <span className={styles.actionDot}>·</span>
+                      <button className={styles.actionEdit} type="button" onClick={() => navigate(`/role/director-of-libraries/edit-reference/${ref.id}`)}>Edit</button>
                       {tab === 'archived' ? (
                         <>
-                          <span className={styles.actionDot}>·</span>
-                          <button className={styles.actionEdit} type="button" onClick={() => navigate(`/role/director-of-libraries/edit-reference/${ref.id}`)}>Edit</button>
                           <span className={styles.actionDot}>·</span>
                           <button className={styles.actionEdit} type="button" onClick={() => confirmUnarchive(ref.id)} style={{ color: '#047857' }}>Unarchive</button>
                         </>
                       ) : (
                         <>
-                          <span className={styles.actionDot}>·</span>
-                          <button className={styles.actionEdit} type="button" onClick={() => navigate(`/role/director-of-libraries/edit-reference/${ref.id}`)}>Edit</button>
                           <span className={styles.actionDot}>·</span>
                           <button className={styles.actionDelete} type="button" onClick={() => setArchiveRef(ref)}>Archive</button>
                         </>
@@ -422,7 +803,7 @@ const ReferenceLibrary = () => {
       {/* ── VIEW MODAL ──────────────────────────────────────────────────── */}
       {viewRef && (
         <div className={styles.modalOverlay} onClick={() => setViewRef(null)}>
-          <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+          <div className={styles.viewModal} onClick={(e) => e.stopPropagation()}>
             <div className={styles.modalHeader}>
               <h2>REFERENCE DETAILS</h2>
               <button className={styles.modalClose} onClick={() => setViewRef(null)}>✕</button>
@@ -430,46 +811,98 @@ const ReferenceLibrary = () => {
             <div className={styles.modalBody}>
               {isDeprecated(viewRef) && (
                 <div className={styles.warningBanner}>
-                  <span role="img" aria-label="warning">⚠️</span> This reference is over 5 years old and may be outdated.
+                  <AlertTriangle size={16} /> This reference is over 5 years old and may be outdated.
                 </div>
               )}
               {hasIssues(viewRef) && (
                 <div className={styles.errorBanner}>
-                  <span role="img" aria-label="error">🚫</span> This reference has a reported issue and instructors cannot use it.
+                  <AlertCircle size={16} /> This reference has a reported issue and instructors cannot use it.
                 </div>
               )}
-              <div className={styles.modalRow}><span className={styles.modalLabel}>REFERENCE ID</span><span className={styles.modalValue}>{viewRef.id}</span></div>
-              <div className={styles.modalRow}><span className={styles.modalLabel}>TITLE</span><span className={styles.modalValue}>{viewRef.title}</span></div>
-              <div className={styles.modalRow}><span className={styles.modalLabel}>AUTHOR(S)</span><span className={styles.modalValue}>{viewRef.authors}</span></div>
-              <div className={styles.modalRow2col}>
-                <div><span className={styles.modalLabel}>TYPE</span><span className={styles.modalValue}>{viewRef.type || '—'}</span></div>
-                <div><span className={styles.modalLabel}>YEAR</span><span className={styles.modalValue}>{viewRef.year || '—'}</span></div>
+              <div className={styles.modalSection}>
+                <h3 className={styles.modalSectionTitle}>Basic Information</h3>
+                <div className={styles.modalRow}><span className={styles.modalLabel}>REFERENCE ID</span><span className={styles.modalValue}>{viewRef.id}</span></div>
+                <div className={styles.modalRow}><span className={styles.modalLabel}>TITLE</span><span className={styles.modalValue}>{viewRef.title}</span></div>
+                <div className={styles.modalRow}><span className={styles.modalLabel}>AUTHOR(S)</span><span className={styles.modalValue}>{viewRef.authors}</span></div>
+                <div className={styles.modalRow2col}>
+                  <div><span className={styles.modalLabel}>TYPE</span><span className={styles.modalValue}>{viewRef.type || '—'}</span></div>
+                  <div><span className={styles.modalLabel}>YEAR</span><span className={styles.modalValue}>{viewRef.year || '—'}</span></div>
+                </div>
+                {viewRef.isbn && <div className={styles.modalRow}><span className={styles.modalLabel}>ISBN</span><span className={styles.modalValue}>{viewRef.isbn}</span></div>}
+                {viewRef.link && <div className={styles.modalRow}><span className={styles.modalLabel}>LINK</span><a href={viewRef.link} target="_blank" rel="noopener noreferrer" className={styles.modalLink}>{viewRef.link}</a></div>}
+                {viewRef.publisher && <div className={styles.modalRow}><span className={styles.modalLabel}>PUBLISHER</span><span className={styles.modalValue}>{viewRef.publisher}</span></div>}
+                {viewRef.filename && <div className={styles.modalRow}><span className={styles.modalLabel}>FILE</span><span className={styles.modalValue}>{viewRef.filename}</span></div>}
               </div>
-              {viewRef.isbn && <div className={styles.modalRow}><span className={styles.modalLabel}>ISBN</span><span className={styles.modalValue}>{viewRef.isbn}</span></div>}
-              {viewRef.link && <div className={styles.modalRow}><span className={styles.modalLabel}>LINK</span><a href={viewRef.link} target="_blank" rel="noopener noreferrer" style={{ fontSize: 15, color: '#00f', textDecoration: 'underline' }}>{viewRef.link}</a></div>}
-              {viewRef.publisher && <div className={styles.modalRow}><span className={styles.modalLabel}>PUBLISHER</span><span className={styles.modalValue}>{viewRef.publisher}</span></div>}
-              <div className={styles.modalRow}><span className={styles.modalLabel}>UPLOAD DATE</span><span className={styles.modalValue}>{viewRef.uploadDate ? new Date(viewRef.uploadDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : '—'}</span></div>
-              <div className={styles.issueToggleRow}>
-                <label className={styles.issueToggleLabel}>
-                  <input type="checkbox" checked={viewRef.hasIssue || false} onChange={() => {
-                    const updated = updateReference(viewRef.id, { hasIssue: !viewRef.hasIssue });
-                    if (updated) {
-                      const newRefs = getReferences(true);
-                      syncReferences(newRefs);
-                      setViewRef(prev => ({ ...prev, hasIssue: !prev.hasIssue }));
-                    }
-                  }} />
-                  <span>Mark as having an issue (instructors cannot use this reference)</span>
-                </label>
-              </div>
-                <div className={styles.commentSection}>
-                <h4 style={{ margin: '16px 0 8px 0', fontSize: 14, fontWeight: 600, color: '#374151' }}>Comments</h4>
-                {viewComments.length === 0 ? (
-                  <p style={{ margin: '0 0 8px 0', fontSize: 13, color: '#9ca3af' }}>No comments yet.</p>
+
+              <div className={styles.modalSection}>
+                <h3 className={styles.modalSectionTitle}>Department & Program</h3>
+                {(viewRef.departments || []).length > 0 ? (
+                  <div className={styles.modalRow}>
+                    <span className={styles.modalLabel}>DEPARTMENT(S)</span>
+                    <span className={styles.modalValue}>
+                      {(viewRef.departments || []).map((d, i) => (
+                        <span key={i} className={styles.deptBadge} style={{ backgroundColor: getDeptColor(d) + '1a', color: getDeptColor(d), borderLeft: `3px solid ${getDeptColor(d)}` }}>
+                          <span className={styles.deptBadgeShort}>{getDeptShort(d)}</span>
+                          <span className={styles.deptBadgeFull}>{d}</span>
+                        </span>
+                      ))}
+                    </span>
+                  </div>
                 ) : (
-                  <div style={{ marginBottom: 8, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <div className={styles.modalRow}><span className={styles.modalLabel}>DEPARTMENT(S)</span><span className={styles.modalValue} style={{ color: '#9ca3af', fontStyle: 'italic' }}>Not assigned</span></div>
+                )}
+                {(viewRef.programs || []).length > 0 ? (
+                  <div className={styles.modalRow}>
+                    <span className={styles.modalLabel}>PROGRAM(S)</span>
+                    <span className={styles.modalValue}>
+                      {(viewRef.programs || []).map((p, i) => (
+                        <span key={i} className={styles.modalProgramBadge}>{p}</span>
+                      ))}
+                    </span>
+                  </div>
+                ) : (
+                  <div className={styles.modalRow}><span className={styles.modalLabel}>PROGRAM(S)</span><span className={styles.modalValue} style={{ color: '#9ca3af', fontStyle: 'italic' }}>Not assigned</span></div>
+                )}
+                {(viewRef.usedInCourses || []).length > 0 ? (
+                  <div className={styles.modalRow}>
+                    <span className={styles.modalLabel}>USED IN COURSE(S)</span>
+                    <span className={styles.modalValue}>
+                      <div className={styles.courseGrid}>
+                        {(viewRef.usedInCourses || []).map((c, i) => (
+                          <span key={i} className={styles.courseCodeBadge}>{c}</span>
+                        ))}
+                      </div>
+                    </span>
+                  </div>
+                ) : null}
+              </div>
+
+              <div className={styles.modalSection}>
+                <h3 className={styles.modalSectionTitle}>Metadata</h3>
+                <div className={styles.modalRow}><span className={styles.modalLabel}>UPLOAD DATE</span><span className={styles.modalValue}>{viewRef.uploadDate ? new Date(viewRef.uploadDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : '—'}</span></div>
+                <div className={styles.issueToggleRow}>
+                  <label className={styles.issueToggleLabel}>
+                    <input type="checkbox" checked={viewRef.hasIssue || false} onChange={() => {
+                      const updated = updateReference(viewRef.id, { hasIssue: !viewRef.hasIssue });
+                      if (updated) {
+                        const newRefs = getReferences(true);
+                        syncReferences(newRefs);
+                        setViewRef(prev => ({ ...prev, hasIssue: !prev.hasIssue }));
+                      }
+                    }} />
+                    <span>Mark as having an issue (instructors cannot use this reference)</span>
+                  </label>
+                </div>
+              </div>
+
+              <div className={styles.commentSection}>
+                <h4 style={{ margin: '0 0 12px 0', fontSize: 14, fontWeight: 600, color: '#374151' }}>Comments</h4>
+                {viewComments.length === 0 ? (
+                  <p style={{ margin: '0 0 12px 0', fontSize: 13, color: '#9ca3af' }}>No comments yet.</p>
+                ) : (
+                  <div style={{ marginBottom: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
                     {viewComments.map(c => (
-                      <div key={c.id} style={{ padding: '10px 12px', background: '#f9fafb', borderRadius: 6, border: '1px solid #e5e7eb' }}>
+                      <div key={c.id} style={{ padding: '12px 14px', background: '#f9fafb', borderRadius: 8, border: '1px solid #e5e7eb' }}>
                         <div style={{ fontSize: 13, color: '#111827', marginBottom: 4 }}>{c.text}</div>
                         <div style={{ fontSize: 11, color: '#9ca3af' }}>{c.author} &middot; {new Date(c.createdAt).toLocaleString()}</div>
                       </div>
@@ -477,13 +910,13 @@ const ReferenceLibrary = () => {
                   </div>
                 )}
                 <div style={{ display: 'flex', gap: 8 }}>
-                  <input type="text" value={commentText} onChange={e => setCommentText(e.target.value)} placeholder="Write a comment..." style={{ flex: 1, padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 13, fontFamily: "'Poppins', sans-serif", outline: 'none' }} />
+                  <input type="text" value={commentText} onChange={e => setCommentText(e.target.value)} placeholder="Write a comment..." style={{ flex: 1, padding: '10px 14px', border: '1px solid #d1d5db', borderRadius: 8, fontSize: 13, fontFamily: "'Poppins', sans-serif", outline: 'none' }} />
                   <button onClick={() => {
                     if (!commentText.trim()) return;
                     addReferenceComment(viewRef.id, commentText.trim(), getRoleName('director-of-libraries'));
                     setViewComments(getReferenceComments(viewRef.id));
                     setCommentText('');
-                  }} style={{ padding: '8px 16px', background: '#1e3a5f', color: 'white', border: 'none', borderRadius: 6, fontSize: 13, fontWeight: 500, cursor: 'pointer', whiteSpace: 'nowrap' }}>Post</button>
+                  }} style={{ padding: '10px 20px', background: '#1e3a5f', color: 'white', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 500, cursor: 'pointer', whiteSpace: 'nowrap' }}>Post</button>
                 </div>
               </div>
             </div>
