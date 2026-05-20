@@ -12,13 +12,21 @@ function initSyllabi() {
   return [...staticSyllabi]
 }
 
+const normalizeInstructor = (s) => {
+  if (!s.instructor || s.instructor.toLowerCase().includes('norton') || s.instructor.toLowerCase().includes('monica')) {
+    return { ...s, instructor: 'CASIMERO, DANNY' }
+  }
+  return s
+}
+
 export function getSyllabi() {
-  return initSyllabi()
+  return initSyllabi().map(normalizeInstructor)
 }
 
 export function getSyllabus(code) {
   const all = initSyllabi()
-  return all.find(s => s.code === code) || null
+  const found = all.find(s => s.code === code) || null
+  return found ? normalizeInstructor(found) : null
 }
 
 export function updateSyllabus(code, updates) {

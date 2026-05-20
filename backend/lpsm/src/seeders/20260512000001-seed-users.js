@@ -50,6 +50,14 @@ module.exports = {
         email: 'michael.johnson@unc.edu',
         created_at: new Date(),
         updated_at: new Date()
+      },
+      {
+        id: 50,
+        name: 'Mr. Carlos Garcia',
+        role: 'oic_ovpaa',
+        email: 'carlos.garcia@unc.edu',
+        created_at: new Date(),
+        updated_at: new Date()
       }
     ]);
   },

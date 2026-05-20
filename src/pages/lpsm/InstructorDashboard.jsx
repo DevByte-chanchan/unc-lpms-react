@@ -1,118 +1,142 @@
-import { useState, useMemo } from 'react';
-import { Link } from 'react-router-dom';
-import { FileText, AlertCircle, CheckCircle, Eye, Search, Filter, ChevronRight } from 'react-feather';
+import { useState, useMemo, useEffect } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
+import { FileText, AlertCircle, CheckCircle, ChevronRight, Download } from 'react-feather';
 import SkeletonA from '../../layouts/SkeletonA.jsx';
 import HeaderA from '../../components/HeaderA.jsx';
 import SideNavigation from '../../components/SideNavigation.jsx';
 import styles from './InstructorDashboard.module.scss';
+import { syllabiData, getSyllabusByCode } from '../../data/syllabiData.js';
+import { getWorkflow } from '../../utils/workflowHelpers.js';
+import { exportSyllabusToPDF } from '../../utils/pdfExport.js';
 
-const syllabusPackages = [
-  {
-    id: '1',
-    courseCode: 'CS 101',
-    courseName: 'Introduction to Computer Science',
-    semester: 'Fall 2024',
-    program: 'Computer Science',
-    progDocs: '3/3',
-    reference: '1/1',
-    overallStatus: 'Under-review',
-    submittedDate: 'May 12, 2026'
-  },
-  {
-    id: '2',
-    courseCode: 'CS 201',
-    courseName: 'Data Structures',
-    semester: 'Fall 2024',
-    program: 'Computer Science',
-    progDocs: '3/3',
-    reference: '1/1',
-    overallStatus: 'Under-review',
-    submittedDate: 'May 13, 2026'
-  },
-  {
-    id: '3',
-    courseCode: 'CS 301',
-    courseName: 'Algorithms',
-    semester: 'Fall 2024',
-    program: 'Computer Science',
-    progDocs: '2/3',
-    reference: '0/1',
-    overallStatus: 'Draft',
-    submittedDate: '—'
-  },
-  {
-    id: '4',
-    courseCode: 'MATH 101',
-    courseName: 'Calculus I',
-    semester: 'Fall 2024',
-    program: 'Mathematics',
-    progDocs: '3/3',
-    reference: '1/1',
-    overallStatus: 'Approved',
-    submittedDate: 'May 5, 2026'
-  },
-  {
-    id: '5',
-    courseCode: 'CS 102',
-    courseName: 'Programming Fundamentals',
-    semester: 'Spring 2024',
-    program: 'Computer Science',
-    progDocs: '3/3',
-    reference: '1/1',
-    overallStatus: 'Approved',
-    submittedDate: 'Jan 15, 2026'
-  },
-  {
-    id: '6',
-    courseCode: 'MATH 201',
-    courseName: 'Calculus II',
-    semester: 'Fall 2024',
-    program: 'Mathematics',
-    progDocs: '3/3',
-    reference: '1/1',
-    overallStatus: 'Returned',
-    submittedDate: 'May 1, 2026'
-  }
-];
+// One-time fix: normalize all instructor names in localStorage
+(function fixInstructorNames() {
+  const FLAG = 'lpsm_instructor_fix_v2'
+  if (localStorage.getItem(FLAG)) return
+  try {
+    const raw = localStorage.getItem('lpms_syllabi_v1')
+    if (raw) {
+      const data = JSON.parse(raw)
+      let changed = false
+      data.forEach(s => {
+        if (!s.instructor || s.instructor.toLowerCase().includes('norton') || s.instructor.toLowerCase().includes('monica')) {
+          s.instructor = 'CASIMERO, DANNY'
+          changed = true
+        }
+      })
+      if (changed) localStorage.setItem('lpms_syllabi_v1', JSON.stringify(data))
+    }
+  } catch (e) {}
+  localStorage.setItem(FLAG, '1')
+})()
 
 const InstructorDashboard = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [search, setSearch] = useState('');
+  const [tick, setTick] = useState(0);
+
+  const initialTab = searchParams.get('tab') || 'drafted';
+  const [activeTab, setActiveTab] = useState(initialTab);
+
+  useEffect(() => {
+    const interval = setInterval(() => setTick(t => t + 1), 2000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const tabs = [
+    { id: 'drafted', label: 'DRAFTED COURSES', statuses: ['DRAFT'] },
+    { id: 'assigned', label: 'ASSIGNED COURSES', statuses: ['PENDING', 'RETURNED'] },
+    { id: 'approved', label: 'APPROVED COURSES', statuses: ['APPROVED'] },
+  ];
+
+  const courses = useMemo(() => {
+    return syllabiData.map(s => {
+      const wf = getWorkflow(s.code);
+      const stage = wf.currentStage || 'submitted';
+      let overallStatus = 'Draft';
+      if (stage === 'approved') overallStatus = 'APPROVED';
+      else if (stage === 'returned') overallStatus = 'RETURNED';
+      else if (stage === 'submitted') overallStatus = 'DRAFT';
+      else overallStatus = 'Under-review';
+
+      const submittedDate = wf.submittedAt
+        ? new Date(wf.submittedAt).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' })
+        : '—';
+
+      const approvedDate = wf.dean?.completedAt
+        ? new Date(wf.dean.completedAt).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' })
+        : '';
+
+      return {
+        code: s.code,
+        name: s.name,
+        semester: `${s.year || ''} ${s.sem || ''}`.trim() || '—',
+        overallStatus,
+        submittedDate,
+        approvedDate,
+      };
+    });
+  }, [tick]);
+
+  const filteredByTab = useMemo(() => {
+    const tab = tabs.find(t => t.id === activeTab);
+    return courses.filter(c => tab && tab.statuses.includes(c.overallStatus));
+  }, [activeTab, courses]);
 
   const stats = useMemo(() => {
     return {
-      total: syllabusPackages.length,
-      pendingReview: syllabusPackages.filter(p => p.overallStatus === 'Under-review').length,
-      underReview: syllabusPackages.filter(p => p.overallStatus === 'Under-review').length,
-      approved: syllabusPackages.filter(p => p.overallStatus === 'Approved').length,
-      returned: syllabusPackages.filter(p => p.overallStatus === 'Returned').length
+      total: courses.length,
+      pendingReview: courses.filter(p => p.overallStatus === 'Under-review').length,
+      approved: courses.filter(p => p.overallStatus === 'APPROVED').length,
+      returned: courses.filter(p => p.overallStatus === 'RETURNED').length
     };
-  }, []);
+  }, [courses]);
 
   const filteredPackages = useMemo(() => {
-    return syllabusPackages.filter(pkg => {
+    return filteredByTab.filter(pkg => {
       const q = search.toLowerCase();
-      return pkg.courseCode.toLowerCase().includes(q) || pkg.courseName.toLowerCase().includes(q);
+      return pkg.code.toLowerCase().includes(q) || pkg.name.toLowerCase().includes(q);
     });
-  }, [search]);
+  }, [search, filteredByTab]);
 
   const getStatusClass = (status) => {
     switch (status) {
       case 'Under-review': return styles.statusUnderReview;
-      case 'Approved': return styles.statusApproved;
-      case 'Returned': return styles.statusReturned;
-      case 'Draft': return styles.statusDraft;
+      case 'APPROVED': return styles.statusApproved;
+      case 'RETURNED': return styles.statusReturned;
+      case 'DRAFT': return styles.statusDraft;
       default: return styles.statusDraft;
     }
   };
 
+  const generatePDF = (course) => {
+    const syllabus = getSyllabusByCode(course.code);
+    if (syllabus) exportSyllabusToPDF(syllabus, course.code);
+  };
+
   const content = (
     <div className={styles.container}>
-      {/* Header */}
       <div className={styles.header}>
-        <h1>SYLLABUS PACKAGES REVIEW</h1>
+        <h1 key={activeTab}>{activeTab === 'drafted' ? 'DRAFTED COURSES' : activeTab === 'assigned' ? 'ASSIGNED COURSES' : 'APPROVED COURSES'}</h1>
       </div>
 
-      {/* Stats Cards */}
+      <div style={{ display: 'flex', gap: 0, marginBottom: 20, borderBottom: '2px solid #e5e7eb' }}>
+        {tabs.map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => { setActiveTab(tab.id); setSearchParams({ tab: tab.id }); }}
+            style={{
+              padding: '10px 24px', fontSize: 14, fontWeight: 600, cursor: 'pointer',
+              border: 'none', borderBottom: activeTab === tab.id ? '2px solid #1e3a5f' : '2px solid transparent',
+              background: 'transparent', color: activeTab === tab.id ? '#1e3a5f' : '#6b7280',
+              marginBottom: -2, transition: 'all 0.2s'
+            }}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
       <div className={styles.statsGrid}>
         <div className={styles.statCard}>
           <div className={`${styles.statIconWrap} ${styles.statIconBlue}`}>
@@ -152,7 +176,6 @@ const InstructorDashboard = () => {
         </div>
       </div>
 
-      {/* Table */}
       <div className={styles.tableWrapper}>
         <table>
           <thead>
@@ -161,30 +184,44 @@ const InstructorDashboard = () => {
               <th width={320}>COURSE NAME</th>
               <th width={140}>SEMESTER</th>
               <th width={150}>STATUS</th>
-              <th width={150}>SUBMITTED</th>
+              <th width={150}>{activeTab === 'approved' ? 'DATE APPROVED' : 'SUBMITTED'}</th>
+              {activeTab === 'approved' && <th width={120}>EXPORT</th>}
               <th className={styles.fill}></th>
             </tr>
           </thead>
           <tbody>
-            {filteredPackages.map((pkg, idx) => (
+            {filteredPackages.length === 0 ? (
+              <tr><td colSpan={activeTab === 'approved' ? 7 : 6} style={{ textAlign: 'center', padding: '60px 20px', color: '#9CA3AF' }}>No {tabs.find(t => t.id === activeTab)?.label.toLowerCase()} found.</td></tr>
+            ) : (filteredPackages.map((pkg, idx) => (
               <tr key={idx}>
-                <td width={150}>{pkg.courseCode}</td>
-                <td width={320}>{pkg.courseName}</td>
+                <td width={150}>{pkg.code}</td>
+                <td width={320}>{pkg.name}</td>
                 <td width={140}>{pkg.semester}</td>
                 <td width={150}>
                   <span className={`${styles.statusBadge} ${getStatusClass(pkg.overallStatus)}`}>
-                    {pkg.overallStatus}
+                    {pkg.overallStatus === 'APPROVED' ? 'Approved' : pkg.overallStatus === 'RETURNED' ? 'Returned' : pkg.overallStatus}
                   </span>
                 </td>
-                <td width={150}>{pkg.submittedDate}</td>
+                <td width={150}>{activeTab === 'approved' ? pkg.approvedDate : pkg.submittedDate}</td>
+                {activeTab === 'approved' && (
+                  <td width={120}>
+                    <button
+                      onClick={() => generatePDF(pkg)}
+                      className={'actionLink'}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', gap: '4px' }}
+                    >
+                      Export <Download size={18} />
+                    </button>
+                  </td>
+                )}
                 <td className={styles.fill}>
-                  <Link className="actionLink" to={`/lpsm/instructor/documents/${pkg.id}`}>
-                    View Docs
+                  <Link className="actionLink" to={`/role/instructor/courses/${encodeURIComponent(pkg.code)}`} state={{ fromTab: activeTab }}>
+                    View
                     <ChevronRight size={18} />
                   </Link>
                 </td>
               </tr>
-            ))}
+            )))}
           </tbody>
         </table>
       </div>

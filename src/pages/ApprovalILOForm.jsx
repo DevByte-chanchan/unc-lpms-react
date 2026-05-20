@@ -34,10 +34,16 @@ const ApprovalILOForm = () => {
     'program-head': 'DANILA, JUNAR',
     'dean': 'REYES, AGNES',
     'industry-consultant': 'CRUZ, ROBERTO',
-    'director-of-libraries': 'SANTOS, MARIA'
+    'director-of-libraries': 'SANTOS, MARIA',
+    'instructor': 'CASIMERO, DANNY',
+    'oic-ovpaa': 'GARCIA, CARLOS'
+  };
+  const normalizeName = (name) => {
+    if (!name || name.toLowerCase().includes('norton') || name.toLowerCase().includes('monica')) return 'CASIMERO, DANNY';
+    return name;
   };
   const storedUser = JSON.parse(localStorage.getItem('user') || 'null');
-  const approverName = storedUser?.name || defaultNames[roleKey] || displayRole;
+  const approverName = normalizeName(storedUser?.name || defaultNames[roleKey] || displayRole);
 
   const co1 = 'Apply core concepts, theories, and principles of Human-Computer Interface (HCI) in proposing a User Interface (UI) design using Figma to translate a design brief into interactive screen layouts and UI components with a high-fidelity prototype demonstrating clarity, consistency, and appropriate use of visual hierarchy.';
 

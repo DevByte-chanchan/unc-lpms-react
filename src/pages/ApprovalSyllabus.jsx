@@ -13,22 +13,32 @@ const roleNames = {
   'industry-consultant': 'Industry Consultant',
   'dean': 'Dean',
   'instructor': 'Instructor',
-  'hr-staff': 'HR Staff'
+  'oic-ovpaa': 'OIC-OVPAA'
 }
 
 const approverDisplayNames = {
   'program-head': 'DANILA, JUNAR',
   'dean': 'REYES, AGNES',
   'industry-consultant': 'CRUZ, ROBERTO',
-  'director-of-libraries': 'SANTOS, MARIA'
+  'director-of-libraries': 'SANTOS, MARIA',
+  'instructor': 'CASIMERO, DANNY',
+  'oic-ovpaa': 'GARCIA, CARLOS'
+}
+
+const normalizeName = (name) => {
+  if (!name || name.toLowerCase().includes('norton') || name.toLowerCase().includes('monica')) {
+    return 'CASIMERO, DANNY';
+  }
+  return name;
 }
 
 const ApprovalSyllabus = () => {
-  const { approver, courseName } = useParams(); // courseName will be encoded code/name
+  const { approver, courseName } = useParams();
 
   const formattedRole = approver ? (roleNames[approver] || approver.split('-').map(w => w[0].toUpperCase() + w.slice(1)).join(' ')) : 'Approver';
   const storedUser = JSON.parse(localStorage.getItem('user') || 'null');
-  const approverName = approver ? (approverDisplayNames[approver] || storedUser?.name || 'CASIMERO, DANNY') : (storedUser?.name || 'Approver');
+  const rawName = approver ? (approverDisplayNames[approver] || storedUser?.name || 'CASIMERO, DANNY') : (storedUser?.name || 'Approver');
+  const approverName = normalizeName(rawName);
 
   // normalized role key (pass to SideNavigation and sections)
   const roleKey = approver || 'program-head';

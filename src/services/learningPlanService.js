@@ -96,3 +96,77 @@ export const deleteProgramDocument = (role, userId, programId, academicPeriodId,
   axios.delete(`${API_BASE_URL}/program-documents/${programId}/${academicPeriodId}/${documentType}`, {
     headers: getHeaders(role, userId)
   });
+
+// ============ VERSION HISTORY ============
+
+export const getLPVersions = (role, userId, id) =>
+  axios.get(`${API_BASE_URL}/learning-plans/${id}/versions`, {
+    headers: getHeaders(role, userId)
+  });
+
+export const getLPVersion = (role, userId, id, versionNo) =>
+  axios.get(`${API_BASE_URL}/learning-plans/${id}/versions/${versionNo}`, {
+    headers: getHeaders(role, userId)
+  });
+
+export const rollbackToVersion = (role, userId, planId, versionNo) =>
+  axios.post(`${API_BASE_URL}/learning-plans/${planId}/rollback/${versionNo}`, {}, {
+    headers: getHeaders(role, userId)
+  });
+
+// ============ AUTO-POPULATION ============
+
+export const getLPTemplate = (role, userId, courseCode) =>
+  axios.get(`${API_BASE_URL}/learning-plans/template`, {
+    params: { course_code: courseCode },
+    headers: getHeaders(role, userId)
+  });
+
+export const getAvailableTemplates = (role, userId, courseCode) =>
+  axios.get(`${API_BASE_URL}/learning-plans/templates/available`, {
+    params: { course_code: courseCode },
+    headers: getHeaders(role, userId)
+  });
+
+export const createFromTemplate = (role, userId, data) =>
+  axios.post(`${API_BASE_URL}/learning-plans/templates/create-from`, data, {
+    headers: getHeaders(role, userId)
+  });
+
+export const markAsTemplate = (role, userId, planId) =>
+  axios.post(`${API_BASE_URL}/learning-plans/${planId}/mark-as-template`, {}, {
+    headers: getHeaders(role, userId)
+  });
+
+export const getTemplateStats = (role, userId) =>
+  axios.get(`${API_BASE_URL}/learning-plans/templates/stats`, {
+    headers: getHeaders(role, userId)
+  });
+
+// ============ PDF EXPORT ============
+
+export const exportPDF = (role, userId, planId) =>
+  axios.get(`${API_BASE_URL}/learning-plans/${planId}/export/pdf`, {
+    headers: getHeaders(role, userId),
+    responseType: 'blob'
+  });
+
+export const exportBatchPDF = (role, userId, planIds) =>
+  axios.post(`${API_BASE_URL}/learning-plans/export/batch`, { plan_ids: planIds }, {
+    headers: getHeaders(role, userId),
+    responseType: 'blob'
+  });
+
+// ============ OIC-OVPAA ============
+
+export const getApprovedLearningPlans = (role, userId, filters = {}) =>
+  axios.get(`${API_BASE_URL}/learning-plans`, {
+    params: { ...filters, status: 'approved' },
+    headers: getHeaders(role, userId)
+  });
+
+export const exportLPBatch = (role, userId, planIds) =>
+  axios.post(`${API_BASE_URL}/learning-plans/export/batch`, { plan_ids: planIds }, {
+    headers: getHeaders(role, userId),
+    responseType: 'blob'
+  });

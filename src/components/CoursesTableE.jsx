@@ -183,11 +183,11 @@ const CoursesTable = ({}) => {
                         <thead>
                         <tr>
                             <th width={150}>CODE</th>
-                            <th width={350}>COURSE NAME</th>
+                            <th width={320}>COURSE NAME</th>
                             <th width={200}>DATE SUBMITTED</th>
                             <th width={200}>DATE APPROVED</th>
-                            <th width={120}>STATUS</th>
-                            <th width={100}>EXPORT</th>
+                            <th width={140}>STATUS</th>
+                            <th width={120}>EXPORT</th>
                             <th className={styles.fill}></th>
                         </tr>
                         </thead>
@@ -198,11 +198,11 @@ const CoursesTable = ({}) => {
                             .map((row, index) => (
                                 <tr key={index}>
                                     <td width={150}>{row.code}</td>
-                                    <td width={350}>{row.name}</td>
+                                    <td width={320}>{row.name}</td>
                                     <td width={200}>{row.update}</td>
                                     <td width={200}>{row.approved}</td>
-                                    <td width={120}>{row.status}</td>
-                                    <td width={100}>
+                                    <td width={140}>{row.status}</td>
+                                    <td width={120}>
                                         <button
                                             onClick={() => generatePDF(row)}
                                             className={'actionLink'}
@@ -239,7 +239,7 @@ const CoursesTable = ({}) => {
                             <th width={150}></th>
                             <th width={300}></th>
                             <th width={160}></th>
-                            <th style={{borderLeft: "5px solid white"}} className={styles.lighten} width={200}>Library Director</th>
+                            <th style={{borderLeft: "5px solid white"}} className={styles.lighten} width={200}>Director of Libraries</th>
                             <th className={styles.lighten} width={200}>Industry Consultant</th>
                             <th className={styles.lighten} width={200}>Program Head</th>
                             <th style={{borderRight: "5px solid white"}} className={styles.lighten} width={200}>Dean</th>

@@ -14,7 +14,7 @@ import ProgramHeadIndustryConsultant from "./pages/ProgramHeadIndustryConsultant
 import ProgramHeadCourseOfferings from "./pages/ProgramHeadCourseOfferings.jsx";
 import ApprovalSyllabus from "./pages/ApprovalSyllabus.jsx";
 import Dean from "./pages/Dean.jsx";
-import HRStaff from "./pages/HRStaff.jsx";
+import OICOVPAA from "./pages/HRStaff.jsx";
 
 
 function App() {
@@ -29,7 +29,7 @@ function App() {
                     <Route path={'/role/program-head/industry-consultant'} element={<ProgramHeadIndustryConsultant />} />
                     <Route path={'/role/program-head/course-offerings'} element={<ProgramHeadCourseOfferings />} />
                     <Route path={'/role/dean'} element={<Dean />} />
-                    <Route path={'/role/hr-staff'} element={<HRStaff />} />
+                    <Route path={'/role/oic-ovpaa'} element={<OICOVPAA />} />
                      {/* Generic role pages: default to approval-course-table */}
                      <Route path="/role/:approver">
                          <Route index element={<Navigate to="approval-course-table" replace />} />

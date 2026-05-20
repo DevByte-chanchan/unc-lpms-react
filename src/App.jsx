@@ -18,11 +18,13 @@ import ProgramHeadIndustryConsultant from "./pages/ProgramHeadIndustryConsultant
 import ProgramHeadCourseOfferings from "./pages/ProgramHeadCourseOfferings.jsx";
 import ApprovalSyllabus from "./pages/ApprovalSyllabus.jsx";
 import Dean from "./pages/Dean.jsx";
-import HRStaff from "./pages/HRStaff.jsx";
+import OICOVPAA from "./pages/OICOVPAA.jsx";
 
 // Instructor LPSM Pages
 import InstructorDashboard from "./pages/lpsm/InstructorDashboard.jsx";
 import DocumentsViewer from "./pages/lpsm/DocumentsViewer.jsx";
+import LearningPlanCompose from "./pages/lpsm/Instructor/LearningPlanCompose.jsx";
+import VersionSnapshot from "./pages/lpsm/Instructor/VersionSnapshot.jsx";
 
 // Program Head & Director LPSM Pages
 import ProgramHeadDashboard from "./pages/lpsm/ProgramHeadDashboard.jsx";
@@ -33,7 +35,18 @@ import DirectorDocumentUpload from "./pages/lpsm/DirectorOfLibraries/DocumentUpl
 import DirectorReferenceLibrary from "./pages/lpsm/DirectorOfLibraries/ReferenceLibrary.jsx";
 import DirectorAddReference from "./pages/lpsm/DirectorOfLibraries/AddReference.jsx";
 import DirectorViewReference from "./pages/lpsm/DirectorOfLibraries/ViewReference.jsx";
+
+// OIC-OVPAA LPSM Pages
+import OICOVPAADashboard from "./pages/lpsm/OICOvpaa/OICOVPAADashboard.jsx";
+
+// Route Guard
+import ProtectedRoute from "./components/ProtectedRoute.jsx";
+
+// Error Boundary
+import ErrorBoundary from "./components/ErrorBoundary.jsx";
+
 import { seedDemoWorkflows } from './utils/workflowHelpers';
+import { logActivity } from './utils/auditLogger';
 
 // ── Seed demo data only if none exists ───────────────────────────────────
 ;(function seedOnce() {
@@ -79,67 +92,134 @@ import { seedDemoWorkflows } from './utils/workflowHelpers';
 
 seedDemoWorkflows()
 
+// One-time migration: fix corrupted instructor names in localStorage
+;(function fixInstructorNames() {
+  const FLAG = 'lpsm_instructor_fix_v1'
+  if (localStorage.getItem(FLAG)) return
+  try {
+    const raw = localStorage.getItem('lpms_syllabi_v1')
+    if (raw) {
+      const data = JSON.parse(raw)
+      let changed = false
+      data.forEach(s => {
+        if (!s.instructor || s.instructor.toLowerCase().includes('norton') || s.instructor.toLowerCase().includes('monica')) {
+          s.instructor = 'CASIMERO, DANNY'
+          changed = true
+        }
+      })
+      if (changed) localStorage.setItem('lpms_syllabi_v1', JSON.stringify(data))
+    }
+  } catch (e) {}
+  localStorage.setItem(FLAG, '1')
+})()
+
+// Seed audit activity log if empty
+;(function seedActivityLog() {
+  const ACTIVITY_KEY = 'lpsm_audit_activity_v1'
+  const SEED_FLAG = 'lpsm_audit_seeded_v1'
+  if (localStorage.getItem(SEED_FLAG)) return
+
+  const now = new Date()
+  const d = (hours) => new Date(now.getTime() - hours * 3600000).toISOString()
+
+  const activities = [
+    { action: 'approval_approved', user: { name: 'GARCIA, CARLOS', role: 'oic-ovpaa' }, details: { courseCode: 'BSCS121' }, message: 'Approved syllabus BSCS121', timestamp: d(2) },
+    { action: 'approval_approved', user: { name: 'GARCIA, CARLOS', role: 'oic-ovpaa' }, details: { courseCode: 'IT 211' }, message: 'Approved syllabus IT 211', timestamp: d(4) },
+    { action: 'export', user: { name: 'CASIMERO, DANNY', role: 'instructor' }, details: { exportType: 'pdf', courseCode: 'BSCS313L' }, message: 'Exported syllabus BSCS313L to PDF', timestamp: d(6) },
+    { action: 'form_submission', user: { name: 'CASIMERO, DANNY', role: 'instructor' }, details: { formName: 'Syllabus', courseCode: 'BSCS322L' }, message: 'Submitted syllabus BSCS322L for review', timestamp: d(8) },
+    { action: 'approval_approved', user: { name: 'REYES, AGNES', role: 'dean' }, details: { courseCode: 'BSCS313L' }, message: 'Dean approved syllabus BSCS313L', timestamp: d(10) },
+    { action: 'approval_returned', user: { name: 'DANILA, JUNAR', role: 'program-head' }, details: { courseCode: 'IT 321' }, message: 'Returned syllabus IT 321 for revisions', timestamp: d(12) },
+    { action: 'document_upload', user: { name: 'SANTOS, MARIA', role: 'director-of-libraries' }, details: { documentType: 'reference' }, message: 'Added new reference to library', timestamp: d(14) },
+    { action: 'form_submission', user: { name: 'DANILA, JUNAR', role: 'program-head' }, details: { formName: 'COAEP' }, message: 'Uploaded COAEP documents', timestamp: d(16) },
+    { action: 'export', user: { name: 'CASIMERO, DANNY', role: 'instructor' }, details: { exportType: 'pdf', courseCode: 'IT 211' }, message: 'Exported learning plan IT 211 to PDF', timestamp: d(20) },
+    { action: 'page_view', user: { name: 'GARCIA, CARLOS', role: 'oic-ovpaa' }, details: { page: '/oic-ovpaa/dashboard' }, message: 'Accessed OIC-OVPAA dashboard', timestamp: d(24) },
+  ]
+
+  localStorage.setItem(ACTIVITY_KEY, JSON.stringify(activities))
+  localStorage.setItem(SEED_FLAG, '1')
+})()
+
 function App() {
 
     return (
         <Router>
             <div className="appPage">
-                <Routes>
-                    {/* --- INSTRUCTOR / DEFAULT ROUTES --- */}
-                    <Route path={'/'} element={<AssignedCourses />} />
-                    <Route path={'/assignedtos'} element={<AssignedTOS />} />
+                <ErrorBoundary>
+                    <Routes>
+                        {/* --- INSTRUCTOR / DEFAULT ROUTES --- */}
+                        <Route path={'/'} element={<ErrorBoundary><AssignedCourses /></ErrorBoundary>} />
+                        <Route path={'/assignedtos'} element={<ErrorBoundary><AssignedTOS /></ErrorBoundary>} />
 
-                    {/* --- COURSE EDITING ROUTES --- */}
-                    <Route path={'/courses/:code'} element={<Syllabus />} />
-                    <Route path={'/revisions/:code'} element={<SyllabusRevisions />} />
+                        {/* --- COURSE EDITING ROUTES --- */}
+                        <Route path={'/courses/:code'} element={<ErrorBoundary><Syllabus /></ErrorBoundary>} />
+                        <Route path={'/revisions/:code'} element={<ErrorBoundary><SyllabusRevisions /></ErrorBoundary>} />
 
-                    {/* --- FORMS --- */}
-                    <Route path={'/references/form/:id'} element={<ReferenceForm />} />
-                    <Route path={'/references/form/:code/:refId'} element={<ReferenceForm />} />
-                    <Route path={'/topics/form/:id'} element={<TopicForm />} />
-                    <Route path={'/topics/form/:code/:topicId'} element={<TopicForm />} />
-                    <Route path={'/ilos/form/:code/:iloId'} element={<ILOForm />} />
-                    <Route path={'/assessments/form/:code/:assessmentId'} element={<AssessmentForm />} />
+                        {/* --- FORMS --- */}
+                        <Route path={'/references/form/:id'} element={<ErrorBoundary><ReferenceForm /></ErrorBoundary>} />
+                        <Route path={'/references/form/:code/:refId'} element={<ErrorBoundary><ReferenceForm /></ErrorBoundary>} />
+                        <Route path={'/topics/form/:id'} element={<ErrorBoundary><TopicForm /></ErrorBoundary>} />
+                        <Route path={'/topics/form/:code/:topicId'} element={<ErrorBoundary><TopicForm /></ErrorBoundary>} />
+                        <Route path={'/ilos/form/:code/:iloId'} element={<ErrorBoundary><ILOForm /></ErrorBoundary>} />
+                        <Route path={'/assessments/form/:code/:assessmentId'} element={<ErrorBoundary><AssessmentForm /></ErrorBoundary>} />
 
-                    {/* --- TOS (Your Feature) --- */}
-                    <Route path={'/tos/:code'} element={<TOS />} />
+                        {/* --- TOS (Your Feature) --- */}
+                        <Route path={'/tos/:code'} element={<ErrorBoundary><TOS /></ErrorBoundary>} />
 
-                    {/* --- INSTRUCTOR LPSM ROUTES --- */}
-                    <Route path="/lpsm/instructor/documents" element={<Navigate to="/lpsm/instructor/documents/2" replace />} />
-                    <Route path="/lpsm/instructor/documents/:syllabusId" element={<DocumentsViewer />} />
+                        {/* --- INSTRUCTOR LPSM ROUTES --- */}
+                        <Route path="/lpsm/instructor/documents" element={<Navigate to="/lpsm/instructor/documents/2" replace />} />
+                        <Route path="/lpsm/instructor/documents/:syllabusId" element={<ErrorBoundary><DocumentsViewer /></ErrorBoundary>} />
+                        <Route path="/role/instructor/compose" element={<ErrorBoundary><LearningPlanCompose /></ErrorBoundary>} />
+                        <Route path="/role/instructor/compose/:planId" element={<ErrorBoundary><LearningPlanCompose /></ErrorBoundary>} />
+                        <Route path="/role/instructor/plans/:planId/versions/:versionNo" element={<ErrorBoundary><VersionSnapshot /></ErrorBoundary>} />
 
-                    {/* --- PROGRAM HEAD & DIRECTOR LPSM ROUTES --- */}
-                    <Route path="/lpsm/program-head" element={<ProgramHeadDashboard />} />
-                    <Route path="/lpsm/program-head/upload/:id" element={<ProgramHeadDocumentUpload />} />
-                    <Route path="/lpsm/director" element={<ProgramHeadDashboard />} />
-                    <Route path="/lpsm/director/upload/:id" element={<DirectorDocumentUpload />} />
+                        {/* --- PROGRAM HEAD & DIRECTOR LPSM ROUTES --- */}
+                        <Route path="/lpsm/program-head" element={<ErrorBoundary><ProgramHeadDashboard /></ErrorBoundary>} />
+                        <Route path="/lpsm/program-head/upload/:id" element={<ErrorBoundary><ProgramHeadDocumentUpload /></ErrorBoundary>} />
+                        <Route path="/lpsm/director" element={<ErrorBoundary><ProgramHeadDashboard /></ErrorBoundary>} />
+                        <Route path="/lpsm/director/upload/:id" element={<ErrorBoundary><DirectorDocumentUpload /></ErrorBoundary>} />
 
-                    {/* --- ROLE-BASED ROUTES (Upcoming Features) --- */}
-                    {/* Specific role pages - must come BEFORE the generic :approver route */}
-                    <Route path={'/role/industry-consultant'} element={<ProgramHeadConsultant />} />
-                    <Route path={'/role/program-head'} element={<ProgramHead />} />
-                    <Route path={'/role/program-head/upload-documents'} element={<COAEPUpload />} />
-                    <Route path={'/role/director-of-libraries'} element={<DirectorOfLibraries />} />
-                    <Route path={'/role/director-of-libraries/upload-documents'} element={<DirectorReferenceLibrary />} />
-                    <Route path={'/role/director-of-libraries/reference-library'} element={<DirectorReferenceLibrary />} />
-                    <Route path={'/role/director-of-libraries/add-reference'} element={<DirectorAddReference />} />
-                    <Route path={'/role/director-of-libraries/view-reference/:id'} element={<DirectorViewReference />} />
-                    <Route path={'/role/director-of-libraries/edit-reference/:id'} element={<DirectorAddReference />} />
-                    <Route path={'/role/program-head/industry-consultant'} element={<ProgramHeadIndustryConsultant />} />
-                    <Route path={'/role/program-head/course-offerings'} element={<ProgramHeadCourseOfferings />} />
-                    <Route path={'/role/dean'} element={<Dean />} />
-                    <Route path={'/role/hr-staff'} element={<HRStaff />} />
+                        {/* --- ROLE-BASED ROUTES --- */}
+                        {/* Specific role pages - must come BEFORE the generic :approver route */}
+                        <Route path={'/role/industry-consultant'} element={<ErrorBoundary><ProgramHeadConsultant /></ErrorBoundary>} />
+                        <Route path={'/role/program-head'} element={<ErrorBoundary><ProgramHead /></ErrorBoundary>} />
+                        <Route path={'/role/program-head/upload-documents'} element={<ErrorBoundary><COAEPUpload /></ErrorBoundary>} />
+                        <Route path={'/role/director-of-libraries'} element={<ErrorBoundary><DirectorOfLibraries /></ErrorBoundary>} />
+                        <Route path={'/role/director-of-libraries/upload-documents'} element={<ErrorBoundary><DirectorReferenceLibrary /></ErrorBoundary>} />
+                        <Route path={'/role/director-of-libraries/reference-library'} element={<ErrorBoundary><DirectorReferenceLibrary /></ErrorBoundary>} />
+                        <Route path={'/role/director-of-libraries/add-reference'} element={<ErrorBoundary><DirectorAddReference /></ErrorBoundary>} />
+                        <Route path={'/role/director-of-libraries/view-reference/:id'} element={<ErrorBoundary><DirectorViewReference /></ErrorBoundary>} />
+                        <Route path={'/role/director-of-libraries/edit-reference/:id'} element={<ErrorBoundary><DirectorAddReference /></ErrorBoundary>} />
+                        <Route path={'/role/program-head/industry-consultant'} element={<ErrorBoundary><ProgramHeadIndustryConsultant /></ErrorBoundary>} />
+                        <Route path={'/role/program-head/course-offerings'} element={<ErrorBoundary><ProgramHeadCourseOfferings /></ErrorBoundary>} />
+                        <Route path={'/role/dean'} element={<ErrorBoundary><Dean /></ErrorBoundary>} />
+                        <Route path={'/role/oic-ovpaa'} element={<ErrorBoundary><OICOVPAA /></ErrorBoundary>} />
 
-                    {/* Generic role pages: default to approval-course-table */}
-                    <Route path="/role/:approver">
-                        <Route index element={<Navigate to="approval-course-table" replace />} />
-                        <Route path="approval-course-table" element={<ApprovalCourses />} />
+                        {/* OIC-OVPAA Dashboard Routes (Protected) */}
+                        <Route path="/oic-ovpaa/dashboard" element={
+                            <ProtectedRoute allowedRoles={['oic-ovpaa']}>
+                                <ErrorBoundary><OICOVPAADashboard /></ErrorBoundary>
+                            </ProtectedRoute>
+                        } />
+                        <Route path="/oic-ovpaa/learning-plans" element={
+                            <ProtectedRoute allowedRoles={['oic-ovpaa']}>
+                                <ErrorBoundary><OICOVPAADashboard /></ErrorBoundary>
+                            </ProtectedRoute>
+                        } />
+                        <Route path="/oic-ovpaa/approvals" element={
+                            <ProtectedRoute allowedRoles={['oic-ovpaa']}>
+                                <ErrorBoundary><OICOVPAADashboard /></ErrorBoundary>
+                            </ProtectedRoute>
+                        } />
 
-                        {/* course detail for approvers -> ApprovalSyllabus */}
-                        <Route path="courses/:courseName" element={<ApprovalSyllabus />} />
-                    </Route>
+                        {/* Generic role pages: default to approval-course-table */}
+                        <Route path="/role/:approver">
+                            <Route index element={<Navigate to="approval-course-table" replace />} />
+                            <Route path="approval-course-table" element={<ErrorBoundary><ApprovalCourses /></ErrorBoundary>} />
+                            <Route path="courses/:courseName" element={<ErrorBoundary><ApprovalSyllabus /></ErrorBoundary>} />
+                        </Route>
 
-                </Routes>
+                    </Routes>
+                </ErrorBoundary>
             </div>
         </Router>
 

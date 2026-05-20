@@ -1,6 +1,6 @@
 
 import styles from '../styles/SyllabusSections.module.sass'
-import {ChevronLeft, ChevronRight, Plus, Search, Inbox, MessageCircle, X, ExternalLink, Book} from 'react-feather';
+import {ChevronLeft, ChevronRight, Plus, Search, Inbox, MessageCircle, X, ExternalLink, Book, Download} from 'react-feather';
 import { Info } from 'react-feather';
 import React, {useEffect, useState} from "react";
 import TextField from "./TextField.jsx";
@@ -13,6 +13,8 @@ import TOSPreview from "../pages/TosPreview.jsx";
 import LibraryDirectorSuggestions from "./LibraryDirectorSuggestions.jsx";
 import { getSuggestions, acceptSuggestion, rejectSuggestion } from '../utils/dataStore.js'
 import SyllabusPreview from "./SyllabusPreview.jsx";
+import { exportSyllabusToPDF } from '../utils/pdfExport';
+import PdfExportButton from './PdfExportButton';
 
 
 
@@ -251,7 +253,22 @@ const SyllabusSections = ({status}) => {
 
                 <div onClick={handleSaveDraft} className={styles.draft}>{workflow?.currentStage && workflow?.currentStage !== 'submitted' ? 'Save' : 'Save as Draft'}</div>
 
-                <div onClick={() => setIsPreviewOpen(true)} className={styles.submit}>{workflow?.currentStage === 'returned' ? 'Submit Revision' : 'Submit'}</div>
+                {workflow?.currentStage !== 'approved' && (
+                    <div onClick={() => setIsPreviewOpen(true)} className={styles.submit}>{workflow?.currentStage === 'returned' ? 'Submit Revision' : 'Submit'}</div>
+                )}
+
+                {workflow?.currentStage === 'approved' && (
+                    <PdfExportButton
+                        syllabus={syllabus}
+                        courseCode={syllabus?.code || code || 'Course'}
+                        label="Export to PDF"
+                        variant="approved"
+                        onExportComplete={(success, msg) => {
+                            if (success) showToast('PDF exported successfully!', 'success')
+                            else showToast(msg || 'Failed to export PDF', 'warning')
+                        }}
+                    />
+                )}
             </div>
 
             <div className={styles['dynamic-sections']}>

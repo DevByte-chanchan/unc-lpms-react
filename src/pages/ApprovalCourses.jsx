@@ -27,7 +27,7 @@ const ApprovalCourses = ({ isEmbedded = false, roleOverride = null }) => {
       'industry-consultant': 'Industry Consultant',
       'dean': 'Dean',
       'instructor': 'Instructor',
-      'hr-staff': 'HR Staff'
+      'oic-ovpaa': 'OIC-OVPAA'
     }
 
     const roleDisplayNames = {
@@ -36,11 +36,18 @@ const ApprovalCourses = ({ isEmbedded = false, roleOverride = null }) => {
       'industry-consultant': 'CRUZ, ROBERTO',
       'dean': 'REYES, AGNES',
       'instructor': 'CASIMERO, DANNY',
-      'hr-staff': 'DELA CRUZ, ANA'
+      'oic-ovpaa': 'GARCIA, CARLOS'
+    }
+
+    const normalizeName = (name) => {
+      if (!name || name.toLowerCase().includes('norton') || name.toLowerCase().includes('monica')) {
+        return 'CASIMERO, DANNY';
+      }
+      return name;
     }
 
     const displayRole = role ? (roleNames[role] || role.split('-').map(w => w[0].toUpperCase() + w.slice(1)).join(' ')) : 'Approver';
-    const displayName = role ? (roleDisplayNames[role] || 'CASIMERO, DANNY') : 'Approver';
+    const displayName = normalizeName(role ? (roleDisplayNames[role] || 'CASIMERO, DANNY') : 'Approver');
 
     const content = <ApprovalCoursesTable role={role} />;
 

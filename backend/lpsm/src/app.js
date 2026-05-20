@@ -4,6 +4,7 @@ require('dotenv').config();
 const db = require('./models');
 const learningPlansRouter = require('./routes/learningPlans');
 const programDocumentsRouter = require('./routes/programDocuments');
+const { errorHandler, notFoundHandler } = require('./middleware/errorHandler');
 
 const app = express();
 
@@ -21,11 +22,11 @@ app.get('/health', (req, res) => {
   res.json({ status: 'OK', service: 'LPSM Backend' });
 });
 
-// Error handling
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ error: err.message });
-});
+// Not found handler (must be before error handler)
+app.use(notFoundHandler);
+
+// Centralized error handling (must be last)
+app.use(errorHandler);
 
 // Sync database and start server
 const PORT = process.env.PORT || 4002;

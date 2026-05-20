@@ -17,7 +17,7 @@ const prettyRoleLabel = {
   'director-of-libraries': 'Director of Libraries',
   'industry-consultant': 'Industry Consultant',
   'dean': 'Dean',
-  'hr-staff': 'HR Staff',
+  'oic-ovpaa': 'OIC-OVPAA',
   'reviewer': 'Reviewer'
 }
 
@@ -37,7 +37,7 @@ const SharedDocuments = () => {
   const roleKey = normalizeRoleKey(user.role || 'reviewer')
   const headerRole = prettyRoleLabel[roleKey] || 'Reviewer'
   const name = user.name || 'USER'
-  const navigationMode = ['instructor', 'program-head', 'director-of-libraries', 'industry-consultant', 'dean', 'hr-staff'].includes(roleKey) ? roleKey : 'program-head'
+  const navigationMode = ['instructor', 'program-head', 'director-of-libraries', 'industry-consultant', 'dean', 'oic-ovpaa'].includes(roleKey) ? roleKey : 'program-head'
 
   useEffect(() => {
     const fetchDocuments = async () => {

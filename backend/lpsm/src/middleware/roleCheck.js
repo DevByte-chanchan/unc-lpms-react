@@ -1,13 +1,15 @@
 const roleCheck = (req, res, next) => {
-  const role = req.headers['x-user-role'] || req.query.role;
-  const userId = req.headers['x-user-id'] || req.query.userId;
+  // Accept role from either header or query and normalize hyphens to underscores
+  const roleRaw = req.headers['x-user-role'] || req.query.role;
+  const userIdRaw = req.headers['x-user-id'] || req.query.userId;
 
-  if (!role || !userId) {
+  if (!roleRaw || !userIdRaw) {
     return res.status(401).json({ error: 'Missing role or userId' });
   }
 
+  const role = typeof roleRaw === 'string' ? roleRaw.replace(/-/g, '_') : roleRaw;
   req.userRole = role;
-  req.userId = parseInt(userId);
+  req.userId = parseInt(userIdRaw);
   next();
 };
 

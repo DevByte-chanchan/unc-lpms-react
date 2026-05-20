@@ -31,10 +31,16 @@ const ApprovalReferenceForm = () => {
     'program-head': 'DANILA, JUNAR',
     'dean': 'REYES, AGNES',
     'industry-consultant': 'CRUZ, ROBERTO',
-    'director-of-libraries': 'SANTOS, MARIA'
+    'director-of-libraries': 'SANTOS, MARIA',
+    'instructor': 'CASIMERO, DANNY',
+    'oic-ovpaa': 'GARCIA, CARLOS'
+  };
+  const normalizeName = (name) => {
+    if (!name || name.toLowerCase().includes('norton') || name.toLowerCase().includes('monica')) return 'CASIMERO, DANNY';
+    return name;
   };
   const storedUser = JSON.parse(localStorage.getItem('user') || 'null');
-  const approverName = storedUser?.name || defaultNames[roleKey] || displayRole;
+  const approverName = normalizeName(storedUser?.name || defaultNames[roleKey] || displayRole);
 
   const fixed = { type: 'Textbook', title: 'UI PRINCIPLES', authors: 'Don Norman', year: '2015' };
   const ReferenceTypes = ['Textbook', 'Online Resources', 'Open Educational Resources'];

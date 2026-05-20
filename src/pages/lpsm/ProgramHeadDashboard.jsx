@@ -74,7 +74,7 @@ const ProgramHeadDashboard = () => {
   const content = (
     <div className={styles.container}>
       <div className={styles.header}>
-        <h1>MY SYLLABUS PACKAGES</h1>
+        <h1>ASSIGNED COURSES</h1>
       </div>
 
       <div className={styles.statsGrid}>

@@ -1,12 +1,16 @@
 import {useState, useMemo} from 'react';
 import React from 'react';
-import {Link} from 'react-router-dom'
+import {Link, useSearchParams} from 'react-router-dom'
 import styles from '../styles/CoursesTable.module.sass';
 import { ChevronRight, Edit, CheckCircle, Clock, XCircle, Download } from 'react-feather';
 import { syllabiData } from '../data/syllabiData';
+import { exportSyllabusToPDF } from '../utils/pdfExport';
 import { getWorkflow } from '../utils/workflowHelpers';
 
 const CoursesTable = ({}) => {
+
+    const [searchParams, setSearchParams] = useSearchParams();
+    const initialStatus = searchParams.get('status') || 'DRAFT';
 
     const currentYear = new Date().getFullYear();
     const startYear = 2000;
@@ -101,8 +105,12 @@ const CoursesTable = ({}) => {
         approved: getApprovedDate(c.code),
     })), [tick])
 
-    const [selectedStatus, setSelectedStatus] = useState('DRAFT');
-    const handleStatusChange = (e) => {setSelectedStatus(e.target.value)}
+    const [selectedStatus, setSelectedStatus] = useState(initialStatus);
+    const handleStatusChange = (e) => {
+        const val = e.target.value;
+        setSelectedStatus(val);
+        setSearchParams({ status: val });
+    }
 
     const getStatusBadge = (text, type) => {
         const styles_map = {
@@ -226,380 +234,11 @@ const CoursesTable = ({}) => {
     }
 
     const generatePDF = (course) => {
-        const syllabus = getSyllabusData(course.code)
-        
-        const calculateTotal = (period) => {
-            let total = 0
-            syllabus.gradingSystem.forEach(group => {
-                if (group.ilos) {
-                    group.ilos.forEach(ilo => {
-                        total += Number(ilo.weight?.[period] || 0)
-                    })
-                }
-            })
-            return total
+        const syllabus = syllabiData.find(s => s.code === course.code)
+        if (syllabus) {
+            exportSyllabusToPDF(syllabus, course.code)
         }
-
-        const htmlContent = `
-          <!DOCTYPE html>
-          <html>
-          <head>
-            <title>${course.code}_syllabus_report</title>
-            <style>
-              @page {
-                size: A4;
-                margin: 15mm;
-              }
-              
-              body {
-                font-family: Arial, sans-serif;
-                font-size: 10pt;
-                color: #333;
-                line-height: 1.4;
-              }
-              
-              h1 {
-                color: #2563eb;
-                font-size: 18pt;
-                border-bottom: 3px solid #2563eb;
-                padding-bottom: 8px;
-                margin-bottom: 15px;
-                text-align: center;
-              }
-              
-              h2 {
-                color: #1e40af;
-                font-size: 13pt;
-                margin-top: 20px;
-                margin-bottom: 10px;
-                border-bottom: 2px solid #93c5fd;
-                padding-bottom: 5px;
-              }
-              
-              .section {
-                margin-bottom: 20px;
-                page-break-inside: avoid;
-              }
-              
-              table {
-                width: 100%;
-                border-collapse: collapse;
-                margin-bottom: 15px;
-                page-break-inside: auto;
-              }
-              
-              tr {
-                page-break-inside: avoid;
-                page-break-after: auto;
-              }
-              
-              th {
-                background-color: #2563eb;
-                color: white;
-                padding: 8px;
-                text-align: left;
-                font-size: 9pt;
-                font-weight: bold;
-                border: 1px solid #1e40af;
-              }
-              
-              td {
-                padding: 6px 8px;
-                border: 1px solid #ddd;
-                font-size: 9pt;
-                vertical-align: top;
-              }
-              
-              .course-details-table th {
-                background-color: #f3f4f6;
-                color: #374151;
-                font-weight: 600;
-                width: 30%;
-              }
-              
-              .course-details-table td {
-                background-color: white;
-              }
-              
-              .desc-cell {
-                background-color: #f9fafb;
-                padding: 10px;
-                line-height: 1.6;
-              }
-              
-              tr:nth-child(even) td {
-                background-color: #f9fafb;
-              }
-              
-              .center {
-                text-align: center;
-              }
-              
-              .bold {
-                font-weight: 600;
-              }
-              
-              .legend {
-                background-color: #fef3c7;
-                border-left: 4px solid #f59e0b;
-                padding: 10px;
-                margin-bottom: 15px;
-                font-size: 9pt;
-              }
-              
-              .legend strong {
-                color: #92400e;
-              }
-              
-              .total-row {
-                background-color: #dbeafe !important;
-                font-weight: bold;
-              }
-              
-              .total-row td {
-                background-color: #dbeafe !important;
-                border-top: 2px solid #2563eb;
-              }
-              
-              .footer {
-                margin-top: 30px;
-                padding-top: 10px;
-                border-top: 1px solid #ddd;
-                font-size: 8pt;
-                color: #6b7280;
-                text-align: center;
-              }
-              
-              .sub-header {
-                background-color: #60a5fa !important;
-                font-size: 8pt;
-              }
-              
-              .topic-block {
-                margin-bottom: 8px;
-              }
-              
-              .topic-title {
-                font-weight: 600;
-                margin-bottom: 3px;
-              }
-              
-              ul {
-                margin: 3px 0;
-                padding-left: 15px;
-              }
-              
-              li {
-                margin: 2px 0;
-                font-size: 8.5pt;
-              }
-              
-              .tla-group {
-                margin-bottom: 10px;
-              }
-              
-              .tla-phase {
-                font-weight: 600;
-                color: #1e40af;
-                margin-bottom: 5px;
-                font-size: 9pt;
-              }
-              
-              .tla-item {
-                margin-bottom: 6px;
-                padding-left: 10px;
-              }
-              
-              .tla-name {
-                font-weight: 600;
-              }
-              
-              .assessment-item {
-                margin-bottom: 6px;
-              }
-            </style>
-          </head>
-          <body>
-            <h1>COURSE SYLLABUS</h1>
-            
-            <!-- COURSE DETAILS -->
-            <div class="section">
-              <h2>Course Details</h2>
-              <table class="course-details-table">
-                <tr>
-                  <th>Course No.</th>
-                  <td>${syllabus.code}</td>
-                  <th rowspan="9" style="vertical-align: top;">Course Description</th>
-                </tr>
-                <tr>
-                  <th>Course Title</th>
-                  <td class="bold">${syllabus.name}</td>
-                  <td rowspan="9" class="desc-cell">${syllabus.description}</td>
-                </tr>
-                <tr>
-                  <th>Credit</th>
-                  <td>${syllabus.credits}</td>
-                </tr>
-                <tr>
-                  <th>Contact Hours/Week</th>
-                  <td>${syllabus.contact}</td>
-                </tr>
-                <tr>
-                  <th>Pre-requisites</th>
-                  <td>${syllabus.prerequisites}</td>
-                </tr>
-                <tr>
-                  <th>Classification/Field</th>
-                  <td>${syllabus.class}</td>
-                </tr>
-                <tr>
-                  <th>CMO</th>
-                  <td>${syllabus.cmo}</td>
-                </tr>
-                <tr>
-                  <th>Syllabus Revision No.</th>
-                  <td>${syllabus.revision}</td>
-                </tr>
-                <tr>
-                  <th>Year Level</th>
-                  <td>${syllabus.year}</td>
-                </tr>
-                <tr>
-                  <th>Term</th>
-                  <td>${syllabus.sem}</td>
-                </tr>
-              </table>
-            </div>
-
-            <!-- COURSE AND PROGRAM OUTCOME ALIGNMENT -->
-            <div class="section">
-              <h2>Course and Program Outcome Alignment</h2>
-              <div class="legend">
-                <strong>Legend:</strong> I – Introductory | E – Enabling | D – Demonstrative
-              </div>
-              <table>
-                <thead>
-                  <tr>
-                    <th style="width: 40%;">After completion of the course, the student should be able to:</th>
-                    ${['PO1', 'PO2', 'PO3', 'PO4', 'PO5', 'PO6', 'PO7', 'PO8', 'PO9'].map(po => 
-                      '<th class="center" style="width: 6%;">' + po + '</th>'
-                    ).join('')}
-                  </tr>
-                </thead>
-                <tbody>
-                  ${syllabus.courseOutcomes.map(co => 
-                    '<tr><td><strong>' + co.id + ':</strong> ' + co.description + '</td>' +
-                    co.poMappings.map(mapping => '<td class="center">' + mapping + '</td>').join('') +
-                    '</tr>'
-                  ).join('')}
-                </tbody>
-              </table>
-            </div>
-
-            <!-- REFERENCES -->
-            <div class="section">
-              <h2>References - Textbooks</h2>
-              <table>
-                <thead>
-                  <tr>
-                    <th style="width: 8%;">ID</th>
-                    <th style="width: 35%;">TITLE</th>
-                    <th style="width: 25%;">AUTHOR/S</th>
-                    <th style="width: 22%;">ISBN</th>
-                    <th style="width: 10%;">YEAR</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  ${syllabus.references.filter(r => r.type === 'Textbook').map((ref, i) => 
-                    '<tr><td class="center">TB' + (i + 1) + '</td><td>' + ref.title + '</td><td>' + ref.authors + '</td><td>' + (ref.isbn || '-') + '</td><td class="center">' + ref.year + '</td></tr>'
-                  ).join('')}
-                </tbody>
-              </table>
-            </div>
-
-            <div class="section">
-              <h2>References - Online Resources</h2>
-              <table>
-                <thead>
-                  <tr>
-                    <th style="width: 8%;">ID</th>
-                    <th style="width: 30%;">TITLE</th>
-                    <th style="width: 22%;">AUTHOR/S</th>
-                    <th style="width: 30%;">LINK</th>
-                    <th style="width: 10%;">YEAR</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  ${syllabus.references.filter(r => r.type === 'Online Resources').map((ref, i) => 
-                    '<tr><td class="center">OR' + (i + 1) + '</td><td>' + ref.title + '</td><td>' + ref.authors + '</td><td style="word-break: break-all; font-size: 8pt;">' + ref.link + '</td><td class="center">' + ref.year + '</td></tr>'
-                  ).join('')}
-                </tbody>
-              </table>
-            </div>
-
-            <!-- CRITERIA FOR GRADING -->
-            <div class="section">
-              <h2>Criteria for Grading</h2>
-              <table>
-                <thead>
-                  <tr>
-                    <th rowspan="2" style="width: 12%;">COURSE OUTCOME</th>
-                    <th rowspan="2" style="width: 10%;">ILO #</th>
-                    <th rowspan="2" style="width: 30%;">ASSESSMENTS</th>
-                    <th colspan="4" class="center">WEIGHT %</th>
-                    <th rowspan="2" style="width: 12%;">MIN PASSING %</th>
-                  </tr>
-                  <tr class="sub-header">
-                    <th class="center" style="width: 9%;">Prelim</th>
-                    <th class="center" style="width: 9%;">Midterm</th>
-                    <th class="center" style="width: 9%;">Semi</th>
-                    <th class="center" style="width: 9%;">Final</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  ${syllabus.gradingSystem.map(group => 
-                    group.ilos.map((ilo, index) => 
-                      '<tr>' +
-                      (index === 0 ? '<td rowspan="' + group.ilos.length + '" class="center bold">' + group.co + '</td>' : '') +
-                      '<td class="center bold">' + ilo.id + '</td>' +
-                      '<td>' + (Array.isArray(ilo.assessments) ? ilo.assessments.join(', ') : ilo.assessments) + '</td>' +
-                      '<td class="center">' + (ilo.weight?.prelim || '') + '</td>' +
-                      '<td class="center">' + (ilo.weight?.midterm || '') + '</td>' +
-                      '<td class="center">' + (ilo.weight?.semi || '') + '</td>' +
-                      '<td class="center">' + (ilo.weight?.final || '') + '</td>' +
-                      '<td class="center">' + ilo.minPassing + '</td>' +
-                      '</tr>'
-                    ).join('')
-                  ).join('')}
-                  <tr class="total-row">
-                    <td colspan="3" class="center">TOTAL</td>
-                    <td class="center">${calculateTotal('prelim')}%</td>
-                    <td class="center">${calculateTotal('midterm')}%</td>
-                    <td class="center">${calculateTotal('semi')}%</td>
-                    <td class="center">${calculateTotal('final')}%</td>
-                    <td></td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-
-            <div class="footer">
-              <p>Generated on: ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}</p>
-              <p>Course Code: ${course.code} | ${course.name}</p>
-            </div>
-          </body>
-          </html>
-        `
-
-        const printWindow = window.open('', '', 'width=1024,height=768')
-        printWindow.document.write(htmlContent)
-        printWindow.document.close()
-        
-        setTimeout(() => {
-            printWindow.print()
-        }, 500)
     }
-
 
     return (
         <div className={styles['courses-table']}>
@@ -639,7 +278,7 @@ const CoursesTable = ({}) => {
                             <th width={150}>PROGRAM</th>
                             <th width={150}>LAST UPDATED</th>
                             <th width={100}>STATUS</th>
-                            {selectedStatus === 'APPROVED' && <th width={100}>EXPORT</th>}
+                            {selectedStatus === 'APPROVED' && <th width={120}>EXPORT</th>}
                             <th className={styles.fill}></th>
                         </tr>
                         </thead>
@@ -653,11 +292,11 @@ const CoursesTable = ({}) => {
                                     <td width={300}>{row.name}</td>
                                     <td width={150}>{row.program}</td>
                                     <td width={150}>{row.lastUpdated}</td>
-                                    <td width={100}>
+                                    <td width={140}>
                                         {selectedStatus === 'DRAFT' ? getStatusBadge('Draft', 'draft') : getStatusBadge('Approved', 'approved')}
                                     </td>
                                     {selectedStatus === 'APPROVED' && (
-                                        <td width={100}>
+                                        <td width={120}>
                                             <button 
                                                 onClick={() => generatePDF(row)}
                                                 className={'actionLink'}
@@ -669,7 +308,7 @@ const CoursesTable = ({}) => {
                                     )}
                                     <td className={styles.fill}>
                                         <Link className={'actionLink'} to={selectedStatus === 'APPROVED' ? `/role/instructor/courses/${encodeURIComponent(row.code)}?status=approved` : `/courses/${encodeURIComponent(row.code)}`}
-                                            state={{ from: '/' }}
+                                            state={{ from: '/', fromStatus: selectedStatus }}
                                             style={{
                                                 display: 'flex',
                                                 alignItems: 'center',
@@ -707,7 +346,7 @@ const CoursesTable = ({}) => {
                                 <th width={250}></th>
                                 <th width={120}></th>
                                 <th width={140}></th>
-                                <th style={{borderLeft: "5px solid white"}} className={styles.lighten} width={162.5}>Library Director</th>
+                                <th style={{borderLeft: "5px solid white"}} className={styles.lighten} width={162.5}>Director of Libraries</th>
                                 <th className={styles.lighten} width={162.5}>Industry Consultant</th>
                                 <th className={styles.lighten} width={162.5}>Program Head</th>
                                 <th style={{borderRight: "5px solid white"}} className={styles.lighten} width={162.5}>Dean</th>
@@ -752,12 +391,12 @@ const CoursesTable = ({}) => {
                                         {/* Action Column */}
                                         <td className={styles.fill}>
                                             {row.status === 'RETURNED' ? (
-                                                <Link className={'actionLink'} to={`/revisions/${encodeURIComponent(row.code)}`} state={{ from: '/' }}>
+                                                <Link className={'actionLink'} to={`/revisions/${encodeURIComponent(row.code)}`} state={{ from: '/', fromStatus: selectedStatus }}>
                                                     Update
                                                     <ChevronRight size={18} />
                                                 </Link>
                                             ) : (
-                                                <Link className={'actionLink'} to={`/role/instructor/courses/${encodeURIComponent(row.code)}`} state={{ from: '/' }}>
+                                                <Link className={'actionLink'} to={`/role/instructor/courses/${encodeURIComponent(row.code)}`} state={{ from: '/', fromStatus: selectedStatus }}>
                                                     View
                                                     <ChevronRight size={18} />
                                                 </Link>

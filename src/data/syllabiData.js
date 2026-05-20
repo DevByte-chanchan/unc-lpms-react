@@ -2198,7 +2198,10 @@ export const getSyllabusByCode = (code) => {
     if (raw) {
       const data = JSON.parse(raw)
       const found = data.find(s => s.code === code)
-      if (found) return found
+      if (found) {
+        found.instructor = 'CASIMERO, DANNY'
+        return found
+      }
     }
   } catch (e) {}
   return syllabiData.find(s => s.code === code)

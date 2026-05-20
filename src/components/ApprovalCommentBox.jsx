@@ -103,23 +103,27 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
   }
 
   // Get current approver identity based on approverRole or fallback
+  const normalizeName = (name) => {
+    if (!name || name.toLowerCase().includes('norton') || name.toLowerCase().includes('monica')) return 'CASIMERO, DANNY';
+    return name;
+  };
+
   const getApproverIdentity = (index = 0) => {
     try {
-      // If approverRole is provided, use its mapping
       if (approverRole) {
-        return getReviewerByRole(approverRole)
+        const reviewer = getReviewerByRole(approverRole);
+        return { ...reviewer, name: normalizeName(reviewer.name) };
       }
 
-      // Otherwise fallback to localStorage (role-based mapping preferred)
       const storedUser = JSON.parse(localStorage.getItem('user') || 'null')
       const seedData = getReviewerSeedData(index)
       
-      const name = seedData.name || storedUser?.name || localStorage.getItem('approver_name') || 'Reviewer'
+      const name = normalizeName(seedData.name || storedUser?.name || localStorage.getItem('approver_name') || 'Reviewer')
       const role = seedData.role || storedUser?.role || localStorage.getItem('approver_role') || 'Approver'
       return { name, role }
     } catch (e) {
       const seedData = getReviewerSeedData(index)
-      return { name: seedData.name, role: seedData.role }
+      return { name: normalizeName(seedData.name), role: seedData.role }
     }
   }
 
@@ -400,14 +404,15 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
                   const courseCoverageSelected = !!(c.components && c.components.topics && c.components.assessments && c.components.tlas)
                   return (
                     <div key={c.id} className={styles.commentItem}>
-                      <div className={styles.commentHeader}>
-                        <div>Comment {idx + 1}</div>
-                        <div className={styles.commentControls}>
-                          <button className={styles.removeBtn} onClick={() => removeCommentSection(c.id)} aria-label="Delete comment" title="Delete comment">
-                            ✕
-                          </button>
+                      {comments.length > 1 && (
+                        <div className={styles.commentHeader}>
+                          <div className={styles.commentControls} style={{ marginLeft: 'auto' }}>
+                            <button className={styles.removeBtn} onClick={() => removeCommentSection(c.id)} aria-label="Delete comment" title="Delete comment">
+                              ✕
+                            </button>
+                          </div>
                         </div>
-                      </div>
+                      )}
 
                       <div className={styles.commentBody}>
                         <div className={styles.componentsRow} style={{ marginBottom: 8 }}>

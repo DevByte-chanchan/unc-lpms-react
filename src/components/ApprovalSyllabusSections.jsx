@@ -1,12 +1,14 @@
 import React, { useEffect, useState, useRef } from 'react'
 import { Link, useSearchParams, useParams, useNavigate, useLocation } from 'react-router-dom'
-import { ChevronLeft, ChevronRight, Info, MessageSquare, Inbox } from 'react-feather'
+import { ChevronLeft, ChevronRight, Info, MessageSquare, Inbox, Download } from 'react-feather'
 import styles from '../styles/ApprovalSyllabusSections.module.sass'
 import ApprovalCommentBox from './ApprovalCommentBox.jsx'
 import { getSyllabusByCode, syllabiData } from '../data/syllabiData.js'
 import { getWorkflow, setWorkflow, advanceWorkflow } from '../utils/workflowHelpers'
 import { getSuggestions, addSuggestion, acceptSuggestion, rejectSuggestion } from '../utils/dataStore'
 import { getReferences, getReferenceById } from '../utils/referenceLibrary'
+import { exportSyllabusToPDF } from '../utils/pdfExport'
+import PdfExportButton from './PdfExportButton'
 
 const defaultSections = [
   'Course Details',
@@ -102,12 +104,33 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
           ? 'director-of-libraries'
           : roleSource.includes('instructor')
             ? 'instructor'
-            : roleSource.includes('approver')
-              ? 'approver'
-              : 'approver'
+            : roleSource.includes('oic') || roleSource.includes('ovpaa')
+              ? 'oic-ovpaa'
+              : roleSource.includes('approver')
+                ? 'approver'
+                : 'approver'
 
-  const defaultBack = roleKey === 'instructor' ? '/' : `/role/${roleKey}/approval-course-table`
-  const backPath = location.state?.from || defaultBack
+  const defaultBack = (() => {
+    const fromTab = location.state?.fromTab
+    const fromStatus = location.state?.fromStatus
+    const explicitFrom = location.state?.from
+
+    if (explicitFrom && explicitFrom !== '/') return explicitFrom
+
+    if (roleKey === 'instructor') {
+      if (fromTab === 'approved') return '/?tab=approved'
+      if (fromTab === 'assigned') return '/?tab=assigned'
+      if (fromStatus) return `/?status=${fromStatus}`
+      return '/'
+    }
+    if (roleKey === 'oic-ovpaa') return '/role/oic-ovpaa?page=Approved%20Plans'
+    if (roleKey === 'dean') return '/role/dean?page=Syllabus'
+    if (roleKey === 'director-of-libraries') return '/role/director-of-libraries/approval-course-table?page=Syllabus'
+    if (roleKey === 'industry-consultant') return '/role/industry-consultant/approval-course-table?page=Syllabus'
+    if (roleKey === 'program-head') return '/role/program-head/approval-course-table?page=Syllabus'
+    return `/role/${roleKey}/approval-course-table`
+  })()
+  const backPath = defaultBack
 
   const visibleComments = React.useMemo(() => {
     if (roleKey === 'instructor') {
@@ -567,6 +590,20 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
                   else if (isRoleActive()) setShowApproveModal(true)
                   else showToastMsg('Waiting for previous approvers to complete their review.', 'warning')
                 }}>Approve</button>
+              </div>
+            )}
+            {effectiveStatus === 'approved' && (roleKey === 'instructor' || roleKey === 'dean' || roleKey === 'oic-ovpaa') && (
+              <div className={styles.approvalButtons}>
+                <PdfExportButton
+                  syllabus={syllabus}
+                  courseCode={syllabus?.code || courseCode || 'Course'}
+                  label="Export to PDF"
+                  variant="primary"
+                  onExportComplete={(success, msg) => {
+                    if (success) showToastMsg('PDF exported successfully!', 'success')
+                    else showToastMsg(msg || 'Failed to export PDF', 'warning')
+                  }}
+                />
               </div>
             )}
           </div>

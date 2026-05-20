@@ -103,7 +103,7 @@ const SideNavigation = ({ mode = 'instructor' }) => {
             </div>
 
             <div className={styles['nav-list']}>
-                {mode !== 'hr-staff' && (
+                {mode !== 'oic-ovpaa' && (
                     <div
                         onClick={() => {
                             if (mode === 'program-head') {
@@ -164,11 +164,11 @@ const SideNavigation = ({ mode = 'instructor' }) => {
                     </>
                 )}
 
-                {/* HR Staff additional options */}
-                {mode === 'hr-staff' && (
+                {/* OIC-OVPAA additional options */}
+                {mode === 'oic-ovpaa' && (
                     <>
-                        <div onClick={() => { navigate('/role/hr-staff?page=Departments') }} className={`${styles.list} ${selected === 'Departments' ? styles.selected : ''}`}>
-                            <Users size={24} /> Departments
+                        <div onClick={() => { navigate('/role/oic-ovpaa?page=Approved%20Plans') }} className={`${styles.list} ${selected === 'Approved Plans' ? styles.selected : ''}`}>
+                            <FileText size={24} /> <span className={styles.listText}>Approved Plans</span>
                         </div>
                     </>
                 )}
@@ -186,7 +186,7 @@ const SideNavigation = ({ mode = 'instructor' }) => {
                             <button className={styles.popupItem} onClick={() => gotoRole('/role/director-of-libraries/approval-course-table')}>Director of Libraries</button>
                             <button className={styles.popupItem} onClick={() => gotoRole('/role/industry-consultant/approval-course-table')}>Industry Consultant</button>
                             <button className={styles.popupItem} onClick={() => gotoRole('/role/dean')}>Dean</button>
-                            <button className={styles.popupItem} onClick={() => gotoRole('/role/hr-staff')}>HR staff</button>
+                            <button className={styles.popupItem} onClick={() => gotoRole('/role/oic-ovpaa')}>OIC-OVPAA</button>
                         </div>
                     )}
                 </div>

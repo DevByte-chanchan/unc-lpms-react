@@ -6,19 +6,19 @@ import { Upload, Clipboard } from 'react-feather';
 import coaepStyles from '../../../styles/COAEPUpload.module.sass';
 import * as XLSX from 'xlsx';
 
-const UploadButton = ({ onClick }) => (
+const UploadButton = ({ onClick, hasUploaded }) => (
     <button
         onClick={onClick}
         style={{
             display: 'flex', flexDirection: 'row', justifyContent: 'center', alignItems: 'center',
-            padding: '8px 18px', gap: 8, width: 240, height: 40,
-            background: '#EA1212', borderRadius: 6, color: '#fff', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap'
+            padding: '8px 18px', gap: 8, width: hasUploaded ? 160 : 240, height: 40,
+            background: hasUploaded ? '#1F2937' : '#EA1212', borderRadius: 6, color: '#fff', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap'
         }}
     >
         <span style={{ width: 22, height: 22, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
             <Upload size={18} color="#FFFFFF" />
         </span>
-        Upload COAEP
+        {hasUploaded ? 'Update COAEP' : 'Upload COAEP'}
     </button>
 );
 
@@ -45,6 +45,15 @@ const COAEPUpload = () => {
     const [parsedData, setParsedData] = useState(null);
     const [error, setError] = useState(null);
     const fileInputRef = useRef(null);
+
+    useEffect(() => {
+        if (showModal) {
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = '';
+        }
+        return () => { document.body.style.overflow = ''; };
+    }, [showModal]);
 
     useEffect(() => {
         setParsedData({
@@ -263,7 +272,7 @@ const COAEPUpload = () => {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
                 <h2 style={{ margin: 0 }}>Course Assessment & Evaluation Plan (COAEP)</h2>
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 10 }}>
-                    <UploadButton onClick={() => { setShowModal(true); setSelectedFile(null); }} />
+                    <UploadButton onClick={() => { setShowModal(true); setSelectedFile(null); }} hasUploaded={showTable} />
                 </div>
             </div>
 
@@ -327,13 +336,13 @@ const COAEPUpload = () => {
             )}
 
             {showModal && (
-                <div>
-                    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.35)', zIndex: 2 }} onClick={() => setShowModal(false)} />
+                <div style={{ position: 'fixed', inset: 0, zIndex: 9999 }}>
+                    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.35)' }} onClick={() => setShowModal(false)} />
                     <div
                         style={{
                             position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
                             width: 767, padding: 20, background: '#FFFFFF', borderRadius: 10,
-                            display: 'flex', flexDirection: 'column', gap: 20, zIndex: 3, boxShadow: '0 10px 30px rgba(0,0,0,0.15)'
+                            display: 'flex', flexDirection: 'column', gap: 20, boxShadow: '0 10px 30px rgba(0,0,0,0.15)'
                         }}
                     >
                         <div style={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'center' }}>
