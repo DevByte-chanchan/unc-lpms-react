@@ -28,14 +28,7 @@ function parseWeight(w) {
 }
 
 /**
- * Returns gradingSystem array shaped to match the original JSX:
- * [
- *   { co: 'CO1', ilos: [ { id: 'ILO1', assessments: [...], weight: {prelim,midterm,semi,final}, minPassing: 60 }, ... ] },
- *   ...
- * ]
- *
- * CO rows and ILO rows are fixed: CO1..CO4 and ILO1..ILO3 (nested).
- * For each CO we attempt to find up to 3 ILO records (ordered by ilo_id) and gather assessments for each.
+ * Returns gradingSystem array shaped to match the original JSX
  */
 async function getCourseCriteriaByCourseCode(req, res) {
     try {
@@ -56,7 +49,6 @@ async function getCourseCriteriaByCourseCode(req, res) {
             order: [['revision_number', 'DESC']]
         });
         if (!pco) {
-            // still return fixed structure but empty ilos
             const emptyGrading = Array.from({ length: 4 }, (_, i) => ({
                 co: `CO${i + 1}`,
                 ilos: Array.from({ length: 3 }, (_, j) => ({
@@ -69,22 +61,19 @@ async function getCourseCriteriaByCourseCode(req, res) {
             return res.json({ gradingSystem: emptyGrading });
         }
 
-        // 3) fetch course outcomes for this pc_offering_id (we will map them to CO1..CO4 by order)
+        // 3) fetch course outcomes
         const courseOutcomes = await CourseOutcome.findAll({
             where: { pc_offering_id: pco.pc_offering_id },
             attributes: ['co_id', 'co_description'],
             order: [['co_id', 'ASC']]
         });
 
-        // Build gradingSystem with fixed CO1..CO4 and ILO1..ILO3
         const gradingSystem = [];
 
         for (let coIndex = 0; coIndex < 4; coIndex++) {
             const coLabel = `CO${coIndex + 1}`;
-            // pick the corresponding CourseOutcome record if exists (by order)
             const coRecord = courseOutcomes[coIndex] || null;
 
-            // fetch ILOs for this CourseOutcome (if exists), otherwise empty array
             const ilosForCo = coRecord
                 ? await IntendedLearningOutcome.findAll({
                     where: { co_id: coRecord.co_id },
@@ -93,14 +82,12 @@ async function getCourseCriteriaByCourseCode(req, res) {
                 })
                 : [];
 
-            // We must always render 3 ILO rows (ILO1..ILO3). For each position, try to use the corresponding DB ILO (by index).
             const ilos = [];
             for (let iloPos = 0; iloPos < 3; iloPos++) {
                 const iloLabel = `ILO${iloPos + 1}`;
                 const iloRecord = ilosForCo[iloPos] || null;
 
                 if (!iloRecord) {
-                    // no DB ILO for this slot — return empty placeholders but keep fixed id
                     ilos.push({
                         id: iloLabel,
                         assessments: '',
@@ -110,18 +97,18 @@ async function getCourseCriteriaByCourseCode(req, res) {
                     continue;
                 }
 
-                // 4) find topics linked to this ILO via ILOTopic
+                // 4) find the ilo_topic_id linked to this ILO
                 const iloTopics = await ILOTopic.findAll({
                     where: { ilo_id: iloRecord.ilo_id },
-                    attributes: ['topic_id'],
+                    attributes: ['ilo_topic_id'], // Fetch the correct join key
                     raw: true
                 });
-                const topicIds = iloTopics.map(t => t.topic_id).filter(Boolean);
+                const iloTopicIds = iloTopics.map(t => t.ilo_topic_id).filter(Boolean);
 
-                // 5) find TopicTLA rows for these topics to get tla_ids
-                const topicTlaRows = topicIds.length
+                // 5) find TopicTLA rows for these ilo_topic_ids to get tla_ids
+                const topicTlaRows = iloTopicIds.length
                     ? await TopicTLA.findAll({
-                        where: { topic_id: topicIds },
+                        where: { ilo_topic_id: iloTopicIds }, // Use the join key
                         attributes: ['tla_id'],
                         raw: true
                     })
@@ -148,14 +135,11 @@ async function getCourseCriteriaByCourseCode(req, res) {
                     const periodKey = normalizePeriod(a.period);
                     const w = parseWeight(a.weight);
                     if (periodKey && w !== null) weightAcc[periodKey] += w;
-                    // prefer explicit min_passing from assessment if present
                     if (a.min_passing != null && minPassingValue == null) minPassingValue = Number(a.min_passing);
                 }
 
-                // If no min_passing found in assessments, default to 60
                 if (minPassingValue == null) minPassingValue = 60;
 
-                // Convert zeroes to empty string to match original rendering expectations
                 const weightForRender = {
                     prelim: weightAcc.prelim ? weightAcc.prelim : '',
                     midterm: weightAcc.midterm ? weightAcc.midterm : '',
@@ -169,13 +153,13 @@ async function getCourseCriteriaByCourseCode(req, res) {
                     weight: weightForRender,
                     minPassing: minPassingValue
                 });
-            } // end 3 ILOs
+            }
 
             gradingSystem.push({
                 co: coLabel,
                 ilos
             });
-        } // end 4 COs
+        }
 
         return res.json({ gradingSystem });
     } catch (err) {

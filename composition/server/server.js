@@ -16,23 +16,21 @@ app.use('/api/ilos', iloRoutes);
 const courseDetailsRoutes = require('./routes/courseDetails');
 app.use('/api/course-details', courseDetailsRoutes);
 
-// server.js (add near other route registrations)
 const courseOutcomeAlignmentRoutes = require('./routes/courseOutcomeAlignment');
 app.use('/api/course-outcome-alignment', courseOutcomeAlignmentRoutes);
 
 const courseCriteriaRoutes = require('./routes/courseCriteria');
 app.use('/api/course-criteria', courseCriteriaRoutes);
 
-// server.js (excerpt)
 const referencesRoutes = require('./routes/references');
 const iloReferencesRoutes = require('./routes/iloReferences');
+const topicsRoutes = require('./routes/topics');
+const tlaRoutes = require('./routes/tlaRoutes');
 
 app.use('/api/references', referencesRoutes);
 app.use('/api/ilo-references', iloReferencesRoutes);
-
-
-
-
+app.use('/api/topics', topicsRoutes);
+app.use('/api/tlas', tlaRoutes);
 
 // global error handler
 app.use((err, req, res, next) => {

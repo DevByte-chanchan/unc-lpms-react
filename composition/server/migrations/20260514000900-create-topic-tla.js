@@ -1,5 +1,5 @@
 'use strict';
-/** Migration: create Topic_TLA join table (topic_id <-> tla_id) */
+/** Migration: create Topic_TLA join table (ilo_topic_id <-> tla_id) */
 module.exports = {
     async up(queryInterface, Sequelize) {
         await queryInterface.createTable('TopicTLAs', {
@@ -8,12 +8,12 @@ module.exports = {
                 primaryKey: true,
                 autoIncrement: true
             },
-            topic_id: {
+            ilo_topic_id: { // ✅ updated FK
                 type: Sequelize.INTEGER,
                 allowNull: false,
                 references: {
-                    model: 'Topics',
-                    key: 'topic_id'
+                    model: 'ILOTopics', // ✅ points to ILOTopics
+                    key: 'ilo_topic_id'
                 },
                 onUpdate: 'CASCADE',
                 onDelete: 'CASCADE'
@@ -44,4 +44,5 @@ module.exports = {
     async down(queryInterface) {
         await queryInterface.dropTable('TopicTLAs');
     }
+
 };

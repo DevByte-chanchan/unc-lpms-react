@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Skeleton from "../layouts/Skeleton.jsx";
 import Header from "../components/Header.jsx";
 import FormNavigation from "../components/FormNavigation.jsx";
@@ -6,84 +6,116 @@ import styles from "../styles/Form.module.sass";
 import { useNavigate, useParams } from "react-router-dom";
 import SideNavigation from "../components/SideNavigation.jsx";
 import TopicSelector from "../components/TopicSelector.jsx";
+import { X, CheckCircle, AlertCircle } from 'react-feather';
+
+const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:5000';
+
+// Inline Modal component to match ReferenceForm styles
+function InlineModal({ isOpen, title, onClose, children }) {
+    if (!isOpen) return null;
+    return (
+        <div className={styles.modalOverlay} role="dialog" aria-modal="true">
+            <div className={styles.modal}>
+                <div className={styles.modalHeader}>
+                    <h3>{title}</h3>
+                    <button type="button" onClick={onClose} style={{ background: 'transparent', border: 'none', padding: 6 }}>
+                        <X size={16} />
+                    </button>
+                </div>
+                <div className={styles.modalBody}>{children}</div>
+            </div>
+        </div>
+    );
+}
 
 const TopicForm = () => {
     const navigate = useNavigate();
+    const { courseCode, iloId } = useParams(); // e.g., /topics/form/:courseCode/:iloId
 
-    const goBackHandler = () => {
-        navigate(-1);
-    };
-
-    const sampleTopics = [
-        { id: "T1", title: "Information Architecture (IA)", subtopics: [
-                { id: "S1", value: "Organization Schemes and Structures" },
-                { id: "S2", value: "Labeling Systems" },
-                { id: "S3", value: "Navigation Design Patterns" },
-                { id: "S4", value: "Card Sorting Techniques" }
-            ]},
-        { id: "T2", title: "Visual Design Principles", subtopics: [
-                { id: "S5", value: "Color Theory & Accessibility" },
-                { id: "S6", value: "Typography & Hierarchy" },
-                { id: "S7", value: "Grid Systems and Layouts" },
-                { id: "S8", value: "Iconography and Imagery" },
-                { id: "S9", value: "Spacing and Visual Rhythm" }
-            ]},
-        { id: "T3", title: "User Research Methods", subtopics: [
-                { id: "S10", value: "Contextual Inquiry" },
-                { id: "S11", value: "Persona Development" },
-                { id: "S12", value: "Journey Mapping" },
-                { id: "S13", value: "Competitive Audit" }
-            ]},
-        { id: "T4", title: "Usability Testing", subtopics: [
-                { id: "S14", value: "Moderated vs Unmoderated Testing" },
-                { id: "S15", value: "Heuristic Evaluation" },
-                { id: "S16", value: "Eye Tracking Analysis" },
-                { id: "S17", value: "System Usability Scale (SUS)" }
-            ]},
-        { id: "T5", title: "Interaction Design", subtopics: [
-                { id: "S18", value: "Micro-interactions" },
-                { id: "S19", value: "State Changes & Feedback" },
-                { id: "S20", value: "Gestural Navigation" },
-                { id: "S21", value: "Fitts's Law Applications" }
-            ]},
-        { id: "T6", title: "Accessibility (A11y)", subtopics: [
-                { id: "S22", value: "WCAG 2.1 Guidelines" },
-                { id: "S23", value: "Screen Reader Compatibility" },
-                { id: "S24", value: "Keyboard Focus Management" },
-                { id: "S25", value: "Semantic HTML Fundamentals" },
-                { id: "S26", value: "ARIA Roles and Attributes" }
-            ]},
-        { id: "T7", title: "Design Systems", subtopics: [
-                { id: "S27", value: "Atomic Design Methodology" },
-                { id: "S28", value: "Component Libraries" },
-                { id: "S29", value: "Style Guides vs Pattern Libraries" },
-                { id: "S30", value: "Design Tokens" }
-            ]},
-        { id: "T8", title: "Wireframing & Prototyping", subtopics: [
-                { id: "S31", value: "Low-Fidelity Sketching" },
-                { id: "S32", value: "Interactive Component States" },
-                { id: "S33", value: "User Flow Diagrams" },
-                { id: "S34", value: "High-Fidelity Interactive Prototypes" }
-            ]},
-        { id: "T9", title: "Information Search & Retrieval", subtopics: [
-                { id: "S35", value: "Boolean Search Logic" },
-                { id: "S36", value: "Faceted Search Design" },
-                { id: "S37", value: "Auto-complete & Suggestion Patterns" },
-                { id: "S38", value: "Search Result Filtering" }
-            ]},
-        { id: "T10", title: "Design Psychology", subtopics: [
-                { id: "S39", value: "Cognitive Load Theory" },
-                { id: "S40", value: "Hick's Law" },
-                { id: "S41", value: "Gestalt Principles" },
-                { id: "S42", value: "Mental Models in UX" },
-                { id: "S43", value: "Aesthetic-Usability Effect" }
-            ]}
-    ];
-
+    const [availableTopics, setAvailableTopics] = useState([]);
     const [selectedTopics, setSelectedTopics] = useState([]);
 
+    const [loading, setLoading] = useState(false);
+    const [saving, setSaving] = useState(false);
+    const [validationError, setValidationError] = useState(null);
+    const [showConfirm, setShowConfirm] = useState(false);
 
+    const goBackHandler = () => navigate(-1);
 
+    async function fetchJson(url, opts) {
+        const res = await fetch(url, opts);
+        if (!res.ok) {
+            const text = await res.text().catch(() => '');
+            throw new Error(`HTTP ${res.status}: ${text}`);
+        }
+        return res.json();
+    }
+
+    // Fetch Initial Data
+    useEffect(() => {
+        if (!iloId) return;
+        let mounted = true;
+        setLoading(true);
+
+        async function loadData() {
+            try {
+                // Fetch unassigned topics (options) and currently assigned topics (values)
+                const [availableRes, assignedRes] = await Promise.all([
+                    fetchJson(`${API_BASE}/api/topics/available?iloId=${encodeURIComponent(iloId)}`),
+                    fetchJson(`${API_BASE}/api/topics/assigned/${encodeURIComponent(iloId)}`)
+                ]);
+
+                if (!mounted) return;
+                setAvailableTopics(Array.isArray(availableRes) ? availableRes : []);
+                setSelectedTopics(Array.isArray(assignedRes) ? assignedRes : []);
+
+            } catch (err) {
+                console.error("Failed to load topics:", err);
+                if (mounted) setValidationError("Failed to load topics from the server.");
+            } finally {
+                if (mounted) setLoading(false);
+            }
+        }
+
+        loadData();
+        return () => { mounted = false; };
+    }, [iloId]);
+
+    // Handle Save Execution
+    const handleSave = async () => {
+        setValidationError(null);
+
+        // Validation: At least one topic must be selected
+        if (!selectedTopics || selectedTopics.length === 0) {
+            setValidationError("Please select or create at least one topic before saving.");
+            return;
+        }
+
+        setSaving(true);
+        try {
+            // Send payload to backend master sync function
+            await fetchJson(`${API_BASE}/api/topics/assign`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    ilo_id: Number(iloId),
+                    topics: selectedTopics
+                })
+            });
+
+            setShowConfirm(true);
+
+            // Optional: Refresh data after save to ensure IDs are synced
+            const assignedRes = await fetchJson(`${API_BASE}/api/topics/assigned/${encodeURIComponent(iloId)}`);
+            setSelectedTopics(Array.isArray(assignedRes) ? assignedRes : []);
+
+        } catch (err) {
+            console.error("Save error:", err);
+            setValidationError(err.message || "Failed to save topic assignments.");
+        } finally {
+            setSaving(false);
+        }
+    };
 
     return (
         <Skeleton
@@ -91,19 +123,33 @@ const TopicForm = () => {
             nav={<SideNavigation />}
             content={
                 <div className={styles.container}>
-                    <FormNavigation goBack={goBackHandler}  />
+                    {/* Hook up FormNavigation with our custom handleSave */}
+                    <FormNavigation goBack={goBackHandler} onSave={handleSave} />
 
                     <div className={styles['form-container']}>
                         <h2>Topics Assignment</h2>
+
                         <TopicSelector
-                            options={sampleTopics}
+                            label="Map Learning Topics"
+                            options={availableTopics}
                             value={selectedTopics}
                             onChange={setSelectedTopics}
+                            disabled={loading || saving}
+                            error={validationError}
                         />
 
+                        {/* Success Confirmation Modal */}
+                        <InlineModal
+                            isOpen={showConfirm}
+                            title="Saved Successfully"
+                            onClose={() => setShowConfirm(false)}
+                        >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                                <CheckCircle size={20} color="#2e7d32" />
+                                <div>Topic assignments have been updated.</div>
+                            </div>
+                        </InlineModal>
                     </div>
-
-
                 </div>
             }
         />

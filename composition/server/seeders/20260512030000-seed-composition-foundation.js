@@ -706,31 +706,77 @@ Through lectures, hands-on projects, and usability testing, learners will develo
         await queryInterface.bulkInsert('Subtopics', subtopicsToInsert, {});
 
 
-        //
-        // 6) ILOTopic join entries: assign 1-2 topics per ILO (use topicsRows)
-        //
+// 6) ILOTopic join entries: assign 1-2 topics per ILO (use topicsRows)
         const iloTopicInserts = [];
-        // Build map ilo_id -> topics
+
+// Validate source arrays
+        if (!Array.isArray(topicsRows)) {
+            throw new Error('topicsRows is not defined or not an array. Ensure topics are seeded/fetched earlier.');
+        }
+        if (!Array.isArray(ilosRows)) {
+            throw new Error('ilosRows is not defined or not an array. Ensure ILOs are seeded/fetched earlier.');
+        }
+
         const topicsByIlo = {};
         for (const t of topicsRows) {
-            topicsByIlo[t.ilo_id] = topicsByIlo[t.ilo_id] || [];
-            topicsByIlo[t.ilo_id].push(t.topic_id);
+            if (t == null || t.ilo_id == null || t.topic_id == null) continue;
+            const iloId = Number(t.ilo_id);
+            const topicId = Number(t.topic_id);
+            topicsByIlo[iloId] = topicsByIlo[iloId] || [];
+            topicsByIlo[iloId].push(topicId);
         }
+
         for (const ilo of ilosRows) {
-            const topicsForIlo = topicsByIlo[ilo.ilo_id] || [];
+            if (ilo == null || ilo.ilo_id == null) {
+                console.warn('Skipping invalid ILO row:', ilo);
+                continue;
+            }
+            const iloId = Number(ilo.ilo_id);
+            const topicsForIlo = topicsByIlo[iloId] || [];
+
+            // Skip ILOs that have no topics
+            if (topicsForIlo.length === 0) {
+                console.warn(`No topics found for ILO ${iloId}; skipping ILOTopic inserts for this ILO.`);
+                continue;
+            }
+
             // pick 1-2 topics (if more exist)
-            const pickCount = Math.min(2, Math.max(1, topicsForIlo.length));
+            const pickCount = Math.min(2, topicsForIlo.length);
             for (let k = 0; k < pickCount; k++) {
                 const topicId = topicsForIlo[k % topicsForIlo.length];
                 iloTopicInserts.push({
-                    ilo_id: ilo.ilo_id,
-                    topic_id: topicId,
+                    ilo_id: iloId,
+                    topic_id: Number(topicId),
                     createdAt: now,
                     updatedAt: now
                 });
             }
         }
-        await queryInterface.bulkInsert('ILOTopics', iloTopicInserts, {});
+
+// Optional: remove duplicates (if you want unique pairs)
+        const seen = new Set();
+        const deduped = [];
+        for (const r of iloTopicInserts) {
+            const key = `${r.ilo_id}:${r.topic_id}`;
+            if (!seen.has(key)) {
+                seen.add(key);
+                deduped.push(r);
+            }
+        }
+
+        if (deduped.length === 0) {
+            console.warn('No ILOTopic rows prepared; nothing to insert.');
+        } else {
+            await queryInterface.bulkInsert('ILOTopics', deduped, {});
+            console.log(`Inserted ${deduped.length} ILOTopic rows.`);
+        }
+
+        const iloTopicsRows = await queryInterface.sequelize.query(
+            'SELECT ilo_topic_id FROM `ILOTopics`;',
+            { type: queryInterface.sequelize.QueryTypes.SELECT }
+        );
+
+
 
         //
         // 7) Teaching and Learning Activities (25 TLAs)
@@ -763,31 +809,86 @@ Through lectures, hands-on projects, and usability testing, learners will develo
             { type: queryInterface.sequelize.QueryTypes.SELECT }
         );
 
-        // 8) Topic_TLA: assign exactly one TLA per topic (1 topic -> 1 TLA; 1 TLA -> many topics)
+// ============================================================================
+// 8) TLA Assignment: 1 shared TLA assigned to multiple ILOTopics (Grouped)
+// ============================================================================
         const topicTlaInserts = [];
-        let tlaIndex = 0;
 
-        for (const topic of topicsRows) {
-            // pick one TLA (cycle through TLAs so distribution is even)
-            const tla = tlasRows[tlaIndex % tlasRows.length];
+        if (!Array.isArray(iloTopicsRows) || iloTopicsRows.length === 0) {
+            throw new Error('iloTopicsRows is not defined or empty. Ensure ILOTopics are seeded before TopicTLAs.');
+        }
+        if (!Array.isArray(tlasRows) || tlasRows.length === 0) {
+            throw new Error('tlasRows is not defined or empty. Ensure TLAs are seeded before TopicTLAs.');
+        }
+
+// Group size decides how many ILOTopics will share each unique TLA record.
+// A group size of 2 means exactly two ILOTopics get assigned to the same TLA.
+        const groupSize = 2;
+
+        for (let i = 0; i < iloTopicsRows.length; i++) {
+            const iloTopic = iloTopicsRows[i];
+
+            if (!iloTopic || (iloTopic.ilo_topic_id == null)) {
+                console.warn('Skipping invalid iloTopic row:', iloTopic);
+                continue;
+            }
+
+            // Math.floor(i / groupSize) guarantees that the index pointer
+            // stays on the SAME TLA for 'groupSize' iterations before moving to the next one!
+            const rollingGroupIndex = Math.floor(i / groupSize);
+            const tla = tlasRows[rollingGroupIndex % tlasRows.length];
+
+            // 🧠 FIX: Changed '!la' to '!tla'
+            if (!tla || (tla.tla_id == null)) {
+                throw new Error(`Missing TLA at index ${rollingGroupIndex % tlasRows.length}`);
+            }
+
             topicTlaInserts.push({
-                topic_id: topic.topic_id,
-                tla_id: tla.tla_id,
+                ilo_topic_id: Number(iloTopic.ilo_topic_id),
+                tla_id: Number(tla.tla_id),
                 createdAt: now,
                 updatedAt: now
             });
-            tlaIndex++;
         }
 
-        await queryInterface.bulkInsert('TopicTLAs', topicTlaInserts, {});
+// Deduplicate pairs to safeguard database unique index constraints
+        const seen2 = new Set();
+        const deduped2 = [];
+        for (const r of topicTlaInserts) {
+            const key = `${r.ilo_topic_id}:${r.tla_id}`;
+            if (!seen2.has(key)) {
+                seen2.add(key);
+                deduped2.push(r);
+            }
+        }
+
+        if (deduped2.length === 0) {
+            console.warn('No TopicTLA rows prepared; nothing to insert.');
+        } else {
+            try {
+                await queryInterface.bulkInsert('TopicTLAs', deduped2, {});
+                console.log(`Successfully inserted ${deduped2.length} TLA rows with a grouped distribution.`);
+            } catch (err) {
+                console.error('bulkInsert TopicTLAs failed:', err);
+                throw err;
+            }
+        }
 
 
-// --- TLAAssessments seeder (fixed weight distribution) ---
-// 9) TLAAssessments: ensure each ILO has 1-2 assessments via TLAs connected to its topics
+// ============================================================================
+// 9) TLAAssessments: Aligned directly to the grouped relations
+// ============================================================================
         const topicTlaRows = await queryInterface.sequelize.query(
-            `SELECT tt.topic_tla_id, tt.topic_id, tt.tla_id, t.ilo_id, t.title AS topic_title, ta.tla_name
+            `SELECT
+                 tt.topic_tla_id,
+                 tt.tla_id,
+                 it.topic_id,
+                 it.ilo_id,
+                 t.title AS topic_title,
+                 ta.tla_name
              FROM TopicTLAs tt
-                      JOIN Topics t ON tt.topic_id = t.topic_id
+                      JOIN ILOTopics it ON tt.ilo_topic_id = it.ilo_topic_id
+                      JOIN Topics t ON it.topic_id = t.topic_id
                       JOIN TeachingAndLearningActivities ta ON tt.tla_id = ta.tla_id
              ORDER BY tt.topic_tla_id ASC;`,
             { type: queryInterface.sequelize.QueryTypes.SELECT }
@@ -804,66 +905,64 @@ Through lectures, hands-on projects, and usability testing, learners will develo
             });
         }
 
-// ilosRows should be available earlier in your seeder (the ILOs you inserted)
-// Build mapping ilosByCo: { co_id: [ ilo_id, ... ] }
         const ilosByCo = {};
         for (const ilo of ilosRows) {
             ilosByCo[ilo.co_id] = ilosByCo[ilo.co_id] || [];
             ilosByCo[ilo.co_id].push(ilo.ilo_id);
         }
 
-// Define CO -> period mapping (CO1->p, CO2->m, CO3->s, CO4->f)
         const periods = ['p', 'm', 's', 'f'];
         const assessmentTypes = ['Quiz', 'Lab Exercise', 'Project', 'Presentation', 'Case Study'];
         const tlaAssessmentInserts = [];
 
-// Ensure deterministic CO order: numeric ascending co_id
         const coIds = Object.keys(ilosByCo).map(Number).sort((a, b) => a - b);
+// Explicit weight mapping for ILO1 (20), ILO2 (30), ILO3 (50)
+        const weightMap = [20, 30, 50];
 
         for (let coIndex = 0; coIndex < coIds.length; coIndex++) {
             const coId = coIds[coIndex];
             const iloIds = ilosByCo[coId] || [];
-
-            // Determine the period for this CO (wrap if more than 4 COs)
             const periodForThisCO = periods[coIndex % periods.length];
 
             for (let idx = 0; idx < iloIds.length; idx++) {
                 const iloId = iloIds[idx];
 
-                // weight per ILO position: ILO1 -> 20, ILO2 -> 30, ILO3 -> 50
-                const weightStr = (idx === 0) ? '20' : (idx === 1) ? '30' : '50';
-                const weightNum = Number(String(weightStr).replace('%', '').trim()) || 0;
+                // Use the map to force weights: 20, 30, 50 based on the ILO position
+                const weightNum = weightMap[idx] || 50;
 
                 const tlaEntries = tlasByIlo[iloId] || [];
-                const desiredAssessments = Math.min(2, Math.max(1, tlaEntries.length || 1));
 
-                // split weight across desiredAssessments (integer distribution)
+                // Fallback: If no TLA found, use a placeholder so the row is still created
+                const effectiveEntries = tlaEntries.length > 0
+                    ? tlaEntries
+                    : [{
+                        tla_id: (tlasRows && tlasRows.length > 0) ? tlasRows[0].tla_id : null,
+                        tla_name: 'Foundational Activity',
+                        topic_title: 'General Topic'
+                    }];
+
+                const desiredAssessments = Math.min(2, Math.max(1, effectiveEntries.length));
+
                 const base = Math.floor(weightNum / desiredAssessments);
                 const remainder = weightNum - base * desiredAssessments;
-                // build per-assessment weights array, add remainder to the last element
                 const perAssessmentWeights = Array.from({ length: desiredAssessments }, (_, i) =>
                     i === desiredAssessments - 1 ? base + remainder : base
                 );
 
                 for (let a = 0; a < desiredAssessments; a++) {
-                    // pick a TLA entry (fallback to first available tlasRows if none)
-                    const entry = tlaEntries.length ? tlaEntries[a % tlaEntries.length] : (tlasRows && tlasRows.length ? tlasRows[(idx + a) % tlasRows.length] : null);
+                    const entry = effectiveEntries[a % effectiveEntries.length];
                     const assessmentType = assessmentTypes[(iloId + a) % assessmentTypes.length];
-                    const topicSample = entry?.topic_title || 'Applied Topic';
-                    const tlaName = entry?.tla_name || 'Learning Activity';
-                    const tlaId = entry?.tla_id || (tlasRows && tlasRows.length ? tlasRows[(idx + a) % tlasRows.length].tla_id : null);
 
-                    // If no tlaId available, skip (defensive)
-                    if (!tlaId) continue;
+                    // If even our fallback failed to get a TLA_ID, skip this specific assessment
+                    // but the ILO row will still exist because of the outer loop
+                    if (!entry.tla_id) continue;
 
-                    // use perAssessmentWeights[a] and store as string (no % or with % as you prefer)
-                    const assignedWeight = String(perAssessmentWeights[a]); // e.g., '10' or '20'
+                    const assignedWeight = String(perAssessmentWeights[a]);
 
                     tlaAssessmentInserts.push({
-                        tla_id: tlaId,
-                        name: `${assessmentType}: ${topicSample}`,
-                        description: `${assessmentType} assessment for ILO ${iloId}, using TLA "${tlaName}" focused on "${topicSample}".`,
-                        // Use the CO-specific period so all ILOs under the same CO map to the same column
+                        tla_id: entry.tla_id,
+                        name: `${assessmentType}: ${entry.topic_title}`,
+                        description: `${assessmentType} assessment for ILO ${iloId}.`,
                         period: periodForThisCO,
                         weight: assignedWeight,
                         min_passing: 60,
@@ -874,22 +973,8 @@ Through lectures, hands-on projects, and usability testing, learners will develo
             }
         }
 
-// fallback default assessment (if none found) — also include min_passing
-        if (tlaAssessmentInserts.length === 0 && tlasRows && tlasRows.length > 0) {
-            tlaAssessmentInserts.push({
-                tla_id: tlasRows[0].tla_id,
-                name: 'Quiz: Introductory Concepts',
-                description: 'Default formative quiz aligned to introductory concepts.',
-                period: 'p',
-                weight: '20',
-                min_passing: 60,
-                createdAt: now,
-                updatedAt: now
-            });
-        }
-
         await queryInterface.bulkInsert('TLAAssessments', tlaAssessmentInserts, {});
-
+        console.log(`Successfully inserted ${tlaAssessmentInserts.length} TLAAssessment rows.`);
 
 
     },

@@ -46,7 +46,7 @@ const AssessmentForm = () => {
     const getCOByTlaName = (syllabus, tlaName) => {
         if (!syllabus || !tlaName) return null;
 
-        // 1. Find the topic.js of the TLA
+        // 1. Find the topics.js of the TLA
         let topicTitle = null;
 
         for (const topic of syllabus.topics) {
@@ -59,7 +59,7 @@ const AssessmentForm = () => {
 
         if (!topicTitle) return null;
 
-        // 2. Find which ILO contains that topic.js
+        // 2. Find which ILO contains that topics.js
         const ilo = syllabus.ilos.find(ilo =>
             ilo.topics.includes(topicTitle)
         );
@@ -105,7 +105,7 @@ const AssessmentForm = () => {
         // Iterate through all topics
         for (const topic of syllabus.topics) {
             if (topic.tlas) {
-                // Check if this topic.js contains the TLA we are looking for
+                // Check if this topics.js contains the TLA we are looking for
                 const foundTLA = topic.tlas.find(t => t.tlaName === assessmentData.tlaName);
 
                 if (foundTLA) {
@@ -248,7 +248,7 @@ const AssessmentForm = () => {
                         <h2>Topic</h2>
                         {/* 1. Use the derived Topic Title */}
                         <TextField
-                            initialValue={derivedTlaData.topicTitle || 'No topic.js linked.'}
+                            initialValue={derivedTlaData.topicTitle || 'No topics.js linked.'}
                             disabled={true}
                             readOnly={true}
                         />

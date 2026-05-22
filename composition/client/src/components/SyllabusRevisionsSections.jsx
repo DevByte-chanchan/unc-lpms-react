@@ -104,7 +104,7 @@ const SyllabusRevisionsSections = ({status}) => {
     const editTopic = (topicId) => {
         const topic = (editableSyllabus?.topics || []).find(t => t.id === topicId)
         if (!topic) return
-        const newTitle = window.prompt('Edit topic.js title', topic.title || '')
+        const newTitle = window.prompt('Edit topics.js title', topic.title || '')
         if (newTitle === null) return
         const subInput = window.prompt('Subtopics (comma-separated)', (topic.subtopics || []).map(s => s.value).join(', '))
         if (subInput === null) return
@@ -424,7 +424,7 @@ const SyllabusRevisionsSections = ({status}) => {
                                                 <div className={'search-container'}>
                                                     <div className={'search-bar'}>
                                                         <Search size={18}/>
-                                                        <input placeholder={"Search topic.js name"} type="text"/>
+                                                        <input placeholder={"Search topics.js name"} type="text"/>
                                                     </div>
                                                 </div>
 

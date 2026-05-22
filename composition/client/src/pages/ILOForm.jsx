@@ -57,7 +57,7 @@ const ILOForm = () => {
             return "Select topics above to view associated Teaching & Learning Activities.";
         }
 
-        // 1. Find the full topic.js objects for the selected titles
+        // 1. Find the full topics.js objects for the selected titles
         const matchingTopics = syllabus.topics.filter(t =>
             selectedTopics.includes(t.title)
         );
@@ -135,7 +135,7 @@ const ILOForm = () => {
         if (!allocatedTime) newErrors.allocatedTime = "Allocated Time is required.";
 
         if (selectedTopics.length === 0) {
-            newErrors.topics = "Please select at least one topic.js.";
+            newErrors.topics = "Please select at least one topics.js.";
         }
 
         if (selectedReferences.length === 0) {

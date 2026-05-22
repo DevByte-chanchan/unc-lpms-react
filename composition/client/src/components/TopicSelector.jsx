@@ -7,40 +7,54 @@ const TopicSelector = ({ label, options = [], value = [], onChange, error, disab
     const [isPickerOpen, setIsPickerOpen] = useState(false);
     const [lastAddedId, setLastAddedId] = useState(null);
 
+    // Normalize IDs uniformly for comparison
+    const getTopicKey = (t) => t.topic_id || t._temp_id;
+    const getSubtopicKey = (s) => s.subtopic_id || s._temp_id;
+
     const handleSelectTopic = (topic) => {
         if (disabled) return;
 
-        // Check selection based on Title to prevent duplication bugs
-        const isSelected = value.some(t => t.title === topic.title);
+        // Compare by title to prevent duplicating names
+        const isSelected = value.some(t => String(t.title).trim().toLowerCase() === String(topic.title).trim().toLowerCase());
 
         if (isSelected) {
-            // Remove by title
-            onChange(value.filter(t => t.title !== topic.title));
+            onChange(value.filter(t => String(t.title).trim().toLowerCase() !== String(topic.title).trim().toLowerCase()));
         } else {
-            const newId = `topic-${Date.now()}`;
+            const tempId = `temp-topic-${Date.now()}`;
             const newTopic = {
-                ...topic,
-                id: newId,
-                subtopics: topic.subtopics.map(s => ({ ...s, id: `sub-${Date.now()}-${Math.random()}` }))
+                topic_id: topic.topic_id || null,
+                _temp_id: topic.topic_id ? null : tempId,
+                title: topic.title,
+                subtopics: (topic.subtopics || []).map((s, idx) => ({
+                    subtopic_id: s.subtopic_id || null,
+                    _temp_id: s.subtopic_id ? null : `temp-sub-${Date.now()}-${idx}-${Math.random()}`,
+                    title: s.title || '',
+                    sequence_order: s.sequence_order ?? idx
+                }))
             };
-            // PREPEND to top
             onChange([newTopic, ...value]);
-            triggerAnimation(newId);
+            triggerAnimation(topic.topic_id || tempId);
         }
     };
 
     const handleAddManualTopic = () => {
-        const newId = `manual-${Date.now()}`;
+        const tempId = `temp-topic-${Date.now()}`;
         const manualTopic = {
-            id: newId,
+            topic_id: null,
+            _temp_id: tempId,
             title: searchTerm || "New Custom Topic",
-            subtopics: [{ id: `sub-${Date.now()}`, value: "" }],
+            subtopics: [{
+                subtopic_id: null,
+                _temp_id: `temp-sub-${Date.now()}`,
+                title: "",
+                sequence_order: 0
+            }],
             isManual: true
         };
         onChange([manualTopic, ...value]);
         setSearchTerm('');
         setIsPickerOpen(false);
-        triggerAnimation(newId);
+        triggerAnimation(tempId);
     };
 
     const triggerAnimation = (id) => {
@@ -48,37 +62,68 @@ const TopicSelector = ({ label, options = [], value = [], onChange, error, disab
         setTimeout(() => setLastAddedId(null), 1000);
     };
 
-    const updateSubtopic = (topicId, subId, newValue) => {
-        onChange(value.map(t => t.id === topicId ? {
-            ...t,
-            subtopics: t.subtopics.map(s => s.id === subId ? { ...s, value: newValue } : s)
-        } : t));
-    };
-
-    const deleteSubtopic = (topicId, subId) => {
-        onChange(value.map(t => t.id === topicId ? {
-            ...t, subtopics: t.subtopics.filter(s => s.id !== subId)
-        } : t));
-    };
-
-    const duplicateSubtopic = (topicId, subId) => {
+    const updateSubtopic = (topicTarget, subTarget, newTitle) => {
         onChange(value.map(t => {
-            if (t.id === topicId) {
-                const index = t.subtopics.findIndex(s => s.id === subId);
-                const target = t.subtopics[index];
-                const newNode = { ...target, id: `sub-${Date.now()}-${Math.random()}` };
-                const newSubtopics = [...t.subtopics];
-                newSubtopics.splice(index + 1, 0, newNode);
-                return { ...t, subtopics: newSubtopics };
-            }
-            return t;
+            if (getTopicKey(t) !== getTopicKey(topicTarget)) return t;
+            return {
+                ...t,
+                subtopics: t.subtopics.map(s =>
+                    getSubtopicKey(s) === getSubtopicKey(subTarget) ? { ...s, title: newTitle } : s
+                )
+            };
         }));
     };
 
-    const addBlankSubtopic = (topicId) => {
-        onChange(value.map(t => t.id === topicId ? {
-            ...t, subtopics: [...t.subtopics, { id: `sub-${Date.now()}`, value: "" }]
-        } : t));
+    const deleteSubtopic = (topicTarget, subTarget) => {
+        onChange(value.map(t => {
+            if (getTopicKey(t) !== getTopicKey(topicTarget)) return t;
+            return {
+                ...t,
+                subtopics: t.subtopics.filter(s => getSubtopicKey(s) !== getSubtopicKey(subTarget))
+            };
+        }));
+    };
+
+    const duplicateSubtopic = (topicTarget, subTarget) => {
+        onChange(value.map(t => {
+            if (getTopicKey(t) !== getTopicKey(topicTarget)) return t;
+
+            const index = t.subtopics.findIndex(s => getSubtopicKey(s) === getSubtopicKey(subTarget));
+            if (index === -1) return t;
+
+            const target = t.subtopics[index];
+            const newNode = {
+                subtopic_id: null,
+                _temp_id: `temp-sub-${Date.now()}-${Math.random()}`,
+                title: `${target.title} (Copy)`,
+                sequence_order: target.sequence_order + 1
+            };
+
+            const newSubtopics = [...t.subtopics];
+            newSubtopics.splice(index + 1, 0, newNode);
+
+            // Re-index sequence orders cleanly
+            const reindexed = newSubtopics.map((s, i) => ({ ...s, sequence_order: i }));
+            return { ...t, subtopics: reindexed };
+        }));
+    };
+
+    const addBlankSubtopic = (topicTarget) => {
+        onChange(value.map(t => {
+            if (getTopicKey(t) !== getTopicKey(topicTarget)) return t;
+            return {
+                ...t,
+                subtopics: [
+                    ...t.subtopics,
+                    {
+                        subtopic_id: null,
+                        _temp_id: `temp-sub-${Date.now()}`,
+                        title: "",
+                        sequence_order: t.subtopics.length
+                    }
+                ]
+            };
+        }));
     };
 
     const filteredOptions = options.filter(opt =>
@@ -117,16 +162,16 @@ const TopicSelector = ({ label, options = [], value = [], onChange, error, disab
                             <div className={styles.optionsList}>
                                 {filteredOptions.length > 0 ? (
                                     filteredOptions.map(opt => {
-                                        const isSelected = value.some(t => t.title === opt.title);
+                                        const isSelected = value.some(t => String(t.title).trim().toLowerCase() === String(opt.title).trim().toLowerCase());
                                         return (
                                             <div
-                                                key={opt.id}
+                                                key={opt.topic_id || opt._temp_id}
                                                 className={`${styles.optionItem} ${isSelected ? styles.selectedOpt : ''}`}
                                                 onClick={() => handleSelectTopic(opt)}
                                             >
                                                 <input type="checkbox" checked={isSelected} readOnly />
                                                 <span>{opt.title}</span>
-                                                <span className={styles.subCount}>{opt.subtopics.length} items</span>
+                                                <span className={styles.subCount}>{(opt.subtopics || []).length} items</span>
                                             </div>
                                         );
                                     })
@@ -152,61 +197,66 @@ const TopicSelector = ({ label, options = [], value = [], onChange, error, disab
                         </div>
                     ) : (
                         <div className={styles.configArea}>
-                            {value.map((topic) => (
-                                <div
-                                    key={topic.id}
-                                    className={`${styles.topicCard} ${lastAddedId === topic.id ? styles.newEntry : ''}`}
-                                >
-                                    <div className={styles.topicHeaderCard}>
-                                        <div className={styles.topicTitleGroup}>
-                                            <span className={styles.topicBadge}>Topic</span>
-                                            <div className={styles.inputWrapper}>
-                                                <Edit2 size={12} className={styles.editIcon} />
-
-                                                <input
-                                                    className={styles.topicTitleInput}
-                                                    value={topic.title}
-                                                    onChange={(e) => {
-                                                        const updated = value.map(t => t.id === topic.id ? {...t, title: e.target.value} : t);
-                                                        onChange(updated);
-                                                    }}
-                                                />
-                                            </div>
-                                        </div>
-                                        <button
-                                            className={styles.removeTopicBtn}
-                                            onClick={() => onChange(value.filter(t => t.id !== topic.id))}
-                                        >
-                                            <X color={"white"} size={16} />
-                                        </button>
-                                    </div>
-
-                                    <div className={styles.subtopicsContainer}>
-                                        {topic.subtopics.map((sub) => (
-                                            <div key={sub.id} className={styles.subtopicRow}>
-                                                <div className={styles.bullet}>•</div>
-                                                <input
-                                                    type="text"
-                                                    placeholder="Enter subtopic detail..."
-                                                    value={sub.value}
-                                                    onChange={(e) => updateSubtopic(topic.id, sub.id, e.target.value)}
-                                                />
-                                                <div className={styles.actions}>
-                                                    <button onClick={() => duplicateSubtopic(topic.id, sub.id)} title="Duplicate">
-                                                        <Copy size={14} />
-                                                    </button>
-                                                    <button className={styles.delete} onClick={() => deleteSubtopic(topic.id, sub.id)} title="Delete">
-                                                        <Trash2 size={14} />
-                                                    </button>
+                            {value.map((topic) => {
+                                const topicKey = getTopicKey(topic);
+                                return (
+                                    <div
+                                        key={topicKey}
+                                        className={`${styles.topicCard} ${lastAddedId === topicKey ? styles.newEntry : ''}`}
+                                    >
+                                        <div className={styles.topicHeaderCard}>
+                                            <div className={styles.topicTitleGroup}>
+                                                <span className={styles.topicBadge}>Topic</span>
+                                                <div className={styles.inputWrapper}>
+                                                    <Edit2 size={12} className={styles.editIcon} />
+                                                    <input
+                                                        className={styles.topicTitleInput}
+                                                        value={topic.title}
+                                                        onChange={(e) => {
+                                                            const updated = value.map(t => getTopicKey(t) === topicKey ? { ...t, title: e.target.value } : t);
+                                                            onChange(updated);
+                                                        }}
+                                                    />
                                                 </div>
                                             </div>
-                                        ))}
-                                        <button className={styles.addSubBtn} onClick={() => addBlankSubtopic(topic.id)}>
-                                            <Plus size={14} /> Add Subtopic
-                                        </button>
+                                            <button
+                                                className={styles.removeTopicBtn}
+                                                onClick={() => onChange(value.filter(t => getTopicKey(t) !== topicKey))}
+                                            >
+                                                <X color={"white"} size={16} />
+                                            </button>
+                                        </div>
+
+                                        <div className={styles.subtopicsContainer}>
+                                            {(topic.subtopics || []).map((sub) => {
+                                                const subKey = getSubtopicKey(sub);
+                                                return (
+                                                    <div key={subKey} className={styles.subtopicRow}>
+                                                        <div className={styles.bullet}>•</div>
+                                                        <input
+                                                            type="text"
+                                                            placeholder="Enter subtopic detail..."
+                                                            value={sub.title}
+                                                            onChange={(e) => updateSubtopic(topic, sub, e.target.value)}
+                                                        />
+                                                        <div className={styles.actions}>
+                                                            <button onClick={() => duplicateSubtopic(topic, sub)} title="Duplicate">
+                                                                <Copy size={14} />
+                                                            </button>
+                                                            <button className={styles.delete} onClick={() => deleteSubtopic(topic, sub)} title="Delete">
+                                                                <Trash2 size={14} />
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                            <button className={styles.addSubBtn} onClick={() => addBlankSubtopic(topic)}>
+                                                <Plus size={14} /> Add Subtopic
+                                            </button>
+                                        </div>
                                     </div>
-                                </div>
-                            ))}
+                                );
+                            })}
                         </div>
                     )}
                 </div>
