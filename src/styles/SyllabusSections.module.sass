@@ -109,6 +109,45 @@ section
   color: white
   cursor: pointer
 
+  &:disabled
+    background: #999
+    color: #ddd
+    border-color: #bbb
+    cursor: not-allowed
+
+.submitDisabled
+  background: #999
+  color: #ddd
+  border-color: #bbb
+  cursor: not-allowed
+
+.submitTooltip
+  position: absolute
+  top: calc(100% + 6px)
+  right: 0
+  background: #1A1A1A
+  color: white
+  font-size: 11px
+  padding: 6px 10px
+  border-radius: 4px
+  white-space: nowrap
+  pointer-events: none
+  z-index: 10
+  opacity: 0
+  visibility: hidden
+  transition: opacity 0.2s
+
+.submit:disabled:hover + .submitTooltip
+  opacity: 1
+  visibility: visible
+
+@keyframes tooltipIn
+  from
+    opacity: 0
+    transform: translateY(-4px)
+  to
+    opacity: 1
+    transform: translateY(0)
 
 .header
   width: 100%

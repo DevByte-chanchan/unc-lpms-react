@@ -1,11 +1,12 @@
 import styles from '../styles/SyllabusSections.module.sass'
 import {ChevronLeft} from 'react-feather';
-import React, {useEffect, useState} from "react";
-import {useNavigate, useSearchParams} from "react-router-dom";
+import React, {useEffect, useRef, useState} from "react";
+import {useNavigate, useSearchParams, useLocation, useParams} from "react-router-dom";
 import layout from "../styles/TosSections.module.sass";
 import TOSPreview from "../pages/TosPreview.jsx";
 import TOSSummary from "../pages/TosSummary.jsx";
 import QuestionCognitiveMapping from "../pages/QuestionCognitiveMapping.jsx";
+import BuilderNavigation from "../components/BuilderNavigation.jsx";
 
 const tosSections = ({status}) => {
 
@@ -47,16 +48,27 @@ const tosSections = ({status}) => {
     const [rows, setRows] = useState(courseOutlines);
     const [tosErrors, setTosErrors] = useState([]);
     const [showTosErrorModal, setShowTosErrorModal] = useState(false);
+    const [errorFields, setErrorFields] = useState({});
+    const [exportErrors, setExportErrors] = useState({ outcomeOverview: [], assessmentMapping: [], tosSummary: [] });
+    const [showExportErrorModal, setShowExportErrorModal] = useState(false);
+    const location = useLocation();
+    const tosStatus = location.state?.tosStatus || 'draft';
+    const { code: courseName } = useParams();
+
+    const clearFieldError = (key) => {
+        setErrorFields(prev => { const n = { ...prev }; delete n[key]; return n; });
+    };
 
     // ── Outcome Overview helpers ──────────────────────────────────────────────
 
     // When total CO items changes → redistribute to ILOs by percentage
     const handleTotalItemsChange = (coIndex, value) => {
+        clearFieldError(`oo-totalItems-${coIndex}`);
         setRows(prev => {
             const updated = prev.map((co, i) => {
                 if (i !== coIndex) return co;
                 const cleaned = value.replace(/[^0-9]/g, '');
-                const total = cleaned === "" ? "" : Number(cleaned);
+                const total = cleaned === "" ? 0 : Math.min(Number(cleaned), 100);
                 const newIlos = co.ilos.map(ilo => ({ ...ilo }));
 
                 if (total !== "") {
@@ -80,13 +92,14 @@ const tosSections = ({status}) => {
 
     // When an individual ILO item count changes → recalculate CO total as sum of ILOs
     const handleItemsChange = (coIndex, iloIndex, value) => {
+        clearFieldError(`oo-items-${coIndex}-${iloIndex}`);
         setRows(prev => {
             const updated = prev.map((co, i) => {
                 if (i !== coIndex) return co;
                 const cleaned = value.replace(/[^0-9]/g, '');
                 const newIlos = co.ilos.map((ilo, j) => {
                     if (j !== iloIndex) return { ...ilo };
-                    return { ...ilo, items: cleaned === "" ? "" : Number(cleaned) };
+                    return { ...ilo, items: cleaned === "" ? 0 : Math.min(Number(cleaned), 100) };
                 });
                 const newTotal = newIlos.reduce((sum, ilo) => sum + Number(ilo.items || 0), 0);
                 return { ...co, ilos: newIlos, totalItems: newTotal };
@@ -97,7 +110,8 @@ const tosSections = ({status}) => {
 
     // ── TOS validation ────────────────────────────────────────────────────────
     const validateTOS = () => {
-        const errors = [];
+        const issues = { outcomeOverview: [], assessmentMapping: [], tosSummary: [] };
+        const fieldKeys = {};
 
         const counts = {};
         rows.forEach(co => {
@@ -107,30 +121,49 @@ const tosSections = ({status}) => {
 
         questions.forEach(q => {
             if (q.co && q.ilo) {
-                counts[q.co].ilos[q.ilo] += (q.span || 1);
+                if (counts[q.co]) counts[q.co].ilos[q.ilo] += (q.span || 1);
             }
         });
 
+        const ooSet = new Set();
+        rows.forEach((co, coIndex) => {
+            if (Number(co.totalItems) > 100 || Number(co.totalItems) === 0) {
+                fieldKeys[`oo-totalItems-${coIndex}`] = true;
+            }
+            co.ilos.forEach((ilo, iloIndex) => {
+                if (Number(ilo.items) === 0) {
+                    ooSet.add('Some ILOs have zero items');
+                    fieldKeys[`oo-items-${coIndex}-${iloIndex}`] = true;
+                } else if (Number(ilo.items) > 100) {
+                    ooSet.add('Some ILOs exceed the maximum of 100 items');
+                    fieldKeys[`oo-items-${coIndex}-${iloIndex}`] = true;
+                }
+            });
+        });
+        issues.outcomeOverview = [...ooSet];
+
+        const mapSet = new Set();
+        const hasMappingIssues = () => mapSet.size > 0;
+        questions.forEach((q) => {
+            if (!(q.question || q.rubricItem || '').trim()) mapSet.add('Some items have no instruction text');
+            if (!q.co) { mapSet.add('Some items have no CO selected'); fieldKeys[`map-co-${q.id}`] = true; }
+            if (!q.ilo) { mapSet.add('Some items have no ILO selected'); fieldKeys[`map-ilo-${q.id}`] = true; }
+            if (!q.points) mapSet.add('Some items have no points');
+            if (!q.cognitiveLevel) { mapSet.add('Some items have no cognitive level selected'); fieldKeys[`map-cognitiveLevel-${q.id}`] = true; }
+        });
+        // Only show allocation mismatch if there are no other mapping issues (redundancy guard)
+        let hasAllocMismatch = false;
         rows.forEach(co => {
             co.ilos.forEach(ilo => {
                 const required = ilo.items;
                 const actual = counts[co.co].ilos[ilo.id];
-                if (actual !== required) {
-                    errors.push(`${co.co}-${ilo.id}: requires ${required} item(s), currently has ${actual}`);
-                }
+                if (actual !== required) hasAllocMismatch = true;
             });
         });
+        if (hasAllocMismatch && !hasMappingIssues()) mapSet.add('Item allocation does not match the required distribution');
+        issues.assessmentMapping = [...mapSet];
 
-        questions.forEach((q, i) => {
-            const row = i + 1;
-            if (!q.question && !q.rubricItem) errors.push(`Item text is empty: Row ${row}`);
-            if (!q.co)             errors.push(`CO not selected: Row ${row}`);
-            if (!q.ilo)            errors.push(`ILO not selected: Row ${row}`);
-            if (!q.points)         errors.push(`Points missing: Row ${row}`);
-            if (!q.cognitiveLevel) errors.push(`Cognitive level missing: Row ${row}`);
-        });
-
-        return errors;
+        return { errors: issues, fieldKeys };
     };
 
     const handleSectionChange = (e) => {
@@ -138,6 +171,61 @@ const tosSections = ({status}) => {
     };
 
     const [isLoading, setIsLoading] = useState(false);
+    const [showBuilder, setShowBuilder] = useState(false);
+    const [builderLoading, setBuilderLoading] = useState(false);
+    const [navigating, setNavigating] = useState(false);
+    const [builderFilledCount, setBuilderFilledCount] = useState(0);
+    const [showClearConfirm, setShowClearConfirm] = useState(false);
+    const [builderKey, setBuilderKey] = useState(0);
+    const builderSaveRef = useRef(null);
+
+    const handleBuilderSave = (savedItems) => {
+        setQuestions(savedItems);
+        setShowBuilder(false);
+        setBuilderFilledCount(0);
+    };
+
+    const handleBuilderProgress = (filled) => {
+        setBuilderFilledCount(filled);
+    };
+
+    const handleClearAll = () => {
+        setQuestions(prev => prev.map(q => ({
+            ...q,
+            question: '',
+            rubricItem: '',
+            choices: [],
+            rubricRows: [],
+            points: String(q.span || 1),
+            co: '',
+            ilo: '',
+            cognitiveLevel: '',
+        })));
+        setBuilderKey(prev => prev + 1);
+        setShowClearConfirm(false);
+    };
+
+    const handleBuilderExport = () => {
+        const data = JSON.stringify(questions.map(it => ({
+            item: it.question, span: it.span, points: it.points,
+            choices: (it.choices || []).map(c => c.text), rubric: it.rubricRows,
+        })), null, 2);
+        const blob = new Blob([data], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = 'assessment-items.json'; a.click();
+        URL.revokeObjectURL(url);
+    };
+
+    const totalBuilderSlots = questions.reduce((s, q) => s + (q.span || 1), 0);
+    const totalRequired = rows.reduce((s, co) => s + Number(co.totalItems || 0), 0);
+    const filledCount = showBuilder ? builderFilledCount : questions.reduce((s, q) => {
+        const hasContent = (q.question || q.rubricItem) && (q.question || q.rubricItem).trim().length > 0;
+        return s + (hasContent ? (q.span || 1) : 0);
+    }, 0);
+    const allFilled = filledCount === totalRequired;
+    const allItemsHavePoints = questions.every(q => q.points && Number(q.points) > 0);
+    const canSubmit = allFilled && allItemsHavePoints && questions.length > 0;
 
     useEffect(() => {
         setIsLoading(true);
@@ -145,45 +233,81 @@ const tosSections = ({status}) => {
         return () => clearTimeout(timer);
     }, [selectedSection]);
 
+    const prevShowBuilder = useRef(showBuilder);
+    useEffect(() => {
+        const entering = !prevShowBuilder.current && showBuilder;
+        prevShowBuilder.current = showBuilder;
+        if (!entering) return;
+        setBuilderLoading(true);
+        const timer = setTimeout(() => setBuilderLoading(false), 400);
+        return () => clearTimeout(timer);
+    }, [showBuilder]);
+
+    const handleNavigateBack = () => {
+        setNavigating(true);
+        setTimeout(() => navigate('/assignedtos'), 400);
+    };
+
     return (
         <>
             <div className={styles.container}>
-                <div className={styles.navi}>
-                    <div className={styles.return} onClick={() => navigate('/assignedtos')}>
-                        <ChevronLeft size={22}/>
-                    </div>
+                {showBuilder ? (
+                    <BuilderNavigation
+                        onSave={() => builderSaveRef.current && builderSaveRef.current()}
+                        onExport={handleBuilderExport}
+                        onClearAll={() => setShowClearConfirm(true)}
+                        filledCount={filledCount}
+                        totalSlots={totalRequired}
+                        allFilled={allFilled}
+                        tosStatus={tosStatus}
+                    />
+                ) : (
+                    <div className={styles.navi}>
+                        <div className={styles.return} onClick={handleNavigateBack}>
+                            <ChevronLeft size={22}/>
+                        </div>
 
-                    <div className={styles['section-select']}>
-                        <select value={selectedSection} onChange={handleSectionChange}>
-                            <option value="Outcome Overview">Outcome Overview</option>
-                            <option value="Assessment Item-Cognitive Level Alignment">Assessment Item-Cognitive Level Alignment</option>
-                            <option value="TOS Summary">TOS Summary</option>
-                        </select>
-                    </div>
+                        <div className={styles['section-select']}>
+                            <select value={selectedSection} onChange={handleSectionChange}>
+                                <option value="Outcome Overview">Outcome Overview</option>
+                                <option value="Assessment Item-Cognitive Level Alignment">Assessment Item-Cognitive Level Alignment</option>
+                                <option value="TOS Summary">TOS Summary</option>
+                            </select>
+                        </div>
 
-                    <div className={styles.draft} onClick={() => navigate('/assignedtos')}>
-                        Save as Draft
-                    </div>
+                        <div className={styles.draft} onClick={handleNavigateBack}>
+                            Save as Draft
+                        </div>
 
-                    <div>
-                        <button
-                            className={styles.submit}
-                            onClick={() => {
-                                const errors = validateTOS();
-                                if (errors.length > 0) {
-                                    setTosErrors(errors);
-                                    setShowTosErrorModal(true);
-                                } else {
-                                    setIsPreviewOpen(true);
-                                }
-                            }}
-                        >
-                            Export
-                        </button>
+                        <div style={{ position: 'relative' }}>
+                            <button
+                                className={`${styles.submit} ${!canSubmit ? styles.submitDisabled : ''}`}
+                                disabled={!canSubmit}
+                                onClick={() => {
+                                    const { errors, fieldKeys } = validateTOS();
+                                    setErrorFields(fieldKeys);
+                                    const hasErrors = errors.outcomeOverview.length > 0 || errors.assessmentMapping.length > 0 || errors.tosSummary.length > 0;
+                                    if (hasErrors) {
+                                        setExportErrors(errors);
+                                        setShowExportErrorModal(true);
+                                    } else {
+                                        setIsPreviewOpen(true);
+                                    }
+                                }}
+                            >
+                                Submit
+                            </button>
+                            <span className={styles.submitTooltip}>Disabled due to incomplete assessment items</span>
+                        </div>
                     </div>
-                </div>
+                )}
 
-                <div className={styles['dynamic-sections']}>
+                <div className={styles['dynamic-sections']} style={{ position: 'relative' }}>
+                    {(builderLoading || navigating) && (
+                        <div className={styles.loadingContainer} style={{ position: 'absolute', inset: 0, zIndex: 50, background: 'rgba(255,255,255,0.8)' }}>
+                            <div className={styles.spinner}></div>
+                        </div>
+                    )}
                     {isLoading ? (
                         <div className={styles.loadingContainer}>
                             <div className={styles.spinner}></div>
@@ -227,7 +351,7 @@ const tosSections = ({status}) => {
                                                     <td>
                                                         <div className={layout.cellBox}>
                                                             <input
-                                                                className={`${layout.totalCoPoint} ${layout.input}`}
+                                                                className={`${layout.totalCoPoint} ${layout.input} ${errorFields[`oo-totalItems-${coIndex}`] ? layout.inputError : ''}`}
                                                                 type="text"
                                                                 inputMode="numeric"
                                                                 value={co.totalItems}
@@ -267,7 +391,7 @@ const tosSections = ({status}) => {
                                                     <td>
                                                         <div className={layout.cellBox}>
                                                             <input
-                                                                className={`${layout.point} ${layout.input}`}
+                                                                className={`${layout.point} ${layout.input} ${errorFields[`oo-items-${coIndex}-${iloIndex}`] ? layout.inputError : ''}`}
                                                                 type="text"
                                                                 inputMode="numeric"
                                                                 value={ilo.items}
@@ -296,12 +420,19 @@ const tosSections = ({status}) => {
                             {selectedSection === 'Assessment Item-Cognitive Level Alignment' && (
                                 <section>
                                     <QuestionCognitiveMapping
+                                        key={builderKey}
                                         outcomeData={rows}
                                         questions={questions}
                                         setQuestions={setQuestions}
                                         assessmentMode={assessmentMode}
                                         rubricCategories={rubricCategories}
                                         setRubricCategories={setRubricCategories}
+                                        showBuilder={showBuilder}
+                                        onShowBuilderChange={setShowBuilder}
+                                        builderSaveRef={builderSaveRef}
+                                        onProgressUpdate={handleBuilderProgress}
+                                        errorFields={errorFields}
+                                        clearFieldError={clearFieldError}
                                     />
                                 </section>
                             )}
@@ -321,28 +452,66 @@ const tosSections = ({status}) => {
                 onClose={() => setIsPreviewOpen(false)}
                 outcomeData={rows}
                 questions={questions}
+                courseName={courseName}
             />
 
-            {showTosErrorModal && (
+            {showExportErrorModal && (
                 <div className={layout.modalOverlay}>
                     <div className={layout.modal}>
-                        <div className={layout.modalHeader} style={{ borderBottomColor: "#FF5252" }}>
-                            <h3 style={{ color: "#FF5252" }}>TOS Validation Errors</h3>
-                            <span style={{ cursor: "pointer", fontSize: "20px" }} onClick={() => setShowTosErrorModal(false)}>×</span>
+                        <div className={layout.modalHeader}>
+                            <h3 style={{ margin: 0, fontSize: '1.1rem', color: '#333' }}>Export Validation Errors</h3>
+                            <span style={{ cursor: "pointer", fontSize: "20px", color: '#999' }} onClick={() => setShowExportErrorModal(false)}>×</span>
                         </div>
-                        <div className={layout.modalBody}>
-                            <p>Please fix the following before exporting:</p>
-                            <ul className={layout.errorList} style={{ listStyle: "none", paddingLeft: 20, margin: 0, textAlign: "left" }}>
-                                {tosErrors.map((err, i) => <li key={i}>{err}</li>)}
-                            </ul>
+                        <div className={layout.modalBody} style={{ textAlign: 'left' }}>
+                            <p style={{ margin: '0 0 10px 0', color: '#666', fontSize: '0.9rem' }}>Please fix the following before exporting:</p>
+                            {exportErrors.outcomeOverview.length > 0 && (
+                                <div className={layout.errorBlock}>
+                                    <div style={{ fontWeight: 600, fontSize: '0.85rem', color: '#1A1A1A', marginBottom: 6 }}>Outcome Overview</div>
+                                    {exportErrors.outcomeOverview.map((e, i) => <div key={i} style={{ fontSize: '0.8rem', color: '#555', padding: '2px 0' }}>• {e}</div>)}
+                                </div>
+                            )}
+                            {exportErrors.assessmentMapping.length > 0 && (
+                                <div className={layout.errorBlock}>
+                                    <div style={{ fontWeight: 600, fontSize: '0.85rem', color: '#1A1A1A', marginBottom: 6 }}>Assessment Alignment</div>
+                                    {exportErrors.assessmentMapping.map((e, i) => <div key={i} style={{ fontSize: '0.8rem', color: '#555', padding: '2px 0' }}>• {e}</div>)}
+                                </div>
+                            )}
+                            {exportErrors.tosSummary.length > 0 && (
+                                <div className={layout.errorBlock}>
+                                    <div style={{ fontWeight: 600, fontSize: '0.85rem', color: '#1A1A1A', marginBottom: 6 }}>TOS Summary</div>
+                                    {exportErrors.tosSummary.map((e, i) => <div key={i} style={{ fontSize: '0.8rem', color: '#555', padding: '2px 0' }}>• {e}</div>)}
+                                </div>
+                            )}
                         </div>
                         <div className={layout.modalActions}>
                             <button
                                 className={layout.confirmBtn}
-                                style={{ backgroundColor: "#FF5252" }}
-                                onClick={() => setShowTosErrorModal(false)}
+                                style={{ backgroundColor: "#1A1A1A" }}
+                                onMouseEnter={e => e.target.style.backgroundColor = '#444'}
+                                onMouseLeave={e => e.target.style.backgroundColor = '#1A1A1A'}
+                                onClick={() => setShowExportErrorModal(false)}
                             >
                                 Okay, I'll fix it
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {showClearConfirm && (
+                <div className={layout.modalOverlay}>
+                    <div className={layout.modal}>
+                        <div className={layout.modalHeader}>
+                            <h3 style={{ color: "#1A1A1A" }}>Clear All Items</h3>
+                            <span style={{ cursor: "pointer", fontSize: "20px", color: "#999" }} onClick={() => setShowClearConfirm(false)}>×</span>
+                        </div>
+                        <div className={layout.modalBody}>
+                            <p style={{ color: "#555" }}>This will remove all content from every item. This action cannot be undone.</p>
+                        </div>
+                        <div className={layout.modalActions}>
+                            <button className={layout.cancelBtn} style={{ background: "#f9f9f9", color: "#374151" }} onClick={() => setShowClearConfirm(false)}>Cancel</button>
+                            <button className={layout.confirmBtn} style={{ background: "#1A1A1A" }} onMouseEnter={e => e.target.style.backgroundColor = '#444'} onMouseLeave={e => e.target.style.backgroundColor = '#1A1A1A'} onClick={handleClearAll}>
+                                Yes, clear all
                             </button>
                         </div>
                     </div>

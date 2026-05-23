@@ -1,11 +1,31 @@
-import React from "react";
+import React, { useState, useEffect, useRef } from "react";
 import layout from "../styles/TOSPreview.module.sass";
 import { useNavigate } from "react-router-dom";
 
 const TOSPreview = ({ isOpen, onClose, outcomeData, questions, courseName = "Human & Computer Interaction", semester = "1st Sem", schoolYear = "2024 - 2025" }) => {
     if (!isOpen) return null;
 
+    const [showConfirm, setShowConfirm] = useState(false);
+    const [countdown, setCountdown] = useState(5);
     const navigate = useNavigate();
+    const countdownRef = useRef(null);
+
+    const handleSubmitApproval = () => {
+        setShowConfirm(true);
+        setCountdown(5);
+    };
+
+    const handleConfirm = () => {
+        if (countdownRef.current) clearTimeout(countdownRef.current);
+        navigate("/assignedtos", { state: { tosStatusUpdate: { courseName, newStatus: 'pending' } } });
+    };
+
+    useEffect(() => {
+        if (!showConfirm) return;
+        if (countdown === 0) { handleConfirm(); return; }
+        countdownRef.current = setTimeout(() => setCountdown(c => c - 1), 1000);
+        return () => { if (countdownRef.current) clearTimeout(countdownRef.current); };
+    }, [showConfirm, countdown]);
 
     const cognitiveLevels = [
         'Remembering',
@@ -154,7 +174,7 @@ const TOSPreview = ({ isOpen, onClose, outcomeData, questions, courseName = "Hum
                                             <div className={layout.cellBox}>
                                                 {aggregatedData[co.co][ilo.id][level].count > 0
                                                     ? `${aggregatedData[co.co][ilo.id][level].count} x ${aggregatedData[co.co][ilo.id][level].sumPoints}`
-                                                    : ''
+                                                    : '—'
                                                 }
                                             </div>
                                         </td>
@@ -186,14 +206,25 @@ const TOSPreview = ({ isOpen, onClose, outcomeData, questions, courseName = "Hum
                     </tbody>
                 </table>
                 <div className={layout.exportButtonContainer}>
-                    <button
-                        className={layout.export}
-                        onClick={() => navigate("/assignedtos")}
-                    >
-                        Export TOS
+                    <button className={layout.export} onClick={handleSubmitApproval}>
+                        Submit for approval
                     </button>
                 </div>
             </div>
+
+            {showConfirm && (
+                <div className={layout.modalOverlay} onClick={handleConfirm}>
+                    <div className={layout.confirmPopup} onClick={e => e.stopPropagation()}>
+                        <div className={layout.confirmTextRow}>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#19282C" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                            <p className={layout.confirmText}>Submitting TOS for approval</p>
+                        </div>
+                        <div className={layout.spinner} />
+                        <span className={layout.countdown}>{countdown}s</span>
+                        <button className={layout.undoBtn} onClick={() => { if (countdownRef.current) clearTimeout(countdownRef.current); setShowConfirm(false); }}>Undo</button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

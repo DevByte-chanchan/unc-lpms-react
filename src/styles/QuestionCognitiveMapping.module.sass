@@ -415,6 +415,38 @@
   color: #b00000
   text-align: center
 
+.mPostSaveWarn
+  position: absolute
+  top: 82px
+  left: 40px
+  right: 40px
+  z-index: 10
+  padding: 10px 16px
+  background: #fff5f5
+  border: 1px solid #fca5a5
+  border-radius: 6px
+  font-size: 13px
+  color: #b00000
+  display: flex
+  align-items: center
+  justify-content: space-between
+  gap: 12px
+  animation: bWarnFadeIn 0.3s ease
+
+  button
+    flex-shrink: 0
+    padding: 6px 16px
+    background: #EA1212
+    color: white
+    border: none
+    border-radius: 4px
+    font-size: 12px
+    font-weight: 600
+    cursor: pointer
+
+    &:hover
+      background: #C00000
+
 // Item cell in mapping row
 .mItemCell
   overflow: hidden
@@ -533,6 +565,10 @@
   color: #9CA3AF
   cursor: not-allowed
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%239CA3AF' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")
+
+.mSelectError
+  border-color: #EA1212 !important
+  background-color: #FFF4F4 !important
 
 // Mapping number input
 .mNum
@@ -731,11 +767,44 @@
   display: flex
   flex-direction: column
 
+// Empty items warning bar — fades in, auto-dismisses
+.bEmptyWarn
+  padding: 10px 20px
+  background: #FFF4F4
+  border-bottom: 1px solid #fca5a5
+  color: #b00000
+  font-size: 13px
+  font-weight: 500
+  text-align: center
+  animation: bWarnFadeIn 0.3s ease
+
+@keyframes bWarnFadeIn
+  from
+    opacity: 0
+    transform: translateY(-8px)
+  to
+    opacity: 1
+    transform: translateY(0)
+
 // Scrollable area below the fixed bar
 .bScroll
   flex: 1
   overflow-y: auto
   overflow-x: hidden
+
+// Progress bar in nav
+.bProgressTrack
+  width: 200px
+  height: 10px
+  background: #E5E7EB
+  border-radius: 5px
+  overflow: hidden
+
+.bProgressFill
+  height: 100%
+  background: #1A1A1A
+  border-radius: 5px
+  transition: width 0.3s ease
 
 // ── Top bar — outside the scroll container, always visible ──────────────────
 .bBar
@@ -962,6 +1031,10 @@
   border-radius: 10px 0 0 10px
   border-right: none
 
+.bCardIncomplete
+  border-color: #EA1212 !important
+  box-shadow: 0 0 0 1px #EA1212
+
 // Card header
 .bCardHead
   display: flex
@@ -1008,10 +1081,10 @@
   width: 52px
   height: 34px
   padding: 0 6px
-  border: 1.5px solid #DDDFDF
+  border: 2px solid #1A1A1A
   border-radius: 6px
-  font-size: 12px
-  font-weight: 600
+  font-size: 13px
+  font-weight: 700
   text-align: center
   color: #1A1A1A
   background: white
@@ -1248,27 +1321,24 @@
   display: inline-flex
   align-items: center
   gap: 4px
-  padding: 4px 8px
+  padding: 6px 12px
   background: transparent
-  border: 1.5px solid transparent
-  border-radius: 6px
+  border: 1.5px solid #EA1212
+  border-radius: 20px
   color: #EA1212
   font-size: 12px
   font-weight: 600
   cursor: pointer
-  text-decoration: underline
-  text-underline-offset: 2px
   margin-top: 2px
   transition: all 0.15s
 
   &:hover
-    color: #C00000
     background: #fee2e2
+    border-color: #EA1212
 
   &:focus
     outline: none
-    border-color: #EA1212
-    text-decoration: none
+    border-color: #1A1A1A
 
 // ── Rubric ────────────────────────────────────────────────────────────────────
 .bRubricWrap
@@ -1500,7 +1570,7 @@
   background: #1A1A1A
   color: #ffffff
   border: none
-  border-radius: 6px
+  border-radius: 20px
   font-size: 12px
   font-weight: 500
   cursor: pointer
@@ -1520,7 +1590,7 @@
   background: #EA1212
   color: #ffffff
   border: none
-  border-radius: 6px
+  border-radius: 20px
   font-size: 12px
   font-weight: 500
   cursor: pointer
@@ -1540,7 +1610,7 @@
   background: #fee2e2
   color: #b00000
   border: 1.5px solid #fca5a5
-  border-radius: 6px
+  border-radius: 20px
   font-size: 12px
   font-weight: 500
   cursor: pointer
@@ -1551,3 +1621,25 @@
     background: #EA1212
     color: white
     border-color: #EA1212
+
+// Scroll-to-top button (lower-right corner of builder)
+.bScrollTop
+  position: fixed
+  bottom: 24px
+  right: 24px
+  width: 44px
+  height: 44px
+  border-radius: 50%
+  border: none
+  background: #1A1A1A
+  color: white
+  display: flex
+  align-items: center
+  justify-content: center
+  cursor: pointer
+  z-index: 100
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2)
+  transition: background 0.12s
+
+  &:hover
+    background: #EA1212

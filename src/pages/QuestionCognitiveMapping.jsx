@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import {
-    X, FileText, ArrowLeft, Download,
+    X, FileText,
     Plus, Check, ChevronDown, ChevronUp
 } from "react-feather";
 import layout from "../styles/QuestionCognitiveMapping.module.sass";
+import tosLayout from "../styles/TosSections.module.sass";
 
 // ─── UID ─────────────────────────────────────────────────────────────────────
 let _uid = 0;
@@ -17,7 +18,7 @@ const makeItem = (spanVal) => ({
     choices: [],
     rubricRows: [],
     showRubric: false,
-    points: '',
+    points: String(spanVal || 1),
 });
 
 // ─── Weight distribution ──────────────────────────────────────────────────────
@@ -39,7 +40,9 @@ const RubricRow = ({ row, itemPoints, totalWeight, rowPoints, onChange, onRemove
                 value={row.name}
                 rows={1}
                 onChange={e => {
-                    onChange({ ...row, name: e.target.value });
+                    const v = e.target.value;
+                    if (v.startsWith(' ')) return;
+                    onChange({ ...row, name: v });
                     e.target.style.height = 'auto';
                     e.target.style.height = e.target.scrollHeight + 'px';
                 }}
@@ -50,7 +53,9 @@ const RubricRow = ({ row, itemPoints, totalWeight, rowPoints, onChange, onRemove
                 value={row.description}
                 rows={1}
                 onChange={e => {
-                    onChange({ ...row, description: e.target.value });
+                    const v = e.target.value;
+                    if (v.startsWith(' ')) return;
+                    onChange({ ...row, description: v });
                     e.target.style.height = 'auto';
                     e.target.style.height = e.target.scrollHeight + 'px';
                 }}
@@ -79,10 +84,11 @@ const RubricRow = ({ row, itemPoints, totalWeight, rowPoints, onChange, onRemove
 };
 
 // ─── AssessmentBuilder ────────────────────────────────────────────────────────
-const AssessmentBuilder = ({ totalSlots, initialItems, onSaveReturn }) => {
+const AssessmentBuilder = ({ totalSlots, initialItems, onSaveReturn, builderSaveRef, onProgressUpdate, highlightKey }) => {
     const [spanEdit, setSpanEdit] = useState(null);
     const [warnData, setWarnData] = useState(null);
     const [deletingId, setDeletingId] = useState(null);
+    const [highlightActive, setHighlightActive] = useState(false);
 
     const buildSlotMap = (its) => {
         let c = 0;
@@ -91,7 +97,7 @@ const AssessmentBuilder = ({ totalSlots, initialItems, onSaveReturn }) => {
 
     const initItems = () => {
         if (initialItems && initialItems.length > 0) {
-            const hasContent = initialItems.some(q => q.question || q.rubricItem);
+            const hasContent = initialItems.some(q => (q.question || q.rubricItem || '').trim().length > 0);
             if (hasContent) {
                 return initialItems.map(q => ({
                     id: q.id || uid(),
@@ -112,6 +118,16 @@ const AssessmentBuilder = ({ totalSlots, initialItems, onSaveReturn }) => {
     const [items, setItems] = useState(initItems);
     const upd = (id, fn) => setItems(p => p.map(it => it.id === id ? fn(it) : it));
 
+    // Report real-time filled count to parent nav
+    useEffect(() => {
+        if (!onProgressUpdate) return;
+        const filled = items.reduce((s, it) => {
+            const hasContent = (it.instruction || '').trim().length > 0;
+            return s + (hasContent ? (it.span || 1) : 0);
+        }, 0);
+        onProgressUpdate(filled);
+    }, [items, onProgressUpdate]);
+
     // Auto-populate blank items when totalSlots increases
     useEffect(() => {
         setItems(prev => {
@@ -119,6 +135,26 @@ const AssessmentBuilder = ({ totalSlots, initialItems, onSaveReturn }) => {
             if (consumed >= totalSlots) return prev;
             const needed = totalSlots - consumed;
             return [...prev, ...Array.from({ length: needed }, () => makeItem(1))];
+        });
+    }, [totalSlots]);
+
+    // Auto-remove blank items when totalSlots decreases
+    useEffect(() => {
+        setItems(prev => {
+            let currentConsumed = prev.reduce((s, it) => s + (it.span || 1), 0);
+            if (currentConsumed <= totalSlots) return prev;
+            
+            let next = [...prev];
+            let i = next.length - 1;
+            while (currentConsumed > totalSlots && i >= 0) {
+                const item = next[i];
+                const hasContent = (item.instruction || '').trim().length > 0 || item.choices.length > 0 || item.rubricRows.length > 0;
+                if (hasContent) { i--; continue; }
+                currentConsumed -= (item.span || 1);
+                next.splice(i, 1);
+                i--;
+            }
+            return next;
         });
     }, [totalSlots]);
 
@@ -134,8 +170,11 @@ const AssessmentBuilder = ({ totalSlots, initialItems, onSaveReturn }) => {
                 setSpanEdit(null);
             }
         };
-        setTimeout(() => document.addEventListener('mousedown', handler), 0);
-        return () => document.removeEventListener('mousedown', handler);
+        const timer = setTimeout(() => document.addEventListener('mousedown', handler), 0);
+        return () => {
+            clearTimeout(timer);
+            document.removeEventListener('mousedown', handler);
+        };
     }, [spanEdit]);
 
     const tryCommitSpan = (id, endNum) => {
@@ -155,7 +194,7 @@ const AssessmentBuilder = ({ totalSlots, initialItems, onSaveReturn }) => {
             }
             const hasFilledAbsorbed = toRemove.some(rid => {
                 const it = items.find(x => x.id === rid);
-                return it && (it.instruction || it.choices.length || it.rubricRows.length);
+                return it && ((it.instruction || '').trim().length > 0 || it.choices.length || it.rubricRows.length);
             });
             if (hasFilledAbsorbed) { setWarnData({ id, newSpan, toRemove }); return; }
             applySpan(id, newSpan, toRemove);
@@ -240,8 +279,7 @@ const AssessmentBuilder = ({ totalSlots, initialItems, onSaveReturn }) => {
         URL.revokeObjectURL(url);
     };
 
-    const save = () => {
-        if (!canSave) return;
+    const doSave = () => {
         const exMap = new Map(initialItems?.map(it => [it.id, it]) || []);
         onSaveReturn(items.map(it => {
             const ex = exMap.get(it.id) || {};
@@ -259,6 +297,30 @@ const AssessmentBuilder = ({ totalSlots, initialItems, onSaveReturn }) => {
             };
         }));
     };
+
+    const save = () => {
+        doSave();
+    };
+
+    useEffect(() => {
+        if (builderSaveRef) {
+            builderSaveRef.current = save;
+        }
+    });
+
+    // Highlight empty items when returning from post-save warning
+    useEffect(() => {
+        if (!highlightKey) return;
+        const emptyItem = items.find(it => !(it.instruction || '').trim());
+        if (!emptyItem) return;
+        setHighlightActive(true);
+        setTimeout(() => {
+            const el = document.querySelector(`[data-item-id="${emptyItem.id}"]`);
+            if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 100);
+        const t = setTimeout(() => setHighlightActive(false), 7000);
+        return () => clearTimeout(t);
+    }, [highlightKey]);
 
     const statusCls = canSave ? layout.bStatusOk
         : consumed > totalSlots ? layout.bStatusOver : layout.bStatusUnder;
@@ -281,36 +343,20 @@ const AssessmentBuilder = ({ totalSlots, initialItems, onSaveReturn }) => {
     return (
         <div className={layout.bPage}>
 
-            {/* Bar lives outside the scroll container so it never disappears */}
-            <div className={layout.bBar}>
-                <button className={layout.bBtnSave} onClick={save} disabled={!canSave}
-                        title={!canSave ? 'All item counts must equal TOS total' : ''}>
-                    <ArrowLeft size={14} />
-                    Save &amp; Return
-                </button>
-                <div className={layout.bBarCenter}>
-                    <span className={layout.bBarTitle}>Assessment Builder</span>
-                    <span className={`${layout.bStatusPill} ${statusCls}`}>
-                        {consumed} / {totalSlots} items
-                    </span>
-                </div>
-                <button className={layout.bBtnExport} onClick={exportItems}>
-                    <Download size={14} />
-                    Export
-                </button>
-            </div>
-
             {/* ── Warning dialog ── */}
             {warnData && (
-                <div className={layout.bWarnOverlay}>
-                    <div className={layout.bWarnBox}>
-                        <p className={layout.bWarnTitle}>⚠ Items with content will be removed</p>
-                        <p className={layout.bWarnBody}>
-                            <strong>{warnMessage}</strong> already {warnData.toRemove.length === 1 ? 'has' : 'have'} content. Expanding this item will permanently remove {warnData.toRemove.length === 1 ? 'it' : 'them'}. Do you wish to proceed?
-                        </p>
-                        <div className={layout.bWarnActions}>
-                            <button className={layout.bWarnCancel} onClick={() => { setWarnData(null); setSpanEdit(null); }}>Cancel</button>
-                            <button className={layout.bWarnConfirm} onClick={() => applySpan(warnData.id, warnData.newSpan, warnData.toRemove)}>
+                <div className={tosLayout.modalOverlay}>
+                    <div className={tosLayout.modal}>
+                        <div className={tosLayout.modalHeader}>
+                            <h3 style={{ color: "#1A1A1A" }}>Items with content will be removed</h3>
+                            <span style={{ cursor: "pointer", fontSize: "20px", color: "#999" }} onClick={() => { setWarnData(null); setSpanEdit(null); }}>×</span>
+                        </div>
+                        <div className={tosLayout.modalBody}>
+                            <p style={{ color: "#555" }}><strong>{warnMessage}</strong> already {warnData.toRemove.length === 1 ? 'has' : 'have'} content. Expanding this item will permanently remove {warnData.toRemove.length === 1 ? 'it' : 'them'}. Do you wish to proceed?</p>
+                        </div>
+                        <div className={tosLayout.modalActions}>
+                            <button className={tosLayout.cancelBtn} style={{ background: "#f9f9f9", color: "#374151" }} onClick={() => { setWarnData(null); setSpanEdit(null); }}>Cancel</button>
+                            <button className={tosLayout.confirmBtn} style={{ background: "#1A1A1A" }} onMouseEnter={e => e.target.style.backgroundColor = '#444'} onMouseLeave={e => e.target.style.backgroundColor = '#1A1A1A'} onClick={() => applySpan(warnData.id, warnData.newSpan, warnData.toRemove)}>
                                 Yes, proceed
                             </button>
                         </div>
@@ -319,7 +365,7 @@ const AssessmentBuilder = ({ totalSlots, initialItems, onSaveReturn }) => {
             )}
 
             {/* ── Scrollable content ── */}
-            <div className={layout.bScroll}>
+            <div className={layout.bScroll} data-bscroll>
                 {/* ── Item cards ── */}
                 <div className={layout.bList}>
                     {items.map((item, idx) => {
@@ -334,8 +380,8 @@ const AssessmentBuilder = ({ totalSlots, initialItems, onSaveReturn }) => {
                         const showDelete = consumed > totalSlots || items.length > totalSlots;
 
                         return (
-                            <div key={item.id} className={`${layout.bItemWrap} ${deletingId === item.id ? layout.bItemDeleting : ''}`}>
-                                <div className={`${layout.bCard} ${showDelete ? layout.bCardDelMode : ''}`}>
+                                <div key={item.id} className={`${layout.bItemWrap} ${deletingId === item.id ? layout.bItemDeleting : ''}`} data-item-id={item.id}>
+                                <div className={`${layout.bCard} ${showDelete ? layout.bCardDelMode : ''} ${highlightActive && !(item.instruction || '').trim() ? layout.bCardIncomplete : ''}`}>
 
                                     {/* ── Card header ── */}
                                     <div className={layout.bCardHead}>
@@ -347,17 +393,15 @@ const AssessmentBuilder = ({ totalSlots, initialItems, onSaveReturn }) => {
                                             {isEditing ? (
                                                 <div className={layout.bSpanEditRow} data-span-edit={item.id}>
                                                     <span className={layout.bSpanEditHint}>to item</span>
-                                                    <textarea
+                                                    <input
                                                         className={layout.bSpanInput}
                                                         placeholder={String(endItem + 1)}
                                                         value={spanEdit.draft}
-                                                        rows={1}
                                                         autoFocus
+                                                        onFocus={e => e.target.select()}
                                                         onChange={e => {
-                                                            const v = e.target.value.replace(/[^0-9]/g, '');
+                                                            const v = e.target.value.replace(/[^0-9]/g, '').replace(/^0+/, '') || '';
                                                             setSpanEdit({ id: item.id, draft: v });
-                                                            e.target.style.height = 'auto';
-                                                            e.target.style.height = e.target.scrollHeight + 'px';
                                                         }}
                                                         onKeyDown={e => {
                                                             if (e.key === 'Enter') commitSpan(item.id);
@@ -388,23 +432,20 @@ const AssessmentBuilder = ({ totalSlots, initialItems, onSaveReturn }) => {
                                         <div className={layout.bCardHeadRight}>
                                             <div className={layout.bPtsInline}>
                                                 <span className={layout.bPtsInlineLabel}>Points</span>
-                                                <textarea
+                                                <input
                                                     className={layout.bPtsInlineInput}
                                                     placeholder="0"
                                                     value={item.points}
-                                                    rows={1}
                                                     onChange={e => {
                                                         const v = e.target.value.replace(/[^0-9]/g, '');
-                                                        upd(item.id, it => ({ ...it, points: v }));
-                                                        e.target.style.height = 'auto';
-                                                        e.target.style.height = e.target.scrollHeight + 'px';
+                                                        upd(item.id, it => ({ ...it, points: v === '' ? '0' : v }));
                                                     }}
                                                 />
                                             </div>
                                             <button
                                                 className={layout.bBtnClear}
                                                 onClick={() => clearItem(item.id)}
-                                                disabled={!item.instruction && !item.choices.length && !item.rubricRows.length}
+                                                disabled={!item.instruction.trim() && !item.choices.length && !item.rubricRows.length}
                                             >Clear</button>
                                         </div>
                                     </div>
@@ -419,7 +460,9 @@ const AssessmentBuilder = ({ totalSlots, initialItems, onSaveReturn }) => {
                                             value={item.instruction}
                                             rows={2}
                                             onChange={e => {
-                                                upd(item.id, it => ({ ...it, instruction: e.target.value }));
+                                                const v = e.target.value;
+                                                if (v.startsWith(' ')) return;
+                                                upd(item.id, it => ({ ...it, instruction: v }));
                                                 e.target.style.height = 'auto';
                                                 e.target.style.height = e.target.scrollHeight + 'px';
                                             }}
@@ -436,7 +479,11 @@ const AssessmentBuilder = ({ totalSlots, initialItems, onSaveReturn }) => {
                                                             className={layout.bChoiceInput}
                                                             placeholder={`Choice ${String.fromCharCode(65 + ci)}`}
                                                             value={ch.text}
-                                                            onChange={e => updChoice(item.id, ch.id, e.target.value)}
+                                                            onChange={e => {
+                                                                const v = e.target.value;
+                                                                if (v.startsWith(' ')) return;
+                                                                updChoice(item.id, ch.id, v);
+                                                            }}
                                                         />
                                                         <button className={layout.bIconRemove} onClick={() => remChoice(item.id, ch.id)}>
                                                             <X size={12} strokeWidth={2.5} />
@@ -469,7 +516,7 @@ const AssessmentBuilder = ({ totalSlots, initialItems, onSaveReturn }) => {
                                                         return Math.round(raw);
                                                     });
                                                     const sumOthers = rowPts.slice(0, -1).reduce((s, v) => s + v, 0);
-                                                    rowPts[rowPts.length - 1] = totalPts - sumOthers;
+                                                    rowPts[rowPts.length - 1] = Math.max(0, totalPts - sumOthers);
 
                                                     return item.rubricRows.map((row, i) => (
                                                         <RubricRow
@@ -536,6 +583,12 @@ const AssessmentBuilder = ({ totalSlots, initialItems, onSaveReturn }) => {
                     })}
                 </div>
             </div>{/* end bScroll */}
+
+            <button className={layout.bScrollTop} onClick={() => {
+                document.querySelector('[data-bscroll]')?.scrollTo({ top: 0, behavior: 'smooth' });
+            }}>
+                <ChevronUp size={22} strokeWidth={2.5} />
+            </button>
         </div>
     );
 };
@@ -597,8 +650,16 @@ const QuestionCognitiveMapping = ({
                                       assessmentMode,
                                       rubricCategories,
                                       setRubricCategories,
+                                      showBuilder,
+                                      onShowBuilderChange,
+                                      builderSaveRef,
+                                      onProgressUpdate,
+                                      errorFields = {},
+                                      clearFieldError,
                                   }) => {
-    const [showBuilder, setShowBuilder] = useState(false);
+
+    const [showPostSaveWarning, setShowPostSaveWarning] = useState(false);
+    const [highlightKey, setHighlightKey] = useState(0);
 
     const cognitiveLevels = ['Remembering','Understanding','Applying','Analyzing','Evaluating','Creating'];
 
@@ -633,7 +694,7 @@ const QuestionCognitiveMapping = ({
             co.ilos.forEach(ilo => { counts[co.co].ilos[ilo.id] = 0; });
         });
         questions.forEach(q => {
-            if (q.co && q.ilo) {
+            if (q.co && q.ilo && counts[q.co]) {
                 const s = q.span || 1;
                 counts[q.co].total += s;
                 counts[q.co].ilos[q.ilo] += s;
@@ -695,7 +756,9 @@ const QuestionCognitiveMapping = ({
                 };
             });
         });
-        setShowBuilder(false);
+        onShowBuilderChange(false);
+        const hasEmpty = savedItems.some(si => !(si.question || si.rubricItem || '').trim());
+        if (hasEmpty) setShowPostSaveWarning(true);
     };
 
     useEffect(() => {
@@ -706,10 +769,16 @@ const QuestionCognitiveMapping = ({
         if (questions.length === 0) setQuestions([createEmptyQuestion()]);
     }, []);
 
+    useEffect(() => {
+        if (!showPostSaveWarning) return;
+        const t = setTimeout(() => setShowPostSaveWarning(false), 7000);
+        return () => clearTimeout(t);
+    }, [showPostSaveWarning]);
+
     const currentCounts = getCurrentItemCount();
     const totalRequired = getTotalRequiredItems();
     const totalCurrent  = Object.values(currentCounts).reduce((s, c) => s + c.total, 0);
-    const hasBuiltItems = questions.some(q => q.question || q.rubricItem);
+    const hasBuiltItems = questions.some(q => (q.question || q.rubricItem || '').trim().length > 0);
     const totalBuilderSlots = questions.reduce((s, q) => s + (q.span || 1), 0);
     const isOverflow    = totalBuilderSlots > totalRequired;
 
@@ -719,6 +788,9 @@ const QuestionCognitiveMapping = ({
                 totalSlots={totalRequired}
                 initialItems={questions}
                 onSaveReturn={handleBuilderSave}
+                builderSaveRef={builderSaveRef}
+                onProgressUpdate={onProgressUpdate}
+                highlightKey={highlightKey}
             />
         );
     }
@@ -735,17 +807,34 @@ const QuestionCognitiveMapping = ({
         <div className={layout.mOuter}>
             {/* LEFT: scrollable mapping */}
             <div className={layout.mScrollArea}>
-                <div className={layout.section}>
+                <div className={layout.section} style={{ position: 'relative' }}>
                     <div className={layout.sectionHeader}>
                         <div>
                             <h2 className={layout.mSectionTitle}>Assessment Item – Cognitive Level Alignment</h2>
                             <p className={layout.mSectionSub}>Map each item to a CO, ILO, and Bloom's level.</p>
                         </div>
-                        <button className={layout.uploadButton} onClick={() => setShowBuilder(true)}>
+                        <button className={layout.uploadButton} onClick={() => onShowBuilderChange(true)}>
                             <FileText size={14} style={{ marginRight: 6 }} />
                             {hasBuiltItems ? 'Edit Assessment' : 'Build Assessment'}
                         </button>
                     </div>
+
+                    {isOverflow && (
+                        <div className={layout.mOverflowWarn}>
+                            Item count exceeds the total required. Please edit items in the builder.
+                        </div>
+                    )}
+
+                    {showPostSaveWarning && (
+                        <div className={layout.mPostSaveWarn}>
+                            <span>There are still empty items, complete to submit your TOS.</span>
+                            <button onClick={() => {
+                                setShowPostSaveWarning(false);
+                                setHighlightKey(prev => prev + 1);
+                                onShowBuilderChange(true);
+                            }}>Complete</button>
+                        </div>
+                    )}
 
                     {/* Headers — grid must match .tableRow exactly */}
                     <div className={layout.tableHeader}>
@@ -759,7 +848,7 @@ const QuestionCognitiveMapping = ({
 
                     {mappingRows.map(({ q, startSlot, endSlot, span }) => {
                         const itemLabel   = span === 1 ? `${startSlot}` : `${startSlot}–${endSlot}`;
-                        const hasContent  = !!(q.question || q.rubricItem);
+                        const hasContent  = !!(q.question || q.rubricItem) && (q.question || q.rubricItem || '').trim().length > 0;
 
                         return (
                             <div key={q.id} className={layout.tableRow}>
@@ -774,9 +863,9 @@ const QuestionCognitiveMapping = ({
 
                                 <select
                                     value={q.co}
-                                    onChange={e => handleQuestionChange(q.id, 'co', e.target.value)}
+                                    onChange={e => { handleQuestionChange(q.id, 'co', e.target.value); if (clearFieldError) clearFieldError(`map-co-${q.id}`); }}
                                     disabled={!hasContent || isOverflow}
-                                    className={`${layout.mSelect} ${!hasContent || isOverflow ? layout.mSelectDisabled : ''}`}
+                                    className={`${layout.mSelect} ${!hasContent || isOverflow ? layout.mSelectDisabled : ''} ${errorFields[`map-co-${q.id}`] ? layout.mSelectError : ''}`}
                                 >
                                     <option value="" disabled>CO</option>
                                     {outcomeData.map(co => <option key={co.co} value={co.co}>{co.co}</option>)}
@@ -784,9 +873,9 @@ const QuestionCognitiveMapping = ({
 
                                 <select
                                     value={q.ilo}
-                                    onChange={e => handleQuestionChange(q.id, 'ilo', e.target.value)}
+                                    onChange={e => { handleQuestionChange(q.id, 'ilo', e.target.value); if (clearFieldError) clearFieldError(`map-ilo-${q.id}`); }}
                                     disabled={!hasContent || !q.co || isOverflow}
-                                    className={`${layout.mSelect} ${!hasContent || !q.co || isOverflow ? layout.mSelectDisabled : ''}`}
+                                    className={`${layout.mSelect} ${!hasContent || !q.co || isOverflow ? layout.mSelectDisabled : ''} ${errorFields[`map-ilo-${q.id}`] ? layout.mSelectError : ''}`}
                                 >
                                     <option value="" disabled>ILO</option>
                                     {q.co && getAvailableILOs(q.co).map(ilo => <option key={ilo.id} value={ilo.id}>{ilo.id}</option>)}
@@ -799,7 +888,7 @@ const QuestionCognitiveMapping = ({
                                     rows={1}
                                     onChange={e => {
                                         const v = e.target.value.replace(/[^0-9]/g, '');
-                                        handleQuestionChange(q.id, 'points', v);
+                                        handleQuestionChange(q.id, 'points', v === '' ? '0' : v);
                                         e.target.style.height = 'auto';
                                         e.target.style.height = e.target.scrollHeight + 'px';
                                     }}
@@ -808,9 +897,9 @@ const QuestionCognitiveMapping = ({
 
                                 <select
                                     value={q.cognitiveLevel}
-                                    onChange={e => handleQuestionChange(q.id, 'cognitiveLevel', e.target.value)}
+                                    onChange={e => { handleQuestionChange(q.id, 'cognitiveLevel', e.target.value); if (clearFieldError) clearFieldError(`map-cognitiveLevel-${q.id}`); }}
                                     disabled={!hasContent || !q.ilo || isOverflow}
-                                    className={`${layout.mSelect} ${!hasContent || !q.ilo || isOverflow ? layout.mSelectDisabled : ''}`}
+                                    className={`${layout.mSelect} ${!hasContent || !q.ilo || isOverflow ? layout.mSelectDisabled : ''} ${errorFields[`map-cognitiveLevel-${q.id}`] ? layout.mSelectError : ''}`}
                                 >
                                     <option value="" disabled>Level</option>
                                     {getAllowedCognitiveLevels(q.ilo).map(lv => <option key={lv} value={lv}>{lv}</option>)}
@@ -818,12 +907,6 @@ const QuestionCognitiveMapping = ({
                             </div>
                         );
                     })}
-
-                    {isOverflow && (
-                        <div className={layout.mOverflowWarn}>
-                            Item count exceeds the total required. Please edit items in the builder.
-                        </div>
-                    )}
                 </div>
             </div>
 

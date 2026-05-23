@@ -13,7 +13,7 @@ const TOSSummary = ({ outcomeData, questions }) => {
 
     const getCoComputedTotal = (coId) => {
         return questions
-            .filter(q => q.co === coId && q.points)
+            .filter(q => q.co === coId && q.points && String(q.points).trim())
             .reduce((sum, q) => sum + Number(q.points), 0);
     };
 
@@ -29,9 +29,9 @@ const TOSSummary = ({ outcomeData, questions }) => {
             });
         });
         questions.forEach(q => {
-            if (q.co && q.ilo && q.cognitiveLevel) {
+            if (q.co && q.ilo && q.cognitiveLevel && data[q.co] && data[q.co][q.ilo]) {
                 const span = q.span || 1;
-                const pts = Number(q.points) || 0;
+                const pts = (q.points && String(q.points).trim()) ? Number(q.points) : 0;
                 data[q.co][q.ilo][q.cognitiveLevel].count += span;
                 data[q.co][q.ilo][q.cognitiveLevel].sumPoints += pts;
             }

@@ -108,6 +108,9 @@
     background: #F1F3F5
     color: #777
 
+  &.inputError
+    background: #FFF4F4
+
 .cellBox.point
   min-height: 48px
   height: 48px
@@ -357,6 +360,7 @@
   box-shadow: 0 4px 20px rgba(0,0,0,0.2)
   overflow: hidden
   animation: fadeIn 0.2s ease-out
+  border-top: 3px solid #EA1212
 
   .modalHeader
     padding: 15px 20px
@@ -385,41 +389,38 @@
       text-align: center
 
   .modalActions
-    padding: 15px 20px
+    padding: 0
     background-color: #f9f9f9
     display: flex
-    justify-content: flex-end
-    gap: 10px
+    border-top: 1px solid #eee
 
     button
-      padding: 8px 16px
-      border-radius: 4px
+      flex: 1
+      padding: 14px 16px
+      border-radius: 0
       border: none
       cursor: pointer
       font-weight: 600
+      font-size: 14px
+      transition: background 0.12s
 
     .cancelBtn
-      background: #e0e0e0
-      color: #333
+      background: #f9f9f9
+      color: #374151
+      border-right: 1px solid #eee
       &:hover
-        background: #d0d0d0
+        background: #f1f1f1
 
     .confirmBtn
-      background: #007bff
+      background: #EA1212
       color: white
-      padding: 8px 16px
-      border-radius: 4px
-      font-weight: 600
+      &:hover
+        background: #C00000
 
-.errorList
-  list-style: none
-  padding: 15px 15px 15px 30px
-  margin: 10px 0 0 0
-  background: #FFF4F4
-  border-radius: 4px
-  text-align: left
+.errorBlock
+  margin-bottom: 12px
+  padding: 8px 12px
+  background: #F9FAFB
+  border-radius: 6px
+  border: 1px solid #E5E7EB
 
-  li
-    color: #D32F2F
-    font-size: 0.9rem
-    margin-bottom: 6px

@@ -1,0 +1,97 @@
+.navi
+  width: 100%
+  background: white
+  display: flex
+  padding: 10px 10px 10px 10px
+  gap: 8px
+  height: 65px
+  align-items: center
+
+.return
+  padding: 10px 20px
+  border-radius: 5px
+  display: flex
+  background: #EA1212
+  align-items: center
+  font-size: 14px
+  font-weight: 500
+  gap: 5px
+  cursor: pointer
+  color: white
+  transition: background 0.12s
+
+  &:hover
+    background: #C00000
+
+.exportBtn
+  padding: 10px 15px
+  border-radius: 5px
+  border: 1px solid #8B999D
+  font-size: 14px
+  font-weight: 500
+  background: #19282C
+  color: white
+  cursor: pointer
+
+.exportDisabled
+  background: #999
+  color: #888
+  border-color: #bbb
+  cursor: not-allowed
+
+.exportTooltip
+  position: absolute
+  top: calc(100% + 6px)
+  right: 0
+  background: #1A1A1A
+  color: white
+  font-size: 11px
+  padding: 6px 10px
+  border-radius: 4px
+  white-space: nowrap
+  pointer-events: none
+  z-index: 10
+  opacity: 0
+  visibility: hidden
+  transition: opacity 0.2s
+
+.exportBtn.exportDisabled:hover + .exportTooltip
+  opacity: 1
+  visibility: visible
+
+.clearBtn
+  width: 40px
+  height: 40px
+  border-radius: 5px
+  border: 1.5px solid #fca5a5
+  background: #fee2e2
+  color: #b00000
+  display: flex
+  align-items: center
+  justify-content: center
+  cursor: pointer
+  transition: all 0.12s
+
+  &:hover
+    background: #EA1212
+    color: white
+    border-color: #EA1212
+
+.progressTrack
+  width: 200px
+  height: 10px
+  background: #E5E7EB
+  border-radius: 5px
+  overflow: hidden
+
+.progressFill
+  height: 100%
+  background: #EA1212
+  border-radius: 5px
+  transition: width 0.3s ease
+
+.progressLabel
+  font-size: 13px
+  font-weight: 600
+  color: #333
+  white-space: nowrap
