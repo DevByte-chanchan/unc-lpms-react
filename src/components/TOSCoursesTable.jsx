@@ -2,6 +2,7 @@ import React, {useState, useEffect} from 'react';
 import {Link, useLocation} from 'react-router-dom'
 import styles from '../styles/CoursesTable.module.sass';
 import { ChevronRight } from 'react-feather';
+import { fetchCourses } from '../services/api.js';
 const TOSCoursesTable = ({}) => {
 
     const currentYear = new Date().getFullYear();
@@ -12,7 +13,7 @@ const TOSCoursesTable = ({}) => {
     for (let i = currentYear; i >= startYear; i--) {
         yearOptions.push(<option key={i} value={i}>{i}</option>);
     }
-    const [courses, setCourses] = useState([
+    const fallbackCourses = [
         { code: 'BSCS313L', name: 'Human & Computer Interaction', update: 'Sept 01, 2025', status: 'draft',    exported: '' },
         { code: 'BSCS212L', name: 'Web Development I',            update: 'Aug 15, 2025', status: 'draft',    exported: '' },
         { code: 'BSCS111L', name: 'Fundamentals of Programming',  update: 'Aug 25, 2025', status: 'draft',    exported: '' },
@@ -23,7 +24,14 @@ const TOSCoursesTable = ({}) => {
         { code: 'BSCS331L', name: 'Computer Networks',             update: 'Sept 18, 2025', status: 'approved', exported: 'Oct 25, 2025' },
         { code: 'BSCS341L', name: 'Artificial Intelligence',       update: 'Sept 01, 2025', status: 'draft',    exported: '' },
         { code: 'BSCS351L', name: 'Cybersecurity Fundamentals',    update: 'Sept 10, 2025', status: 'pending', exported: '' },
-    ]);
+    ];
+    const [courses, setCourses] = useState(fallbackCourses);
+
+    useEffect(() => {
+        fetchCourses()
+            .then(data => { if (data) setCourses(data); })
+            .catch(() => {});
+    }, []);
 
     const location = useLocation();
     useEffect(() => {
@@ -56,9 +64,8 @@ const TOSCoursesTable = ({}) => {
                         ))}
                     </select>
                     <select className={styles['header-select']}>
-                        {temp.map(sem => (
-                            <option key={sem} value={sem}>{sem}</option>
-                        ))}
+                        <option key="Midterm" value="Midterm">Midterm</option>
+                        <option key="Finals" value="Finals" disabled>Finals</option>
                     </select>
                 </div>
                 <div className={styles.fill}></div>
@@ -107,7 +114,7 @@ const TOSCoursesTable = ({}) => {
 
                                 <td className={styles.fill}>
                                     {row.status === 'draft' ? (
-                                        <Link className="actionLink" to={`/tos/${row.name}`} state={{ tosStatus: row.status }}>
+                                        <Link className="actionLink" to={`/tos/${row.code}`} state={{ tosStatus: row.status, courseName: row.name }}>
                                             Compose
                                             <ChevronRight size={18} />
                                         </Link>

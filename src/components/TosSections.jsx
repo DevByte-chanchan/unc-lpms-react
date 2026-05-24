@@ -7,6 +7,7 @@ import TOSPreview from "../pages/TosPreview.jsx";
 import TOSSummary from "../pages/TosSummary.jsx";
 import QuestionCognitiveMapping from "../pages/QuestionCognitiveMapping.jsx";
 import BuilderNavigation from "../components/BuilderNavigation.jsx";
+import { fetchOutcomes, fetchItems, saveOutcomes, saveItems } from '../services/api.js';
 
 const tosSections = ({status}) => {
 
@@ -17,8 +18,7 @@ const tosSections = ({status}) => {
     const navigate = useNavigate();
     const [searchParams, setSearchParams] = useSearchParams();
     const selectedSection = searchParams.get('section') || 'Outcome Overview';
-
-    const courseOutlines = [
+    const getDefaultOutlines = () => [
         {
             co: "CO1",
             description: "Apply core concepts, theories, and principles of Human-Computer Interface (HCI) in proposing a User Interface (UI) design using Figma to translate a design brief into interactive screen layouts and UI components with a high-fidelity prototype demonstrating clarity, consistency, and appropriate use of visual hierarchy.",
@@ -44,16 +44,47 @@ const tosSections = ({status}) => {
             ]
         }
     ];
+    const location = useLocation();
+    const { code: courseCode } = useParams();
+    const tosStatus = location.state?.tosStatus || 'draft';
+    const courseName = location.state?.courseName || courseCode;
+    const defaultRows = getDefaultOutlines();
 
-    const [rows, setRows] = useState(courseOutlines);
+    const [rows, setRows] = useState(defaultRows);
+    const [dataLoaded, setDataLoaded] = useState(false);
     const [tosErrors, setTosErrors] = useState([]);
     const [showTosErrorModal, setShowTosErrorModal] = useState(false);
     const [errorFields, setErrorFields] = useState({});
     const [exportErrors, setExportErrors] = useState({ outcomeOverview: [], assessmentMapping: [], tosSummary: [] });
     const [showExportErrorModal, setShowExportErrorModal] = useState(false);
-    const location = useLocation();
-    const tosStatus = location.state?.tosStatus || 'draft';
-    const { code: courseName } = useParams();
+
+    useEffect(() => {
+        if (!courseCode || dataLoaded) return;
+        setDataLoaded(true);
+        fetchOutcomes(courseCode).then(data => {
+            if (!data) return;
+            const mapped = data.map(o => ({
+                co: o.co,
+                description: o.description || '',
+                totalHours: (o.ilos || []).reduce((s, i) => s + (i.hours || 0), 0),
+                totalPercentage: (o.ilos || []).reduce((s, i) => s + (i.percentage || 0), 0),
+                totalItems: o.totalItems || 0,
+                ilos: (o.ilos || []).map((ilo, idx) => ({
+                    id: `ILO${idx + 1}`,
+                    description: ilo.description || '',
+                    hours: ilo.hours || 0,
+                    percentage: ilo.percentage || 0,
+                    items: ilo.items || 0
+                }))
+            }));
+            setRows(mapped.length ? mapped : getDefaultOutlines());
+        }).catch(() => {
+            setRows(getDefaultOutlines());
+        });
+        fetchItems(courseCode).then(data => {
+            if (data && data.length) setQuestions(data);
+        }).catch(() => {});
+    }, [courseCode, dataLoaded]);
 
     const clearFieldError = (key) => {
         setErrorFields(prev => { const n = { ...prev }; delete n[key]; return n; });
@@ -245,6 +276,21 @@ const tosSections = ({status}) => {
 
     const handleNavigateBack = () => {
         setNavigating(true);
+        if (courseCode) {
+            const outcomesPayload = rows.map(r => ({
+                co: r.co,
+                description: r.description || '',
+                totalItems: r.totalItems || 0,
+                ilos: (r.ilos || []).map(ilo => ({
+                    description: ilo.description || '',
+                    hours: ilo.hours || 0,
+                    percentage: ilo.percentage || 0,
+                    items: ilo.items || 0
+                }))
+            }));
+            saveOutcomes(courseCode, outcomesPayload).catch(() => {});
+            saveItems(courseCode, questions).catch(() => {});
+        }
         setTimeout(() => navigate('/assignedtos'), 400);
     };
 
@@ -433,6 +479,7 @@ const tosSections = ({status}) => {
                                         onProgressUpdate={handleBuilderProgress}
                                         errorFields={errorFields}
                                         clearFieldError={clearFieldError}
+                                        courseCode={courseCode}
                                     />
                                 </section>
                             )}
@@ -453,6 +500,7 @@ const tosSections = ({status}) => {
                 outcomeData={rows}
                 questions={questions}
                 courseName={courseName}
+                courseCode={courseCode}
             />
 
             {showExportErrorModal && (

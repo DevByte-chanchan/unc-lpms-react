@@ -1,0 +1,15 @@
+{
+  "name": "unc-lpms-backend",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node index.js",
+    "seed": "node seed.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^5.2.1",
+    "mysql2": "^3.22.3",
+    "sequelize": "^6.37.8"
+  }
+}

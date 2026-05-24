@@ -5,6 +5,7 @@ import {
 } from "react-feather";
 import layout from "../styles/QuestionCognitiveMapping.module.sass";
 import tosLayout from "../styles/TosSections.module.sass";
+import { saveItems } from '../services/api.js';
 
 // ─── UID ─────────────────────────────────────────────────────────────────────
 let _uid = 0;
@@ -655,8 +656,9 @@ const QuestionCognitiveMapping = ({
                                       builderSaveRef,
                                       onProgressUpdate,
                                       errorFields = {},
-                                      clearFieldError,
-                                  }) => {
+                                       clearFieldError,
+                                       courseCode,
+                                   }) => {
 
     const [showPostSaveWarning, setShowPostSaveWarning] = useState(false);
     const [highlightKey, setHighlightKey] = useState(0);
@@ -740,25 +742,25 @@ const QuestionCognitiveMapping = ({
     };
 
     const handleBuilderSave = (savedItems) => {
-        setQuestions(prev => {
-            const exMap = new Map(prev.map(q => [q.id, q]));
-            return savedItems.map(si => {
-                const ex = exMap.get(si.id) || {};
-                return {
-                    ...createEmptyQuestion(), ...ex,
-                    id: si.id, question: si.question, rubricItem: si.rubricItem,
-                    choices: si.choices, rubricRows: si.rubricRows,
-                    points: si.points || ex.points || '',
-                    span: si.span || ex.span || 1,
-                    co: ex.co || si.co || '',
-                    ilo: ex.ilo || si.ilo || '',
-                    cognitiveLevel: ex.cognitiveLevel || si.cognitiveLevel || '',
-                };
-            });
+        const exMap = new Map(questions.map(q => [q.id, q]));
+        const merged = savedItems.map(si => {
+            const ex = exMap.get(si.id) || {};
+            return {
+                ...createEmptyQuestion(), ...ex,
+                id: si.id, question: si.question, rubricItem: si.rubricItem,
+                choices: si.choices, rubricRows: si.rubricRows,
+                points: si.points || ex.points || '',
+                span: si.span || ex.span || 1,
+                co: ex.co || si.co || '',
+                ilo: ex.ilo || si.ilo || '',
+                cognitiveLevel: ex.cognitiveLevel || si.cognitiveLevel || '',
+            };
         });
+        setQuestions(merged);
         onShowBuilderChange(false);
         const hasEmpty = savedItems.some(si => !(si.question || si.rubricItem || '').trim());
         if (hasEmpty) setShowPostSaveWarning(true);
+        if (courseCode) saveItems(courseCode, merged);
     };
 
     useEffect(() => {
@@ -780,7 +782,7 @@ const QuestionCognitiveMapping = ({
     const totalCurrent  = Object.values(currentCounts).reduce((s, c) => s + c.total, 0);
     const hasBuiltItems = questions.some(q => (q.question || q.rubricItem || '').trim().length > 0);
     const totalBuilderSlots = questions.reduce((s, q) => s + (q.span || 1), 0);
-    const isOverflow    = totalBuilderSlots > totalRequired;
+    const isOverflow    = totalRequired > 0 && totalBuilderSlots > totalRequired;
 
     if (showBuilder) {
         return (

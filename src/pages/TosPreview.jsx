@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from "react";
 import layout from "../styles/TOSPreview.module.sass";
 import { useNavigate } from "react-router-dom";
+import { updateStatus } from '../services/api.js';
 
-const TOSPreview = ({ isOpen, onClose, outcomeData, questions, courseName = "Human & Computer Interaction", semester = "1st Sem", schoolYear = "2024 - 2025" }) => {
+const TOSPreview = ({ isOpen, onClose, outcomeData, questions, courseName = "Human & Computer Interaction", semester = "1st Sem", schoolYear = "2024 - 2025", courseCode }) => {
     if (!isOpen) return null;
 
     const [showConfirm, setShowConfirm] = useState(false);
@@ -17,6 +18,7 @@ const TOSPreview = ({ isOpen, onClose, outcomeData, questions, courseName = "Hum
 
     const handleConfirm = () => {
         if (countdownRef.current) clearTimeout(countdownRef.current);
+        if (courseCode) updateStatus(courseCode, 'pending').catch(() => {});
         navigate("/assignedtos", { state: { tosStatusUpdate: { courseName, newStatus: 'pending' } } });
     };
 
