@@ -4,7 +4,7 @@ import { Search, Plus, BookOpen, FileText, Globe, Upload, AlertTriangle, AlertCi
 import SkeletonA from '../../../layouts/SkeletonA.jsx';
 import HeaderA from '../../../components/HeaderA.jsx';
 import SideNavigation from '../../../components/SideNavigation.jsx';
-import styles from './ReferenceLibrary.module.scss';
+import styles from '../../../styles/ReferenceLibrary.module.scss';
 
 import { getReferences, setReferences, addReference, updateReference, deleteReference, archiveReference, unarchiveReference, getReferenceComments, addReferenceComment } from '../../../utils/referenceLibrary.js';
 import { getRoleName } from '../../../utils/roleIdentities.js';

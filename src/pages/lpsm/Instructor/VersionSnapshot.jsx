@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import styles from './LearningPlanCompose.module.scss';
+import styles from '../../../styles/LearningPlanCompose.module.scss';
 import * as service from '../../../services/learningPlanService';
 
 const VersionSnapshot = () => {

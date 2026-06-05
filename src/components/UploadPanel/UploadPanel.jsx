@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import styles from './UploadPanel.module.scss'
+import styles from '../../styles/UploadPanel.module.scss'
 
 const STORAGE_KEY = 'lpsm_uploads_v1'
 

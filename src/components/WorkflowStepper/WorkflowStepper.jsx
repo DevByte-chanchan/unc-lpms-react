@@ -1,5 +1,5 @@
 import React from 'react'
-import styles from './WorkflowStepper.module.scss'
+import styles from '../../styles/WorkflowStepper.module.scss'
 import { getWorkflow } from '../../utils/workflowHelpers'
 
 const REVIEWER_NAMES = {

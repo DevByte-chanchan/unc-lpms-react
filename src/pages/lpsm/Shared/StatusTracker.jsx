@@ -1,5 +1,5 @@
 import React from 'react';
-import styles from './StatusTracker.module.scss';
+import styles from '../../../styles/StatusTracker.module.scss';
 
 const StatusTracker = ({ status, currentStage }) => {
   const stages = [

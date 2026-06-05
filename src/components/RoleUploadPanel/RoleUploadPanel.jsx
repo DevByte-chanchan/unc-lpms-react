@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { DocumentService } from '../../services/documentService.js'
 import { Upload } from 'react-feather'
-import styles from './RoleUploadPanel.module.sass'
+import styles from '../../styles/RoleUploadPanel.module.sass'
 
 const formatType = (file) => {
   if (!file) return ''

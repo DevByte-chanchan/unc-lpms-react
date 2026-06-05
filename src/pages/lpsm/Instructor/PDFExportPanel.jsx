@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import styles from './PDFExportPanel.module.scss';
+import styles from '../../../styles/PDFExportPanel.module.scss';
 import * as service from '../../../services/learningPlanService';
 
 const PDFExportPanel = ({ planId, courseCode, courseName, status, role, userId }) => {

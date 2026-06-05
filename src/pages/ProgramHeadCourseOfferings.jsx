@@ -5,7 +5,7 @@ import SideNavigation from "../components/SideNavigation.jsx";
 import { Clock, Search, ArrowUp, ArrowDown, Upload, Sliders, Clipboard, Briefcase, ChevronRight, X } from "react-feather";
 import ConsultantsTable from '../components/ConsultantsTable.jsx'
 import styles from '../styles/CoursesTable.module.sass'
-import DropdownMultiSelectE from '../components/DropdownMultiSelectE.jsx'
+
 import syllabusStyles from '../styles/SyllabusSections.module.sass'
 
 const UploadButton = ({ onClick }) => (

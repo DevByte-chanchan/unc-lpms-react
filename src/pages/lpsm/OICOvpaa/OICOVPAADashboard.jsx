@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import styles from './OICOVPAADashboard.module.scss';
+import styles from '../../../styles/OICOVPAADashboard.module.scss';
 import * as service from '../../../services/learningPlanService';
 import { getWorkflow } from '../../../utils/workflowHelpers';
 import { getSyllabi } from '../../../utils/dataStore';

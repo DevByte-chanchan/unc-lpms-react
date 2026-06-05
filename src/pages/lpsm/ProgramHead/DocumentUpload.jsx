@@ -4,7 +4,7 @@ import { Upload, CheckCircle, AlertTriangle, Info, Eye } from 'react-feather';
 import SkeletonA from '../../../layouts/SkeletonA.jsx';
 import HeaderA from '../../../components/HeaderA.jsx';
 import SideNavigation from '../../../components/SideNavigation.jsx';
-import styles from './DocumentUpload.module.scss';
+import styles from '../../../styles/DocumentUpload.module.scss';
 
 const uploadSlots = [
   { id: 'program_outcomes_peo_alignment', label: 'Program Outcomes & PEO Alignment', shortLabel: 'PO & PEO Alignment', acceptedTypes: '.pdf,.docx' },

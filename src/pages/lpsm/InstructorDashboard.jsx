@@ -4,7 +4,7 @@ import { FileText, AlertCircle, CheckCircle, ChevronRight, Download } from 'reac
 import SkeletonA from '../../layouts/SkeletonA.jsx';
 import HeaderA from '../../components/HeaderA.jsx';
 import SideNavigation from '../../components/SideNavigation.jsx';
-import styles from './InstructorDashboard.module.scss';
+import styles from '../../styles/InstructorDashboard.module.scss';
 import { syllabiData, getSyllabusByCode } from '../../data/syllabiData.js';
 import { getWorkflow } from '../../utils/workflowHelpers.js';
 import { exportSyllabusToPDF } from '../../utils/pdfExport.js';

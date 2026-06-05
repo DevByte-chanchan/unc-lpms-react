@@ -4,7 +4,7 @@ import { Download, CheckCircle, AlertTriangle, Info, Eye } from 'react-feather';
 import SkeletonA from '../../layouts/SkeletonA.jsx';
 import HeaderA from '../../components/HeaderA.jsx';
 import SideNavigation from '../../components/SideNavigation.jsx';
-import styles from './DocumentsViewer.module.scss';
+import styles from '../../styles/DocumentsViewer.module.scss';
 
 const documents = [
   {

@@ -1,5 +1,5 @@
 import React from "react";
-import Skeleton from "../layouts/Skeleton.jsx";
+import Skeleton from "../layouts/SkeletonA.jsx";
 import Header from "../components/Header.jsx";
 import SideNavigation from "../components/SideNavigation.jsx";
 import { Clock, Search, ArrowUp, ArrowDown, Upload, User, Clipboard, Briefcase } from "react-feather";

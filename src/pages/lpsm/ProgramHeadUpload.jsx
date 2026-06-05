@@ -4,7 +4,7 @@ import { Upload, CheckCircle, AlertTriangle, Info, Eye } from 'react-feather';
 import SkeletonA from '../../layouts/SkeletonA.jsx';
 import HeaderA from '../../components/HeaderA.jsx';
 import SideNavigation from '../../components/SideNavigation.jsx';
-import styles from './ProgramHeadUpload.module.scss';
+import styles from '../../styles/ProgramHeadUpload.module.scss';
 
 const documentDefinitions = [
   {

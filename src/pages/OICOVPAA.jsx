@@ -7,7 +7,7 @@ import { Search, Package, Layers, Calendar, ChevronRight, Download } from 'react
 import { getWorkflow } from '../utils/workflowHelpers'
 import { syllabiData, getSyllabusByCode } from '../data/syllabiData.js'
 import { exportSyllabusToPDF } from '../utils/pdfExport'
-import oicStyles from './OICOVPAA.module.scss'
+import oicStyles from '../styles/OICOVPAA.module.scss'
 import tableStyles from '../styles/CoursesTable.module.sass'
 
 const OICOVPAA = () => {

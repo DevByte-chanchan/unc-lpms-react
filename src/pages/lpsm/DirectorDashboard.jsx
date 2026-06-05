@@ -4,7 +4,7 @@ import { FileText, AlertCircle, CheckCircle, ChevronRight } from 'react-feather'
 import SkeletonA from '../../layouts/SkeletonA.jsx';
 import HeaderA from '../../components/HeaderA.jsx';
 import SideNavigation from '../../components/SideNavigation.jsx';
-import styles from './DirectorDashboard.module.scss';
+import styles from '../../styles/DirectorDashboard.module.scss';
 
 const directorSyllabi = [
   {

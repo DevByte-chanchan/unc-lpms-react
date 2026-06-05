@@ -7,7 +7,7 @@ import ConsultantsTable from '../components/ConsultantsTable.jsx'
 import styles from '../styles/CoursesTable.module.sass'
 import DropdownMultiSelect from '../components/DropdownMultiSelect.jsx'
 import syllabusStyles from '../styles/SyllabusSections.module.sass'
-import DropdownMultiSelectE from "../components/DropdownMultiSelectE.jsx";
+
 
 const UploadButton = ({ onClick }) => (
     <button
@@ -236,7 +236,7 @@ const ProgramHeadIndustryConsultant = () => {
                                 <span style={{ color: '#111827', fontWeight: 500 }}>Course Offerings</span>
                             </div>
                             <div style={{ width: '100%' }}>
-                                <DropdownMultiSelectE options={courses} initialValue={selectedCourse} onChange={setSelectedCourse} />
+                                <DropdownMultiSelect options={courses} value={selectedCourse} onChange={setSelectedCourse} />
                             </div>
                         </div>
 

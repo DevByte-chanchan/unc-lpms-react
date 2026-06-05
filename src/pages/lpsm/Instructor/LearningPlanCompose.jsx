@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import styles from './LearningPlanCompose.module.scss';
+import styles from '../../../styles/LearningPlanCompose.module.scss';
 import StatusTracker from '../Shared/StatusTracker';
 import VersionHistoryPanel from './VersionHistoryPanel';
 import TemplateSelector from './TemplateSelector';

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import styles from './ApprovalPanel.module.scss';
+import styles from '../../../styles/ApprovalPanel.module.scss';
 import StatusTracker from '../Shared/StatusTracker';
 import * as service from '../../../services/learningPlanService';
 

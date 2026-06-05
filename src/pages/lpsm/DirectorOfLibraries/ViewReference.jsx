@@ -4,7 +4,7 @@ import { ArrowLeft, Download, FileText } from 'react-feather';
 import SkeletonA from '../../../layouts/SkeletonA.jsx';
 import HeaderA from '../../../components/HeaderA.jsx';
 import SideNavigation from '../../../components/SideNavigation.jsx';
-import styles from './ViewReference.module.scss';
+import styles from '../../../styles/ViewReference.module.scss';
 import { getReferenceById, getReferenceComments, addReferenceComment } from '../../../utils/referenceLibrary.js';
 import { getRoleName } from '../../../utils/roleIdentities.js';
 

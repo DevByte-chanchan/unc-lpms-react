@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import styles from './VersionHistoryPanel.module.scss';
+import styles from '../../../styles/VersionHistoryPanel.module.scss';
 import * as service from '../../../services/learningPlanService';
 
 const VersionHistoryPanel = ({ planId, versions, role, userId, onVersionRestored }) => {

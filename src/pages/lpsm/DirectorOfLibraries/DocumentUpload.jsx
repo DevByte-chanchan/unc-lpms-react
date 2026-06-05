@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import styles from './DocumentUpload.module.scss';
+import styles from '../../../styles/DocumentUpload.module.scss';
 import * as service from '../../../services/learningPlanService';
 
 const DocumentUpload = () => {

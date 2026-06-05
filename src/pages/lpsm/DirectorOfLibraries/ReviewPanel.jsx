@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import styles from './ReviewPanel.module.scss';
+import styles from '../../../styles/ReviewPanel.module.scss';
 import StatusTracker from '../Shared/StatusTracker';
 import * as service from '../../../services/learningPlanService';
 

@@ -220,9 +220,8 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
       const hasText = c.text && c.text.trim()
       const comps = c.components || {}
       const courseCoverageChecked = !!(comps.topics || comps.assessments || comps.tlas)
-      const referencesChecked = !!comps.references
       const gradingChecked = !!comps.grading
-      const hasComponent = courseCoverageChecked || referencesChecked || gradingChecked
+      const hasComponent = courseCoverageChecked || gradingChecked
       
       // If has text but no component, it's invalid
       if (hasText && !hasComponent) return true
@@ -416,11 +415,11 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
 
                       <div className={styles.commentBody}>
                         <div className={styles.componentsRow} style={{ marginBottom: 8 }}>
-                          <label style={{ display: 'flex', alignItems: 'center', gap: 8, opacity: (c.components.references || c.components.grading) ? 0.5 : 1, cursor: (c.components.references || c.components.grading) ? 'not-allowed' : 'pointer' }}>
+                          <label style={{ display: 'flex', alignItems: 'center', gap: 8, opacity: c.components.grading ? 0.5 : 1, cursor: c.components.grading ? 'not-allowed' : 'pointer' }}>
                             <input
                               type="checkbox"
                               checked={courseCoverageSelected}
-                              disabled={c.components.references || c.components.grading}
+                              disabled={c.components.grading}
                               onChange={() =>
                                 setComments((prev) =>
                                   prev.map((item) =>
@@ -447,39 +446,11 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
                             <span>Course Coverage</span>
                           </label>
 
-                          <label style={{ display: 'flex', alignItems: 'center', gap: 8, opacity: courseCoverageSelected || c.components.grading ? 0.5 : 1, cursor: courseCoverageSelected || c.components.grading ? 'not-allowed' : 'pointer' }}>
-                            <input 
-                              type="checkbox" 
-                              checked={c.components.references} 
-                              disabled={courseCoverageSelected || c.components.grading}
-                              onChange={() => {
-                                setComments((prev) =>
-                                  prev.map((item) =>
-                                    item.id === c.id
-                                      ? {
-                                          ...item,
-                                          components: {
-                                            ...item.components,
-                                            references: !item.components.references,
-                                            topics: false,
-                                            assessments: false,
-                                            tlas: false,
-                                            grading: false
-                                          }
-                                        }
-                                      : item
-                                  )
-                                )
-                              }}
-                            />
-                            <span>References</span>
-                          </label>
-
-                          <label style={{ display: 'flex', alignItems: 'center', gap: 8, opacity: courseCoverageSelected || c.components.references ? 0.5 : 1, cursor: courseCoverageSelected || c.components.references ? 'not-allowed' : 'pointer' }}>
+                          <label style={{ display: 'flex', alignItems: 'center', gap: 8, opacity: courseCoverageSelected ? 0.5 : 1, cursor: courseCoverageSelected ? 'not-allowed' : 'pointer' }}>
                             <input 
                               type="checkbox" 
                               checked={c.components.grading} 
-                              disabled={courseCoverageSelected || c.components.references}
+                              disabled={courseCoverageSelected}
                               onChange={() => {
                                 setComments((prev) =>
                                   prev.map((item) =>
@@ -540,7 +511,6 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
 
                         <textarea className={styles.textarea} value={c.text} onChange={(e) => updateCommentText(c.id, e.target.value)} placeholder={'Enter your comment...'} rows={4} />
 
-                        {c.components.references && renderRefBrowser()}
                       </div>
                     </div>
                   )
@@ -566,7 +536,7 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
                   comments: [{
                     ...comments[0],
                     text: comments[0]?.text || '',
-                    components: { references: true }
+                    components: {}
                   }],
                   suggestedReferences: selectedRefs,
                   createdAt: new Date().toISOString()

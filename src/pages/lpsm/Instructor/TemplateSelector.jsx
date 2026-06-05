@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import styles from './TemplateSelector.module.scss';
+import styles from '../../../styles/TemplateSelector.module.scss';
 import * as service from '../../../services/learningPlanService';
 
 const TemplateSelector = ({ courseCode, academicYear, onTemplateSelected, role, userId }) => {

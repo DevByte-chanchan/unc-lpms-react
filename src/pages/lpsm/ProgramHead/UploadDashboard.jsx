@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FileText, AlertCircle, CheckCircle, Search, Filter, ChevronRight } from 'react-feather';
-import styles from './UploadDashboard.module.scss';
+import styles from '../../../styles/UploadDashboard.module.scss';
 import SkeletonA from '../../../layouts/SkeletonA.jsx';
 import HeaderA from '../../../components/HeaderA.jsx';
 import SideNavigation from '../../../components/SideNavigation.jsx';
