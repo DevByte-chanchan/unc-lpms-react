@@ -37,7 +37,7 @@ const defaultExport = (file) => {
   document.body.removeChild(a);
 };
 
-const PDFViewerModal = ({ file, kind, onClose, onExport }) => {
+const PDFViewerModal = ({ file, kind, onClose, onExport, children }) => {
   React.useEffect(() => {
     const onKey = (e) => { if (e.key === 'Escape') onClose(); };
     document.addEventListener('keydown', onKey);
@@ -143,39 +143,41 @@ const PDFViewerModal = ({ file, kind, onClose, onExport }) => {
             ) : (
               <div style={{
                 flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                padding: 32,
+                padding: 32, overflow: 'auto', boxSizing: 'border-box',
               }}>
-                <div style={{
-                  width: 'min(580px, 100%)',
-                  background: '#FFFFFF',
-                  border: '1px solid ' + SLATE_200,
-                  borderRadius: 12, padding: 40,
-                  boxShadow: '0 6px 18px rgba(15,23,42,0.06)',
-                  textAlign: 'center',
-                }}>
+                {children || (
                   <div style={{
-                    width: 64, height: 64, borderRadius: 14,
-                    background: '#FEE2E2', color: ACCENT,
-                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                    marginBottom: 14,
+                    width: 'min(580px, 100%)',
+                    background: '#FFFFFF',
+                    border: '1px solid ' + SLATE_200,
+                    borderRadius: 12, padding: 40,
+                    boxShadow: '0 6px 18px rgba(15,23,42,0.06)',
+                    textAlign: 'center',
                   }}>
-                    <FileText size={28} />
+                    <div style={{
+                      width: 64, height: 64, borderRadius: 14,
+                      background: '#FEE2E2', color: ACCENT,
+                      display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                      marginBottom: 14,
+                    }}>
+                      <FileText size={28} />
+                    </div>
+                    <div style={{ fontSize: 18, fontWeight: 700, color: SLATE_900, letterSpacing: '-0.01em' }}>
+                      {title}
+                    </div>
+                    <div style={{ fontSize: 13, color: SLATE_500, marginTop: 6, lineHeight: 1.5 }}>
+                      In-app document viewer \u2014 once the submission pipeline is wired,<br />
+                      the approved {kind ? kind.toLowerCase() : 'document'} loads inline here.
+                    </div>
+                    <div style={{
+                      marginTop: 22, padding: '10px 14px',
+                      background: SLATE_50, border: '1px dashed ' + SLATE_200, borderRadius: 8,
+                      fontSize: 12, color: SLATE_700, fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+                    }}>
+                      {file.file_url || '(no file_url on this mock record)'}
+                    </div>
                   </div>
-                  <div style={{ fontSize: 18, fontWeight: 700, color: SLATE_900, letterSpacing: '-0.01em' }}>
-                    {title}
-                  </div>
-                  <div style={{ fontSize: 13, color: SLATE_500, marginTop: 6, lineHeight: 1.5 }}>
-                    In-app document viewer \u2014 once the submission pipeline is wired,<br />
-                    the approved {kind ? kind.toLowerCase() : 'document'} loads inline here.
-                  </div>
-                  <div style={{
-                    marginTop: 22, padding: '10px 14px',
-                    background: SLATE_50, border: '1px dashed ' + SLATE_200, borderRadius: 8,
-                    fontSize: 12, color: SLATE_700, fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
-                  }}>
-                    {file.file_url || '(no file_url on this mock record)'}
-                  </div>
-                </div>
+                )}
               </div>
             )}
           </div>

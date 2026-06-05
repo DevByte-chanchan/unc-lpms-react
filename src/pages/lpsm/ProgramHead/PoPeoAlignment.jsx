@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { Eye, FileText, Upload } from 'react-feather';
+import { ChevronRight, Eye, FileText, Upload } from 'react-feather';
 import SkeletonA from '../../../layouts/SkeletonA.jsx';
 import HeaderA from '../../../components/HeaderA.jsx';
 import SideNavigation from '../../../components/SideNavigation.jsx';
@@ -39,31 +39,35 @@ const PoPeoAlignment = () => {
           if (file) alert('File selected: ' + file.name);
         }} />
       </div>
-      <div style={{ overflow: 'auto', borderRadius: 8, border: '1px solid #e5e7eb' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
+      <div style={{ overflow: 'auto' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 900, fontSize: 14 }}>
           <thead>
-            <tr style={{ background: '#f9fafb', borderBottom: '2px solid #e5e7eb' }}>
-              <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 500, color: '#374151' }}>DOCUMENT</th>
-              <th style={{ padding: '12px 16px', textAlign: 'center', fontWeight: 500, color: '#374151', width: 120 }}>ACTION</th>
+            <tr>
+              <th style={{ padding: '10px 12px', textAlign: 'left', fontWeight: 600, color: '#374151', fontSize: 13 }}>DOCUMENT</th>
+              <th style={{ padding: '10px 12px', textAlign: 'center', fontWeight: 600, color: '#374151', fontSize: 13, width: 120 }}>ACTION</th>
             </tr>
           </thead>
           <tbody>
             {docList.map((doc) => (
-              <tr key={doc.id} style={{ borderBottom: '1px solid #e5e7eb' }}>
-                <td style={{ padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <FileText size={18} color="#9ca3af" />
-                  <div>
-                    <div style={{ fontWeight: 400, color: '#111827' }}>{doc.name}</div>
-                    <div style={{ fontSize: 12, color: '#6b7280' }}>Uploaded by {doc.uploadedBy} on {doc.uploadDate}</div>
+              <tr key={doc.id} style={{ borderTop: '1px solid #eef2f6' }}>
+                <td style={{ padding: '10px 12px', verticalAlign: 'middle' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <FileText size={18} color="#9ca3af" />
+                    <div>
+                      <div style={{ fontWeight: 400, color: '#111827' }}>{doc.name}</div>
+                      <div style={{ fontSize: 12, color: '#6b7280' }}>Uploaded by {doc.uploadedBy} on {doc.uploadDate}</div>
+                    </div>
                   </div>
                 </td>
-                <td style={{ padding: '12px 16px', textAlign: 'center' }}>
-                  <button
-                    onClick={() => setSelectedFile(doc)}
-                    style={{ padding: '8px 16px', background: '#1F2937', color: 'white', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontWeight: 500, display: 'inline-flex', alignItems: 'center', gap: 6 }}
-                  >
-                    <Eye size={15} /> View
-                  </button>
+                <td style={{ padding: '10px 12px', verticalAlign: 'middle' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'flex-end' }}>
+                    <button
+                      onClick={() => setSelectedFile(doc)}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', gap: '4px', fontSize: 13, fontWeight: 500, color: '#111827' }}
+                    >
+                      View <ChevronRight size={16} />
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}
