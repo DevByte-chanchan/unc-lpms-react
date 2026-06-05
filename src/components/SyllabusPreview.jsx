@@ -61,7 +61,7 @@ const SyllabusPreview = ({ isOpen, onClose, onSubmit }) => {
                         <select value={selectedSection} onChange={handleSectionChange}>
                             <option value="Course Details">Course Details</option>
                             <option value="Course and Program Outcome Alignment">Course and Program Outcome Alignment</option>
-                            <option value="Course Coverage">Course Coverage</option>
+                            <option value="Intended Learning Outcome">Intended Learning Outcome</option>
                             <option value="References">References</option>
                             <option value="Criteria for Grading">Criteria for Grading</option>
                         </select>
@@ -420,7 +420,7 @@ const SyllabusPreview = ({ isOpen, onClose, onSubmit }) => {
                             </div>
                         );
                     })()}
-                    {selectedSection === 'Course Coverage' && (() => {
+                    {selectedSection === 'Intended Learning Outcome' && (() => {
                         // --- 1. DATA PREPARATION ---
                         const ilos = syllabus.ilos || [];
                         const allTopics = syllabus.topics || [];

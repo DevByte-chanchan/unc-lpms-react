@@ -58,7 +58,16 @@ const CoPoAlignment = () => {
           file={selectedFile}
           kind="CO & PO Alignment"
           onClose={() => setSelectedFile(null)}
-          onExport={(f) => alert('Export: ' + f.name)}
+          onExport={(f) => {
+            if (f.file_url) {
+              const a = document.createElement('a');
+              a.href = f.file_url;
+              a.download = f.file_name || f.name || 'document';
+              a.click();
+            } else {
+              alert('No file URL available for export.');
+            }
+          }}
         />
       )}
     </div>

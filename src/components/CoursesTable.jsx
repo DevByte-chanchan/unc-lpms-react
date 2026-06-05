@@ -2,7 +2,7 @@ import {useState, useMemo} from 'react';
 import React from 'react';
 import {Link, useSearchParams} from 'react-router-dom'
 import styles from '../styles/CoursesTable.module.sass';
-import { ChevronRight, Edit, CheckCircle, Clock, XCircle, Download } from 'react-feather';
+import { ChevronRight, Download, HelpCircle } from 'react-feather';
 import { syllabiData } from '../data/syllabiData';
 import { exportSyllabusToPDF } from '../utils/pdfExport';
 import { getWorkflow } from '../utils/workflowHelpers';
@@ -10,7 +10,7 @@ import { getWorkflow } from '../utils/workflowHelpers';
 const CoursesTable = ({}) => {
 
     const [searchParams, setSearchParams] = useSearchParams();
-    const initialStatus = searchParams.get('status') || 'DRAFT';
+    const initialStatus = searchParams.get('status') || 'ALL';
 
     const currentYear = new Date().getFullYear();
     const startYear = 2000;
@@ -35,14 +35,13 @@ const CoursesTable = ({}) => {
         docsTotal: 3,
     }));
 
-    // Derive status from workflow
     const getDerivedStatus = (code) => {
         const wf = getWorkflow(code)
         const stage = wf.currentStage || 'submitted'
         if (stage === 'approved') return 'APPROVED'
         if (stage === 'returned') return 'RETURNED'
         if (stage === 'submitted') return 'DRAFT'
-        return 'PENDING' // parallel_review, program_head, dean
+        return 'PENDING'
     }
 
     const getSubmittedDate = (code) => {
@@ -58,10 +57,8 @@ const CoursesTable = ({}) => {
     const getReviewerStatuses = (code) => {
         const wf = getWorkflow(code)
         const stage = wf.currentStage || 'submitted'
-
         const stageOrder = ['submitted', 'parallel_review', 'program_head', 'dean', 'approved']
         const stageIndex = stageOrder.indexOf(stage)
-        // For 'returned', only show statuses of reviewers who actually acted
         const effectiveIndex = stageIndex
 
         const reviewerStageMap = {
@@ -88,10 +85,14 @@ const CoursesTable = ({}) => {
         const ph = checkStatus(wf.programHead?.status, 'programHead')
         const dean = checkStatus(wf.dean?.status, 'dean')
 
-        return [lib, ic, ph, dean]
+        return [
+            { role: 'Director of Libraries', status: lib },
+            { role: 'Industry Consultant', status: ic },
+            { role: 'Program Head', status: ph },
+            { role: 'Dean', status: dean },
+        ]
     }
 
-    // Force re-render on interval
     const [tick, setTick] = useState(0)
     React.useEffect(() => {
         const interval = setInterval(() => setTick(t => t + 1), 2000)
@@ -103,6 +104,7 @@ const CoursesTable = ({}) => {
         status: getDerivedStatus(c.code),
         submittedDate: getSubmittedDate(c.code),
         approved: getApprovedDate(c.code),
+        reviewerStatuses: getReviewerStatuses(c.code),
     })), [tick])
 
     const [selectedStatus, setSelectedStatus] = useState(initialStatus);
@@ -122,115 +124,21 @@ const CoursesTable = ({}) => {
         return <span style={styles_map[type] || styles_map.draft}>{text}</span>
     }
 
-    const getStatusText = (char) => {
-        if (char === 'A') return getStatusBadge('Approved', 'approved')
-        if (char === 'P') return getStatusBadge('Pending', 'pending')
-        if (char === 'R') return getStatusBadge('Returned', 'returned')
-        return <span style={{ color: '#d1d5db' }}>—</span>
+    const getStatusForCourse = (statusKey) => {
+        switch (statusKey) {
+            case 'APPROVED': return getStatusBadge('Approved', 'approved')
+            case 'PENDING': return getStatusBadge('Pending', 'pending')
+            case 'DRAFT': return getStatusBadge('Draft', 'draft')
+            case 'RETURNED': return getStatusBadge('Returned', 'returned')
+            default: return getStatusBadge('Draft', 'draft')
+        }
     }
 
-    const getDocumentStatusBadge = (uploaded, total) => {
-        let color, background;
-        if (uploaded === total) {
-            color = '#047857';
-            background = '#ecfdf5';
-        } else if (uploaded > 0) {
-            color = '#b45309';
-            background = '#fffbeb';
-        } else {
-            color = '#dc2626';
-            background = '#fef2f2';
-        }
-        return (
-            <span style={{ 
-                color, 
-                background, 
-                padding: '3px 10px', 
-                borderRadius: 99, 
-                fontWeight: 600, 
-                fontSize: 12 
-            }}>
-                {uploaded}/{total}
-            </span>
-        );
-    }
-
-    const getSyllabusData = (courseCode) => {
-        return {
-            code: courseCode,
-            name: 'Human & Computer Interaction',
-            credits: '2 LEC, 1 LAB',
-            contact: '3',
-            prerequisites: 'BCS222L Web Development 2',
-            class: 'Professional Courses',
-            cmo: '25 S, 2015',
-            revision: '0',
-            year: 'THIRD YEAR',
-            sem: '1st Semester',
-            description: 'This course explores the principles and practices of Human-Computer Interaction (HCI), focusing on how people engage with digital systems and how to design technology that enhances user experience.',
-            courseOutcomes: [
-                {
-                    id: 'CO1',
-                    description: 'Apply core concepts, theories, and principles of HCI',
-                    poMappings: ['E', '', 'I', '', '', 'E', '', '', 'I']
-                },
-                {
-                    id: 'CO2',
-                    description: 'User-Centered Design principles and ISO 9241-210 standards',
-                    poMappings: ['', 'E', '', '', '', 'E', '', 'I', '']
-                },
-            ],
-            references: [
-                { id: 'TB1', type: 'Textbook', title: 'The Design of Everyday Things', authors: 'Don Norman', year: 2013, isbn: '978-0465050659' },
-                { id: 'OE1', type: 'Open Educational Resources', title: 'The Encyclopedia of HCI', authors: 'Mads Soegaard', year: 2014, link: 'https://interaction-design.org' },
-                { id: 'OR1', type: 'Online Resources', title: '10 Usability Heuristics', authors: 'Jakob Nielsen', year: 2020, link: 'https://nngroup.com' },
-            ],
-            gradingSystem: [
-                {
-                    co: "CO1",
-                    ilos: [
-                        { id: "ILO1", assessments: ["Intro to Heuristics Brief"], weight: { prelim: "30", midterm: "", semi: "", final: "" }, minPassing: "60" },
-                        { id: "ILO2", assessments: ["Persona Workshop"], weight: { prelim: "40", midterm: "", semi: "", final: "" }, minPassing: "60" },
-                    ]
-                },
-                {
-                    co: "CO2",
-                    ilos: [
-                        { id: "ILO1", assessments: ["UI Evaluation"], weight: { prelim: "", midterm: "30", semi: "", final: "" }, minPassing: "60" },
-                    ]
-                },
-            ],
-            ilos: [
-                {
-                    id: "CO1-ILO1",
-                    intendedLearningOutcome: "Analyze the relationship between cognitive psychology and HCI",
-                    deliveryWeek: "Week 1",
-                    allocatedTime: "3 hours",
-                    topics: ["Introduction to HCI & Cognitive Foundations"],
-                    references: ["TB1 - The Design of Everyday Things"]
-                },
-            ],
-            topics: [
-                {
-                    id: "T1",
-                    title: "Introduction to HCI & Cognitive Foundations",
-                    subtopics: [
-                        { id: "S1", value: "History and Evolution of HCI" },
-                        { id: "S2", value: "Mental Models and Metaphors" }
-                    ],
-                    tlas: [
-                        {
-                            id: "TLA1",
-                            classPhase: "Pre-class",
-                            performedBy: "Instructor",
-                            tlaName: "Foundations Lecture",
-                            tlaDescription: "Overview of HCI principles",
-                            laboratory: false
-                        }
-                    ]
-                }
-            ]
-        }
+    const getStatusLabel = (char) => {
+        if (char === 'A') return 'Approved'
+        if (char === 'P') return 'Pending'
+        if (char === 'R') return 'Returned'
+        return '—'
     }
 
     const generatePDF = (course) => {
@@ -240,9 +148,16 @@ const CoursesTable = ({}) => {
         }
     }
 
+    const [statusPopup, setStatusPopup] = useState(null);
+
+    const filteredCourses = useMemo(() => {
+        if (selectedStatus === 'ALL') return Courses
+        if (selectedStatus === 'PENDING') return Courses.filter(r => r.status === 'PENDING' || r.status === 'RETURNED')
+        return Courses.filter(r => r.status === selectedStatus)
+    }, [Courses, selectedStatus])
+
     return (
         <div className={styles['courses-table']}>
-
             <div className={styles.header}>
                 <h2>ASSIGNED COURSES</h2>
                 <div className={styles.filterA}>
@@ -256,10 +171,10 @@ const CoursesTable = ({}) => {
                     </select>
                 </div>
                 <div className={styles.fill}></div>
-
                 <div className={'filter-container'}>
-                        <p>Filter by <strong>Status</strong>:</p>
+                    <p>Filter by <strong>Status</strong>:</p>
                     <select onChange={handleStatusChange} value={selectedStatus}>
+                        <option value="ALL">All ({Courses.length})</option>
                         <option value="DRAFT">Draft ({Courses.filter(r => r.status === 'DRAFT').length})</option>
                         <option value="PENDING">Pending ({Courses.filter(r => r.status === 'PENDING' || r.status === 'RETURNED').length})</option>
                         <option value="APPROVED">Approved ({Courses.filter(r => r.status === 'APPROVED').length})</option>
@@ -268,153 +183,110 @@ const CoursesTable = ({}) => {
             </div>
 
             <div className={styles['table-container']}>
-                {(selectedStatus === 'DRAFT' ||
-                    selectedStatus === 'APPROVED') &&
-                    <table>
-                        <thead>
+                <table>
+                    <thead>
                         <tr>
                             <th width={150}>CODE</th>
-                            <th width={300}>COURSE NAME</th>
-                            <th width={150}>PROGRAM</th>
-                            <th width={150}>LAST UPDATED</th>
-                            <th width={100}>STATUS</th>
-                            {selectedStatus === 'APPROVED' && <th width={120}>EXPORT</th>}
+                            <th width={280}>COURSE NAME</th>
+                            <th width={130}>PROGRAM</th>
+                            <th width={140}>LAST UPDATED</th>
+                            <th width={110}>STATUS</th>
                             <th className={styles.fill}></th>
                         </tr>
-                        </thead>
-
-                        <tbody>
-                        {Courses
-                            .filter(row => row.status === selectedStatus)
-                            .map((row, index) => (
-                                <tr key={index}>
-                                    <td width={150}>{row.code}</td>
-                                    <td width={300}>{row.name}</td>
-                                    <td width={150}>{row.program}</td>
-                                    <td width={150}>{row.lastUpdated}</td>
-                                    <td width={140}>
-                                        {selectedStatus === 'DRAFT' ? getStatusBadge('Draft', 'draft') : getStatusBadge('Approved', 'approved')}
-                                    </td>
-                                    {selectedStatus === 'APPROVED' && (
-                                        <td width={120}>
-                                            <button 
+                    </thead>
+                    <tbody>
+                        {filteredCourses.map((row, index) => (
+                            <tr key={index}>
+                                <td width={150}>{row.code}</td>
+                                <td width={280}>{row.name}</td>
+                                <td width={130}>{row.program}</td>
+                                <td width={140}>{row.lastUpdated}</td>
+                                <td width={110}>{getStatusForCourse(row.status)}</td>
+                                <td className={styles.fill}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'flex-end' }}>
+                                        {row.status === 'APPROVED' && (
+                                            <button
                                                 onClick={() => generatePDF(row)}
-                                                className={'actionLink'}
-                                                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', gap: '4px' }}
+                                                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', gap: 4, fontSize: 13, fontWeight: 500, color: '#111827' }}
                                             >
-                                                Export <Download size={18} />
+                                                Export
                                             </button>
-                                        </td>
-                                    )}
-                                    <td className={styles.fill}>
-                                        <Link className={'actionLink'} to={selectedStatus === 'APPROVED' ? `/role/instructor/courses/${encodeURIComponent(row.code)}?status=approved` : `/courses/${encodeURIComponent(row.code)}`}
-                                            state={{ from: '/', fromStatus: selectedStatus }}
-                                            style={{
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                gap: '6px'
-                                            }}
-                                        >
-                                            {row.status === 'DRAFT' ? 'Compose' : 'View'}
-                                            <ChevronRight size={18} />
-                                        </Link>
-
-                                    </td>
-                                </tr>
-                            ))}
-                        {Courses.filter(row => row.status === selectedStatus).length === 0 && (
-                            <tr><td colSpan={selectedStatus === 'APPROVED' ? 7 : 6} style={{ textAlign: 'center', padding: 30, color: '#9ca3af' }}>
-                                {selectedStatus === 'DRAFT' ? 'No draft courses' : 'No approved courses yet'}
-                            </td></tr>
-                        )}
-                        </tbody>
-                    </table>
-                }
-                {selectedStatus === 'PENDING' &&
-                    <table>
-                        <thead>
-                            <tr>
-                                <th width={150}>CODE</th>
-                                <th width={250}>COURSE NAME</th>
-                                <th width={120}>PROGRAM</th>
-                                <th width={140}>DATE SUBMITTED</th>
-                                <th className={styles.status} width={650}>STATUS</th>
-                                <th className={styles.fill}></th>
-                            </tr>
-                            <tr className={styles['sub-column']}>
-                                <th width={150}></th>
-                                <th width={250}></th>
-                                <th width={120}></th>
-                                <th width={140}></th>
-                                <th style={{borderLeft: "5px solid white"}} className={styles.lighten} width={162.5}>Director of Libraries</th>
-                                <th className={styles.lighten} width={162.5}>Industry Consultant</th>
-                                <th className={styles.lighten} width={162.5}>Program Head</th>
-                                <th style={{borderRight: "5px solid white"}} className={styles.lighten} width={162.5}>Dean</th>
-                                <th className={styles.fill}></th>
-                            </tr>
-                        </thead>
-
-
-                        <tbody>
-                        {Courses
-                            .filter(row => row.status === 'PENDING' || row.status === 'RETURNED')
-                            .map((row, index) => {
-                                const s = getReviewerStatuses(row.code)
-
-                                return (
-                                    <tr key={index}>
-                                        <td width={150}>{row.code}</td>
-                                        <td width={250}>{row.name}</td>
-                                        <td width={120}>{row.program}</td>
-                                        <td width={140}>{row.submittedDate}</td>
-
-                                        {/* Library Director */}
-                                        <td className={styles.lighten} width={162.5}>
-                                            {getStatusText(s[0])}
-                                        </td>
-
-                                        {/* Industry Consultant */}
-                                        <td className={styles.lighten} width={162.5}>
-                                            {getStatusText(s[1])}
-                                        </td>
-
-                                        {/* Program Head */}
-                                        <td className={styles.lighten} width={162.5}>
-                                            {getStatusText(s[2])}
-                                        </td>
-
-                                        {/* Dean */}
-                                        <td className={styles.lighten} width={162.5}>
-                                            {getStatusText(s[3])}
-                                        </td>
-
-                                        {/* Action Column */}
-                                        <td className={styles.fill}>
-                                            {row.status === 'RETURNED' ? (
-                                                <Link className={'actionLink'} to={`/revisions/${encodeURIComponent(row.code)}`} state={{ from: '/', fromStatus: selectedStatus }}>
-                                                    Update
-                                                    <ChevronRight size={18} />
-                                                </Link>
-                                            ) : (
-                                                <Link className={'actionLink'} to={`/role/instructor/courses/${encodeURIComponent(row.code)}`} state={{ from: '/', fromStatus: selectedStatus }}>
-                                                    View
-                                                    <ChevronRight size={18} />
-                                                </Link>
+                                        )}
+                                        {(row.status === 'DRAFT' || row.status === 'PENDING' || row.status === 'RETURNED') && (
+                                            <Link className={'actionLink'} to={row.status === 'RETURNED' ? `/revisions/${encodeURIComponent(row.code)}` : `/courses/${encodeURIComponent(row.code)}`}
+                                                state={{ from: '/', fromStatus: selectedStatus }}
+                                                style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 13, fontWeight: 500, textDecoration: 'none', color: '#111827' }}
+                                            >
+                                                {row.status === 'DRAFT' ? 'Compose' : row.status === 'RETURNED' ? 'Update' : 'View'} <ChevronRight size={16} />
+                                            </Link>
+                                        )}
+                                        {row.status === 'APPROVED' && (
+                                            <Link className={'actionLink'} to={`/role/instructor/courses/${encodeURIComponent(row.code)}?status=approved`}
+                                                state={{ from: '/', fromStatus: selectedStatus }}
+                                                style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 13, fontWeight: 500, textDecoration: 'none', color: '#111827' }}
+                                            >
+                                                View <ChevronRight size={16} />
+                                            </Link>
+                                        )}
+                                        <div style={{ position: 'relative' }}>
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); setStatusPopup(statusPopup === row.code ? null : row.code); }}
+                                                style={{
+                                                    width: 28, height: 28, borderRadius: '50%',
+                                                    background: '#f1f5f9', border: '1px solid #cbd5e1',
+                                                    cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                    padding: 0, color: '#64748b', fontSize: 14, fontWeight: 700,
+                                                }}
+                                                title="View reviewer statuses"
+                                            >
+                                                ?
+                                            </button>
+                                            {statusPopup === row.code && (
+                                                <div
+                                                    style={{
+                                                        position: 'absolute', top: '100%', right: 0, marginTop: 6,
+                                                        background: '#fff', border: '1px solid #e2e8f0', borderRadius: 10,
+                                                        boxShadow: '0 8px 24px rgba(0,0,0,0.12)', zIndex: 50,
+                                                        padding: '12px 0', minWidth: 200,
+                                                    }}
+                                                    onClick={(e) => e.stopPropagation()}
+                                                >
+                                                    <div style={{ padding: '0 14px 8px', fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.04em', borderBottom: '1px solid #e2e8f0' }}>
+                                                        Review Status
+                                                    </div>
+                                                    {row.reviewerStatuses.map((r, i) => (
+                                                        <div key={i} style={{ padding: '8px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+                                                            <div style={{ fontSize: 13, fontWeight: 500, color: '#334155' }}>{r.role}</div>
+                                                            <div style={{
+                                                                fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 99,
+                                                                color: r.status === 'A' ? '#047857' : r.status === 'P' ? '#b45309' : r.status === 'R' ? '#dc2626' : '#94a3b8',
+                                                                background: r.status === 'A' ? '#ecfdf5' : r.status === 'P' ? '#fffbeb' : r.status === 'R' ? '#fef2f2' : '#f1f5f9',
+                                                            }}>
+                                                                {getStatusLabel(r.status)}
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                    <div style={{ padding: '8px 14px 0', borderTop: '1px solid #e2e8f0', marginTop: 4, paddingTop: 8 }}>
+                                                        <button
+                                                            onClick={() => setStatusPopup(null)}
+                                                            style={{ width: '100%', padding: '6px 0', background: 'none', border: 'none', fontSize: 12, fontWeight: 600, color: '#64748b', cursor: 'pointer' }}
+                                                        >
+                                                            Close
+                                                        </button>
+                                                    </div>
+                                                </div>
                                             )}
-                                        </td>
-                                    </tr>
-                                )
-                            })}
-                        {Courses.filter(row => row.status === 'PENDING' || row.status === 'RETURNED').length === 0 && (
-                            <tr><td colSpan={9} style={{ textAlign: 'center', padding: 30, color: '#9ca3af' }}>No pending courses</td></tr>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        ))}
+                        {filteredCourses.length === 0 && (
+                            <tr><td colSpan={6} style={{ textAlign: 'center', padding: 30, color: '#9ca3af' }}>No courses found</td></tr>
                         )}
-                        </tbody>
-                    </table>
-
-                }
-
+                    </tbody>
+                </table>
             </div>
-
         </div>
     );
 };

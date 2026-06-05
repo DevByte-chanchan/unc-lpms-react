@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Plus, BookOpen, FileText, Globe, Upload, AlertTriangle, AlertCircle } from 'react-feather';
+import { Plus, BookOpen, FileText, Globe, Upload, AlertTriangle, AlertCircle } from 'react-feather';
 import SkeletonA from '../../../layouts/SkeletonA.jsx';
 import HeaderA from '../../../components/HeaderA.jsx';
 import SideNavigation from '../../../components/SideNavigation.jsx';
@@ -121,10 +121,8 @@ const getDeptShort = (dept) => DEPARTMENT_SHORT[dept] || dept;
 const ReferenceLibrary = () => {
   const navigate = useNavigate();
   const [references, setReferencesState] = useState(() => getReferences(true));
-  const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('');
   const [filterDepartment, setFilterDepartment] = useState('');
-  const [filterProgram, setFilterProgram] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [tab, setTab] = useState('active');
   const activeRefs = useMemo(() => references.filter(r => !r.archived), [references]);
@@ -570,14 +568,7 @@ const ReferenceLibrary = () => {
     return Array.from(deps).sort();
   }, [activeRefs]);
 
-  const allPrograms = useMemo(() => {
-    const progs = new Set();
-    activeRefs.forEach(r => (r.programs || []).forEach(p => progs.add(p)));
-    return Array.from(progs).sort();
-  }, [activeRefs]);
-
   const filtered = useMemo(() => {
-    const term = searchTerm.toLowerCase();
     let result = sourceRefs;
     if (filterType) {
       result = result.filter((r) => r.type === filterType);
@@ -585,21 +576,8 @@ const ReferenceLibrary = () => {
     if (filterDepartment) {
       result = result.filter((r) => (r.departments || []).includes(filterDepartment));
     }
-    if (filterProgram) {
-      result = result.filter((r) => (r.programs || []).includes(filterProgram));
-    }
-    if (term) {
-      result = result.filter(
-        (r) =>
-          r.title.toLowerCase().includes(term) ||
-          r.authors.toLowerCase().includes(term) ||
-          (r.publisher || '').toLowerCase().includes(term) ||
-          (r.programs || []).some(p => p.toLowerCase().includes(term)) ||
-          (r.departments || []).some(d => d.toLowerCase().includes(term))
-      );
-    }
     return result;
-  }, [sourceRefs, searchTerm, filterType, filterDepartment, filterProgram]);
+  }, [sourceRefs, filterType, filterDepartment]);
 
   /* ── Handlers ──────────────────────────────────────────────────────── */
   const confirmArchive = () => {
@@ -679,31 +657,11 @@ const ReferenceLibrary = () => {
 
       {/* Controls */}
       <div className={styles.controlsBar}>
-        <div className={styles.searchWrapper}>
-          <Search size={16} className={styles.searchIconSvg} />
-          <input type="text" placeholder="Search references by title, author, program, or keyword..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className={styles.searchInput} />
-        </div>
         <div className={'filter-container'}>
           <p>Filter by <strong>Department</strong>:</p>
-          <select value={filterDepartment} onChange={(e) => { setFilterDepartment(e.target.value); setFilterProgram(''); }}>
+          <select value={filterDepartment} onChange={(e) => { setFilterDepartment(e.target.value); }}>
             <option value="">All Departments</option>
             {allDepartments.map(d => <option key={d} value={d}>{d}</option>)}
-          </select>
-        </div>
-        <div className={'filter-container'}>
-          <p>Filter by <strong>Program</strong>:</p>
-          <select value={filterProgram} onChange={(e) => setFilterProgram(e.target.value)}>
-            <option value="">All Programs</option>
-            {(filterProgram ? [filterProgram] : allPrograms).length > 0
-              ? (filterDepartment
-                  ? allPrograms.filter(p => {
-                      const refsForDept = activeRefs.filter(r => r.departments?.includes(filterDepartment));
-                      return refsForDept.some(r => r.programs?.includes(p));
-                    })
-                  : allPrograms
-                ).map(p => <option key={p} value={p}>{p}</option>)
-              : <option value="">No programs available</option>
-            }
           </select>
         </div>
         <div className={'filter-container'}>
@@ -835,10 +793,10 @@ const ReferenceLibrary = () => {
               </div>
 
               <div className={styles.modalSection}>
-                <h3 className={styles.modalSectionTitle}>Department & Program</h3>
+                <h3 className={styles.modalSectionTitle}>Department</h3>
                 {(viewRef.departments || []).length > 0 ? (
                   <div className={styles.modalRow}>
-                    <span className={styles.modalLabel}>DEPARTMENT(S)</span>
+                    <span className={styles.modalLabel}>DEPARTMENT</span>
                     <span className={styles.modalValue}>
                       {(viewRef.departments || []).map((d, i) => (
                         <span key={i} className={styles.deptBadge} style={{ backgroundColor: getDeptColor(d) + '1a', color: getDeptColor(d), borderLeft: `3px solid ${getDeptColor(d)}` }}>
@@ -849,19 +807,7 @@ const ReferenceLibrary = () => {
                     </span>
                   </div>
                 ) : (
-                  <div className={styles.modalRow}><span className={styles.modalLabel}>DEPARTMENT(S)</span><span className={styles.modalValue} style={{ color: '#9ca3af', fontStyle: 'italic' }}>Not assigned</span></div>
-                )}
-                {(viewRef.programs || []).length > 0 ? (
-                  <div className={styles.modalRow}>
-                    <span className={styles.modalLabel}>PROGRAM(S)</span>
-                    <span className={styles.modalValue}>
-                      {(viewRef.programs || []).map((p, i) => (
-                        <span key={i} className={styles.modalProgramBadge}>{p}</span>
-                      ))}
-                    </span>
-                  </div>
-                ) : (
-                  <div className={styles.modalRow}><span className={styles.modalLabel}>PROGRAM(S)</span><span className={styles.modalValue} style={{ color: '#9ca3af', fontStyle: 'italic' }}>Not assigned</span></div>
+                  <div className={styles.modalRow}><span className={styles.modalLabel}>DEPARTMENT</span><span className={styles.modalValue} style={{ color: '#9ca3af', fontStyle: 'italic' }}>Not assigned</span></div>
                 )}
                 {(viewRef.usedInCourses || []).length > 0 ? (
                   <div className={styles.modalRow}>

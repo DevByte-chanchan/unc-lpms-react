@@ -22,32 +22,6 @@ const ALL_DEPARTMENTS = [
   'General Education Department',
 ];
 
-const ALL_PROGRAMS = [
-  'BS Computer Science',
-  'BS Information Technology',
-  'BS Computer Engineering',
-  'BS Business Administration',
-  'BS Accountancy',
-  'BS Management Accounting',
-  'BS Hospitality Management',
-  'BS Tourism Management',
-  'BS Education',
-  'BS Psychology',
-  'BS Nursing',
-  'BS Radiologic Technology',
-  'BS Medical Technology',
-  'BS Public Health',
-  'BS Physical Therapy',
-  'BS Architecture',
-  'BS Electrical Engineering',
-  'BS Civil Engineering',
-  'BS Mechanical Engineering',
-  'BS Chemical Engineering',
-  'BS Industrial Engineering',
-  'BS Electronics Engineering',
-  'General Education',
-];
-
 const AddReference = () => {
   const navigate = useNavigate();
   const { id } = useParams();
@@ -63,7 +37,7 @@ const AddReference = () => {
     year: existingRef?.year ? existingRef.year.toString() : '',
     link: existingRef?.link || '',
     departments: existingRef?.departments || [],
-    programs: existingRef?.programs || [],
+
     usedInCourses: existingRef?.usedInCourses || [],
   });
 
@@ -91,15 +65,6 @@ const AddReference = () => {
       departments: prev.departments.includes(dept)
         ? prev.departments.filter(d => d !== dept)
         : [...prev.departments, dept],
-    }));
-  };
-
-  const toggleProgram = (prog) => {
-    setFormData(prev => ({
-      ...prev,
-      programs: prev.programs.includes(prog)
-        ? prev.programs.filter(p => p !== prog)
-        : [...prev.programs, prog],
     }));
   };
 
@@ -170,7 +135,6 @@ const AddReference = () => {
         hasIssue: existingRef?.hasIssue || false,
         archived: existingRef?.archived || false,
         departments: formData.departments,
-        programs: formData.programs,
         usedInCourses: formData.usedInCourses,
       };
 
@@ -257,7 +221,7 @@ const AddReference = () => {
         )}
 
         <div className={styles.fieldGroup}>
-          <label className={styles.label}>Department(s)</label>
+          <label className={styles.label}>Department</label>
           <div className={styles.checkboxGroup}>
             {ALL_DEPARTMENTS.map(dept => (
               <label key={dept} className={styles.checkboxLabel}>
@@ -267,22 +231,6 @@ const AddReference = () => {
                   onChange={() => toggleDepartment(dept)}
                 />
                 {dept}
-              </label>
-            ))}
-          </div>
-        </div>
-
-        <div className={styles.fieldGroup}>
-          <label className={styles.label}>Program(s)</label>
-          <div className={styles.checkboxGroup}>
-            {ALL_PROGRAMS.map(prog => (
-              <label key={prog} className={styles.checkboxLabel}>
-                <input
-                  type="checkbox"
-                  checked={formData.programs.includes(prog)}
-                  onChange={() => toggleProgram(prog)}
-                />
-                {prog}
               </label>
             ))}
           </div>

@@ -13,7 +13,7 @@ import PdfExportButton from './PdfExportButton'
 const defaultSections = [
   'Course Details',
   'Course and Program Outcome Alignment',
-  'Course Coverage',
+  'Intended Learning Outcome',
   'References',
   'Criteria for Grading'
 ]
@@ -487,8 +487,6 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
       const v = components[key]
       return v === true || v === 1 || v === '1' || v === 'true'
     }
-    if (isSelected('references')) tags.push('References')
-    if (isSelected('grading')) tags.push('Grading Criteria')
     if (comment?.coverageType) {
       const ct = String(comment.coverageType || '').trim()
       if (ct) tags.push(`Coverage: ${ct}`)
@@ -580,11 +578,13 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
             )}
             {effectiveStatus !== 'approved' && roleKey !== 'instructor' && (
               <div className={styles.approvalButtons}>
-                <button className={`${styles.requestRevision} ${(!isRoleActive() || hasRoleApproved()) ? styles['disabled-btn'] : ''}`} onClick={() => {
-                  if (hasRoleApproved()) showToastMsg('You have already approved this syllabus.', 'warning')
-                  else if (isRoleActive()) openComment()
-                  else showToastMsg('Waiting for previous approvers to complete their review.', 'warning')
-                }}>Add Comment</button>
+                {activeSelectedSection === 'Intended Learning Outcome' && (
+                  <button className={`${styles.requestRevision} ${(!isRoleActive() || hasRoleApproved()) ? styles['disabled-btn'] : ''}`} onClick={() => {
+                    if (hasRoleApproved()) showToastMsg('You have already approved this syllabus.', 'warning')
+                    else if (isRoleActive()) openComment()
+                    else showToastMsg('Waiting for previous approvers to complete their review.', 'warning')
+                  }}>Add Comment</button>
+                )}
                 <button className={`${styles.approve} ${(!isRoleActive() || hasRoleApproved()) ? styles['disabled-btn'] : ''}`} onClick={() => {
                   if (hasRoleApproved()) showToastMsg('You have already approved this syllabus.', 'warning')
                   else if (isRoleActive()) setShowApproveModal(true)
@@ -709,8 +709,8 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
               </section>
             )}
 
-            {/* Course Coverage (copied) */}
-            {activeSelectedSection === 'Course Coverage' && (() => {
+            {/* Intended Learning Outcome (copied) */}
+            {activeSelectedSection === 'Intended Learning Outcome' && (() => {
               const ilos = syllabus?.ilos || []
               const allTopics = syllabus?.topics || []
               const allAssessments = syllabus?.assessments || []

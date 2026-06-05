@@ -25,6 +25,12 @@ const SideNavigation = ({ mode = 'instructor' }) => {
     if (location.pathname.startsWith('/role/program-head/upload-documents')) {
         selected = 'COAEP';
     }
+    if (location.pathname.startsWith('/role/program-head/co-po-alignment')) {
+        selected = 'CO & PO Alignment';
+    }
+    if (location.pathname.startsWith('/role/program-head/po-peo-alignment')) {
+        selected = 'PO & PEO Alignment';
+    }
 
     // LPSM Director of Libraries pages
     if (location.pathname.startsWith('/role/director-of-libraries/reference-library') ||
@@ -178,6 +184,14 @@ const SideNavigation = ({ mode = 'instructor' }) => {
 
                         <div onClick={() => { navigate('/role/program-head/course-offerings?page=Course%20Offerings') }} className={`${styles.list} ${selected === 'Course Offerings' ? styles.selected : ''}`}>
                             <BookOpen size={24} /> <span className={styles.listText}>Course Offerings</span>
+                        </div>
+
+                        <div onClick={() => { navigate('/role/program-head/co-po-alignment') }} className={`${styles.list} ${selected === 'CO & PO Alignment' ? styles.selected : ''}`}>
+                            <FileText size={24} /> <span className={styles.listText}>CO & PO Alignment</span>
+                        </div>
+
+                        <div onClick={() => { navigate('/role/program-head/po-peo-alignment') }} className={`${styles.list} ${selected === 'PO & PEO Alignment' ? styles.selected : ''}`}>
+                            <FileText size={24} /> <span className={styles.listText}>PO & PEO Alignment</span>
                         </div>
 
                         <div onClick={() => { navigate('/role/program-head/upload-documents') }} className={`${styles.list} ${selected === 'COAEP' ? styles.selected : ''}`}>
