@@ -21,20 +21,25 @@ export default (sequelize, DataTypes) =>
         autoIncrement: true,
       },
       course_code: {
-        type: DataTypes.STRING(64),
+        type: DataTypes.STRING(16),
         allowNull: false,
       },
       course_name: {
-        type: DataTypes.STRING(255),
+        type: DataTypes.STRING(100),
         allowNull: true,
+      },
+      year_level: {
+        type: DataTypes.STRING(32),
+        allowNull: true,
+        comment: 'Course year level (e.g. "SECOND YEAR") — from the upload column or derived from the catalog; powers the page year filter.',
       },
       course_offering_id: {
         type: DataTypes.INTEGER.UNSIGNED,
         allowNull: true,
-        comment: 'Resolved FK to course_offerings.id (null if the code was unmatched).',
+        comment: 'Resolved CATALOG course id (courses.course_id) — a loose reference, NOT a course_offerings FK; null if the code was unmatched.',
       },
       faculty_name: {
-        type: DataTypes.STRING(255),
+        type: DataTypes.STRING(100),
         allowNull: true,
       },
       faculty_id: {
@@ -43,10 +48,15 @@ export default (sequelize, DataTypes) =>
         comment: 'Resolved FK to faculty.id (null if the name was unmatched).',
       },
       status: {
-        type: DataTypes.STRING(32),
+        type: DataTypes.STRING(16),
         allowNull: false,
         defaultValue: 'Pending Match',
         comment: 'Verified | Pending Match | Flagged',
+      },
+      date_assigned: {
+        type: DataTypes.DATE,
+        allowNull: true,
+        comment: 'When the course offering was assigned to the faculty (stakeholder). Stamped whenever a faculty is assigned.',
       },
       period_id: { type: DataTypes.INTEGER.UNSIGNED, allowNull: true },
     },

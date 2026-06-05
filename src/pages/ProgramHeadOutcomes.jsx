@@ -10,11 +10,11 @@ const UploadButton = ({ onClick }) => (
     style={{
       display: 'flex', flexDirection: 'row', justifyContent: 'center', alignItems: 'center',
       padding: '15px 30px', gap: 8, width: '310px', height: '54px',
-      background: '#EA1212', borderRadius: '5px', color: '#fff', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap'
+      background: '#FFFFFF', borderRadius: '5px', color: '#374151', border: '1px solid #D1D5DB', cursor: 'pointer', whiteSpace: 'nowrap'
     }}
   >
     <span style={{ width: 24, height: 24, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
-      <Upload size={20} color="#FFFFFF" />
+      <Upload size={20} color="#374151" />
     </span>
     Upload Program Outcome List
   </button>

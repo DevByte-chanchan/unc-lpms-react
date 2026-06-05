@@ -1,6 +1,6 @@
 import styles from '../styles/SideNavigation.module.sass'
 import unclogo from '../assets/unclogo.png'
-import { FileText, LogOut, Users, BookOpen } from 'react-feather'
+import { FileText, LogOut, Users, BookOpen, UserCheck, Grid } from 'react-feather'
 import { useSearchParams, useNavigate, useLocation } from 'react-router-dom'
 import { useEffect, useRef, useState } from 'react'
 
@@ -158,7 +158,7 @@ const SideNavigation = ({ mode = 'instructor' }) => {
                         </div>
 
                         <div onClick={() => { navigate('/role/program-head/course-assignment?page=Course%20Assignment') }} className={`${styles.list} ${selected === 'Course Assignment' ? styles.selected : ''}`}>
-                            <BookOpen size={24} /> <span className={styles.listText}>Course Assignment</span>
+                            <UserCheck size={24} /> <span className={styles.listText}>Course Assignment</span>
                         </div>
                     </>
                 )}
@@ -184,6 +184,14 @@ const SideNavigation = ({ mode = 'instructor' }) => {
                         <div onClick={() => { navigate('/role/ovpaa?page=Department%20List') }} className={`${styles.list} ${selected === 'Department List' ? styles.selected : ''}`}>
                             <Users size={24} /> <span className={styles.listText}>Department List</span>
                         </div>
+
+                        <div onClick={() => { navigate('/role/ovpaa?page=Learning%20Plan') }} className={`${styles.list} ${selected === 'Learning Plan' ? styles.selected : ''}`}>
+                            <FileText size={24} /> <span className={styles.listText}>Learning Plan</span>
+                        </div>
+
+                        <div onClick={() => { navigate('/role/ovpaa?page=TOS') }} className={`${styles.list} ${selected === 'TOS' ? styles.selected : ''}`}>
+                            <Grid size={24} /> <span className={styles.listText}>TOS</span>
+                        </div>
                     </>
                 )}
 
@@ -200,7 +208,7 @@ const SideNavigation = ({ mode = 'instructor' }) => {
                             <button className={styles.popupItem} onClick={() => gotoRole('/role/director-of-libraries/approval-course-table')}>Director of Libraries</button>
                             <button className={styles.popupItem} onClick={() => gotoRole('/role/industry-consultant/approval-course-table')}>Industry Consultant</button>
                             <button className={styles.popupItem} onClick={() => gotoRole('/role/dean')}>Dean</button>
-                            <button className={styles.popupItem} onClick={() => gotoRole('/role/ovpaa')}>OVPAA</button>
+                            <button className={styles.popupItem} onClick={() => gotoRole('/role/ovpaa')}>OIC-OVPAA</button>
                         </div>
                     )}
                 </div>

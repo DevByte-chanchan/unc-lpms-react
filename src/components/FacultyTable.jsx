@@ -1,24 +1,36 @@
-
+import React from 'react';
+import { Eye, Edit3, Archive } from 'react-feather';
 import styles from '../styles/CoursesTable.module.sass';
-import { ChevronRight } from 'react-feather';
-import { Link } from 'react-router-dom';
-import { statusPillStyle } from '../services/statusPolicy.js';
+import { statusPillStyle, archiveStatusList } from '../services/statusPolicy.js';
+import { sortRows, statusRank, nextSort } from '../services/tableSort.js';
+import RowActionsMenu from './RowActionsMenu.jsx';
+import SortableTh from './SortableTh.jsx';
 
-const FacultyTable = ({ faculty = [], onView, hideDepartment = false }) => {
+const FacultyTable = ({ faculty = [], onView, onEdit, onArchive, hideDepartment = false }) => {
+  const columns = React.useMemo(() => [
+    { key: 'name', label: 'NAME', width: hideDepartment ? 500 : 380, type: 'text' },
+    ...(!hideDepartment ? [{ key: 'department', label: 'DEPARTMENT', width: 180, type: 'text' }] : []),
+    { key: 'role', label: 'ROLE', width: 180, type: 'text' },
+    { key: 'status', label: 'STATUS', width: 120, type: 'number', sortValue: (r) => statusRank('faculty', r.status || 'Active') },
+  ], [hideDepartment]);
+
+  const [sort, setSort] = React.useState({ sortKey: 'name', sortDir: 'asc' });
+  const onSort = (key) => setSort((s) => nextSort(s, key));
+  const rows = sortRows(faculty, columns, sort.sortKey, sort.sortDir);
+
   return (
     <div className={styles['table-container']} style={{ flex: '1 1 auto', minHeight: 0, display: 'flex', flexDirection: 'column', overflowX: 'auto', overflowY: 'hidden' }}>
       <table>
         <thead style={{ position: 'sticky', top: 0, background: '#FFFFFF', zIndex: 1 }}>
           <tr>
-            <th width={hideDepartment ? 500 : 380}>NAME</th>
-            {!hideDepartment && <th width={180}>DEPARTMENT</th>}
-            <th width={180}>ROLE</th>
-            <th width={120}>STATUS</th>
+            {columns.map((col) => (
+              <SortableTh key={col.key} col={col} sortKey={sort.sortKey} sortDir={sort.sortDir} onSort={onSort} />
+            ))}
             <th className={styles.fill}></th>
           </tr>
         </thead>
         <tbody>
-          {faculty.map((f, idx) => {
+          {rows.map((f, idx) => {
             const status = f.status || 'Active';
             return (
               <tr key={f.id || idx}>
@@ -31,17 +43,13 @@ const FacultyTable = ({ faculty = [], onView, hideDepartment = false }) => {
                   </span>
                 </td>
                 <td className={styles.fill} style={{ paddingRight: 12, textAlign: 'right', whiteSpace: 'nowrap' }}>
-                  {onView && (
-                    <Link
-                      to="#"
-                      className={'actionLink'}
-                      onClick={(e) => { e.preventDefault(); onView(f); }}
-                      style={{ background: 'transparent', display: 'inline-flex', alignItems: 'center', color: '#111827' }}
-                    >
-                      View
-                      <ChevronRight size={18} />
-                    </Link>
-                  )}
+                  <RowActionsMenu
+                    row={f}
+                    inline={[
+                      onView && { key: 'view', label: 'View', icon: <Eye size={16} />, onClick: onView },
+                      onEdit && { key: 'edit', label: 'Edit', icon: <Edit3 size={16} />, onClick: onEdit },
+                    ].filter(Boolean)}
+                  />
                 </td>
               </tr>
             );

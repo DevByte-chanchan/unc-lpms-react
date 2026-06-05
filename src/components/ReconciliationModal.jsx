@@ -13,9 +13,20 @@
  * closes the modal without changes.
  */
 import React from 'react';
+import { X } from 'react-feather';
 import styles from '../styles/ReconciliationModal.module.sass';
 
-const ReconciliationModal = ({ missing, onConfirm, onKeepAll, onClose }) => {
+const ReconciliationModal = ({
+  missing,
+  onConfirm,
+  onKeepAll,
+  onClose,
+  title = 'Reconcile Departments',
+  noun = 'departments',
+  archiveLabel = 'Unlisted',
+  keepLabel = 'Active',
+  renderMeta = (r) => 'Code: ' + r.code + ' · Currently: ' + (r.status || 'Active'),
+}) => {
   const [picks, setPicks] = React.useState(() => {
     const m = {};
     (missing || []).forEach((r) => { m[r.id] = false; });
@@ -40,10 +51,20 @@ const ReconciliationModal = ({ missing, onConfirm, onKeepAll, onClose }) => {
       <div className={styles.overlay} onClick={() => !saving && onClose && onClose()} />
       <div className={styles.modal} role="dialog" aria-modal="true">
         <div>
-          <h2 className={styles.title}>Reconcile Departments</h2>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+            <h2 className={styles.title}>{title}</h2>
+            <button
+              onClick={() => !saving && onClose && onClose()}
+              disabled={saving}
+              aria-label="Close"
+              style={{ background: 'transparent', border: 'none', cursor: saving ? 'not-allowed' : 'pointer', padding: 0, lineHeight: 0, display: 'inline-flex', alignItems: 'center', flexShrink: 0 }}
+            >
+              <X size={22} color="#111827" />
+            </button>
+          </div>
           <p className={styles.subtitle}>
-            These departments exist in the current period but weren't in the file you just uploaded.
-            Toggle ON to mark them as <strong>Unlisted</strong>; leave OFF to keep them <strong>Active</strong>.
+            These {noun} exist in the current period but weren't in the file you just uploaded.
+            Toggle ON to mark them as <strong>{archiveLabel}</strong>; leave OFF to keep them <strong>{keepLabel}</strong>.
           </p>
         </div>
 
@@ -52,9 +73,9 @@ const ReconciliationModal = ({ missing, onConfirm, onKeepAll, onClose }) => {
             <div key={r.id} className={styles.row}>
               <div className={styles.rowText}>
                 <span className={styles.rowName}>{r.name}</span>
-                <span className={styles.rowMeta}>Code: {r.code} · Currently: {r.status || 'Active'}</span>
+                <span className={styles.rowMeta}>{renderMeta(r)}</span>
               </div>
-              <label className={styles.switch} title="Mark as Unlisted">
+              <label className={styles.switch} title={'Mark as ' + archiveLabel}>
                 <input
                   type="checkbox"
                   checked={!!picks[r.id]}

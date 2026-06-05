@@ -47,7 +47,13 @@ export function parseSheet(filePath) {
       const obj = {};
       canonHeaders.forEach((key, i) => {
         const raw = r[i];
-        obj[key] = typeof raw === 'string' ? raw.trim() : raw;
+        const val = typeof raw === 'string' ? raw.trim() : raw;
+        // Headers can be duplicated (e.g. two "ROLE" columns). Keep the
+        // FIRST non-empty value so an empty duplicate column can't
+        // overwrite real data and make the row look incomplete.
+        const cur = obj[key];
+        const curEmpty = cur === undefined || cur === null || cur === '';
+        if (curEmpty) obj[key] = val;
       });
       return obj;
     });

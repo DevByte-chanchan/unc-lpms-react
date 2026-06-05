@@ -7,12 +7,14 @@
  * Sections shown:
  *   Personal Info     — Sex, Birthdate
  *   Contact Info      — Email, Contact Number
- *   Professional Info — Role, Dean (from department), Department
+ *   Professional Info — Department, Dean (the department's dean)
+ *                       (Role is shown in the header card, not repeated here)
  */
 import React from 'react';
 import { User, X, Edit2 } from 'react-feather';
 import { FacultyAPI } from '../services/api.js';
 import styles from '../styles/FacultyDetailModal.module.sass';
+import { RecordMeta } from './RecordTimestamps.jsx';
 
 const statusClass = (status) => {
   const s = String(status || '').toLowerCase().replace(/\s+/g, '');
@@ -56,16 +58,16 @@ const FacultyDetailModal = ({ facultyId, onClose, fallback = null, onEdit, canEd
             </div>
             <div>
               <div className={styles.name}>{(data && data.name) || (loading ? 'Loading…' : 'Unknown')}</div>
+              <div className={styles.role} style={{ marginBottom: 8 }}>{(data && data.role) || ''}</div>
               {data && data.status && (
-                <span className={styles.statusPill + ' ' + statusClass(data.status)}>
+                <span className={styles.statusPill + ' ' + statusClass(data.status)} style={{ marginBottom: 0 }}>
                   {data.status}
                 </span>
               )}
-              <div className={styles.role}>{(data && data.role) || ''}</div>
             </div>
           </div>
-          <button className={styles.closeBtn} onClick={onClose} aria-label="Close">
-            <X size={24} color="#111827" />
+          <button className={styles.closeBtn} onClick={onClose} aria-label="Close" style={{ padding: 0, lineHeight: 0, display: 'inline-flex', alignItems: 'center', flexShrink: 0 }}>
+            <X size={22} color="#111827" />
           </button>
         </div>
 
@@ -74,6 +76,7 @@ const FacultyDetailModal = ({ facultyId, onClose, fallback = null, onEdit, canEd
 
         {!error && data && (
           <div className={styles.divider}>
+            <RecordMeta record={data} style={{ marginTop: -6, marginBottom: 20 }} />
             <div className={styles.sectionLabel}>Personal Information</div>
             <div className={styles.grid} style={{ marginBottom: 14 }}>
               <div className={styles.field}>
@@ -100,17 +103,16 @@ const FacultyDetailModal = ({ facultyId, onClose, fallback = null, onEdit, canEd
 
             <div className={styles.sectionLabel}>Professional Information</div>
             <div className={styles.grid} style={{ marginBottom: 14 }}>
+              {/* Role is omitted here — it's already shown in the header
+                  card. Department (left) | Supervisor (right) keeps the
+                  row a balanced 50/50 split. */}
               <div className={styles.field}>
-                <div className={styles.fieldLabel}>Role</div>
-                <div className={styles.fieldValue}>{data.role || '—'}</div>
+                <div className={styles.fieldLabel}>Department</div>
+                <div className={styles.fieldValue}>{departmentName}</div>
               </div>
               <div className={styles.field}>
                 <div className={styles.fieldLabel}>Dean</div>
                 <div className={styles.fieldValue}>{deanName}</div>
-              </div>
-              <div className={styles.field}>
-                <div className={styles.fieldLabel}>Department</div>
-                <div className={styles.fieldValue}>{departmentName}</div>
               </div>
             </div>
 

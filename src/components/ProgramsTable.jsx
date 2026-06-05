@@ -1,40 +1,56 @@
+import React from 'react'
+import { Eye, Edit3, Archive } from 'react-feather'
 import styles from '../styles/CoursesTable.module.sass'
-import { ChevronRight } from 'react-feather'
-import { statusPillStyle } from '../services/statusPolicy.js'
+import { statusPillStyle, archiveStatusList } from '../services/statusPolicy.js'
+import { sortRows, statusRank, nextSort } from '../services/tableSort.js'
+import RowActionsMenu from './RowActionsMenu.jsx'
+import SortableTh from './SortableTh.jsx'
 
 /**
  * Programs table.
- * Columns: CODE | NAME | FACULTY NAME | STATUS | (edit).
+ * Columns: CODE | NAME | FACULTY NAME | STATUS | (actions).
  *
- * When `readOnly` is set (period is closed) the Edit pencil is
- * hidden so the table renders cleanly without any per-row controls.
+ * Headers are click-to-sort (default: CODE ascending). FACULTY NAME sorts by
+ * the head's name; STATUS sorts by the attention-first status order.
  *
  * If a `facultyNameSet` (Set of normalized names) is provided, any
- * program_head that isn't in the set gets a red "⚠️ Unmatched" tag
- * rendered directly above the name in the cell.
+ * program_head that isn't in the set gets a red "Unmatched" tag rendered
+ * directly above the name in the cell.
  */
-const ProgramsTable = ({ programs = [], onView, facultyNameSet, normalizeFacultyName }) => {
+const headOf = (p) => p.program_head || p.head || p.faculty_name || '';
+
+const COLUMNS = [
+  { key: 'code',         label: 'CODE',         width: 120, type: 'text' },
+  { key: 'name',         label: 'NAME',         width: 460, type: 'text' },
+  { key: 'faculty_name', label: 'FACULTY NAME', width: 240, type: 'text', sortValue: headOf },
+  { key: 'status',       label: 'STATUS',       width: 120, type: 'number', sortValue: (r) => statusRank('program', r.status || 'Active') },
+];
+
+const ProgramsTable = ({ programs = [], onView, onEdit, onArchive, facultyNameSet, normalizeFacultyName }) => {
   const isUnmatched = (head) => {
     if (!facultyNameSet || !normalizeFacultyName) return false;
     if (!head) return false;
     return !facultyNameSet.has(normalizeFacultyName(head));
   };
+  const [sort, setSort] = React.useState({ sortKey: COLUMNS[0].key, sortDir: 'asc' });
+  const onSort = (key) => setSort((s) => nextSort(s, key));
+  const rows = sortRows(programs, COLUMNS, sort.sortKey, sort.sortDir);
+
   return (
     <div className={styles['table-container']} style={{ flex: '1 1 auto', minHeight: 0, display: 'flex', flexDirection: 'column', overflowX: 'auto', overflowY: 'hidden' }}>
       <table>
         <thead style={{ position: 'sticky', top: 0, background: '#FFFFFF', zIndex: 1 }}>
           <tr>
-            <th width={120}>CODE</th>
-            <th width={460}>NAME</th>
-            <th width={240}>FACULTY NAME</th>
-            <th width={120}>STATUS</th>
+            {COLUMNS.map((col) => (
+              <SortableTh key={col.key} col={col} sortKey={sort.sortKey} sortDir={sort.sortDir} onSort={onSort} />
+            ))}
             <th className={styles.fill}></th>
           </tr>
         </thead>
         <tbody>
-          {programs.map((p) => {
+          {rows.map((p) => {
             const status = p.status || 'Active';
-            const head = p.program_head || p.head || p.faculty_name || '';
+            const head = headOf(p);
             const unmatched = isUnmatched(head);
             return (
             <tr key={p.id || (p.code + '-' + p.name)}>
@@ -56,12 +72,13 @@ const ProgramsTable = ({ programs = [], onView, facultyNameSet, normalizeFaculty
                 </span>
               </td>
               <td className={styles.fill} style={{ paddingRight: 12, textAlign: 'right', whiteSpace: 'nowrap' }}>
-                {onView && (
-                  <a href="#" onClick={(e) => { e.preventDefault(); onView(p); }} style={{ color: '#111827', display: 'inline-flex', alignItems: 'center' }}>
-                    <span style={{ marginRight: 6 }}>View</span>
-                    <ChevronRight size={16} />
-                  </a>
-                )}
+                <RowActionsMenu
+                  row={p}
+                  inline={[
+                    onView && { key: 'view', label: 'View', icon: <Eye size={16} />, onClick: onView },
+                    onEdit && { key: 'edit', label: 'Edit', icon: <Edit3 size={16} />, onClick: onEdit },
+                  ].filter(Boolean)}
+                />
               </td>
             </tr>
             );

@@ -22,6 +22,9 @@ import { assertDbConnection, sequelize } from './config/sequelize.js';
 import { clearColumnCache } from './utils/dbHelpers.js';
 import { relaxCodeUniqueConstraints } from './utils/relaxIndexes.js';
 import { pruneDuplicateIndexes } from './utils/pruneIndexes.js';
+import { relaxCourseAssignmentOfferingFk } from './utils/relaxCourseAssignmentFk.js';
+import { seedCurriculumIfEmpty, backfillYearLevelsFromCatalog } from './controllers/courseController.js';
+import { backfillProgramHeadIds } from './controllers/programController.js';
 
 dotenv.config();
 
@@ -79,6 +82,11 @@ const PORT = Number(process.env.PORT || 4000);
     console.log('[boot] step 1.5: prune duplicate indexes…');
     await pruneDuplicateIndexes();
 
+    // Drop accumulated/incorrect FKs on course_assignments.course_offering_id
+    // BEFORE sync (sync won't re-add them now that the association is gone).
+    console.log('[boot] step 1.6: relax course_assignments FK…');
+    await relaxCourseAssignmentOfferingFk();
+
     console.log('[boot] step 2: sync (alter mode — adds missing columns)…');
     await sequelize.sync({ alter: true });
     console.log('[db] sync complete — schema matches models.');
@@ -86,6 +94,16 @@ const PORT = Number(process.env.PORT || 4000);
 
     await relaxCodeUniqueConstraints();
     console.log('[db] code-unique constraints relaxed (cross-period clones can now insert).');
+
+    await seedCurriculumIfEmpty();
+
+    // One-time (idempotent) backfill: resolve programs.program_head_id from
+    // the existing program_head name + period faculty list.
+    await backfillProgramHeadIds();
+
+    // One-time (idempotent) backfill: sync course_offerings/course_assignments
+    // year_level from the catalog so moved courses reflect everywhere.
+    await backfillYearLevelsFromCatalog();
 
     console.log('[boot] no auto-seed (periods are user-managed).');
   } catch (err) {

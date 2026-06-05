@@ -1,23 +1,42 @@
 import React from 'react'
 import styles from '../styles/CoursesTable.module.sass'
-import { User } from 'react-feather'
-import { statusPillStyle } from '../services/statusPolicy.js'
+import { User, Archive } from 'react-feather'
+import { statusPillStyle, archiveStatusList } from '../services/statusPolicy.js'
+import { sortRows, nextSort } from '../services/tableSort.js'
+import RowActionsMenu from './RowActionsMenu.jsx'
+import SortableTh from './SortableTh.jsx'
 
-const ConsultantsTable = ({ consultants = [], onAssign, hideDepartment = false, readOnly = false }) => {
+// An assigned course is either a plain code string (legacy) or { code, title }.
+const courseCodeOf = (x) => (x && typeof x === 'object') ? (x.code || '') : (x || '');
+const courseTitleOf = (x) => (x && typeof x === 'object') ? (x.title || '') : '';
+const firstCourse = (c) => (Array.isArray(c.assignedCourse) ? courseCodeOf(c.assignedCourse[0]) : courseCodeOf(c.assignedCourse));
+
+const ConsultantsTable = ({ consultants = [], onAssign, onArchive, hideDepartment = false, readOnly = false }) => {
+  const columns = React.useMemo(() => [
+    { key: 'name', label: 'NAME', width: 260, type: 'text' },
+    ...(!hideDepartment ? [{ key: 'department', label: 'DEPARTMENT', width: 400, type: 'text' }] : []),
+    // Wider so "CODE — Course Name" fits on one line before the Status column.
+    { key: 'assignedCourse', label: 'ASSIGNED COURSE OFFERING', width: 440, type: 'text', sortValue: firstCourse },
+    { key: 'status', label: 'STATUS', width: 130, type: 'number', thStyle: { paddingLeft: 24 }, sortable: false },
+  ], [hideDepartment]);
+
+  const [sort, setSort] = React.useState({ sortKey: 'name', sortDir: 'asc' });
+  const onSort = (key) => setSort((s) => nextSort(s, key));
+  const rows = sortRows(consultants, columns, sort.sortKey, sort.sortDir);
+
   return (
     <div className={styles['table-container']} style={{ flex: '1 1 auto', minHeight: 0, display: 'flex', flexDirection: 'column', overflowX: 'auto', overflowY: 'hidden' }}>
       <table>
         <thead style={{ position: 'sticky', top: 0, background: '#FFFFFF', zIndex: 1 }}>
           <tr>
-            <th width={260}>NAME</th>
-            {!hideDepartment && <th width={400}>DEPARTMENT</th>}
-            <th width={220}>ASSIGNED COURSE</th>
-            <th width={130}>STATUS</th>
+            {columns.map((col) => (
+              <SortableTh key={col.key} col={col} sortKey={sort.sortKey} sortDir={sort.sortDir} onSort={onSort} />
+            ))}
             <th className={styles.fill}></th>
           </tr>
         </thead>
         <tbody>
-          {consultants.map((c, idx) => {
+          {rows.map((c, idx) => {
             // No default — blank status means the user hasn't picked one
             // in the Manage popup yet.
             const status = c.status || '';
@@ -25,18 +44,24 @@ const ConsultantsTable = ({ consultants = [], onAssign, hideDepartment = false, 
               <tr key={c.id || idx}>
                 <td width={260}>{c.name}</td>
                 {!hideDepartment && <td width={400}>{c.department}</td>}
-                <td width={220}>
+                <td width={440}>
                   {Array.isArray(c.assignedCourse) ? (
                     <ul style={{ margin: 0, paddingLeft: 16 }}>
-                      {c.assignedCourse.map((course, i) => (
-                        <li key={i} style={{ fontSize: 14, lineHeight: '1.3', marginBottom: 4 }}>{course}</li>
-                      ))}
+                      {c.assignedCourse.map((course, i) => {
+                        const code = courseCodeOf(course);
+                        const title = courseTitleOf(course);
+                        return (
+                          <li key={i} style={{ fontSize: 14, lineHeight: '1.35', marginBottom: 4 }}>
+                            <span style={{ fontWeight: 600 }}>{code}</span>{title ? ' — ' + title : ''}
+                          </li>
+                        );
+                      })}
                     </ul>
                   ) : (
                     (c.assignedCourse || '')
                   )}
                 </td>
-                <td width={130}>
+                <td width={130} style={{ paddingLeft: 24 }}>
                   {status ? (
                     <span style={{ ...statusPillStyle('consultant', status), padding: '4px 10px', borderRadius: 4, fontSize: 12, fontWeight: 600 }}>
                       {status}
@@ -46,18 +71,15 @@ const ConsultantsTable = ({ consultants = [], onAssign, hideDepartment = false, 
                   )}
                 </td>
                 <td className={styles.fill} style={{ minWidth: 220, paddingRight: 10, textAlign: 'right', whiteSpace: 'nowrap' }}>
-                  {/* Single neutral action — opens the popup for both
-                      status and course assignment in one place. */}
-                  {!readOnly && onAssign && (
-                    <a
-                      href="#"
-                      className={styles.actionLink}
-                      onClick={(e) => { e.preventDefault(); onAssign(c, idx); }}
-                      style={{ color: '#111827', display: 'inline-flex', alignItems: 'center' }}
-                    >
-                      <User size={15} style={{ marginRight: 6 }} />
-                      <span>Manage</span>
-                    </a>
+                  {/* Manage opens the popup for both status and course
+                      assignment in one place; Archive removes the row. */}
+                  {!readOnly && (
+                    <RowActionsMenu
+                      row={c}
+                      inline={[
+                        onAssign && { key: 'manage', label: 'Manage', icon: <User size={16} />, onClick: (r) => onAssign(r) },
+                      ].filter(Boolean)}
+                    />
                   )}
                 </td>
               </tr>

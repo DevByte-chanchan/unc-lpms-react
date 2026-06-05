@@ -1,6 +1,7 @@
 import './App.css'
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { PeriodProvider } from './services/period.jsx'
+import { CurrentUserProvider } from './services/currentUser.jsx'
 
 import AssignedCourses from "./pages/AssignedCourses.jsx";
 import Syllabus from "./pages/Syllabus.jsx";
@@ -25,6 +26,7 @@ function App() {
   return (
     <Router>
       <PeriodProvider>
+        <CurrentUserProvider>
         <div className="appPage">
           <Routes>
             <Route path={'/'} element={<AssignedCourses />} />
@@ -57,6 +59,7 @@ function App() {
             </Route>
           </Routes>
         </div>
+        </CurrentUserProvider>
       </PeriodProvider>
     </Router>
   );

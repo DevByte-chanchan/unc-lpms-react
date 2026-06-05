@@ -5,8 +5,69 @@ import { filterOneToExistingColumns, safeDestroyByPeriod, safeWhere } from '../u
 import { bulkUpsert, describeSequelizeError } from '../utils/uploadHelpers.js';
 import { cloneFromPriorPeriod } from '../utils/periodClone.js';
 import { enforceLatestPeriod } from '../utils/latestPeriod.js';
+import { courseSemesterOf, periodSemesterOf } from '../utils/courseSemester.js';
 
-const { CourseOffering, Faculty } = db;
+const { CourseOffering, Faculty, Course, AcademicPeriod } = db;
+
+const normCode = (s) => String(s || '').trim().toLowerCase();
+
+/**
+ * Make the `courses` catalog (edited on the Course Offerings page) the live
+ * source of truth for the Industry Consultant picker. For each catalog course
+ * in THIS period, upsert a matching course_offering by normalized code:
+ *   • update its year_level + title from the catalog, and
+ *   • create one if it doesn't exist yet (so newly added / moved courses
+ *     appear in the picker).
+ * NON-DESTRUCTIVE — never deletes offerings (they may be referenced by
+ * course_assignments / consultant_courses). Idempotent: only writes on change.
+ */
+async function syncOfferingsFromCatalog(period_id) {
+  if (!period_id) return new Set();
+  const period = await AcademicPeriod.findByPk(period_id, { attributes: ['semester'] });
+  const termSem = periodSemesterOf(period);
+  const courses = (await Course.findAll({
+    // Archived catalog courses are excluded so they drop out of the picker.
+    where: await safeWhere(Course, { period_id, archived: false }),
+    attributes: ['course_no', 'course_title', 'year_lvl', 'term', 'semester'],
+    raw: true,
+  })).filter((c) => courseSemesterOf(c) === termSem); // active term's semester only
+  // The set of catalog codes valid for THIS term's semester — the picker is
+  // filtered to these so it matches the Course Offerings page exactly.
+  const validCodes = new Set(courses.map((c) => normCode(c.course_no)).filter(Boolean));
+  if (courses.length === 0) return validCodes;
+
+  const offerings = await CourseOffering.findAll({
+    where: await safeWhere(CourseOffering, { period_id }),
+    attributes: ['id', 'code', 'title', 'year_level'],
+  });
+  const byCode = new Map(offerings.map((o) => [normCode(o.code), o]));
+
+  for (const c of courses) {
+    const key = normCode(c.course_no);
+    if (!key) continue;
+    const existing = byCode.get(key);
+    try {
+      if (existing) {
+        const patch = {};
+        if ((existing.year_level ?? null) !== (c.year_lvl ?? null)) patch.year_level = c.year_lvl ?? null;
+        if (c.course_title && existing.title !== c.course_title) patch.title = c.course_title;
+        if (Object.keys(patch).length) await existing.update(patch);
+      } else {
+        const created = await CourseOffering.create({
+          code: String(c.course_no).trim(),
+          title: c.course_title || String(c.course_no).trim(),
+          year_level: c.year_lvl ?? null,
+          status: 'Active',
+          period_id,
+        });
+        byCode.set(key, created);
+      }
+    } catch (err) {
+      console.warn('[course_offerings] catalog sync skipped for ' + c.course_no + ': ' + (err && err.message));
+    }
+  }
+  return validCodes;
+}
 
 export async function listCourseOfferings(req, res, next) {
   try {
@@ -37,11 +98,23 @@ export async function listCourseOfferings(req, res, next) {
       if (cloned) {
         // eslint-disable-next-line no-console
         console.log('[course_offerings] cloned ' + cloned.count + ' rows from period ' + cloned.source + ' → ' + period_id);
-        rows = await CourseOffering.findAll({
-          where,
-          order: [['code', 'ASC']],
-          include: [{ model: Faculty, as: 'instructor', attributes: ['id', 'name', 'role'] }],
-        });
+      }
+    }
+
+    // Catalog sync: upsert offerings from this period's courses catalog so the
+    // picker reflects added / moved / renamed courses, then re-read.
+    if (period_id) {
+      const validCodes = await syncOfferingsFromCatalog(period_id);
+      rows = await CourseOffering.findAll({
+        where,
+        order: [['code', 'ASC']],
+        include: [{ model: Faculty, as: 'instructor', attributes: ['id', 'name', 'role'] }],
+      });
+      // Match the Course Offerings page exactly: show only offerings that map
+      // to a current-semester catalog course. (Non-destructive — cross-semester
+      // / non-catalog rows stay in the DB, they're just hidden from the picker.)
+      if (validCodes && validCodes.size > 0) {
+        rows = rows.filter((o) => validCodes.has(normCode(o.code)));
       }
     }
 

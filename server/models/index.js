@@ -18,6 +18,9 @@ import IndustryConsultantFactory from './industryConsultant.js';
 import ConsultantCourseFactory from './consultantCourse.js';
 import CourseAssignmentFactory from './courseAssignment.js';
 import AcademicPeriodFactory   from './academicPeriod.js';
+import CourseFactory           from './course.js';
+import PrerequisiteFactory     from './prerequisite.js';
+import ProgramCourseOfferingFactory from './programCourseOffering.js';
 
 // --- Mirror tables (data sourced from other modules) ---
 // Faculty and Department records that originate from the HR / Dean
@@ -34,6 +37,9 @@ const db = {
   IndustryConsultant: IndustryConsultantFactory(sequelize, DataTypes),
   ConsultantCourse:   ConsultantCourseFactory(sequelize, DataTypes),
   CourseAssignment:   CourseAssignmentFactory(sequelize, DataTypes),
+  Course:                 CourseFactory(sequelize, DataTypes),
+  Prerequisite:           PrerequisiteFactory(sequelize, DataTypes),
+  ProgramCourseOffering:  ProgramCourseOfferingFactory(sequelize, DataTypes),
   sequelize,
 };
 
@@ -44,12 +50,14 @@ db.AcademicPeriod.hasMany(db.Program,            { foreignKey: 'period_id' });
 db.AcademicPeriod.hasMany(db.CourseOffering,     { foreignKey: 'period_id' });
 db.AcademicPeriod.hasMany(db.IndustryConsultant, { foreignKey: 'period_id' });
 db.AcademicPeriod.hasMany(db.CourseAssignment,   { foreignKey: 'period_id' });
+db.AcademicPeriod.hasMany(db.Course,             { foreignKey: 'period_id' });
 db.Department.belongsTo(db.AcademicPeriod,         { foreignKey: 'period_id', as: 'period' });
 db.Faculty.belongsTo(db.AcademicPeriod,            { foreignKey: 'period_id', as: 'period' });
 db.Program.belongsTo(db.AcademicPeriod,            { foreignKey: 'period_id', as: 'period' });
 db.CourseOffering.belongsTo(db.AcademicPeriod,     { foreignKey: 'period_id', as: 'period' });
 db.IndustryConsultant.belongsTo(db.AcademicPeriod, { foreignKey: 'period_id', as: 'period' });
 db.CourseAssignment.belongsTo(db.AcademicPeriod,   { foreignKey: 'period_id', as: 'period' });
+db.Course.belongsTo(db.AcademicPeriod,             { foreignKey: 'period_id', as: 'period' });
 
 // --- Associations ---
 // A Department has many Faculty and many Programs.
@@ -60,6 +68,12 @@ db.Faculty.belongsTo(db.Department, { foreignKey: 'department_id', as: 'departme
 
 db.Department.hasMany(db.Program, { foreignKey: 'department_id', as: 'programs' });
 db.Program.belongsTo(db.Department, { foreignKey: 'department_id', as: 'department' });
+
+// A Faculty member can head many Programs (across periods); a Program has
+// one assigned head. program_head (name) is kept for display; program_head_id
+// is the resolved FK, scoped to the program's own period.
+db.Faculty.hasMany(db.Program,   { foreignKey: 'program_head_id', as: 'headedPrograms' });
+db.Program.belongsTo(db.Faculty, { foreignKey: 'program_head_id', as: 'head' });
 
 // A Faculty member can teach many CourseOfferings (as the instructor).
 db.Faculty.hasMany(db.CourseOffering, { foreignKey: 'instructor_id', as: 'courses' });
@@ -81,9 +95,25 @@ db.IndustryConsultant.hasMany(db.ConsultantCourse, { foreignKey: 'consultant_id'
 db.ConsultantCourse.belongsTo(db.IndustryConsultant, { foreignKey: 'consultant_id', as: 'consultant' });
 db.ConsultantCourse.belongsTo(db.CourseOffering, { foreignKey: 'course_offering_id', as: 'courseOffering' });
 
-// A CourseAssignment resolves to one CourseOffering and one Faculty
-// from the period's master lists (either may be null until matched).
-db.CourseAssignment.belongsTo(db.CourseOffering, { foreignKey: 'course_offering_id', as: 'courseOffering' });
+// A CourseAssignment resolves to one Faculty from the period's master list
+// (may be null until matched).
+//
+// NOTE: course_offering_id intentionally has NO belongsTo(CourseOffering)
+// association. The importer stores a CATALOG course_id (from `courses`) there,
+// not a course_offerings.id, so a real cross-table FK would (and did) reject
+// valid rows. The boot helper relaxCourseAssignmentOfferingFk() drops any FK
+// that previous syncs left on that column. Treat it as a loose resolved id.
 db.CourseAssignment.belongsTo(db.Faculty, { foreignKey: 'faculty_id', as: 'faculty' });
+
+// --- Curriculum catalog (period-scoped; each term owns its own copy) ---
+// Self-referencing prerequisites: a Course requires many Courses, via the
+// Prerequisite bridge (course_id → course_prerequisite_id).
+db.Course.belongsToMany(db.Course, {
+  through: db.Prerequisite, as: 'prerequisites',
+  foreignKey: 'course_id', otherKey: 'course_prerequisite_id',
+});
+// A Course has many curriculum revisions (descriptions).
+db.Course.hasMany(db.ProgramCourseOffering, { foreignKey: 'course_id', as: 'revisions' });
+db.ProgramCourseOffering.belongsTo(db.Course, { foreignKey: 'course_id', as: 'course' });
 
 export default db;

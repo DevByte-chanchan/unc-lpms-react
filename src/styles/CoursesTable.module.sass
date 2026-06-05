@@ -64,6 +64,18 @@ select option
   min-width: 200px
   font-weight: 500 !important
 
+// Scoped alignment fix for the Course Assignment table (flex-based table —
+// see global th/td rules in index.css). ONE consistent cell style for both
+// <thead> and <tbody>, and the data columns hold their width attribute exactly
+// (flex: 0 0 auto) so header cells can't shrink out of line with body cells.
+// The trailing .fill (actions) column keeps its flex-grow so Edit stays right.
+.alignFixed
+  th, td
+    padding: 10px 16px
+    text-align: left
+  th:not(.fill), td:not(.fill)
+    flex: 0 0 auto
+
 
 .sub-column th
   font-weight: 300

@@ -117,6 +117,23 @@ export async function updateFaculty(req, res) {
   }
 }
 
+// Reconciliation: archive (set status 'Inactive') the faculty whose ids
+// are passed — used after an upload to retire people who were dropped
+// from the new list. Mirrors Department.unlistMany.
+export async function inactivateMany(req, res) {
+  try {
+    const ids = Array.isArray(req.body.ids) ? req.body.ids.map(Number).filter(Boolean) : [];
+    if (ids.length === 0) return res.status(400).json({ message: 'No ids provided.' });
+    const callerPeriod = getPeriodId(req);
+    if (callerPeriod && !(await enforceLatestPeriod(res, callerPeriod))) return;
+    const where = callerPeriod ? { id: ids, period_id: callerPeriod } : { id: ids };
+    await Faculty.update({ status: 'Inactive' }, { where });
+    res.json({ inactivated: ids.length });
+  } catch (err) {
+    res.status(400).json({ message: describeSequelizeError(err) });
+  }
+}
+
 export async function deleteFaculty(req, res, next) {
   try {
     const row = await Faculty.findByPk(req.params.id);
@@ -148,8 +165,8 @@ export async function uploadFaculty(req, res) {
     const errors  = [];
 
     rows.forEach((row, i) => {
-      const name        = pick(row, 'name');
-      const role        = pick(row, 'role');
+      const name        = pick(row, 'name', 'fullname', 'facultyname', 'completename', 'employeename');
+      const role        = pick(row, 'role', 'position', 'designation', 'rank');
       const departmentN = pick(row, 'department');
       const status      = pick(row, 'status');
       const about       = pick(row, 'about', 'biography', 'bio');
@@ -186,21 +203,50 @@ export async function uploadFaculty(req, res) {
     });
 
     if (records.length === 0) {
-      return res.status(400).json({ message: 'No valid rows found.', headers, errors });
+      const detected = headers && headers.length ? headers.join(', ') : '(none)';
+      return res.status(400).json({
+        message: 'No valid rows found. The sheet needs a "Name" column and a "Role" column. Detected columns: [' + detected + '].',
+        headers,
+        errors,
+      });
     }
 
-    // Faculty has no natural unique key beyond id, so we destroy+
-    // bulkCreate (no updateOnDuplicate needed).
-    const removed = await safeDestroyByPeriod(Faculty, period_id);
-    const created = await bulkUpsert(Faculty, records, []);
+    // Merge by name (case-insensitive) instead of wiping everything:
+    // update rows that match an uploaded name, insert the new ones, and
+    // return rows that exist in the DB but are ABSENT from the file as
+    // `missing` so the client can reconcile them (NOT auto-deleted).
+    const existing = await Faculty.findAll({
+      where: { period_id },
+      attributes: ['id', 'name', 'role', 'status'],
+      raw: true,
+    });
+    const existingByName = new Map(existing.map((r) => [String(r.name).trim().toLowerCase(), r]));
+
+    let inserted = 0;
+    let updated  = 0;
+    for (const rec of records) {
+      const safe = await filterOneToExistingColumns(Faculty, rec);
+      const ex = existingByName.get(String(rec.name).trim().toLowerCase());
+      if (ex) {
+        await Faculty.update(safe, { where: { id: ex.id } });
+        updated += 1;
+      } else {
+        await Faculty.create(safe);
+        inserted += 1;
+      }
+    }
+
+    const seenNames = new Set(records.map((r) => String(r.name).trim().toLowerCase()));
+    const missing = existing.filter((r) => !seenNames.has(String(r.name).trim().toLowerCase()));
 
     res.status(201).json({
-      replaced: removed,
-      inserted: created.length,
+      inserted,
+      updated,
       skipped:  errors.filter((e) => e.level !== 'warning').length,
       warnings: errors.filter((e) => e.level === 'warning').length,
       errors,
       headers,
+      missing,
     });
   } catch (err) {
     res.status(400).json({ message: describeSequelizeError(err) });

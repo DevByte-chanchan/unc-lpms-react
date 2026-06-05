@@ -5,18 +5,68 @@
  * options to scroll comfortably (e.g. picking a Faculty for a Program
  * Chair). The input doubles as a search filter; clicking an option
  * commits it and shows the label in the input.
+ *
+ * The options menu is rendered through a portal with `position: fixed`
+ * anchored to the input, so it OVERLAPS (escapes) the modal container
+ * instead of being clipped by its `overflow`. It has a capped max-height
+ * and scrolls when the list is long, and flips above the input when there
+ * isn't enough room below.
  */
 import React from 'react';
-import { ChevronDown, X } from 'react-feather';
+import ReactDOM from 'react-dom';
+import { ChevronDown, X, Check } from 'react-feather';
+import styles from '../styles/DropdownMenu.module.sass';
 
-const SearchableSelect = ({ value, onChange, options, placeholder }) => {
+const MENU_MAX_HEIGHT = 160;
+
+const SearchableSelect = ({ value, onChange, options, placeholder, highlight }) => {
   const [query, setQuery] = React.useState('');
   const [open, setOpen]   = React.useState(false);
+  const [menuPos, setMenuPos] = React.useState(null);
   const wrapRef = React.useRef(null);
+  const menuRef = React.useRef(null);
 
-  // Click outside closes the dropdown.
+  // Anchor the fixed-position menu to the input's current viewport rect,
+  // flipping above when there isn't enough room below.
+  const computePos = React.useCallback(() => {
+    const el = wrapRef.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    const vh = window.innerHeight;
+    const spaceBelow = vh - r.bottom - 12;
+    const spaceAbove = r.top - 12;
+    const flipUp = spaceBelow < 160 && spaceAbove > spaceBelow;
+    setMenuPos({
+      left: r.left,
+      width: r.width,
+      top: flipUp ? undefined : r.bottom + 4,
+      bottom: flipUp ? (vh - r.top + 4) : undefined,
+      maxHeight: Math.max(120, Math.min(MENU_MAX_HEIGHT, flipUp ? spaceAbove : spaceBelow)),
+    });
+  }, []);
+
+  // Recompute on open, and keep the menu pinned while the modal body (or
+  // window) scrolls/resizes. Capture phase catches inner scroll containers.
+  React.useLayoutEffect(() => {
+    if (!open) return undefined;
+    computePos();
+    const reflow = () => computePos();
+    window.addEventListener('scroll', reflow, true);
+    window.addEventListener('resize', reflow);
+    return () => {
+      window.removeEventListener('scroll', reflow, true);
+      window.removeEventListener('resize', reflow);
+    };
+  }, [open, computePos]);
+
+  // Click outside closes the dropdown — the menu lives in a portal, so we
+  // must treat clicks inside it as "inside" too.
   React.useEffect(() => {
-    const onDoc = (e) => { if (wrapRef.current && !wrapRef.current.contains(e.target)) setOpen(false); };
+    const onDoc = (e) => {
+      if (wrapRef.current && wrapRef.current.contains(e.target)) return;
+      if (menuRef.current && menuRef.current.contains(e.target)) return;
+      setOpen(false);
+    };
     document.addEventListener('mousedown', onDoc);
     return () => document.removeEventListener('mousedown', onDoc);
   }, []);
@@ -36,7 +86,7 @@ const SearchableSelect = ({ value, onChange, options, placeholder }) => {
   const filtered = React.useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return normOptions;
-    return normOptions.filter((o) => o.label.toLowerCase().includes(q) || String(o.value).toLowerCase().includes(q));
+    return normOptions.filter((o) => o.label.toLowerCase().includes(q) || String(o.value).toLowerCase().includes(q) || String(o.sub || '').toLowerCase().includes(q));
   }, [normOptions, query]);
 
   const commit = (v) => { onChange(v); setQuery(''); setOpen(false); };
@@ -49,14 +99,15 @@ const SearchableSelect = ({ value, onChange, options, placeholder }) => {
         style={{
           display: 'flex', alignItems: 'center', gap: 6,
           height: 40, padding: '0 8px 0 12px',
-          border: '1px solid #D1D5DB', borderRadius: 6, background: '#FFFFFF',
+          border: '1px solid ' + (highlight ? '#DC2626' : (open ? '#94A3B8' : '#D1D5DB')), borderRadius: 8, background: '#FFFFFF',
+          boxShadow: highlight ? '0 0 0 3px rgba(220,38,38,0.18)' : (open ? '0 0 0 3px rgba(148,163,184,0.20)' : 'none'),
+          transition: 'border-color 0.12s ease, box-shadow 0.12s ease',
           cursor: 'text',
         }}
       >
         <input
           value={open ? query : selectedLabel}
           onChange={(e) => { setQuery(e.target.value); setOpen(true); }}
-          onFocus={() => setOpen(true)}
           placeholder={placeholder || 'Search…'}
           style={{ flex: 1, border: 'none', outline: 'none', fontSize: 14, background: 'transparent' }}
         />
@@ -70,37 +121,44 @@ const SearchableSelect = ({ value, onChange, options, placeholder }) => {
             <X size={16} color="#6B7280" />
           </button>
         )}
-        <ChevronDown size={16} color="#6B7280" />
+        <ChevronDown size={16} color="#6B7280" style={{ flexShrink: 0, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s ease' }} />
       </div>
 
-      {open && (
+      {open && menuPos && ReactDOM.createPortal(
         <div
+          ref={menuRef}
+          className={styles.menu}
           style={{
-            position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0,
-            maxHeight: 220, overflowY: 'auto', background: '#FFFFFF',
-            border: '1px solid #D1D5DB', borderRadius: 6, zIndex: 50,
-            boxShadow: '0 8px 24px rgba(0,0,0,0.08)',
+            position: 'fixed',
+            left: menuPos.left, width: menuPos.width,
+            top: menuPos.top, bottom: menuPos.bottom,
+            maxHeight: menuPos.maxHeight, overflowY: 'auto',
+            background: '#FFFFFF', zIndex: 1000,
           }}
         >
           {filtered.length === 0 && (
             <div style={{ padding: '10px 12px', fontSize: 13, color: '#6B7280' }}>No matches.</div>
           )}
-          {filtered.map((o) => (
-            <button
-              type="button"
-              key={o.value}
-              onClick={() => commit(o.value)}
-              style={{
-                width: '100%', textAlign: 'left', padding: '8px 12px',
-                border: 'none', borderBottom: '1px solid #F3F4F6',
-                background: o.value === value ? '#F3F4F6' : '#FFFFFF',
-                color: '#111827', cursor: 'pointer', fontSize: 14,
-              }}
-            >
-              {o.label}
-            </button>
-          ))}
-        </div>
+          {filtered.map((o) => {
+            const selected = o.value === value;
+            return (
+              <button
+                type="button"
+                key={o.value}
+                onClick={() => commit(o.value)}
+                className={styles.item + (selected ? ' ' + styles.itemSelected : '')}
+                style={{ justifyContent: 'space-between' }}
+              >
+                <span style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, flex: 1 }}>
+                  <Check size={14} color="#EA1212" style={{ flexShrink: 0, opacity: selected ? 1 : 0 }} />
+                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.label}</span>
+                </span>
+                {o.sub ? <span style={{ fontSize: 12, color: '#6B7280', flexShrink: 0 }}>{o.sub}</span> : null}
+              </button>
+            );
+          })}
+        </div>,
+        document.body
       )}
     </div>
   );

@@ -2,11 +2,26 @@
 // on the faculty table. Layout mirrors the existing detail modals in
 // DeanFaculty.jsx so the look stays consistent.
 
+@keyframes facultyOverlayIn
+  from
+    opacity: 0
+  to
+    opacity: 1
+
+@keyframes facultyModalIn
+  from
+    opacity: 0
+    transform: translate(-50%, -48%) scale(0.97)
+  to
+    opacity: 1
+    transform: translate(-50%, -50%) scale(1)
+
 .overlay
   position: fixed
   inset: 0
   background: rgba(0, 0, 0, 0.35)
   z-index: 2
+  animation: facultyOverlayIn 0.18s ease
 
 .modal
   position: fixed
@@ -24,6 +39,7 @@
   gap: 14px
   z-index: 3
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15)
+  animation: facultyModalIn 0.22s cubic-bezier(0.4, 0, 0.2, 1)
 
 .header
   display: flex
@@ -96,7 +112,9 @@
 .grid
   display: grid
   grid-template-columns: 1fr 1fr
-  gap: 12px
+  // Row gap 12 / wider column gap so the left & right columns
+  // (e.g. Department | Dean) have clear breathing room.
+  gap: 12px 28px
 
 .field
   display: flex

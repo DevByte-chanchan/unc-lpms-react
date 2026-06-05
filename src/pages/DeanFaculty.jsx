@@ -2,19 +2,19 @@ import React from "react";
 import FacultyTable from "../components/FacultyTable.jsx";
 import FacultyDetailModal from "../components/FacultyDetailModal.jsx";
 import PeriodSelector from "../components/PeriodSelector.jsx";
-import AddRecordModal from "../components/AddRecordModal.jsx";
-import EditRecordModal from "../components/EditRecordModal.jsx";
+import EditEntityModal from "../components/EditEntityModal.jsx";
 import ConfirmModal from "../components/ConfirmModal.jsx";
-import FloatingArchiveButton from "../components/FloatingArchiveButton.jsx";
-import { Search, ArrowUp, ArrowDown, Upload, Plus, Clipboard } from "react-feather";
+import ReconciliationModal from "../components/ReconciliationModal.jsx";
+import ViewArchivedButton from "../components/ViewArchivedButton.jsx";
+import { Search, ArrowUp, ArrowDown, Upload, Plus, Clipboard, ChevronDown, Check, Users } from "react-feather";
 import styles from '../styles/CoursesTable.module.sass';
 import syllabusStyles from '../styles/SyllabusSections.module.sass';
 import { FacultyAPI } from '../services/api.js';
 import { usePeriod } from '../services/period.jsx';
 import { STATUS_OPTIONS, partitionByArchive } from '../services/statusPolicy.js';
 
-const ActionBtn = ({ onClick, icon, label, disabled }) => (
-  <button onClick={onClick} disabled={disabled} style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '8px 18px', gap: 8, width: 240, height: 40, background: disabled ? '#9CA3AF' : '#EA1212', borderRadius: 6, color: '#fff', border: 'none', cursor: disabled ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap', opacity: disabled ? 0.7 : 1 }}>
+const ActionBtn = ({ onClick, icon, label, disabled, variant }) => (
+  <button onClick={onClick} disabled={disabled} style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '8px 18px', gap: 8, width: 240, height: 40, background: variant === 'white' ? '#FFFFFF' : (disabled ? '#9CA3AF' : '#EA1212'), borderRadius: 6, color: variant === 'white' ? '#374151' : '#fff', border: variant === 'white' ? '1px solid #D1D5DB' : 'none', cursor: disabled ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap', opacity: disabled ? (variant === 'white' ? 0.6 : 0.7) : 1 }}>
     <span style={{ width: 22, height: 22, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{icon}</span>
     {label}
   </button>
@@ -27,14 +27,17 @@ const DeanFaculty = () => {
   const [showModal, setShowModal]             = React.useState(false);
   const [showAddModal, setShowAddModal]       = React.useState(false);
   const [editingFaculty, setEditingFaculty]   = React.useState(null);
+  // True when Edit was opened from the View modal (so we show a "back to
+  // View" arrow); false when opened straight from the row.
+  const [editFromView, setEditFromView]       = React.useState(false);
   const [confirmUpload, setConfirmUpload]     = React.useState(false);
-  const [sortOpen, setSortOpen]               = React.useState(false);
-  const [sortDir, setSortDir]                 = React.useState(null);
+  const [recon, setRecon]                     = React.useState(null);   // { missing: [] }
   const [selectedFile, setSelectedFile]       = React.useState(null);
   const [searchQuery, setSearchQuery]         = React.useState('');
   const [showDetailModal, setShowDetailModal] = React.useState(false);
   const [selectedFaculty, setSelectedFaculty] = React.useState(null);
   const [roleFilter, setRoleFilter]           = React.useState(null);
+  const [roleMenuOpen, setRoleMenuOpen]       = React.useState(false);
   const [faculty, setFaculty]                 = React.useState([]);
   const [uploading, setUploading]             = React.useState(false);
   const [uploadError, setUploadError]         = React.useState(null);
@@ -61,16 +64,30 @@ const DeanFaculty = () => {
     if (!periodId)     { alert('Select an academic period first'); return; }
     setUploading(true); setUploadError(null);
     try {
-      await FacultyAPI.upload(selectedFile, periodId);
+      const result = await FacultyAPI.upload(selectedFile, periodId);
       await refresh();
       setShowModal(false);
       setSelectedFile(null);
       if (fileInputRef.current) fileInputRef.current.value = '';
+      // Smart-sync: if anyone already in the DB wasn't in the new file,
+      // open the reconciliation modal to decide who to retire.
+      if (result && Array.isArray(result.missing) && result.missing.length > 0) {
+        setRecon({ missing: result.missing });
+      }
     } catch (err) {
       setUploadError(err.message || 'Upload failed');
     } finally {
       setUploading(false);
     }
+  };
+
+  // Reconciliation: mark the chosen missing faculty as Inactive (archived).
+  const onReconConfirm = async (idsToInactivate) => {
+    if (idsToInactivate.length > 0) {
+      await FacultyAPI.inactivateMany(idsToInactivate);
+      await refresh();
+    }
+    setRecon(null);
   };
 
   const onAddFaculty = async (record) => {
@@ -96,34 +113,31 @@ const DeanFaculty = () => {
     await refresh();
   }, [refresh]);
 
+  // "⋯" menu → pick the archive status to move the row to the Archive.
+  const onArchiveRow = React.useCallback(
+    (row, status) => onEditStatus(row, status),
+    [onEditStatus],
+  );
+
   const visibleFaculty = React.useMemo(() => {
-    let rows = faculty.filter((f) =>
+    const rows = faculty.filter((f) =>
       (!roleFilter || f.role === roleFilter) &&
       (!searchQuery
         || (f.name || '').toLowerCase().includes(searchQuery.toLowerCase())
         || (f.department || '').toLowerCase().includes(searchQuery.toLowerCase()))
     );
-    if (sortDir === 'asc')  rows = rows.slice().sort((a, b) => (a.name || '').localeCompare(b.name || ''));
-    if (sortDir === 'desc') rows = rows.slice().sort((a, b) => (b.name || '').localeCompare(a.name || ''));
-    // Archived statuses (Emeritus / Inactive) move to the global Archive view.
-    const mainRows = partitionByArchive(rows, 'faculty').main;
-    // "On Leave" faculty sink to the bottom of the main list while still
-    // visible — Active first (in their existing order), On Leave after.
-    const active  = mainRows.filter((f) => f.status !== 'On Leave');
-    const onLeave = mainRows.filter((f) => f.status === 'On Leave');
-    return [...active, ...onLeave];
-  }, [faculty, roleFilter, searchQuery, sortDir]);
+    // Sorting is handled by the table's column headers; here we only filter
+    // and drop archived statuses (Emeritus / Inactive) to the global Archive.
+    return partitionByArchive(rows, 'faculty').main;
+  }, [faculty, roleFilter, searchQuery]);
 
   return (
     <div style={{ padding: 20, background: '#FFFFFF', height: '100%', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
         <h2 style={{ margin: 0 }}>Faculty</h2>
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 10 }}>
-          <div style={{ display: 'flex', gap: 10 }}>
-            <ActionBtn onClick={() => { if (faculty.length > 0) { setConfirmUpload(true); } else { setShowModal(true); } }} disabled={!periodId || !isCurrentTermActive} icon={<Upload size={18} color="#FFFFFF" />} label="Upload Faculty List" />
-            {showTable && isCurrentTermActive && <ActionBtn onClick={() => setShowAddModal(true)} icon={<Plus size={18} color="#FFFFFF" />} label="Add Faculty" />}
-          </div>
-          <PeriodSelector />
+        <div style={{ display: 'flex', gap: 10 }}>
+          <ActionBtn variant="white" onClick={() => { if (faculty.length > 0) { setConfirmUpload(true); } else { setShowModal(true); } }} disabled={!periodId || !isCurrentTermActive} icon={<Upload size={18} color="#374151" />} label="Upload Faculty List" />
+          {showTable && isCurrentTermActive && <ActionBtn onClick={() => setShowAddModal(true)} icon={<Plus size={18} color="#FFFFFF" />} label="Add Faculty" />}
         </div>
       </div>
 
@@ -133,42 +147,54 @@ const DeanFaculty = () => {
         </div>
       )}
 
+      {/* Top toolbar — Current Term (left), View Archived (far right). */}
+      <div className={syllabusStyles.header} style={{ marginBottom: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+        <PeriodSelector prominent />
+        <ViewArchivedButton moduleType="faculty" onEditStatus={onEditStatus} />
+      </div>
+
+      {/* Filter bar — search beside the role filter, left-aligned. */}
       {showTable && (
-        <div className={syllabusStyles.header} style={{ marginBottom: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16 }}>
-          <div style={{ position: 'relative' }}>
-            <button onClick={() => setSortOpen((v) => !v)} style={{ width: 120, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '8px 12px', background: 'transparent', border: '1px solid #D1D5DB', borderRadius: 9999, color: '#595959', cursor: 'pointer', fontSize: 14, fontWeight: 600 }}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M8 17V5" stroke="#595959" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M5 8l3-3 3 3" stroke="#595959" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M16 7v12" stroke="#595959" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M13 16l3 3 3-3" stroke="#595959" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-              <span>Sort</span>
-            </button>
-            {sortOpen && (
-              <div style={{ position: 'absolute', top: '110%', left: 0, background: '#FFFFFF', border: '1px solid #D1D5DB', borderRadius: 6, boxShadow: '0 8px 24px rgba(0,0,0,0.12)', width: 120, padding: 8, zIndex: 5 }}>
-                <button onClick={() => { setSortDir('asc'); setSortOpen(false); }} style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', background: 'transparent', border: 'none', cursor: 'pointer', padding: '8px 10px', borderRadius: 6, color: '#111827' }}><ArrowUp size={16} color="#374151" /><span style={{ fontSize: 14 }}>A to Z</span></button>
-                <button onClick={() => { setSortDir('desc'); setSortOpen(false); }} style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', background: 'transparent', border: 'none', cursor: 'pointer', padding: '8px 10px', borderRadius: 6, color: '#111827' }}><ArrowDown size={16} color="#374151" /><span style={{ fontSize: 14 }}>Z to A</span></button>
-              </div>
-            )}
+        <div style={{ marginBottom: 12, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+          <div className={syllabusStyles['section-select']} style={{ display: 'flex', alignItems: 'center', padding: '6px 12px', height: 40, borderRadius: 9999, background: 'transparent', border: '1px solid #D1D5DB', flex: '0 1 360px', minWidth: 220, maxWidth: 420 }}>
+            <Search size={16} style={{ marginRight: 8, color: '#374151' }} />
+            <input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search by name or department" style={{ border: 0, outline: 'none', background: 'transparent', width: '100%', fontSize: 14 }} />
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <div className={'filter-container'}>
-              <p>Filter by <strong>Role</strong>:</p>
-              <select value={roleFilter || ''} onChange={(e) => setRoleFilter(e.target.value || null)}>
-                <option value="">All</option>
-                <option value="Dean">Dean</option>
-                <option value="Program Head">Program Head</option>
-                <option value="Professor">Professor</option>
-                <option value="Associate Professor">Associate Professor</option>
-                <option value="Assistant Professor">Assistant Professor</option>
-                <option value="Instructor">Instructor</option>
-              </select>
-            </div>
-            <div className={syllabusStyles['section-select']} style={{ display: 'flex', alignItems: 'center', padding: '6px 12px', height: 40, borderRadius: 9999, background: 'transparent', border: '1px solid #D1D5DB' }}>
-              <Search size={16} style={{ marginRight: 8, color: '#374151' }} />
-              <input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search faculty" style={{ border: 0, outline: 'none', background: 'transparent', width: 360, fontSize: 14 }} />
-            </div>
+          {/* Role filter — pill dropdown matching the year-filter look. */}
+          <div style={{ position: 'relative' }}>
+            <button
+              type="button"
+              onClick={() => setRoleMenuOpen((v) => !v)}
+              onFocus={(e) => { e.currentTarget.style.boxShadow = '0 0 0 3px rgba(234,18,18,0.15)'; }}
+              onBlur={(e) => { e.currentTarget.style.boxShadow = 'none'; }}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 8, height: 40, padding: '0 14px', borderRadius: 9999, border: '1px solid #D1D5DB', background: '#FFFFFF', fontSize: 14, cursor: 'pointer', outline: 'none', whiteSpace: 'nowrap' }}
+            >
+              <Users size={16} color="#6B7280" />
+              <span style={{ color: '#6B7280', fontWeight: 500 }}>Role:</span>
+              <span style={{ color: '#111827', fontWeight: 600 }}>{roleFilter || 'All Roles'}</span>
+              <ChevronDown size={16} color="#6B7280" style={{ marginLeft: 2 }} />
+            </button>
+            {roleMenuOpen && (
+              <>
+                <div onClick={() => setRoleMenuOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 4 }} />
+                <div style={{ position: 'absolute', top: 'calc(100% + 6px)', left: 0, minWidth: 220, background: '#FFFFFF', border: '1px solid #D1D5DB', borderRadius: 10, boxShadow: '0 8px 24px rgba(0,0,0,0.12)', padding: 6, zIndex: 5 }}>
+                  {['', 'Dean', 'Program Head', 'Professor', 'Associate Professor', 'Assistant Professor', 'Instructor'].map((r) => {
+                    const active = (roleFilter || '') === r;
+                    return (
+                      <button
+                        key={r || 'all'}
+                        type="button"
+                        onClick={() => { setRoleFilter(r || null); setRoleMenuOpen(false); }}
+                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, width: '100%', textAlign: 'left', border: 'none', borderRadius: 6, padding: '8px 10px', outline: 'none', cursor: 'pointer', background: active ? '#EA1212' : 'transparent', color: active ? '#FFFFFF' : '#374151', fontSize: 14, fontWeight: active ? 600 : 500 }}
+                      >
+                        <span>{r || 'All Roles'}</span>
+                        {active && <Check size={15} color="#FFFFFF" />}
+                      </button>
+                    );
+                  })}
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
@@ -177,6 +203,8 @@ const DeanFaculty = () => {
         <FacultyTable
           faculty={visibleFaculty}
           onView={handleViewFaculty}
+          onEdit={isCurrentTermActive ? (f) => { setEditFromView(false); setEditingFaculty(f); } : undefined}
+          onArchive={isCurrentTermActive ? onArchiveRow : undefined}
           hideDepartment={true}
         />
       )}
@@ -192,19 +220,23 @@ const DeanFaculty = () => {
       )}
 
       {showAddModal && (
-        <AddRecordModal
+        // Reuses EditEntityModal so "Add Faculty" shares the exact 2-column
+        // layout as "Edit Faculty" (two fields per row).
+        <EditEntityModal
           title="Add Faculty"
+          columns={2}
+          width="min(640px, 94vw)"
           fields={[
-            { key: 'name', label: 'Name', required: true },
-            { key: 'role', label: 'Role', required: true, type: 'select', options: ['Dean', 'Program Head', 'Professor', 'Associate Professor', 'Assistant Professor', 'Instructor'] },
-            { key: 'department', label: 'Department' },
-            { key: 'status', label: 'Status', type: 'select', options: STATUS_OPTIONS.faculty },
-            { key: 'sex', label: 'Sex', type: 'select', options: ['Female', 'Male', 'Other'] },
-            { key: 'birthdate', label: 'Birthdate', type: 'date' },
-            { key: 'email', label: 'Email Address', type: 'email' },
-            { key: 'contact_number', label: 'Contact Number' },
+            { key: 'name', label: 'Name', required: true, placeholder: 'e.g. Maria Santos', colSpan: 1 },
+            { key: 'role', label: 'Role', required: true, type: 'select', options: ['Dean', 'Program Head', 'Professor', 'Associate Professor', 'Assistant Professor', 'Instructor'], colSpan: 1 },
+            { key: 'status', label: 'Status', type: 'select', options: STATUS_OPTIONS.faculty, colSpan: 1 },
+            { key: 'sex', label: 'Sex', type: 'segmented', options: ['Female', 'Male'], colSpan: 1 },
+            { key: 'birthdate', label: 'Birthdate', type: 'date', colSpan: 1 },
+            { key: 'email', label: 'Email Address', type: 'email', placeholder: 'e.g. msantos@uc.edu.ph', colSpan: 1 },
+            { key: 'contact_number', label: 'Contact Number', placeholder: 'e.g. 0917 123 4567', colSpan: 1 },
           ]}
-          onSubmit={onAddFaculty}
+          record={{}}
+          onSave={onAddFaculty}
           onClose={() => setShowAddModal(false)}
         />
       )}
@@ -234,42 +266,58 @@ const DeanFaculty = () => {
           facultyId={selectedFaculty.id}
           fallback={selectedFaculty}
           canEdit={isCurrentTermActive}
-          onEdit={(full) => { setShowDetailModal(false); setEditingFaculty(full || selectedFaculty); }}
+          onEdit={(full) => { setShowDetailModal(false); setEditFromView(true); setEditingFaculty(full || selectedFaculty); }}
           onClose={() => setShowDetailModal(false)}
         />
       )}
 
       {editingFaculty && (
-        <EditRecordModal
+        <EditEntityModal
           key={'faculty-edit-' + editingFaculty.id}
-          title="Edit"
+          title="Edit faculty"
+          termLabel={currentPeriod ? currentPeriod.label : undefined}
+          columns={2}
+          width="min(640px, 94vw)"
           fields={[
-            { key: 'name', label: 'Name', required: true },
-            { key: 'role', label: 'Role', required: true, type: 'select', options: ['Dean', 'Program Head', 'Professor', 'Associate Professor', 'Assistant Professor', 'Instructor'] },
-            { key: 'department', label: 'Department' },
-            { key: 'status', label: 'Status', type: 'select', options: STATUS_OPTIONS.faculty },
-            { key: 'sex', label: 'Sex', type: 'select', options: ['Female', 'Male', 'Other'] },
-            { key: 'birthdate', label: 'Birthdate', type: 'date' },
-            { key: 'email', label: 'Email Address', type: 'email' },
-            { key: 'contact_number', label: 'Contact Number' },
+            { key: 'name', label: 'Name', required: true, colSpan: 1 },
+            { key: 'role', label: 'Role', required: true, type: 'select', options: ['Dean', 'Program Head', 'Professor', 'Associate Professor', 'Assistant Professor', 'Instructor'], colSpan: 1 },
+            { key: 'status', label: 'Status', type: 'select', options: STATUS_OPTIONS.faculty, colSpan: 1 },
+            { key: 'sex', label: 'Sex', type: 'segmented', options: ['Female', 'Male'], colSpan: 1 },
+            { key: 'birthdate', label: 'Birthdate', type: 'date', colSpan: 1 },
+            { key: 'email', label: 'Email Address', type: 'email', colSpan: 1 },
+            { key: 'contact_number', label: 'Contact Number', colSpan: 1 },
           ]}
-          initial={editingFaculty}
-          onSubmit={onSaveEdit}
-          onBack={() => { setSelectedFaculty(editingFaculty); setShowDetailModal(true); setEditingFaculty(null); }}
-          onClose={() => setEditingFaculty(null)}
+          record={editingFaculty}
+          onSave={onSaveEdit}
+          onBack={editFromView
+            ? () => { setSelectedFaculty(editingFaculty); setShowDetailModal(true); setEditingFaculty(null); setEditFromView(false); }
+            : undefined}
+          onClose={() => { setEditingFaculty(null); setEditFromView(false); }}
         />
       )}
 
       <ConfirmModal
         open={confirmUpload}
-        title="Replace faculty data?"
-        message={'Uploading this file will replace existing faculty for ' + (currentPeriod ? currentPeriod.label : 'this period') + '. Proceed?'}
+        title="Update faculty data?"
+        message={'Uploading this file will update existing faculty and add new ones for ' + (currentPeriod ? currentPeriod.label : 'this period') + '. Anyone already listed but not in the new file will be flagged for reconciliation. Proceed?'}
         confirmLabel="Continue to upload"
         onConfirm={() => { setConfirmUpload(false); setShowModal(true); }}
         onCancel={() => setConfirmUpload(false)}
       />
 
-      <FloatingArchiveButton moduleType="faculty" onEditStatus={onEditStatus} />
+      {recon && (
+        <ReconciliationModal
+          title="Reconcile Faculty"
+          noun="faculty"
+          archiveLabel="Inactive"
+          keepLabel="Active"
+          renderMeta={(r) => 'Role: ' + (r.role || '—') + ' · Currently: ' + (r.status || 'Active')}
+          missing={recon.missing}
+          onConfirm={onReconConfirm}
+          onKeepAll={() => setRecon(null)}
+          onClose={() => setRecon(null)}
+        />
+      )}
     </div>
   );
 };

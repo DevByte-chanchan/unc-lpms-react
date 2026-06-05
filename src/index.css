@@ -176,6 +176,30 @@ th, td {
     flex-wrap: wrap;
 }
 
+/* Course-tag picker dropdown — force a visible scrollbar (overriding the
+   global `::-webkit-scrollbar { display:none }`) so a long course list is
+   clearly scrollable. */
+.tagPickerMenu {
+    scrollbar-width: thin;
+    scrollbar-color: #CBD5E1 #F1F5F9;
+}
+.tagPickerMenu::-webkit-scrollbar {
+    display: block;
+    width: 10px;
+}
+.tagPickerMenu::-webkit-scrollbar-track {
+    background: #F1F5F9;
+    border-radius: 9999px;
+}
+.tagPickerMenu::-webkit-scrollbar-thumb {
+    background: #CBD5E1;
+    border-radius: 9999px;
+    border: 2px solid #FFFFFF;
+}
+.tagPickerMenu::-webkit-scrollbar-thumb:hover {
+    background: #94A3B8;
+}
+
 /* Your existing .fill style */
 .fill {
     flex-grow: 1;

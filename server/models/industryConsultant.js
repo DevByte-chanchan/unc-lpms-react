@@ -18,11 +18,11 @@ export default (sequelize, DataTypes) =>
         autoIncrement: true,
       },
       name: {
-        type: DataTypes.STRING(255),
+        type: DataTypes.STRING(100),
         allowNull: false,
       },
       assigned_course_code: {
-        type: DataTypes.STRING(32),
+        type: DataTypes.STRING(16),
         allowNull: true,
         comment: 'Raw "Assigned Course" string from the Excel sheet.',
       },
@@ -32,7 +32,7 @@ export default (sequelize, DataTypes) =>
         comment: 'Resolved FK to course_offerings.id.',
       },
       status: {
-        type: DataTypes.STRING(32),
+        type: DataTypes.STRING(16),
         allowNull: true,
         defaultValue: null,
         comment: 'Active | Unavailable — blank on upload; set during Assign.',

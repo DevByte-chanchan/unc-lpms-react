@@ -7,7 +7,7 @@
  * purely for switching context everywhere else in the app.
  */
 import React from 'react';
-import { Clock, AlertTriangle, Lock, ChevronDown } from 'react-feather';
+import { Calendar, AlertTriangle, Lock, ChevronDown } from 'react-feather';
 import { usePeriod } from '../services/period.jsx';
 import { prettifyLabel } from '../services/periodLabel.js';
 import styles from '../styles/PeriodSelector.module.sass';
@@ -26,7 +26,7 @@ const startYear = (sy) => {
 };
 const rank = (p) => startYear(p.school_year) * 1000 + semRank(p.semester);
 
-const PeriodSelector = () => {
+const PeriodSelector = ({ prominent = false }) => {
   const { periods, currentPeriod, setCurrentPeriodId } = usePeriod();
   const empty = !Array.isArray(periods) || periods.length === 0;
 
@@ -65,8 +65,8 @@ const PeriodSelector = () => {
 
   return (
     <div className={styles.wrapper} ref={wrapRef}>
-      <span className={styles.label}>
-        <Clock size={14} color="#374151" />
+      <span className={styles.label} style={prominent ? { fontWeight: 700, color: '#111827' } : undefined}>
+        <Calendar size={prominent ? 16 : 14} color="#374151" />
         Current Term:
       </span>
 
@@ -76,7 +76,17 @@ const PeriodSelector = () => {
           className={styles.select}
           onClick={() => !empty && setOpen((v) => !v)}
           disabled={empty}
-          style={{
+          style={prominent ? {
+            // Prominent filter-bar scope control: emphasis comes from a bold
+            // "Current Term:" label, a softly-tinted chip and the calendar
+            // icon — NOT a red border (red reads as a validation error).
+            display: 'inline-flex', alignItems: 'center', gap: 8,
+            height: 40, padding: '0 14px',
+            border: '1px solid #D1D5DB', background: '#F8FAFC',
+            borderRadius: 9999, fontSize: 14, fontWeight: 600, color: '#111827',
+            cursor: empty ? 'not-allowed' : 'pointer',
+            backgroundImage: 'none',  // override the SASS background chevron
+          } : {
             display: 'inline-flex', alignItems: 'center', gap: 6,
             border: '1px solid #D1D5DB', background: '#FFFFFF',
             fontSize: 13, color: '#111827', cursor: empty ? 'not-allowed' : 'pointer',
@@ -85,7 +95,7 @@ const PeriodSelector = () => {
           }}
         >
           <span>{buttonLabel}</span>
-          <ChevronDown size={14} color="#374151" />
+          <ChevronDown size={prominent ? 16 : 14} color="#374151" />
         </button>
 
         {open && !empty && (

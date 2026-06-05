@@ -19,8 +19,9 @@ import { getPeriodId, safeWhereForPeriod } from '../utils/periodScope.js';
 import { filterOneToExistingColumns, safeDestroyByPeriod, safeWhere } from '../utils/dbHelpers.js';
 import { describeSequelizeError } from '../utils/uploadHelpers.js';
 import { enforceLatestPeriod } from '../utils/latestPeriod.js';
+import { courseSemesterOf, periodSemesterOf } from '../utils/courseSemester.js';
 
-const { CourseAssignment, CourseOffering, Faculty } = db;
+const { CourseAssignment, Course, Faculty, AcademicPeriod } = db;
 
 /**
  * Normalise a person's name for fuzzy matching: drop common honorifics
@@ -36,15 +37,31 @@ function normalizeName(name) {
 }
 
 /**
- * Load this period's Course Offerings and Faculty as lookup maps. Faculty
- * is keyed two ways — an exact (trim + lowercase) map and an honorific-
- * stripped map used as a fallback. Course status is included so the
- * status rules can require an *Active* course.
+ * Load the course + faculty lookup maps used to validate an assignment.
+ *
+ * Courses come from THIS period's curriculum catalog (the Course Offerings
+ * page → Course model, keyed by course_no). Period-scoping matters: codes
+ * from another term must not Verify here, and the code→course map must pick
+ * the current term's row (and its year level). Faculty stays period-scoped
+ * and is keyed two ways — exact (trim + lowercase) and honorific-stripped.
  */
 async function loadMasterLists(period_id) {
-  const coWhere = await safeWhere(CourseOffering, { period_id });
-  const courses = await CourseOffering.findAll({ where: coWhere, attributes: ['id', 'code', 'status'] });
-  const courseByCode = new Map(courses.map((c) => [String(c.code).trim().toLowerCase(), c]));
+  const period = period_id ? await AcademicPeriod.findByPk(period_id, { attributes: ['semester'] }) : null;
+  const termSem = periodSemesterOf(period);
+  const courses = await Course.findAll({
+    // Archived catalog courses are excluded so assignments can't validate
+    // against a course that's been pulled from the catalog.
+    where: await safeWhere(Course, { period_id, archived: false }),
+    attributes: ['course_id', 'course_no', 'course_title', 'year_lvl', 'term', 'semester'],
+  });
+  // Only the active term's-semester courses validate — mirrors the Course
+  // Offerings page (courseMatchesPeriod), so a course tagged to a DIFFERENT
+  // semester (e.g. a 2nd-sem course in a 1st-sem term) can't Verify here.
+  const courseByCode = new Map(
+    courses
+      .filter((c) => courseSemesterOf(c) === termSem)
+      .map((c) => [String(c.course_no).trim().toLowerCase(), c]),
+  );
 
   const fWhere = await safeWhere(Faculty, { period_id });
   const facultyList = await Faculty.findAll({ where: fWhere, attributes: ['id', 'name', 'status'] });
@@ -62,10 +79,11 @@ async function loadMasterLists(period_id) {
  * Resolve a course code + faculty name against the master-list maps and
  * derive { course_offering_id, faculty_id, status }.
  *
- *   Verified      — course + faculty both found AND both 'Active'.
- *   Pending Match — the course code or faculty name was not found.
- *   Flagged       — both found, but the course or faculty is not 'Active'
- *                   (e.g. faculty Inactive / On Leave / Emeritus).
+ *   Verified      — course found in the catalog AND faculty found & 'Active'.
+ *   Pending Match — the course code (catalog) or faculty name was not found.
+ *   Flagged       — both found, but the faculty is not 'Active' (Inactive /
+ *                   On Leave / Emeritus). Catalog courses have no status,
+ *                   so the course itself never flags a row.
  */
 function resolveAssignment(courseCode, facultyName, lists) {
   const { courseByCode, facultyByName, facultyByNorm } = lists;
@@ -84,24 +102,61 @@ function resolveAssignment(courseCode, facultyName, lists) {
   let status;
   if (!course || !faculty) {
     status = 'Pending Match';
-  } else if (course.status !== 'Active' || faculty.status !== 'Active') {
+  } else if (faculty.status !== 'Active') {
     status = 'Flagged';
   } else {
     status = 'Verified';
   }
   return {
-    course_offering_id: course ? course.id : null,
+    // Catalog course id (column name kept for compatibility).
+    course_offering_id: course ? course.course_id : null,
     faculty_id: faculty ? faculty.id : null,
     status,
+    // Year level derived from the catalog course (the upload column, when
+    // present, overrides this in the caller).
+    year_level: course ? (course.year_lvl || null) : null,
   };
+}
+
+/**
+ * Recompute each NON-archived row against the current catalog/faculty lists
+ * and persist any change to status / course_offering_id / faculty_id /
+ * year_level. The single source of truth for both the live list and the
+ * explicit Re-validate. Returns a { changed, summary } report.
+ */
+async function syncAssignmentsAgainstCatalog(rows, lists) {
+  let changed = 0;
+  const summary = { Verified: 0, 'Pending Match': 0, Flagged: 0, Archived: 0 };
+  for (const row of rows) {
+    if (row.status === 'Archived') { summary.Archived++; continue; }
+    const resolved = resolveAssignment(row.course_code, row.faculty_name, lists);
+    if (row.status !== resolved.status
+      || row.course_offering_id !== resolved.course_offering_id
+      || row.faculty_id !== resolved.faculty_id
+      || (row.year_level ?? null) !== (resolved.year_level ?? null)) {
+      if (row.status !== resolved.status) changed++;
+      await row.update(resolved);
+    }
+    summary[resolved.status] = (summary[resolved.status] || 0) + 1;
+  }
+  return { changed, summary };
 }
 
 export async function listCourseAssignments(req, res, next) {
   try {
     const where = await safeWhereForPeriod(CourseAssignment, req);
+    const period_id = getPeriodId(req);
     // Per spec: the Course Assignment table starts blank each term —
     // no clone-on-first-use.
     const rows = await CourseAssignment.findAll({ where, order: [['course_code', 'ASC']] });
+
+    // Live sync against the catalog: opening the page always reflects current
+    // year levels + Verified/Pending/Flagged, without clicking Re-validate.
+    if (period_id && rows.length > 0) {
+      const lists = await loadMasterLists(period_id);
+      await syncAssignmentsAgainstCatalog(rows, lists);
+    }
+
     res.json(rows);
   } catch (err) { next(err); }
 }
@@ -130,6 +185,9 @@ export async function createCourseAssignment(req, res) {
       course_name:  course_name  ? String(course_name).trim()  : null,
       faculty_name: faculty_name ? String(faculty_name).trim() : null,
       ...resolved,
+      year_level: req.body.year_level ? String(req.body.year_level).trim() : resolved.year_level,
+      // Stamp the assignment date when a faculty (stakeholder) is assigned.
+      date_assigned: faculty_name ? new Date() : null,
       period_id,
     });
     const created = await CourseAssignment.create(safe);
@@ -154,6 +212,12 @@ export async function updateCourseAssignment(req, res) {
       if (req.body[k] !== undefined) patch[k] = req.body[k] === '' ? null : req.body[k];
     }
 
+    // Re-stamp the assignment date whenever the faculty (stakeholder) is
+    // (re)assigned via the edit form; clear it if the faculty is removed.
+    if (req.body.faculty_name !== undefined) {
+      patch.date_assigned = patch.faculty_name ? new Date() : null;
+    }
+
     if (req.body.status !== undefined) {
       // Explicit status change (e.g. the Edit modal's "Remove" → Archived):
       // respect it and skip re-validation so the chosen status sticks.
@@ -164,6 +228,11 @@ export async function updateCourseAssignment(req, res) {
       const faculty_name = patch.faculty_name !== undefined ? patch.faculty_name : row.faculty_name;
       const lists = await loadMasterLists(row.period_id);
       Object.assign(patch, resolveAssignment(course_code, faculty_name, lists));
+    }
+
+    // An explicitly-sent year_level wins over the catalog-derived one.
+    if (req.body.year_level !== undefined) {
+      patch.year_level = req.body.year_level === '' ? null : String(req.body.year_level).trim();
     }
 
     const safe = await filterOneToExistingColumns(CourseAssignment, patch);
@@ -182,6 +251,29 @@ export async function deleteCourseAssignment(req, res, next) {
     await CourseAssignment.destroy({ where: { id: req.params.id } });
     res.status(204).end();
   } catch (err) { next(err); }
+}
+
+/**
+ * Re-validate every (non-archived) assignment in a period against the
+ * CURRENT catalog + faculty list, and persist the recomputed
+ * status / course_offering_id / faculty_id. Useful after the course
+ * source changes (e.g. switching to the catalog) so stale "Verified"
+ * rows whose course no longer exists drop to "Pending Match", and vice
+ * versa. Returns a before/after summary.
+ */
+export async function revalidateCourseAssignments(req, res) {
+  try {
+    const period_id = getPeriodId(req);
+    if (!period_id) return res.status(400).json({ message: 'period_id is required' });
+
+    const where = await safeWhereForPeriod(CourseAssignment, req);
+    const rows = await CourseAssignment.findAll({ where });
+    const lists = await loadMasterLists(period_id);
+    const { changed, summary } = await syncAssignmentsAgainstCatalog(rows, lists);
+    res.json({ total: rows.length, changed, summary });
+  } catch (err) {
+    res.status(400).json({ message: describeSequelizeError(err) });
+  }
 }
 
 export async function uploadCourseAssignments(req, res) {
@@ -203,8 +295,9 @@ export async function uploadCourseAssignments(req, res) {
 
     rows.forEach((row, i) => {
       const course_code  = pick(row, 'courseid', 'coursecode', 'code', 'courseno', 'coursenumber', 'subjectcode');
-      const course_name  = pick(row, 'coursename', 'coursetitle', 'coursedescription', 'description', 'title', 'subjectname', 'name');
+      const course_name  = pick(row, 'coursename', 'courseoffering', 'coursetitle', 'coursedescription', 'description', 'title', 'subjectname', 'name');
       const faculty_name = pick(row, 'facultyname', 'facultynames', 'assignedfacultyname', 'assignedfacultynames', 'assignedfaculty', 'faculty', 'faculties', 'facultymember', 'instructorname', 'instructor', 'professor', 'teacher');
+      const year_level   = pick(row, 'yearlevel', 'yearlvl', 'yearlevelofcourse', 'year', 'level', 'yr');
       if (!course_code) {
         errors.push({ row: i + 2, message: 'Missing Course ID — skipped.' });
         return;
@@ -226,6 +319,9 @@ export async function uploadCourseAssignments(req, res) {
         course_name:  course_name  ? String(course_name).trim()  : null,
         faculty_name: faculty_name ? String(faculty_name).trim() : null,
         ...resolved,
+        // Spreadsheet YEAR LEVEL wins; otherwise keep the catalog-derived one.
+        year_level: year_level ? String(year_level).trim() : resolved.year_level,
+        date_assigned: faculty_name ? new Date() : null,
         period_id,
       });
     });

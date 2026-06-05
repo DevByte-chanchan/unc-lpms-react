@@ -20,11 +20,11 @@ export default (sequelize, DataTypes) =>
         autoIncrement: true,
       },
       code: {
-        type: DataTypes.STRING(32),
+        type: DataTypes.STRING(16),
         allowNull: false,
       },
       title: {
-        type: DataTypes.STRING(255),
+        type: DataTypes.STRING(100),
         allowNull: false,
         comment: 'From "Course Title" / "Description" header.',
       },
@@ -39,7 +39,7 @@ export default (sequelize, DataTypes) =>
         comment: 'From "Units" header in the spec.',
       },
       instructor_name: {
-        type: DataTypes.STRING(255),
+        type: DataTypes.STRING(100),
         allowNull: true,
         comment: 'Raw "Instructor" string as parsed from the Excel cell.',
       },
@@ -54,7 +54,7 @@ export default (sequelize, DataTypes) =>
         comment: 'From "TERM" column in the updated Excel (e.g. "1st Sem 2025-2026").',
       },
       status: {
-        type: DataTypes.STRING(32),
+        type: DataTypes.STRING(16),
         allowNull: false,
         defaultValue: 'Active',
         comment: 'Active | Unlisted | Cancelled — Cancelled rows sort to the end of the table.',

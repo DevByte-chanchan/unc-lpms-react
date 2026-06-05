@@ -32,6 +32,25 @@ export const STATUS_OPTIONS = {
 };
 
 /**
+ * The single status applied when a user picks "Archive" from a row's "⋯"
+ * actions menu — the canonical "remove this row to the Archive" status for
+ * each entity. (A row can hold any of its ARCHIVE_STATUSES, but the
+ * one-click Archive action always uses this one.)
+ */
+export const DEFAULT_ARCHIVE_STATUS = {
+  department:   'Archived',
+  faculty:      'Inactive',
+  courseoffer:  'Unlisted',
+  consultant:   'Unavailable',
+  program:      'Unlisted',
+  courseassign: 'Archived',
+};
+
+export function defaultArchiveStatus(entity) {
+  return DEFAULT_ARCHIVE_STATUS[entity] || 'Archived';
+}
+
+/**
  * Statuses that move a row out of its main table and into the Archive.
  */
 export const ARCHIVE_STATUSES = {
@@ -65,6 +84,16 @@ const NEUTRAL_STATUS = {
   courseassign: new Set(['Pending Match']),
   academicterm: new Set(['Closed']),
 };
+
+/**
+ * The list of statuses that send a row to the Archive, for an entity —
+ * used to build the per-row "⋯" menu (each option archives the row by
+ * setting that status).
+ */
+export function archiveStatusList(entity) {
+  const set = ARCHIVE_STATUSES[entity];
+  return set ? Array.from(set) : [];
+}
 
 /**
  * True if a row with this status belongs in the global Archive view.

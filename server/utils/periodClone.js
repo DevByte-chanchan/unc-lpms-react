@@ -51,7 +51,7 @@ const semesterRank = (sem) => {
 
 // Chronological rank — bigger means "more recent".
 // Year dominates; semester is the tie-breaker within a year.
-const rankPeriod = (p) => {
+export const rankPeriod = (p) => {
   if (!p) return -Infinity;
   const sy = String(p.school_year || '').trim();
   const m  = sy.match(/(\d{4})/);

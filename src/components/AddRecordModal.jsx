@@ -4,14 +4,16 @@
  *
  * The caller passes:
  *   title    — modal heading
- *   fields   — Array<{ key, label, type?, options?, required? }>
+ *   fields   — Array<{ key, label, type?, options?, required?, render? }>
  *                type: 'text' | 'select' | 'checkboxes' | 'textarea' | 'date' | 'email'
  *                ('checkboxes' value is an array of option values)
+ *                render({ value, onChange }) — supply a fully custom control
+ *                (e.g. a tag picker); takes precedence over `type`.
  *   onSubmit — async (record) => void   // record is keyed by field.key
  *   onClose  — () => void
  */
 import React from 'react';
-import { X } from 'react-feather';
+import { X, Save } from 'react-feather';
 import styles from '../styles/AddRecordModal.module.sass';
 import SearchableSelect from './SearchableSelect.jsx';
 
@@ -56,7 +58,7 @@ const AddRecordModal = ({ title, fields, initial, onSubmit, onClose }) => {
       <div className={styles.modal} role="dialog" aria-modal="true">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div className={styles.title}>{title}</div>
-          <button onClick={onClose} disabled={saving} style={{ background: 'transparent', border: 'none', cursor: 'pointer' }}>
+          <button onClick={onClose} disabled={saving} style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 0, lineHeight: 0, display: 'inline-flex', alignItems: 'center' }}>
             <X size={22} color="#111827" />
           </button>
         </div>
@@ -65,7 +67,9 @@ const AddRecordModal = ({ title, fields, initial, onSubmit, onClose }) => {
           <div key={f.key} className={styles.field}>
             <label className={styles.label}>{f.label}{f.required && <span style={{ color: '#B91C1C' }}> *</span>}</label>
 
-            {f.type === 'checkboxes' ? (
+            {typeof f.render === 'function' ? (
+              f.render({ value: values[f.key], onChange: (v) => setField(f.key, v) })
+            ) : f.type === 'checkboxes' ? (
               <div style={{ maxHeight: 200, overflowY: 'auto', border: '1px solid #D1D5DB', borderRadius: 6, padding: '8px 12px' }}>
                 {(f.options || []).length === 0 && (
                   <div style={{ fontSize: 13, color: '#6B7280' }}>No options available.</div>
@@ -95,28 +99,22 @@ const AddRecordModal = ({ title, fields, initial, onSubmit, onClose }) => {
                 placeholder={f.placeholder || 'Search…'}
               />
             ) : f.type === 'select' ? (
-              <select
-                className={styles.select}
+              // Modern searchable dropdown (same as the other pickers), not a
+              // native <select>, so all dropdowns look consistent.
+              <SearchableSelect
                 value={values[f.key] || ''}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  setValues((prev) => {
-                    const next = { ...prev, [f.key]: v };
-                    if (f.onSelect) Object.assign(next, f.onSelect(v) || {});
-                    return next;
-                  });
-                }}
-              >
-                <option value="">— Select —</option>
-                {(f.options || []).map((opt) => (
-                  typeof opt === 'string'
-                    ? <option key={opt} value={opt}>{opt}</option>
-                    : <option key={opt.value} value={opt.value}>{opt.label}</option>
-                ))}
-              </select>
+                onChange={(v) => setValues((prev) => {
+                  const next = { ...prev, [f.key]: v };
+                  if (f.onSelect) Object.assign(next, f.onSelect(v) || {});
+                  return next;
+                })}
+                options={f.options || []}
+                placeholder={f.placeholder || (f.required ? 'Select ' + f.label + '…' : '— Select —')}
+              />
             ) : f.type === 'textarea' ? (
               <textarea
                 className={styles.textarea}
+                placeholder={f.placeholder || ''}
                 value={values[f.key] || ''}
                 onChange={(e) => setField(f.key, e.target.value)}
               />
@@ -124,6 +122,7 @@ const AddRecordModal = ({ title, fields, initial, onSubmit, onClose }) => {
               <input
                 className={styles.input}
                 type={f.type || 'text'}
+                placeholder={f.placeholder || ''}
                 value={values[f.key] || ''}
                 onChange={(e) => setField(f.key, e.target.value)}
               />
@@ -133,9 +132,19 @@ const AddRecordModal = ({ title, fields, initial, onSubmit, onClose }) => {
 
         {error && <div className={styles.error}>{error}</div>}
 
-        <div className={styles.buttons}>
-          <button disabled={saving} className={`${styles.btn} ${styles.btnCancel}`} onClick={onClose}>Cancel</button>
-          <button disabled={saving} className={`${styles.btn} ${styles.btnPrimary}`} onClick={submit}>{saving ? 'Saving…' : 'Save'}</button>
+        {/* Footer — same Cancel / Save buttons as EditEntityModal (white Cancel,
+            red primary Save with a Save icon). */}
+        <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 8, paddingTop: 4 }}>
+          <button onClick={() => !saving && onClose()} disabled={saving}
+            style={{ height: 40, padding: '0 16px', borderRadius: 6, fontSize: 14, fontWeight: 500, background: '#FFFFFF', color: '#374151', border: '1px solid #D1D5DB', cursor: saving ? 'not-allowed' : 'pointer' }}>
+            Cancel
+          </button>
+          <button onClick={submit} disabled={saving}
+            style={{ height: 40, padding: '0 18px', borderRadius: 6, fontSize: 14, fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 6,
+              border: 'none', background: saving ? '#E5E7EB' : '#EA1212', color: saving ? '#9CA3AF' : '#FFFFFF',
+              cursor: saving ? 'not-allowed' : 'pointer', boxShadow: saving ? 'none' : '0 1px 2px rgba(234,18,18,0.35)' }}>
+            <Save size={16} /> {saving ? 'Saving…' : 'Save'}
+          </button>
         </div>
       </div>
     </>

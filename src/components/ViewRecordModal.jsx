@@ -13,6 +13,7 @@
 import React from 'react';
 import { X, Edit2 } from 'react-feather';
 import styles from '../styles/AddRecordModal.module.sass';
+import { RecordMeta } from './RecordTimestamps.jsx';
 
 const renderValue = (f, raw) => {
   if (raw == null || raw === '') return '—';
@@ -37,10 +38,12 @@ const ViewRecordModal = ({ title, fields, initial, onClose, onEdit, canEdit = tr
       <div className={styles.modal} role="dialog" aria-modal="true">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div className={styles.title}>{title}</div>
-          <button onClick={onClose} style={{ background: 'transparent', border: 'none', cursor: 'pointer' }}>
+          <button onClick={onClose} style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 0, lineHeight: 0, display: 'inline-flex', alignItems: 'center' }}>
             <X size={22} color="#111827" />
           </button>
         </div>
+
+        <RecordMeta record={initial} style={{ marginTop: -4, marginBottom: 10 }} />
 
         {fields.map((f) => (
           <div key={f.key} className={styles.field}>

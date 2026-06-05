@@ -2,10 +2,9 @@ import React from "react";
 import ProgramsTable from "../components/ProgramsTable.jsx";
 import PeriodSelector from "../components/PeriodSelector.jsx";
 import AddRecordModal from "../components/AddRecordModal.jsx";
-import EditRecordModal from "../components/EditRecordModal.jsx";
-import ViewRecordModal from "../components/ViewRecordModal.jsx";
+import EditEntityModal from "../components/EditEntityModal.jsx";
 import ConfirmModal from "../components/ConfirmModal.jsx";
-import FloatingArchiveButton from "../components/FloatingArchiveButton.jsx";
+import ViewArchivedButton from "../components/ViewArchivedButton.jsx";
 import { Search, ArrowUp, ArrowDown, Upload, Plus, Clipboard } from "react-feather";
 import styles from '../styles/CoursesTable.module.sass';
 import syllabusStyles from '../styles/SyllabusSections.module.sass';
@@ -22,8 +21,8 @@ const normalizeFacultyName = (name) =>
     .replace(/[^a-z0-9]+/g, ' ')
     .trim();
 
-const ActionBtn = ({ onClick, icon, label, disabled }) => (
-  <button onClick={onClick} disabled={disabled} style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '8px 18px', gap: 8, width: 240, height: 40, background: disabled ? '#9CA3AF' : '#EA1212', borderRadius: 6, color: '#fff', border: 'none', cursor: disabled ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap', opacity: disabled ? 0.7 : 1 }}>
+const ActionBtn = ({ onClick, icon, label, disabled, variant }) => (
+  <button onClick={onClick} disabled={disabled} style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '8px 18px', gap: 8, width: 240, height: 40, background: variant === 'white' ? '#FFFFFF' : (disabled ? '#9CA3AF' : '#EA1212'), borderRadius: 6, color: variant === 'white' ? '#374151' : '#fff', border: variant === 'white' ? '1px solid #D1D5DB' : 'none', cursor: disabled ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap', opacity: disabled ? (variant === 'white' ? 0.6 : 0.7) : 1 }}>
     <span style={{ width: 22, height: 22, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{icon}</span>
     {label}
   </button>
@@ -36,10 +35,7 @@ const DeanPrograms = () => {
   const [showModal, setShowModal]       = React.useState(false);
   const [showAddModal, setShowAddModal] = React.useState(false);
   const [editingProgram, setEditingProgram] = React.useState(null);
-  const [viewingProgram, setViewingProgram] = React.useState(null);
   const [confirmUpload, setConfirmUpload]     = React.useState(false);
-  const [sortOpen, setSortOpen]         = React.useState(false);
-  const [sortDir, setSortDir]           = React.useState(null);
   const [selectedFile, setSelectedFile] = React.useState(null);
   const [searchQuery, setSearchQuery]   = React.useState('');
   const [programsList, setProgramsList] = React.useState([]);
@@ -73,11 +69,12 @@ const DeanPrograms = () => {
     return s;
   }, [faculty]);
 
-  // Dropdown options for the searchable Faculty selector in Add/Edit.
+  // Dropdown options for the searchable Faculty selector in Add/Edit — role
+  // shown as muted secondary text (same UI as Course Assignment / Consultant).
   const facultyOptions = React.useMemo(() => (
     faculty
       .filter((f) => f && f.name && (f.status === 'Active' || !f.status))
-      .map((f) => ({ value: f.name, label: f.name + (f.role ? ' (' + f.role + ')' : '') }))
+      .map((f) => ({ value: f.name, label: f.name, sub: f.role || '' }))
   ), [faculty]);
 
   React.useEffect(() => { refresh(); }, [refresh]);
@@ -153,27 +150,29 @@ const DeanPrograms = () => {
     await refresh();
   }, [refresh]);
 
+  // "⋯" menu → pick the archive status to move the row to the Archive.
+  const onArchiveRow = React.useCallback(
+    (row, status) => onEditStatus(row, status),
+    [onEditStatus],
+  );
+
   const visiblePrograms = React.useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
-    let rows = q
+    const rows = q
       ? programsList.filter((p) => [p.code, p.name, p.program_head].filter(Boolean).some((v) => String(v).toLowerCase().includes(q)))
       : programsList.slice();
-    if (sortDir === 'asc')  rows.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
-    if (sortDir === 'desc') rows.sort((a, b) => (b.name || '').localeCompare(a.name || ''));
-    // Unlisted programs move to the global Archive view.
+    // Sorting is handled by the table's column headers; here we only filter
+    // and drop archived rows. Unlisted programs move to the global Archive.
     return partitionByArchive(rows, 'program').main;
-  }, [programsList, searchQuery, sortDir]);
+  }, [programsList, searchQuery]);
 
   return (
     <div style={{ padding: 20, background: '#FFFFFF', height: '100%', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
         <h2 style={{ margin: 0 }}>Programs</h2>
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 10 }}>
-          <div style={{ display: 'flex', gap: 10 }}>
-            <ActionBtn onClick={() => { if (programsList.length > 0) { setConfirmUpload(true); } else { setShowModal(true); } }} disabled={!periodId || !isCurrentTermActive} icon={<Upload size={18} color="#FFFFFF" />} label="Upload Program List" />
-            {showTable && isCurrentTermActive && <ActionBtn onClick={() => setShowAddModal(true)} icon={<Plus size={18} color="#FFFFFF" />} label="Add Program" />}
-          </div>
-          <PeriodSelector />
+        <div style={{ display: 'flex', gap: 10 }}>
+          <ActionBtn variant="white" onClick={() => { if (programsList.length > 0) { setConfirmUpload(true); } else { setShowModal(true); } }} disabled={!periodId || !isCurrentTermActive} icon={<Upload size={18} color="#374151" />} label="Upload Program List" />
+          {showTable && isCurrentTermActive && <ActionBtn onClick={() => setShowAddModal(true)} icon={<Plus size={18} color="#FFFFFF" />} label="Add Program" />}
         </div>
       </div>
 
@@ -183,28 +182,18 @@ const DeanPrograms = () => {
         </div>
       )}
 
+      {/* Top toolbar — Current Term (left), View Archived (far right). */}
+      <div className={syllabusStyles.header} style={{ marginBottom: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+        <PeriodSelector prominent />
+        <ViewArchivedButton moduleType="programs" onEditStatus={onEditStatus} />
+      </div>
+
+      {/* Filter bar — search, left-aligned above the table. */}
       {showTable && (
-        <div className={syllabusStyles.header} style={{ marginBottom: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16 }}>
-          <div style={{ position: 'relative' }}>
-            <button onClick={() => setSortOpen((v) => !v)} style={{ width: 120, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '8px 12px', background: 'transparent', border: '1px solid #D1D5DB', borderRadius: 9999, color: '#595959', cursor: 'pointer', fontSize: 14, fontWeight: 600 }}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M8 17V5" stroke="#595959" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M5 8l3-3 3 3" stroke="#595959" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M16 7v12" stroke="#595959" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M13 16l3 3 3-3" stroke="#595959" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-              <span>Sort</span>
-            </button>
-            {sortOpen && (
-              <div style={{ position: 'absolute', top: '110%', left: 0, background: '#FFFFFF', border: '1px solid #D1D5DB', borderRadius: 6, boxShadow: '0 8px 24px rgba(0,0,0,0.12)', width: 120, padding: 8, zIndex: 5 }}>
-                <button onClick={() => { setSortDir('asc'); setSortOpen(false); }} style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', background: 'transparent', border: 'none', cursor: 'pointer', padding: '8px 10px', borderRadius: 6, color: '#111827' }}><ArrowUp size={16} color="#374151" /><span style={{ fontSize: 14 }}>A to Z</span></button>
-                <button onClick={() => { setSortDir('desc'); setSortOpen(false); }} style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', background: 'transparent', border: 'none', cursor: 'pointer', padding: '8px 10px', borderRadius: 6, color: '#111827' }}><ArrowDown size={16} color="#374151" /><span style={{ fontSize: 14 }}>Z to A</span></button>
-              </div>
-            )}
-          </div>
-          <div className={syllabusStyles['section-select']} style={{ display: 'flex', alignItems: 'center', padding: '6px 12px', height: 40, borderRadius: 9999, background: 'transparent', border: '1px solid #D1D5DB' }}>
+        <div style={{ marginBottom: 12, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+          <div className={syllabusStyles['section-select']} style={{ display: 'flex', alignItems: 'center', padding: '6px 12px', height: 40, borderRadius: 9999, background: 'transparent', border: '1px solid #D1D5DB', flex: '0 1 360px', minWidth: 220, maxWidth: 420 }}>
             <Search size={16} style={{ marginRight: 8, color: '#374151' }} />
-            <input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search programs" style={{ border: 0, outline: 'none', background: 'transparent', width: 360, fontSize: 14 }} />
+            <input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search by code, name, or faculty" style={{ border: 0, outline: 'none', background: 'transparent', width: '100%', fontSize: 14 }} />
           </div>
         </div>
       )}
@@ -212,7 +201,8 @@ const DeanPrograms = () => {
       {showTable && (
         <ProgramsTable
           programs={visiblePrograms}
-          onView={(p) => setViewingProgram(p)}
+          onEdit={isCurrentTermActive ? (p) => setEditingProgram(p) : undefined}
+          onArchive={isCurrentTermActive ? onArchiveRow : undefined}
           facultyNameSet={facultyNameSet}
           normalizeFacultyName={normalizeFacultyName}
         />
@@ -232,8 +222,8 @@ const DeanPrograms = () => {
         <AddRecordModal
           title="Add Program"
           fields={[
-            { key: 'code', label: 'Code', required: true },
-            { key: 'name', label: 'Name', required: true },
+            { key: 'code', label: 'Code', required: true, placeholder: 'e.g. BSIT' },
+            { key: 'name', label: 'Name', required: true, placeholder: 'e.g. Bachelor of Science in Information Technology' },
             { key: 'program_head', label: 'Faculty Name', type: 'searchable-select',
               options: facultyOptions, placeholder: 'Search active faculty…' },
             { key: 'status', label: 'Status', type: 'select', options: STATUS_OPTIONS.program },
@@ -243,36 +233,22 @@ const DeanPrograms = () => {
         />
       )}
 
-      {viewingProgram && (
-        <ViewRecordModal
-          title="View"
-          fields={[
-            { key: 'code', label: 'Code' },
-            { key: 'name', label: 'Name' },
-            { key: 'program_head', label: 'Faculty Name' },
-            { key: 'status', label: 'Status' },
-          ]}
-          initial={viewingProgram}
-          canEdit={isCurrentTermActive}
-          onEdit={() => { setEditingProgram(viewingProgram); setViewingProgram(null); }}
-          onClose={() => setViewingProgram(null)}
-        />
-      )}
-
       {editingProgram && (
-        <EditRecordModal
+        <EditEntityModal
           key={'prog-edit-' + editingProgram.id}
-          title="Edit"
+          title="Edit program"
+          termLabel={currentPeriod ? currentPeriod.label : undefined}
+          width="min(520px, 94vw)"
+          columns={2}
           fields={[
-            { key: 'code', label: 'Code', required: true },
-            { key: 'name', label: 'Name', required: true },
-            { key: 'program_head', label: 'Faculty Name', type: 'searchable-select',
-              options: facultyOptions, placeholder: 'Search active faculty…' },
-            { key: 'status', label: 'Status', type: 'select', options: STATUS_OPTIONS.program },
+            { key: 'code', label: 'Code', required: true, colSpan: 1 },
+            { key: 'status', label: 'Status', type: 'select', options: STATUS_OPTIONS.program, colSpan: 1 },
+            { key: 'name', label: 'Name', required: true, colSpan: 2 },
+            { key: 'program_head', label: 'Faculty Name', optional: true, type: 'searchable-select',
+              options: facultyOptions, placeholder: 'Search active faculty…', colSpan: 2 },
           ]}
-          initial={editingProgram}
-          onSubmit={onSaveEdit}
-          onBack={() => { setViewingProgram(editingProgram); setEditingProgram(null); }}
+          record={editingProgram}
+          onSave={onSaveEdit}
           onClose={() => setEditingProgram(null)}
         />
       )}
@@ -310,7 +286,6 @@ const DeanPrograms = () => {
         onCancel={() => setConfirmUpload(false)}
       />
 
-      <FloatingArchiveButton moduleType="programs" onEditStatus={onEditStatus} />
 
       {showModal && (
         <>

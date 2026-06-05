@@ -1,23 +1,29 @@
 import React from "react";
+import ReactDOM from "react-dom";
 import SkeletonA from "../layouts/SkeletonA.jsx";
 import HeaderA from "../components/HeaderA.jsx";
 import SideNavigation from "../components/SideNavigation.jsx";
-import { Search, ArrowUp, ArrowDown, Upload, Plus, Clipboard, UserPlus, X, Save } from "react-feather";
+import { Search, ArrowUp, ArrowDown, Upload, Plus, Clipboard, UserPlus, X, Save, AlertTriangle, ChevronDown, Check } from "react-feather";
 import ConsultantsTable from '../components/ConsultantsTable.jsx';
 import PeriodSelector from "../components/PeriodSelector.jsx";
 import AddRecordModal from "../components/AddRecordModal.jsx";
-import EditRecordModal from "../components/EditRecordModal.jsx";
+import EditEntityModal from "../components/EditEntityModal.jsx";
 import ViewRecordModal from "../components/ViewRecordModal.jsx";
 import ConfirmModal from "../components/ConfirmModal.jsx";
-import FloatingArchiveButton from "../components/FloatingArchiveButton.jsx";
+import ViewArchivedButton from "../components/ViewArchivedButton.jsx";
+import { RecordMeta } from "../components/RecordTimestamps.jsx";
 import styles from '../styles/CoursesTable.module.sass';
 import syllabusStyles from '../styles/SyllabusSections.module.sass';
-import { ConsultantsAPI, CourseOfferingsAPI } from '../services/api.js';
+import dd from '../styles/DropdownMenu.module.sass';
+import { ConsultantsAPI, CourseOfferingsAPI, CoursesAPI, FacultyAPI } from '../services/api.js';
+import { courseMatchesPeriod } from '../services/courseTerm.js';
 import { usePeriod } from '../services/period.jsx';
+import { useCurrentUser } from '../services/currentUser.jsx';
+import { useHeadProgram } from '../services/useHeadProgram.js';
 import { STATUS_OPTIONS, partitionByArchive } from '../services/statusPolicy.js';
 
-const ActionBtn = ({ onClick, icon, label, disabled }) => (
-  <button onClick={onClick} disabled={disabled} style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '8px 18px', gap: 8, width: 240, height: 40, background: disabled ? '#9CA3AF' : '#EA1212', borderRadius: 6, color: '#fff', border: 'none', cursor: disabled ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap', opacity: disabled ? 0.7 : 1 }}>
+const ActionBtn = ({ onClick, icon, label, disabled, variant }) => (
+  <button onClick={onClick} disabled={disabled} style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '8px 18px', gap: 8, width: 240, height: 40, background: variant === 'white' ? '#FFFFFF' : (disabled ? '#9CA3AF' : '#EA1212'), borderRadius: 6, color: variant === 'white' ? '#374151' : '#fff', border: variant === 'white' ? '1px solid #D1D5DB' : 'none', cursor: disabled ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap', opacity: disabled ? (variant === 'white' ? 0.6 : 0.7) : 1 }}>
     <span style={{ width: 22, height: 22, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{icon}</span>
     {label}
   </button>
@@ -32,6 +38,22 @@ const consultantCourseCodes = (c) => {
   return c && c.assigned_course_code ? [c.assigned_course_code] : [];
 };
 
+// Assigned courses as { code, title } for the table (so it can show the course
+// number AND name). The join carries the title; the legacy single-code path has
+// no title, so it shows the code alone.
+const consultantCourseList = (c) => {
+  const fromJoin = Array.isArray(c && c.courses) ? c.courses.map((x) => ({ code: x.code, title: x.title || '' })) : [];
+  if (fromJoin.length > 0) return fromJoin;
+  return c && c.assigned_course_code ? [{ code: c.assigned_course_code, title: '' }] : [];
+};
+
+// Shallow equality for the mapped course list ({code,title,year_level}). Used
+// so the picker's periodic refetch only updates state when the catalog actually
+// changed — no needless re-render / flicker while the dropdown is open.
+const sameCourseList = (a, b) =>
+  Array.isArray(a) && Array.isArray(b) && a.length === b.length &&
+  a.every((x, i) => x.code === b[i].code && x.title === b[i].title && x.year_level === b[i].year_level);
+
 /**
  * CourseTagPicker — tag-style multi-select.
  *
@@ -40,14 +62,66 @@ const consultantCourseCodes = (c) => {
  * - Courses in `excludedByCode` are shown disabled with the holder's
  *   name (already assigned to another consultant in this period).
  */
+// SCIS year-level helper — mirrors ProgramHeadCourseOfferings.jsx so the course
+// picker can group / filter offerings by year. Matches "first/1st/1",
+// "second/2nd/2", etc.; returns null when the level is unknown.
+const YEAR_DEFS = [
+  { n: 1, label: '1st Year', long: 'FIRST YEAR' },
+  { n: 2, label: '2nd Year', long: 'SECOND YEAR' },
+  { n: 3, label: '3rd Year', long: 'THIRD YEAR' },
+  { n: 4, label: '4th Year', long: 'FOURTH YEAR' },
+];
+const yearLevelNum = (yearLvl) => {
+  const s = String(yearLvl || '').toLowerCase();
+  if (s.includes('first')  || s.includes('1st') || s.trim() === '1') return 1;
+  if (s.includes('second') || s.includes('2nd') || s.trim() === '2') return 2;
+  if (s.includes('third')  || s.includes('3rd') || s.trim() === '3') return 3;
+  if (s.includes('fourth') || s.includes('4th') || s.trim() === '4') return 4;
+  return null;
+};
+
 const CourseTagPicker = ({ courses, value, onChange, excludedByCode }) => {
   const [query, setQuery] = React.useState('');
   const [open, setOpen]   = React.useState(false);
+  const [yearFilter, setYearFilter] = React.useState('all'); // 'all' | 1 | 2 | 3 | 4
+  const [menuPos, setMenuPos] = React.useState(null);
   const wrapRef = React.useRef(null);
+  const menuRef = React.useRef(null);
 
-  // Click outside closes the dropdown.
+  // Anchor the fixed-position menu to the input's viewport rect (flipping up
+  // when there isn't room below) so it escapes the modal's scroll clipping.
+  const computePos = React.useCallback(() => {
+    const el = wrapRef.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    const vh = window.innerHeight;
+    const spaceBelow = vh - r.bottom - 12;
+    const spaceAbove = r.top - 12;
+    const flipUp = spaceBelow < 220 && spaceAbove > spaceBelow;
+    setMenuPos({
+      left: r.left, width: r.width,
+      top: flipUp ? undefined : r.bottom + 4,
+      bottom: flipUp ? (vh - r.top + 4) : undefined,
+      maxHeight: Math.max(140, Math.min(260, flipUp ? spaceAbove : spaceBelow)),
+    });
+  }, []);
+
+  React.useLayoutEffect(() => {
+    if (!open) return undefined;
+    computePos();
+    const reflow = () => computePos();
+    window.addEventListener('scroll', reflow, true);
+    window.addEventListener('resize', reflow);
+    return () => { window.removeEventListener('scroll', reflow, true); window.removeEventListener('resize', reflow); };
+  }, [open, computePos]);
+
+  // Click outside (menu lives in a portal, so treat it as "inside" too).
   React.useEffect(() => {
-    const onDoc = (e) => { if (wrapRef.current && !wrapRef.current.contains(e.target)) setOpen(false); };
+    const onDoc = (e) => {
+      if (wrapRef.current && wrapRef.current.contains(e.target)) return;
+      if (menuRef.current && menuRef.current.contains(e.target)) return;
+      setOpen(false);
+    };
     document.addEventListener('mousedown', onDoc);
     return () => document.removeEventListener('mousedown', onDoc);
   }, []);
@@ -64,15 +138,52 @@ const CourseTagPicker = ({ courses, value, onChange, excludedByCode }) => {
       .map((c) => ({
         code:  c.code,
         title: c.title,
+        year_level: c.year_level,
         takenBy: excludedByCode && excludedByCode.get ? excludedByCode.get(c.code.toLowerCase()) : null,
       }));
   }, [courses, query, valueSet, excludedByCode]);
+
+  // Group the (non-selected, search-filtered) options by SCIS year level:
+  // buckets 1–4 plus a trailing "null" bucket for unknown/unassigned levels,
+  // so no course is ever hidden.
+  const byYear = React.useMemo(() => {
+    const m = { 1: [], 2: [], 3: [], 4: [], null: [] };
+    options.forEach((o) => { m[yearLevelNum(o.year_level) ?? 'null'].push(o); });
+    return m;
+  }, [options]);
 
   const addCode  = (code) => { onChange([...value, code]); setQuery(''); };
   const dropCode = (code) => onChange(value.filter((c) => c !== code));
 
   return (
     <div ref={wrapRef} style={{ position: 'relative' }}>
+      {/* Year-level filter chips */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
+        {[{ key: 'all', label: 'All' }].concat(YEAR_DEFS.map((y) => ({ key: y.n, label: y.label.replace(' Year', '') }))).map((chip) => {
+          const active = yearFilter === chip.key;
+          const count = chip.key === 'all' ? 0 : (byYear[chip.key] || []).length;
+          return (
+            <button
+              key={chip.key}
+              type="button"
+              onClick={(e) => { e.stopPropagation(); setYearFilter(chip.key); setOpen(true); }}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 6,
+                height: 28, padding: '0 12px', borderRadius: 9999, fontSize: 13, fontWeight: 500, cursor: 'pointer',
+                background: active ? '#EA1212' : '#FFFFFF',
+                color: active ? '#FFFFFF' : '#374151',
+                border: '1px solid ' + (active ? '#EA1212' : '#D1D5DB'),
+              }}
+            >
+              {chip.label}
+              {chip.key !== 'all' && count > 0 && (
+                <span style={{ fontSize: 11, fontWeight: 600, color: active ? '#FFFFFF' : '#9CA3AF' }}>{count}</span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+
       <div
         onClick={() => setOpen(true)}
         style={{
@@ -106,52 +217,78 @@ const CourseTagPicker = ({ courses, value, onChange, excludedByCode }) => {
           onChange={(e) => { setQuery(e.target.value); setOpen(true); }}
           onFocus={() => setOpen(true)}
           placeholder={value.length === 0 ? 'Search course code or title…' : ''}
-          style={{ flex: 1, minWidth: 140, border: 'none', outline: 'none', fontSize: 14, padding: '4px 2px' }}
+          style={{ flex: 1, minWidth: 120, border: 'none', outline: 'none', fontSize: 14, padding: '4px 2px' }}
         />
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); setOpen((v) => !v); }}
+          aria-label="Show course list"
+          style={{ marginLeft: 'auto', alignSelf: 'center', background: 'transparent', border: 'none', cursor: 'pointer', padding: 2, display: 'inline-flex' }}
+        >
+          <ChevronDown size={16} color="#6B7280" style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s ease' }} />
+        </button>
       </div>
 
-      {open && (
+      {open && menuPos && ReactDOM.createPortal(
         <div
+          ref={menuRef}
+          className={dd.menu}
           style={{
-            position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0,
-            maxHeight: 240, overflowY: 'auto', background: '#FFFFFF',
-            border: '1px solid #D1D5DB', borderRadius: 6, zIndex: 50,
-            boxShadow: '0 8px 24px rgba(0,0,0,0.08)',
+            position: 'fixed', left: menuPos.left, width: menuPos.width,
+            top: menuPos.top, bottom: menuPos.bottom, maxHeight: menuPos.maxHeight, overflowY: 'auto',
+            background: '#FFFFFF', zIndex: 1100,
           }}
         >
-          {options.length === 0 && (
-            <div style={{ padding: '10px 12px', fontSize: 13, color: '#6B7280' }}>
-              No matching courses available.
-            </div>
-          )}
-          {options.map((o) => {
-            const disabled = !!o.takenBy;
-            return (
-              <button
-                type="button"
-                key={o.code}
-                disabled={disabled}
-                onClick={() => !disabled && addCode(o.code)}
-                title={disabled ? 'Already assigned to ' + o.takenBy : ''}
-                style={{
-                  width: '100%', textAlign: 'left', padding: '8px 12px',
-                  border: 'none', borderBottom: '1px solid #F3F4F6',
-                  background: disabled ? '#F9FAFB' : '#FFFFFF',
-                  color: disabled ? '#9CA3AF' : '#111827',
-                  cursor: disabled ? 'not-allowed' : 'pointer',
-                  fontSize: 14, display: 'flex', justifyContent: 'space-between', gap: 12,
-                }}
-              >
-                <span><strong>{o.code}</strong> — {o.title}</span>
-                {disabled && (
-                  <span style={{ fontSize: 12, color: '#9CA3AF', fontStyle: 'italic' }}>
-                    Assigned · {o.takenBy}
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
+          {(() => {
+            // Render buckets 1 → 2 → 3 → 4 → Unassigned; when a specific year
+            // chip is active, only that year's bucket shows. Empty buckets are
+            // skipped, so no course is ever stranded.
+            const groups = [1, 2, 3, 4, null].filter((n) => {
+              if (yearFilter !== 'all' && n !== yearFilter) return false;
+              return (byYear[n] || []).length > 0;
+            });
+            if (groups.length === 0) {
+              return (
+                <div style={{ padding: '10px 12px', fontSize: 13, color: '#6B7280' }}>
+                  No matching courses available.
+                </div>
+              );
+            }
+            return groups.map((n) => {
+              const list = byYear[n] || [];
+              const def = YEAR_DEFS.find((y) => y.n === n);
+              return (
+                <div key={String(n)}>
+                  <div className={dd.group}>
+                    {(def ? def.label : 'Unassigned')} · {list.length} course{list.length === 1 ? '' : 's'}
+                  </div>
+                  {list.map((o) => {
+                    const disabled = !!o.takenBy;
+                    return (
+                      <button
+                        type="button"
+                        key={o.code}
+                        disabled={disabled}
+                        onClick={() => !disabled && addCode(o.code)}
+                        title={disabled ? 'Already assigned to ' + o.takenBy : ''}
+                        className={dd.item}
+                        style={{ justifyContent: 'space-between' }}
+                      >
+                        <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}><strong>{o.code}</strong> — {o.title}</span>
+                        {disabled && (
+                          <span style={{ fontSize: 12, color: '#9CA3AF', fontStyle: 'italic', flexShrink: 0 }}>
+                            Assigned · {o.takenBy}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              );
+            });
+          })()}
+        </div>,
+        document.body
       )}
     </div>
   );
@@ -159,15 +296,24 @@ const CourseTagPicker = ({ courses, value, onChange, excludedByCode }) => {
 
 const ProgramHeadIndustryConsultant = () => {
   const { currentPeriod, isCurrentTermActive } = usePeriod();
+  const { name: currentUserName, role: currentUserRole } = useCurrentUser();
   const periodId = currentPeriod && currentPeriod.id;
+
+  // Which program is this Program Head assigned to? (same resolution as the
+  // Course Offerings / Course Assignment pages — via the Dean's assignment).
+  const {
+    currentProgram, programCode, programName,
+    myPrograms, selectedProgramId, setSelectedProgramId,
+    hasMultiplePrograms, noProgramAssigned,
+  } = useHeadProgram(periodId);
+  const [programMenuOpen, setProgramMenuOpen] = React.useState(false);
 
   const [showModal, setShowModal]       = React.useState(false);
   const [showAddModal, setShowAddModal] = React.useState(false);
   const [editingConsultant, setEditingConsultant]   = React.useState(null);
+  const [editFromView, setEditFromView]             = React.useState(false); // edit opened from the View modal (shows Back)
   const [viewingConsultant, setViewingConsultant]   = React.useState(null);
   const [confirmUpload, setConfirmUpload]           = React.useState(false);
-  const [sortOpen, setSortOpen]         = React.useState(false);
-  const [sortDir, setSortDir]           = React.useState(null);
   const [assignOpen, setAssignOpen]     = React.useState(false);
   const [assignStatus, setAssignStatus] = React.useState('');
   const [selectedConsultant, setSelectedConsultant] = React.useState(null);
@@ -176,17 +322,82 @@ const ProgramHeadIndustryConsultant = () => {
   const [searchQuery, setSearchQuery]   = React.useState('');
   const [consultants, setConsultants]   = React.useState([]);
   const [courses, setCourses]           = React.useState([]);
+  const [facultyOptions, setFacultyOptions] = React.useState([]); // Name dropdown: { value: name, label: name, sub: role }
   const [uploading, setUploading]       = React.useState(false);
   const [uploadError, setUploadError]   = React.useState(null);
   const fileInputRef = React.useRef(null);
 
+  // The course picker sources STRAIGHT from the curriculum catalog (the Course
+  // Offerings page's data, period- + semester-scoped) so the consultant's
+  // options can never drift from it. We also touch the offerings endpoint so
+  // its catalog-sync keeps the assignable rows in step (the server resolves
+  // assigned codes → course_offering ids when a consultant is saved).
+  const refetchCourses = React.useCallback(() => {
+    if (!periodId) { setCourses([]); return; }
+    CoursesAPI.list(periodId)
+      .then((rows) => {
+        const next = Array.isArray(rows)
+          ? rows.filter((c) => courseMatchesPeriod(c, currentPeriod))
+                 .map((c) => ({ code: c.course_no, title: c.course_title, year_level: c.year_lvl }))
+          : [];
+        // Only update when the catalog actually changed (archived courses are
+        // already excluded server-side), so polling never causes flicker.
+        setCourses((prev) => (sameCourseList(prev, next) ? prev : next));
+      })
+      .catch(() => setCourses([]));
+    CourseOfferingsAPI.list(periodId).catch(() => {}); // keep offerings synced for assignment
+  }, [periodId, currentPeriod]);
+
   const refresh = React.useCallback(() => {
     if (!periodId) { setConsultants([]); setCourses([]); return; }
     ConsultantsAPI.list(periodId).then((rows) => setConsultants(Array.isArray(rows) ? rows : [])).catch(() => setConsultants([]));
-    CourseOfferingsAPI.list(periodId).then((rows) => setCourses(Array.isArray(rows) ? rows : [])).catch(() => setCourses([]));
-  }, [periodId]);
+    refetchCourses();
+  }, [periodId, refetchCourses]);
 
   React.useEffect(() => { refresh(); }, [refresh]);
+
+  // Faculty for the consultant Name dropdown — the same list the Dean manages
+  // (period-scoped). Each option shows the faculty's role. Sorted, de-duplicated.
+  React.useEffect(() => {
+    if (!periodId) { setFacultyOptions([]); return undefined; }
+    let cancelled = false;
+    FacultyAPI.list(periodId)
+      .then((rows) => {
+        if (cancelled) return;
+        const seen = new Set();
+        const opts = [];
+        (Array.isArray(rows) ? rows : []).forEach((f) => {
+          const name = f && f.name;
+          if (!name) return;
+          const key = String(name).toLowerCase();
+          if (seen.has(key)) return;
+          seen.add(key);
+          opts.push({ value: name, label: name, sub: (f && f.role) || '' });
+        });
+        opts.sort((a, b) => a.value.localeCompare(b.value));
+        setFacultyOptions(opts);
+      })
+      .catch(() => { if (!cancelled) setFacultyOptions([]); });
+    return () => { cancelled = true; };
+  }, [periodId]);
+
+  // Keep the course picker in lockstep with the Course Offerings page. While a
+  // Manage/Add modal is open, refetch on open AND poll lightly so catalog edits
+  // (add / archive / move year level) reflect constantly without reopening. The
+  // refetch no-ops when nothing changed, so polling never flickers the dropdown.
+  React.useEffect(() => {
+    if (!(editingConsultant || showAddModal)) return undefined;
+    refetchCourses();
+    const id = setInterval(refetchCourses, 4000);
+    return () => clearInterval(id);
+  }, [editingConsultant, showAddModal, refetchCourses]);
+  // Also re-sync whenever the window/tab regains focus (e.g. back from the
+  // Course Offerings page in another tab).
+  React.useEffect(() => {
+    const onFocus = () => refetchCourses();
+    window.addEventListener('focus', onFocus);
+    return () => window.removeEventListener('focus', onFocus);
+  }, [refetchCourses]);
 
   const showTable = consultants.length > 0;
 
@@ -267,7 +478,7 @@ const ProgramHeadIndustryConsultant = () => {
   // already loads, so no extra fetch is needed.
   const takenByOther = React.useMemo(() => {
     const m = new Map();
-    const myId = selectedConsultant && selectedConsultant.id;
+    const myId = editingConsultant && editingConsultant.id;
     consultants.forEach((c) => {
       if (c.id === myId) return;
       consultantCourseCodes(c).forEach((code) => {
@@ -275,7 +486,7 @@ const ProgramHeadIndustryConsultant = () => {
       });
     });
     return m;
-  }, [consultants, selectedConsultant]);
+  }, [consultants, editingConsultant]);
 
   // Edit-status handler for the consultant archive (Active or Available).
   const onEditStatus = React.useCallback(async (row, newStatus) => {
@@ -283,37 +494,104 @@ const ProgramHeadIndustryConsultant = () => {
     await refresh();
   }, [refresh]);
 
+  // "⋯" menu → pick the archive status to move the row to the Archive.
+  const onArchiveRow = React.useCallback(
+    (row, status) => onEditStatus(row, status),
+    [onEditStatus],
+  );
+
   const visibleConsultants = React.useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
-    let rows = q ? consultants.filter((c) => (c.name || '').toLowerCase().includes(q)) : consultants.slice();
-    if (sortDir === 'asc')  rows.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
-    if (sortDir === 'desc') rows.sort((a, b) => (b.name || '').localeCompare(a.name || ''));
-    // Archived statuses (Unavailable / Offboarded) move to the global Archive view.
+    const rows = q ? consultants.filter((c) => (c.name || '').toLowerCase().includes(q)) : consultants.slice();
+    // Sorting is handled by the table's column headers; here we only filter
+    // and drop archived statuses (Unavailable / Offboarded) to the Archive.
     return partitionByArchive(rows, 'consultant').main;
-  }, [consultants, searchQuery, sortDir]);
+  }, [consultants, searchQuery]);
 
   const renderedConsultants = visibleConsultants.map((c) => ({
     id: c.id, name: c.name, department: '',
-    assignedCourse: consultantCourseCodes(c),
+    // { code, title } so the table lists the course number AND name.
+    assignedCourse: consultantCourseList(c),
     // Pass status through as-is — blank/null until the user picks one
     // in the Assign popup. No default to 'Active'.
     status: c.status || '',
   }));
 
+  // Program switcher — shown only when the user heads more than one program.
+  const programSwitcher = (
+    <div style={{ position: 'relative' }}>
+      <button onClick={() => setProgramMenuOpen((v) => !v)} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 36, padding: '0 12px', background: '#FFFFFF', border: '1px solid #D1D5DB', borderRadius: 8, color: '#334155', fontSize: 13, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+        <span>Program: <strong style={{ color: '#0F172A' }}>{currentProgram ? currentProgram.code : '—'}</strong></span>
+        <ChevronDown size={15} color="#64748B" />
+      </button>
+      {programMenuOpen && (
+        <>
+          <div onClick={() => setProgramMenuOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 4 }} />
+          <div style={{ position: 'absolute', top: '110%', left: 0, background: '#FFFFFF', border: '1px solid #D1D5DB', borderRadius: 8, boxShadow: '0 8px 24px rgba(0,0,0,0.12)', minWidth: 260, padding: 6, zIndex: 5 }}>
+            <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#64748B', padding: '6px 10px 4px' }}>Your programs</div>
+            {myPrograms.map((p) => {
+              const active = p.id === selectedProgramId;
+              return (
+                <button key={p.id} onClick={() => { setSelectedProgramId(p.id); setProgramMenuOpen(false); }} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, width: '100%', textAlign: 'left', background: active ? '#F1F5F9' : 'transparent', border: 'none', cursor: 'pointer', padding: '8px 10px', borderRadius: 6 }}>
+                  <span style={{ minWidth: 0 }}>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: '#0F172A' }}>{p.code}</span>
+                    <span style={{ fontSize: 12, color: '#64748B', marginLeft: 8 }}>{p.name}</span>
+                  </span>
+                  {active && <Check size={15} color="#EA1212" />}
+                </button>
+              );
+            })}
+          </div>
+        </>
+      )}
+    </div>
+  );
+
+  // Shown when the signed-in user heads NO program this term.
+  const blockedState = (
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
+      <div style={{ width: 92, height: 92, borderRadius: 12, background: '#FEF3C7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <AlertTriangle size={40} color="#B45309" />
+      </div>
+      <div style={{ fontSize: 18, fontWeight: 600, color: '#111827' }}>No program assigned for this term</div>
+      <div style={{ color: '#6B7280', textAlign: 'center', maxWidth: 440 }}>
+        You're not set as a Program Head for any program in {currentPeriod ? currentPeriod.label : 'this term'}. Ask your Dean to assign you, or switch to a term where you're already assigned.
+      </div>
+    </div>
+  );
+
   const content = (
     <div style={{ padding: 20, background: '#FFFFFF', height: '100%', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
-        <h2 style={{ margin: 0 }}>Industry Consultants</h2>
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 10 }}>
+      {/* Program identity — LINE 1 "BSIT: Industry Consultants", LINE 2 full name. */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
+          <div style={{ minWidth: 0, display: 'flex', gap: 12 }}>
+            <div style={{ width: 4, alignSelf: 'stretch', borderRadius: 2, background: '#EA1212', flexShrink: 0 }} />
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: 24, color: '#0F172A', letterSpacing: '-0.01em', lineHeight: 1.25 }}>
+                {programCode
+                  ? (<><span style={{ fontWeight: 800 }}>{programCode}</span><span style={{ fontWeight: 600 }}>: Industry Consultants</span></>)
+                  : (<span style={{ fontWeight: 700 }}>Industry Consultants</span>)}
+              </div>
+              {programName && <div style={{ fontSize: 13, color: '#64748B', marginTop: 4 }}>{programName}</div>}
+            </div>
+          </div>
+          {hasMultiplePrograms && programSwitcher}
+        </div>
+        {!noProgramAssigned && (
           <div style={{ display: 'flex', gap: 10 }}>
-            <ActionBtn onClick={() => { if (consultants.length > 0) { setConfirmUpload(true); } else { setShowModal(true); } }} disabled={!periodId || !isCurrentTermActive} icon={<Upload size={18} color="#FFFFFF" />} label="Upload Consultant List" />
+            <ActionBtn variant="white" onClick={() => { if (consultants.length > 0) { setConfirmUpload(true); } else { setShowModal(true); } }} disabled={!periodId || !isCurrentTermActive} icon={<Upload size={18} color="#374151" />} label="Upload Consultant List" />
             {showTable && isCurrentTermActive && (
               <ActionBtn onClick={() => setShowAddModal(true)} icon={<Plus size={18} color="#FFFFFF" />} label="Add Consultant" />
             )}
           </div>
-          <PeriodSelector />
-        </div>
+        )}
       </div>
+
+      {/* Full-width hairline below the program identity. */}
+      <div style={{ height: 1, background: '#E5E7EB', margin: '14px 0 18px' }} />
+
+      {noProgramAssigned ? blockedState : (<>
 
       {!isCurrentTermActive && currentPeriod && (
         <div style={{ marginBottom: 12, padding: '10px 14px', background: '#FEF3C7', border: '1px solid #FCD34D', borderRadius: 8, color: '#92400E', fontSize: 13, lineHeight: '1.4' }}>
@@ -321,32 +599,18 @@ const ProgramHeadIndustryConsultant = () => {
         </div>
       )}
 
+      {/* Top toolbar — Current Term (left), View Archived (far right). */}
+      <div className={syllabusStyles.header} style={{ marginBottom: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+        <PeriodSelector prominent />
+        <ViewArchivedButton moduleType="consultants" onEditStatus={onEditStatus} />
+      </div>
+
+      {/* Filter bar — search, left-aligned above the table. */}
       {showTable && (
-        <div className={syllabusStyles.header} style={{ marginBottom: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16 }}>
-          <div style={{ position: 'relative' }}>
-            <button onClick={() => setSortOpen((v) => !v)} style={{ width: 120, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '8px 12px', background: 'transparent', border: '1px solid #D1D5DB', borderRadius: 9999, color: '#595959', cursor: 'pointer', fontSize: 14, fontWeight: 600 }}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M8 17V5" stroke="#595959" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M5 8l3-3 3 3" stroke="#595959" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M16 7v12" stroke="#595959" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M13 16l3 3 3-3" stroke="#595959" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-              <span>Sort</span>
-            </button>
-            {sortOpen && (
-              <div style={{ position: 'absolute', top: '110%', left: 0, background: '#FFFFFF', border: '1px solid #D1D5DB', borderRadius: 6, boxShadow: '0 8px 24px rgba(0,0,0,0.12)', width: 120, padding: 8, zIndex: 5 }}>
-                <button onClick={() => { setSortDir('asc'); setSortOpen(false); }} style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', background: 'transparent', border: 'none', cursor: 'pointer', padding: '8px 10px', borderRadius: 6, color: '#111827' }}>
-                  <ArrowUp size={16} color="#374151" /><span style={{ fontSize: 14 }}>A to Z</span>
-                </button>
-                <button onClick={() => { setSortDir('desc'); setSortOpen(false); }} style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', background: 'transparent', border: 'none', cursor: 'pointer', padding: '8px 10px', borderRadius: 6, color: '#111827' }}>
-                  <ArrowDown size={16} color="#374151" /><span style={{ fontSize: 14 }}>Z to A</span>
-                </button>
-              </div>
-            )}
-          </div>
-          <div className={syllabusStyles['section-select']} style={{ display: 'flex', alignItems: 'center', padding: '6px 12px', height: 40, borderRadius: 9999, background: 'transparent', border: '1px solid #D1D5DB' }}>
+        <div style={{ marginBottom: 12, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+          <div className={syllabusStyles['section-select']} style={{ display: 'flex', alignItems: 'center', padding: '6px 12px', height: 40, borderRadius: 9999, background: 'transparent', border: '1px solid #D1D5DB', flex: '0 1 360px', minWidth: 220, maxWidth: 420 }}>
             <Search size={16} style={{ marginRight: 8, color: '#374151' }} />
-            <input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search consultants" style={{ border: 0, outline: 'none', background: 'transparent', width: 360, fontSize: 14 }} />
+            <input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search by consultant name" style={{ border: 0, outline: 'none', background: 'transparent', width: '100%', fontSize: 14 }} />
           </div>
         </div>
       )}
@@ -355,7 +619,8 @@ const ProgramHeadIndustryConsultant = () => {
         <ConsultantsTable
           consultants={renderedConsultants}
           hideDepartment={true}
-          onAssign={(_row, idx) => openAssign(visibleConsultants[idx])}
+          onAssign={(row) => { const full = visibleConsultants.find((c) => c.id === row.id); if (full) { setEditFromView(false); setEditingConsultant(full); } }}
+          onArchive={isCurrentTermActive ? onArchiveRow : undefined}
           readOnly={!isCurrentTermActive}
         />
       )}
@@ -370,12 +635,22 @@ const ProgramHeadIndustryConsultant = () => {
         </div>
       )}
 
+      </>)}
+
       {showAddModal && (
         <AddRecordModal
           title="Add Industry Consultant"
+          initial={{ assigned_course_codes: [] }}
           fields={[
-            { key: 'name', label: 'Name', required: true },
-            { key: 'assigned_course_codes', label: 'Assigned Courses', type: 'checkboxes', options: courses.map((c) => ({ value: c.code, label: c.code + ' — ' + c.title })) },
+            // Name is picked from the Dean's faculty list (period-scoped).
+            { key: 'name', label: 'Name', required: true, type: 'searchable-select', options: facultyOptions, placeholder: 'Search faculty…' },
+            { key: 'assigned_course_codes', label: 'Assigned Course Offering',
+              // Same grouped / searchable / year-filtered picker as the Manage modal.
+              render: ({ value, onChange }) => (
+                courses.length === 0
+                  ? <div style={{ fontSize: 13, color: '#6B7280', padding: '8px 12px', border: '1px solid #D1D5DB', borderRadius: 6 }}>No courses in this period yet.</div>
+                  : <CourseTagPicker courses={courses} value={Array.isArray(value) ? value : []} onChange={onChange} excludedByCode={takenByOther} />
+              ) },
           ]}
           onSubmit={onAddConsultant}
           onClose={() => setShowAddModal(false)}
@@ -387,29 +662,37 @@ const ProgramHeadIndustryConsultant = () => {
           title="View"
           fields={[
             { key: 'name', label: 'Name' },
-            { key: 'assigned_course_codes', label: 'Assigned Courses', type: 'checkboxes' },
+            { key: 'assigned_course_codes', label: 'Assigned Course Offering', type: 'checkboxes' },
             { key: 'status', label: 'Status' },
           ]}
           initial={{ ...viewingConsultant, assigned_course_codes: consultantCourseCodes(viewingConsultant) }}
           canEdit={isCurrentTermActive}
-          onEdit={() => { setEditingConsultant(viewingConsultant); setViewingConsultant(null); }}
+          onEdit={() => { setEditFromView(true); setEditingConsultant(viewingConsultant); setViewingConsultant(null); }}
           onClose={() => setViewingConsultant(null)}
         />
       )}
 
       {editingConsultant && (
-        <EditRecordModal
+        <EditEntityModal
           key={'consultant-edit-' + editingConsultant.id}
-          title="Edit"
+          title="Edit consultant"
+          termLabel={currentPeriod ? currentPeriod.label : undefined}
           fields={[
-            { key: 'name', label: 'Name', required: true },
-            { key: 'assigned_course_codes', label: 'Assigned Courses', type: 'checkboxes', options: courses.map((c) => ({ value: c.code, label: c.code + ' — ' + c.title })) },
+            // Name is picked from the Dean's faculty list (the current value is
+            // kept selectable even if it isn't in the list).
+            { key: 'name', label: 'Name', required: true, type: 'searchable-select', options: facultyOptions, placeholder: 'Search faculty…' },
+            { key: 'assigned_course_codes', label: 'Assigned Course Offering', type: 'checkboxes',
+              render: ({ value, onChange }) => (
+                courses.length === 0
+                  ? <div style={{ fontSize: 13, color: '#6B7280', padding: '8px 12px', border: '1px solid #D1D5DB', borderRadius: 6 }}>No courses in this period yet.</div>
+                  : <CourseTagPicker courses={courses} value={value} onChange={onChange} excludedByCode={takenByOther} />
+              ) },
             { key: 'status', label: 'Status', type: 'select', options: STATUS_OPTIONS.consultant },
           ]}
-          initial={{ ...editingConsultant, assigned_course_codes: consultantCourseCodes(editingConsultant) }}
-          onSubmit={onSaveEdit}
-          onBack={() => { setViewingConsultant(editingConsultant); setEditingConsultant(null); }}
-          onClose={() => setEditingConsultant(null)}
+          record={{ ...editingConsultant, assigned_course_codes: consultantCourseCodes(editingConsultant) }}
+          onSave={onSaveEdit}
+          onBack={editFromView ? () => { setViewingConsultant(editingConsultant); setEditingConsultant(null); setEditFromView(false); } : undefined}
+          onClose={() => { setEditingConsultant(null); setEditFromView(false); }}
         />
       )}
 
@@ -425,35 +708,49 @@ const ProgramHeadIndustryConsultant = () => {
       {assignOpen && selectedConsultant && (
         <>
           <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 30 }} onClick={() => setAssignOpen(false)} />
-          <div role="dialog" aria-modal="true" style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: 460, background: '#FFFFFF', borderRadius: 10, padding: 24, display: 'flex', flexDirection: 'column', gap: 20, zIndex: 40 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div role="dialog" aria-modal="true" style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: 'min(560px, 94vw)', background: '#FFFFFF', borderRadius: 10, padding: 24, display: 'flex', flexDirection: 'column', gap: 20, zIndex: 40 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #E5E7EB', paddingBottom: 14 }}>
               <h2 style={{ margin: 0, fontSize: 20, fontWeight: 600, color: '#111827' }}>Manage Consultant</h2>
-              <button onClick={() => setAssignOpen(false)} style={{ background: 'transparent', border: 'none', cursor: 'pointer' }}><X size={22} /></button>
+              <button onClick={() => setAssignOpen(false)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 0, lineHeight: 0, display: 'inline-flex', alignItems: 'center' }}><X size={22} /></button>
             </div>
+            <RecordMeta record={selectedConsultant} style={{ marginTop: -8, marginBottom: 4 }} />
             <div style={{ fontSize: 14, color: '#374151' }}>Consultant: <strong>{selectedConsultant.name}</strong></div>
 
-            {/* Status selector — pick this first. Unavailable disables
-                the course picker (and on save also clears any assignments). */}
+            {/* Status — segmented pill toggle. "Unavailable" is an archived
+                status, so it warns the user and disables the course picker. */}
             <div>
               <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 6 }}>
                 Status
               </label>
-              <div style={{ display: 'flex', gap: 8 }}>
+              <div style={{ position: 'relative', display: 'flex', padding: 4, gap: 0, background: '#F3F4F6', border: 'none', borderRadius: 9999 }}>
+                {/* Sliding thumb — glides between segments and crossfades
+                    its colour. Hidden until a status is chosen. */}
+                <div aria-hidden style={{
+                  position: 'absolute', top: 4, bottom: 4, left: 4, width: 'calc(50% - 4px)',
+                  borderRadius: 9999,
+                  background: assignStatus === 'Unavailable' ? '#FDE68A' : '#BBF7D0',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.14)',
+                  transform: assignStatus === 'Unavailable' ? 'translateX(100%)' : 'translateX(0%)',
+                  opacity: assignStatus ? 1 : 0,
+                  willChange: 'transform',
+                  transition: 'transform 0.34s cubic-bezier(0.34, 1.2, 0.64, 1), background-color 0.3s ease, opacity 0.2s ease',
+                }} />
                 {['Active', 'Unavailable'].map((opt) => {
                   const selected = assignStatus === opt;
                   const isUnav = opt === 'Unavailable';
+                  const fg = selected ? (isUnav ? '#92400E' : '#065F46') : '#6B7280';
                   return (
                     <button
                       key={opt}
                       type="button"
                       onClick={() => setAssignStatus(opt)}
                       style={{
-                        flex: 1, height: 40, borderRadius: 8,
-                        border: '1px solid ' + (selected ? (isUnav ? '#B91C1C' : '#047857') : '#D1D5DB'),
-                        background: selected ? (isUnav ? '#FEE2E2' : '#D1FAE5') : '#FFFFFF',
-                        color: selected ? (isUnav ? '#B91C1C' : '#047857') : '#374151',
+                        position: 'relative', zIndex: 1,
+                        flex: 1, height: 36, border: 'none', outline: 'none', borderRadius: 9999,
+                        background: 'transparent', color: fg,
                         fontWeight: 600, fontSize: 13, cursor: 'pointer',
-                        transition: 'background 0.15s ease, border-color 0.15s ease',
+                        WebkitTapHighlightColor: 'transparent',
+                        transition: 'color 0.25s ease',
                       }}
                     >
                       {opt}
@@ -461,15 +758,32 @@ const ProgramHeadIndustryConsultant = () => {
                   );
                 })}
               </div>
+
+              {/* Archive warning — grid-rows 0fr→1fr reveal animates to the
+                  content's real height, so the modal resizes without jank. */}
+              <div style={{
+                display: 'grid',
+                gridTemplateRows: assignStatus === 'Unavailable' ? '1fr' : '0fr',
+                opacity: assignStatus === 'Unavailable' ? 1 : 0,
+                marginTop: assignStatus === 'Unavailable' ? 8 : 0,
+                transition: 'grid-template-rows 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s ease, margin-top 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+              }}>
+                <div style={{ overflow: 'hidden', minHeight: 0, display: 'flex', alignItems: 'flex-start', gap: 6 }}>
+                  <AlertTriangle size={14} color="#B91C1C" style={{ flexShrink: 0, marginTop: 1 }} />
+                  <span style={{ fontSize: 12, color: '#6B7280', lineHeight: 1.4 }}>
+                    Switching to <strong style={{ color: '#92400E' }}>Unavailable</strong> will automatically archive this consultant’s profile.
+                  </span>
+                </div>
+              </div>
             </div>
 
             {/* Course picker — disabled when Unavailable */}
-            <div style={{ opacity: assignStatus === 'Unavailable' ? 0.5 : 1, pointerEvents: assignStatus === 'Unavailable' ? 'none' : 'auto' }}>
+            <div style={{ opacity: assignStatus === 'Unavailable' ? 0.5 : 1, pointerEvents: assignStatus === 'Unavailable' ? 'none' : 'auto', transition: 'opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1)' }}>
               <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 6 }}>
-                Assigned Courses
+                Assign Course Offering/s
               </label>
               {assignStatus === 'Unavailable' && (
-                <div style={{ fontSize: 12, color: '#B91C1C', marginBottom: 6 }}>
+                <div style={{ fontSize: 12, color: '#6B7280', marginBottom: 6 }}>
                   Unavailable consultants cannot be assigned to courses.
                 </div>
               )}
@@ -506,7 +820,6 @@ const ProgramHeadIndustryConsultant = () => {
         </>
       )}
 
-      <FloatingArchiveButton moduleType="consultants" onEditStatus={onEditStatus} />
 
       {showModal && (
         <>
@@ -532,7 +845,7 @@ const ProgramHeadIndustryConsultant = () => {
 
   return (
     <SkeletonA
-      header={<HeaderA role="Program Head" name="DANILA, JUN ARREB" />}
+      header={<HeaderA role={currentUserRole} name={currentUserName} />}
       nav={<SideNavigation mode="program-head" />}
       content={content}
     />

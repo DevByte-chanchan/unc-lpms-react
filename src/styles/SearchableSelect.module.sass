@@ -1,0 +1,24 @@
+// Options menu for SearchableSelect. An explicitly styled, always-visible
+// scrollbar on the right (the OS overlay scrollbar is too faint / auto-hides).
+
+.menu
+  overflow-y: scroll
+  // Firefox
+  scrollbar-width: thin
+  scrollbar-color: #9CA3AF #F1F5F9
+
+  // WebKit / Chromium / Edge — classic (non-overlay) scrollbar on the right.
+  &::-webkit-scrollbar
+    width: 10px
+
+  &::-webkit-scrollbar-track
+    background: #F1F5F9
+    border-radius: 0 6px 6px 0
+
+  &::-webkit-scrollbar-thumb
+    background: #9CA3AF
+    border-radius: 8px
+    border: 2px solid #F1F5F9
+
+    &:hover
+      background: #6B7280

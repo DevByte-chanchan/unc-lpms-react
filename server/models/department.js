@@ -12,10 +12,10 @@ export default (sequelize, DataTypes) =>
     'Department',
     {
       id: { type: DataTypes.INTEGER.UNSIGNED, primaryKey: true, autoIncrement: true },
-      name:   { type: DataTypes.STRING(255), allowNull: false },
-      code:   { type: DataTypes.STRING(32),  allowNull: false },
-      dean:   { type: DataTypes.STRING(255), allowNull: true },
-      status: { type: DataTypes.STRING(32),  allowNull: false, defaultValue: 'Active' },
+      name:   { type: DataTypes.STRING(100), allowNull: false },
+      code:   { type: DataTypes.STRING(16),  allowNull: false },
+      dean:   { type: DataTypes.STRING(50),  allowNull: true },
+      status: { type: DataTypes.STRING(16),  allowNull: false, defaultValue: 'Active' },
       period_id: {
         type: DataTypes.INTEGER.UNSIGNED,
         allowNull: true,

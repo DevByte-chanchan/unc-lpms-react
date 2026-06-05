@@ -641,7 +641,7 @@ const AcademicTerms = () => {
 
   // ─────────────────────────── render ───────────────────────────
   return (
-    <div style={{ padding: 20, background: SLATE_50, height: '100%', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ padding: 20, background: '#FFFFFF', height: '100%', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
         <div>
           <h2 style={{ margin: 0 }}>Dashboard</h2>

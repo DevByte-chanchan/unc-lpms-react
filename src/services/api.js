@@ -65,12 +65,54 @@ export const FacultyAPI = {
   get:    (id) => request(idPath('/faculty', id)),
   create: (data, periodId) => request('/faculty', { method: 'POST', body: { ...data, period_id: periodId } }),
   update: (id, patch) => request(idPath('/faculty', id), { method: 'PATCH', body: patch }),
+  inactivateMany: (ids) => request('/faculty/inactivate', { method: 'PATCH', body: { ids } }),
   remove: (id) => request(idPath('/faculty', id), { method: 'DELETE' }),
   upload: (file, periodId) => uploadFile('/faculty/upload', file, periodId),
 };
 
+// Curriculum catalog (period-scoped — each term owns its own copy, cloned
+// forward from the prior term on first use). The detail endpoint returns
+// the course with its resolved `prerequisites` and `revisions`.
+export const CoursesAPI = {
+  list:   (periodId) => request('/courses', { query: { period_id: periodId } }),
+  // Archived catalog courses for the "View Archived" view.
+  listArchived: (periodId) => request('/courses', { query: { period_id: periodId, archived: 'only' } }),
+  // Prerequisite options — last semester's courses (all programs). Returns
+  // { period: { id, label } | null, courses: [{ course_no, course_title, year_lvl, term }] }.
+  prereqOptions: (periodId) => request('/courses/prereq-options', { query: { period_id: periodId } }),
+  get:    (id) => request(idPath('/courses', id)),
+  create: (data, periodId) => request('/courses', { method: 'POST', body: { ...data, period_id: periodId } }),
+  update: (id, patch) => request(idPath('/courses', id), { method: 'PATCH', body: patch }),
+  remove: (id) => request(idPath('/courses', id), { method: 'DELETE' }),
+  upload: (file, periodId) => uploadFile('/courses/upload', file, periodId),
+  // Preview an upload WITHOUT saving — returns { detectedColumns, total,
+  // recognizedCount, unassigned[] } so the UI can resolve unrecognized year
+  // levels before committing. Persists nothing.
+  uploadPreview: (file, periodId) => {
+    const fd = new FormData();
+    fd.append('file', file);
+    if (periodId) fd.append('period_id', String(periodId));
+    return request('/courses/upload', { method: 'POST', body: fd, query: { preview: 1 } });
+  },
+  // Commit an upload, applying the year-level resolutions chosen in the popup:
+  //   yearLevelOverrides — { "<course_no>": "FIRST YEAR" | … } for resolved rows
+  //   skipCodes          — ["<course_no>", …] rows to NOT import
+  uploadCommit: (file, periodId, { yearLevelOverrides, skipCodes } = {}) => {
+    const fd = new FormData();
+    fd.append('file', file);
+    if (periodId) fd.append('period_id', String(periodId));
+    if (yearLevelOverrides && Object.keys(yearLevelOverrides).length) fd.append('yearLevelOverrides', JSON.stringify(yearLevelOverrides));
+    if (skipCodes && skipCodes.length) fd.append('skipCodes', JSON.stringify(skipCodes));
+    return request('/courses/upload', { method: 'POST', body: fd });
+  },
+};
+
 export const ProgramsAPI = {
   list:   (periodId) => request('/programs', { query: { period_id: periodId } }),
+  // "My program(s)" for a Program Head — filter by resolved faculty id and/or
+  // head name (the backend ORs them, so either alone resolves a match).
+  listForHead: (periodId, { headId, headName } = {}) =>
+    request('/programs', { query: { period_id: periodId, head_id: headId, head_name: headName } }),
   get:    (id) => request(idPath('/programs', id)),
   create: (data, periodId) => request('/programs', { method: 'POST', body: { ...data, period_id: periodId } }),
   update: (id, patch) => request(idPath('/programs', id), { method: 'PATCH', body: patch }),
@@ -105,6 +147,7 @@ export const CourseAssignmentsAPI = {
   update: (id, patch) => request(idPath('/course-assignments', id), { method: 'PATCH', body: patch }),
   remove: (id) => request(idPath('/course-assignments', id), { method: 'DELETE' }),
   upload: (file, periodId) => uploadFile('/course-assignments/upload', file, periodId),
+  revalidate: (periodId) => request('/course-assignments/revalidate', { method: 'POST', query: { period_id: periodId } }),
 };
 
 export const ArchiveAPI = {

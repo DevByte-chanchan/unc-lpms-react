@@ -18,7 +18,7 @@ export default (sequelize, DataTypes) =>
         autoIncrement: true,
       },
       name: {
-        type: DataTypes.STRING(255),
+        type: DataTypes.STRING(100),
         allowNull: false,
       },
       role: {
@@ -27,7 +27,7 @@ export default (sequelize, DataTypes) =>
         comment: 'e.g. Dean, Program Head, Professor, Instructor, …',
       },
       department: {
-        type: DataTypes.STRING(255),
+        type: DataTypes.STRING(100),
         allowNull: true,
         comment: 'Raw department name as it appeared on the Excel sheet.',
       },
@@ -37,7 +37,7 @@ export default (sequelize, DataTypes) =>
         comment: 'Resolved FK to departments.id (set when a matching dept exists).',
       },
       status: {
-        type: DataTypes.STRING(32),
+        type: DataTypes.STRING(16),
         allowNull: false,
         defaultValue: 'Active',
       },
@@ -50,7 +50,7 @@ export default (sequelize, DataTypes) =>
       // or via manual Add/Edit through the UI.
       sex:            { type: DataTypes.STRING(16),  allowNull: true },
       birthdate:      { type: DataTypes.DATEONLY,    allowNull: true },
-      email:          { type: DataTypes.STRING(255), allowNull: true },
+      email:          { type: DataTypes.STRING(100), allowNull: true },
       contact_number: { type: DataTypes.STRING(32),  allowNull: true },
       period_id:      { type: DataTypes.INTEGER.UNSIGNED, allowNull: true },
     },

@@ -26,7 +26,7 @@ export default (sequelize, DataTypes) =>
         comment: 'Resolved FK to course_offerings.id (null if the code was unmatched).',
       },
       course_code: {
-        type: DataTypes.STRING(32),
+        type: DataTypes.STRING(16),
         allowNull: true,
         comment: 'Raw course code, kept even when the FK could not be resolved.',
       },

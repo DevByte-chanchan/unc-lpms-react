@@ -1,0 +1,75 @@
+// Shared polish for the app's custom dropdown popups (SearchableSelect,
+// CourseTagPicker, PrereqPicker). Rounded container, soft shadow, padded so
+// option rows show a rounded hover pill, a smooth open animation, and a
+// styled (non-overlay) scrollbar.
+
+@keyframes ddMenuIn
+  from
+    opacity: 0
+    transform: translateY(-4px)
+  to
+    opacity: 1
+    transform: translateY(0)
+
+.menu
+  border-radius: 10px
+  border: 1px solid #E5E7EB
+  box-shadow: 0 12px 32px rgba(2, 6, 23, 0.14)
+  padding: 4px
+  transform-origin: top center
+  animation: ddMenuIn 0.13s cubic-bezier(0.16, 1, 0.3, 1)
+
+  // Firefox
+  scrollbar-width: thin
+  scrollbar-color: #CBD5E1 transparent
+  // WebKit / Chromium / Edge
+  &::-webkit-scrollbar
+    width: 11px
+  &::-webkit-scrollbar-track
+    background: transparent
+  &::-webkit-scrollbar-thumb
+    background: #CBD5E1
+    border-radius: 9px
+    border: 3px solid #FFFFFF
+    &:hover
+      background: #94A3B8
+
+// One option row. Caller supplies the content (label / sub / pills).
+.item
+  display: flex
+  align-items: center
+  gap: 10px
+  width: 100%
+  text-align: left
+  padding: 8px 10px
+  border: none
+  border-radius: 7px
+  background: transparent
+  color: #0F172A
+  cursor: pointer
+  font-size: 14px
+  transition: background-color 0.12s ease, color 0.12s ease
+  &:hover
+    background: #F1F5F9
+  &:disabled
+    color: #9CA3AF
+    cursor: not-allowed
+    &:hover
+      background: transparent
+
+// Currently-selected option (single-select) — bolder; pair with a check icon.
+.itemSelected
+  font-weight: 600
+
+// A sticky group heading (e.g. CourseTagPicker's year-level buckets).
+.group
+  position: sticky
+  top: 0
+  z-index: 1
+  background: #FFFFFF
+  padding: 8px 10px 4px
+  font-size: 11px
+  font-weight: 600
+  letter-spacing: 0.04em
+  text-transform: uppercase
+  color: #94A3B8

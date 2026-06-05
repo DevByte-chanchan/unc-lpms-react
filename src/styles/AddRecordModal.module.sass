@@ -2,18 +2,35 @@
 // Faculty, Programs, and Industry Consultants. Fields are driven by
 // the `fields` prop passed in by the calling page.
 
+@keyframes recordOverlayIn
+  from
+    opacity: 0
+  to
+    opacity: 1
+
+@keyframes recordModalIn
+  from
+    opacity: 0
+    transform: translate(-50%, -48%) scale(0.97)
+  to
+    opacity: 1
+    transform: translate(-50%, -50%) scale(1)
+
 .overlay
   position: fixed
   inset: 0
   background: rgba(0, 0, 0, 0.35)
   z-index: 2
+  animation: recordOverlayIn 0.18s ease
 
 .modal
   position: fixed
   top: 50%
   left: 50%
   transform: translate(-50%, -50%)
-  width: 540px
+  // Single-column form — keep it snug to the inputs (was 540px, too wide).
+  width: 440px
+  max-width: 94vw
   max-height: 86vh
   overflow-y: auto
   padding: 28px
@@ -24,11 +41,32 @@
   gap: 16px
   z-index: 3
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18)
+  animation: recordModalIn 0.22s cubic-bezier(0.4, 0, 0.2, 1)
 
 .title
   font-size: 20px
   font-weight: 600
   color: #111827
+
+// Two-column responsive grid for record fields. Fields opt in to a
+// half-width cell via .colHalf; everything else spans the full row.
+// Collapses to a single column on narrow screens.
+.grid
+  display: grid
+  grid-template-columns: repeat(2, minmax(0, 1fr))
+  gap: 16px
+
+.colFull
+  grid-column: 1 / -1
+
+.colHalf
+  grid-column: span 1
+
+@media (max-width: 520px)
+  .grid
+    grid-template-columns: 1fr
+  .colHalf
+    grid-column: 1 / -1
 
 .field
   display: flex
@@ -54,6 +92,12 @@
   &:focus
     outline: none
     border-color: #1F2937
+
+  // Sample/example placeholder text — light gray, slightly italic so it reads
+  // as a hint, not real input.
+  &::placeholder
+    color: #9CA3AF
+    font-style: italic
 
 .select
   // Replace the native dropdown arrow with a styled SVG chevron so we

@@ -24,7 +24,7 @@ export default (sequelize, DataTypes) =>
         autoIncrement: true,
       },
       label:       { type: DataTypes.STRING(64),  allowNull: false, unique: true },
-      school_year: { type: DataTypes.STRING(16),  allowNull: false },
+      school_year: { type: DataTypes.STRING(10),  allowNull: false },
       semester:    { type: DataTypes.STRING(16),  allowNull: false },
       is_active:   { type: DataTypes.BOOLEAN,     allowNull: false, defaultValue: false },
       sort_order:  { type: DataTypes.INTEGER,     allowNull: false, defaultValue: 0 },
