@@ -2,9 +2,16 @@ import React, { useState, useRef, useEffect } from 'react';
 import SkeletonA from '../../../layouts/SkeletonA.jsx';
 import HeaderA from '../../../components/HeaderA.jsx';
 import SideNavigation from '../../../components/SideNavigation.jsx';
-import { Upload, Clipboard } from 'react-feather';
+import PDFViewerModal from '../../../components/PDFViewerModal.jsx';
+import { Upload, Clipboard, Eye } from 'react-feather';
 import coaepStyles from '../../../styles/COAEPUpload.module.sass';
 import * as XLSX from 'xlsx';
+
+const A4_PAPER = {
+  maxWidth: 816, margin: '0 auto', background: '#FFFFFF',
+  boxShadow: '0 2px 12px rgba(0,0,0,0.08)', padding: 40,
+  fontFamily: "'Poppins', 'Times New Roman', serif",
+};
 
 const UploadButton = ({ onClick, hasUploaded }) => (
     <button
@@ -44,6 +51,7 @@ const COAEPUpload = () => {
     const [selectedFile, setSelectedFile] = useState(null);
     const [parsedData, setParsedData] = useState(null);
     const [error, setError] = useState(null);
+    const [previewOpen, setPreviewOpen] = useState(false);
     const fileInputRef = useRef(null);
 
     useEffect(() => {
@@ -270,9 +278,16 @@ const COAEPUpload = () => {
     const pageContent = (
         <div style={{ padding: 20, background: '#FFFFFF', minHeight: 'calc(100vh - 100px)', display: 'flex', flexDirection: 'column' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
-                <h2 style={{ margin: 0 }}>Course Assessment & Evaluation Plan (COAEP)</h2>
+                <h2 style={{ margin: 0, fontWeight: 600 }}>Course Assessment & Evaluation Plan (COAEP)</h2>
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 10 }}>
-                    <UploadButton onClick={() => { setShowModal(true); setSelectedFile(null); }} hasUploaded={showTable} />
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                        {showTable && (
+                            <button onClick={() => setPreviewOpen(true)} style={{ display: 'flex', flexDirection: 'row', justifyContent: 'center', alignItems: 'center', padding: '8px 18px', gap: 8, height: 40, background: '#1F2937', borderRadius: 6, color: '#fff', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                                <Eye size={18} /> View COAEP
+                            </button>
+                        )}
+                        <UploadButton onClick={() => { setShowModal(true); setSelectedFile(null); }} hasUploaded={showTable} />
+                    </div>
                 </div>
             </div>
 
@@ -283,46 +298,13 @@ const COAEPUpload = () => {
             )}
 
             {showTable && parsedData && (
-                <>
-                    {/* Table Container */}
-                    <div className={coaepStyles.coaepContainer}>
-                        <table className={coaepStyles.coaepTable}>
-                            <colgroup>
-                                <col style={{ width: 260 }} />
-                                <col style={{ width: 360 }} />
-                                <col style={{ width: 200 }} />
-                                <col style={{ width: 360 }} />
-                            </colgroup>
-                            <thead>
-                                <tr>
-                                    <th className={coaepStyles.coaepHeader}>Course Outcome Statement</th>
-                                    <th className={coaepStyles.coaepHeader}>Intended Learning Outcome</th>
-                                    <th className={coaepStyles.coaepHeader}>Assessment Tool</th>
-                                    <th className={coaepStyles.coaepHeader}>Performance Target</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {parsedData.cos.map((co, coIdx) => (
-                                    <React.Fragment key={coIdx}>
-                                        {co.ilos.map((ilo, iloIdx) => (
-                                            <tr key={`${coIdx}-${iloIdx}`}>
-                                                {iloIdx === 0 ? (
-                                                    <td className={coaepStyles.coaepCell} rowSpan={co.ilos.length}>
-                                                        <div className={coaepStyles.boldText}>{co.number}.</div>
-                                                        <div>{co.statement}</div>
-                                                    </td>
-                                                ) : null}
-                                                <td className={coaepStyles.coaepCell}>{ilo.outcome}</td>
-                                                <td className={`${coaepStyles.coaepCell} ${iloIdx > 0 ? coaepStyles.indentCell : ''}`}>{ilo.assessmentTool}</td>
-                                                <td className={`${coaepStyles.coaepCell} ${iloIdx > 0 ? coaepStyles.indentCell : ''}`}>{ilo.performanceTarget}</td>
-                                            </tr>
-                                        ))}
-                                    </React.Fragment>
-                                ))}
-                            </tbody>
-                        </table>
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
+                    <div style={{ width: 92, height: 92, borderRadius: 12, background: '#F3F4F6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <Clipboard size={40} color="#9CA3AF" />
                     </div>
-                </>
+                    <div style={{ fontSize: 18, fontWeight: 600, color: '#111827' }}>COAEP ready for preview</div>
+                    <div style={{ color: '#6B7280', textAlign: 'center', maxWidth: 420 }}>Your COAEP file has been uploaded successfully. Click "View COAEP" to see the table in the document viewer.</div>
+                </div>
             )}
 
             {!showTable && !error && (
@@ -371,6 +353,55 @@ const COAEPUpload = () => {
                         </div>
                     </div>
                 </div>
+            )}
+
+            {previewOpen && parsedData && (
+                <PDFViewerModal
+                    file={{ file_name: 'COAEP — Course Assessment & Evaluation Plan' }}
+                    kind="COAEP"
+                    onClose={() => setPreviewOpen(false)}
+                    onExport={() => {}}
+                >
+                    <div style={A4_PAPER}>
+                        <div style={{ textAlign: 'center', marginBottom: 24, borderBottom: '2px solid #1e3a5f', paddingBottom: 14 }}>
+                            <div style={{ fontSize: 16, fontWeight: 700, color: '#1e3a5f', letterSpacing: '0.03em' }}>COURSE ASSESSMENT & EVALUATION PLAN</div>
+                            <div style={{ fontSize: 12, color: '#64748B', marginTop: 4 }}>{parsedData.header.facultyName} &middot; {parsedData.header.course} &middot; {parsedData.header.schoolYear} ({parsedData.header.semester})</div>
+                        </div>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid #CBD5E1', fontSize: 11.5 }}>
+                            <thead>
+                                <tr style={{ background: '#1e3a5f', color: '#FFFFFF' }}>
+                                    <th style={{ padding: '10px 12px', border: '1px solid #334155', fontWeight: 600, textAlign: 'left' }}>Course Outcome Statement</th>
+                                    <th style={{ padding: '10px 12px', border: '1px solid #334155', fontWeight: 600, textAlign: 'left' }}>Intended Learning Outcome</th>
+                                    <th style={{ padding: '10px 12px', border: '1px solid #334155', fontWeight: 600, textAlign: 'left' }}>Assessment Tool</th>
+                                    <th style={{ padding: '10px 12px', border: '1px solid #334155', fontWeight: 600, textAlign: 'left' }}>Performance Target</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {parsedData.cos.map((co, coIdx) => (
+                                    <React.Fragment key={coIdx}>
+                                        {co.ilos.map((ilo, iloIdx) => (
+                                            <tr key={`${coIdx}-${iloIdx}`} style={{ background: iloIdx % 2 === 0 ? '#FFFFFF' : '#F8FAFC' }}>
+                                                {iloIdx === 0 ? (
+                                                    <td style={{ padding: '8px 12px', border: '1px solid #E2E8F0', verticalAlign: 'top', fontWeight: 600 }} rowSpan={co.ilos.length}>
+                                                        {co.number}. {co.statement}
+                                                    </td>
+                                                ) : null}
+                                                <td style={{ padding: '8px 12px', border: '1px solid #E2E8F0' }}>{ilo.outcome}</td>
+                                                <td style={{ padding: '8px 12px', border: '1px solid #E2E8F0' }}>{ilo.assessmentTool}</td>
+                                                <td style={{ padding: '8px 12px', border: '1px solid #E2E8F0' }}>{ilo.performanceTarget}</td>
+                                            </tr>
+                                        ))}
+                                    </React.Fragment>
+                                ))}
+                            </tbody>
+                        </table>
+                        <div style={{ marginTop: 20, display: 'flex', justifyContent: 'space-between', fontSize: 10, color: '#64748B', borderTop: '1px solid #E2E8F0', paddingTop: 12 }}>
+                            <span>Prepared by: {parsedData.header.preparedBy}</span>
+                            <span>Approved by: {parsedData.header.approvedBy}</span>
+                            <span>Date: {parsedData.header.dateSubmitted}</span>
+                        </div>
+                    </div>
+                </PDFViewerModal>
             )}
         </div>
     );

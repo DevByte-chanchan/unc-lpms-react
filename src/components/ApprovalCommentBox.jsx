@@ -17,7 +17,8 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
     recipientRole: '',
     coverageType: '',
     courseOutcome: '',
-    ilo: ''
+    ilo: '',
+    coverageDetail: ''
   })
 
   const [comments, setComments] = useState([defaultComment()])
@@ -185,7 +186,11 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
   }
 
   const updateCommentCoverageType = (commentId, coverageType) => {
-    setComments((prev) => prev.map((c) => (c.id === commentId ? { ...c, coverageType } : c)))
+    setComments((prev) => prev.map((c) => (c.id === commentId ? { ...c, coverageType, coverageDetail: '' } : c)))
+  }
+
+  const updateCommentCoverageDetail = (commentId, coverageDetail) => {
+    setComments((prev) => prev.map((c) => (c.id === commentId ? { ...c, coverageDetail } : c)))
   }
 
   const updateCommentIlo = (commentId, ilo) => {
@@ -218,12 +223,12 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
     const hasInvalidComments = comments.some((c) => {
       const hasText = c.text && c.text.trim()
       const comps = c.components || {}
-      const courseCoverageChecked = !!(comps.topics || comps.references || comps.tlas)
-      const hasComponent = courseCoverageChecked
+      const iloChecked = !!(comps.topics || comps.references || comps.tlas)
+      const hasComponent = iloChecked
       
       if (hasText && !hasComponent) return true
       
-      if (courseCoverageChecked) {
+      if (iloChecked) {
         const hasValidCourseData = c.courseOutcome ? !!c.ilo : !!c.coverageType
         if (!hasValidCourseData) return true
       }
@@ -240,7 +245,7 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
     const payload = {
       courseOutcome: filledComments.find((c) => c.courseOutcome)?.courseOutcome || null,
       ilo: filledComments.find((c) => c.ilo)?.ilo || null,
-      courseCoverage: filledComments.some((c) => c.components.topics || c.components.references || c.components.tlas),
+      hasIlo: filledComments.some((c) => c.components.topics || c.components.references || c.components.tlas),
       comments: filledComments,
       suggestedReferences: selectedRefs,
       createdAt: new Date().toISOString()
@@ -256,12 +261,12 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
   const allCommentsValid = commentsWithText.length > 0 && !comments.some((c) => {
     const hasText = c.text && c.text.trim()
     const comps = c.components || {}
-    const courseCoverageChecked = !!(comps.topics || comps.references || comps.tlas)
-    const hasComponent = courseCoverageChecked
+    const iloChecked = !!(comps.topics || comps.references || comps.tlas)
+    const hasComponent = iloChecked
     
     if (hasText && !hasComponent) return true
     
-    if (courseCoverageChecked) {
+    if (iloChecked) {
       const hasValidCourseData = c.courseOutcome ? !!c.ilo : !!c.coverageType
       if (!hasValidCourseData) return true
     }
@@ -390,7 +395,7 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
             <div className={styles.commentListWrapper}>
               <div className={styles.commentList}>
                 {comments.map((c, idx) => {
-                  const courseCoverageSelected = !!(c.components && c.components.topics && c.components.references && c.components.tlas)
+                  const iloSelected = !!(c.components && c.components.topics && c.components.references && c.components.tlas)
                   return (
                     <div key={c.id} className={styles.commentItem}>
                       {comments.length > 1 && (
@@ -408,7 +413,7 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
                           <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                             <input
                               type="checkbox"
-                              checked={courseCoverageSelected}
+                              checked={iloSelected}
                               onChange={() =>
                                 setComments((prev) =>
                                   prev.map((item) =>
@@ -437,7 +442,7 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginBottom: 8 }}>
                           <div className={styles.field}>
                             <label className={styles.label}>Course Outcome Number</label>
-                            <select className={styles.select} value={c.courseOutcome} onChange={(e) => updateCommentCourseOutcome(c.id, e.target.value)} disabled={!courseCoverageSelected}>
+                            <select className={styles.select} value={c.courseOutcome} onChange={(e) => updateCommentCourseOutcome(c.id, e.target.value)} disabled={!iloSelected}>
                               <option value="">-- select course outcome --</option>
                               {resolvedCourseOutcomes.map((co) => (
                                 <option key={co.id || co} value={co.id || co}>
@@ -449,7 +454,7 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
 
                           <div className={styles.field}>
                             <label className={styles.label}>Intended Learning Outcome (ILO)</label>
-                            <select className={styles.select} value={c.ilo} onChange={(e) => updateCommentIlo(c.id, e.target.value)} disabled={!courseCoverageSelected || !c.courseOutcome}>
+                            <select className={styles.select} value={c.ilo} onChange={(e) => updateCommentIlo(c.id, e.target.value)} disabled={!iloSelected || !c.courseOutcome}>
                               <option value="">-- select ILO --</option>
                               {((c.courseOutcome && coToIlos[c.courseOutcome]) || resolvedIlos).map((i) => (
                                 <option key={i} value={i}>{i}</option>
@@ -459,13 +464,28 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
 
                           <div className={styles.field}>
                             <label className={styles.label}>Coverage Type</label>
-                            <select className={styles.select} value={c.coverageType} onChange={(e) => updateCommentCoverageType(c.id, e.target.value)} disabled={!courseCoverageSelected}>
+                            <select className={styles.select} value={c.coverageType} onChange={(e) => updateCommentCoverageType(c.id, e.target.value)} disabled={!iloSelected}>
                               <option value="">-- select type --</option>
                               <option value="Topic">Topic</option>
                               <option value="References">References</option>
                               <option value="TLA">TLA</option>
                             </select>
                           </div>
+
+                          {c.coverageType && (
+                            <div className={styles.field}>
+                              <label className={styles.label}>{c.coverageType === 'Topic' ? 'Topic' : c.coverageType === 'References' ? 'Reference' : 'TLA'} Details</label>
+                              <input
+                                type="text"
+                                className={styles.select}
+                                value={c.coverageDetail}
+                                onChange={(e) => updateCommentCoverageDetail(c.id, e.target.value)}
+                                placeholder={`Enter ${c.coverageType.toLowerCase()} details...`}
+                                disabled={!iloSelected}
+                                style={{ padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 13, fontFamily: "'Poppins', sans-serif", width: '100%', boxSizing: 'border-box' }}
+                              />
+                            </div>
+                          )}
                         </div>
 
                         <textarea className={styles.textarea} value={c.text} onChange={(e) => updateCommentText(c.id, e.target.value)} placeholder={'Enter your comment...'} rows={4} />

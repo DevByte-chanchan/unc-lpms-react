@@ -797,9 +797,9 @@ const ReferenceLibrary = () => {
                 {(viewRef.departments || []).length > 0 ? (
                   <div className={styles.modalRow}>
                     <span className={styles.modalLabel}>DEPARTMENT</span>
-                    <span className={styles.modalValue}>
+                    <span className={styles.modalValue} style={{ display: 'flex', flexWrap: 'nowrap', overflowX: 'auto', gap: 6 }}>
                       {(viewRef.departments || []).map((d, i) => (
-                        <span key={i} className={styles.deptBadge} style={{ backgroundColor: getDeptColor(d) + '1a', color: getDeptColor(d), borderLeft: `3px solid ${getDeptColor(d)}` }}>
+                        <span key={i} className={styles.deptBadge} style={{ backgroundColor: getDeptColor(d) + '1a', color: getDeptColor(d), borderLeft: `3px solid ${getDeptColor(d)}`, whiteSpace: 'nowrap' }}>
                           <span className={styles.deptBadgeShort}>{getDeptShort(d)}</span>
                           <span className={styles.deptBadgeFull}>{d}</span>
                         </span>
@@ -809,18 +809,6 @@ const ReferenceLibrary = () => {
                 ) : (
                   <div className={styles.modalRow}><span className={styles.modalLabel}>DEPARTMENT</span><span className={styles.modalValue} style={{ color: '#9ca3af', fontStyle: 'italic' }}>Not assigned</span></div>
                 )}
-                {(viewRef.usedInCourses || []).length > 0 ? (
-                  <div className={styles.modalRow}>
-                    <span className={styles.modalLabel}>USED IN COURSE(S)</span>
-                    <span className={styles.modalValue}>
-                      <div className={styles.courseGrid}>
-                        {(viewRef.usedInCourses || []).map((c, i) => (
-                          <span key={i} className={styles.courseCodeBadge}>{c}</span>
-                        ))}
-                      </div>
-                    </span>
-                  </div>
-                ) : null}
               </div>
 
               <div className={styles.modalSection}>

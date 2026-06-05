@@ -7,10 +7,15 @@ import { syllabiData } from '../data/syllabiData';
 import { exportSyllabusToPDF } from '../utils/pdfExport';
 import { getWorkflow } from '../utils/workflowHelpers';
 
+const getProgram = (code) => {
+  if (code && code.startsWith('IT ')) return 'Information Technology';
+  return 'Computer Science';
+};
+
 const CoursesTable = ({}) => {
 
     const [searchParams, setSearchParams] = useSearchParams();
-    const initialStatus = searchParams.get('status') || 'ALL';
+    const initialStatus = searchParams.get('status') || 'DRAFT';
 
     const currentYear = new Date().getFullYear();
     const startYear = 2000;
@@ -30,7 +35,7 @@ const CoursesTable = ({}) => {
         code: s.code,
         name: s.name,
         lastUpdated: s.update || 'TBA',
-        program: 'Computer Science',
+        program: getProgram(s.code),
         docsUploaded: 3,
         docsTotal: 3,
     }));
@@ -62,9 +67,9 @@ const CoursesTable = ({}) => {
         const effectiveIndex = stageIndex
 
         const reviewerStageMap = {
-            library_director: 'parallel_review',
             industry_consultant: 'parallel_review',
-            programHead: 'program_head',
+            library_director: 'parallel_review',
+            programHead: 'parallel_review',
             dean: 'dean',
         }
 
@@ -80,16 +85,16 @@ const CoursesTable = ({}) => {
             return ''
         }
 
-        const lib = checkStatus(wf.parallelReview?.library_director?.status, 'library_director')
         const ic = checkStatus(wf.parallelReview?.industry_consultant?.status, 'industry_consultant')
+        const lib = checkStatus(wf.parallelReview?.library_director?.status, 'library_director')
         const ph = checkStatus(wf.programHead?.status, 'programHead')
         const dean = checkStatus(wf.dean?.status, 'dean')
 
         return [
-            { role: 'Director of Libraries', status: lib },
-            { role: 'Industry Consultant', status: ic },
-            { role: 'Program Head', status: ph },
-            { role: 'Dean', status: dean },
+            { role: 'Industry Consultant',    name: 'Roberto Cruz',   status: ic },
+            { role: 'Director of Libraries',  name: 'Maria Santos',   status: lib },
+            { role: 'Program Head',           name: 'Junar Danila',   status: ph },
+            { role: 'Dean',                   name: 'Agnes Reyes',    status: dean },
         ]
     }
 
@@ -138,7 +143,7 @@ const CoursesTable = ({}) => {
         if (char === 'A') return 'Approved'
         if (char === 'P') return 'Pending'
         if (char === 'R') return 'Returned'
-        return '—'
+        return '\u2014'
     }
 
     const generatePDF = (course) => {
@@ -149,9 +154,9 @@ const CoursesTable = ({}) => {
     }
 
     const [statusPopup, setStatusPopup] = useState(null);
+    const [popupPos, setPopupPos] = useState(null);
 
     const filteredCourses = useMemo(() => {
-        if (selectedStatus === 'ALL') return Courses
         if (selectedStatus === 'PENDING') return Courses.filter(r => r.status === 'PENDING' || r.status === 'RETURNED')
         return Courses.filter(r => r.status === selectedStatus)
     }, [Courses, selectedStatus])
@@ -174,7 +179,6 @@ const CoursesTable = ({}) => {
                 <div className={'filter-container'}>
                     <p>Filter by <strong>Status</strong>:</p>
                     <select onChange={handleStatusChange} value={selectedStatus}>
-                        <option value="ALL">All ({Courses.length})</option>
                         <option value="DRAFT">Draft ({Courses.filter(r => r.status === 'DRAFT').length})</option>
                         <option value="PENDING">Pending ({Courses.filter(r => r.status === 'PENDING' || r.status === 'RETURNED').length})</option>
                         <option value="APPROVED">Approved ({Courses.filter(r => r.status === 'APPROVED').length})</option>
@@ -187,7 +191,7 @@ const CoursesTable = ({}) => {
                     <thead>
                         <tr>
                             <th width={150}>CODE</th>
-                            <th width={280}>COURSE NAME</th>
+                            <th width={250}>COURSE NAME</th>
                             <th width={130}>PROGRAM</th>
                             <th width={140}>LAST UPDATED</th>
                             <th width={110}>STATUS</th>
@@ -198,7 +202,7 @@ const CoursesTable = ({}) => {
                         {filteredCourses.map((row, index) => (
                             <tr key={index}>
                                 <td width={150}>{row.code}</td>
-                                <td width={280}>{row.name}</td>
+                                <td width={250}>{row.name}</td>
                                 <td width={130}>{row.program}</td>
                                 <td width={140}>{row.lastUpdated}</td>
                                 <td width={110}>{getStatusForCourse(row.status)}</td>
@@ -230,35 +234,40 @@ const CoursesTable = ({}) => {
                                         )}
                                         <div style={{ position: 'relative' }}>
                                             <button
-                                                onClick={(e) => { e.stopPropagation(); setStatusPopup(statusPopup === row.code ? null : row.code); }}
+                                                onClick={(e) => { e.stopPropagation(); const rect = e.target.getBoundingClientRect(); setPopupPos({ top: rect.bottom + 6, right: window.innerWidth - rect.right }); setStatusPopup(statusPopup === row.code ? null : row.code); }}
                                                 style={{
                                                     width: 28, height: 28, borderRadius: '50%',
                                                     background: '#f1f5f9', border: '1px solid #cbd5e1',
                                                     cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
                                                     padding: 0, color: '#64748b', fontSize: 14, fontWeight: 700,
                                                 }}
-                                                title="View reviewer statuses"
+                                                title="View approval status"
                                             >
                                                 ?
                                             </button>
-                                            {statusPopup === row.code && (
+                                            {statusPopup === row.code && popupPos && (
+                                                <>
+                                                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 9998 }} onClick={() => { setStatusPopup(null); setPopupPos(null); }} />
                                                 <div
                                                     style={{
-                                                        position: 'absolute', top: '100%', right: 0, marginTop: 6,
+                                                        position: 'fixed', top: popupPos.top, right: popupPos.right, marginTop: 0,
                                                         background: '#fff', border: '1px solid #e2e8f0', borderRadius: 10,
-                                                        boxShadow: '0 8px 24px rgba(0,0,0,0.12)', zIndex: 50,
-                                                        padding: '12px 0', minWidth: 200,
+                                                        boxShadow: '0 8px 24px rgba(0,0,0,0.12)', zIndex: 9999,
+                                                        padding: '12px 0', minWidth: 220,
                                                     }}
                                                     onClick={(e) => e.stopPropagation()}
                                                 >
                                                     <div style={{ padding: '0 14px 8px', fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.04em', borderBottom: '1px solid #e2e8f0' }}>
-                                                        Review Status
+                                                        Approval Chain
                                                     </div>
                                                     {row.reviewerStatuses.map((r, i) => (
-                                                        <div key={i} style={{ padding: '8px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-                                                            <div style={{ fontSize: 13, fontWeight: 500, color: '#334155' }}>{r.role}</div>
+                                                        <div key={i} style={{ padding: '10px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+                                                            <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                                                                <div style={{ fontSize: 13, fontWeight: 600, color: '#0F172A' }}>{r.name}</div>
+                                                                <div style={{ fontSize: 11, color: '#64748B', marginTop: 1 }}>{r.role}</div>
+                                                            </div>
                                                             <div style={{
-                                                                fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 99,
+                                                                fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 99, whiteSpace: 'nowrap',
                                                                 color: r.status === 'A' ? '#047857' : r.status === 'P' ? '#b45309' : r.status === 'R' ? '#dc2626' : '#94a3b8',
                                                                 background: r.status === 'A' ? '#ecfdf5' : r.status === 'P' ? '#fffbeb' : r.status === 'R' ? '#fef2f2' : '#f1f5f9',
                                                             }}>
@@ -268,13 +277,14 @@ const CoursesTable = ({}) => {
                                                     ))}
                                                     <div style={{ padding: '8px 14px 0', borderTop: '1px solid #e2e8f0', marginTop: 4, paddingTop: 8 }}>
                                                         <button
-                                                            onClick={() => setStatusPopup(null)}
+                                                            onClick={() => { setStatusPopup(null); setPopupPos(null); }}
                                                             style={{ width: '100%', padding: '6px 0', background: 'none', border: 'none', fontSize: 12, fontWeight: 600, color: '#64748b', cursor: 'pointer' }}
                                                         >
                                                             Close
                                                         </button>
                                                     </div>
                                                 </div>
+                                                </>
                                             )}
                                         </div>
                                     </div>

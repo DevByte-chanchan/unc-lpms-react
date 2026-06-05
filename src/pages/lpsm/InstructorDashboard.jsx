@@ -9,7 +9,11 @@ import { syllabiData, getSyllabusByCode } from '../../data/syllabiData.js';
 import { getWorkflow } from '../../utils/workflowHelpers.js';
 import { exportSyllabusToPDF } from '../../utils/pdfExport.js';
 
-// One-time fix: normalize all instructor names in localStorage
+const getProgram = (code) => {
+  if (code && code.startsWith('IT ')) return 'Information Technology';
+  return 'Computer Science';
+};
+
 (function fixInstructorNames() {
   const FLAG = 'lpsm_instructor_fix_v2'
   if (localStorage.getItem(FLAG)) return
@@ -59,21 +63,14 @@ const InstructorDashboard = () => {
       else if (stage === 'submitted') overallStatus = 'DRAFT';
       else overallStatus = 'Under-review';
 
-      const submittedDate = wf.submittedAt
-        ? new Date(wf.submittedAt).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' })
-        : '—';
-
-      const approvedDate = wf.dean?.completedAt
-        ? new Date(wf.dean.completedAt).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' })
-        : '';
+      const lastUpdated = s.update || 'TBA';
 
       return {
         code: s.code,
         name: s.name,
-        semester: `${s.year || ''} ${s.sem || ''}`.trim() || '—',
+        program: getProgram(s.code),
+        lastUpdated,
         overallStatus,
-        submittedDate,
-        approvedDate,
       };
     });
   }, [tick]);
@@ -109,10 +106,50 @@ const InstructorDashboard = () => {
     }
   };
 
+  const getStatusLabel = (status) => {
+    if (status === 'APPROVED') return 'Approved';
+    if (status === 'RETURNED') return 'Returned';
+    if (status === 'Under-review') return 'Under Review';
+    return 'Draft';
+  };
+
   const generatePDF = (course) => {
     const syllabus = getSyllabusByCode(course.code);
     if (syllabus) exportSyllabusToPDF(syllabus, course.code);
   };
+
+  const getReviewerStatuses = (code) => {
+    const wf = getWorkflow(code);
+    const stage = wf.currentStage || 'submitted';
+
+    const mapStatus = (raw, activeStages) => {
+      if (raw === 'done') return 'approved';
+      if (raw === 'returned') return 'returned';
+      return activeStages ? 'pending' : 'waiting';
+    };
+
+    const icStatus = mapStatus(wf.parallelReview?.industry_consultant?.status, stage === 'parallel_review' || stage === 'program_head' || stage === 'dean' || stage === 'approved');
+    const libStatus = mapStatus(wf.parallelReview?.library_director?.status, stage === 'parallel_review' || stage === 'program_head' || stage === 'dean' || stage === 'approved');
+    const phStatus = mapStatus(wf.programHead?.status, stage === 'program_head');
+    const deanStatus = mapStatus(wf.dean?.status, stage === 'dean');
+
+    return [
+      { role: 'Industry Consultant',    name: 'Roberto Cruz',   status: icStatus },
+      { role: 'Director of Libraries',  name: 'Maria Santos',   status: libStatus },
+      { role: 'Program Head',           name: 'Junar Danila',   status: phStatus },
+      { role: 'Dean',                   name: 'Agnes Reyes',    status: deanStatus },
+    ];
+  };
+
+  const getReviewStatusLabel = (status) => {
+    if (status === 'approved') return 'Approved';
+    if (status === 'pending') return 'Pending';
+    if (status === 'returned') return 'Returned';
+    return '\u2014';
+  };
+
+  const [statusPopup, setStatusPopup] = useState(null);
+  const [popupPos, setPopupPos] = useState(null);
 
   const content = (
     <div className={styles.container}>
@@ -180,46 +217,102 @@ const InstructorDashboard = () => {
         <table>
           <thead>
             <tr>
-              <th width={150}>CODE</th>
-              <th width={320}>COURSE NAME</th>
-              <th width={140}>SEMESTER</th>
-              <th width={150}>STATUS</th>
-              <th width={150}>{activeTab === 'approved' ? 'DATE APPROVED' : 'SUBMITTED'}</th>
-              {activeTab === 'approved' && <th width={120}>EXPORT</th>}
+              <th width={140}>CODE</th>
+              <th width={260}>COURSE NAME</th>
+              <th width={140}>PROGRAM</th>
+              <th width={140}>LAST UPDATED</th>
+              <th width={130}>STATUS</th>
               <th className={styles.fill}></th>
             </tr>
           </thead>
           <tbody>
             {filteredPackages.length === 0 ? (
-              <tr><td colSpan={activeTab === 'approved' ? 7 : 6} style={{ textAlign: 'center', padding: '60px 20px', color: '#9CA3AF' }}>No {tabs.find(t => t.id === activeTab)?.label.toLowerCase()} found.</td></tr>
+              <tr><td colSpan={6} style={{ textAlign: 'center', padding: '60px 20px', color: '#9CA3AF' }}>No {tabs.find(t => t.id === activeTab)?.label.toLowerCase()} found.</td></tr>
             ) : (filteredPackages.map((pkg, idx) => (
               <tr key={idx}>
-                <td width={150}>{pkg.code}</td>
-                <td width={320}>{pkg.name}</td>
-                <td width={140}>{pkg.semester}</td>
-                <td width={150}>
+                <td width={140}>{pkg.code}</td>
+                <td width={260}>{pkg.name}</td>
+                <td width={140}>{pkg.program}</td>
+                <td width={140}>{pkg.lastUpdated}</td>
+                <td width={130}>
                   <span className={`${styles.statusBadge} ${getStatusClass(pkg.overallStatus)}`}>
-                    {pkg.overallStatus === 'APPROVED' ? 'Approved' : pkg.overallStatus === 'RETURNED' ? 'Returned' : pkg.overallStatus}
+                    {getStatusLabel(pkg.overallStatus)}
                   </span>
                 </td>
-                <td width={150}>{activeTab === 'approved' ? pkg.approvedDate : pkg.submittedDate}</td>
-                {activeTab === 'approved' && (
-                  <td width={120}>
-                    <button
-                      onClick={() => generatePDF(pkg)}
-                      className={'actionLink'}
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', gap: '4px' }}
-                    >
-                      Export <Download size={18} />
-                    </button>
-                  </td>
-                )}
                 <td className={styles.fill}>
-                  <Link className="actionLink" to={`/role/instructor/courses/${encodeURIComponent(pkg.code)}`} state={{ fromTab: activeTab }}>
-                    View
-                    <ChevronRight size={18} />
-                  </Link>
-                </td>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'flex-end' }}>
+                    {activeTab === 'approved' && (
+                      <button
+                        onClick={() => generatePDF(pkg)}
+                        className={'actionLink'}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', gap: '4px', fontSize: 13, fontWeight: 500, color: '#111827' }}
+                      >
+                        Export <Download size={16} />
+                      </button>
+                    )}
+                    <Link className="actionLink" to={`/role/instructor/courses/${encodeURIComponent(pkg.code)}`} state={{ fromTab: activeTab }}
+                      style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 13, fontWeight: 500, textDecoration: 'none', color: '#111827' }}
+                    >
+                      View
+                      <ChevronRight size={16} />
+                    </Link>
+                    <div style={{ position: 'relative' }}>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); const rect = e.target.getBoundingClientRect(); setPopupPos({ top: rect.bottom + 6, right: window.innerWidth - rect.right }); setStatusPopup(statusPopup === pkg.code ? null : pkg.code); }}
+                        style={{
+                          width: 28, height: 28, borderRadius: '50%',
+                          background: '#f1f5f9', border: '1px solid #cbd5e1',
+                          cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          padding: 0, color: '#64748b', fontSize: 14, fontWeight: 700,
+                        }}
+                        title="View approval status"
+                      >
+                        ?
+                      </button>
+                      {statusPopup === pkg.code && popupPos && (
+                        <>
+                        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 9998 }} onClick={() => { setStatusPopup(null); setPopupPos(null); }} />
+                        <div
+                          style={{
+                            position: 'fixed', top: popupPos.top, right: popupPos.right, marginTop: 0,
+                            background: '#fff', border: '1px solid #e2e8f0', borderRadius: 10,
+                            boxShadow: '0 8px 24px rgba(0,0,0,0.12)', zIndex: 9999,
+                            padding: '12px 0', minWidth: 220,
+                          }}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <div style={{ padding: '0 14px 8px', fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.04em', borderBottom: '1px solid #e2e8f0' }}>
+                            Approval Chain
+                          </div>
+                          {getReviewerStatuses(pkg.code).map((r, i) => (
+                            <div key={i} style={{ padding: '10px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+                              <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                                <div style={{ fontSize: 13, fontWeight: 600, color: '#0F172A' }}>{r.name}</div>
+                                <div style={{ fontSize: 11, color: '#64748B', marginTop: 1 }}>{r.role}</div>
+                              </div>
+                              <div style={{
+                                fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 99, whiteSpace: 'nowrap',
+                                color: r.status === 'approved' ? '#047857' : r.status === 'pending' ? '#b45309' : r.status === 'returned' ? '#dc2626' : '#94a3b8',
+                                background: r.status === 'approved' ? '#ecfdf5' : r.status === 'pending' ? '#fffbeb' : r.status === 'returned' ? '#fef2f2' : '#f1f5f9',
+                              }}>
+                                {getReviewStatusLabel(r.status)}
+                              </div>
+                            </div>
+                          ))}
+                          <div style={{ padding: '8px 14px 0', borderTop: '1px solid #e2e8f0', marginTop: 4, paddingTop: 8 }}>
+                            <button
+                              onClick={() => { setStatusPopup(null); setPopupPos(null); }}
+                              style={{ width: '100%', padding: '6px 0', background: 'none', border: 'none', fontSize: 12, fontWeight: 600, color: '#64748b', cursor: 'pointer' }}
+                            >
+                              Close
+                            </button>
+                          </div>
+                        </div>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                  </td>
               </tr>
             )))}
           </tbody>

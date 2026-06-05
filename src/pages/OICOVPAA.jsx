@@ -10,6 +10,11 @@ import { exportSyllabusToPDF } from '../utils/pdfExport'
 import oicStyles from '../styles/OICOVPAA.module.scss'
 import tableStyles from '../styles/CoursesTable.module.sass'
 
+const getProgram = (code) => {
+  if (code && code.startsWith('IT ')) return 'Information Technology';
+  return 'Computer Science';
+};
+
 const OICOVPAA = () => {
   const navigate = useNavigate()
   const [searchTerm, setSearchTerm] = useState('')
@@ -35,12 +40,8 @@ const OICOVPAA = () => {
         return {
           code: s.code,
           name: s.name,
-          submittedDate: wf.submittedAt
-            ? new Date(wf.submittedAt).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' })
-            : '',
-          approvedDate: wf.dean?.completedAt
-            ? new Date(wf.dean.completedAt).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' })
-            : '',
+          program: getProgram(s.code),
+          lastUpdated: s.update || 'TBA',
         }
       })
   }, [tick])
@@ -73,7 +74,6 @@ const OICOVPAA = () => {
       nav={<SideNavigation mode="oic-ovpaa" />}
       content={
         <div className={oicStyles.container}>
-          {/* Title with year/sem dropdowns */}
           <div className={tableStyles.header}>
             <h2 style={{ margin: 0, fontWeight: 600, fontSize: 20, color: 'black' }}>APPROVED COURSES</h2>
             <div className={tableStyles.filterA}>
@@ -86,7 +86,6 @@ const OICOVPAA = () => {
             </div>
           </div>
 
-          {/* Stats Cards */}
           <div className={oicStyles.statsGrid}>
             <div className={oicStyles.statCard}>
               <div className={`${oicStyles.statIconWrap} ${oicStyles.statIconBlue}`}>
@@ -117,7 +116,6 @@ const OICOVPAA = () => {
             </div>
           </div>
 
-          {/* Search */}
           <div className={oicStyles.controlsBar}>
             <div className={oicStyles.searchWrapper} style={{ maxWidth: 'none', flex: 1 }}>
               <Search size={16} className={oicStyles.searchIconSvg} />
@@ -131,16 +129,15 @@ const OICOVPAA = () => {
             </div>
           </div>
 
-          {/* Table - same as other approvers approved view */}
           <div className={tableStyles['table-container']}>
             <table>
               <thead>
                 <tr>
                   <th width={150}>CODE</th>
-                  <th width={220}>COURSE NAME</th>
-                  <th width={140}>DATE SUBMITTED</th>
-                  <th width={140}>DATE APPROVED</th>
-                  <th width={140}>STATUS</th>
+                  <th width={250}>COURSE NAME</th>
+                  <th width={140}>PROGRAM</th>
+                  <th width={140}>LAST UPDATED</th>
+                  <th width={120}>STATUS</th>
                   <th width={120}>EXPORT</th>
                   <th className={tableStyles.fill}></th>
                 </tr>
@@ -149,19 +146,19 @@ const OICOVPAA = () => {
                 {filtered.length > 0 ? filtered.map((row, i) => (
                   <tr key={row.code}>
                     <td width={150}>{row.code}</td>
-                    <td width={220}>{row.name}</td>
-                    <td width={140}>{row.submittedDate}</td>
-                    <td width={140}>{row.approvedDate}</td>
-                    <td width={140}>
-                      <span style={getStatusBadgeStyle('approved')}>Approved</span>
+                    <td width={250}>{row.name}</td>
+                    <td width={140}>{row.program}</td>
+                    <td width={140}>{row.lastUpdated}</td>
+                    <td width={120}>
+                      <span style={getStatusBadgeStyle()}>Approved</span>
                     </td>
                     <td width={120}>
                       <button
                         onClick={() => generatePDF(row)}
                         className="actionLink"
-                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', gap: '4px' }}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', gap: '4px', fontSize: 13, fontWeight: 500, color: '#111827' }}
                       >
-                        Export <Download size={18} />
+                        Export <Download size={16} />
                       </button>
                     </td>
                     <td className={tableStyles.fill}>
@@ -169,6 +166,7 @@ const OICOVPAA = () => {
                         href="javascript:void(0)"
                         onClick={() => navigate(`/role/oic-ovpaa/courses/${encodeURIComponent(row.code)}?status=approved`)}
                         className="actionLink"
+                        style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 13, fontWeight: 500, textDecoration: 'none', color: '#111827' }}
                       >
                         View <ChevronRight size={18} />
                       </a>

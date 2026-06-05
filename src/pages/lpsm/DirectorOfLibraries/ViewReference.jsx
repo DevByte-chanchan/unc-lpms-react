@@ -81,6 +81,13 @@ const ViewReference = () => {
             <span className={styles.detailValue}>{ref.edition || '—'}</span>
           </div>
         </div>
+        {(ref.departments || []).length > 0 && (
+          <div className={styles.detailRow}>
+            <span className={styles.detailLabel}>DEPARTMENT</span>
+            <span className={styles.detailValue}>{(ref.departments || []).join(', ')}</span>
+          </div>
+        )}
+
         <div className={styles.detailRow}>
           <span className={styles.detailLabel}>UPLOAD DATE</span>
           <span className={styles.detailValue}>

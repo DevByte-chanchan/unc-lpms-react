@@ -28,6 +28,15 @@ const MetaRow = ({ icon, label, value }) => (
   </div>
 );
 
+const defaultExport = (file) => {
+  const a = document.createElement('a');
+  a.href = file.file_url;
+  a.download = file.file_name || 'document';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+};
+
 const PDFViewerModal = ({ file, kind, onClose, onExport }) => {
   React.useEffect(() => {
     const onKey = (e) => { if (e.key === 'Escape') onClose(); };
@@ -78,7 +87,7 @@ const PDFViewerModal = ({ file, kind, onClose, onExport }) => {
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0 }}>
             <button
               type="button"
-              onClick={() => onExport(file)}
+              onClick={() => (onExport || defaultExport)(file)}
               style={{
                 height: 36, padding: '0 14px', borderRadius: 8,
                 background: ACCENT, color: '#FFFFFF', border: 'none', cursor: 'pointer',

@@ -130,7 +130,7 @@ export const exportSyllabusToPDF = (syllabus, courseCode, workflow) => {
     }
 
     if (syllabus.topics && syllabus.topics.length > 0) {
-      addSectionTitle(doc, 'COURSE COVERAGE')
+      addSectionTitle(doc, 'INTENDED LEARNING OUTCOME')
       for (const topic of syllabus.topics) {
         checkPage(40)
         doc.setFontSize(10)

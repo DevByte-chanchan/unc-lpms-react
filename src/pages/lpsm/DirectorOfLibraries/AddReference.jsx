@@ -222,7 +222,7 @@ const AddReference = () => {
 
         <div className={styles.fieldGroup}>
           <label className={styles.label}>Department</label>
-          <div className={styles.checkboxGroup}>
+          <div className={styles.checkboxGroup} style={{ display: 'flex', flexWrap: 'nowrap', overflowX: 'auto', gap: 8 }}>
             {ALL_DEPARTMENTS.map(dept => (
               <label key={dept} className={styles.checkboxLabel}>
                 <input
@@ -236,28 +236,7 @@ const AddReference = () => {
           </div>
         </div>
 
-        <div className={styles.fieldGroup}>
-          <label className={styles.label}>Used in Course(s)</label>
-          <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
-            <input
-              type="text"
-              value={courseInput}
-              onChange={(e) => setCourseInput(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addCourse(); } }}
-              placeholder="e.g., BSCS313L"
-              style={{ flex: 1, padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 13, fontFamily: "'Poppins', sans-serif", outline: 'none' }}
-            />
-            <button onClick={addCourse} style={{ padding: '8px 16px', background: '#1e3a5f', color: 'white', border: 'none', borderRadius: 6, fontSize: 13, cursor: 'pointer' }}>Add</button>
-          </div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-            {formData.usedInCourses.map(code => (
-              <span key={code} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '4px 10px', background: '#fef3c7', color: '#b45309', borderRadius: 6, fontSize: 12, fontWeight: 500 }}>
-                {code}
-                <button onClick={() => removeCourse(code)} style={{ background: 'none', border: 'none', color: '#b45309', cursor: 'pointer', fontSize: 14, padding: 0, lineHeight: 1 }}>&times;</button>
-              </span>
-            ))}
-          </div>
-        </div>
+
 
         {isEditMode && (
           <div style={{ marginTop: 24, borderTop: '1px solid #e5e7eb', paddingTop: 16 }}>

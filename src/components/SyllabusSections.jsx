@@ -80,7 +80,8 @@ const SyllabusSections = ({status}) => {
                 submittedAt: existing.submittedAt || new Date().toISOString(),
                 parallelReview: {
                     library_director: { status: 'pending', completedAt: null },
-                    industry_consultant: { status: 'pending', completedAt: null }
+                    industry_consultant: { status: 'pending', completedAt: null },
+                    program_head: { status: 'pending', completedAt: null }
                 },
                 programHead: existing.programHead?.status === 'done' ? existing.programHead : { status: 'pending', completedAt: null },
                 dean: existing.dean?.status === 'done' ? existing.dean : { status: 'pending', completedAt: null }
@@ -89,7 +90,7 @@ const SyllabusSections = ({status}) => {
                 courseCode: code,
                 currentStage: 'parallel_review',
                 submittedAt: new Date().toISOString(),
-                parallelReview: { library_director: { status: 'pending', completedAt: null }, industry_consultant: { status: 'pending', completedAt: null } },
+                parallelReview: { library_director: { status: 'pending', completedAt: null }, industry_consultant: { status: 'pending', completedAt: null }, program_head: { status: 'pending', completedAt: null } },
                 programHead: { status: 'pending', completedAt: null },
                 dean: { status: 'pending', completedAt: null }
               }
@@ -247,7 +248,6 @@ const SyllabusSections = ({status}) => {
                         <option value="Topics">Topics & Teaching and Learning Activities</option>
                         <option value="Intended Learning Outcomes">Intended Learning Outcomes</option>
                         <option value="Assessments">Assessments</option>
-                        <option value="Criteria for Grading">Criteria for Grading</option>
                     </select>
                 </div>
 
@@ -717,14 +717,6 @@ const SyllabusSections = ({status}) => {
                                 </div>
                             </section>
                         }
-                        {selectedSection === 'Criteria for Grading' && (
-                            <section>
-                                <React.Suspense fallback={<div></div>}>
-                                    <CriteriaForm syllabusCode={code} />
-                                </React.Suspense>
-                            </section>
-                        )}
-
                         <SyllabusPreview
                             isOpen={isPreviewOpen}
                             onClose={() => setIsPreviewOpen(false)}

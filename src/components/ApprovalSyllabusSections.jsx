@@ -15,7 +15,6 @@ const defaultSections = [
   'Course and Program Outcome Alignment',
   'Intended Learning Outcome',
   'References',
-  'Criteria for Grading'
 ]
 
 const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', courseCode = '', embedded = false, externalSelectedSection = null, workflow: workflowProp = null }) => {
@@ -246,9 +245,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
         wf.parallelReview = wf.parallelReview || {}
         wf.parallelReview.industry_consultant = { status: 'done', completedAt: nowIso }
       }
-      if (roleKey === 'program-head') {
-        wf.programHead = { status: 'done', completedAt: nowIso }
-      }
+              wf.currentStage = 'returned'
       if (roleKey === 'dean') {
         wf.dean = { status: 'done', completedAt: nowIso }
       }
@@ -273,7 +270,8 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
             submittedAt: new Date().toISOString(),
             parallelReview: {
               library_director: { status: 'pending', completedAt: null },
-              industry_consultant: { status: 'pending', completedAt: null }
+              industry_consultant: { status: 'pending', completedAt: null },
+              program_head: { status: 'pending', completedAt: null }
             },
             programHead: existing.programHead?.status === 'done' ? existing.programHead : { status: 'pending', completedAt: null },
             dean: existing.dean?.status === 'done' ? existing.dean : { status: 'pending', completedAt: null }
@@ -284,7 +282,8 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
             submittedAt: new Date().toISOString(),
             parallelReview: {
               library_director: { status: 'pending', completedAt: null },
-              industry_consultant: { status: 'pending', completedAt: null }
+              industry_consultant: { status: 'pending', completedAt: null },
+              program_head: { status: 'pending', completedAt: null }
             },
             programHead: { status: 'pending', completedAt: null },
             dean: { status: 'pending', completedAt: null }
@@ -306,8 +305,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
     const stage = wf?.currentStage || 'submitted'
     if (stage === 'returned') return roleKey === 'instructor' || roleKey === 'director-of-libraries' || roleKey === 'industry-consultant'
     if (stage === 'submitted') return roleKey === 'instructor'
-    if (stage === 'parallel_review') return roleKey === 'director-of-libraries' || roleKey === 'industry-consultant'
-    if (stage === 'program_head') return roleKey === 'program-head'
+    if (stage === 'parallel_review') return roleKey === 'director-of-libraries' || roleKey === 'industry-consultant' || roleKey === 'program-head'
     if (stage === 'dean') return roleKey === 'dean'
     return false
   }
@@ -921,80 +919,6 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
               </section>
             )}
 
-            {/* Criteria for Grading (copied) */}
-            {activeSelectedSection === 'Criteria for Grading' && (() => {
-              const gradingSystem = syllabus?.gradingSystem || []
-
-              const calculateTotalLocal = (period) => {
-                let total = 0
-                gradingSystem.forEach(group => {
-                  if (group.ilos) {
-                    group.ilos.forEach(ilo => { total += Number(ilo.weight?.[period] || 0) })
-                  }
-                })
-                return total
-              }
-
-              return (
-                <section ref={criteriaRef}>
-                  <div className={styles.criteriaContainer}>
-                    <div className={styles.tableScrollWrapper}>
-                      <table className={styles.criteriaTable}>
-                        <thead>
-                          <tr>
-                            <th rowSpan="2" className={styles.headerCell} style={{ width: '100px' }}>COURSE OUTCOME</th>
-                            <th rowSpan="2" className={styles.headerCell} style={{ width: '80px' }}>ILO #</th>
-                            <th rowSpan="2" className={styles.headerCell}>ASSESSMENTS</th>
-                            <th colSpan="4" className={styles.headerCell}>WEIGHT %</th>
-                            <th rowSpan="2" className={styles.headerCell}>MIN PASSING %</th>
-                          </tr>
-                          <tr className={styles.subHeaderRow}>
-                            <th className={styles.subHeader}>Prelim</th>
-                            <th className={styles.subHeader}>Midterm</th>
-                            <th className={styles.subHeader}>Semi</th>
-                            <th className={styles.subHeader}>Final</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {gradingSystem.length > 0 && (
-                            gradingSystem.map((group) => (
-                              <React.Fragment key={group.co}>
-                                {group.ilos.map((ilo, index) => (
-                                  <tr key={`${group.co}-${ilo.id}`}>
-                                    {index === 0 && (
-                                      <td rowSpan={group.ilos.length} className={styles.coCell}><strong>{group.co}</strong></td>
-                                    )}
-                                    <td className={styles.dataCellCenter}><span style={{ fontWeight: '500' }}>{ilo.id}</span></td>
-                                    <td className={styles.dataCellCenter}>{Array.isArray(ilo.assessments) ? ilo.assessments.join(', ') : ilo.assessments}</td>
-                                    <td className={styles.dataCellCenter}>{ilo.weight?.prelim || ''}</td>
-                                    <td className={styles.dataCellCenter}>{ilo.weight?.midterm || ''}</td>
-                                    <td className={styles.dataCellCenter}>{ilo.weight?.semi || ''}</td>
-                                    <td className={styles.dataCellCenter}>{ilo.weight?.final || ''}</td>
-                                    <td className={styles.dataCellCenter}>{ilo.minPassing}</td>
-                                  </tr>
-                                ))}
-                              </React.Fragment>
-                            ))
-                          )}
-                          {gradingSystem.length === 0 && (
-                            <tr><td colSpan="8" style={{textAlign: 'center', padding: '20px'}}>No grading criteria available.</td></tr>
-                          )}
-                          <tr className={styles.totalRow}>
-                            <td colSpan="3" className={styles.totalLabel}>TOTAL</td>
-                            <td className={styles.dataCellCenter}>{calculateTotalLocal('prelim')}%</td>
-                            <td className={styles.dataCellCenter}>{calculateTotalLocal('midterm')}%</td>
-                            <td className={styles.dataCellCenter}>{calculateTotalLocal('semi')}%</td>
-                            <td className={styles.dataCellCenter}>{calculateTotalLocal('final')}%</td>
-                            <td></td>
-                          </tr>
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                </section>
-              )
-            })()}
-
             {/* Reference suggestions for instructor */}
             {roleKey === 'instructor' && activeSelectedSection === 'References' && suggestions.filter(s => s.status === 'pending').length > 0 && (
               <div style={{ marginTop: 24, padding: '16px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8 }}>
@@ -1020,7 +944,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
           </div>
         </div>
 
-        {!embedded && (
+        {!embedded && activeSelectedSection === 'Intended Learning Outcome' && (
           <div style={{ display: 'flex', alignItems: 'stretch', height: '100%', flexShrink: 0 }}>
             <button onClick={() => setSidebarCollapsed(c => !c)} style={{
               width: 28, border: 'none', borderLeft: '1px solid #e2e8f0', background: '#fafafa',

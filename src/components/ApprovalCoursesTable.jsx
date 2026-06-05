@@ -6,6 +6,11 @@ import { getWorkflow } from '../utils/workflowHelpers'
 import { exportSyllabusToPDF } from '../utils/pdfExport';
 import { syllabiData, getSyllabusByCode } from '../data/syllabiData.js'
 
+const getProgram = (code) => {
+  if (code && code.startsWith('IT ')) return 'Information Technology';
+  return 'Computer Science';
+};
+
 const ApprovalCoursesTable = ({ role = 'approver' }) => {
   const currentYear = new Date().getFullYear()
   const startYear = 2000
@@ -21,15 +26,14 @@ const ApprovalCoursesTable = ({ role = 'approver' }) => {
     return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' })
   }
 
-  // ── COURSE DATA ─────────────────────────────────────────────────────
-  // All courses from unified syllabiData — statuses derived live from workflow
   const baseCourses = syllabiData.map(s => ({
     code: s.code,
     name: s.name,
+    program: getProgram(s.code),
+    lastUpdated: s.update || 'TBA',
     instructor: 'Danny Casimero'
   }))
 
-  // ── DERIVE STATUS FROM WORKFLOW ─────────────────────────────────────
   const getReviewerStatuses = (courseCode) => {
     const wf = getWorkflow(courseCode)
     const stage = wf.currentStage || 'submitted'
@@ -40,16 +44,16 @@ const ApprovalCoursesTable = ({ role = 'approver' }) => {
       return activeStages ? 'pending' : 'waiting'
     }
 
-    const libStatus = mapStatus(wf.parallelReview?.library_director?.status, stage === 'parallel_review' || stage === 'program_head' || stage === 'dean' || stage === 'approved')
     const icStatus = mapStatus(wf.parallelReview?.industry_consultant?.status, stage === 'parallel_review' || stage === 'program_head' || stage === 'dean' || stage === 'approved')
+    const libStatus = mapStatus(wf.parallelReview?.library_director?.status, stage === 'parallel_review' || stage === 'program_head' || stage === 'dean' || stage === 'approved')
     const phStatus = mapStatus(wf.programHead?.status, stage === 'program_head')
     const deanStatus = mapStatus(wf.dean?.status, stage === 'dean')
 
     return [
-      { role: 'Director of Libraries', name: 'Maria Santos', status: libStatus, completedAt: wf.parallelReview?.library_director?.completedAt },
-      { role: 'Industry Consultant', name: 'Roberto Cruz', status: icStatus, completedAt: wf.parallelReview?.industry_consultant?.completedAt },
-      { role: 'Program Head', name: 'Junar Danila', status: phStatus, completedAt: wf.programHead?.completedAt },
-      { role: 'Dean', name: 'Agnes Reyes', status: deanStatus, completedAt: wf.dean?.completedAt },
+      { role: 'Industry Consultant',    name: 'Roberto Cruz',   status: icStatus,  completedAt: wf.parallelReview?.industry_consultant?.completedAt },
+      { role: 'Director of Libraries',  name: 'Maria Santos',   status: libStatus, completedAt: wf.parallelReview?.library_director?.completedAt },
+      { role: 'Program Head',           name: 'Junar Danila',   status: phStatus,  completedAt: wf.programHead?.completedAt },
+      { role: 'Dean',                   name: 'Agnes Reyes',    status: deanStatus, completedAt: wf.dean?.completedAt },
     ]
   }
 
@@ -61,18 +65,6 @@ const ApprovalCoursesTable = ({ role = 'approver' }) => {
     return 'PENDING'
   }
 
-  const getSubmittedDate = (courseCode) => {
-    const wf = getWorkflow(courseCode)
-    return fmt(wf.submittedAt)
-  }
-
-  const getApprovedDate = (courseCode) => {
-    const wf = getWorkflow(courseCode)
-    if (wf.currentStage === 'approved') return fmt(wf.dean?.completedAt)
-    return ''
-  }
-
-  // Force re-render on interval to catch workflow changes
   const [tick, setTick] = useState(0)
   React.useEffect(() => {
     const interval = setInterval(() => setTick(t => t + 1), 2000)
@@ -84,8 +76,6 @@ const ApprovalCoursesTable = ({ role = 'approver' }) => {
       .map(c => ({
         ...c,
         status: getOverallStatus(c.code),
-        submittedDate: getSubmittedDate(c.code),
-        approved: getApprovedDate(c.code),
         reviewers: getReviewerStatuses(c.code)
       }))
       .filter(c => c.status !== 'DRAFT')
@@ -127,14 +117,12 @@ const ApprovalCoursesTable = ({ role = 'approver' }) => {
     return statusParam ? `${base}?status=${encodeURIComponent(statusParam)}` : base
   }
 
-  const reviewerRoles = ['Director of Libraries', 'Industry Consultant', 'Program Head', 'Dean']
-
   const mapStatusToLabel = (status) => {
     if (!status) return ''
     const s = status.toLowerCase()
     if (s === 'approved' || s === 'done') return 'Approved'
     if (s === 'pending') return 'Pending'
-    if (s === 'waiting') return '—'
+    if (s === 'waiting') return '\u2014'
     if (s === 'revision' || s === 'returned') return 'Returned'
     return status
   }
@@ -148,8 +136,20 @@ const ApprovalCoursesTable = ({ role = 'approver' }) => {
     return {}
   }
 
+  const getCourseStatusBadge = (statusKey) => {
+    switch (statusKey) {
+      case 'APPROVED': return <span style={{ color: '#047857', background: '#ecfdf5', padding: '3px 10px', borderRadius: 99, fontWeight: 600, fontSize: 12 }}>Approved</span>
+      case 'PENDING': return <span style={{ color: '#b45309', background: '#fffbeb', padding: '3px 10px', borderRadius: 99, fontWeight: 600, fontSize: 12 }}>Pending</span>
+      case 'RETURNED': return <span style={{ color: '#dc2626', background: '#fef2f2', padding: '3px 10px', borderRadius: 99, fontWeight: 600, fontSize: 12 }}>Returned</span>
+      default: return <span style={{ color: '#6b7280', background: '#f3f4f6', padding: '3px 10px', borderRadius: 99, fontWeight: 600, fontSize: 12 }}>Draft</span>
+    }
+  }
+
   const pendingCourses = Courses.filter(r => r.status === 'PENDING' || r.status === 'RETURNED')
   const approvedCourses = Courses.filter(r => r.status === 'APPROVED')
+
+  const [statusPopup, setStatusPopup] = useState(null);
+  const [popupPos, setPopupPos] = useState(null);
 
   return (
     <div className={styles['courses-table']}>
@@ -174,115 +174,110 @@ const ApprovalCoursesTable = ({ role = 'approver' }) => {
       </div>
 
       <div className={styles['table-container']}>
-        {selectedStatus === 'APPROVED' && (
-          <table>
-            <thead>
-                <tr>
-                  <th width={150}>CODE</th>
-                  <th width={220}>COURSE NAME</th>
-                  <th width={140}>DATE SUBMITTED</th>
-                  <th width={140}>DATE APPROVED</th>
-                  <th width={140}>STATUS</th>
-                  {role === 'dean' && <th width={120}>EXPORT</th>}
-                  <th className={styles.fill}></th>
-                </tr>
-              </thead>
-              <tbody>
-                {approvedCourses.length > 0 ? approvedCourses.map((row, i) => (
-                  <tr key={i}>
-                    <td width={150}>{row.code}</td>
-                    <td width={220}>{row.name}</td>
-                    <td width={140}>{row.submittedDate}</td>
-                    <td width={140}>{row.approved}</td>
-                    <td width={140}><span style={getStatusBadgeStyle('approved')}>Approved</span></td>
-                    {role === 'dean' && (
-                      <td width={120}>
-                      <button 
-                        onClick={() => generatePDF(row)}
-                        className={'actionLink'}
-                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', gap: '4px' }}
-                      >
-                        Export <Download size={18} />
-                      </button>
-                    </td>
-                  )}
+        <table>
+          <thead>
+            <tr>
+              <th width={150}>CODE</th>
+              <th width={220}>COURSE NAME</th>
+              <th width={140}>PROGRAM</th>
+              <th width={140}>LAST UPDATED</th>
+              <th width={120}>STATUS</th>
+              <th className={styles.fill}></th>
+            </tr>
+          </thead>
+          <tbody>
+            {(selectedStatus === 'PENDING' ? pendingCourses : approvedCourses).length > 0 ? (
+              (selectedStatus === 'PENDING' ? pendingCourses : approvedCourses).map((row, i) => (
+                <tr key={i}>
+                  <td width={150}>{row.code}</td>
+                  <td width={220}>{row.name}</td>
+                  <td width={140}>{row.program}</td>
+                  <td width={140}>{row.lastUpdated}</td>
+                  <td width={120}>{getCourseStatusBadge(row.status)}</td>
                   <td className={styles.fill}>
-                    <Link className={'actionLink'} to={getCourseLink(row, 'approved')}>
-                      View <ChevronRight size={18} />
-                    </Link>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'flex-end' }}>
+                      {selectedStatus === 'APPROVED' && role === 'dean' && (
+                        <button
+                          onClick={() => generatePDF(row)}
+                          className={'actionLink'}
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', gap: '4px', fontSize: 13, fontWeight: 500, color: '#111827' }}
+                        >
+                          Export <Download size={16} />
+                        </button>
+                      )}
+                      <Link className={'actionLink'} to={getCourseLink(row, selectedStatus === 'APPROVED' ? 'approved' : undefined)}
+                        style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 13, fontWeight: 500, textDecoration: 'none', color: '#111827' }}
+                      >
+                        View <ChevronRight size={16} />
+                      </Link>
+                      <div style={{ position: 'relative' }}>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); const rect = e.target.getBoundingClientRect(); setPopupPos({ top: rect.bottom + 6, right: window.innerWidth - rect.right }); setStatusPopup(statusPopup === row.code ? null : row.code); }}
+                          style={{
+                            width: 28, height: 28, borderRadius: '50%',
+                            background: '#f1f5f9', border: '1px solid #cbd5e1',
+                            cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            padding: 0, color: '#64748b', fontSize: 14, fontWeight: 700,
+                          }}
+                          title="View approval status"
+                        >
+                          ?
+                        </button>
+                        {statusPopup === row.code && popupPos && (
+                          <>
+                          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 9998 }} onClick={() => { setStatusPopup(null); setPopupPos(null); }} />
+                          <div
+                            style={{
+                              position: 'fixed', top: popupPos.top, right: popupPos.right, marginTop: 0,
+                              background: '#fff', border: '1px solid #e2e8f0', borderRadius: 10,
+                              boxShadow: '0 8px 24px rgba(0,0,0,0.12)', zIndex: 9999,
+                              padding: '12px 0', minWidth: 220,
+                            }}
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <div style={{ padding: '0 14px 8px', fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.04em', borderBottom: '1px solid #e2e8f0' }}>
+                              Approval Chain
+                            </div>
+                            {row.reviewers.map((r, i) => (
+                              <div key={i} style={{ padding: '10px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+                                <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                                  <div style={{ fontSize: 13, fontWeight: 600, color: '#0F172A' }}>{r.name}</div>
+                                  <div style={{ fontSize: 11, color: '#64748B', marginTop: 1 }}>{r.role}</div>
+                                </div>
+                                <div style={{
+                                  fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 99, whiteSpace: 'nowrap',
+                                  color: r.status === 'approved' ? '#047857' : r.status === 'pending' ? '#b45309' : r.status === 'returned' ? '#dc2626' : '#94a3b8',
+                                  background: r.status === 'approved' ? '#ecfdf5' : r.status === 'pending' ? '#fffbeb' : r.status === 'returned' ? '#fef2f2' : '#f1f5f9',
+                                }}>
+                                  {mapStatusToLabel(r.status)}
+                                </div>
+                              </div>
+                            ))}
+                            <div style={{ padding: '8px 14px 0', borderTop: '1px solid #e2e8f0', marginTop: 4, paddingTop: 8 }}>
+                              <button
+                                onClick={() => { setStatusPopup(null); setPopupPos(null); }}
+                                style={{ width: '100%', padding: '6px 0', background: 'none', border: 'none', fontSize: 12, fontWeight: 600, color: '#64748b', cursor: 'pointer' }}
+                              >
+                                Close
+                              </button>
+                            </div>
+                          </div>
+                          </>
+                        )}
+                      </div>
+                    </div>
                   </td>
                 </tr>
-              )) : (
-                <tr><td colSpan={role === 'dean' ? 7 : 6} style={{ textAlign: 'center', padding: 30, color: '#9ca3af' }}>No approved courses yet</td></tr>
-              )}
-            </tbody>
-          </table>
-        )}
-
-        {selectedStatus === 'PENDING' && (
-          <table>
-            <thead>
+              ))
+            ) : (
               <tr>
-                <th width={150}>CODE</th>
-                <th width={250}>COURSE NAME</th>
-                <th width={140}>DATE SUBMITTED</th>
-                <th className={styles.status} width={650}>STATUS</th>
-                <th className={styles.fill}></th>
+                <td colSpan={6} style={{ textAlign: 'center', padding: 30, color: '#9ca3af' }}>
+                  {selectedStatus === 'PENDING' ? 'All courses have been approved!' : 'No approved courses yet'}
+                </td>
               </tr>
-              <tr className={styles['sub-column']}>
-                <th width={150}></th>
-                <th width={250}></th>
-                <th width={140}></th>
-                {reviewerRoles.map((roleName, idx) => (
-                  <th key={idx} className={styles.lighten} width={162.5}>{roleName}</th>
-                ))}
-                <th className={styles.fill}></th>
-              </tr>
-            </thead>
-            <tbody>
-              {pendingCourses.length > 0 ? pendingCourses.map((row, i) => {
-                return (
-                  <tr key={i}>
-                    <td width={150}>{row.code}</td>
-                    <td width={250}>{row.name}</td>
-                    <td width={140}>{row.submittedDate}</td>
-
-                    {row.reviewers.map((r, idx) => {
-                      const isDean = r.role.toLowerCase() === 'dean'
-                      if (isDean) {
-                        const firstThreeApproved = row.reviewers
-                          .slice(0, 3)
-                          .every(rr => rr.status.toLowerCase() === 'approved')
-                        return (
-                          <td key={idx} className={styles.lighten} width={162.5}>
-                            <span style={getStatusBadgeStyle(firstThreeApproved ? r.status : 'waiting')}>
-                              {firstThreeApproved ? mapStatusToLabel(r.status) : '—'}
-                            </span>
-                          </td>
-                        )
-                      }
-                      return (
-                        <td key={idx} className={styles.lighten} width={162.5}>
-                          <span style={getStatusBadgeStyle(r.status)}>
-                            {mapStatusToLabel(r.status)}
-                          </span>
-                        </td>
-                      )
-                    })}
-
-                    <td className={styles.fill}>
-                      <Link className={'actionLink'} to={getCourseLink(row)}>
-                        View <ChevronRight size={18} />
-                      </Link>
-                    </td>
-                  </tr>
-                )
-              }) : (
-                <tr><td colSpan={8} style={{ textAlign: 'center', padding: 30, color: '#9ca3af' }}>All courses have been approved!</td></tr>
-              )}
-            </tbody>
-          </table>
-        )}
+            )}
+          </tbody>
+        </table>
       </div>
     </div>
   )

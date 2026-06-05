@@ -285,7 +285,6 @@ const SyllabusRevisionsSections = ({status}) => {
                                 <option value="Topics">Topics & Teaching and Learning Activities</option>
                                 <option value="Intended Learning Outcomes">Intended Learning Outcomes</option>
                                 <option value="Assessments">Assessments</option>
-                                <option value="Criteria for Grading">Criteria for Grading</option>
                             </select>
                         </div>
 
@@ -707,6 +706,7 @@ const SyllabusRevisionsSections = ({status}) => {
 
 
                 {/* Comments Sidebar - Section Specific */}
+                {selectedSection === 'Intended Learning Outcomes' && (
                 <aside style={{
                     position: 'sticky',
                     right: '0',
@@ -1009,6 +1009,7 @@ const SyllabusRevisionsSections = ({status}) => {
                         )}
                     </div>
                 </aside>
+                )}
             </div>
 
             {toast && (

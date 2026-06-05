@@ -94,8 +94,8 @@ const WorkflowStepper = ({ courseCode = '', workflow = null }) => {
       <div className={styles.parallelGroup}>
         <div className={styles.parallelLabel}>Parallel Review</div>
         <div className={styles.parallelSteps}>
-          <Step label="Director of Libraries" status={getStatusFor('library_director')} time={libDone} reviewer={REVIEWER_NAMES.library_director} isSub />
           <Step label="Industry Consultant" status={getStatusFor('industry_consultant')} time={icDone} reviewer={REVIEWER_NAMES.industry_consultant} isSub />
+          <Step label="Director of Libraries" status={getStatusFor('library_director')} time={libDone} reviewer={REVIEWER_NAMES.library_director} isSub />
         </div>
       </div>
       <div className={`${styles.connector} ${getStatusFor('parallel_review') === 'done' ? styles.connectorDone : ''}`} />

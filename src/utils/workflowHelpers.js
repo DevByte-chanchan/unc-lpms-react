@@ -19,10 +19,11 @@ const _writeAll = (obj) => {
 
 const defaultWorkflow = (courseCode = '') => ({
   courseCode,
-  currentStage: 'submitted', // submitted -> parallel_review -> program_head -> dean -> approved
+  currentStage: 'submitted', // submitted -> parallel_review -> dean -> approved
   parallelReview: {
     library_director: { status: 'pending', completedAt: null },
-    industry_consultant: { status: 'pending', completedAt: null }
+    industry_consultant: { status: 'pending', completedAt: null },
+    program_head: { status: 'pending', completedAt: null }
   },
   programHead: { status: 'pending', completedAt: null },
   dean: { status: 'pending', completedAt: null }
@@ -50,12 +51,8 @@ export const advanceWorkflow = (courseCode = '') => {
 
   // If currently submitted, move to parallel_review when instructor has submitted (external action)
   // But main advancement checks for completion of parallel reviewers
-  const bothParallelDone = (wf.parallelReview && wf.parallelReview.library_director?.status === 'done' && wf.parallelReview.industry_consultant?.status === 'done')
-  if (bothParallelDone && wf.currentStage !== 'program_head') {
-    wf.currentStage = 'program_head'
-  }
-
-  if (wf.programHead?.status === 'done' && wf.currentStage !== 'dean') {
+  const allParallelDone = (wf.parallelReview && wf.parallelReview.library_director?.status === 'done' && wf.parallelReview.industry_consultant?.status === 'done' && wf.parallelReview.program_head?.status === 'done')
+  if (allParallelDone && wf.currentStage !== 'dean') {
     wf.currentStage = 'dean'
   }
 
@@ -96,51 +93,51 @@ export function seedDemoWorkflows() {
 
   // All workflows — new ones are always added if missing
   const allEntries = [
-    // Dean review stage (both parallel & program head done)
+    // Dean review stage (all parallel done)
     { code: 'BSCS322L', data: {
       courseCode: 'BSCS322L', currentStage: 'dean',
       submittedAt: d(20),
-      parallelReview: { library_director: { status: 'done', completedAt: d(16) }, industry_consultant: { status: 'done', completedAt: d(15) } },
+      parallelReview: { library_director: { status: 'done', completedAt: d(16) }, industry_consultant: { status: 'done', completedAt: d(15) }, program_head: { status: 'done', completedAt: d(14) } },
+      programHead: { status: 'done', completedAt: d(14) },
+      dean: { status: 'pending', completedAt: null }
+    }},
+    // Parallel review - all three done, moving to dean
+    { code: 'BSCS313L', data: {
+      courseCode: 'BSCS313L', currentStage: 'parallel_review',
+      submittedAt: d(18),
+      parallelReview: { library_director: { status: 'done', completedAt: d(14) }, industry_consultant: { status: 'done', completedAt: d(13) }, program_head: { status: 'done', completedAt: d(12) } },
+      programHead: { status: 'done', completedAt: d(12) },
+      dean: { status: 'pending', completedAt: null }
+    }},
+    // Parallel review - all three done, moving to dean
+    { code: 'BSCS331L', data: {
+      courseCode: 'BSCS331L', currentStage: 'parallel_review',
+      submittedAt: d(16),
+      parallelReview: { library_director: { status: 'done', completedAt: d(12) }, industry_consultant: { status: 'done', completedAt: d(11) }, program_head: { status: 'done', completedAt: d(10) } },
       programHead: { status: 'done', completedAt: d(10) },
       dean: { status: 'pending', completedAt: null }
     }},
-    // Program Head review stage
-    { code: 'BSCS313L', data: {
-      courseCode: 'BSCS313L', currentStage: 'program_head',
-      submittedAt: d(18),
-      parallelReview: { library_director: { status: 'done', completedAt: d(14) }, industry_consultant: { status: 'done', completedAt: d(13) } },
-      programHead: { status: 'pending', completedAt: null },
-      dean: { status: 'pending', completedAt: null }
-    }},
-    // Program Head review
-    { code: 'BSCS331L', data: {
-      courseCode: 'BSCS331L', currentStage: 'program_head',
-      submittedAt: d(16),
-      parallelReview: { library_director: { status: 'done', completedAt: d(12) }, industry_consultant: { status: 'done', completedAt: d(11) } },
-      programHead: { status: 'pending', completedAt: null },
-      dean: { status: 'pending', completedAt: null }
-    }},
-    // Parallel review - one reviewer done, one pending
+    // Parallel review - two done, one pending
     { code: 'BSCS351L', data: {
       courseCode: 'BSCS351L', currentStage: 'parallel_review',
       submittedAt: d(12),
-      parallelReview: { library_director: { status: 'done', completedAt: d(8) }, industry_consultant: { status: 'pending', completedAt: null } },
-      programHead: { status: 'pending', completedAt: null },
+      parallelReview: { library_director: { status: 'done', completedAt: d(8) }, industry_consultant: { status: 'pending', completedAt: null }, program_head: { status: 'done', completedAt: d(9) } },
+      programHead: { status: 'done', completedAt: d(9) },
       dean: { status: 'pending', completedAt: null }
     }},
-    // Parallel review - one reviewer done, one pending
+    // Parallel review - one reviewer done
     { code: 'BSCS214L', data: {
       courseCode: 'BSCS214L', currentStage: 'parallel_review',
       submittedAt: d(10),
-      parallelReview: { library_director: { status: 'pending', completedAt: null }, industry_consultant: { status: 'done', completedAt: d(6) } },
+      parallelReview: { library_director: { status: 'pending', completedAt: null }, industry_consultant: { status: 'done', completedAt: d(6) }, program_head: { status: 'pending', completedAt: null } },
       programHead: { status: 'pending', completedAt: null },
       dean: { status: 'pending', completedAt: null }
     }},
-    // Parallel review - both pending
+    // Parallel review - all pending
     { code: 'IT 312', data: {
       courseCode: 'IT 312', currentStage: 'parallel_review',
       submittedAt: d(7),
-      parallelReview: { library_director: { status: 'pending', completedAt: null }, industry_consultant: { status: 'pending', completedAt: null } },
+      parallelReview: { library_director: { status: 'pending', completedAt: null }, industry_consultant: { status: 'pending', completedAt: null }, program_head: { status: 'pending', completedAt: null } },
       programHead: { status: 'pending', completedAt: null },
       dean: { status: 'pending', completedAt: null }
     }},
@@ -148,7 +145,7 @@ export function seedDemoWorkflows() {
     { code: 'BSCS411L', data: {
       courseCode: 'BSCS411L', currentStage: 'submitted',
       submittedAt: d(3),
-      parallelReview: { library_director: { status: 'pending', completedAt: null }, industry_consultant: { status: 'pending', completedAt: null } },
+      parallelReview: { library_director: { status: 'pending', completedAt: null }, industry_consultant: { status: 'pending', completedAt: null }, program_head: { status: 'pending', completedAt: null } },
       programHead: { status: 'pending', completedAt: null },
       dean: { status: 'pending', completedAt: null }
     }},
@@ -156,7 +153,7 @@ export function seedDemoWorkflows() {
     { code: 'BSCS314L', data: {
       courseCode: 'BSCS314L', currentStage: 'submitted',
       submittedAt: d(2),
-      parallelReview: { library_director: { status: 'pending', completedAt: null }, industry_consultant: { status: 'pending', completedAt: null } },
+      parallelReview: { library_director: { status: 'pending', completedAt: null }, industry_consultant: { status: 'pending', completedAt: null }, program_head: { status: 'pending', completedAt: null } },
       programHead: { status: 'pending', completedAt: null },
       dean: { status: 'pending', completedAt: null }
     }},
@@ -164,16 +161,16 @@ export function seedDemoWorkflows() {
     { code: 'BSCS121', data: {
       courseCode: 'BSCS121', currentStage: 'approved',
       submittedAt: d(30),
-      parallelReview: { library_director: { status: 'done', completedAt: d(26) }, industry_consultant: { status: 'done', completedAt: d(25) } },
-      programHead: { status: 'done', completedAt: d(20) },
+      parallelReview: { library_director: { status: 'done', completedAt: d(26) }, industry_consultant: { status: 'done', completedAt: d(25) }, program_head: { status: 'done', completedAt: d(24) } },
+      programHead: { status: 'done', completedAt: d(24) },
       dean: { status: 'done', completedAt: d(15) },
       oicOvpaa: { status: 'done', completedAt: d(12) }
     }},
     { code: 'IT 211', data: {
       courseCode: 'IT 211', currentStage: 'approved',
       submittedAt: d(28),
-      parallelReview: { library_director: { status: 'done', completedAt: d(24) }, industry_consultant: { status: 'done', completedAt: d(23) } },
-      programHead: { status: 'done', completedAt: d(18) },
+      parallelReview: { library_director: { status: 'done', completedAt: d(24) }, industry_consultant: { status: 'done', completedAt: d(23) }, program_head: { status: 'done', completedAt: d(22) } },
+      programHead: { status: 'done', completedAt: d(22) },
       dean: { status: 'done', completedAt: d(13) },
       oicOvpaa: { status: 'done', completedAt: d(10) }
     }},
@@ -181,7 +178,7 @@ export function seedDemoWorkflows() {
     { code: 'IT 321', data: {
       courseCode: 'IT 321', currentStage: 'returned',
       submittedAt: d(14),
-      parallelReview: { library_director: { status: 'done', completedAt: d(10) }, industry_consultant: { status: 'done', completedAt: d(9) } },
+      parallelReview: { library_director: { status: 'done', completedAt: d(10) }, industry_consultant: { status: 'done', completedAt: d(9) }, program_head: { status: 'returned', completedAt: d(7) } },
       programHead: { status: 'returned', completedAt: d(7) },
       dean: { status: 'pending', completedAt: null },
       oicOvpaa: { status: 'pending', completedAt: null }
@@ -189,8 +186,8 @@ export function seedDemoWorkflows() {
     { code: 'IT 311', data: {
       courseCode: 'IT 311', currentStage: 'approved',
       submittedAt: d(25),
-      parallelReview: { library_director: { status: 'done', completedAt: d(21) }, industry_consultant: { status: 'done', completedAt: d(20) } },
-      programHead: { status: 'done', completedAt: d(15) },
+      parallelReview: { library_director: { status: 'done', completedAt: d(21) }, industry_consultant: { status: 'done', completedAt: d(20) }, program_head: { status: 'done', completedAt: d(19) } },
+      programHead: { status: 'done', completedAt: d(19) },
       dean: { status: 'done', completedAt: d(10) },
       oicOvpaa: { status: 'done', completedAt: d(8) }
     }},
@@ -198,28 +195,28 @@ export function seedDemoWorkflows() {
     { code: 'BSCS221L', data: {
       courseCode: 'BSCS221L', currentStage: 'parallel_review',
       submittedAt: d(9),
-      parallelReview: { library_director: { status: 'done', completedAt: d(5) }, industry_consultant: { status: 'pending', completedAt: null } },
-      programHead: { status: 'pending', completedAt: null },
+      parallelReview: { library_director: { status: 'done', completedAt: d(5) }, industry_consultant: { status: 'pending', completedAt: null }, program_head: { status: 'done', completedAt: d(6) } },
+      programHead: { status: 'done', completedAt: d(6) },
       dean: { status: 'pending', completedAt: null }
     }},
     { code: 'BSCS223L', data: {
       courseCode: 'BSCS223L', currentStage: 'parallel_review',
       submittedAt: d(6),
-      parallelReview: { library_director: { status: 'pending', completedAt: null }, industry_consultant: { status: 'pending', completedAt: null } },
+      parallelReview: { library_director: { status: 'pending', completedAt: null }, industry_consultant: { status: 'pending', completedAt: null }, program_head: { status: 'pending', completedAt: null } },
       programHead: { status: 'pending', completedAt: null },
       dean: { status: 'pending', completedAt: null }
     }},
     { code: 'BSCS224L', data: {
       courseCode: 'BSCS224L', currentStage: 'submitted',
       submittedAt: d(1),
-      parallelReview: { library_director: { status: 'pending', completedAt: null }, industry_consultant: { status: 'pending', completedAt: null } },
+      parallelReview: { library_director: { status: 'pending', completedAt: null }, industry_consultant: { status: 'pending', completedAt: null }, program_head: { status: 'pending', completedAt: null } },
       programHead: { status: 'pending', completedAt: null },
       dean: { status: 'pending', completedAt: null }
     }},
     { code: 'BSCS412L', data: {
       courseCode: 'BSCS412L', currentStage: 'submitted',
       submittedAt: d(1),
-      parallelReview: { library_director: { status: 'pending', completedAt: null }, industry_consultant: { status: 'pending', completedAt: null } },
+      parallelReview: { library_director: { status: 'pending', completedAt: null }, industry_consultant: { status: 'pending', completedAt: null }, program_head: { status: 'pending', completedAt: null } },
       programHead: { status: 'pending', completedAt: null },
       dean: { status: 'pending', completedAt: null }
     }},
