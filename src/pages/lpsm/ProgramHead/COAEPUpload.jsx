@@ -11,9 +11,11 @@ const A4_PAPER = {
   fontFamily: "'Poppins', 'Times New Roman', serif",
 };
 
+const TEST_PDF = 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf';
+
 const docList = [
-  { id: '1', name: 'BSCS_COAEP_AY2425.xlsx', uploadedBy: 'DANILA, JUNAR', uploadDate: 'Jan 5, 2025', file_url: '' },
-  { id: '2', name: 'BSIT_COAEP_AY2425.xlsx', uploadedBy: 'DANILA, JUNAR', uploadDate: 'Jan 5, 2025', file_url: '' },
+  { id: '1', name: 'BSCS_COAEP_AY2425.xlsx', file_name: 'BSCS_COAEP_AY2425.xlsx', uploadedBy: 'DANILA, JUNAR', uploadDate: 'Jan 5, 2025', file_url: TEST_PDF, instructor_name: 'DANILA, JUNAR', course_id: 'BSCS 313L', course_name: 'Software Engineering', submission_date: '2025-01-05', period_label: 'AY 2024-2025, 2nd Sem' },
+  { id: '2', name: 'BSIT_COAEP_AY2425.xlsx', file_name: 'BSIT_COAEP_AY2425.xlsx', uploadedBy: 'DANILA, JUNAR', uploadDate: 'Jan 5, 2025', file_url: TEST_PDF, instructor_name: 'DANILA, JUNAR', course_id: 'BSIT 212L', course_name: 'Mobile Application Development', submission_date: '2025-01-05', period_label: 'AY 2024-2025, 2nd Sem' },
 ];
 
 const CURRENT_YEAR = new Date().getFullYear();
