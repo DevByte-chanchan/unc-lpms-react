@@ -57,7 +57,7 @@ const PDFViewerModal = ({ file, kind, onClose, onExport, children }) => {
       />
       <div style={{
         position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
-        width: 'min(1080px, 94vw)', height: 'min(760px, 90vh)',
+        width: 'min(1280px, 96vw)', height: 'min(900px, 94vh)',
         background: '#FFFFFF', borderRadius: 14, zIndex: 101,
         boxShadow: '0 24px 60px rgba(15,23,42,0.30)',
         display: 'flex', flexDirection: 'column', overflow: 'hidden',
