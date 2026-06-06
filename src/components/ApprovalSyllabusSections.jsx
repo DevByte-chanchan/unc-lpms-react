@@ -7,8 +7,7 @@ import { getSyllabusByCode, syllabiData } from '../data/syllabiData.js'
 import { getWorkflow, setWorkflow, advanceWorkflow } from '../utils/workflowHelpers'
 import { getSuggestions, addSuggestion, acceptSuggestion, rejectSuggestion } from '../utils/dataStore'
 import { getReferences, getReferenceById } from '../utils/referenceLibrary'
-import { exportSyllabusToPDF } from '../utils/pdfExport'
-import PdfExportButton from './PdfExportButton'
+import PDFViewerModal from './PDFViewerModal'
 
 const defaultSections = [
   'Course Details',
@@ -37,6 +36,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
   const [localRefs, setLocalRefs] = useState(null)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [refTypeFilter, setRefTypeFilter] = useState('')
+  const [previewFile, setPreviewFile] = useState(null)
 
   // refs to sections for auto-scroll
   const courseDetailsRef = useRef(null)
@@ -592,16 +592,28 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
             )}
             {effectiveStatus === 'approved' && (roleKey === 'instructor' || roleKey === 'dean' || roleKey === 'oic-ovpaa') && (
               <div className={styles.approvalButtons}>
-                <PdfExportButton
-                  syllabus={syllabus}
-                  courseCode={syllabus?.code || courseCode || 'Course'}
-                  label="Export to PDF"
-                  variant="primary"
-                  onExportComplete={(success, msg) => {
-                    if (success) showToastMsg('PDF exported successfully!', 'success')
-                    else showToastMsg(msg || 'Failed to export PDF', 'warning')
+                <button
+                  onClick={() => {
+                    setPreviewFile({
+                      file_url: 'https://pdfobject.com/pdf/sample.pdf',
+                      file_name: `SYLLABUS_${syllabus?.code || courseCode}.pdf`,
+                      instructor_name: syllabus?.instructor || '—',
+                      course_id: syllabus?.code || courseCode || '',
+                      course_name: syllabus?.name || '',
+                      submission_date: syllabus?.update || '',
+                      period_label: (syllabus?.year || '') + ' — ' + (syllabus?.sem || ''),
+                    })
                   }}
-                />
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 8,
+                    padding: '10px 20px', border: 'none', borderRadius: 8,
+                    fontSize: 14, fontWeight: 600, cursor: 'pointer',
+                    background: '#19282C', color: 'white',
+                    fontFamily: "'Poppins', sans-serif"
+                  }}
+                >
+                  <Download size={16} /> Export
+                </button>
               </div>
             )}
           </div>
@@ -1222,6 +1234,23 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
         </div>
         )
       })()}
+
+      {/* ── PDF VIEWER MODAL ───────────────────────────────────────────── */}
+      {previewFile && (
+        <PDFViewerModal
+          file={previewFile}
+          kind="Syllabus"
+          onClose={() => setPreviewFile(null)}
+          onExport={(f) => {
+            const a = document.createElement('a')
+            a.href = f.file_url
+            a.download = f.file_name
+            document.body.appendChild(a)
+            a.click()
+            document.body.removeChild(a)
+          }}
+        />
+      )}
 
       {/* ── TOAST NOTIFICATION ─────────────────────────────────────────── */}
 

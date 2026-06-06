@@ -162,7 +162,7 @@ const CoursesTable = ({}) => {
     }, [Courses, selectedStatus])
 
     return (
-        <div className={styles['courses-table']}>
+        <><div className={styles['courses-table']}>
             <div className={styles.header}>
                 <h2>ASSIGNED COURSES</h2>
                 <div className={styles.filterA}>
@@ -246,45 +246,7 @@ const CoursesTable = ({}) => {
                                                 ?
                                             </button>
                                             {statusPopup === row.code && popupPos && (
-                                                <>
                                                 <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 9998 }} onClick={() => { setStatusPopup(null); setPopupPos(null); }} />
-                                                <div
-                                                    style={{
-                                                        position: 'fixed', top: popupPos.top, right: popupPos.right, marginTop: 0,
-                                                        background: '#fff', border: '1px solid #e2e8f0', borderRadius: 10,
-                                                        boxShadow: '0 8px 24px rgba(0,0,0,0.12)', zIndex: 9999,
-                                                        padding: '12px 0', minWidth: 220,
-                                                    }}
-                                                    onClick={(e) => e.stopPropagation()}
-                                                >
-                                                    <div style={{ padding: '0 14px 8px', fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.04em', borderBottom: '1px solid #e2e8f0' }}>
-                                                        Approval Chain
-                                                    </div>
-                                                    {row.reviewerStatuses.map((r, i) => (
-                                                        <div key={i} style={{ padding: '10px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-                                                            <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-                                                                <div style={{ fontSize: 13, fontWeight: 600, color: '#0F172A' }}>{r.name}</div>
-                                                                <div style={{ fontSize: 11, color: '#64748B', marginTop: 1 }}>{r.role}</div>
-                                                            </div>
-                                                            <div style={{
-                                                                fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 99, whiteSpace: 'nowrap',
-                                                                color: r.status === 'A' ? '#047857' : r.status === 'P' ? '#b45309' : r.status === 'R' ? '#dc2626' : '#94a3b8',
-                                                                background: r.status === 'A' ? '#ecfdf5' : r.status === 'P' ? '#fffbeb' : r.status === 'R' ? '#fef2f2' : '#f1f5f9',
-                                                            }}>
-                                                                {getStatusLabel(r.status)}
-                                                            </div>
-                                                        </div>
-                                                    ))}
-                                                    <div style={{ padding: '8px 14px 0', borderTop: '1px solid #e2e8f0', marginTop: 4, paddingTop: 8 }}>
-                                                        <button
-                                                            onClick={() => { setStatusPopup(null); setPopupPos(null); }}
-                                                            style={{ width: '100%', padding: '6px 0', background: 'none', border: 'none', fontSize: 12, fontWeight: 600, color: '#64748b', cursor: 'pointer' }}
-                                                        >
-                                                            Close
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                                </>
                                             )}
                                         </div>
                                     </div>
@@ -298,6 +260,49 @@ const CoursesTable = ({}) => {
                 </table>
             </div>
         </div>
+        {statusPopup && popupPos && (() => {
+            const popupCourse = Courses.find(c => c.code === statusPopup)
+            if (!popupCourse) return null
+            return (
+                <div
+                    style={{
+                        position: 'fixed', top: popupPos.top, right: popupPos.right, marginTop: 0,
+                        background: '#fff', border: '1px solid #e2e8f0', borderRadius: 10,
+                        boxShadow: '0 8px 24px rgba(0,0,0,0.12)', zIndex: 9999,
+                        padding: '12px 0', minWidth: 220,
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                >
+                    <div style={{ padding: '0 14px 8px', fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.04em', borderBottom: '1px solid #e2e8f0' }}>
+                        Approval Chain
+                    </div>
+                    {popupCourse.reviewerStatuses.map((r, i) => (
+                        <div key={i} style={{ padding: '10px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                                <div style={{ fontSize: 13, fontWeight: 600, color: '#0F172A' }}>{r.name}</div>
+                                <div style={{ fontSize: 11, color: '#64748B', marginTop: 1 }}>{r.role}</div>
+                            </div>
+                            <div style={{
+                                fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 99, whiteSpace: 'nowrap',
+                                color: r.status === 'A' ? '#047857' : r.status === 'P' ? '#b45309' : r.status === 'R' ? '#dc2626' : '#94a3b8',
+                                background: r.status === 'A' ? '#ecfdf5' : r.status === 'P' ? '#fffbeb' : r.status === 'R' ? '#fef2f2' : '#f1f5f9',
+                            }}>
+                                {getStatusLabel(r.status)}
+                            </div>
+                        </div>
+                    ))}
+                    <div style={{ padding: '8px 14px 0', borderTop: '1px solid #e2e8f0', marginTop: 4, paddingTop: 8 }}>
+                        <button
+                            onClick={() => { setStatusPopup(null); setPopupPos(null); }}
+                            style={{ width: '100%', padding: '6px 0', background: 'none', border: 'none', fontSize: 12, fontWeight: 600, color: '#64748b', cursor: 'pointer' }}
+                        >
+                            Close
+                        </button>
+                    </div>
+                </div>
+            )
+        })()}
+    </>
     );
 };
 

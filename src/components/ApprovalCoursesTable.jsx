@@ -3,8 +3,8 @@ import { Link } from 'react-router-dom'
 import styles from '../styles/CoursesTable.module.sass'
 import { ChevronRight, Download } from 'react-feather'
 import { getWorkflow } from '../utils/workflowHelpers'
-import { exportSyllabusToPDF } from '../utils/pdfExport';
 import { syllabiData, getSyllabusByCode } from '../data/syllabiData.js'
+import PDFViewerModal from './PDFViewerModal'
 
 const getProgram = (code) => {
   if (code && code.startsWith('IT ')) return 'Information Technology';
@@ -83,6 +83,7 @@ const ApprovalCoursesTable = ({ role = 'approver' }) => {
 
   const [selectedStatus, setSelectedStatus] = useState('PENDING')
   const handleStatusChange = (e) => setSelectedStatus(e.target.value)
+  const [previewFile, setPreviewFile] = useState(null)
 
   const getSyllabusData = (courseCode) => {
     return getSyllabusByCode(courseCode) || {
@@ -105,10 +106,21 @@ const ApprovalCoursesTable = ({ role = 'approver' }) => {
     }
   }
 
-  const generatePDF = (course) => {
-    const syllabus = getSyllabusByCode(course.code)
-    if (syllabus) {
-      exportSyllabusToPDF(syllabus, course.code)
+  const openPreview = (course) => {
+    try {
+      const syllabus = getSyllabusByCode(course.code)
+      if (!syllabus) return
+      setPreviewFile({
+        file_url: 'https://pdfobject.com/pdf/sample.pdf',
+        file_name: `SYLLABUS_${course.code}.pdf`,
+        instructor_name: syllabus.instructor || '—',
+        course_id: course.code,
+        course_name: course.name,
+        submission_date: syllabus.update || '',
+        period_label: (syllabus.year || '') + ' — ' + (syllabus.sem || ''),
+      })
+    } catch (e) {
+      console.error('Export preview failed:', e)
     }
   }
 
@@ -152,6 +164,7 @@ const ApprovalCoursesTable = ({ role = 'approver' }) => {
   const [popupPos, setPopupPos] = useState(null);
 
   return (
+    <>
     <div className={styles['courses-table']}>
       <div className={styles.header}>
         <h2>ASSIGNED COURSES</h2>
@@ -182,7 +195,7 @@ const ApprovalCoursesTable = ({ role = 'approver' }) => {
               <th width={140}>PROGRAM</th>
               <th width={140}>LAST UPDATED</th>
               <th width={120}>STATUS</th>
-              <th className={styles.fill}></th>
+              <th className={styles.fill} style={{ background: '#edeff2', position: 'sticky', right: 0, zIndex: 2 }}></th>
             </tr>
           </thead>
           <tbody>
@@ -194,11 +207,11 @@ const ApprovalCoursesTable = ({ role = 'approver' }) => {
                   <td width={140}>{row.program}</td>
                   <td width={140}>{row.lastUpdated}</td>
                   <td width={120}>{getCourseStatusBadge(row.status)}</td>
-                  <td className={styles.fill}>
+                  <td className={styles.fill} style={{ background: '#fff' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'flex-end' }}>
-                      {selectedStatus === 'APPROVED' && role === 'dean' && (
+                      {selectedStatus === 'APPROVED' && (role === 'dean' || role === 'instructor') && (
                         <button
-                          onClick={() => generatePDF(row)}
+                          onClick={() => openPreview(row)}
                           className={'actionLink'}
                           style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', gap: '4px', fontSize: 13, fontWeight: 500, color: '#111827' }}
                         >
@@ -224,45 +237,7 @@ const ApprovalCoursesTable = ({ role = 'approver' }) => {
                           ?
                         </button>
                         {statusPopup === row.code && popupPos && (
-                          <>
                           <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 9998 }} onClick={() => { setStatusPopup(null); setPopupPos(null); }} />
-                          <div
-                            style={{
-                              position: 'fixed', top: popupPos.top, right: popupPos.right, marginTop: 0,
-                              background: '#fff', border: '1px solid #e2e8f0', borderRadius: 10,
-                              boxShadow: '0 8px 24px rgba(0,0,0,0.12)', zIndex: 9999,
-                              padding: '12px 0', minWidth: 220,
-                            }}
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <div style={{ padding: '0 14px 8px', fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.04em', borderBottom: '1px solid #e2e8f0' }}>
-                              Approval Chain
-                            </div>
-                            {row.reviewers.map((r, i) => (
-                              <div key={i} style={{ padding: '10px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-                                <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-                                  <div style={{ fontSize: 13, fontWeight: 600, color: '#0F172A' }}>{r.name}</div>
-                                  <div style={{ fontSize: 11, color: '#64748B', marginTop: 1 }}>{r.role}</div>
-                                </div>
-                                <div style={{
-                                  fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 99, whiteSpace: 'nowrap',
-                                  color: r.status === 'approved' ? '#047857' : r.status === 'pending' ? '#b45309' : r.status === 'returned' ? '#dc2626' : '#94a3b8',
-                                  background: r.status === 'approved' ? '#ecfdf5' : r.status === 'pending' ? '#fffbeb' : r.status === 'returned' ? '#fef2f2' : '#f1f5f9',
-                                }}>
-                                  {mapStatusToLabel(r.status)}
-                                </div>
-                              </div>
-                            ))}
-                            <div style={{ padding: '8px 14px 0', borderTop: '1px solid #e2e8f0', marginTop: 4, paddingTop: 8 }}>
-                              <button
-                                onClick={() => { setStatusPopup(null); setPopupPos(null); }}
-                                style={{ width: '100%', padding: '6px 0', background: 'none', border: 'none', fontSize: 12, fontWeight: 600, color: '#64748b', cursor: 'pointer' }}
-                              >
-                                Close
-                              </button>
-                            </div>
-                          </div>
-                          </>
                         )}
                       </div>
                     </div>
@@ -280,6 +255,64 @@ const ApprovalCoursesTable = ({ role = 'approver' }) => {
         </table>
       </div>
     </div>
+    {statusPopup && popupPos && (() => {
+      const popupCourse = Courses.find(c => c.code === statusPopup)
+      if (!popupCourse) return null
+      return (
+        <div
+          style={{
+            position: 'fixed', top: popupPos.top, right: popupPos.right, marginTop: 0,
+            background: '#fff', border: '1px solid #e2e8f0', borderRadius: 10,
+            boxShadow: '0 8px 24px rgba(0,0,0,0.12)', zIndex: 9999,
+            padding: '12px 0', minWidth: 220,
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div style={{ padding: '0 14px 8px', fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.04em', borderBottom: '1px solid #e2e8f0' }}>
+            Approval Chain
+          </div>
+          {popupCourse.reviewers.map((r, i) => (
+            <div key={i} style={{ padding: '10px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: '#0F172A' }}>{r.name}</div>
+                <div style={{ fontSize: 11, color: '#64748B', marginTop: 1 }}>{r.role}</div>
+              </div>
+              <div style={{
+                fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 99, whiteSpace: 'nowrap',
+                color: r.status === 'approved' ? '#047857' : r.status === 'pending' ? '#b45309' : r.status === 'returned' ? '#dc2626' : '#94a3b8',
+                background: r.status === 'approved' ? '#ecfdf5' : r.status === 'pending' ? '#fffbeb' : r.status === 'returned' ? '#fef2f2' : '#f1f5f9',
+              }}>
+                {mapStatusToLabel(r.status)}
+              </div>
+            </div>
+          ))}
+          <div style={{ padding: '8px 14px 0', borderTop: '1px solid #e2e8f0', marginTop: 4, paddingTop: 8 }}>
+            <button
+              onClick={() => { setStatusPopup(null); setPopupPos(null); }}
+              style={{ width: '100%', padding: '6px 0', background: 'none', border: 'none', fontSize: 12, fontWeight: 600, color: '#64748b', cursor: 'pointer' }}
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )
+    })()}
+    {previewFile && (
+      <PDFViewerModal
+        file={previewFile}
+        kind="Syllabus"
+        onClose={() => setPreviewFile(null)}
+        onExport={(f) => {
+          const a = document.createElement('a')
+          a.href = f.file_url
+          a.download = f.file_name
+          document.body.appendChild(a)
+          a.click()
+          document.body.removeChild(a)
+        }}
+      />
+    )}
+  </>
   )
 }
 

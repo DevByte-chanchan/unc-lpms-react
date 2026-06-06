@@ -7,7 +7,7 @@ import SideNavigation from '../../components/SideNavigation.jsx';
 import styles from '../../styles/InstructorDashboard.module.scss';
 import { syllabiData, getSyllabusByCode } from '../../data/syllabiData.js';
 import { getWorkflow } from '../../utils/workflowHelpers.js';
-import { exportSyllabusToPDF } from '../../utils/pdfExport.js';
+import PDFViewerModal from '../../components/PDFViewerModal'
 
 const getProgram = (code) => {
   if (code && code.startsWith('IT ')) return 'Information Technology';
@@ -113,9 +113,18 @@ const InstructorDashboard = () => {
     return 'Draft';
   };
 
-  const generatePDF = (course) => {
+  const openPreview = (course) => {
     const syllabus = getSyllabusByCode(course.code);
-    if (syllabus) exportSyllabusToPDF(syllabus, course.code);
+    if (!syllabus) return
+    setPreviewFile({
+      file_url: 'https://pdfobject.com/pdf/sample.pdf',
+      file_name: `SYLLABUS_${course.code}.pdf`,
+      instructor_name: syllabus.instructor || '—',
+      course_id: course.code,
+      course_name: course.name,
+      submission_date: syllabus.update || '',
+      period_label: (syllabus.year || '') + ' — ' + (syllabus.sem || ''),
+    })
   };
 
   const getReviewerStatuses = (code) => {
@@ -150,9 +159,10 @@ const InstructorDashboard = () => {
 
   const [statusPopup, setStatusPopup] = useState(null);
   const [popupPos, setPopupPos] = useState(null);
+  const [previewFile, setPreviewFile] = useState(null);
 
   const content = (
-    <div className={styles.container}>
+    <><div className={styles.container}>
       <div className={styles.header}>
         <h1 key={activeTab}>{activeTab === 'drafted' ? 'DRAFTED COURSES' : activeTab === 'assigned' ? 'ASSIGNED COURSES' : 'APPROVED COURSES'}</h1>
       </div>
@@ -222,12 +232,13 @@ const InstructorDashboard = () => {
               <th width={140}>PROGRAM</th>
               <th width={140}>LAST UPDATED</th>
               <th width={130}>STATUS</th>
+              {activeTab === 'approved' && <th width={100}>EXPORT</th>}
               <th className={styles.fill}></th>
             </tr>
           </thead>
           <tbody>
             {filteredPackages.length === 0 ? (
-              <tr><td colSpan={6} style={{ textAlign: 'center', padding: '60px 20px', color: '#9CA3AF' }}>No {tabs.find(t => t.id === activeTab)?.label.toLowerCase()} found.</td></tr>
+              <tr><td colSpan={activeTab === 'approved' ? 7 : 6} style={{ textAlign: 'center', padding: '60px 20px', color: '#9CA3AF' }}>No {tabs.find(t => t.id === activeTab)?.label.toLowerCase()} found.</td></tr>
             ) : (filteredPackages.map((pkg, idx) => (
               <tr key={idx}>
                 <td width={140}>{pkg.code}</td>
@@ -239,17 +250,21 @@ const InstructorDashboard = () => {
                     {getStatusLabel(pkg.overallStatus)}
                   </span>
                 </td>
-                <td className={styles.fill}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'flex-end' }}>
-                    {activeTab === 'approved' && (
+                {activeTab === 'approved' && (
+                  <td width={100}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <button
-                        onClick={() => generatePDF(pkg)}
+                        onClick={() => openPreview(pkg)}
                         className={'actionLink'}
                         style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', gap: '4px', fontSize: 13, fontWeight: 500, color: '#111827' }}
                       >
                         Export <Download size={16} />
                       </button>
-                    )}
+                    </div>
+                  </td>
+                )}
+                <td className={styles.fill}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'flex-end' }}>
                     <Link className="actionLink" to={`/role/instructor/courses/${encodeURIComponent(pkg.code)}`} state={{ fromTab: activeTab }}
                       style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 13, fontWeight: 500, textDecoration: 'none', color: '#111827' }}
                     >
@@ -270,45 +285,7 @@ const InstructorDashboard = () => {
                         ?
                       </button>
                       {statusPopup === pkg.code && popupPos && (
-                        <>
                         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 9998 }} onClick={() => { setStatusPopup(null); setPopupPos(null); }} />
-                        <div
-                          style={{
-                            position: 'fixed', top: popupPos.top, right: popupPos.right, marginTop: 0,
-                            background: '#fff', border: '1px solid #e2e8f0', borderRadius: 10,
-                            boxShadow: '0 8px 24px rgba(0,0,0,0.12)', zIndex: 9999,
-                            padding: '12px 0', minWidth: 220,
-                          }}
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <div style={{ padding: '0 14px 8px', fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.04em', borderBottom: '1px solid #e2e8f0' }}>
-                            Approval Chain
-                          </div>
-                          {getReviewerStatuses(pkg.code).map((r, i) => (
-                            <div key={i} style={{ padding: '10px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-                              <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-                                <div style={{ fontSize: 13, fontWeight: 600, color: '#0F172A' }}>{r.name}</div>
-                                <div style={{ fontSize: 11, color: '#64748B', marginTop: 1 }}>{r.role}</div>
-                              </div>
-                              <div style={{
-                                fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 99, whiteSpace: 'nowrap',
-                                color: r.status === 'approved' ? '#047857' : r.status === 'pending' ? '#b45309' : r.status === 'returned' ? '#dc2626' : '#94a3b8',
-                                background: r.status === 'approved' ? '#ecfdf5' : r.status === 'pending' ? '#fffbeb' : r.status === 'returned' ? '#fef2f2' : '#f1f5f9',
-                              }}>
-                                {getReviewStatusLabel(r.status)}
-                              </div>
-                            </div>
-                          ))}
-                          <div style={{ padding: '8px 14px 0', borderTop: '1px solid #e2e8f0', marginTop: 4, paddingTop: 8 }}>
-                            <button
-                              onClick={() => { setStatusPopup(null); setPopupPos(null); }}
-                              style={{ width: '100%', padding: '6px 0', background: 'none', border: 'none', fontSize: 12, fontWeight: 600, color: '#64748b', cursor: 'pointer' }}
-                            >
-                              Close
-                            </button>
-                          </div>
-                        </div>
-                        </>
                       )}
                     </div>
                   </div>
@@ -319,6 +296,60 @@ const InstructorDashboard = () => {
         </table>
       </div>
     </div>
+    {statusPopup && popupPos && (
+      <div
+        style={{
+          position: 'fixed', top: popupPos.top, right: popupPos.right, marginTop: 0,
+          background: '#fff', border: '1px solid #e2e8f0', borderRadius: 10,
+          boxShadow: '0 8px 24px rgba(0,0,0,0.12)', zIndex: 9999,
+          padding: '12px 0', minWidth: 220,
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div style={{ padding: '0 14px 8px', fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.04em', borderBottom: '1px solid #e2e8f0' }}>
+          Approval Chain
+        </div>
+        {getReviewerStatuses(statusPopup).map((r, i) => (
+          <div key={i} style={{ padding: '10px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: '#0F172A' }}>{r.name}</div>
+              <div style={{ fontSize: 11, color: '#64748B', marginTop: 1 }}>{r.role}</div>
+            </div>
+            <div style={{
+              fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 99, whiteSpace: 'nowrap',
+              color: r.status === 'approved' ? '#047857' : r.status === 'pending' ? '#b45309' : r.status === 'returned' ? '#dc2626' : '#94a3b8',
+              background: r.status === 'approved' ? '#ecfdf5' : r.status === 'pending' ? '#fffbeb' : r.status === 'returned' ? '#fef2f2' : '#f1f5f9',
+            }}>
+              {getReviewStatusLabel(r.status)}
+            </div>
+          </div>
+        ))}
+        <div style={{ padding: '8px 14px 0', borderTop: '1px solid #e2e8f0', marginTop: 4, paddingTop: 8 }}>
+          <button
+            onClick={() => { setStatusPopup(null); setPopupPos(null); }}
+            style={{ width: '100%', padding: '6px 0', background: 'none', border: 'none', fontSize: 12, fontWeight: 600, color: '#64748b', cursor: 'pointer' }}
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    )}
+    {previewFile && (
+      <PDFViewerModal
+        file={previewFile}
+        kind="Syllabus"
+        onClose={() => setPreviewFile(null)}
+        onExport={(f) => {
+          const a = document.createElement('a')
+          a.href = f.file_url
+          a.download = f.file_name
+          document.body.appendChild(a)
+          a.click()
+          document.body.removeChild(a)
+        }}
+      />
+    )}
+  </>
   );
 
   return (

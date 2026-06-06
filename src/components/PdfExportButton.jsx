@@ -43,10 +43,10 @@ const PdfExportButton = ({ syllabus, courseCode, label = 'Export to PDF', varian
   }
 
   const variantStyles = {
-    primary: { background: '#1e3a5f', color: 'white' },
+    primary: { background: '#19282C', color: 'white' },
     success: { background: '#059669', color: 'white' },
-    outline: { background: 'transparent', color: '#1e3a5f', border: '2px solid #1e3a5f' },
-    approved: { background: 'linear-gradient(135deg, #3498db, #2980b9)', color: 'white' }
+    outline: { background: 'transparent', color: '#19282C', border: '2px solid #19282C' },
+    approved: { background: '#19282C', color: 'white' }
   }
 
   const style = { ...baseStyle, ...(variantStyles[variant] || variantStyles.primary) }

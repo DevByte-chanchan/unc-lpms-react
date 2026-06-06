@@ -1,7 +1,7 @@
 import React from 'react';
 import { X, Download, FileText, User, Calendar, BookOpen } from 'react-feather';
 
-const ACCENT     = '#B91C1C';
+const ACCENT     = '#19282C';
 const SLATE_900  = '#0F172A';
 const SLATE_700  = '#334155';
 const SLATE_500  = '#64748B';
