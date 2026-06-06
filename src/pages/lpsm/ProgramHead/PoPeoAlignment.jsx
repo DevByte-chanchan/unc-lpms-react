@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { ChevronRight, Eye, FileText, Upload } from 'react-feather';
+import { ChevronRight, Upload } from 'react-feather';
 import SkeletonA from '../../../layouts/SkeletonA.jsx';
 import HeaderA from '../../../components/HeaderA.jsx';
 import SideNavigation from '../../../components/SideNavigation.jsx';
@@ -43,21 +43,16 @@ const PoPeoAlignment = () => {
         <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 900, fontSize: 14 }}>
           <thead>
             <tr>
-              <th style={{ padding: '10px 12px', textAlign: 'left', fontWeight: 600, color: '#374151', fontSize: 13 }}>DOCUMENT</th>
-              <th style={{ padding: '10px 12px', textAlign: 'center', fontWeight: 600, color: '#374151', fontSize: 13, width: 120 }}>ACTION</th>
+              <th style={{ padding: '10px 12px', textAlign: 'left', fontWeight: 600, color: '#111827', fontSize: 13 }}>DOCUMENT</th>
+              <th style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 600, color: '#111827', fontSize: 13, width: 120 }}>ACTION</th>
             </tr>
           </thead>
           <tbody>
             {docList.map((doc) => (
               <tr key={doc.id} style={{ borderTop: '1px solid #eef2f6' }}>
                 <td style={{ padding: '10px 12px', verticalAlign: 'middle' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <FileText size={18} color="#9ca3af" />
-                    <div>
-                      <div style={{ fontWeight: 400, color: '#111827' }}>{doc.name}</div>
-                      <div style={{ fontSize: 12, color: '#6b7280' }}>Uploaded by {doc.uploadedBy} on {doc.uploadDate}</div>
-                    </div>
-                  </div>
+                  <div style={{ fontWeight: 400, color: '#111827' }}>{doc.name}</div>
+                  <div style={{ fontSize: 12, color: '#6b7280' }}>Uploaded by {doc.uploadedBy} on {doc.uploadDate}</div>
                 </td>
                 <td style={{ padding: '10px 12px', verticalAlign: 'middle' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'flex-end' }}>
