@@ -5,7 +5,7 @@ import HeaderA from '../../../components/HeaderA.jsx';
 import SideNavigation from '../../../components/SideNavigation.jsx';
 import PDFViewerModal from '../../../components/PDFViewerModal.jsx';
 
-const TEST_PDF = 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf';
+const TEST_PDF = 'https://pdfobject.com/pdf/sample.pdf';
 
 const docList = [
   { id: '1', name: 'BSCS_PO_PEO_AY2425.pdf', file_name: 'BSCS_PO_PEO_AY2425.pdf', uploadedBy: 'DANILA, JUNAR', uploadDate: 'Jan 5, 2025', file_url: TEST_PDF, instructor_name: 'DANILA, JUNAR', course_id: 'BSCS 313L', course_name: 'Software Engineering', submission_date: '2025-01-05', period_label: 'AY 2024-2025, 2nd Sem' },
