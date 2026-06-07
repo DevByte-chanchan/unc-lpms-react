@@ -30,21 +30,47 @@ const CoursesTable = () => {
 
     // Map static syllabiData to the row shape the table expects
     const mapStaticToRows = () => {
-        return syllabiData.map(s => ({
-            date_assigned: s.update || new Date().toISOString(),
-            date_submitted: s.status === 'PENDING' ? s.update : null,
-            d_date_accepted: s.status === 'APPROVED' ? (s.approved || s.update) : null,
-            d_date_returned: null,
-            ph_date_returned: null,
-            ic_date_returned: null,
-            ld_date_returned: null,
-            ProgramCourseOffering: {
-                Course: {
-                    course_no: s.code,
-                    course_title: s.name
+        const now = new Date().toISOString();
+        return syllabiData.map((s, i) => {
+            const mod = i % 4;
+            const row = {
+                date_assigned: s.update || now,
+                date_submitted: null,
+                d_date_accepted: null,
+                d_date_returned: null,
+                ph_date_returned: null,
+                ic_date_returned: null,
+                ld_date_returned: null,
+                date_updated: null,
+                ProgramCourseOffering: {
+                    Course: {
+                        course_no: s.code,
+                        course_title: s.name
+                    }
                 }
+            };
+
+            if (mod === 0) {
+                // DRAFT — keep as-is
+            } else if (mod === 1) {
+                // PENDING — has date_submitted but no acceptances
+                row.date_submitted = s.update || now;
+            } else if (mod === 2) {
+                // APPROVED — fully accepted
+                row.date_submitted = s.update || now;
+                row.ic_date_accepted = now;
+                row.ld_date_accepted = now;
+                row.ph_date_accepted = now;
+                row.d_date_accepted = now;
+            } else if (mod === 3) {
+                // RETURNED — returned by one approver
+                row.date_submitted = s.update || now;
+                row.ic_date_accepted = now;
+                row.ld_date_returned = now;
             }
-        }));
+
+            return row;
+        });
     };
 
     async function loadAssignments() {
