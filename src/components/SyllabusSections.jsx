@@ -453,7 +453,9 @@ const SyllabusSections = () => {
                                             <th className={stylesB.labelCell}>Course Title</th>
                                             <td className={stylesB.valueCell}><strong>{courseDetailsData?.name || ''}</strong></td>
                                             <td rowSpan="9" className={stylesB.descCell}>
-                                                {courseDetailsData?.description || ''}
+                                                <div className={stylesB.descContent}>
+                                                    {courseDetailsData?.description || ''}
+                                                </div>
                                             </td>
                                         </tr>
 
