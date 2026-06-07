@@ -52,26 +52,21 @@ const PoPeoAlignment = () => {
         </button>
       </div>
       <div style={{ width: '100%', maxWidth: '100%', display: 'flex', overflow: 'auto' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
+        <table>
           <thead>
             <tr>
-              <th style={{ padding: '10px 12px', textAlign: 'left', fontWeight: 600, color: '#111827', fontSize: 13, borderBottom: '2px solid #eef2f6' }}>DOCUMENT</th>
-              <th style={{ padding: '10px 12px', borderBottom: '2px solid #eef2f6' }}></th>
+              <th style={{ flex: 1 }}>DOCUMENT</th>
+              <th style={{ width: 120, textAlign: 'right' }}></th>
             </tr>
           </thead>
           <tbody>
             {docList.map((doc) => (
-              <tr key={doc.id} style={{ borderTop: '1px solid #eef2f6' }}>
-                <td style={{ padding: '10px 12px', verticalAlign: 'middle', width: '99%' }}>
-                  <div style={{ fontWeight: 400, color: '#111827' }}>{doc.name}</div>
-                </td>
-                <td style={{ padding: '10px 12px', verticalAlign: 'middle', textAlign: 'right', whiteSpace: 'nowrap' }}>
-                  <button
-                    onClick={() => setSelectedFile(doc)}
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: 13, fontWeight: 500, color: '#111827' }}
-                  >
+              <tr key={doc.id}>
+                <td style={{ flex: 1 }}>{doc.name}</td>
+                <td style={{ width: 120, textAlign: 'right' }}>
+                  <span className="actionLink" style={{ minWidth: 90, display: 'inline-flex', alignItems: 'center', gap: 5, cursor: 'pointer' }} onClick={() => setSelectedFile(doc)}>
                     View <ChevronRight size={16} />
-                  </button>
+                  </span>
                 </td>
               </tr>
             ))}
