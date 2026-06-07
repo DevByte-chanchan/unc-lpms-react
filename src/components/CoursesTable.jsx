@@ -326,7 +326,8 @@ const CoursesTable = () => {
                         <tr>
                             <th width={200}>DATE ASSIGNED</th>
                             <th width={150}>CODE</th>
-                            <th width={350}>COURSE NAME</th>
+                            <th width={selectedStatus === 'DRAFT' ? 300 : 350}>COURSE NAME</th>
+                            {selectedStatus === 'DRAFT' && <th width={250}>STATUS</th>}
                             {selectedStatus === 'APPROVED' && <th width={200}>DATE APPROVED</th>}
                             <th className={styles.fill}></th>
                         </tr>
@@ -336,7 +337,8 @@ const CoursesTable = () => {
                             <tr key={index}>
                                 <td width={200}>{row.date_assigned ? new Date(row.date_assigned).toLocaleDateString() : '-'}</td>
                                 <td width={150}>{getCode(row)}</td>
-                                <td width={350}>{getName(row)}</td>
+                                <td width={selectedStatus === 'DRAFT' ? 300 : 350}>{getName(row)}</td>
+                                {selectedStatus === 'DRAFT' && <td width={250}>{statusBadge('Draft')}</td>}
                                 {selectedStatus === 'APPROVED' && <td width={200}><span style={{ color: '#047857', background: '#ecfdf5', padding: '3px 10px', borderRadius: 99, fontWeight: 600, fontSize: 12, display: 'inline-block' }}>{row.d_date_accepted ? new Date(row.d_date_accepted).toLocaleDateString() : '-'}</span></td>}
                                 <td className={styles.fill}>
                                     <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
@@ -356,8 +358,6 @@ const CoursesTable = () => {
                                         }
 
                                     </div>
-                                </td>
-
                                 </td>
                             </tr>
                         ))}
