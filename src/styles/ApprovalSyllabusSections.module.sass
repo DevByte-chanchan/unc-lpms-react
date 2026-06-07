@@ -131,6 +131,7 @@ section
   border-collapse: collapse !important
   border: 1px solid #000
   margin-top: 10px
+  table-layout: fixed
 
   // OVERRIDE GLOBAL FLEX STYLES
   display: table !important
@@ -161,6 +162,8 @@ section
     gap: unset !important
     align-items: unset !important
     line-height: 1.4
+    overflow-wrap: anywhere
+    word-break: break-word
 
 .labelCell
   background-color: #EFEFEF
@@ -171,13 +174,14 @@ section
 .valueCell
   background-color: #FFF
   text-align: left
-  min-width: 200px
+  width: 200px
 
 .descHeader
   background-color: #EFEFEF
   font-weight: 600
   text-align: left
   border-bottom: 1px solid #000
+  width: 45%
 
 .descCell
   vertical-align: top !important
@@ -185,6 +189,9 @@ section
   background-color: #FFF
   padding: 15px !important
   width: 45%
+  word-break: break-word !important
+  white-space: normal !important
+  overflow-wrap: anywhere !important
 
 /* =========================
    COURSE & PROGRAM ALIGNMENT
@@ -284,6 +291,13 @@ section
   strong
     font-weight: 700
     margin-right: 5px
+
+.descContent
+  height: 100%
+  overflow-y: auto
+  line-height: 1.5
+  overflow-wrap: anywhere
+  word-break: break-word
 
 .poHeader
   background-color: #EFEFEF

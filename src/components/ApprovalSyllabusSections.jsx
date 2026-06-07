@@ -637,7 +637,11 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
                     <tr>
                       <th className={styles.labelCell}>Course Title</th>
                       <td className={styles.valueCell}><strong>{syllabus?.name || ''}</strong></td>
-                      <td rowSpan="9" className={styles.descCell}>{syllabus?.description || ''}</td>
+                      <td rowSpan="9" className={styles.descCell}>
+                        <div className={styles.descContent}>
+                          {syllabus?.description || ''}
+                        </div>
+                      </td>
                     </tr>
                     <tr>
                       <th className={styles.labelCell}>Credit</th>
