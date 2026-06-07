@@ -266,8 +266,8 @@ const ApprovalCoursesTable = ({ role = 'approver' }) => {
                         <tr>
                             <th width={200}>DATE ASSIGNED</th>
                             <th width={150}>CODE</th>
-                            <th width={350}>COURSE NAME</th>
-                            {selectedStatus === 'APPROVED' && <th width={200}>DATE APPROVED</th>}
+                            <th width={300}>COURSE NAME</th>
+                            {selectedStatus === 'APPROVED' && <th width={250}>DATE APPROVED</th>}
                             <th className={styles.fill}></th>
                         </tr>
                         </thead>
@@ -276,8 +276,8 @@ const ApprovalCoursesTable = ({ role = 'approver' }) => {
                             <tr key={index}>
                                 <td width={200}>{row.date_assigned ? new Date(row.date_assigned).toLocaleDateString() : '-'}</td>
                                 <td width={150}>{getCode(row)}</td>
-                                <td width={350}>{getName(row)}</td>
-                                {selectedStatus === 'APPROVED' && <td width={200}><span style={{ color: '#047857', background: '#ecfdf5', padding: '3px 10px', borderRadius: 99, fontWeight: 600, fontSize: 12, display: 'inline-block' }}>{row.d_date_accepted ? new Date(row.d_date_accepted).toLocaleDateString() : '-'}</span></td>}
+                                <td width={300}>{getName(row)}</td>
+                                {selectedStatus === 'APPROVED' && <td width={250}><span style={{ color: '#047857', background: '#ecfdf5', padding: '3px 10px', borderRadius: 99, fontWeight: 600, fontSize: 12, display: 'inline-block' }}>{row.d_date_accepted ? new Date(row.d_date_accepted).toLocaleDateString() : '-'}</span></td>}
                                 <td className={styles.fill}>
                                     <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                                         <Link
