@@ -194,6 +194,17 @@ const CoursesTable = () => {
     };
 
 
+    const statusBadge = (status) => {
+        const map = {
+            Draft: { color: '#6b7280', background: '#f3f4f6' },
+            Pending: { color: '#b45309', background: '#fffbeb' },
+            Returned: { color: '#dc2626', background: '#fef2f2' },
+            Approved: { color: '#047857', background: '#ecfdf5' },
+        };
+        const s = map[status] || { color: '#6b7280', background: '#f3f4f6' };
+        return <span style={{ ...s, padding: '3px 10px', borderRadius: 99, fontWeight: 600, fontSize: 12 }}>{status}</span>;
+    };
+
     // Filter rows by selectedStatus
     const filteredRows = assignments.filter(row => {
         const overall = computeOverallStatus(row);
@@ -229,9 +240,19 @@ const CoursesTable = () => {
                         <strong>Submitted at:</strong> {submittedAt ? new Date(submittedAt).toLocaleString() : '-'}
                     </div>
 
-                    {approverStatuses.map((a, idx) => (
+                    {approverStatuses.map((a, idx) => {
+                        const badgeMap = {
+                            Accepted: { color: '#047857', background: '#ecfdf5' },
+                            Returned: { color: '#dc2626', background: '#fef2f2' },
+                            Pending: { color: '#b45309', background: '#fffbeb' },
+                        };
+                        const b = badgeMap[a.status] || { color: '#6b7280', background: '#f3f4f6' };
+                        return (
                         <div key={idx} style={{ marginBottom: 10, paddingBottom: 8, borderBottom: '1px solid #f0f0f0' }}>
-                            <div style={{ fontWeight: 600 }}>{a.title}</div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                                <div style={{ fontWeight: 600 }}>{a.title}</div>
+                                <span style={{ ...b, padding: '2px 8px', borderRadius: 99, fontWeight: 600, fontSize: 11 }}>{a.status}</span>
+                            </div>
                             <div style={{ fontSize: 13, color: '#333' }}>
                                 {a.status === 'Accepted' && <div>Accepted at: {new Date(a.acceptedAt).toLocaleString()}</div>}
                                 {a.status === 'Returned' && (
@@ -240,10 +261,10 @@ const CoursesTable = () => {
                                         {a.updatedAt && <div>Updated at: {new Date(a.updatedAt).toLocaleString()}</div>}
                                     </>
                                 )}
-                                {a.status === 'Pending' && <div>Pending</div>}
                             </div>
                         </div>
-                    ))}
+                        );
+                    })}
                 </div>
             </div>
         );
@@ -366,7 +387,7 @@ const CoursesTable = () => {
                                     <td width={300}>{getName(row)}</td>
 
                                     <td width={250}>
-                                        <div style={{ fontWeight: 500 }}>{overallDisplay}</div>
+                                        {statusBadge(overallDisplay)}
                                     </td>
 
                                     <td className={styles.fill}>

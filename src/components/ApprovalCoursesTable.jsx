@@ -190,9 +190,19 @@ const ApprovalCoursesTable = ({ role = 'approver' }) => {
                         <strong>Submitted at:</strong> {submittedAt ? new Date(submittedAt).toLocaleString() : '-'}
                     </div>
 
-                    {approverStatuses.map((a, idx) => (
+                    {approverStatuses.map((a, idx) => {
+                        const badgeMap = {
+                            Accepted: { color: '#047857', background: '#ecfdf5' },
+                            Returned: { color: '#dc2626', background: '#fef2f2' },
+                            Pending: { color: '#b45309', background: '#fffbeb' },
+                        };
+                        const b = badgeMap[a.status] || { color: '#6b7280', background: '#f3f4f6' };
+                        return (
                         <div key={idx} style={{ marginBottom: 10, paddingBottom: 8, borderBottom: '1px solid #f0f0f0' }}>
-                            <div style={{ fontWeight: 600 }}>{a.title}</div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                                <div style={{ fontWeight: 600 }}>{a.title}</div>
+                                <span style={{ ...b, padding: '2px 8px', borderRadius: 99, fontWeight: 600, fontSize: 11 }}>{a.status}</span>
+                            </div>
                             <div style={{ fontSize: 13, color: '#333' }}>
                                 {a.status === 'Accepted' && <div>Accepted at: {a.acceptedAt ? new Date(a.acceptedAt).toLocaleString() : '-'}</div>}
                                 {a.status === 'Returned' && (
@@ -201,10 +211,10 @@ const ApprovalCoursesTable = ({ role = 'approver' }) => {
                                         {a.updatedAt && <div>Updated at: {new Date(a.updatedAt).toLocaleString()}</div>}
                                     </>
                                 )}
-                                {a.status === 'Pending' && <div>Pending</div>}
                             </div>
                         </div>
-                    ))}
+                        );
+                    })}
                 </div>
             </div>
         );
