@@ -158,7 +158,7 @@ const COAEPUpload = () => {
             {docList.map((doc) => (
               <tr key={doc.id}>
                 <td style={{ flex: 1 }}>{doc.name}</td>
-                <td style={{ width: 120, textAlign: 'right' }}>
+                <td style={{ width: 120, textAlign: 'right', fontWeight: 500 }}>
                   <span className="actionLink" style={{ minWidth: 90, display: 'inline-flex', alignItems: 'center', gap: 5, cursor: 'pointer' }} onClick={() => setSelectedFile(doc)}>
                     View <ChevronRight size={16} />
                   </span>
