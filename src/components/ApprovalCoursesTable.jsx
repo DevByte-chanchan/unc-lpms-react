@@ -101,6 +101,17 @@ const ApprovalCoursesTable = ({ role = 'approver' }) => {
         return 'Pending';
     };
 
+    const statusBadge = (status) => {
+        const map = {
+            Pending: { color: '#b45309', background: '#fffbeb' },
+            Returned: { color: '#dc2626', background: '#fef2f2' },
+            Approved: { color: '#047857', background: '#ecfdf5' },
+            Draft: { color: '#6b7280', background: '#f3f4f6' },
+        };
+        const s = map[status] || { color: '#6b7280', background: '#f3f4f6' };
+        return <span style={{ ...s, padding: '3px 10px', borderRadius: 99, fontWeight: 600, fontSize: 12 }}>{status}</span>;
+    };
+
     async function loadAssignments() {
         setLoading(true);
         try {
@@ -305,7 +316,7 @@ const ApprovalCoursesTable = ({ role = 'approver' }) => {
                                     <td width={300}>{getName(row)}</td>
 
                                     <td width={250}>
-                                        <div style={{ fontWeight: 500 }}>{overallStatus}</div>
+                                        {statusBadge(overallStatus)}
                                     </td>
 
                                     <td className={styles.fill}>
