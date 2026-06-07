@@ -8,6 +8,7 @@ import { getWorkflow, setWorkflow, advanceWorkflow } from '../utils/workflowHelp
 import { getSuggestions, addSuggestion, acceptSuggestion, rejectSuggestion } from '../utils/dataStore'
 import { getReferences, getReferenceById } from '../utils/referenceLibrary'
 import PDFViewerModal from './PDFViewerModal'
+import WorkflowStepper from './WorkflowStepper/WorkflowStepper.jsx'
 
 const defaultSections = [
   'Course Details',
@@ -30,6 +31,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
   const [workflowState, setWorkflowState] = useState(() => workflowProp || getWorkflow(courseCode || ''))
   const [showApproveModal, setShowApproveModal] = useState(false)
   const [showSubmitModal, setShowSubmitModal] = useState(false)
+  const [showWorkflowPopup, setShowWorkflowPopup] = useState(false)
   const [globalComments, setGlobalComments] = useState([])
   const [suggestions, setSuggestions] = useState([])
   const [refreshKey, setRefreshKey] = useState(0)
@@ -546,6 +548,10 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
             <select value={selectedSection} onChange={handleSectionChange}>
               {defaultSections.map((s) => <option key={s} value={s}>{s}</option>)}
             </select>
+          </div>
+
+          <div style={{ padding: '0 12px', cursor: 'pointer', display: 'flex', alignItems: 'center' }} onClick={() => setShowWorkflowPopup(true)}>
+            <Info strokeWidth={2} size={18} />
           </div>
 
           {/* approval controls */}
@@ -1327,6 +1333,21 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
         </div>
         )
       })()}
+
+      {/* ── WORKFLOW POPUP ──────────────────────────────────────────────── */}
+      {showWorkflowPopup && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(2px)' }} onClick={() => setShowWorkflowPopup(false)}>
+          <div style={{ background: 'white', borderRadius: 16, width: 420, maxWidth: '90vw', padding: 32, boxShadow: '0 20px 60px rgba(0,0,0,0.15)', fontFamily: "'Poppins', sans-serif" }} onClick={(e) => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+              <h3 style={{ margin: 0, fontSize: 18, fontWeight: 600 }}>View Details</h3>
+              <div style={{ cursor: 'pointer', padding: 4 }} onClick={() => setShowWorkflowPopup(false)}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6b7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+              </div>
+            </div>
+            <WorkflowStepper courseCode={codeToUse} />
+          </div>
+        </div>
+      )}
 
       {/* ── PDF VIEWER MODAL ───────────────────────────────────────────── */}
       {previewFile && (

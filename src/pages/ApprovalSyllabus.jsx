@@ -4,7 +4,6 @@ import Skeleton from "../layouts/SkeletonA.jsx";
 import Header from "../components/HeaderA.jsx";
 import SideNavigation from "../components/SideNavigation.jsx";
 import ApprovalSyllabusSections from "../components/ApprovalSyllabusSections.jsx";
-import WorkflowStepper from "../components/WorkflowStepper/WorkflowStepper.jsx";
 import { getWorkflow } from '../utils/workflowHelpers'
 
 const roleNames = {
@@ -51,7 +50,7 @@ const ApprovalSyllabus = () => {
   return (
     <Skeleton
       header={<Header role={formattedRole} name={approverName} />}
-      content={<div style={{display:'flex',flexDirection:'column',height:'100%',minHeight:0}}>{roleKey !== 'director-of-libraries' && roleKey !== 'industry-consultant' && <WorkflowStepper courseCode={decodedCourse} />}<div style={{flex:1,minHeight:0}}><ApprovalSyllabusSections currentRole={roleKey} courseCode={decodedCourse} /></div></div>}
+      content={<div style={{display:'flex',flexDirection:'column',height:'100%',minHeight:0}}><div style={{flex:1,minHeight:0}}><ApprovalSyllabusSections currentRole={roleKey} courseCode={decodedCourse} /></div></div>}
       nav={<SideNavigation mode={roleKey} />}
     />
   );
