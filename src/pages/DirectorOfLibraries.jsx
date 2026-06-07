@@ -1,6 +1,7 @@
 import Skeleton from "../layouts/SkeletonA.jsx";
 import Header from "../components/HeaderA.jsx";
 import SideNavigation from "../components/SideNavigation.jsx";
+import ApprovalCoursesTable from "../components/ApprovalCoursesTable.jsx";
 import RoleUploadPanel from "../components/RoleUploadPanel/RoleUploadPanel.jsx";
 import { DocumentService } from "../services/documentService.js";
 import uploadStyles from "../styles/UploadPages.module.sass";
@@ -26,7 +27,6 @@ const DirectorOfLibraries = () => {
   const [suggestedCourse, setSuggestedCourse] = useState('')
   const storedKey = 'director-of-libraries'
 
-  // Courses from unified syllabiData
   const courses = syllabiData.map(s => ({ code: s.code, name: s.name }))
 
   useEffect(() => {
@@ -75,14 +75,12 @@ const DirectorOfLibraries = () => {
       return
     }
 
-    // Prevent suggesting if DOL already approved this course's syllabus
     const wf = getWorkflow(suggestedCourse)
     if (wf?.parallelReview?.library_director?.status === 'done') {
       alert('You have already approved the syllabus for this course. Suggesting references is no longer available.')
       return
     }
 
-    // Store suggestions in localStorage
     const suggestions = JSON.parse(localStorage.getItem('library_suggestions') || '{}')
     if (!suggestions[suggestedCourse]) {
       suggestions[suggestedCourse] = []
@@ -97,7 +95,6 @@ const DirectorOfLibraries = () => {
     localStorage.setItem('library_suggestions', JSON.stringify(suggestions))
     alert(`Successfully suggested ${selected.length} reference(s) to ${suggestedCourse}`)
     
-    // Reset form
     setSelectedReferences({})
     setSuggestedCourse('')
     setShowSuggestionPanel(false)
@@ -109,7 +106,9 @@ const DirectorOfLibraries = () => {
       nav={<SideNavigation mode="director-of-libraries" />}
       content={
         <div style={{ padding: 20, display: 'grid', gap: 16 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <ApprovalCoursesTable role="director-of-libraries" />
+
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
             <div>
               <h2>Director of Libraries - Reference Library</h2>
               <p>Manage reference materials and suggest them to course syllabi.</p>
@@ -137,7 +136,6 @@ const DirectorOfLibraries = () => {
             )}
           </div>
 
-          {/* Suggestion Panel */}
           {showSuggestionPanel && (
             <div style={{
               backgroundColor: '#f0f9ff',

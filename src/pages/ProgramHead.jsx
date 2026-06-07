@@ -1,6 +1,7 @@
 import SkeletonA from "../layouts/SkeletonA.jsx";
 import HeaderA from "../components/HeaderA.jsx";
 import SideNavigation from "../components/SideNavigation.jsx";
+import ApprovalCoursesTable from "../components/ApprovalCoursesTable.jsx";
 import RoleUploadPanel from "../components/RoleUploadPanel/RoleUploadPanel.jsx";
 import { DocumentService } from "../services/documentService.js";
 import uploadStyles from "../styles/UploadPages.module.sass";
@@ -38,6 +39,8 @@ const ProgramHead = () => {
       nav={<SideNavigation mode="program-head" />}
       content={
         <div style={{ padding: 20, display: 'grid', gap: 16 }}>
+          <ApprovalCoursesTable role="program-head" />
+
           <h2>Program Head - Document Uploads</h2>
           <p>Upload supporting documents for learning plan review.</p>
           <RoleUploadPanel role={'program-head'} courseCode={undefined} uploadSlots={uploadSlots} onUploadsChange={setUploads} />
