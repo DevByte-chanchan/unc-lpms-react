@@ -283,6 +283,7 @@ const ApprovalCoursesTable = ({ role = 'approver' }) => {
                                         <Link
                                             className={'actionLink'}
                                             to={getCourseLink(row)}
+                                            style={{ minWidth: 90, display: 'inline-flex', alignItems: 'center', gap: 5 }}
                                         >
                                             View
                                             <ChevronRight size={18} />
@@ -295,9 +296,6 @@ const ApprovalCoursesTable = ({ role = 'approver' }) => {
                                         }
 
                                     </div>
-                                </td>
-                                <td>
-
                                 </td>
                             </tr>
                         ))}
@@ -333,6 +331,7 @@ const ApprovalCoursesTable = ({ role = 'approver' }) => {
                                         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                                             <Link className={'actionLink'}
                                                   to={getCourseLink(row)}
+                                                  style={{ minWidth: 90, display: 'inline-flex', alignItems: 'center', gap: 5 }}
                                             >
                                                 View <ChevronRight size={16} />
                                             </Link>

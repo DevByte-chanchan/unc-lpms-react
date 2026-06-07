@@ -343,6 +343,7 @@ const CoursesTable = () => {
                                         <Link
                                             className={'actionLink'}
                                             to={`/courses/${getCode(row)}/${selectedStatus.toLowerCase()}`}
+                                            style={{ minWidth: 90, display: 'inline-flex', alignItems: 'center', gap: 5 }}
                                         >
                                             {selectedStatus === 'DRAFT' ? 'Compose' : 'View'}
                                             <ChevronRight size={18} />
@@ -356,7 +357,6 @@ const CoursesTable = () => {
 
                                     </div>
                                 </td>
-                                <td>
 
                                 </td>
                             </tr>
@@ -395,12 +395,14 @@ const CoursesTable = () => {
                                             {overallDisplay === 'Returned' ? (
                                                 <Link className={'actionLink'}
                                                       to={`/courses/${getCode(row)}/${selectedStatus.toLowerCase()}`}
+                                                      style={{ minWidth: 90, display: 'inline-flex', alignItems: 'center', gap: 5 }}
                                                 >
                                                     Update<Edit size={16} />
                                                 </Link>
                                             ) : (
                                                 <Link className={'actionLink'}
                                                       to={`/courses/${getCode(row)}/${selectedStatus.toLowerCase()}`}
+                                                      style={{ minWidth: 90, display: 'inline-flex', alignItems: 'center', gap: 5 }}
                                                 >
                                                     View <ChevronRight size={16} />
                                                 </Link>
