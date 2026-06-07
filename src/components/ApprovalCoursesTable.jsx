@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import styles from '../styles/CoursesTable.module.sass';
-import { ChevronRight, Edit, XCircle, HelpCircle } from 'react-feather';
+import { ChevronRight, XCircle, HelpCircle } from 'react-feather';
 import { fetchJson } from "../utils/api.js";
 import { syllabiData } from "../data/syllabiData.js";
 
@@ -19,7 +19,7 @@ const ApprovalCoursesTable = ({ role = 'approver' }) => {
         yearOptions.push(<option key={i} value={i}>{i}</option>);
     }
 
-    const statuses = ["DRAFT", "PENDING", "RETURNED", "APPROVED"];
+    const statuses = ["PENDING", "RETURNED", "APPROVED"];
 
     const [selectedStatus, setSelectedStatus] = useState('PENDING');
     const [assignments, setAssignments] = useState([]);
@@ -239,7 +239,7 @@ const ApprovalCoursesTable = ({ role = 'approver' }) => {
             <div className={styles['table-container']}>
                 {loading && <div>Loading...</div>}
 
-                {(selectedStatus === 'DRAFT' || selectedStatus === 'APPROVED') &&
+                {selectedStatus === 'APPROVED' &&
                     <table>
                         <thead>
                         <tr>
@@ -263,7 +263,7 @@ const ApprovalCoursesTable = ({ role = 'approver' }) => {
                                             className={'actionLink'}
                                             to={getCourseLink(row)}
                                         >
-                                            {selectedStatus === 'DRAFT' ? 'Compose' : 'View'}
+                                            View
                                             <ChevronRight size={18} />
                                         </Link>
 
@@ -310,19 +310,11 @@ const ApprovalCoursesTable = ({ role = 'approver' }) => {
 
                                     <td className={styles.fill}>
                                         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                                            {overallStatus === 'Returned' ? (
-                                                <Link className={'actionLink'}
-                                                      to={getCourseLink(row)}
-                                                >
-                                                    Update<Edit size={16} />
-                                                </Link>
-                                            ) : (
-                                                <Link className={'actionLink'}
-                                                      to={getCourseLink(row)}
-                                                >
-                                                    View <ChevronRight size={16} />
-                                                </Link>
-                                            )}
+                                            <Link className={'actionLink'}
+                                                  to={getCourseLink(row)}
+                                            >
+                                                View <ChevronRight size={16} />
+                                            </Link>
                                             <button onClick={() => openPopup(row)} className={styles.info}>
                                                 <HelpCircle opacity={.8} size={18} />
                                             </button>
