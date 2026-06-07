@@ -134,6 +134,7 @@ section
   border-collapse: collapse !important
   border: 1px solid #000
   margin-top: 10px
+  table-layout: fixed
 
   // OVERRIDE GLOBAL FLEX STYLES
   // We force it back to standard table behavior
@@ -166,6 +167,8 @@ section
     gap: unset !important
     align-items: unset !important
     line-height: 1.4
+    overflow-wrap: break-word
+    word-break: break-word
 
 // --- Specific Cell Styling to Match Image ---
 
@@ -180,7 +183,7 @@ section
 .valueCell
   background-color: #FFF
   text-align: left
-  min-width: 200px
+  width: 200px
 
 // Right Column Header (Course Description)
 .descHeader
@@ -188,6 +191,7 @@ section
   font-weight: 600
   text-align: left
   border-bottom: 1px solid #000
+  width: 45%
 
 // The Large Description Content
 .descCell
