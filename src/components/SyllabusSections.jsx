@@ -599,51 +599,41 @@ const SyllabusSections = () => {
                                                     <tr key={ilo.id}>
                                                         <td width={150} style={{ fontWeight: 500 }}>{entryLabel}</td>
                                                         <td  width={600}>{ilo.description}</td>
-                                                        <td className={styles.fill} width={250}
+                                                        <td width={250}
                                                             style={{
-                                                                display: "flex", flexDirection: "column",
-                                                                alignItems: "end", gap: 5,
+                                                                display: "flex", flexDirection: "row",
+                                                                flexWrap: "wrap", alignItems: "center",
+                                                                gap: 6, padding: '8px 0',
                                                             }}>
 
                                                             {/* Assign References */}
-                                                            <Link className={'actionLink'} to={`/references/form/${code}/${ilo.id}/${status}`}>
-                        <span className={styles['link-text-wrapper']}>
-                            Assign References
-                                                                <ChevronRight size={18} />
-                            <div className={styles.fixedWidth}>
-                                {status === 'returned' && refBadges > 0 && (
-                                    <span className={styles['comment-badge']}>{refBadges}</span>
-                                )}
-                            </div>
-                        </span>
+                                                            <Link className={'actionLink'} to={`/references/form/${code}/${ilo.id}/${status}`}
+                                                                  style={{ fontSize: 12, whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                                                                Ref
+                                                                <ChevronRight size={14} />
+                                                                {status === 'returned' && refBadges > 0 && (
+                                                                    <span className={styles['comment-badge']}>{refBadges}</span>
+                                                                )}
                                                             </Link>
 
                                                             {/* Assign Topics */}
-                                                            <Link className={'actionLink'} to={`/topics/form/${code}/${ilo.id}/${status}`}>
-                        <span className={styles['link-text-wrapper']}>
-                            Assign Topics
-                                                                <ChevronRight size={18} />
-
-                            <div className={styles.fixedWidth}>
-                                {status === 'returned' && topicBadges > 0 && (
-                                    <span className={styles['comment-badge']}>{topicBadges}</span>
-                                )}
-                            </div>
-                        </span>
+                                                            <Link className={'actionLink'} to={`/topics/form/${code}/${ilo.id}/${status}`}
+                                                                  style={{ fontSize: 12, whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                                                                Topics
+                                                                <ChevronRight size={14} />
+                                                                {status === 'returned' && topicBadges > 0 && (
+                                                                    <span className={styles['comment-badge']}>{topicBadges}</span>
+                                                                )}
                                                             </Link>
 
                                                             {/* Assign TLAs */}
-                                                            <Link className={'actionLink'} to={`/tlas/form/${code}/${ilo.id}/${status}`}>
-                        <span className={styles['link-text-wrapper']}>
-                            Assign TLAs
-                                                                <ChevronRight size={18} />
-                            <div className={styles.fixedWidth}>
-                                {/* FIXED: Now accurately checks tlaBadges instead of refBadges */}
-                                {status === 'returned' && tlaBadges > 0 && (
-                                    <span className={styles['comment-badge']}>{tlaBadges}</span>
-                                )}
-                            </div>
-                        </span>
+                                                            <Link className={'actionLink'} to={`/tlas/form/${code}/${ilo.id}/${status}`}
+                                                                  style={{ fontSize: 12, whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                                                                TLAs
+                                                                <ChevronRight size={14} />
+                                                                {status === 'returned' && tlaBadges > 0 && (
+                                                                    <span className={styles['comment-badge']}>{tlaBadges}</span>
+                                                                )}
                                                             </Link>
 
                                                         </td>
