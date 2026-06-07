@@ -128,8 +128,6 @@ section
   width: 100%
   padding-bottom: 20px
   font-family: Arial, sans-serif
-  max-height: 450px
-  overflow-y: auto
 
 .documentTable
   width: 100%
@@ -200,7 +198,7 @@ section
   vertical-align: top !important // Forces text to start at the top
   text-align: justify
   background-color: #FFF
-  padding: 15px !important
+  padding: 0 !important
   width: 45% // Gives the description plenty of space
   word-break: break-word !important
   white-space: normal !important
@@ -315,11 +313,13 @@ section
     margin-right: 5px
 
 .descContent
-  max-height: 200px
+  height: 100%
   overflow-y: auto
   line-height: 1.5
   overflow-wrap: anywhere
   word-break: break-word
+  padding: 15px
+  box-sizing: border-box
 
 // 2. PO Columns (Small & Centered)
 .poHeader
