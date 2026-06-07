@@ -7,6 +7,7 @@ import TopicForm from "./pages/TopicForm.jsx";
 import ILOForm from "./pages/ILOForm.jsx";
 import AssignedTOS from "./pages/AssignedTOS.jsx";
 import AssessmentForm from "./pages/AssessmentForm.jsx";
+import TLAForm from "./pages/TLAForm.jsx";
 import TOS from "./pages/TOS.jsx"; // Kept from your version
 
 import SyllabusRevisions from "./pages/SyllabusRevisions.jsx";
@@ -154,15 +155,22 @@ function App() {
 
                         {/* --- COURSE EDITING ROUTES --- */}
                         <Route path={'/courses/:code'} element={<ErrorBoundary><Syllabus /></ErrorBoundary>} />
+                        <Route path={'/courses/:code/:status'} element={<ErrorBoundary><Syllabus /></ErrorBoundary>} />
                         <Route path={'/revisions/:code'} element={<ErrorBoundary><SyllabusRevisions /></ErrorBoundary>} />
 
                         {/* --- FORMS --- */}
+                        {/* Original routes */}
                         <Route path={'/references/form/:id'} element={<ErrorBoundary><ReferenceForm /></ErrorBoundary>} />
                         <Route path={'/references/form/:code/:refId'} element={<ErrorBoundary><ReferenceForm /></ErrorBoundary>} />
                         <Route path={'/topics/form/:id'} element={<ErrorBoundary><TopicForm /></ErrorBoundary>} />
                         <Route path={'/topics/form/:code/:topicId'} element={<ErrorBoundary><TopicForm /></ErrorBoundary>} />
                         <Route path={'/ilos/form/:code/:iloId'} element={<ErrorBoundary><ILOForm /></ErrorBoundary>} />
                         <Route path={'/assessments/form/:code/:assessmentId'} element={<ErrorBoundary><AssessmentForm /></ErrorBoundary>} />
+
+                        {/* DevByte's routes with :status for status-aware sections */}
+                        <Route path={'/references/form/:code/:iloId/:status'} element={<ErrorBoundary><ReferenceForm /></ErrorBoundary>} />
+                        <Route path={'/topics/form/:code/:iloId/:status'} element={<ErrorBoundary><TopicForm /></ErrorBoundary>} />
+                        <Route path={'/tlas/form/:code/:iloId/:status'} element={<ErrorBoundary><TLAForm /></ErrorBoundary>} />
 
                         {/* --- TOS (Your Feature) --- */}
                         <Route path={'/tos/:code'} element={<ErrorBoundary><TOS /></ErrorBoundary>} />

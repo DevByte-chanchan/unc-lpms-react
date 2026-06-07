@@ -1,12 +1,12 @@
 import React, { useState, useMemo } from "react";
-import SkeletonA from "../layouts/SkeletonA.jsx";
-import HeaderA from "../components/HeaderA.jsx";
+import Skeleton from "../layouts/Skeleton.jsx";
+import Header from "../components/Header.jsx";
 import FormNavigation from "../components/FormNavigation.jsx";
 import styles from "../styles/Form.module.sass";
 import { useNavigate, useParams } from "react-router-dom";
-import DropdownA from "../components/DropdownA.jsx";
+import Dropdown from "../components/Dropdown.jsx";
 import TextArea from "../components/TextArea.jsx";
-import MultiSelectA from "../components/MultiSelectA.jsx";
+import MultiSelect from "../components/MultiSelect.jsx";
 import SideNavigation from "../components/SideNavigation.jsx";
 import { getSyllabusByCode } from "../data/syllabiData";
 import { X, AlertCircle, CheckCircle } from "react-feather";
@@ -57,7 +57,7 @@ const ILOForm = () => {
             return "Select topics above to view associated Teaching & Learning Activities.";
         }
 
-        // 1. Find the full topic objects for the selected titles
+        // 1. Find the full topics.js objects for the selected titles
         const matchingTopics = syllabus.topics.filter(t =>
             selectedTopics.includes(t.title)
         );
@@ -135,7 +135,7 @@ const ILOForm = () => {
         if (!allocatedTime) newErrors.allocatedTime = "Allocated Time is required.";
 
         if (selectedTopics.length === 0) {
-            newErrors.topics = "Please select at least one topic.";
+            newErrors.topics = "Please select at least one topics.js.";
         }
 
         if (selectedReferences.length === 0) {
@@ -168,8 +168,8 @@ const ILOForm = () => {
     };
 
     return (
-        <SkeletonA
-            header={<HeaderA role={'Instructor'} name={'CASIMERO, DANNY'} />}
+        <Skeleton
+            header={<Header role={'Instructor'} name={'NORTON, MONICA'} />}
             nav={<SideNavigation />}
             content={
                 <div className={styles.container}>
@@ -194,14 +194,14 @@ const ILOForm = () => {
                         />
 
                         <div className={styles.list}>
-                            <DropdownA
+                            <Dropdown
                                 label={'Delivery Week'}
                                 options={weeks()}
                                 value={deliveryWeek}
                                 onChange={(val) => handleTextChange(setDeliveryWeek, 'deliveryWeek', val)}
                                 error={errors.deliveryWeek}
                             />
-                            <DropdownA
+                            <Dropdown
                                 label={'Allocated Time'}
                                 options={['1 hour', '1.5 hours', '2 hours', '2.5 hours', '3 hours', '3.5 hours', '4 hours']}
                                 value={allocatedTime}
@@ -211,7 +211,7 @@ const ILOForm = () => {
                         </div>
 
                         <h2>Topics & TLAs</h2>
-                        <MultiSelectA
+                        <MultiSelect
                             label={'Select Topics'}
                             options={availableTopics}
                             value={selectedTopics}
@@ -229,7 +229,7 @@ const ILOForm = () => {
                         />
 
                         <h2>References</h2>
-                        <MultiSelectA
+                        <MultiSelect
                             label={'Select Title(s)'}
                             options={availableReferences}
                             value={selectedReferences}

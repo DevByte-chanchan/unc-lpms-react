@@ -1,170 +1,233 @@
-import {useState, useMemo} from 'react';
-import React from 'react';
-import {Link, useSearchParams} from 'react-router-dom'
+import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import styles from '../styles/CoursesTable.module.sass';
-import { ChevronRight, Download, HelpCircle } from 'react-feather';
-import { syllabiData } from '../data/syllabiData';
-import { exportSyllabusToPDF } from '../utils/pdfExport';
-import { getWorkflow } from '../utils/workflowHelpers';
+import { ChevronRight, Edit, XCircle, HelpCircle } from 'react-feather';
+import { fetchJson } from "../utils/api.js";
+import { syllabiData } from "../data/syllabiData.js";
 
-const getProgram = (code) => {
-  if (code && code.startsWith('IT ')) return 'Information Technology';
-  return 'Computer Science';
-};
-
-const CoursesTable = ({}) => {
-
-    const [searchParams, setSearchParams] = useSearchParams();
-    const initialStatus = searchParams.get('status') || 'DRAFT';
-
+const CoursesTable = () => {
     const currentYear = new Date().getFullYear();
     const startYear = 2000;
     const semOptions = ['1st Sem', '2nd Sem'];
-
     const yearOptions = [];
     for (let i = currentYear; i >= startYear; i--) {
         yearOptions.push(<option key={i} value={i}>{i}</option>);
     }
 
-    const fmt = (iso) => {
-        if (!iso) return ''
-        return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' })
-    }
+    const statuses = ["DRAFT", "PENDING", "RETURNED", "APPROVED"];
 
-    const baseCourses = syllabiData.map(s => ({
-        code: s.code,
-        name: s.name,
-        lastUpdated: s.update || 'TBA',
-        program: getProgram(s.code),
-        docsUploaded: 3,
-        docsTotal: 3,
-    }));
+    const [selectedStatus, setSelectedStatus] = useState('DRAFT');
+    const [assignments, setAssignments] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const [popup, setPopup] = useState({ open: false, data: null });
 
-    const getDerivedStatus = (code) => {
-        const wf = getWorkflow(code)
-        const stage = wf.currentStage || 'submitted'
-        if (stage === 'approved') return 'APPROVED'
-        if (stage === 'returned') return 'RETURNED'
-        if (stage === 'submitted') return 'DRAFT'
-        return 'PENDING'
-    }
+    useEffect(() => {
+        loadAssignments();
+    }, []);
 
-    const getSubmittedDate = (code) => {
-        const wf = getWorkflow(code)
-        return fmt(wf.submittedAt)
-    }
+    const handleStatusChange = (e) => setSelectedStatus(e.target.value);
 
-    const getApprovedDate = (code) => {
-        const wf = getWorkflow(code)
-        return fmt(wf.dean?.completedAt)
-    }
 
-    const getReviewerStatuses = (code) => {
-        const wf = getWorkflow(code)
-        const stage = wf.currentStage || 'submitted'
-        const stageOrder = ['submitted', 'parallel_review', 'program_head', 'dean', 'approved']
-        const stageIndex = stageOrder.indexOf(stage)
-        const effectiveIndex = stageIndex
+    // Map static syllabiData to the row shape the table expects
+    const mapStaticToRows = () => {
+        return syllabiData.map(s => ({
+            date_assigned: s.update || new Date().toISOString(),
+            date_submitted: s.status === 'PENDING' ? s.update : null,
+            d_date_accepted: s.status === 'APPROVED' ? (s.approved || s.update) : null,
+            d_date_returned: null,
+            ph_date_returned: null,
+            ic_date_returned: null,
+            ld_date_returned: null,
+            ProgramCourseOffering: {
+                Course: {
+                    course_no: s.code,
+                    course_title: s.name
+                }
+            }
+        }));
+    };
 
-        const reviewerStageMap = {
-            industry_consultant: 'parallel_review',
-            library_director: 'parallel_review',
-            programHead: 'parallel_review',
-            dean: 'dean',
-        }
+    async function loadAssignments() {
+        setLoading(true);
+        try {
+            // Centralized fetch handles network checks and parsing automatically
+            const data = await fetchJson('/api/assignments');
 
-        const isReviewerReached = (reviewerKey) => {
-            const revStageIndex = stageOrder.indexOf(reviewerStageMap[reviewerKey])
-            return effectiveIndex >= revStageIndex
-        }
-
-        const checkStatus = (revStatus, reviewerKey) => {
-            if (revStatus === 'done') return 'A'
-            if (revStatus === 'returned') return 'R'
-            if (revStatus === 'pending' && isReviewerReached(reviewerKey)) return 'P'
-            return ''
-        }
-
-        const ic = checkStatus(wf.parallelReview?.industry_consultant?.status, 'industry_consultant')
-        const lib = checkStatus(wf.parallelReview?.library_director?.status, 'library_director')
-        const ph = checkStatus(wf.programHead?.status, 'programHead')
-        const dean = checkStatus(wf.dean?.status, 'dean')
-
-        return [
-            { role: 'Industry Consultant',    name: 'Roberto Cruz',   status: ic },
-            { role: 'Director of Libraries',  name: 'Maria Santos',   status: lib },
-            { role: 'Program Head',           name: 'Junar Danila',   status: ph },
-            { role: 'Dean',                   name: 'Agnes Reyes',    status: dean },
-        ]
-    }
-
-    const [tick, setTick] = useState(0)
-    React.useEffect(() => {
-        const interval = setInterval(() => setTick(t => t + 1), 2000)
-        return () => clearInterval(interval)
-    }, [])
-
-    const Courses = useMemo(() => baseCourses.map(c => ({
-        ...c,
-        status: getDerivedStatus(c.code),
-        submittedDate: getSubmittedDate(c.code),
-        approved: getApprovedDate(c.code),
-        reviewerStatuses: getReviewerStatuses(c.code),
-    })), [tick])
-
-    const [selectedStatus, setSelectedStatus] = useState(initialStatus);
-    const handleStatusChange = (e) => {
-        const val = e.target.value;
-        setSelectedStatus(val);
-        setSearchParams({ status: val });
-    }
-
-    const getStatusBadge = (text, type) => {
-        const styles_map = {
-            approved: { color: '#047857', background: '#ecfdf5', padding: '3px 10px', borderRadius: 99, fontWeight: 600, fontSize: 12 },
-            pending: { color: '#b45309', background: '#fffbeb', padding: '3px 10px', borderRadius: 99, fontWeight: 600, fontSize: 12 },
-            draft: { color: '#6b7280', background: '#f3f4f6', padding: '3px 10px', borderRadius: 99, fontWeight: 600, fontSize: 12 },
-            returned: { color: '#dc2626', background: '#fef2f2', padding: '3px 10px', borderRadius: 99, fontWeight: 600, fontSize: 12 },
-        }
-        return <span style={styles_map[type] || styles_map.draft}>{text}</span>
-    }
-
-    const getStatusForCourse = (statusKey) => {
-        switch (statusKey) {
-            case 'APPROVED': return getStatusBadge('Approved', 'approved')
-            case 'PENDING': return getStatusBadge('Pending', 'pending')
-            case 'DRAFT': return getStatusBadge('Draft', 'draft')
-            case 'RETURNED': return getStatusBadge('Returned', 'returned')
-            default: return getStatusBadge('Draft', 'draft')
+            // Normalize: backend may return { data: [...] } or { rows: [...] } or array
+            const rows = Array.isArray(data) ? data : (data.data || data.rows || []);
+            setAssignments(rows);
+        } catch (err) {
+            console.warn("API unavailable, using static syllabiData as fallback");
+            setAssignments(mapStaticToRows());
+        } finally {
+            setLoading(false);
         }
     }
 
-    const getStatusLabel = (char) => {
-        if (char === 'A') return 'Approved'
-        if (char === 'P') return 'Pending'
-        if (char === 'R') return 'Returned'
-        return '\u2014'
-    }
+    // Safe accessors for code and name (preserve table columns)
+    const getCode = (assignment) => {
+        const pco = assignment.ProgramCourseOffering || {};
+        const course = pco.Course || {};
+        return course.course_no || course.code || course.course_id || pco.course_id || assignment.pc_offering_id || '-';
+    };
 
-    const generatePDF = (course) => {
-        const syllabus = syllabiData.find(s => s.code === course.code)
-        if (syllabus) {
-            exportSyllabusToPDF(syllabus, course.code)
+    const getName = (assignment) => {
+        const pco = assignment.ProgramCourseOffering || {};
+        const course = pco.Course || {};
+        return course.course_title || course.title || course.name || pco.course_description || '-';
+    };
+
+    // Consolidated status logic:
+    // 1. If any *_date_returned exists => Returned
+    // 2. If no date_submitted => Draft
+    // 3. If dean accepted (d_date_accepted) => Approved
+    // 4. Otherwise => Pending
+    const computeOverallStatus = (row) => {
+        const {
+            date_submitted,
+            d_date_accepted,
+            d_date_returned,
+            ph_date_returned,
+            ic_date_returned,
+            ld_date_returned
+        } = row || {};
+
+        // Returned has highest priority
+        if (d_date_returned || ph_date_returned || ic_date_returned || ld_date_returned) {
+            return 'Returned';
+
         }
-    }
 
-    const [statusPopup, setStatusPopup] = useState(null);
-    const [popupPos, setPopupPos] = useState(null);
+        // Draft if not submitted
+        if (!date_submitted) {
+            return 'Draft';
+        }
 
-    const filteredCourses = useMemo(() => {
-        if (selectedStatus === 'PENDING') return Courses.filter(r => r.status === 'PENDING' || r.status === 'RETURNED')
-        return Courses.filter(r => r.status === selectedStatus)
-    }, [Courses, selectedStatus])
+        // Approved if dean accepted (simplified rule)
+        if (d_date_accepted) {
+            return 'Approved';
+        }
+
+        // Otherwise pending
+        return 'Pending';
+    };
+
+    // Build per-approver display object for popup
+    const buildApproverStatus = (row) => {
+        const approvers = [
+            {
+                key: 'Industry Consultant',
+                accepted: row?.ic_date_accepted,
+                returned: row?.ic_date_returned,
+                updated: row?.date_updated
+            },
+            {
+                key: 'Library Director',
+                accepted: row?.ld_date_accepted,
+                returned: row?.ld_date_returned,
+                updated: row?.date_updated
+            },
+            {
+                key: 'Program Head',
+                accepted: row?.ph_date_accepted,
+                returned: row?.ph_date_returned,
+                updated: row?.date_updated
+            },
+            {
+                key: 'Dean',
+                accepted: row?.d_date_accepted,
+                returned: row?.d_date_returned,
+                updated: row?.date_updated
+            }
+        ];
+
+        return approvers.map(a => {
+            if (a.accepted) {
+                return { title: a.key, status: 'Accepted', acceptedAt: a.accepted };
+            }
+            if (a.returned) {
+                const details = { title: a.key, status: 'Returned', returnedAt: a.returned };
+                if (a.updated && a.updated !== a.returned) details.updatedAt = a.updated;
+                return details;
+            }
+            return { title: a.key, status: 'Pending' };
+        });
+    };
+
+    const openPopup = (row) => {
+        const submittedAt = row?.date_submitted || null;
+        const approverStatuses = buildApproverStatus(row);
+        setPopup({ open: true, data: { submittedAt, approverStatuses } });
+    };
+
+    const closePopup = () => setPopup({ open: false, data: null });
+
+    // Calculate counts for each status
+    const getStatusCount = (statusName) => {
+        return assignments.filter(row => computeOverallStatus(row).toUpperCase() === statusName).length;
+    };
+
+
+    // Filter rows by selectedStatus
+    const filteredRows = assignments.filter(row => {
+        const overall = computeOverallStatus(row);
+        return overall.toUpperCase() === selectedStatus;
+    });
+
+    // Popup component
+    const DetailsPopup = ({ data, onClose }) => {
+        if (!data) return null;
+        const { submittedAt, approverStatuses } = data;
+        return (
+            <div style={{
+                position: 'fixed',
+                right: 20,
+                top: 80,
+                width: 340,
+                background: '#fff',
+                border: '1px solid #ddd',
+                borderRadius: 6,
+                boxShadow: '0 6px 18px rgba(0,0,0,0.12)',
+                zIndex: 1200,
+                padding: 12
+            }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                    <strong>View details</strong>
+                    <button onClick={onClose} style={{ border: 'none', background: 'transparent', cursor: 'pointer', padding: 4 }} aria-label="Close details">
+                        <XCircle size={18} />
+                    </button>
+                </div>
+
+                <div style={{ fontSize: 13, marginBottom: 10 }}>
+                    <div style={{ color: '#666', marginBottom: 8 }}>
+                        <strong>Submitted at:</strong> {submittedAt ? new Date(submittedAt).toLocaleString() : '-'}
+                    </div>
+
+                    {approverStatuses.map((a, idx) => (
+                        <div key={idx} style={{ marginBottom: 10, paddingBottom: 8, borderBottom: '1px solid #f0f0f0' }}>
+                            <div style={{ fontWeight: 600 }}>{a.title}</div>
+                            <div style={{ fontSize: 13, color: '#333' }}>
+                                {a.status === 'Accepted' && <div>Accepted at: {new Date(a.acceptedAt).toLocaleString()}</div>}
+                                {a.status === 'Returned' && (
+                                    <>
+                                        <div>Returned at: {a.returnedAt ? new Date(a.returnedAt).toLocaleString() : '-'}</div>
+                                        {a.updatedAt && <div>Updated at: {new Date(a.updatedAt).toLocaleString()}</div>}
+                                    </>
+                                )}
+                                {a.status === 'Pending' && <div>Pending</div>}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        );
+    };
 
     return (
-        <><div className={styles['courses-table']}>
+        <div className={styles['courses-table']}>
             <div className={styles.header}>
                 <h2>ASSIGNED COURSES</h2>
+
                 <div className={styles.filterA}>
                     <select className={styles['header-select']}>
                         {yearOptions}
@@ -175,134 +238,141 @@ const CoursesTable = ({}) => {
                         ))}
                     </select>
                 </div>
+
                 <div className={styles.fill}></div>
-                <div className={'filter-container'}>
-                    <p>Filter by <strong>Status</strong>:</p>
-                    <select onChange={handleStatusChange} value={selectedStatus}>
-                        <option value="DRAFT">Draft ({Courses.filter(r => r.status === 'DRAFT').length})</option>
-                        <option value="PENDING">Pending ({Courses.filter(r => r.status === 'PENDING' || r.status === 'RETURNED').length})</option>
-                        <option value="APPROVED">Approved ({Courses.filter(r => r.status === 'APPROVED').length})</option>
-                    </select>
+
+                <div className={styles['filter-container']}>
+                    <div className={styles['segmented-control']}>
+                        {statuses.map((status) => {
+                            const count = getStatusCount(status);
+                            const isReturned = status === 'RETURNED';
+                            return (
+                                <button
+                                    key={status}
+                                    type="button"
+                                    className={`${styles['control-item']} ${selectedStatus === status ? styles['active'] : ''}`}
+                                    onClick={() => handleStatusChange({ target: { value: status } })}
+                                >
+
+                                    {status.charAt(0) + status.slice(1).toLowerCase()}
+                                    {/*<span*/}
+                                    {/*    style={{*/}
+                                    {/*    marginLeft: '4px',*/}
+                                    {/*    color: isReturned ? '#e74c3c' : 'inherit',*/}
+                                    {/*    fontWeight: isReturned ? 'bold' : 'normal'*/}
+                                    {/*}}>*/}
+                                    {/*    ({count})*/}
+                                    {/*</span>*/}
+                                </button>
+                            );
+                        })}
+                    </div>
                 </div>
             </div>
 
             <div className={styles['table-container']}>
-                <table>
-                    <thead>
+                {loading && <div>Loading...</div>}
+
+                {(selectedStatus === 'DRAFT' || selectedStatus === 'APPROVED') &&
+                    <table>
+                        <thead>
                         <tr>
+                            <th width={200}>DATE ASSIGNED</th>
                             <th width={150}>CODE</th>
-                            <th width={250}>COURSE NAME</th>
-                            <th width={130}>PROGRAM</th>
-                            <th width={140}>LAST UPDATED</th>
-                            <th width={110}>STATUS</th>
+                            <th width={350}>COURSE NAME</th>
+                            {selectedStatus === 'APPROVED' && <th width={200}>DATE APPROVED</th>}
                             <th className={styles.fill}></th>
                         </tr>
-                    </thead>
-                    <tbody>
-                        {filteredCourses.map((row, index) => (
+                        </thead>
+                        <tbody>
+                        {filteredRows.map((row, index) => (
                             <tr key={index}>
-                                <td width={150}>{row.code}</td>
-                                <td width={250}>{row.name}</td>
-                                <td width={130}>{row.program}</td>
-                                <td width={140}>{row.lastUpdated}</td>
-                                <td width={110}>{getStatusForCourse(row.status)}</td>
+                                <td width={200}>{row.date_assigned ? new Date(row.date_assigned).toLocaleDateString() : '-'}</td>
+                                <td width={150}>{getCode(row)}</td>
+                                <td width={350}>{getName(row)}</td>
+                                {selectedStatus === 'APPROVED' && <td width={200}>{row.d_date_accepted ? new Date(row.d_date_accepted).toLocaleDateString() : '-'}</td>}
                                 <td className={styles.fill}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'flex-end' }}>
-                                        {row.status === 'APPROVED' && (
-                                            <button
-                                                onClick={() => generatePDF(row)}
-                                                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', gap: 4, fontSize: 13, fontWeight: 500, color: '#111827' }}
-                                            >
-                                                Export
+                                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                                        <Link
+                                            className={'actionLink'}
+                                            to={`/courses/${getCode(row)}/${selectedStatus.toLowerCase()}`}
+                                        >
+                                            {selectedStatus === 'DRAFT' ? 'Compose' : 'View'}
+                                            <ChevronRight size={18} />
+                                        </Link>
+
+                                        {selectedStatus ==='APPROVED' &&
+                                            <button onClick={() => openPopup(row)} className={styles.info}>
+                                                <HelpCircle size={18} />
                                             </button>
-                                        )}
-                                        {(row.status === 'DRAFT' || row.status === 'PENDING' || row.status === 'RETURNED') && (
-                                            <Link className={'actionLink'} to={row.status === 'RETURNED' ? `/revisions/${encodeURIComponent(row.code)}` : `/courses/${encodeURIComponent(row.code)}`}
-                                                state={{ from: '/', fromStatus: selectedStatus }}
-                                                style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 13, fontWeight: 500, textDecoration: 'none', color: '#111827' }}
-                                            >
-                                                {row.status === 'DRAFT' ? 'Compose' : row.status === 'RETURNED' ? 'Update' : 'View'} <ChevronRight size={16} />
-                                            </Link>
-                                        )}
-                                        {row.status === 'APPROVED' && (
-                                            <Link className={'actionLink'} to={`/role/instructor/courses/${encodeURIComponent(row.code)}?status=approved`}
-                                                state={{ from: '/', fromStatus: selectedStatus }}
-                                                style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 13, fontWeight: 500, textDecoration: 'none', color: '#111827' }}
-                                            >
-                                                View <ChevronRight size={16} />
-                                            </Link>
-                                        )}
-                                        <div style={{ position: 'relative' }}>
-                                            <button
-                                                onClick={(e) => { e.stopPropagation(); const rect = e.target.getBoundingClientRect(); setPopupPos({ top: rect.bottom + 6, right: window.innerWidth - rect.right }); setStatusPopup(statusPopup === row.code ? null : row.code); }}
-                                                style={{
-                                                    width: 28, height: 28, borderRadius: '50%',
-                                                    background: '#f1f5f9', border: '1px solid #cbd5e1',
-                                                    cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                    padding: 0, color: '#64748b', fontSize: 14, fontWeight: 700,
-                                                }}
-                                                title="View approval status"
-                                            >
-                                                ?
-                                            </button>
-                                            {statusPopup === row.code && popupPos && (
-                                                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 9998 }} onClick={() => { setStatusPopup(null); setPopupPos(null); }} />
-                                            )}
-                                        </div>
+                                        }
+
                                     </div>
+                                </td>
+                                <td>
+
                                 </td>
                             </tr>
                         ))}
-                        {filteredCourses.length === 0 && (
-                            <tr><td colSpan={6} style={{ textAlign: 'center', padding: 30, color: '#9ca3af' }}>No courses found</td></tr>
-                        )}
-                    </tbody>
-                </table>
+                        </tbody>
+                    </table>
+                }
+
+                {(selectedStatus === 'PENDING' || selectedStatus === 'RETURNED') &&
+                    <table>
+                        <thead>
+                        <tr>
+                            <th width={200}>DATE ASSIGNED</th>
+                            <th width={150}>CODE</th>
+                            <th width={300}>COURSE NAME</th>
+                            <th width={250}>STATUS</th>
+                            <th className={styles.fill}></th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {filteredRows.map((row, index) => {
+                            const overallStatus = computeOverallStatus(row);
+                            let overallDisplay = overallStatus;
+                            return (
+                                <tr key={index}>
+                                    <td width={200}>{row.date_assigned ? new Date(row.date_assigned).toLocaleDateString() : '-'}</td>
+                                    <td width={150}>{getCode(row)}</td>
+                                    <td width={300}>{getName(row)}</td>
+
+                                    <td width={250}>
+                                        <div style={{ fontWeight: 500 }}>{overallDisplay}</div>
+                                    </td>
+
+                                    <td className={styles.fill}>
+                                        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                                            {overallDisplay === 'Returned' ? (
+                                                <Link className={'actionLink'}
+                                                      to={`/courses/${getCode(row)}/${selectedStatus.toLowerCase()}`}
+                                                >
+                                                    Update<Edit size={16} />
+                                                </Link>
+                                            ) : (
+                                                <Link className={'actionLink'}
+                                                      to={`/courses/${getCode(row)}/${selectedStatus.toLowerCase()}`}
+                                                >
+                                                    View <ChevronRight size={16} />
+                                                </Link>
+                                            )}
+                                            <button onClick={() => openPopup(row)} className={styles.info}>
+                                                <HelpCircle opacity={.8} size={18} />
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            );
+                        })}
+                        </tbody>
+                    </table>
+                }
             </div>
+
+            {popup.open && <DetailsPopup data={popup.data} onClose={closePopup} />}
         </div>
-        {statusPopup && popupPos && (() => {
-            const popupCourse = Courses.find(c => c.code === statusPopup)
-            if (!popupCourse) return null
-            return (
-                <div
-                    style={{
-                        position: 'fixed', top: popupPos.top, right: popupPos.right, marginTop: 0,
-                        background: '#fff', border: '1px solid #e2e8f0', borderRadius: 10,
-                        boxShadow: '0 8px 24px rgba(0,0,0,0.12)', zIndex: 9999,
-                        padding: '12px 0', minWidth: 220,
-                    }}
-                    onClick={(e) => e.stopPropagation()}
-                >
-                    <div style={{ padding: '0 14px 8px', fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.04em', borderBottom: '1px solid #e2e8f0' }}>
-                        Approval Chain
-                    </div>
-                    {popupCourse.reviewerStatuses.map((r, i) => (
-                        <div key={i} style={{ padding: '10px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-                            <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-                                <div style={{ fontSize: 13, fontWeight: 600, color: '#0F172A' }}>{r.name}</div>
-                                <div style={{ fontSize: 11, color: '#64748B', marginTop: 1 }}>{r.role}</div>
-                            </div>
-                            <div style={{
-                                fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 99, whiteSpace: 'nowrap',
-                                color: r.status === 'A' ? '#047857' : r.status === 'P' ? '#b45309' : r.status === 'R' ? '#dc2626' : '#94a3b8',
-                                background: r.status === 'A' ? '#ecfdf5' : r.status === 'P' ? '#fffbeb' : r.status === 'R' ? '#fef2f2' : '#f1f5f9',
-                            }}>
-                                {getStatusLabel(r.status)}
-                            </div>
-                        </div>
-                    ))}
-                    <div style={{ padding: '8px 14px 0', borderTop: '1px solid #e2e8f0', marginTop: 4, paddingTop: 8 }}>
-                        <button
-                            onClick={() => { setStatusPopup(null); setPopupPos(null); }}
-                            style={{ width: '100%', padding: '6px 0', background: 'none', border: 'none', fontSize: 12, fontWeight: 600, color: '#64748b', cursor: 'pointer' }}
-                        >
-                            Close
-                        </button>
-                    </div>
-                </div>
-            )
-        })()}
-    </>
     );
 };
 

@@ -1,272 +1,373 @@
-import React, { useState, useEffect } from 'react';
-import SkeletonA from "../layouts/SkeletonA.jsx";
-import HeaderA from "../components/HeaderA.jsx";
-import FormNavigation from "../components/FormNavigation.jsx";
-import styles from "../styles/Form.module.sass";
-import { useNavigate, useParams } from "react-router-dom";
-import TextField from "../components/TextField.jsx";
-import DropdownA from "../components/DropdownA.jsx";
-import SideNavigation from "../components/SideNavigation.jsx";
-import { getSyllabusByCode } from "../data/syllabiData.js";
-import { getReferenceComments } from "../utils/referenceLibrary.js";
-import { X, AlertCircle, CheckCircle } from 'react-feather';
+// src/pages/ReferenceForm.jsx
+import React, { useEffect, useState } from 'react';
+import Skeleton from '../layouts/Skeleton.jsx';
+import Header from '../components/Header.jsx';
+import FormNavigation from '../components/FormNavigation.jsx';
+import styles from '../styles/Form.module.sass';
+import { useNavigate, useParams } from 'react-router-dom';
+import SideNavigation from '../components/SideNavigation.jsx';
+import ReferencePicker from '../components/ReferencePicker.jsx';
+import TextField from '../components/TextField.jsx';
+import Dropdown from '../components/Dropdown.jsx';
+import { X, CheckCircle, MessageSquare } from 'react-feather';
+
+// Imported universal API client utility
+import { fetchJson } from "../utils/api.js";
+
+function InlineModal({ isOpen, title, onClose, children, actions }) {
+    if (!isOpen) return null;
+    return (
+        <div className={styles.modalOverlay} role="dialog" aria-modal="true" aria-labelledby="modal-title">
+            <div className={styles.modal}>
+                <div className={styles.modalHeader}>
+                    <h3 id="modal-title">{title}</h3>
+                    <button type="button" aria-label="Close" className={styles.closeIcon || ''} onClick={onClose} style={{ background: 'transparent', border: 'none', padding: 6 }}>
+                        <X size={16} />
+                    </button>
+                </div>
+                <div className={styles.modalBody}>{children}</div>
+                <div className={styles.modalActions}>{actions}</div>
+            </div>
+        </div>
+    );
+}
 
 const ReferenceForm = () => {
     const navigate = useNavigate();
-    const { code, refId } = useParams();
-
-    // 1. Get Data
-    const syllabus = getSyllabusByCode(code);
-    const referenceData = syllabus?.references.find(r => r.id === refId) || {};
-
-    const ReferenceTypes = ['Textbook', 'Online Resources', 'Open Educational Resources'];
-
-    // 2. Form State
-    const [formData, setFormData] = useState({
-        // FIX: Ensure type defaults to empty string if undefined
-        type: referenceData.type || '',
-        title: referenceData.title || '',
-        authors: referenceData.authors || '',
-        isbn: referenceData.isbn || '',
-        year: referenceData.year ? referenceData.year.toString() : '',
-        link: referenceData.link || ''
-    });
-
-    // 3. Error State
-    const [errors, setErrors] = useState({});
-
-    // 4. Modal State
-    const [showConfirmModal, setShowConfirmModal] = useState(false);
-    const [showErrorModal, setShowErrorModal] = useState(false);
-
-    // 5. Comment State
-    const [formComments, setFormComments] = useState([]);
-
-    useEffect(() => {
-        if (refId) {
-            setFormComments(getReferenceComments(refId));
-        }
-    }, [refId]);
-
-    // --- HANDLERS ---
-
-    const handleChange = (field, value) => {
-        setFormData(prev => ({ ...prev, [field]: value }));
-        // Clear error immediately when user selects a value
-        if (errors[field]) {
-            setErrors(prev => ({ ...prev, [field]: null }));
-        }
-    };
-
+    const { courseCode, iloId, status } = useParams();
     const goBackHandler = () => navigate(-1);
 
-    // --- VALIDATION LOGIC ---
+    const [allReferences, setAllReferences] = useState([]);
+    const [assignedReferences, setAssignedReferences] = useState([]);
+    const [selectedRefs, setSelectedRefs] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const [saving, setSaving] = useState(false);
+    const [validationError, setValidationError] = useState(null);
 
-    const validateForm = () => {
-        let newErrors = {};
+    // Context-Targeted Comments Checklist Tracking States
+    const [reviewComments, setReviewComments] = useState([]);
 
-        // FIX: Added Validation for Dropdown (Reference Type)
-        // Without this, the 'error' prop is never sent to the Dropdown
-        if (!formData.type) {
-            newErrors.type = "Please select a reference type.";
-        }
+    const [isAddOpen, setIsAddOpen] = useState(false);
+    const [newRefDraft, setNewRefDraft] = useState({
+        title: '', type: 'Textbook', author: '', isbn: '', link: '', publication_year: ''
+    });
 
-        // Rule 1: Title & Authors are always required
-        if (!formData.title.trim()) newErrors.title = "Reference Title is required.";
-        if (!formData.authors.trim()) newErrors.authors = "Author(s) is required.";
+    const [showConfirm, setShowConfirm] = useState(false);
 
-        // Rule 2: ISBN required for Textbooks
-        if (formData.type === 'Textbook') {
-            if (!formData.isbn.trim()) {
-                newErrors.isbn = "ISBN is required for Textbooks.";
-            }
-            else if (!/^[0-9-X\s]+$/i.test(formData.isbn)) {
-                newErrors.isbn = "ISBN contains invalid characters.";
-            }
-        }
+    useEffect(() => {
+        if (!iloId) return;
+        let mounted = true;
+        setLoading(true);
 
-        // Rule 3: Year required for Textbooks & OER
-        if (['Textbook', 'Open Educational Resources'].includes(formData.type)) {
-            if (!formData.year.trim()) {
-                newErrors.year = "Publication Year is required.";
-            } else if (!/^\d{4}$/.test(formData.year)) {
-                newErrors.year = "Year must be a 4-digit number (e.g., 2023).";
-            }
-        }
+        async function load() {
+            try {
+                const refsUrl = `/api/references`;
+                const assignedUrl = `/api/ilo-references/${encodeURIComponent(iloId)}`;
+                const commentsUrl = `/api/comments/filter/${encodeURIComponent(iloId)}/references`;
 
-        // Rule 4: Link required for Online & OER
-        if (['Online Resources', 'Open Educational Resources'].includes(formData.type)) {
-            if (!formData.link.trim()) {
-                newErrors.link = "Link URL is required.";
-            } else {
-                const urlPattern = /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/;
-                if (!urlPattern.test(formData.link)) {
-                    newErrors.link = "Please enter a valid URL (e.g., https://example.com).";
+                // Leveraging the centralized utility setup to auto-parse promises
+                const fetchPromises = [fetchJson(refsUrl), fetchJson(assignedUrl)];
+                if (status === 'returned') {
+                    fetchPromises.push(fetchJson(commentsUrl));
                 }
+
+                const results = await Promise.all(fetchPromises);
+
+                const refs = results[0];
+                const assigned = results[1];
+                let targetedComments = [];
+
+                if (status === 'returned' && results[2]) {
+                    targetedComments = results[2];
+                }
+
+                if (!mounted) return;
+
+                setReviewComments(targetedComments.map(c => ({
+                    ...c,
+                    resolved_status: c.resolved_status === 1 || c.resolved_status === true
+                })));
+
+                const normalizedRefs = (Array.isArray(refs) ? refs : []).map(r => ({
+                    reference_id: r.reference_id != null ? Number(r.reference_id) : null,
+                    title: r.title || '',
+                    type: r.type || '',
+                    author: r.author || r.authors || '',
+                    isbn: r.isbn || '',
+                    link: r.link || '',
+                    publication_year: r.publication_year ? (typeof r.publication_year === 'string' ? r.publication_year.split('T')[0] : r.publication_year) : null,
+                    ...r
+                }));
+
+                setAllReferences(normalizedRefs);
+                setAssignedReferences(Array.isArray(assigned) ? assigned : []);
+
+                const assignedRefObjects = (Array.isArray(assigned) ? assigned : [])
+                    .map(a => a.reference)
+                    .filter(Boolean)
+                    .map(ar => {
+                        if (ar.reference_id != null) {
+                            const match = normalizedRefs.find(r => r.reference_id != null && Number(r.reference_id) === Number(ar.reference_id));
+                            if (match) return match;
+                        }
+                        return ar;
+                    });
+
+                setSelectedRefs(assignedRefObjects);
+            } catch (err) {
+                console.error('Load initial targets failure: ', err);
+                if (mounted) setValidationError(err.message || 'Failed to initialize view data.');
+            } finally {
+                // FIXED: Resolved syntax slip block from 'file' back to 'finally'
+                if (mounted) setLoading(false);
             }
         }
 
-        setErrors(newErrors);
-        return Object.keys(newErrors).length === 0;
+        load();
+        return () => { mounted = false; };
+    }, [iloId, status]);
+
+    const handleToggleCommentResolution = (commentId) => {
+        setReviewComments(prev => prev.map(c =>
+            c.comment_id === commentId ? { ...c, resolved_status: !c.resolved_status } : c
+        ));
     };
 
-    const handleSaveClick = () => {
-        if (validateForm()) {
-            setShowConfirmModal(true);
-        } else {
-            setShowErrorModal(true);
+    const handleOpenAdd = () => {
+        setNewRefDraft({ title: '', type: 'Textbook', author: '', isbn: '', link: '', publication_year: '' });
+        setValidationError(null);
+        setIsAddOpen(true);
+    };
+
+    const handleSaveNewRefLocal = () => {
+        if (!newRefDraft.title || !newRefDraft.type) {
+            setValidationError('Title and Type are required for the new reference.');
+            return;
+        }
+
+        const tempId = `temp-${Date.now()}`;
+        const newOption = {
+            reference_id: null,
+            _temp_id: tempId,
+            title: newRefDraft.title,
+            type: newRefDraft.type,
+            author: newRefDraft.author,
+            isbn: newRefDraft.isbn,
+            link: newRefDraft.link,
+            publication_year: newRefDraft.publication_year || null
+        };
+
+        setAllReferences(prev => [newOption, ...prev]);
+        setSelectedRefs(prev => [newOption, ...prev]);
+        setIsAddOpen(false);
+        setValidationError(null);
+    };
+
+    const handleSave = async () => {
+        setValidationError(null);
+        if (!selectedRefs || selectedRefs.length === 0) {
+            setValidationError('Please select at least one reference before saving.');
+            return;
+        }
+
+        setSaving(true);
+        try {
+            if (status === 'returned' && reviewComments.length > 0) {
+                const commentPayload = reviewComments.map(c => ({
+                    comment_id: c.comment_id,
+                    resolved_status: c.resolved_status ? 1 : 0
+                }));
+
+                await fetchJson(`/api/comments/update-resolution`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ updates: commentPayload })
+                });
+            }
+
+            const toCreate = selectedRefs.filter(r => !r.reference_id);
+            const createdMap = {};
+
+            for (const r of toCreate) {
+                const payload = {
+                    title: r.title, type: r.type, author: r.author || null,
+                    isbn: r.isbn || null, link: r.link || null, publication_year: r.publication_year || null
+                };
+
+                const created = await fetchJson(`/api/references`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (r._temp_id) createdMap[r._temp_id] = created;
+                setAllReferences(prev => prev.map(x => (x._temp_id && x._temp_id === r._temp_id ? created : x)));
+                setSelectedRefs(prev => prev.map(x => (x._temp_id && x._temp_id === r._temp_id ? created : x)));
+            }
+
+            const reference_ids = selectedRefs.map(r => {
+                if (r.reference_id) return r.reference_id;
+                if (r._temp_id && createdMap[r._temp_id]) return createdMap[r._temp_id].reference_id;
+                return null;
+            }).filter(Boolean);
+
+            await fetchJson(`/api/ilo-references/assign`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ilo_id: Number(iloId), reference_ids })
+            });
+
+            setShowConfirm(true);
+        } catch (err) {
+            console.error('Comprehensive save operation failure:', err);
+            setValidationError(err.message || 'Failed to securely synchronize settings changes.');
+        } finally {
+            setSaving(false);
         }
     };
 
-    const handleConfirmSave = () => {
-        console.log("Saving data:", formData);
-        setShowConfirmModal(false);
-        navigate(-1);
+    const renderDynamicFields = () => {
+        const type = newRefDraft.type;
+        return (
+            <>
+                <TextField label="Title" value={newRefDraft.title} onChange={(v) => setNewRefDraft(prev => ({ ...prev, title: v }))} />
+                {type === 'Textbook' && (
+                    <>
+                        <TextField label="Author(s)" value={newRefDraft.author} onChange={(v) => setNewRefDraft(prev => ({ ...prev, author: v }))} />
+                        <TextField label="ISBN" value={newRefDraft.isbn} onChange={(v) => setNewRefDraft(prev => ({ ...prev, isbn: v }))} />
+                        <TextField label="Publication Year" value={newRefDraft.publication_year} onChange={(v) => setNewRefDraft(prev => ({ ...prev, publication_year: v }))} />
+                        <TextField label="Link (optional)" value={newRefDraft.link} onChange={(v) => setNewRefDraft(prev => ({ ...prev, link: v }))} />
+                    </>
+                )}
+                {type === 'Open Educational Resources' && (
+                    <>
+                        <TextField label="Author / Source" value={newRefDraft.author} onChange={(v) => setNewRefDraft(prev => ({ ...prev, author: v }))} />
+                        <TextField label="Link" value={newRefDraft.link} onChange={(v) => setNewRefDraft(prev => ({ ...prev, link: v }))} />
+                    </>
+                )}
+                {type === 'Online Resources' && (
+                    <>
+                        <TextField label="Author / Publisher" value={newRefDraft.author} onChange={(v) => setNewRefDraft(prev => ({ ...prev, author: v }))} />
+                        <TextField label="Link" value={newRefDraft.link} onChange={(v) => setNewRefDraft(prev => ({ ...prev, link: v }))} />
+                    </>
+                )}
+            </>
+        );
     };
 
-    return(
-        <SkeletonA
-            header={<HeaderA role={'Instructor'} name={'CASIMERO, DANNY'} />}
-            nav={<SideNavigation/> }
+    const getCommentTargetLabel = (comment) => {
+        if (comment.target_title) return comment.target_title;
+        const match = allReferences.find(r => Number(r.reference_id) === Number(comment.target_id));
+        return match ? match.title : `Reference Element ID: ${comment.target_id}`;
+    };
+
+    return (
+        <Skeleton
+            header={<Header role={'Instructor'} name={'NORTON, MONICA'} />}
+            nav={<SideNavigation />}
             content={
                 <div className={styles.container}>
+                    <FormNavigation goBack={goBackHandler} onSave={handleSave} />
 
-                    {/* UPDATED: Pass the save handler to the navigation bar */}
-                    <FormNavigation
-                        goBack={goBackHandler}
-                        onSave={handleSaveClick}
-                    />
+                    <div className={styles.mainCont}>
+                        <div className={styles.leftCont}>
+                            <div className={styles['form-container']}>
+                                <h2>References Assignment</h2>
 
-                    <div className={styles['form-container']}>
-                        <h2>Reference Details</h2>
+                                <ReferencePicker
+                                    options={allReferences}
+                                    value={selectedRefs}
+                                    onChange={(val) => setSelectedRefs(val)}
+                                    error={validationError}
+                                    disabled={loading || saving}
+                                    onAddReference={handleOpenAdd}
+                                />
 
-                        <DropdownA
-                            options={ReferenceTypes}
-                            label={'Reference Type'}
-                            // Use 'value' to control the component since formData is state
-                            value={formData.type}
-                            initialValue={formData.type}
-                            onChange={(val) => handleChange('type', val)}
-                            // This ensures the red border appears when validation fails
-                            error={errors.type}
-                        />
+                                <InlineModal
+                                    isOpen={isAddOpen}
+                                    title="Add Reference"
+                                    onClose={() => setIsAddOpen(false)}
+                                    actions={<button style={{ color: "white", fontWeight: 400 }} className="confirmBtn" onClick={handleSaveNewRefLocal}>Add</button>}
+                                >
+                                    <div style={{ display: 'grid', gap: 12 }}>
+                                        <Dropdown
+                                            label="Type"
+                                            value={newRefDraft.type}
+                                            options={['Textbook', 'Open Educational Resources', 'Online Resources']}
+                                            onChange={(v) => setNewRefDraft(prev => ({ ...prev, type: v }))}
+                                        />
+                                        {renderDynamicFields()}
+                                        {validationError && <div style={{ color: '#b00020' }}>{validationError}</div>}
+                                    </div>
+                                </InlineModal>
 
-                        {/* --- ALWAYS VISIBLE FIELDS --- */}
-                        <TextField
-                            label={'Reference Title'}
-                            value={formData.title}
-                            onChange={(val) => handleChange('title', val)}
-                            error={errors.title}
-                        />
-                        <TextField
-                            label={'Author(s)'}
-                            value={formData.authors}
-                            onChange={(val) => handleChange('authors', val)}
-                            error={errors.authors}
-                        />
+                                <InlineModal isOpen={showConfirm} title="Saved" onClose={() => setShowConfirm(false)}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                                        <CheckCircle size={20} color="#2e7d32" />
+                                        <div>Syllabus adjustments synchronized successfully.</div>
+                                    </div>
+                                </InlineModal>
+                            </div>
+                        </div>
 
-                        {/* --- CONDITIONAL FIELDS --- */}
-                        {formData.type === 'Textbook' && (
-                            <TextField
-                                label={'ISBN'}
-                                value={formData.isbn}
-                                onChange={(val) => handleChange('isbn', val)}
-                                error={errors.isbn}
-                            />
-                        )}
+                        {status === 'returned' && (
+                            <div className={styles.rightCont}>
+                                <div className={styles.checklistCard}>
+                                    <div className={styles.checklistHeader}>
+                                        <MessageSquare size={18} className={styles.headerIcon} />
+                                        <h3>Review Corrections</h3>
+                                    </div>
 
-                        {(formData.type === 'Textbook' || formData.type === 'Open Educational Resources') && (
-                            <TextField
-                                label={'Publication Year'}
-                                value={formData.year}
-                                onChange={(val) => handleChange('year', val)}
-                                error={errors.year}
-                                placeholder="YYYY"
-                            />
-                        )}
-
-                        {(formData.type === 'Online Resources' || formData.type === 'Open Educational Resources') && (
-                            <TextField
-                                label={'Link'}
-                                value={formData.link}
-                                onChange={(val) => handleChange('link', val)}
-                                error={errors.link}
-                                placeholder="https://..."
-                            />
-                        )}
-
-                        <div style={{ marginTop: 24, borderTop: '1px solid #e5e7eb', paddingTop: 16 }}>
-                            <h4 style={{ margin: '0 0 8px 0', fontSize: 14, fontWeight: 600, color: '#374151' }}>Comments</h4>
-                            {formComments.length === 0 ? (
-                                <p style={{ margin: '0 0 8px 0', fontSize: 13, color: '#9ca3af' }}>No comments yet.</p>
-                            ) : (
-                                <div style={{ marginBottom: 8, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                                    {formComments.map(c => (
-                                        <div key={c.id} style={{ padding: '10px 12px', background: '#f9fafb', borderRadius: 6, border: '1px solid #e5e7eb' }}>
-                                            <div style={{ fontSize: 13, color: '#111827', marginBottom: 4 }}>{c.text}</div>
-                                            <div style={{ fontSize: 11, color: '#9ca3af' }}>{c.author} &middot; {new Date(c.createdAt).toLocaleString()}</div>
+                                    {reviewComments.length === 0 ? (
+                                        <div className={styles.emptyChecklist}>
+                                            <p>No unresolved reference concerns found for this entry.</p>
                                         </div>
-                                    ))}
+                                    ) : (
+                                        <div className={styles.checklistWrapper}>
+                                            {reviewComments.map((comment) => (
+                                                <label
+                                                    key={comment.comment_id}
+                                                    className={`${styles.checklistItem} ${comment.resolved_status ? styles.itemResolved : ''}`}
+                                                >
+                                                    <div className={styles.checkboxControl}>
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={comment.resolved_status}
+                                                            onChange={() => handleToggleCommentResolution(comment.comment_id)}
+                                                        />
+                                                        <span className={styles.customCheckmark}></span>
+                                                    </div>
+
+                                                    <div className={styles.commentContent}>
+                                                        <div className={styles.targetContextBadge}>
+                                                            <span className={styles.targetPrefix}>Target:</span>
+                                                            <span className={styles.targetText}>{getCommentTargetLabel(comment)}</span>
+                                                        </div>
+
+                                                        <p className={styles.commentMessage}>{comment.message}</p>
+
+                                                        <div className={styles.commentMetadata}>
+                                                            <span className={styles.metaRole}>{comment.commenter_role}</span>
+                                                            <span className={styles.metaDivider}>•</span>
+                                                            <span className={styles.metaDate}>
+                                                                {new Date(comment.createdAt).toLocaleDateString(undefined, {
+                                                                    month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+                                                                })}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </label>
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
-                            )}
-                        </div>
+                            </div>
+                        )}
                     </div>
-
-                    {/* --- POPUPS / MODALS --- */}
-
-                    {/* CONFIRMATION */}
-                    {showConfirmModal && (
-                        <div className={styles.modalOverlay}>
-                            <div className={styles.modal}>
-                                <div className={styles.modalHeader}>
-                                    <h3>Confirm Save</h3>
-                                </div>
-                                <div className={styles.modalBody}>
-                                    <CheckCircle size={40} color="#4CAF50" style={{marginBottom: '1rem'}}/>
-                                    <p>Are you sure you want to save these changes?</p>
-                                </div>
-                                <div className={styles.modalActions}>
-                                    <button className={styles.cancelBtn} onClick={() => setShowConfirmModal(false)}>No, Cancel</button>
-                                    <button className={styles.confirmBtn} onClick={handleConfirmSave}>Yes, Save</button>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* ERROR */}
-                    {showErrorModal && (
-                        <div className={styles.modalOverlay}>
-                            <div className={styles.modal}>
-                                <div className={styles.modalHeader} style={{borderBottomColor: '#FF5252'}}>
-                                    <h3 style={{color: '#FF5252'}}>Validation Error</h3>
-                                    <X
-                                        size={24}
-                                        className={styles.closeIcon}
-                                        onClick={() => setShowErrorModal(false)}
-                                    />
-                                </div>
-                                <div className={styles.modalBody}>
-                                    <AlertCircle size={40} color="#FF5252" style={{marginBottom: '1rem'}}/>
-                                    <p>Please fix the following issues before saving:</p>
-                                    <ul className={styles.errorList}>
-                                        {Object.values(errors).map((err, idx) => (
-                                            <li key={idx}>{err}</li>
-                                        ))}
-                                    </ul>
-                                </div>
-                                <div className={styles.modalActions}>
-                                    <button className={styles.confirmBtn} style={{backgroundColor: '#FF5252'}} onClick={() => setShowErrorModal(false)}>
-                                        Okay, I'll fix it
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
                 </div>
             }
         />
-    )
-}
+    );
+};
 
 export default ReferenceForm;

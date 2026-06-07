@@ -1,14 +1,14 @@
 
-import SkeletonA from "../layouts/SkeletonA.jsx";
-import HeaderA from "../components/HeaderA.jsx";
+import Skeleton from "../layouts/Skeleton.jsx";
+import Header from "../components/Header.jsx";
 import CoursesTable from "../components/CoursesTable.jsx";
 import SideNavigation from "../components/SideNavigation.jsx";
 
 const Syllabus = ({}) => {
 
     return (
-        <SkeletonA
-            header={<HeaderA role="Instructor" name="CASIMERO, DANNY"  />}
+        <Skeleton
+            header={<Header role="Instructor" name="NORTON, MONICA"  />}
             content={ <CoursesTable /> }
             nav={<SideNavigation/> }
         />

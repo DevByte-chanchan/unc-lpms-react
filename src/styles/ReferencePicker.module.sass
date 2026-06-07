@@ -1,0 +1,133 @@
+.container
+  width: 100%
+  font-family: 'Manrope', sans-serif
+
+.label
+  font-weight: 600
+  font-size: 14px
+  margin-bottom: 8px
+  display: block
+
+.pickerWrapper
+  border: 1px solid #DCE2F0
+  border-radius: 8px
+  background: #fff
+  overflow: hidden
+  &.error
+    border-color: #ff5252
+
+.header
+  background: #F8FAFC
+  border-bottom: 1px solid #DCE2F0
+  padding: 10px
+
+.searchBar
+  display: flex
+  align-items: center
+  gap: 10px
+  background: #fff
+  border: 1px solid #E2E8F0
+  padding: 8px 12px
+  border-radius: 6px
+  margin-bottom: 10px
+  input
+    border: none
+    outline: none
+    width: 100%
+    font-size: 14px
+
+.filterTabs
+  display: flex
+  gap: 5px
+  button
+    background: #EDF2F7
+    border: none
+    padding: 4px 10px
+    border-radius: 4px
+    font-size: 12px
+    cursor: pointer
+    color: #4A5568
+    transition: all 0.2s
+    &.activeTab
+      background: #3182CE
+      color: #fff
+
+.selfAdder
+  display: flex
+  align-items: center
+  outline: none
+  border: 0
+  margin-left: auto
+  background: #3182CE
+  color: black !important
+
+.selfAdder:focus
+  outline: none
+
+
+.list
+  max-height: 300px
+  overflow-y: auto
+
+.row
+  display: flex
+  align-items: flex-start
+  padding: 12px
+  gap: 12px
+  border-bottom: 1px solid #F1F5F9
+  cursor: pointer
+  transition: background 0.2s
+  &:hover
+    background: #F1F5F9
+  &.selectedRow
+    background: #EBF8FF
+
+.icon
+  color: #718096
+  margin-top: 2px
+
+.details
+  flex: 1
+  .title
+    font-weight: 600
+    font-size: 14px
+    color: #1A202C
+  .meta
+    font-size: 12px
+    color: #718096
+    margin-top: 2px
+  .link
+    display: flex
+    align-items: center
+    gap: 4px
+    font-size: 11px
+    color: #3182CE
+    text-decoration: none
+    margin-top: 5px
+
+.typeTag
+  font-size: 10px
+  text-transform: uppercase
+  background: #E2E8F0
+  padding: 2px 6px
+  border-radius: 4px
+  color: #4A5568
+  font-weight: 700
+  width: 80px
+  display: flex
+  justify-content: center
+
+.empty
+  padding: 20px
+  text-align: center
+  color: #A0AEC0
+  font-size: 14px
+
+.errorText
+  color: #ff5252
+  font-size: 12px
+  margin-top: 4px
+  display: block
+
+a
+  font-size: 14px

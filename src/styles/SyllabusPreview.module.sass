@@ -334,7 +334,8 @@ section
   flex-grow: 1
   overflow: auto
   border: 1px solid #000
-  max-height: 60vh
+  max-height: 70vh
+
 
   // Custom scrollbar
   &::-webkit-scrollbar
@@ -438,7 +439,6 @@ section
 .refHeaderBar
   background-color: #EFEFEF // Requested Grey
   border: 1px solid #000
-  border-bottom: none // The table header will provide the bottom line look
   height: 50px
   position: relative
   display: flex
@@ -473,7 +473,6 @@ section
 .refScrollWrapper
   flex-grow: 1
   overflow: auto // Enables X and Y scroll
-  border: 1px solid #000
   max-height: 60vh // Matches your example height constraint
 
   // Custom scrollbar (Optional, matches your example)
@@ -521,9 +520,9 @@ section
   th, td
     display: table-cell !important
     border: 1px solid #000 !important // 1px Border
-    padding: 10px 8px !important
+    //padding: 10px 8px !important
     vertical-align: middle
-    font-size: 16px // Requested 16px
+    //font-size: 16px // Requested 16px
     color: #000
     line-height: 1.4
 
@@ -533,6 +532,7 @@ section
   text-transform: uppercase
   text-align: center
   background-color: #fff
+
 // No need for 'top' here because the thead is sticky
 
 // --- DATA CELLS ---

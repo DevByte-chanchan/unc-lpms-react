@@ -1,5 +1,5 @@
-import SkeletonA from "../layouts/SkeletonA.jsx";
-import HeaderA from "../components/HeaderA.jsx";
+import Skeleton from "../layouts/Skeleton.jsx";
+import Header from "../components/Header.jsx";
 import FormNavigation from "../components/FormNavigation.jsx";
 import styles from "../styles/Form.module.sass";
 import {useNavigate, useParams} from "react-router-dom";
@@ -20,6 +20,7 @@ const AssessmentForm = () => {
     const [showConfirmModal, setShowConfirmModal] = useState(false);
     const [showErrorModal, setShowErrorModal] = useState(false);
     const [errors, setErrors] = useState({});
+
     const { code, assessmentId } = useParams();
     const syllabus = getSyllabusByCode(code);
     const assessmentData = syllabus?.assessments.find(a => a.id === assessmentId) || {};
@@ -45,7 +46,7 @@ const AssessmentForm = () => {
     const getCOByTlaName = (syllabus, tlaName) => {
         if (!syllabus || !tlaName) return null;
 
-        // 1. Find the topic of the TLA
+        // 1. Find the topics.js of the TLA
         let topicTitle = null;
 
         for (const topic of syllabus.topics) {
@@ -58,7 +59,7 @@ const AssessmentForm = () => {
 
         if (!topicTitle) return null;
 
-        // 2. Find which ILO contains that topic
+        // 2. Find which ILO contains that topics.js
         const ilo = syllabus.ilos.find(ilo =>
             ilo.topics.includes(topicTitle)
         );
@@ -92,6 +93,9 @@ const AssessmentForm = () => {
     const [showRubricPicker, setShowRubricPicker] = useState(false)
     const [selectedRubricMethod, setSelectedRubricMethod] = useState("")
 
+    // --- UPDATED LOGIC: FIND TLA DETAILS ---
+    // We need to find the original TLA object inside the 'topics' array
+    // to get the Description and the Parent Topic Title.
     let derivedTlaData = {
         topicTitle: null,
         tlaDescription: null
@@ -101,10 +105,11 @@ const AssessmentForm = () => {
         // Iterate through all topics
         for (const topic of syllabus.topics) {
             if (topic.tlas) {
-                // Check if this topic contains the TLA we are looking for
+                // Check if this topics.js contains the TLA we are looking for
                 const foundTLA = topic.tlas.find(t => t.tlaName === assessmentData.tlaName);
 
                 if (foundTLA) {
+                    // Found it! Capture the data
                     derivedTlaData = {
                         topicTitle: topic.title,
                         tlaDescription: foundTLA.tlaDescription
@@ -114,6 +119,7 @@ const AssessmentForm = () => {
             }
         }
     }
+    // -----------------------------------------
 
     const [method, setMethod] = useState(assessmentData.assessmentMethod || '');
     const [description, setDescription] = useState(assessmentData.assessmentDescription || '');
@@ -163,7 +169,10 @@ const AssessmentForm = () => {
     }
 
     const predefinedSet = getAssessmentSetForTla(syllabus, assessmentData.tlaName);
+
+// only the 3 options for this TLA's CO
     const assessmentOptions = predefinedSet.map(m => m.value);
+
     const dropdownRef = useRef(null);
     const [showOptions, setShowOptions] = useState(false);
 
@@ -185,6 +194,7 @@ const AssessmentForm = () => {
             setDescription(found.description);
         }
     }, [method]);
+
 
     const formatPercent = (num) => {
         if (!isFinite(num)) return ""
@@ -218,8 +228,8 @@ const AssessmentForm = () => {
     };
 
     return (
-        <SkeletonA
-            header={<HeaderA role={'Instructor'} name={'CASIMERO, DANNY'} />}
+        <Skeleton
+            header={<Header role={'Instructor'} name={'NORTON, MONICA'} />}
             nav={<SideNavigation />}
             content={
                 <div className={styles.container}>
@@ -236,8 +246,9 @@ const AssessmentForm = () => {
                     <div className={styles['form-container']}>
 
                         <h2>Topic</h2>
+                        {/* 1. Use the derived Topic Title */}
                         <TextField
-                            initialValue={derivedTlaData.topicTitle || 'No topic linked.'}
+                            initialValue={derivedTlaData.topicTitle || 'No topics.js linked.'}
                             disabled={true}
                             readOnly={true}
                         />
@@ -249,6 +260,7 @@ const AssessmentForm = () => {
                             initialValue={assessmentData.tlaName || ''}
                             readOnly={true}
                         />
+                        {/* 2. Use the derived TLA Description from the topics array */}
                         <TextArea
                             label={'TLA Description'}
                             disabled={true}
@@ -277,6 +289,7 @@ const AssessmentForm = () => {
                                     />
 
                                     <ChevronDown className={styles.dropdownArrow} size={16} />
+
                                 </div>
 
                                 {showOptions && (
@@ -300,6 +313,8 @@ const AssessmentForm = () => {
                                     </div>
                                 )}
                             </div>
+
+
                             <TextArea
                                 label={'Assessment Description'}
                                 initialValue={description}
@@ -321,6 +336,8 @@ const AssessmentForm = () => {
                                     <h2>Rubric Criteria</h2>
 
                                     <div className={layout.rubricTools}>
+
+                                        {/* LEFT: Dropdown (only when open) */}
                                         {showRubricPicker && (
                                             <div className={layout.rubricDropdown}>
                                                 <div className={layout.rubricSelectWrap}>
@@ -353,6 +370,7 @@ const AssessmentForm = () => {
                                             </div>
                                         )}
 
+                                        {/* RIGHT: Button or X */}
                                         {!showRubricPicker ? (
                                             <button
                                                 className={layout.uploadButton}
@@ -372,6 +390,7 @@ const AssessmentForm = () => {
                                                 <X className={layout.clearRubricIcon}/>
                                             </button>
                                         )}
+
                                     </div>
                                 </div>
                                 <div className={styles['rubrics']}>
@@ -429,6 +448,7 @@ const AssessmentForm = () => {
                         )}
 
                     </div>
+                    {/* CONFIRMATION */}
                     {showConfirmModal && (
                         <div className={styles.modalOverlay}>
                             <div className={styles.modal}>
@@ -450,6 +470,8 @@ const AssessmentForm = () => {
                             </div>
                         </div>
                     )}
+
+                    {/* ERROR */}
                     {showErrorModal && (
                         <div className={styles.modalOverlay}>
                             <div className={styles.modal}>
