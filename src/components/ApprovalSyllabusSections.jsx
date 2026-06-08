@@ -1370,7 +1370,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
                       <div style={{ fontWeight: 600 }}>{a.key}</div>
                       <span style={{ ...b, padding: '2px 8px', borderRadius: 99, fontWeight: 600, fontSize: 11 }}>{label}</span>
                     </div>
-                    {status === 'returned' && a.data?.completedAt && <div style={{ fontSize: 13, color: '#333' }}>Returned at: {new Date(a.data.completedAt).toLocaleString()}</div>}
+                    {a.data?.completedAt && <div style={{ fontSize: 13, color: '#333' }}>{new Date(a.data.completedAt).toLocaleString()}</div>}
                   </div>
                 )
               })}

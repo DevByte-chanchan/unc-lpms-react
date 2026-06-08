@@ -204,11 +204,11 @@ const ApprovalCoursesTable = ({ role = 'approver' }) => {
                                 <span style={{ ...b, padding: '2px 8px', borderRadius: 99, fontWeight: 600, fontSize: 11 }}>{a.status}</span>
                             </div>
                             <div style={{ fontSize: 13, color: '#333' }}>
-                                {a.status === 'Accepted' && <div>Accepted at: {a.acceptedAt ? new Date(a.acceptedAt).toLocaleString() : '-'}</div>}
+                                {a.status === 'Accepted' && <div>{a.acceptedAt ? new Date(a.acceptedAt).toLocaleString() : '-'}</div>}
                                 {a.status === 'Returned' && (
                                     <>
-                                        <div>Returned at: {a.returnedAt ? new Date(a.returnedAt).toLocaleString() : '-'}</div>
-                                        {a.updatedAt && <div>Updated at: {new Date(a.updatedAt).toLocaleString()}</div>}
+                                        <div>{a.returnedAt ? new Date(a.returnedAt).toLocaleString() : '-'}</div>
+                                        {a.updatedAt && <div>{new Date(a.updatedAt).toLocaleString()}</div>}
                                     </>
                                 )}
                             </div>

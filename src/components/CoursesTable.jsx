@@ -254,13 +254,9 @@ const CoursesTable = () => {
                                 <span style={{ ...b, padding: '2px 8px', borderRadius: 99, fontWeight: 600, fontSize: 11 }}>{a.status}</span>
                             </div>
                             <div style={{ fontSize: 13, color: '#333' }}>
-                                {a.status === 'Accepted' && <div>Accepted at: {new Date(a.acceptedAt).toLocaleString()}</div>}
-                                {a.status === 'Returned' && (
-                                    <>
-                                        <div>Returned at: {a.returnedAt ? new Date(a.returnedAt).toLocaleString() : '-'}</div>
-                                        {a.updatedAt && <div>Updated at: {new Date(a.updatedAt).toLocaleString()}</div>}
-                                    </>
-                                )}
+                                {a.accepted && <div>{new Date(a.accepted).toLocaleString()}</div>}
+                                {a.returned && <div>{new Date(a.returned).toLocaleString()}</div>}
+                                {a.updatedAt && <div>{new Date(a.updatedAt).toLocaleString()}</div>}
                             </div>
                         </div>
                         );
