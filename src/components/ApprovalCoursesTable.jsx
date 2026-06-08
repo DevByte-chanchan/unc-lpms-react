@@ -97,10 +97,22 @@ const ApprovalCoursesTable = ({ role = 'approver' }) => {
     };
 
     const getOverallStatus = (row) => {
-        const wf = getWorkflow(getCode(row) || '');
-        if (wf?.currentStage === 'approved') return 'Approved';
-        if (wf?.currentStage === 'returned') return 'Returned';
-        if (!row?.date_submitted) return 'Draft';
+        const code = getCode(row) || '';
+        const wf = getWorkflow(code);
+        const isDefault = wf?.currentStage === 'submitted' &&
+            wf?.dean?.status === 'pending' &&
+            wf?.parallelReview?.industry_consultant?.status === 'pending' &&
+            wf?.parallelReview?.library_director?.status === 'pending' &&
+            wf?.programHead?.status === 'pending';
+        if (!isDefault) {
+            if (wf?.currentStage === 'approved') return 'Approved';
+            if (wf?.currentStage === 'returned') return 'Returned';
+        }
+        const { d_date_accepted, ic_date_accepted, ld_date_accepted, ph_date_accepted,
+                d_date_returned, ph_date_returned, ic_date_returned, ld_date_returned, date_submitted } = row || {};
+        if (d_date_returned || ph_date_returned || ic_date_returned || ld_date_returned) return 'Returned';
+        if (!date_submitted) return 'Draft';
+        if (d_date_accepted && ph_date_accepted && ic_date_accepted && ld_date_accepted) return 'Approved';
         return 'Pending';
     };
 
@@ -215,7 +227,7 @@ const ApprovalCoursesTable = ({ role = 'approver' }) => {
                                 <div style={{ fontWeight: 600 }}>{a.key}</div>
                                 <span style={{ ...b, padding: '2px 8px', borderRadius: 99, fontWeight: 600, fontSize: 11 }}>{label}</span>
                             </div>
-                            {a.wfKey?.completedAt && <div style={{ fontSize: 13, color: '#333' }}>{new Date(a.wfKey.completedAt).toLocaleString()}</div>}
+                            {a.wfKey?.completedAt ? <div style={{ fontSize: 13, color: '#333' }}>{new Date(a.wfKey.completedAt).toLocaleString()}</div> : <div style={{ fontSize: 13, color: '#999' }}>—</div>}
                         </div>
                         );
                     })}
