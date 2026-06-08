@@ -139,10 +139,11 @@ const PDFViewerModal = ({ file, kind, onClose, onExport, children }) => {
           {/* Preview pane */}
           <div style={{ background: SLATE_100, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
             {hasRealUrl ? (
-              <iframe
+              <embed
                 title={title}
-                src={file.file_url + '#toolbar=0'}
+                src={file.file_url + '#toolbar=0&navpanes=0&scrollbar=0'}
                 style={{ flex: 1, width: '100%', border: 'none', background: '#FFFFFF' }}
+                type="application/pdf"
               />
             ) : (
               <div style={{
