@@ -174,7 +174,9 @@ const CoursesTable = () => {
         const rect = e?.currentTarget?.getBoundingClientRect();
         const code = getCode(row);
         const wf = getWorkflow(code || '');
-        setPopup({ open: true, data: { workflow: wf, code }, pos: rect ? { right: window.innerWidth - rect.right, top: rect.bottom + 4 } : null });
+        const popupH = 280;
+        const top = rect ? (rect.bottom + 4 + popupH > window.innerHeight ? rect.top - popupH - 4 : rect.bottom + 4) : 80;
+        setPopup({ open: true, data: { workflow: wf, code }, pos: rect ? { right: window.innerWidth - rect.right, top } : null });
     };
 
     const closePopup = () => setPopup({ open: false, data: null, pos: null });

@@ -550,7 +550,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
             </select>
           </div>
 
-          <div style={{ padding: '0 16px', borderRadius: 5, background: '#dbdfe3', cursor: 'pointer', display: 'flex', alignItems: 'center', height: 40 }} onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); setWorkflowPopupPos({ right: window.innerWidth - r.right, top: r.bottom + 4 }); setShowWorkflowPopup(true); }}>
+          <div style={{ padding: '0 16px', borderRadius: 5, background: '#dbdfe3', cursor: 'pointer', display: 'flex', alignItems: 'center', height: 40 }} onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); const popupH = 280; setWorkflowPopupPos({ right: window.innerWidth - r.right, top: r.bottom + 4 + popupH > window.innerHeight ? r.top - popupH - 4 : r.bottom + 4 }); setShowWorkflowPopup(true); }}>
             <Info strokeWidth={2} size={18} />
           </div>
 
