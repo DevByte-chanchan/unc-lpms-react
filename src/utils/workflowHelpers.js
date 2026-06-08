@@ -361,6 +361,28 @@ export function seedDemoWorkflows() {
       dean: { status: 'pending', completedAt: null },
       oicOvpaa: { status: 'pending', completedAt: null }
     }},
+    // --- Missed syllabus codes ---
+    { code: 'BSCS421L', data: {
+      courseCode: 'BSCS421L', currentStage: 'parallel_review',
+      submittedAt: d(14),
+      parallelReview: { library_director: { status: 'done', completedAt: d(10) }, industry_consultant: { status: 'done', completedAt: d(9) }, program_head: { status: 'pending', completedAt: null } },
+      programHead: { status: 'pending', completedAt: null },
+      dean: { status: 'pending', completedAt: null }
+    }},
+    { code: 'IT 322', data: {
+      courseCode: 'IT 322', currentStage: 'submitted',
+      submittedAt: d(8),
+      parallelReview: { library_director: { status: 'pending', completedAt: null }, industry_consultant: { status: 'pending', completedAt: null }, program_head: { status: 'pending', completedAt: null } },
+      programHead: { status: 'pending', completedAt: null },
+      dean: { status: 'pending', completedAt: null }
+    }},
+    { code: 'IT 323', data: {
+      courseCode: 'IT 323', currentStage: 'submitted',
+      submittedAt: d(6),
+      parallelReview: { library_director: { status: 'pending', completedAt: null }, industry_consultant: { status: 'pending', completedAt: null }, program_head: { status: 'pending', completedAt: null } },
+      programHead: { status: 'pending', completedAt: null },
+      dean: { status: 'pending', completedAt: null }
+    }},
   ]
 
   const all = _readAll()
