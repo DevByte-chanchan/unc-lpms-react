@@ -250,7 +250,7 @@ const CoursesTable = () => {
                                 <div style={{ fontWeight: 600 }}>{a.key}</div>
                                 <span style={{ ...b, padding: '2px 8px', borderRadius: 99, fontWeight: 600, fontSize: 11 }}>{label}</span>
                             </div>
-                            {a.wfKey?.completedAt && <div style={{ fontSize: 13, color: '#333' }}>{new Date(a.wfKey.completedAt).toLocaleString()}</div>}
+                            {a.wfKey?.completedAt ? <div style={{ fontSize: 13, color: '#333' }}>{new Date(a.wfKey.completedAt).toLocaleString()}</div> : <div style={{ fontSize: 13, color: '#999' }}>—</div>}
                         </div>
                         );
                     })}
