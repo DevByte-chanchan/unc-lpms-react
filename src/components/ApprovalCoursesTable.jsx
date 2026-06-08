@@ -20,9 +20,9 @@ const ApprovalCoursesTable = ({ role = 'approver' }) => {
         yearOptions.push(<option key={i} value={i}>{i}</option>);
     }
 
-    const statuses = ["PENDING", "RETURNED", "APPROVED"];
+    const statuses = role === 'oic-ovpaa' ? ["APPROVED"] : ["PENDING", "RETURNED", "APPROVED"];
 
-    const [selectedStatus, setSelectedStatus] = useState('PENDING');
+    const [selectedStatus, setSelectedStatus] = useState(role === 'oic-ovpaa' ? 'APPROVED' : 'PENDING');
     const [assignments, setAssignments] = useState([]);
     const [loading, setLoading] = useState(false);
     const [popup, setPopup] = useState({ open: false, data: null });

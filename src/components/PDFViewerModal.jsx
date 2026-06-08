@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Download, FileText, User, Calendar, BookOpen } from 'react-feather';
 
 const ACCENT     = '#19282C';
@@ -38,11 +38,25 @@ const defaultExport = (file) => {
 };
 
 const PDFViewerModal = ({ file, kind, onClose, onExport, children }) => {
+  const [pdfSrc, setPdfSrc] = useState(null);
+
   React.useEffect(() => {
     const onKey = (e) => { if (e.key === 'Escape') onClose(); };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
   }, [onClose]);
+
+  useEffect(() => {
+    if (!file?.file_url || !/^https?:\/\//i.test(file.file_url)) return;
+    let cancelled = false;
+    fetch(file.file_url)
+      .then(r => r.blob())
+      .then(blob => {
+        if (!cancelled) setPdfSrc(URL.createObjectURL(blob) + '#toolbar=0&navpanes=0');
+      })
+      .catch(() => { if (!cancelled) setPdfSrc(file.file_url); });
+    return () => { cancelled = true; if (pdfSrc) URL.revokeObjectURL(pdfSrc); };
+  }, [file?.file_url]);
 
   if (!file) return null;
 
@@ -139,11 +153,10 @@ const PDFViewerModal = ({ file, kind, onClose, onExport, children }) => {
           {/* Preview pane */}
           <div style={{ background: SLATE_100, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
             {hasRealUrl ? (
-              <embed
+              <iframe
                 title={title}
-                src={file.file_url + '#toolbar=0&navpanes=0&scrollbar=0'}
+                src={pdfSrc || file.file_url}
                 style={{ flex: 1, width: '100%', border: 'none', background: '#FFFFFF' }}
-                type="application/pdf"
               />
             ) : (
               <div style={{
