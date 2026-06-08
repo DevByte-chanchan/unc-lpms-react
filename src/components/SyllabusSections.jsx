@@ -412,7 +412,7 @@ const SyllabusSections = () => {
                 </div>
 
 
-                <div  className={styles.more} onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); const popupH = 280; setWorkflowPopupPos({ right: window.innerWidth - r.right, top: r.bottom + 4 + popupH > window.innerHeight ? r.top - popupH - 4 : r.bottom + 4 }); setShowWorkflowPopup(true); }}>
+                {status !== 'draft' && <div  className={styles.more} onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); const popupH = 280; setWorkflowPopupPos({ right: window.innerWidth - r.right, top: r.bottom + 4 + popupH > window.innerHeight ? r.top - popupH - 4 : r.bottom + 4 }); setShowWorkflowPopup(true); }}>
                     <Info strokeWidth={2} size={16}/>
                 </div>
 
