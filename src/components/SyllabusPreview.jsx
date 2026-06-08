@@ -417,7 +417,7 @@ const SyllabusPreview = ({ isOpen, onClose }) => {
                                                         <td className={styles.refDataCellLeft} style={{ width: colWidths.author }}>{ref.authors}</td>
                                                         <td className={styles.refDataCellLeft} style={{ width: colWidths.link }}>{ref.isbn || '-'}</td>
                                                         <td className={styles.refDataCellCenter} style={{ width: colWidths.year }}>
-                                                            {ref.year && ref.year !== '-' ? ref.year.split('-')[0] : '-'}
+                                                            {ref.year && ref.year !== '-' ? String(ref.year).split('-')[0] : '-'}
                                                         </td>
                                                     </tr>
                                                 )) : (
@@ -451,7 +451,7 @@ const SyllabusPreview = ({ isOpen, onClose }) => {
                                                             ) : '-'}
                                                         </td>
                                                         <td className={styles.refDataCellCenter} style={{ width: colWidths.year }}>
-                                                            {ref.year && ref.year !== '-' ? ref.year.split('-')[0] : '-'}
+                                                            {ref.year && ref.year !== '-' ? String(ref.year).split('-')[0] : '-'}
                                                         </td>
                                                     </tr>
                                                 )) : (
@@ -485,7 +485,7 @@ const SyllabusPreview = ({ isOpen, onClose }) => {
                                                             ) : '-'}
                                                         </td>
                                                         <td className={styles.refDataCellCenter} style={{ width: colWidths.year }}>
-                                                            {ref.year && ref.year !== '-' ? ref.year.split('-')[0] : '-'}
+                                                            {ref.year && ref.year !== '-' ? String(ref.year).split('-')[0] : '-'}
                                                         </td>
                                                     </tr>
                                                 )) : (
