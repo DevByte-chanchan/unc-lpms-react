@@ -114,7 +114,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
 
   const defaultBack = (() => {
     const fromTab = location.state?.fromTab
-    const fromStatus = location.state?.fromStatus
+    const fromStatus = location.state?.fromStatus || searchParams.get('fromStatus')
     const explicitFrom = location.state?.from
 
     if (explicitFrom && explicitFrom !== '/') return explicitFrom
@@ -125,12 +125,15 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
       if (fromStatus) return `/?status=${fromStatus}`
       return '/'
     }
-    if (roleKey === 'oic-ovpaa') return '/role/oic-ovpaa?page=Approved%20Plans'
-    if (roleKey === 'dean') return '/role/dean?page=Syllabus'
-    if (roleKey === 'director-of-libraries') return '/role/director-of-libraries/approval-course-table?page=Syllabus'
-    if (roleKey === 'industry-consultant') return '/role/industry-consultant/approval-course-table?page=Syllabus'
-    if (roleKey === 'program-head') return '/role/program-head/approval-course-table?page=Syllabus'
-    return `/role/${roleKey}/approval-course-table`
+    const base = (() => {
+      if (roleKey === 'oic-ovpaa') return '/role/oic-ovpaa?page=Approved%20Plans'
+      if (roleKey === 'dean') return '/role/dean?page=Syllabus'
+      if (roleKey === 'director-of-libraries') return '/role/director-of-libraries/approval-course-table?page=Syllabus'
+      if (roleKey === 'industry-consultant') return '/role/industry-consultant/approval-course-table?page=Syllabus'
+      if (roleKey === 'program-head') return '/role/program-head/approval-course-table?page=Syllabus'
+      return `/role/${roleKey}/approval-course-table`
+    })()
+    return fromStatus ? `${base}&status=${fromStatus}` : base
   })()
   const backPath = defaultBack
 

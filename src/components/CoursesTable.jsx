@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import styles from '../styles/CoursesTable.module.sass';
 import { ChevronRight, Edit, XCircle, HelpCircle, Download } from 'react-feather';
 import { fetchJson } from "../utils/api.js";
@@ -30,7 +30,7 @@ const CoursesTable = () => {
 
     const updateStatus = (status) => {
         setSelectedStatus(status);
-        setSearchParams({ status: status.toLowerCase() }, { replace: true });
+        setSearchParams({ status: status.toLowerCase() });
     };
     const [assignments, setAssignments] = useState([]);
     const [loading, setLoading] = useState(false);

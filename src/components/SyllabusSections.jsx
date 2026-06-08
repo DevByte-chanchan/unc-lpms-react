@@ -388,7 +388,7 @@ const SyllabusSections = () => {
     return (
         <div className={styles.container}>
             <div className={styles.navi}>
-                <Link  to={`/`} className={'actionLink'} >
+                <Link  to={`/${params.status ? `?status=${params.status}` : ''}`} className={'actionLink'} >
                     <div className={styles.return}>
                         <ChevronLeft size={22}/>
                     </div>

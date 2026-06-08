@@ -191,7 +191,7 @@ const ApprovalCoursesTable = ({ role = 'approver' }) => {
 
     const getCourseLink = (row) => {
         const base = `/role/${role}/courses/${encodeURIComponent(row.code)}`;
-        return `${base}?status=${getOverallStatus(row).toLowerCase()}`;
+        return `${base}?status=${getOverallStatus(row).toLowerCase()}&fromStatus=${selectedStatus.toLowerCase()}`;
     };
 
     const DetailsPopup = ({ data, onClose, pos }) => {
