@@ -7,6 +7,7 @@ import {Link, useNavigate, useParams, useSearchParams} from "react-router-dom";
 import SyllabusPreview from "./SyllabusPreview.jsx";
 import {fetchJson} from "../utils/api";
 import { getSyllabusByCode } from "../data/syllabiData.js";
+import { getWorkflow } from "../utils/workflowHelpers.js";
 
 const SyllabusSections = () => {
     const [searchParams, setSearchParams] = useSearchParams();
@@ -35,6 +36,7 @@ const SyllabusSections = () => {
     };
 
     const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+    const [showWorkflowPopup, setShowWorkflowPopup] = useState(false);
 
     // ilo
     const params = useParams();
@@ -409,7 +411,7 @@ const SyllabusSections = () => {
                 </div>
 
 
-                <div  className={styles.more}>
+                <div  className={styles.more} onClick={() => setShowWorkflowPopup(true)}>
                     <Info strokeWidth={2} size={16}/>
                 </div>
 
@@ -1122,6 +1124,51 @@ const SyllabusSections = () => {
                     </>
                 )}
 
+                    {/* ── WORKFLOW POPUP ─────────────────────────────────── */}
+                    {showWorkflowPopup && (() => {
+                        const wf = getWorkflow(code || '')
+                        const submittedAt = wf.submittedAt || null
+                        const approvers = [
+                            { key: 'Industry Consultant', data: wf.parallelReview?.industry_consultant },
+                            { key: 'Library Director', data: wf.parallelReview?.library_director },
+                            { key: 'Program Head', data: wf.programHead },
+                            { key: 'Dean', data: wf.dean },
+                        ]
+                        const badgeMap = {
+                            Accepted: { color: '#047857', background: '#ecfdf5' },
+                            Returned: { color: '#dc2626', background: '#fef2f2' },
+                            Pending: { color: '#b45309', background: '#fffbeb' },
+                        }
+                        return (
+                            <div style={{ position: 'fixed', right: 20, top: 80, width: 340, background: '#fff', border: '1px solid #ddd', borderRadius: 6, boxShadow: '0 6px 18px rgba(0,0,0,0.12)', zIndex: 1200, padding: 12 }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                                    <strong>View details</strong>
+                                    <button onClick={() => setShowWorkflowPopup(false)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', padding: 4 }}>
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6b7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><line x1="15" y1="9" x2="9" y2="15" /><line x1="9" y1="9" x2="15" y2="15" /></svg>
+                                    </button>
+                                </div>
+                                <div style={{ fontSize: 13, marginBottom: 10 }}>
+                                    <div style={{ color: '#666', marginBottom: 8 }}>
+                                        <strong>Submitted at:</strong> {submittedAt ? new Date(submittedAt).toLocaleString() : '-'}
+                                    </div>
+                                    {approvers.map((a, idx) => {
+                                        const status = a.data?.status || 'pending'
+                                        const label = status === 'done' ? 'Accepted' : status === 'returned' ? 'Returned' : 'Pending'
+                                        const b = badgeMap[label] || { color: '#6b7280', background: '#f3f4f6' }
+                                        return (
+                                            <div key={idx} style={{ marginBottom: 10, paddingBottom: 8, borderBottom: '1px solid #f0f0f0' }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                                                    <div style={{ fontWeight: 600 }}>{a.key}</div>
+                                                    <span style={{ ...b, padding: '2px 8px', borderRadius: 99, fontWeight: 600, fontSize: 11 }}>{label}</span>
+                                                </div>
+                                                {status === 'returned' && a.data?.completedAt && <div style={{ fontSize: 13, color: '#333' }}>Returned at: {new Date(a.data.completedAt).toLocaleString()}</div>}
+                                            </div>
+                                        )
+                                    })}
+                                </div>
+                            </div>
+                        )
+                    })()}
 
             </div>
         </div>
