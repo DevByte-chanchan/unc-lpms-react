@@ -8,7 +8,6 @@ import { getWorkflow, setWorkflow, advanceWorkflow } from '../utils/workflowHelp
 import { getSuggestions, addSuggestion, acceptSuggestion, rejectSuggestion } from '../utils/dataStore'
 import { getReferences, getReferenceById } from '../utils/referenceLibrary'
 import PDFViewerModal from './PDFViewerModal'
-import WorkflowStepper from './WorkflowStepper/WorkflowStepper.jsx'
 
 const defaultSections = [
   'Course Details',
@@ -550,7 +549,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
             </select>
           </div>
 
-          <div style={{ padding: '0 12px', cursor: 'pointer', display: 'flex', alignItems: 'center' }} onClick={() => setShowWorkflowPopup(true)}>
+          <div style={{ padding: '0 16px', borderRadius: 5, background: '#dbdfe3', cursor: 'pointer', display: 'flex', alignItems: 'center', height: 40 }} onClick={() => setShowWorkflowPopup(true)}>
             <Info strokeWidth={2} size={18} />
           </div>
 
@@ -1335,19 +1334,51 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
       })()}
 
       {/* ── WORKFLOW POPUP ──────────────────────────────────────────────── */}
-      {showWorkflowPopup && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(2px)' }} onClick={() => setShowWorkflowPopup(false)}>
-          <div style={{ background: 'white', borderRadius: 16, width: 420, maxWidth: '90vw', padding: 32, boxShadow: '0 20px 60px rgba(0,0,0,0.15)', fontFamily: "'Poppins', sans-serif" }} onClick={(e) => e.stopPropagation()}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-              <h3 style={{ margin: 0, fontSize: 18, fontWeight: 600 }}>View Details</h3>
-              <div style={{ cursor: 'pointer', padding: 4 }} onClick={() => setShowWorkflowPopup(false)}>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6b7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
-              </div>
+      {showWorkflowPopup && (() => {
+        const wf = getWorkflow(codeToUse || '')
+        const submittedAt = wf.submittedAt || null
+        const approvers = [
+          { key: 'Industry Consultant', data: wf.parallelReview?.industry_consultant },
+          { key: 'Library Director', data: wf.parallelReview?.library_director },
+          { key: 'Program Head', data: wf.programHead },
+          { key: 'Dean', data: wf.dean },
+        ]
+        const badgeMap = {
+          Accepted: { color: '#047857', background: '#ecfdf5' },
+          Returned: { color: '#dc2626', background: '#fef2f2' },
+          Pending: { color: '#b45309', background: '#fffbeb' },
+        }
+        return (
+          <div style={{ position: 'fixed', right: 20, top: 80, width: 340, background: '#fff', border: '1px solid #ddd', borderRadius: 6, boxShadow: '0 6px 18px rgba(0,0,0,0.12)', zIndex: 1200, padding: 12 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+              <strong>View details</strong>
+              <button onClick={() => setShowWorkflowPopup(false)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', padding: 4 }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6b7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><line x1="15" y1="9" x2="9" y2="15" /><line x1="9" y1="9" x2="15" y2="15" /></svg>
+              </button>
             </div>
-            <WorkflowStepper courseCode={codeToUse} />
+            <div style={{ fontSize: 13, marginBottom: 10 }}>
+              <div style={{ color: '#666', marginBottom: 8 }}>
+                <strong>Submitted at:</strong> {submittedAt ? new Date(submittedAt).toLocaleString() : '-'}
+              </div>
+              {approvers.map((a, idx) => {
+                const status = a.data?.status || 'pending'
+                const label = status === 'done' ? 'Accepted' : status === 'returned' ? 'Returned' : 'Pending'
+                const b = badgeMap[label] || { color: '#6b7280', background: '#f3f4f6' }
+                return (
+                  <div key={idx} style={{ marginBottom: 10, paddingBottom: 8, borderBottom: '1px solid #f0f0f0' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                      <div style={{ fontWeight: 600 }}>{a.key}</div>
+                      <span style={{ ...b, padding: '2px 8px', borderRadius: 99, fontWeight: 600, fontSize: 11 }}>{label}</span>
+                    </div>
+                    {status === 'done' && a.data?.completedAt && <div style={{ fontSize: 13, color: '#333' }}>Accepted at: {new Date(a.data.completedAt).toLocaleString()}</div>}
+                    {status === 'returned' && a.data?.completedAt && <div style={{ fontSize: 13, color: '#333' }}>Returned at: {new Date(a.data.completedAt).toLocaleString()}</div>}
+                  </div>
+                )
+              })}
+            </div>
           </div>
-        </div>
-      )}
+        )
+      })()}
 
       {/* ── PDF VIEWER MODAL ───────────────────────────────────────────── */}
       {previewFile && (
