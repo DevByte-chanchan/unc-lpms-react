@@ -102,15 +102,6 @@ tbody tr {
     min-height: 56px;
 }
 
-tbody tr {
-    background: #FFF;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-    display: flex;
-    font-weight: 300;
-    border-radius: 4px;
-    min-height: 56px;
-}
-
 
 th, td {
     padding: 14px 16px;
