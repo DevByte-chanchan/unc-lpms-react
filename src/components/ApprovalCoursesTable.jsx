@@ -4,6 +4,7 @@ import styles from '../styles/CoursesTable.module.sass';
 import { ChevronRight, XCircle, HelpCircle } from 'react-feather';
 import { fetchJson } from "../utils/api.js";
 import { syllabiData } from "../data/syllabiData.js";
+import { getWorkflow } from "../utils/workflowHelpers.js";
 
 const getProgram = (code) => {
   if (code && code.startsWith('IT ')) return 'Information Technology';
@@ -150,9 +151,9 @@ const ApprovalCoursesTable = ({ role = 'approver' }) => {
     const getStatusCount = (statusName) => assignments.filter(row => getOverallStatus(row).toUpperCase() === statusName).length;
 
     const openPopup = (row) => {
-        const submittedAt = row?.date_submitted || null;
-        const approverStatuses = buildApproverStatus(row);
-        setPopup({ open: true, data: { submittedAt, approverStatuses } });
+        const code = getCode(row);
+        const wf = getWorkflow(code || '');
+        setPopup({ open: true, data: { workflow: wf, code } });
     };
 
     const closePopup = () => setPopup({ open: false, data: null });
@@ -164,7 +165,19 @@ const ApprovalCoursesTable = ({ role = 'approver' }) => {
 
     const DetailsPopup = ({ data, onClose }) => {
         if (!data) return null;
-        const { submittedAt, approverStatuses } = data;
+        const wf = data.workflow || {}
+        const submittedAt = wf.submittedAt || null
+        const approvers = [
+            { key: 'Industry Consultant', wfKey: wf.parallelReview?.industry_consultant },
+            { key: 'Library Director', wfKey: wf.parallelReview?.library_director },
+            { key: 'Program Head', wfKey: wf.programHead },
+            { key: 'Dean', wfKey: wf.dean },
+        ]
+        const badgeMap = {
+            Accepted: { color: '#047857', background: '#ecfdf5' },
+            Returned: { color: '#dc2626', background: '#fef2f2' },
+            Pending: { color: '#b45309', background: '#fffbeb' },
+        }
         return (
             <div style={{
                 position: 'fixed',
@@ -190,28 +203,17 @@ const ApprovalCoursesTable = ({ role = 'approver' }) => {
                         <strong>Submitted at:</strong> {submittedAt ? new Date(submittedAt).toLocaleString() : '-'}
                     </div>
 
-                    {approverStatuses.map((a, idx) => {
-                        const badgeMap = {
-                            Accepted: { color: '#047857', background: '#ecfdf5' },
-                            Returned: { color: '#dc2626', background: '#fef2f2' },
-                            Pending: { color: '#b45309', background: '#fffbeb' },
-                        };
-                        const b = badgeMap[a.status] || { color: '#6b7280', background: '#f3f4f6' };
+                    {approvers.map((a, idx) => {
+                        const status = a.wfKey?.status || 'pending'
+                        const label = status === 'done' ? 'Accepted' : status === 'returned' ? 'Returned' : 'Pending'
+                        const b = badgeMap[label] || { color: '#6b7280', background: '#f3f4f6' }
                         return (
                         <div key={idx} style={{ marginBottom: 10, paddingBottom: 8, borderBottom: '1px solid #f0f0f0' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                                <div style={{ fontWeight: 600 }}>{a.title}</div>
-                                <span style={{ ...b, padding: '2px 8px', borderRadius: 99, fontWeight: 600, fontSize: 11 }}>{a.status}</span>
+                                <div style={{ fontWeight: 600 }}>{a.key}</div>
+                                <span style={{ ...b, padding: '2px 8px', borderRadius: 99, fontWeight: 600, fontSize: 11 }}>{label}</span>
                             </div>
-                            <div style={{ fontSize: 13, color: '#333' }}>
-                                {a.status === 'Accepted' && <div>{a.acceptedAt ? new Date(a.acceptedAt).toLocaleString() : '-'}</div>}
-                                {a.status === 'Returned' && (
-                                    <>
-                                        <div>{a.returnedAt ? new Date(a.returnedAt).toLocaleString() : '-'}</div>
-                                        {a.updatedAt && <div>{new Date(a.updatedAt).toLocaleString()}</div>}
-                                    </>
-                                )}
-                            </div>
+                            {a.wfKey?.completedAt && <div style={{ fontSize: 13, color: '#333' }}>{new Date(a.wfKey.completedAt).toLocaleString()}</div>}
                         </div>
                         );
                     })}
