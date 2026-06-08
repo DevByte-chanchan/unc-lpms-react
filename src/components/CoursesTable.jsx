@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Link, useSearchParams, useNavigate } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import styles from '../styles/CoursesTable.module.sass';
 import { ChevronRight, Edit, XCircle, HelpCircle, Download } from 'react-feather';
 import { fetchJson } from "../utils/api.js";
