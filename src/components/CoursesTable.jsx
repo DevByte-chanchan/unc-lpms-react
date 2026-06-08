@@ -117,6 +117,7 @@ const CoursesTable = () => {
         if (!isDefault) {
             if (wf?.currentStage === 'approved') return 'Approved';
             if (wf?.currentStage === 'returned') return 'Returned';
+            return wf.submittedAt ? 'Pending' : 'Draft';
         }
         const { d_date_accepted, ic_date_accepted, ld_date_accepted, ph_date_accepted,
                 d_date_returned, ph_date_returned, ic_date_returned, ld_date_returned, date_submitted } = row || {};
