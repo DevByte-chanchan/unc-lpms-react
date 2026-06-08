@@ -38,6 +38,7 @@ const SyllabusSections = () => {
     const [isPreviewOpen, setIsPreviewOpen] = useState(false);
     const [showWorkflowPopup, setShowWorkflowPopup] = useState(false);
     const [workflowPopupPos, setWorkflowPopupPos] = useState(null);
+    const workflowBtnRef = React.useRef(null);
 
     // ilo
     const params = useParams();
@@ -412,9 +413,9 @@ const SyllabusSections = () => {
                 </div>
 
 
-                {status !== 'draft' && <div  className={styles.more} onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); const popupH = 280; setWorkflowPopupPos({ right: window.innerWidth - r.right, top: r.bottom + 4 + popupH > window.innerHeight ? r.top - popupH - 4 : r.bottom + 4 }); setShowWorkflowPopup(true); }}>
+                {status !== 'draft' && <div ref={workflowBtnRef} className={styles.more} onClick={() => { const r = workflowBtnRef.current?.getBoundingClientRect(); const popupH = 280; if (r) setWorkflowPopupPos({ right: window.innerWidth - r.right, top: r.bottom + 4 + popupH > window.innerHeight ? r.top - popupH - 4 : r.bottom + 4 }); setShowWorkflowPopup(true); }}>
                     <Info strokeWidth={2} size={16}/>
-                </div>
+                </div>}
 
                 {(status === 'draft' || status === 'returned') &&
                     <>
