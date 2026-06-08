@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import styles from '../styles/CoursesTable.module.sass';
-import { ChevronRight, Edit, XCircle, HelpCircle } from 'react-feather';
+import { ChevronRight, Edit, XCircle, HelpCircle, Download } from 'react-feather';
 import { fetchJson } from "../utils/api.js";
 import { syllabiData } from "../data/syllabiData.js";
 import { getWorkflow } from "../utils/workflowHelpers.js";
@@ -331,6 +331,7 @@ const CoursesTable = () => {
                             <th width={300}>COURSE NAME</th>
                             {selectedStatus === 'DRAFT' && <th width={250}>STATUS</th>}
                             {selectedStatus === 'APPROVED' && <th width={250}>DATE APPROVED</th>}
+                            {selectedStatus === 'APPROVED' && <th style={{ width: 80, textAlign: 'center' }}>EXPORT</th>}
                             <th className={styles.fill}></th>
                         </tr>
                         </thead>
@@ -342,6 +343,11 @@ const CoursesTable = () => {
                                 <td width={300}>{getName(row)}</td>
                                 {selectedStatus === 'DRAFT' && <td width={250}>{statusBadge('Draft')}</td>}
                                 {selectedStatus === 'APPROVED' && <td width={250}><span style={{ color: '#047857', background: '#ecfdf5', padding: '3px 10px', borderRadius: 99, fontWeight: 600, fontSize: 12, display: 'inline-block' }}>{row.d_date_accepted ? new Date(row.d_date_accepted).toLocaleDateString() : '-'}</span></td>}
+                                {selectedStatus === 'APPROVED' && <td style={{ width: 80, textAlign: 'center' }}>
+                                    <Link to={`/courses/${getCode(row)}/${selectedStatus.toLowerCase()}`} style={{ color: '#111827' }}>
+                                        <Download size={16} strokeWidth={2} />
+                                    </Link>
+                                </td>}
                                 <td className={styles.fill}>
                                     <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                                         <Link

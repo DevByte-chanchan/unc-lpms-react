@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import styles from '../styles/CoursesTable.module.sass';
-import { ChevronRight, XCircle, HelpCircle } from 'react-feather';
+import { ChevronRight, XCircle, HelpCircle, Download } from 'react-feather';
 import { fetchJson } from "../utils/api.js";
 import { syllabiData } from "../data/syllabiData.js";
 import { getWorkflow } from "../utils/workflowHelpers.js";
@@ -240,6 +240,7 @@ const ApprovalCoursesTable = ({ role = 'approver' }) => {
 
                 <div className={styles.fill}></div>
 
+                {role !== 'oic-ovpaa' && (
                 <div className={styles['filter-container']}>
                     <div className={styles['segmented-control']}>
                         {statuses.map((status) => {
@@ -257,6 +258,7 @@ const ApprovalCoursesTable = ({ role = 'approver' }) => {
                         })}
                     </div>
                 </div>
+                )}
             </div>
 
             <div className={styles['table-container']}>
@@ -270,6 +272,7 @@ const ApprovalCoursesTable = ({ role = 'approver' }) => {
                             <th width={150}>CODE</th>
                             <th width={300}>COURSE NAME</th>
                             {selectedStatus === 'APPROVED' && <th width={250}>DATE APPROVED</th>}
+                            {selectedStatus === 'APPROVED' && <th style={{ width: 80, textAlign: 'center' }}>EXPORT</th>}
                             <th className={styles.fill}></th>
                         </tr>
                         </thead>
@@ -280,6 +283,11 @@ const ApprovalCoursesTable = ({ role = 'approver' }) => {
                                 <td width={150}>{getCode(row)}</td>
                                 <td width={300}>{getName(row)}</td>
                                 {selectedStatus === 'APPROVED' && <td width={250}><span style={{ color: '#047857', background: '#ecfdf5', padding: '3px 10px', borderRadius: 99, fontWeight: 600, fontSize: 12, display: 'inline-block' }}>{row.d_date_accepted ? new Date(row.d_date_accepted).toLocaleDateString() : '-'}</span></td>}
+                                {selectedStatus === 'APPROVED' && <td style={{ width: 80, textAlign: 'center' }}>
+                                    <Link to={getCourseLink(row)} style={{ color: '#111827' }}>
+                                        <Download size={16} strokeWidth={2} />
+                                    </Link>
+                                </td>}
                                 <td className={styles.fill}>
                                     <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                                         <Link
