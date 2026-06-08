@@ -5,6 +5,7 @@ import { ChevronRight, XCircle, HelpCircle, Download } from 'react-feather';
 import { fetchJson } from "../utils/api.js";
 import { syllabiData } from "../data/syllabiData.js";
 import { getWorkflow } from "../utils/workflowHelpers.js";
+import PDFViewerModal from './PDFViewerModal.jsx';
 
 const getProgram = (code) => {
   if (code && code.startsWith('IT ')) return 'Information Technology';
@@ -26,6 +27,7 @@ const ApprovalCoursesTable = ({ role = 'approver' }) => {
     const [assignments, setAssignments] = useState([]);
     const [loading, setLoading] = useState(false);
     const [popup, setPopup] = useState({ open: false, data: null });
+    const [exportFile, setExportFile] = useState(null);
 
     useEffect(() => {
         loadAssignments();
@@ -95,10 +97,10 @@ const ApprovalCoursesTable = ({ role = 'approver' }) => {
     };
 
     const getOverallStatus = (row) => {
-        const { d_date_accepted, d_date_returned, ph_date_returned, ic_date_returned, ld_date_returned, date_submitted } = row || {};
+        const { d_date_accepted, d_date_returned, ph_date_returned, ic_date_returned, ld_date_returned, date_submitted, ic_date_accepted, ld_date_accepted, ph_date_accepted } = row || {};
         if (d_date_returned || ph_date_returned || ic_date_returned || ld_date_returned) return 'Returned';
         if (!date_submitted) return 'Draft';
-        if (d_date_accepted) return 'Approved';
+        if (d_date_accepted && ph_date_accepted && ic_date_accepted && ld_date_accepted) return 'Approved';
         return 'Pending';
     };
 
@@ -284,9 +286,9 @@ const ApprovalCoursesTable = ({ role = 'approver' }) => {
                                 <td width={300}>{getName(row)}</td>
                                 {selectedStatus === 'APPROVED' && <td width={250}><span style={{ color: '#047857', background: '#ecfdf5', padding: '3px 10px', borderRadius: 99, fontWeight: 600, fontSize: 12, display: 'inline-block' }}>{row.d_date_accepted ? new Date(row.d_date_accepted).toLocaleDateString() : '-'}</span></td>}
                                 {selectedStatus === 'APPROVED' && <td style={{ width: 80, textAlign: 'center' }}>
-                                    <Link to={getCourseLink(row)} style={{ color: '#111827' }}>
-                                        <Download size={16} strokeWidth={2} />
-                                    </Link>
+                                    <span className="actionLink" style={{ minWidth: 90, display: 'inline-flex', alignItems: 'center', gap: 5, cursor: 'pointer' }} onClick={() => setExportFile(row)}>
+                                        Export <Download size={14} />
+                                    </span>
                                 </td>}
                                 <td className={styles.fill}>
                                     <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
@@ -359,6 +361,22 @@ const ApprovalCoursesTable = ({ role = 'approver' }) => {
             </div>
 
             {popup.open && <DetailsPopup data={popup.data} onClose={closePopup} />}
+
+            {exportFile && (
+                <PDFViewerModal
+                    file={{
+                        file_url: '',
+                        file_name: `SYLLABUS_${getCode(exportFile)}.pdf`,
+                        instructor_name: exportFile.instructor || '—',
+                        course_id: getCode(exportFile),
+                        course_name: getName(exportFile),
+                        submission_date: exportFile.date_submitted || '',
+                        period_label: '',
+                    }}
+                    kind="Syllabus"
+                    onClose={() => setExportFile(null)}
+                />
+            )}
         </div>
     );
 };
