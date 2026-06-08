@@ -1,5 +1,5 @@
 import React, {useState} from 'react';
-import {Link} from 'react-router-dom'
+import {Link, useSearchParams} from 'react-router-dom'
 import styles from '../styles/CoursesTable.module.sass';
 import { ChevronRight } from 'react-feather';
 import { syllabiData } from '../data/syllabiData';
@@ -22,9 +22,17 @@ const TOSCoursesTable = ({}) => {
         exported: s.exported || ''
     }));
 
-    const [selectedStatus, setSelectedStatus] = useState('DRAFT');
+    const [searchParams, setSearchParams] = useSearchParams();
+    const [selectedStatus, setSelectedStatus] = useState(() => {
+        const fromUrl = searchParams.get('status');
+        if (fromUrl && ['DRAFT','EXPORTED'].some(s => s.toLowerCase() === fromUrl.toLowerCase())) {
+            return fromUrl.toUpperCase();
+        }
+        return 'DRAFT';
+    });
     const handleStatusChange = (e) => {
-        setSelectedStatus(e.target.value)
+        setSelectedStatus(e.target.value);
+        setSearchParams({ status: e.target.value.toLowerCase() }, { replace: true });
     }
 
     return (

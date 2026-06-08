@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import styles from '../styles/CoursesTable.module.sass';
 import { ChevronRight, XCircle, HelpCircle, Download } from 'react-feather';
 import { fetchJson } from "../utils/api.js";
@@ -23,7 +23,19 @@ const ApprovalCoursesTable = ({ role = 'approver' }) => {
 
     const statuses = role === 'oic-ovpaa' ? ["APPROVED"] : ["PENDING", "RETURNED", "APPROVED"];
 
-    const [selectedStatus, setSelectedStatus] = useState(role === 'oic-ovpaa' ? 'APPROVED' : 'PENDING');
+    const [searchParams, setSearchParams] = useSearchParams();
+    const defaultStatus = role === 'oic-ovpaa' ? 'APPROVED' : 'PENDING';
+    const [selectedStatus, setSelectedStatus] = useState(() => {
+        const fromUrl = searchParams.get('status');
+        if (fromUrl && statuses.some(s => s.toLowerCase() === fromUrl.toLowerCase())) {
+            return fromUrl.toUpperCase();
+        }
+        return defaultStatus;
+    });
+    const updateStatus = (status) => {
+        setSelectedStatus(status);
+        setSearchParams({ status: status.toLowerCase() }, { replace: true });
+    };
     const [assignments, setAssignments] = useState([]);
     const [loading, setLoading] = useState(false);
     const [popup, setPopup] = useState({ open: false, data: null, pos: null });
@@ -272,7 +284,7 @@ const ApprovalCoursesTable = ({ role = 'approver' }) => {
                                     key={status}
                                     type="button"
                                     className={`${styles['control-item']} ${selectedStatus === status ? styles['active'] : ''}`}
-                                    onClick={() => setSelectedStatus(status)}
+                                    onClick={() => updateStatus(status)}
                                 >
                                     {status.charAt(0) + status.slice(1).toLowerCase()}
                                 </button>

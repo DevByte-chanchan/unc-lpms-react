@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import styles from '../styles/CoursesTable.module.sass';
 import { ChevronRight, Edit, XCircle, HelpCircle, Download } from 'react-feather';
 import { fetchJson } from "../utils/api.js";
@@ -18,7 +18,20 @@ const CoursesTable = () => {
 
     const statuses = ["DRAFT", "PENDING", "RETURNED", "APPROVED"];
 
-    const [selectedStatus, setSelectedStatus] = useState('DRAFT');
+    const [searchParams, setSearchParams] = useSearchParams();
+
+    const [selectedStatus, setSelectedStatus] = useState(() => {
+        const fromUrl = searchParams.get('status');
+        if (fromUrl && statuses.some(s => s.toLowerCase() === fromUrl.toLowerCase())) {
+            return fromUrl.toUpperCase();
+        }
+        return 'DRAFT';
+    });
+
+    const updateStatus = (status) => {
+        setSelectedStatus(status);
+        setSearchParams({ status: status.toLowerCase() }, { replace: true });
+    };
     const [assignments, setAssignments] = useState([]);
     const [loading, setLoading] = useState(false);
     const [popup, setPopup] = useState({ open: false, data: null, pos: null });
@@ -28,7 +41,7 @@ const CoursesTable = () => {
         loadAssignments();
     }, []);
 
-    const handleStatusChange = (e) => setSelectedStatus(e.target.value);
+    const handleStatusChange = (e) => updateStatus(e.target.value);
 
 
     // Map static syllabiData to the row shape the table expects
