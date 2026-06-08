@@ -2,11 +2,13 @@ import React, { useEffect, useState, useRef } from 'react'
 import { Link, useSearchParams, useParams, useNavigate, useLocation } from 'react-router-dom'
 import { ChevronLeft, ChevronRight, Info, MessageSquare, Inbox, Download } from 'react-feather'
 import styles from '../styles/ApprovalSyllabusSections.module.sass'
+import stylesB from '../styles/SyllabusPreview.module.sass'
 import ApprovalCommentBox from './ApprovalCommentBox.jsx'
 import { getSyllabusByCode, syllabiData } from '../data/syllabiData.js'
 import { getWorkflow, setWorkflow, advanceWorkflow } from '../utils/workflowHelpers'
 import { getSuggestions, addSuggestion, acceptSuggestion, rejectSuggestion } from '../utils/dataStore'
 import { getReferences, getReferenceById } from '../utils/referenceLibrary'
+import { fetchJson } from "../utils/api.js"
 import PDFViewerModal from './PDFViewerModal'
 
 const defaultSections = [
@@ -40,6 +42,9 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [refTypeFilter, setRefTypeFilter] = useState('')
   const [previewFile, setPreviewFile] = useState(null)
+  const [cpaData, setCpaData] = useState({ course: { code: '', title: '' }, programOutcomes: [], courseOutcomes: [] })
+  const [cpaLoading, setCpaLoading] = useState(false)
+  const [cpaError, setCpaError] = useState(null)
 
   // refs to sections for auto-scroll
   const courseDetailsRef = useRef(null)
@@ -82,6 +87,42 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
   useEffect(() => {
     setSuggestions(getSuggestions(codeToUse))
   }, [codeToUse, refreshKey])
+
+  // CPA data loading (Course & Program Outcome Alignment)
+  useEffect(() => {
+    if (!codeToUse) return;
+    let mounted = true;
+    async function fetchCPA() {
+      setCpaLoading(true);
+      setCpaError(null);
+      try {
+        const data = await fetchJson('/api/course-outcome-alignment/' + encodeURIComponent(codeToUse));
+        if (!mounted) return;
+        setCpaData({
+          course: data.course ?? { code: '', title: '' },
+          programOutcomes: data.programOutcomes ?? [],
+          courseOutcomes: data.courseOutcomes ?? []
+        });
+      } catch (err) {
+        console.warn('API unavailable for CPA, using static data');
+        if (!mounted) return;
+        const syllabus = getSyllabusByCode(codeToUse);
+        if (syllabus) {
+          setCpaData({
+            course: { code: syllabus.code, title: syllabus.name },
+            programOutcomes: [],
+            courseOutcomes: syllabus.ilos ? [...new Set(syllabus.ilos.map(i => i.courseOutcome))].map((co, idx) => ({ id: idx + 1, description: co, poMappings: [] })) : []
+          });
+        } else {
+          setCpaError(err.message);
+        }
+      } finally {
+        if (mounted) setCpaLoading(false);
+      }
+    }
+    fetchCPA();
+    return () => { mounted = false; };
+  }, [codeToUse]);
 
   // safe access to syllabus references (use resolved `syllabus` like SyllabusPreview)
   const allReferences = syllabus?.references || []
@@ -326,15 +367,16 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
     return false
   }
 
-  // COURSE & PROGRAM ALIGNMENT data — use syllabus data if available, else fallback
-  const courseOutcomes = (syllabus?.courseOutcomes && syllabus.courseOutcomes.length > 0)
-    ? syllabus.courseOutcomes
-    : [
-        { id: 'CO1', description: 'Course Outcome 1', poMappings: ['E', 'I', '', '', '', '', '', '', ''] },
-        { id: 'CO2', description: 'Course Outcome 2', poMappings: ['', 'E', 'I', '', '', '', '', '', ''] },
-        { id: 'CO3', description: 'Course Outcome 3', poMappings: ['', '', 'E', 'I', '', '', '', '', ''] },
-        { id: 'CO4', description: 'Course Outcome 4', poMappings: ['', '', '', 'E', 'I', '', '', '', '', ''] }
-      ]
+  // COURSE & PROGRAM ALIGNMENT data — use API/fetched data
+  const courseOutcomes = cpaData.courseOutcomes.length > 0
+    ? cpaData.courseOutcomes
+    : (cpaLoading
+        ? []
+        : [{ id: '—', description: 'No course outcomes loaded.', poMappings: [] }]
+      )
+  const programOutcomes = cpaData.programOutcomes.length > 0
+    ? cpaData.programOutcomes
+    : (['PO1','PO2','PO3','PO4','PO5','PO6','PO7','PO8','PO9'].map(key => ({ key })))
 
   const sampleILOs = [
     'CO0-ILO0',
@@ -689,7 +731,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
               </section>
             )}
 
-            {/* Course and Program Outcome Alignment (copied) */}
+            {/* Course and Program Outcome Alignment */}
             {activeSelectedSection === 'Course and Program Outcome Alignment' && (
               <section ref={alignmentRef}>
                 <div className={styles['cpa-container']}>
@@ -703,29 +745,38 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
                   </div>
 
                   <div className={styles.tableScrollWrapper}>
-                    <table className={styles.alignmentTable}>
-                      <thead>
-                      <tr>
-                        <th className={styles.firstColHeader}>After completion of the course, the student should be able to:</th>
-                        {['PO1', 'PO2', 'PO3', 'PO4', 'PO5', 'PO6', 'PO7', 'PO8', 'PO9'].map((po) => (
-                          <th key={po} className={styles.poHeader}>{po}</th>
-                        ))}
-                      </tr>
-                      </thead>
-                      <tbody>
-                      {courseOutcomes.map((co) => (
-                        <tr key={co.id}>
-                          <td className={styles.descCell}>
-                            <strong>{co.id}: </strong>
-                            {co.description}
-                          </td>
-                          {co.poMappings.slice(0, 9).map((mapping, index) => (
-                            <td key={index} className={styles.mappingCell}>{mapping || ''}</td>
+                    {cpaLoading ? (
+                      <div style={{ padding: 20, textAlign: 'center' }}>Loading Course & Program Alignment...</div>
+                    ) : (
+                      <table className={styles.alignmentTable}>
+                        <thead>
+                        <tr>
+                          <th className={styles.firstColHeader}>After completion of the course, the student should be able to:</th>
+                          {programOutcomes.map(po => (
+                            <th key={po.key || po} className={styles.poHeader}>{po.key || po}</th>
                           ))}
                         </tr>
-                      ))}
-                      </tbody>
-                    </table>
+                        </thead>
+                        <tbody>
+                        {courseOutcomes.length > 0 ? courseOutcomes.map((co) => (
+                          <tr key={co.id}>
+                            <td className={styles.descCell}>{co.description}</td>
+                            {Array.from({ length: programOutcomes.length }).map((_, idx) => (
+                              <td key={idx} className={styles.mappingCell}>
+                                {co.poMappings && co.poMappings[idx] ? co.poMappings[idx] : ''}
+                              </td>
+                            ))}
+                          </tr>
+                        )) : (
+                          <tr>
+                            <td colSpan={programOutcomes.length + 1} style={{ textAlign: 'center', padding: 20, color: '#666' }}>
+                              No course outcomes / alignments found for this course.
+                            </td>
+                          </tr>
+                        )}
+                        </tbody>
+                      </table>
+                    )}
                   </div>
                 </div>
               </section>
@@ -883,61 +934,115 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
               )
             })()}
 
-            {/* References (printed document style) */}
+            {/* References (styled like instructor) */}
             {activeSelectedSection === 'References' && (
               <section ref={referencesRef}>
-                <div className={styles.criteriaContainer}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12, fontFamily: 'Arial, sans-serif' }}>
-                    <label style={{ fontSize: 14, fontWeight: 600, color: '#000' }}>Filter by Type:</label>
-                    <select value={refTypeFilter} onChange={e => setRefTypeFilter(e.target.value)}
-                      style={{ padding: '6px 12px', border: '1px solid #000', borderRadius: 0, fontSize: 14, fontFamily: 'Arial, sans-serif', background: '#fff', color: '#000', cursor: 'pointer' }}>
-                      <option value="">All Types</option>
-                      <option value="Textbook">Textbook</option>
-                      <option value="Open Educational Resources">Open Educational Resources</option>
-                      <option value="Online Resources">Online Resources</option>
+                <div className={stylesB.refContainer}>
+                  <div className={stylesB.refHeaderBar}>
+                    <select value={refTypeFilter} onChange={e => setRefTypeFilter(e.target.value)} className={stylesB.refSelect}>
+                      <option value="">ALL</option>
+                      <option value="Textbook">TEXTBOOKS</option>
+                      <option value="Open Educational Resources">OPEN EDUCATIONAL RESOURCES</option>
+                      <option value="Online Resources">ONLINE RESOURCES</option>
                     </select>
+                    <div className={stylesB.refArrow}>▼</div>
                   </div>
-                  <div className={styles.tableScrollWrapper}>
-                    <table className={styles.criteriaTable}>
-                      <thead>
-                        <tr>
-                          <th className={styles.headerCell} style={{ width: 80 }}>ID</th>
-                          <th className={styles.headerCell} style={{ width: 340 }}>TITLE</th>
-                          <th className={styles.headerCell} style={{ width: 200 }}>AUTHOR(S)</th>
-                          <th className={styles.headerCell} style={{ width: 80 }}>YEAR</th>
-                          <th className={styles.headerCell} style={{ width: 320 }}>{refTypeFilter === 'Textbook' ? 'ISBN' : refTypeFilter ? 'LINK' : 'ISBN / LINK'}</th>
-                          <th className={styles.headerCell} style={{ width: 120 }}>STATUS</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {(refTypeFilter ? displayRefs.filter(r => r.type === refTypeFilter) : displayRefs).length > 0
-                        ? (refTypeFilter ? displayRefs.filter(r => r.type === refTypeFilter) : displayRefs).map((ref) => {
-                          let statusLabel = 'Active'
-                          if (hasIssues(ref)) { statusLabel = 'Has Issue' }
-                          else if (isDeprecated(ref)) { statusLabel = 'Deprecated' }
-                          const isTextbook = ref.type === 'Textbook'
-                          const detail = isTextbook
-                            ? (ref.isbn || '—')
-                            : (ref.link ? <a href={ref.link} target="_blank" rel="noopener noreferrer" style={{ color: '#00f', textDecoration: 'underline' }}>{ref.link}</a> : '—')
-                          return (
-                            <tr key={ref.id}>
-                              <td className={styles.dataCellCenter} style={{ width: 80 }}>{ref.id}</td>
-                              <td className={styles.dataCellLeft} style={{ width: 340 }}>{ref.title}</td>
-                              <td className={styles.dataCellLeft} style={{ width: 200 }}>{ref.authors}</td>
-                              <td className={styles.dataCellCenter} style={{ width: 80 }}>{ref.year || '—'}</td>
-                              <td className={styles.dataCellLeft} style={{ width: 320, wordBreak: 'break-all' }}>{detail}</td>
-                              <td className={styles.dataCellCenter} style={{ width: 120 }}>{statusLabel}</td>
-                            </tr>
-                          )
-                        }) : (
+                  <div className={stylesB.refScrollWrapper}>
+                    {/* TABLE: Textbooks */}
+                    {(refTypeFilter === 'Textbook' || refTypeFilter === '') && (
+                      <table className={stylesB.refTable}>
+                        <thead>
                           <tr>
-                            <td colSpan={6} style={{ textAlign: 'center', padding: 20, fontSize: 14, color: '#666' }}>
-                              No references found.
-                            </td>
+                            <th className={stylesB.refHeaderCell} style={{ width: 70 }}>ID</th>
+                            <th className={stylesB.refHeaderCell} style={{ width: 300 }}>TITLE</th>
+                            <th className={stylesB.refHeaderCell} style={{ width: 200 }}>AUTHOR/S</th>
+                            <th className={stylesB.refHeaderCell} style={{ width: 200 }}>ISBN</th>
+                            <th className={stylesB.refHeaderCell} style={{ width: 100 }}>PUBLICATION YEAR</th>
                           </tr>
-                        )}
-                      </tbody>
-                    </table>
+                        </thead>
+                        <tbody>
+                          {displayRefs.filter(r => r.type === 'Textbook').length > 0
+                          ? displayRefs.filter(r => r.type === 'Textbook').map((ref, i) => (
+                              <tr key={ref.id || i}>
+                                <td className={stylesB.refDataCellCenter} style={{ width: 70 }}>TB{i + 1}</td>
+                                <td className={stylesB.refDataCellLeft} style={{ width: 300 }}>{ref.title}</td>
+                                <td className={stylesB.refDataCellLeft} style={{ width: 200 }}>{ref.authors}</td>
+                                <td className={stylesB.refDataCellLeft} style={{ width: 200 }}>{ref.isbn || '-'}</td>
+                                <td className={stylesB.refDataCellCenter} style={{ width: 100 }}>{ref.year || '-'}</td>
+                              </tr>
+                            ))
+                          : (
+                            <tr><td colSpan={5} className={stylesB.refEmpty}>No Textbooks found.</td></tr>
+                          )}
+                        </tbody>
+                      </table>
+                    )}
+                    {/* TABLE: OER */}
+                    {(refTypeFilter === 'Open Educational Resources' || refTypeFilter === '') && (
+                      <table className={stylesB.refTable}>
+                        <thead>
+                          <tr>
+                            <th className={stylesB.refHeaderCell} style={{ width: 70 }}>ID</th>
+                            <th className={stylesB.refHeaderCell} style={{ width: 300 }}>TITLE</th>
+                            <th className={stylesB.refHeaderCell} style={{ width: 200 }}>AUTHOR/S</th>
+                            <th className={stylesB.refHeaderCell} style={{ width: 200 }}>LINK</th>
+                            <th className={stylesB.refHeaderCell} style={{ width: 100 }}>PUBLICATION YEAR</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {displayRefs.filter(r => r.type === 'Open Educational Resources').length > 0
+                          ? displayRefs.filter(r => r.type === 'Open Educational Resources').map((ref, i) => (
+                              <tr key={ref.id || i}>
+                                <td className={stylesB.refDataCellCenter} style={{ width: 70 }}>OE{i + 1}</td>
+                                <td className={stylesB.refDataCellLeft} style={{ width: 300 }}>{ref.title}</td>
+                                <td className={stylesB.refDataCellLeft} style={{ width: 200 }}>{ref.authors}</td>
+                                <td className={stylesB.refDataCellLeft} style={{ width: 200 }}>
+                                  {ref.link && ref.link !== '#' ? (
+                                    <a href={ref.link} target="_blank" rel="noreferrer" className={stylesB.refUrlLink}>Open Resource</a>
+                                  ) : '-'}
+                                </td>
+                                <td className={stylesB.refDataCellCenter} style={{ width: 100 }}>{ref.year || '-'}</td>
+                              </tr>
+                            ))
+                          : (
+                            <tr><td colSpan={5} className={stylesB.refEmpty}>No OER found.</td></tr>
+                          )}
+                        </tbody>
+                      </table>
+                    )}
+                    {/* TABLE: Online Resources */}
+                    {(refTypeFilter === 'Online Resources' || refTypeFilter === '') && (
+                      <table className={stylesB.refTable}>
+                        <thead>
+                          <tr>
+                            <th className={stylesB.refHeaderCell} style={{ width: 70 }}>ID</th>
+                            <th className={stylesB.refHeaderCell} style={{ width: 300 }}>TITLE</th>
+                            <th className={stylesB.refHeaderCell} style={{ width: 200 }}>AUTHOR/S</th>
+                            <th className={stylesB.refHeaderCell} style={{ width: 200 }}>LINK</th>
+                            <th className={stylesB.refHeaderCell} style={{ width: 100 }}>PUBLICATION YEAR</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {displayRefs.filter(r => r.type === 'Online Resources').length > 0
+                          ? displayRefs.filter(r => r.type === 'Online Resources').map((ref, i) => (
+                              <tr key={ref.id || i}>
+                                <td className={stylesB.refDataCellCenter} style={{ width: 70 }}>OR{i + 1}</td>
+                                <td className={stylesB.refDataCellLeft} style={{ width: 300 }}>{ref.title}</td>
+                                <td className={stylesB.refDataCellLeft} style={{ width: 200 }}>{ref.authors}</td>
+                                <td className={stylesB.refDataCellLeft} style={{ width: 200 }}>
+                                  {ref.link && ref.link !== '#' ? (
+                                    <a href={ref.link} target="_blank" rel="noreferrer" className={stylesB.refUrlLink}>Visit Link</a>
+                                  ) : '-'}
+                                </td>
+                                <td className={stylesB.refDataCellCenter} style={{ width: 100 }}>{ref.year || '-'}</td>
+                              </tr>
+                            ))
+                          : (
+                            <tr><td colSpan={5} className={stylesB.refEmpty}>No Online Resources found.</td></tr>
+                          )}
+                        </tbody>
+                      </table>
+                    )}
                   </div>
                 </div>
               </section>

@@ -1004,6 +1004,7 @@ const SyllabusSections = () => {
                                         onChange={(e) => setViewType(e.target.value)}
                                         className={stylesB.refSelect}
                                     >
+                                        <option value="">ALL</option>
                                         <option value="Textbook">TEXTBOOKS</option>
                                         <option value="Open Educational Resources">OPEN EDUCATIONAL RESOURCES</option>
                                         <option value="Online Resources">ONLINE RESOURCES</option>
@@ -1015,7 +1016,7 @@ const SyllabusSections = () => {
                                 <div className={stylesB.refScrollWrapper}>
 
                                     {/* --- TABLE 1: TEXTBOOKS --- */}
-                                    {viewType === 'Textbook' && (
+                                    {(viewType === 'Textbook' || viewType === '') && (
                                         <table className={stylesB.refTable}>
                                             <thead>
                                             <tr>
@@ -1045,7 +1046,7 @@ const SyllabusSections = () => {
                                     )}
 
                                     {/* --- TABLE 2: OER --- */}
-                                    {viewType === 'Open Educational Resources' && (
+                                    {(viewType === 'Open Educational Resources' || viewType === '') && (
                                         <table className={stylesB.refTable}>
                                             <thead>
                                             <tr>
@@ -1079,7 +1080,7 @@ const SyllabusSections = () => {
                                     )}
 
                                     {/* --- TABLE 3: ONLINE RESOURCES --- */}
-                                    {viewType === 'Online Resources' && (
+                                    {(viewType === 'Online Resources' || viewType === '') && (
                                         <table className={stylesB.refTable}>
                                             <thead>
                                             <tr>
