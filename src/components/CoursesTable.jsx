@@ -106,41 +106,11 @@ const CoursesTable = () => {
         return course.course_title || course.title || course.name || pco.course_description || '-';
     };
 
-    // Consolidated status logic:
-    // 1. If any *_date_returned exists => Returned
-    // 2. If no date_submitted => Draft
-    // 3. If dean accepted (d_date_accepted) => Approved
-    // 4. Otherwise => Pending
     const computeOverallStatus = (row) => {
-        const {
-            date_submitted,
-            d_date_accepted,
-            ic_date_accepted,
-            ld_date_accepted,
-            ph_date_accepted,
-            d_date_returned,
-            ph_date_returned,
-            ic_date_returned,
-            ld_date_returned
-        } = row || {};
-
-        // Returned has highest priority
-        if (d_date_returned || ph_date_returned || ic_date_returned || ld_date_returned) {
-            return 'Returned';
-
-        }
-
-        // Draft if not submitted
-        if (!date_submitted) {
-            return 'Draft';
-        }
-
-        // Approved only if ALL four approvers accepted
-        if (d_date_accepted && ph_date_accepted && ic_date_accepted && ld_date_accepted) {
-            return 'Approved';
-        }
-
-        // Otherwise pending
+        const wf = getWorkflow(getCode(row) || '');
+        if (wf?.currentStage === 'approved') return 'Approved';
+        if (wf?.currentStage === 'returned') return 'Returned';
+        if (!row?.date_submitted) return 'Draft';
         return 'Pending';
     };
 
@@ -348,9 +318,9 @@ const CoursesTable = () => {
                                 <td width={300}>{getName(row)}</td>
                                 {selectedStatus === 'DRAFT' && <td width={250}>{statusBadge('Draft')}</td>}
                                 {selectedStatus === 'APPROVED' && <td width={250}><span style={{ color: '#047857', background: '#ecfdf5', padding: '3px 10px', borderRadius: 99, fontWeight: 600, fontSize: 12, display: 'inline-block' }}>{row.d_date_accepted ? new Date(row.d_date_accepted).toLocaleDateString() : '-'}</span></td>}
-                                {selectedStatus === 'APPROVED' && <td style={{ width: 80, textAlign: 'center' }}>
-                                    <span className="actionLink" style={{ minWidth: 90, display: 'inline-flex', alignItems: 'center', gap: 5, cursor: 'pointer' }} onClick={() => setExportFile(row)}>
-                                        Export <Download size={14} />
+                                {selectedStatus === 'APPROVED' && <td style={{ width: 80, textAlign: 'center', fontWeight: 500 }}>
+                                    <span className="actionLink" style={{ minWidth: 90, display: 'inline-flex', alignItems: 'center', gap: 5, cursor: 'pointer', justifyContent: 'center' }} onClick={() => setExportFile(row)}>
+                                        Export <Download size={16} />
                                     </span>
                                 </td>}
                                 <td className={styles.fill}>
@@ -438,7 +408,7 @@ const CoursesTable = () => {
             {exportFile && (
                 <PDFViewerModal
                     file={{
-                        file_url: '',
+                        file_url: 'https://pdfobject.com/pdf/sample.pdf',
                         file_name: `SYLLABUS_${getCode(exportFile)}.pdf`,
                         instructor_name: exportFile.instructor || '—',
                         course_id: getCode(exportFile),

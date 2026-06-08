@@ -97,10 +97,10 @@ const ApprovalCoursesTable = ({ role = 'approver' }) => {
     };
 
     const getOverallStatus = (row) => {
-        const { d_date_accepted, d_date_returned, ph_date_returned, ic_date_returned, ld_date_returned, date_submitted, ic_date_accepted, ld_date_accepted, ph_date_accepted } = row || {};
-        if (d_date_returned || ph_date_returned || ic_date_returned || ld_date_returned) return 'Returned';
-        if (!date_submitted) return 'Draft';
-        if (d_date_accepted && ph_date_accepted && ic_date_accepted && ld_date_accepted) return 'Approved';
+        const wf = getWorkflow(getCode(row) || '');
+        if (wf?.currentStage === 'approved') return 'Approved';
+        if (wf?.currentStage === 'returned') return 'Returned';
+        if (!row?.date_submitted) return 'Draft';
         return 'Pending';
     };
 
@@ -285,9 +285,9 @@ const ApprovalCoursesTable = ({ role = 'approver' }) => {
                                 <td width={150}>{getCode(row)}</td>
                                 <td width={300}>{getName(row)}</td>
                                 {selectedStatus === 'APPROVED' && <td width={250}><span style={{ color: '#047857', background: '#ecfdf5', padding: '3px 10px', borderRadius: 99, fontWeight: 600, fontSize: 12, display: 'inline-block' }}>{row.d_date_accepted ? new Date(row.d_date_accepted).toLocaleDateString() : '-'}</span></td>}
-                                {selectedStatus === 'APPROVED' && <td style={{ width: 80, textAlign: 'center' }}>
-                                    <span className="actionLink" style={{ minWidth: 90, display: 'inline-flex', alignItems: 'center', gap: 5, cursor: 'pointer' }} onClick={() => setExportFile(row)}>
-                                        Export <Download size={14} />
+                                {selectedStatus === 'APPROVED' && <td style={{ width: 80, textAlign: 'center', fontWeight: 500 }}>
+                                    <span className="actionLink" style={{ minWidth: 90, display: 'inline-flex', alignItems: 'center', gap: 5, cursor: 'pointer', justifyContent: 'center' }} onClick={() => setExportFile(row)}>
+                                        Export <Download size={16} />
                                     </span>
                                 </td>}
                                 <td className={styles.fill}>
@@ -365,7 +365,7 @@ const ApprovalCoursesTable = ({ role = 'approver' }) => {
             {exportFile && (
                 <PDFViewerModal
                     file={{
-                        file_url: '',
+                        file_url: 'https://pdfobject.com/pdf/sample.pdf',
                         file_name: `SYLLABUS_${getCode(exportFile)}.pdf`,
                         instructor_name: exportFile.instructor || '—',
                         course_id: getCode(exportFile),
