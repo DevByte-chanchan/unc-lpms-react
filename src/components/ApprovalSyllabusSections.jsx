@@ -586,13 +586,11 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
             )}
             {effectiveStatus !== 'approved' && roleKey !== 'instructor' && (
               <div className={styles.approvalButtons}>
-                {activeSelectedSection === 'Course Coverage' && (
-                  <button className={`${styles.requestRevision} ${(!isRoleActive() || hasRoleApproved()) ? styles['disabled-btn'] : ''}`} onClick={() => {
-                    if (hasRoleApproved()) showToastMsg('You have already approved this syllabus.', 'warning')
-                    else if (isRoleActive()) openComment()
-                    else showToastMsg('Waiting for previous approvers to complete their review.', 'warning')
-                  }}>Add Comment</button>
-                )}
+                <button className={`${styles.requestRevision} ${(!isRoleActive() || hasRoleApproved()) ? styles['disabled-btn'] : ''}`} onClick={() => {
+                  if (hasRoleApproved()) showToastMsg('You have already approved this syllabus.', 'warning')
+                  else if (isRoleActive()) openComment()
+                  else showToastMsg('Waiting for previous approvers to complete their review.', 'warning')
+                }}>Add Comment</button>
                 <button className={`${styles.approve} ${(!isRoleActive() || hasRoleApproved()) ? styles['disabled-btn'] : ''}`} onClick={() => {
                   if (hasRoleApproved()) showToastMsg('You have already approved this syllabus.', 'warning')
                   else if (isRoleActive()) setShowApproveModal(true)
