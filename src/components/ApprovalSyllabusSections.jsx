@@ -31,6 +31,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
   const [showApproveModal, setShowApproveModal] = useState(false)
   const [showSubmitModal, setShowSubmitModal] = useState(false)
   const [showWorkflowPopup, setShowWorkflowPopup] = useState(false)
+  const [workflowPopupPos, setWorkflowPopupPos] = useState(null)
   const [globalComments, setGlobalComments] = useState([])
   const [suggestions, setSuggestions] = useState([])
   const [refreshKey, setRefreshKey] = useState(0)
@@ -549,7 +550,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
             </select>
           </div>
 
-          <div style={{ padding: '0 16px', borderRadius: 5, background: '#dbdfe3', cursor: 'pointer', display: 'flex', alignItems: 'center', height: 40 }} onClick={() => setShowWorkflowPopup(true)}>
+          <div style={{ padding: '0 16px', borderRadius: 5, background: '#dbdfe3', cursor: 'pointer', display: 'flex', alignItems: 'center', height: 40 }} onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); setWorkflowPopupPos({ right: window.innerWidth - r.right, top: r.bottom + 4 }); setShowWorkflowPopup(true); }}>
             <Info strokeWidth={2} size={18} />
           </div>
 
@@ -1349,33 +1350,36 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
           Pending: { color: '#b45309', background: '#fffbeb' },
         }
         return (
-          <div style={{ position: 'fixed', right: 20, top: 80, width: 340, background: '#fff', border: '1px solid #ddd', borderRadius: 6, boxShadow: '0 6px 18px rgba(0,0,0,0.12)', zIndex: 1200, padding: 12 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-              <strong>View details</strong>
-              <button onClick={() => setShowWorkflowPopup(false)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', padding: 4 }}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6b7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><line x1="15" y1="9" x2="9" y2="15" /><line x1="9" y1="9" x2="15" y2="15" /></svg>
-              </button>
-            </div>
-            <div style={{ fontSize: 13, marginBottom: 10 }}>
-              <div style={{ color: '#666', marginBottom: 8 }}>
-                <strong>Submitted at:</strong> {submittedAt ? new Date(submittedAt).toLocaleString() : '-'}
+          <>
+            <div onClick={() => setShowWorkflowPopup(false)} style={{ position: 'fixed', inset: 0, zIndex: 1199 }} />
+            <div style={{ position: 'fixed', right: workflowPopupPos?.right ?? 20, top: workflowPopupPos?.top ?? 80, width: 340, background: '#fff', border: '1px solid #ddd', borderRadius: 6, boxShadow: '0 6px 18px rgba(0,0,0,0.12)', zIndex: 1200, padding: 12 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                <strong>View details</strong>
+                <button onClick={() => setShowWorkflowPopup(false)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', padding: 4 }}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6b7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><line x1="15" y1="9" x2="9" y2="15" /><line x1="9" y1="9" x2="15" y2="15" /></svg>
+                </button>
               </div>
-              {approvers.map((a, idx) => {
-                const status = a.data?.status || 'pending'
-                const label = status === 'done' ? 'Accepted' : status === 'returned' ? 'Returned' : 'Pending'
-                const b = badgeMap[label] || { color: '#6b7280', background: '#f3f4f6' }
-                return (
-                  <div key={idx} style={{ marginBottom: 10, paddingBottom: 8, borderBottom: '1px solid #f0f0f0' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                      <div style={{ fontWeight: 600 }}>{a.key}</div>
-                      <span style={{ ...b, padding: '2px 8px', borderRadius: 99, fontWeight: 600, fontSize: 11 }}>{label}</span>
+              <div style={{ fontSize: 13, marginBottom: 10 }}>
+                <div style={{ color: '#666', marginBottom: 8 }}>
+                  <strong>Submitted at:</strong> {submittedAt ? new Date(submittedAt).toLocaleString() : '-'}
+                </div>
+                {approvers.map((a, idx) => {
+                  const status = a.data?.status || 'pending'
+                  const label = status === 'done' ? 'Accepted' : status === 'returned' ? 'Returned' : 'Pending'
+                  const b = badgeMap[label] || { color: '#6b7280', background: '#f3f4f6' }
+                  return (
+                    <div key={idx} style={{ marginBottom: 10, paddingBottom: 8, borderBottom: '1px solid #f0f0f0' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                        <div style={{ fontWeight: 600 }}>{a.key}</div>
+                        <span style={{ ...b, padding: '2px 8px', borderRadius: 99, fontWeight: 600, fontSize: 11 }}>{label}</span>
+                      </div>
+                      {a.data?.completedAt ? <div style={{ fontSize: 13, color: '#333' }}>{new Date(a.data.completedAt).toLocaleString()}</div> : <div style={{ fontSize: 13, color: '#999' }}>—</div>}
                     </div>
-                    {a.data?.completedAt && <div style={{ fontSize: 13, color: '#333' }}>{new Date(a.data.completedAt).toLocaleString()}</div>}
-                  </div>
-                )
-              })}
+                  )
+                })}
+              </div>
             </div>
-          </div>
+          </>
         )
       })()}
 

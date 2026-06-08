@@ -26,7 +26,7 @@ const ApprovalCoursesTable = ({ role = 'approver' }) => {
     const [selectedStatus, setSelectedStatus] = useState(role === 'oic-ovpaa' ? 'APPROVED' : 'PENDING');
     const [assignments, setAssignments] = useState([]);
     const [loading, setLoading] = useState(false);
-    const [popup, setPopup] = useState({ open: false, data: null });
+    const [popup, setPopup] = useState({ open: false, data: null, pos: null });
     const [exportFile, setExportFile] = useState(null);
 
     useEffect(() => {
@@ -99,7 +99,8 @@ const ApprovalCoursesTable = ({ role = 'approver' }) => {
     const getOverallStatus = (row) => {
         const code = getCode(row) || '';
         const wf = getWorkflow(code);
-        const isDefault = wf?.currentStage === 'submitted' &&
+        const isDefault = !wf?.submittedAt &&
+            wf?.currentStage === 'submitted' &&
             wf?.dean?.status === 'pending' &&
             wf?.parallelReview?.industry_consultant?.status === 'pending' &&
             wf?.parallelReview?.library_director?.status === 'pending' &&
@@ -165,20 +166,21 @@ const ApprovalCoursesTable = ({ role = 'approver' }) => {
 
     const getStatusCount = (statusName) => assignments.filter(row => getOverallStatus(row).toUpperCase() === statusName).length;
 
-    const openPopup = (row) => {
+    const openPopup = (row, e) => {
+        const rect = e?.currentTarget?.getBoundingClientRect();
         const code = getCode(row);
         const wf = getWorkflow(code || '');
-        setPopup({ open: true, data: { workflow: wf, code } });
+        setPopup({ open: true, data: { workflow: wf, code }, pos: rect ? { right: window.innerWidth - rect.right, top: rect.bottom + 4 } : null });
     };
 
-    const closePopup = () => setPopup({ open: false, data: null });
+    const closePopup = () => setPopup({ open: false, data: null, pos: null });
 
     const getCourseLink = (row) => {
         const base = `/role/${role}/courses/${encodeURIComponent(row.code)}`;
         return `${base}?status=${getOverallStatus(row).toLowerCase()}`;
     };
 
-    const DetailsPopup = ({ data, onClose }) => {
+    const DetailsPopup = ({ data, onClose, pos }) => {
         if (!data) return null;
         const wf = data.workflow || {}
         const submittedAt = wf.submittedAt || null
@@ -194,46 +196,49 @@ const ApprovalCoursesTable = ({ role = 'approver' }) => {
             Pending: { color: '#b45309', background: '#fffbeb' },
         }
         return (
-            <div style={{
-                position: 'fixed',
-                right: 20,
-                top: 80,
-                width: 340,
-                background: '#fff',
-                border: '1px solid #ddd',
-                borderRadius: 6,
-                boxShadow: '0 6px 18px rgba(0,0,0,0.12)',
-                zIndex: 1200,
-                padding: 12
-            }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                    <strong>View details</strong>
-                    <button onClick={onClose} style={{ border: 'none', background: 'transparent', cursor: 'pointer', padding: 4 }} aria-label="Close details">
-                        <XCircle size={18} />
-                    </button>
-                </div>
-
-                <div style={{ fontSize: 13, marginBottom: 10 }}>
-                    <div style={{ color: '#666', marginBottom: 8 }}>
-                        <strong>Submitted at:</strong> {submittedAt ? new Date(submittedAt).toLocaleString() : '-'}
+            <>
+                <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 1199 }} />
+                <div style={{
+                    position: 'fixed',
+                    right: pos?.right ?? 20,
+                    top: pos?.top ?? 80,
+                    width: 340,
+                    background: '#fff',
+                    border: '1px solid #ddd',
+                    borderRadius: 6,
+                    boxShadow: '0 6px 18px rgba(0,0,0,0.12)',
+                    zIndex: 1200,
+                    padding: 12
+                }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                        <strong>View details</strong>
+                        <button onClick={onClose} style={{ border: 'none', background: 'transparent', cursor: 'pointer', padding: 4 }} aria-label="Close details">
+                            <XCircle size={18} />
+                        </button>
                     </div>
 
-                    {approvers.map((a, idx) => {
-                        const status = a.wfKey?.status || 'pending'
-                        const label = status === 'done' ? 'Accepted' : status === 'returned' ? 'Returned' : 'Pending'
-                        const b = badgeMap[label] || { color: '#6b7280', background: '#f3f4f6' }
-                        return (
-                        <div key={idx} style={{ marginBottom: 10, paddingBottom: 8, borderBottom: '1px solid #f0f0f0' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                                <div style={{ fontWeight: 600 }}>{a.key}</div>
-                                <span style={{ ...b, padding: '2px 8px', borderRadius: 99, fontWeight: 600, fontSize: 11 }}>{label}</span>
-                            </div>
-                            {a.wfKey?.completedAt ? <div style={{ fontSize: 13, color: '#333' }}>{new Date(a.wfKey.completedAt).toLocaleString()}</div> : <div style={{ fontSize: 13, color: '#999' }}>—</div>}
+                    <div style={{ fontSize: 13, marginBottom: 10 }}>
+                        <div style={{ color: '#666', marginBottom: 8 }}>
+                            <strong>Submitted at:</strong> {submittedAt ? new Date(submittedAt).toLocaleString() : '-'}
                         </div>
-                        );
-                    })}
+
+                        {approvers.map((a, idx) => {
+                            const status = a.wfKey?.status || 'pending'
+                            const label = status === 'done' ? 'Accepted' : status === 'returned' ? 'Returned' : 'Pending'
+                            const b = badgeMap[label] || { color: '#6b7280', background: '#f3f4f6' }
+                            return (
+                            <div key={idx} style={{ marginBottom: 10, paddingBottom: 8, borderBottom: '1px solid #f0f0f0' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                                    <div style={{ fontWeight: 600 }}>{a.key}</div>
+                                    <span style={{ ...b, padding: '2px 8px', borderRadius: 99, fontWeight: 600, fontSize: 11 }}>{label}</span>
+                                </div>
+                                {a.wfKey?.completedAt ? <div style={{ fontSize: 13, color: '#333' }}>{new Date(a.wfKey.completedAt).toLocaleString()}</div> : <div style={{ fontSize: 13, color: '#999' }}>—</div>}
+                            </div>
+                            );
+                        })}
+                    </div>
                 </div>
-            </div>
+            </>
         );
     };
 
@@ -315,7 +320,7 @@ const ApprovalCoursesTable = ({ role = 'approver' }) => {
                                         </Link>
 
                                         {selectedStatus ==='APPROVED' &&
-                                            <button onClick={() => openPopup(row)} className={styles.info}>
+                                            <button onClick={(e) => openPopup(row, e)} className={styles.info}>
                                                 <HelpCircle size={18} />
                                             </button>
                                         }
@@ -360,7 +365,7 @@ const ApprovalCoursesTable = ({ role = 'approver' }) => {
                                             >
                                                 View <ChevronRight size={16} />
                                             </Link>
-                                            <button onClick={() => openPopup(row)} className={styles.info}>
+                                            <button onClick={(e) => openPopup(row, e)} className={styles.info}>
                                                 <HelpCircle opacity={.8} size={18} />
                                             </button>
                                         </div>
@@ -373,7 +378,7 @@ const ApprovalCoursesTable = ({ role = 'approver' }) => {
                 }
             </div>
 
-            {popup.open && <DetailsPopup data={popup.data} onClose={closePopup} />}
+            {popup.open && popup.data && <DetailsPopup data={popup.data} onClose={closePopup} pos={popup.pos} />}
 
             {exportFile && (
                 <PDFViewerModal
