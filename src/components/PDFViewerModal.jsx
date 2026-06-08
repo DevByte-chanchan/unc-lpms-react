@@ -141,7 +141,7 @@ const PDFViewerModal = ({ file, kind, onClose, onExport, children }) => {
             {hasRealUrl ? (
               <iframe
                 title={title}
-                src={file.file_url}
+                src={file.file_url + '#toolbar=0'}
                 style={{ flex: 1, width: '100%', border: 'none', background: '#FFFFFF' }}
               />
             ) : (
