@@ -1014,9 +1014,45 @@ const SyllabusSections = () => {
 
                                 {/* 2. SCROLL WRAPPER */}
                                 <div className={stylesB.refScrollWrapper}>
-
-                                    {/* --- TABLE 1: TEXTBOOKS --- */}
-                                    {(viewType === 'Textbook' || viewType === '') && (
+                                    {viewType === '' ? (
+                                        /* --- ALL: one combined table --- */
+                                        <table className={stylesB.refTable}>
+                                            <thead>
+                                            <tr>
+                                                <th className={stylesB.refHeaderCell} style={{ width: colWidths.id }}>ID</th>
+                                                <th className={stylesB.refHeaderCell} style={{ width: colWidths.title }}>TITLE</th>
+                                                <th className={stylesB.refHeaderCell} style={{ width: colWidths.author }}>AUTHOR/S</th>
+                                                <th className={stylesB.refHeaderCell} style={{ width: colWidths.link }}>LINK</th>
+                                                <th className={stylesB.refHeaderCell} style={{ width: colWidths.year }}>PUBLICATION YEAR</th>
+                                            </tr>
+                                            </thead>
+                                            <tbody>
+                                            {(() => {
+                                                const all = [
+                                                    ...getData('Textbook').map(r => ({ ...r, _type: 'TB' })),
+                                                    ...getData('Open Educational Resources').map(r => ({ ...r, _type: 'OE' })),
+                                                    ...getData('Online Resources').map(r => ({ ...r, _type: 'OR' })),
+                                                ];
+                                                return all.length > 0 ? all.map((ref, i) => (
+                                                    <tr key={ref.id || i}>
+                                                        <td className={stylesB.refDataCellCenter} style={{ width: colWidths.id }}>{ref._type}{i + 1}</td>
+                                                        <td className={stylesB.refDataCellLeft} style={{ width: colWidths.title }}>{ref.title}</td>
+                                                        <td className={stylesB.refDataCellLeft} style={{ width: colWidths.author }}>{ref.authors}</td>
+                                                        <td className={stylesB.refDataCellLeft} style={{ width: colWidths.link }}>
+                                                            {ref._type === 'TB' ? (ref.isbn || '-') : (ref.link && ref.link !== '#' ? <a href={ref.link} target="_blank" rel="noreferrer" className={stylesB.refUrlLink}>Open Resource</a> : '-')}
+                                                        </td>
+                                                        <td className={stylesB.refDataCellCenter} style={{ width: colWidths.year }}>
+                                                            {ref.year && ref.year !== '-' ? String(ref.year).split('-')[0] : '-'}
+                                                        </td>
+                                                    </tr>
+                                                )) : (
+                                                    <tr><td colSpan={5} className={stylesB.refEmpty}>No references found.</td></tr>
+                                                );
+                                            })()}
+                                            </tbody>
+                                        </table>
+                                    ) : viewType === 'Textbook' ? (
+                                        /* --- TEXTBOOKS --- */
                                         <table className={stylesB.refTable}>
                                             <thead>
                                             <tr>
@@ -1043,10 +1079,8 @@ const SyllabusSections = () => {
                                             )}
                                             </tbody>
                                         </table>
-                                    )}
-
-                                    {/* --- TABLE 2: OER --- */}
-                                    {(viewType === 'Open Educational Resources' || viewType === '') && (
+                                    ) : viewType === 'Open Educational Resources' ? (
+                                        /* --- OER --- */
                                         <table className={stylesB.refTable}>
                                             <thead>
                                             <tr>
@@ -1077,10 +1111,8 @@ const SyllabusSections = () => {
                                             )}
                                             </tbody>
                                         </table>
-                                    )}
-
-                                    {/* --- TABLE 3: ONLINE RESOURCES --- */}
-                                    {(viewType === 'Online Resources' || viewType === '') && (
+                                    ) : (
+                                        /* --- ONLINE RESOURCES --- */
                                         <table className={stylesB.refTable}>
                                             <thead>
                                             <tr>

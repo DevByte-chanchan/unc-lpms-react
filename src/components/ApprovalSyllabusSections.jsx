@@ -948,8 +948,43 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
                     <div className={stylesB.refArrow}>▼</div>
                   </div>
                   <div className={stylesB.refScrollWrapper}>
-                    {/* TABLE: Textbooks */}
-                    {(refTypeFilter === 'Textbook' || refTypeFilter === '') && (
+                    {refTypeFilter === '' ? (
+                      /* --- ALL: one combined table --- */
+                      <table className={stylesB.refTable}>
+                        <thead>
+                          <tr>
+                            <th className={stylesB.refHeaderCell} style={{ width: 70 }}>ID</th>
+                            <th className={stylesB.refHeaderCell} style={{ width: 300 }}>TITLE</th>
+                            <th className={stylesB.refHeaderCell} style={{ width: 200 }}>AUTHOR/S</th>
+                            <th className={stylesB.refHeaderCell} style={{ width: 200 }}>LINK</th>
+                            <th className={stylesB.refHeaderCell} style={{ width: 100 }}>PUBLICATION YEAR</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {(() => {
+                            const all = [
+                              ...displayRefs.filter(r => r.type === 'Textbook').map(r => ({ ...r, _type: 'TB' })),
+                              ...displayRefs.filter(r => r.type === 'Open Educational Resources').map(r => ({ ...r, _type: 'OE' })),
+                              ...displayRefs.filter(r => r.type === 'Online Resources').map(r => ({ ...r, _type: 'OR' })),
+                            ];
+                            return all.length > 0 ? all.map((ref, i) => (
+                              <tr key={ref.id || i}>
+                                <td className={stylesB.refDataCellCenter} style={{ width: 70 }}>{ref._type}{i + 1}</td>
+                                <td className={stylesB.refDataCellLeft} style={{ width: 300 }}>{ref.title}</td>
+                                <td className={stylesB.refDataCellLeft} style={{ width: 200 }}>{ref.authors}</td>
+                                <td className={stylesB.refDataCellLeft} style={{ width: 200 }}>
+                                  {ref._type === 'TB' ? (ref.isbn || '-') : (ref.link && ref.link !== '#' ? <a href={ref.link} target="_blank" rel="noreferrer" className={stylesB.refUrlLink}>Open Resource</a> : '-')}
+                                </td>
+                                <td className={stylesB.refDataCellCenter} style={{ width: 100 }}>{ref.year || '-'}</td>
+                              </tr>
+                            )) : (
+                              <tr><td colSpan={5} className={stylesB.refEmpty}>No references found.</td></tr>
+                            );
+                          })()}
+                        </tbody>
+                      </table>
+                    ) : refTypeFilter === 'Textbook' ? (
+                      /* --- TEXTBOOKS --- */
                       <table className={stylesB.refTable}>
                         <thead>
                           <tr>
@@ -976,9 +1011,8 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
                           )}
                         </tbody>
                       </table>
-                    )}
-                    {/* TABLE: OER */}
-                    {(refTypeFilter === 'Open Educational Resources' || refTypeFilter === '') && (
+                    ) : refTypeFilter === 'Open Educational Resources' ? (
+                      /* --- OER --- */
                       <table className={stylesB.refTable}>
                         <thead>
                           <tr>
@@ -1009,9 +1043,8 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
                           )}
                         </tbody>
                       </table>
-                    )}
-                    {/* TABLE: Online Resources */}
-                    {(refTypeFilter === 'Online Resources' || refTypeFilter === '') && (
+                    ) : (
+                      /* --- ONLINE RESOURCES --- */
                       <table className={stylesB.refTable}>
                         <thead>
                           <tr>
