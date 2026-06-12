@@ -19,7 +19,7 @@ import styles from '../styles/DropdownMenu.module.sass';
 
 const MENU_MAX_HEIGHT = 160;
 
-const SearchableSelect = ({ value, onChange, options, placeholder, highlight }) => {
+const SearchableSelect = ({ value, onChange, options, placeholder, highlight, searchable = true }) => {
   const [query, setQuery] = React.useState('');
   const [open, setOpen]   = React.useState(false);
   const [menuPos, setMenuPos] = React.useState(null);
@@ -84,10 +84,11 @@ const SearchableSelect = ({ value, onChange, options, placeholder, highlight }) 
   }, [normOptions, value]);
 
   const filtered = React.useMemo(() => {
-    const q = query.trim().toLowerCase();
+    // Non-searchable (plain dropdown) mode never filters — always show all.
+    const q = searchable ? query.trim().toLowerCase() : '';
     if (!q) return normOptions;
     return normOptions.filter((o) => o.label.toLowerCase().includes(q) || String(o.value).toLowerCase().includes(q) || String(o.sub || '').toLowerCase().includes(q));
-  }, [normOptions, query]);
+  }, [normOptions, query, searchable]);
 
   const commit = (v) => { onChange(v); setQuery(''); setOpen(false); };
   const clear  = () => { onChange(''); setQuery(''); };
@@ -95,21 +96,22 @@ const SearchableSelect = ({ value, onChange, options, placeholder, highlight }) 
   return (
     <div ref={wrapRef} style={{ position: 'relative' }}>
       <div
-        onClick={() => { if (!open) setOpen(true); }}
+        onClick={() => setOpen((v) => (searchable ? (v ? v : true) : !v))}
         style={{
           display: 'flex', alignItems: 'center', gap: 6,
           height: 40, padding: '0 8px 0 12px',
           border: '1px solid ' + (highlight ? '#DC2626' : (open ? '#94A3B8' : '#D1D5DB')), borderRadius: 8, background: '#FFFFFF',
           boxShadow: highlight ? '0 0 0 3px rgba(220,38,38,0.18)' : (open ? '0 0 0 3px rgba(148,163,184,0.20)' : 'none'),
           transition: 'border-color 0.12s ease, box-shadow 0.12s ease',
-          cursor: 'text',
+          cursor: searchable ? 'text' : 'pointer',
         }}
       >
         <input
-          value={open ? query : selectedLabel}
-          onChange={(e) => { setQuery(e.target.value); setOpen(true); }}
-          placeholder={placeholder || 'Search…'}
-          style={{ flex: 1, border: 'none', outline: 'none', fontSize: 14, background: 'transparent' }}
+          value={(searchable && open) ? query : selectedLabel}
+          onChange={(e) => { if (!searchable) return; setQuery(e.target.value); setOpen(true); }}
+          readOnly={!searchable}
+          placeholder={placeholder || (searchable ? 'Search…' : 'Select…')}
+          style={{ flex: 1, border: 'none', outline: 'none', fontSize: 14, background: 'transparent', cursor: searchable ? 'text' : 'pointer' }}
         />
         {value && !open && (
           <button

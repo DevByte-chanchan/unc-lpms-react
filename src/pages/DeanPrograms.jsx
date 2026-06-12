@@ -6,7 +6,6 @@ import EditEntityModal from "../components/EditEntityModal.jsx";
 import ConfirmModal from "../components/ConfirmModal.jsx";
 import ViewArchivedButton from "../components/ViewArchivedButton.jsx";
 import { Search, ArrowUp, ArrowDown, Upload, Plus, Clipboard } from "react-feather";
-import styles from '../styles/CoursesTable.module.sass';
 import syllabusStyles from '../styles/SyllabusSections.module.sass';
 import { ProgramsAPI, FacultyAPI } from '../services/api.js';
 import { usePeriod } from '../services/period.jsx';
@@ -224,7 +223,7 @@ const DeanPrograms = () => {
           fields={[
             { key: 'code', label: 'Code', required: true, placeholder: 'e.g. BSIT' },
             { key: 'name', label: 'Name', required: true, placeholder: 'e.g. Bachelor of Science in Information Technology' },
-            { key: 'program_head', label: 'Faculty Name', type: 'searchable-select',
+            { key: 'program_head', label: 'Program Head', type: 'searchable-select',
               options: facultyOptions, placeholder: 'Search active faculty…' },
             { key: 'status', label: 'Status', type: 'select', options: STATUS_OPTIONS.program },
           ]}
@@ -244,7 +243,7 @@ const DeanPrograms = () => {
             { key: 'code', label: 'Code', required: true, colSpan: 1 },
             { key: 'status', label: 'Status', type: 'select', options: STATUS_OPTIONS.program, colSpan: 1 },
             { key: 'name', label: 'Name', required: true, colSpan: 2 },
-            { key: 'program_head', label: 'Faculty Name', optional: true, type: 'searchable-select',
+            { key: 'program_head', label: 'Program Head', optional: true, type: 'searchable-select',
               options: facultyOptions, placeholder: 'Search active faculty…', colSpan: 2 },
           ]}
           record={editingProgram}

@@ -68,13 +68,27 @@ select option
 // see global th/td rules in index.css). ONE consistent cell style for both
 // <thead> and <tbody>, and the data columns hold their width attribute exactly
 // (flex: 0 0 auto) so header cells can't shrink out of line with body cells.
-// The trailing .fill (actions) column keeps its flex-grow so Edit stays right.
+// The COURSE OFFERING column flexes to absorb the slack (set inline), and the
+// trailing actions column is a small fixed width pinned right after STATUS.
+// All scoped to .alignFixed so the shared .fill / table rules are untouched.
 .alignFixed
   th, td
-    padding: 10px 16px
+    padding: 12px 14px
     text-align: left
+    align-items: center
   th:not(.fill), td:not(.fill)
     flex: 0 0 auto
+  // Actions column: small fixed width, right-aligned — overrides the shared
+  // .fill flex-grow for THIS table. A left margin gives a clear gutter between
+  // STATUS and the Edit action.
+  th.fill, td.fill
+    flex: 0 0 110px
+    min-width: 110px
+    margin-left: 56px
+    padding-right: 16px
+  // Subtle row hover.
+  tbody tr:hover
+    background: #F8FAFC
 
 
 .sub-column th

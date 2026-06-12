@@ -20,7 +20,7 @@ import { Layers, ChevronDown, Check } from 'react-feather';
 
 const RED = '#EA1212';
 const OPTIONS = [
-  { key: 'all', label: 'All Years' },
+  { key: 'all', label: 'All Year Levels' },
   { key: 1, label: '1st Year' },
   { key: 2, label: '2nd Year' },
   { key: 3, label: '3rd Year' },
@@ -58,7 +58,7 @@ export default function YearFilter({ value, onChange, counts = {}, total = 0 }) 
         }}
       >
         <Layers size={16} color="#6B7280" />
-        <span style={{ color: '#6B7280', fontWeight: 500 }}>Year:</span>
+        <span style={{ color: '#6B7280', fontWeight: 500 }}>Year Level:</span>
         <span style={{ color: '#111827', fontWeight: 600 }}>{current.label}</span>
         <ChevronDown size={16} color="#6B7280" style={{ marginLeft: 2 }} />
       </button>

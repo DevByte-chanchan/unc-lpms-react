@@ -3,15 +3,17 @@
  *
  * The Course Assignment module owns its own table (course_assignments),
  * period-scoped and starting blank each term. Every row is validated
- * against the period's Course Offerings and Faculty master lists, which
- * derives its status:
+ * against the period's Course Offerings and Faculty master lists; its status
+ * MIRRORS the assigned faculty's status so the assignment reads as
+ * available/unavailable exactly as its faculty does:
  *
- *   Verified      — course + faculty both matched, faculty available.
- *   Pending Match — course code or faculty name not found in the lists.
- *   Flagged       — faculty matched but Inactive / On Leave.
+ *   Active / On Leave / Emeritus / Inactive — the matched faculty's own status.
+ *   Unassigned — course code or faculty name not matched (or no faculty yet).
  *
- * (A schedule conflict would also Flag a row, but there is no faculty
- * timetable in this module yet, so that path is not implemented.)
+ * Inactive (and the manual 'Archived' from Edit → Remove) route the row to the
+ * Archive, so that faculty's assignment is hidden. Emeritus stays VISIBLE in
+ * the main table, flagged — the course is available for reassignment to another
+ * faculty. The page re-derives this on every load.
  */
 import db from '../models/index.js';
 import { parseSheet, safeUnlink, pick } from '../utils/excelParser.js';
@@ -79,11 +81,14 @@ async function loadMasterLists(period_id) {
  * Resolve a course code + faculty name against the master-list maps and
  * derive { course_offering_id, faculty_id, status }.
  *
- *   Verified      — course found in the catalog AND faculty found & 'Active'.
- *   Pending Match — the course code (catalog) or faculty name was not found.
- *   Flagged       — both found, but the faculty is not 'Active' (Inactive /
- *                   On Leave / Emeritus). Catalog courses have no status,
- *                   so the course itself never flags a row.
+ * The status MIRRORS the assigned faculty's status in the Faculty list
+ * (Active / On Leave / Emeritus / Inactive) — so an assignment reads as
+ * available/unavailable exactly as its faculty does. Emeritus & Inactive are
+ * archive statuses, so those assignments drop into the Archive automatically.
+ *
+ *   Unassigned    — the course code (catalog) or faculty name wasn't matched
+ *                   (or no faculty set yet). Stays visible so it can be fixed.
+ *   <faculty.status> — both matched: the faculty's own status verbatim.
  */
 function resolveAssignment(courseCode, facultyName, lists) {
   const { courseByCode, facultyByName, facultyByNorm } = lists;
@@ -101,11 +106,9 @@ function resolveAssignment(courseCode, facultyName, lists) {
 
   let status;
   if (!course || !faculty) {
-    status = 'Pending Match';
-  } else if (faculty.status !== 'Active') {
-    status = 'Flagged';
+    status = 'Unassigned';
   } else {
-    status = 'Verified';
+    status = faculty.status || 'Active';
   }
   return {
     // Catalog course id (column name kept for compatibility).
@@ -126,9 +129,11 @@ function resolveAssignment(courseCode, facultyName, lists) {
  */
 async function syncAssignmentsAgainstCatalog(rows, lists) {
   let changed = 0;
-  const summary = { Verified: 0, 'Pending Match': 0, Flagged: 0, Archived: 0 };
+  const summary = {};
   for (const row of rows) {
-    if (row.status === 'Archived') { summary.Archived++; continue; }
+    // Manual removals (Edit → Remove) stay 'Archived'; everything else is
+    // re-derived from the current catalog + faculty status on every load.
+    if (row.status === 'Archived') { summary.Archived = (summary.Archived || 0) + 1; continue; }
     const resolved = resolveAssignment(row.course_code, row.faculty_name, lists);
     if (row.status !== resolved.status
       || row.course_offering_id !== resolved.course_offering_id
@@ -303,15 +308,27 @@ export async function uploadCourseAssignments(req, res) {
         return;
       }
       const resolved = resolveAssignment(course_code, faculty_name, lists);
-      if (resolved.status !== 'Verified') {
+      // Surface every row that isn't a clean Active assignment: unmatched rows
+      // (Unassigned) need fixing; an Inactive faculty lands straight in the
+      // Archive; an Emeritus faculty stays visible so the course can be
+      // reassigned; On Leave just needs awareness.
+      if (resolved.status !== 'Active') {
+        let message;
+        if (resolved.status === 'Unassigned') {
+          message = "Course or faculty not found in this period's Course Offerings / Faculty lists.";
+        } else if (resolved.status === 'Emeritus') {
+          message = 'Assigned faculty is Emeritus — the course is available for reassignment.';
+        } else if (resolved.status === 'Inactive') {
+          message = 'Assigned faculty is Inactive — the assignment moves to the Archive.';
+        } else {
+          message = 'Assigned faculty is ' + resolved.status + '.';
+        }
         warnings.push({
           row: i + 2,
           course_code:  String(course_code).trim(),
           faculty_name: faculty_name ? String(faculty_name).trim() : '',
           status: resolved.status,
-          message: resolved.status === 'Pending Match'
-            ? "Course or faculty not found in this period's Course Offerings / Faculty lists."
-            : 'Matched, but the course or faculty is not Active (Inactive / On Leave / Emeritus, etc.).',
+          message,
         });
       }
       records.push({

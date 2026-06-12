@@ -11,15 +11,13 @@
  * Prerequisite + Program_Course_Offering). Not period-scoped.
  */
 import React from "react";
-import ReactDOM from "react-dom";
 import SkeletonA from "../layouts/SkeletonA.jsx";
 import HeaderA from "../components/HeaderA.jsx";
 import SideNavigation from "../components/SideNavigation.jsx";
 import PeriodSelector from "../components/PeriodSelector.jsx";
-import { Search, ArrowUp, ArrowDown, Plus, ArrowRight, ArrowLeft, Edit2, Link2, Clipboard, FileText, Upload, X, ChevronRight, ChevronDown, Check, Layers, AlertTriangle, Archive, RotateCcw } from "react-feather";
 import EditEntityModal from "../components/EditEntityModal.jsx";
+import { Search, ArrowUp, ArrowDown, ArrowRight, ArrowLeft, Link2, Clipboard, Eye, Edit2, FileText, Upload, X, ChevronDown, Check, Layers, AlertTriangle, Archive, RotateCcw } from "react-feather";
 import syllabusStyles from '../styles/SyllabusSections.module.sass';
-import dd from '../styles/DropdownMenu.module.sass';
 import { CoursesAPI, ProgramsAPI } from '../services/api.js';
 import { usePeriod } from '../services/period.jsx';
 import { useCurrentUser } from '../services/currentUser.jsx';
@@ -33,9 +31,6 @@ const SLATE3 = '#CBD5E1';
 const SLATE2 = '#E2E8F0';
 const SLATE1 = '#F1F5F9';
 const SLATE05 = '#F8FAFC';
-
-const CLASSIFICATION_OPTIONS = ['Professional Courses', 'Core Courses', 'Elective', 'GE Courses', 'Cognate'];
-const YEAR_OPTIONS = ['FIRST YEAR', 'SECOND YEAR', 'THIRD YEAR', 'FOURTH YEAR'];
 
 // Classification → a subtle colour chip. Matched case-insensitively; anything
 // unrecognised falls back to neutral gray.
@@ -75,29 +70,6 @@ const yearLevelNum = (yearLvl) => {
 };
 const yearLabelOf = (n) => (YEAR_DEFS.find((y) => y.n === n) || {}).label || 'Unassigned';
 
-// "Add Course" / "Edit Course" modal — a tight 4-column grid (colSpan values
-// are in quarters), every row filled to eliminate ragged gaps:
-//   Row 1: Course No. (½) | Classification (½)
-//   Row 2: Course Title (full)
-//   Row 3: Lecture Credits | Lab Credits | Lecture Hours | Lab Hours
-//   Row 4: Year Level (½) | CMO (½)
-// BOTH modals share this layout. Credit & Contact Hours are deconstructed into
-// numeric lec/lab inputs; the handlers recombine them into the string columns.
-// Term is omitted — it's fixed by the academic period (the backend derives it).
-const EDIT_COURSE_FIELDS = [
-  { key: 'course_no', label: 'Course No.', required: true, placeholder: 'e.g. BIT201', colSpan: 2 },
-  { key: 'classification', label: 'Classification', type: 'select', options: CLASSIFICATION_OPTIONS, colSpan: 2 },
-  { key: 'course_title', label: 'Course Title', required: true, placeholder: 'e.g. Database Systems', colSpan: 4 },
-  { key: 'lec_credit', label: 'Lecture Credits', type: 'number', placeholder: 'e.g. 2', colSpan: 1 },
-  { key: 'lab_credit', label: 'Lab Credits', type: 'number', placeholder: 'e.g. 1', colSpan: 1 },
-  { key: 'lec_hours', label: 'Lecture Hours', type: 'number', placeholder: 'e.g. 2', colSpan: 1 },
-  { key: 'lab_hours', label: 'Lab Hours', type: 'number', placeholder: 'e.g. 3', colSpan: 1 },
-  { key: 'year_lvl', label: 'Year Level', type: 'select', options: YEAR_OPTIONS, colSpan: 2 },
-  { key: 'cmo', label: 'CMO', placeholder: 'e.g. CMO No. 25 S. 2015', colSpan: 2 },
-  // Prerequisites are added separately via courseFieldsWithPrereqs() — a dropdown
-  // sourced from last semester's courses (options depend on fetched data).
-];
-
 // Credit / contact-hour columns are stored as single strings
 // ("2 LEC, 1 LAB" / "2 Hrs Lec, 3 Hrs Lab"). splitLecLab parses the numeric
 // lecture/lab parts out — used by the YearCard LEC/LAB/Units totals.
@@ -108,41 +80,23 @@ const splitLecLab = (str) => {
   return { lec: lec ? lec[1] : '', lab: lab ? lab[1] : '' };
 };
 
-// Recombine the split numeric lec/lab inputs back into the string the column
-// stores. Blank parts are dropped so "2 / blank" → "2 LEC" (not "2 LEC, LAB").
-const joinCredit = (lec, lab) => {
-  const parts = [];
-  if (String(lec ?? '').trim() !== '') parts.push(`${String(lec).trim()} LEC`);
-  if (String(lab ?? '').trim() !== '') parts.push(`${String(lab).trim()} LAB`);
-  return parts.join(', ');
-};
+// Recombine edited lecture/lab hour inputs back into the contact-hours string
+// the column stores ("2 Hrs Lec, 3 Hrs Lab"); blank parts are dropped.
 const joinHours = (lec, lab) => {
   const parts = [];
-  if (String(lec ?? '').trim() !== '') parts.push(`${String(lec).trim()} Hrs Lec`);
-  if (String(lab ?? '').trim() !== '') parts.push(`${String(lab).trim()} Hrs Lab`);
+  if (String(lec ?? '').trim() !== '') parts.push(String(lec).trim() + ' Hrs Lec');
+  if (String(lab ?? '').trim() !== '') parts.push(String(lab).trim() + ' Hrs Lab');
   return parts.join(', ');
 };
-
-// Pre-fill the 4-column edit form: split the stored credit / contact-hour
-// strings back into their numeric lec/lab inputs.
-const toCourseEditInitial = (c) => {
-  const credit = splitLecLab(c.credit);
-  const hours = splitLecLab(c.contact_hrs);
-  return {
-    ...c,
-    lec_credit: credit.lec,
-    lab_credit: credit.lab,
-    lec_hours: hours.lec,
-    lab_hours: hours.lab,
-  };
+// Recombine lecture/lab credit units into the credit string ("2 LEC, 1 LAB").
+const joinCredit = (lec, lab) => {
+  const parts = [];
+  if (String(lec ?? '').trim() !== '') parts.push(String(lec).trim() + ' LEC');
+  if (String(lab ?? '').trim() !== '') parts.push(String(lab).trim() + ' LAB');
+  return parts.join(', ');
 };
-
-const ActionBtn = ({ onClick, icon, label }) => (
-  <button onClick={onClick} style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '8px 18px', gap: 8, minWidth: 200, height: 40, background: '#EA1212', borderRadius: 6, color: '#fff', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap' }}>
-    <span style={{ width: 22, height: 22, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{icon}</span>
-    {label}
-  </button>
-);
+// Numeric total of a credit/hours lec+lab pair (blank → 0).
+const sumLecLab = (parts) => (Number(parts.lec) || 0) + (Number(parts.lab) || 0);
 
 // Credit / units metadata pill — deliberately quieter than the colour-coded
 // classification tag (plain outline + a small units icon) so the two don't
@@ -190,7 +144,7 @@ const CourseCard = ({ course, onOpen }) => {
         );
       })()}
       <div>
-        <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.06em', color: '#374151', textTransform: 'uppercase', marginBottom: 8, paddingRight: 90 }}>
+        <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.06em', color: '#374151', textTransform: 'uppercase', marginBottom: 16, paddingRight: 90 }}>
           {course.course_no}
         </div>
         <div style={{ fontSize: 16, fontWeight: 600, color: SLATE9, lineHeight: 1.35, letterSpacing: '-0.01em', overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', minHeight: '2.7em' }} title={course.course_title}>
@@ -201,9 +155,13 @@ const CourseCard = ({ course, onOpen }) => {
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
           {course.credit && <CreditPill>{course.credit}</CreditPill>}
         </div>
-        <span style={{ display: 'inline-flex', alignItems: 'center', color: hover ? ACCENT : SLATE3, transform: hover ? 'translateX(2px)' : 'translateX(0)', transition: 'color 0.15s ease, transform 0.18s ease' }}>
-          <ArrowRight size={18} />
-        </span>
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); onOpen(course.course_id); }}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 32, padding: '0 14px', borderRadius: 8, border: '1px solid ' + (hover ? ACCENT : SLATE2), background: hover ? '#FEF2F2' : '#FFFFFF', color: hover ? ACCENT : SLATE7, fontSize: 13, fontWeight: 600, cursor: 'pointer', flexShrink: 0, transition: 'border-color 0.15s ease, background 0.15s ease, color 0.15s ease' }}
+        >
+          <Eye size={15} /> View
+        </button>
       </div>
     </div>
   );
@@ -280,110 +238,6 @@ const YearCard = ({ label, count, summary, onOpen }) => {
   );
 };
 
-/**
- * PrereqPicker — collapsed tag-style multi-select with a chevron toggle (same
- * affordance as the other modals' dropdowns). Options come from LAST semester's
- * courses. Selected codes show as removable pills; the menu is a fixed-position
- * portal so it escapes the modal's scroll clipping.
- *   options: [{ value: course_no, title, sub }]   value: string[]   onChange(next)
- */
-const PrereqPicker = ({ options, value, onChange, emptyHint }) => {
-  const [query, setQuery] = React.useState('');
-  const [open, setOpen]   = React.useState(false);
-  const [menuPos, setMenuPos] = React.useState(null);
-  const wrapRef = React.useRef(null);
-  const menuRef = React.useRef(null);
-
-  const computePos = React.useCallback(() => {
-    const el = wrapRef.current;
-    if (!el) return;
-    const r = el.getBoundingClientRect();
-    const vh = window.innerHeight;
-    const spaceBelow = vh - r.bottom - 12;
-    const spaceAbove = r.top - 12;
-    const flipUp = spaceBelow < 220 && spaceAbove > spaceBelow;
-    setMenuPos({
-      left: r.left, width: r.width,
-      top: flipUp ? undefined : r.bottom + 4,
-      bottom: flipUp ? (vh - r.top + 4) : undefined,
-      maxHeight: Math.max(140, Math.min(280, flipUp ? spaceAbove : spaceBelow)),
-    });
-  }, []);
-
-  React.useLayoutEffect(() => {
-    if (!open) return undefined;
-    computePos();
-    const reflow = () => computePos();
-    window.addEventListener('scroll', reflow, true);
-    window.addEventListener('resize', reflow);
-    return () => { window.removeEventListener('scroll', reflow, true); window.removeEventListener('resize', reflow); };
-  }, [open, computePos]);
-
-  React.useEffect(() => {
-    const onDoc = (e) => {
-      if (wrapRef.current && wrapRef.current.contains(e.target)) return;
-      if (menuRef.current && menuRef.current.contains(e.target)) return;
-      setOpen(false);
-    };
-    document.addEventListener('mousedown', onDoc);
-    return () => document.removeEventListener('mousedown', onDoc);
-  }, []);
-
-  const codes = React.useMemo(() => (Array.isArray(value) ? value : []), [value]);
-  const valueSet = React.useMemo(() => new Set(codes.map((c) => String(c).toLowerCase())), [codes]);
-
-  const filtered = React.useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return (options || [])
-      .filter((o) => !valueSet.has(String(o.value).toLowerCase()))
-      .filter((o) => !q || o.value.toLowerCase().includes(q) || String(o.title || '').toLowerCase().includes(q));
-  }, [options, query, valueSet]);
-
-  const add  = (val) => { onChange([...codes, val]); setQuery(''); };
-  const drop = (val) => onChange(codes.filter((v) => v !== val));
-
-  return (
-    <div ref={wrapRef} style={{ position: 'relative' }}>
-      <div onClick={() => setOpen(true)} style={{ minHeight: 44, border: '1px solid ' + SLATE3, borderRadius: 6, padding: '6px 8px', display: 'flex', flexWrap: 'wrap', gap: 6, background: '#FFFFFF', cursor: 'text', alignItems: 'center' }}>
-        {codes.map((val) => (
-          <span key={val} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 8px', background: SLATE1, color: SLATE9, borderRadius: 9999, fontSize: 13, fontWeight: 600 }}>
-            {val}
-            <button type="button" onClick={(e) => { e.stopPropagation(); drop(val); }} aria-label={'Remove ' + val} style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 0, display: 'inline-flex' }}>
-              <X size={14} />
-            </button>
-          </span>
-        ))}
-        <input
-          value={query}
-          onChange={(e) => { setQuery(e.target.value); setOpen(true); }}
-          onFocus={() => setOpen(true)}
-          placeholder={codes.length === 0 ? 'Search last sem course code or title…' : ''}
-          style={{ flex: 1, minWidth: 140, border: 'none', outline: 'none', fontSize: 14, padding: '4px 2px' }}
-        />
-        <button type="button" onClick={(e) => { e.stopPropagation(); setOpen((v) => !v); }} aria-label="Show course list" style={{ marginLeft: 'auto', alignSelf: 'center', background: 'transparent', border: 'none', cursor: 'pointer', padding: 2, display: 'inline-flex' }}>
-          <ChevronDown size={16} color={SLATE5} style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s ease' }} />
-        </button>
-      </div>
-
-      {open && menuPos && ReactDOM.createPortal(
-        <div ref={menuRef} className={dd.menu} style={{ position: 'fixed', left: menuPos.left, width: menuPos.width, top: menuPos.top, bottom: menuPos.bottom, maxHeight: menuPos.maxHeight, overflowY: 'auto', background: '#FFFFFF', zIndex: 1100 }}>
-          {filtered.length === 0 ? (
-            <div style={{ padding: '10px 12px', fontSize: 13, color: SLATE5 }}>{(options || []).length === 0 ? (emptyHint || 'No previous-semester courses found.') : 'No matching courses.'}</div>
-          ) : (
-            filtered.map((o) => (
-              <button key={o.value} type="button" onClick={() => add(o.value)} className={dd.item} style={{ justifyContent: 'space-between' }}>
-                <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}><strong>{o.value}</strong>{o.title ? ' — ' + o.title : ''}</span>
-                {o.sub && <span style={{ fontSize: 12, color: SLATE5, flexShrink: 0 }}>{o.sub}</span>}
-              </button>
-            ))
-          )}
-        </div>,
-        document.body
-      )}
-    </div>
-  );
-};
-
 const ProgramHeadCourseOfferings = () => {
   const { currentPeriod, isCurrentTermActive } = usePeriod();
   const periodId = currentPeriod && currentPeriod.id;
@@ -392,8 +246,6 @@ const ProgramHeadCourseOfferings = () => {
   const [selectedYear, setSelectedYear] = React.useState(null); // level-1 year (1–4, 0=unassigned) or null=overview
   const [selectedId, setSelectedId] = React.useState(null);   // full-page detail (course_id)
   const [detail, setDetail]     = React.useState(null);       // fetched course + prereqs + offerings
-  const [editing, setEditing]   = React.useState(null);
-  const [showAdd, setShowAdd]   = React.useState(false);
   const [sortOpen, setSortOpen]   = React.useState(false);
   const [sortField, setSortField] = React.useState('code'); // default: Code ↑
   const [sortDir, setSortDir]     = React.useState('asc');
@@ -409,20 +261,21 @@ const ProgramHeadCourseOfferings = () => {
   // per-course choice ('FIRST YEAR'.. | 'SKIP' | '' = undecided).
   const [resolveRows, setResolveRows] = React.useState(null);
   const [yearChoices, setYearChoices] = React.useState({});
-  // Archive: the "View Archived" panel + the archived courses for this term.
+  // Prerequisite options — LAST semester's courses (all programs). Used to
+  // resolve a prereq code to its title for the read-only detail view's chips.
+  const [prereqOptions, setPrereqOptions] = React.useState([]);
+  // Archive: courses pulled from the program show in the "View Archived" panel
+  // and can be restored. Archiving itself is done from the Edit modal.
   const [archiveOpen, setArchiveOpen] = React.useState(false);
   const [archivedCourses, setArchivedCourses] = React.useState([]);
   const [archiveBusyId, setArchiveBusyId] = React.useState(null);
-  // Prerequisite dropdown options — LAST semester's courses (all programs).
-  const [prereqOptions, setPrereqOptions] = React.useState([]);
-  const [prereqPeriodLabel, setPrereqPeriodLabel] = React.useState(null);
+  const [editing, setEditing] = React.useState(null); // course being edited (hours/credit) — also hosts Archive
 
   // The signed-in Program Head (stubbed in CurrentUser until real auth).
   const { name: userName, role: userRole, facultyId, facultyLoaded } = useCurrentUser();
 
   const refresh = React.useCallback(() => {
     if (!periodId) { setCourses([]); setArchivedCourses([]); return; }
-    // TODO: filter by currentProgram.id once the courses table has a program_id column.
     CoursesAPI.list(periodId).then((rows) => setCourses(Array.isArray(rows) ? rows : [])).catch(() => setCourses([]));
     CoursesAPI.listArchived(periodId).then((rows) => setArchivedCourses(Array.isArray(rows) ? rows : [])).catch(() => setArchivedCourses([]));
   }, [periodId]);
@@ -431,15 +284,11 @@ const ProgramHeadCourseOfferings = () => {
   // Prerequisite options come from LAST semester (the prior period with data),
   // across all programs — a prerequisite is a course taken in an earlier term.
   React.useEffect(() => {
-    if (!periodId) { setPrereqOptions([]); setPrereqPeriodLabel(null); return; }
+    if (!periodId) { setPrereqOptions([]); return; }
     let cancelled = false;
     CoursesAPI.prereqOptions(periodId)
-      .then((r) => {
-        if (cancelled) return;
-        setPrereqOptions(Array.isArray(r && r.courses) ? r.courses : []);
-        setPrereqPeriodLabel(r && r.period ? r.period.label : null);
-      })
-      .catch(() => { if (!cancelled) { setPrereqOptions([]); setPrereqPeriodLabel(null); } });
+      .then((r) => { if (!cancelled) setPrereqOptions(Array.isArray(r && r.courses) ? r.courses : []); })
+      .catch(() => { if (!cancelled) setPrereqOptions([]); });
     return () => { cancelled = true; };
   }, [periodId]);
 
@@ -496,39 +345,26 @@ const ProgramHeadCourseOfferings = () => {
   // Instant header from the list while the detail loads.
   const headerCourse = selectedId != null ? (courses.find((c) => c.course_id === selectedId) || detail) : null;
 
-  const onAddCourse = async (patch) => {
-    // The form is blank apart from the prefilled year, so merge that back in,
-    // then fold the split lec/lab inputs into the string columns the DB stores.
-    const prefill = selectedYear ? { year_lvl: (YEAR_DEFS.find((y) => y.n === selectedYear) || {}).long || '' } : {};
-    const merged = { ...prefill, ...patch };
-    const record = { ...merged };
-    record.credit = joinCredit(merged.lec_credit, merged.lab_credit);
-    record.contact_hrs = joinHours(merged.lec_hours, merged.lab_hours);
-    delete record.lec_credit; delete record.lab_credit;
-    delete record.lec_hours; delete record.lab_hours;
-    await CoursesAPI.create(record, periodId);
-    refresh();
-  };
+  // Save the only editable fields — Lecture/Lab Credit + Lecture/Lab Hours. The
+  // lec/lab inputs recombine into the credit ("2 LEC, 1 LAB") and contact-hours
+  // ("2 Hrs Lec, 3 Hrs Lab") strings. course_no/title/etc. stay read-only.
   const onSaveEdit = async (patch) => {
-    // EditEntityModal sends only the changed keys. The split lec/lab inputs need
-    // recombining into `credit` / `contact_hrs`; for the half that wasn't touched
-    // we fall back to the course's original value so nothing is wiped.
-    const init = toCourseEditInitial(editing);
-    const out = { ...patch };
+    if (!editing) return;
+    const out = {};
     if ('lec_credit' in patch || 'lab_credit' in patch) {
+      const init = splitLecLab(editing.credit);
       out.credit = joinCredit(
-        'lec_credit' in patch ? patch.lec_credit : init.lec_credit,
-        'lab_credit' in patch ? patch.lab_credit : init.lab_credit,
+        'lec_credit' in patch ? patch.lec_credit : init.lec,
+        'lab_credit' in patch ? patch.lab_credit : init.lab,
       );
     }
     if ('lec_hours' in patch || 'lab_hours' in patch) {
+      const init = splitLecLab(editing.contact_hrs);
       out.contact_hrs = joinHours(
-        'lec_hours' in patch ? patch.lec_hours : init.lec_hours,
-        'lab_hours' in patch ? patch.lab_hours : init.lab_hours,
+        'lec_hours' in patch ? patch.lec_hours : init.lec,
+        'lab_hours' in patch ? patch.lab_hours : init.lab,
       );
     }
-    delete out.lec_credit; delete out.lab_credit;
-    delete out.lec_hours; delete out.lab_hours;
     await CoursesAPI.update(editing.course_id, out);
     refresh();
     if (selectedId === editing.course_id) {
@@ -537,9 +373,9 @@ const ProgramHeadCourseOfferings = () => {
     }
   };
 
-  // Archive the course being edited — it leaves the catalog grid and every page
-  // that reads the catalog (Industry Consultant picker, Course Assignment), but
-  // stays restorable from "View Archived".
+  // Archive a course that's no longer offered by the program — it leaves the
+  // catalog grid (and every page that reads it) but stays restorable from
+  // "View Archived". Invoked from the Edit modal's "Archive course" action.
   const onArchiveCourse = async () => {
     if (!editing) return;
     await CoursesAPI.update(editing.course_id, { archived: true });
@@ -547,8 +383,6 @@ const ProgramHeadCourseOfferings = () => {
     setEditing(null);
     refresh();
   };
-
-  // Restore an archived course back into the active catalog.
   const onRestoreCourse = async (course) => {
     if (!course || archiveBusyId) return;
     setArchiveBusyId(course.course_id);
@@ -563,7 +397,8 @@ const ProgramHeadCourseOfferings = () => {
   // Finish an upload by committing it (optionally with the popup's resolutions),
   // then refresh + show the summary and clear the picked file.
   const commitUpload = async (resolutions) => {
-    const r = await CoursesAPI.uploadCommit(pickedFile, periodId, resolutions || {});
+    // Default rows without a Program column to the program being viewed.
+    const r = await CoursesAPI.uploadCommit(pickedFile, periodId, { ...(resolutions || {}), programId: selectedProgramId });
     refresh();
     setUploadResult(r);
     setResolveRows(null);
@@ -579,7 +414,7 @@ const ProgramHeadCourseOfferings = () => {
     if (!pickedFile || uploading) return;
     setUploading(true); setUploadError(null); setUploadResult(null);
     try {
-      const preview = await CoursesAPI.uploadPreview(pickedFile, periodId);
+      const preview = await CoursesAPI.uploadPreview(pickedFile, periodId, selectedProgramId);
       const unresolved = Array.isArray(preview.unassigned) ? preview.unassigned : [];
       if (unresolved.length === 0) {
         await commitUpload();
@@ -647,44 +482,6 @@ const ProgramHeadCourseOfferings = () => {
     () => archivedCourses.filter((c) => courseSemesterOf(c) === termSem),
     [archivedCourses, termSem],
   );
-
-  // Add/Edit Course form fields, with a Prerequisites dropdown sourced from LAST
-  // semester's courses (all programs). The value is an array of course codes.
-  const courseFieldsWithPrereqs = React.useCallback(() => {
-    const opts = prereqOptions.map((c) => ({
-      value: c.course_no,
-      title: c.course_title,
-      sub: yearLabelOf(yearLevelNum(c.year_lvl) ?? 0),
-    }));
-    const helper = prereqPeriodLabel
-      ? `Pick from last semester (${prereqPeriodLabel}) — all programs.`
-      : 'Pick course(s) required before this one (from last semester).';
-    return [
-      ...EDIT_COURSE_FIELDS,
-      {
-        key: 'prerequisites', label: 'Prerequisites', type: 'checkboxes', colSpan: 4, helper,
-        render: ({ value, onChange }) => (
-          <PrereqPicker
-            options={opts}
-            value={value}
-            onChange={onChange}
-            emptyHint={'No courses found in the previous semester.'}
-          />
-        ),
-      },
-    ];
-  }, [prereqOptions, prereqPeriodLabel]);
-
-  // Initial prerequisite codes (array) for the course being edited: parse the
-  // stored free-text column; fall back to the resolved join codes.
-  const editingPrereqCodes = React.useMemo(() => {
-    if (!editing) return [];
-    const fromDetail = detail && detail.course_id === editing.course_id ? detail : null;
-    const textCol = (fromDetail && fromDetail.prerequisites_text) || editing.prerequisites_text;
-    if (textCol) return String(textCol).split(/[,;|/\n]+/).map((s) => s.trim()).filter(Boolean);
-    const join = (fromDetail && Array.isArray(fromDetail.prerequisites)) ? fromDetail.prerequisites : [];
-    return join.map((p) => p.course_no).filter(Boolean);
-  }, [editing, detail]);
 
   // Bucket courses by derived year level (0 = Unassigned) for the overview,
   // plus a small per-year summary (LEC/LAB totals).
@@ -798,8 +595,8 @@ const ProgramHeadCourseOfferings = () => {
           {hasMultiplePrograms && selectedYear == null && programSwitcher}
           {/* Upload is available at BOTH the program overview (one file can
               populate all four year levels at once) and inside a year drilldown.
-              Add Course Offerings stays year-scoped — it prefills the year you're
-              currently viewing — so it shows only inside a year. */}
+              It's the only way courses enter the catalog — the list is owned by
+              the school's system, so the Program Head doesn't add/edit here. */}
           {isCurrentTermActive && (
             <div style={{ display: 'flex', gap: 10 }}>
               <button
@@ -809,7 +606,6 @@ const ProgramHeadCourseOfferings = () => {
               >
                 <Upload size={18} /> Upload Course Offerings
               </button>
-              {periodId && selectedYear != null && <ActionBtn onClick={() => setShowAdd(true)} icon={<Plus size={18} color="#FFFFFF" />} label="Add Course Offerings" />}
             </div>
           )}
         </div>
@@ -836,8 +632,7 @@ const ProgramHeadCourseOfferings = () => {
       )}
 
       {/* Current-term selector row — term on the left, "View Archived" on the
-          right (shown only when this term has archived courses), matching the
-          other Program Head pages. */}
+          right (shown only when this term has archived courses). */}
       <div style={{ marginBottom: 18, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
         <PeriodSelector prominent />
         {periodId && archivedInTerm.length > 0 && (
@@ -866,7 +661,7 @@ const ProgramHeadCourseOfferings = () => {
         <Clipboard size={40} color="#9CA3AF" />
       </div>
       <div style={{ fontSize: 18, fontWeight: 600, color: '#111827' }}>{periodId ? ('No courses for ' + programLabel + ' yet') : 'No academic term selected'}</div>
-      <div style={{ color: SLATE5, textAlign: 'center', maxWidth: 420 }}>{periodId ? 'Drill into a year level and use Upload Course Offerings or Add Course Offerings to build this term’s curriculum. Each term keeps its own courses — a new sem/term starts empty.' : 'Select an academic term to view its curriculum.'}</div>
+      <div style={{ color: SLATE5, textAlign: 'center', maxWidth: 420 }}>{periodId ? 'Use Upload Course Offerings to import this term’s curriculum from the school’s system. Each term keeps its own courses — a new sem/term starts empty.' : 'Select an academic term to view its curriculum.'}</div>
     </div>
   );
 
@@ -979,7 +774,7 @@ const ProgramHeadCourseOfferings = () => {
               <div style={{ fontSize: 17, fontWeight: 600, color: '#111827' }}>No courses in {yearLabelOf(selectedYear)} yet</div>
               <div style={{ color: SLATE5, maxWidth: 420 }}>
                 {isCurrentTermActive
-                  ? 'Use Upload Course Offerings or Add Course Offerings to build this year level’s curriculum.'
+                  ? 'Use Upload Course Offerings to import this year level’s curriculum from the school’s system.'
                   : 'This term is closed, so its curriculum can’t be edited.'}
               </div>
             </>
@@ -994,7 +789,10 @@ const ProgramHeadCourseOfferings = () => {
     </>
   );
 
-  /* --------------------------- Detail view ----------------------------- */
+  /* --------------------------- Detail view -----------------------------
+     Full-page, read-only. Header card + Prerequisites are always shown; the
+     Course Offerings (revisions) sit behind a reveal button so the page stays
+     focused on the course info until the user asks for the revision history. */
   const detailView = headerCourse && (
     <div style={{ flex: '1 1 auto', minHeight: 0, overflowY: 'auto', paddingBottom: 8 }}>
       {/* Back */}
@@ -1005,7 +803,9 @@ const ProgramHeadCourseOfferings = () => {
         <ArrowLeft size={18} /> Back to Courses
       </button>
 
-      {/* Header card */}
+      {/* Header card — read-only. Course details are owned by the school's
+          system and imported via Upload, so there's no edit affordance — only
+          Archive, for a course that's no longer offered by the program. */}
       <div style={{ border: '1px solid ' + SLATE2, borderRadius: 14, padding: 22, background: '#FFFFFF', boxShadow: '0 1px 3px rgba(15,23,42,0.05)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16 }}>
           <div style={{ minWidth: 0 }}>
@@ -1016,8 +816,10 @@ const ProgramHeadCourseOfferings = () => {
           </div>
           {isCurrentTermActive && (
             <button
+              type="button"
               onClick={() => setEditing(headerCourse)}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 8, height: 40, padding: '0 18px', background: '#1F2937', color: '#FFFFFF', border: 'none', borderRadius: 8, fontWeight: 600, fontSize: 14, cursor: 'pointer', flexShrink: 0 }}
+              title="Edit credit / contact hours, or archive this course"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 8, height: 38, padding: '0 18px', flexShrink: 0, background: '#1F2937', border: 'none', borderRadius: 8, color: '#FFFFFF', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}
             >
               <Edit2 size={15} /> Edit
             </button>
@@ -1062,7 +864,7 @@ const ProgramHeadCourseOfferings = () => {
         )}
       </div>
 
-      {/* Course Offerings (Program_Course_Offering rows) */}
+      {/* Course Offerings (Program_Course_Offering rows) — always listed. */}
       <div style={{ marginTop: 28 }}>
         <SectionTitle>Course Offerings</SectionTitle>
         {offerings.length === 0 ? (
@@ -1092,41 +894,6 @@ const ProgramHeadCourseOfferings = () => {
       <div style={{ width: '100%', flex: '1 1 auto', minHeight: 0, display: 'flex', flexDirection: 'column' }}>
         {selectedId != null ? detailView : (selectedYear == null ? yearOverview : yearDetail)}
       </div>
-
-      {showAdd && (
-        // Add Course shares the exact 4-column layout as Edit Course. We reuse
-        // EditEntityModal with an (almost) empty record so the form starts blank
-        // except for the year the user is currently viewing.
-        <EditEntityModal
-          title="Add Course Offering"
-          termLabel={currentPeriod ? currentPeriod.label : undefined}
-          fields={courseFieldsWithPrereqs()}
-          columns={4}
-          width="min(640px, 94vw)"
-          record={
-            // Prefill the year the user is currently viewing (selectedYear
-            // 0 = Unassigned → no prefill). Semester is set by the term.
-            selectedYear ? { year_lvl: (YEAR_DEFS.find((y) => y.n === selectedYear) || {}).long || '' } : {}
-          }
-          onSave={onAddCourse}
-          onClose={() => setShowAdd(false)}
-        />
-      )}
-      {editing && (
-        <EditEntityModal
-          key={'course-edit-' + editing.course_id}
-          title="Edit course"
-          termLabel={currentPeriod ? currentPeriod.label : undefined}
-          fields={courseFieldsWithPrereqs()}
-          columns={4}
-          width="min(640px, 94vw)"
-          record={{ ...toCourseEditInitial(editing), prerequisites: editingPrereqCodes }}
-          onSave={onSaveEdit}
-          onRemove={onArchiveCourse}
-          removeLabel="Archive course"
-          onClose={() => setEditing(null)}
-        />
-      )}
 
       {showUpload && (
         <>
@@ -1200,7 +967,36 @@ const ProgramHeadCourseOfferings = () => {
                       </div>
                       {uploadResult.yearBreakdown.unassigned > 0 && (
                         <div style={{ marginTop: 6, fontSize: 11.5, color: SLATE5 }}>
-                          Set their year level by editing each course.
+                          Re-upload with a recognizable year level to place these courses.
+                        </div>
+                      )}
+                      {uploadResult.inferredYearCount > 0 && (
+                        <div style={{ marginTop: 6, fontSize: 11.5, color: SLATE5 }}>
+                          {uploadResult.inferredYearCount} year level{uploadResult.inferredYearCount === 1 ? '' : 's'} inferred from the course code.
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Per-program distribution — shows which program each course
+                      was tied to (from a Program column, or the program you're
+                      viewing). */}
+                  {uploadResult.programBreakdown && Object.keys(uploadResult.programBreakdown).length > 0 && (
+                    <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid ' + SLATE2 }}>
+                      <div style={{ fontSize: 12, fontWeight: 600, color: SLATE7, marginBottom: 6 }}>Distribution by program</div>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                        {Object.entries(uploadResult.programBreakdown).map(([code, n]) => {
+                          const isUn = code === 'Unassigned';
+                          return (
+                            <span key={code} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 9999, background: isUn ? '#FEF3C7' : SLATE05, border: '1px solid ' + (isUn ? '#FCD34D' : SLATE2), fontSize: 12.5, color: isUn ? '#92400E' : SLATE7 }}>
+                              {code} <strong style={{ color: isUn ? '#92400E' : SLATE9 }}>{n}</strong>
+                            </span>
+                          );
+                        })}
+                      </div>
+                      {Array.isArray(uploadResult.unresolvedPrograms) && uploadResult.unresolvedPrograms.length > 0 && (
+                        <div style={{ marginTop: 6, fontSize: 11.5, color: '#92400E' }}>
+                          Program{uploadResult.unresolvedPrograms.length === 1 ? '' : 's'} not found in this term (left Unassigned): {uploadResult.unresolvedPrograms.join(', ')}
                         </div>
                       )}
                     </div>
@@ -1313,6 +1109,50 @@ const ProgramHeadCourseOfferings = () => {
         </>
       )}
 
+      {/* Edit modal — only Credit + Lecture/Lab Hours are editable; the course
+          number, title, etc. are owned by the school's system. The "Archive
+          course" action lives here too (course no longer offered → restorable
+          from "View Archived"). */}
+      {editing && (() => {
+        const cr  = splitLecLab(editing.credit);
+        const hrs = splitLecLab(editing.contact_hrs);
+        // The course's total credit units (from its current credit) is the cap:
+        // Lecture + Lab credit must sum to it. Unknown (no credit on record) →
+        // rule disabled so the field isn't permanently blocked.
+        const totalUnits = sumLecLab(cr);
+        const hasTotal = !!(cr.lec || cr.lab);
+        return (
+          <EditEntityModal
+            key={'course-edit-' + editing.course_id}
+            title={'Edit ' + (editing.course_no || 'course')}
+            termLabel={currentPeriod ? currentPeriod.label : undefined}
+            columns={2}
+            width="min(520px, 94vw)"
+            fields={[
+              { key: 'total_units', label: 'Total Units', locked: true, colSpan: 2,
+                lockedHelper: hasTotal ? ('Lecture + Lab credit must total ' + totalUnits + ' unit' + (totalUnits === 1 ? '' : 's') + '.') : 'No credit on record — Lecture/Lab are unconstrained.' },
+              { key: 'lec_credit', label: 'Lecture Credit', type: 'number', placeholder: 'e.g. 2', colSpan: 1 },
+              { key: 'lab_credit', label: 'Lab Credit', type: 'number', placeholder: 'e.g. 1', colSpan: 1 },
+              { key: 'lec_hours', label: 'Lecture Hours', type: 'number', placeholder: 'e.g. 2', colSpan: 1 },
+              { key: 'lab_hours', label: 'Lab Hours', type: 'number', placeholder: 'e.g. 3', colSpan: 1 },
+            ]}
+            record={{ total_units: hasTotal ? String(totalUnits) : '—', lec_credit: cr.lec, lab_credit: cr.lab, lec_hours: hrs.lec, lab_hours: hrs.lab }}
+            validate={hasTotal ? (v) => {
+              const sum = (Number(v.lec_credit) || 0) + (Number(v.lab_credit) || 0);
+              if (sum === totalUnits) return null;
+              const diff = Math.abs(sum - totalUnits);
+              return 'Lecture (' + (Number(v.lec_credit) || 0) + ') + Lab (' + (Number(v.lab_credit) || 0) + ') = ' + sum
+                + ' unit' + (sum === 1 ? '' : 's') + ', but this course is ' + totalUnits + '. '
+                + (sum < totalUnits ? (diff + ' unit' + (diff === 1 ? '' : 's') + ' short.') : ('Exceeds by ' + diff + ' unit' + (diff === 1 ? '' : 's') + '.'));
+            } : undefined}
+            onSave={onSaveEdit}
+            onRemove={onArchiveCourse}
+            removeLabel="Archive course"
+            onClose={() => setEditing(null)}
+          />
+        );
+      })()}
+
       {/* Archived courses panel — restore brings a course back into the catalog
           (and, in turn, the Industry Consultant picker + Course Assignment). */}
       {archiveOpen && (
@@ -1326,7 +1166,7 @@ const ProgramHeadCourseOfferings = () => {
                     <Archive size={18} color={SLATE7} /> Archived courses
                   </div>
                   <div style={{ fontSize: 13, color: SLATE5, marginTop: 4, lineHeight: 1.5 }}>
-                    Hidden from the catalog and from the Industry Consultant picker &amp; Course Assignment. Restore one to bring it back{currentPeriod ? ' for ' + currentPeriod.label : ''}.
+                    No longer offered by the program — hidden from the catalog, the Industry Consultant picker &amp; Course Assignment. Restore one to bring it back{currentPeriod ? ' for ' + currentPeriod.label : ''}.
                   </div>
                 </div>
                 <button onClick={() => setArchiveOpen(false)} aria-label="Close" style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 4, lineHeight: 0, color: SLATE5, flexShrink: 0 }}><X size={20} /></button>
@@ -1373,6 +1213,7 @@ const ProgramHeadCourseOfferings = () => {
           </div>
         </>
       )}
+
     </div>
   );
 

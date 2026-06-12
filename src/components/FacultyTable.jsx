@@ -1,16 +1,16 @@
 import React from 'react';
 import { Eye, Edit3, Archive } from 'react-feather';
 import styles from '../styles/CoursesTable.module.sass';
-import { statusPillStyle, archiveStatusList } from '../services/statusPolicy.js';
+import { statusPillStyle } from '../services/statusPolicy.js';
 import { sortRows, statusRank, nextSort } from '../services/tableSort.js';
 import RowActionsMenu from './RowActionsMenu.jsx';
 import SortableTh from './SortableTh.jsx';
 
-const FacultyTable = ({ faculty = [], onView, onEdit, onArchive, hideDepartment = false }) => {
+const FacultyTable = ({ faculty = [], onView, onEdit, hideDepartment = false }) => {
   const columns = React.useMemo(() => [
-    { key: 'name', label: 'NAME', width: hideDepartment ? 500 : 380, type: 'text' },
+    { key: 'name', label: 'NAME', width: hideDepartment ? 320 : 380, type: 'text' },
     ...(!hideDepartment ? [{ key: 'department', label: 'DEPARTMENT', width: 180, type: 'text' }] : []),
-    { key: 'role', label: 'ROLE', width: 180, type: 'text' },
+    { key: 'role', label: 'ROLE', width: 260, type: 'text' },
     { key: 'status', label: 'STATUS', width: 120, type: 'number', sortValue: (r) => statusRank('faculty', r.status || 'Active') },
   ], [hideDepartment]);
 
@@ -34,9 +34,9 @@ const FacultyTable = ({ faculty = [], onView, onEdit, onArchive, hideDepartment 
             const status = f.status || 'Active';
             return (
               <tr key={f.id || idx}>
-                <td width={hideDepartment ? 500 : 380}>{f.name}</td>
+                <td width={hideDepartment ? 320 : 380}>{f.name}</td>
                 {!hideDepartment && <td width={180}>{f.department}</td>}
-                <td width={180}>{f.role}</td>
+                <td width={260}>{f.role}</td>
                 <td width={120}>
                   <span style={{ ...statusPillStyle('faculty', status), padding: '4px 10px', borderRadius: 4, fontSize: 12, fontWeight: 600 }}>
                     {status}

@@ -1,6 +1,6 @@
 import './App.css'
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
-import { PeriodProvider } from './services/period.jsx'
+import { PeriodProvider, ScopedPeriodProvider } from './services/period.jsx'
 import { CurrentUserProvider } from './services/currentUser.jsx'
 
 import AssignedCourses from "./pages/AssignedCourses.jsx";
@@ -44,13 +44,17 @@ function App() {
 
             <Route path={'/tos/:code'} element={<TOS />} />
 
+            {/* Each role page gets its OWN term selection (ScopedPeriodProvider),
+                so viewing a past term on one page never changes another page or
+                role — selection is page-local and resets to the current term on
+                navigation. */}
             <Route path={'/role/industry-consultant'} element={<ProgramHeadConsultant />} />
-            <Route path={'/role/program-head/industry-consultant'} element={<ProgramHeadIndustryConsultant />} />
-            <Route path={'/role/program-head/course-offerings'} element={<ProgramHeadCourseOfferings />} />
-            <Route path={'/role/program-head/course-assignment'} element={<ProgramHeadCourseAssignment />} />
-            <Route path={'/role/dean'} element={<Dean />} />
-            <Route path={'/role/ovpaa'} element={<OVPAA />} />
-            <Route path={'/role/hr-staff'} element={<OVPAA />} />
+            <Route path={'/role/program-head/industry-consultant'} element={<ScopedPeriodProvider><ProgramHeadIndustryConsultant /></ScopedPeriodProvider>} />
+            <Route path={'/role/program-head/course-offerings'} element={<ScopedPeriodProvider><ProgramHeadCourseOfferings /></ScopedPeriodProvider>} />
+            <Route path={'/role/program-head/course-assignment'} element={<ScopedPeriodProvider><ProgramHeadCourseAssignment /></ScopedPeriodProvider>} />
+            <Route path={'/role/dean'} element={<ScopedPeriodProvider><Dean /></ScopedPeriodProvider>} />
+            <Route path={'/role/ovpaa'} element={<ScopedPeriodProvider><OVPAA /></ScopedPeriodProvider>} />
+            <Route path={'/role/hr-staff'} element={<ScopedPeriodProvider><OVPAA /></ScopedPeriodProvider>} />
 
             <Route path="/role/:approver">
               <Route index element={<Navigate to="approval-course-table" replace />} />

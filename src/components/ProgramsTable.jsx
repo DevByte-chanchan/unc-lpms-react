@@ -1,7 +1,7 @@
 import React from 'react'
 import { Eye, Edit3, Archive } from 'react-feather'
 import styles from '../styles/CoursesTable.module.sass'
-import { statusPillStyle, archiveStatusList } from '../services/statusPolicy.js'
+import { statusPillStyle } from '../services/statusPolicy.js'
 import { sortRows, statusRank, nextSort } from '../services/tableSort.js'
 import RowActionsMenu from './RowActionsMenu.jsx'
 import SortableTh from './SortableTh.jsx'
@@ -21,12 +21,12 @@ const headOf = (p) => p.program_head || p.head || p.faculty_name || '';
 
 const COLUMNS = [
   { key: 'code',         label: 'CODE',         width: 120, type: 'text' },
-  { key: 'name',         label: 'NAME',         width: 460, type: 'text' },
-  { key: 'faculty_name', label: 'FACULTY NAME', width: 240, type: 'text', sortValue: headOf },
-  { key: 'status',       label: 'STATUS',       width: 120, type: 'number', sortValue: (r) => statusRank('program', r.status || 'Active') },
+  { key: 'name',         label: 'NAME',         width: 460, type: 'text', thStyle: { flex: '1 1 auto', minWidth: 280 } },
+  { key: 'faculty_name', label: 'PROGRAM HEAD', width: 240, type: 'text', sortValue: headOf, thStyle: { flex: '1 1 auto', minWidth: 180 } },
+  { key: 'status',       label: 'STATUS',       width: 120, type: 'number', sortable: false, sortValue: (r) => statusRank('program', r.status || 'Active') },
 ];
 
-const ProgramsTable = ({ programs = [], onView, onEdit, onArchive, facultyNameSet, normalizeFacultyName }) => {
+const ProgramsTable = ({ programs = [], onView, onEdit, facultyNameSet, normalizeFacultyName }) => {
   const isUnmatched = (head) => {
     if (!facultyNameSet || !normalizeFacultyName) return false;
     if (!head) return false;
@@ -44,7 +44,7 @@ const ProgramsTable = ({ programs = [], onView, onEdit, onArchive, facultyNameSe
             {COLUMNS.map((col) => (
               <SortableTh key={col.key} col={col} sortKey={sort.sortKey} sortDir={sort.sortDir} onSort={onSort} />
             ))}
-            <th className={styles.fill}></th>
+            <th className={styles.fill} style={{ flex: '0 0 150px', minWidth: 150, marginLeft: 56 }}></th>
           </tr>
         </thead>
         <tbody>
@@ -55,8 +55,8 @@ const ProgramsTable = ({ programs = [], onView, onEdit, onArchive, facultyNameSe
             return (
             <tr key={p.id || (p.code + '-' + p.name)}>
               <td width={120}>{p.code}</td>
-              <td width={460}>{p.name}</td>
-              <td width={240}>
+              <td width={460} style={{ flex: '1 1 auto', minWidth: 280 }}>{p.name}</td>
+              <td width={240} style={{ flex: '1 1 auto', minWidth: 180 }}>
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', textAlign: 'left', gap: 2 }}>
                   {unmatched && (
                     <span style={{ color: '#B91C1C', fontSize: 11, fontWeight: 600, lineHeight: 1.2 }}>
@@ -71,7 +71,7 @@ const ProgramsTable = ({ programs = [], onView, onEdit, onArchive, facultyNameSe
                   {status}
                 </span>
               </td>
-              <td className={styles.fill} style={{ paddingRight: 12, textAlign: 'right', whiteSpace: 'nowrap' }}>
+              <td className={styles.fill} style={{ flex: '0 0 150px', minWidth: 150, marginLeft: 56, paddingRight: 12, textAlign: 'right', whiteSpace: 'nowrap' }}>
                 <RowActionsMenu
                   row={p}
                   inline={[

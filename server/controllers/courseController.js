@@ -8,12 +8,12 @@
  */
 import db from '../models/index.js';
 import { describeSequelizeError } from '../utils/uploadHelpers.js';
-import { parseSheet, safeUnlink, pick } from '../utils/excelParser.js';
+import { parseSheet, safeUnlink, pick, canonicalize } from '../utils/excelParser.js';
 import { getPeriodId, safeWhereForPeriod, whereForPeriod } from '../utils/periodScope.js';
 import { safeWhere } from '../utils/dbHelpers.js';
 import { rankPeriod } from '../utils/periodClone.js';
 
-const { Course, Prerequisite, ProgramCourseOffering, AcademicPeriod, CourseOffering, CourseAssignment } = db;
+const { Course, Prerequisite, ProgramCourseOffering, AcademicPeriod, CourseOffering, CourseAssignment, Program } = db;
 // (curriculum schema realigned to lpms_composition sample)
 
 // Canonicalize messy / mixed year-level inputs (from uploads or manual entry)
@@ -37,6 +37,42 @@ function normalizeYearLevel(raw) {
   const d = s.match(/[1-4]/);
   if (d) return ['FIRST YEAR', 'SECOND YEAR', 'THIRD YEAR', 'FOURTH YEAR'][Number(d[0]) - 1];
   return null;
+}
+
+// Smart fallback when the sheet has no recognizable Year Level: infer it from
+// the course code's level digit — the leading digit of the code's first numeric
+// group, where 1–4 maps to FIRST–FOURTH YEAR (e.g. "BIT313L" → 3 → THIRD YEAR,
+// "GE1" → 1 → FIRST YEAR). Anything outside 1–4 (or no digit) → null, so the
+// row still falls through to the manual "Set year levels" review step.
+function inferYearLevelFromCode(courseNo) {
+  const m = String(courseNo || '').match(/\d+/);
+  if (!m) return null;
+  const lead = Number(m[0][0]);
+  if (lead >= 1 && lead <= 4) return ['FIRST YEAR', 'SECOND YEAR', 'THIRD YEAR', 'FOURTH YEAR'][lead - 1];
+  return null;
+}
+
+// Resolve a free-text program cell ("BSIT", "Bachelor of Science in IT", …) to
+// a Program id within the period. Tries an exact canonical match on code or
+// name first, then a loose contains-match on the name. Returns null when the
+// cell names a program that isn't in this period (so the caller can fall back
+// to the uploader's current program / report it as unresolved).
+function makeProgramResolver(programs, defaultProgramId) {
+  const byKey = new Map();
+  for (const pr of programs) {
+    if (pr.code) byKey.set(canonicalize(pr.code), pr.id);
+    if (pr.name) byKey.set(canonicalize(pr.name), pr.id);
+  }
+  return (raw) => {
+    const k = canonicalize(raw);
+    if (!k) return defaultProgramId; // no program column → uploader's program
+    if (byKey.has(k)) return byKey.get(k);
+    for (const pr of programs) {
+      const nk = canonicalize(pr.name);
+      if (nk && (nk.includes(k) || k.includes(nk))) return pr.id;
+    }
+    return null; // named, but not a program in this period
+  };
 }
 
 // The course's year level is denormalized onto the Course Offerings used by
@@ -347,18 +383,25 @@ function parseCourseRows(rows) {
       errors.push({ row: i + 2, message: 'Missing Course No. or Course Title — skipped.' });
       continue;
     }
-    const rawYear = pick(row, 'yearlevel', 'yearlvl', 'year', 'level', 'yr');
+    const codeStr = String(course_no).trim();
+    const rawYear = pick(row, 'yearlevel', 'yearlvl', 'year', 'level', 'yr', 'yearstanding', 'standing');
+    // Year level: prefer the (recognized) column; otherwise infer from the
+    // course code's level digit so well-coded sheets need no manual review.
+    const normYear = normalizeYearLevel(rawYear);
+    const inferredYear = normYear ? null : inferYearLevelFromCode(codeStr);
     parsed.push({
       rowNum:         i + 2,
-      course_no:      String(course_no).trim(),
+      course_no:      codeStr,
       course_title:   String(course_title).trim(),
-      credit:         trim(pick(row, 'credit', 'credits', 'creditunits', 'units', 'unit', 'lecladbcredit')),
-      contact_hrs:    trim(pick(row, 'contacthours', 'contacthrs', 'contacthour', 'hours', 'hrs')),
-      classification: trim(pick(row, 'classification', 'category', 'type', 'coursetype', 'courseclassification')),
-      cmo:            trim(pick(row, 'cmo', 'cmono', 'cmonumber', 'memo', 'chedmemo', 'ched')),
+      credit:         trim(pick(row, 'credit', 'credits', 'creditunits', 'creditunit', 'units', 'unit', 'noofunits', 'totalunits', 'lecladbcredit')),
+      contact_hrs:    trim(pick(row, 'contacthours', 'contacthrs', 'contacthour', 'contact', 'hours', 'hrs', 'hoursperweek', 'hrsperweek', 'lechours')),
+      classification: trim(pick(row, 'classification', 'classif', 'category', 'coursecategory', 'type', 'coursetype', 'courseclassification')),
+      cmo:            trim(pick(row, 'cmo', 'cmono', 'cmonumber', 'cmoref', 'memo', 'chedmemo', 'chedmemono', 'ched')),
       term:           trim(pick(row, 'term', 'semester', 'sem', 'schoolyear', 'sy', 'termsemester')),
+      program_raw:    trim(pick(row, 'program', 'programcode', 'prog', 'programname', 'programtitle', 'curriculum', 'degreeprogram', 'degree', 'major', 'majorprogram')),
       year_lvl_raw:   trim(rawYear),
-      year_lvl:       normalizeYearLevel(rawYear),
+      year_lvl:       normYear || inferredYear,
+      year_inferred:  !normYear && !!inferredYear,
       prereqRaw:      pick(row, 'prerequisites', 'prerequisite', 'prereq', 'prereqs', 'prerequisitecode', 'prerequisitecodes', 'prerequisiteno', 'prerequisitecourses'),
     });
   }
@@ -370,10 +413,10 @@ export async function uploadCourses(req, res) {
   try {
     const { rows, headers } = parseSheet(req.file.path);
     const period_id = getPeriodId(req);
-    // TODO(program-scoping): the `courses` table has no program_id column yet,
-    // so uploaded rows are scoped only by academic period (period_id), not by
-    // program. When a program_id column is added, also scope inserts/upserts to
-    // the current program (req.query.programId / currentProgram.id).
+    // The program a row belongs to is resolved from a Program column in the
+    // sheet (by code/name); rows without one fall back to the program the
+    // uploader is currently viewing (programId from the request).
+    const defaultProgramId = Number((req.query && req.query.programId) || (req.body && req.body.programId)) || null;
 
     const isPreview = ['1', 'true', 'yes'].includes(
       String((req.query && req.query.preview) || (req.body && req.body.preview) || '').toLowerCase()
@@ -389,6 +432,20 @@ export async function uploadCourses(req, res) {
         errors,
       });
     }
+
+    // Program index for THIS period, plus a resolver that maps a row's program
+    // cell → program id (falling back to the uploader's current program).
+    const programs = period_id
+      ? await Program.findAll({ where: await safeWhere(Program, { period_id }), attributes: ['id', 'code', 'name'], raw: true })
+      : [];
+    const codeById = new Map(programs.map((pr) => [pr.id, pr.code]));
+    const resolveProgramId = makeProgramResolver(programs, defaultProgramId);
+    // Program cells that name a program NOT in this period (couldn't resolve).
+    const unresolvedPrograms = new Set();
+    for (const p of parsed) {
+      if (p.program_raw && resolveProgramId(p.program_raw) === null) unresolvedPrograms.add(p.program_raw);
+    }
+    const inferredYearCount = parsed.filter((p) => p.year_inferred).length;
 
     // ---------- PREVIEW: persist NOTHING; surface unrecognized year levels ----------
     if (isPreview) {
@@ -410,6 +467,9 @@ export async function uploadCourses(req, res) {
         detectedColumns: headers,
         total: parsed.length,
         recognizedCount: parsed.length - unassigned.length,
+        inferredYearCount,        // year levels inferred from the course code
+        programColumnPresent: parsed.some((p) => p.program_raw),
+        unresolvedPrograms: Array.from(unresolvedPrograms),
         unassigned,
       });
     }
@@ -448,6 +508,9 @@ export async function uploadCourses(req, res) {
     // Per-year distribution of the upserted rows, so the frontend can show
     // where each course landed (and how many couldn't be matched to a year).
     const yearTally = { 'FIRST YEAR': 0, 'SECOND YEAR': 0, 'THIRD YEAR': 0, 'FOURTH YEAR': 0, unassigned: 0 };
+    // Per-program distribution of the upserted rows (by program code), plus an
+    // "Unassigned" bucket for rows we couldn't tie to a program.
+    const programTally = {};
 
     for (const p of parsed) {
       const key = courseKey(p.course_no);
@@ -455,13 +518,15 @@ export async function uploadCourses(req, res) {
       // "Don't import" → never insert or update this course.
       if (skipSet.has(key)) { notImported++; continue; }
 
-      // Use the parsed (recognized) year level; otherwise a popup override
-      // if one was supplied for this course.
+      // Use the parsed (recognized/inferred) year level; otherwise a popup
+      // override if one was supplied for this course.
       let year_lvl = p.year_lvl;
       if (year_lvl === null && overrideByKey.has(key)) {
         year_lvl = overrideByKey.get(key);
         assignedViaPopup++;
       }
+
+      const program_id = resolveProgramId(p.program_raw);
 
       const fields = {
         course_no:      p.course_no,
@@ -472,9 +537,14 @@ export async function uploadCourses(req, res) {
         cmo:            p.cmo,
         term:           p.term,
         year_lvl,
+        program_id,
         // Semester is inherited from the term (not read from the sheet).
         semester,
       };
+
+      // Tally where this row landed by program (code, or "Unassigned").
+      const progLabel = (program_id != null && codeById.get(program_id)) || 'Unassigned';
+      programTally[progLabel] = (programTally[progLabel] || 0) + 1;
 
       let id = byNo.get(key);
       if (id) {
@@ -517,12 +587,17 @@ export async function uploadCourses(req, res) {
       skipped: errors.length,    // rows skipped for missing Course No./Title
       notImported,               // "Don't import" rows from the popup
       assignedViaPopup,          // rows whose year level was set in the popup
+      inferredYearCount,         // year levels inferred from the course code
       errors, headers,
       prerequisitesLinked,
       unresolvedPrereqs: Array.from(unresolvedPrereqs),
       // Per-year distribution of the upserted rows — drives the frontend
       // summary so the user can see how courses routed.
       yearBreakdown: { ...yearTally },
+      // Per-program distribution (by code) + any program names in the sheet we
+      // couldn't match to a program in this period.
+      programBreakdown: { ...programTally },
+      unresolvedPrograms: Array.from(unresolvedPrograms),
     });
   } catch (err) {
     res.status(400).json({ message: describeSequelizeError(err) });

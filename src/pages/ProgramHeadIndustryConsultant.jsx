@@ -358,15 +358,18 @@ const ProgramHeadIndustryConsultant = () => {
 
   // Faculty for the consultant Name dropdown — the same list the Dean manages
   // (period-scoped). Each option shows the faculty's role. Sorted, de-duplicated.
+  // Mirror the Faculty list: archived faculty (Emeritus / Inactive) drop out of
+  // the Faculty page's main table, so they must NOT be pickable here either.
   React.useEffect(() => {
     if (!periodId) { setFacultyOptions([]); return undefined; }
     let cancelled = false;
     FacultyAPI.list(periodId)
       .then((rows) => {
         if (cancelled) return;
+        const available = partitionByArchive(Array.isArray(rows) ? rows : [], 'faculty').main;
         const seen = new Set();
         const opts = [];
-        (Array.isArray(rows) ? rows : []).forEach((f) => {
+        available.forEach((f) => {
           const name = f && f.name;
           if (!name) return;
           const key = String(name).toLowerCase();
@@ -591,6 +594,14 @@ const ProgramHeadIndustryConsultant = () => {
       {/* Full-width hairline below the program identity. */}
       <div style={{ height: 1, background: '#E5E7EB', margin: '14px 0 18px' }} />
 
+      {/* Top toolbar — the Current Term selector stays visible even when the
+          user has no program this term, so they can always switch back to a
+          term where they're assigned (View Archived hides while blocked). */}
+      <div className={syllabusStyles.header} style={{ marginBottom: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+        <PeriodSelector prominent />
+        {!noProgramAssigned && <ViewArchivedButton moduleType="consultants" onEditStatus={onEditStatus} />}
+      </div>
+
       {noProgramAssigned ? blockedState : (<>
 
       {!isCurrentTermActive && currentPeriod && (
@@ -598,12 +609,6 @@ const ProgramHeadIndustryConsultant = () => {
           <strong>Read-only:</strong> {currentPeriod.label} is closed. Switch to an Active term to make changes.
         </div>
       )}
-
-      {/* Top toolbar — Current Term (left), View Archived (far right). */}
-      <div className={syllabusStyles.header} style={{ marginBottom: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-        <PeriodSelector prominent />
-        <ViewArchivedButton moduleType="consultants" onEditStatus={onEditStatus} />
-      </div>
 
       {/* Filter bar — search, left-aligned above the table. */}
       {showTable && (

@@ -26,7 +26,7 @@
  * ends naturally moves the row into the Past list.
  */
 import React from 'react';
-import { Plus, Lock, AlertTriangle, ChevronRight, ChevronDown, ChevronUp, Edit2, RefreshCw, X, Save, Calendar, Clock, FileText } from 'react-feather';
+import { Plus, Lock, AlertTriangle, ChevronRight, ChevronDown, ChevronUp, Edit2, RefreshCw, X, Save, Calendar, Clock, FileText, Check } from 'react-feather';
 import { PeriodsAPI } from '../services/api.js';
 import { usePeriod } from '../services/period.jsx';
 import { formatSemester, formatPeriodLabel } from '../services/periodLabel.js';
@@ -158,62 +158,108 @@ const Btn = ({ onClick, children, variant = 'outline', disabled, surface = 'ligh
   return <button disabled={disabled} onClick={onClick} style={{ ...base, ...style }}>{children}</button>;
 };
 
-// SelectField — matches DateField's SaaS-style look (soft fill, focus
-// morphs to white bg + red border + red ring). Used by the Update New
-// Term form for school-year and semester picks.
+// SelectField — custom branded dropdown. The trigger keeps DateField's
+// SaaS look (soft fill, focus morphs to white bg + red border + red ring);
+// opening it reveals a custom popup list (rounded panel, hover states, red
+// active highlight + check mark) instead of the native OS option list, so
+// it matches the Faculty "Role:" filter. Callers still pass <option>
+// children — we read {value,label} off them, so call sites need no change.
 const SelectField = ({ label, value, onChange, disabled, children, hideLabel }) => {
+  const [open, setOpen]       = React.useState(false);
   const [focused, setFocused] = React.useState(false);
-  const baseBg     = '#F8FAFC';
-  const borderColor = focused ? ACCENT : SLATE_200;
-  const ringShadow  = focused ? '0 0 0 4px ' + RED_RING : 'none';
+
+  // Lift {value,label} out of the <option> children to render our own list.
+  const items = React.Children.toArray(children)
+    .filter((c) => c && c.props)
+    .map((c) => ({ value: c.props.value, label: c.props.children }));
+  const selected = items.find((it) => String(it.value) === String(value));
+
+  const baseBg      = '#F8FAFC';
+  const active      = open || focused;
+  const borderColor = active ? ACCENT : SLATE_200;
+  const ringShadow  = active ? '0 0 0 4px ' + RED_RING : 'none';
+
   return (
-    <label style={{
+    <div style={{
       display: 'flex', flexDirection: 'column', gap: 4, fontSize: 13,
-      color: '#6B7280',
-      fontWeight: 500, letterSpacing: 0,
-      minWidth: 0,
+      color: '#6B7280', fontWeight: 500, letterSpacing: 0, minWidth: 0,
     }}>
       {hideLabel ? <span style={{ visibility: 'hidden' }}>&nbsp;</span> : label}
-      <div style={{
-        position: 'relative',
-        display: 'flex', alignItems: 'center',
-        height: 44,
-        background: focused ? '#FFFFFF' : baseBg,
-        border: '1px solid ' + borderColor,
-        borderRadius: 12,
-        boxShadow: ringShadow,
-        transition: 'background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease',
-      }}>
-        <select
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
+      <div style={{ position: 'relative', minWidth: 0 }}>
+        <button
+          type="button"
+          disabled={disabled}
+          onClick={() => !disabled && setOpen((v) => !v)}
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
-          disabled={disabled}
           style={{
-            flex: 1, height: '100%',
-            padding: '0 56px 0 14px',   // wide right padding leaves a clear gap before the chevron
-            border: 'none', outline: 'none', background: 'transparent',
-            color: SLATE_900,
-            fontSize: 14, fontWeight: 500,
-            textTransform: 'none', letterSpacing: 'normal',
-            appearance: 'none', WebkitAppearance: 'none', MozAppearance: 'none',
+            width: '100%', height: 44,
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            gap: 8, padding: '0 14px',
+            background: active ? '#FFFFFF' : baseBg,
+            border: '1px solid ' + borderColor,
+            borderRadius: 12,
+            boxShadow: ringShadow,
+            color: SLATE_900, fontSize: 14, fontWeight: 500,
+            textAlign: 'left', outline: 'none',
             cursor: disabled ? 'not-allowed' : 'pointer',
-            colorScheme: 'light',
+            transition: 'background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease',
           }}
         >
-          {children}
-        </select>
-        <span style={{
-          position: 'absolute', right: 18, pointerEvents: 'none',
-          color: focused ? ACCENT : SLATE_400,
-          display: 'inline-flex',
-          transition: 'color 0.2s ease',
-        }}>
-          <ChevronDown size={16} />
-        </span>
+          <span style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
+            {selected ? selected.label : ''}
+          </span>
+          <span style={{
+            display: 'inline-flex', flexShrink: 0,
+            color: active ? ACCENT : SLATE_400,
+            transform: open ? 'rotate(180deg)' : 'none',
+            transition: 'transform 0.2s ease, color 0.2s ease',
+          }}>
+            <ChevronDown size={16} />
+          </span>
+        </button>
+
+        {open && !disabled && (
+          <>
+            {/* Click-away catcher */}
+            <div onClick={() => setOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 40 }} />
+            <div style={{
+              position: 'absolute', top: 'calc(100% + 6px)', left: 0, right: 0,
+              background: '#FFFFFF',
+              border: '1px solid ' + SLATE_200, borderRadius: 12,
+              boxShadow: '0 12px 28px rgba(15,23,42,0.14)',
+              padding: 6, zIndex: 41,
+              maxHeight: 260, overflowY: 'auto',
+            }}>
+              {items.map((it) => {
+                const isActive = String(it.value) === String(value);
+                return (
+                  <button
+                    key={String(it.value)}
+                    type="button"
+                    onClick={() => { onChange(it.value); setOpen(false); }}
+                    onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = SLATE_100; }}
+                    onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = 'transparent'; }}
+                    style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                      gap: 12, width: '100%', textAlign: 'left',
+                      border: 'none', borderRadius: 8, padding: '9px 12px',
+                      outline: 'none', cursor: 'pointer',
+                      background: isActive ? ACCENT : 'transparent',
+                      color: isActive ? '#FFFFFF' : SLATE_700,
+                      fontSize: 14, fontWeight: isActive ? 600 : 500,
+                    }}
+                  >
+                    <span>{it.label}</span>
+                    {isActive && <Check size={15} color="#FFFFFF" />}
+                  </button>
+                );
+              })}
+            </div>
+          </>
+        )}
       </div>
-    </label>
+    </div>
   );
 };
 

@@ -86,21 +86,26 @@ export const CoursesAPI = {
   remove: (id) => request(idPath('/courses', id), { method: 'DELETE' }),
   upload: (file, periodId) => uploadFile('/courses/upload', file, periodId),
   // Preview an upload WITHOUT saving — returns { detectedColumns, total,
-  // recognizedCount, unassigned[] } so the UI can resolve unrecognized year
-  // levels before committing. Persists nothing.
-  uploadPreview: (file, periodId) => {
+  // recognizedCount, inferredYearCount, programColumnPresent, unresolvedPrograms,
+  // unassigned[] } so the UI can resolve unrecognized year levels before
+  // committing. `programId` is the program the uploader is viewing — used as the
+  // default for rows whose sheet has no Program column. Persists nothing.
+  uploadPreview: (file, periodId, programId) => {
     const fd = new FormData();
     fd.append('file', file);
     if (periodId) fd.append('period_id', String(periodId));
+    if (programId) fd.append('programId', String(programId));
     return request('/courses/upload', { method: 'POST', body: fd, query: { preview: 1 } });
   },
   // Commit an upload, applying the year-level resolutions chosen in the popup:
   //   yearLevelOverrides — { "<course_no>": "FIRST YEAR" | … } for resolved rows
   //   skipCodes          — ["<course_no>", …] rows to NOT import
-  uploadCommit: (file, periodId, { yearLevelOverrides, skipCodes } = {}) => {
+  //   programId          — default program for rows with no Program column
+  uploadCommit: (file, periodId, { yearLevelOverrides, skipCodes, programId } = {}) => {
     const fd = new FormData();
     fd.append('file', file);
     if (periodId) fd.append('period_id', String(periodId));
+    if (programId) fd.append('programId', String(programId));
     if (yearLevelOverrides && Object.keys(yearLevelOverrides).length) fd.append('yearLevelOverrides', JSON.stringify(yearLevelOverrides));
     if (skipCodes && skipCodes.length) fd.append('skipCodes', JSON.stringify(skipCodes));
     return request('/courses/upload', { method: 'POST', body: fd });

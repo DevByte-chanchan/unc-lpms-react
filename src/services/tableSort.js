@@ -19,7 +19,7 @@ export const STATUS_SORT_ORDER = {
   faculty:      ['Inactive', 'Emeritus', 'On Leave', 'Active'],
   program:      ['Unlisted', 'Active'],
   consultant:   ['Offboarded', 'Unavailable', 'Available', 'Active'],
-  courseassign: ['Pending Match', 'Flagged', 'Verified', 'Archived'],
+  courseassign: ['Unassigned', 'Inactive', 'Emeritus', 'On Leave', 'Active', 'Archived'],
 };
 
 // Rank of a status within its entity's order; unknown/blank statuses sort

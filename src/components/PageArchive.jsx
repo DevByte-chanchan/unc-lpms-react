@@ -25,7 +25,7 @@ const RESTORE_OPTIONS = {
   course_offerings:   ['Active'],
   faculty:            ['Active', 'On Leave'],
   consultants:        ['Active'],
-  course_assignments: ['Verified', 'Pending Match', 'Flagged'],
+  course_assignments: ['Active'],
 };
 
 // moduleType slug → { title, entity (for pill styling), columns to render }.

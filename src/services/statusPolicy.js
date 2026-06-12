@@ -11,8 +11,11 @@
  *   Course Offering     → Active | Unlisted, Cancelled               (archive: Unlisted, Cancelled)
  *   Industry Consultant → Active, Available | Unavailable, Offboarded (archive: Unavailable, Offboarded)
  *
- * Course Assignment has its own status set; 'Archived' routes to the Archive:
- *   Course Assignment   → Verified | Pending Match | Flagged | Archived
+ * Course Assignment mirrors the assigned FACULTY's status; 'Unassigned' marks a
+ * row whose course/faculty isn't matched yet. Only Inactive and the manual
+ * 'Archived' route to the Archive. Emeritus stays VISIBLE in the main table,
+ * flagged, so the course is available for reassignment to another faculty:
+ *   Course Assignment   → Active, On Leave, Emeritus | Inactive, Archived | Unassigned
  *
  * Helpers:
  *   statusPillStyle(entity, status)  → inline style for the table pill.
@@ -27,7 +30,7 @@ export const STATUS_OPTIONS = {
   courseoffer:  ['Active', 'Unlisted', 'Cancelled'],
   consultant:   ['Active', 'Unavailable'],
   program:      ['Active', 'Unlisted'],
-  courseassign: ['Verified', 'Pending Match', 'Flagged', 'Archived'],
+  courseassign: ['Active', 'On Leave', 'Emeritus', 'Inactive', 'Unassigned', 'Archived'],
   academicterm: ['Active', 'Closed'],
 };
 
@@ -59,7 +62,7 @@ export const ARCHIVE_STATUSES = {
   courseoffer:  new Set(['Unlisted', 'Cancelled']),
   consultant:   new Set(['Unavailable', 'Offboarded']),
   program:      new Set(['Unlisted']),
-  courseassign: new Set(['Archived']),
+  courseassign: new Set(['Inactive', 'Archived']),
   academicterm: new Set(['Closed']),
 };
 
@@ -70,7 +73,7 @@ const RED_STATUS = {
   courseoffer:  new Set(['Cancelled']),
   consultant:   new Set(['Offboarded']),
   program:      new Set(),
-  courseassign: new Set(['Flagged', 'Archived']),
+  courseassign: new Set(['Emeritus', 'Inactive', 'Archived']),
   academicterm: new Set(),
 };
 
@@ -81,7 +84,7 @@ const NEUTRAL_STATUS = {
   courseoffer:  new Set(['Unlisted']),
   consultant:   new Set(['Available', 'Unavailable']),
   program:      new Set(['Unlisted']),
-  courseassign: new Set(['Pending Match']),
+  courseassign: new Set(['On Leave', 'Unassigned']),
   academicterm: new Set(['Closed']),
 };
 

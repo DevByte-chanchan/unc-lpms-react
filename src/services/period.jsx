@@ -124,4 +124,50 @@ export const PeriodProvider = ({ children }) => {
   return <PeriodContext.Provider value={value}>{children}</PeriodContext.Provider>;
 };
 
+/**
+ * ScopedPeriodProvider — a PAGE-LOCAL term selection.
+ *
+ * Wrap a single page/route in this so its "Current Term" dropdown only affects
+ * THAT page. It shares the global periods LIST (and refresh) from the root
+ * PeriodProvider, but keeps its OWN selected term — so viewing a past term on
+ * one page never changes another page or another role. The selection is
+ * ephemeral: it isn't persisted and isn't shared, so navigating to a different
+ * page/role starts fresh on the current (Active) term.
+ */
+export const ScopedPeriodProvider = ({ children }) => {
+  const parent = React.useContext(PeriodContext);
+  const [scopedId, setScopedId] = React.useState(null); // null → follow the default (Active term)
+
+  const periods = parent.periods;
+
+  // Default selection for this page = the most recent Active term (the
+  // authoritative "current" term), falling back to the global current.
+  const defaultId = React.useMemo(() => {
+    const list = Array.isArray(periods) ? periods : [];
+    const actives = list.filter((p) => p.status === 'Active');
+    const pool = actives.length > 0 ? actives : list;
+    if (pool.length === 0) return parent.currentPeriod ? parent.currentPeriod.id : null;
+    let best = pool[0];
+    for (let i = 1; i < pool.length; i += 1) {
+      if (rankPeriod(pool[i]) > rankPeriod(best)) best = pool[i];
+    }
+    return best.id;
+  }, [periods, parent.currentPeriod]);
+
+  const effectiveId = scopedId != null ? scopedId : defaultId;
+  const currentPeriod = (Array.isArray(periods) ? periods : []).find((p) => p.id === effectiveId) || null;
+  const isCurrentTermActive = !currentPeriod || currentPeriod.status === 'Active';
+
+  const value = React.useMemo(() => ({
+    periods,
+    currentPeriod,
+    isCurrentTermActive,
+    apiReachable: parent.apiReachable,
+    setCurrentPeriodId: setScopedId,
+    refreshPeriods: parent.refreshPeriods,
+  }), [periods, currentPeriod, isCurrentTermActive, parent.apiReachable, parent.refreshPeriods]);
+
+  return <PeriodContext.Provider value={value}>{children}</PeriodContext.Provider>;
+};
+
 export const usePeriod = () => React.useContext(PeriodContext);

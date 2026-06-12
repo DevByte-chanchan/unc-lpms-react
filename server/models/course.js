@@ -42,6 +42,11 @@ export default (sequelize, DataTypes) =>
       // but kept in the DB so they can be restored.
       archived:       { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
       period_id:      { type: DataTypes.INTEGER.UNSIGNED, allowNull: true },
+      // The program this course belongs to, resolved on bulk upload from a
+      // Program column in the sheet (by code/name) or defaulted to the program
+      // the uploader is currently viewing. Nullable: legacy/unscoped rows and
+      // sheets without a program column leave this empty.
+      program_id:     { type: DataTypes.INTEGER.UNSIGNED, allowNull: true },
     },
     { tableName: 'courses', timestamps: true }
   );

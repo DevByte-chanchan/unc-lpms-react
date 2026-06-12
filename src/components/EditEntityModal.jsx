@@ -51,7 +51,7 @@ const arraysDiffer = (a, b) => {
   return x.length !== y.length || x.some((v) => !y.includes(v)) || y.some((v) => !x.includes(v));
 };
 
-const EditEntityModal = ({ title, termLabel, record, fields = [], onSave, onClose, onBack, onRemove, removeLabel = 'Remove', columns = 1, width = 'min(460px, 94vw)' }) => {
+const EditEntityModal = ({ title, termLabel, record, fields = [], onSave, onClose, onBack, onRemove, removeLabel = 'Remove', columns = 1, width = 'min(460px, 94vw)', validate }) => {
   const initialValues = React.useMemo(() => {
     const v = {};
     fields.forEach((f) => {
@@ -109,7 +109,15 @@ const EditEntityModal = ({ title, termLabel, record, fields = [], onSave, onClos
     return () => document.removeEventListener('keydown', onKey);
   }, [saving, onClose]);
 
+  // Optional cross-field rule from the caller (e.g. credit units must sum to
+  // the course total). Returns an error string (blocks save) or null/''.
+  const validationError = React.useMemo(
+    () => (typeof validate === 'function' ? (validate(values) || null) : null),
+    [validate, values],
+  );
+
   const submit = async () => {
+    if (validationError) { setFormError(validationError); return; }
     const nextErrors = {};
     fields.forEach((f) => {
       if (!f.required || f.locked) return;
@@ -225,6 +233,7 @@ const EditEntityModal = ({ title, termLabel, record, fields = [], onSave, onClos
         <div id={idOf(f.key)} aria-describedby={helpId(f.key)}>
           <SearchableSelect value={values[f.key] || ''} onChange={(v) => setField(f.key, v)} options={opts}
             placeholder={(f.reference && f.reference.placeholder) || f.placeholder || 'Search…'}
+            searchable={f.searchable !== false}
             highlight={invalid || f.highlight} />
         </div>
       );
@@ -258,7 +267,7 @@ const EditEntityModal = ({ title, termLabel, record, fields = [], onSave, onClos
     );
   };
 
-  const saveEnabled = isDirty && !busy;
+  const saveEnabled = isDirty && !busy && !validationError;
 
   return (
     <>
@@ -322,7 +331,7 @@ const EditEntityModal = ({ title, termLabel, record, fields = [], onSave, onClos
               </div>
             ))}
           </div>
-          {formError && <div role="alert" style={{ fontSize: 13, color: C.danger, marginBottom: 12 }}>{formError}</div>}
+          {(validationError || formError) && <div role="alert" style={{ fontSize: 13, color: C.danger, marginBottom: 12 }}>{validationError || formError}</div>}
         </div>
 
         {/* Footer */}
