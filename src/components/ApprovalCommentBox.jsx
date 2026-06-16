@@ -3,7 +3,7 @@ import { Search } from 'react-feather'
 import styles from '../styles/ApprovalCommentBox.module.sass'
 import { getReferences } from '../utils/referenceLibrary.js'
 
-const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = [], ilos = [], approverRole = null }) => {
+const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = [], ilos = [], approverRole = null, coverageEntries = [], syllabusTopics = [], syllabusReferences = [] }) => {
   const storageKey = 'approval_comments_v1'
 
   const defaultComment = () => ({
@@ -220,24 +220,6 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
   }
 
   const handleSubmit = () => {
-    const hasInvalidComments = comments.some((c) => {
-      const hasText = c.text && c.text.trim()
-      const comps = c.components || {}
-      const iloChecked = !!(comps.topics || comps.references || comps.tlas)
-      const hasComponent = iloChecked
-      
-      if (hasText && !hasComponent) return true
-      
-      if (iloChecked) {
-        const hasValidCourseData = c.courseOutcome ? !!c.ilo : !!c.coverageType
-        if (!hasValidCourseData) return true
-      }
-      
-      return false
-    })
-    
-    if (hasInvalidComments) return
-    
     const filledComments = comments.filter((c) => c.text && c.text.trim())
     
     if (filledComments.length === 0) return
@@ -245,7 +227,6 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
     const payload = {
       courseOutcome: filledComments.find((c) => c.courseOutcome)?.courseOutcome || null,
       ilo: filledComments.find((c) => c.ilo)?.ilo || null,
-      hasIlo: filledComments.some((c) => c.components.topics || c.components.references || c.components.tlas),
       comments: filledComments,
       suggestedReferences: selectedRefs,
       createdAt: new Date().toISOString()
@@ -258,23 +239,7 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
 
   const commentsWithText = comments.filter((c) => c.text && c.text.trim())
   
-  const allCommentsValid = commentsWithText.length > 0 && !comments.some((c) => {
-    const hasText = c.text && c.text.trim()
-    const comps = c.components || {}
-    const iloChecked = !!(comps.topics || comps.references || comps.tlas)
-    const hasComponent = iloChecked
-    
-    if (hasText && !hasComponent) return true
-    
-    if (iloChecked) {
-      const hasValidCourseData = c.courseOutcome ? !!c.ilo : !!c.coverageType
-      if (!hasValidCourseData) return true
-    }
-    
-    return false
-  })
-  
-  const saveDisabled = !allCommentsValid
+  const saveDisabled = commentsWithText.length === 0
 
   const isDirector = (() => {
     if (!approverRole) return false
@@ -395,7 +360,6 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
             <div className={styles.commentListWrapper}>
               <div className={styles.commentList}>
                 {comments.map((c, idx) => {
-                  const iloSelected = !!(c.components && c.components.topics && c.components.references && c.components.tlas)
                   return (
                     <div key={c.id} className={styles.commentItem}>
                       {comments.length > 1 && (
@@ -409,40 +373,10 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
                       )}
 
                       <div className={styles.commentBody}>
-                        <div className={styles.componentsRow} style={{ marginBottom: 8 }}>
-                          <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <input
-                              type="checkbox"
-                              checked={iloSelected}
-                              onChange={() =>
-                                setComments((prev) =>
-                                  prev.map((item) =>
-                                    item.id === c.id
-                                      ? (() => {
-                                          const allOn = !!(item.components && item.components.topics && item.components.references && item.components.tlas)
-                                          const target = !allOn
-                                          return {
-                                            ...item,
-                                            components: {
-                                              references: target,
-                                              topics: target,
-                                              tlas: target
-                                            }
-                                          }
-                                        })()
-                                      : item
-                                  )
-                                )
-                              }
-                            />
-                            <span>Intended Learning Outcome</span>
-                          </label>
-                        </div>
-
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginBottom: 8 }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 12, marginBottom: 8 }}>
                           <div className={styles.field}>
                             <label className={styles.label}>Course Outcome Number</label>
-                            <select className={styles.select} value={c.courseOutcome} onChange={(e) => updateCommentCourseOutcome(c.id, e.target.value)} disabled={!iloSelected}>
+                            <select className={styles.select} value={c.courseOutcome} onChange={(e) => updateCommentCourseOutcome(c.id, e.target.value)}>
                               <option value="">-- select course outcome --</option>
                               {resolvedCourseOutcomes.map((co) => (
                                 <option key={co.id || co} value={co.id || co}>
@@ -454,7 +388,7 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
 
                           <div className={styles.field}>
                             <label className={styles.label}>Intended Learning Outcome (ILO)</label>
-                            <select className={styles.select} value={c.ilo} onChange={(e) => updateCommentIlo(c.id, e.target.value)} disabled={!iloSelected || !c.courseOutcome}>
+                            <select className={styles.select} value={c.ilo} onChange={(e) => updateCommentIlo(c.id, e.target.value)} disabled={!c.courseOutcome}>
                               <option value="">-- select ILO --</option>
                               {((c.courseOutcome && coToIlos[c.courseOutcome]) || resolvedIlos).map((i) => (
                                 <option key={i} value={i}>{i}</option>
@@ -464,7 +398,7 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
 
                           <div className={styles.field}>
                             <label className={styles.label}>Coverage Type</label>
-                            <select className={styles.select} value={c.coverageType} onChange={(e) => updateCommentCoverageType(c.id, e.target.value)} disabled={!iloSelected}>
+                            <select className={styles.select} value={c.coverageType} onChange={(e) => updateCommentCoverageType(c.id, e.target.value)}>
                               <option value="">-- select type --</option>
                               <option value="Topic">Topic</option>
                               <option value="References">References</option>
@@ -472,20 +406,30 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
                             </select>
                           </div>
 
-                          {c.coverageType && (
-                            <div className={styles.field}>
-                              <label className={styles.label}>{c.coverageType === 'Topic' ? 'Topic' : c.coverageType === 'References' ? 'Reference' : 'TLA'} Details</label>
-                              <input
-                                type="text"
-                                className={styles.select}
-                                value={c.coverageDetail}
-                                onChange={(e) => updateCommentCoverageDetail(c.id, e.target.value)}
-                                placeholder={`Enter ${c.coverageType.toLowerCase()} details...`}
-                                disabled={!iloSelected}
-                                style={{ padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 13, fontFamily: "'Poppins', sans-serif", width: '100%', boxSizing: 'border-box' }}
-                              />
-                            </div>
-                          )}
+                          <div className={styles.field}>
+                            <label className={styles.label}>Coverage Entry</label>
+                            <select className={styles.select} value={c.coverageDetail} onChange={(e) => updateCommentCoverageDetail(c.id, e.target.value)} disabled={!c.coverageType}>
+                              <option value="">-- select coverage entry --</option>
+                              {c.coverageType === 'Topic' && syllabusTopics.map((t) => (
+                                <option key={t.id} value={t.title}>
+                                  {t.title}{t.subtopics ? ` (${t.subtopics.length} subtopics)` : ''}
+                                </option>
+                              ))}
+                              {c.coverageType === 'References' && syllabusReferences.map((r) => (
+                                <option key={r.id} value={r.title}>
+                                  {r.title}{r.authors ? ` — ${r.authors}` : ''}
+                                </option>
+                              ))}
+                              {c.coverageType === 'TLA' && syllabusTopics.flatMap(t => (t.tlas || []).map(tla => ({
+                                ...tla,
+                                topicTitle: t.title
+                              }))).map((tla) => (
+                                <option key={tla.id} value={tla.tlaName}>
+                                  {tla.tlaName}{tla.topicTitle ? ` (${tla.topicTitle})` : ''}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
                         </div>
 
                         <textarea className={styles.textarea} value={c.text} onChange={(e) => updateCommentText(c.id, e.target.value)} placeholder={'Enter your comment...'} rows={4} />

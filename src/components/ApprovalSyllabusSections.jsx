@@ -292,7 +292,10 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
         wf.parallelReview = wf.parallelReview || {}
         wf.parallelReview.industry_consultant = { status: 'done', completedAt: nowIso }
       }
-              wf.currentStage = 'returned'
+      if (roleKey === 'program-head') {
+        wf.parallelReview = wf.parallelReview || {}
+        wf.parallelReview.program_head = { status: 'done', completedAt: nowIso }
+      }
       if (roleKey === 'dean') {
         wf.dean = { status: 'done', completedAt: nowIso }
       }
@@ -316,9 +319,15 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
             currentStage: 'parallel_review',
             submittedAt: new Date().toISOString(),
             parallelReview: {
-              library_director: { status: 'pending', completedAt: null },
-              industry_consultant: { status: 'pending', completedAt: null },
-              program_head: { status: 'pending', completedAt: null }
+              library_director: existing.parallelReview?.library_director?.status === 'done'
+                ? existing.parallelReview.library_director
+                : { status: 'pending', completedAt: null },
+              industry_consultant: existing.parallelReview?.industry_consultant?.status === 'done'
+                ? existing.parallelReview.industry_consultant
+                : { status: 'pending', completedAt: null },
+              program_head: existing.parallelReview?.program_head?.status === 'done'
+                ? existing.parallelReview.program_head
+                : { status: 'pending', completedAt: null }
             },
             programHead: existing.programHead?.status === 'done' ? existing.programHead : { status: 'pending', completedAt: null },
             dean: existing.dean?.status === 'done' ? existing.dean : { status: 'pending', completedAt: null }
@@ -348,17 +357,22 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
 
   // determine whether actions are allowed for this role per workflow
   const isRoleActive = () => {
-    const wf = workflowState || getWorkflow(codeToUse || '')
+    const wf = getWorkflow(codeToUse || '')
     const stage = wf?.currentStage || 'submitted'
+    if (roleKey === 'program-head') return true
     if (stage === 'returned') return roleKey === 'instructor' || roleKey === 'director-of-libraries' || roleKey === 'industry-consultant'
-    if (stage === 'submitted') return roleKey === 'instructor'
-    if (stage === 'parallel_review') return roleKey === 'director-of-libraries' || roleKey === 'industry-consultant' || roleKey === 'program-head'
-    if (stage === 'dean') return roleKey === 'dean'
+    if (stage === 'submitted') return roleKey === 'instructor' || roleKey === 'director-of-libraries' || roleKey === 'industry-consultant'
+    if (stage === 'parallel_review') return roleKey === 'director-of-libraries' || roleKey === 'industry-consultant'
+    if (stage === 'dean') {
+      if (roleKey !== 'dean') return false
+      const pr = wf?.parallelReview || {}
+      return pr.library_director?.status === 'done' && pr.industry_consultant?.status === 'done' && pr.program_head?.status === 'done'
+    }
     return false
   }
 
   const hasRoleApproved = () => {
-    const wf = workflowState || getWorkflow(codeToUse || '')
+    const wf = getWorkflow(codeToUse || '')
     if (!wf) return false
     if (roleKey === 'director-of-libraries') return wf.parallelReview?.library_director?.status === 'done'
     if (roleKey === 'industry-consultant') return wf.parallelReview?.industry_consultant?.status === 'done'
@@ -438,6 +452,8 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
         comment: c.text || '',
         courseOutcome: c.courseOutcome || null,
         ilo: c.ilo || null,
+        coverageType: c.coverageType || null,
+        coverageDetail: c.coverageDetail || null,
         status: 'pending',
         resolved: false,
         suggestedRefs: (payload.suggestedReferences || []).map(r => ({
@@ -452,35 +468,6 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
 
       const newComments = [...allArray, ...prepared]
       localStorage.setItem(storageKey, JSON.stringify(newComments))
-
-        // Update workflow state: mark reviewer stage returned
-        try {
-            const wf = getWorkflow(code)
-            const nowIso = new Date().toISOString()
-
-            if (roleKey === 'dean') {
-                wf.currentStage = 'program_head'
-            } else {
-                wf.currentStage = 'returned'
-            }
-
-            if (roleKey === 'director-of-libraries') {
-                wf.parallelReview = wf.parallelReview || {}
-                wf.parallelReview.library_director = { status: 'returned', completedAt: nowIso }
-            } else if (roleKey === 'industry-consultant') {
-                wf.parallelReview = wf.parallelReview || {}
-                wf.parallelReview.industry_consultant = { status: 'returned', completedAt: nowIso }
-            } else if (roleKey === 'program-head') {
-                wf.programHead = { status: 'returned', completedAt: nowIso }
-            } else if (roleKey === 'dean') {
-                wf.dean = { status: 'returned', completedAt: nowIso }
-            }
-
-            setWorkflow(code, wf)
-            setWorkflowState(getWorkflow(code))
-        } catch (e) {
-            console.error('Failed to update workflow state', e)
-        }
 
       console.debug('Saved approver comments', { code, section: selectedSection, count: prepared.length })
 
@@ -631,12 +618,12 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
                 <button className={`${styles.requestRevision} ${(!isRoleActive() || hasRoleApproved()) ? styles['disabled-btn'] : ''}`} onClick={() => {
                   if (hasRoleApproved()) showToastMsg('You have already approved this syllabus.', 'warning')
                   else if (isRoleActive()) openComment()
-                  else showToastMsg('Waiting for previous approvers to complete their review.', 'warning')
+                  else if (roleKey === 'dean') showToastMsg('Waiting for previous approvers to complete their review.', 'warning')
                 }}>Add Comment</button>
                 <button className={`${styles.approve} ${(!isRoleActive() || hasRoleApproved()) ? styles['disabled-btn'] : ''}`} onClick={() => {
                   if (hasRoleApproved()) showToastMsg('You have already approved this syllabus.', 'warning')
                   else if (isRoleActive()) setShowApproveModal(true)
-                  else showToastMsg('Waiting for previous approvers to complete their review.', 'warning')
+                  else if (roleKey === 'dean') showToastMsg('Waiting for previous approvers to complete their review.', 'warning')
                 }}>Approve</button>
               </div>
             )}
@@ -1358,6 +1345,16 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
                                 </div>
                               )}
 
+                              {(comment.coverageType || comment.coverageDetail) && (
+                                <div style={{ display: 'flex', gap: '8px', marginBottom: '8px', fontSize: '11px', color: '#718096' }}>
+                                  {comment.coverageType && (
+                                    <span style={{ background: '#e0f2fe', padding: '2px 6px', borderRadius: '4px' }}>
+                                      <strong>{comment.coverageType}:</strong> {comment.coverageDetail || ''}
+                                    </span>
+                                  )}
+                                </div>
+                              )}
+
                               <p style={{ fontSize: '13px', lineHeight: '1.6', color: '#4a5568', margin: '0 0 8px 0' }}>
                                 {comment.comment}
                               </p>
@@ -1426,6 +1423,9 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
         courseOutcomes={courseOutcomes}
         ilos={sampleILOs}
         approverRole={currentRole}
+        coverageEntries={syllabus?.ilos || []}
+        syllabusTopics={syllabus?.topics || []}
+        syllabusReferences={syllabus?.references || []}
       />
 
       {/* ── APPROVE CONFIRMATION MODAL ─────────────────────────────────── */}
