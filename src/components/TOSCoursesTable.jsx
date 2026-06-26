@@ -14,23 +14,28 @@ const TOSCoursesTable = ({}) => {
         yearOptions.push(<option key={i} value={i}>{i}</option>);
     }
     const fallbackCourses = [
-        { code: 'BSCS313L', name: 'Human & Computer Interaction', update: 'Sept 01, 2025', status: 'draft',    exported: '' },
-        { code: 'BSCS212L', name: 'Web Development I',            update: 'Aug 15, 2025', status: 'draft',    exported: '' },
-        { code: 'BSCS111L', name: 'Fundamentals of Programming',  update: 'Aug 25, 2025', status: 'draft',    exported: '' },
-        { code: 'BSCS214L', name: 'Data Structures and Algorithms', update: 'Sept 20, 2025', status: 'pending', exported: '' },
-        { code: 'BSCS315L', name: 'Operating Systems',             update: 'Oct 02, 2025', status: 'approved', exported: 'Oct 10, 2025' },
-        { code: 'BSCS321L', name: 'Database Management Systems',   update: 'Sept 05, 2025', status: 'draft',    exported: '' },
-        { code: 'BSCS322L', name: 'Software Engineering',          update: 'Sept 12, 2025', status: 'pending', exported: '' },
-        { code: 'BSCS331L', name: 'Computer Networks',             update: 'Sept 18, 2025', status: 'approved', exported: 'Oct 25, 2025' },
-        { code: 'BSCS341L', name: 'Artificial Intelligence',       update: 'Sept 01, 2025', status: 'draft',    exported: '' },
-        { code: 'BSCS351L', name: 'Cybersecurity Fundamentals',    update: 'Sept 10, 2025', status: 'pending', exported: '' },
+        { code: 'BSCS313L', name: 'Human & Computer Interaction', dateAssigned: 'Jun 03, 2026', update: 'Sept 01, 2025', status: 'draft',    exported: '' },
+        { code: 'BSCS212L', name: 'Web Development I',            dateAssigned: 'Jun 02, 2026', update: 'Aug 15, 2025', status: 'draft',    exported: '' },
+        { code: 'BSCS111L', name: 'Fundamentals of Programming',  dateAssigned: 'Jun 01, 2026', update: 'Aug 25, 2025', status: 'draft',    exported: '' },
+        { code: 'BSCS214L', name: 'Data Structures and Algorithms', dateAssigned: 'Jun 04, 2026', update: 'Sept 20, 2025', status: 'pending', exported: '' },
+        { code: 'BSCS315L', name: 'Operating Systems',             dateAssigned: 'Jun 05, 2026', update: 'Oct 02, 2025', status: 'approved', exported: 'Oct 10, 2025' },
+        { code: 'BSCS321L', name: 'Database Management Systems',   dateAssigned: 'Jun 08, 2026', update: 'Sept 05, 2025', status: 'draft',    exported: '' },
+        { code: 'BSCS322L', name: 'Software Engineering',          dateAssigned: 'Jun 09, 2026', update: 'Sept 12, 2025', status: 'pending', exported: '' },
+        { code: 'BSCS331L', name: 'Computer Networks',             dateAssigned: 'Jun 10, 2026', update: 'Sept 18, 2025', status: 'approved', exported: 'Oct 25, 2025' },
+        { code: 'BSCS341L', name: 'Artificial Intelligence',       dateAssigned: 'Jun 11, 2026', update: 'Sept 01, 2025', status: 'draft',    exported: '' },
+        { code: 'BSCS351L', name: 'Cybersecurity Fundamentals',    dateAssigned: 'Jun 12, 2026', update: 'Sept 10, 2025', status: 'pending', exported: '' },
     ];
-    const [courses, setCourses] = useState(fallbackCourses);
+    const [courses, setCourses] = useState([]);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         fetchCourses()
-            .then(data => { if (data) setCourses(data); })
-            .catch(() => {});
+            .then(data => {
+                if (data && data.length) setCourses(data);
+                else setCourses(fallbackCourses);
+            })
+            .catch(() => setCourses(fallbackCourses))
+            .finally(() => setLoading(false));
     }, []);
 
     const location = useLocation();
@@ -53,7 +58,7 @@ const TOSCoursesTable = ({}) => {
         <div className={styles['courses-table']}>
 
             <div className={styles.header}>
-                <h2>ASSIGNED TOS</h2>
+                <h2>ASSIGNED TABLE OF SPECIFICATIONS</h2>
                 <div className={styles.filterA}>
                     <select className={styles['header-select']}>
                         {yearOptions}
@@ -81,18 +86,16 @@ const TOSCoursesTable = ({}) => {
             </div>
 
             <div className={styles['table-container']}>
+                {loading ? (
+                    <div className={styles.loadingCell}>Loading courses...</div>
+                ) : (
                 <table>
                     <thead>
                     <tr>
-                        <th width={150}>CODE</th>
-                        <th width={350}>COURSE NAME</th>
-
-                    {selectedStatus === 'draft'
-                        ? <th width={200}>LAST UPDATED</th>
-                        : <th width={200}>DATE EXPORTED</th>
-                    }
-
-                        <th width={120}>STATUS</th>
+                        <th width={170}>DATE ASSIGNED</th>
+                        <th width={130}>CODE</th>
+                        <th width={320}>COURSE NAME</th>
+                        <th width={200}>LAST UPDATED</th>
                         <th className={styles.fill}></th>
                     </tr>
                     </thead>
@@ -102,16 +105,10 @@ const TOSCoursesTable = ({}) => {
                         .filter(row => row.status === selectedStatus)
                         .map((row, index) => (
                             <tr key={index}>
-                                <td width={150}>{row.code}</td>
-                                <td width={350}>{row.name}</td>
-
-                                {selectedStatus === 'draft'
-                                    ? <td width={200}>{row.update}</td>
-                                    : <td width={200}>{row.exported}</td>
-                                }
-
-                                <td width={120}>{row.status}</td>
-
+                                <td width={170}>{row.dateAssigned}</td>
+                                <td width={130}>{row.code}</td>
+                                <td width={320}>{row.name}</td>
+                                <td width={200}>{row.update}</td>
                                 <td className={styles.fill}>
                                     {row.status === 'draft' ? (
                                         <Link className="actionLink" to={`/tos/${row.code}`} state={{ tosStatus: row.status, courseName: row.name }}>
@@ -128,6 +125,7 @@ const TOSCoursesTable = ({}) => {
                         ))}
                     </tbody>
                 </table>
+                )}
             </div>
         </div>
     );

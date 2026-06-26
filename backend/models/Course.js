@@ -9,6 +9,11 @@ const Course = sequelize.define('Course', {
     name: {
         type: DataTypes.STRING(200),
         allowNull: false
+    },
+    assessmentName: {
+        type: DataTypes.STRING(100),
+        defaultValue: '',
+        field: 'assessment_name'
     }
 }, {
     tableName: 'courses',

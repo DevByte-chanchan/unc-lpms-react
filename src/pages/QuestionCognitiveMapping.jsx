@@ -5,7 +5,7 @@ import {
 } from "react-feather";
 import layout from "../styles/QuestionCognitiveMapping.module.sass";
 import tosLayout from "../styles/TosSections.module.sass";
-import { saveItems } from '../services/api.js';
+import { saveItems, updateCourse } from '../services/api.js';
 
 // ─── UID ─────────────────────────────────────────────────────────────────────
 let _uid = 0;
@@ -85,7 +85,8 @@ const RubricRow = ({ row, itemPoints, totalWeight, rowPoints, onChange, onRemove
 };
 
 // ─── AssessmentBuilder ────────────────────────────────────────────────────────
-const AssessmentBuilder = ({ totalSlots, initialItems, onSaveReturn, builderSaveRef, onProgressUpdate, highlightKey }) => {
+const AssessmentBuilder = ({ totalSlots, initialItems, onSaveReturn, builderSaveRef, onProgressUpdate, highlightKey, assessmentName, onAssessmentNameChange, assessmentNames = ['Prelim Exam', 'Midterm Exam', 'Semi-Final Exam', 'Final Exam', 'Periodic Exam', 'Summative Test', 'Major Exam', 'Final Project', 'Capstone Assessment'] }) => {
+    const [selectedAssessment, setSelectedAssessment] = useState(assessmentName || '');
     const [spanEdit, setSpanEdit] = useState(null);
     const [warnData, setWarnData] = useState(null);
     const [deletingId, setDeletingId] = useState(null);
@@ -189,29 +190,54 @@ const AssessmentBuilder = ({ totalSlots, initialItems, onSaveReturn, builderSave
 
         if (newSpan > curSpan) {
             const toRemove = [];
+            const splits = [];
+            const newEnd = startItem + newSpan - 1;
             for (let i = idx + 1; i < items.length; i++) {
-                if (slotMap[i] < startItem + newSpan) toRemove.push(items[i].id);
-                else break;
+                const itemSpan = items[i].span || 1;
+                const itemEnd  = slotMap[i] + itemSpan - 1;
+                if (slotMap[i] >= startItem + newSpan) break;
+                toRemove.push(items[i].id);
+                if (itemEnd > newEnd) {
+                    const remaining = itemEnd - newEnd;
+                    splits.push({
+                        ...makeItem(remaining),
+                        id: uid(),
+                        instruction: items[i].instruction || '',
+                        choices: items[i].choices.map(c => ({ ...c })),
+                        rubricRows: items[i].rubricRows.map(r => ({ ...r })),
+                        showRubric: items[i].showRubric,
+                        points: items[i].points || '',
+                    });
+                }
             }
-            const hasFilledAbsorbed = toRemove.some(rid => {
+            const fullyLost = toRemove.filter(rid => {
+                const fi = items.findIndex(x => x.id === rid);
+                if (fi === -1) return true;
+                return (slotMap[fi] + (items[fi].span || 1) - 1) <= newEnd;
+            });
+            const hasFilledAbsorbed = fullyLost.some(rid => {
                 const it = items.find(x => x.id === rid);
                 return it && ((it.instruction || '').trim().length > 0 || it.choices.length || it.rubricRows.length);
             });
-            if (hasFilledAbsorbed) { setWarnData({ id, newSpan, toRemove }); return; }
-            applySpan(id, newSpan, toRemove);
+            if (hasFilledAbsorbed) { setWarnData({ id, newSpan, toRemove, splits }); return; }
+            applySpan(id, newSpan, toRemove, splits);
         } else {
             applySpan(id, newSpan, []);
         }
         setSpanEdit(null);
     };
 
-    const applySpan = (id, newSpan, toRemove) => {
-        const idx     = items.findIndex(it => it.id === id);
-        const curSpan = items[idx].span || 1;
-        const diff    = newSpan - curSpan;
+    const applySpan = (id, newSpan, toRemove, splits = []) => {
         setItems(prev => {
+            const idx = prev.findIndex(it => it.id === id);
+            if (idx === -1) return prev;
+            const curSpan = prev[idx].span || 1;
+            const diff = newSpan - curSpan;
             let next = prev.map((it, i) => i === idx ? { ...it, span: newSpan } : it);
             next = next.filter(it => !toRemove.includes(it.id));
+            if (splits.length > 0) {
+                next = [...next.slice(0, idx + 1), ...splits, ...next.slice(idx + 1)];
+            }
             if (diff < 0) {
                 const blanks = Array.from({ length: -diff }, () => makeItem(1));
                 next = [...next.slice(0, idx + 1), ...blanks, ...next.slice(idx + 1)];
@@ -280,9 +306,9 @@ const AssessmentBuilder = ({ totalSlots, initialItems, onSaveReturn, builderSave
         URL.revokeObjectURL(url);
     };
 
-    const doSave = () => {
+    const doSave = async () => {
         const exMap = new Map(initialItems?.map(it => [it.id, it]) || []);
-        onSaveReturn(items.map(it => {
+        await onSaveReturn(items.map(it => {
             const ex = exMap.get(it.id) || {};
             return {
                 id: it.id,
@@ -299,8 +325,8 @@ const AssessmentBuilder = ({ totalSlots, initialItems, onSaveReturn, builderSave
         }));
     };
 
-    const save = () => {
-        doSave();
+    const save = async () => {
+        await doSave();
     };
 
     useEffect(() => {
@@ -341,6 +367,16 @@ const AssessmentBuilder = ({ totalSlots, initialItems, onSaveReturn, builderSave
         return labels.join(', ');
     })();
 
+    const [showScrollTop, setShowScrollTop] = useState(false);
+
+    useEffect(() => {
+        const el = document.querySelector('[data-bscroll]');
+        if (!el) return;
+        const handler = () => setShowScrollTop(el.scrollTop > 200);
+        el.addEventListener('scroll', handler);
+        return () => el.removeEventListener('scroll', handler);
+    }, []);
+
     return (
         <div className={layout.bPage}>
 
@@ -357,13 +393,31 @@ const AssessmentBuilder = ({ totalSlots, initialItems, onSaveReturn, builderSave
                         </div>
                         <div className={tosLayout.modalActions}>
                             <button className={tosLayout.cancelBtn} style={{ background: "#f9f9f9", color: "#374151" }} onClick={() => { setWarnData(null); setSpanEdit(null); }}>Cancel</button>
-                            <button className={tosLayout.confirmBtn} style={{ background: "#1A1A1A" }} onMouseEnter={e => e.target.style.backgroundColor = '#444'} onMouseLeave={e => e.target.style.backgroundColor = '#1A1A1A'} onClick={() => applySpan(warnData.id, warnData.newSpan, warnData.toRemove)}>
+                            <button className={tosLayout.confirmBtn} style={{ background: "#1A1A1A" }} onMouseEnter={e => e.target.style.backgroundColor = '#444'} onMouseLeave={e => e.target.style.backgroundColor = '#1A1A1A'} onClick={() => applySpan(warnData.id, warnData.newSpan, warnData.toRemove, warnData.splits || [])}>
                                 Yes, proceed
                             </button>
                         </div>
                     </div>
                 </div>
             )}
+
+            {/* ── Assessment Name Selector ── */}
+            <div className={layout.bAssessBar}>
+                <label className={layout.bAssessLabel}>Assessment Name:</label>
+                <select
+                    className={layout.bAssessSelect}
+                    value={selectedAssessment}
+                    onChange={e => { setSelectedAssessment(e.target.value); onAssessmentNameChange?.(e.target.value); }}
+                >
+                    <option value="" disabled>Select assessment</option>
+                    {assessmentNames.length === 0 && (
+                        <option value="" disabled>No assessments available</option>
+                    )}
+                    {assessmentNames.map((name, i) => (
+                        <option key={i} value={name}>{name}</option>
+                    ))}
+                </select>
+            </div>
 
             {/* ── Scrollable content ── */}
             <div className={layout.bScroll} data-bscroll>
@@ -402,7 +456,8 @@ const AssessmentBuilder = ({ totalSlots, initialItems, onSaveReturn, builderSave
                                                         onFocus={e => e.target.select()}
                                                         onChange={e => {
                                                             const v = e.target.value.replace(/[^0-9]/g, '').replace(/^0+/, '') || '';
-                                                            setSpanEdit({ id: item.id, draft: v });
+                                                            const num = parseInt(v, 10);
+                                                            setSpanEdit({ id: item.id, draft: num > totalSlots ? String(totalSlots) : v });
                                                         }}
                                                         onKeyDown={e => {
                                                             if (e.key === 'Enter') commitSpan(item.id);
@@ -416,7 +471,7 @@ const AssessmentBuilder = ({ totalSlots, initialItems, onSaveReturn, builderSave
                                                         <X size={14} strokeWidth={2.5} />
                                                     </button>
                                                 </div>
-                                            ) : (
+                                            ) : endItem < totalSlots ? (
                                                 <button
                                                     className={layout.bBtnEditSpan}
                                                     onClick={() => setSpanEdit({ id: item.id, draft: String(endItem + 1) })}
@@ -427,7 +482,7 @@ const AssessmentBuilder = ({ totalSlots, initialItems, onSaveReturn, builderSave
                                                         <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
                                                     </svg>
                                                 </button>
-                                            )}
+                                            ) : null}
                                         </div>
 
                                         <div className={layout.bCardHeadRight}>
@@ -585,10 +640,10 @@ const AssessmentBuilder = ({ totalSlots, initialItems, onSaveReturn, builderSave
                 </div>
             </div>{/* end bScroll */}
 
-            <button className={layout.bScrollTop} onClick={() => {
+            <button className={`${layout.bScrollTop} ${showScrollTop ? layout.bScrollTopVisible : ''}`} onClick={() => {
                 document.querySelector('[data-bscroll]')?.scrollTo({ top: 0, behavior: 'smooth' });
             }}>
-                <ChevronUp size={22} strokeWidth={2.5} />
+                <ChevronUp size={40} strokeWidth={2.5} />
             </button>
         </div>
     );
@@ -658,6 +713,8 @@ const QuestionCognitiveMapping = ({
                                       errorFields = {},
                                        clearFieldError,
                                        courseCode,
+                                       assessmentName,
+                                       onAssessmentNameChange,
                                    }) => {
 
     const [showPostSaveWarning, setShowPostSaveWarning] = useState(false);
@@ -741,26 +798,36 @@ const QuestionCognitiveMapping = ({
         });
     };
 
-    const handleBuilderSave = (savedItems) => {
+    const handleBuilderSave = async (savedItems) => {
         const exMap = new Map(questions.map(q => [q.id, q]));
         const merged = savedItems.map(si => {
             const ex = exMap.get(si.id) || {};
+            const isCleared = !(si.question || si.rubricItem || '').trim();
+            const cleanChoices = (si.choices || []).filter(c => (c.text || '').trim());
+            const cleanRubric = (si.rubricRows || []).filter(r => (r.name || '').trim() || (r.description || '').trim());
             return {
                 ...createEmptyQuestion(), ...ex,
                 id: si.id, question: si.question, rubricItem: si.rubricItem,
-                choices: si.choices, rubricRows: si.rubricRows,
+                choices: cleanChoices, rubricRows: cleanRubric,
                 points: si.points || ex.points || '',
                 span: si.span || ex.span || 1,
-                co: ex.co || si.co || '',
-                ilo: ex.ilo || si.ilo || '',
-                cognitiveLevel: ex.cognitiveLevel || si.cognitiveLevel || '',
+                co: isCleared ? '' : (ex.co || si.co || ''),
+                ilo: isCleared ? '' : (ex.ilo || si.ilo || ''),
+                cognitiveLevel: isCleared ? '' : (ex.cognitiveLevel || si.cognitiveLevel || ''),
             };
         });
         setQuestions(merged);
+        if (courseCode) {
+            try {
+                await saveItems(courseCode, merged);
+                if (assessmentName) await updateCourse(courseCode, { assessmentName });
+            } catch (err) {
+                console.error('Builder save failed:', err);
+            }
+        }
         onShowBuilderChange(false);
         const hasEmpty = savedItems.some(si => !(si.question || si.rubricItem || '').trim());
         if (hasEmpty) setShowPostSaveWarning(true);
-        if (courseCode) saveItems(courseCode, merged);
     };
 
     useEffect(() => {
@@ -793,6 +860,8 @@ const QuestionCognitiveMapping = ({
                 builderSaveRef={builderSaveRef}
                 onProgressUpdate={onProgressUpdate}
                 highlightKey={highlightKey}
+                assessmentName={assessmentName}
+                onAssessmentNameChange={onAssessmentNameChange}
             />
         );
     }

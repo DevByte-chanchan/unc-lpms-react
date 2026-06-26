@@ -7,7 +7,7 @@ import TOSPreview from "../pages/TosPreview.jsx";
 import TOSSummary from "../pages/TosSummary.jsx";
 import QuestionCognitiveMapping from "../pages/QuestionCognitiveMapping.jsx";
 import BuilderNavigation from "../components/BuilderNavigation.jsx";
-import { fetchOutcomes, fetchItems, saveOutcomes, saveItems } from '../services/api.js';
+import { fetchOutcomes, fetchItems, saveOutcomes, saveItems, fetchCourse, updateCourse } from '../services/api.js';
 
 const tosSections = ({status}) => {
 
@@ -47,7 +47,9 @@ const tosSections = ({status}) => {
     const location = useLocation();
     const { code: courseCode } = useParams();
     const tosStatus = location.state?.tosStatus || 'draft';
-    const courseName = location.state?.courseName || courseCode;
+    const courseName = location.state?.courseName || '';
+    const [courseNameState, setCourseName] = useState(courseName);
+    const [assessmentName, setAssessmentName] = useState('');
     const defaultRows = getDefaultOutlines();
 
     const [rows, setRows] = useState(defaultRows);
@@ -61,6 +63,12 @@ const tosSections = ({status}) => {
     useEffect(() => {
         if (!courseCode || dataLoaded) return;
         setDataLoaded(true);
+
+        fetchCourse(courseCode).then(course => {
+            if (course?.name && !courseNameState) setCourseName(course.name);
+            if (course?.assessmentName) setAssessmentName(course.assessmentName);
+        }).catch(() => {});
+
         fetchOutcomes(courseCode).then(data => {
             if (!data) return;
             const mapped = data.map(o => ({
@@ -68,7 +76,7 @@ const tosSections = ({status}) => {
                 description: o.description || '',
                 totalHours: (o.ilos || []).reduce((s, i) => s + (i.hours || 0), 0),
                 totalPercentage: (o.ilos || []).reduce((s, i) => s + (i.percentage || 0), 0),
-                totalItems: o.totalItems || 0,
+                totalItems: (o.ilos || []).reduce((s, i) => s + (i.items || 0), 0),
                 ilos: (o.ilos || []).map((ilo, idx) => ({
                     id: `ILO${idx + 1}`,
                     description: ilo.description || '',
@@ -274,7 +282,7 @@ const tosSections = ({status}) => {
         return () => clearTimeout(timer);
     }, [showBuilder]);
 
-    const handleNavigateBack = () => {
+    const handleNavigateBack = async () => {
         setNavigating(true);
         if (courseCode) {
             const outcomesPayload = rows.map(r => ({
@@ -288,10 +296,17 @@ const tosSections = ({status}) => {
                     items: ilo.items || 0
                 }))
             }));
-            saveOutcomes(courseCode, outcomesPayload).catch(() => {});
-            saveItems(courseCode, questions).catch(() => {});
+            try {
+                await Promise.allSettled([
+                    saveOutcomes(courseCode, outcomesPayload),
+                    saveItems(courseCode, questions),
+                    updateCourse(courseCode, { assessmentName })
+                ]);
+            } catch (err) {
+                console.error('Save failed:', err);
+            }
         }
-        setTimeout(() => navigate('/assignedtos'), 400);
+        navigate('/assignedtos');
     };
 
     return (
@@ -329,17 +344,34 @@ const tosSections = ({status}) => {
                             <button
                                 className={`${styles.submit} ${!canSubmit ? styles.submitDisabled : ''}`}
                                 disabled={!canSubmit}
-                                onClick={() => {
-                                    const { errors, fieldKeys } = validateTOS();
-                                    setErrorFields(fieldKeys);
-                                    const hasErrors = errors.outcomeOverview.length > 0 || errors.assessmentMapping.length > 0 || errors.tosSummary.length > 0;
-                                    if (hasErrors) {
-                                        setExportErrors(errors);
-                                        setShowExportErrorModal(true);
-                                    } else {
-                                        setIsPreviewOpen(true);
-                                    }
-                                }}
+                                    onClick={() => {
+                                        const { errors, fieldKeys } = validateTOS();
+                                        setErrorFields(fieldKeys);
+                                        const hasErrors = errors.outcomeOverview.length > 0 || errors.assessmentMapping.length > 0 || errors.tosSummary.length > 0;
+                                        if (hasErrors) {
+                                            setExportErrors(errors);
+                                            setShowExportErrorModal(true);
+                                        } else if (courseCode) {
+                                            const outcomesPayload = rows.map(r => ({
+                                                co: r.co,
+                                                description: r.description || '',
+                                                totalItems: r.totalItems || 0,
+                                                ilos: (r.ilos || []).map(ilo => ({
+                                                    description: ilo.description || '',
+                                                    hours: ilo.hours || 0,
+                                                    percentage: ilo.percentage || 0,
+                                                    items: ilo.items || 0
+                                                }))
+                                            }));
+                                            Promise.allSettled([
+                                                saveOutcomes(courseCode, outcomesPayload),
+                                                saveItems(courseCode, questions),
+                                                updateCourse(courseCode, { assessmentName })
+                                            ]).then(() => setIsPreviewOpen(true)).catch(() => setIsPreviewOpen(true));
+                                        } else {
+                                            setIsPreviewOpen(true);
+                                        }
+                                    }}
                             >
                                 Submit
                             </button>
@@ -480,6 +512,8 @@ const tosSections = ({status}) => {
                                         errorFields={errorFields}
                                         clearFieldError={clearFieldError}
                                         courseCode={courseCode}
+                                        assessmentName={assessmentName}
+                                        onAssessmentNameChange={setAssessmentName}
                                     />
                                 </section>
                             )}
@@ -499,8 +533,9 @@ const tosSections = ({status}) => {
                 onClose={() => setIsPreviewOpen(false)}
                 outcomeData={rows}
                 questions={questions}
-                courseName={courseName}
+                courseName={courseNameState}
                 courseCode={courseCode}
+                assessmentName={assessmentName}
             />
 
             {showExportErrorModal && (

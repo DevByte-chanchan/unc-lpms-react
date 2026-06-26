@@ -18,78 +18,98 @@
 
 .qctable
   width: 100%
-  table-layout: fixed
-  border-collapse: collapse
+  min-width: 900px
+  border-collapse: separate !important
+  border-spacing: 0 !important
   margin-top: 20px
-  border-spacing: 0
+  display: table !important
+  flex-direction: unset !important
+  gap: unset !important
+  border: none !important
+
+  thead
+    display: table-header-group !important
+    position: sticky
+    top: 0
+    z-index: 10
+    background: #EFEFEF
+
+    tr
+      display: table-row !important
+      box-shadow: none !important
+
+  tbody
+    display: table-row-group !important
+    box-shadow: none !important
 
   tr
-    border-top: none
+    display: table-row !important
+    background: transparent !important
+    box-shadow: none !important
 
-  th
-    text-align: center
-    justify-content: center
-    font-weight: 500
-    color: #333
-    font-size: 16px
-    padding: 10px
-    gap: 10px
-
-  td
+  th, td
+    display: table-cell !important
+    border: none !important
+    border-right: 1px solid #000 !important
+    border-bottom: 1px solid #000 !important
+    padding: 8px 10px !important
     vertical-align: middle
-    padding: 10px
+    font-size: 14px
+    color: #000
+    gap: unset !important
+    align-items: unset !important
+    line-height: 1.4
+
+    &:first-child
+      border-left: 1px solid #000 !important
+
+  thead tr:first-child th
+    border-top: 1px solid #000 !important
 
   &.TOSTable
-    th, td
-      padding: 10px
-      border-bottom: 1px solid #DDDFDF
-      border-left: none
-      border-right: none
-
     th:nth-child(1), td:nth-child(1)
-      width: 10%  // COs & ILOs
+      width: 12%
 
     th:nth-child(2), td:nth-child(2)
-      width: 10%  // No. of Hours
+      width: 8%
 
     th:nth-child(3), td:nth-child(3)
-      width: 10%  // %
+      width: 6%
 
     th:nth-child(4), td:nth-child(4)
-      width: 10%  // No. of Points
+      width: 8%
 
     th:nth-child(5), td:nth-child(5)
-      width: 10%  // Remembering
+      width: 11%
 
     th:nth-child(6), td:nth-child(6)
-      width: 10%  // Understanding
+      width: 11%
 
     th:nth-child(7), td:nth-child(7)
-      width: 10%  // Applying
+      width: 11%
 
     th:nth-child(8), td:nth-child(8)
-      width: 10%  // Analyzing
+      width: 11%
 
     th:nth-child(9), td:nth-child(9)
-      width: 10%  // Evaluating
+      width: 11%
 
     th:nth-child(10), td:nth-child(10)
-      width: 10%  // Creating
+      width: 11%
 
     .sub-column th
-      font-weight: 300
+      font-weight: 600
       font-size: 14px
-      background: #F1F3F5
+      text-align: center
+      background: #EFEFEF
+
+      &:first-child
+        border-left: none !important
 
     .lighten
-      background: #F1F3F5
+      background: #EFEFEF
 
 .cellBox
-  width: 100%
-  min-height: 45px
-  padding: 10px
-  border-radius: 5px
-  background-color: transparent
   display: flex
   justify-content: center
   align-items: center
@@ -106,7 +126,11 @@
   &.readable
     justify-content: left
     background: #F9FAFB
-    padding-left: 20px
+
+.headerCell
+  background-color: #EFEFEF
+  font-weight: 600
+  text-align: center
 
 .numberInput
   width: 100%
@@ -169,7 +193,7 @@
   border-radius: 8px
   max-width: 95%
   max-height: 90%
-  overflow-y: auto
+  overflow: hidden
   position: relative
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3)
   width: 100%
@@ -186,9 +210,37 @@
   font-size: 20px
   cursor: pointer
 
+.headerRow
+  display: flex
+  align-items: center
+  justify-content: space-between
+  margin-bottom: 40px
+
 .previewTitle
   text-align: left
-  margin-bottom: 40px
+  margin: 0 0 2px
+
+.assessmentName
+  font-size: 13px
+  color: #6B7280
+  font-weight: 500
+
+.tableWrapper
+  flex: 1
+  overflow: auto
+  min-height: 0
+
+  &::-webkit-scrollbar
+    width: 8px
+    height: 8px
+  &::-webkit-scrollbar-track
+    background: #f1f1f1
+    border-radius: 4px
+  &::-webkit-scrollbar-thumb
+    background: #ccc
+    border-radius: 4px
+  &::-webkit-scrollbar-thumb:hover
+    background: #999
 
 .headerFields
   display: flex
@@ -206,16 +258,18 @@
   text-align: left
 
 .exportButtonContainer
-  position: sticky
-  bottom: 0
+  flex-shrink: 0
   width: 100%
   display: flex
   justify-content: flex-end
   align-items: center
+  gap: 10px
   background: #FFFFFF
   padding: 10px 0
   border-top: 1px solid #DDDFDF
-  margin-top: auto
+
+.noBorderTop
+  border-top: none
 
 .confirmPopup
   background: white
@@ -268,3 +322,204 @@
 
   &:hover
     background: #2a3d42
+
+.pillToggle
+  display: inline-flex
+  background: #F1F3F5
+  border-radius: 8px
+  padding: 3px
+  gap: 2px
+
+.pillOption
+  padding: 6px 18px
+  border: none
+  border-radius: 6px
+  font-size: 13px
+  font-weight: 600
+  color: #6B7280
+  background: transparent
+  cursor: pointer
+  transition: all 0.15s
+
+  &:hover
+    color: #374151
+
+.pillActive
+  background: white
+  color: #1A1A1A
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1)
+
+.cancelBtn
+  padding: 10px 20px
+  background: white
+  color: #374151
+  border: 1.5px solid #DDDFDF
+  border-radius: 20px
+  font-size: 14px
+  font-weight: 500
+  cursor: pointer
+  display: inline-flex
+  align-items: center
+  transition: all 0.12s
+
+  &:hover
+    border-color: #374151
+    background: #F9FAFB
+
+.emptyActions
+  display: flex
+  justify-content: center
+
+.emptyState
+  flex: 1
+  display: flex
+  flex-direction: column
+  align-items: center
+  justify-content: center
+  min-height: 300px
+  gap: 16px
+
+.emptyIcon
+  opacity: 0.6
+
+.emptyText
+  font-size: 15px
+  font-weight: 500
+  color: #9CA3AF
+  margin: 0
+
+.assessmentBody
+  flex: 1
+  overflow: auto
+  min-height: 0
+  padding: 8px 0
+
+  &.tabContent
+    border: 1px solid #E5E7EB
+    border-radius: 6px
+    padding: 16px 20px
+
+.assessmentList
+  display: flex
+  flex-direction: column
+  gap: 24px
+
+.assessmentItem
+  border-bottom: 1px solid #E5E7EB
+  padding-bottom: 16px
+
+.assessmentQuestion
+  display: flex
+  gap: 8px
+  font-size: 15px
+  line-height: 1.5
+  margin-bottom: 8px
+
+.questionNumber
+  font-weight: 700
+  white-space: nowrap
+  color: #1a1a1a
+
+.questionText
+  color: #1a1a1a
+
+.assessmentChoices
+  display: flex
+  flex-direction: column
+  gap: 4px
+  margin-left: 28px
+  margin-bottom: 8px
+
+  &.choicesGrid
+    display: grid
+    grid-template-columns: 1fr 1fr
+    column-gap: 24px
+    row-gap: 4px
+
+.choiceRow
+  display: flex
+  gap: 8px
+  font-size: 14px
+  line-height: 1.5
+
+.choiceLetter
+  font-weight: 600
+  color: #374151
+  white-space: nowrap
+
+.choiceText
+  color: #4B5563
+
+.rubricBox
+  margin: 12px 0 0 28px
+  border: 1px solid #E5E7EB
+  border-radius: 6px
+  background: #FAFBFC
+  padding: 10px 12px
+
+.rubricHeader
+  display: flex
+  align-items: center
+  gap: 8px
+  margin-bottom: 6px
+
+.rubricLabel
+  font-weight: 700
+  font-size: 13px
+  color: #374151
+  text-transform: uppercase
+  letter-spacing: 0.5px
+
+.rubricPoints
+  font-size: 12px
+  color: #6B7280
+  font-weight: 500
+
+.rubricTable
+  display: flex
+  flex-direction: column
+  gap: 2px
+
+.rubricRow
+  display: grid
+  grid-template-columns: 100px 1fr 60px 44px
+  gap: 8px
+  font-size: 13px
+  padding: 4px 6px
+  align-items: center
+
+.rubricHeaderRow
+  font-weight: 700
+  color: #374151
+  font-size: 11px
+  text-transform: uppercase
+  letter-spacing: 0.3px
+  padding: 4px 6px 2px
+  border-bottom: 1px solid #D1D5DB
+  background: transparent !important
+
+.rubricTotalRow
+  border-top: 1px solid #D1D5DB
+  font-weight: 600
+  margin-top: 2px
+  padding-top: 4px
+  background: transparent !important
+
+.rubricName
+  font-weight: 600
+  color: #1a1a1a
+
+.rubricDesc
+  color: #4B5563
+
+.rubricWeight
+  color: #6B7280
+  text-align: right
+
+.wOk
+  color: #059669
+  font-weight: 600
+
+.rubricPts
+  color: #374151
+  text-align: right

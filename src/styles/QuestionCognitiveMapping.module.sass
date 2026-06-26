@@ -767,6 +767,44 @@
   display: flex
   flex-direction: column
 
+// Assessment name selector bar
+.bAssessBar
+  flex-shrink: 0
+  display: flex
+  align-items: center
+  gap: 12px
+  padding: 12px 20px
+  background: #fff
+  border-bottom: 1px solid #DDDFDF
+
+.bAssessLabel
+  font-weight: 600
+  font-size: 14px
+  color: #333
+  white-space: nowrap
+  padding-left: 15px
+
+.bAssessSelect
+  padding: 8px 28px 8px 12px
+  font-size: 14px
+  font-weight: 500
+  border: 1px solid #DDDFDF
+  border-radius: 5px
+  background: #fff
+  min-width: 360px
+  cursor: pointer
+  outline: none
+  color: #333
+  appearance: none
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")
+  background-repeat: no-repeat
+  background-position: right 10px center
+  background-size: 14px
+
+.bAssessSelect option
+  background: #F2F3F4
+  font-size: 14px
+
 // Empty items warning bar — fades in, auto-dismisses
 .bEmptyWarn
   padding: 10px 20px
@@ -1627,11 +1665,11 @@
   position: fixed
   bottom: 24px
   right: 24px
-  width: 44px
-  height: 44px
+  width: 49px
+  height: 49px
   border-radius: 50%
   border: none
-  background: #1A1A1A
+  background: #444
   color: white
   display: flex
   align-items: center
@@ -1639,7 +1677,13 @@
   cursor: pointer
   z-index: 100
   box-shadow: 0 2px 8px rgba(0,0,0,0.2)
-  transition: background 0.12s
+  transition: background 0.12s, opacity 0.2s
+  opacity: 0
+  pointer-events: none
+
+.bScrollTopVisible
+  opacity: 1
+  pointer-events: auto
 
   &:hover
     background: #EA1212

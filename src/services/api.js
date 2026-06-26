@@ -25,13 +25,41 @@ export function cogToFrontend(val) { return cogLevelMap.toFrontend[val] || val; 
 export async function fetchCourses() {
     const res = await fetch(BASE);
     const data = await res.json();
+    const dateAssignments = {
+        BSCS111L: 'Jun 01, 2026',
+        BSCS212L: 'Jun 02, 2026',
+        BSCS313L: 'Jun 03, 2026',
+        BSCS214L: 'Jun 04, 2026',
+        BSCS315L: 'Jun 05, 2026',
+        BSCS321L: 'Jun 08, 2026',
+        BSCS322L: 'Jun 09, 2026',
+        BSCS331L: 'Jun 10, 2026',
+        BSCS341L: 'Jun 11, 2026',
+        BSCS351L: 'Jun 12, 2026',
+    };
     return data.map(c => ({
         code: c.code,
         name: c.name,
+        dateAssigned: dateAssignments[c.code] || '',
         update: c.updated_at ? new Date(c.updated_at).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }) : '',
         status: c.tosStatus?.status || 'draft',
         exported: ''
     }));
+}
+
+export async function fetchCourse(courseCode) {
+    const res = await fetch(`${BASE}/${courseCode}`);
+    if (!res.ok) return null;
+    return await res.json();
+}
+
+export async function updateCourse(courseCode, fields) {
+    const res = await fetch(`${BASE}/${courseCode}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(fields)
+    });
+    return await res.json();
 }
 
 export async function fetchOutcomes(courseCode) {
