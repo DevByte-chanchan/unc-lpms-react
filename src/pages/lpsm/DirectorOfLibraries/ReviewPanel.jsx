@@ -3,17 +3,20 @@ import { useParams } from 'react-router-dom';
 import styles from '../../../styles/ReviewPanel.module.scss';
 import StatusTracker from '../Shared/StatusTracker';
 import * as service from '../../../services/learningPlanService';
+import { useToast } from '../../../components/Toast';
 
 const ReviewPanel = () => {
   const { role, planId } = useParams();
   const [plans, setPlans] = useState([]);
   const [selectedPlan, setSelectedPlan] = useState(null);
   const [comments, setComments] = useState('');
+  const [action, setAction] = useState('approve');
   const [submitting, setSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const showToast = useToast();
 
-  const userId = parseInt(localStorage.getItem('userId') || (role === 'director_of_libraries' ? '20' : '30'));
+  const userId = parseInt(localStorage.getItem('userId') || '20');
 
   useEffect(() => {
     const fetchPlans = async () => {
@@ -30,7 +33,6 @@ const ReviewPanel = () => {
         setLoading(false);
       }
     };
-
     fetchPlans();
   }, [role, userId, planId]);
 
@@ -46,20 +48,31 @@ const ReviewPanel = () => {
 
     try {
       setSubmitting(true);
-      await service.submitReview(role, userId, selectedPlan.id, {
-        reviewer_id: userId,
-        reviewer_role: role,
-        comments
-      });
+      if (action === 'return') {
+        await service.approveOrReturn(role, userId, selectedPlan.id, {
+          reviewer_id: userId,
+          reviewer_role: role,
+          action: 'return',
+          comments
+        });
+      } else {
+        await service.submitReview(role, userId, selectedPlan.id, {
+          reviewer_id: userId,
+          reviewer_role: role,
+          comments: comments || 'Approved'
+        });
+      }
 
       setComments('');
-      alert('Review submitted successfully');
+      setAction('approve');
+      showToast(`Review ${action === 'return' ? 'returned' : 'submitted'} successfully`);
 
-      // Refetch plans
       const res = await service.getLearningPlans(role, userId);
       setPlans(res.data.filter(p => p.status === 'under_review'));
+      setSelectedPlan(null);
     } catch (err) {
       setError(err.response?.data?.error || err.message);
+      showToast(err.response?.data?.error || 'Failed to submit review', 'warning');
     } finally {
       setSubmitting(false);
     }
@@ -67,7 +80,7 @@ const ReviewPanel = () => {
 
   if (loading) return <div className={styles.container}>Loading...</div>;
 
-  const roleLabel = role === 'director_of_libraries' ? 'Director of Libraries' : 'Industry Consultant';
+  const roleLabel = 'Director of Libraries';
 
   return (
     <div className={styles.container}>
@@ -115,17 +128,24 @@ const ReviewPanel = () => {
           <form onSubmit={handleSubmitReview} className={styles.section}>
             <h2>Submit Your Review</h2>
             <div className={styles.formGroup}>
-              <label>Comments</label>
+              <label>Decision</label>
+              <select value={action} onChange={(e) => setAction(e.target.value)}>
+                <option value="approve">Approve</option>
+                <option value="return">Return for Revisions</option>
+              </select>
+            </div>
+            <div className={styles.formGroup}>
+              <label>Comments {action === 'return' ? '(required)' : ''}</label>
               <textarea
                 value={comments}
                 onChange={(e) => setComments(e.target.value)}
                 placeholder="Enter your review comments..."
                 rows="6"
-                required
+                required={action === 'return'}
               />
             </div>
             <button type="submit" className={styles.btnSubmit} disabled={submitting}>
-              {submitting ? 'Submitting...' : 'Submit Review'}
+              {submitting ? 'Submitting...' : action === 'approve' ? 'Approve' : 'Return for Revisions'}
             </button>
           </form>
         </>

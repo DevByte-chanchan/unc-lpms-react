@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import styles from '../../../styles/ApprovalPanel.module.scss';
 import StatusTracker from '../Shared/StatusTracker';
 import * as service from '../../../services/learningPlanService';
+import { useToast } from '../../../components/Toast';
 
 const ApprovalPanel = () => {
   const { role, planId } = useParams();
@@ -13,8 +14,9 @@ const ApprovalPanel = () => {
   const [submitting, setSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const showToast = useToast();
 
-  const userId = parseInt(localStorage.getItem('userId') || (role === 'program_head' ? '10' : '40'));
+  const userId = parseInt(localStorage.getItem('userId') || '10');
 
   useEffect(() => {
     const fetchPlans = async () => {
@@ -31,7 +33,6 @@ const ApprovalPanel = () => {
         setLoading(false);
       }
     };
-
     fetchPlans();
   }, [role, userId, planId]);
 
@@ -56,14 +57,14 @@ const ApprovalPanel = () => {
 
       setComments('');
       setAction('approve');
-      alert(`Learning plan ${action}d successfully`);
+      showToast(`Learning plan ${action}d successfully`);
 
-      // Refetch plans
       const res = await service.getLearningPlans(role, userId);
       setPlans(res.data.filter(p => p.status === 'under_review' || p.status === 'returned'));
       setSelectedPlan(null);
     } catch (err) {
       setError(err.response?.data?.error || err.message);
+      showToast(err.response?.data?.error || 'Failed to process', 'warning');
     } finally {
       setSubmitting(false);
     }
@@ -135,9 +136,7 @@ const ApprovalPanel = () => {
           </div>
 
           <form onSubmit={handleSubmitApproval} className={styles.section}>
-            <h2>
-              {isDean ? 'Relay Comments to Program Head' : 'Approval Decision'}
-            </h2>
+            <h2>Approval Decision</h2>
 
             <div className={styles.formGroup}>
               <label>Decision</label>
@@ -153,21 +152,9 @@ const ApprovalPanel = () => {
                 <textarea
                   value={comments}
                   onChange={(e) => setComments(e.target.value)}
-                  placeholder={isDean ? 'Enter comments for Program Head...' : 'Enter feedback...'}
+                  placeholder="Enter feedback..."
                   rows="6"
                   required={action === 'return'}
-                />
-              </div>
-            )}
-
-            {isDean && action === 'approve' && (
-              <div className={styles.formGroup}>
-                <label>Optional Comments for Program Head</label>
-                <textarea
-                  value={comments}
-                  onChange={(e) => setComments(e.target.value)}
-                  placeholder="Any additional notes for Program Head..."
-                  rows="4"
                 />
               </div>
             )}

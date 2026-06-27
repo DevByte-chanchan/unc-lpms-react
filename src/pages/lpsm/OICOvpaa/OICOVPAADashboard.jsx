@@ -1,119 +1,14 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import styles from '../../../styles/OICOVPAADashboard.module.scss';
 import * as service from '../../../services/learningPlanService';
-import { getWorkflow } from '../../../utils/workflowHelpers';
 import { getSyllabi } from '../../../utils/dataStore';
-import PdfExportButton from '../../../components/PdfExportButton';
 import { exportSyllabusToPDF } from '../../../utils/pdfExport';
 import { FileText, Clipboard } from 'react-feather';
-
-const WORKFLOW_KEY = 'lpsm_workflow_v1';
-
-const readWorkflows = () => {
-  try {
-    const raw = localStorage.getItem(WORKFLOW_KEY);
-    return raw ? JSON.parse(raw) : {};
-  } catch { return {}; }
-};
-
-const normalizeInstructor = (name) => {
-  if (!name || name.toLowerCase().includes('norton') || name.toLowerCase().includes('monica')) {
-    return 'CASIMERO, DANNY';
-  }
-  return name;
-};
-
-// One-time fix: normalize all instructor names in localStorage
-(function fixInstructorNames() {
-  const FLAG = 'lpsm_oic_instructor_fix_v1'
-  if (localStorage.getItem(FLAG)) return
-  try {
-    const raw = localStorage.getItem('lpms_syllabi_v1')
-    if (raw) {
-      const data = JSON.parse(raw)
-      let changed = false
-      data.forEach(s => {
-        if (!s.instructor || s.instructor.toLowerCase().includes('norton') || s.instructor.toLowerCase().includes('monica')) {
-          s.instructor = 'CASIMERO, DANNY'
-          changed = true
-        }
-      })
-      if (changed) localStorage.setItem('lpms_syllabi_v1', JSON.stringify(data))
-    }
-  } catch (e) {}
-  localStorage.setItem(FLAG, '1')
-})()
-
-const getApprovalComments = (courseCode) => {
-  try {
-    const raw = localStorage.getItem('approval_comments_v1');
-    const all = raw ? JSON.parse(raw) : [];
-    return Array.isArray(all) ? all.filter(c => c.courseCode === courseCode) : [];
-  } catch { return []; }
-};
-
-const ACTIVITY_KEY = 'lpsm_audit_activity_v1';
-
-const getRecentActivity = (limit = 20) => {
-  try {
-    const raw = localStorage.getItem(ACTIVITY_KEY);
-    const all = raw ? JSON.parse(raw) : [];
-    return Array.isArray(all) ? all.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)).slice(0, limit) : [];
-  } catch { return []; }
-};
-
-const fmtDate = (iso) => {
-  if (!iso) return '—';
-  try {
-    return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' });
-  } catch { return '—'; }
-};
-
-const StatusBadge = ({ stage }) => {
-  const map = {
-    submitted: { bg: '#fef5e7', color: '#f39c12', label: 'Draft' },
-    parallel_review: { bg: '#ebf5fb', color: '#3498db', label: 'Under Review' },
-    program_head: { bg: '#fef5e7', color: '#e67e22', label: 'Program Head' },
-    dean: { bg: '#fadbd8', color: '#e74c3c', label: 'Dean Review' },
-    approved: { bg: '#ecfdf5', color: '#047857', label: 'Approved' },
-    returned: { bg: '#fef2f2', color: '#dc2626', label: 'Returned' }
-  };
-  const c = map[stage] || { bg: '#f8f9fa', color: '#95a5a6', label: stage };
-  return (
-    <span style={{ display: 'inline-block', padding: '3px 10px', borderRadius: 99, fontSize: 12, fontWeight: 600, background: c.bg, color: c.color }}>
-      {c.label}
-    </span>
-  );
-};
-
-const DeanEmptyState = ({ icon: Icon = FileText, title, description }) => (
-  <div style={{
-    flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
-    justifyContent: 'center', gap: 16, padding: '80px 20px'
-  }}>
-    <div style={{ width: 100, height: 100, borderRadius: 16, background: '#F3F4F6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <Icon size={48} color="#9CA3AF" />
-    </div>
-    <div style={{ fontSize: 18, fontWeight: 600, color: '#111827' }}>{title}</div>
-    <div style={{ color: '#6B7280', textAlign: 'center', maxWidth: 420, fontSize: 14, lineHeight: '1.5' }}>{description}</div>
-  </div>
-);
-
-const ActionButton = ({ children, color = '#3498db', onClick, title }) => (
-  <button
-    onClick={onClick}
-    title={title}
-    style={{
-      padding: '5px 14px', background: 'transparent', color,
-      border: `1px solid ${color}`, borderRadius: 4, fontSize: 11,
-      fontWeight: 600, cursor: 'pointer', fontFamily: "'Poppins', sans-serif",
-      whiteSpace: 'nowrap', transition: 'all 0.15s'
-    }}
-  >
-    {children}
-  </button>
-);
+import {
+  StatusBadge, DeanEmptyState, ActionButton, fmtDate,
+  readWorkflows, getRecentActivity, WORKFLOW_KEY
+} from './dashboardHelpers';
 
 const OICOVPAADashboard = () => {
   const navigate = useNavigate();
@@ -134,6 +29,10 @@ const OICOVPAADashboard = () => {
   const userId = parseInt(localStorage.getItem('userId') || '40');
   const role = 'oic_ovpaa';
 
+  // ponytail: localStorage-only warning. Add API persistence when main server
+  // gets a workflow endpoint.
+  const useLocalStorageWarning = 'Syllabus approvals use local storage — data will be lost if cache is cleared.';
+
   const showToast = (msg, type = 'success') => {
     setToast({ msg, type });
     setTimeout(() => setToast(null), 3000);
@@ -144,16 +43,11 @@ const OICOVPAADashboard = () => {
     setRecentActivity(getRecentActivity());
   }, [refreshKey]);
 
-  useEffect(() => {
-    const interval = setInterval(() => setRefreshKey(k => k + 1), 3000);
-    return () => clearInterval(interval);
-  }, []);
-
   const fetchApprovedPlans = async () => {
     try {
       setLoading(true);
       setError(null);
-      const res = await service.getApprovedLearningPlans(role, userId);
+      const res = await service.getLearningPlans(role, userId, { status: 'approved' });
       setPlans(res.data || []);
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to load learning plans');
@@ -171,7 +65,7 @@ const OICOVPAADashboard = () => {
         code,
         courseName: syllabus?.name || syllabus?.courseName || syllabus?.course || code,
         workflow: wf,
-        syllabus: syllabus ? { ...syllabus, instructor: normalizeInstructor(syllabus.instructor) } : null
+        syllabus: syllabus || null
       };
     });
   }, [refreshKey]);
@@ -190,19 +84,32 @@ const OICOVPAADashboard = () => {
     return syllabusWorkflows.filter(s => s.workflow.currentStage !== 'submitted');
   }, [syllabusWorkflows]);
 
-  const syllabiForReview = nonDraftSyllabi.filter(s =>
-    s.workflow.currentStage !== 'approved' && s.workflow.currentStage !== 'returned'
-  );
-  const approvedSyllabi = nonDraftSyllabi.filter(s => s.workflow.currentStage === 'approved');
-  const returnedSyllabi = nonDraftSyllabi.filter(s => s.workflow.currentStage === 'returned');
+  const approvedSyllabi = useMemo(() => {
+    return nonDraftSyllabi.filter(s => s.workflow.currentStage === 'approved');
+  }, [nonDraftSyllabi]);
 
-  const approvedCount = syllabusWorkflows.filter(s => s.workflow.currentStage === 'approved').length;
-  const returnedCount = syllabusWorkflows.filter(s => s.workflow.currentStage === 'returned').length;
+  const inReviewSyllabi = useMemo(() => {
+    return nonDraftSyllabi.filter(s =>
+      s.workflow.currentStage !== 'approved' && s.workflow.currentStage !== 'returned'
+    );
+  }, [nonDraftSyllabi]);
+
+  const returnedSyllabi = useMemo(() => {
+    return nonDraftSyllabi.filter(s => s.workflow.currentStage === 'returned');
+  }, [nonDraftSyllabi]);
+
+  const approvedCount = useMemo(() =>
+    syllabusWorkflows.filter(s => s.workflow.currentStage === 'approved').length,
+  [syllabusWorkflows]);
+
+  const returnedCount = useMemo(() =>
+    syllabusWorkflows.filter(s => s.workflow.currentStage === 'returned').length,
+  [syllabusWorkflows]);
 
   const facultyStats = useMemo(() => {
     const stats = {};
     syllabusWorkflows.forEach(s => {
-      const instructor = normalizeInstructor(s.syllabus?.instructor || 'Unknown');
+      const instructor = s.syllabus?.instructor || 'Unknown';
       if (!stats[instructor]) {
         stats[instructor] = { total: 0, approved: 0, pending: 0, returned: 0 };
       }
@@ -225,7 +132,7 @@ const OICOVPAADashboard = () => {
           id: code,
           course_code: code,
           course_name: syllabus?.name || syllabus?.courseName || syllabus?.course || code,
-          instructor: { name: normalizeInstructor(syllabus?.instructor || 'Unknown') },
+          instructor: { name: syllabus?.instructor || 'Unknown' },
           academic_year: syllabus?.academicYear || syllabus?.schoolYear || '2024-2025',
           semester: syllabus?.semester || syllabus?.sem?.replace(' Semester', '') || '1st',
           updated_at: wf.oicOvpaa?.completedAt || wf.dean?.completedAt || null,
@@ -277,7 +184,7 @@ const OICOVPAADashboard = () => {
       }
       setSelectedPlans(new Set());
       showToast(`Exported ${exported} syllabus/s successfully!`);
-    } catch (err) {
+    } catch {
       showToast('Failed to export some PDFs', 'warning');
     } finally {
       setExporting(false);
@@ -294,7 +201,7 @@ const OICOVPAADashboard = () => {
         setRefreshKey(k => k + 1);
         showToast(`Syllabus ${code} approved successfully!`);
       }
-    } catch (err) {
+    } catch {
       showToast('Failed to approve syllabus', 'warning');
     }
   };
@@ -309,7 +216,7 @@ const OICOVPAADashboard = () => {
         setRefreshKey(k => k + 1);
         showToast(`Syllabus ${code} returned for revision.`);
       }
-    } catch (err) {
+    } catch {
       showToast('Failed to return syllabus', 'warning');
     }
   };
@@ -343,6 +250,14 @@ const OICOVPAADashboard = () => {
     );
   };
 
+  const syllabiForTab = useMemo(() => {
+    if (syllabiStatusFilter === 'all') return nonDraftSyllabi;
+    if (syllabiStatusFilter === 'approved') return approvedSyllabi;
+    return nonDraftSyllabi;
+  }, [syllabiStatusFilter, nonDraftSyllabi, approvedSyllabi]);
+
+  const effectiveSyllabiList = syllabiForTab;
+
   return (
     <div className={styles.container}>
       {renderToast()}
@@ -352,11 +267,13 @@ const OICOVPAADashboard = () => {
           <h1>APPROVED COURSES</h1>
           <p className={styles.subtitle}>Finalized and validated syllabi (locked/official version)</p>
         </div>
+        <div style={{ fontSize: 11, color: '#e67e22', background: '#fef5e7', padding: '4px 12px', borderRadius: 4 }}>
+          {useLocalStorageWarning}
+        </div>
       </div>
 
       {error && <div className={styles.errorAlert}>{error}</div>}
 
-      {/* Tab Navigation */}
       <div className={styles.tabNav}>
         {[
           { id: 'overview', label: 'Overview', icon: '📊' },
@@ -375,7 +292,6 @@ const OICOVPAADashboard = () => {
         ))}
       </div>
 
-      {/* ─── OVERVIEW ─── */}
       {activeTab === 'overview' && (
         <>
           <div className={styles.statsGrid}>
@@ -496,11 +412,10 @@ const OICOVPAADashboard = () => {
         </>
       )}
 
-      {/* ─── SYLLABI / APPROVED COURSES ─── */}
       {activeTab === 'syllabi' && (
         <div style={{ background: 'white', border: '1px solid #e0e0e0', borderRadius: 8, overflow: 'hidden' }}>
           <div style={{ display: 'flex', alignItems: 'center', padding: '20px 30px 0', gap: 15, marginBottom: 16 }}>
-            <h2 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: '#111827' }}>APPROVED COURSES</h2>
+            <h2 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: '#111827' }}>COURSES</h2>
             <div style={{ flex: 1 }} />
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <p style={{ margin: 0, fontSize: 12, fontWeight: 500, color: '#374151' }}>Filter by <strong>Status</strong>:</p>
@@ -515,63 +430,52 @@ const OICOVPAADashboard = () => {
             </div>
           </div>
           <div style={{ padding: '0 30px 24px' }}>
-            {(() => {
-              let filtered = [];
-              if (syllabiStatusFilter === 'all') filtered = approvedSyllabi;
-              else if (syllabiStatusFilter === 'approved') filtered = approvedSyllabi;
-
-              if (filtered.length === 0) {
-                return (
-                  <DeanEmptyState icon={FileText}
-                    title="No approved syllabi"
-                    description="Approved syllabi will appear here once the approval process is complete."
-                  />
-                );
-              }
-
-              return (
-                <div style={{ width: '100%', overflow: 'auto' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 750, fontSize: 14 }}>
-                    <thead>
-                      <tr style={{ borderBottom: '2px solid #e5e7eb' }}>
-                        <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 600, color: '#6b7280', fontSize: 12 }}>CODE</th>
-                        <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 600, color: '#6b7280', fontSize: 12 }}>COURSE NAME</th>
-                        <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 600, color: '#6b7280', fontSize: 12 }}>DATE SUBMITTED</th>
-                        <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 600, color: '#6b7280', fontSize: 12 }}>DATE APPROVED</th>
-                        <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 600, color: '#6b7280', fontSize: 12 }}>STATUS</th>
-                        <th style={{ padding: '12px 16px', textAlign: 'center', fontWeight: 600, color: '#6b7280', fontSize: 12 }}>ACTIONS</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {filtered.map((item, i) => {
-                        const approvedDate = item.workflow.dean?.completedAt || item.workflow.oicOvpaa?.completedAt || '';
-                        return (
-                          <tr key={item.code} style={{ borderBottom: i < filtered.length - 1 ? '1px solid #e5e7eb' : 'none' }}>
-                            <td style={{ padding: '12px 16px', fontSize: 13, fontWeight: 600, color: '#3498db', fontFamily: "'Courier New', monospace" }}>{item.code}</td>
-                            <td style={{ padding: '12px 16px', fontSize: 13 }}>{item.courseName}</td>
-                            <td style={{ padding: '12px 16px', fontSize: 13, color: '#6b7280' }}>{fmtDate(item.workflow.submittedAt)}</td>
-                            <td style={{ padding: '12px 16px', fontSize: 13, color: '#6b7280' }}>{fmtDate(approvedDate)}</td>
-                            <td style={{ padding: '12px 16px' }}>
-                              <StatusBadge stage={item.workflow.currentStage} />
-                            </td>
-                            <td style={{ padding: '12px 16px', textAlign: 'center' }}>
-                              <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
-                                <ActionButton color="#3498db" onClick={() => navigate(`/role/oic-ovpaa/courses/${encodeURIComponent(item.code)}`)}>View</ActionButton>
-                              </div>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              );
-            })()}
+            {effectiveSyllabiList.length === 0 ? (
+              <DeanEmptyState icon={FileText}
+                title="No syllabi found"
+                description={syllabiStatusFilter === 'all' ? 'No syllabi in the system yet.' : 'No approved syllabi yet.'}
+              />
+            ) : (
+              <div style={{ width: '100%', overflow: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 750, fontSize: 14 }}>
+                  <thead>
+                    <tr style={{ borderBottom: '2px solid #e5e7eb' }}>
+                      <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 600, color: '#6b7280', fontSize: 12 }}>CODE</th>
+                      <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 600, color: '#6b7280', fontSize: 12 }}>COURSE NAME</th>
+                      <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 600, color: '#6b7280', fontSize: 12 }}>DATE SUBMITTED</th>
+                      <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 600, color: '#6b7280', fontSize: 12 }}>DATE APPROVED</th>
+                      <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 600, color: '#6b7280', fontSize: 12 }}>STATUS</th>
+                      <th style={{ padding: '12px 16px', textAlign: 'center', fontWeight: 600, color: '#6b7280', fontSize: 12 }}>ACTIONS</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {effectiveSyllabiList.map((item, i) => {
+                      const approvedDate = item.workflow.dean?.completedAt || item.workflow.oicOvpaa?.completedAt || '';
+                      return (
+                        <tr key={item.code} style={{ borderBottom: i < effectiveSyllabiList.length - 1 ? '1px solid #e5e7eb' : 'none' }}>
+                          <td style={{ padding: '12px 16px', fontSize: 13, fontWeight: 600, color: '#3498db', fontFamily: "'Courier New', monospace" }}>{item.code}</td>
+                          <td style={{ padding: '12px 16px', fontSize: 13 }}>{item.courseName}</td>
+                          <td style={{ padding: '12px 16px', fontSize: 13, color: '#6b7280' }}>{fmtDate(item.workflow.submittedAt)}</td>
+                          <td style={{ padding: '12px 16px', fontSize: 13, color: '#6b7280' }}>{fmtDate(approvedDate)}</td>
+                          <td style={{ padding: '12px 16px' }}>
+                            <StatusBadge stage={item.workflow.currentStage} />
+                          </td>
+                          <td style={{ padding: '12px 16px', textAlign: 'center' }}>
+                            <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
+                              <ActionButton color="#3498db" onClick={() => navigate(`/role/oic-ovpaa/courses/${encodeURIComponent(item.code)}`)}>View</ActionButton>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         </div>
       )}
 
-      {/* ─── PENDING ─── */}
       {activeTab === 'pending' && (
         <div className={styles.columnCard}>
           <div className={styles.cardHeader}>
@@ -616,7 +520,6 @@ const OICOVPAADashboard = () => {
         </div>
       )}
 
-      {/* ─── APPROVED PLANS ─── */}
       {activeTab === 'plans' && (
         <>
           <div className={styles.filterSection}>
@@ -679,20 +582,7 @@ const OICOVPAADashboard = () => {
                       <td>{plan.updated_at ? new Date(plan.updated_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}</td>
                       <td className={styles.actions}>
                         <button onClick={() => navigate(`/role/oic_ovpaa/plans/${plan.id}`)} className={styles.viewButton}>View</button>
-                        <button
-                          onClick={() => {
-                            const item = syllabusWorkflows.find(w => w.code === plan.id);
-                            if (item) {
-                              exportSyllabusToPDF(item.syllabus || item, item.workflow);
-                            } else {
-                              showToast('Syllabus data not available for export', 'warning');
-                            }
-                          }}
-                          className={styles.exportButton}
-                          style={{ whiteSpace: 'nowrap' }}
-                        >
-                          Export PDF
-                        </button>
+                        <button onClick={() => handleExportPdf(plan)} className={styles.exportButton} style={{ whiteSpace: 'nowrap' }}>Export PDF</button>
                       </td>
                     </tr>
                   ))}
@@ -703,7 +593,6 @@ const OICOVPAADashboard = () => {
         </>
       )}
 
-      {/* ─── FACULTY ─── */}
       {activeTab === 'faculty' && (
         <div className={styles.columnCard}>
           <div className={styles.cardHeader}>

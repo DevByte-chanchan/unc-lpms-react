@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import styles from '../../../styles/ApprovalPanel.module.scss';
 import StatusTracker from '../Shared/StatusTracker';
 import * as service from '../../../services/learningPlanService';
+import { useToast } from '../../../components/Toast';
 
 const ApprovalPanel = () => {
   const { role, planId } = useParams();
@@ -13,8 +14,9 @@ const ApprovalPanel = () => {
   const [submitting, setSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const showToast = useToast();
 
-  const userId = parseInt(localStorage.getItem('userId') || (role === 'program_head' ? '10' : '40'));
+  const userId = parseInt(localStorage.getItem('userId') || '40');
 
   useEffect(() => {
     const fetchPlans = async () => {
@@ -31,7 +33,6 @@ const ApprovalPanel = () => {
         setLoading(false);
       }
     };
-
     fetchPlans();
   }, [role, userId, planId]);
 
@@ -56,14 +57,14 @@ const ApprovalPanel = () => {
 
       setComments('');
       setAction('approve');
-      alert(`Learning plan ${action}d successfully`);
+      showToast(`Learning plan ${action}d successfully`);
 
-      // Refetch plans
       const res = await service.getLearningPlans(role, userId);
       setPlans(res.data.filter(p => p.status === 'under_review' || p.status === 'returned'));
       setSelectedPlan(null);
     } catch (err) {
       setError(err.response?.data?.error || err.message);
+      showToast(err.response?.data?.error || 'Failed to process', 'warning');
     } finally {
       setSubmitting(false);
     }

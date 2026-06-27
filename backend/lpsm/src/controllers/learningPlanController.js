@@ -300,6 +300,10 @@ exports.submitReview = async (req, res) => {
     const { id } = req.params;
     const { reviewer_id, reviewer_role, comments } = req.body;
 
+    if (reviewer_role !== req.userRole) {
+      return res.status(403).json({ error: 'Role mismatch: reviewer role does not match authenticated user role' });
+    }
+
     const stage = await ApprovalStage.findOne({
       where: {
         learning_plan_id: id,
@@ -353,6 +357,10 @@ exports.approveOrReturn = async (req, res) => {
     const { id } = req.params;
     const { reviewer_id, reviewer_role, action, comments } = req.body;
 
+    if (reviewer_role !== req.userRole) {
+      return res.status(403).json({ error: 'Role mismatch: reviewer role does not match authenticated user role' });
+    }
+
     const plan = await LearningPlan.findByPk(id);
     if (!plan) return res.status(404).json({ error: 'Learning plan not found' });
 
@@ -374,7 +382,7 @@ exports.approveOrReturn = async (req, res) => {
 
       // Advance workflow
       if (reviewer_role === 'program_head') {
-        plan.status = 'approved'; // Will create dean stage next
+        plan.status = 'under_review';
         const deanStage = await ApprovalStage.findOne({
           where: { learning_plan_id: id, stage: 'dean' }
         });
