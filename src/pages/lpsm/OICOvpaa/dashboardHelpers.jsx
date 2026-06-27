@@ -51,30 +51,3 @@ export const fmtDate = (iso) => {
     return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' });
   } catch { return '—'; }
 };
-
-export const WORKFLOW_KEY = 'lpsm_workflow_v1';
-
-export const readWorkflows = () => {
-  try {
-    const raw = localStorage.getItem(WORKFLOW_KEY);
-    return raw ? JSON.parse(raw) : {};
-  } catch { return {}; }
-};
-
-export const getApprovalComments = (courseCode) => {
-  try {
-    const raw = localStorage.getItem('approval_comments_v1');
-    const all = raw ? JSON.parse(raw) : [];
-    return Array.isArray(all) ? all.filter(c => c.courseCode === courseCode) : [];
-  } catch { return []; }
-};
-
-export const ACTIVITY_KEY = 'lpsm_audit_activity_v1';
-
-export const getRecentActivity = (limit = 20) => {
-  try {
-    const raw = localStorage.getItem(ACTIVITY_KEY);
-    const all = raw ? JSON.parse(raw) : [];
-    return Array.isArray(all) ? all.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)).slice(0, limit) : [];
-  } catch { return []; }
-};

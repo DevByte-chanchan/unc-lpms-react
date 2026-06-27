@@ -4,6 +4,7 @@ require('dotenv').config();
 const db = require('./models');
 const learningPlansRouter = require('./routes/learningPlans');
 const programDocumentsRouter = require('./routes/programDocuments');
+const syllabiRouter = require('./routes/syllabi');
 const { errorHandler, notFoundHandler } = require('./middleware/errorHandler');
 
 const app = express();
@@ -16,6 +17,7 @@ app.use(express.urlencoded({ extended: true }));
 // Routes
 app.use('/api/learning-plans', learningPlansRouter);
 app.use('/api/program-documents', programDocumentsRouter);
+app.use('/api/syllabi', syllabiRouter);
 
 // Health check
 app.get('/health', (req, res) => {

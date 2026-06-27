@@ -2,13 +2,14 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styles from '../../../styles/OICOVPAADashboard.module.scss';
 import * as service from '../../../services/learningPlanService';
+import * as syllabusService from '../../../services/syllabusService';
 import { getSyllabi } from '../../../utils/dataStore';
 import { exportSyllabusToPDF } from '../../../utils/pdfExport';
 import { FileText, Clipboard } from 'react-feather';
 import {
-  StatusBadge, DeanEmptyState, ActionButton, fmtDate,
-  readWorkflows, getRecentActivity, WORKFLOW_KEY
+  StatusBadge, DeanEmptyState, ActionButton, fmtDate
 } from './dashboardHelpers';
+import SyllabusVersionHistory from './SyllabusVersionHistory';
 
 const OICOVPAADashboard = () => {
   const navigate = useNavigate();
@@ -21,17 +22,14 @@ const OICOVPAADashboard = () => {
   const [statusFilter, setStatusFilter] = useState('all');
   const [selectedPlans, setSelectedPlans] = useState(new Set());
   const [exporting, setExporting] = useState(false);
-  const [recentActivity, setRecentActivity] = useState([]);
   const [toast, setToast] = useState(null);
   const [syllabiStatusFilter, setSyllabiStatusFilter] = useState('all');
   const [refreshKey, setRefreshKey] = useState(0);
+  const [syllabusApprovals, setSyllabusApprovals] = useState([]);
+  const [versionHistoryTarget, setVersionHistoryTarget] = useState(null);
 
   const userId = parseInt(localStorage.getItem('userId') || '40');
   const role = 'oic_ovpaa';
-
-  // ponytail: localStorage-only warning. Add API persistence when main server
-  // gets a workflow endpoint.
-  const useLocalStorageWarning = 'Syllabus approvals use local storage — data will be lost if cache is cleared.';
 
   const showToast = (msg, type = 'success') => {
     setToast({ msg, type });
@@ -40,7 +38,7 @@ const OICOVPAADashboard = () => {
 
   useEffect(() => {
     fetchApprovedPlans();
-    setRecentActivity(getRecentActivity());
+    fetchSyllabusApprovals();
   }, [refreshKey]);
 
   const fetchApprovedPlans = async () => {
@@ -56,19 +54,34 @@ const OICOVPAADashboard = () => {
     }
   };
 
+  const fetchSyllabusApprovals = async () => {
+    try {
+      const res = await syllabusService.listApprovals(role, userId);
+      setSyllabusApprovals(res.data || []);
+    } catch (err) {
+      console.error('Failed to load syllabus approvals:', err);
+    }
+  };
+
   const syllabusWorkflows = useMemo(() => {
-    const workflows = readWorkflows();
     const syllabi = getSyllabi();
-    return Object.entries(workflows).map(([code, wf]) => {
-      const syllabus = syllabi.find(s => s.code === code);
+    return syllabusApprovals.map(sa => {
+      const syllabus = syllabi.find(s => s.code === sa.course_code);
       return {
-        code,
-        courseName: syllabus?.name || syllabus?.courseName || syllabus?.course || code,
-        workflow: wf,
+        code: sa.course_code,
+        courseName: sa.course_name || syllabus?.name || syllabus?.courseName || syllabus?.course || sa.course_code,
+        workflow: {
+          currentStage: sa.current_stage,
+          submittedAt: sa.submitted_at,
+          oicOvpaa: sa.oic_status === 'pending' ? null : {
+            status: sa.oic_status,
+            completedAt: sa.oic_reviewed_at
+          }
+        },
         syllabus: syllabus || null
       };
     });
-  }, [refreshKey]);
+  }, [syllabusApprovals]);
 
   const pendingApprovals = useMemo(() => {
     return syllabusWorkflows.filter(s => {
@@ -122,24 +135,23 @@ const OICOVPAADashboard = () => {
   }, [syllabusWorkflows]);
 
   const localApprovedPlans = useMemo(() => {
-    const workflows = readWorkflows();
     const syllabi = getSyllabi();
-    return Object.entries(workflows)
-      .filter(([, wf]) => wf.currentStage === 'approved')
-      .map(([code, wf]) => {
-        const syllabus = syllabi.find(s => s.code === code);
+    return syllabusApprovals
+      .filter(sa => sa.oic_status === 'approved')
+      .map(sa => {
+        const syllabus = syllabi.find(s => s.code === sa.course_code);
         return {
-          id: code,
-          course_code: code,
-          course_name: syllabus?.name || syllabus?.courseName || syllabus?.course || code,
-          instructor: { name: syllabus?.instructor || 'Unknown' },
-          academic_year: syllabus?.academicYear || syllabus?.schoolYear || '2024-2025',
-          semester: syllabus?.semester || syllabus?.sem?.replace(' Semester', '') || '1st',
-          updated_at: wf.oicOvpaa?.completedAt || wf.dean?.completedAt || null,
+          id: sa.course_code,
+          course_code: sa.course_code,
+          course_name: sa.course_name || syllabus?.name || syllabus?.courseName || sa.course_code,
+          instructor: { name: sa.instructor_name || syllabus?.instructor || 'Unknown' },
+          academic_year: sa.academic_year || syllabus?.academicYear || syllabus?.schoolYear || '2024-2025',
+          semester: sa.semester || syllabus?.semester || (syllabus?.sem ? syllabus.sem.replace(' Semester', '') : '1st'),
+          updated_at: sa.oic_reviewed_at || sa.updated_at,
           status: 'approved'
         };
       });
-  }, [refreshKey]);
+  }, [syllabusApprovals]);
 
   const filteredPlans = localApprovedPlans.filter(plan => {
     const matchesSearch = !searchTerm ||
@@ -191,33 +203,25 @@ const OICOVPAADashboard = () => {
     }
   };
 
-  const handleApproveSyllabus = (code) => {
+  const handleApproveSyllabus = async (code) => {
     try {
-      const wf = readWorkflows();
-      if (wf[code]) {
-        wf[code].oicOvpaa = { status: 'done', completedAt: new Date().toISOString() };
-        wf[code].currentStage = 'approved';
-        localStorage.setItem(WORKFLOW_KEY, JSON.stringify(wf));
-        setRefreshKey(k => k + 1);
-        showToast(`Syllabus ${code} approved successfully!`);
-      }
-    } catch {
-      showToast('Failed to approve syllabus', 'warning');
+      await syllabusService.approveSyllabus(role, userId, code, { comments: '' });
+      setRefreshKey(k => k + 1);
+      showToast(`Syllabus ${code} approved successfully!`);
+    } catch (err) {
+      showToast(err.response?.data?.error || 'Failed to approve syllabus', 'warning');
     }
   };
 
-  const handleReturnSyllabus = (code) => {
+  const handleReturnSyllabus = async (code) => {
     try {
-      const wf = readWorkflows();
-      if (wf[code]) {
-        wf[code].oicOvpaa = { status: 'returned', completedAt: new Date().toISOString() };
-        wf[code].currentStage = 'returned';
-        localStorage.setItem(WORKFLOW_KEY, JSON.stringify(wf));
-        setRefreshKey(k => k + 1);
-        showToast(`Syllabus ${code} returned for revision.`);
-      }
-    } catch {
-      showToast('Failed to return syllabus', 'warning');
+      const msg = prompt('Enter reason for returning:');
+      if (msg === null) return;
+      await syllabusService.returnSyllabus(role, userId, code, { comments: msg || '' });
+      setRefreshKey(k => k + 1);
+      showToast(`Syllabus ${code} returned for revision.`);
+    } catch (err) {
+      showToast(err.response?.data?.error || 'Failed to return syllabus', 'warning');
     }
   };
 
@@ -266,9 +270,6 @@ const OICOVPAADashboard = () => {
         <div>
           <h1>APPROVED COURSES</h1>
           <p className={styles.subtitle}>Finalized and validated syllabi (locked/official version)</p>
-        </div>
-        <div style={{ fontSize: 11, color: '#e67e22', background: '#fef5e7', padding: '4px 12px', borderRadius: 4 }}>
-          {useLocalStorageWarning}
         </div>
       </div>
 
@@ -358,21 +359,7 @@ const OICOVPAADashboard = () => {
               <div className={styles.cardHeader}>
                 <h3>Recent Activity</h3>
               </div>
-              {recentActivity.length === 0 ? (
-                <DeanEmptyState icon={Clipboard} title="No recent activity" description="Activity log will appear here once actions are performed." />
-              ) : (
-                <div className={styles.activityList}>
-                  {recentActivity.slice(0, 8).map((activity, i) => (
-                    <div key={i} className={styles.activityItem}>
-                      <div className={styles.activityDot} />
-                      <div className={styles.activityContent}>
-                        <span className={styles.activityMsg}>{activity.message}</span>
-                        <span className={styles.activityTime}>{new Date(activity.timestamp).toLocaleString()}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+              <DeanEmptyState icon={Clipboard} title="No recent activity" description="Activity log will appear here once actions are performed." />
             </div>
           </div>
 
@@ -450,7 +437,7 @@ const OICOVPAADashboard = () => {
                   </thead>
                   <tbody>
                     {effectiveSyllabiList.map((item, i) => {
-                      const approvedDate = item.workflow.dean?.completedAt || item.workflow.oicOvpaa?.completedAt || '';
+                      const approvedDate = item.workflow.oicOvpaa?.completedAt || '';
                       return (
                         <tr key={item.code} style={{ borderBottom: i < effectiveSyllabiList.length - 1 ? '1px solid #e5e7eb' : 'none' }}>
                           <td style={{ padding: '12px 16px', fontSize: 13, fontWeight: 600, color: '#3498db', fontFamily: "'Courier New', monospace" }}>{item.code}</td>
@@ -463,6 +450,7 @@ const OICOVPAADashboard = () => {
                           <td style={{ padding: '12px 16px', textAlign: 'center' }}>
                             <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
                               <ActionButton color="#3498db" onClick={() => navigate(`/role/oic-ovpaa/courses/${encodeURIComponent(item.code)}`)}>View</ActionButton>
+                              <ActionButton color="#7c3aed" onClick={() => setVersionHistoryTarget(item.code)}>History</ActionButton>
                             </div>
                           </td>
                         </tr>
@@ -510,6 +498,7 @@ const OICOVPAADashboard = () => {
                             <button onClick={() => handleReturnSyllabus(item.code)} className={styles.returnButton}>Return</button>
                           </>
                         )}
+                        <button onClick={() => setVersionHistoryTarget(item.code)} className={styles.historyButton}>History</button>
                       </td>
                     </tr>
                   ))}
@@ -656,6 +645,15 @@ const OICOVPAADashboard = () => {
             <div className={styles.statLabel}>Selected for Export</div>
           </div>
         </div>
+      )}
+
+      {versionHistoryTarget && (
+        <SyllabusVersionHistory
+          courseCode={versionHistoryTarget}
+          role={role}
+          userId={userId}
+          onClose={() => setVersionHistoryTarget(null)}
+        />
       )}
     </div>
   );
