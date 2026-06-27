@@ -12,7 +12,7 @@ const roleNames = {
   'industry-consultant': 'Industry Consultant',
   'dean': 'Dean',
   'instructor': 'Instructor',
-  'oic-ovpaa': 'OIC-OVPAA'
+  'vpaa': 'VPAA'
 }
 
 const approverDisplayNames = {
@@ -21,7 +21,7 @@ const approverDisplayNames = {
   'industry-consultant': 'CRUZ, ROBERTO',
   'director-of-libraries': 'SANTOS, MARIA',
   'instructor': 'CASIMERO, DANNY',
-  'oic-ovpaa': 'GARCIA, CARLOS'
+  'vpaa': 'GARCIA, CARLOS'
 }
 
 const normalizeName = (name) => {

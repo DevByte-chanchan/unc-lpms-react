@@ -54,7 +54,7 @@ module.exports = {
       {
         id: 50,
         name: 'Mr. Carlos Garcia',
-        role: 'oic_ovpaa',
+        role: 'vpaa',
         email: 'carlos.garcia@unc.edu',
         created_at: new Date(),
         updated_at: new Date()

@@ -21,10 +21,10 @@ const ApprovalCoursesTable = ({ role = 'approver' }) => {
         yearOptions.push(<option key={i} value={i}>{i}</option>);
     }
 
-    const statuses = role === 'oic-ovpaa' ? ["APPROVED"] : ["PENDING", "RETURNED", "APPROVED"];
+    const statuses = role === 'vpaa' ? ["APPROVED"] : ["PENDING", "RETURNED", "APPROVED"];
 
     const [searchParams, setSearchParams] = useSearchParams();
-    const defaultStatus = role === 'oic-ovpaa' ? 'APPROVED' : 'PENDING';
+    const defaultStatus = role === 'vpaa' ? 'APPROVED' : 'PENDING';
     const [selectedStatus, setSelectedStatus] = useState(() => {
         const fromUrl = searchParams.get('status');
         if (fromUrl && statuses.some(s => s.toLowerCase() === fromUrl.toLowerCase())) {
@@ -268,7 +268,7 @@ const ApprovalCoursesTable = ({ role = 'approver' }) => {
 
                 <div className={styles.fill}></div>
 
-                {role !== 'oic-ovpaa' && (
+                {role !== 'vpaa' && (
                 <div className={styles['filter-container']}>
                     <div className={styles['segmented-control']}>
                         {statuses.map((status) => {

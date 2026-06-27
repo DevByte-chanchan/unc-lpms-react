@@ -255,7 +255,7 @@ export const exportSyllabusToPDF = (syllabus, courseCode, workflow) => {
       if (workflow.dean) {
         approvalData.push(['Dean', workflow.dean.completedAt ? 'Approved' : workflow.dean.status, workflow.dean.completedAt ? formatDate(workflow.dean.completedAt) : '—', workflow.dean.completedAt ? '✓' : 'Pending'])
       }
-      approvalData.push(['OIC-OVPAA', '—', '—', '—'])
+      approvalData.push(['VPAA', '—', '—', '—'])
 
       doc.autoTable({
         startY: y,
@@ -275,7 +275,7 @@ export const exportSyllabusToPDF = (syllabus, courseCode, workflow) => {
       y = addSignatureBlock(doc, 'Prepared by:', syllabus.instructor || '_____________', 'Instructor', y)
       y = addSignatureBlock(doc, 'Reviewed by:', '_____________', 'Program Head', y)
       y = addSignatureBlock(doc, 'Approved by:', '_____________', 'Dean', y)
-      y = addSignatureBlock(doc, 'Noted by:', '_____________', 'OIC-OVPAA', y)
+      y = addSignatureBlock(doc, 'Noted by:', '_____________', 'VPAA', y)
     }
 
     addFooter(doc, pageCount.current)

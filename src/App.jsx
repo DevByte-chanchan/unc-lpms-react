@@ -19,7 +19,7 @@ import ProgramHeadIndustryConsultant from "./pages/ProgramHeadIndustryConsultant
 import ProgramHeadCourseOfferings from "./pages/ProgramHeadCourseOfferings.jsx";
 import ApprovalSyllabus from "./pages/ApprovalSyllabus.jsx";
 import Dean from "./pages/Dean.jsx";
-import OICOVPAA from "./pages/OICOVPAA.jsx";
+import VPAA from "./pages/VPAA.jsx";
 
 // Instructor LPSM Pages
 import InstructorDashboard from "./pages/lpsm/InstructorDashboard.jsx";
@@ -39,8 +39,8 @@ import DirectorReferenceLibrary from "./pages/lpsm/DirectorOfLibraries/Reference
 import DirectorAddReference from "./pages/lpsm/DirectorOfLibraries/AddReference.jsx";
 import DirectorViewReference from "./pages/lpsm/DirectorOfLibraries/ViewReference.jsx";
 
-// OIC-OVPAA LPSM Pages
-import OICOVPAADashboard from "./pages/lpsm/OICOvpaa/OICOVPAADashboard.jsx";
+// VPAA LPSM Pages
+import VPAADashboard from "./pages/lpsm/VPAA/VPAADashboard.jsx";
 
 // Route Guard
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
@@ -126,8 +126,8 @@ seedDemoWorkflows()
   const d = (hours) => new Date(now.getTime() - hours * 3600000).toISOString()
 
   const activities = [
-    { action: 'approval_approved', user: { name: 'GARCIA, CARLOS', role: 'oic-ovpaa' }, details: { courseCode: 'BSCS121' }, message: 'Approved syllabus BSCS121', timestamp: d(2) },
-    { action: 'approval_approved', user: { name: 'GARCIA, CARLOS', role: 'oic-ovpaa' }, details: { courseCode: 'IT 211' }, message: 'Approved syllabus IT 211', timestamp: d(4) },
+    { action: 'approval_approved', user: { name: 'GARCIA, CARLOS', role: 'vpaa' }, details: { courseCode: 'BSCS121' }, message: 'Approved syllabus BSCS121', timestamp: d(2) },
+    { action: 'approval_approved', user: { name: 'GARCIA, CARLOS', role: 'vpaa' }, details: { courseCode: 'IT 211' }, message: 'Approved syllabus IT 211', timestamp: d(4) },
     { action: 'export', user: { name: 'CASIMERO, DANNY', role: 'instructor' }, details: { exportType: 'pdf', courseCode: 'BSCS313L' }, message: 'Exported syllabus BSCS313L to PDF', timestamp: d(6) },
     { action: 'form_submission', user: { name: 'CASIMERO, DANNY', role: 'instructor' }, details: { formName: 'Syllabus', courseCode: 'BSCS322L' }, message: 'Submitted syllabus BSCS322L for review', timestamp: d(8) },
     { action: 'approval_approved', user: { name: 'REYES, AGNES', role: 'dean' }, details: { courseCode: 'BSCS313L' }, message: 'Dean approved syllabus BSCS313L', timestamp: d(10) },
@@ -135,7 +135,7 @@ seedDemoWorkflows()
     { action: 'document_upload', user: { name: 'SANTOS, MARIA', role: 'director-of-libraries' }, details: { documentType: 'reference' }, message: 'Added new reference to library', timestamp: d(14) },
     { action: 'form_submission', user: { name: 'DANILA, JUNAR', role: 'program-head' }, details: { formName: 'COAEP' }, message: 'Uploaded COAEP documents', timestamp: d(16) },
     { action: 'export', user: { name: 'CASIMERO, DANNY', role: 'instructor' }, details: { exportType: 'pdf', courseCode: 'IT 211' }, message: 'Exported learning plan IT 211 to PDF', timestamp: d(20) },
-    { action: 'page_view', user: { name: 'GARCIA, CARLOS', role: 'oic-ovpaa' }, details: { page: '/oic-ovpaa/dashboard' }, message: 'Accessed OIC-OVPAA dashboard', timestamp: d(24) },
+    { action: 'page_view', user: { name: 'GARCIA, CARLOS', role: 'vpaa' }, details: { page: '/vpaa/dashboard' }, message: 'Accessed VPAA dashboard', timestamp: d(24) },
   ]
 
   localStorage.setItem(ACTIVITY_KEY, JSON.stringify(activities))
@@ -204,22 +204,22 @@ function App() {
                         <Route path={'/role/program-head/industry-consultant'} element={<ErrorBoundary><ProgramHeadIndustryConsultant /></ErrorBoundary>} />
                         <Route path={'/role/program-head/course-offerings'} element={<ErrorBoundary><ProgramHeadCourseOfferings /></ErrorBoundary>} />
                         <Route path={'/role/dean'} element={<ErrorBoundary><Dean /></ErrorBoundary>} />
-                        <Route path={'/role/oic-ovpaa'} element={<ErrorBoundary><OICOVPAA /></ErrorBoundary>} />
+                        <Route path={'/role/vpaa'} element={<ErrorBoundary><VPAA /></ErrorBoundary>} />
 
-                        {/* OIC-OVPAA Dashboard Routes (Protected) */}
-                        <Route path="/oic-ovpaa/dashboard" element={
-                            <ProtectedRoute allowedRoles={['oic-ovpaa']}>
-                                <ErrorBoundary><OICOVPAADashboard /></ErrorBoundary>
+                        {/* VPAA Dashboard Routes (Protected) */}
+                        <Route path="/vpaa/dashboard" element={
+                            <ProtectedRoute allowedRoles={['vpaa']}>
+                                <ErrorBoundary><VPAADashboard /></ErrorBoundary>
                             </ProtectedRoute>
                         } />
-                        <Route path="/oic-ovpaa/learning-plans" element={
-                            <ProtectedRoute allowedRoles={['oic-ovpaa']}>
-                                <ErrorBoundary><OICOVPAADashboard /></ErrorBoundary>
+                        <Route path="/vpaa/learning-plans" element={
+                            <ProtectedRoute allowedRoles={['vpaa']}>
+                                <ErrorBoundary><VPAADashboard /></ErrorBoundary>
                             </ProtectedRoute>
                         } />
-                        <Route path="/oic-ovpaa/approvals" element={
-                            <ProtectedRoute allowedRoles={['oic-ovpaa']}>
-                                <ErrorBoundary><OICOVPAADashboard /></ErrorBoundary>
+                        <Route path="/vpaa/approvals" element={
+                            <ProtectedRoute allowedRoles={['vpaa']}>
+                                <ErrorBoundary><VPAADashboard /></ErrorBoundary>
                             </ProtectedRoute>
                         } />
 

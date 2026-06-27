@@ -148,7 +148,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
           : roleSource.includes('instructor')
             ? 'instructor'
             : roleSource.includes('oic') || roleSource.includes('ovpaa')
-              ? 'oic-ovpaa'
+              ? 'vpaa'
               : roleSource.includes('approver')
                 ? 'approver'
                 : 'approver'
@@ -167,7 +167,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
       return '/'
     }
     const base = (() => {
-      if (roleKey === 'oic-ovpaa') return '/role/oic-ovpaa?page=Approved%20Plans'
+      if (roleKey === 'vpaa') return '/role/vpaa?page=Approved%20Plans'
       if (roleKey === 'dean') return '/role/dean?page=Syllabus'
       if (roleKey === 'director-of-libraries') return '/role/director-of-libraries/approval-course-table?page=Syllabus'
       if (roleKey === 'industry-consultant') return '/role/industry-consultant/approval-course-table?page=Syllabus'
@@ -627,7 +627,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
                 }}>Approve</button>
               </div>
             )}
-            {effectiveStatus === 'approved' && (roleKey === 'instructor' || roleKey === 'dean' || roleKey === 'oic-ovpaa') && (
+            {effectiveStatus === 'approved' && (roleKey === 'instructor' || roleKey === 'dean' || roleKey === 'vpaa') && (
               <div className={styles.approvalButtons}>
                 <button
                   onClick={() => {

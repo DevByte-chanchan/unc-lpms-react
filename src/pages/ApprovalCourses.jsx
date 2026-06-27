@@ -27,7 +27,7 @@ const ApprovalCourses = ({ isEmbedded = false, roleOverride = null }) => {
       'industry-consultant': 'Industry Consultant',
       'dean': 'Dean',
       'instructor': 'Instructor',
-      'oic-ovpaa': 'OIC-OVPAA'
+      'vpaa': 'VPAA'
     }
 
     const roleDisplayNames = {
@@ -36,7 +36,7 @@ const ApprovalCourses = ({ isEmbedded = false, roleOverride = null }) => {
       'industry-consultant': 'CRUZ, ROBERTO',
       'dean': 'REYES, AGNES',
       'instructor': 'CASIMERO, DANNY',
-      'oic-ovpaa': 'GARCIA, CARLOS'
+      'vpaa': 'GARCIA, CARLOS'
     }
 
     const normalizeName = (name) => {

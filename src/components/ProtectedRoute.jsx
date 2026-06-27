@@ -8,7 +8,7 @@ const ALLOWED_ROLES = {
   dean: ['dean'],
   'director-of-libraries': ['director-of-libraries', 'director_of_libraries'],
   'industry-consultant': ['industry-consultant', 'industry_consultant'],
-  'oic-ovpaa': ['oic-ovpaa', 'oic_ovpaa']
+  'vpaa': ['vpaa', 'vpaa']
 }
 
 const ProtectedRoute = ({ children, allowedRoles, fallbackPath = '/' }) => {

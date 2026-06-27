@@ -82,7 +82,7 @@ export default {
 /**
  * Pre-populate diverse workflow states so tables show meaningful data.
  * Seeds missing entries when version changes. Always ensures approved/returned
- * demo entries exist so OIC-OVPAA and approval tables have data.
+ * demo entries exist so VPAA and approval tables have data.
  */
 export function seedDemoWorkflows() {
   const SEED_FLAG = 'lpsm_workflow_seeded_v4'
@@ -164,7 +164,7 @@ export function seedDemoWorkflows() {
       parallelReview: { library_director: { status: 'done', completedAt: d(26) }, industry_consultant: { status: 'done', completedAt: d(25) }, program_head: { status: 'done', completedAt: d(24) } },
       programHead: { status: 'done', completedAt: d(24) },
       dean: { status: 'done', completedAt: d(15) },
-      oicOvpaa: { status: 'done', completedAt: d(12) }
+      vpaa: { status: 'done', completedAt: d(12) }
     }},
     { code: 'IT 211', data: {
       courseCode: 'IT 211', currentStage: 'approved',
@@ -172,7 +172,7 @@ export function seedDemoWorkflows() {
       parallelReview: { library_director: { status: 'done', completedAt: d(24) }, industry_consultant: { status: 'done', completedAt: d(23) }, program_head: { status: 'done', completedAt: d(22) } },
       programHead: { status: 'done', completedAt: d(22) },
       dean: { status: 'done', completedAt: d(13) },
-      oicOvpaa: { status: 'done', completedAt: d(10) }
+      vpaa: { status: 'done', completedAt: d(10) }
     }},
     // Returned syllabus
     { code: 'IT 321', data: {
@@ -181,7 +181,7 @@ export function seedDemoWorkflows() {
       parallelReview: { library_director: { status: 'done', completedAt: d(10) }, industry_consultant: { status: 'done', completedAt: d(9) }, program_head: { status: 'returned', completedAt: d(7) } },
       programHead: { status: 'returned', completedAt: d(7) },
       dean: { status: 'pending', completedAt: null },
-      oicOvpaa: { status: 'pending', completedAt: null }
+      vpaa: { status: 'pending', completedAt: null }
     }},
     { code: 'IT 311', data: {
       courseCode: 'IT 311', currentStage: 'approved',
@@ -189,7 +189,7 @@ export function seedDemoWorkflows() {
       parallelReview: { library_director: { status: 'done', completedAt: d(21) }, industry_consultant: { status: 'done', completedAt: d(20) }, program_head: { status: 'done', completedAt: d(19) } },
       programHead: { status: 'done', completedAt: d(19) },
       dean: { status: 'done', completedAt: d(10) },
-      oicOvpaa: { status: 'done', completedAt: d(8) }
+      vpaa: { status: 'done', completedAt: d(8) }
     }},
     // New courses — seeded into various stages for richness
     { code: 'BSCS221L', data: {
@@ -227,7 +227,7 @@ export function seedDemoWorkflows() {
       parallelReview: { library_director: { status: 'done', completedAt: d(36) }, industry_consultant: { status: 'done', completedAt: d(35) }, program_head: { status: 'done', completedAt: d(34) } },
       programHead: { status: 'done', completedAt: d(34) },
       dean: { status: 'done', completedAt: d(25) },
-      oicOvpaa: { status: 'done', completedAt: d(20) }
+      vpaa: { status: 'done', completedAt: d(20) }
     }},
     { code: 'BSCS102', data: {
       courseCode: 'BSCS102', currentStage: 'approved',
@@ -235,7 +235,7 @@ export function seedDemoWorkflows() {
       parallelReview: { library_director: { status: 'done', completedAt: d(31) }, industry_consultant: { status: 'done', completedAt: d(30) }, program_head: { status: 'done', completedAt: d(29) } },
       programHead: { status: 'done', completedAt: d(29) },
       dean: { status: 'done', completedAt: d(20) },
-      oicOvpaa: { status: 'done', completedAt: d(15) }
+      vpaa: { status: 'done', completedAt: d(15) }
     }},
     { code: 'BSCS103', data: {
       courseCode: 'BSCS103', currentStage: 'approved',
@@ -243,7 +243,7 @@ export function seedDemoWorkflows() {
       parallelReview: { library_director: { status: 'done', completedAt: d(28) }, industry_consultant: { status: 'done', completedAt: d(27) }, program_head: { status: 'done', completedAt: d(26) } },
       programHead: { status: 'done', completedAt: d(26) },
       dean: { status: 'done', completedAt: d(18) },
-      oicOvpaa: { status: 'done', completedAt: d(12) }
+      vpaa: { status: 'done', completedAt: d(12) }
     }},
     // --- More returned syllabi ---
     { code: 'BSCS201', data: {
@@ -252,7 +252,7 @@ export function seedDemoWorkflows() {
       parallelReview: { library_director: { status: 'done', completedAt: d(18) }, industry_consultant: { status: 'done', completedAt: d(17) }, program_head: { status: 'returned', completedAt: d(15) } },
       programHead: { status: 'returned', completedAt: d(15) },
       dean: { status: 'pending', completedAt: null },
-      oicOvpaa: { status: 'pending', completedAt: null }
+      vpaa: { status: 'pending', completedAt: null }
     }},
     { code: 'BSCS202', data: {
       courseCode: 'BSCS202', currentStage: 'returned',
@@ -260,7 +260,7 @@ export function seedDemoWorkflows() {
       parallelReview: { library_director: { status: 'returned', completedAt: d(14) }, industry_consultant: { status: 'done', completedAt: d(13) }, program_head: { status: 'pending', completedAt: null } },
       programHead: { status: 'pending', completedAt: null },
       dean: { status: 'pending', completedAt: null },
-      oicOvpaa: { status: 'pending', completedAt: null }
+      vpaa: { status: 'pending', completedAt: null }
     }},
     { code: 'BSCS203', data: {
       courseCode: 'BSCS203', currentStage: 'returned',
@@ -268,7 +268,7 @@ export function seedDemoWorkflows() {
       parallelReview: { library_director: { status: 'done', completedAt: d(12) }, industry_consultant: { status: 'returned', completedAt: d(11) }, program_head: { status: 'done', completedAt: d(10) } },
       programHead: { status: 'done', completedAt: d(10) },
       dean: { status: 'pending', completedAt: null },
-      oicOvpaa: { status: 'pending', completedAt: null }
+      vpaa: { status: 'pending', completedAt: null }
     }},
     // --- More submitted (draft/pending) ---
     { code: 'BSCS301', data: {
@@ -343,7 +343,7 @@ export function seedDemoWorkflows() {
       parallelReview: { library_director: { status: 'done', completedAt: d(16) }, industry_consultant: { status: 'done', completedAt: d(15) }, program_head: { status: 'returned', completedAt: d(13) } },
       programHead: { status: 'returned', completedAt: d(13) },
       dean: { status: 'pending', completedAt: null },
-      oicOvpaa: { status: 'pending', completedAt: null }
+      vpaa: { status: 'pending', completedAt: null }
     }},
     { code: 'BSCS408', data: {
       courseCode: 'BSCS408', currentStage: 'returned',
@@ -351,7 +351,7 @@ export function seedDemoWorkflows() {
       parallelReview: { library_director: { status: 'returned', completedAt: d(13) }, industry_consultant: { status: 'done', completedAt: d(12) }, program_head: { status: 'pending', completedAt: null } },
       programHead: { status: 'pending', completedAt: null },
       dean: { status: 'pending', completedAt: null },
-      oicOvpaa: { status: 'pending', completedAt: null }
+      vpaa: { status: 'pending', completedAt: null }
     }},
     { code: 'BSCS409', data: {
       courseCode: 'BSCS409', currentStage: 'returned',
@@ -359,7 +359,7 @@ export function seedDemoWorkflows() {
       parallelReview: { library_director: { status: 'done', completedAt: d(11) }, industry_consultant: { status: 'returned', completedAt: d(10) }, program_head: { status: 'done', completedAt: d(9) } },
       programHead: { status: 'done', completedAt: d(9) },
       dean: { status: 'pending', completedAt: null },
-      oicOvpaa: { status: 'pending', completedAt: null }
+      vpaa: { status: 'pending', completedAt: null }
     }},
     // --- Missed syllabus codes ---
     { code: 'BSCS421L', data: {
@@ -404,7 +404,7 @@ export function seedDemoWorkflows() {
       parallelReview: { library_director: { status: 'done', completedAt: d(26) }, industry_consultant: { status: 'done', completedAt: d(25) }, program_head: { status: 'done', completedAt: d(24) } },
       programHead: { status: 'done', completedAt: d(24) },
       dean: { status: 'done', completedAt: d(15) },
-      oicOvpaa: { status: 'done', completedAt: d(10) }
+      vpaa: { status: 'done', completedAt: d(10) }
     }},
     { code: 'BSCS504', data: {
       courseCode: 'BSCS504', currentStage: 'returned',
@@ -412,7 +412,7 @@ export function seedDemoWorkflows() {
       parallelReview: { library_director: { status: 'done', completedAt: d(16) }, industry_consultant: { status: 'done', completedAt: d(15) }, program_head: { status: 'returned', completedAt: d(12) } },
       programHead: { status: 'returned', completedAt: d(12) },
       dean: { status: 'pending', completedAt: null },
-      oicOvpaa: { status: 'pending', completedAt: null }
+      vpaa: { status: 'pending', completedAt: null }
     }},
     { code: 'BSCS505', data: {
       courseCode: 'BSCS505', currentStage: 'submitted',
@@ -434,7 +434,7 @@ export function seedDemoWorkflows() {
       parallelReview: { library_director: { status: 'done', completedAt: d(24) }, industry_consultant: { status: 'done', completedAt: d(23) }, program_head: { status: 'done', completedAt: d(22) } },
       programHead: { status: 'done', completedAt: d(22) },
       dean: { status: 'done', completedAt: d(12) },
-      oicOvpaa: { status: 'done', completedAt: d(8) }
+      vpaa: { status: 'done', completedAt: d(8) }
     }},
     { code: 'BSCS508', data: {
       courseCode: 'BSCS508', currentStage: 'returned',
@@ -442,7 +442,7 @@ export function seedDemoWorkflows() {
       parallelReview: { library_director: { status: 'done', completedAt: d(14) }, industry_consultant: { status: 'returned', completedAt: d(13) }, program_head: { status: 'done', completedAt: d(12) } },
       programHead: { status: 'done', completedAt: d(12) },
       dean: { status: 'pending', completedAt: null },
-      oicOvpaa: { status: 'pending', completedAt: null }
+      vpaa: { status: 'pending', completedAt: null }
     }},
     { code: 'BSCS509', data: {
       courseCode: 'BSCS509', currentStage: 'submitted',
@@ -464,7 +464,7 @@ export function seedDemoWorkflows() {
       parallelReview: { library_director: { status: 'done', completedAt: d(22) }, industry_consultant: { status: 'done', completedAt: d(21) }, program_head: { status: 'done', completedAt: d(20) } },
       programHead: { status: 'done', completedAt: d(20) },
       dean: { status: 'done', completedAt: d(10) },
-      oicOvpaa: { status: 'done', completedAt: d(6) }
+      vpaa: { status: 'done', completedAt: d(6) }
     }},
     { code: 'BSCS512', data: {
       courseCode: 'BSCS512', currentStage: 'returned',
@@ -472,7 +472,7 @@ export function seedDemoWorkflows() {
       parallelReview: { library_director: { status: 'returned', completedAt: d(12) }, industry_consultant: { status: 'done', completedAt: d(11) }, program_head: { status: 'done', completedAt: d(10) } },
       programHead: { status: 'done', completedAt: d(10) },
       dean: { status: 'pending', completedAt: null },
-      oicOvpaa: { status: 'pending', completedAt: null }
+      vpaa: { status: 'pending', completedAt: null }
     }},
     // --- More draft entries ---
     { code: 'BSCS513', data: {
@@ -495,7 +495,7 @@ export function seedDemoWorkflows() {
       parallelReview: { library_director: { status: 'done', completedAt: d(20) }, industry_consultant: { status: 'done', completedAt: d(19) }, program_head: { status: 'done', completedAt: d(18) } },
       programHead: { status: 'done', completedAt: d(18) },
       dean: { status: 'done', completedAt: d(8) },
-      oicOvpaa: { status: 'done', completedAt: d(4) }
+      vpaa: { status: 'done', completedAt: d(4) }
     }},
     { code: 'BSCS516', data: {
       courseCode: 'BSCS516', currentStage: 'returned',
@@ -503,7 +503,7 @@ export function seedDemoWorkflows() {
       parallelReview: { library_director: { status: 'done', completedAt: d(10) }, industry_consultant: { status: 'returned', completedAt: d(9) }, program_head: { status: 'done', completedAt: d(8) } },
       programHead: { status: 'done', completedAt: d(8) },
       dean: { status: 'pending', completedAt: null },
-      oicOvpaa: { status: 'pending', completedAt: null }
+      vpaa: { status: 'pending', completedAt: null }
     }},
     { code: 'BSCS517', data: {
       courseCode: 'BSCS517', currentStage: 'submitted',
@@ -525,7 +525,7 @@ export function seedDemoWorkflows() {
       parallelReview: { library_director: { status: 'done', completedAt: d(18) }, industry_consultant: { status: 'done', completedAt: d(17) }, program_head: { status: 'done', completedAt: d(16) } },
       programHead: { status: 'done', completedAt: d(16) },
       dean: { status: 'done', completedAt: d(6) },
-      oicOvpaa: { status: 'done', completedAt: d(2) }
+      vpaa: { status: 'done', completedAt: d(2) }
     }},
     { code: 'IT 412', data: {
       courseCode: 'IT 412', currentStage: 'returned',
@@ -533,7 +533,7 @@ export function seedDemoWorkflows() {
       parallelReview: { library_director: { status: 'returned', completedAt: d(8) }, industry_consultant: { status: 'done', completedAt: d(7) }, program_head: { status: 'done', completedAt: d(6) } },
       programHead: { status: 'done', completedAt: d(6) },
       dean: { status: 'pending', completedAt: null },
-      oicOvpaa: { status: 'pending', completedAt: null }
+      vpaa: { status: 'pending', completedAt: null }
     }},
     { code: 'IT 413', data: {
       courseCode: 'IT 413', currentStage: 'submitted',

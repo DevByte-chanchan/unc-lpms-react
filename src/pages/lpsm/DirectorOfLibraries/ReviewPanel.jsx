@@ -14,9 +14,25 @@ const ReviewPanel = () => {
   const [submitting, setSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [showVersionHistory, setShowVersionHistory] = useState(false);
+  const [versions, setVersions] = useState([]);
+  const [versionsLoading, setVersionsLoading] = useState(false);
   const showToast = useToast();
 
   const userId = parseInt(localStorage.getItem('userId') || '20');
+
+  const fetchVersions = async (planId) => {
+    setVersionsLoading(true);
+    try {
+      const res = await service.getLPVersions(role, userId, planId);
+      setVersions(res.data || []);
+      setShowVersionHistory(true);
+    } catch (err) {
+      showToast(err.response?.data?.error || 'Failed to load version history', 'warning');
+    } finally {
+      setVersionsLoading(false);
+    }
+  };
 
   useEffect(() => {
     const fetchPlans = async () => {
@@ -124,6 +140,37 @@ const ReviewPanel = () => {
               )}
             </div>
           </div>
+
+          <button onClick={() => fetchVersions(selectedPlan.id)} className={styles.btnSubmit} style={{ marginBottom: 16, background: '#7c3aed' }}>
+            {versionsLoading ? 'Loading...' : 'View Version History'}
+          </button>
+
+          {showVersionHistory && (
+            <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 8, padding: 16, marginBottom: 16 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                <h3 style={{ margin: 0, fontSize: 16, color: '#1e293b' }}>Version History</h3>
+                <button onClick={() => setShowVersionHistory(false)} style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: 18, color: '#94a3b8' }}>×</button>
+              </div>
+              {versions.length === 0 ? (
+                <p style={{ color: '#94a3b8', fontSize: 14 }}>No version history yet.</p>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {versions.map(v => (
+                    <div key={v.version_no} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', background: '#f8fafc', borderRadius: 6, border: '1px solid #f1f5f9' }}>
+                      <div>
+                        <strong style={{ fontSize: 14, color: '#334155' }}>v{v.version_no}</strong>
+                        <span style={{ marginLeft: 8, fontSize: 12, padding: '2px 8px', borderRadius: 99, background: '#ede9fe', color: '#6d28d9' }}>{v.trigger_event}</span>
+                      </div>
+                      <span style={{ fontSize: 12, color: '#94a3b8' }}>
+                        {v.created_at ? new Date(v.created_at).toLocaleDateString() : '-'}
+                        {v.creator?.name ? ` — ${v.creator.name}` : ''}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           <form onSubmit={handleSubmitReview} className={styles.section}>
             <h2>Submit Your Review</h2>

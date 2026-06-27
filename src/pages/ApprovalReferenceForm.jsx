@@ -33,7 +33,7 @@ const ApprovalReferenceForm = () => {
     'industry-consultant': 'CRUZ, ROBERTO',
     'director-of-libraries': 'SANTOS, MARIA',
     'instructor': 'CASIMERO, DANNY',
-    'oic-ovpaa': 'GARCIA, CARLOS'
+    'vpaa': 'GARCIA, CARLOS'
   };
   const normalizeName = (name) => {
     if (!name || name.toLowerCase().includes('norton') || name.toLowerCase().includes('monica')) return 'CASIMERO, DANNY';

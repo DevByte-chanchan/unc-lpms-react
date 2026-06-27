@@ -154,7 +154,7 @@ const SideNavigation = ({ mode = 'instructor' }) => {
             </div>
 
             <div className={styles['nav-list']}>
-                {mode !== 'oic-ovpaa' && (
+                {mode !== 'vpaa' && (
                     <div
                         onClick={() => handlePageChange('Syllabus')}
                         className={`${styles.list} ${selected === 'Syllabus' ? styles.selected : ''}`}
@@ -178,14 +178,6 @@ const SideNavigation = ({ mode = 'instructor' }) => {
 
                 {mode === 'program-head' && (
                     <>
-                        <div onClick={() => { navigate('/role/program-head/industry-consultant?page=Industry%20Consultant') }} className={`${styles.list} ${selected === 'Industry Consultant' ? styles.selected : ''}`}>
-                            <Users size={24} /> <span className={styles.listText}>Industry Consultant</span>
-                        </div>
-
-                        <div onClick={() => { navigate('/role/program-head/course-offerings?page=Course%20Offerings') }} className={`${styles.list} ${selected === 'Course Offerings' ? styles.selected : ''}`}>
-                            <BookOpen size={24} /> <span className={styles.listText}>Course Offerings</span>
-                        </div>
-
                         <div onClick={() => { navigate('/role/program-head/co-po-alignment') }} className={`${styles.list} ${selected === 'CO & PO Alignment' ? styles.selected : ''}`}>
                             <FileText size={24} /> <span className={styles.listText}>CO & PO Alignment</span>
                         </div>
@@ -218,9 +210,9 @@ const SideNavigation = ({ mode = 'instructor' }) => {
                     </>
                 )}
 
-                {mode === 'oic-ovpaa' && (
+                {mode === 'vpaa' && (
                     <>
-                        <div onClick={() => { navigate('/role/oic-ovpaa?page=Approved%20Plans') }} className={`${styles.list} ${selected === 'Approved Plans' ? styles.selected : ''}`}>
+                        <div onClick={() => { navigate('/role/vpaa?page=Approved%20Plans') }} className={`${styles.list} ${selected === 'Approved Plans' ? styles.selected : ''}`}>
                             <FileText size={24} /> <span className={styles.listText}>Approved Plans</span>
                         </div>
                     </>
@@ -239,7 +231,7 @@ const SideNavigation = ({ mode = 'instructor' }) => {
                             <button className={styles.popupItem} onClick={() => gotoRole('/role/director-of-libraries/approval-course-table')}>Director of Libraries</button>
                             <button className={styles.popupItem} onClick={() => gotoRole('/role/industry-consultant/approval-course-table')}>Industry Consultant</button>
                             <button className={styles.popupItem} onClick={() => gotoRole('/role/dean')}>Dean</button>
-                            <button className={styles.popupItem} onClick={() => gotoRole('/role/oic-ovpaa')}>OIC-OVPAA</button>
+                            <button className={styles.popupItem} onClick={() => gotoRole('/role/vpaa')}>VPAA</button>
                         </div>
                     )}
                 </div>

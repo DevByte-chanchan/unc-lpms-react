@@ -28,10 +28,10 @@ const ROLE_IDENTITIES = {
     displayName: 'Roberto Cruz',
     role: 'Industry Consultant'
   },
-  'oic-ovpaa': {
+  'vpaa': {
     name: 'GARCIA, CARLOS',
     displayName: 'Carlos Garcia',
-    role: 'OIC-OVPAA'
+    role: 'VPAA'
   }
 }
 
