@@ -9,6 +9,39 @@ import {fetchJson} from "../utils/api";
 import { getSyllabusByCode } from "../data/syllabiData.js";
 import { getWorkflow } from "../utils/workflowHelpers.js";
 
+const SEED_COMMENTS_KEY = 'lpsm_comments_seeded_v2'
+
+function seedDummyComments(code) {
+    if (!code) return
+    try {
+        const seeded = localStorage.getItem(SEED_COMMENTS_KEY)
+        if (seeded) return
+        const existing = JSON.parse(localStorage.getItem('approval_comments_v1') || '[]')
+        const now = new Date()
+        const dummyComments = [
+            { id: `seed-1-${now.getTime()}`, courseCode: code, section: 'Course Coverage', submissionId: `seed-s1-${now.getTime()}`, submissionLabel: 'Review 1', submittedAt: new Date(now - 86400000).toISOString(), createdAt: new Date(now - 86400000).toISOString(), reviewer: 'SANTOS, MARIA', role: 'Director of Libraries', recipientRole: 'instructor', components: {}, comment: 'Please update the references for ILO1 to include the latest edition.', courseOutcome: 'CO1', ilo: 'CO1-ILO1', coverageType: 'References', coverageDetail: 'The Design of Everyday Things', status: 'pending', resolved: false, suggestedRefs: [] },
+            { id: `seed-ref2-${now.getTime()}`, courseCode: code, section: 'Course Coverage', submissionId: `seed-s1-${now.getTime()}`, submissionLabel: 'Review 1', submittedAt: new Date(now - 86400000).toISOString(), createdAt: new Date(now - 86400000).toISOString(), reviewer: 'SANTOS, MARIA', role: 'Director of Libraries', recipientRole: 'instructor', components: {}, comment: 'Please add more recent references for CO2-ILO1 regarding usability heuristics.', courseOutcome: 'CO2', ilo: 'CO2-ILO1', coverageType: 'References', coverageDetail: '10 Usability Heuristics for User Interface Design', status: 'pending', resolved: false, suggestedRefs: [] },
+            { id: `seed-ref3-${now.getTime()}`, courseCode: code, section: 'Course Coverage', submissionId: `seed-s2-${now.getTime()}`, submissionLabel: 'Review 2', submittedAt: new Date(now - 43200000).toISOString(), createdAt: new Date(now - 43200000).toISOString(), reviewer: 'CRUZ, ROBERTO', role: 'Industry Consultant', recipientRole: 'instructor', components: {}, comment: 'The WCAG references need updating to version 2.2 standards.', courseOutcome: 'CO3', ilo: 'CO3-ILO3', coverageType: 'References', coverageDetail: 'Web Content Accessibility Guidelines (WCAG) 2.2', status: 'pending', resolved: false, suggestedRefs: [] },
+            { id: `seed-ref4-${now.getTime()}`, courseCode: code, section: 'Course Coverage', submissionId: `seed-s3-${now.getTime()}`, submissionLabel: 'Review 3', submittedAt: new Date(now - 21600000).toISOString(), createdAt: new Date(now - 21600000).toISOString(), reviewer: 'DANILA, JUNAR', role: 'Program Head', recipientRole: 'instructor', components: {}, comment: 'The usability testing reference is appropriate but consider adding a supplementary text.', courseOutcome: 'CO4', ilo: 'CO4-ILO1', coverageType: 'References', coverageDetail: "Usability.gov: User Experience Basics", status: 'pending', resolved: false, suggestedRefs: [] },
+            { id: `seed-2-${now.getTime()}`, courseCode: code, section: 'Course Coverage', submissionId: `seed-s1-${now.getTime()}`, submissionLabel: 'Review 1', submittedAt: new Date(now - 86400000).toISOString(), createdAt: new Date(now - 86400000).toISOString(), reviewer: 'SANTOS, MARIA', role: 'Director of Libraries', recipientRole: 'instructor', components: {}, comment: 'The accessibility topic needs more depth.', courseOutcome: 'CO3', ilo: 'CO3-ILO3', coverageType: 'Topic', coverageDetail: 'Accessibility & Ethics in AI', status: 'pending', resolved: false, suggestedRefs: [] },
+            { id: `seed-t2-${now.getTime()}`, courseCode: code, section: 'Course Coverage', submissionId: `seed-s1-${now.getTime()}`, submissionLabel: 'Review 1', submittedAt: new Date(now - 86400000).toISOString(), createdAt: new Date(now - 86400000).toISOString(), reviewer: 'SANTOS, MARIA', role: 'Director of Libraries', recipientRole: 'instructor', components: {}, comment: 'The cognitive foundations topic should include more on mental models.', courseOutcome: 'CO1', ilo: 'CO1-ILO1', coverageType: 'Topic', coverageDetail: 'Introduction to HCI & Cognitive Foundations', status: 'pending', resolved: false, suggestedRefs: [] },
+            { id: `seed-t3-${now.getTime()}`, courseCode: code, section: 'Course Coverage', submissionId: `seed-s1-${now.getTime()}`, submissionLabel: 'Review 1', submittedAt: new Date(now - 86400000).toISOString(), createdAt: new Date(now - 86400000).toISOString(), reviewer: 'SANTOS, MARIA', role: 'Director of Libraries', recipientRole: 'instructor', components: {}, comment: 'Low-fidelity prototyping topic should cover paper prototyping more thoroughly.', courseOutcome: 'CO2', ilo: 'CO2-ILO2', coverageType: 'Topic', coverageDetail: 'Low-Fidelity Prototyping', status: 'pending', resolved: false, suggestedRefs: [] },
+            { id: `seed-4-${now.getTime()}`, courseCode: code, section: 'Course Coverage', submissionId: `seed-s3-${now.getTime()}`, submissionLabel: 'Review 3', submittedAt: new Date(now - 21600000).toISOString(), createdAt: new Date(now - 21600000).toISOString(), reviewer: 'DANILA, JUNAR', role: 'Program Head', recipientRole: 'instructor', components: {}, comment: 'The usability testing plan is comprehensive but needs more detail on the metrics section.', courseOutcome: 'CO4', ilo: 'CO4-ILO1', coverageType: 'Topic', coverageDetail: 'Usability Testing', status: 'pending', resolved: false, suggestedRefs: [] },
+            { id: `seed-t5-${now.getTime()}`, courseCode: code, section: 'Course Coverage', submissionId: `seed-s2-${now.getTime()}`, submissionLabel: 'Review 2', submittedAt: new Date(now - 43200000).toISOString(), createdAt: new Date(now - 43200000).toISOString(), reviewer: 'CRUZ, ROBERTO', role: 'Industry Consultant', recipientRole: 'instructor', components: {}, comment: 'High-fidelity prototyping should also cover design system fundamentals.', courseOutcome: 'CO3', ilo: 'CO3-ILO1', coverageType: 'Topic', coverageDetail: 'High-Fidelity Prototyping', status: 'pending', resolved: false, suggestedRefs: [] },
+            { id: `seed-3-${now.getTime()}`, courseCode: code, section: 'Course Coverage', submissionId: `seed-s2-${now.getTime()}`, submissionLabel: 'Review 2', submittedAt: new Date(now - 43200000).toISOString(), createdAt: new Date(now - 43200000).toISOString(), reviewer: 'CRUZ, ROBERTO', role: 'Industry Consultant', recipientRole: 'instructor', components: {}, comment: 'Industry standard practice now uses 3-factor auth for this topic. Please update the TLA to cover this.', courseOutcome: 'CO2', ilo: 'CO2-ILO2', coverageType: 'TLA', coverageDetail: 'UI Component Audit', status: 'pending', resolved: false, suggestedRefs: [] },
+            { id: `seed-tla2-${now.getTime()}`, courseCode: code, section: 'Course Coverage', submissionId: `seed-s1-${now.getTime()}`, submissionLabel: 'Review 1', submittedAt: new Date(now - 86400000).toISOString(), createdAt: new Date(now - 86400000).toISOString(), reviewer: 'SANTOS, MARIA', role: 'Director of Libraries', recipientRole: 'instructor', components: {}, comment: 'The card sorting TLA is good but needs a debrief component.', courseOutcome: 'CO1', ilo: 'CO1-ILO3', coverageType: 'TLA', coverageDetail: 'Card Sorting Exercise', status: 'pending', resolved: false, suggestedRefs: [] },
+            { id: `seed-tla3-${now.getTime()}`, courseCode: code, section: 'Course Coverage', submissionId: `seed-s3-${now.getTime()}`, submissionLabel: 'Review 3', submittedAt: new Date(now - 21600000).toISOString(), createdAt: new Date(now - 21600000).toISOString(), reviewer: 'DANILA, JUNAR', role: 'Program Head', recipientRole: 'instructor', components: {}, comment: 'Please add a usability testing TLA where students conduct actual user tests.', courseOutcome: 'CO4', ilo: 'CO4-ILO1', coverageType: 'TLA', coverageDetail: 'Usability Test Session', status: 'pending', resolved: false, suggestedRefs: [] },
+            { id: `seed-tla4-${now.getTime()}`, courseCode: code, section: 'Course Coverage', submissionId: `seed-s2-${now.getTime()}`, submissionLabel: 'Review 2', submittedAt: new Date(now - 43200000).toISOString(), createdAt: new Date(now - 43200000).toISOString(), reviewer: 'CRUZ, ROBERTO', role: 'Industry Consultant', recipientRole: 'instructor', components: {}, comment: 'The persona workshop should include time for user research synthesis.', courseOutcome: 'CO1', ilo: 'CO1-ILO2', coverageType: 'TLA', coverageDetail: 'Persona Workshop', status: 'pending', resolved: false, suggestedRefs: [] },
+        ]
+        const merged = [...dummyComments, ...existing]
+        localStorage.setItem('approval_comments_v1', JSON.stringify(merged))
+        localStorage.setItem(SEED_COMMENTS_KEY, '1')
+        console.log('Seeded dummy comments for', code)
+    } catch (e) {
+        console.error('Failed to seed comments', e)
+    }
+}
+
 const SyllabusSections = () => {
     const [searchParams, setSearchParams] = useSearchParams();
     const selectedSection = searchParams.get('section') || 'Course Details';
@@ -69,12 +102,19 @@ const SyllabusSections = () => {
                     co.ilos.forEach(ilo => flatILOs.push({ ...ilo, co_id: co.co_id }));
                 }
                 setIloData({ course: data.course, courseOutcomes: data.courseOutcomes, ilos: flatILOs });
+                seedDummyComments(code);
             } catch (err) {
                 console.warn('API unavailable for ILOs, using static data');
                 if (!mounted) return;
                 const syllabus = getSyllabusByCode(code);
                 if (syllabus && syllabus.ilos) {
-                    setIloData({ course: { code: syllabus.code, title: syllabus.name }, courseOutcomes: [], ilos: syllabus.ilos });
+                    const parsed = syllabus.ilos.map(ilo => ({
+                        ...ilo,
+                        co_id: ilo.id ? ilo.id.split('-')[0].replace('CO', '') : '',
+                        description: ilo.intendedLearningOutcome || ilo.description || ''
+                    }))
+                    setIloData({ course: { code: syllabus.code, title: syllabus.name }, courseOutcomes: [], ilos: parsed });
+                    seedDummyComments(code);
                 } else {
                     setError(err.message);
                 }
@@ -89,9 +129,9 @@ const SyllabusSections = () => {
         };
     }, [code]);
 
-    // NEW Feature: Fetch comments data if status is 'returned'
+    // NEW Feature: Fetch unresolved comment counts from localStorage
     useEffect(() => {
-        if (status !== 'returned') return;
+        if (!code) return;
         let mounted = true;
 
         async function fetchCommentCounts() {
@@ -107,7 +147,25 @@ const SyllabusSections = () => {
                 });
                 setCommentCounts(countsMap);
             } catch (err) {
-                console.error("Error setting up return notification details: ", err);
+                console.warn('API unavailable for comment counts, falling back to localStorage');
+                try {
+                    const raw = localStorage.getItem('approval_comments_v1');
+                    if (raw && mounted) {
+                        const allComments = JSON.parse(raw);
+                        const countsMap = {};
+                        allComments.forEach(c => {
+                            if (c.status !== 'resolved') {
+                                const typeKey = c.coverageType?.toLowerCase() || '';
+                                const badgeKey = typeKey === 'topic' ? 'topics' : typeKey === 'tla' ? 'tlas' : typeKey;
+                                const key = `${c.ilo}_${badgeKey}`;
+                                countsMap[key] = (countsMap[key] || 0) + 1;
+                            }
+                        });
+                        setCommentCounts(countsMap);
+                    }
+                } catch (e) {
+                    console.error('Failed to read comment counts from localStorage', e);
+                }
             }
         }
 
@@ -617,7 +675,7 @@ const SyllabusSections = () => {
                             Assign References
                                                                 <ChevronRight size={18} />
                             <div className={styles.fixedWidth}>
-                                {status === 'returned' && refBadges > 0 && (
+                                {refBadges > 0 && (
                                     <span className={styles['comment-badge']}>{refBadges}</span>
                                 )}
                             </div>
@@ -631,7 +689,7 @@ const SyllabusSections = () => {
                                                                 <ChevronRight size={18} />
 
                             <div className={styles.fixedWidth}>
-                                {status === 'returned' && topicBadges > 0 && (
+                                {topicBadges > 0 && (
                                     <span className={styles['comment-badge']}>{topicBadges}</span>
                                 )}
                             </div>
@@ -645,7 +703,7 @@ const SyllabusSections = () => {
                                                                 <ChevronRight size={18} />
                             <div className={styles.fixedWidth}>
                                 {/* FIXED: Now accurately checks tlaBadges instead of refBadges */}
-                                {status === 'returned' && tlaBadges > 0 && (
+                                {tlaBadges > 0 && (
                                     <span className={styles['comment-badge']}>{tlaBadges}</span>
                                 )}
                             </div>

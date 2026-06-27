@@ -94,7 +94,7 @@ const ApprovalPanel = () => {
 
       {selectedPlan && (
         <>
-          <StatusTracker status={selectedPlan.status} />
+          <StatusTracker status={selectedPlan.status} approvalStages={selectedPlan.approvalStages} />
 
           <div className={styles.section}>
             <h2>Learning Plan Details</h2>

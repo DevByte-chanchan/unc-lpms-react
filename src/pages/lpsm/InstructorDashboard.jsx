@@ -117,7 +117,7 @@ const InstructorDashboard = () => {
     const syllabus = getSyllabusByCode(course.code);
     if (!syllabus) return
     setPreviewFile({
-      file_url: 'https://pdfobject.com/pdf/sample.pdf',
+      file_url: '/syllabus-template.pdf',
       file_name: `SYLLABUS_${course.code}.pdf`,
       instructor_name: syllabus.instructor || '—',
       course_id: course.code,
@@ -143,10 +143,10 @@ const InstructorDashboard = () => {
     const deanStatus = mapStatus(wf.dean?.status, stage === 'dean');
 
     return [
-      { role: 'Industry Consultant',    name: 'Roberto Cruz',   status: icStatus },
-      { role: 'Director of Libraries',  name: 'Maria Santos',   status: libStatus },
-      { role: 'Program Head',           name: 'Junar Danila',   status: phStatus },
-      { role: 'Dean',                   name: 'Agnes Reyes',    status: deanStatus },
+      { role: 'Industry Consultant',    name: 'Roberto Cruz',   status: icStatus,   completedAt: wf.parallelReview?.industry_consultant?.completedAt || null },
+      { role: 'Director of Libraries',  name: 'Maria Santos',   status: libStatus,  completedAt: wf.parallelReview?.library_director?.completedAt || null },
+      { role: 'Program Head',           name: 'Junar Danila',   status: phStatus,   completedAt: wf.programHead?.completedAt || null },
+      { role: 'Dean',                   name: 'Agnes Reyes',    status: deanStatus, completedAt: wf.dean?.completedAt || null },
     ];
   };
 
@@ -227,29 +227,23 @@ const InstructorDashboard = () => {
         <table>
           <thead>
             <tr>
-              <th width={140}>CODE</th>
-              <th width={260}>COURSE NAME</th>
-              <th width={140}>PROGRAM</th>
-              <th width={140}>LAST UPDATED</th>
-              <th width={130}>STATUS</th>
+              <th width={180}>CODE</th>
+              <th width={340}>COURSE NAME</th>
+              <th width={180}>PROGRAM</th>
+              <th width={180}>LAST UPDATED</th>
               {activeTab === 'approved' && <th width={100}>EXPORT</th>}
               <th className={styles.fill}></th>
             </tr>
           </thead>
           <tbody>
             {filteredPackages.length === 0 ? (
-              <tr><td colSpan={activeTab === 'approved' ? 7 : 6} style={{ textAlign: 'center', padding: '60px 20px', color: '#9CA3AF' }}>No {tabs.find(t => t.id === activeTab)?.label.toLowerCase()} found.</td></tr>
+              <tr><td colSpan={activeTab === 'approved' ? 6 : 5} style={{ textAlign: 'center', padding: '60px 20px', color: '#9CA3AF' }}>No {tabs.find(t => t.id === activeTab)?.label.toLowerCase()} found.</td></tr>
             ) : (filteredPackages.map((pkg, idx) => (
               <tr key={idx}>
-                <td width={140}>{pkg.code}</td>
-                <td width={260}>{pkg.name}</td>
-                <td width={140}>{pkg.program}</td>
-                <td width={140}>{pkg.lastUpdated}</td>
-                <td width={130}>
-                  <span className={`${styles.statusBadge} ${getStatusClass(pkg.overallStatus)}`}>
-                    {getStatusLabel(pkg.overallStatus)}
-                  </span>
-                </td>
+                <td width={180}>{pkg.code}</td>
+                <td width={340}>{pkg.name}</td>
+                <td width={180}>{pkg.program}</td>
+                <td width={180}>{pkg.lastUpdated}</td>
                 {activeTab === 'approved' && (
                   <td width={100}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -310,17 +304,13 @@ const InstructorDashboard = () => {
           Approval Chain
         </div>
         {getReviewerStatuses(statusPopup).map((r, i) => (
-          <div key={i} style={{ padding: '10px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-            <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-              <div style={{ fontSize: 13, fontWeight: 600, color: '#0F172A' }}>{r.name}</div>
-              <div style={{ fontSize: 11, color: '#64748B', marginTop: 1 }}>{r.role}</div>
-            </div>
-            <div style={{
-              fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 99, whiteSpace: 'nowrap',
-              color: r.status === 'approved' ? '#047857' : r.status === 'pending' ? '#b45309' : r.status === 'returned' ? '#dc2626' : '#94a3b8',
-              background: r.status === 'approved' ? '#ecfdf5' : r.status === 'pending' ? '#fffbeb' : r.status === 'returned' ? '#fef2f2' : '#f1f5f9',
-            }}>
-              {getReviewStatusLabel(r.status)}
+          <div key={i} style={{ padding: '10px 14px', display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: '#0F172A' }}>{r.name}</div>
+            <div style={{ fontSize: 11, color: '#64748B' }}>{r.role}</div>
+            <div style={{ fontSize: 12, marginTop: 2 }}>
+              {r.status === 'approved' ? <span style={{ color: '#047857' }}>Approved at: {r.completedAt ? new Date(r.completedAt).toLocaleString() : '—'}</span> : null}
+              {r.status === 'returned' ? <span style={{ color: '#dc2626' }}>Returned at: {r.completedAt ? new Date(r.completedAt).toLocaleString() : '—'}</span> : null}
+              {r.status === 'pending' || r.status === 'waiting' ? <span style={{ color: '#999' }}>Pending</span> : null}
             </div>
           </div>
         ))}

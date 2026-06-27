@@ -204,11 +204,6 @@ const ApprovalCoursesTable = ({ role = 'approver' }) => {
             { key: 'Program Head', wfKey: wf.programHead },
             { key: 'Dean', wfKey: wf.dean },
         ]
-        const badgeMap = {
-            Accepted: { color: '#047857', background: '#ecfdf5' },
-            Returned: { color: '#dc2626', background: '#fef2f2' },
-            Pending: { color: '#b45309', background: '#fffbeb' },
-        }
         return (
             <>
                 <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 1199 }} />
@@ -237,16 +232,15 @@ const ApprovalCoursesTable = ({ role = 'approver' }) => {
                         </div>
 
                         {approvers.map((a, idx) => {
-                            const status = a.wfKey?.status || 'pending'
-                            const label = status === 'done' ? 'Accepted' : status === 'returned' ? 'Returned' : 'Pending'
-                            const b = badgeMap[label] || { color: '#6b7280', background: '#f3f4f6' }
+                            const status = a.wfKey?.status || 'pending';
                             return (
                             <div key={idx} style={{ marginBottom: 10, paddingBottom: 8, borderBottom: '1px solid #f0f0f0' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
                                     <div style={{ fontWeight: 600 }}>{a.key}</div>
-                                    <span style={{ ...b, padding: '2px 8px', borderRadius: 99, fontWeight: 600, fontSize: 11 }}>{label}</span>
                                 </div>
-                                {a.wfKey?.completedAt ? <div style={{ fontSize: 13, color: '#333' }}>{new Date(a.wfKey.completedAt).toLocaleString()}</div> : <div style={{ fontSize: 13, color: '#999' }}>—</div>}
+                                {status === 'done' && a.wfKey?.completedAt ? <div style={{ fontSize: 13, color: '#333' }}><strong>Approved at:</strong> {new Date(a.wfKey.completedAt).toLocaleString()}</div> : null}
+                                {status === 'returned' && a.wfKey?.completedAt ? <div style={{ fontSize: 13, color: '#dc2626' }}><strong>Returned at:</strong> {new Date(a.wfKey.completedAt).toLocaleString()}</div> : null}
+                                {status === 'pending' ? <div style={{ fontSize: 13, color: '#999' }}>Pending</div> : null}
                             </div>
                             );
                         })}
@@ -353,8 +347,7 @@ const ApprovalCoursesTable = ({ role = 'approver' }) => {
                         <tr>
                             <th width={200}>DATE ASSIGNED</th>
                             <th width={150}>CODE</th>
-                            <th width={300}>COURSE NAME</th>
-                            <th width={250}>STATUS</th>
+                            <th width={550}>COURSE NAME</th>
                             <th className={styles.fill}></th>
                         </tr>
                         </thead>
@@ -365,11 +358,7 @@ const ApprovalCoursesTable = ({ role = 'approver' }) => {
                                 <tr key={index}>
                                     <td width={200}>{row.date_assigned ? new Date(row.date_assigned).toLocaleDateString() : '-'}</td>
                                     <td width={150}>{getCode(row)}</td>
-                                    <td width={300}>{getName(row)}</td>
-
-                                    <td width={250}>
-                                        {statusBadge(overallStatus)}
-                                    </td>
+                                    <td width={550}>{getName(row)}</td>
 
                                     <td className={styles.fill}>
                                         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
@@ -397,7 +386,7 @@ const ApprovalCoursesTable = ({ role = 'approver' }) => {
             {exportFile && (
                 <PDFViewerModal
                     file={{
-                        file_url: 'https://pdfobject.com/pdf/sample.pdf',
+                        file_url: '/syllabus-template.pdf',
                         file_name: `SYLLABUS_${getCode(exportFile)}.pdf`,
                         instructor_name: exportFile.instructor || '—',
                         course_id: getCode(exportFile),

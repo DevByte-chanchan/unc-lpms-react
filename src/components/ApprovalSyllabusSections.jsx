@@ -632,7 +632,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
                 <button
                   onClick={() => {
                     setPreviewFile({
-                      file_url: 'https://pdfobject.com/pdf/sample.pdf',
+                      file_url: '/syllabus-template.pdf',
                       file_name: `SYLLABUS_${syllabus?.code || courseCode}.pdf`,
                       instructor_name: syllabus?.instructor || '—',
                       course_id: syllabus?.code || courseCode || '',
@@ -1483,11 +1483,6 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
           { key: 'Program Head', data: wf.programHead },
           { key: 'Dean', data: wf.dean },
         ]
-        const badgeMap = {
-          Accepted: { color: '#047857', background: '#ecfdf5' },
-          Returned: { color: '#dc2626', background: '#fef2f2' },
-          Pending: { color: '#b45309', background: '#fffbeb' },
-        }
         return (
           <>
             <div onClick={() => setShowWorkflowPopup(false)} style={{ position: 'fixed', inset: 0, zIndex: 1199 }} />
@@ -1504,15 +1499,14 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
                 </div>
                 {approvers.map((a, idx) => {
                   const status = a.data?.status || 'pending'
-                  const label = status === 'done' ? 'Accepted' : status === 'returned' ? 'Returned' : 'Pending'
-                  const b = badgeMap[label] || { color: '#6b7280', background: '#f3f4f6' }
                   return (
                     <div key={idx} style={{ marginBottom: 10, paddingBottom: 8, borderBottom: '1px solid #f0f0f0' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
                         <div style={{ fontWeight: 600 }}>{a.key}</div>
-                        <span style={{ ...b, padding: '2px 8px', borderRadius: 99, fontWeight: 600, fontSize: 11 }}>{label}</span>
                       </div>
-                      {a.data?.completedAt ? <div style={{ fontSize: 13, color: '#333' }}>{new Date(a.data.completedAt).toLocaleString()}</div> : <div style={{ fontSize: 13, color: '#999' }}>—</div>}
+                      {status === 'done' && a.data?.completedAt ? <div style={{ fontSize: 13, color: '#333' }}><strong>Approved at:</strong> {new Date(a.data.completedAt).toLocaleString()}</div> : null}
+                      {status === 'returned' && a.data?.completedAt ? <div style={{ fontSize: 13, color: '#dc2626' }}><strong>Returned at:</strong> {new Date(a.data.completedAt).toLocaleString()}</div> : null}
+                      {status === 'pending' ? <div style={{ fontSize: 13, color: '#999' }}>Pending</div> : null}
                     </div>
                   )
                 })}

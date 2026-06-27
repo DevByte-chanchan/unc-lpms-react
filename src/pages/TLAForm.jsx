@@ -15,6 +15,7 @@ import SideNavigation from "../components/SideNavigation.jsx";
 
 // Imported universal API client utility
 import { fetchJson } from "../utils/api.js";
+import { getSyllabusByCode } from "../data/syllabiData.js";
 
 /* Inline modal component */
 function InlineModal({ isOpen, title, onClose, children, actions }) {
@@ -37,7 +38,9 @@ function InlineModal({ isOpen, title, onClose, children, actions }) {
 
 const TLAForm = () => {
     const navigate = useNavigate();
-    const { courseCode, iloId, status } = useParams();
+    const routeParams = useParams();
+    const { courseCode, iloId, status } = routeParams;
+    const code = routeParams.code;
 
     const FLIPPED_OPTIONS = ['Pre-class', 'In-class', 'Post-class'];
     const STANDARD_OPTIONS = ['Asynchronous', 'Synchronous'];
@@ -94,13 +97,15 @@ const TLAForm = () => {
                 const commentsUrl = `/api/comments/filter/${encodeURIComponent(iloId)}/tlas`;
 
                 const fetchPromises = [fetchJson(tlaUrl)];
-                if (status === 'returned') {
-                    fetchPromises.push(fetchJson(commentsUrl));
-                }
+                fetchPromises.push(fetchJson(commentsUrl));
 
                 const results = await Promise.all(fetchPromises);
                 const data = results[0];
                 const targetedComments = results[1] || [];
+
+                if (!data || !data.availableTopics || data.availableTopics.length === 0) {
+                    throw new Error('Empty TLA data from API');
+                }
 
                 const { availableTopics, topicIdMap, tlas: existingTlas, assessmentTypeSuggestions } = data;
 
@@ -129,8 +134,71 @@ const TLAForm = () => {
                 }
             } catch (error) {
                 console.error("Error fetching TLA data components:", error);
+                if (!iloId) return;
+                const syllabus = getSyllabusByCode(code);
+                if (syllabus && syllabus.topics && syllabus.ilos) {
+                    const allTopics = syllabus.topics.map(t => ({
+                        topic_id: t.id,
+                        title: t.title,
+                        ...t
+                    }));
+                    setAvailableTopics(allTopics);
+                    const ilo = syllabus.ilos.find(i => i.id === iloId);
+                    if (ilo && ilo.topics) {
+                        const iloTopics = allTopics.filter(t =>
+                            ilo.topics.some(topicTitle => topicTitle === t.title)
+                        );
+                        const tlas = iloTopics.flatMap(t => (t.tlas || []).map(tla => ({
+                            id: tla.id || Date.now() + Math.random(),
+                            selectedTopics: [t.title],
+                            classPhase: tla.classPhase || '',
+                            performedBy: tla.performedBy || '',
+                            tlaName: tla.tlaName || '',
+                            tlaDescription: tla.tlaDescription || '',
+                            laboratory: Boolean(tla.laboratory),
+                            isLab: Boolean(tla.laboratory),
+                            hasAssessment: false,
+                            assessmentType: '',
+                            assessmentDetail: '',
+                            ...tla
+                        })));
+                        if (tlas.length > 0) {
+                            setTlas(tlas);
+                            const isFlipped = tlas.some(t => FLIPPED_OPTIONS.includes(t.classPhase));
+                            setFlipped(isFlipped);
+                        }
+                    }
+                }
             } finally {
                 setIsLoading(false);
+            }
+
+            // Always load localStorage comments and merge with API/static comments
+            if (iloId) {
+                try {
+                    const raw = localStorage.getItem('approval_comments_v1');
+                    if (raw) {
+                        const all = JSON.parse(raw);
+                        const localComments = all
+                            .filter(c => c.ilo === iloId && c.coverageType === 'TLA')
+                            .map(c => ({
+                                comment_id: c.id,
+                                target_title: c.coverageDetail || '',
+                                target_id: '',
+                                message: c.comment,
+                                commenter_role: c.role,
+                                createdAt: c.createdAt || c.submittedAt,
+                                resolved_status: c.resolved
+                            }));
+                        setReviewComments(prev => {
+                            const existingIds = new Set(prev.map(c => c.comment_id));
+                            const newOnes = localComments.filter(c => !existingIds.has(c.comment_id));
+                            return [...prev, ...newOnes];
+                        });
+                    }
+                } catch (e) {
+                    console.error('Failed to load TLA comments from localStorage', e);
+                }
             }
         };
         if (iloId) fetchTlaData();
@@ -456,7 +524,7 @@ const TLAForm = () => {
                         </div>
 
                         {/* Interactive Dynamic TLA Review Corrections Card Container */}
-                        {status === 'returned' && (
+                        {reviewComments.length > 0 && (
                             <div className={styles.rightCont}>
                                 <div className={styles.checklistCard}>
                                     <div className={styles.checklistHeader}>

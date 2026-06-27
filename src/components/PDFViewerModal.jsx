@@ -47,7 +47,7 @@ const PDFViewerModal = ({ file, kind, onClose, onExport, children }) => {
   }, [onClose]);
 
   useEffect(() => {
-    if (!file?.file_url || !/^https?:\/\//i.test(file.file_url)) return;
+    if (!file?.file_url || !/^(https?:\/\/|\/)/i.test(file.file_url)) return;
     let cancelled = false;
     fetch(file.file_url)
       .then(r => r.blob())
@@ -60,7 +60,7 @@ const PDFViewerModal = ({ file, kind, onClose, onExport, children }) => {
 
   if (!file) return null;
 
-  const hasRealUrl = file.file_url && /^https?:\/\//i.test(file.file_url);
+  const hasRealUrl = file.file_url && /^(https?:\/\/|\/)/i.test(file.file_url);
   const title = file.file_name || (kind || 'File') + ' Preview';
 
   return (
@@ -160,8 +160,8 @@ const PDFViewerModal = ({ file, kind, onClose, onExport, children }) => {
               />
             ) : (
               <div style={{
-                flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                padding: 32, overflow: 'auto', boxSizing: 'border-box',
+                flex: 1, display: 'flex', flexDirection: 'column',
+                padding: 0, overflow: 'hidden', boxSizing: 'border-box',
               }}>
                 {children || (
                   <div style={{

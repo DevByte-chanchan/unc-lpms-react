@@ -10,6 +10,7 @@ import { X, CheckCircle, MessageSquare } from 'react-feather';
 
 // Imported universal API client utility
 import { fetchJson } from "../utils/api.js";
+import { getSyllabusByCode } from "../data/syllabiData.js";
 
 function InlineModal({ isOpen, title, onClose, children }) {
     if (!isOpen) return null;
@@ -30,7 +31,9 @@ function InlineModal({ isOpen, title, onClose, children }) {
 
 const TopicForm = () => {
     const navigate = useNavigate();
-    const { courseCode, iloId, status } = useParams();
+    const routeParams = useParams();
+    const { courseCode, iloId, status } = routeParams;
+    const code = routeParams.code;
 
     const [availableTopics, setAvailableTopics] = useState([]);
     const [selectedTopics, setSelectedTopics] = useState([]);
@@ -58,18 +61,19 @@ const TopicForm = () => {
                 const commentsUrl = `/api/comments/filter/${encodeURIComponent(iloId)}/topics`;
 
                 const fetchPromises = [fetchJson(availableUrl), fetchJson(assignedUrl)];
-                if (status === 'returned') {
-                    fetchPromises.push(fetchJson(commentsUrl));
-                }
+                fetchPromises.push(fetchJson(commentsUrl));
 
                 const results = await Promise.all(fetchPromises);
 
                 if (!mounted) return;
 
+                if (!Array.isArray(results[0]) || results[0].length === 0) {
+                    throw new Error('Empty topics from API');
+                }
                 setAvailableTopics(Array.isArray(results[0]) ? results[0] : []);
                 setSelectedTopics(Array.isArray(results[1]) ? results[1] : []);
 
-                if (status === 'returned' && results[2]) {
+                if (results[2]) {
                     setReviewComments(results[2].map(c => ({
                         ...c,
                         resolved_status: c.resolved_status === 1 || c.resolved_status === true
@@ -77,9 +81,54 @@ const TopicForm = () => {
                 }
             } catch (err) {
                 console.error("Failed to load initial topics configurations:", err);
-                if (mounted) setValidationError("Failed to securely load form profile collections.");
+                if (!mounted) return;
+                const syllabus = getSyllabusByCode(code);
+                if (syllabus && syllabus.topics) {
+                    const available = syllabus.topics.map(t => ({
+                        topic_id: t.id,
+                        title: t.title,
+                        ...t
+                    }));
+                    setAvailableTopics(available);
+                    const ilo = (syllabus.ilos || []).find(i => i.id === iloId);
+                    if (ilo && ilo.topics) {
+                        const assigned = available.filter(t =>
+                            ilo.topics.some(topicTitle => topicTitle === t.title)
+                        );
+                        setSelectedTopics(assigned);
+                    }
+                }
+                if (mounted) setValidationError(null);
             } finally {
                 if (mounted) setLoading(false);
+            }
+
+            // Always load localStorage comments and merge with API/static comments
+            if (mounted) {
+                try {
+                    const raw = localStorage.getItem('approval_comments_v1');
+                    if (raw) {
+                        const all = JSON.parse(raw);
+                        const localComments = all
+                            .filter(c => c.ilo === iloId && c.coverageType === 'Topic')
+                            .map(c => ({
+                                comment_id: c.id,
+                                target_title: c.coverageDetail || '',
+                                target_id: '',
+                                message: c.comment,
+                                commenter_role: c.role,
+                                createdAt: c.createdAt || c.submittedAt,
+                                resolved_status: c.resolved
+                            }));
+                        setReviewComments(prev => {
+                            const existingIds = new Set(prev.map(c => c.comment_id));
+                            const newOnes = localComments.filter(c => !existingIds.has(c.comment_id));
+                            return [...prev, ...newOnes];
+                        });
+                    }
+                } catch (e) {
+                    console.error('Failed to load topics comments from localStorage', e);
+                }
             }
         }
 
@@ -187,7 +236,7 @@ const TopicForm = () => {
                         </div>
 
                         {/* Interactive Dynamic Topics Review Corrections Card Container */}
-                        {status === 'returned' && (
+                        {reviewComments.length > 0 && (
                             <div className={styles.rightCont}>
                                 <div className={styles.checklistCard}>
                                     <div className={styles.checklistHeader}>

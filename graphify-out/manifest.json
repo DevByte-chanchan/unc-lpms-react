@@ -1,0 +1,1267 @@
+{
+  ".planning/config.json": {
+    "mtime": 1782536225.6242354,
+    "ast_hash": "13a39e08ef724a0d79acc17f3c31dc61",
+    "semantic_hash": ""
+  },
+  "backend/course-assignment/src/app.js": {
+    "mtime": 1780727009.7165473,
+    "ast_hash": "bf67953cbe03d51b25483d6ee33ea670",
+    "semantic_hash": ""
+  },
+  "backend/learning-plan-composition/src/app.js": {
+    "mtime": 1780727009.7168353,
+    "ast_hash": "a81d1bb6ecb882f2ff8e33d2a4562cba",
+    "semantic_hash": ""
+  },
+  "backend/lpsm/entrypoint.sh": {
+    "mtime": 1780727009.7168353,
+    "ast_hash": "46ae9b8badc978fba799974c564091b7",
+    "semantic_hash": ""
+  },
+  "backend/lpsm/package.json": {
+    "mtime": 1780727009.7177427,
+    "ast_hash": "b1c31ebf2e512f16b0b70dea14681912",
+    "semantic_hash": ""
+  },
+  "backend/lpsm/src/app.js": {
+    "mtime": 1780727009.7187426,
+    "ast_hash": "1568c4c350a104a9601504b4bdc1f55e",
+    "semantic_hash": ""
+  },
+  "backend/lpsm/src/config/config.js": {
+    "mtime": 1780727009.7187426,
+    "ast_hash": "afa5451ae215627a6c68a1f64b97152b",
+    "semantic_hash": ""
+  },
+  "backend/lpsm/src/controllers/learningPlanController.js": {
+    "mtime": 1780727009.7187426,
+    "ast_hash": "fb1390ce616e6ec2170b32d21bdd88ac",
+    "semantic_hash": ""
+  },
+  "backend/lpsm/src/controllers/programDocumentController.js": {
+    "mtime": 1780727009.7194078,
+    "ast_hash": "bce813de0cf9566433f9e84c89244539",
+    "semantic_hash": ""
+  },
+  "backend/lpsm/src/middleware/errorHandler.js": {
+    "mtime": 1780727009.7194078,
+    "ast_hash": "79fb7f3fbd64a7f4af2fcd2ef10e0e6d",
+    "semantic_hash": ""
+  },
+  "backend/lpsm/src/middleware/roleCheck.js": {
+    "mtime": 1780727009.7197893,
+    "ast_hash": "528dbb1e56b82d2c6af75982cf320312",
+    "semantic_hash": ""
+  },
+  "backend/lpsm/src/middleware/validation.js": {
+    "mtime": 1780727009.7197893,
+    "ast_hash": "5551bfb8284e008d481536614bde0f7f",
+    "semantic_hash": ""
+  },
+  "backend/lpsm/src/migrations/20260512000001-create-learning-plans.js": {
+    "mtime": 1780727009.7197893,
+    "ast_hash": "0114c1c62cfb96c54fbc643de83e8d38",
+    "semantic_hash": ""
+  },
+  "backend/lpsm/src/migrations/20260512000002-create-learning-plan-documents.js": {
+    "mtime": 1780727009.7201283,
+    "ast_hash": "d6b57dd3de2a37005c543a630706276e",
+    "semantic_hash": ""
+  },
+  "backend/lpsm/src/migrations/20260512000003-create-approval-stages.js": {
+    "mtime": 1780727009.7201283,
+    "ast_hash": "937b566386ebb21901ae63bb119751e5",
+    "semantic_hash": ""
+  },
+  "backend/lpsm/src/migrations/20260512000004-create-approval-comments.js": {
+    "mtime": 1780727009.7201283,
+    "ast_hash": "cc1e8dc619bf54bbc69015b5406a81c5",
+    "semantic_hash": ""
+  },
+  "backend/lpsm/src/migrations/20260512000005-create-users.js": {
+    "mtime": 1780727009.7201283,
+    "ast_hash": "2395c28dd4511840802ee54c5aa7b02e",
+    "semantic_hash": ""
+  },
+  "backend/lpsm/src/migrations/20260519000001-add-lp-fields-and-versions.js": {
+    "mtime": 1780727009.7201283,
+    "ast_hash": "2f69316a0b02ca68f830833baad39989",
+    "semantic_hash": ""
+  },
+  "backend/lpsm/src/migrations/20260520000001-add-templates-and-exports.js": {
+    "mtime": 1780727009.7201283,
+    "ast_hash": "89b1d9f98b3cf6904678349d17eb6177",
+    "semantic_hash": ""
+  },
+  "backend/lpsm/src/models/ApprovalComment.js": {
+    "mtime": 1780727009.7207427,
+    "ast_hash": "dcf9d2d83d266cb8a497fda721e262ee",
+    "semantic_hash": ""
+  },
+  "backend/lpsm/src/models/ApprovalStage.js": {
+    "mtime": 1780727009.7217426,
+    "ast_hash": "9394f1934136ca62ebf06345e2c12afc",
+    "semantic_hash": ""
+  },
+  "backend/lpsm/src/models/ApprovalTrail.js": {
+    "mtime": 1780727009.7217426,
+    "ast_hash": "b17880c4195ba0dc6db04c2d897e8a5f",
+    "semantic_hash": ""
+  },
+  "backend/lpsm/src/models/LearningPlan.js": {
+    "mtime": 1780727009.7217426,
+    "ast_hash": "669a2900a83815a349f557af057b81d4",
+    "semantic_hash": ""
+  },
+  "backend/lpsm/src/models/LearningPlanDocument.js": {
+    "mtime": 1780727009.7217426,
+    "ast_hash": "91332483e07299ff4e414907ee4fdcf4",
+    "semantic_hash": ""
+  },
+  "backend/lpsm/src/models/LearningPlanTemplate.js": {
+    "mtime": 1780727009.7217426,
+    "ast_hash": "d1f1fe06fa74c7d0ae18c4e164338c22",
+    "semantic_hash": ""
+  },
+  "backend/lpsm/src/models/LearningPlanVersion.js": {
+    "mtime": 1780727009.7217426,
+    "ast_hash": "d412a79c228f1645b51a27df536882ce",
+    "semantic_hash": ""
+  },
+  "backend/lpsm/src/models/PDFExport.js": {
+    "mtime": 1780727009.7217426,
+    "ast_hash": "93bb6db4a2711be67bdeabea5bdfd79d",
+    "semantic_hash": ""
+  },
+  "backend/lpsm/src/models/ProgramDocument.js": {
+    "mtime": 1780727009.7217426,
+    "ast_hash": "0222304ac1a976f13c836fd310e53e48",
+    "semantic_hash": ""
+  },
+  "backend/lpsm/src/models/TemplateUsage.js": {
+    "mtime": 1780727009.7217426,
+    "ast_hash": "e6221811fdc29b8fc3463bef4b95d183",
+    "semantic_hash": ""
+  },
+  "backend/lpsm/src/models/User.js": {
+    "mtime": 1780727009.7217426,
+    "ast_hash": "53e7fe05b48a3a178795fafb701a1d94",
+    "semantic_hash": ""
+  },
+  "backend/lpsm/src/models/index.js": {
+    "mtime": 1780727009.7227428,
+    "ast_hash": "0e2f6d2a1eeea7a5c5034df5c4b1be48",
+    "semantic_hash": ""
+  },
+  "backend/lpsm/src/routes/learningPlans.js": {
+    "mtime": 1780727009.7227428,
+    "ast_hash": "7db5e8839ee05a9e3512bc97c88b604b",
+    "semantic_hash": ""
+  },
+  "backend/lpsm/src/routes/programDocuments.js": {
+    "mtime": 1780727009.723409,
+    "ast_hash": "ba552269815fa2772c397ff1ae462cf2",
+    "semantic_hash": ""
+  },
+  "backend/lpsm/src/seeders/20260512000001-seed-users.js": {
+    "mtime": 1780727009.723409,
+    "ast_hash": "6e59d36255c838774c663147c88bc422",
+    "semantic_hash": ""
+  },
+  "backend/lpsm/src/seeders/20260512000002-seed-learning-plans.js": {
+    "mtime": 1780727009.7234654,
+    "ast_hash": "39011815e88b7610b5280941eb4a6ae6",
+    "semantic_hash": ""
+  },
+  "backend/tos/src/app.js": {
+    "mtime": 1780727009.723572,
+    "ast_hash": "c24b6509177ab1da5e5d58209c7b3ba9",
+    "semantic_hash": ""
+  },
+  "eslint.config.js": {
+    "mtime": 1780727009.723572,
+    "ast_hash": "ea5fa9590bc5a8caf28851562aaa0b09",
+    "semantic_hash": ""
+  },
+  "package.json": {
+    "mtime": 1782183888.6397877,
+    "ast_hash": "03df63f60c0c0020a044961699a69da4",
+    "semantic_hash": ""
+  },
+  "server/config/config.json": {
+    "mtime": 1780807807.1447613,
+    "ast_hash": "a46abd9d24e550ce4d66a3992bb1cc4d",
+    "semantic_hash": ""
+  },
+  "server/controllers/assignmentController.js": {
+    "mtime": 1780807807.1487615,
+    "ast_hash": "57ae14c54598d11c91d060b4b8a46d87",
+    "semantic_hash": ""
+  },
+  "server/controllers/commentController.js": {
+    "mtime": 1780807807.1537616,
+    "ast_hash": "66bb1f2d9a0ae0f9ff14e4703f3866ce",
+    "semantic_hash": ""
+  },
+  "server/controllers/courseCoverageController.js": {
+    "mtime": 1780807807.159762,
+    "ast_hash": "352ed788563c304fef513b91aeb6d0df",
+    "semantic_hash": ""
+  },
+  "server/controllers/courseCriteriaController.js": {
+    "mtime": 1780807807.163762,
+    "ast_hash": "d8399345f72d971240a259e641eeb803",
+    "semantic_hash": ""
+  },
+  "server/controllers/courseDetailsController.js": {
+    "mtime": 1780807807.1687622,
+    "ast_hash": "cba1dd96ec021ca4c0004439c857067e",
+    "semantic_hash": ""
+  },
+  "server/controllers/courseOutcomeAlignmentController.js": {
+    "mtime": 1780807807.1717622,
+    "ast_hash": "a606624196a2355bc6dc5a0b31bd3c5b",
+    "semantic_hash": ""
+  },
+  "server/controllers/iloController.js": {
+    "mtime": 1780807807.1747622,
+    "ast_hash": "0ee8616dd487b4647318572bd02dea8c",
+    "semantic_hash": ""
+  },
+  "server/controllers/iloReferenceController.js": {
+    "mtime": 1780807807.1777625,
+    "ast_hash": "e1fbc2712dfe768c35cb861bd5acc1d9",
+    "semantic_hash": ""
+  },
+  "server/controllers/referenceController.js": {
+    "mtime": 1780807807.1817625,
+    "ast_hash": "6d029ccd3a1e82eb3c18670baf7c7d6b",
+    "semantic_hash": ""
+  },
+  "server/controllers/referenceSummaryController.js": {
+    "mtime": 1780807807.1857626,
+    "ast_hash": "5499e55c55dd12d61ea528c4378c9846",
+    "semantic_hash": ""
+  },
+  "server/controllers/tlaController.js": {
+    "mtime": 1780807807.1887627,
+    "ast_hash": "62f9159df51eca6d73cc1b1d75d57e79",
+    "semantic_hash": ""
+  },
+  "server/controllers/topicController.js": {
+    "mtime": 1780807807.191763,
+    "ast_hash": "b1422fb94492dd4731d287b8a6b342f2",
+    "semantic_hash": ""
+  },
+  "server/migrations/20260512025300-create-departments.js": {
+    "mtime": 1780807807.194763,
+    "ast_hash": "be8ecef6b8067aa88b32e8704fe97df2",
+    "semantic_hash": ""
+  },
+  "server/migrations/20260512025301-create-programs.js": {
+    "mtime": 1780807807.1987631,
+    "ast_hash": "63ba2678585a888df902d4228aceb9a0",
+    "semantic_hash": ""
+  },
+  "server/migrations/20260512025302-create-courses.js": {
+    "mtime": 1780807807.2047632,
+    "ast_hash": "08f5d45df44a62c4750f789affeac709",
+    "semantic_hash": ""
+  },
+  "server/migrations/20260512025303-create-prerequisites.js": {
+    "mtime": 1780807807.209713,
+    "ast_hash": "6c4c0cf17632db254c0e9f0a1f1aa641",
+    "semantic_hash": ""
+  },
+  "server/migrations/20260512025304-create-program-course-offerings.js": {
+    "mtime": 1780807807.2127635,
+    "ast_hash": "6cd813759e8e7e96914ca5ccf8ed7998",
+    "semantic_hash": ""
+  },
+  "server/migrations/20260512025305-create-course-outcomes.js": {
+    "mtime": 1780807807.2157636,
+    "ast_hash": "bd5fae4d8984abc0f845b08ee10f117f",
+    "semantic_hash": ""
+  },
+  "server/migrations/20260512025306-create-program-outcomes.js": {
+    "mtime": 1780807807.220176,
+    "ast_hash": "ad373d82af7482c189daedb0f0c3e01e",
+    "semantic_hash": ""
+  },
+  "server/migrations/20260512025307-create-program-outcome-alignments.js": {
+    "mtime": 1780807807.2246108,
+    "ast_hash": "b2c336eedb880c583c1105c2f222ec0a",
+    "semantic_hash": ""
+  },
+  "server/migrations/20260512025308-create-course-offering-assignments.js": {
+    "mtime": 1780807807.229764,
+    "ast_hash": "773db25c1e7863ee4737858f76844cad",
+    "semantic_hash": ""
+  },
+  "server/migrations/20260514000100-create-reference.js": {
+    "mtime": 1780807807.2337642,
+    "ast_hash": "12e546f857dea3d18ec488793cd12199",
+    "semantic_hash": ""
+  },
+  "server/migrations/20260514000200-create-teaching-and-learning-activity.js": {
+    "mtime": 1780807807.2367642,
+    "ast_hash": "d371c0714810ea4bc7b31b96230a31a1",
+    "semantic_hash": ""
+  },
+  "server/migrations/20260514000300-create-course-outcome.js": {
+    "mtime": 1780807807.2397645,
+    "ast_hash": "4a23181ebd44eb6d81e0cdbfd0aa8ae9",
+    "semantic_hash": ""
+  },
+  "server/migrations/20260514000400-create-intended-learning-outcome.js": {
+    "mtime": 1780807807.2437644,
+    "ast_hash": "35c4307c69bc33b7a562505321bd109f",
+    "semantic_hash": ""
+  },
+  "server/migrations/20260514000500-create-topic.js": {
+    "mtime": 1780807807.2487645,
+    "ast_hash": "514fb207003a50303cc9314644d3a6d4",
+    "semantic_hash": ""
+  },
+  "server/migrations/20260514000600-create-subtopic.js": {
+    "mtime": 1780807807.2527647,
+    "ast_hash": "3f3d3b91109fb9926992311b2df5d941",
+    "semantic_hash": ""
+  },
+  "server/migrations/20260514000700-create-ilo-topic.js": {
+    "mtime": 1780807807.2557647,
+    "ast_hash": "cad32644b4fceeda886ad10d4e726c41",
+    "semantic_hash": ""
+  },
+  "server/migrations/20260514000800-create-ilo-reference.js": {
+    "mtime": 1780807807.2593055,
+    "ast_hash": "936d781740c8ae4c80928406af465f76",
+    "semantic_hash": ""
+  },
+  "server/migrations/20260514000900-create-topic-tla.js": {
+    "mtime": 1780807807.2747655,
+    "ast_hash": "213c62ed0ef64308e9773f422335c555",
+    "semantic_hash": ""
+  },
+  "server/migrations/20260514001000-create-tla-assessment.js": {
+    "mtime": 1780807807.2847657,
+    "ast_hash": "ed25543d6175120a323d2a28ed3666d8",
+    "semantic_hash": ""
+  },
+  "server/migrations/20260527001000-create-comment.js": {
+    "mtime": 1780807807.2897658,
+    "ast_hash": "7d0a14feb53ade08a49196d1a3c3e8ec",
+    "semantic_hash": ""
+  },
+  "server/models/comment.js": {
+    "mtime": 1780807807.2957933,
+    "ast_hash": "21e343f34180795d5b04d9e6ee9a8e2a",
+    "semantic_hash": ""
+  },
+  "server/models/course.js": {
+    "mtime": 1780807807.301315,
+    "ast_hash": "d069184450df078033e9ae55daca8a47",
+    "semantic_hash": ""
+  },
+  "server/models/courseOfferingAssignment.js": {
+    "mtime": 1780807807.3081822,
+    "ast_hash": "4c75abc86b14ced0e4cb46672afe5162",
+    "semantic_hash": ""
+  },
+  "server/models/courseOutcome.js": {
+    "mtime": 1780807807.3128777,
+    "ast_hash": "01d430a0a75d01f129f08a0c9d94bf5f",
+    "semantic_hash": ""
+  },
+  "server/models/department.js": {
+    "mtime": 1780807807.3187668,
+    "ast_hash": "155c83c4348c5a895ae2932a7006b18b",
+    "semantic_hash": ""
+  },
+  "server/models/iloReference.js": {
+    "mtime": 1780807807.328767,
+    "ast_hash": "fbcc056c4642887ff5a440df18eaadd4",
+    "semantic_hash": ""
+  },
+  "server/models/iloTopic.js": {
+    "mtime": 1780807807.3327672,
+    "ast_hash": "b8e78affe29ce5d70dca9ce7b354dffe",
+    "semantic_hash": ""
+  },
+  "server/models/index.js": {
+    "mtime": 1780807807.3387673,
+    "ast_hash": "80f13a897fc5499aad576b76017a84ea",
+    "semantic_hash": ""
+  },
+  "server/models/intendedLearningOutcome.js": {
+    "mtime": 1780807807.3437676,
+    "ast_hash": "18d1d6a51958af3c1716b8faf6c9b41f",
+    "semantic_hash": ""
+  },
+  "server/models/prerequisite.js": {
+    "mtime": 1780807807.3457677,
+    "ast_hash": "07cb66adf3814db919c7ae0d1ce4fe5d",
+    "semantic_hash": ""
+  },
+  "server/models/program.js": {
+    "mtime": 1780807807.3492913,
+    "ast_hash": "937b4205f115990f48e2456c482dbfc5",
+    "semantic_hash": ""
+  },
+  "server/models/programCourseOffering.js": {
+    "mtime": 1780807807.3507679,
+    "ast_hash": "e6ca9eb330eddfe615fd9aa2194d728f",
+    "semantic_hash": ""
+  },
+  "server/models/programOutcome.js": {
+    "mtime": 1780807807.352768,
+    "ast_hash": "04e942de90f0bc43515b68534f21bcfd",
+    "semantic_hash": ""
+  },
+  "server/models/programOutcomeAlignment.js": {
+    "mtime": 1780807807.3563113,
+    "ast_hash": "109f3563785493064c1d46af1ebc0615",
+    "semantic_hash": ""
+  },
+  "server/models/reference.js": {
+    "mtime": 1780807807.357768,
+    "ast_hash": "547e5d90181d5326ec295e70a96cedd5",
+    "semantic_hash": ""
+  },
+  "server/models/subtopic.js": {
+    "mtime": 1780807807.3597682,
+    "ast_hash": "9b4bf8c0da8729658532290db6a49e67",
+    "semantic_hash": ""
+  },
+  "server/models/teachingAndLearningActivity.js": {
+    "mtime": 1780807807.361768,
+    "ast_hash": "e0f4fbcbd2734cc799b4ccde3b77b0e7",
+    "semantic_hash": ""
+  },
+  "server/models/tlaAssessment.js": {
+    "mtime": 1780807807.3647683,
+    "ast_hash": "a9e1223c6cc8ea18fcc442fbc521c7ef",
+    "semantic_hash": ""
+  },
+  "server/models/topic.js": {
+    "mtime": 1780807807.3677683,
+    "ast_hash": "fd32ad4ecb68b85093cac7813675980d",
+    "semantic_hash": ""
+  },
+  "server/models/topicTLA.js": {
+    "mtime": 1780807807.3707683,
+    "ast_hash": "afd0f777fefce28ce9b88362f92cb824",
+    "semantic_hash": ""
+  },
+  "server/models/topicTlaComment.js": {
+    "mtime": 1780807807.3737686,
+    "ast_hash": "94ed3932ad57055d1beeb13826647bd6",
+    "semantic_hash": ""
+  },
+  "server/package.json": {
+    "mtime": 1780807807.3767686,
+    "ast_hash": "5127d92affc27794e90e764433ae3e66",
+    "semantic_hash": ""
+  },
+  "server/routes/assignments.js": {
+    "mtime": 1780807807.3807688,
+    "ast_hash": "129af312173d4692bf0d7a4b7e4039f1",
+    "semantic_hash": ""
+  },
+  "server/routes/comments.js": {
+    "mtime": 1780807807.3837688,
+    "ast_hash": "f6f1d78ff62355aef3d486631c847de7",
+    "semantic_hash": ""
+  },
+  "server/routes/courseCoverage.js": {
+    "mtime": 1780807807.391769,
+    "ast_hash": "edcdd7c74f2220f97f50bea3308a2745",
+    "semantic_hash": ""
+  },
+  "server/routes/courseCriteria.js": {
+    "mtime": 1780807807.3987694,
+    "ast_hash": "1d91aa3336838daa69bf3cc019318851",
+    "semantic_hash": ""
+  },
+  "server/routes/courseDetails.js": {
+    "mtime": 1780807807.4047694,
+    "ast_hash": "8d8a8d7549ca15ebe126098f70ef9e45",
+    "semantic_hash": ""
+  },
+  "server/routes/courseOutcomeAlignment.js": {
+    "mtime": 1780807807.4077694,
+    "ast_hash": "6e0f6014f29277a2725dee42d0ba5970",
+    "semantic_hash": ""
+  },
+  "server/routes/courseReferenceRoutes.js": {
+    "mtime": 1780807807.4097695,
+    "ast_hash": "73210e5419963f1fbce1a539d3c95d63",
+    "semantic_hash": ""
+  },
+  "server/routes/iloReferences.js": {
+    "mtime": 1780807807.4127698,
+    "ast_hash": "aa300e40ed7a8d9761c3aa10391358fe",
+    "semantic_hash": ""
+  },
+  "server/routes/ilos.js": {
+    "mtime": 1780807807.4157698,
+    "ast_hash": "67b832f39cdcbba4b16da2e9432efbbd",
+    "semantic_hash": ""
+  },
+  "server/routes/references.js": {
+    "mtime": 1780807807.41977,
+    "ast_hash": "14f2b9bddd4fb4e673937e3219c02644",
+    "semantic_hash": ""
+  },
+  "server/routes/tlaRoutes.js": {
+    "mtime": 1780807807.42477,
+    "ast_hash": "499a539f3c4a5939ebf75b632209fb04",
+    "semantic_hash": ""
+  },
+  "server/routes/topics.js": {
+    "mtime": 1780807807.4287703,
+    "ast_hash": "e9c0d5b36f94ccc6715f47c60ff4f554",
+    "semantic_hash": ""
+  },
+  "server/seeders/20260512030000-seed-composition-foundation.js": {
+    "mtime": 1780807807.4342916,
+    "ast_hash": "eca4ae046eff359c1c7cba9b63db91cc",
+    "semantic_hash": ""
+  },
+  "server/seeders/20260527090000-hci-comments.js": {
+    "mtime": 1780807807.4377704,
+    "ast_hash": "3837ce47cfdd95863b858a708b59d813",
+    "semantic_hash": ""
+  },
+  "server/server.js": {
+    "mtime": 1780807807.4417706,
+    "ast_hash": "630f3cd70cf2b4626719b4fb009e1d23",
+    "semantic_hash": ""
+  },
+  "src/App.jsx": {
+    "mtime": 1780807782.9840133,
+    "ast_hash": "b6f9f0e226587eeb032920200fbf1c67",
+    "semantic_hash": ""
+  },
+  "src/components/ApprovalCommentBox.jsx": {
+    "mtime": 1781095335.0127132,
+    "ast_hash": "d7a4fc348927a7ba19915dd109abbeb2",
+    "semantic_hash": ""
+  },
+  "src/components/ApprovalCoursesTable.jsx": {
+    "mtime": 1782185315.7323294,
+    "ast_hash": "b201ca30cc06d9b133d2bb63431338ed",
+    "semantic_hash": ""
+  },
+  "src/components/ApprovalFormNavigation.jsx": {
+    "mtime": 1780727009.7259974,
+    "ast_hash": "cabd07ed1dd2ff99290663d10955fd75",
+    "semantic_hash": ""
+  },
+  "src/components/ApprovalSyllabusSections.jsx": {
+    "mtime": 1782184787.9678729,
+    "ast_hash": "12ec198bf0b819b8b9a47768dc3c2e9b",
+    "semantic_hash": ""
+  },
+  "src/components/CommentSidebar.jsx": {
+    "mtime": 1780727009.7267427,
+    "ast_hash": "96ef202b506e545944b3d9aa2b2efbd5",
+    "semantic_hash": ""
+  },
+  "src/components/ConsultantsTable.jsx": {
+    "mtime": 1780727009.7267427,
+    "ast_hash": "ed335ac825bc0d897d65f2988299394a",
+    "semantic_hash": ""
+  },
+  "src/components/CourseAssessmentEvaluationPlan.jsx": {
+    "mtime": 1782183757.0233397,
+    "ast_hash": "a1e79f349157e6c8ce0faf169ac2c0d1",
+    "semantic_hash": ""
+  },
+  "src/components/CoursesTable.jsx": {
+    "mtime": 1782185328.5177395,
+    "ast_hash": "a965d738dde5cf0554923a62cd479f31",
+    "semantic_hash": ""
+  },
+  "src/components/DepartmentsTable.jsx": {
+    "mtime": 1780727009.7267427,
+    "ast_hash": "55821f91180852d1331b96dd7bc170fc",
+    "semantic_hash": ""
+  },
+  "src/components/Dropdown.jsx": {
+    "mtime": 1780807731.1734087,
+    "ast_hash": "ac67e1c8cea45163569676a80a964da8",
+    "semantic_hash": ""
+  },
+  "src/components/DropdownA.jsx": {
+    "mtime": 1780729677.2550828,
+    "ast_hash": "c28613078b5568026c8b27ac472ac019",
+    "semantic_hash": ""
+  },
+  "src/components/DropdownMultiSelect.jsx": {
+    "mtime": 1780809591.5570173,
+    "ast_hash": "38ff7f7ab33972511c6d909259c5e1f2",
+    "semantic_hash": ""
+  },
+  "src/components/Duplicator.jsx": {
+    "mtime": 1780727009.727743,
+    "ast_hash": "8afa816ab9feccd7fd976b914c8f2d26",
+    "semantic_hash": ""
+  },
+  "src/components/ErrorBoundary.jsx": {
+    "mtime": 1780727009.727743,
+    "ast_hash": "b23434c6bfe31665669290f27f81d3fd",
+    "semantic_hash": ""
+  },
+  "src/components/FacultyTable.jsx": {
+    "mtime": 1780727009.727743,
+    "ast_hash": "a4d46295c1f2647859bafa43a1a6ab15",
+    "semantic_hash": ""
+  },
+  "src/components/FilledCOAEPDF.jsx": {
+    "mtime": 1782184027.6996684,
+    "ast_hash": "0f3be89af8bf74864ac4c4e6449289f1",
+    "semantic_hash": ""
+  },
+  "src/components/FormNavigation.jsx": {
+    "mtime": 1780809591.5610175,
+    "ast_hash": "fff9637bf45b971b6e032db49e3ff0e2",
+    "semantic_hash": ""
+  },
+  "src/components/Header.jsx": {
+    "mtime": 1780807419.4577527,
+    "ast_hash": "27ae31d55d5266377000172925c57ff7",
+    "semantic_hash": ""
+  },
+  "src/components/HeaderA.jsx": {
+    "mtime": 1780727009.727743,
+    "ast_hash": "27ae31d55d5266377000172925c57ff7",
+    "semantic_hash": ""
+  },
+  "src/components/LibraryDirectorSuggestions.jsx": {
+    "mtime": 1780727009.727743,
+    "ast_hash": "e532831e8b49800c90c6390d69a7b653",
+    "semantic_hash": ""
+  },
+  "src/components/LpmsHeader.jsx": {
+    "mtime": 1780727009.727743,
+    "ast_hash": "865a5c8d6c6efce8cb901ba2c8911acb",
+    "semantic_hash": ""
+  },
+  "src/components/LpmsNav.jsx": {
+    "mtime": 1780731227.8696432,
+    "ast_hash": "975df5e79f14a2626e93497462f38309",
+    "semantic_hash": ""
+  },
+  "src/components/MultiSelect.jsx": {
+    "mtime": 1780807731.177409,
+    "ast_hash": "9aa671b80a6d9e639946d913f358795d",
+    "semantic_hash": ""
+  },
+  "src/components/MultiSelectA.jsx": {
+    "mtime": 1780729677.255155,
+    "ast_hash": "cfff1510f6555eeff5976cce076dff1b",
+    "semantic_hash": ""
+  },
+  "src/components/PDFViewerModal.jsx": {
+    "mtime": 1782184918.5398953,
+    "ast_hash": "67cc1fe3e35019fa7ad4f47dc732f1f6",
+    "semantic_hash": ""
+  },
+  "src/components/PdfExportButton.jsx": {
+    "mtime": 1780727009.7287428,
+    "ast_hash": "5badab47d375ddbe2c054b04e927bcc7",
+    "semantic_hash": ""
+  },
+  "src/components/ProgramsTable.jsx": {
+    "mtime": 1780727009.7287428,
+    "ast_hash": "e1a0b1d06edc353285ba2430b7719bed",
+    "semantic_hash": ""
+  },
+  "src/components/ProtectedRoute.jsx": {
+    "mtime": 1780727009.729743,
+    "ast_hash": "fabacb3548c15133eb9869cca4fb0e70",
+    "semantic_hash": ""
+  },
+  "src/components/ReferencePicker.jsx": {
+    "mtime": 1780807736.0065584,
+    "ast_hash": "7d6591a39a919e08cdab8b0fa093a2fd",
+    "semantic_hash": ""
+  },
+  "src/components/RoleUploadPanel/RoleUploadPanel.jsx": {
+    "mtime": 1780727009.729743,
+    "ast_hash": "f7bea4512e514e67e18d461b0a207f92",
+    "semantic_hash": ""
+  },
+  "src/components/SideNavigation.jsx": {
+    "mtime": 1780731227.8699818,
+    "ast_hash": "3c221c096e122266315656b66c87e12e",
+    "semantic_hash": ""
+  },
+  "src/components/SyllabusCommentBox.jsx": {
+    "mtime": 1780727009.729743,
+    "ast_hash": "db45e1dfa065430316637e087ba6b758",
+    "semantic_hash": ""
+  },
+  "src/components/SyllabusPreview.jsx": {
+    "mtime": 1780892124.4957004,
+    "ast_hash": "8c9496a99600015109549f2e3bab8203",
+    "semantic_hash": ""
+  },
+  "src/components/SyllabusRevisionsSections.jsx": {
+    "mtime": 1780809591.543017,
+    "ast_hash": "ce5f4dce768ab7f8dd75a21d8047002b",
+    "semantic_hash": ""
+  },
+  "src/components/SyllabusSections.jsx": {
+    "mtime": 1781619094.6703866,
+    "ast_hash": "bc1006c27f6be89c4afae603e91d0f83",
+    "semantic_hash": ""
+  },
+  "src/components/TOSCoursesTable.jsx": {
+    "mtime": 1780889371.550114,
+    "ast_hash": "7b9eb180d3225bff333e0cc4f5eede0e",
+    "semantic_hash": ""
+  },
+  "src/components/TextArea.jsx": {
+    "mtime": 1780727009.7317429,
+    "ast_hash": "fefc6a03e988fa26626dbb42d29781d3",
+    "semantic_hash": ""
+  },
+  "src/components/TextField.jsx": {
+    "mtime": 1780727009.7317429,
+    "ast_hash": "99c316f78fff7a742fa0912b8c57fdcd",
+    "semantic_hash": ""
+  },
+  "src/components/TopicSelector.jsx": {
+    "mtime": 1780807736.0005584,
+    "ast_hash": "d013d400551748f215215ceb1d9dbbd4",
+    "semantic_hash": ""
+  },
+  "src/components/TosSections.jsx": {
+    "mtime": 1780727009.7317429,
+    "ast_hash": "b3841b1ace1ea5b922e127469482de6a",
+    "semantic_hash": ""
+  },
+  "src/components/TypeableDropdown.jsx": {
+    "mtime": 1780807731.180409,
+    "ast_hash": "31aca6cd07514f80e4308c00adefa27a",
+    "semantic_hash": ""
+  },
+  "src/components/UploadPanel/UploadPanel.jsx": {
+    "mtime": 1780727009.732743,
+    "ast_hash": "d67fe91a907069526568400b7ff5d7fa",
+    "semantic_hash": ""
+  },
+  "src/components/WorkflowStepper/WorkflowStepper.jsx": {
+    "mtime": 1780727009.732743,
+    "ast_hash": "fbacfdd29c45ef31f23d1eeb6a4584a8",
+    "semantic_hash": ""
+  },
+  "src/data/referenceLibraryData.js": {
+    "mtime": 1780727009.732743,
+    "ast_hash": "be86d622ecccb625c3a869554928c016",
+    "semantic_hash": ""
+  },
+  "src/data/syllabiData.js": {
+    "mtime": 1780888696.371565,
+    "ast_hash": "35b8edb5535b16523b646754b54f495d",
+    "semantic_hash": ""
+  },
+  "src/layouts/Skeleton.jsx": {
+    "mtime": 1780807731.1644087,
+    "ast_hash": "7bd74ddaf05d5576b39b248f3ed4c825",
+    "semantic_hash": ""
+  },
+  "src/layouts/SkeletonA.jsx": {
+    "mtime": 1780727009.7337663,
+    "ast_hash": "cc5a93bca176f1ebc9f667a8eee1d5fe",
+    "semantic_hash": ""
+  },
+  "src/main.jsx": {
+    "mtime": 1780727009.7337663,
+    "ast_hash": "e13723e2574429d9a6d849727e3ff695",
+    "semantic_hash": ""
+  },
+  "src/pages/ApprovalCourses.jsx": {
+    "mtime": 1780727009.7337663,
+    "ast_hash": "d0194731b012f8ac6487cbfc688003a1",
+    "semantic_hash": ""
+  },
+  "src/pages/ApprovalILOForm.jsx": {
+    "mtime": 1780727009.7337663,
+    "ast_hash": "047306089fbf7604acb25c58dd4b54cd",
+    "semantic_hash": ""
+  },
+  "src/pages/ApprovalReferenceForm.jsx": {
+    "mtime": 1780727009.7337663,
+    "ast_hash": "327186eb6648d3961e6cd870100111eb",
+    "semantic_hash": ""
+  },
+  "src/pages/ApprovalSyllabus.jsx": {
+    "mtime": 1780836647.6819303,
+    "ast_hash": "ece4bd0e561a6865224e649f3df6c8a3",
+    "semantic_hash": ""
+  },
+  "src/pages/ApprovalTopicForm.jsx": {
+    "mtime": 1780727009.7337663,
+    "ast_hash": "3371e1135bb98683108454bc889670f5",
+    "semantic_hash": ""
+  },
+  "src/pages/AssessmentForm.jsx": {
+    "mtime": 1780807802.7186244,
+    "ast_hash": "e3fcf0392e847d37dbe72aebe0e6bb18",
+    "semantic_hash": ""
+  },
+  "src/pages/AssignedCourses.jsx": {
+    "mtime": 1780809591.577018,
+    "ast_hash": "f782db92db0d51e6d0cc5f09607e73ce",
+    "semantic_hash": ""
+  },
+  "src/pages/AssignedTOS.jsx": {
+    "mtime": 1780727009.734743,
+    "ast_hash": "f15adff2f61678b5dc2e1c790ead8fdb",
+    "semantic_hash": ""
+  },
+  "src/pages/CriteriaForGradingForm.jsx": {
+    "mtime": 1780809591.580018,
+    "ast_hash": "0af7cbd51e7fc46aee00742666744d76",
+    "semantic_hash": ""
+  },
+  "src/pages/Dean.jsx": {
+    "mtime": 1780727009.734743,
+    "ast_hash": "fa2e9faa33b363b52a9848d5fdc6a2bf",
+    "semantic_hash": ""
+  },
+  "src/pages/DeanFaculty.jsx": {
+    "mtime": 1780727009.734743,
+    "ast_hash": "9a0f610feaf2864c0bb5747124c5fbc4",
+    "semantic_hash": ""
+  },
+  "src/pages/DeanPrograms.jsx": {
+    "mtime": 1780727009.734743,
+    "ast_hash": "c61af28b0f1c428a3d84f6ccea38ec5d",
+    "semantic_hash": ""
+  },
+  "src/pages/DirectorOfLibraries.jsx": {
+    "mtime": 1780810648.1128132,
+    "ast_hash": "b720702c7bd73ef8b834772da2e0e774",
+    "semantic_hash": ""
+  },
+  "src/pages/ILOForm.jsx": {
+    "mtime": 1780807802.7116241,
+    "ast_hash": "d3c76bf90e087eb4a5dc2d776b81b34e",
+    "semantic_hash": ""
+  },
+  "src/pages/IndustryConsultant.jsx": {
+    "mtime": 1780727009.735743,
+    "ast_hash": "2a2287191ecb015e1aa7f66cb0523057",
+    "semantic_hash": ""
+  },
+  "src/pages/InstructorDocuments.jsx": {
+    "mtime": 1780727009.735743,
+    "ast_hash": "3ac1cbb10b510bd381b510f137658071",
+    "semantic_hash": ""
+  },
+  "src/pages/OICOVPAA.jsx": {
+    "mtime": 1780810610.7955956,
+    "ast_hash": "d5a28243fe0e3800b5be2a1732728b81",
+    "semantic_hash": ""
+  },
+  "src/pages/ProgramHead.jsx": {
+    "mtime": 1780810632.4603028,
+    "ast_hash": "9fe61774999640993f96996d0a9b5009",
+    "semantic_hash": ""
+  },
+  "src/pages/ProgramHeadConsultant.jsx": {
+    "mtime": 1780727009.735743,
+    "ast_hash": "c5fb47d372f016c525fc75008e926019",
+    "semantic_hash": ""
+  },
+  "src/pages/ProgramHeadCourseOfferings.jsx": {
+    "mtime": 1780727009.735743,
+    "ast_hash": "97288f24ef9f25c087f0513e624e8321",
+    "semantic_hash": ""
+  },
+  "src/pages/ProgramHeadIndustryConsultant.jsx": {
+    "mtime": 1780727009.735743,
+    "ast_hash": "3d310f5c3ee6e464598c77f0583a2ab6",
+    "semantic_hash": ""
+  },
+  "src/pages/ProgramHeadOutcomes.jsx": {
+    "mtime": 1780727009.736743,
+    "ast_hash": "b3888c19e52fbdef73467bcba03bb97c",
+    "semantic_hash": ""
+  },
+  "src/pages/QuestionCognitiveMapping.jsx": {
+    "mtime": 1780727009.736743,
+    "ast_hash": "3819c6816341789e549c75c919cb86e4",
+    "semantic_hash": ""
+  },
+  "src/pages/ReferenceForm.jsx": {
+    "mtime": 1782128628.4245307,
+    "ast_hash": "1e2aae53763c3b4e576cc8841e43aeb6",
+    "semantic_hash": ""
+  },
+  "src/pages/SharedDocuments.jsx": {
+    "mtime": 1780727009.736743,
+    "ast_hash": "f88b4bf261689751625b6b90da77573a",
+    "semantic_hash": ""
+  },
+  "src/pages/Syllabus.jsx": {
+    "mtime": 1780809591.5740178,
+    "ast_hash": "dbd867683f29af18b8fa7edbae51ecde",
+    "semantic_hash": ""
+  },
+  "src/pages/SyllabusRevisions.jsx": {
+    "mtime": 1780727009.736743,
+    "ast_hash": "45c9b066b01b8b02c7d6b351ad950a0f",
+    "semantic_hash": ""
+  },
+  "src/pages/TLAForm.jsx": {
+    "mtime": 1782128654.9034212,
+    "ast_hash": "2f41c8c18ed26efe81025fb8a5b80fa4",
+    "semantic_hash": ""
+  },
+  "src/pages/TOS.jsx": {
+    "mtime": 1780727009.736743,
+    "ast_hash": "2364b648b32343e047d4ffb8a002dc77",
+    "semantic_hash": ""
+  },
+  "src/pages/TopicForm.jsx": {
+    "mtime": 1782128641.2409613,
+    "ast_hash": "0e338145ace24a857e3d1bb6501463dd",
+    "semantic_hash": ""
+  },
+  "src/pages/TosPreview.jsx": {
+    "mtime": 1780727009.736743,
+    "ast_hash": "37be0f547ea60aed6411efdc0a1513ea",
+    "semantic_hash": ""
+  },
+  "src/pages/TosSummary.jsx": {
+    "mtime": 1780727009.736743,
+    "ast_hash": "f4c67f3f08199c8eee4d4a33513c31a8",
+    "semantic_hash": ""
+  },
+  "src/pages/lpsm/Dean/ApprovalPanel.jsx": {
+    "mtime": 1780727009.736743,
+    "ast_hash": "11405157d96872531a5e8715233bffad",
+    "semantic_hash": ""
+  },
+  "src/pages/lpsm/DirectorDashboard.jsx": {
+    "mtime": 1780727009.736743,
+    "ast_hash": "ab1ad51a9602efa958cf4f045ef7cd41",
+    "semantic_hash": ""
+  },
+  "src/pages/lpsm/DirectorOfLibraries/AddReference.jsx": {
+    "mtime": 1780727009.7377431,
+    "ast_hash": "30c3ed4721bbc7e2531056472cadaaed",
+    "semantic_hash": ""
+  },
+  "src/pages/lpsm/DirectorOfLibraries/DocumentUpload.jsx": {
+    "mtime": 1780727009.7377431,
+    "ast_hash": "2cfced579aaec5231bf56090b966e064",
+    "semantic_hash": ""
+  },
+  "src/pages/lpsm/DirectorOfLibraries/ReferenceLibrary.jsx": {
+    "mtime": 1780727009.7377431,
+    "ast_hash": "2da1574a881d14c3e1024d9d44892726",
+    "semantic_hash": ""
+  },
+  "src/pages/lpsm/DirectorOfLibraries/ReviewPanel.jsx": {
+    "mtime": 1780727009.7377431,
+    "ast_hash": "19da05f0f7660c019d8950957d8ee157",
+    "semantic_hash": ""
+  },
+  "src/pages/lpsm/DirectorOfLibraries/ViewReference.jsx": {
+    "mtime": 1780727009.738743,
+    "ast_hash": "e998f4b1f77696e13b64f06e7db8c4c7",
+    "semantic_hash": ""
+  },
+  "src/pages/lpsm/DirectorUpload.jsx": {
+    "mtime": 1780727009.738743,
+    "ast_hash": "57ed5afbce9191b935797173565607c7",
+    "semantic_hash": ""
+  },
+  "src/pages/lpsm/DocumentsViewer.jsx": {
+    "mtime": 1780727009.738743,
+    "ast_hash": "d6120683ba77c522ff7499a656673e56",
+    "semantic_hash": ""
+  },
+  "src/pages/lpsm/IndustryConsultant/ReviewPanel.jsx": {
+    "mtime": 1780727009.738743,
+    "ast_hash": "19da05f0f7660c019d8950957d8ee157",
+    "semantic_hash": ""
+  },
+  "src/pages/lpsm/Instructor/LearningPlanCompose.jsx": {
+    "mtime": 1780731227.9310584,
+    "ast_hash": "996355b3c8dcaa2aee976c1a81c96a74",
+    "semantic_hash": ""
+  },
+  "src/pages/lpsm/Instructor/LearningPlanList.jsx": {
+    "mtime": 1780731227.9320583,
+    "ast_hash": "d1a9faf239fbc89325e48ccbd1b4b9e1",
+    "semantic_hash": ""
+  },
+  "src/pages/lpsm/Instructor/PDFExportPanel.jsx": {
+    "mtime": 1780731227.9320583,
+    "ast_hash": "6e24bb24f6291f6c96a3373d84821695",
+    "semantic_hash": ""
+  },
+  "src/pages/lpsm/Instructor/TemplateSelector.jsx": {
+    "mtime": 1780731227.9360585,
+    "ast_hash": "242af17886cc4bf33b2f138174eb3f05",
+    "semantic_hash": ""
+  },
+  "src/pages/lpsm/Instructor/VersionHistoryPanel.jsx": {
+    "mtime": 1780731227.9370587,
+    "ast_hash": "d6e2259694966881e32dcf3cfaf807e9",
+    "semantic_hash": ""
+  },
+  "src/pages/lpsm/Instructor/VersionSnapshot.jsx": {
+    "mtime": 1780731227.9370587,
+    "ast_hash": "02afed637efff558b802be00a160dfb6",
+    "semantic_hash": ""
+  },
+  "src/pages/lpsm/InstructorDashboard.jsx": {
+    "mtime": 1782185322.6855524,
+    "ast_hash": "d241fb17480259924b0e3ba81d1e136d",
+    "semantic_hash": ""
+  },
+  "src/pages/lpsm/OICOvpaa/OICOVPAADashboard.jsx": {
+    "mtime": 1780727009.738743,
+    "ast_hash": "0bbffdf6723eb8439d55e9fd38a296b9",
+    "semantic_hash": ""
+  },
+  "src/pages/lpsm/ProgramHead/ApprovalPanel.jsx": {
+    "mtime": 1780727009.7396681,
+    "ast_hash": "11405157d96872531a5e8715233bffad",
+    "semantic_hash": ""
+  },
+  "src/pages/lpsm/ProgramHead/COAEPUpload.jsx": {
+    "mtime": 1782184280.4728224,
+    "ast_hash": "ceb845b2d82b3e8beb144c85e85a488d",
+    "semantic_hash": ""
+  },
+  "src/pages/lpsm/ProgramHead/CoPoAlignment.jsx": {
+    "mtime": 1780828117.4001067,
+    "ast_hash": "535fab29b00b316d1b23eb3bfc3cbd18",
+    "semantic_hash": ""
+  },
+  "src/pages/lpsm/ProgramHead/DocumentUpload.jsx": {
+    "mtime": 1780727009.7397432,
+    "ast_hash": "37e528cedfbe3ea01054c03ec3e9ec31",
+    "semantic_hash": ""
+  },
+  "src/pages/lpsm/ProgramHead/PoPeoAlignment.jsx": {
+    "mtime": 1780828115.5620487,
+    "ast_hash": "147fc94c97fd75c6834503944fa70fdf",
+    "semantic_hash": ""
+  },
+  "src/pages/lpsm/ProgramHead/UploadDashboard.jsx": {
+    "mtime": 1780727009.7397432,
+    "ast_hash": "8adc31c28c93f290b3d5aa9f5507d6b6",
+    "semantic_hash": ""
+  },
+  "src/pages/lpsm/ProgramHeadDashboard.jsx": {
+    "mtime": 1780727009.7397432,
+    "ast_hash": "f8682f6dba0d9c45627c7003ca595b7a",
+    "semantic_hash": ""
+  },
+  "src/pages/lpsm/ProgramHeadUpload.jsx": {
+    "mtime": 1780727009.7397432,
+    "ast_hash": "6963a8a5555e5b1c0a31cf2097f0cf9a",
+    "semantic_hash": ""
+  },
+  "src/pages/lpsm/Shared/StatusTracker.jsx": {
+    "mtime": 1780727009.7397432,
+    "ast_hash": "3081195040478130d50d0a28e08cbb96",
+    "semantic_hash": ""
+  },
+  "src/services/documentService.js": {
+    "mtime": 1780727009.7407432,
+    "ast_hash": "ce86704741f6f33cf3b4de6c870d2e74",
+    "semantic_hash": ""
+  },
+  "src/services/learningPlanService.js": {
+    "mtime": 1780727009.7412457,
+    "ast_hash": "83d7f4dd365ab6cc9096ff577bd4ccc9",
+    "semantic_hash": ""
+  },
+  "src/utils/api.js": {
+    "mtime": 1780810166.1611803,
+    "ast_hash": "e117e508007ba920631b678314b33960",
+    "semantic_hash": ""
+  },
+  "src/utils/apiErrorHandler.js": {
+    "mtime": 1780727009.7461548,
+    "ast_hash": "6a97be99ddbe09028b29492b1445d88c",
+    "semantic_hash": ""
+  },
+  "src/utils/auditLogger.js": {
+    "mtime": 1780727009.746282,
+    "ast_hash": "31dcd7384666cd26eb0221d06044ba17",
+    "semantic_hash": ""
+  },
+  "src/utils/dataStore.js": {
+    "mtime": 1780727009.7464588,
+    "ast_hash": "96e65f2c8ea70342fffed7e4fc106b0c",
+    "semantic_hash": ""
+  },
+  "src/utils/fillCoaepPdf.js": {
+    "mtime": 1782183955.9644954,
+    "ast_hash": "10f7813e335e95060430069d65553b0e",
+    "semantic_hash": ""
+  },
+  "src/utils/generateCoaepPdf.js": {
+    "mtime": 1782184068.531901,
+    "ast_hash": "1b646ac343c7ce35ad726a6f4744033a",
+    "semantic_hash": ""
+  },
+  "src/utils/pdfExport.js": {
+    "mtime": 1780727009.7469702,
+    "ast_hash": "bb691df8e21a7503fa61299db24d40ac",
+    "semantic_hash": ""
+  },
+  "src/utils/referenceLibrary.js": {
+    "mtime": 1780727009.7471514,
+    "ast_hash": "4553307dc7b6ea251447ab449c73a32e",
+    "semantic_hash": ""
+  },
+  "src/utils/roleGuard.js": {
+    "mtime": 1780727009.7471821,
+    "ast_hash": "ebaf0a6b1a92a745b6ab7c1a33a5d54e",
+    "semantic_hash": ""
+  },
+  "src/utils/roleIdentities.js": {
+    "mtime": 1780727009.747208,
+    "ast_hash": "bc6d10c1cc42b2d3a90c0010e3307143",
+    "semantic_hash": ""
+  },
+  "src/utils/safeStorage.js": {
+    "mtime": 1780727009.7472324,
+    "ast_hash": "fd45c39a590d932e3890f72f61f790e4",
+    "semantic_hash": ""
+  },
+  "src/utils/sanitize.js": {
+    "mtime": 1780727009.7472548,
+    "ast_hash": "f8b9c39bcf81883592239fe4d25f914e",
+    "semantic_hash": ""
+  },
+  "src/utils/seedAllData.js": {
+    "mtime": 1780727009.7474992,
+    "ast_hash": "27cc8baebde589377c21030c1f6c9f02",
+    "semantic_hash": ""
+  },
+  "src/utils/syllabusCommentUtils.js": {
+    "mtime": 1780727009.747682,
+    "ast_hash": "36eb20019d29f739b193357ac399582e",
+    "semantic_hash": ""
+  },
+  "src/utils/validation.js": {
+    "mtime": 1780727009.747856,
+    "ast_hash": "ef7a761dc84b550c1a9bf31a6f447945",
+    "semantic_hash": ""
+  },
+  "src/utils/workflowHelpers.js": {
+    "mtime": 1780888714.0919588,
+    "ast_hash": "7405e25bae246766c3c5f0b4bf7aba7f",
+    "semantic_hash": ""
+  },
+  "vite.config.js": {
+    "mtime": 1780807696.1573243,
+    "ast_hash": "88439104b3c207f17d33ef3160e3b080",
+    "semantic_hash": ""
+  },
+  "LPSM_DOCUMENT_LOGIC_FIX.md": {
+    "mtime": 1780727009.714778,
+    "ast_hash": "3e10e3a1118f9226b785e80e97ba8797",
+    "semantic_hash": ""
+  },
+  "LPSM_FILES_CHECKLIST.txt": {
+    "mtime": 1780727009.714778,
+    "ast_hash": "2c99ab0cc6dbd5d53f622418a659c3e7",
+    "semantic_hash": ""
+  },
+  "LPSM_IMPLEMENTATION_SUMMARY.md": {
+    "mtime": 1780727009.714778,
+    "ast_hash": "40bfe51d29662e540d315c3c1bf29d9e",
+    "semantic_hash": ""
+  },
+  "LPSM_QUICK_START.txt": {
+    "mtime": 1780727009.7157426,
+    "ast_hash": "0e7df7309530ce764866a18e114fde79",
+    "semantic_hash": ""
+  },
+  "LPSM_REFACTOR_COMPLETE.md": {
+    "mtime": 1780727009.7157426,
+    "ast_hash": "4f7635a34bacb6d92813dd44a2936c63",
+    "semantic_hash": ""
+  },
+  "LPSM_SETUP.md": {
+    "mtime": 1780727009.7157426,
+    "ast_hash": "af37f2aed9ddd82706b081ca14779374",
+    "semantic_hash": ""
+  },
+  "README.md": {
+    "mtime": 1767600764.0,
+    "ast_hash": "d083785d31562b4df74d971de5873984",
+    "semantic_hash": ""
+  },
+  "docker-compose.lpsm.yml": {
+    "mtime": 1778645480.8094802,
+    "ast_hash": "deb569000c4ece3aa3321c4c116f3365",
+    "semantic_hash": ""
+  },
+  "docker-compose.yml": {
+    "mtime": 1780630334.0504358,
+    "ast_hash": "daed79d792f44b6bbde7dd4e87264acb",
+    "semantic_hash": ""
+  },
+  "ilo_replacement.txt": {
+    "mtime": 1780808278.9393668,
+    "ast_hash": "fe2b35a46baf395f129f304979db4f93",
+    "semantic_hash": ""
+  },
+  "index.html": {
+    "mtime": 1780727009.723572,
+    "ast_hash": "14b7573537e3c692fedad2a5b5a30b98",
+    "semantic_hash": ""
+  },
+  "public/coaep-template.pdf": {
+    "mtime": 1782183526.0880191,
+    "ast_hash": "e878733bfe7e9e1a3032f255a900ff8e",
+    "semantic_hash": ""
+  },
+  "public/syllabus-template.pdf": {
+    "mtime": 1782184782.2142425,
+    "ast_hash": "37323b9d7208c0ca405d9b08d14e4eff",
+    "semantic_hash": ""
+  },
+  "public/coaep-logo.png": {
+    "mtime": 1782183061.7720566,
+    "ast_hash": "c332ea738ceff14ec13ee8b037073da1",
+    "semantic_hash": ""
+  },
+  "public/vite.svg": {
+    "mtime": 1780727009.7237427,
+    "ast_hash": "8e3a10e157f75ada21ab742c022d5430",
+    "semantic_hash": ""
+  },
+  "src/assets/coaep-logo.png": {
+    "mtime": 1782182461.3590477,
+    "ast_hash": "c332ea738ceff14ec13ee8b037073da1",
+    "semantic_hash": ""
+  },
+  "src/assets/react.svg": {
+    "mtime": 1780727009.7247427,
+    "ast_hash": "f0402b67b6ce880f65666bb49e841696",
+    "semantic_hash": ""
+  },
+  "src/assets/unclogo.png": {
+    "mtime": 1780727009.725616,
+    "ast_hash": "3f68d4ca3c630b58c28d8b91543025db",
+    "semantic_hash": ""
+  }
+}
