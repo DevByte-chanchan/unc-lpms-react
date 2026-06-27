@@ -12,7 +12,7 @@ module.exports = (sequelize, DataTypes) => {
       });
       ApprovalStage.hasMany(models.ApprovalComment, {
         foreignKey: 'approval_stage_id',
-        as: 'comments'
+        as: 'approvalComments'
       });
     }
   }

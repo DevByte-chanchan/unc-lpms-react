@@ -8,7 +8,7 @@ const createLPSnapshot = async (planId, userId, triggerEvent) => {
     const plan = await LearningPlan.findByPk(planId, {
       include: [
         { association: 'documents' },
-        { association: 'approvalStages', include: ['comments'] },
+        { association: 'approvalStages', include: ['approvalComments'] },
         { association: 'comments' }
       ]
     });
@@ -133,7 +133,7 @@ exports.getLearningPlan = async (req, res) => {
     const plan = await LearningPlan.findByPk(id, {
       include: [
         { association: 'documents' },
-        { association: 'approvalStages', include: ['comments'] },
+        { association: 'approvalStages', include: ['approvalComments'] },
         { association: 'comments' }
       ]
     });
