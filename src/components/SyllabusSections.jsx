@@ -8,6 +8,7 @@ import SyllabusPreview from "./SyllabusPreview.jsx";
 import {fetchJson} from "../utils/api";
 import { getSyllabusByCode } from "../data/syllabiData.js";
 import { getWorkflow } from "../utils/workflowHelpers.js";
+import { getPreviousYearContent, exportSyllabusPdf } from "../services/syllabusService.js";
 
 const SEED_COMMENTS_KEY = 'lpsm_comments_seeded_v2'
 
@@ -172,6 +173,57 @@ const SyllabusSections = () => {
         fetchCommentCounts();
         return () => { mounted = false; };
     }, [code, status]);
+
+    // Sprint 3: auto-population + PDF export states
+    const [previousYearLoading, setPreviousYearLoading] = useState(false);
+    const [pdfExportLoading, setPdfExportLoading] = useState(false);
+
+    const handleLoadPreviousYear = async () => {
+        if (!window.confirm('Load syllabus content from the previous academic year? Current data will be overwritten.')) return;
+        setPreviousYearLoading(true);
+        try {
+            const { data } = await getPreviousYearContent(code);
+            const prev = typeof data.content === 'string' ? JSON.parse(data.content) : data.content;
+            if (prev) {
+                setCourseDetailsData(prev => ({ ...prev, name: prev.name || '', description: prev.description || '', credits: prev.credits || '', contact: prev.contact || '', prerequisites: prev.prerequisites || '', class: prev.class || '', cmo: prev.cmo || '', revision: prev.revision || 0, year: prev.year || '', sem: prev.sem || '' }));
+                if (prev.ilos) {
+                    const flatILOs = prev.ilos.map((ilo, idx) => ({ ...ilo, co_id: ilo.co_id || Math.floor(idx / 3) + 1, description: ilo.intendedLearningOutcome || ilo.description || '' }));
+                    setIloData({ course: { code: prev.code, title: prev.name }, courseOutcomes: prev.courseOutcomes || [], ilos: flatILOs });
+                }
+                if (prev.ilos || prev.courseOutcomes) {
+                    const cpaCourses = prev.ilos ? [...new Set(prev.ilos.map(i => i.courseOutcome))].map((co, idx) => ({ id: idx + 1, description: co })) : [];
+                    setCpaData({ course: { code: prev.code, title: prev.name }, programOutcomes: prev.programOutcomes || [], courseOutcomes: prev.courseOutcomes || cpaCourses });
+                }
+                setCoverageData({ ilos: prev.ilos || [], topics: prev.topics || [], assessments: prev.assessments || [] });
+                setCriteriaData({ gradingSystem: prev.gradingSystem || [] });
+                setReferenceData(null);
+                alert('Previous year syllabus content loaded successfully.');
+            }
+        } catch (err) {
+            const msg = err.response?.data?.error || err.message || 'Failed to load previous year content';
+            alert(msg);
+        } finally {
+            setPreviousYearLoading(false);
+        }
+    };
+
+    const handleExportPdf = async () => {
+        setPdfExportLoading(true);
+        try {
+            const response = await exportSyllabusPdf(code);
+            const blob = new Blob([response.data], { type: 'application/pdf' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `Syllabus_${code}.pdf`;
+            a.click();
+            window.URL.revokeObjectURL(url);
+        } catch (err) {
+            alert(err.response?.data?.error || err.message || 'Failed to export PDF');
+        } finally {
+            setPdfExportLoading(false);
+        }
+    };
 
     // course details state
     const [courseDetailsData, setCourseDetailsData] = useState({
@@ -471,12 +523,21 @@ const SyllabusSections = () => {
                 </div>
 
 
+                <div onClick={handleExportPdf} className={styles.draft} style={{ cursor: pdfExportLoading ? 'wait' : 'pointer', opacity: pdfExportLoading ? 0.6 : 1 }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                    {pdfExportLoading ? 'Exporting...' : 'Export PDF'}
+                </div>
+
                 {status !== 'draft' && <div ref={workflowBtnRef} className={styles.more} onClick={() => { const r = workflowBtnRef.current?.getBoundingClientRect(); const popupH = 280; if (r) setWorkflowPopupPos({ right: window.innerWidth - r.right, top: r.bottom + 4 + popupH > window.innerHeight ? r.top - popupH - 4 : r.bottom + 4 }); setShowWorkflowPopup(true); }}>
                     <Info strokeWidth={2} size={16}/>
                 </div>}
 
                 {(status === 'draft' || status === 'returned') &&
                     <>
+                        <div onClick={handleLoadPreviousYear} className={styles.draft} style={{ cursor: previousYearLoading ? 'wait' : 'pointer', opacity: previousYearLoading ? 0.6 : 1 }}>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                            {previousYearLoading ? 'Loading...' : 'Load Previous Year'}
+                        </div>
                         <div onClick={() => setIsPreviewOpen(true)} className={styles.draft}>
                             <Play size={14} />
                             Preview

@@ -24,3 +24,15 @@ export const getSyllabusVersions = (role, userId, courseCode) =>
 
 export const getSyllabusVersion = (role, userId, courseCode, versionNo) =>
   axios.get(`${API_BASE_URL}/syllabi/${courseCode}/versions/${versionNo}`, { headers: getHeaders(role, userId) });
+
+export const getSyllabusContent = (courseCode) =>
+  axios.get(`${API_BASE_URL}/syllabi/content/${courseCode}`);
+
+export const getPreviousYearContent = (courseCode) =>
+  axios.get(`${API_BASE_URL}/syllabi/content/${courseCode}/previous`);
+
+export const saveSyllabusContent = (courseCode, data) =>
+  axios.post(`${API_BASE_URL}/syllabi/content/${courseCode}`, data);
+
+export const exportSyllabusPdf = (courseCode) =>
+  axios.post(`${API_BASE_URL}/syllabi/${courseCode}/export/pdf`, {}, { responseType: 'blob' });
