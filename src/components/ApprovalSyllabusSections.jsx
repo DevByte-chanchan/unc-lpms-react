@@ -1,13 +1,14 @@
-import React, { useEffect, useState, useRef } from 'react'
+import React, { useEffect, useState, useRef, useMemo } from 'react'
 import { Link, useSearchParams, useParams, useNavigate, useLocation } from 'react-router-dom'
 import { ChevronLeft, ChevronRight, Info, MessageSquare, Inbox, Download } from 'react-feather'
 import styles from '../styles/ApprovalSyllabusSections.module.sass'
 import stylesB from '../styles/SyllabusPreview.module.sass'
 import ApprovalCommentBox from './ApprovalCommentBox.jsx'
 import { getSyllabusByCode, syllabiData } from '../data/syllabiData.js'
-import { getWorkflow, setWorkflow, advanceWorkflow } from '../utils/workflowHelpers'
+import { getWorkflow, setWorkflow, advanceWorkflow, resetWorkflowStage } from '../utils/workflowHelpers'
 import { getSuggestions, addSuggestion, acceptSuggestion, rejectSuggestion } from '../utils/dataStore'
 import { getReferences, getReferenceById } from '../utils/referenceLibrary'
+import { normalizeRoleKey, isDeprecated, hasIssues, getRoleColor, getComponentTags, isRecent, reviewerSeeds } from '../utils/approvalHelpers.js'
 import { fetchJson } from "../utils/api.js"
 import PDFViewerModal from './PDFViewerModal'
 
@@ -23,12 +24,15 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
   const [searchParams] = useSearchParams()
   const [selectedSection, setSelectedSection] = useState(defaultSections[0])
   const statusParam = searchParams.get('status')
-  const effectiveStatus = (statusParam || status).toLowerCase()
+  const effectiveFromUrl = (statusParam || status || '').toLowerCase()
+  const fallbackStage = (() => { try { const wf = getWorkflow(courseCode || ''); return wf?.currentStage || '' } catch { return '' } })()
+  const effectiveStatus = effectiveFromUrl || fallbackStage || 'submitted'
   const params = useParams()
   const navigate = useNavigate()
   const location = useLocation()
 
   const [showCommentModal, setShowCommentModal] = useState(false)
+  const [readOnlyCommentModal, setReadOnlyCommentModal] = useState(false)
   const [workflowState, setWorkflowState] = useState(() => workflowProp || getWorkflow(courseCode || ''))
   const [showApproveModal, setShowApproveModal] = useState(false)
   const [showSubmitModal, setShowSubmitModal] = useState(false)
@@ -127,7 +131,6 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
   // safe access to syllabus references (use resolved `syllabus` like SyllabusPreview)
   const allReferences = syllabus?.references || []
 
-  const CURRENT_YEAR = new Date().getFullYear()
   const libraryRefs = React.useMemo(() => getReferences(), [refreshKey])
 
   // derive role
@@ -147,11 +150,20 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
           ? 'director-of-libraries'
           : roleSource.includes('instructor')
             ? 'instructor'
-            : roleSource.includes('oic') || roleSource.includes('ovpaa')
+            : roleSource.includes('oic') || roleSource.includes('ovpaa') || roleSource.includes('vpaa')
               ? 'vpaa'
               : roleSource.includes('approver')
                 ? 'approver'
                 : 'approver'
+
+  const hasApproverComments = useMemo(() => {
+    try {
+      const raw = localStorage.getItem('approval_comments_v1')
+      if (!raw) return false
+      const all = JSON.parse(raw)
+      return (Array.isArray(all) ? all : []).some(c => normalizeRoleKey(c.role) === roleKey)
+    } catch { return false }
+  }, [roleKey])
 
   const defaultBack = (() => {
     const fromTab = location.state?.fromTab
@@ -185,6 +197,12 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
     return globalComments
   }, [globalComments, roleKey])
 
+  const previousComments = React.useMemo(() => {
+    return globalComments
+      .filter(c => normalizeRoleKey(c.role) === roleKey)
+      .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
+  }, [globalComments, roleKey])
+
   // hardcoded reference pool for display (ensures a mix of types per syllabus)
   const refPool = React.useMemo(() => [
     { id: "TB1", title: "Software Engineering: A Practitioner's Approach", type: "Textbook", authors: "Roger S. Pressman", year: 2020, isbn: "978-1260548006", link: "" },
@@ -207,6 +225,9 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
     { id: "OR5", title: "PostgreSQL Documentation", type: "Online Resources", authors: "PostgreSQL Global Development Group", year: 2024, isbn: "", link: "https://www.postgresql.org/docs/" },
     { id: "OR6", title: "Scikit-learn Documentation", type: "Online Resources", authors: "Scikit-learn Developers", year: 2024, isbn: "", link: "https://scikit-learn.org/stable/" },
   ], [])
+
+  // reset localRefs on navigation so each course gets its own seeded picks
+  useEffect(() => { setLocalRefs(null) }, [codeToUse])
 
   // initialize syllabus-specific references: picks from refPool ensuring at least 2 types
   useEffect(() => {
@@ -232,12 +253,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
       setLocalRefs(picks)
     }
   }, [codeToUse, refPool])
-  const isDeprecated = (ref) => {
-    if (!ref.year) return false
-    const y = typeof ref.year === 'string' ? parseInt(ref.year) : ref.year
-    return !isNaN(y) && CURRENT_YEAR - y >= 5
-  }
-  const hasIssues = (ref) => ref.hasIssue === true
+  // isDeprecated, hasIssues imported from approvalHelpers
 
   const enrichRef = (ref) => {
     const libRef = libraryRefs.find(r => r.id === ref.id)
@@ -295,6 +311,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
       if (roleKey === 'program-head') {
         wf.parallelReview = wf.parallelReview || {}
         wf.parallelReview.program_head = { status: 'done', completedAt: nowIso }
+        wf.programHead = { status: 'done', completedAt: nowIso }
       }
       if (roleKey === 'dean') {
         wf.dean = { status: 'done', completedAt: nowIso }
@@ -307,7 +324,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
       console.error('Failed to approve', e)
     }
     setShowApproveModal(false)
-    showToastMsg('Syllabus approved successfully!')
+    showToastMsg('Learning Plan approved successfully!')
   }
 
   const handleSubmitForReview = () => {
@@ -351,7 +368,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
       console.error('Failed to submit', e)
     }
     setShowSubmitModal(false)
-    showToastMsg('Syllabus submitted for review!')
+    showToastMsg('Learning Plan submitted for review!')
     navigate(backPath)
   }
 
@@ -405,7 +422,6 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
 
   const handleSubmitComment = (payload) => {
     console.log('Submitted approval comment', { ...payload, role: roleKey })
-    setShowCommentModal(false)
     setSidebarCollapsed(false)
 
     try {
@@ -426,7 +442,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
       const submittedAt = payload.createdAt || now.toISOString()
       const submissionLabel = `Submission ${new Date(submittedAt).toLocaleString()}`
 
-      const reviewerNames = { 'instructor': 'CASIMERO, DANNY', 'program-head': 'DANILA, JUNAR', 'dean': 'REYES, AGNES', 'director-of-libraries': 'SANTOS, MARIA', 'industry-consultant': 'CRUZ, ROBERTO' }
+      const reviewerNames = { 'instructor': 'CASIMERO, DANNY', 'program-head': 'DANILA, JUNAR', 'dean': 'REYES, AGNES', 'director-of-libraries': 'GARCIA, CARLOS', 'industry-consultant': 'CRUZ, ROBERTO' }
       const storedUser = JSON.parse(localStorage.getItem('user') || 'null')
       const reviewer = reviewerNames[roleKey] || storedUser?.name || 'Approver'
       const roleLabel = roleKey === 'program-head' ? 'Program Head'
@@ -480,6 +496,14 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
       }
 
       setRefreshKey(k => k + 1)
+
+      const wf = getWorkflow(codeToUse)
+      if (wf && wf.currentStage !== 'returned') {
+        wf.currentStage = 'returned'
+        setWorkflow(codeToUse, wf)
+        advanceWorkflow(codeToUse)
+        setWorkflowState(getWorkflow(codeToUse))
+      }
     } catch (e) {
       console.error('Failed to persist approval comment', e)
     }
@@ -488,7 +512,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
   const handleAcceptSuggestion = (id) => {
     acceptSuggestion(id);
     setRefreshKey(k => k + 1);
-    showToastMsg('Reference added to syllabus!');
+    showToastMsg('Reference added to learning plan!');
   }
 
   const handleRejectSuggestion = (id) => {
@@ -503,40 +527,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
 
   const activeSelectedSection = externalSelectedSection || selectedSection
 
-  const getRoleColor = (role) => {
-    const colors = {
-      'Program Head': '#2d3748',
-      'Dean': '#2d3748',
-      'Director of Libraries': '#2d3748',
-      'Industry Consultant': '#2d3748'
-    };
-    return colors[role] || '#2d3748';
-  };
-
-  const getComponentTags = (comment) => {
-    const components = comment?.components || {}
-    const tags = []
-    const isSelected = (key) => {
-      const v = components[key]
-      return v === true || v === 1 || v === '1' || v === 'true'
-    }
-    if (comment?.coverageType) {
-      const ct = String(comment.coverageType || '').trim()
-      if (ct) tags.push(`Coverage: ${ct}`)
-    }
-    return tags
-  };
-
-  const isRecent = (iso, days = 7) => {
-    if (!iso) return false
-    try {
-      const then = new Date(iso)
-      const diff = Date.now() - then.getTime()
-      return diff < days * 24 * 60 * 60 * 1000
-    } catch (e) {
-      return false
-    }
-  }
+  // getRoleColor, getComponentTags, isRecent imported from approvalHelpers
 
   const saveGlobalCommentsToStorage = (updatedGlobalComments) => {
     try {
@@ -558,13 +549,6 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
     setGlobalComments(updated)
     saveGlobalCommentsToStorage(updated)
   }
-
-  const reviewerSeeds = [
-    { name: 'SANTOS, MARIA', role: 'Director of Libraries' },
-    { name: 'REYES, AGNES', role: 'Dean' },
-    { name: 'DANILA, JUNAR', role: 'Program Head' },
-    { name: 'CRUZ, ROBERTO', role: 'Industry Consultant' },
-  ]
 
   return (
     <div className={styles.container}>
@@ -615,13 +599,14 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
             )}
             {effectiveStatus !== 'approved' && roleKey !== 'instructor' && (
               <div className={styles.approvalButtons}>
-                <button className={`${styles.requestRevision} ${(!isRoleActive() || hasRoleApproved()) ? styles['disabled-btn'] : ''}`} onClick={() => {
-                  if (hasRoleApproved()) showToastMsg('You have already approved this syllabus.', 'warning')
-                  else if (isRoleActive()) openComment()
+                <button className={`${styles.requestRevision} ${!isRoleActive() ? styles['disabled-btn'] : ''}`} onClick={() => {
+                  if (hasRoleApproved()) { setReadOnlyCommentModal(true); openComment() }
+                  else if (isRoleActive()) { setReadOnlyCommentModal(false); openComment() }
                   else if (roleKey === 'dean') showToastMsg('Waiting for previous approvers to complete their review.', 'warning')
-                }}>Add Comment</button>
+                  else showToastMsg('Commenting is not available until the workflow reaches your review stage.', 'warning')
+                }}>{hasRoleApproved() ? 'View Comments' : 'Add Comment'}</button>
                 <button className={`${styles.approve} ${(!isRoleActive() || hasRoleApproved()) ? styles['disabled-btn'] : ''}`} onClick={() => {
-                  if (hasRoleApproved()) showToastMsg('You have already approved this syllabus.', 'warning')
+                  if (hasRoleApproved()) showToastMsg('You have already approved this learning plan.', 'warning')
                   else if (isRoleActive()) setShowApproveModal(true)
                   else if (roleKey === 'dean') showToastMsg('Waiting for previous approvers to complete their review.', 'warning')
                 }}>Approve</button>
@@ -633,7 +618,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
                   onClick={() => {
                     setPreviewFile({
                       file_url: '/syllabus-template.pdf',
-                      file_name: `SYLLABUS_${syllabus?.code || courseCode}.pdf`,
+                      file_name: `LearningPlan_${syllabus?.code || courseCode}.pdf`,
                       instructor_name: syllabus?.instructor || '—',
                       course_id: syllabus?.code || courseCode || '',
                       course_name: syllabus?.name || '',
@@ -701,7 +686,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
                       <td className={styles.valueCell}>{syllabus?.cmo || ''}</td>
                     </tr>
                     <tr>
-                      <th className={styles.labelCell}>Syllabus Revision No.</th>
+                      <th className={styles.labelCell}>Learning Plan Revision No.</th>
                       <td className={styles.valueCell}>{syllabus?.revision || '0'}</td>
                     </tr>
                     <tr>
@@ -1406,9 +1391,16 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
                       </div>
                     ))
                   })()}
-                </div>
-              )}
-            </div>
+              </div>
+            )}
+            {effectiveStatus === 'approved' && roleKey !== 'instructor' && hasApproverComments && (
+              <div className={styles.approvalButtons}>
+                <button className={styles.requestRevision} onClick={() => { setReadOnlyCommentModal(true); openComment() }}>
+                  View Comments
+                </button>
+              </div>
+            )}
+          </div>
             </aside>
             </div>
           </div>
@@ -1425,7 +1417,9 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
         approverRole={currentRole}
         coverageEntries={syllabus?.ilos || []}
         syllabusTopics={syllabus?.topics || []}
-        syllabusReferences={syllabus?.references || []}
+        syllabusReferences={displayRefs}
+        readOnly={readOnlyCommentModal}
+        previousComments={previousComments}
       />
 
       {/* ── APPROVE CONFIRMATION MODAL ─────────────────────────────────── */}
@@ -1435,9 +1429,9 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
             <div style={{ marginBottom: 16 }}>
               <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#047857" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><polyline points="16 8 10 16 7 13" /></svg>
             </div>
-            <h3 style={{ fontSize: 20, fontWeight: 600, color: 'black', margin: '0 0 10px' }}>Approve Syllabus</h3>
+            <h3 style={{ fontSize: 20, fontWeight: 600, color: 'black', margin: '0 0 10px' }}>Approve Learning Plan</h3>
             <p style={{ fontSize: 14, color: '#6b7280', fontWeight: 300, margin: '0 0 24px', lineHeight: 1.5 }}>
-              Are you sure you want to approve this syllabus for <strong>{codeToUse}</strong>? This will advance the workflow to the next stage.
+              Are you sure you want to approve this learning plan for <strong>{codeToUse}</strong>? This will advance the workflow to the next stage.
             </p>
             <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
               <button style={{ padding: '10px 24px', background: 'transparent', color: 'black', border: '1px solid #A4A9AF', borderRadius: 6, fontSize: 14, fontWeight: 500, cursor: 'pointer', fontFamily: "'Poppins', sans-serif" }} onClick={() => setShowApproveModal(false)}>Cancel</button>
@@ -1479,7 +1473,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
         const submittedAt = wf.submittedAt || null
         const approvers = [
           { key: 'Industry Consultant', data: wf.parallelReview?.industry_consultant },
-          { key: 'Library Director', data: wf.parallelReview?.library_director },
+          { key: 'Director of Libraries', data: wf.parallelReview?.library_director },
           { key: 'Program Head', data: wf.programHead },
           { key: 'Dean', data: wf.dean },
         ]
@@ -1520,7 +1514,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
       {previewFile && (
         <PDFViewerModal
           file={previewFile}
-          kind="Syllabus"
+          kind="Learning Plan"
           onClose={() => setPreviewFile(null)}
           onExport={(f) => {
             const a = document.createElement('a')

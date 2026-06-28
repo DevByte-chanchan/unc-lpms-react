@@ -1,13 +1,14 @@
-import React, { useState, useEffect } from 'react'
-import { Search } from 'react-feather'
+import React, { useState, useEffect, useRef } from 'react'
+import { Search, X, CheckCircle, AlertCircle } from 'react-feather'
 import styles from '../styles/ApprovalCommentBox.module.sass'
 import { getReferences } from '../utils/referenceLibrary.js'
+import { getReviewerByRole, getReviewerSeedData, normalizeRoleKey, isDeprecated, hasIssues } from '../utils/approvalHelpers.js'
 
-const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = [], ilos = [], approverRole = null, coverageEntries = [], syllabusTopics = [], syllabusReferences = [] }) => {
+const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = [], ilos = [], approverRole = null, coverageEntries = [], syllabusTopics = [], syllabusReferences = [], readOnly = false, previousComments: previousCommentsProp = [] }) => {
   const storageKey = 'approval_comments_v1'
 
   const defaultComment = () => ({
-    id: Date.now(),
+    id: crypto.randomUUID(),
     components: { references: false, topics: false, tlas: false },
     text: '',
     comment: '',
@@ -25,31 +26,22 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedRefs, setSelectedRefs] = useState([])
   const [libraryRefs, setLibraryRefs] = useState([])
+  const [toast, setToast] = useState(null)
+  const [showPreviousComments, setShowPreviousComments] = useState(false)
+  const [commentedRefIds, setCommentedRefIds] = useState([])
+  const [submitting, setSubmitting] = useState(false)
+  const [showDiscardConfirm, setShowDiscardConfirm] = useState(false)
+  const firstTextareaRef = useRef(null)
 
   useEffect(() => {
-    setLibraryRefs(getReferences())
-  }, [])
+    if (show) firstTextareaRef.current?.focus()
+  }, [show])
 
-  // Save draft on every change (will be restored on next open via load effect)
-  useEffect(() => {
-    if (!show) return
-    try {
-      const approver = approverRole ? getReviewerByRole(approverRole) : null
-      const normalized = comments.map((c, idx) => {
-        const seedData = approver || getReviewerSeedData(idx)
-        return {
-          ...c,
-          comment: c.comment || c.text || '',
-          createdAt: c.createdAt || new Date().toISOString(),
-          reviewer: c.reviewer || seedData.name,
-          role: c.role || seedData.role
-        }
-      })
-      localStorage.setItem('approval_comment_draft_v1', JSON.stringify({ comments: normalized, selectedRefs, searchTerm }))
-    } catch (e) {}
-  }, [comments, selectedRefs, searchTerm, show, approverRole])
+  const showToast = (msg, type = 'success') => {
+    setToast({ msg, type })
+    setTimeout(() => setToast(null), 3000)
+  }
 
-  // Fallback course outcomes and ILOs
   const resolvedCourseOutcomes = (courseOutcomes && courseOutcomes.length)
     ? courseOutcomes
     : [
@@ -69,72 +61,33 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
   const resolvedIlosAll = Array.from(new Set([].concat(...Object.values(coToIlos))))
   const resolvedIlos = (ilos && ilos.length) ? ilos : resolvedIlosAll
 
-  // Hard-coded seed data for reviewers
-  const reviewerSeeds = [
-    { name: 'SANTOS, MARIA', role: 'Director of Libraries' },
-    { name: 'REYES, AGNES', role: 'Dean' },
-    { name: 'DANILA, JUNAR', role: 'Program Head' },
-    { name: 'CRUZ, ROBERTO', role: 'Industry Consultant' },
-  ]
+  useEffect(() => {
+    setLibraryRefs(getReferences())
+  }, [])
 
-  // Map approver URL param to reviewer data
-  const getReviewerByRole = (role) => {
-    const roleMap = {
-      'director-of-libraries': reviewerSeeds[0], // SANTOS, MARIA
-      'dean': reviewerSeeds[1], // REYES, AGNES
-      'program-head': reviewerSeeds[2], // DANILA, JUNAR
-      'industry-consultant': reviewerSeeds[3], // CRUZ, ROBERTO
-    }
-    return roleMap[role] || reviewerSeeds[0]
-  }
-
-  const getReviewerSeedData = (index = 0) => {
-    return reviewerSeeds[index % reviewerSeeds.length]
-  }
-
-  const normalizeRoleKey = (raw) => {
-    if (!raw) return ''
-    const r = String(raw).toLowerCase()
-    if (r.includes('program')) return 'program-head'
-    if (r.includes('dean')) return 'dean'
-    if (r.includes('industry')) return 'industry-consultant'
-    if (r.includes('library') || r.includes('libraries')) return 'director-of-libraries'
-    if (r.includes('instructor')) return 'instructor'
-    return r.replace(/_/g, '-').replace(/ /g, '-')
-  }
-
-  // Get current approver identity based on approverRole or fallback
-  const normalizeName = (name) => {
-    if (!name || name.toLowerCase().includes('norton') || name.toLowerCase().includes('monica')) return 'CASIMERO, DANNY';
-    return name;
-  };
-
-  const getApproverIdentity = (index = 0) => {
+  useEffect(() => {
+    if (!show) return
     try {
-      if (approverRole) {
-        const reviewer = getReviewerByRole(approverRole);
-        return { ...reviewer, name: normalizeName(reviewer.name) };
-      }
+      const approver = approverRole ? getReviewerByRole(approverRole) : null
+      const normalized = comments.map((c, idx) => {
+        const seedData = approver || getReviewerSeedData(idx)
+        return {
+          ...c,
+          comment: c.comment || c.text || '',
+          createdAt: c.createdAt || new Date().toISOString(),
+          reviewer: c.reviewer || seedData.name,
+          role: c.role || seedData.role
+        }
+      })
+      localStorage.setItem('approval_comment_draft_v1', JSON.stringify({ comments: normalized, selectedRefs, commentedRefIds, searchTerm }))
+    } catch (e) { console.warn('Failed to save draft', e) }
+  }, [comments, selectedRefs, searchTerm, show, approverRole])
 
-      const storedUser = JSON.parse(localStorage.getItem('user') || 'null')
-      const seedData = getReviewerSeedData(index)
-      
-      const name = normalizeName(seedData.name || storedUser?.name || localStorage.getItem('approver_name') || 'Reviewer')
-      const role = seedData.role || storedUser?.role || localStorage.getItem('approver_role') || 'Approver'
-      return { name, role }
-    } catch (e) {
-      const seedData = getReviewerSeedData(index)
-      return { name: normalizeName(seedData.name), role: seedData.role }
-    }
-  }
-
-  // Load draft from localStorage when modal opens
   useEffect(() => {
     if (!show) return
     try {
       const raw = localStorage.getItem('approval_comment_draft_v1')
       if (!raw) return
-
       const parsed = JSON.parse(raw)
       if (parsed.comments && Array.isArray(parsed.comments)) {
         const approver = approverRole ? getReviewerByRole(approverRole) : null
@@ -154,14 +107,13 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
         setComments(forced)
       }
       if (parsed.selectedRefs) setSelectedRefs(parsed.selectedRefs)
+      if (parsed.commentedRefIds) setCommentedRefIds(parsed.commentedRefIds)
       if (parsed.searchTerm) setSearchTerm(parsed.searchTerm)
-    } catch (e) {
-      // ignore
-    }
+    } catch (e) { console.warn('Failed to restore draft', e) }
   }, [show, approverRole])
 
   const clearDraft = () => {
-    try { localStorage.removeItem('approval_comment_draft_v1') } catch (e) {}
+    try { localStorage.removeItem('approval_comment_draft_v1') } catch (e) { console.warn('Failed to clear draft', e) }
   }
 
   const toggleCommentComponent = (commentId, key) => {
@@ -180,7 +132,7 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
         if (c.id !== commentId) return c
         const allowedIlos = coToIlos[courseOutcome] || resolvedIlos
         const nextIlo = allowedIlos.includes(c.ilo) ? c.ilo : ''
-        return { ...c, courseOutcome, ilo: nextIlo }
+        return { ...c, courseOutcome, ilo: nextIlo, coverageType: '', coverageDetail: '' }
       })
     )
   }
@@ -207,7 +159,7 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
       ...prev,
       {
         ...defaultComment(),
-        id: Date.now() + Math.random(),
+        id: crypto.randomUUID(),
         reviewer: seedData.name,
         role: seedData.role,
         recipientRole: normalizeRoleKey(approverRole) === 'dean' ? 'program_head' : 'instructor'
@@ -219,27 +171,20 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
     setComments((prev) => (prev.length === 1 ? prev : prev.filter((c) => c.id !== commentId)))
   }
 
-  const handleSubmit = () => {
-    const filledComments = comments.filter((c) => c.text && c.text.trim())
-    
-    if (filledComments.length === 0) return
-    
-    const payload = {
-      courseOutcome: filledComments.find((c) => c.courseOutcome)?.courseOutcome || null,
-      ilo: filledComments.find((c) => c.ilo)?.ilo || null,
-      comments: filledComments,
-      suggestedReferences: selectedRefs,
-      createdAt: new Date().toISOString()
-    }
-    onSubmit && onSubmit(payload)
-    clearDraft()
-  }
-
   if (!show) return null
 
   const commentsWithText = comments.filter((c) => c.text && c.text.trim())
-  
-  const saveDisabled = commentsWithText.length === 0
+  const hasCompleteComment = comments.some(c => c.text?.trim() && c.courseOutcome && c.ilo && c.coverageType && c.coverageDetail)
+
+  const saveDisabled = !hasCompleteComment
+
+  const hasUnsavedChanges = comments.some(c => c.text?.trim())
+  const handleClose = () => {
+    if (!readOnly && hasUnsavedChanges) { setShowDiscardConfirm(true); return }
+    onClose()
+  }
+  const confirmDiscard = () => { setShowDiscardConfirm(false); onClose() }
+  const cancelDiscard = () => setShowDiscardConfirm(false)
 
   const isDirector = (() => {
     if (!approverRole) return false
@@ -248,8 +193,6 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
   })()
 
   const CURRENT_YEAR = new Date().getFullYear()
-  const isDeprecated = (ref) => ref.year && (CURRENT_YEAR - ref.year >= 5)
-  const hasIssues = (ref) => ref.hasIssue === true
 
   const filteredLibraryRefs = libraryRefs.filter(ref => {
     if (!searchTerm) return true
@@ -279,14 +222,14 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
   const renderRefBrowser = () => (
     <div style={{ marginTop: 16, border: '1px solid #e5e7eb', borderRadius: 12, padding: 20, background: '#fafafa' }}>
       <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 14, color: '#111827' }}>Suggest References from Library</div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, border: '1px solid #A4A9AF', borderRadius: 24, padding: '10px 16px', marginBottom: 14, background: '#fff' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, border: '1px solid #A4A9AF', borderRadius: 12, padding: '10px 16px', marginBottom: 14, background: '#fff' }}>
         <Search size={16} color="#9ca3af" />
         <input
           type="text"
           placeholder="Search by title, author, or type..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          style={{ border: 'none', outline: 'none', width: '100%', fontSize: 14, fontFamily: "'Poppins', sans-serif" }}
+          className={styles.searchInput}
         />
       </div>
       <div style={{ maxHeight: 300, overflow: 'auto', display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -296,7 +239,7 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
           const issues = hasIssues(ref)
           const isSelected = selectedRefs.some(r => r.id === ref.id)
           return (
-            <label key={ref.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 14, padding: '14px 16px', borderRadius: 10, cursor: 'pointer', background: isSelected ? '#e0f2fe' : '#fff', border: isSelected ? '2px solid #1e3a5f' : '1px solid #e5e7eb', transition: 'all 0.15s ease' }}>
+            <label key={ref.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 14, padding: '14px 16px', borderRadius: 12, cursor: 'pointer', background: isSelected ? '#e0f2fe' : '#fff', border: isSelected ? '2px solid #1e3a5f' : '1px solid #e5e7eb', transition: 'all 0.15s ease' }}>
               <input
                 type="checkbox"
                 checked={isSelected}
@@ -324,7 +267,7 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
         )}
       </div>
       {selectedRefs.length > 0 && (
-        <div style={{ marginTop: 12, padding: '10px 14px', background: '#f0fdf4', borderRadius: 8, fontSize: 13, color: '#047857', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{ marginTop: 12, padding: '10px 14px', background: '#f0fdf4', borderRadius: 12, fontSize: 13, color: '#047857', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
           {selectedRefs.length} reference{selectedRefs.length > 1 ? 's' : ''} selected to suggest
         </div>
@@ -332,24 +275,161 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
     </div>
   )
 
+  const previousComments = previousCommentsProp
+
+  const submitComments = (payload) => {
+    onSubmit && onSubmit(payload)
+    clearDraft()
+    showToast('Comments submitted successfully')
+    setTimeout(() => onClose(), 1500)
+  }
+
+  const handleSubmit = () => {
+    if (submitting) return
+    const filledComments = comments.filter((c) => c.text?.trim() && c.courseOutcome && c.ilo && c.coverageType && c.coverageDetail)
+    if (filledComments.length === 0) return
+
+    const lastText = filledComments[filledComments.length - 1]?.text?.trim()
+    if (lastText) {
+      try {
+        const raw = localStorage.getItem('approval_comments_v1')
+        const all = raw ? JSON.parse(raw) : []
+        const currentRole = normalizeRoleKey(approverRole || localStorage.getItem('approver_role') || '')
+        const roleComments = (Array.isArray(all) ? all : []).filter(c => normalizeRoleKey(c.role) === currentRole).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+        if (roleComments[0] && roleComments[0].text?.trim() === lastText) {
+          showToast('This comment is identical to your last comment.', 'warning')
+          return
+        }
+      } catch (e) { console.warn('Failed to check duplicate', e) }
+    }
+
+    setSubmitting(true)
+    submitComments({
+      courseOutcome: filledComments.find((c) => c.courseOutcome)?.courseOutcome || null,
+      ilo: filledComments.find((c) => c.ilo)?.ilo || null,
+      comments: filledComments,
+      commentedReferences: commentedRefIds,
+      suggestedReferences: selectedRefs,
+      createdAt: new Date().toISOString()
+    })
+    setSubmitting(false)
+  }
+
+  const handleDirectorSubmit = () => {
+    if (submitting) return
+    const text = comments[0]?.text?.trim()
+    if (!text) return
+
+    try {
+      const raw = localStorage.getItem('approval_comments_v1')
+      const all = raw ? JSON.parse(raw) : []
+      const currentRole = normalizeRoleKey(approverRole || localStorage.getItem('approver_role') || '')
+      const roleComments = (Array.isArray(all) ? all : []).filter(c => normalizeRoleKey(c.role) === currentRole).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+      const lastComment = roleComments[0]
+      if (lastComment && lastComment.text?.trim() === text) {
+        showToast('This comment is identical to your last comment.', 'warning')
+        return
+      }
+    } catch (e) { console.warn('Failed to check duplicate', e) }
+
+    setSubmitting(true)
+
+    submitComments({
+      comments: [{
+        ...comments[0],
+        text,
+        components: {}
+      }],
+      commentedReferences: commentedRefIds,
+      suggestedReferences: selectedRefs,
+      createdAt: new Date().toISOString()
+    })
+    setSubmitting(false)
+  }
+
   return (
+    <>
+      {!readOnly && toast && (
+        <div style={{
+          position: 'fixed', bottom: 32, right: 32, zIndex: 9999,
+          background: toast.type === 'warning' ? '#dc2626' : '#047857',
+          color: 'white', padding: '14px 24px',
+          borderRadius: 12, boxShadow: '0 8px 30px rgba(0,0,0,0.15)',
+          fontFamily: "'Poppins', sans-serif", fontSize: 14, fontWeight: 500,
+          display: 'flex', alignItems: 'center', gap: 10,
+          animation: 'slideIn 0.3s ease'
+        }}>
+          {toast.type === 'warning' ? <AlertCircle size={20} /> : <CheckCircle size={20} />}
+          {toast.msg}
+        </div>
+      )}
     <div role="dialog" aria-modal="true" aria-label="Comments" className={styles.overlay}>
       <div className={styles.modal}>
         <div className={styles.header}>
-          <h3>{isDirector ? 'Comment & Suggest References' : 'Comments'}</h3>
-          <button onClick={onClose} aria-label="Close" style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: 22, color: '#6b7280', width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8 }}>✕</button>
+          <h3>{readOnly ? 'Previous Comments' : (isDirector ? 'Comment & Suggest References' : 'Comments')}</h3>
+          <button onClick={handleClose} aria-label="Close" style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: 22, color: '#6b7280', width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 12 }}><X size={20} /></button>
         </div>
 
         <div className={styles.body}>
-          {isDirector ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {readOnly ? (
+            previousComments.length > 0 ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {previousComments.map(c => (
+                  <div key={c.id} style={{ padding: '10px 12px', background: '#f9fafb', borderRadius: 12, border: '1px solid #e5e7eb' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                      <span style={{ fontSize: 11, fontWeight: 600, color: '#6b7280' }}>{c.courseCode || ''}</span>
+                      <span style={{ fontSize: 11, color: '#9ca3af' }}>{c.createdAt ? new Date(c.createdAt).toLocaleString() : ''}</span>
+                    </div>
+                    <p style={{ margin: 0, fontSize: 13, color: '#374151', whiteSpace: 'pre-wrap' }}>{c.text || c.comment || ''}</p>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div style={{ textAlign: 'center', padding: '32px 16px', color: '#9ca3af', fontSize: 14 }}>No comments recorded.</div>
+            )
+          ) : isDirector ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {syllabusReferences.length > 0 && (
+                <div style={{ border: '1px solid #e5e7eb', borderRadius: 12, padding: 16, background: '#fff' }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 10, color: '#374151' }}>Learning Plan References</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    {syllabusReferences.map(ref => {
+                      const dep = isDeprecated(ref)
+                      const iss = hasIssues(ref)
+                      const isChecked = commentedRefIds.includes(ref.id)
+                      return (
+                        <label key={ref.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px', borderRadius: 12, cursor: 'pointer', background: isChecked ? '#e0f2fe' : 'transparent', border: '1px solid ' + (isChecked ? '#93c5fd' : 'transparent'), transition: 'all 0.15s ease' }}>
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={() => setCommentedRefIds(prev =>
+                              prev.includes(ref.id) ? prev.filter(id => id !== ref.id) : [...prev, ref.id]
+                            )}
+                            style={{ accentColor: '#1e3a5f', width: 16, height: 16, flexShrink: 0 }}
+                          />
+                          <span style={{ flex: 1, fontSize: 13, color: '#374151', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{ref.title}</span>
+                          <span style={{ fontSize: 11, color: '#9ca3af', whiteSpace: 'nowrap' }}>{ref.year || 'N/A'}</span>
+                          {!dep && !iss && <span style={{ fontSize: 10, fontWeight: 500, padding: '2px 6px', borderRadius: 99, background: '#f0fdf4', color: '#16a34a', whiteSpace: 'nowrap' }}>Active</span>}
+                          {dep && !iss && <span style={{ fontSize: 10, fontWeight: 600, padding: '2px 6px', borderRadius: 99, background: '#fef3c7', color: '#b45309', whiteSpace: 'nowrap' }}>Deprecated</span>}
+                          {iss && <span style={{ fontSize: 10, fontWeight: 600, padding: '2px 6px', borderRadius: 99, background: '#fef2f2', color: '#dc2626', whiteSpace: 'nowrap' }}>Has Issue</span>}
+                        </label>
+                      )
+                    })}
+                  </div>
+                  {commentedRefIds.length > 0 && (
+                    <div style={{ marginTop: 8, fontSize: 12, color: '#1e3a5f', fontWeight: 500 }}>{commentedRefIds.length} reference{commentedRefIds.length > 1 ? 's' : ''} selected</div>
+                  )}
+                </div>
+              )}
               <div className={styles.commentItem}>
                 <div className={styles.commentBody}>
                   <textarea
+                    ref={firstTextareaRef}
                     className={styles.textarea}
                     value={comments[0]?.text || ''}
                     onChange={(e) => updateCommentText(comments[0]?.id, e.target.value)}
-                    placeholder={'Enter your comment about the syllabus references...'}
+                    onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleDirectorSubmit() } }}
+                  placeholder={'Describe the issue or suggestion for the references...'}
                     rows={4}
                   />
                 </div>
@@ -366,7 +446,7 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
                         <div className={styles.commentHeader}>
                           <div className={styles.commentControls} style={{ marginLeft: 'auto' }}>
                             <button className={styles.removeBtn} onClick={() => removeCommentSection(c.id)} aria-label="Delete comment" title="Delete comment">
-                              ✕
+                              <X size={16} />
                             </button>
                           </div>
                         </div>
@@ -375,7 +455,7 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
                       <div className={styles.commentBody}>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 12, marginBottom: 8 }}>
                           <div className={styles.field}>
-                            <label className={styles.label}>Course Outcome Number</label>
+                            <label className={styles.label}>Course Outcome</label>
                             <select className={styles.select} value={c.courseOutcome} onChange={(e) => updateCommentCourseOutcome(c.id, e.target.value)}>
                               <option value="">-- select course outcome --</option>
                               {resolvedCourseOutcomes.map((co) => (
@@ -398,11 +478,11 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
 
                           <div className={styles.field}>
                             <label className={styles.label}>Coverage Type</label>
-                            <select className={styles.select} value={c.coverageType} onChange={(e) => updateCommentCoverageType(c.id, e.target.value)}>
+                            <select className={styles.select} value={c.coverageType} onChange={(e) => updateCommentCoverageType(c.id, e.target.value)} disabled={!c.ilo}>
                               <option value="">-- select type --</option>
                               <option value="Topic">Topic</option>
                               <option value="References">References</option>
-                              <option value="TLA">TLA</option>
+                              <option value="TLA">Teaching-Learning Activity (TLA)</option>
                             </select>
                           </div>
 
@@ -415,11 +495,15 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
                                   {t.title}{t.subtopics ? ` (${t.subtopics.length} subtopics)` : ''}
                                 </option>
                               ))}
-                              {c.coverageType === 'References' && syllabusReferences.map((r) => (
+                              {c.coverageType === 'References' && syllabusReferences.map((r) => {
+                                const dep = isDeprecated(r)
+                                const iss = hasIssues(r)
+                                const statusSuffix = iss ? ' [Has Issue]' : dep ? ' [Deprecated]' : ' [Active]'
+                                return (
                                 <option key={r.id} value={r.title}>
-                                  {r.title}{r.authors ? ` — ${r.authors}` : ''}
+                                  {r.title}{r.authors ? ` — ${r.authors}` : ''}{statusSuffix}
                                 </option>
-                              ))}
+                              )})}
                               {c.coverageType === 'TLA' && syllabusTopics.flatMap(t => (t.tlas || []).map(tla => ({
                                 ...tla,
                                 topicTitle: t.title
@@ -432,7 +516,7 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
                           </div>
                         </div>
 
-                        <textarea className={styles.textarea} value={c.text} onChange={(e) => updateCommentText(c.id, e.target.value)} placeholder={'Enter your comment...'} rows={4} />
+                        <textarea className={styles.textarea} value={c.text} onChange={(e) => updateCommentText(c.id, e.target.value)} placeholder={'Describe the issue or suggestion...'} rows={4} />
 
                       </div>
                     </div>
@@ -448,36 +532,55 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
             </div>
           )}
         </div>
+        {!readOnly && previousComments.length > 0 && (
+          <div style={{ textAlign: 'center', marginBottom: 8 }}>
+            <button onClick={() => setShowPreviousComments(!showPreviousComments)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280', fontSize: 13, textDecoration: 'underline' }}>
+              {showPreviousComments ? 'Hide' : `View ${previousComments.length} previous comment${previousComments.length > 1 ? 's' : ''}`}
+            </button>
+          </div>
+        )}
+        {!readOnly && showPreviousComments && previousComments.length > 0 && (
+          <div style={{ maxHeight: 200, overflow: 'auto', display: 'flex', flexDirection: 'column', gap: 8, padding: '0 4px 8px' }}>
+            {previousComments.map(c => (
+              <div key={c.id} style={{ padding: '10px 12px', background: '#f9fafb', borderRadius: 12, border: '1px solid #e5e7eb' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                  <span style={{ fontSize: 11, fontWeight: 600, color: '#6b7280' }}>{c.courseCode || ''}</span>
+                  <span style={{ fontSize: 11, color: '#9ca3af' }}>{c.createdAt ? new Date(c.createdAt).toLocaleString() : ''}</span>
+                </div>
+                <p style={{ margin: 0, fontSize: 13, color: '#374151', whiteSpace: 'pre-wrap' }}>{c.text || c.comment || ''}</p>
+              </div>
+            ))}
+          </div>
+        )}
         <div className={styles.actions}>
-          <button onClick={onClose} className={`${styles.cancel}`}>Cancel</button>
-          {isDirector ? (
+          <button onClick={handleClose} className={`${styles.cancel}`}>{readOnly ? 'Close' : 'Cancel'}</button>
+          {!readOnly && (isDirector ? (
             <button
-              onClick={() => {
-                const hasText = comments[0]?.text?.trim()
-                if (!hasText && selectedRefs.length === 0) return
-                const payload = {
-                  comments: [{
-                    ...comments[0],
-                    text: comments[0]?.text || '',
-                    components: {}
-                  }],
-                  suggestedReferences: selectedRefs,
-                  createdAt: new Date().toISOString()
-                }
-                onSubmit && onSubmit(payload)
-                clearDraft()
-              }}
-              disabled={!comments[0]?.text?.trim() && selectedRefs.length === 0}
-              className={`${styles.submit} ${!comments[0]?.text?.trim() && selectedRefs.length === 0 ? styles.disabled : ''}`}
+              onClick={handleDirectorSubmit}
+              disabled={!comments[0]?.text?.trim() || submitting}
+              className={`${styles.submit} ${!comments[0]?.text?.trim() || submitting ? styles.disabled : ''}`}
             >
               Return with Comments
             </button>
           ) : (
-            <button onClick={handleSubmit} disabled={saveDisabled} className={`${styles.submit} ${saveDisabled ? styles.disabled : ''}`}>Return with Comments</button>
-          )}
+            <button onClick={handleSubmit} disabled={saveDisabled || submitting} className={`${styles.submit} ${saveDisabled || submitting ? styles.disabled : ''}`}>Return with Comments</button>
+           ))}
         </div>
       </div>
-    </div>
+      </div>
+      {showDiscardConfirm && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000, backdropFilter: 'blur(2px)' }} onClick={cancelDiscard}>
+          <div style={{ background: 'white', borderRadius: 16, width: 380, maxWidth: '90vw', padding: 28, textAlign: 'center', boxShadow: '0 20px 60px rgba(0,0,0,0.15)', fontFamily: "'Poppins', sans-serif" }} onClick={(e) => e.stopPropagation()}>
+            <div style={{ fontSize: 18, fontWeight: 600, color: '#1f2937', marginBottom: 8 }}>Discard unsaved changes?</div>
+            <div style={{ fontSize: 14, color: '#6b7280', marginBottom: 24 }}>You have unsaved comments that will be lost.</div>
+            <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
+              <button onClick={cancelDiscard} style={{ padding: '10px 24px', border: '1px solid #d1d5db', borderRadius: 10, background: 'white', color: '#374151', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: "'Poppins', sans-serif" }}>Cancel</button>
+              <button onClick={confirmDiscard} style={{ padding: '10px 24px', border: 'none', borderRadius: 10, background: '#dc2626', color: 'white', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: "'Poppins', sans-serif" }}>Discard</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   )
 }
 

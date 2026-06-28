@@ -7,6 +7,7 @@ import TextArea from "./TextArea.jsx";
 import {Link, useNavigate, useParams, useSearchParams} from "react-router-dom";
 import {getSyllabusByCode, syllabiData} from "../data/syllabiData.js";
 import SyllabusPreview from "./SyllabusPreview.jsx";
+import { getReviewerSeedData, getRoleColor, getComponentTags, isRecent } from '../utils/approvalHelpers.js'
 
 const SyllabusRevisionsSections = ({status}) => {
 
@@ -32,7 +33,9 @@ const SyllabusRevisionsSections = ({status}) => {
             try {
                 const raw = localStorage.getItem('approval_comments_v1')
                 const all = raw ? JSON.parse(raw) : []
-                setGlobalComments(Array.isArray(all) ? all : [])
+                const commentsArray = Array.isArray(all) ? all : []
+                const courseComments = commentsArray.filter(c => c.courseCode === code)
+                setGlobalComments(courseComments)
             } catch (e) {
                 setGlobalComments([])
             }
@@ -124,62 +127,7 @@ const SyllabusRevisionsSections = ({status}) => {
 
     const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
-    // Hard-coded seed data for reviewers
-    const getReviewerSeedData = (index = 0) => {
-        const reviewerSeeds = [
-            { name: 'NORTON, MONICA', role: 'Director of Libraries' },
-            { name: 'JOHNSON, DEAN', role: 'Dean' },
-            { name: 'SMITH, DR. ROBERT', role: 'Program Head' },
-            { name: 'LEE, CONSULTANT', role: 'Industry Consultant' },
-        ]
-        return reviewerSeeds[index % reviewerSeeds.length]
-    }
-
-    // Reviewer role colors (use dark tones, avoid bright blue)
-    const getRoleColor = (role) => {
-        const colors = {
-            'Program Head': '#2d3748',
-            'Dean': '#2d3748',
-            'Director of Libraries': '#2d3748',
-            'Industry Consultant': '#2d3748'
-        };
-        return colors[role] || '#2d3748';
-    };
-
-    // Get component tags for display.
-    // Show every selected item and also display the explicit coverageType if chosen.
-    const getComponentTags = (comment) => {
-        const components = comment?.components || {}
-        const tags = []
-        const isSelected = (key) => {
-            const v = components[key]
-            return v === true || v === 1 || v === '1' || v === 'true'
-        }
-
-        // Always show references/grading when set
-        if (isSelected('references')) tags.push('References')
-        if (isSelected('grading')) tags.push('Grading Criteria')
-
-        // Also show explicit coverageType (if selected) as an additional tag
-        if (comment?.coverageType) {
-            const ct = String(comment.coverageType || '').trim()
-            if (ct) tags.push(`Coverage: ${ct}`)
-        }
-
-        return tags
-    };
-
-    // helper: recent flag (used to mark comments as "New")
-    const isRecent = (iso, days = 7) => {
-        if (!iso) return false
-        try {
-            const then = new Date(iso)
-            const diff = Date.now() - then.getTime()
-            return diff < days * 24 * 60 * 60 * 1000
-        } catch (e) {
-            return false
-        }
-    }
+    // getReviewerSeedData, getRoleColor, getComponentTags, isRecent imported from approvalHelpers
 
     return(
         <div className={styles.container}>
@@ -255,7 +203,7 @@ const SyllabusRevisionsSections = ({status}) => {
                                                     <TextField
                                                         initialValue={syllabus?.revision || '0'}
                                                         disabled={true}
-                                                        label="Syllabus Revision No"
+                                                        label="Learning Plan Revision No"
                                                     />
                                                     <TextField
                                                         initialValue={syllabus?.credits || ''}
