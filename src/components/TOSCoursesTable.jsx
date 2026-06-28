@@ -50,6 +50,9 @@ const TOSCoursesTable = ({}) => {
     }, [location.state]);
 
     const [selectedStatus, setSelectedStatus] = useState('draft');
+    const [examType, setExamType] = useState('Midterm');
+    const [schoolYear, setSchoolYear] = useState(String(currentYear));
+    const [semester, setSemester] = useState('1st Sem');
     const handleStatusChange = (e) => {
         setSelectedStatus(e.target.value)
     }
@@ -60,17 +63,17 @@ const TOSCoursesTable = ({}) => {
             <div className={styles.header}>
                 <h2>ASSIGNED TABLE OF SPECIFICATIONS</h2>
                 <div className={styles.filterA}>
-                    <select className={styles['header-select']}>
+                    <select className={styles['header-select']} value={schoolYear} onChange={e => setSchoolYear(e.target.value)}>
                         {yearOptions}
                     </select>
-                    <select className={styles['header-select']}>
+                    <select className={styles['header-select']} value={semester} onChange={e => setSemester(e.target.value)}>
                         {semOptions.map(sem => (
                             <option key={sem} value={sem}>{sem}</option>
                         ))}
                     </select>
-                    <select className={styles['header-select']}>
+                    <select className={styles['header-select']} value={examType} onChange={e => setExamType(e.target.value)}>
                         <option key="Midterm" value="Midterm">Midterm</option>
-                        <option key="Finals" value="Finals" disabled>Finals</option>
+                        <option key="Finals" value="Finals">Finals</option>
                     </select>
                 </div>
                 <div className={styles.fill}></div>
@@ -111,7 +114,7 @@ const TOSCoursesTable = ({}) => {
                                 <td width={200}>{row.update}</td>
                                 <td className={styles.fill}>
                                     {row.status === 'draft' ? (
-                                        <Link className="actionLink" to={`/tos/${row.code}`} state={{ tosStatus: row.status, courseName: row.name }}>
+                                        <Link className="actionLink" to={`/tos/${row.code}`} state={{ tosStatus: row.status, courseName: row.name, examType, schoolYear, semester }}>
                                             Compose
                                             <ChevronRight size={18} />
                                         </Link>

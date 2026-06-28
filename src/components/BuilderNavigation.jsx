@@ -1,13 +1,20 @@
-import React from "react";
-import { Trash2 } from "react-feather";
+import React, { useState } from "react";
+import { Trash2, Loader } from "react-feather";
 import styles from "../styles/BuilderNavigation.module.sass";
 
 const BuilderNavigation = ({ onSave, onExport, onClearAll, filledCount, totalSlots, allFilled, tosStatus = 'draft' }) => {
+    const [saving, setSaving] = useState(false);
     const canExport = tosStatus === 'approved';
+    const handleSave = async () => {
+        if (saving) return;
+        setSaving(true);
+        try { await onSave(); } finally { setSaving(false); }
+    };
     return (
         <div className={styles.navi}>
-            <div onClick={onSave} className={styles.return} style={{ cursor: 'pointer' }}>
-                Save &amp; Return
+            <div onClick={handleSave} className={styles.return} style={{ cursor: saving ? 'default' : 'pointer' }}>
+                {saving ? <Loader size={16} className={styles.spinner} /> : null}
+                {saving ? 'Saving…' : 'Save & Return'}
             </div>
             <div style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 10 }}>
                 <div className={styles.progressTrack}>

@@ -1,5 +1,5 @@
 import React from "react";
-import layout from "../styles/QuestionCognitiveMapping.module.sass";
+import layout from "../styles/TosPreview.module.sass";
 
 const TOSSummary = ({ outcomeData, questions }) => {
     const cognitiveLevels = [
@@ -24,7 +24,7 @@ const TOSSummary = ({ outcomeData, questions }) => {
             co.ilos.forEach(ilo => {
                 data[co.co][ilo.id] = {};
                 cognitiveLevels.forEach(level => {
-                    data[co.co][ilo.id][level] = { count: 0, sumPoints: 0 };
+                    data[co.co][ilo.id][level] = [];
                 });
             });
         });
@@ -32,8 +32,7 @@ const TOSSummary = ({ outcomeData, questions }) => {
             if (q.co && q.ilo && q.cognitiveLevel && data[q.co] && data[q.co][q.ilo]) {
                 const span = q.span || 1;
                 const pts = (q.points && String(q.points).trim()) ? Number(q.points) : 0;
-                data[q.co][q.ilo][q.cognitiveLevel].count += span;
-                data[q.co][q.ilo][q.cognitiveLevel].sumPoints += pts;
+                data[q.co][q.ilo][q.cognitiveLevel].push({ span, points: pts });
             }
         });
         return data;
@@ -80,15 +79,15 @@ const TOSSummary = ({ outcomeData, questions }) => {
                                 />
                             </div>
 
-                            <table className={`${layout.qctable} ${layout.TOSTable}`}>
+                            <table className={`${layout.qctable} ${layout.noSticky}`}>
                                 <thead>
                                 <tr>
                                     <th>
-                                        <div className={`${layout.cellBox} ${layout.mainHeader}`}></div>
+                                        <div className={`${layout.cellBox} ${layout.headerCell}`}></div>
                                     </th>
                                     {cognitiveLevels.map(level => (
                                         <th key={level}>
-                                            <div className={`${layout.cellBox} ${layout.mainHeader}`}>{level}</div>
+                                            <div className={`${layout.cellBox} ${layout.headerCell}`}>{level}</div>
                                         </th>
                                     ))}
                                 </tr>
@@ -96,24 +95,29 @@ const TOSSummary = ({ outcomeData, questions }) => {
                                 <tbody>
                                 <tr>
                                     <td>
-                                        <div className={`${layout.cellBox} ${layout.leftAlign}`}>Number of Items</div>
+                                        <div className={`${layout.cellBox} ${layout.readable}`}>Number of Items</div>
                                     </td>
-                                    {cognitiveLevels.map(level => (
+                                    {cognitiveLevels.map(level => {
+                                        const items = aggregatedData[co.co][ilo.id][level];
+                                        return (
                                         <td key={level}>
-                                            <div className={layout.cellBox}>
-                                                {aggregatedData[co.co][ilo.id][level].count}
+                                            <div className={layout.cellBox} style={{ flexDirection: 'column', gap: 2 }}>
+                                                {items.length === 0 ? '0' : items.map((item, i) => (
+                                                    <span key={i}>{item.span} x {item.points}</span>
+                                                ))}
                                             </div>
                                         </td>
-                                    ))}
+                                        );
+                                    })}
                                 </tr>
                                 <tr>
                                     <td>
-                                        <div className={`${layout.cellBox} ${layout.leftAlign}`} style={{ fontWeight: '500' }}>Total Points</div>
+                                        <div className={`${layout.cellBox} ${layout.readable}`} style={{ fontWeight: '500' }}>Total Points</div>
                                     </td>
                                     {cognitiveLevels.map(level => (
                                         <td key={level}>
                                             <div className={layout.cellBox} style={{ fontWeight: '500' }}>
-                                                {aggregatedData[co.co][ilo.id][level].sumPoints}
+                                                {aggregatedData[co.co][ilo.id][level].reduce((s, item) => s + item.points, 0)}
                                             </div>
                                         </td>
                                     ))}

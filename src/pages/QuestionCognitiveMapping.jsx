@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
     X, FileText,
     Plus, Check, ChevronDown, ChevronUp
@@ -30,12 +30,37 @@ const distributeWeights = (rows) => {
     return rows.map((r, i) => ({ ...r, weight: String(i === rows.length - 1 ? rem : even) }));
 };
 
+// ─── AutoResizeTextarea ────────────────────────────────────────────────────────
+const AutoResizeTextarea = React.forwardRef(({ value, ...props }, ref) => {
+    const innerRef = useRef(null);
+    const taRef = ref || innerRef;
+    useLayoutEffect(() => {
+        const el = taRef.current;
+        if (el) {
+            el.style.height = 'auto';
+            el.style.height = el.scrollHeight + 'px';
+        }
+    });
+    return <textarea ref={taRef} {...props} value={value} />;
+});
+
 // ─── RubricRow ────────────────────────────────────────────────────────────────
 const RubricRow = ({ row, itemPoints, totalWeight, rowPoints, onChange, onRemove }) => {
     const isOver = totalWeight > 100;
+    const nameRef = useRef(null);
+    const descRef = useRef(null);
+    const weightRef = useRef(null);
+    useEffect(() => {
+        const els = [nameRef.current, descRef.current, weightRef.current].filter(Boolean);
+        if (els.length < 2) return;
+        els.forEach(el => { el.style.height = 'auto'; });
+        const maxH = Math.max(...els.map(el => el.scrollHeight));
+        els.forEach(el => { el.style.height = maxH + 'px'; });
+    });
     return (
         <div className={layout.bRubricRow}>
-            <textarea
+            <AutoResizeTextarea
+                ref={nameRef}
                 className={layout.bRubricName}
                 placeholder="Criteria"
                 value={row.name}
@@ -44,11 +69,14 @@ const RubricRow = ({ row, itemPoints, totalWeight, rowPoints, onChange, onRemove
                     const v = e.target.value;
                     if (v.startsWith(' ')) return;
                     onChange({ ...row, name: v });
-                    e.target.style.height = 'auto';
-                    e.target.style.height = e.target.scrollHeight + 'px';
+                }}
+                onBlur={e => {
+                    const trimmed = e.target.value.trim();
+                    if (trimmed !== e.target.value) onChange({ ...row, name: trimmed });
                 }}
             />
-            <textarea
+            <AutoResizeTextarea
+                ref={descRef}
                 className={layout.bRubricDesc}
                 placeholder="Description"
                 value={row.description}
@@ -57,24 +85,25 @@ const RubricRow = ({ row, itemPoints, totalWeight, rowPoints, onChange, onRemove
                     const v = e.target.value;
                     if (v.startsWith(' ')) return;
                     onChange({ ...row, description: v });
-                    e.target.style.height = 'auto';
-                    e.target.style.height = e.target.scrollHeight + 'px';
+                }}
+                onBlur={e => {
+                    const trimmed = e.target.value.trim();
+                    if (trimmed !== e.target.value) onChange({ ...row, description: trimmed });
                 }}
             />
             <div className={`${layout.bRubricWeightWrap} ${isOver ? layout.bRubricWeightErr : ''}`}>
-                <textarea
+                <AutoResizeTextarea
+                    ref={weightRef}
                     className={layout.bRubricWeightIn}
                     placeholder="0"
-                    value={row.weight}
+                    value={row.weight ? row.weight + '%' : ''}
                     rows={1}
                     onChange={e => {
-                        const v = e.target.value.replace(/[^0-9]/g, '');
-                        onChange({ ...row, weight: v });
-                        e.target.style.height = 'auto';
-                        e.target.style.height = e.target.scrollHeight + 'px';
+                        const raw = e.target.value.replace(/[^0-9]/g, '');
+                        const num = Math.min(Number(raw) || 0, 100);
+                        onChange({ ...row, weight: String(num) });
                     }}
                 />
-                <span className={layout.bRubricPctLabel}>%</span>
             </div>
             <div className={layout.bRubricPts}>{rowPoints !== undefined ? rowPoints : '—'}</div>
             <button className={layout.bIconRemove} onClick={onRemove} title="Remove">
@@ -85,12 +114,13 @@ const RubricRow = ({ row, itemPoints, totalWeight, rowPoints, onChange, onRemove
 };
 
 // ─── AssessmentBuilder ────────────────────────────────────────────────────────
-const AssessmentBuilder = ({ totalSlots, initialItems, onSaveReturn, builderSaveRef, onProgressUpdate, highlightKey, assessmentName, onAssessmentNameChange, assessmentNames = ['Prelim Exam', 'Midterm Exam', 'Semi-Final Exam', 'Final Exam', 'Periodic Exam', 'Summative Test', 'Major Exam', 'Final Project', 'Capstone Assessment'] }) => {
+const AssessmentBuilder = ({ totalSlots, initialItems, onSaveReturn, builderSaveRef, onProgressUpdate, highlightKey, assessmentName, onAssessmentNameChange, assessmentNames = ['Midterm Exam', 'Final Exam', 'Written Exam', 'Practical Exam', 'Oral Exam', 'Quiz', 'Project', 'Assignment', 'Periodic Exam'], showDuplicateWarning, duplicateIds, onDismissDuplicateWarning }) => {
     const [selectedAssessment, setSelectedAssessment] = useState(assessmentName || '');
     const [spanEdit, setSpanEdit] = useState(null);
     const [warnData, setWarnData] = useState(null);
     const [deletingId, setDeletingId] = useState(null);
     const [highlightActive, setHighlightActive] = useState(false);
+    const [duplicateHighlightKey, setDuplicateHighlightKey] = useState(0);
 
     const buildSlotMap = (its) => {
         let c = 0;
@@ -349,6 +379,18 @@ const AssessmentBuilder = ({ totalSlots, initialItems, onSaveReturn, builderSave
         return () => clearTimeout(t);
     }, [highlightKey]);
 
+    // Highlight duplicate items when Fix is clicked
+    useEffect(() => {
+        if (!duplicateHighlightKey || !duplicateIds?.length) return;
+        setHighlightActive(true);
+        setTimeout(() => {
+            const el = document.querySelector(`[data-item-id="${duplicateIds[0]}"]`);
+            if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 100);
+        const t = setTimeout(() => setHighlightActive(false), 7000);
+        return () => clearTimeout(t);
+    }, [duplicateHighlightKey]);
+
     const statusCls = canSave ? layout.bStatusOk
         : consumed > totalSlots ? layout.bStatusOver : layout.bStatusUnder;
 
@@ -401,6 +443,25 @@ const AssessmentBuilder = ({ totalSlots, initialItems, onSaveReturn, builderSave
                 </div>
             )}
 
+            {/* ── Duplicate Warning Dialog ── */}
+            {showDuplicateWarning && duplicateIds?.length > 0 && (
+                <div className={tosLayout.modalOverlay}>
+                    <div className={tosLayout.modal}>
+                        <div className={tosLayout.modalHeader}>
+                            <h3 style={{ color: "#1A1A1A" }}>Duplicate Questions Found</h3>
+                        </div>
+                        <div className={tosLayout.modalBody}>
+                            <p style={{ color: "#555" }}>Some items have the exact same content. Please review and fix them before saving.</p>
+                        </div>
+                        <div className={tosLayout.modalActions}>
+                            <button className={tosLayout.confirmBtn} style={{ background: "#1A1A1A" }} onMouseEnter={e => e.target.style.backgroundColor = '#444'} onMouseLeave={e => e.target.style.backgroundColor = '#1A1A1A'} onClick={() => { setDuplicateHighlightKey(k => k + 1); onDismissDuplicateWarning?.(); }}>
+                                Fix
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* ── Assessment Name Selector ── */}
             <div className={layout.bAssessBar}>
                 <label className={layout.bAssessLabel}>Assessment Name:</label>
@@ -436,7 +497,7 @@ const AssessmentBuilder = ({ totalSlots, initialItems, onSaveReturn, builderSave
 
                         return (
                                 <div key={item.id} className={`${layout.bItemWrap} ${deletingId === item.id ? layout.bItemDeleting : ''}`} data-item-id={item.id}>
-                                <div className={`${layout.bCard} ${showDelete ? layout.bCardDelMode : ''} ${highlightActive && !(item.instruction || '').trim() ? layout.bCardIncomplete : ''}`}>
+                                <div className={`${layout.bCard} ${showDelete ? layout.bCardDelMode : ''} ${highlightActive && (!(item.instruction || '').trim() || duplicateIds?.includes(item.id)) ? layout.bCardIncomplete : ''}`}>
 
                                     {/* ── Card header ── */}
                                     <div className={layout.bCardHead}>
@@ -510,7 +571,7 @@ const AssessmentBuilder = ({ totalSlots, initialItems, onSaveReturn, builderSave
                                     <div className={layout.bCardBody}>
 
                                         {/* Instruction */}
-                                        <textarea
+                                        <AutoResizeTextarea
                                             className={layout.bInstruction}
                                             placeholder="Type your question or instruction here…"
                                             value={item.instruction}
@@ -519,8 +580,12 @@ const AssessmentBuilder = ({ totalSlots, initialItems, onSaveReturn, builderSave
                                                 const v = e.target.value;
                                                 if (v.startsWith(' ')) return;
                                                 upd(item.id, it => ({ ...it, instruction: v }));
-                                                e.target.style.height = 'auto';
-                                                e.target.style.height = e.target.scrollHeight + 'px';
+                                            }}
+                                            onBlur={e => {
+                                                const trimmed = e.target.value.trim();
+                                                if (trimmed !== e.target.value) {
+                                                    upd(item.id, it => ({ ...it, instruction: trimmed }));
+                                                }
                                             }}
                                         />
 
@@ -531,14 +596,19 @@ const AssessmentBuilder = ({ totalSlots, initialItems, onSaveReturn, builderSave
                                                 {item.choices.map((ch, ci) => (
                                                     <div key={ch.id} className={layout.bChoiceRow}>
                                                         <span className={layout.bChoiceLetter}>{String.fromCharCode(65 + ci)}.</span>
-                                                        <input
+                                                        <AutoResizeTextarea
                                                             className={layout.bChoiceInput}
                                                             placeholder={`Choice ${String.fromCharCode(65 + ci)}`}
                                                             value={ch.text}
+                                                            rows={1}
                                                             onChange={e => {
                                                                 const v = e.target.value;
                                                                 if (v.startsWith(' ')) return;
                                                                 updChoice(item.id, ch.id, v);
+                                                            }}
+                                                            onBlur={e => {
+                                                                const trimmed = e.target.value.trim();
+                                                                if (trimmed !== e.target.value) updChoice(item.id, ch.id, trimmed);
                                                             }}
                                                         />
                                                         <button className={layout.bIconRemove} onClick={() => remChoice(item.id, ch.id)}>
@@ -556,7 +626,7 @@ const AssessmentBuilder = ({ totalSlots, initialItems, onSaveReturn, builderSave
                                         {item.showRubric && item.rubricRows.length > 0 && (
                                             <div className={layout.bRubricWrap}>
                                                 <div className={layout.bRubricHead}>
-                                                    <span className={layout.bGroupLabel}>Rubric Criteria</span>
+                                                    <span className={layout.bGroupLabel}>Rubrics</span>
                                                 </div>
                                                 <div className={layout.bRubricCols}>
                                                     <span className={layout.bRhLeft}>Criteria</span>
@@ -719,6 +789,8 @@ const QuestionCognitiveMapping = ({
 
     const [showPostSaveWarning, setShowPostSaveWarning] = useState(false);
     const [highlightKey, setHighlightKey] = useState(0);
+    const [showDuplicateWarning, setShowDuplicateWarning] = useState(false);
+    const [duplicateIds, setDuplicateIds] = useState([]);
 
     const cognitiveLevels = ['Remembering','Understanding','Applying','Analyzing','Evaluating','Creating'];
 
@@ -799,15 +871,40 @@ const QuestionCognitiveMapping = ({
     };
 
     const handleBuilderSave = async (savedItems) => {
+        // Detect duplicate questions
+        const textMap = {};
+        const dupeIds = [];
+        savedItems.forEach(si => {
+            const text = (si.question || '').trim();
+            if (!text) return;
+            if (textMap[text] !== undefined) {
+                if (!dupeIds.includes(textMap[text])) dupeIds.push(textMap[text]);
+                if (!dupeIds.includes(si.id)) dupeIds.push(si.id);
+            } else {
+                textMap[text] = si.id;
+            }
+        });
+        if (dupeIds.length > 0) {
+            setDuplicateIds(dupeIds);
+            setShowDuplicateWarning(true);
+            return;
+        }
+
         const exMap = new Map(questions.map(q => [q.id, q]));
         const merged = savedItems.map(si => {
             const ex = exMap.get(si.id) || {};
-            const isCleared = !(si.question || si.rubricItem || '').trim();
-            const cleanChoices = (si.choices || []).filter(c => (c.text || '').trim());
-            const cleanRubric = (si.rubricRows || []).filter(r => (r.name || '').trim() || (r.description || '').trim());
+            const cleanQuestion = (si.question || '').trim();
+            const cleanRubricItem = (si.rubricItem || '').trim();
+            const isCleared = !(cleanQuestion || cleanRubricItem);
+            const cleanChoices = (si.choices || []).filter(c => (c.text || '').trim()).map(c => ({ ...c, text: (c.text || '').trim() }));
+            const cleanRubric = (si.rubricRows || []).filter(r => (r.name || '').trim() || (r.description || '').trim()).map(r => ({
+                ...r,
+                name: (r.name || '').trim(),
+                description: (r.description || '').trim(),
+            }));
             return {
                 ...createEmptyQuestion(), ...ex,
-                id: si.id, question: si.question, rubricItem: si.rubricItem,
+                id: si.id, question: cleanQuestion, rubricItem: cleanRubricItem,
                 choices: cleanChoices, rubricRows: cleanRubric,
                 points: si.points || ex.points || '',
                 span: si.span || ex.span || 1,
@@ -817,6 +914,8 @@ const QuestionCognitiveMapping = ({
             };
         });
         setQuestions(merged);
+        setShowDuplicateWarning(false);
+        setDuplicateIds([]);
         if (courseCode) {
             try {
                 await saveItems(courseCode, merged);
@@ -862,6 +961,11 @@ const QuestionCognitiveMapping = ({
                 highlightKey={highlightKey}
                 assessmentName={assessmentName}
                 onAssessmentNameChange={onAssessmentNameChange}
+                showDuplicateWarning={showDuplicateWarning}
+                duplicateIds={duplicateIds}
+                onDismissDuplicateWarning={() => {
+                    setShowDuplicateWarning(false);
+                }}
             />
         );
     }
@@ -952,7 +1056,7 @@ const QuestionCognitiveMapping = ({
                                     {q.co && getAvailableILOs(q.co).map(ilo => <option key={ilo.id} value={ilo.id}>{ilo.id}</option>)}
                                 </select>
 
-                                <textarea
+                                <AutoResizeTextarea
                                     className={layout.mNum}
                                     placeholder="0"
                                     value={q.points}
@@ -960,8 +1064,6 @@ const QuestionCognitiveMapping = ({
                                     onChange={e => {
                                         const v = e.target.value.replace(/[^0-9]/g, '');
                                         handleQuestionChange(q.id, 'points', v === '' ? '0' : v);
-                                        e.target.style.height = 'auto';
-                                        e.target.style.height = e.target.scrollHeight + 'px';
                                     }}
                                     disabled={!hasContent || isOverflow}
                                 />

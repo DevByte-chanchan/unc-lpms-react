@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import layout from "../styles/TOSPreview.module.sass";
 import { useNavigate } from "react-router-dom";
 import { updateStatus, saveOutcomes, saveItems, updateCourse } from '../services/api.js';
 
-const TOSPreview = ({ isOpen, onClose, outcomeData, questions, courseName = "Human & Computer Interaction", semester = "1st Sem", schoolYear = "2024 - 2025", courseCode, assessmentName }) => {
+const TOSPreview = ({ isOpen, onClose, outcomeData, questions, courseName = "Human & Computer Interaction", semester = "1st Sem", schoolYear = "2024 - 2025", courseCode, assessmentName, examType }) => {
     if (!isOpen) return null;
 
     const [showConfirm, setShowConfirm] = useState(false);
@@ -61,7 +61,7 @@ const TOSPreview = ({ isOpen, onClose, outcomeData, questions, courseName = "Hum
         'Creating'
     ];
 
-    // Aggregate cognitive data (counts and sums per CO-ILO-level)
+    // Aggregate cognitive data (list of items per CO-ILO-level)
     const getAggregatedData = () => {
         const data = {};
         outcomeData.forEach(co => {
@@ -69,15 +69,14 @@ const TOSPreview = ({ isOpen, onClose, outcomeData, questions, courseName = "Hum
             co.ilos.forEach(ilo => {
                 data[co.co][ilo.id] = {};
                 cognitiveLevels.forEach(level => {
-                    data[co.co][ilo.id][level] = { count: 0, sumPoints: 0 };
+                    data[co.co][ilo.id][level] = [];
                 });
             });
         });
 
         questions.forEach(q => {
             if (q.co && q.ilo && q.cognitiveLevel && q.points) {
-                data[q.co][q.ilo][q.cognitiveLevel].count += 1;
-                data[q.co][q.ilo][q.cognitiveLevel].sumPoints += Number(q.points);
+                data[q.co][q.ilo][q.cognitiveLevel].push({ span: q.span || 1, points: Number(q.points) });
             }
         });
 
@@ -91,7 +90,10 @@ const TOSPreview = ({ isOpen, onClose, outcomeData, questions, courseName = "Hum
 
     const totalCognitive = cognitiveLevels.map(level => {
         return outcomeData.reduce((sum, co) => {
-            return sum + co.ilos.reduce((iloSum, ilo) => iloSum + (aggregatedData[co.co][ilo.id][level].sumPoints || 0), 0);
+            return sum + co.ilos.reduce((iloSum, ilo) => {
+                const items = aggregatedData[co.co][ilo.id][level];
+                return iloSum + items.reduce((s, item) => s + item.points, 0);
+            }, 0);
         }, 0);
     });
 
@@ -102,19 +104,14 @@ const TOSPreview = ({ isOpen, onClose, outcomeData, questions, courseName = "Hum
                 <div className={layout.headerRow}>
                     <div>
                         <h2 className={layout.previewTitle}>TOS Document Preview</h2>
-                        {assessmentName && <span className={layout.assessmentName}>{assessmentName}</span>}
+                        <span className={layout.assessmentName}>Assessment: <span>{assessmentName || ''}</span></span>
                     </div>
                     <div className={layout.pillToggle}>
-                        <button
-                            className={`${layout.pillOption} ${activeTab === 'tosReport' ? layout.pillActive : ''}`}
-                            onClick={() => setActiveTab('tosReport')}
-                        >
+                        <div className={layout.pillSlider} style={{ transform: `translateX(${activeTab === 'tosReport' ? '0' : '100'}%)` }} />
+                        <button className={`${layout.pillOption} ${activeTab === 'tosReport' ? layout.pillActive : ''}`} onClick={() => setActiveTab('tosReport')}>
                             TOS Report
                         </button>
-                        <button
-                            className={`${layout.pillOption} ${activeTab === 'assessment' ? layout.pillActive : ''}`}
-                            onClick={() => setActiveTab('assessment')}
-                        >
+                        <button className={`${layout.pillOption} ${activeTab === 'assessment' ? layout.pillActive : ''}`} onClick={() => setActiveTab('assessment')}>
                             Assessment
                         </button>
                     </div>
@@ -130,11 +127,11 @@ const TOSPreview = ({ isOpen, onClose, outcomeData, questions, courseName = "Hum
                             value={courseCode ? `${courseCode}${courseName ? ` - ${courseName}` : ''}` : courseName}
                             className={layout.numberInput}
                         />
-                        <label>Exam:</label>
+                        <label>Type:</label>
                         <input
                             type="text"
                             disabled
-                            value={assessmentName || 'Midterm'}
+                            value={examType || assessmentName || 'Midterm'}
                             className={layout.numberInput}
                         />
                     </div>
@@ -195,7 +192,7 @@ const TOSPreview = ({ isOpen, onClose, outcomeData, questions, courseName = "Hum
                                     <div className={layout.cellBox}>{co.totalItems || 0}</div>
                                 </td>
                                 {cognitiveLevels.map(level => (
-                                    <td key={level}>
+                                    <td key={level} className={layout.mutedCell}>
                                     </td>
                                 ))}
                             </tr>
@@ -214,16 +211,18 @@ const TOSPreview = ({ isOpen, onClose, outcomeData, questions, courseName = "Hum
                                     <td>
                                         <div className={layout.cellBox}>{ilo.items || 0}</div>
                                     </td>
-                                    {cognitiveLevels.map(level => (
+                                    {cognitiveLevels.map(level => {
+                                        const items = aggregatedData[co.co][ilo.id][level];
+                                        return (
                                         <td key={level}>
-                                            <div className={layout.cellBox}>
-                                                {aggregatedData[co.co][ilo.id][level].count > 0
-                                                    ? `${aggregatedData[co.co][ilo.id][level].count} x ${aggregatedData[co.co][ilo.id][level].sumPoints}`
-                                                    : '—'
-                                                }
+                                            <div className={layout.cellBox} style={{ flexDirection: 'column', gap: 2 }}>
+                                                {items.length === 0 ? '—' : items.map((item, i) => (
+                                                    <span key={i}>{item.span} x {item.points}</span>
+                                                ))}
                                             </div>
                                         </td>
-                                    ))}
+                                        );
+                                    })}
                                 </tr>
                             ))}
                         </React.Fragment>
@@ -296,7 +295,7 @@ const TOSPreview = ({ isOpen, onClose, outcomeData, questions, courseName = "Hum
                                                 {hasRubric && (
                                                     <div className={layout.rubricBox}>
                                                         <div className={layout.rubricHeader}>
-                                                            <span className={layout.rubricLabel}>Rubric Criteria</span>
+                                                            <span className={layout.rubricLabel}>Rubrics</span>
                                                         </div>
                                                         <div className={layout.rubricTable}>
                                                             <div className={`${layout.rubricRow} ${layout.rubricHeaderRow}`}>
@@ -321,16 +320,16 @@ const TOSPreview = ({ isOpen, onClose, outcomeData, questions, courseName = "Hum
                                                                              <div key={row.id || ri} className={layout.rubricRow}>
                                                                                  <span className={layout.rubricName}>{row.name || ''}</span>
                                                                                  <span className={layout.rubricDesc}>{row.description || ''}</span>
-                                                                                 <span className={layout.rubricWeight}>{row.weight || 0}%</span>
+                                                                                  <span className={layout.rubricWeight}>{Math.round(Number(row.weight) || 0)}%</span>
                                                                                  <span className={layout.rubricPts}>{rowPts[ri]}</span>
                                                                              </div>
                                                                          ))}
-                                                                         <div className={`${layout.rubricRow} ${layout.rubricTotalRow}`}>
-                                                                             <span className={layout.rubricName}></span>
-                                                                             <span className={layout.rubricDesc}><strong>Total</strong></span>
-                                                                             <span className={layout.rubricWeight}>{Math.round(totalW)}%</span>
-                                                                             <span className={layout.rubricPts}><strong>{totalPts}</strong></span>
-                                                                         </div>
+                                                                          <div className={`${layout.rubricRow} ${layout.rubricTotalRow}`}>
+                                                                              <span className={layout.rubricName}><strong>Total</strong></span>
+                                                                              <span className={layout.rubricDesc}></span>
+                                                                              <span className={layout.rubricWeight}>{Math.round(totalW)}%</span>
+                                                                              <span className={layout.rubricPts}><strong>{totalPts}</strong></span>
+                                                                          </div>
                                                                      </>
                                                                  );
                                                              })()}

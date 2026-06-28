@@ -1,5 +1,5 @@
 import styles from '../styles/SyllabusSections.module.sass'
-import {ChevronLeft} from 'react-feather';
+import {ChevronLeft, Loader} from 'react-feather';
 import React, {useEffect, useRef, useState} from "react";
 import {useNavigate, useSearchParams, useLocation, useParams} from "react-router-dom";
 import layout from "../styles/TosSections.module.sass";
@@ -48,6 +48,9 @@ const tosSections = ({status}) => {
     const { code: courseCode } = useParams();
     const tosStatus = location.state?.tosStatus || 'draft';
     const courseName = location.state?.courseName || '';
+    const fromExamType = location.state?.examType || 'Midterm';
+    const fromSchoolYear = location.state?.schoolYear;
+    const fromSemester = location.state?.semester;
     const [courseNameState, setCourseName] = useState(courseName);
     const [assessmentName, setAssessmentName] = useState('');
     const defaultRows = getDefaultOutlines();
@@ -59,6 +62,8 @@ const tosSections = ({status}) => {
     const [errorFields, setErrorFields] = useState({});
     const [exportErrors, setExportErrors] = useState({ outcomeOverview: [], assessmentMapping: [], tosSummary: [] });
     const [showExportErrorModal, setShowExportErrorModal] = useState(false);
+    const [submitLoading, setSubmitLoading] = useState(false);
+    const submitGuardRef = useRef(false);
 
     useEffect(() => {
         if (!courseCode || dataLoaded) return;
@@ -345,13 +350,17 @@ const tosSections = ({status}) => {
                                 className={`${styles.submit} ${!canSubmit ? styles.submitDisabled : ''}`}
                                 disabled={!canSubmit}
                                     onClick={() => {
+                                        if (submitGuardRef.current || submitLoading) return;
+                                        submitGuardRef.current = true;
                                         const { errors, fieldKeys } = validateTOS();
                                         setErrorFields(fieldKeys);
                                         const hasErrors = errors.outcomeOverview.length > 0 || errors.assessmentMapping.length > 0 || errors.tosSummary.length > 0;
                                         if (hasErrors) {
+                                            submitGuardRef.current = false;
                                             setExportErrors(errors);
                                             setShowExportErrorModal(true);
                                         } else if (courseCode) {
+                                            setSubmitLoading(true);
                                             const outcomesPayload = rows.map(r => ({
                                                 co: r.co,
                                                 description: r.description || '',
@@ -367,13 +376,15 @@ const tosSections = ({status}) => {
                                                 saveOutcomes(courseCode, outcomesPayload),
                                                 saveItems(courseCode, questions),
                                                 updateCourse(courseCode, { assessmentName })
-                                            ]).then(() => setIsPreviewOpen(true)).catch(() => setIsPreviewOpen(true));
+                                            ]).then(() => { setSubmitLoading(false); submitGuardRef.current = false; setIsPreviewOpen(true); }).catch(() => { setSubmitLoading(false); submitGuardRef.current = false; setIsPreviewOpen(true); });
                                         } else {
+                                            submitGuardRef.current = false;
                                             setIsPreviewOpen(true);
                                         }
                                     }}
                             >
-                                Submit
+                                {submitLoading ? <Loader size={16} className={layout.spinner} /> : null}
+                                {submitLoading ? 'Submitting…' : 'Submit'}
                             </button>
                             <span className={styles.submitTooltip}>Disabled due to incomplete assessment items</span>
                         </div>
@@ -536,6 +547,9 @@ const tosSections = ({status}) => {
                 courseName={courseNameState}
                 courseCode={courseCode}
                 assessmentName={assessmentName}
+                examType={fromExamType}
+                semester={fromSemester}
+                schoolYear={fromSchoolYear}
             />
 
             {showExportErrorModal && (
