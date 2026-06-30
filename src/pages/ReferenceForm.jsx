@@ -360,7 +360,7 @@ const ReferenceForm = () => {
                                 <InlineModal isOpen={showConfirm} title="Saved" onClose={() => setShowConfirm(false)}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                                         <CheckCircle size={20} color="#2e7d32" />
-                                        <div>Syllabus adjustments synchronized successfully.</div>
+                                        <div>Adjustments synchronized successfully.</div>
                                     </div>
                                 </InlineModal>
                             </div>

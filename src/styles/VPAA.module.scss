@@ -5,7 +5,6 @@
   height: 100%;
   min-height: 200px;
   gap: 10px;
-  padding: 20px 30px;
   background: white;
   font-family: 'Poppins', sans-serif;
 }
@@ -29,22 +28,22 @@
 
 .statsGrid {
   display: flex;
-  gap: 16px;
-  margin-bottom: 16px;
+  gap: 12px;
+  margin: 16px 0 8px;
+  padding: 0 30px;
   flex-wrap: wrap;
 }
 
 .statCard {
   display: flex;
   align-items: flex-start;
-  padding: 20px 24px;
+  padding: 14px 18px;
   background: white;
-  border-radius: 12px;
+  border-radius: 8px;
   border: 1px solid #e5e7eb;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
   min-width: 0;
-  flex: 1 1 160px;
-  gap: 14px;
+  flex: 1 1 140px;
+  gap: 12px;
 }
 
 .statIconWrap {
@@ -69,7 +68,7 @@
 }
 
 .statValue {
-  font-size: 28px;
+  font-size: 22px;
   font-weight: 700;
   color: #000;
   line-height: 1;

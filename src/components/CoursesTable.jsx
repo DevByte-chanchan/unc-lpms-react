@@ -4,8 +4,11 @@ import styles from '../styles/CoursesTable.module.sass';
 import { ChevronRight, Edit, XCircle, HelpCircle, Download } from 'react-feather';
 import { fetchJson } from "../utils/api.js";
 import { syllabiData } from "../data/syllabiData.js";
+import { getSyllabi } from "../utils/dataStore.js";
 import { getWorkflow } from "../utils/workflowHelpers.js";
+import { buildSyllabusHtml } from "../utils/syllabusPdfHtml.js";
 import PDFViewerModal from './PDFViewerModal.jsx';
+import unclogo from '../assets/unclogo.png';
 
 const CoursesTable = () => {
     const currentYear = new Date().getFullYear();
@@ -36,12 +39,58 @@ const CoursesTable = () => {
     const [loading, setLoading] = useState(false);
     const [popup, setPopup] = useState({ open: false, data: null, pos: null });
     const [exportFile, setExportFile] = useState(null);
+    const [exporting, setExporting] = useState(false);
 
     useEffect(() => {
         loadAssignments();
     }, []);
 
     const handleStatusChange = (e) => updateStatus(e.target.value);
+
+    const closeExportModal = () => {
+      if (exportFile?.file_url?.startsWith('blob:')) URL.revokeObjectURL(exportFile.file_url)
+      setExportFile(null)
+    }
+
+    const handlePreview = async (row) => {
+      try {
+        setExporting(true)
+        const syllabus = getSyllabi().find(s => s.code === getCode(row))
+        if (!syllabus) { alert('Syllabus data not found'); setExporting(false); return }
+        const workflow = getWorkflow(getCode(row))
+
+        let logoBase64 = ''
+        try {
+          const resp = await fetch(unclogo)
+          if (resp.ok) {
+            const blob = await resp.blob()
+            logoBase64 = await new Promise((resolve) => {
+              const reader = new FileReader()
+              reader.onload = () => resolve(reader.result)
+              reader.readAsDataURL(blob)
+            })
+          }
+        } catch {}
+
+        const html = buildSyllabusHtml(syllabus, getCode(row), workflow, logoBase64)
+        const blob = new Blob([html], { type: 'text/html' })
+        const url = URL.createObjectURL(blob)
+        setExportFile({
+          file_url: url,
+          file_name: `Syllabus_${getCode(row)}.html`,
+          instructor_name: row.instructor || '—',
+          course_id: getCode(row),
+          course_name: getName(row),
+          submission_date: row.date_submitted || workflow?.submittedAt || '',
+          period_label: row.period || '',
+        })
+      } catch (err) {
+        console.warn('Preview generation failed:', err)
+        alert('Failed to generate preview: ' + (err?.message || err))
+      } finally {
+        setExporting(false)
+      }
+    }
 
 
     // Map static syllabiData to the row shape the table expects
@@ -151,7 +200,7 @@ const CoursesTable = () => {
                 updated: row?.date_updated
             },
             {
-                key: 'Library Director',
+                key: 'Director of Libraries',
                 accepted: row?.ld_date_accepted,
                 returned: row?.ld_date_returned,
                 updated: row?.date_updated
@@ -224,7 +273,7 @@ const CoursesTable = () => {
         const submittedAt = wf.submittedAt || null
         const approvers = [
             { key: 'Industry Consultant', wfKey: wf.parallelReview?.industry_consultant },
-            { key: 'Library Director', wfKey: wf.parallelReview?.library_director },
+            { key: 'Director of Libraries', wfKey: wf.parallelReview?.library_director },
             { key: 'Program Head', wfKey: wf.programHead },
             { key: 'Dean', wfKey: wf.dean },
         ]
@@ -345,8 +394,8 @@ const CoursesTable = () => {
                                 {selectedStatus === 'DRAFT' ? null : null}
                                 {selectedStatus === 'APPROVED' && <td width={250}><span style={{ color: '#047857', background: '#ecfdf5', padding: '3px 10px', borderRadius: 99, fontWeight: 600, fontSize: 12, display: 'inline-block' }}>{(() => { const d = row.d_date_accepted || getWorkflow(getCode(row))?.dean?.completedAt; return d ? new Date(d).toLocaleDateString() : '-'; })()}</span></td>}
                                 {selectedStatus === 'APPROVED' && <td style={{ width: 80, textAlign: 'center', fontWeight: 500 }}>
-                                    <span className="actionLink" style={{ minWidth: 90, display: 'inline-flex', alignItems: 'center', gap: 5, cursor: 'pointer', justifyContent: 'center' }} onClick={() => setExportFile(row)}>
-                                        Export <Download size={16} />
+                                    <span className="actionLink" style={{ minWidth: 90, display: 'inline-flex', alignItems: 'center', gap: 5, cursor: 'pointer', justifyContent: 'center' }} onClick={() => handlePreview(row)}>
+                                        {exporting ? 'Loading…' : 'Preview'} <Download size={16} />
                                     </span>
                                 </td>}
                                 <td className={styles.fill}>
@@ -428,17 +477,9 @@ const CoursesTable = () => {
 
             {exportFile && (
                 <PDFViewerModal
-                    file={{
-                        file_url: '/syllabus-template.pdf',
-                        file_name: `SYLLABUS_${getCode(exportFile)}.pdf`,
-                        instructor_name: exportFile.instructor || '—',
-                        course_id: getCode(exportFile),
-                        course_name: getName(exportFile),
-                        submission_date: exportFile.date_submitted || '',
-                        period_label: '',
-                    }}
-                    kind="Syllabus"
-                    onClose={() => setExportFile(null)}
+                    file={exportFile}
+                    kind="Learning Plan"
+                    onClose={closeExportModal}
                 />
             )}
         </div>

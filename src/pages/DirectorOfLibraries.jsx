@@ -77,7 +77,7 @@ const DirectorOfLibraries = () => {
 
     const wf = getWorkflow(suggestedCourse)
     if (wf?.parallelReview?.library_director?.status === 'done') {
-      alert('You have already approved the syllabus for this course. Suggesting references is no longer available.')
+      alert('You have already approved the learning plan for this course. Suggesting references is no longer available.')
       return
     }
 
@@ -111,7 +111,7 @@ const DirectorOfLibraries = () => {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
             <div>
               <h2>Director of Libraries - Reference Library</h2>
-              <p>Manage reference materials and suggest them to course syllabi.</p>
+              <p>Manage reference materials and suggest them to learning plans.</p>
             </div>
             {uploadedFiles.length > 0 && (
               <button 

@@ -172,7 +172,7 @@ const UploadDashboard = () => {
           </div>
           <div className={styles.statContent}>
             <div className={styles.statValue}>{stats.total}</div>
-            <div className={styles.statLabel}>Total Syllabi</div>
+            <div className={styles.statLabel}>Total Learning Plans</div>
           </div>
         </div>
 
@@ -276,7 +276,7 @@ const UploadDashboard = () => {
             ) : (
               <tr>
                 <td colSpan="7" className={styles.noData}>
-                  No syllabi found
+                  No learning plans found
                 </td>
               </tr>
             )}
@@ -287,7 +287,7 @@ const UploadDashboard = () => {
       {/* Pagination */}
       <div className={styles.pagination}>
         <span className={styles.paginationInfo}>
-          Showing {showingFrom}-{showingTo} of {filteredPlans.length} syllabi
+          Showing {showingFrom}-{showingTo} of {filteredPlans.length} learning plans
         </span>
         <div className={styles.paginationButtons}>
           {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (

@@ -11,6 +11,8 @@ import { getReferences, getReferenceById } from '../utils/referenceLibrary'
 import { normalizeRoleKey, isDeprecated, hasIssues, getRoleColor, getComponentTags, isRecent, reviewerSeeds } from '../utils/approvalHelpers.js'
 import { fetchJson } from "../utils/api.js"
 import PDFViewerModal from './PDFViewerModal'
+import { buildSyllabusHtml } from "../utils/syllabusPdfHtml.js"
+import unclogo from '../assets/unclogo.png'
 
 const defaultSections = [
   'Course Details',
@@ -46,6 +48,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [refTypeFilter, setRefTypeFilter] = useState('')
   const [previewFile, setPreviewFile] = useState(null)
+  const [exportingPdf, setExportingPdf] = useState(false)
   const [cpaData, setCpaData] = useState({ course: { code: '', title: '' }, programOutcomes: [], courseOutcomes: [] })
   const [cpaLoading, setCpaLoading] = useState(false)
   const [cpaError, setCpaError] = useState(null)
@@ -615,22 +618,46 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
             {effectiveStatus === 'approved' && (roleKey === 'instructor' || roleKey === 'dean' || roleKey === 'vpaa') && (
               <div className={styles.approvalButtons}>
                 <button
-                  onClick={() => {
-                    setPreviewFile({
-                      file_url: '/syllabus-template.pdf',
-                      file_name: `LearningPlan_${syllabus?.code || courseCode}.pdf`,
-                      instructor_name: syllabus?.instructor || '—',
-                      course_id: syllabus?.code || courseCode || '',
-                      course_name: syllabus?.name || '',
-                      submission_date: syllabus?.update || '',
-                      period_label: (syllabus?.year || '') + ' — ' + (syllabus?.sem || ''),
-                    })
+                  onClick={async () => {
+                    setExportingPdf(true)
+                    try {
+                      let logoBase64 = ''
+                      try {
+                        const resp = await fetch(unclogo)
+                        if (resp.ok) {
+                          const blob = await resp.blob()
+                          logoBase64 = await new Promise((resolve) => {
+                            const reader = new FileReader()
+                            reader.onload = () => resolve(reader.result)
+                            reader.readAsDataURL(blob)
+                          })
+                        }
+                      } catch {}
+                      const wf = getWorkflow(codeToUse)
+                      const html = buildSyllabusHtml(syllabus, codeToUse, wf, logoBase64)
+                      const blob = new Blob([html], { type: 'text/html' })
+                      const url = URL.createObjectURL(blob)
+                      setPreviewFile({
+                        file_url: url,
+                        file_name: `Syllabus_${codeToUse}.html`,
+                        instructor_name: syllabus?.instructor || '—',
+                        course_id: codeToUse,
+                        course_name: syllabus?.name || '',
+                        submission_date: syllabus?.update || '',
+                        period_label: (syllabus?.year || '') + ' — ' + (syllabus?.sem || ''),
+                      })
+                    } catch (err) {
+                      console.warn('Export generation failed:', err)
+                      alert('Failed to generate export: ' + (err?.message || err))
+                    } finally {
+                      setExportingPdf(false)
+                    }
                   }}
                   style={{
                     display: 'inline-flex', alignItems: 'center', gap: 8,
                     padding: '10px 20px', border: 'none', borderRadius: 8,
                     fontSize: 14, fontWeight: 600, cursor: 'pointer',
-                    background: '#19282C', color: 'white',
+                    background: exportingPdf ? '#94a3b8' : '#19282C', color: 'white',
                     fontFamily: "'Poppins', sans-serif"
                   }}
                 >

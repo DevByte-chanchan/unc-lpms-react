@@ -100,7 +100,7 @@ const SideNavigation = ({ mode = 'instructor' }) => {
                 }
             })
             ro.observe(navRef.current)
-        } catch (e) {}
+        } catch (e) { console.warn('ResizeObserver failed', e) }
         return () => { if (ro && navRef.current) ro.disconnect() }
     }, [showPopup])
 
@@ -114,7 +114,7 @@ const SideNavigation = ({ mode = 'instructor' }) => {
                     const w = window.getComputedStyle(n).width
                     const num = parseFloat(w)
                     if (!isNaN(num) && num <= 110) return n
-                } catch (e) {}
+                } catch (e) { console.warn('Failed to parse width', e) }
                 n = n.parentElement
             }
             return null
@@ -160,7 +160,7 @@ const SideNavigation = ({ mode = 'instructor' }) => {
                         className={`${styles.list} ${selected === 'Syllabus' ? styles.selected : ''}`}
                     >
                         <FileText size={24} />
-                        <span className={styles.listText}>Syllabus</span>
+                        <span className={styles.listText}>Learning Plan</span>
                     </div>
                 )}
 
@@ -227,7 +227,7 @@ const SideNavigation = ({ mode = 'instructor' }) => {
                         <div className={styles.rolePopup}>
                             <div className={styles.popupTitle}>Select role</div>
                             <button className={styles.popupItem} onClick={() => { setShowPopup(false); navigate('/') }}>Instructor</button>
-                            <button className={styles.popupItem} onClick={() => gotoRole('/role/program-head/approval-course-table')}>Program head</button>
+                            <button className={styles.popupItem} onClick={() => gotoRole('/role/program-head/approval-course-table')}>Program Head</button>
                             <button className={styles.popupItem} onClick={() => gotoRole('/role/director-of-libraries/approval-course-table')}>Director of Libraries</button>
                             <button className={styles.popupItem} onClick={() => gotoRole('/role/industry-consultant/approval-course-table')}>Industry Consultant</button>
                             <button className={styles.popupItem} onClick={() => gotoRole('/role/dean')}>Dean</button>

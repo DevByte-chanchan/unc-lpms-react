@@ -71,6 +71,11 @@ export const deleteProgramDocument = (role, userId, programId, academicPeriodId,
     headers: getHeaders(role, userId)
   });
 
+export const getMyComments = (role, userId, planId) =>
+  axios.get(`${API_BASE_URL}/learning-plans/${planId}/comments`, {
+    headers: getHeaders(role, userId)
+  });
+
 export const getLPVersions = (role, userId, id) =>
   axios.get(`${API_BASE_URL}/learning-plans/${id}/versions`, {
     headers: getHeaders(role, userId)

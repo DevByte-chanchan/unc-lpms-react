@@ -17,6 +17,9 @@ const ReviewPanel = () => {
   const [showVersionHistory, setShowVersionHistory] = useState(false);
   const [versions, setVersions] = useState([]);
   const [versionsLoading, setVersionsLoading] = useState(false);
+  const [showMyComments, setShowMyComments] = useState(false);
+  const [myComments, setMyComments] = useState([]);
+  const [myCommentsLoading, setMyCommentsLoading] = useState(false);
   const showToast = useToast();
 
   const userId = parseInt(localStorage.getItem('userId') || '30');
@@ -31,6 +34,19 @@ const ReviewPanel = () => {
       showToast(err.response?.data?.error || 'Failed to load version history', 'warning');
     } finally {
       setVersionsLoading(false);
+    }
+  };
+
+  const fetchMyComments = async (planId) => {
+    setMyCommentsLoading(true);
+    try {
+      const res = await service.getMyComments(role, userId, planId);
+      setMyComments(res.data || []);
+      setShowMyComments(true);
+    } catch (err) {
+      showToast(err.response?.data?.error || 'Failed to load comments', 'warning');
+    } finally {
+      setMyCommentsLoading(false);
     }
   };
 
@@ -165,6 +181,34 @@ const ReviewPanel = () => {
                         {v.created_at ? new Date(v.created_at).toLocaleDateString() : '-'}
                         {v.creator?.name ? ` — ${v.creator.name}` : ''}
                       </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          <button onClick={() => fetchMyComments(selectedPlan.id)} className={styles.btnSubmit} style={{ marginBottom: 16, background: '#059669' }}>
+            {myCommentsLoading ? 'Loading...' : 'View My Comments'}
+          </button>
+
+          {showMyComments && (
+            <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 8, padding: 16, marginBottom: 16 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                <h3 style={{ margin: 0, fontSize: 16, color: '#1e293b' }}>My Comments</h3>
+                <button onClick={() => setShowMyComments(false)} style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: 18, color: '#94a3b8' }}>×</button>
+              </div>
+              {myComments.length === 0 ? (
+                <p style={{ color: '#94a3b8', fontSize: 14 }}>No comments submitted yet.</p>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {myComments.map(c => (
+                    <div key={c.id} style={{ padding: '12px 14px', background: '#f8fafc', borderRadius: 6, border: '1px solid #f1f5f9' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                        <span style={{ fontSize: 12, padding: '2px 8px', borderRadius: 99, background: '#d1fae5', color: '#065f46' }}>{c.from_role.replace(/_/g, ' ')}</span>
+                        <span style={{ fontSize: 12, color: '#94a3b8' }}>{c.created_at ? new Date(c.created_at).toLocaleString() : '-'}</span>
+                      </div>
+                      <p style={{ margin: 0, fontSize: 14, color: '#334155', whiteSpace: 'pre-wrap' }}>{c.comment}</p>
                     </div>
                   ))}
                 </div>

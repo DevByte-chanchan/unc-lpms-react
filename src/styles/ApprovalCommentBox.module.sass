@@ -74,6 +74,11 @@
   border: 1px solid #dcdcdc
   border-radius: 4px
   background: #fff
+  transition: opacity 0.2s, background 0.2s
+
+  &:disabled
+    opacity: 0.55
+    background: #f9f9f9
 
 /* sectionized comment styling to match instructor form visual blocks */
 .commentListWrapper
@@ -126,6 +131,10 @@
   justify-content: center
   width: 34px
   height: 34px
+  transition: opacity 0.2s
+
+  &:hover
+    opacity: 0.85
 
 .commentBody
   display: flex
@@ -139,10 +148,10 @@
 
 .addCommentRow
   display: flex
-  justify-content: flex-start
   margin-top: 6px
 
 .addButton
+  width: 100%
   background: transparent
   border: 1px dashed #9aa4b2
   padding: 8px 12px
@@ -151,7 +160,6 @@
   color: #374151
   font-weight: 600
   height: 40px
-  min-width: 140px
 
 .textarea
   width: 100%
@@ -160,6 +168,10 @@
   resize: vertical
   border: 1px solid #dcdcdc
   border-radius: 4px
+  transition: border-color 0.2s
+
+  &:focus
+    border-color: #1e3a5f
 
 /* actions layout: centered buttons with gap, buttons match returnBtn sizing but larger */
 /* actions layout: horizontal row with space between */
@@ -207,6 +219,12 @@
   color: #374151
 
 /* keep responsive behavior */
+.searchInput
+  border: none
+  outline: none
+  width: 100%
+  font-size: 14px
+
 @media (max-width: 640px)
   .modal
     padding: 10px

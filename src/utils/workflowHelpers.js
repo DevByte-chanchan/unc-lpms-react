@@ -49,24 +49,34 @@ export const advanceWorkflow = (courseCode = '') => {
 
   if (wf.currentStage === 'returned') return wf;
 
-  // If currently submitted, move to parallel_review when instructor has submitted (external action)
-  // But main advancement checks for completion of parallel reviewers
-  const allParallelDone = (wf.parallelReview && wf.parallelReview.library_director?.status === 'done' && wf.parallelReview.industry_consultant?.status === 'done' && wf.parallelReview.program_head?.status === 'done')
-  if (allParallelDone && wf.currentStage !== 'dean') {
-    wf.currentStage = 'dean'
-  }
-
-  if (wf.dean?.status === 'done' && wf.currentStage !== 'approved') {
-    wf.currentStage = 'approved'
-  }
-
-  // If any parallel reviewer has started (one marked done) and stage still 'submitted', set to 'parallel_review'
+  // 1. Submitted → parallel_review when any parallel reviewer acts
   const anyParallelStarted = (wf.parallelReview && (wf.parallelReview.library_director?.status === 'done' || wf.parallelReview.industry_consultant?.status === 'done'))
   if (anyParallelStarted && wf.currentStage === 'submitted') {
     wf.currentStage = 'parallel_review'
   }
 
+  // 2. All parallel review done → dean
+  const allParallelDone = (wf.parallelReview && wf.parallelReview.library_director?.status === 'done' && wf.parallelReview.industry_consultant?.status === 'done' && wf.parallelReview.program_head?.status === 'done')
+  if (allParallelDone && wf.currentStage !== 'dean') {
+    wf.currentStage = 'dean'
+  }
+
+  // 3. Dean done → approved
+  if (wf.dean?.status === 'done' && wf.currentStage !== 'approved') {
+    wf.currentStage = 'approved'
+  }
+
   all[courseCode] = wf
+  _writeAll(all)
+  return wf
+}
+
+export const resetWorkflowStage = (courseCode, newStage) => {
+  if (!courseCode) return null
+  const all = _readAll()
+  const wf = all[courseCode]
+  if (!wf) return null
+  wf.currentStage = newStage
   _writeAll(all)
   return wf
 }
@@ -76,6 +86,7 @@ export default {
   getWorkflow,
   setWorkflow,
   advanceWorkflow,
+  resetWorkflowStage,
   seedDemoWorkflows
 }
 

@@ -242,7 +242,7 @@ export const exportSyllabusToPDF = (syllabus, courseCode, workflow) => {
       if (workflow.parallelReview) {
         const ld = workflow.parallelReview.library_director
         if (ld) {
-          approvalData.push(['Library Director', ld.completedAt ? 'Approved' : ld.status, ld.completedAt ? formatDate(ld.completedAt) : '—', ld.completedAt ? '✓' : 'Pending'])
+          approvalData.push(['Director of Libraries', ld.completedAt ? 'Approved' : ld.status, ld.completedAt ? formatDate(ld.completedAt) : '—', ld.completedAt ? '✓' : 'Pending'])
         }
         const ic = workflow.parallelReview.industry_consultant
         if (ic) {
@@ -280,7 +280,7 @@ export const exportSyllabusToPDF = (syllabus, courseCode, workflow) => {
 
     addFooter(doc, pageCount.current)
 
-    doc.save(`SYLLABUS_${courseCode}_Approved.pdf`)
+    doc.save(`LearningPlan_${courseCode}_Approved.pdf`)
   } catch (error) {
     console.error('PDF generation failed:', error)
     throw new Error('Failed to generate PDF. Please try again.')

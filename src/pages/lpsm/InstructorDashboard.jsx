@@ -118,7 +118,7 @@ const InstructorDashboard = () => {
     if (!syllabus) return
     setPreviewFile({
       file_url: '/syllabus-template.pdf',
-      file_name: `SYLLABUS_${course.code}.pdf`,
+      file_name: `LearningPlan_${course.code}.pdf`,
       instructor_name: syllabus.instructor || '—',
       course_id: course.code,
       course_name: course.name,
@@ -327,7 +327,7 @@ const InstructorDashboard = () => {
     {previewFile && (
       <PDFViewerModal
         file={previewFile}
-        kind="Syllabus"
+        kind="Learning Plan"
         onClose={() => setPreviewFile(null)}
         onExport={(f) => {
           const a = document.createElement('a')

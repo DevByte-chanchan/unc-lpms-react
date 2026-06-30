@@ -1,9 +1,10 @@
 {
   "development": {
     "username": "root",
-    "password": "rootdevpass",
+    "password": "rootpassword",
     "database": "lpms_composition",
     "host": "127.0.0.1",
+    "port": 3308,
     "dialect": "mysql"
   }
 }

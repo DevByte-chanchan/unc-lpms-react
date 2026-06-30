@@ -84,7 +84,7 @@ const ProgramHeadDashboard = () => {
           </div>
           <div className={styles.statContent}>
             <div className={styles.statValue}>{total}</div>
-            <div className={styles.statLabel}>Total Syllabi</div>
+            <div className={styles.statLabel}>Total Learning Plans</div>
           </div>
         </div>
         <div className={styles.statCard}>

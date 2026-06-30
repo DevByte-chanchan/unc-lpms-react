@@ -24,11 +24,11 @@ const LpmsNav = ({ role = 'instructor' }) => {
     const getNavItems = () => {
         const routes = {
             'instructor': [
-                { label: 'Review Syllabi', path: '/lpsm/instructor/documents/2', icon: 'document' },
+                { label: 'Review Learning Plans', path: '/lpsm/instructor/documents/2', icon: 'document' },
                 { label: 'Settings', path: '/settings', icon: 'settings' }
             ],
             'program-head': [
-                { label: 'My Syllabi', path: '/lpsm/program-head/dashboard', icon: 'document' },
+                { label: 'My Learning Plans', path: '/lpsm/program-head/dashboard', icon: 'document' },
                 { label: 'Settings', path: '/settings', icon: 'settings' }
             ],
             'director': [

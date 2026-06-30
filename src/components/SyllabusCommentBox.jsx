@@ -65,7 +65,7 @@ const SyllabusCommentBox = ({ courseCode, onClose, onCommentAdded }) => {
     <div className={styles.commentBoxOverlay} onClick={onClose}>
       <div className={styles.commentBox} onClick={e => e.stopPropagation()}>
         <div className={styles.header}>
-          <h2>Syllabus Comments - {courseCode}</h2>
+          <h2>Learning Plan Comments - {courseCode}</h2>
           <button onClick={onClose} className={styles.closeBtn}>
             <X size={24} />
           </button>
@@ -133,7 +133,7 @@ const SyllabusCommentBox = ({ courseCode, onClose, onCommentAdded }) => {
             </div>
           ) : (
             <div style={{ padding: '15px', backgroundColor: '#f0f9ff', borderRadius: '6px', color: '#0369a1' }}>
-              <p>💬 Only reviewers can add comments to this syllabus.</p>
+              <p>💬 Only reviewers can add comments to this learning plan.</p>
             </div>
           )}
         </div>

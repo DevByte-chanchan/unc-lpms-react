@@ -179,7 +179,7 @@ const SyllabusSections = () => {
     const [pdfExportLoading, setPdfExportLoading] = useState(false);
 
     const handleLoadPreviousYear = async () => {
-        if (!window.confirm('Load syllabus content from the previous academic year? Current data will be overwritten.')) return;
+        if (!window.confirm('Load content from the previous academic year? Current data will be overwritten.')) return;
         setPreviousYearLoading(true);
         try {
             const { data } = await getPreviousYearContent(code);
@@ -197,7 +197,7 @@ const SyllabusSections = () => {
                 setCoverageData({ ilos: prev.ilos || [], topics: prev.topics || [], assessments: prev.assessments || [] });
                 setCriteriaData({ gradingSystem: prev.gradingSystem || [] });
                 setReferenceData(null);
-                alert('Previous year syllabus content loaded successfully.');
+                alert('Previous year content loaded successfully.');
             }
         } catch (err) {
             const msg = err.response?.data?.error || err.message || 'Failed to load previous year content';
@@ -215,7 +215,7 @@ const SyllabusSections = () => {
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `Syllabus_${code}.pdf`;
+            a.download = `LearningPlan_${code}.pdf`;
             a.click();
             window.URL.revokeObjectURL(url);
         } catch (err) {
@@ -608,7 +608,7 @@ const SyllabusSections = () => {
                                         </tr>
 
                                         <tr>
-                                            <th className={stylesB.labelCell}>Syllabus Revision No.</th>
+                                            <th className={stylesB.labelCell}>Learning Plan Revision No.</th>
                                             <td className={stylesB.valueCell}>{courseDetailsData?.revision ?? 0}</td>
                                         </tr>
 
@@ -1284,7 +1284,7 @@ const SyllabusSections = () => {
                         const submittedAt = wf.submittedAt || null
                         const approvers = [
                             { key: 'Industry Consultant', data: wf.parallelReview?.industry_consultant },
-                            { key: 'Library Director', data: wf.parallelReview?.library_director },
+                            { key: 'Director of Libraries', data: wf.parallelReview?.library_director },
                             { key: 'Program Head', data: wf.programHead },
                             { key: 'Dean', data: wf.dean },
                         ]

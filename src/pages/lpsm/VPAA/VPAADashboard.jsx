@@ -128,10 +128,10 @@ const VPAADashboard = () => {
   const handleApproveSyllabus = async (code) => {
     try {
       await syllabusService.approveSyllabus(role, userId, code);
-      showToast(`Syllabus ${code} approved successfully!`);
+      showToast(`Learning Plan ${code} approved successfully!`);
       setRefreshKey(k => k + 1);
     } catch (err) {
-      showToast(err.response?.data?.error || 'Failed to approve syllabus', 'warning');
+      showToast(err.response?.data?.error || 'Failed to approve learning plan', 'warning');
     }
   };
 
@@ -140,10 +140,10 @@ const VPAADashboard = () => {
     if (!comments) return;
     try {
       await syllabusService.returnSyllabus(role, userId, code, { comments });
-      showToast(`Syllabus ${code} returned for revision.`);
+      showToast(`Learning Plan ${code} returned for revision.`);
       setRefreshKey(k => k + 1);
     } catch (err) {
-      showToast(err.response?.data?.error || 'Failed to return syllabus', 'warning');
+      showToast(err.response?.data?.error || 'Failed to return learning plan', 'warning');
     }
   };
 
@@ -177,14 +177,14 @@ const VPAADashboard = () => {
 
       <div className={styles.header}>
         <h1>VPAA Dashboard</h1>
-        <p className={styles.subtitle}>Oversight and approval management for syllabi and learning plans</p>
+        <p className={styles.subtitle}>Oversight and approval management for learning plans</p>
       </div>
 
       {error && <div className={styles.error}>{error}</div>}
 
       <div className={styles.tabs}>
         <button className={`${styles.tab} ${activeTab === 'syllabi' ? styles.active : ''}`} onClick={() => setActiveTab('syllabi')}>
-          <FileText size={16} /> Syllabi
+          <FileText size={16} /> Learning Plans
         </button>
         <button className={`${styles.tab} ${activeTab === 'pending' ? styles.active : ''}`} onClick={() => setActiveTab('pending')}>
           Pending Approvals
@@ -197,7 +197,7 @@ const VPAADashboard = () => {
       {activeTab === 'syllabi' && (
         <div className={styles.columnCard}>
           <div className={styles.cardHeader}>
-            <h3>All Syllabi</h3>
+            <h3>All Learning Plans</h3>
             <div className={styles.filterSection}>
               <select value={syllabiStatusFilter} onChange={(e) => setSyllabiStatusFilter(e.target.value)} className={styles.filterSelect}>
                 <option value="all">All Status</option>
@@ -209,7 +209,7 @@ const VPAADashboard = () => {
             </div>
           </div>
           {filteredSyllabi.length === 0 ? (
-            <DeanEmptyState icon={FileText} title="No syllabi found" description="Syllabi will appear here once created." />
+            <DeanEmptyState icon={FileText} title="No learning plans found" description="Learning Plans will appear here once created." />
           ) : (
             <div className={styles.tableWrapper}>
               <table className={styles.plansTable}>
@@ -255,7 +255,7 @@ const VPAADashboard = () => {
       {activeTab === 'pending' && (
         <div className={styles.columnCard}>
           <div className={styles.cardHeader}>
-            <h3>Syllabi Awaiting Approval</h3>
+            <h3>Learning Plans Awaiting Approval</h3>
           </div>
           {pendingApprovals.length === 0 ? (
             <DeanEmptyState icon={Clipboard} title="No pending approvals" description="All submissions have been processed." />
@@ -351,7 +351,7 @@ const VPAADashboard = () => {
                         <td><StatusBadge stage={plan.status} /></td>
                         <td style={{ fontSize: 12, color: '#6b7280' }}>{plan.createdAt ? new Date(plan.createdAt).toLocaleDateString() : '-'}</td>
                         <td className={styles.actions}>
-                          <button onClick={() => navigate(`/role/vpaa/plans/${plan.id}`)} className={styles.viewButton}>View</button>
+                          <button onClick={() => navigate(`/role/vpaa/courses/${encodeURIComponent(plan.course_code)}?status=approved`)} className={styles.viewButton}>View</button>
                         </td>
                       </tr>
                     ))}
@@ -366,7 +366,7 @@ const VPAADashboard = () => {
         <div className={styles.statsRow}>
           <div className={styles.statCard}>
             <div className={styles.statNumber}>{syllabi.length}</div>
-            <div className={styles.statLabel}>Total Syllabi</div>
+            <div className={styles.statLabel}>Total Learning Plans</div>
           </div>
           <div className={styles.statCard}>
             <div className={styles.statNumber}>{approvedLPCount}</div>
@@ -374,7 +374,7 @@ const VPAADashboard = () => {
           </div>
           <div className={styles.statCard}>
             <div className={styles.statNumber}>{selectedPlans.size}</div>
-            <div className={styles.statLabel}>Selected for Export</div>
+            <div className={styles.statLabel}>Selected</div>
           </div>
         </div>
       </div>

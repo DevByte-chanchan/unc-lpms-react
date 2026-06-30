@@ -319,6 +319,19 @@ exports.submitReview = async (req, res) => {
     stage.reviewed_at = new Date();
     await stage.save();
 
+    // Save comment as ApprovalComment for history
+    if (comments) {
+      const toRole = reviewer_role === 'industry_consultant' ? 'instructor' : 'instructor';
+      await ApprovalComment.create({
+        learning_plan_id: id,
+        approval_stage_id: stage.id,
+        from_role: reviewer_role,
+        to_role: toRole,
+        comment: comments,
+        from_id: reviewer_id
+      });
+    }
+
     // Check if both parallel reviews done
     const parallelDone = await ApprovalStage.count({
       where: {
@@ -437,6 +450,24 @@ exports.approveOrReturn = async (req, res) => {
     }
 
     res.json({ message: 'Review processed', plan });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// Get my comments for a learning plan (filtered by current user role)
+exports.getMyComments = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const comments = await ApprovalComment.findAll({
+      where: {
+        learning_plan_id: id,
+        from_role: req.userRole
+      },
+      attributes: ['id', 'comment', 'from_role', 'created_at'],
+      order: [['created_at', 'DESC']]
+    });
+    res.json(comments);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

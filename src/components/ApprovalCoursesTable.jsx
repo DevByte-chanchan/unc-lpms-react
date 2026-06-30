@@ -5,7 +5,10 @@ import { ChevronRight, XCircle, HelpCircle, Download } from 'react-feather';
 import { fetchJson } from "../utils/api.js";
 import { syllabiData } from "../data/syllabiData.js";
 import { getWorkflow } from "../utils/workflowHelpers.js";
-import PDFViewerModal from './PDFViewerModal.jsx';
+import { getSyllabi } from "../utils/dataStore.js";
+import { buildSyllabusHtml } from "../utils/syllabusPdfHtml.js";
+import PDFViewerModal from "./PDFViewerModal.jsx";
+import unclogo from '../assets/unclogo.png';
 
 const getProgram = (code) => {
   if (code && code.startsWith('IT ')) return 'Information Technology';
@@ -40,6 +43,51 @@ const ApprovalCoursesTable = ({ role = 'approver' }) => {
     const [loading, setLoading] = useState(false);
     const [popup, setPopup] = useState({ open: false, data: null, pos: null });
     const [exportFile, setExportFile] = useState(null);
+    const [exporting, setExporting] = useState(false);
+
+    const closeExportModal = () => {
+      if (exportFile) URL.revokeObjectURL(exportFile.file_url)
+      setExportFile(null)
+    }
+
+    const handleExport = async (row) => {
+      try {
+        setExporting(true)
+        const syllabus = getSyllabi().find(s => s.code === getCode(row))
+        if (!syllabus) { alert('Syllabus data not found'); setExporting(false); return }
+        const workflow = getWorkflow(getCode(row))
+
+        let logoBase64 = ''
+        try {
+          const resp = await fetch(unclogo)
+          if (!resp.ok) throw new Error('logo fetch failed')
+          const blob = await resp.blob()
+          logoBase64 = await new Promise((resolve) => {
+            const reader = new FileReader()
+            reader.onload = () => resolve(reader.result)
+            reader.readAsDataURL(blob)
+          })
+        } catch {}
+
+        const html = buildSyllabusHtml(syllabus, getCode(row), workflow, logoBase64)
+        const blob = new Blob([html], { type: 'text/html' })
+        const url = URL.createObjectURL(blob)
+        setExportFile({
+          file_url: url,
+          file_name: `Syllabus_${getCode(row)}.html`,
+          instructor_name: row.instructor || '—',
+          course_id: getCode(row),
+          course_name: getName(row),
+          submission_date: row.date_submitted || workflow?.submittedAt || null,
+          period_label: row.period || '',
+        })
+      } catch (err) {
+        console.warn('Export failed:', err)
+        alert('Export error: ' + (err?.message || err || 'unknown'))
+      } finally {
+        setExporting(false)
+      }
+    }
 
     useEffect(() => {
         loadAssignments();
@@ -48,7 +96,7 @@ const ApprovalCoursesTable = ({ role = 'approver' }) => {
     const buildApproverStatus = (row) => {
         const approvers = [
             { key: 'Industry Consultant', accepted: row?.ic_date_accepted, returned: row?.ic_date_returned, updated: row?.date_updated },
-            { key: 'Library Director', accepted: row?.ld_date_accepted, returned: row?.ld_date_returned, updated: row?.date_updated },
+            { key: 'Director of Libraries', accepted: row?.ld_date_accepted, returned: row?.ld_date_returned, updated: row?.date_updated },
             { key: 'Program Head', accepted: row?.ph_date_accepted, returned: row?.ph_date_returned, updated: row?.date_updated },
             { key: 'Dean', accepted: row?.d_date_accepted, returned: row?.d_date_returned, updated: row?.date_updated }
         ];
@@ -200,7 +248,7 @@ const ApprovalCoursesTable = ({ role = 'approver' }) => {
         const submittedAt = wf.submittedAt || null
         const approvers = [
             { key: 'Industry Consultant', wfKey: wf.parallelReview?.industry_consultant },
-            { key: 'Library Director', wfKey: wf.parallelReview?.library_director },
+            { key: 'Director of Libraries', wfKey: wf.parallelReview?.library_director },
             { key: 'Program Head', wfKey: wf.programHead },
             { key: 'Dean', wfKey: wf.dean },
         ]
@@ -220,7 +268,7 @@ const ApprovalCoursesTable = ({ role = 'approver' }) => {
                     padding: 12
                 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                        <strong>View details</strong>
+                        <strong style={{ color: '#666' }}>View details</strong>
                         <button onClick={onClose} style={{ border: 'none', background: 'transparent', cursor: 'pointer', padding: 4 }} aria-label="Close details">
                             <XCircle size={18} />
                         </button>
@@ -236,11 +284,11 @@ const ApprovalCoursesTable = ({ role = 'approver' }) => {
                             return (
                             <div key={idx} style={{ marginBottom: 10, paddingBottom: 8, borderBottom: '1px solid #f0f0f0' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                                    <div style={{ fontWeight: 600 }}>{a.key}</div>
+                                    <div style={{ fontWeight: 600, color: '#666' }}>{a.key}</div>
                                 </div>
-                                {status === 'done' && a.wfKey?.completedAt ? <div style={{ fontSize: 13, color: '#333' }}><strong>Approved at:</strong> {new Date(a.wfKey.completedAt).toLocaleString()}</div> : null}
-                                {status === 'returned' && a.wfKey?.completedAt ? <div style={{ fontSize: 13, color: '#dc2626' }}><strong>Returned at:</strong> {new Date(a.wfKey.completedAt).toLocaleString()}</div> : null}
-                                {status === 'pending' ? <div style={{ fontSize: 13, color: '#999' }}>Pending</div> : null}
+                                {status === 'done' && a.wfKey?.completedAt ? <div style={{ fontSize: 13, color: '#666' }}><strong>Approved at:</strong> {new Date(a.wfKey.completedAt).toLocaleString()}</div> : null}
+                                {status === 'returned' && a.wfKey?.completedAt ? <div style={{ fontSize: 13, color: '#666' }}><strong>Returned at:</strong> {new Date(a.wfKey.completedAt).toLocaleString()}</div> : null}
+                                {status === 'pending' ? <div style={{ fontSize: 13, color: '#666' }}>Pending</div> : null}
                             </div>
                             );
                         })}
@@ -300,7 +348,7 @@ const ApprovalCoursesTable = ({ role = 'approver' }) => {
                             <th width={150}>CODE</th>
                             <th width={300}>COURSE NAME</th>
                             {selectedStatus === 'APPROVED' && <th width={250}>DATE APPROVED</th>}
-                            {selectedStatus === 'APPROVED' && <th style={{ width: 80, textAlign: 'center' }}>EXPORT</th>}
+                            {selectedStatus === 'APPROVED' && <th style={{ width: 80, textAlign: 'center' }}></th>}
                             <th className={styles.fill}></th>
                         </tr>
                         </thead>
@@ -310,10 +358,10 @@ const ApprovalCoursesTable = ({ role = 'approver' }) => {
                                 <td width={200}>{row.date_assigned ? new Date(row.date_assigned).toLocaleDateString() : '-'}</td>
                                 <td width={150}>{getCode(row)}</td>
                                 <td width={300}>{getName(row)}</td>
-                                {selectedStatus === 'APPROVED' && <td width={250}><span style={{ color: '#047857', background: '#ecfdf5', padding: '3px 10px', borderRadius: 99, fontWeight: 600, fontSize: 12, display: 'inline-block' }}>{(() => { const d = row.d_date_accepted || getWorkflow(getCode(row))?.dean?.completedAt; return d ? new Date(d).toLocaleDateString() : '-'; })()}</span></td>}
+                                {selectedStatus === 'APPROVED' && <td width={250}>{(() => { const d = row.d_date_accepted || getWorkflow(getCode(row))?.dean?.completedAt; return d ? new Date(d).toLocaleDateString() : '-'; })()}</td>}
                                 {selectedStatus === 'APPROVED' && <td style={{ width: 80, textAlign: 'center', fontWeight: 500 }}>
-                                    <span className="actionLink" style={{ minWidth: 90, display: 'inline-flex', alignItems: 'center', gap: 5, cursor: 'pointer', justifyContent: 'center' }} onClick={() => setExportFile(row)}>
-                                        Export <Download size={16} />
+                                    <span className="actionLink" style={{ minWidth: 90, display: 'inline-flex', alignItems: 'center', gap: 5, cursor: exporting ? 'wait' : 'pointer', justifyContent: 'center', color: '#6b7280' }} onClick={() => !exporting && handleExport(row)}>
+                                        {exporting ? '...' : 'Export'} <Download size={16} />
                                     </span>
                                 </td>}
                                 <td className={styles.fill}>
@@ -384,19 +432,11 @@ const ApprovalCoursesTable = ({ role = 'approver' }) => {
             {popup.open && popup.data && <DetailsPopup data={popup.data} onClose={closePopup} pos={popup.pos} />}
 
             {exportFile && (
-                <PDFViewerModal
-                    file={{
-                        file_url: '/syllabus-template.pdf',
-                        file_name: `SYLLABUS_${getCode(exportFile)}.pdf`,
-                        instructor_name: exportFile.instructor || '—',
-                        course_id: getCode(exportFile),
-                        course_name: getName(exportFile),
-                        submission_date: exportFile.date_submitted || '',
-                        period_label: '',
-                    }}
-                    kind="Syllabus"
-                    onClose={() => setExportFile(null)}
-                />
+              <PDFViewerModal
+                file={exportFile}
+                kind="Syllabus"
+                onClose={closeExportModal}
+              />
             )}
         </div>
     );

@@ -1253,7 +1253,11 @@ export const syllabiData = [
             { id: "TB3", title: "Data Communications and Networking", type: "Textbook", authors: "Behrouz Forouzan", year: 2017, isbn: "978-1258781818", link: "" },
             { id: "OR1", title: "RFC Editor", type: "Online Resources", authors: "IETF", year: 2024, isbn: "", link: "https://www.rfc-editor.org/" },
             { id: "OE1", title: "Beej's Guide to Network Programming", type: "Open Educational Resources", authors: "Brian Hall", year: 2022, isbn: "", link: "https://beej.us/guide/bgnet/" },
-            { id: "OE2", title: "Cisco Networking Academy Free Courses", type: "Open Educational Resources", authors: "Cisco", year: 2024, isbn: "", link: "https://www.netacad.com/" }
+            { id: "OE2", title: "Cisco Networking Academy Free Courses", type: "Open Educational Resources", authors: "Cisco", year: 2024, isbn: "", link: "https://www.netacad.com/" },
+            { id: "TB-DEP-001", title: "Introduction to Algorithms (3rd Edition)", type: "Textbook", authors: "Cormen, T., Leiserson, C., Rivest, R., Stein, C.", year: 2009, isbn: "978-0-262-03384-8", link: "" },
+            { id: "OR-ISS-001", title: "Legacy Software Architecture Patterns", type: "Online Resources", authors: "Garcia, M.", year: 2014, isbn: "", link: "https://example.com/legacy-arch" },
+            { id: "OE-DEP-002", title: "Foundations of Computer Science (Outdated Edition)", type: "Open Educational Resources", authors: "Aho, A., Ullman, J.", year: 2010, isbn: "", link: "https://example.com/old-cs-foundations" },
+            { id: "TB-VOLD-001", title: "The C Programming Language (1st Edition)", type: "Textbook", authors: "Kernighan, B.W., Ritchie, D.M.", year: 1978, isbn: "0-13-110163-3", link: "" }
         ],
         topics: [
             {
@@ -1661,7 +1665,7 @@ export const syllabiData = [
         ],
         ilos: [
             { id: "CO1-ILO1", courseOutcome: "Design conceptual and logical database models using entity-relationship modeling and normalization.", intendedLearningOutcome: "Create ER diagrams representing real-world business scenarios.", deliveryWeek: "Week 1", allocatedTime: "3 hours", topics: ["Relational Database Concepts"], references: ["TB1 - Database System Concepts", "TB2 - Database Systems: A Practical Approach to Design, Implementation, and Management"] },
-            { id: "CO1-ILO2", courseOutcome: "Design conceptual and logical database models using entity-relationship modeling and normalization.", intendedLearningOutcome: "Normalize database schemas up to 3NF to eliminate data redundancy.", deliveryWeek: "Week 5", allocatedTime: "3 hours", topics: ["Normalization"], references: ["TB1 - Database System Concepts", "OE2 - Stanford Database Course"] },
+            { id: "CO2-ILO3", courseOutcome: "Implement and query relational databases using SQL DDL and DML statements.", intendedLearningOutcome: "Normalize database schemas up to 3NF to eliminate data redundancy.", deliveryWeek: "Week 5", allocatedTime: "3 hours", topics: ["Normalization"], references: ["TB1 - Database System Concepts", "OE2 - Stanford Database Course"] },
             { id: "CO2-ILO1", courseOutcome: "Implement and query relational databases using SQL DDL and DML statements.", intendedLearningOutcome: "Write SQL DDL statements to create and modify database schemas.", deliveryWeek: "Week 2", allocatedTime: "2 hours", topics: ["SQL Fundamentals"], references: ["TB3 - Learning SQL", "OE1 - SQL Tutorial (W3Schools)"] },
             { id: "CO2-ILO2", courseOutcome: "Implement and query relational databases using SQL DDL and DML statements.", intendedLearningOutcome: "Write complex SQL queries with joins, subqueries, and aggregate functions.", deliveryWeek: "Week 3", allocatedTime: "3 hours", topics: ["SQL Fundamentals"], references: ["TB3 - Learning SQL", "OR1 - PostgreSQL Documentation"] },
             { id: "CO3-ILO1", courseOutcome: "Manage database transactions ensuring ACID properties and appropriate concurrency control.", intendedLearningOutcome: "Explain ACID properties and their importance in transaction processing.", deliveryWeek: "Week 7", allocatedTime: "2 hours", topics: ["Transaction Management"], references: ["TB1 - Database System Concepts"] },
@@ -1670,8 +1674,8 @@ export const syllabiData = [
             { id: "CO4-ILO2", courseOutcome: "Design and implement a complete database solution from requirements through deployment.", intendedLearningOutcome: "Optimize SQL queries using indexes and execution plan analysis.", deliveryWeek: "Week 11", allocatedTime: "3 hours", topics: ["Database Design Project"], references: ["OR1 - PostgreSQL Documentation", "TB3 - Learning SQL"] }
         ],
         gradingSystem: [
-            { co: "CO1", ilos: [{ id: "ILO1", assessments: ["ER Diagram Exercise"], weight: { prelim: "50", midterm: "", semi: "", final: "" }, minPassing: "60" }, { id: "ILO2", assessments: ["Normalization Exercise"], weight: { prelim: "50", midterm: "", semi: "", final: "" }, minPassing: "60" }] },
-            { co: "CO2", ilos: [{ id: "ILO1", assessments: ["SQL DDL Lab"], weight: { prelim: "", midterm: "40", semi: "", final: "" }, minPassing: "60" }, { id: "ILO2", assessments: ["Complex Queries Lab"], weight: { prelim: "", midterm: "60", semi: "", final: "" }, minPassing: "60" }] },
+            { co: "CO1", ilos: [{ id: "ILO1", assessments: ["ER Diagram Exercise"], weight: { prelim: "100", midterm: "", semi: "", final: "" }, minPassing: "60" }] },
+            { co: "CO2", ilos: [{ id: "ILO1", assessments: ["SQL DDL Lab"], weight: { prelim: "", midterm: "30", semi: "", final: "" }, minPassing: "60" }, { id: "ILO2", assessments: ["Complex Queries Lab"], weight: { prelim: "", midterm: "40", semi: "", final: "" }, minPassing: "60" }, { id: "ILO3", assessments: ["Normalization Exercise"], weight: { prelim: "", midterm: "30", semi: "", final: "" }, minPassing: "60" }] },
             { co: "CO3", ilos: [{ id: "ILO1", assessments: ["Transaction Concepts Quiz"], weight: { prelim: "", midterm: "", semi: "50", final: "" }, minPassing: "60" }, { id: "ILO2", assessments: ["Isolation Level Lab"], weight: { prelim: "", midterm: "", semi: "50", final: "" }, minPassing: "60" }] },
             { co: "CO4", ilos: [{ id: "ILO1", assessments: ["Database Design Project"], weight: { prelim: "", midterm: "", semi: "", final: "60" }, minPassing: "60" }, { id: "ILO2", assessments: ["Query Optimization Lab"], weight: { prelim: "", midterm: "", semi: "", final: "40" }, minPassing: "60" }] }
         ]

@@ -41,7 +41,7 @@ const DirectorUpload = () => {
   if (!syllabus) {
     const errorContent = (
       <div style={{ padding: '40px', textAlign: 'center' }}>
-        <p style={{ margin: 0, color: '#6b7280' }}>Syllabus not found.</p>
+        <p style={{ margin: 0, color: '#6b7280' }}>Learning Plan not found.</p>
       </div>
     );
 

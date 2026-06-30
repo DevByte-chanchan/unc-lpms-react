@@ -57,7 +57,7 @@ const PdfExportButton = ({ syllabus, courseCode, label = 'Export to PDF', varian
       disabled={exporting || !syllabus}
       style={style}
       className={className}
-      title="Export syllabus as PDF"
+      title="Export as PDF"
     >
       {exporting ? (
         <>⌛ Exporting...</>

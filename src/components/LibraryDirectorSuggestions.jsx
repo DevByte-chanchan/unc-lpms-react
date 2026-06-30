@@ -67,7 +67,7 @@ const LibraryDirectorSuggestions = ({ courseCode, onAddReferences }) => {
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <CheckCircle size={24} style={{ color: '#10b981' }} />
           <div>
-            <h3 style={{ margin: '0 0 4px 0', color: '#065f46' }}>Library Director Suggestions</h3>
+            <h3 style={{ margin: '0 0 4px 0', color: '#065f46' }}>Director of Libraries Suggestions</h3>
             <p style={{ margin: '0', fontSize: '14px', color: '#059669' }}>
               {suggestions.length} reference(s) suggested by SANTOS, MARIA (Director of Libraries)
             </p>

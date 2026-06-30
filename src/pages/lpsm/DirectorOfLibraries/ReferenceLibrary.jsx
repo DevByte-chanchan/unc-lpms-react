@@ -182,7 +182,7 @@ const ReferenceLibrary = () => {
     }
 
     // Ensure dummy data is always present (add missing entries)
-    const dummyIds = ['TB-DEP-001', 'OR-ISS-001', 'OE-DEP-002', 'TB-BUS-001', 'TB-EDU-001', 'OE-NUR-001', 'OR-ENG-001', 'TB-CS-002', 'OE-BUS-002', 'TB-ENG-002'];
+    const dummyIds = ['TB-DEP-001', 'OR-ISS-001', 'OE-DEP-002', 'TB-BUS-001', 'TB-EDU-001', 'OE-NUR-001', 'OR-ENG-001', 'TB-CS-002', 'OE-BUS-002', 'TB-ENG-002', 'TB-VOLD-001', 'NUR-OBS-001'];
     const currentRefs = getReferences(true);
     const existingIds = new Set(currentRefs.map(r => r.id));
     const missingDummies = dummyIds.filter(id => !existingIds.has(id));
@@ -199,6 +199,8 @@ const ReferenceLibrary = () => {
         { id: 'TB-CS-002', numericId: 9998, title: 'Database Management Systems', authors: 'Ramakrishnan, R., Gehrke, J.', type: 'Textbook', year: 2023, isbn: '978-0-07-246563-1', link: '', publisher: 'McGraw-Hill', filename: '', uploadDate: '2024-01-10', hasIssue: false, archived: false, departments: ['School of Computing and Information Sciences'], programs: ['BS Computer Science', 'BS Information Technology', 'BS Computer Engineering'], usedInCourses: ['BSCS301L', 'BSIT213L', 'BSCpE301'] },
         { id: 'OE-BUS-002', numericId: 9999, title: 'Financial Accounting and Reporting', authors: 'Valix, P., Valix, C.', type: 'Open Educational Resources', year: 2022, isbn: '', link: 'https://example.com/financial-accounting', publisher: 'GIC Enterprises', filename: '', uploadDate: '2023-07-01', hasIssue: false, archived: false, departments: ['College of Business and Accountancy'], programs: ['BS Accountancy', 'BS Management Accounting'], usedInCourses: ['BSA301', 'BSMA201'] },
         { id: 'TB-ENG-002', numericId: 10000, title: 'Electrical Circuits and Electronics', authors: 'Boylestad, R.L.', type: 'Textbook', year: 2020, isbn: '978-0-13-487444-4', link: '', publisher: 'Pearson', filename: '', uploadDate: '2021-09-15', hasIssue: false, archived: false, departments: ['College of Engineering and Architecture'], programs: ['BS Electrical Engineering', 'BS Electronics Engineering'], usedInCourses: ['BSEE201', 'BSECE301'] },
+        { id: 'TB-VOLD-001', numericId: 10001, title: 'The C Programming Language (1st Edition)', authors: 'Kernighan, B.W., Ritchie, D.M.', type: 'Textbook', year: 1978, isbn: '0-13-110163-3', link: '', publisher: 'Prentice Hall', filename: '', uploadDate: '1985-03-01', hasIssue: false, archived: false, departments: ['School of Computing and Information Sciences'], programs: ['BS Computer Science', 'BS Information Technology', 'BS Computer Engineering'], usedInCourses: ['BSCS101L', 'BSCpE101'] },
+        { id: 'NUR-OBS-001', numericId: 10002, title: 'Nursing Procedures Manual (1999 Edition)', authors: 'Bates, B., Lynn, P.', type: 'Online Resources', year: 1999, isbn: '', link: 'https://example.com/old-nursing-manual', publisher: '', filename: '', uploadDate: '2001-07-15', hasIssue: true, archived: false, departments: ['College of Nursing and Allied Health Sciences'], programs: ['BS Nursing'], usedInCourses: ['BSN201L'] },
       ];
 
       missingDummies.forEach(id => {
@@ -209,6 +211,21 @@ const ReferenceLibrary = () => {
       const updated = getReferences(true);
       setReferences(updated);
       setReferencesState(updated);
+    }
+
+    // Seed test comments once (check by comment count for a known deprecated ref)
+    if (getReferenceComments('TB-DEP-001').length === 0) {
+      const testComments = [
+        { refId: 'TB-DEP-001', text: 'This textbook is 17 years old. Students are using a much newer edition in class now. Please update to the latest edition.', author: 'Library Director' },
+        { refId: 'TB-DEP-001', text: 'Agreed. The 4th edition (2022) is already in our catalog. I will replace this entry.', author: 'Faculty Member' },
+        { refId: 'OR-ISS-001', text: 'The linked resource is no longer accessible — the URL returns a 404 error.', author: 'Library Director' },
+        { refId: 'OR-ISS-001', text: 'Checking with IT if we have a backup mirror. Will report back.', author: 'Faculty Member' },
+        { refId: 'OE-DEP-002', text: 'This OER has been superseded by a newer version available on the Stanford Open Library platform.', author: 'Library Director' },
+        { refId: 'TB-VOLD-001', text: 'This edition is from 1978. C is still relevant but students should reference the ANSI C (2nd Edition) at minimum.', author: 'Library Director' },
+        { refId: 'NUR-OBS-001', text: 'Protocols have changed significantly since 1999. Several procedures in this manual are no longer considered best practice.', author: 'Library Director' },
+        { refId: 'NUR-OBS-001', text: 'We are using the 2025 edition in clinical rotations now. This entry should be archived.', author: 'Clinical Instructor' },
+      ];
+      testComments.forEach(c => addReferenceComment(c.refId, c.text, c.author));
     }
 
     if (existing.length === 0) {

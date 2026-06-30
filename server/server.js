@@ -7,7 +7,7 @@ app.use(cors({
     origin: ['http://localhost:5173', 'http://192.168.254.105:5173']
 }));
 
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
 
 // routes
 const assignmentRoutes = require('./routes/assignments');
@@ -40,6 +40,9 @@ app.use('/api/tlas', tlaRoutes);
 app.use('/api/comments', commentRoutes);
 app.use('/api/course-coverage', courseCoverageRoutes);
 app.use('/api', courseReferenceRoutes);
+
+const exportPdfRoutes = require('./routes/exportPdf');
+app.use('/api', exportPdfRoutes);
 
 // global error handler
 app.use((err, req, res, next) => {

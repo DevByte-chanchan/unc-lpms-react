@@ -66,6 +66,9 @@ router.post('/:id/submit', roleCheck, controller.submitLearningPlan);
 router.post('/:id/review', roleCheck, validateReview, controller.submitReview);
 router.post('/:id/approve', roleCheck, validateReview, controller.approveOrReturn);
 
+// My comments
+router.get('/:id/comments', roleCheck, controller.getMyComments);
+
 // Version history
 router.get('/:id/versions', roleCheck, controller.getLPVersions);
 router.get('/:id/versions/:versionNo', roleCheck, controller.getLPVersion);
