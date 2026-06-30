@@ -60,9 +60,9 @@ function page1(logo, total) {
           <ol style="margin:0; padding-left:18px;">
             <li><strong>We Champion Excellence.</strong> We consistently strive for excellence in everything we do.</li>
             <li><strong>We Nurture Dreams.</strong> We passionately guide and inspire our students to leverage their potentials and aspire for better lives.</li>
-            <li><strong>We Do The Right Things Right.</strong> We uphold integrity in everything we do.</li>
+            <li><strong>We Do The Right Things Right.</strong> We uphold integrity in everything we do. We hold ourselves to high standards for accountability and character. We do things right.</li>
             <li><strong>We Are Dynamic and Creative.</strong> We anticipate the forces of change. We explore possibilities with intent and purpose.</li>
-            <li><strong>We Respect Each Other and Work As A Team.</strong> We collaboratively maximize our talents and capabilities.</li>
+            <li><strong>We Respect Each Other and Work As A Team.</strong> We collaboratively maximize our talents and capabilities. We hold each other in high regard and passionately realize our shared purpose, priorities and promises.</li>
           </ol>
         </td>
       </tr>
@@ -71,7 +71,7 @@ function page1(logo, total) {
         <td style="border:1px solid #000; padding:4px 6px;">
           <p style="margin:2px 0;"><strong>Excellent Communicator.</strong> Ability to effectively use oral and written skills in sharing and receiving updated and verified information in various communication channels.</p>
           <p style="margin:2px 0;"><strong>Creative Leader.</strong> Ability to critically think of solutions and strategies that contribute to making great decisions and innovation that promote societal development.</p>
-          <p style="margin:2px 0;"><strong>Ethically Responsible Citizen.</strong> Ability to harmoniously live and work with others with trust, dignity and integrity.</p>
+          <p style="margin:2px 0;"><strong>Ethically Responsible Citizen.</strong> Ability to harmoniously live and work with others with trust, dignity and integrity, promoting respect for human rights, multicultural understanding, and preservation of cultural heritage.</p>
           <p style="margin:2px 0;"><strong>Lifelong Learner.</strong> Ability to up-skill, cross-skill and re-skill, learn independently, reflect, and adapt with societal changes.</p>
         </td>
       </tr>
@@ -257,7 +257,7 @@ function page4(syllabus, logo, total) {
       </tr>
       <tr>
         ${L('SDG Alignment')}
-        ${VP('&mdash;')}
+        ${VP(safe(syllabus.sdg, '&mdash;'))}
         <td style="border:1px solid #000; padding:3px 5px;"></td>
       </tr>
     </table>

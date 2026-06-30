@@ -1,18 +1,19 @@
 export const syllabiData = [
     {
-        code: 'BSCS313L',
-        name: 'Human & Computer Interaction',
+        code: 'BIT313L',
+        name: 'Human Computer Interaction (HCI)',
         update: 'Aug 01, 2025',
         status: 'DRAFT',
         approved: '',
-        revision: '0',
+        revision: '2',
         credits: '2 LEC, 1 LAB',
-        contact: '3',
-        prerequisites: 'BCS222L Web Development 2',
+        contact: '2Hrs Lec, 3 Hrs Lab',
+        prerequisites: 'BIT222L Web Development 2',
         class: 'Professional Courses',
         cmo: '25 S, 2015',
         year: 'THIRD YEAR',
-        sem: '1st Semester',
+        sem: '1st Semester SY 2025-2026',
+        sdg: 'SDG1 - No Poverty',
         description: 'This course explores the principles and practices of Human-Computer Interaction (HCI), focusing on how people engage with digital systems and how to design technology that enhances user experience.\n' +
             '\n' +
             'Students will examine user-centered design methodologies, usability principles, interaction design processes, and evaluation techniques. The course also emphasizes the integration of emerging technologies for software product design (UI/UX), equipping students with insights into modern tools and trends that shape interactive systems.\n' +
@@ -599,6 +600,29 @@ export const syllabiData = [
                     "OE3 - MIT OpenCourseWare: User Interface Design and Implementation",
                     "OR4 - Laws of UX"
                 ]
+            }
+        ],
+
+        courseOutcomes: [
+            {
+                id: 'CO1',
+                description: 'Apply core concepts, theories, and principles of Human-Computer Interface (HCI) in proposing a User Interface (UI) design using Figma to translate a design brief into interactive screen layouts and UI components with a high-fidelity prototype demonstrating clarity, consistency, and appropriate use of visual hierarchy.',
+                poMappings: ['I','','','','','','','','','','I','','']
+            },
+            {
+                id: 'CO2',
+                description: 'User-Centered Design (UCD) principles and ISO 9241-210 standards with given user personas, contextual task flows, and feedback artifacts to develop a User Experience (UX) design that demonstrates user involvement, iterative refinement, and contextual understanding, as evaluated against established UX design criteria.',
+                poMappings: ['','','E','E','','','','','','','','','']
+            },
+            {
+                id: 'CO3',
+                description: 'Construct a front-end prototype for a proposed software application by applying HCI design principles, UI/UX laws, accessibility standards, and web accessibility guidelines that demonstrate compliance with best practices in usability, inclusivity, and user engagement.',
+                poMappings: ['','','','D','','D','','','','','','','']
+            },
+            {
+                id: 'CO4',
+                description: 'Justify the front-end prototype of a proposed software application based on usability testing results and user feedback by providing evidence-based rationale that addresses at least 80% of identified usability issues and aligns with user experience goals.',
+                poMappings: ['','','','','','','','','','','','D','D']
             }
         ],
 
