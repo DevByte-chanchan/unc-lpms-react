@@ -50,8 +50,8 @@ const tosSections = ({status, role = 'instructor'}) => {
     ];
     const location = useLocation();
     const { code: courseCode } = useParams();
-    const tosStatus = location.state?.tosStatus || 'draft';
-    const readOnly = !isProgramHead && (tosStatus === 'pending' || tosStatus === 'approved');
+    const [effectiveStatus, setEffectiveStatus] = useState(location.state?.tosStatus || 'draft');
+    const readOnly = !isProgramHead && (effectiveStatus === 'pending' || effectiveStatus === 'approved');
     const courseName = location.state?.courseName || '';
     const fromExamType = location.state?.examType || 'Midterm';
     const fromSchoolYear = location.state?.schoolYear || String(new Date().getFullYear());
@@ -77,6 +77,7 @@ const tosSections = ({status, role = 'instructor'}) => {
         fetchCourse(courseCode).then(course => {
             if (course?.name && !courseNameState) setCourseName(course.name);
             if (course?.assessmentName) setAssessmentName(course.assessmentName);
+            if (course?.tosStatus?.status) setEffectiveStatus(course.tosStatus.status);
         }).catch(() => {});
 
         fetchOutcomes(courseCode).then(data => {
@@ -356,7 +357,7 @@ const tosSections = ({status, role = 'instructor'}) => {
                         filledCount={filledCount}
                         totalSlots={totalRequired}
                         allFilled={allFilled}
-                        tosStatus={tosStatus}
+                        tosStatus={effectiveStatus}
                         readOnly={readOnly}
                     />
                 ) : (
