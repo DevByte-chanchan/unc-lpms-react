@@ -1,6 +1,6 @@
 import styles from '../styles/SideNavigation.module.sass'
 import unclogo from '../assets/unclogo.png'
-import { FileText, LogOut, Users, BookOpen, Upload } from 'react-feather'
+import { FileText, LogOut, BookOpen, Upload } from 'react-feather'
 import { useSearchParams, useNavigate, useLocation } from 'react-router-dom'
 import { useEffect, useRef, useState } from 'react'
 
@@ -190,17 +190,7 @@ const SideNavigation = ({ mode = 'instructor' }) => {
                     </div>
                 )}
 
-                                {mode === 'dean' && (
-                    <>
-                        <div onClick={() => { navigate('/role/dean?page=Faculty') }} className={`${styles.list} ${selected === 'Faculty' ? styles.selected : ''}`}>
-                            <Users size={24} /> <span className={styles.listText}>Faculty</span>
-                        </div>
-
-                        <div onClick={() => { navigate('/role/dean?page=Programs') }} className={`${styles.list} ${selected === 'Programs' ? styles.selected : ''}`}>
-                            <BookOpen size={24} /> <span className={styles.listText}>Programs</span>
-                        </div>
-                    </>
-                )}
+                
 
                 {mode === 'vpaa' && (
                     <>
