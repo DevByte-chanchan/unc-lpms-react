@@ -79,7 +79,7 @@ const RubricRow = ({ row, itemPoints, totalWeight, rowPoints, nameError, onChang
                 placeholder="Criteria"
                 value={row.name}
                 rows={1}
-                disabled={readOnly}
+                readOnly={readOnly}
                 onChange={e => {
                     const v = e.target.value;
                     if (v.startsWith(' ')) return;
@@ -96,7 +96,7 @@ const RubricRow = ({ row, itemPoints, totalWeight, rowPoints, nameError, onChang
                 placeholder="Description"
                 value={row.description}
                 rows={1}
-                disabled={readOnly}
+                readOnly={readOnly}
                 onChange={e => {
                     const v = e.target.value;
                     if (v.startsWith(' ')) return;
@@ -114,7 +114,7 @@ const RubricRow = ({ row, itemPoints, totalWeight, rowPoints, nameError, onChang
                     placeholder="0"
                     value={row.weight ? row.weight + '%' : ''}
                     rows={1}
-                    disabled={readOnly}
+                    readOnly={readOnly}
                     onChange={e => {
                         const raw = e.target.value.replace(/[^0-9]/g, '');
                         const num = Math.min(Number(raw) || 0, 100);
@@ -129,7 +129,7 @@ const RubricRow = ({ row, itemPoints, totalWeight, rowPoints, nameError, onChang
                     placeholder="0"
                     value={rowPoints !== undefined ? String(rowPoints) : ''}
                     rows={1}
-                    disabled={readOnly}
+                    readOnly={readOnly}
                     onChange={e => {
                         const raw = e.target.value.replace(/[^0-9]/g, '');
                         const num = Math.min(Number(raw) || 0, 999);
@@ -569,6 +569,7 @@ const AssessmentBuilder = ({ totalSlots, initialItems, onSaveReturn, builderSave
                     className={layout.bAssessSelect}
                     value={selectedAssessment}
                     disabled={readOnly}
+                    style={readOnly ? { opacity: 1, pointerEvents: 'none' } : undefined}
                     onChange={e => { setSelectedAssessment(e.target.value); onAssessmentNameChange?.(e.target.value); }}
                 >
                     <option value="" disabled>Select assessment</option>
@@ -654,7 +655,7 @@ const AssessmentBuilder = ({ totalSlots, initialItems, onSaveReturn, builderSave
                                                     className={layout.bPtsInlineInput}
                                                     placeholder="0"
                                                     value={item.points}
-                                                    disabled={readOnly}
+                                                    readOnly={readOnly}
                                                     onChange={e => {
                                                         const v = e.target.value.replace(/[^0-9]/g, '');
                                                         const newPts = v === '' ? '0' : String(parseInt(v, 10));
@@ -698,7 +699,7 @@ const AssessmentBuilder = ({ totalSlots, initialItems, onSaveReturn, builderSave
                                             placeholder="Type your question or instruction here…"
                                             value={item.instruction}
                                             rows={2}
-                                            disabled={readOnly}
+                                            readOnly={readOnly}
                                             onChange={e => {
                                                 const v = e.target.value;
                                                 if (v.startsWith(' ')) return;
@@ -724,7 +725,7 @@ const AssessmentBuilder = ({ totalSlots, initialItems, onSaveReturn, builderSave
                                                             placeholder={`Choice ${String.fromCharCode(65 + ci)}`}
                                                             value={ch.text}
                                                             rows={1}
-                                                            disabled={readOnly}
+                                                            readOnly={readOnly}
                                                             onChange={e => {
                                                                 const v = e.target.value;
                                                                 if (v.startsWith(' ')) return;
@@ -1172,8 +1173,9 @@ const QuestionCognitiveMapping = ({
                                 <select
                                     value={q.co}
                                     onChange={e => { handleQuestionChange(q.id, 'co', e.target.value); if (clearFieldError) clearFieldError(`map-co-${q.id}`); }}
-                                    disabled={!hasContent || isOverflow || readOnly}
-                                    className={`${layout.mSelect} ${!hasContent || isOverflow || readOnly ? layout.mSelectDisabled : ''} ${errorFields[`map-co-${q.id}`] ? layout.mSelectError : ''}`}
+                                    disabled={!hasContent || isOverflow}
+                                    style={readOnly ? { pointerEvents: 'none' } : undefined}
+                                    className={`${layout.mSelect} ${(!hasContent || isOverflow) && !readOnly ? layout.mSelectDisabled : ''} ${errorFields[`map-co-${q.id}`] ? layout.mSelectError : ''}`}
                                 >
                                     <option value="" disabled>CO</option>
                                     {outcomeData.map(co => <option key={co.co} value={co.co}>{co.co}</option>)}
@@ -1182,8 +1184,9 @@ const QuestionCognitiveMapping = ({
                                 <select
                                     value={q.ilo}
                                     onChange={e => { handleQuestionChange(q.id, 'ilo', e.target.value); if (clearFieldError) clearFieldError(`map-ilo-${q.id}`); }}
-                                    disabled={!hasContent || !q.co || isOverflow || readOnly}
-                                    className={`${layout.mSelect} ${!hasContent || !q.co || isOverflow || readOnly ? layout.mSelectDisabled : ''} ${errorFields[`map-ilo-${q.id}`] ? layout.mSelectError : ''}`}
+                                    disabled={!hasContent || !q.co || isOverflow}
+                                    style={readOnly ? { pointerEvents: 'none' } : undefined}
+                                    className={`${layout.mSelect} ${(!hasContent || !q.co || isOverflow) && !readOnly ? layout.mSelectDisabled : ''} ${errorFields[`map-ilo-${q.id}`] ? layout.mSelectError : ''}`}
                                 >
                                     <option value="" disabled>ILO</option>
                                     {q.co && getAvailableILOs(q.co).map(ilo => <option key={ilo.id} value={ilo.id}>{ilo.id}</option>)}
@@ -1194,17 +1197,19 @@ const QuestionCognitiveMapping = ({
                                     placeholder="0"
                                     value={q.points}
                                     rows={1}
+                                    readOnly={readOnly}
                                     onChange={e => {
                                         const v = e.target.value.replace(/[^0-9]/g, '');
                                         handleQuestionChange(q.id, 'points', v === '' ? '0' : String(parseInt(v, 10)));
                                     }}
-                                    disabled={!hasContent || isOverflow || readOnly || (q.rubricRows && q.rubricRows.length > 0)}
+                                    disabled={!hasContent || isOverflow || (q.rubricRows && q.rubricRows.length > 0)}
                                 />
                                 <select
                                     value={q.cognitiveLevel}
                                     onChange={e => { handleQuestionChange(q.id, 'cognitiveLevel', e.target.value); if (clearFieldError) clearFieldError(`map-cognitiveLevel-${q.id}`); }}
-                                    disabled={!hasContent || !q.ilo || isOverflow || readOnly}
-                                    className={`${layout.mSelect} ${!hasContent || !q.ilo || isOverflow || readOnly ? layout.mSelectDisabled : ''} ${errorFields[`map-cognitiveLevel-${q.id}`] ? layout.mSelectError : ''}`}
+                                    disabled={!hasContent || !q.ilo || isOverflow}
+                                    style={readOnly ? { pointerEvents: 'none' } : undefined}
+                                    className={`${layout.mSelect} ${(!hasContent || !q.ilo || isOverflow) && !readOnly ? layout.mSelectDisabled : ''} ${errorFields[`map-cognitiveLevel-${q.id}`] ? layout.mSelectError : ''}`}
                                 >
                                     <option value="" disabled>Level</option>
                                     {getAllowedCognitiveLevels(q.ilo).map(lv => <option key={lv} value={lv}>{lv}</option>)}

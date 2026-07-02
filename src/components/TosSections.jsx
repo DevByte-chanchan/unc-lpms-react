@@ -686,18 +686,19 @@ const tosSections = ({status, role = 'instructor'}) => {
                                                     </td>
                                                     <td>
                                                         <div className={layout.cellBox}>
-                                                            <input
-                                                                className={`${layout.totalCoPoint} ${layout.input} ${errorFields[`oo-totalItems-${coIndex}`] ? layout.inputError : ''}`}
-                                                                type="text"
-                                                                inputMode="numeric"
-                                                                disabled={readOnly}
-                                                                value={co.totalItems}
-                                                                onChange={(e) => handleTotalItemsChange(coIndex, e.target.value)}
-                                                                onKeyDown={(e) => {
-                                                                    if (!/[0-9]/.test(e.key) && !['Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
-                                                                        e.preventDefault();
-                                                                    }
-                                                                }}
+                                                                <input
+                                                                 className={`${layout.totalCoPoint} ${layout.input} ${errorFields[`oo-totalItems-${coIndex}`] ? layout.inputError : ''}`}
+                                                                 type="text"
+                                                                 inputMode="numeric"
+                                                                 readOnly={readOnly}
+                                                                 value={co.totalItems}
+                                                                 onChange={(e) => handleTotalItemsChange(coIndex, e.target.value)}
+                                                                 onKeyDown={(e) => {
+                                                                     if (readOnly) return;
+                                                                     if (!/[0-9]/.test(e.key) && !['Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+                                                                         e.preventDefault();
+                                                                     }
+                                                                 }}
                                                             />
                                                         </div>
                                                     </td>
@@ -728,17 +729,12 @@ const tosSections = ({status, role = 'instructor'}) => {
                                                     <td>
                                                         <div className={layout.cellBox}>
                                                             <input
-                                                                className={`${layout.point} ${layout.input} ${errorFields[`oo-items-${coIndex}-${iloIndex}`] ? layout.inputError : ''}`}
-                                                                type="text"
-                                                                inputMode="numeric"
-                                                                disabled={readOnly}
-                                                                value={ilo.items}
-                                                                onChange={(e) => handleItemsChange(coIndex, iloIndex, e.target.value)}
-                                                                onKeyDown={(e) => {
-                                                                    if (!/[0-9]/.test(e.key) && !['Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
-                                                                        e.preventDefault();
-                                                                    }
-                                                                }}
+                                                                 className={`${layout.point} ${layout.input} ${errorFields[`oo-items-${coIndex}-${iloIndex}`] ? layout.inputError : ''}`}
+                                                                 type="text"
+                                                                 inputMode="numeric"
+                                                                 readOnly={readOnly}
+                                                                 value={ilo.items}
+                                                                 onChange={(e) => handleItemsChange(coIndex, iloIndex, e.target.value)}
                                                             />
                                                         </div>
                                                     </td>
