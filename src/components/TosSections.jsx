@@ -361,7 +361,7 @@ const tosSections = ({status, role = 'instructor'}) => {
                     />
                 ) : (
                     <div className={styles.navi}>
-                        <div className={styles.return} onClick={isProgramHead ? () => navigate(-1) : handleNavigateBack}>
+                        <div className={styles.return} onClick={isProgramHead || readOnly ? () => navigate(-1) : handleNavigateBack}>
                             <ChevronLeft size={22}/>
                         </div>
 
