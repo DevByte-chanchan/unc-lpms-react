@@ -6,6 +6,7 @@ import HeaderA from '../../components/HeaderA.jsx';
 import SideNavigation from '../../components/SideNavigation.jsx';
 import styles from '../../styles/InstructorDashboard.module.scss';
 import { syllabiData, getSyllabusByCode } from '../../data/syllabiData.js';
+import { getSyllabus as getEnrichedSyllabus } from '../../utils/dataStore.js';
 import { getWorkflow } from '../../utils/workflowHelpers.js';
 import { buildSyllabusHtml } from '../../utils/syllabusPdfHtml.js';
 import PDFViewerModal from '../../components/PDFViewerModal'
@@ -117,7 +118,7 @@ const InstructorDashboard = () => {
   };
 
   const openPreview = (course) => {
-    const syllabus = getSyllabusByCode(course.code);
+    const syllabus = getEnrichedSyllabus(course.code) || getSyllabusByCode(course.code);
     if (!syllabus) return
     setPreviewFile({
       file_url: '/syllabus-template.pdf',
@@ -173,7 +174,7 @@ const InstructorDashboard = () => {
   const handleExport = async (course) => {
     try {
       setExporting(true)
-      const syllabus = getSyllabusByCode(course.code)
+      const syllabus = getEnrichedSyllabus(course.code) || getSyllabusByCode(course.code)
       if (!syllabus) { alert('Syllabus data not found'); setExporting(false); return }
       const workflow = getWorkflow(course.code)
 

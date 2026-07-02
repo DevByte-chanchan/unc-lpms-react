@@ -6,12 +6,13 @@ import stylesB from '../styles/SyllabusPreview.module.sass'
 import ApprovalCommentBox from './ApprovalCommentBox.jsx'
 import { getSyllabusByCode, syllabiData } from '../data/syllabiData.js'
 import { getWorkflow, setWorkflow, advanceWorkflow, resetWorkflowStage } from '../utils/workflowHelpers'
-import { getSuggestions, addSuggestion, acceptSuggestion, rejectSuggestion } from '../utils/dataStore'
+import { getSuggestions, addSuggestion, acceptSuggestion, rejectSuggestion, getSyllabus as getEnrichedSyllabus } from '../utils/dataStore'
 import { getReferences, getReferenceById } from '../utils/referenceLibrary'
 import { normalizeRoleKey, isDeprecated, hasIssues, getRoleColor, getComponentTags, isRecent, reviewerSeeds } from '../utils/approvalHelpers.js'
 import { fetchJson } from "../utils/api.js"
 import PDFViewerModal from './PDFViewerModal'
 import { buildSyllabusHtml } from "../utils/syllabusPdfHtml.js"
+import { seedDummyComments } from "../utils/seedDummyComments.js"
 import unclogo from '../assets/unclogo.png'
 
 const defaultSections = [
@@ -69,7 +70,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
   const codeToUse = routeCode || courseCode || (syllabiData && syllabiData.length ? syllabiData[0].code : undefined)
   if (!routeCode && courseCode) console.debug('ApprovalSyllabusSections: using courseCode prop as fallback:', courseCode)
   if (!routeCode && !courseCode) console.debug('ApprovalSyllabusSections: no code param or prop; using first syllabiData entry:', codeToUse)
-  const syllabus = getSyllabusByCode(codeToUse) || (syllabiData && syllabiData.length ? syllabiData[0] : undefined)
+  const syllabus = getEnrichedSyllabus(codeToUse) || getSyllabusByCode(codeToUse) || (syllabiData && syllabiData.length ? syllabiData[0] : undefined)
 
   // keep workflowState in sync
   useEffect(() => {
@@ -77,7 +78,9 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
     setWorkflowState(wf)
   }, [codeToUse])
 
-  // load persisted comments for this course
+  // seed dummy comments on first load, then load persisted comments for this course
+  useEffect(() => { seedDummyComments(codeToUse) }, [codeToUse])
+
   useEffect(() => {
     try {
       const raw = localStorage.getItem('approval_comments_v1')
