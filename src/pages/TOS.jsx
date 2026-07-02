@@ -7,11 +7,13 @@ import SideNavigation from "../components/SideNavigation.jsx";
 const TOS = ({}) => {
     const location = useLocation();
     const role = location.state?.role || 'instructor';
+    const headerRole = role === 'program-head' ? 'Program Head' : 'Instructor';
+    const headerName = role === 'program-head' ? 'PERALTA, JAKE' : 'NORTON, MONICA';
     return (
         <Skeleton
-            header={<Header role="Instructor" name="NORTON, MONICA"  />}
+            header={<Header role={headerRole} name={headerName} />}
             content={<TosSections role={role} />}
-            nav={<SideNavigation/> }
+            nav={<SideNavigation mode={role === 'program-head' ? 'program-head' : 'instructor'} />}
         />
     )
 }

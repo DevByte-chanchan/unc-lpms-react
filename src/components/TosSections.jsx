@@ -487,7 +487,7 @@ const tosSections = ({status, role = 'instructor'}) => {
                                                         <label>Semester:</label>
                                                         <input type="text" disabled className={previewLayout.numberInput} value={fromSemester} />
                                                         <label>School Year:</label>
-                                                        <input type="text" disabled className={previewLayout.numberInput} value={fromSchoolYear} />
+                                                        <input type="text" disabled className={previewLayout.numberInput} value={`${fromSchoolYear} - ${Number(fromSchoolYear) + 1}`} />
                                                     </div>
                                                 </div>
                                                 <table className={`${previewLayout.qctable} ${previewLayout.TOSTable}`}>

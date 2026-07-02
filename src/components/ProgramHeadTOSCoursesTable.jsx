@@ -75,7 +75,7 @@ const ProgramHeadTOSCoursesTable = () => {
     const [selectedStatus, setSelectedStatus] = useState('pending');
     const [examType, setExamType] = useState('Midterm');
     const [schoolYear, setSchoolYear] = useState(String(currentYear));
-    const [semester, setSemester] = useState('1st Sem');
+    const [semester, setSemester] = useState('1st Semester');
     const statusHeader = selectedStatus === 'returned' ? 'DATE RETURNED' : selectedStatus === 'approved' ? 'DATE APPROVED' : 'DATE SUBMITTED';
 
     return (

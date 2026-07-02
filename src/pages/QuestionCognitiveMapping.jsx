@@ -1199,7 +1199,7 @@ const QuestionCognitiveMapping = ({
                                         handleQuestionChange(q.id, 'points', v === '' ? '0' : String(parseInt(v, 10)));
                                     }}
                                     disabled={!hasContent || isOverflow || readOnly || (q.rubricRows && q.rubricRows.length > 0)}
-
+                                />
                                 <select
                                     value={q.cognitiveLevel}
                                     onChange={e => { handleQuestionChange(q.id, 'cognitiveLevel', e.target.value); if (clearFieldError) clearFieldError(`map-cognitiveLevel-${q.id}`); }}
