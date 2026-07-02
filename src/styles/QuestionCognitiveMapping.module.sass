@@ -663,7 +663,7 @@
   font-size: 12px
   font-weight: 700
   padding: 3px 10px
-  border-radius: 20px
+  border-radius: 10px
   border: 1.5px solid transparent
 
 .tTotalOk
@@ -703,7 +703,7 @@
   color: #1A1A1A
   letter-spacing: 0.02em
   padding-bottom: 8px
-  border-bottom: 2px solid #EA1212
+  border-bottom: 2px solid #D1D5DB
 
 .tIloRow
   display: flex
@@ -1340,26 +1340,6 @@
     outline: none
     border-color: #EA1212
 
-// Generic icon remove button
-.bIconRemove
-  width: 28px
-  min-height: 28px
-  display: inline-flex
-  align-items: center
-  justify-content: center
-  border: 1.5px solid #fca5a5
-  background: #fee2e2
-  color: #b00000
-  border-radius: 5px
-  cursor: pointer
-  flex-shrink: 0
-  transition: all 0.1s
-
-  &:hover
-    background: #EA1212
-    color: #ffffff
-    border-color: #EA1212
-
 // Link-style "add another" button
 .bLinkBtn
   display: inline-flex
@@ -1490,6 +1470,10 @@
   &:focus
     outline: none
     border-color: #d4af00
+
+.bRubricNameErr
+  border-color: #EA1212 !important
+  background-color: #FFF4F4 !important
 
 .bRubricDesc
   width: 100%

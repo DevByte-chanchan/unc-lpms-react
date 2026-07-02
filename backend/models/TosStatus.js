@@ -13,8 +13,20 @@ const TosStatus = sequelize.define('TosStatus', {
         field: 'course_code'
     },
     status: {
-        type: DataTypes.ENUM('draft', 'pending', 'approved'),
+        type: DataTypes.ENUM('draft', 'pending', 'approved', 'returned'),
         defaultValue: 'draft'
+    },
+    submittedAt: {
+        type: DataTypes.DATE,
+        field: 'submitted_at'
+    },
+    returnedAt: {
+        type: DataTypes.DATE,
+        field: 'returned_at'
+    },
+    approvedAt: {
+        type: DataTypes.DATE,
+        field: 'approved_at'
     }
 }, {
     tableName: 'tos_statuses',

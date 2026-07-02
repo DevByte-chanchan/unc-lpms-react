@@ -33,7 +33,7 @@ const AssessmentItem = sequelize.define('AssessmentItem', {
         defaultValue: ''
     },
     cognitiveLevel: {
-        type: DataTypes.ENUM('Remember', 'Understand', 'Apply', 'Analyze', 'Evaluate', 'Create'),
+        type: DataTypes.ENUM('Remembering', 'Understanding', 'Applying', 'Analyzing', 'Evaluating', 'Creating'),
         field: 'cognitive_level'
     }
 }, {

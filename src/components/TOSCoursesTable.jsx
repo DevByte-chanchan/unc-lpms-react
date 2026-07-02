@@ -7,31 +7,42 @@ const TOSCoursesTable = ({}) => {
 
     const currentYear = new Date().getFullYear();
     const startYear = 2000;
-    const semOptions = ['1st Sem', '2nd Sem'];
+    const semOptions = ['1st Semester', '2nd Semester'];
     const temp = ['Midterm', 'Finals'];
     const yearOptions = [];
     for (let i = currentYear; i >= startYear; i--) {
         yearOptions.push(<option key={i} value={i}>{i}</option>);
     }
-    const fallbackCourses = [
-        { code: 'BSCS313L', name: 'Human & Computer Interaction', dateAssigned: 'Jun 03, 2026', update: 'Sept 01, 2025', status: 'draft',    exported: '' },
-        { code: 'BSCS212L', name: 'Web Development I',            dateAssigned: 'Jun 02, 2026', update: 'Aug 15, 2025', status: 'draft',    exported: '' },
-        { code: 'BSCS111L', name: 'Fundamentals of Programming',  dateAssigned: 'Jun 01, 2026', update: 'Aug 25, 2025', status: 'draft',    exported: '' },
-        { code: 'BSCS214L', name: 'Data Structures and Algorithms', dateAssigned: 'Jun 04, 2026', update: 'Sept 20, 2025', status: 'pending', exported: '' },
-        { code: 'BSCS315L', name: 'Operating Systems',             dateAssigned: 'Jun 05, 2026', update: 'Oct 02, 2025', status: 'approved', exported: 'Oct 10, 2025' },
-        { code: 'BSCS321L', name: 'Database Management Systems',   dateAssigned: 'Jun 08, 2026', update: 'Sept 05, 2025', status: 'draft',    exported: '' },
-        { code: 'BSCS322L', name: 'Software Engineering',          dateAssigned: 'Jun 09, 2026', update: 'Sept 12, 2025', status: 'pending', exported: '' },
-        { code: 'BSCS331L', name: 'Computer Networks',             dateAssigned: 'Jun 10, 2026', update: 'Sept 18, 2025', status: 'approved', exported: 'Oct 25, 2025' },
-        { code: 'BSCS341L', name: 'Artificial Intelligence',       dateAssigned: 'Jun 11, 2026', update: 'Sept 01, 2025', status: 'draft',    exported: '' },
-        { code: 'BSCS351L', name: 'Cybersecurity Fundamentals',    dateAssigned: 'Jun 12, 2026', update: 'Sept 10, 2025', status: 'pending', exported: '' },
+    const nortonCourses = new Set(['BSCS111L','BSCS212L','BSCS313L','BSCS321L','BSCS221L','BSCS341L','BSCS342L','BSCS214L','BSCS222L','BSCS223L','BSCS314L','BSCS323L']);
+
+    const draftCourses = [
+        { code: 'BSCS313L', name: 'Human & Computer Interaction',    dateAssigned: 'Jun 03, 2026', update: 'Jun 03, 2026', status: 'draft' },
+        { code: 'BSCS212L', name: 'Web Development I',               dateAssigned: 'Jun 02, 2026', update: 'Jun 05, 2026', status: 'draft' },
+        { code: 'BSCS111L', name: 'Fundamentals of Programming',     dateAssigned: 'Jun 01, 2026', update: 'Jun 04, 2026', status: 'draft' },
+        { code: 'BSCS321L', name: 'Database Management Systems',     dateAssigned: 'Jun 04, 2026', update: 'Jun 07, 2026', status: 'draft' },
     ];
+    const pendingCourses = [
+        { code: 'BSCS221L', name: 'Object-Oriented Programming',     dateSubmitted: 'Jun 10, 2026', status: 'pending' },
+        { code: 'BSCS341L', name: 'Artificial Intelligence',         dateSubmitted: 'Jun 11, 2026', status: 'pending' },
+        { code: 'BSCS342L', name: 'Machine Learning Fundamentals',   dateSubmitted: 'Jun 12, 2026', status: 'pending' },
+    ];
+    const returnedCourses = [
+        { code: 'BSCS214L', name: 'Data Structures and Algorithms',   dateSubmitted: 'Jun 09, 2026', dateStatus: 'Jun 18, 2026', status: 'returned' },
+        { code: 'BSCS222L', name: 'Discrete Structures 2',           dateSubmitted: 'Jun 10, 2026', dateStatus: 'Jun 19, 2026', status: 'returned' },
+    ];
+    const approvedCourses = [
+        { code: 'BSCS223L', name: 'Web Development II',              dateSubmitted: 'Jun 09, 2026', dateStatus: 'Jun 16, 2026', status: 'approved' },
+        { code: 'BSCS314L', name: 'Data Communications',             dateSubmitted: 'Jun 10, 2026', dateStatus: 'Jun 17, 2026', status: 'approved' },
+        { code: 'BSCS323L', name: 'Systems Analysis and Design',     dateSubmitted: 'Jun 11, 2026', dateStatus: 'Jun 19, 2026', status: 'approved' },
+    ];
+    const fallbackCourses = [...draftCourses, ...pendingCourses, ...returnedCourses, ...approvedCourses];
     const [courses, setCourses] = useState([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         fetchCourses()
             .then(data => {
-                if (data && data.length) setCourses(data);
+                if (data && data.length) setCourses(data.filter(c => nortonCourses.has(c.code)));
                 else setCourses(fallbackCourses);
             })
             .catch(() => setCourses(fallbackCourses))
@@ -52,10 +63,13 @@ const TOSCoursesTable = ({}) => {
     const [selectedStatus, setSelectedStatus] = useState('draft');
     const [examType, setExamType] = useState('Midterm');
     const [schoolYear, setSchoolYear] = useState(String(currentYear));
-    const [semester, setSemester] = useState('1st Sem');
+    const [semester, setSemester] = useState('1st Semester');
     const handleStatusChange = (e) => {
         setSelectedStatus(e.target.value)
     }
+
+    const nonDraft = selectedStatus === 'pending' || selectedStatus === 'approved' || selectedStatus === 'returned';
+    const statusHeader = selectedStatus === 'returned' ? 'DATE RETURNED' : selectedStatus === 'approved' ? 'DATE APPROVED' : '';
 
     return (
         <div className={styles['courses-table']}>
@@ -80,10 +94,11 @@ const TOSCoursesTable = ({}) => {
 
                 <div className={'filter-container'}>
                     <p>Filter by <strong>Status</strong>:</p>
-                    <select onChange={handleStatusChange} >
+                    <select onChange={handleStatusChange} value={selectedStatus}>
                         <option value="draft">Draft</option>
-                        <option value="pending" disabled>Pending</option>
-                        <option value="approved" disabled>Approved</option>
+                        <option value="pending">Pending</option>
+                        <option value="returned">Returned</option>
+                        <option value="approved">Approved</option>
                     </select>
                 </div>
             </div>
@@ -95,10 +110,11 @@ const TOSCoursesTable = ({}) => {
                 <table>
                     <thead>
                     <tr>
-                        <th width={170}>DATE ASSIGNED</th>
+                        <th width={170}>{nonDraft ? 'DATE SUBMITTED' : 'DATE ASSIGNED'}</th>
                         <th width={130}>CODE</th>
                         <th width={320}>COURSE NAME</th>
-                        <th width={200}>LAST UPDATED</th>
+                        {nonDraft && selectedStatus !== 'pending' && <th width={200}>{statusHeader}</th>}
+                        {!nonDraft && <th width={200}>LAST UPDATED</th>}
                         <th className={styles.fill}></th>
                     </tr>
                     </thead>
@@ -108,20 +124,27 @@ const TOSCoursesTable = ({}) => {
                         .filter(row => row.status === selectedStatus)
                         .map((row, index) => (
                             <tr key={index}>
-                                <td width={170}>{row.dateAssigned}</td>
+                                <td width={170}>{nonDraft ? row.dateSubmitted : row.dateAssigned}</td>
                                 <td width={130}>{row.code}</td>
                                 <td width={320}>{row.name}</td>
-                                <td width={200}>{row.update}</td>
+                                {nonDraft && selectedStatus !== 'pending' && <td width={200}>{row.dateStatus || row.dateSubmitted}</td>}
+                                {!nonDraft && <td width={200}>{row.update}</td>}
                                 <td className={styles.fill}>
                                     {row.status === 'draft' ? (
                                         <Link className="actionLink" to={`/tos/${row.code}`} state={{ tosStatus: row.status, courseName: row.name, examType, schoolYear, semester }}>
                                             Compose
                                             <ChevronRight size={18} />
                                         </Link>
+                                    ) : row.status === 'returned' ? (
+                                        <Link className="actionLink" to={`/tos/${row.code}`} state={{ tosStatus: row.status, courseName: row.name, examType, schoolYear, semester }}>
+                                            Revise
+                                            <ChevronRight size={18} />
+                                        </Link>
                                     ) : (
-                                        <span className={styles.disabledAction}>
-                                            {row.status === 'pending' ? 'Pending' : 'Approved'}
-                                        </span>
+                                        <Link className="actionLink" to={`/tos/${row.code}`} state={{ tosStatus: row.status, courseName: row.name, examType, schoolYear, semester }}>
+                                            View
+                                            <ChevronRight size={18} />
+                                        </Link>
                                     )}
                                 </td>
                             </tr>

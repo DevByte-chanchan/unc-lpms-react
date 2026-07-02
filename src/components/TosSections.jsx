@@ -3,13 +3,14 @@ import {ChevronLeft, Loader} from 'react-feather';
 import React, {useEffect, useRef, useState} from "react";
 import {useNavigate, useSearchParams, useLocation, useParams} from "react-router-dom";
 import layout from "../styles/TosSections.module.sass";
+import previewLayout from "../styles/TOSPreview.module.sass";
 import TOSPreview from "../pages/TosPreview.jsx";
 import TOSSummary from "../pages/TosSummary.jsx";
 import QuestionCognitiveMapping from "../pages/QuestionCognitiveMapping.jsx";
 import BuilderNavigation from "../components/BuilderNavigation.jsx";
-import { fetchOutcomes, fetchItems, saveOutcomes, saveItems, fetchCourse, updateCourse } from '../services/api.js';
+import { fetchOutcomes, fetchItems, saveOutcomes, saveItems, fetchCourse, updateCourse, updateStatus } from '../services/api.js';
 
-const tosSections = ({status}) => {
+const tosSections = ({status, role = 'instructor'}) => {
 
     const [questions, setQuestions] = useState([]);
     const [isPreviewOpen, setIsPreviewOpen] = useState(false);
@@ -17,7 +18,10 @@ const tosSections = ({status}) => {
     const [rubricCategories, setRubricCategories] = useState([]);
     const navigate = useNavigate();
     const [searchParams, setSearchParams] = useSearchParams();
-    const selectedSection = searchParams.get('section') || 'Outcome Overview';
+    const isProgramHead = role === 'program-head';
+    const [phSection, setPhSection] = useState('Table of Specifications Report');
+    const defaultSection = isProgramHead ? 'Table of Specifications Report' : 'Outcome Overview';
+    const selectedSection = isProgramHead ? phSection : (searchParams.get('section') || defaultSection);
     const getDefaultOutlines = () => [
         {
             co: "CO1",
@@ -28,7 +32,7 @@ const tosSections = ({status}) => {
             ilos: [
                 { id: "ILO1", description: "Analyze the relationship between cognitive psychology and human-computer interaction.", hours: 3, percentage: 20, items: 4 },
                 { id: "ILO2", description: "Synthesize user research data into actionable user personas and empathy maps.", hours: 3, percentage: 30, items: 6 },
-                { id: "ILO3", description: "Structure information architecture effectively using card sorting techniques.", hours: 6, percentage: 50, items: 10 },
+                { id: "ILO3", description: "Structure information architecture effectively using card sorting techniques.", hours: 6, percentage: 50, items: 10 }
             ]
         },
         {
@@ -47,10 +51,11 @@ const tosSections = ({status}) => {
     const location = useLocation();
     const { code: courseCode } = useParams();
     const tosStatus = location.state?.tosStatus || 'draft';
+    const readOnly = !isProgramHead && (tosStatus === 'pending' || tosStatus === 'approved');
     const courseName = location.state?.courseName || '';
     const fromExamType = location.state?.examType || 'Midterm';
-    const fromSchoolYear = location.state?.schoolYear;
-    const fromSemester = location.state?.semester;
+    const fromSchoolYear = location.state?.schoolYear || String(new Date().getFullYear());
+    const fromSemester = location.state?.semester || '1st Semester';
     const [courseNameState, setCourseName] = useState(courseName);
     const [assessmentName, setAssessmentName] = useState('');
     const defaultRows = getDefaultOutlines();
@@ -211,7 +216,11 @@ const tosSections = ({status}) => {
     };
 
     const handleSectionChange = (e) => {
-        setSearchParams({ section: e.target.value });
+        if (isProgramHead) {
+            setPhSection(e.target.value);
+        } else {
+            setSearchParams({ section: e.target.value });
+        }
     };
 
     const [isLoading, setIsLoading] = useState(false);
@@ -222,12 +231,6 @@ const tosSections = ({status}) => {
     const [showClearConfirm, setShowClearConfirm] = useState(false);
     const [builderKey, setBuilderKey] = useState(0);
     const builderSaveRef = useRef(null);
-
-    const handleBuilderSave = (savedItems) => {
-        setQuestions(savedItems);
-        setShowBuilder(false);
-        setBuilderFilledCount(0);
-    };
 
     const handleBuilderProgress = (filled) => {
         setBuilderFilledCount(filled);
@@ -261,7 +264,6 @@ const tosSections = ({status}) => {
         URL.revokeObjectURL(url);
     };
 
-    const totalBuilderSlots = questions.reduce((s, q) => s + (q.span || 1), 0);
     const totalRequired = rows.reduce((s, co) => s + Number(co.totalItems || 0), 0);
     const filledCount = showBuilder ? builderFilledCount : questions.reduce((s, q) => {
         const hasContent = (q.question || q.rubricItem) && (q.question || q.rubricItem).trim().length > 0;
@@ -286,6 +288,28 @@ const tosSections = ({status}) => {
         const timer = setTimeout(() => setBuilderLoading(false), 400);
         return () => clearTimeout(timer);
     }, [showBuilder]);
+
+    const cognitiveLevels = [
+        'Remembering', 'Understanding', 'Applying',
+        'Analyzing', 'Evaluating', 'Creating'
+    ];
+
+    const getAggregatedData = () => {
+        const data = {};
+        rows.forEach(co => {
+            data[co.co] = {};
+            co.ilos.forEach(ilo => {
+                data[co.co][ilo.id] = {};
+                cognitiveLevels.forEach(level => { data[co.co][ilo.id][level] = []; });
+            });
+        });
+        questions.forEach(q => {
+            if (q.co && q.ilo && q.cognitiveLevel && q.points && data[q.co] && data[q.co][q.ilo]) {
+                data[q.co][q.ilo][q.cognitiveLevel].push({ span: q.span || 1, points: Number(q.points) });
+            }
+        });
+        return data;
+    };
 
     const handleNavigateBack = async () => {
         setNavigating(true);
@@ -314,6 +338,13 @@ const tosSections = ({status}) => {
         navigate('/assignedtos');
     };
 
+    const handleApprove = async () => {
+        if (courseCode) {
+            await updateStatus(courseCode, 'approved');
+            navigate('/role/program-head/tos', { state: { tosStatusUpdate: { courseCode, newStatus: 'approved' } } });
+        }
+    };
+
     return (
         <>
             <div className={styles.container}>
@@ -326,21 +357,44 @@ const tosSections = ({status}) => {
                         totalSlots={totalRequired}
                         allFilled={allFilled}
                         tosStatus={tosStatus}
+                        readOnly={readOnly}
                     />
                 ) : (
                     <div className={styles.navi}>
-                        <div className={styles.return} onClick={handleNavigateBack}>
+                        <div className={styles.return} onClick={isProgramHead ? () => navigate(-1) : handleNavigateBack}>
                             <ChevronLeft size={22}/>
                         </div>
 
                         <div className={styles['section-select']}>
                             <select value={selectedSection} onChange={handleSectionChange}>
-                                <option value="Outcome Overview">Outcome Overview</option>
-                                <option value="Assessment Item-Cognitive Level Alignment">Assessment Item-Cognitive Level Alignment</option>
-                                <option value="TOS Summary">TOS Summary</option>
+                                {isProgramHead ? (
+                                    <>
+                                        <option value="Table of Specifications Report">Table of Specifications Report</option>
+                                        <option value="Assessment Items">Assessment Items</option>
+                                    </>
+                                ) : (
+                                    <>
+                                        <option value="Outcome Overview">Outcome Overview</option>
+                                        <option value="Assessment Item-Cognitive Level Alignment">Assessment Item-Cognitive Level Alignment</option>
+                                        <option value="TOS Summary">TOS Summary</option>
+                                    </>
+                                )}
                             </select>
                         </div>
 
+                        {isProgramHead ? (
+                            <>
+                                <div className={styles.draft} onClick={() => navigate(-1)}>
+                                    Add Comment
+                                </div>
+                                <button className={styles.submit} onClick={handleApprove}>
+                                    Approve
+                                </button>
+                            </>
+                        ) : readOnly ? (
+                            <span className={styles.draft} style={{ color: '#999', cursor: 'default' }}>View Only</span>
+                        ) : (
+                        <>
                         <div className={styles.draft} onClick={handleNavigateBack}>
                             Save as Draft
                         </div>
@@ -388,6 +442,8 @@ const tosSections = ({status}) => {
                             </button>
                             <span className={styles.submitTooltip}>Disabled due to incomplete assessment items</span>
                         </div>
+                        </>
+                        )}
                     </div>
                 )}
 
@@ -401,6 +457,196 @@ const tosSections = ({status}) => {
                         <div className={styles.loadingContainer}>
                             <div className={styles.spinner}></div>
                         </div>
+                    ) : isProgramHead ? (
+                        <>
+                            {selectedSection === 'Table of Specifications Report' && (
+                                <section style={{ paddingTop: 20 }}>
+                                    {(() => {
+                                        const aggregatedData = getAggregatedData();
+                                        const totalHours = rows.reduce((sum, co) => sum + (co.totalHours || 0), 0);
+                                        const totalPercentage = Math.min(rows.reduce((sum, co) => sum + (co.totalPercentage || 0), 0), 100);
+                                        const totalItems = rows.reduce((sum, co) => sum + (co.totalItems || 0), 0);
+                                        const totalCognitive = cognitiveLevels.map(level => {
+                                            return rows.reduce((sum, co) => {
+                                                return sum + co.ilos.reduce((iloSum, ilo) => {
+                                                    const items = aggregatedData[co.co][ilo.id][level];
+                                                    return iloSum + items.reduce((s, item) => s + item.points, 0);
+                                                }, 0);
+                                            }, 0);
+                                        });
+                                        return (
+                                            <div className={previewLayout.tableWrapper}>
+                                                <div className={previewLayout.headerFields} style={{ marginBottom: 30 }}>
+                                                    <div className={previewLayout.topRow}>
+                                                        <label>Course:</label>
+                                                        <input type="text" disabled className={previewLayout.numberInput} value={courseCode && courseName ? `${courseCode} - ${courseName}` : (courseCode || courseName)} />
+                                                        <label>Type:</label>
+                                                        <input type="text" disabled className={previewLayout.numberInput} value={fromExamType || assessmentName || 'Midterm'} />
+                                                    </div>
+                                                    <div className={previewLayout.bottomRow}>
+                                                        <label>Semester:</label>
+                                                        <input type="text" disabled className={previewLayout.numberInput} value={fromSemester} />
+                                                        <label>School Year:</label>
+                                                        <input type="text" disabled className={previewLayout.numberInput} value={fromSchoolYear} />
+                                                    </div>
+                                                </div>
+                                                <table className={`${previewLayout.qctable} ${previewLayout.TOSTable}`}>
+                                                    <thead>
+                                                    <tr>
+                                                        <th rowSpan={2} className={previewLayout.headerCell}>COs & ILOs</th>
+                                                        <th rowSpan={2} className={previewLayout.headerCell}>No. of Hours</th>
+                                                        <th rowSpan={2} className={previewLayout.headerCell}>%</th>
+                                                        <th rowSpan={2} className={previewLayout.headerCell}>No. of Items</th>
+                                                        <th colSpan={6} className={previewLayout.headerCell}>Cognitive Levels</th>
+                                                    </tr>
+                                                    <tr className={previewLayout['sub-column']}>
+                                                        {cognitiveLevels.map(level => (
+                                                            <th key={level} className={previewLayout.lighten}>{level}</th>
+                                                        ))}
+                                                    </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                    {rows.map(co => (
+                                                        <React.Fragment key={co.co}>
+                                                            <tr style={{ background: '#F9FAFB', height: '50px' }}>
+                                                                <td><div className={previewLayout.cellBox} style={{ fontWeight: 'bold' }}>{co.co}</div></td>
+                                                                <td><div className={previewLayout.cellBox}>{co.totalHours || 0}</div></td>
+                                                                <td><div className={previewLayout.cellBox}>{co.totalPercentage || 0}</div></td>
+                                                                <td><div className={previewLayout.cellBox}>{co.totalItems || 0}</div></td>
+                                                                {cognitiveLevels.map(level => (
+                                                                    <td key={level} className={previewLayout.mutedCell}></td>
+                                                                ))}
+                                                            </tr>
+                                                            {co.ilos.map(ilo => (
+                                                                <tr key={ilo.id}>
+                                                                    <td><div className={previewLayout.cellBox}>{ilo.id}</div></td>
+                                                                    <td><div className={previewLayout.cellBox}>{ilo.hours || 0}</div></td>
+                                                                    <td><div className={previewLayout.cellBox}>{ilo.percentage || 0}</div></td>
+                                                                    <td><div className={previewLayout.cellBox}>{ilo.items || 0}</div></td>
+                                                                    {cognitiveLevels.map(level => {
+                                                                        const items = aggregatedData[co.co][ilo.id][level];
+                                                                        return (
+                                                                            <td key={level}>
+                                                                                <div className={previewLayout.cellBox} style={{ flexDirection: 'column', gap: 2 }}>
+                                                                                    {items.length === 0 ? '\u2014' : items.map((item, i) => (
+                                                                                        <span key={i}>{item.span} x {item.points}</span>
+                                                                                    ))}
+                                                                                </div>
+                                                                            </td>
+                                                                        );
+                                                                    })}
+                                                                </tr>
+                                                            ))}
+                                                        </React.Fragment>
+                                                    ))}
+                                                    <tr style={{ background: '#F9FAFB', height: '50px', fontWeight: '500' }}>
+                                                        <td><div className={previewLayout.cellBox}>Total</div></td>
+                                                        <td><div className={previewLayout.cellBox}>{totalHours}</div></td>
+                                                        <td><div className={previewLayout.cellBox}>{totalPercentage}</div></td>
+                                                        <td><div className={previewLayout.cellBox}>{totalItems}</div></td>
+                                                        {totalCognitive.map((total, index) => (
+                                                            <td key={index}><div className={previewLayout.cellBox}>{total}</div></td>
+                                                        ))}
+                                                    </tr>
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        );
+                                    })()}
+                                </section>
+                            )}
+                            {selectedSection === 'Assessment Items' && (
+                                <section>
+                                    <div className={`${previewLayout.assessmentBody} ${previewLayout.tabContent}`}>
+                                        <div className={previewLayout.assessmentList}>
+                                            {questions.length === 0 ? (
+                                                <div className={previewLayout.emptyState}>
+                                                    <div className={previewLayout.emptyIcon}>
+                                                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                                                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                                            <polyline points="14 2 14 8 20 8"/>
+                                                            <line x1="16" y1="13" x2="8" y2="13"/>
+                                                            <line x1="16" y1="17" x2="8" y2="17"/>
+                                                            <polyline points="10 9 9 9 8 9"/>
+                                                        </svg>
+                                                    </div>
+                                                    <p className={previewLayout.emptyText}>No assessment items yet</p>
+                                                </div>
+                                            ) : (
+                                                (() => {
+                                                    let c = 0;
+                                                    const slots = questions.map(q => { const s = c + 1; c += (q.span || 1); return s; });
+                                                    return questions.map((q, i) => {
+                                                        const start = slots[i];
+                                                        const end = start + (q.span || 1) - 1;
+                                                        const label = start === end ? String(start) : `${start}\u2013${end}`;
+                                                        const hasRubric = q.rubricRows && q.rubricRows.length > 0;
+                                                        return (
+                                                            <div key={q.id} className={previewLayout.assessmentItem}>
+                                                                <div className={previewLayout.assessmentQuestion}>
+                                                                    <span className={previewLayout.questionNumber}>{label}.</span>
+                                                                    <span className={previewLayout.questionText}>{q.question || '(no question)'}</span>
+                                                                </div>
+                                                                {q.choices && q.choices.length > 0 && (
+                                                                    <div className={`${previewLayout.assessmentChoices} ${q.choices.length % 2 === 0 && q.choices.every(c => (c.text || '').length < 30) ? previewLayout.choicesGrid : ''}`}>
+                                                                        {q.choices.map((choice, ci) => (
+                                                                            <div key={choice.id || ci} className={previewLayout.choiceRow}>
+                                                                                <span className={previewLayout.choiceLetter}>{String.fromCharCode(65 + ci)}.</span>
+                                                                                <span className={previewLayout.choiceText}>{choice.text || ''}</span>
+                                                                            </div>
+                                                                        ))}
+                                                                    </div>
+                                                                )}
+                                                                {hasRubric && (
+                                                                    <div className={previewLayout.rubricBox}>
+                                                                        <div className={previewLayout.rubricHeader}>
+                                                                            <span className={previewLayout.rubricLabel}>Rubrics</span>
+                                                                        </div>
+                                                                        <div className={previewLayout.rubricTable}>
+                                                                            <div className={`${previewLayout.rubricRow} ${previewLayout.rubricHeaderRow}`}>
+                                                                                <span className={previewLayout.rubricName}>Criteria</span>
+                                                                                <span className={previewLayout.rubricDesc}>Description</span>
+                                                                                <span className={previewLayout.rubricWeight}>Weight</span>
+                                                                                <span className={previewLayout.rubricPts}>Pts</span>
+                                                                            </div>
+                                                                            {(() => {
+                                                                                const totalPts = Number(q.points) || 0;
+                                                                                const rawPts = q.rubricRows.map((r) => Math.round((totalPts * Number(r.weight || 0)) / 100));
+                                                                                const sumOthers = rawPts.slice(0, -1).reduce((s, v) => s + v, 0);
+                                                                                const rowPts = [...rawPts.slice(0, -1), Math.max(0, totalPts - sumOthers)];
+                                                                                const totalW = q.rubricRows.reduce((s, r) => s + Number(r.weight || 0), 0);
+                                                                                return (
+                                                                                    <>
+                                                                                        {q.rubricRows.map((row, ri) => (
+                                                                                            <div key={row.id || ri} className={previewLayout.rubricRow}>
+                                                                                                <span className={previewLayout.rubricName}>{row.name || ''}</span>
+                                                                                                <span className={previewLayout.rubricDesc}>{row.description || ''}</span>
+                                                                                                <span className={previewLayout.rubricWeight}>{Math.round(Number(row.weight) || 0)}%</span>
+                                                                                                <span className={previewLayout.rubricPts}>{rowPts[ri]}</span>
+                                                                                            </div>
+                                                                                        ))}
+                                                                                        <div className={`${previewLayout.rubricRow} ${previewLayout.rubricTotalRow}`}>
+                                                                                            <span className={previewLayout.rubricName}><strong>Total</strong></span>
+                                                                                            <span className={previewLayout.rubricDesc}></span>
+                                                                                            <span className={previewLayout.rubricWeight}>{Math.round(totalW)}%</span>
+                                                                                            <span className={previewLayout.rubricPts}><strong>{totalPts}</strong></span>
+                                                                                        </div>
+                                                                                    </>
+                                                                                );
+                                                                            })()}
+                                                                        </div>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        );
+                                                    });
+                                                })()
+                                            )}
+                                        </div>
+                                    </div>
+                                </section>
+                            )}
+                        </>
                     ) : (
                         <>
                             {selectedSection === 'Outcome Overview' &&
@@ -443,6 +689,7 @@ const tosSections = ({status}) => {
                                                                 className={`${layout.totalCoPoint} ${layout.input} ${errorFields[`oo-totalItems-${coIndex}`] ? layout.inputError : ''}`}
                                                                 type="text"
                                                                 inputMode="numeric"
+                                                                disabled={readOnly}
                                                                 value={co.totalItems}
                                                                 onChange={(e) => handleTotalItemsChange(coIndex, e.target.value)}
                                                                 onKeyDown={(e) => {
@@ -483,6 +730,7 @@ const tosSections = ({status}) => {
                                                                 className={`${layout.point} ${layout.input} ${errorFields[`oo-items-${coIndex}-${iloIndex}`] ? layout.inputError : ''}`}
                                                                 type="text"
                                                                 inputMode="numeric"
+                                                                disabled={readOnly}
                                                                 value={ilo.items}
                                                                 onChange={(e) => handleItemsChange(coIndex, iloIndex, e.target.value)}
                                                                 onKeyDown={(e) => {
@@ -525,6 +773,7 @@ const tosSections = ({status}) => {
                                         courseCode={courseCode}
                                         assessmentName={assessmentName}
                                         onAssessmentNameChange={setAssessmentName}
+                                        readOnly={readOnly}
                                     />
                                 </section>
                             )}
@@ -549,7 +798,7 @@ const tosSections = ({status}) => {
                 assessmentName={assessmentName}
                 examType={fromExamType}
                 semester={fromSemester}
-                schoolYear={fromSchoolYear}
+                schoolYear={`${fromSchoolYear} - ${Number(fromSchoolYear) + 1}`}
             />
 
             {showExportErrorModal && (

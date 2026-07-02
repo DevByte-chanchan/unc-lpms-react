@@ -3,7 +3,7 @@ import layout from "../styles/TOSPreview.module.sass";
 import { useNavigate } from "react-router-dom";
 import { updateStatus, saveOutcomes, saveItems, updateCourse } from '../services/api.js';
 
-const TOSPreview = ({ isOpen, onClose, outcomeData, questions, courseName = "Human & Computer Interaction", semester = "1st Sem", schoolYear = "2024 - 2025", courseCode, assessmentName, examType }) => {
+const TOSPreview = ({ isOpen, onClose, outcomeData, questions, courseName = "Human & Computer Interaction", semester = "1st Semester", schoolYear, courseCode, assessmentName, examType }) => {
     if (!isOpen) return null;
 
     const [showConfirm, setShowConfirm] = useState(false);
@@ -75,7 +75,7 @@ const TOSPreview = ({ isOpen, onClose, outcomeData, questions, courseName = "Hum
         });
 
         questions.forEach(q => {
-            if (q.co && q.ilo && q.cognitiveLevel && q.points) {
+            if (q.co && q.ilo && q.cognitiveLevel && q.points && data[q.co] && data[q.co][q.ilo]) {
                 data[q.co][q.ilo][q.cognitiveLevel].push({ span: q.span || 1, points: Number(q.points) });
             }
         });
@@ -304,35 +304,34 @@ const TOSPreview = ({ isOpen, onClose, outcomeData, questions, courseName = "Hum
                                                                 <span className={layout.rubricWeight}>Weight</span>
                                                                 <span className={layout.rubricPts}>Pts</span>
                                                             </div>
-                                                            {(() => {
-                                                                 const totalPts = Number(q.points) || 0;
-                                                                 const rawPts = q.rubricRows.map((r, i) => {
-                                                                     const raw = (totalPts * Number(r.weight || 0)) / 100;
-                                                                     return Math.round(raw);
-                                                                 });
-                                                                 const sumOthers = rawPts.slice(0, -1).reduce((s, v) => s + v, 0);
-                                                                 const rowPts = [...rawPts.slice(0, -1), Math.max(0, totalPts - sumOthers)];
-                                                                 const totalW = q.rubricRows.reduce((s, r) => s + Number(r.weight || 0), 0);
-                                                                 const wOk = Math.round(totalW) === 100;
-                                                                 return (
-                                                                     <>
-                                                                         {q.rubricRows.map((row, ri) => (
-                                                                             <div key={row.id || ri} className={layout.rubricRow}>
-                                                                                 <span className={layout.rubricName}>{row.name || ''}</span>
-                                                                                 <span className={layout.rubricDesc}>{row.description || ''}</span>
-                                                                                  <span className={layout.rubricWeight}>{Math.round(Number(row.weight) || 0)}%</span>
-                                                                                 <span className={layout.rubricPts}>{rowPts[ri]}</span>
-                                                                             </div>
-                                                                         ))}
-                                                                          <div className={`${layout.rubricRow} ${layout.rubricTotalRow}`}>
-                                                                              <span className={layout.rubricName}><strong>Total</strong></span>
-                                                                              <span className={layout.rubricDesc}></span>
-                                                                              <span className={layout.rubricWeight}>{Math.round(totalW)}%</span>
-                                                                              <span className={layout.rubricPts}><strong>{totalPts}</strong></span>
-                                                                          </div>
-                                                                     </>
-                                                                 );
-                                                             })()}
+                                                             {(() => {
+                                                                   const totalPts = Number(q.points) || 0;
+                                                                   const rawPts = q.rubricRows.map(r => Math.round((totalPts * Number(r.weight || 0)) / 100));
+                                                                   const sumPrev = rawPts.slice(0, -1).reduce((s, v) => s + v, 0);
+                                                                   const rowPts = rawPts.length > 0
+                                                                       ? [...rawPts.slice(0, -1), Math.max(0, totalPts - sumPrev)]
+                                                                       : [];
+                                                                   const totalW = q.rubricRows.reduce((s, r) => s + Number(r.weight || 0), 0);
+                                                                   const wOk = Math.round(totalW) === 100;
+                                                                   return (
+                                                                      <>
+                                                                          {q.rubricRows.map((row, ri) => (
+                                                                              <div key={row.id || ri} className={layout.rubricRow}>
+                                                                                  <span className={layout.rubricName}>{row.name || ''}</span>
+                                                                                  <span className={layout.rubricDesc}>{row.description || ''}</span>
+                                                                                   <span className={layout.rubricWeight}>{Math.round(Number(row.weight) || 0)}%</span>
+                                                                                  <span className={layout.rubricPts}>{rowPts[ri]}</span>
+                                                                              </div>
+                                                                          ))}
+                                                                           <div className={`${layout.rubricRow} ${layout.rubricTotalRow}`}>
+                                                                               <span className={layout.rubricName}><strong>Total</strong></span>
+                                                                               <span className={layout.rubricDesc}></span>
+                                                                               <span className={layout.rubricWeight}>{Math.round(totalW)}%</span>
+                                                                               <span className={layout.rubricPts}><strong>{totalPts}</strong></span>
+                                                                           </div>
+                                                                      </>
+                                                                  );
+                                                              })()}
                                                         </div>
                                                     </div>
                                                 )}

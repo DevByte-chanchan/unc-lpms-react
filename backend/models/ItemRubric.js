@@ -15,6 +15,9 @@ const ItemRubric = sequelize.define('ItemRubric', {
     criteria: {
         type: DataTypes.TEXT
     },
+    description: {
+        type: DataTypes.TEXT
+    },
     weight: {
         type: DataTypes.DECIMAL(5, 2),
         defaultValue: 0

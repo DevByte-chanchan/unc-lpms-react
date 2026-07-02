@@ -23,11 +23,24 @@ const makeItem = (spanVal) => ({
 });
 
 // ─── Weight distribution ──────────────────────────────────────────────────────
-const distributeWeights = (rows) => {
+const distributeWeights = (rows, totalPts) => {
     if (!rows.length) return rows;
     const even = Math.floor(100 / rows.length);
     const rem  = 100 - even * (rows.length - 1);
-    return rows.map((r, i) => ({ ...r, weight: String(i === rows.length - 1 ? rem : even) }));
+    const ptsRows = rows.map((r, i) => {
+        const w = i === rows.length - 1 ? rem : even;
+        const pts = totalPts ? Math.round((w / 100) * totalPts) : 0;
+        return { ...r, weight: String(w), pts: String(pts) };
+    });
+    if (totalPts && ptsRows.length > 0) {
+        const sum = ptsRows.reduce((s, r) => s + (Number(r.pts) || 0), 0);
+        if (sum !== Math.round(totalPts)) {
+            const last = ptsRows.length - 1;
+            const diff = Math.round(totalPts) - (sum - (Number(ptsRows[last].pts) || 0));
+            ptsRows[last] = { ...ptsRows[last], pts: String(Math.max(0, diff)) };
+        }
+    }
+    return ptsRows;
 };
 
 // ─── AutoResizeTextarea ────────────────────────────────────────────────────────
@@ -45,13 +58,14 @@ const AutoResizeTextarea = React.forwardRef(({ value, ...props }, ref) => {
 });
 
 // ─── RubricRow ────────────────────────────────────────────────────────────────
-const RubricRow = ({ row, itemPoints, totalWeight, rowPoints, onChange, onRemove }) => {
+const RubricRow = ({ row, itemPoints, totalWeight, rowPoints, nameError, onChange, onRemove, readOnly }) => {
     const isOver = totalWeight > 100;
     const nameRef = useRef(null);
     const descRef = useRef(null);
     const weightRef = useRef(null);
+    const ptsRef = useRef(null);
     useEffect(() => {
-        const els = [nameRef.current, descRef.current, weightRef.current].filter(Boolean);
+        const els = [nameRef.current, descRef.current, weightRef.current, ptsRef.current].filter(Boolean);
         if (els.length < 2) return;
         els.forEach(el => { el.style.height = 'auto'; });
         const maxH = Math.max(...els.map(el => el.scrollHeight));
@@ -61,18 +75,19 @@ const RubricRow = ({ row, itemPoints, totalWeight, rowPoints, onChange, onRemove
         <div className={layout.bRubricRow}>
             <AutoResizeTextarea
                 ref={nameRef}
-                className={layout.bRubricName}
+                className={`${layout.bRubricName}${nameError ? ` ${layout.bRubricNameErr}` : ''}`}
                 placeholder="Criteria"
                 value={row.name}
                 rows={1}
+                disabled={readOnly}
                 onChange={e => {
                     const v = e.target.value;
                     if (v.startsWith(' ')) return;
-                    onChange({ ...row, name: v });
+                    onChange({ ...row, name: v }, 'name');
                 }}
                 onBlur={e => {
                     const trimmed = e.target.value.trim();
-                    if (trimmed !== e.target.value) onChange({ ...row, name: trimmed });
+                    if (trimmed !== e.target.value) onChange({ ...row, name: trimmed }, 'name');
                 }}
             />
             <AutoResizeTextarea
@@ -81,14 +96,15 @@ const RubricRow = ({ row, itemPoints, totalWeight, rowPoints, onChange, onRemove
                 placeholder="Description"
                 value={row.description}
                 rows={1}
+                disabled={readOnly}
                 onChange={e => {
                     const v = e.target.value;
                     if (v.startsWith(' ')) return;
-                    onChange({ ...row, description: v });
+                    onChange({ ...row, description: v }, 'description');
                 }}
                 onBlur={e => {
                     const trimmed = e.target.value.trim();
-                    if (trimmed !== e.target.value) onChange({ ...row, description: trimmed });
+                    if (trimmed !== e.target.value) onChange({ ...row, description: trimmed }, 'description');
                 }}
             />
             <div className={`${layout.bRubricWeightWrap} ${isOver ? layout.bRubricWeightErr : ''}`}>
@@ -98,23 +114,40 @@ const RubricRow = ({ row, itemPoints, totalWeight, rowPoints, onChange, onRemove
                     placeholder="0"
                     value={row.weight ? row.weight + '%' : ''}
                     rows={1}
+                    disabled={readOnly}
                     onChange={e => {
                         const raw = e.target.value.replace(/[^0-9]/g, '');
                         const num = Math.min(Number(raw) || 0, 100);
-                        onChange({ ...row, weight: String(num) });
+                        onChange({ ...row, weight: String(num) }, 'weight');
                     }}
                 />
             </div>
-            <div className={layout.bRubricPts}>{rowPoints !== undefined ? rowPoints : '—'}</div>
-            <button className={layout.bIconRemove} onClick={onRemove} title="Remove">
-                <X size={12} strokeWidth={2.5} />
-            </button>
+            <div className={layout.bRubricPts}>
+                <AutoResizeTextarea
+                    ref={ptsRef}
+                    className={layout.bRubricWeightIn}
+                    placeholder="0"
+                    value={rowPoints !== undefined ? String(rowPoints) : ''}
+                    rows={1}
+                    disabled={readOnly}
+                    onChange={e => {
+                        const raw = e.target.value.replace(/[^0-9]/g, '');
+                        const num = Math.min(Number(raw) || 0, 999);
+                        onChange({ ...row, pts: String(num) }, 'pts');
+                    }}
+                />
+            </div>
+            {!readOnly && (
+                <button className={layout.bIconRemove} onClick={onRemove} title="Remove">
+                    <X size={12} strokeWidth={2.5} />
+                </button>
+            )}
         </div>
     );
 };
 
 // ─── AssessmentBuilder ────────────────────────────────────────────────────────
-const AssessmentBuilder = ({ totalSlots, initialItems, onSaveReturn, builderSaveRef, onProgressUpdate, highlightKey, assessmentName, onAssessmentNameChange, assessmentNames = ['Midterm Exam', 'Final Exam', 'Written Exam', 'Practical Exam', 'Oral Exam', 'Quiz', 'Project', 'Assignment', 'Periodic Exam'], showDuplicateWarning, duplicateIds, onDismissDuplicateWarning }) => {
+const AssessmentBuilder = ({ totalSlots, initialItems, onSaveReturn, builderSaveRef, onProgressUpdate, highlightKey, assessmentName, onAssessmentNameChange, assessmentNames = ['Midterm Exam', 'Final Exam', 'Written Exam', 'Practical Exam', 'Oral Exam', 'Quiz', 'Project', 'Assignment', 'Periodic Exam'], showDuplicateWarning, duplicateIds, onDismissDuplicateWarning, readOnly = false }) => {
     const [selectedAssessment, setSelectedAssessment] = useState(assessmentName || '');
     const [spanEdit, setSpanEdit] = useState(null);
     const [warnData, setWarnData] = useState(null);
@@ -131,17 +164,29 @@ const AssessmentBuilder = ({ totalSlots, initialItems, onSaveReturn, builderSave
         if (initialItems && initialItems.length > 0) {
             const hasContent = initialItems.some(q => (q.question || q.rubricItem || '').trim().length > 0);
             if (hasContent) {
-                return initialItems.map(q => ({
-                    id: q.id || uid(),
-                    instruction: q.question || q.rubricItem || '',
-                    span: q.span || 1,
-                    choices: (q.choices || []).map(c =>
-                        typeof c === 'string' ? { id: uid(), text: c } : { ...c }
-                    ),
-                    rubricRows: (q.rubricRows || []).map(r => ({ ...r })),
-                    showRubric: (q.rubricRows || []).length > 0,
-                    points: q.points || '',
-                }));
+                return initialItems.map(q => {
+                    const rubricRows = (q.rubricRows || []).map(r => {
+                        const pts = Number(r.pts || 0);
+                        const weight = Number(r.weight || 0);
+                        const totalPts = Number(q.points || 0);
+                        return {
+                            ...r,
+                            pts: pts ? String(pts) : weight && totalPts ? String(Math.round((weight / 100) * totalPts)) : '',
+                        };
+                    });
+                    const sumPts = rubricRows.reduce((s, r) => s + (Number(r.pts || 0) || 0), 0);
+                    return {
+                        id: q.id || uid(),
+                        instruction: q.question || q.rubricItem || '',
+                        span: q.span || 1,
+                        choices: (q.choices || []).map(c =>
+                            typeof c === 'string' ? { id: uid(), text: c } : { ...c }
+                        ),
+                        rubricRows,
+                        showRubric: rubricRows.length > 0,
+                        points: rubricRows.length > 0 ? String(sumPts) : (q.points || ''),
+                    };
+                });
             }
         }
         return Array.from({ length: totalSlots }, () => makeItem(1));
@@ -313,14 +358,72 @@ const AssessmentBuilder = ({ totalSlots, initialItems, onSaveReturn, builderSave
     const addChoice = (id) => upd(id, it => ({ ...it, choices: [...it.choices, { id: uid(), text: '' }] }));
     const updChoice = (id, cid, v) => upd(id, it => ({ ...it, choices: it.choices.map(c => c.id === cid ? { ...c, text: v } : c) }));
     const remChoice = (id, cid) => upd(id, it => ({ ...it, choices: it.choices.filter(c => c.id !== cid) }));
-    const addRubric = (id) => upd(id, it => ({
-        ...it, showRubric: true,
-        rubricRows: distributeWeights([...it.rubricRows, { id: uid(), name: '', description: '', weight: '' }]),
-    }));
-    const updRubric = (id, rid, row) => upd(id, it => ({ ...it, rubricRows: it.rubricRows.map(r => r.id === rid ? row : r) }));
+    const addRubric = (id) => upd(id, it => {
+        const rows = distributeWeights([...it.rubricRows, { id: uid(), name: '', description: '', weight: '', pts: '' }], Number(it.points) || 0);
+        const sumPts = rows.reduce((s, r) => s + (Number(r.pts || 0) || 0), 0);
+        return { ...it, showRubric: true, rubricRows: rows, points: String(sumPts || 0) };
+    });
+    const updRubric = (id, rid, row, changedField) => upd(id, it => {
+        const oldRow = it.rubricRows.find(r => r.id === rid);
+        if (!oldRow) return it;
+
+        if (changedField === 'weight') {
+            const newW = Math.min(Number(row.weight) || 0, 100);
+            const others = it.rubricRows.filter(r => r.id !== rid);
+            const totalOther = others.reduce((s, r) => s + (Number(r.weight) || 0), 0);
+            const remaining = Math.max(0, 100 - newW);
+
+            let raw = others.map((r, i) => {
+                const prop = totalOther > 0 ? (Number(r.weight) || 0) / totalOther : 1 / others.length;
+                const w = Math.round(remaining * prop);
+                return { id: r.id, weight: w };
+            });
+            if (others.length > 0) {
+                const sum = raw.reduce((s, r) => s + r.weight, 0);
+                const last = raw.length - 1;
+                raw[last] = { ...raw[last], weight: Math.max(0, remaining - (sum - raw[last].weight)) };
+            }
+            const newRows = it.rubricRows.map(r => {
+                if (r.id === rid) return { ...r, weight: String(newW) };
+                const f = raw.find(o => o.id === r.id);
+                return { ...r, weight: f ? String(f.weight) : '0' };
+            });
+            const origTotal = Number(it.points) || 0;
+            const ptsRows = newRows.map(r => ({ ...r, pts: String(origTotal ? Math.round((Number(r.weight) / 100) * origTotal) : 0) }));
+            const pSum = ptsRows.reduce((s, r) => s + (Number(r.pts) || 0), 0);
+            if (pSum !== origTotal && ptsRows.length > 0) {
+                const last = ptsRows.length - 1;
+                const diff = origTotal - (pSum - (Number(ptsRows[last].pts) || 0));
+                ptsRows[last] = { ...ptsRows[last], pts: String(Math.max(0, diff)) };
+            }
+            const sumPts = ptsRows.reduce((s, r) => s + (Number(r.pts || 0) || 0), 0);
+            return { ...it, rubricRows: ptsRows, points: String(sumPts || 0) };
+        }
+
+        if (changedField === 'pts') {
+            const newPts = Number(row.pts) || 0;
+            let newRows = it.rubricRows.map(r => r.id === rid ? { ...r, pts: String(newPts) } : { ...r });
+            const totalPts = newRows.reduce((s, r) => s + (Number(r.pts || 0) || 0), 0);
+            const wRows = newRows.map((r, i) => ({
+                ...r,
+                weight: String(totalPts > 0 ? Math.min(Math.round((Number(r.pts || 0) / totalPts) * 100), 100) : 0),
+            }));
+            const wSum = wRows.reduce((s, r) => s + (Number(r.weight) || 0), 0);
+            if (wSum !== 100 && wRows.length > 0) {
+                const last = wRows.length - 1;
+                const diff = 100 - (wSum - (Number(wRows[last].weight) || 0));
+                wRows[last] = { ...wRows[last], weight: String(Math.max(0, Math.min(diff, 100))) };
+            }
+            return { ...it, rubricRows: wRows, points: String(totalPts) };
+        }
+
+        const newRows = it.rubricRows.map(r => r.id === rid ? { ...row } : r);
+        return { ...it, rubricRows: newRows };
+    });
     const remRubric = (id, rid) => upd(id, it => {
-        const next = distributeWeights(it.rubricRows.filter(r => r.id !== rid));
-        return { ...it, rubricRows: next, showRubric: next.length > 0 };
+        const next = distributeWeights(it.rubricRows.filter(r => r.id !== rid), Number(it.points) || 0);
+        const sumPts = next.reduce((s, r) => s + (Number(r.pts || 0) || 0), 0);
+        return { ...it, rubricRows: next, showRubric: next.length > 0, points: String(sumPts || (it.points || '')) };
     });
     const togRubric = (id) => upd(id, it => ({ ...it, showRubric: !it.showRubric }));
 
@@ -371,28 +474,25 @@ const AssessmentBuilder = ({ totalSlots, initialItems, onSaveReturn, builderSave
         const emptyItem = items.find(it => !(it.instruction || '').trim());
         if (!emptyItem) return;
         setHighlightActive(true);
-        setTimeout(() => {
+        const scrollTimer = setTimeout(() => {
             const el = document.querySelector(`[data-item-id="${emptyItem.id}"]`);
             if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }, 100);
         const t = setTimeout(() => setHighlightActive(false), 7000);
-        return () => clearTimeout(t);
+        return () => { clearTimeout(t); clearTimeout(scrollTimer); };
     }, [highlightKey]);
 
     // Highlight duplicate items when Fix is clicked
     useEffect(() => {
         if (!duplicateHighlightKey || !duplicateIds?.length) return;
         setHighlightActive(true);
-        setTimeout(() => {
+        const scrollTimer = setTimeout(() => {
             const el = document.querySelector(`[data-item-id="${duplicateIds[0]}"]`);
             if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }, 100);
         const t = setTimeout(() => setHighlightActive(false), 7000);
-        return () => clearTimeout(t);
+        return () => { clearTimeout(t); clearTimeout(scrollTimer); };
     }, [duplicateHighlightKey]);
-
-    const statusCls = canSave ? layout.bStatusOk
-        : consumed > totalSlots ? layout.bStatusOver : layout.bStatusUnder;
 
     // Pre-build warn message so we have full scope
     const warnMessage = (() => {
@@ -468,6 +568,7 @@ const AssessmentBuilder = ({ totalSlots, initialItems, onSaveReturn, builderSave
                 <select
                     className={layout.bAssessSelect}
                     value={selectedAssessment}
+                    disabled={readOnly}
                     onChange={e => { setSelectedAssessment(e.target.value); onAssessmentNameChange?.(e.target.value); }}
                 >
                     <option value="" disabled>Select assessment</option>
@@ -553,17 +654,38 @@ const AssessmentBuilder = ({ totalSlots, initialItems, onSaveReturn, builderSave
                                                     className={layout.bPtsInlineInput}
                                                     placeholder="0"
                                                     value={item.points}
+                                                    disabled={readOnly}
                                                     onChange={e => {
                                                         const v = e.target.value.replace(/[^0-9]/g, '');
-                                                        upd(item.id, it => ({ ...it, points: v === '' ? '0' : v }));
+                                                        const newPts = v === '' ? '0' : String(parseInt(v, 10));
+                                                        upd(item.id, it => {
+                                                            if (it.rubricRows.length > 0) {
+                                                                const total = Number(newPts) || 0;
+                                                                const rows = it.rubricRows.map((r, i) => {
+                                                                    const wt = Number(r.weight || 0);
+                                                                    const p = total ? Math.round((wt / 100) * total) : 0;
+                                                                    return { ...r, pts: String(p) };
+                                                                });
+                                                                const sum = rows.reduce((s, r) => s + (Number(r.pts) || 0), 0);
+                                                                if (sum !== total && rows.length > 0) {
+                                                                    const last = rows.length - 1;
+                                                                    const diff = total - (sum - (Number(rows[last].pts) || 0));
+                                                                    rows[last] = { ...rows[last], pts: String(Math.max(0, diff)) };
+                                                                }
+                                                                return { ...it, points: newPts, rubricRows: rows };
+                                                            }
+                                                            return { ...it, points: newPts };
+                                                        });
                                                     }}
                                                 />
                                             </div>
-                                            <button
-                                                className={layout.bBtnClear}
-                                                onClick={() => clearItem(item.id)}
-                                                disabled={!item.instruction.trim() && !item.choices.length && !item.rubricRows.length}
-                                            >Clear</button>
+                                            {!readOnly && (
+                                                <button
+                                                    className={layout.bBtnClear}
+                                                    onClick={() => clearItem(item.id)}
+                                                    disabled={!item.instruction.trim() && !item.choices.length && !item.rubricRows.length}
+                                                >Clear</button>
+                                            )}
                                         </div>
                                     </div>
 
@@ -576,6 +698,7 @@ const AssessmentBuilder = ({ totalSlots, initialItems, onSaveReturn, builderSave
                                             placeholder="Type your question or instruction here…"
                                             value={item.instruction}
                                             rows={2}
+                                            disabled={readOnly}
                                             onChange={e => {
                                                 const v = e.target.value;
                                                 if (v.startsWith(' ')) return;
@@ -601,6 +724,7 @@ const AssessmentBuilder = ({ totalSlots, initialItems, onSaveReturn, builderSave
                                                             placeholder={`Choice ${String.fromCharCode(65 + ci)}`}
                                                             value={ch.text}
                                                             rows={1}
+                                                            disabled={readOnly}
                                                             onChange={e => {
                                                                 const v = e.target.value;
                                                                 if (v.startsWith(' ')) return;
@@ -611,14 +735,18 @@ const AssessmentBuilder = ({ totalSlots, initialItems, onSaveReturn, builderSave
                                                                 if (trimmed !== e.target.value) updChoice(item.id, ch.id, trimmed);
                                                             }}
                                                         />
-                                                        <button className={layout.bIconRemove} onClick={() => remChoice(item.id, ch.id)}>
-                                                            <X size={12} strokeWidth={2.5} />
-                                                        </button>
+                                                        {!readOnly && (
+                                                            <button className={layout.bIconRemove} onClick={() => remChoice(item.id, ch.id)}>
+                                                                <X size={12} strokeWidth={2.5} />
+                                                            </button>
+                                                        )}
                                                     </div>
                                                 ))}
-                                                <button className={layout.bLinkBtn} onClick={() => addChoice(item.id)}>
-                                                    <Plus size={11} /> Add another choice
-                                                </button>
+                                                {!readOnly && (
+                                                    <button className={layout.bLinkBtn} onClick={() => addChoice(item.id)}>
+                                                        <Plus size={11} /> Add another choice
+                                                    </button>
+                                                )}
                                             </div>
                                         )}
 
@@ -637,12 +765,7 @@ const AssessmentBuilder = ({ totalSlots, initialItems, onSaveReturn, builderSave
                                                 </div>
                                                 {(() => {
                                                     const totalPts = Number(item.points) || 0;
-                                                    const rowPts = item.rubricRows.map((r, i) => {
-                                                        const raw = (totalPts * Number(r.weight || 0)) / 100;
-                                                        return Math.round(raw);
-                                                    });
-                                                    const sumOthers = rowPts.slice(0, -1).reduce((s, v) => s + v, 0);
-                                                    rowPts[rowPts.length - 1] = Math.max(0, totalPts - sumOthers);
+                                                    const rowPts = item.rubricRows.map(r => Number(r.pts || 0) || 0);
 
                                                     return item.rubricRows.map((row, i) => (
                                                         <RubricRow
@@ -651,8 +774,10 @@ const AssessmentBuilder = ({ totalSlots, initialItems, onSaveReturn, builderSave
                                                             itemPoints={item.points}
                                                             totalWeight={totalWeight}
                                                             rowPoints={rowPts[i]}
-                                                            onChange={r => updRubric(item.id, row.id, r)}
+                                                            nameError={!!((row.description || '').trim() && !(row.name || '').trim())}
+                                                            onChange={(r, field) => updRubric(item.id, row.id, r, field)}
                                                             onRemove={() => remRubric(item.id, row.id)}
+                                                            readOnly={readOnly}
                                                         />
                                                     ));
                                                 })()}
@@ -667,39 +792,43 @@ const AssessmentBuilder = ({ totalSlots, initialItems, onSaveReturn, builderSave
                                                     </span>
                                                     <span />
                                                 </div>
-                                                <button className={layout.bLinkBtn} onClick={() => addRubric(item.id)}>
-                                                    <Plus size={11} /> Add criteria row
-                                                </button>
+                                                {!readOnly && (
+                                                    <button className={layout.bLinkBtn} onClick={() => addRubric(item.id)}>
+                                                        <Plus size={11} /> Add criteria row
+                                                    </button>
+                                                )}
                                             </div>
                                         )}
 
                                         {/* Action bar: Add Choices (left) | Add/Toggle Rubric (right) */}
-                                        <div className={layout.bActionBar}>
-                                            <div className={layout.bActionLeft}>
-                                                {item.choices.length === 0 && (
-                                                    <button className={layout.bBtnAddChoices} onClick={() => addChoice(item.id)}>
-                                                        <Plus size={13} strokeWidth={2} /> Add Choices
-                                                    </button>
-                                                )}
+                                        {!readOnly && (
+                                            <div className={layout.bActionBar}>
+                                                <div className={layout.bActionLeft}>
+                                                    {item.choices.length === 0 && (
+                                                        <button className={layout.bBtnAddChoices} onClick={() => addChoice(item.id)}>
+                                                            <Plus size={13} strokeWidth={2} /> Add Choices
+                                                        </button>
+                                                    )}
+                                                </div>
+                                                <div className={layout.bActionRight}>
+                                                    {item.rubricRows.length === 0 ? (
+                                                        <button className={layout.bBtnAddRubric} onClick={() => addRubric(item.id)}>
+                                                            <Plus size={13} strokeWidth={2} /> Add Rubric
+                                                        </button>
+                                                    ) : (
+                                                        <button className={layout.bBtnToggleRubric} onClick={() => togRubric(item.id)}>
+                                                            {item.showRubric
+                                                                ? <><ChevronUp size={13} /> Hide Rubric</>
+                                                                : <><ChevronDown size={13} /> Show Rubric</>
+                                                            }
+                                                        </button>
+                                                    )}
+                                                </div>
                                             </div>
-                                            <div className={layout.bActionRight}>
-                                                {item.rubricRows.length === 0 ? (
-                                                    <button className={layout.bBtnAddRubric} onClick={() => addRubric(item.id)}>
-                                                        <Plus size={13} strokeWidth={2} /> Add Rubric
-                                                    </button>
-                                                ) : (
-                                                    <button className={layout.bBtnToggleRubric} onClick={() => togRubric(item.id)}>
-                                                        {item.showRubric
-                                                            ? <><ChevronUp size={13} /> Hide Rubric</>
-                                                            : <><ChevronDown size={13} /> Show Rubric</>
-                                                        }
-                                                    </button>
-                                                )}
-                                            </div>
-                                        </div>
+                                        )}
                                     </div>
                                 </div>
-                                {showDelete && (
+                                {showDelete && !readOnly && (
                                     <button className={layout.bItemDel} onClick={() => deleteItem(item.id)} title="Delete item">
                                         <X size={16} strokeWidth={2.5} />
                                     </button>
@@ -785,6 +914,7 @@ const QuestionCognitiveMapping = ({
                                        courseCode,
                                        assessmentName,
                                        onAssessmentNameChange,
+                                       readOnly = false,
                                    }) => {
 
     const [showPostSaveWarning, setShowPostSaveWarning] = useState(false);
@@ -848,7 +978,7 @@ const QuestionCognitiveMapping = ({
         setQuestions(prev => prev.filter(q => q.id !== id));
 
     const handleQuestionChange = (id, field, value) => {
-        setQuestions(questions.map(q => {
+        setQuestions(prev => prev.map(q => {
             if (q.id !== id) return q;
             const u = { ...q, [field]: value };
             if (field === 'co') { u.ilo = ''; u.cognitiveLevel = ''; }
@@ -966,6 +1096,7 @@ const QuestionCognitiveMapping = ({
                 onDismissDuplicateWarning={() => {
                     setShowDuplicateWarning(false);
                 }}
+                readOnly={readOnly}
             />
         );
     }
@@ -988,10 +1119,12 @@ const QuestionCognitiveMapping = ({
                             <h2 className={layout.mSectionTitle}>Assessment Item – Cognitive Level Alignment</h2>
                             <p className={layout.mSectionSub}>Map each item to a CO, ILO, and Bloom's level.</p>
                         </div>
-                        <button className={layout.uploadButton} onClick={() => onShowBuilderChange(true)}>
-                            <FileText size={14} style={{ marginRight: 6 }} />
-                            {hasBuiltItems ? 'Edit Assessment' : 'Build Assessment'}
-                        </button>
+                        {!readOnly && (
+                            <button className={layout.uploadButton} onClick={() => onShowBuilderChange(true)}>
+                                <FileText size={14} style={{ marginRight: 6 }} />
+                                {hasBuiltItems ? 'Edit Assessment' : 'Build Assessment'}
+                            </button>
+                        )}
                     </div>
 
                     {isOverflow && (
@@ -1039,8 +1172,8 @@ const QuestionCognitiveMapping = ({
                                 <select
                                     value={q.co}
                                     onChange={e => { handleQuestionChange(q.id, 'co', e.target.value); if (clearFieldError) clearFieldError(`map-co-${q.id}`); }}
-                                    disabled={!hasContent || isOverflow}
-                                    className={`${layout.mSelect} ${!hasContent || isOverflow ? layout.mSelectDisabled : ''} ${errorFields[`map-co-${q.id}`] ? layout.mSelectError : ''}`}
+                                    disabled={!hasContent || isOverflow || readOnly}
+                                    className={`${layout.mSelect} ${!hasContent || isOverflow || readOnly ? layout.mSelectDisabled : ''} ${errorFields[`map-co-${q.id}`] ? layout.mSelectError : ''}`}
                                 >
                                     <option value="" disabled>CO</option>
                                     {outcomeData.map(co => <option key={co.co} value={co.co}>{co.co}</option>)}
@@ -1049,8 +1182,8 @@ const QuestionCognitiveMapping = ({
                                 <select
                                     value={q.ilo}
                                     onChange={e => { handleQuestionChange(q.id, 'ilo', e.target.value); if (clearFieldError) clearFieldError(`map-ilo-${q.id}`); }}
-                                    disabled={!hasContent || !q.co || isOverflow}
-                                    className={`${layout.mSelect} ${!hasContent || !q.co || isOverflow ? layout.mSelectDisabled : ''} ${errorFields[`map-ilo-${q.id}`] ? layout.mSelectError : ''}`}
+                                    disabled={!hasContent || !q.co || isOverflow || readOnly}
+                                    className={`${layout.mSelect} ${!hasContent || !q.co || isOverflow || readOnly ? layout.mSelectDisabled : ''} ${errorFields[`map-ilo-${q.id}`] ? layout.mSelectError : ''}`}
                                 >
                                     <option value="" disabled>ILO</option>
                                     {q.co && getAvailableILOs(q.co).map(ilo => <option key={ilo.id} value={ilo.id}>{ilo.id}</option>)}
@@ -1063,16 +1196,15 @@ const QuestionCognitiveMapping = ({
                                     rows={1}
                                     onChange={e => {
                                         const v = e.target.value.replace(/[^0-9]/g, '');
-                                        handleQuestionChange(q.id, 'points', v === '' ? '0' : v);
+                                        handleQuestionChange(q.id, 'points', v === '' ? '0' : String(parseInt(v, 10)));
                                     }}
-                                    disabled={!hasContent || isOverflow}
-                                />
+                                    disabled={!hasContent || isOverflow || readOnly || (q.rubricRows && q.rubricRows.length > 0)}
 
                                 <select
                                     value={q.cognitiveLevel}
                                     onChange={e => { handleQuestionChange(q.id, 'cognitiveLevel', e.target.value); if (clearFieldError) clearFieldError(`map-cognitiveLevel-${q.id}`); }}
-                                    disabled={!hasContent || !q.ilo || isOverflow}
-                                    className={`${layout.mSelect} ${!hasContent || !q.ilo || isOverflow ? layout.mSelectDisabled : ''} ${errorFields[`map-cognitiveLevel-${q.id}`] ? layout.mSelectError : ''}`}
+                                    disabled={!hasContent || !q.ilo || isOverflow || readOnly}
+                                    className={`${layout.mSelect} ${!hasContent || !q.ilo || isOverflow || readOnly ? layout.mSelectDisabled : ''} ${errorFields[`map-cognitiveLevel-${q.id}`] ? layout.mSelectError : ''}`}
                                 >
                                     <option value="" disabled>Level</option>
                                     {getAllowedCognitiveLevels(q.ilo).map(lv => <option key={lv} value={lv}>{lv}</option>)}
@@ -1096,4 +1228,5 @@ const QuestionCognitiveMapping = ({
     );
 };
 
+export { AutoResizeTextarea };
 export default QuestionCognitiveMapping;

@@ -2,49 +2,54 @@ const BASE = '/api/courses';
 
 const cogLevelMap = {
     toBackend: {
-        'Remembering': 'Remember',
-        'Understanding': 'Understand',
-        'Applying': 'Apply',
-        'Analyzing': 'Analyze',
-        'Evaluating': 'Evaluate',
-        'Creating': 'Create'
+        'Remembering': 'Remembering',
+        'Understanding': 'Understanding',
+        'Applying': 'Applying',
+        'Analyzing': 'Analyzing',
+        'Evaluating': 'Evaluating',
+        'Creating': 'Creating'
     },
     toFrontend: {
-        'Remember': 'Remembering',
-        'Understand': 'Understanding',
-        'Apply': 'Applying',
-        'Analyze': 'Analyzing',
-        'Evaluate': 'Evaluating',
-        'Create': 'Creating'
+        'Remembering': 'Remembering',
+        'Understanding': 'Understanding',
+        'Applying': 'Applying',
+        'Analyzing': 'Analyzing',
+        'Evaluating': 'Evaluating',
+        'Creating': 'Creating'
     }
 };
 
 export function cogToBackend(val) { return cogLevelMap.toBackend[val] || val; }
 export function cogToFrontend(val) { return cogLevelMap.toFrontend[val] || val; }
 
+const dateAssignedMap = {
+    BSCS111L: 'Jun 01', BSCS212L: 'Jun 02', BSCS313L: 'Jun 03',
+    BSCS214L: 'Jun 04', BSCS315L: 'Jun 05', BSCS321L: 'Jun 04',
+    BSCS322L: 'Jun 03', BSCS331L: 'Jun 05', BSCS341L: 'Jun 06',
+    BSCS351L: 'Jun 07', BSCS221L: 'Jun 03', BSCS222L: 'Jun 04',
+    BSCS312L: 'Jun 05', BSCS324L: 'Jun 06', BSCS342L: 'Jun 07',
+    BSCS223L: 'Jun 01', BSCS314L: 'Jun 02', BSCS323L: 'Jun 03',
+    BSCS332L: 'Jun 04', BSCS413L: 'Jun 05',
+};
+
 export async function fetchCourses() {
     const res = await fetch(BASE);
     const data = await res.json();
-    const dateAssignments = {
-        BSCS111L: 'Jun 01, 2026',
-        BSCS212L: 'Jun 02, 2026',
-        BSCS313L: 'Jun 03, 2026',
-        BSCS214L: 'Jun 04, 2026',
-        BSCS315L: 'Jun 05, 2026',
-        BSCS321L: 'Jun 08, 2026',
-        BSCS322L: 'Jun 09, 2026',
-        BSCS331L: 'Jun 10, 2026',
-        BSCS341L: 'Jun 11, 2026',
-        BSCS351L: 'Jun 12, 2026',
-    };
-    return data.map(c => ({
-        code: c.code,
-        name: c.name,
-        dateAssigned: dateAssignments[c.code] || '',
-        update: c.updated_at ? new Date(c.updated_at).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }) : '',
-        status: c.tosStatus?.status || 'draft',
-        exported: ''
-    }));
+    return data.map(c => {
+        const fmt = (ts) => ts ? new Date(ts).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }) : '';
+        const t = c.tosStatus || {};
+        const da = dateAssignedMap[c.code];
+        return {
+            code: c.code,
+            name: c.name,
+            update: fmt(c.updated_at),
+            status: t.status || 'draft',
+            dateSubmitted: fmt(t.submittedAt),
+            dateStatus: fmt(t.returnedAt || t.approvedAt),
+            dateAssigned: da ? `${da}, 2026` : '',
+            exported: ''
+        };
+    });
 }
 
 export async function fetchCourse(courseCode) {
@@ -59,6 +64,7 @@ export async function updateCourse(courseCode, fields) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(fields)
     });
+    if (!res.ok) throw new Error(`updateCourse failed: ${res.status}`);
     return await res.json();
 }
 
@@ -74,6 +80,7 @@ export async function saveOutcomes(courseCode, outcomes) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(outcomes)
     });
+    if (!res.ok) throw new Error(`saveOutcomes failed: ${res.status}`);
     return await res.json();
 }
 
@@ -97,14 +104,27 @@ export async function fetchItems(courseCode) {
             isCorrect: c.isCorrect || false,
             sortOrder: c.sortOrder || 0
         })),
-        rubricRows: (item.rubrics || []).map(r => ({
-            id: r.id,
-            name: r.criteria || '',
-            description: r.criteria || '',
-            criteria: r.criteria || '',
-            weight: r.weight || 0,
-            sortOrder: r.sortOrder || 0
-        }))
+        rubricRows: (() => {
+            const raw = (item.rubrics || []).map(r => ({
+                id: r.id,
+                name: r.criteria || '',
+                description: r.description || '',
+                weight: Number(r.weight) || 0,
+                pts: 0,
+                sortOrder: r.sortOrder || 0
+            }));
+            const total = Number(item.points) || 0;
+            if (total && raw.length > 0) {
+                const pRows = raw.map(r => ({ ...r, pts: Math.round((r.weight / 100) * total) }));
+                const sum = pRows.reduce((s, r) => s + r.pts, 0);
+                if (sum !== total) {
+                    const last = pRows.length - 1;
+                    pRows[last] = { ...pRows[last], pts: Math.max(0, total - (sum - pRows[last].pts)) };
+                }
+                return pRows.map(r => ({ ...r, pts: String(r.pts), weight: String(r.weight) }));
+            }
+            return raw.map(r => ({ ...r, weight: String(r.weight) }));
+        })()
     }));
 }
 
@@ -123,7 +143,8 @@ export async function saveItems(courseCode, items) {
             sortOrder: c.sortOrder || 0
         })),
         rubrics: (item.rubricRows || []).map(r => ({
-            criteria: r.criteria || r.name || r.description || '',
+            criteria: r.name || '',
+            description: r.description || '',
             weight: parseFloat(r.weight) || 0,
             sortOrder: r.sortOrder || 0
         }))
@@ -133,6 +154,7 @@ export async function saveItems(courseCode, items) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body)
     });
+    if (!res.ok) throw new Error(`saveItems failed: ${res.status}`);
     return await res.json();
 }
 

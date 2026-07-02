@@ -1,5 +1,6 @@
 import React from "react";
 import layout from "../styles/TosPreview.module.sass";
+import { AutoResizeTextarea } from "./QuestionCognitiveMapping";
 
 const TOSSummary = ({ outcomeData, questions }) => {
     const cognitiveLevels = [
@@ -58,24 +59,24 @@ const TOSSummary = ({ outcomeData, questions }) => {
                         </div>
                     </div>
                     <div style={{ marginBottom: '16px' }}>
-                        <textarea
+                        <AutoResizeTextarea
                             disabled
-                            value={co.description || `Description`}
+                            value={co.description || 'Description'}
                             className={layout.numberInput}
-                            style={{ width: '100%', backgroundColor: '#FFFFFF', color: '#000000', textAlign: 'left', resize: 'none', minHeight: '60px' }}
-                            rows={3}
+                            style={{ width: '100%', backgroundColor: '#FFFFFF', color: '#000000', textAlign: 'left', resize: 'none' }}
+                            rows={1}
                         />
                     </div>
                     {co.ilos.map(ilo => (
                         <div key={ilo.id} style={{ marginBottom: '20px' }}>
                             <h3>{ilo.id}</h3>
                             <div style={{ marginBottom: '10px' }}>
-                                <textarea
+                                <AutoResizeTextarea
                                     disabled
                                     value={ilo.description || ''}
                                     className={layout.numberInput}
-                                    style={{ width: '100%', backgroundColor: '#FFFFFF', color: '#000000', textAlign: 'left', resize: 'none', minHeight: '40px' }}
-                                    rows={2}
+                                    style={{ width: '100%', backgroundColor: '#FFFFFF', color: '#000000', textAlign: 'left', resize: 'none' }}
+                                    rows={1}
                                 />
                             </div>
 
