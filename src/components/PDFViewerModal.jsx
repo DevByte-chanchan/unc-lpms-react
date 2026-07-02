@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { X, Download, FileText, User, Calendar, BookOpen, ZoomIn, ZoomOut, Maximize, Printer, ChevronLeft, ChevronRight } from 'react-feather';
+import { X, Download, FileText, User, Calendar, BookOpen, ZoomIn, ZoomOut, Maximize, Minimize2, Printer, ChevronLeft, ChevronRight } from 'react-feather';
 import axios from 'axios';
 
 const ACCENT     = '#19282C';
@@ -266,7 +266,7 @@ const PDFViewerModal = ({ file, kind, onClose, onExport, children }) => {
             <button type="button" onClick={toggleFullscreen} title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'} style={btnBase}
               onMouseEnter={e => { e.currentTarget.style.background = SLATE_100; e.currentTarget.style.borderColor = SLATE_300; }}
               onMouseLeave={e => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.borderColor = SLATE_200; }}>
-              <Maximize size={14} />
+              {isFullscreen ? <Minimize2 size={14} /> : <Maximize size={14} />}
             </button>
             <button
               type="button" onClick={handleExportPDF} disabled={exporting}
@@ -275,24 +275,24 @@ const PDFViewerModal = ({ file, kind, onClose, onExport, children }) => {
                 background: exporting ? '#94a3b8' : ACCENT, color: '#FFFFFF', border: 'none', cursor: exporting ? 'not-allowed' : 'pointer',
                 fontSize: 12, fontWeight: 600,
                 display: 'inline-flex', alignItems: 'center', gap: 5,
-                boxShadow: '0 2px 8px rgba(185,28,28,0.20)',
-                transition: 'background 0.15s ease',
+                boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
+                transition: 'transform 0.2s ease, background 0.15s ease',
               }}
-              onMouseEnter={e => { if (!exporting) e.currentTarget.style.background = '#991B1B' }}
-              onMouseLeave={e => e.currentTarget.style.background = ACCENT}
+              onMouseEnter={e => { if (!exporting) e.currentTarget.style.transform = 'scale(1.04)' }}
+              onMouseLeave={e => { if (!exporting) e.currentTarget.style.transform = 'scale(1)' }}
             >
               <Download size={12} /> {exporting ? 'Exporting…' : 'Download PDF'}
             </button>
             <button type="button" onClick={isFullscreen ? () => setIsFullscreen(false) : onClose}
               style={{
                 width: 32, height: 32, borderRadius: 7,
-                background: '#FFFFFF', color: SLATE_700, border: '1px solid ' + SLATE_200,
+                background: '#E81123', color: '#FFFFFF', border: '1px solid #E81123',
                 cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                 padding: 0, lineHeight: 0,
                 transition: 'background 0.15s ease, color 0.15s ease, border-color 0.15s ease',
               }}
-              onMouseEnter={e => { e.currentTarget.style.background = SLATE_50; e.currentTarget.style.color = ACCENT; e.currentTarget.style.borderColor = ACCENT; }}
-              onMouseLeave={e => { e.currentTarget.style.background = '#FFFFFF'; e.currentTarget.style.color = SLATE_700; e.currentTarget.style.borderColor = SLATE_200; }}
+              onMouseEnter={e => { e.currentTarget.style.background = '#B91C1C'; e.currentTarget.style.borderColor = '#B91C1C'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = '#E81123'; e.currentTarget.style.color = '#FFFFFF'; e.currentTarget.style.borderColor = '#E81123'; }}
               aria-label="Close">
               <X size={16} strokeWidth={2.5} color="currentColor" />
             </button>

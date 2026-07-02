@@ -99,6 +99,12 @@
   flex-wrap: wrap;
 }
 
+.actionsGroup {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+
 .searchWrapper {
   display: flex;
   flex-grow: 1;
@@ -146,9 +152,11 @@
 
 .addBtn {
   display: flex;
-  background: #EA1212;
+  background: #19282C;
   padding: 10px 20px 10px 15px;
+  min-width: 150px;
   align-items: center;
+  justify-content: center;
   color: white;
   height: 40px;
   font-size: 14px;
@@ -159,15 +167,18 @@
   font-family: 'Poppins', sans-serif;
   font-weight: 500;
   white-space: nowrap;
+  transition: transform 0.2s ease;
 
-  &:hover { background: #c51010; }
+  &:hover { transform: scale(1.04); }
 }
 
 .bulkBtn {
   display: flex;
-  background: #1e3a5f;
+  background: #19282C;
   padding: 10px 20px 10px 15px;
+  min-width: 150px;
   align-items: center;
+  justify-content: center;
   color: white;
   height: 40px;
   font-size: 14px;
@@ -178,8 +189,9 @@
   font-family: 'Poppins', sans-serif;
   font-weight: 500;
   white-space: nowrap;
+  transition: transform 0.2s ease;
 
-  &:hover { background: #2d4a6f; }
+  &:hover { transform: scale(1.04); }
 }
 
 /* ── Table ───────────────────────────────────────────────────────────── */

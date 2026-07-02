@@ -658,8 +658,11 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
                     padding: '10px 20px', border: 'none', borderRadius: 8,
                     fontSize: 14, fontWeight: 600, cursor: 'pointer',
                     background: exportingPdf ? '#94a3b8' : '#19282C', color: 'white',
-                    fontFamily: "'Poppins', sans-serif"
+                    fontFamily: "'Poppins', sans-serif",
+                    transition: 'transform 0.2s ease'
                   }}
+                  onMouseEnter={e => { if (!exportingPdf) e.currentTarget.style.transform = 'scale(1.04)' }}
+                  onMouseLeave={e => { if (!exportingPdf) e.currentTarget.style.transform = 'scale(1)' }}
                 >
                   <Download size={16} /> Export
                 </button>

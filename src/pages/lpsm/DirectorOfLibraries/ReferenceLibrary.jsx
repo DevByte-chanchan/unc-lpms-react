@@ -690,12 +690,14 @@ const ReferenceLibrary = () => {
             <option value="Online Resources">Online Resources</option>
           </select>
         </div>
-        <button className={styles.addBtn} type="button" onClick={() => navigate('/role/director-of-libraries/add-reference')}>
-          <Plus size={16} /><span>Add Reference</span>
-        </button>
-        <button className={styles.bulkBtn} type="button" onClick={() => fileInputRef.current?.click()}>
-          <Upload size={16} /><span>Bulk Upload</span>
-        </button>
+        <div className={styles.actionsGroup} data-collapsible-buttons>
+          <button className={styles.addBtn} type="button" onClick={() => navigate('/role/director-of-libraries/add-reference')}>
+            <Plus size={16} /><span className="btn-label">Add Reference</span>
+          </button>
+          <button className={styles.bulkBtn} type="button" onClick={() => fileInputRef.current?.click()}>
+            <Upload size={16} /><span className="btn-label">Bulk Upload</span>
+          </button>
+        </div>
         <input
           ref={fileInputRef}
           type="file"

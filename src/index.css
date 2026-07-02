@@ -151,6 +151,29 @@ th, td {
     align-items: center;
 }
 
+[data-collapsible-buttons] button {
+    transition: min-width 0.25s ease, padding 0.25s ease, gap 0.25s ease;
+}
+
+body.sidebar-expanded [data-collapsible-buttons] button {
+    min-width: unset;
+    padding: 10px 11px;
+    gap: 0;
+}
+
+[data-collapsible-buttons] .btn-label {
+    display: inline;
+    transition: opacity 0.2s ease, max-width 0.25s ease;
+    max-width: 150px;
+    opacity: 1;
+    overflow: hidden;
+}
+
+body.sidebar-expanded [data-collapsible-buttons] .btn-label {
+    max-width: 0;
+    opacity: 0;
+}
+
 .search-container .search-bar{
     display: flex;
     flex-grow: 1;

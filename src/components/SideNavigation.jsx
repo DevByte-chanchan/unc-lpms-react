@@ -120,14 +120,15 @@ const SideNavigation = ({ mode = 'instructor' }) => {
             return null
         }
         const target = findSidebarAncestor(el) || el.parentElement
-        const enter = () => { if (target && !pinned) { target.classList.add('expanded'); target.classList.add('expanded-left') } }
-        const leave = () => { if (target && !pinned) { target.classList.remove('expanded'); target.classList.remove('expanded-left') } }
+        const toggle = (add) => { if (target) { target.classList.toggle('expanded', add); target.classList.toggle('expanded-left', add) }; document.body.classList.toggle('sidebar-expanded', add) }
+        const enter = () => { if (!pinned) toggle(true) }
+        const leave = () => { if (!pinned) toggle(false) }
         el.addEventListener('mouseenter', enter)
         el.addEventListener('mouseleave', leave)
         return () => {
             el.removeEventListener('mouseenter', enter)
             el.removeEventListener('mouseleave', leave)
-            if (target) { target.classList.remove('expanded'); target.classList.remove('expanded-left') }
+            toggle(false)
         }
     }, [pinned])
 
@@ -138,6 +139,7 @@ const SideNavigation = ({ mode = 'instructor' }) => {
                     setPinned(p => !p)
                     const target = navRef.current ? navRef.current.parentElement : null
                     if (target) { target.classList.toggle('expanded'); target.classList.toggle('expanded-left') }
+                    document.body.classList.toggle('sidebar-expanded')
                 }} style={{ cursor: 'pointer' }} />
             </div>
 

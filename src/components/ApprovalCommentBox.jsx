@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { Search, X, CheckCircle, AlertCircle } from 'react-feather'
+import { Search, X, Maximize, Minimize2, CheckCircle, AlertCircle } from 'react-feather'
 import styles from '../styles/ApprovalCommentBox.module.sass'
 import { getReferences } from '../utils/referenceLibrary.js'
 import { getReviewerByRole, getReviewerSeedData, normalizeRoleKey, isDeprecated, hasIssues } from '../utils/approvalHelpers.js'
@@ -31,6 +31,7 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
   const [commentedRefIds, setCommentedRefIds] = useState([])
   const [submitting, setSubmitting] = useState(false)
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false)
+  const [isFullscreen, setIsFullscreen] = useState(false)
   const firstTextareaRef = useRef(null)
 
   useEffect(() => {
@@ -171,6 +172,18 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
     setComments((prev) => (prev.length === 1 ? prev : prev.filter((c) => c.id !== commentId)))
   }
 
+  useEffect(() => {
+    if (!show) return
+    const onKey = (e) => {
+      if (e.key === 'Escape') {
+        if (isFullscreen) setIsFullscreen(false)
+        else onClose()
+      }
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [isFullscreen, onClose, show])
+
   if (!show) return null
 
   const commentsWithText = comments.filter((c) => c.text && c.text.trim())
@@ -181,6 +194,7 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
   const hasUnsavedChanges = comments.some(c => c.text?.trim())
   const handleClose = () => {
     if (!readOnly && hasUnsavedChanges) { setShowDiscardConfirm(true); return }
+    if (isFullscreen) { setIsFullscreen(false); return }
     onClose()
   }
   const confirmDiscard = () => { setShowDiscardConfirm(false); onClose() }
@@ -363,12 +377,21 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
           {toast.msg}
         </div>
       )}
-    <div role="dialog" aria-modal="true" aria-label="Comments" className={styles.overlay}>
-      <div className={styles.modal}>
-        <div className={styles.header}>
-          <h3>{readOnly ? 'Previous Comments' : (isDirector ? 'Comment & Suggest References' : 'Comments')}</h3>
-          <button onClick={handleClose} aria-label="Close" style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: 22, color: '#6b7280', width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 12 }}><X size={20} /></button>
+    {!isFullscreen && <div onClick={handleClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 2999 }} />}
+    <div role="dialog" aria-modal="true" aria-label="Comments" style={isFullscreen ? { position: 'fixed', inset: 0, zIndex: 3000, background: '#fff', display: 'flex', flexDirection: 'column', overflow: 'hidden', width: '100%', maxHeight: '100%', borderRadius: 0 } : { position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: 3000 }} className={styles.modal}>
+      <div className={styles.header}>
+        <h3>{readOnly ? 'Previous Comments' : (isDirector ? 'Comment & Suggest References' : 'Comments')}</h3>
+        <div style={{ display: 'flex', gap: 6 }}>
+          <button onClick={() => setIsFullscreen(v => !v)} title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'} aria-label="Toggle fullscreen" style={{ background: '#fff', border: '1px solid #e2e8f0', cursor: 'pointer', color: '#334155', width: 32, height: 32, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: 6, padding: 0, lineHeight: 0, transition: 'all 0.15s' }}
+            onMouseEnter={e => { e.currentTarget.style.background = '#f1f5f9'; e.currentTarget.style.borderColor = '#cbd5e1'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.borderColor = '#e2e8f0'; }}
+          >{isFullscreen ? <Minimize2 size={14} /> : <Maximize size={14} />}</button>
+          <button onClick={handleClose} aria-label="Close" style={{ background: '#E81123', border: '1px solid #E81123', cursor: 'pointer', color: '#fff', width: 32, height: 32, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: 6, padding: 0, lineHeight: 0, transition: 'all 0.15s' }}
+            onMouseEnter={e => { e.currentTarget.style.background = '#B91C1C'; e.currentTarget.style.borderColor = '#B91C1C'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = '#E81123'; e.currentTarget.style.color = '#fff'; e.currentTarget.style.borderColor = '#E81123'; }}
+          ><X size={14} /></button>
         </div>
+      </div>
 
         <div className={styles.body}>
           {readOnly ? (
@@ -552,9 +575,8 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
             ))}
           </div>
         )}
-        <div className={styles.actions}>
-          <button onClick={handleClose} className={`${styles.cancel}`}>{readOnly ? 'Close' : 'Cancel'}</button>
-          {!readOnly && (isDirector ? (
+        {!readOnly && <div className={styles.actions}>
+          {isDirector ? (
             <button
               onClick={handleDirectorSubmit}
               disabled={!comments[0]?.text?.trim() || submitting}
@@ -564,9 +586,8 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
             </button>
           ) : (
             <button onClick={handleSubmit} disabled={saveDisabled || submitting} className={`${styles.submit} ${saveDisabled || submitting ? styles.disabled : ''}`}>Return with Comments</button>
-           ))}
-        </div>
-      </div>
+          )}
+        </div>}
       </div>
       {showDiscardConfirm && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000, backdropFilter: 'blur(2px)' }} onClick={cancelDiscard}>
