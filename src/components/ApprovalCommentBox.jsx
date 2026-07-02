@@ -579,8 +579,8 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
           {isDirector ? (
             <button
               onClick={handleDirectorSubmit}
-              disabled={!comments[0]?.text?.trim() || submitting}
-              className={`${styles.submit} ${!comments[0]?.text?.trim() || submitting ? styles.disabled : ''}`}
+              disabled={(!comments[0]?.text?.trim() && commentedRefIds.length === 0 && selectedRefs.length === 0) || submitting}
+              className={`${styles.submit} ${(!comments[0]?.text?.trim() && commentedRefIds.length === 0 && selectedRefs.length === 0) || submitting ? styles.disabled : ''}`}
             >
               Return with Comments
             </button>
