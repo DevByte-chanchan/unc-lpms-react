@@ -4,19 +4,17 @@ import SkeletonA from '../../../layouts/SkeletonA.jsx';
 import HeaderA from '../../../components/HeaderA.jsx';
 import SideNavigation from '../../../components/SideNavigation.jsx';
 import PDFViewerModal from '../../../components/PDFViewerModal.jsx';
-
-const TEST_PDF = 'https://pdfobject.com/pdf/sample.pdf';
+import { buildPoPeoHtml } from '../../../utils/syllabusPdfHtml.js';
+import unclogo from '../../../assets/unclogo.png';
 
 const docList = [
-  { id: '1', name: 'BSCS_PO_PEO_AY2425.pdf', file_name: 'BSCS_PO_PEO_AY2425.pdf', uploadedBy: 'DANILA, JUNAR', uploadDate: 'Jan 5, 2025', file_url: TEST_PDF, instructor_name: 'DANILA, JUNAR', course_id: 'BSCS 313L', course_name: 'Software Engineering', submission_date: '2025-01-05', period_label: 'AY 2024-2025, 2nd Sem' },
-  { id: '2', name: 'BSIT_PO_PEO_AY2425.pdf', file_name: 'BSIT_PO_PEO_AY2425.pdf', uploadedBy: 'DANILA, JUNAR', uploadDate: 'Jan 5, 2025', file_url: TEST_PDF, instructor_name: 'DANILA, JUNAR', course_id: 'BSIT 212L', course_name: 'Mobile Application Development', submission_date: '2025-01-05', period_label: 'AY 2024-2025, 2nd Sem' },
-];
-
-const A4_PAPER = {
-  maxWidth: 816, margin: '0 auto', background: '#FFFFFF',
-  boxShadow: '0 2px 12px rgba(0,0,0,0.08)', padding: 48,
-  fontFamily: "'Poppins', 'Times New Roman', serif",
-};
+  { id: '1', name: 'BSCS_PO_PEO_AY2425_2ndSem.pdf', file_name: 'BSCS_PO_PEO_AY2425_2ndSem.pdf', uploadedBy: 'DANILA, JUNAR', uploadDate: 'Jan 5, 2025', file_url: null, instructor_name: 'DANILA, JUNAR', course_id: 'BSCS 313L', course_name: 'Software Engineering', submission_date: '2025-01-05', period_label: 'AY 2024-2025, 2nd Sem' },
+  { id: '2', name: 'BSIT_PO_PEO_AY2425_2ndSem.pdf', file_name: 'BSIT_PO_PEO_AY2425_2ndSem.pdf', uploadedBy: 'DANILA, JUNAR', uploadDate: 'Jan 5, 2025', file_url: null, instructor_name: 'DANILA, JUNAR', course_id: 'BSIT 212L', course_name: 'Mobile Application Development', submission_date: '2025-01-05', period_label: 'AY 2024-2025, 2nd Sem' },
+  { id: '3', name: 'BSCS_PO_PEO_AY2425_1stSem.pdf', file_name: 'BSCS_PO_PEO_AY2425_1stSem.pdf', uploadedBy: 'DANILA, JUNAR', uploadDate: 'Aug 12, 2024', file_url: null, instructor_name: 'DANILA, JUNAR', course_id: 'BSCS 322L', course_name: 'Software Engineering II', submission_date: '2024-08-12', period_label: 'AY 2024-2025, 1st Sem' },
+  { id: '4', name: 'BSIT_PO_PEO_AY2425_1stSem.pdf', file_name: 'BSIT_PO_PEO_AY2425_1stSem.pdf', uploadedBy: 'DANILA, JUNAR', uploadDate: 'Aug 10, 2024', file_url: null, instructor_name: 'DANILA, JUNAR', course_id: 'BSIT 311', course_name: 'Web Systems & Technologies', submission_date: '2024-08-10', period_label: 'AY 2024-2025, 1st Sem' },
+  { id: '5', name: 'BSCS_PO_PEO_AY2324_2ndSem.pdf', file_name: 'BSCS_PO_PEO_AY2324_2ndSem.pdf', uploadedBy: 'DANILA, JUNAR', uploadDate: 'Feb 1, 2024', file_url: null, instructor_name: 'DANILA, JUNAR', course_id: 'BSCS 211', course_name: 'Object-Oriented Programming', submission_date: '2024-02-01', period_label: 'AY 2023-2024, 2nd Sem' },
+  { id: '6', name: 'BSIT_PO_PEO_AY2324_2ndSem.pdf', file_name: 'BSIT_PO_PEO_AY2324_2ndSem.pdf', uploadedBy: 'DANILA, JUNAR', uploadDate: 'Jan 28, 2024', file_url: null, instructor_name: 'DANILA, JUNAR', course_id: 'BSIT 211', course_name: 'Database Management Systems', submission_date: '2024-01-28', period_label: 'AY 2023-2024, 2nd Sem' },
+]
 
 const CURRENT_YEAR = new Date().getFullYear();
 const yearOptions = [];
@@ -27,6 +25,25 @@ const PoPeoAlignment = () => {
   const [showModal, setShowModal] = useState(false);
   const [uploadFile, setUploadFile] = useState(null);
   const fileInputRef = useRef(null);
+
+  const handleView = async (doc) => {
+    let logoBase64 = ''
+    try {
+      const resp = await fetch(unclogo)
+      if (resp.ok) {
+        const blob = await resp.blob()
+        logoBase64 = await new Promise((resolve) => {
+          const reader = new FileReader()
+          reader.onload = () => resolve(reader.result)
+          reader.readAsDataURL(blob)
+        })
+      }
+    } catch { console.warn('Logo fetch failed') }
+    const html = buildPoPeoHtml(logoBase64)
+    const blob = new Blob([html], { type: 'text/html' })
+    const url = URL.createObjectURL(blob)
+    setSelectedFile({ ...doc, file_url: url })
+  }
 
   const content = (
     <div style={{ display: 'flex', flexDirection: 'column', width: '100%', height: '100%', gap: 10, padding: '20px 30px', background: '#FFFFFF', boxSizing: 'border-box' }}>
@@ -45,7 +62,7 @@ const PoPeoAlignment = () => {
           style={{
             display: 'flex', flexDirection: 'row', justifyContent: 'center', alignItems: 'center',
             padding: '8px 18px', gap: 8, height: 40,
-            background: '#EA1212', borderRadius: 6, color: '#fff', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap', fontSize: 14
+            background: '#1F2937', borderRadius: 6, color: '#fff', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap', fontSize: 14
           }}
         >
           <Upload size={18} color="#FFFFFF" /> Upload PO &amp; PEO Alignment
@@ -64,7 +81,7 @@ const PoPeoAlignment = () => {
               <tr key={doc.id}>
                 <td style={{ flex: 1 }}>{doc.name}</td>
                 <td style={{ width: 120, textAlign: 'right', fontWeight: 500 }}>
-                  <span className="actionLink" style={{ minWidth: 90, display: 'inline-flex', alignItems: 'center', gap: 5, cursor: 'pointer' }} onClick={() => setSelectedFile(doc)}>
+                  <span className="actionLink" style={{ minWidth: 90, display: 'inline-flex', alignItems: 'center', gap: 5, cursor: 'pointer' }} onClick={() => handleView(doc)}>
                     View <ChevronRight size={16} />
                   </span>
                 </td>
@@ -122,7 +139,10 @@ const PoPeoAlignment = () => {
         <PDFViewerModal
           file={selectedFile}
           kind="PO & PEO Alignment"
-          onClose={() => setSelectedFile(null)}
+          onClose={() => {
+            if (selectedFile.file_url?.startsWith('blob:')) URL.revokeObjectURL(selectedFile.file_url)
+            setSelectedFile(null)
+          }}
           onExport={(f) => {
             if (f.file_url) {
               const a = document.createElement('a');
@@ -133,32 +153,10 @@ const PoPeoAlignment = () => {
               alert('No file URL available for export.');
             }
           }}
-        >
-          <div style={A4_PAPER}>
-            <div style={{ textAlign: 'center', marginBottom: 32, borderBottom: '2px solid #1e3a5f', paddingBottom: 16 }}>
-              <div style={{ fontSize: 18, fontWeight: 700, color: '#1e3a5f', letterSpacing: '0.02em' }}>
-                Program Outcomes & Program Educational Outcomes Alignment
-              </div>
-              <div style={{ fontSize: 12, color: '#64748B', marginTop: 6 }}>
-                {selectedFile.name}
-              </div>
-            </div>
-            <div style={{ marginBottom: 24, fontSize: 13, color: '#334155', lineHeight: 1.6 }}>
-              <p style={{ margin: '0 0 8px' }}><strong>Document:</strong> {selectedFile.name}</p>
-              <p style={{ margin: '0 0 8px' }}><strong>Uploaded by:</strong> {selectedFile.uploadedBy}</p>
-              <p style={{ margin: 0 }}><strong>Date:</strong> {selectedFile.uploadDate}</p>
-            </div>
-            <div style={{ fontSize: 13, color: '#64748B', fontStyle: 'italic', textAlign: 'center', marginTop: 40, padding: 20, border: '1px dashed #CBD5E1', borderRadius: 8 }}>
-              The aligned document content will be displayed here once the PDF is available.
-            </div>
-            <div style={{ marginTop: 32, fontSize: 10, color: '#94A3B8', borderTop: '1px solid #E2E8F0', paddingTop: 12, textAlign: 'center' }}>
-              University of Nueva Caceres &middot; Learning Plan Management System
-            </div>
-          </div>
-        </PDFViewerModal>
+        />
       )}
     </div>
-  );
+  )
 
   return (
     <SkeletonA
@@ -166,7 +164,7 @@ const PoPeoAlignment = () => {
       nav={<SideNavigation mode="program-head" />}
       content={content}
     />
-  );
-};
+  )
+}
 
-export default PoPeoAlignment;
+export default PoPeoAlignment

@@ -1,4 +1,5 @@
 import { syllabiData as staticSyllabi } from '../data/syllabiData.js'
+import { enrichSyllabi } from '../data/syllabiDataEnricher.js'
 
 const SYLLABI_KEY = 'lpms_syllabi_v1'
 const SUGGESTIONS_KEY = 'lpms_suggestions_v1'
@@ -6,10 +7,17 @@ const SUGGESTIONS_KEY = 'lpms_suggestions_v1'
 function initSyllabi() {
   try {
     const raw = localStorage.getItem(SYLLABI_KEY)
-    if (raw) return JSON.parse(raw)
-  } catch (e) {}
-  localStorage.setItem(SYLLABI_KEY, JSON.stringify(staticSyllabi))
-  return [...staticSyllabi]
+    if (raw) {
+      const data = JSON.parse(raw)
+      enrichSyllabi(data)
+      localStorage.setItem(SYLLABI_KEY, JSON.stringify(data))
+      return data
+    }
+  } catch (e) { console.warn('Failed to parse stored syllabi, reinitializing:', e) }
+  const enriched = [...staticSyllabi]
+  enrichSyllabi(enriched)
+  localStorage.setItem(SYLLABI_KEY, JSON.stringify(enriched))
+  return enriched
 }
 
 const normalizeInstructor = (s) => {

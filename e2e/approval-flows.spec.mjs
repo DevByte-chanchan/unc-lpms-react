@@ -1,22 +1,9 @@
 import { chromium } from 'playwright'
+import { testRefs as refs, workflow } from './fixtures.mjs'
 
 const BASE = 'http://localhost:5174'
 const STORAGE_KEY = 'lpsm_workflow_v1'
 const COMMENTS_KEY = 'approval_comments_v1'
-
-const workflow = (overrides = {}) => ({
-  courseCode: 'BSCS331L',
-  currentStage: 'submitted',
-  submittedAt: new Date().toISOString(),
-  parallelReview: {
-    library_director: { status: 'pending', completedAt: null },
-    industry_consultant: { status: 'pending', completedAt: null },
-    program_head: { status: 'pending', completedAt: null }
-  },
-  programHead: { status: 'pending', completedAt: null },
-  dean: { status: 'pending', completedAt: null },
-  ...overrides
-})
 
 async function run() {
   const browser = await chromium.launch({ headless: true })
@@ -40,16 +27,8 @@ async function run() {
 
   // ======== CR-01: Toast visibility after comment submission ========
   await test('CR-01: Toast visible after comment submit (not swallowed by onClose)', async (page) => {
-    // Pre-seed library refs to prevent auto-seed from creating test comments
-    const testRefs = [
-      { id: 'TB-DEP-001', numericId: 9991, title: 'Test Ref', type: 'Textbook', year: 2009, authors: 'Test', isbn: '', publisher: '', uploadDate: '2015-01-01', hasIssue: false, archived: false, departments: [], programs: [], usedInCourses: [] },
-      { id: 'OR-ISS-001', numericId: 9992, title: 'Test Ref 2', type: 'Online Resources', year: 2014, authors: 'Test', isbn: '', link: '', publisher: '', uploadDate: '2016-01-01', hasIssue: true, archived: false, departments: [], programs: [], usedInCourses: [] },
-      { id: 'OE-DEP-002', numericId: 9993, title: 'Test Ref 3', type: 'Open Educational Resources', year: 2010, authors: 'Test', isbn: '', link: '', publisher: '', uploadDate: '2012-01-01', hasIssue: false, archived: false, departments: [], programs: [], usedInCourses: [] },
-      { id: 'TB-VOLD-001', numericId: 10001, title: 'Test Ref 4', type: 'Textbook', year: 1978, authors: 'Test', isbn: '', publisher: '', uploadDate: '1985-01-01', hasIssue: false, archived: false, departments: [], programs: [], usedInCourses: [] },
-      { id: 'NUR-OBS-001', numericId: 10002, title: 'Test Ref 5', type: 'Online Resources', year: 1999, authors: 'Test', isbn: '', link: '', publisher: '', uploadDate: '2001-01-01', hasIssue: true, archived: false, departments: [], programs: [], usedInCourses: [] },
-    ]
     await page.goto(BASE)
-    await page.evaluate((refs) => localStorage.setItem('lpsm_reference_library_v1', JSON.stringify(refs)), testRefs)
+    await page.evaluate((data) => localStorage.setItem('lpsm_reference_library_v1', JSON.stringify(data)), refs)
     await page.evaluate(() => localStorage.removeItem('approval_comments_v1'))
     await page.evaluate(() => localStorage.removeItem('approval_comment_draft_v1'))
     await page.evaluate(() => localStorage.setItem('lpsm_workflow_v1', JSON.stringify({ 'BSCS331L': { courseCode: 'BSCS331L', currentStage: 'parallel_review', submittedAt: new Date().toISOString(), parallelReview: { library_director: { status: 'pending' }, industry_consultant: { status: 'pending' }, program_head: { status: 'pending' } }, programHead: { status: 'pending' }, dean: { status: 'pending' } } })))
@@ -94,15 +73,8 @@ async function run() {
 
   // ======== CR-02: No orphan comments with empty courseCode ========
   await test('CR-02: Director path does not create orphan comments (courseCode:"")', async (page) => {
-    const testRefs = [
-      { id: 'TB-DEP-001', numericId: 9991, title: 'Test Ref', type: 'Textbook', year: 2009, authors: 'Test', isbn: '', publisher: '', uploadDate: '2015-01-01', hasIssue: false, archived: false, departments: [], programs: [], usedInCourses: [] },
-      { id: 'OR-ISS-001', numericId: 9992, title: 'Test Ref 2', type: 'Online Resources', year: 2014, authors: 'Test', isbn: '', link: '', publisher: '', uploadDate: '2016-01-01', hasIssue: true, archived: false, departments: [], programs: [], usedInCourses: [] },
-      { id: 'OE-DEP-002', numericId: 9993, title: 'Test Ref 3', type: 'Open Educational Resources', year: 2010, authors: 'Test', isbn: '', link: '', publisher: '', uploadDate: '2012-01-01', hasIssue: false, archived: false, departments: [], programs: [], usedInCourses: [] },
-      { id: 'TB-VOLD-001', numericId: 10001, title: 'Test Ref 4', type: 'Textbook', year: 1978, authors: 'Test', isbn: '', publisher: '', uploadDate: '1985-01-01', hasIssue: false, archived: false, departments: [], programs: [], usedInCourses: [] },
-      { id: 'NUR-OBS-001', numericId: 10002, title: 'Test Ref 5', type: 'Online Resources', year: 1999, authors: 'Test', isbn: '', link: '', publisher: '', uploadDate: '2001-01-01', hasIssue: true, archived: false, departments: [], programs: [], usedInCourses: [] },
-    ]
     await page.goto(BASE)
-    await page.evaluate((refs) => localStorage.setItem('lpsm_reference_library_v1', JSON.stringify(refs)), testRefs)
+    await page.evaluate((data) => localStorage.setItem('lpsm_reference_library_v1', JSON.stringify(data)), refs)
     await page.evaluate(() => localStorage.removeItem('approval_comments_v1'))
     await page.evaluate(() => localStorage.setItem('lpsm_workflow_v1', JSON.stringify({ 'BSCS331L': { courseCode: 'BSCS331L', currentStage: 'parallel_review', submittedAt: new Date().toISOString(), parallelReview: { library_director: { status: 'pending' }, industry_consultant: { status: 'pending' }, program_head: { status: 'pending' } }, programHead: { status: 'pending' }, dean: { status: 'pending' } } })))
 

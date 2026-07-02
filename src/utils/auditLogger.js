@@ -104,11 +104,11 @@ export const getErrorLog = (limit = 50) => {
 }
 
 export const clearActivityLog = () => {
-  try { localStorage.removeItem(ACTIVITY_KEY) } catch {}
+  try { localStorage.removeItem(ACTIVITY_KEY) } catch { console.warn('Failed to clear activity log') }
 }
 
 export const clearErrorLog = () => {
-  try { localStorage.removeItem('lpsm_audit_errors_v1') } catch {}
+  try { localStorage.removeItem('lpsm_audit_errors_v1') } catch { console.warn('Failed to clear error log') }
 }
 
 export const logDocumentAction = (action, documentId, details = {}) => {

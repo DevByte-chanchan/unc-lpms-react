@@ -1,15 +1,6 @@
 import React from 'react'
 import { Navigate } from 'react-router-dom'
-import { getRoleIdentity } from '../utils/roleIdentities'
-
-const ALLOWED_ROLES = {
-  instructor: ['instructor'],
-  'program-head': ['program-head', 'program_head'],
-  dean: ['dean'],
-  'director-of-libraries': ['director-of-libraries', 'director_of_libraries'],
-  'industry-consultant': ['industry-consultant', 'industry_consultant'],
-  'vpaa': ['vpaa', 'vpaa']
-}
+import { ALLOWED_ROLES } from '../utils/roleGuard'
 
 const ProtectedRoute = ({ children, allowedRoles, fallbackPath = '/' }) => {
   try {

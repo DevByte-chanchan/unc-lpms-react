@@ -216,7 +216,7 @@ const AssessmentForm = () => {
     }
 
     const handleConfirmSave = () => {
-        console.log("Saving assessment:", {
+        if (import.meta.env.DEV) console.log("Saving assessment:", {
             method,
             description,
             rubric,

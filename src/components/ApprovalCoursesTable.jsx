@@ -67,7 +67,7 @@ const ApprovalCoursesTable = ({ role = 'approver' }) => {
             reader.onload = () => resolve(reader.result)
             reader.readAsDataURL(blob)
           })
-        } catch {}
+        } catch { console.warn('Logo fetch failed') }
 
         const html = buildSyllabusHtml(syllabus, getCode(row), workflow, logoBase64)
         const blob = new Blob([html], { type: 'text/html' })

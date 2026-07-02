@@ -1,4 +1,4 @@
-const ALLOWED_ROLES = {
+export const ALLOWED_ROLES = {
   instructor: ['instructor'],
   'program-head': ['program-head', 'program_head'],
   dean: ['dean'],

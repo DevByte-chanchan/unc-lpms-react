@@ -553,6 +553,53 @@ export function seedDemoWorkflows() {
       programHead: { status: 'pending', completedAt: null },
       dean: { status: 'pending', completedAt: null }
     }},
+    // --- New courses (dummy data for populated syllabus entries) ---
+    { code: 'IT 313', data: {
+      courseCode: 'IT 313', currentStage: 'parallel_review',
+      submittedAt: d(10),
+      parallelReview: { library_director: { status: 'done', completedAt: d(6) }, industry_consultant: { status: 'pending', completedAt: null }, program_head: { status: 'pending', completedAt: null } },
+      programHead: { status: 'pending', completedAt: null },
+      dean: { status: 'pending', completedAt: null }
+    }},
+    { code: 'BSCS 422L', data: {
+      courseCode: 'BSCS 422L', currentStage: 'parallel_review',
+      submittedAt: d(8),
+      parallelReview: { library_director: { status: 'pending', completedAt: null }, industry_consultant: { status: 'done', completedAt: d(4) }, program_head: { status: 'pending', completedAt: null } },
+      programHead: { status: 'pending', completedAt: null },
+      dean: { status: 'pending', completedAt: null }
+    }},
+    { code: 'IT 431', data: {
+      courseCode: 'IT 431', currentStage: 'returned',
+      submittedAt: d(20),
+      parallelReview: { library_director: { status: 'done', completedAt: d(16) }, industry_consultant: { status: 'returned', completedAt: d(14) }, program_head: { status: 'done', completedAt: d(12) } },
+      programHead: { status: 'done', completedAt: d(12) },
+      dean: { status: 'pending', completedAt: null },
+      vpaa: { status: 'pending', completedAt: null }
+    }},
+    { code: 'BSCS 432L', data: {
+      courseCode: 'BSCS 432L', currentStage: 'returned',
+      submittedAt: d(16),
+      parallelReview: { library_director: { status: 'done', completedAt: d(12) }, industry_consultant: { status: 'done', completedAt: d(11) }, program_head: { status: 'returned', completedAt: d(9) } },
+      programHead: { status: 'returned', completedAt: d(9) },
+      dean: { status: 'pending', completedAt: null },
+      vpaa: { status: 'pending', completedAt: null }
+    }},
+    { code: 'IT 441', data: {
+      courseCode: 'IT 441', currentStage: 'approved',
+      submittedAt: d(30),
+      parallelReview: { library_director: { status: 'done', completedAt: d(26) }, industry_consultant: { status: 'done', completedAt: d(25) }, program_head: { status: 'done', completedAt: d(24) } },
+      programHead: { status: 'done', completedAt: d(24) },
+      dean: { status: 'done', completedAt: d(14) },
+      vpaa: { status: 'done', completedAt: d(10) }
+    }},
+    { code: 'BSCS 442L', data: {
+      courseCode: 'BSCS 442L', currentStage: 'approved',
+      submittedAt: d(25),
+      parallelReview: { library_director: { status: 'done', completedAt: d(21) }, industry_consultant: { status: 'done', completedAt: d(20) }, program_head: { status: 'done', completedAt: d(19) } },
+      programHead: { status: 'done', completedAt: d(19) },
+      dean: { status: 'done', completedAt: d(9) },
+      vpaa: { status: 'done', completedAt: d(5) }
+    }},
   ]
 
   const all = _readAll()

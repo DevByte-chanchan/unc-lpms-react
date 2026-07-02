@@ -70,7 +70,7 @@ const LpmsNav = ({ role = 'instructor' }) => {
                 }
             })
             ro.observe(navRef.current)
-        } catch (e) {}
+        } catch (e) { console.warn('ResizeObserver setup failed:', e) }
         return () => { if (ro && navRef.current) ro.disconnect() }
     }, [showPopup])
 

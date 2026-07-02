@@ -15,7 +15,7 @@ app.get('/health', (req, res) => res.json({ ok: true, service: 'tos' }))
 // placeholder routes
 app.get('/api/standards', (req, res) => res.json({ standards: [] }))
 
-const PORT = process.env.PORT || 4000
+const PORT = process.env.PORT || 4004
 app.listen(PORT, () => {
   console.log(`TOS service listening on ${PORT}`)
 })

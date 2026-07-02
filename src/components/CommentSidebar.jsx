@@ -15,7 +15,7 @@ const CommentSidebar = ({ courseCode, isOpen, onToggle, onCommentAdded }) => {
     try {
       const user = JSON.parse(localStorage.getItem('user') || '{}');
       setReviewer(user.name || 'Anonymous Reviewer');
-    } catch (e) {}
+    } catch (e) { console.warn('Failed to parse user from localStorage:', e) }
   }, [courseCode]);
 
   useEffect(() => {

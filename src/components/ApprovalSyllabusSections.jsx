@@ -424,7 +424,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
   ]
 
   const handleSubmitComment = (payload) => {
-    console.log('Submitted approval comment', { ...payload, role: roleKey })
+    if (import.meta.env.DEV) console.log('Submitted approval comment', { ...payload, role: roleKey })
     setSidebarCollapsed(false)
 
     try {
@@ -632,7 +632,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
                             reader.readAsDataURL(blob)
                           })
                         }
-                      } catch {}
+                      } catch { console.warn('Logo fetch failed') }
                       const wf = getWorkflow(codeToUse)
                       const html = buildSyllabusHtml(syllabus, codeToUse, wf, logoBase64)
                       const blob = new Blob([html], { type: 'text/html' })
@@ -972,7 +972,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
                                 <td className={stylesB.refDataCellLeft} style={{ width: 300 }}>{ref.title}</td>
                                 <td className={stylesB.refDataCellLeft} style={{ width: 200 }}>{ref.authors}</td>
                                 <td className={stylesB.refDataCellLeft} style={{ width: 200 }}>
-                                  {ref._type === 'TB' ? (ref.isbn || '-') : (ref.link && ref.link !== '#' ? <a href={ref.link} target="_blank" rel="noreferrer" className={stylesB.refUrlLink}>Open Resource</a> : '-')}
+                                  {ref._type === 'TB' ? (ref.isbn || '-') : (ref.link && ref.link !== '#' ? <a href={ref.link} target="_blank" rel="noreferrer" className={stylesB.refUrlLink}>{ref.link}</a> : '-')}
                                 </td>
                                 <td className={stylesB.refDataCellCenter} style={{ width: 100 }}>{ref.year || '-'}</td>
                               </tr>
@@ -1031,7 +1031,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
                                 <td className={stylesB.refDataCellLeft} style={{ width: 200 }}>{ref.authors}</td>
                                 <td className={stylesB.refDataCellLeft} style={{ width: 200 }}>
                                   {ref.link && ref.link !== '#' ? (
-                                    <a href={ref.link} target="_blank" rel="noreferrer" className={stylesB.refUrlLink}>Open Resource</a>
+                                    <a href={ref.link} target="_blank" rel="noreferrer" className={stylesB.refUrlLink}>{ref.link}</a>
                                   ) : '-'}
                                 </td>
                                 <td className={stylesB.refDataCellCenter} style={{ width: 100 }}>{ref.year || '-'}</td>
@@ -1063,7 +1063,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
                                 <td className={stylesB.refDataCellLeft} style={{ width: 200 }}>{ref.authors}</td>
                                 <td className={stylesB.refDataCellLeft} style={{ width: 200 }}>
                                   {ref.link && ref.link !== '#' ? (
-                                    <a href={ref.link} target="_blank" rel="noreferrer" className={stylesB.refUrlLink}>Visit Link</a>
+                                    <a href={ref.link} target="_blank" rel="noreferrer" className={stylesB.refUrlLink}>{ref.link}</a>
                                   ) : '-'}
                                 </td>
                                 <td className={stylesB.refDataCellCenter} style={{ width: 100 }}>{ref.year || '-'}</td>

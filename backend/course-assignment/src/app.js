@@ -15,7 +15,7 @@ app.get('/health', (req, res) => res.json({ ok: true, service: 'course-assignmen
 // placeholder routes
 app.get('/api/courses', (req, res) => res.json({ courses: [] }))
 
-const PORT = process.env.PORT || 4000
+const PORT = process.env.PORT || 4001
 app.listen(PORT, () => {
   console.log(`Course Assignment service listening on ${PORT}`)
 })

@@ -61,7 +61,7 @@ import { logActivity } from './utils/auditLogger';
   }
   // Version mismatch or first visit — clear old flags so seedDemoWorkflows runs fresh
   ;['lpsm_full_seed_v1', 'lpsm_workflow_seeded_v1', 'lpsm_workflow_seeded_v2', 'lpsm_workflow_seeded_v3'].forEach(k => {
-    try { localStorage.removeItem(k) } catch (e) {}
+    try { localStorage.removeItem(k) } catch (e) { console.warn('Failed to clear localStorage key:', k, e) }
   })
 
   const refPool = [
@@ -95,26 +95,6 @@ import { logActivity } from './utils/auditLogger';
 
 seedDemoWorkflows()
 
-// One-time migration: fix corrupted instructor names in localStorage
-;(function fixInstructorNames() {
-  const FLAG = 'lpsm_instructor_fix_v1'
-  if (localStorage.getItem(FLAG)) return
-  try {
-    const raw = localStorage.getItem('lpms_syllabi_v1')
-    if (raw) {
-      const data = JSON.parse(raw)
-      let changed = false
-      data.forEach(s => {
-        if (!s.instructor || s.instructor.toLowerCase().includes('norton') || s.instructor.toLowerCase().includes('monica')) {
-          s.instructor = 'CASIMERO, DANNY'
-          changed = true
-        }
-      })
-      if (changed) localStorage.setItem('lpms_syllabi_v1', JSON.stringify(data))
-    }
-  } catch (e) {}
-  localStorage.setItem(FLAG, '1')
-})()
 
 // Seed audit activity log if empty
 ;(function seedActivityLog() {

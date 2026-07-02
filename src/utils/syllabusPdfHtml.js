@@ -1,4 +1,5 @@
-const safe = (v, fallback = '—') => (v === null || v === undefined || v === '') ? fallback : String(v)
+import { escapeHtml } from './sanitize.js'
+const safe = (v, fallback = '—') => (v === null || v === undefined || v === '') ? fallback : escapeHtml(String(v))
 
 const fmtDate = (d) => {
   if (!d) return '—'
@@ -161,20 +162,20 @@ function page3(logo, total) {
         <td colspan="4" style="font-weight:700; border:1px solid #000; padding:2px 4px; text-align:center;">GRADUATE ATTRIBUTES</td>
       </tr>
       <tr>
-        <td style="width:20px; font-weight:700; border:1px solid #000; padding:2px 4px; text-align:center;">1</td>
-        <td style="width:20px; font-weight:700; border:1px solid #000; padding:2px 4px; text-align:center;">2</td>
-        <td style="width:20px; font-weight:700; border:1px solid #000; padding:2px 4px; text-align:center;">3</td>
+        <td style="width:34px; font-weight:700; border:1px solid #000; padding:2px 4px; text-align:center;">1</td>
+        <td style="width:34px; font-weight:700; border:1px solid #000; padding:2px 4px; text-align:center;">2</td>
+        <td style="width:34px; font-weight:700; border:1px solid #000; padding:2px 4px; text-align:center;">3</td>
         <td colspan="2" style="border:1px solid #000; padding:2px 4px; text-align:left;">By the time of graduation, the students of the <strong>BSIT</strong> program shall have the ability to:</td>
-        <td style="width:30px; font-weight:700; border:1px solid #000; padding:2px 4px; text-align:center;">EC</td>
-        <td style="width:30px; font-weight:700; border:1px solid #000; padding:2px 4px; text-align:center;">CL</td>
-        <td style="width:30px; font-weight:700; border:1px solid #000; padding:2px 4px; text-align:center;">ERC</td>
-        <td style="width:30px; font-weight:700; border:1px solid #000; padding:2px 4px; text-align:center;">LL</td>
+        <td style="width:36px; font-weight:700; border:1px solid #000; padding:2px 4px; text-align:center;">EC</td>
+        <td style="width:36px; font-weight:700; border:1px solid #000; padding:2px 4px; text-align:center;">CL</td>
+        <td style="width:36px; font-weight:700; border:1px solid #000; padding:2px 4px; text-align:center;">ERC</td>
+        <td style="width:36px; font-weight:700; border:1px solid #000; padding:2px 4px; text-align:center;">LL</td>
       </tr>
       ${poData.map((po, i) => `<tr>
         <td style="border:1px solid #000; padding:2px 4px; text-align:center;">${po.peos.includes(1) ? '&#x2714;' : ''}</td>
         <td style="border:1px solid #000; padding:2px 4px; text-align:center;">${po.peos.includes(2) ? '&#x2714;' : ''}</td>
         <td style="border:1px solid #000; padding:2px 4px; text-align:center;">${po.peos.includes(3) ? '&#x2714;' : ''}</td>
-        <td style="width:30px; font-weight:700; border:1px solid #000; padding:2px 4px; text-align:center;">PO${i + 1}</td>
+        <td style="width:52px; font-weight:700; border:1px solid #000; padding:2px 4px; text-align:center;">PO${i + 1}</td>
         <td style="border:1px solid #000; padding:2px 4px; text-align:justify; overflow-wrap:break-word;">${po.text}</td>
         <td style="border:1px solid #000; padding:2px 4px; text-align:center;">${po.gas.includes(1) ? '&#x2714;' : ''}</td>
         <td style="border:1px solid #000; padding:2px 4px; text-align:center;">${po.gas.includes(2) ? '&#x2714;' : ''}</td>
@@ -589,7 +590,7 @@ function resourcesToHtml(chunks, logo, startPageNum, total) {
       '<td style="' + CELL_CODE + '">' + v(spaceId ? (r.id || '').replace(/^(OE)(\d+)$/i, '$1 $2') : r.id) + '</td>' +
       '<td style="' + CELL + '">' + v(r.title) + '</td>' +
       '<td style="' + CELL + '">' + v(r.authors) + '</td>' +
-      '<td style="' + CELL + '">' + v(isLink ? r.link : r.isbn) + '</td>' +
+      '<td style="' + CELL + '">' + (isLink && r.link ? '<a href="' + r.link.replace(/"/g,'&quot;') + '" style="color:#0000EE; text-decoration:underline;">' + v(r.link) + '</a>' : v(r.isbn)) + '</td>' +
       '<td style="' + CELL + '">' + v(r.year != null ? '' + r.year : '') + '</td>' +
     '</tr>').join('\n')
     h += '</table>'
@@ -678,10 +679,10 @@ function page14(syllabus, workflow, logo, pageNum, total) {
           </tr>
         </table>
       </div>
-      <div style="width:36mm;">
+      <div style="width:50mm;">
         <table class="grading-table" style="font-size:7.5pt; table-layout:fixed;">
           <tr><th colspan="2" style="font-size:7.5pt; background:#fff; color:#000;">GRADING SCALE</th></tr>
-          <tr><th style="width:18mm; background:#fff; color:#000;">Percentage<br>Grade</th><th style="width:18mm; background:#fff; color:#000;">Equivalent<br>Grade</th></tr>
+          <tr><th style="width:25mm; background:#fff; color:#000;">Percentage Grade</th><th style="width:25mm; background:#fff; color:#000;">Equivalent Grade</th></tr>
           <tr><td class="center">99-100</td><td class="center">1.00</td></tr>
           <tr><td class="center">96-98</td><td class="center">1.25</td></tr>
           <tr><td class="center">93-95</td><td class="center">1.50</td></tr>
@@ -731,7 +732,7 @@ export function buildSyllabusHtml(syllabus, courseCode, workflow, logoBase64) {
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body { overflow: hidden; }
-  body, table, td, th, div, p, span { font-family: Arial, Helvetica, sans-serif; font-size: 9.5pt; color: #000; line-height: 1.3; overflow-wrap: break-word; word-break: break-word; min-height: 0; }
+  body, table, td, th, div, p, span { font-family: Arial, Helvetica, sans-serif; font-size: 9.5pt; color: #000; line-height: 1.3; overflow-wrap: break-word; word-break: normal; min-height: 0; }
   .page { box-sizing: border-box; position: relative; display: flex; flex-direction: column; }
   .page > * { min-height: 0; }
   @media screen {
@@ -790,4 +791,165 @@ export function buildSyllabusHtml(syllabus, courseCode, workflow, logoBase64) {
   ]
 
   return HEAD + allPages.join('\n') + FOOT
+}
+
+const alignmentHead = `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { overflow: hidden; }
+  body, table, td, th, div, p, span { font-family: Arial, Helvetica, sans-serif; font-size: 9.5pt; color: #000; line-height: 1.3; overflow-wrap: break-word; word-break: normal; min-height: 0; }
+  .page { box-sizing: border-box; position: relative; display: flex; flex-direction: column; }
+  .page > * { min-height: 0; }
+  @media screen {
+    .page { background: #fff; box-shadow: 0 2px 16px rgba(0,0,0,0.12); margin: 24px auto; width: 330mm; height: 216mm; overflow: visible; padding: 50px 75px 35px 75px; page-break-after: always; }
+  }
+  @media print {
+    html, body { overflow: visible; }
+    .page { box-shadow: none; margin: 0; width: 330mm; height: 216mm; overflow: hidden; padding: 50px 75px 35px 75px; page-break-after: always; }
+  }
+  @page { size: 330mm 216mm; margin: 0; }
+  .page-break { page-break-after: always; }
+  table { width: 100%; border-collapse: collapse; font-size: 10pt; margin-bottom: 2mm; }
+  th, td { border: 1px solid #000; padding: 1mm 1.5mm; text-align: left; vertical-align: top; }
+</style>
+</head>
+<body>`
+
+const alignmentFoot = `</body></html>`
+
+export function buildPoPeoHtml(logoBase64) {
+  const logo = logoBase64 || null
+  const poData = [
+    { text: 'Apply knowledge in computing, science, and mathematics in developing IT solutions.', peos: [1,2], gas: [2,3,4] },
+    { text: 'Apply best practices and standards in developing IT solutions.', peos: [1,2], gas: [3,4] },
+    { text: 'Define the computing requirements appropriate to the solution of a complex problem.', peos: [1,2], gas: [1,3,4] },
+    { text: 'Analyze user needs in the selection, creation, evaluation, and administration of computer-based systems.', peos: [1,2], gas: [1,3,4] },
+    { text: 'Develop IT solutions to meet the needs and requirements under various constraints.', peos: [1,2,3], gas: [1,2] },
+    { text: 'Integrate IT-based solutions into the user environment.', peos: [1,2,3], gas: [1,3,4] },
+    { text: 'Apply knowledge through the use of current techniques, skills, tools, and practices necessary for the IT profession.', peos: [1,3], gas: [1,2,3,4] },
+    { text: 'Function effectively as a member or leader of a development team recognizing the different roles to accomplish common goals.', peos: [1,3], gas: [1,2,3] },
+    { text: 'Provide technical assistance in the creation of an effective IT project plan.', peos: [1,3], gas: [1,3] },
+    { text: 'Communicate effectively, both oral and written with the computing community and society.', peos: [1,2,3], gas: [1,2,3,4] },
+    { text: 'Analyze the local and global impact of computing information technology on individuals, organizations, and society.', peos: [2,3], gas: [3,4] },
+    { text: 'Apply appropriate professional, ethical, and legal practices in the utilization of information technology.', peos: [1,2,3], gas: [1,2,3] },
+    { text: 'Develop the skills needed to engage in independent and lifelong learning.', peos: [2,3], gas: [2,4] },
+  ]
+  const body = `<div class="page page-break">
+    ${pageHeader(logo)}
+    <table style="width:100%; border-collapse:collapse; font-family:Arial,Helvetica,sans-serif; font-size:9pt;">
+      <tr>
+        <td colspan="9" style="font-weight:700; border:1px solid #000; padding:3px 5px;">PROGRAM OUTCOMES (POs) AND ITS RELATIONSHIP TO PROGRAM EDUCATIONAL OBJECTIVES (PEOs)</td>
+      </tr>
+      <tr>
+        <td colspan="3" style="font-weight:700; border:1px solid #000; padding:2px 4px; text-align:center;">PEOs</td>
+        <td colspan="2" style="font-weight:700; border:1px solid #000; padding:2px 4px; text-align:center;">PROGRAM OUTCOMES (POs)</td>
+        <td colspan="4" style="font-weight:700; border:1px solid #000; padding:2px 4px; text-align:center;">GRADUATE ATTRIBUTES</td>
+      </tr>
+      <tr>
+        <td style="width:34px; font-weight:700; border:1px solid #000; padding:2px 4px; text-align:center;">1</td>
+        <td style="width:34px; font-weight:700; border:1px solid #000; padding:2px 4px; text-align:center;">2</td>
+        <td style="width:34px; font-weight:700; border:1px solid #000; padding:2px 4px; text-align:center;">3</td>
+        <td colspan="2" style="border:1px solid #000; padding:2px 4px; text-align:left;">By the time of graduation, the students of the <strong>BSIT</strong> program shall have the ability to:</td>
+        <td style="width:36px; font-weight:700; border:1px solid #000; padding:2px 4px; text-align:center;">EC</td>
+        <td style="width:36px; font-weight:700; border:1px solid #000; padding:2px 4px; text-align:center;">CL</td>
+        <td style="width:36px; font-weight:700; border:1px solid #000; padding:2px 4px; text-align:center;">ERC</td>
+        <td style="width:36px; font-weight:700; border:1px solid #000; padding:2px 4px; text-align:center;">LL</td>
+      </tr>
+      ${poData.map((po, i) => `<tr>
+        <td style="border:1px solid #000; padding:2px 4px; text-align:center;">${po.peos.includes(1) ? '&#x2714;' : ''}</td>
+        <td style="border:1px solid #000; padding:2px 4px; text-align:center;">${po.peos.includes(2) ? '&#x2714;' : ''}</td>
+        <td style="border:1px solid #000; padding:2px 4px; text-align:center;">${po.peos.includes(3) ? '&#x2714;' : ''}</td>
+        <td style="width:52px; font-weight:700; border:1px solid #000; padding:2px 4px; text-align:center;">PO${i + 1}</td>
+        <td style="border:1px solid #000; padding:2px 4px; text-align:justify; overflow-wrap:break-word;">${po.text}</td>
+        <td style="border:1px solid #000; padding:2px 4px; text-align:center;">${po.gas.includes(1) ? '&#x2714;' : ''}</td>
+        <td style="border:1px solid #000; padding:2px 4px; text-align:center;">${po.gas.includes(2) ? '&#x2714;' : ''}</td>
+        <td style="border:1px solid #000; padding:2px 4px; text-align:center;">${po.gas.includes(3) ? '&#x2714;' : ''}</td>
+        <td style="border:1px solid #000; padding:2px 4px; text-align:center;">${po.gas.includes(4) ? '&#x2714;' : ''}</td>
+      </tr>`).join('\n      ')}
+    </table>
+    ${pageFooter(1, 1)}
+  </div>`
+  return alignmentHead + body + alignmentFoot
+}
+
+export function buildCoPoHtml(cos, courseCode, courseName, logoBase64) {
+  const logo = logoBase64 || null
+  const coRows = cos.map(co => {
+    const pm = co.poMappings || []
+    return `<tr>
+      <td style="border:1px solid #000; padding:3px 5px; vertical-align:top; font-size:8pt;"><strong>${safe(co.id)}:</strong> ${safe(co.description)}</td>
+      ${poLabels.map((_, i) =>
+        `<td style="border:1px solid #000; text-align:center; vertical-align:middle; font-size:8.5pt; padding:2px 1px;">${pm[i] || ''}</td>`
+      ).join('\n        ')}
+    </tr>`
+  }).join('\n      ')
+  const body = `<div class="page page-break">
+    ${pageHeader(logo)}
+    <div style="font-size:9pt; margin-bottom:4px;"><strong>Course:</strong> ${safe(courseCode)} — ${safe(courseName)}</div>
+    <table style="width:100%; border-collapse:collapse; border:1px solid #000; font-size:8.5pt; color:#000;">
+      <tr>
+        <td colspan="14" style="border:1px solid #000; padding:3px 6px; font-weight:bold; font-size:9pt; background:#f2f2f2;">
+          COURSE OUTCOMES (COs) AND ITS RELATIONSHIP TO PROGRAM OUTCOMES (POs)
+        </td>
+      </tr>
+      <tr>
+        <td style="border:1px solid #000; padding:3px 5px; font-weight:bold; width:38%; vertical-align:middle; background:#f2f2f2;">
+          After completion of the course, the student should be able to:
+        </td>
+        ${poLabels.map(p =>
+          `<td style="border:1px solid #000; padding:2px; text-align:center; font-weight:bold; width:4.77%; font-size:8.5pt; background:#f2f2f2;">${p}</td>`
+        ).join('\n        ')}
+      </tr>
+      ${coRows}
+    </table>
+    ${pageFooter(1, 1)}
+  </div>`
+  return alignmentHead + body + alignmentFoot
+}
+
+export function buildCoaepHtml(coaepData, logoBase64) {
+  const logo = logoBase64 || null
+  const h = coaepData.header || {}
+
+  const coRows = (coaepData.cos || []).map(co => {
+    const firstRow = (co.ilos || [])[0]
+    if (!firstRow) return ''
+    const rest = (co.ilos || []).slice(1).map(ilo => `<tr>
+      <td style="border:1px solid #000; padding:3px 5px; vertical-align:top; font-size:8.5pt;">${safe(ilo.outcome)}</td>
+      <td style="border:1px solid #000; padding:3px 5px; vertical-align:top; font-size:8.5pt;">${safe(ilo.assessmentTool)}</td>
+    </tr>`).join('\n      ')
+    return `<tr>
+      <td style="border:1px solid #000; padding:3px 5px; vertical-align:top; text-align:center; font-size:8.5pt; background:#f2f2f2; font-weight:bold;" rowspan="${(co.ilos || []).length}">CO ${co.number}<br><span style="font-weight:normal; font-size:7.5pt;">${safe(co.statement)}</span></td>
+      <td style="border:1px solid #000; padding:3px 5px; vertical-align:top; font-size:8.5pt;">${safe(firstRow.outcome)}</td>
+      <td style="border:1px solid #000; padding:3px 5px; vertical-align:top; font-size:8.5pt;">${safe(firstRow.assessmentTool)}</td>
+    </tr>${rest}`
+  }).join('\n      ')
+
+  const body = `<div class="page">
+    ${pageHeader(logo)}
+    <div style="font-size:11pt; font-weight:bold; text-align:center; margin:4px 0 8px;">COURSE ASSESSMENT &amp; EVALUATION PLAN (COAEP)</div>
+    <table style="width:100%; border-collapse:collapse; font-size:8.5pt; margin-bottom:6px;">
+      <tr><td style="border:1px solid #000; padding:3px 5px; font-weight:bold; width:15%;">Faculty:</td><td style="border:1px solid #000; padding:3px 5px; width:35%;">${safe(h.facultyName)}</td><td style="border:1px solid #000; padding:3px 5px; font-weight:bold; width:15%;">School Year:</td><td style="border:1px solid #000; padding:3px 5px; width:35%;">${safe(h.schoolYear)}</td></tr>
+      <tr><td style="border:1px solid #000; padding:3px 5px; font-weight:bold;">Course:</td><td style="border:1px solid #000; padding:3px 5px;" colspan="3">${safe(h.course)}</td></tr>
+      <tr><td style="border:1px solid #000; padding:3px 5px; font-weight:bold;">Semester:</td><td style="border:1px solid #000; padding:3px 5px;" colspan="3">${safe(h.semester)}</td></tr>
+    </table>
+    <table style="width:100%; border-collapse:collapse; font-size:8.5pt;">
+      <tr>
+        <th style="border:1px solid #000; padding:4px 6px; background:#f2f2f2; width:18%;">COURSE OUTCOME</th>
+        <th style="border:1px solid #000; padding:4px 6px; background:#f2f2f2; width:52%;">INTENDED LEARNING OUTCOME (ILO)</th>
+        <th style="border:1px solid #000; padding:4px 6px; background:#f2f2f2; width:30%;">ASSESSMENT TOOL</th>
+      </tr>
+      ${coRows}
+    </table>
+    <div style="margin-top:12px; display:flex; justify-content:space-between; font-size:8.5pt; border-top:1px solid #000; padding-top:8px;">
+      <div><strong>Prepared by:</strong> ${safe(coaepData.preparedBy)}</div>
+      <div><strong>Approved by:</strong> ${safe(coaepData.approvedBy)}</div>
+      <div><strong>Date Submitted:</strong> ${safe(coaepData.dateSubmitted)}</div>
+    </div>
+    ${pageFooter(1, 1)}
+  </div>`
+  return alignmentHead + body + alignmentFoot
 }

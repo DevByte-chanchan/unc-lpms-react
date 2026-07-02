@@ -2252,14 +2252,428 @@ export const syllabiData = [
     { code: 'IT 411', name: 'Information Management', credits: '2 LEC, 1 LAB', contact: '3', prerequisites: 'BSCS202 Database Systems', class: 'Information Technology', cmo: '25 S, 2015', year: 'FOURTH YEAR', sem: '1st Semester', description: 'Management of information resources and enterprise data.', references: [], topics: [], courseOutcomes: [], coAssessmentMethodSets: {}, assessments: [], ilos: [], gradingSystem: [] },
     { code: 'IT 412', name: 'Network Administration', credits: '2 LEC, 1 LAB', contact: '3', prerequisites: 'BSCS331L Computer Networks', class: 'Information Technology', cmo: '25 S, 2015', year: 'FOURTH YEAR', sem: '2nd Semester', description: 'Configuration and administration of network infrastructure.', references: [], topics: [], courseOutcomes: [], coAssessmentMethodSets: {}, assessments: [], ilos: [], gradingSystem: [] },
     { code: 'IT 413', name: 'Systems Administration & Maintenance', credits: '2 LEC, 1 LAB', contact: '3', prerequisites: 'IT 412 Network Administration', class: 'Information Technology', cmo: '25 S, 2015', year: 'FOURTH YEAR', sem: '2nd Semester', description: 'Server administration, backup, and disaster recovery.', references: [], topics: [], courseOutcomes: [], coAssessmentMethodSets: {}, assessments: [], ilos: [], gradingSystem: [] },
+    {
+        code: 'IT 313',
+        name: 'Networking 1',
+        credits: '2 LEC, 1 LAB',
+        contact: '3',
+        prerequisites: 'None',
+        class: 'Professional Courses',
+        cmo: '25 S, 2015',
+        year: 'SECOND YEAR',
+        sem: '1st Semester',
+        description: 'This course provides a comprehensive introduction to computer networking concepts, protocols, and architectures. Students will learn about the OSI and TCP/IP models, IP addressing, subnetting, routing, switching, and network security fundamentals.',
+        references: [
+            { id: "TB1", title: "Computer Networking: A Top-Down Approach", type: "Textbook", authors: "James Kurose, Keith Ross", year: 2021, isbn: "978-0136681557", link: "" },
+            { id: "OR1", title: "CCNA Routing and Switching", type: "Online Resources", authors: "Cisco Networking Academy", year: 2024, isbn: "", link: "https://www.netacad.com/courses/ccna" },
+            { id: "OE1", title: "Computer Network Tutorial", type: "Open Educational Resources", authors: "GeeksforGeeks", year: 2024, isbn: "", link: "https://www.geeksforgeeks.org/computer-network-tutorials/" }
+        ],
+        topics: [
+            { id: "T1", title: "Network Fundamentals & OSI Model", subtopics: [{ id: "S1", value: "Network Topologies" }, { id: "S2", value: "OSI and TCP/IP Models" }, { id: "S3", value: "Data Encapsulation" }], tlas: [{ id: "TLA1", classPhase: "Pre-class", performedBy: "Instructor", tlaName: "Networking Basics Lecture", tlaDescription: "Lecture covering network types, topologies, and the OSI model layers with real-world examples.", laboratory: false }, { id: "TLA2", classPhase: "In-class", performedBy: "Student", tlaName: "Packet Tracer Lab", tlaDescription: "Students use Cisco Packet Tracer to build a small network and observe data encapsulation across layers.", laboratory: true }] },
+            { id: "T2", title: "IP Addressing & Subnetting", subtopics: [{ id: "S4", value: "IPv4 and IPv6 Addressing" }, { id: "S5", value: "Subnet Mask and CIDR" }, { id: "S6", value: "VLSM and Route Summarization" }], tlas: [{ id: "TLA3", classPhase: "In-class", performedBy: "Student", tlaName: "Subnetting Exercise", tlaDescription: "Hands-on exercise where students calculate subnets, host ranges, and broadcast addresses for given network scenarios.", laboratory: true }] }
+        ],
+        courseOutcomes: [
+            { id: 'CO1', description: 'Explain the fundamental concepts of computer networking, including the OSI and TCP/IP models, and differentiate between various network topologies and protocols.', poMappings: ['I','','','','','','','','','','','',''] },
+            { id: 'CO2', description: 'Design and implement IP addressing schemes using subnetting, VLSM, and CIDR techniques for given network requirements.', poMappings: ['','','','E','E','','','','','','','',''] },
+            { id: 'CO3', description: 'Configure basic routing and switching in a simulated network environment using industry-standard tools.', poMappings: ['','','','','D','','D','','','','','',''] }
+        ],
+        ilos: [
+            { id: "CO1-ILO1", courseOutcome: 'Explain the fundamental concepts of computer networking, including the OSI and TCP/IP models, and differentiate between various network topologies and protocols.', intendedLearningOutcome: "Identify the functions of each OSI layer and map them to TCP/IP model equivalents.", deliveryWeek: "Week 1", allocatedTime: "3 hours", topics: ["Network Fundamentals & OSI Model"], references: ["TB1 - Computer Networking: A Top-Down Approach"] },
+            { id: "CO1-ILO2", courseOutcome: 'Explain the fundamental concepts of computer networking, including the OSI and TCP/IP models, and differentiate between various network topologies and protocols.', intendedLearningOutcome: "Describe data encapsulation and decapsulation processes across network layers.", deliveryWeek: "Week 2", allocatedTime: "2 hours", topics: ["Network Fundamentals & OSI Model"], references: ["OE1 - Computer Network Tutorial"] },
+            { id: "CO2-ILO1", courseOutcome: 'Design and implement IP addressing schemes using subnetting, VLSM, and CIDR techniques for given network requirements.', intendedLearningOutcome: "Calculate subnet masks, network addresses, and host ranges using CIDR notation.", deliveryWeek: "Week 3", allocatedTime: "3 hours", topics: ["IP Addressing & Subnetting"], references: ["TB1 - Computer Networking: A Top-Down Approach"] },
+            { id: "CO2-ILO2", courseOutcome: 'Design and implement IP addressing schemes using subnetting, VLSM, and CIDR techniques for given network requirements.', intendedLearningOutcome: "Apply VLSM to optimize IP address allocation in multi-subnet scenarios.", deliveryWeek: "Week 4", allocatedTime: "3 hours", topics: ["IP Addressing & Subnetting"], references: ["OE1 - Computer Network Tutorial"] },
+            { id: "CO3-ILO1", courseOutcome: 'Configure basic routing and switching in a simulated network environment using industry-standard tools.', intendedLearningOutcome: "Configure static routes and default gateways on Cisco routers.", deliveryWeek: "Week 5", allocatedTime: "4 hours", topics: ["IP Addressing & Subnetting"], references: ["OR1 - CCNA Routing and Switching"] }
+        ],
+        coAssessmentMethodSets: { CO1: [{ value: "Network Topology Quiz", description: "Quiz covering OSI layers, protocols, and topology identification." }], CO2: [{ value: "Subnetting Design Task", description: "Design an IP addressing plan for a given enterprise network." }], CO3: [{ value: "Packet Tracer Lab Report", description: "Submit a working Packet Tracer file with configured routers and a written report." }] },
+        assessments: [
+            { id: 'A1', tlaName: 'Packet Tracer Lab', phase: 'In-class', assessmentMethod: 'Lab Output', assessmentDescription: 'Working Packet Tracer file demonstrating a functional small network.', hasRubric: false },
+            { id: 'A2', tlaName: 'Subnetting Exercise', phase: 'In-class', assessmentMethod: 'Subnetting Design Task', assessmentDescription: 'Completed subnetting worksheet with calculations.', hasRubric: false }
+        ],
+        gradingSystem: [{ co: "CO1", ilos: [{ id: "ILO1", assessments: ["Networking Basics Quiz"], weight: { prelim: "50", midterm: "", semi: "", final: "" }, minPassing: "60" }, { id: "ILO2", assessments: ["Layer Functions Quiz"], weight: { prelim: "50", midterm: "", semi: "", final: "" }, minPassing: "60" }] }, { co: "CO2", ilos: [{ id: "ILO1", assessments: ["Subnetting Design Task"], weight: { prelim: "", midterm: "100", semi: "", final: "" }, minPassing: "60" }] }]
+    },
+    {
+        code: 'BSCS 422L',
+        name: 'Artificial Intelligence',
+        credits: '2 LEC, 1 LAB',
+        contact: '3',
+        prerequisites: 'BSCS103 Data Structures',
+        class: 'Professional Courses',
+        cmo: '25 S, 2015',
+        year: 'FOURTH YEAR',
+        sem: '1st Semester',
+        description: 'This course introduces the fundamental principles and techniques of artificial intelligence. Topics include search algorithms, knowledge representation, machine learning, neural networks, and ethical considerations in AI development.',
+        references: [
+            { id: "TB1", title: "Artificial Intelligence: A Modern Approach", type: "Textbook", authors: "Stuart Russell, Peter Norvig", year: 2020, isbn: "978-0134610993", link: "" },
+            { id: "OR1", title: "Google AI Education", type: "Online Resources", authors: "Google AI", year: 2024, isbn: "", link: "https://ai.google/education/" },
+            { id: "OE1", title: "Elements of AI", type: "Open Educational Resources", authors: "University of Helsinki", year: 2024, isbn: "", link: "https://www.elementsofai.com/" }
+        ],
+        topics: [
+            { id: "T1", title: "Search Algorithms", subtopics: [{ id: "S1", value: "Uninformed Search (BFS, DFS)" }, { id: "S2", value: "Informed Search (A*, Greedy)" }, { id: "S3", value: "Local Search and Hill Climbing" }], tlas: [{ id: "TLA1", classPhase: "Pre-class", performedBy: "Instructor", tlaName: "Search Algorithms Lecture", tlaDescription: "Lecture covering uninformed and informed search strategies with algorithm complexity analysis.", laboratory: false }, { id: "TLA2", classPhase: "In-class", performedBy: "Student", tlaName: "Search Algorithm Implementation", tlaDescription: "Students implement BFS, DFS, and A* search to solve pathfinding problems in a grid environment.", laboratory: true }] },
+            { id: "T2", title: "Machine Learning Fundamentals", subtopics: [{ id: "S4", value: "Supervised vs Unsupervised Learning" }, { id: "S5", value: "Decision Trees and Random Forests" }, { id: "S6", value: "Neural Networks Basics" }], tlas: [{ id: "TLA3", classPhase: "In-class", performedBy: "Student", tlaName: "ML Model Training Lab", tlaDescription: "Students train and evaluate decision tree and neural network models using scikit-learn on a provided dataset.", laboratory: true }] }
+        ],
+        courseOutcomes: [
+            { id: 'CO1', description: 'Implement and compare various search algorithms to solve well-defined problems in AI.', poMappings: ['I','','E','','','','','','','','','',''] },
+            { id: 'CO2', description: 'Apply machine learning techniques to classify and predict outcomes from structured datasets.', poMappings: ['','E','','','D','','','','','','I','',''] }
+        ],
+        ilos: [
+            { id: "CO1-ILO1", courseOutcome: 'Implement and compare various search algorithms to solve well-defined problems in AI.', intendedLearningOutcome: "Differentiate between uninformed and informed search strategies and their use cases.", deliveryWeek: "Week 1", allocatedTime: "3 hours", topics: ["Search Algorithms"], references: ["TB1 - Artificial Intelligence: A Modern Approach"] },
+            { id: "CO1-ILO2", courseOutcome: 'Implement and compare various search algorithms to solve well-defined problems in AI.', intendedLearningOutcome: "Implement BFS, DFS, and A* search to find optimal paths in state-space problems.", deliveryWeek: "Week 2", allocatedTime: "4 hours", topics: ["Search Algorithms"], references: ["TB1 - Artificial Intelligence: A Modern Approach"] },
+            { id: "CO2-ILO1", courseOutcome: 'Apply machine learning techniques to classify and predict outcomes from structured datasets.', intendedLearningOutcome: "Prepare datasets through cleaning, normalization, and train-test splitting.", deliveryWeek: "Week 3", allocatedTime: "3 hours", topics: ["Machine Learning Fundamentals"], references: ["OE1 - Elements of AI"] },
+            { id: "CO2-ILO2", courseOutcome: 'Apply machine learning techniques to classify and predict outcomes from structured datasets.', intendedLearningOutcome: "Train decision tree and neural network models and evaluate their performance using accuracy and F1-score.", deliveryWeek: "Week 4", allocatedTime: "4 hours", topics: ["Machine Learning Fundamentals"], references: ["OR1 - Google AI Education"] }
+        ],
+        coAssessmentMethodSets: { CO1: [{ value: "Search Algorithm Report", description: "Written report comparing search algorithm performance on pathfinding problems." }], CO2: [{ value: "ML Model Evaluation", description: "Train and evaluate ML models on a provided dataset with metrics analysis." }] },
+        assessments: [
+            { id: 'A1', tlaName: 'Search Algorithm Implementation', phase: 'In-class', assessmentMethod: 'Code Submission', assessmentDescription: 'Submit Python implementations of BFS, DFS, and A* search.', hasRubric: true, rubrics: [{ id: 1, criteria: 'Correctness of implementation', maxScore: '40' }, { id: 2, criteria: 'Code quality and documentation', maxScore: '30' }, { id: 3, criteria: 'Performance analysis', maxScore: '30' }] },
+            { id: 'A2', tlaName: 'ML Model Training Lab', phase: 'In-class', assessmentMethod: 'Lab Report', assessmentDescription: 'Submit Jupyter notebook with trained models and evaluation metrics.', hasRubric: false }
+        ],
+        gradingSystem: [{ co: "CO1", ilos: [{ id: "ILO1", assessments: ["Search Algorithms Quiz"], weight: { prelim: "40", midterm: "", semi: "", final: "" }, minPassing: "60" }, { id: "ILO2", assessments: ["Search Algorithm Implementation"], weight: { prelim: "60", midterm: "", semi: "", final: "" }, minPassing: "60" }] }, { co: "CO2", ilos: [{ id: "ILO1", assessments: ["Data Prep Quiz"], weight: { prelim: "", midterm: "30", semi: "", final: "" }, minPassing: "60" }, { id: "ILO2", assessments: ["ML Model Evaluation"], weight: { prelim: "", midterm: "70", semi: "", final: "" }, minPassing: "60" }] }]
+    },
+    {
+        code: 'IT 431',
+        name: 'Multimedia Systems',
+        credits: '2 LEC, 1 LAB',
+        contact: '3',
+        prerequisites: 'BIT313L Human Computer Interaction (HCI)',
+        class: 'Information Technology',
+        cmo: '25 S, 2015',
+        year: 'THIRD YEAR',
+        sem: '2nd Semester',
+        description: 'This course covers the principles and technologies of multimedia systems including digital audio, image, video processing, compression standards, multimedia authoring, and web-based multimedia applications.',
+        references: [
+            { id: "TB1", title: "Multimedia: Making It Work", type: "Textbook", authors: "Tay Vaughan", year: 2014, isbn: "978-0071832885", link: "" },
+            { id: "OR1", title: "MDN Web Docs: Multimedia", type: "Online Resources", authors: "Mozilla Developer Network", year: 2024, isbn: "", link: "https://developer.mozilla.org/en-US/docs/Web/Media" }
+        ],
+        topics: [
+            { id: "T1", title: "Digital Audio and Image Fundamentals", subtopics: [{ id: "S1", value: "Sampling and Quantization" }, { id: "S2", value: "Color Models and Spaces" }, { id: "S3", value: "Lossless vs Lossy Compression" }], tlas: [{ id: "TLA1", classPhase: "Pre-class", performedBy: "Instructor", tlaName: "Multimedia Basics Lecture", tlaDescription: "Lecture on digital audio and image representation, sampling theory, and compression techniques.", laboratory: false }] },
+            { id: "T2", title: "Video Compression and Streaming", subtopics: [{ id: "S4", value: "MPEG and H.264 Standards" }, { id: "S5", value: "Adaptive Bitrate Streaming" }, { id: "S6", value: "HTML5 Video and Audio APIs" }], tlas: [{ id: "TLA2", classPhase: "In-class", performedBy: "Student", tlaName: "Video Compression Lab", tlaDescription: "Students use FFmpeg to compress videos with different codecs and compare quality and file size tradeoffs.", laboratory: true }] }
+        ],
+        courseOutcomes: [
+            { id: 'CO1', description: 'Explain the fundamental concepts of digital media representation, compression, and storage for audio, image, and video formats.', poMappings: ['I','','','','','','','','','','','',''] },
+            { id: 'CO2', description: 'Create and optimize multimedia content using industry-standard tools and techniques for web deployment.', poMappings: ['','E','','','E','','D','','','','','',''] }
+        ],
+        ilos: [
+            { id: "CO1-ILO1", courseOutcome: 'Explain the fundamental concepts of digital media representation, compression, and storage for audio, image, and video formats.', intendedLearningOutcome: "Compare lossless and lossy compression techniques and their impact on media quality.", deliveryWeek: "Week 1", allocatedTime: "3 hours", topics: ["Digital Audio and Image Fundamentals"], references: ["TB1 - Multimedia: Making It Work"] },
+            { id: "CO2-ILO1", courseOutcome: 'Create and optimize multimedia content using industry-standard tools and techniques for web deployment.', intendedLearningOutcome: "Compress video files using FFmpeg with appropriate codecs and settings for web delivery.", deliveryWeek: "Week 2", allocatedTime: "4 hours", topics: ["Video Compression and Streaming"], references: ["OR1 - MDN Web Docs: Multimedia"] }
+        ],
+        coAssessmentMethodSets: { CO1: [{ value: "Compression Analysis Report", description: "Write a report comparing different compression techniques and their tradeoffs." }], CO2: [{ value: "Multimedia Project", description: "Create a web page with optimized multimedia content including audio, image, and video." }] },
+        assessments: [{ id: 'A1', tlaName: 'Video Compression Lab', phase: 'In-class', assessmentMethod: 'Lab Output', assessmentDescription: 'Submit compressed video files with a comparison table of codec settings.', hasRubric: false }],
+        gradingSystem: [{ co: "CO1", ilos: [{ id: "ILO1", assessments: ["Compression Quiz"], weight: { prelim: "100", midterm: "", semi: "", final: "" }, minPassing: "60" }] }]
+    },
+    {
+        code: 'BSCS 432L',
+        name: 'Information Assurance and Security',
+        credits: '2 LEC, 1 LAB',
+        contact: '3',
+        prerequisites: 'BSCS331L Computer Networks',
+        class: 'Professional Courses',
+        cmo: '25 S, 2015',
+        year: 'FOURTH YEAR',
+        sem: '2nd Semester',
+        description: 'This course covers the principles of information security including cryptography, network security, access control, security policies, risk management, and security auditing. Students will learn to identify vulnerabilities and implement security measures.',
+        references: [
+            { id: "TB1", title: "Security+ Guide to Network Security Fundamentals", type: "Textbook", authors: "Mark Ciampa", year: 2022, isbn: "978-0357689244", link: "" },
+            { id: "OE1", title: "OWASP Top Ten", type: "Open Educational Resources", authors: "OWASP Foundation", year: 2024, isbn: "", link: "https://owasp.org/www-project-top-ten/" },
+            { id: "OR1", title: "NIST Cybersecurity Framework", type: "Online Resources", authors: "National Institute of Standards and Technology", year: 2024, isbn: "", link: "https://www.nist.gov/cyberframework" }
+        ],
+        topics: [
+            { id: "T1", title: "Cryptography and Access Control", subtopics: [{ id: "S1", value: "Symmetric and Asymmetric Cryptography" }, { id: "S2", value: "Digital Signatures and Certificates" }, { id: "S3", value: "Access Control Models (DAC, MAC, RBAC)" }], tlas: [{ id: "TLA1", classPhase: "Pre-class", performedBy: "Instructor", tlaName: "Cryptography Lecture", tlaDescription: "Lecture on encryption algorithms, hashing, digital signatures, and PKI infrastructure.", laboratory: false }] },
+            { id: "T2", title: "Network Security and Risk Management", subtopics: [{ id: "S4", value: "Firewalls and IDS/IPS" }, { id: "S5", value: "Vulnerability Assessment" }, { id: "S6", value: "Risk Management Framework" }], tlas: [{ id: "TLA2", classPhase: "In-class", performedBy: "Student", tlaName: "Security Audit Lab", tlaDescription: "Students perform vulnerability scans using Nmap and Wireshark, then document findings and recommendations.", laboratory: true }] }
+        ],
+        courseOutcomes: [
+            { id: 'CO1', description: 'Apply cryptographic techniques to protect data confidentiality, integrity, and authenticity.', poMappings: ['I','','','','','','','','','','','E',''] },
+            { id: 'CO2', description: 'Assess network vulnerabilities and implement appropriate security controls using industry frameworks.', poMappings: ['','E','','','','E','','','','','','D',''] }
+        ],
+        ilos: [
+            { id: "CO1-ILO1", courseOutcome: 'Apply cryptographic techniques to protect data confidentiality, integrity, and authenticity.', intendedLearningOutcome: "Differentiate between symmetric and asymmetric encryption algorithms and their appropriate use cases.", deliveryWeek: "Week 1", allocatedTime: "3 hours", topics: ["Cryptography and Access Control"], references: ["TB1 - Security+ Guide"] },
+            { id: "CO1-ILO2", courseOutcome: 'Apply cryptographic techniques to protect data confidentiality, integrity, and authenticity.', intendedLearningOutcome: "Implement encryption and hashing in a simple application using OpenSSL.", deliveryWeek: "Week 2", allocatedTime: "3 hours", topics: ["Cryptography and Access Control"], references: ["TB1 - Security+ Guide"] },
+            { id: "CO2-ILO1", courseOutcome: 'Assess network vulnerabilities and implement appropriate security controls using industry frameworks.', intendedLearningOutcome: "Conduct a vulnerability scan on a test network and prioritize findings by severity.", deliveryWeek: "Week 3", allocatedTime: "4 hours", topics: ["Network Security and Risk Management"], references: ["OR1 - NIST Cybersecurity Framework", "OE1 - OWASP Top Ten"] }
+        ],
+        coAssessmentMethodSets: { CO1: [{ value: "Cryptography Implementation", description: "Implement a secure communication system using symmetric and asymmetric encryption." }], CO2: [{ value: "Security Audit Report", description: "Conduct a security audit and produce a report with risk assessments and recommendations." }] },
+        assessments: [
+            { id: 'A1', tlaName: 'Security Audit Lab', phase: 'In-class', assessmentMethod: 'Audit Report', assessmentDescription: 'Submit a security audit report with scan results, vulnerability analysis, and remediation plan.', hasRubric: true, rubrics: [{ id: 1, criteria: 'Scan methodology and coverage', maxScore: '25' }, { id: 2, criteria: 'Vulnerability identification accuracy', maxScore: '25' }, { id: 3, criteria: 'Risk prioritization', maxScore: '25' }, { id: 4, criteria: 'Remediation recommendations', maxScore: '25' }] }
+        ],
+        gradingSystem: [{ co: "CO1", ilos: [{ id: "ILO1", assessments: ["Cryptography Quiz"], weight: { prelim: "50", midterm: "", semi: "", final: "" }, minPassing: "60" }, { id: "ILO2", assessments: ["Encryption Lab"], weight: { prelim: "50", midterm: "", semi: "", final: "" }, minPassing: "60" }] }]
+    },
+    {
+        code: 'IT 441',
+        name: 'Web Development',
+        credits: '2 LEC, 1 LAB',
+        contact: '3',
+        prerequisites: 'BSCS103 Data Structures',
+        class: 'Information Technology',
+        cmo: '25 S, 2015',
+        year: 'SECOND YEAR',
+        sem: '2nd Semester',
+        description: 'This course covers modern full-stack web development including HTML5, CSS3, JavaScript, frontend frameworks, server-side programming, database integration, and RESTful API design. Students will build a complete web application.',
+        references: [
+            { id: "TB1", title: "Web Development with Node and Express", type: "Textbook", authors: "Ethan Brown", year: 2019, isbn: "978-1492053514", link: "" },
+            { id: "OR1", title: "MDN Web Docs", type: "Online Resources", authors: "Mozilla Developer Network", year: 2024, isbn: "", link: "https://developer.mozilla.org/" },
+            { id: "OE1", title: "FreeCodeCamp Web Dev Curriculum", type: "Open Educational Resources", authors: "FreeCodeCamp", year: 2024, isbn: "", link: "https://www.freecodecamp.org/" }
+        ],
+        topics: [
+            { id: "T1", title: "Frontend Development", subtopics: [{ id: "S1", value: "HTML5 Semantics and Accessibility" }, { id: "S2", value: "CSS Flexbox and Grid" }, { id: "S3", value: "JavaScript DOM Manipulation" }], tlas: [{ id: "TLA1", classPhase: "Pre-class", performedBy: "Instructor", tlaName: "Frontend Fundamentals Lecture", tlaDescription: "Lecture on modern HTML5, CSS3 layout techniques, and JavaScript event handling.", laboratory: false }, { id: "TLA2", classPhase: "In-class", performedBy: "Student", tlaName: "Responsive Layout Lab", tlaDescription: "Students build a responsive landing page using HTML5 semantic elements and CSS Grid/Flexbox.", laboratory: true }] },
+            { id: "T2", title: "Backend Development and APIs", subtopics: [{ id: "S4", value: "Node.js and Express Framework" }, { id: "S5", value: "RESTful API Design" }, { id: "S6", value: "Database Integration (MongoDB/SQL)" }], tlas: [{ id: "TLA3", classPhase: "In-class", performedBy: "Student", tlaName: "API Development Lab", tlaDescription: "Students create a RESTful API with Express that performs CRUD operations on a MongoDB database.", laboratory: true }] }
+        ],
+        courseOutcomes: [
+            { id: 'CO1', description: 'Build responsive user interfaces using modern HTML5, CSS3, and JavaScript techniques.', poMappings: ['','','','','I','','D','','','','','',''] },
+            { id: 'CO2', description: 'Develop server-side applications and RESTful APIs using Node.js and database integration.', poMappings: ['','','','','D','','D','','E','','','',''] }
+        ],
+        ilos: [
+            { id: "CO1-ILO1", courseOutcome: 'Build responsive user interfaces using modern HTML5, CSS3, and JavaScript techniques.', intendedLearningOutcome: "Create semantically structured HTML5 documents that meet WCAG accessibility standards.", deliveryWeek: "Week 1", allocatedTime: "3 hours", topics: ["Frontend Development"], references: ["OR1 - MDN Web Docs"] },
+            { id: "CO1-ILO2", courseOutcome: 'Build responsive user interfaces using modern HTML5, CSS3, and JavaScript techniques.', intendedLearningOutcome: "Implement responsive layouts using CSS Flexbox and Grid that adapt to mobile, tablet, and desktop.", deliveryWeek: "Week 2", allocatedTime: "3 hours", topics: ["Frontend Development"], references: ["OE1 - FreeCodeCamp"] },
+            { id: "CO2-ILO1", courseOutcome: 'Develop server-side applications and RESTful APIs using Node.js and database integration.', intendedLearningOutcome: "Design and implement RESTful API endpoints following best practices.", deliveryWeek: "Week 3", allocatedTime: "4 hours", topics: ["Backend Development and APIs"], references: ["TB1 - Web Development with Node and Express"] },
+            { id: "CO2-ILO2", courseOutcome: 'Develop server-side applications and RESTful APIs using Node.js and database integration.', intendedLearningOutcome: "Integrate a database with a Node.js application to persist and retrieve data.", deliveryWeek: "Week 4", allocatedTime: "4 hours", topics: ["Backend Development and APIs"], references: ["TB1 - Web Development with Node and Express", "OR1 - MDN Web Docs"] }
+        ],
+        coAssessmentMethodSets: { CO1: [{ value: "Responsive Web Page", description: "Build a responsive multi-section landing page for a fictional product." }], CO2: [{ value: "Full-Stack CRUD API", description: "Develop a complete RESTful API with database integration and frontend consumption." }] },
+        assessments: [
+            { id: 'A1', tlaName: 'Responsive Layout Lab', phase: 'In-class', assessmentMethod: 'Web Page Output', assessmentDescription: 'Submit a responsive HTML/CSS landing page that passes mobile-first validation.', hasRubric: false },
+            { id: 'A2', tlaName: 'API Development Lab', phase: 'In-class', assessmentMethod: 'API Submission', assessmentDescription: 'Submit a working Express API with at least 5 endpoints and database integration.', hasRubric: true, rubrics: [{ id: 1, criteria: 'API design and REST conventions', maxScore: '30' }, { id: 2, criteria: 'Database integration', maxScore: '30' }, { id: 3, criteria: 'Error handling and validation', maxScore: '40' }] }
+        ],
+        gradingSystem: [{ co: "CO1", ilos: [{ id: "ILO1", assessments: ["HTML Semantics Quiz"], weight: { prelim: "40", midterm: "", semi: "", final: "" }, minPassing: "60" }, { id: "ILO2", assessments: ["Responsive Layout Lab"], weight: { prelim: "60", midterm: "", semi: "", final: "" }, minPassing: "60" }] }, { co: "CO2", ilos: [{ id: "ILO1", assessments: ["API Design Quiz"], weight: { prelim: "", midterm: "40", semi: "", final: "" }, minPassing: "60" }, { id: "ILO2", assessments: ["API Development Lab"], weight: { prelim: "", midterm: "60", semi: "", final: "" }, minPassing: "60" }] }]
+    },
+    {
+        code: 'BSCS 442L',
+        name: 'Systems Integration and Architecture',
+        credits: '2 LEC, 1 LAB',
+        contact: '3',
+        prerequisites: 'BSCS322L Software Engineering',
+        class: 'Professional Courses',
+        cmo: '25 S, 2015',
+        year: 'FOURTH YEAR',
+        sem: '1st Semester',
+        description: 'This course covers enterprise systems integration patterns, service-oriented architecture, microservices, API gateways, message queuing, and middleware technologies. Students will design and implement integrated system solutions.',
+        references: [
+            { id: "TB1", title: "Building Microservices", type: "Textbook", authors: "Sam Newman", year: 2021, isbn: "978-1492034025", link: "" },
+            { id: "OR1", title: "Enterprise Integration Patterns", type: "Online Resources", authors: "Gregor Hohpe", year: 2024, isbn: "", link: "https://www.enterpriseintegrationpatterns.com/" },
+            { id: "OE1", title: "Microservices.io", type: "Open Educational Resources", authors: "Chris Richardson", year: 2024, isbn: "", link: "https://microservices.io/" }
+        ],
+        topics: [
+            { id: "T1", title: "Service-Oriented Architecture", subtopics: [{ id: "S1", value: "SOA Principles and Governance" }, { id: "S2", value: "Web Services (SOAP/REST)" }, { id: "S3", value: "ESB and Middleware" }], tlas: [{ id: "TLA1", classPhase: "Pre-class", performedBy: "Instructor", tlaName: "SOA Lecture", tlaDescription: "Overview of service-oriented architecture principles, web services standards, and enterprise service bus concepts.", laboratory: false }] },
+            { id: "T2", title: "Microservices and API Management", subtopics: [{ id: "S4", value: "Microservices Design Patterns" }, { id: "S5", value: "API Gateway Pattern" }, { id: "S6", value: "Message Queues and Event-Driven Architecture" }], tlas: [{ id: "TLA2", classPhase: "In-class", performedBy: "Student", tlaName: "Microservices Lab", tlaDescription: "Students design and deploy a simple microservices-based system with Docker, API gateway, and message queue.", laboratory: true }] }
+        ],
+        courseOutcomes: [
+            { id: 'CO1', description: 'Design enterprise integration solutions using SOA principles and middleware technologies.', poMappings: ['I','','','','E','','','','','','','',''] },
+            { id: 'CO2', description: 'Implement microservices-based architectures with API gateways and event-driven communication.', poMappings: ['','D','','','D','E','','','','','','I',''] }
+        ],
+        ilos: [
+            { id: "CO1-ILO1", courseOutcome: 'Design enterprise integration solutions using SOA principles and middleware technologies.', intendedLearningOutcome: "Analyze enterprise integration scenarios and select appropriate integration patterns.", deliveryWeek: "Week 1", allocatedTime: "3 hours", topics: ["Service-Oriented Architecture"], references: ["OR1 - Enterprise Integration Patterns"] },
+            { id: "CO1-ILO2", courseOutcome: 'Design enterprise integration solutions using SOA principles and middleware technologies.', intendedLearningOutcome: "Design SOAP and REST web services that comply with WS-* standards.", deliveryWeek: "Week 2", allocatedTime: "3 hours", topics: ["Service-Oriented Architecture"], references: ["TB1 - Building Microservices"] },
+            { id: "CO2-ILO1", courseOutcome: 'Implement microservices-based architectures with API gateways and event-driven communication.', intendedLearningOutcome: "Containerize microservices using Docker and orchestrate them with Docker Compose.", deliveryWeek: "Week 3", allocatedTime: "4 hours", topics: ["Microservices and API Management"], references: ["OE1 - Microservices.io"] },
+            { id: "CO2-ILO2", courseOutcome: 'Implement microservices-based architectures with API gateways and event-driven communication.', intendedLearningOutcome: "Implement an API gateway with rate limiting, authentication, and routing.", deliveryWeek: "Week 4", allocatedTime: "4 hours", topics: ["Microservices and API Management"], references: ["TB1 - Building Microservices", "OR1 - Enterprise Integration Patterns"] }
+        ],
+        coAssessmentMethodSets: { CO1: [{ value: "Integration Design Document", description: "Design document for an enterprise integration solution with architecture diagrams and pattern selection rationale." }], CO2: [{ value: "Microservices Deployment", description: "Deploy a working microservices system with Docker, API gateway, and message queue." }] },
+        assessments: [
+            { id: 'A1', tlaName: 'Microservices Lab', phase: 'In-class', assessmentMethod: 'Deployment Output', assessmentDescription: 'Submit Docker Compose configuration and demonstrate running microservices with inter-service communication.', hasRubric: true, rubrics: [{ id: 1, criteria: 'Microservice decomposition quality', maxScore: '25' }, { id: 2, criteria: 'API gateway configuration', maxScore: '25' }, { id: 3, criteria: 'Message queue integration', maxScore: '25' }, { id: 4, criteria: 'Docker setup and documentation', maxScore: '25' }] }
+        ],
+        gradingSystem: [{ co: "CO1", ilos: [{ id: "ILO1", assessments: ["Integration Patterns Quiz"], weight: { prelim: "50", midterm: "", semi: "", final: "" }, minPassing: "60" }, { id: "ILO2", assessments: ["Web Service Design"], weight: { prelim: "50", midterm: "", semi: "", final: "" }, minPassing: "60" }] }, { co: "CO2", ilos: [{ id: "ILO1", assessments: ["Docker Setup"], weight: { prelim: "", midterm: "40", semi: "", final: "" }, minPassing: "60" }, { id: "ILO2", assessments: ["Microservices Lab"], weight: { prelim: "", midterm: "60", semi: "", final: "" }, minPassing: "60" }] }]
+    },
+    {
+        code: 'BIT101', name: 'Introduction to Computing', credits: '3 LEC', contact: '3', prerequisites: 'None', class: 'General Education', cmo: '25 S, 2015', year: 'FIRST YEAR', sem: '1st Semester',
+        description: 'Foundational concepts of computing including hardware, software, data representation, and problem-solving using computers.',
+        references: [{ id: "TB1", title: "Computing Essentials", type: "Textbook", authors: "Timothy J. O'Leary", year: 2021, isbn: "978-1260092855", link: "" }],
+        topics: [{ id: "T1", title: "Computing Fundamentals", subtopics: [{ id: "S1", value: "History of Computing" }, { id: "S2", value: "Hardware Components" }, { id: "S3", value: "Software Categories" }], tlas: [{ id: "TLA1", classPhase: "Pre-class", performedBy: "Instructor", tlaName: "Intro Lecture", tlaDescription: "Overview of computing history, hardware, and software concepts.", laboratory: false }] }],
+        courseOutcomes: [{ id: 'CO1', description: 'Explain fundamental computing concepts including hardware, software, and data representation.', poMappings: ['I','','','','','','','','','','','',''] }],
+        ilos: [{ id: "CO1-ILO1", courseOutcome: 'Explain fundamental computing concepts including hardware, software, and data representation.', intendedLearningOutcome: "Identify the major components of a computer system and their functions.", deliveryWeek: "Week 1", allocatedTime: "3 hours", topics: ["Computing Fundamentals"], references: ["TB1 - Computing Essentials"] }],
+        coAssessmentMethodSets: { CO1: [{ value: "Computing Basics Quiz", description: "Quiz covering hardware, software, and terminology." }] },
+        assessments: [{ id: 'A1', tlaName: 'Intro Lecture', phase: 'Pre-class', assessmentMethod: 'Quiz', assessmentDescription: 'Conceptual quiz on computing fundamentals.', hasRubric: false }],
+        gradingSystem: [{ co: "CO1", ilos: [{ id: "ILO1", assessments: ["Computing Basics Quiz"], weight: { prelim: "100", midterm: "", semi: "", final: "" }, minPassing: "60" }] }]
+    },
+    {
+        code: 'BIT102', name: 'Computer Programming 1', credits: '2 LEC, 1 LAB', contact: '3', prerequisites: 'BIT101 Introduction to Computing', class: 'Professional Courses', cmo: '25 S, 2015', year: 'FIRST YEAR', sem: '2nd Semester',
+        description: 'Introduction to programming using a high-level language. Covers variables, control structures, functions, arrays, and basic algorithms.',
+        references: [{ id: "TB1", title: "Starting Out with Programming Logic & Design", type: "Textbook", authors: "Tony Gaddis", year: 2020, isbn: "978-0134801155", link: "" }],
+        topics: [{ id: "T1", title: "Programming Fundamentals", subtopics: [{ id: "S1", value: "Variables and Data Types" }, { id: "S2", value: "Control Structures" }, { id: "S3", value: "Functions and Arrays" }], tlas: [{ id: "TLA1", classPhase: "In-class", performedBy: "Student", tlaName: "Programming Lab 1", tlaDescription: "Students write basic programs using variables, conditionals, and loops.", laboratory: true }] }],
+        courseOutcomes: [{ id: 'CO1', description: 'Design and implement simple programs using fundamental programming constructs.', poMappings: ['I','','','','','','','','','','','',''] }],
+        ilos: [{ id: "CO1-ILO1", courseOutcome: 'Design and implement simple programs using fundamental programming constructs.', intendedLearningOutcome: "Write programs using variables, conditionals, and loops to solve basic problems.", deliveryWeek: "Week 1", allocatedTime: "4 hours", topics: ["Programming Fundamentals"], references: ["TB1 - Starting Out with Programming Logic & Design"] }],
+        coAssessmentMethodSets: { CO1: [{ value: "Programming Exercise", description: "Complete programming exercises demonstrating control structures and functions." }] },
+        assessments: [{ id: 'A1', tlaName: 'Programming Lab 1', phase: 'In-class', assessmentMethod: 'Code Submission', assessmentDescription: 'Submit working programs with proper syntax and logic.', hasRubric: true, rubrics: [{ id: 1, criteria: 'Correctness', maxScore: '50' }, { id: 2, criteria: 'Code style', maxScore: '50' }] }],
+        gradingSystem: [{ co: "CO1", ilos: [{ id: "ILO1", assessments: ["Programming Exercise"], weight: { prelim: "100", midterm: "", semi: "", final: "" }, minPassing: "60" }] }]
+    },
+    {
+        code: 'BIT103', name: 'Computer Programming 2', credits: '2 LEC, 1 LAB', contact: '3', prerequisites: 'BIT102 Computer Programming 1', class: 'Professional Courses', cmo: '25 S, 2015', year: 'FIRST YEAR', sem: '2nd Semester',
+        description: 'Advanced programming concepts including object-oriented programming, inheritance, polymorphism, file I/O, and exception handling.',
+        references: [{ id: "TB1", title: "Object-Oriented Programming in Java", type: "Textbook", authors: "David J. Barnes", year: 2020, isbn: "978-0134821498", link: "" }],
+        topics: [{ id: "T1", title: "Object-Oriented Programming", subtopics: [{ id: "S1", value: "Classes and Objects" }, { id: "S2", value: "Inheritance and Polymorphism" }, { id: "S3", value: "File I/O and Exceptions" }], tlas: [{ id: "TLA1", classPhase: "In-class", performedBy: "Student", tlaName: "OOP Lab", tlaDescription: "Students implement classes with inheritance hierarchies and file persistence.", laboratory: true }] }],
+        courseOutcomes: [{ id: 'CO1', description: 'Apply object-oriented programming principles to design and implement software solutions.', poMappings: ['I','','','','E','','','','','','','',''] }],
+        ilos: [{ id: "CO1-ILO1", courseOutcome: 'Apply object-oriented programming principles to design and implement software solutions.', intendedLearningOutcome: "Design class hierarchies using inheritance and polymorphism.", deliveryWeek: "Week 1", allocatedTime: "4 hours", topics: ["Object-Oriented Programming"], references: ["TB1 - Object-Oriented Programming in Java"] }],
+        coAssessmentMethodSets: { CO1: [{ value: "OOP Project", description: "Design and implement an application using OOP principles." }] },
+        assessments: [{ id: 'A1', tlaName: 'OOP Lab', phase: 'In-class', assessmentMethod: 'Project Output', assessmentDescription: 'Working OOP application with class hierarchy and file persistence.', hasRubric: true, rubrics: [{ id: 1, criteria: 'OOP design quality', maxScore: '50' }, { id: 2, criteria: 'Functionality', maxScore: '50' }] }],
+        gradingSystem: [{ co: "CO1", ilos: [{ id: "ILO1", assessments: ["OOP Project"], weight: { prelim: "100", midterm: "", semi: "", final: "" }, minPassing: "60" }] }]
+    },
+    {
+        code: 'BIT104', name: 'Discrete Mathematics', credits: '3 LEC', contact: '3', prerequisites: 'BIT101 Introduction to Computing', class: 'General Education', cmo: '25 S, 2015', year: 'FIRST YEAR', sem: '2nd Semester',
+        description: 'Study of discrete mathematical structures including logic, set theory, combinatorics, graph theory, and Boolean algebra.',
+        references: [{ id: "TB1", title: "Discrete Mathematics and Its Applications", type: "Textbook", authors: "Kenneth Rosen", year: 2019, isbn: "978-1259676512", link: "" }],
+        topics: [{ id: "T1", title: "Logic and Set Theory", subtopics: [{ id: "S1", value: "Propositional Logic" }, { id: "S2", value: "Predicate Logic" }, { id: "S3", value: "Set Operations" }], tlas: [{ id: "TLA1", classPhase: "Pre-class", performedBy: "Instructor", tlaName: "Discrete Math Lecture", tlaDescription: "Lecture on propositional logic, truth tables, and set theory fundamentals.", laboratory: false }] }],
+        courseOutcomes: [{ id: 'CO1', description: 'Apply discrete mathematical concepts to solve computing problems.', poMappings: ['I','','','','','','','','','','','',''] }],
+        ilos: [{ id: "CO1-ILO1", courseOutcome: 'Apply discrete mathematical concepts to solve computing problems.', intendedLearningOutcome: "Construct truth tables and evaluate logical expressions.", deliveryWeek: "Week 1", allocatedTime: "3 hours", topics: ["Logic and Set Theory"], references: ["TB1 - Discrete Mathematics and Its Applications"] }],
+        coAssessmentMethodSets: { CO1: [{ value: "Problem Set", description: "Complete problem sets covering logic, sets, and combinatorics." }] },
+        assessments: [{ id: 'A1', tlaName: 'Discrete Math Lecture', phase: 'Pre-class', assessmentMethod: 'Problem Set', assessmentDescription: 'Written problem set on logic and set theory.', hasRubric: false }],
+        gradingSystem: [{ co: "CO1", ilos: [{ id: "ILO1", assessments: ["Problem Set"], weight: { prelim: "100", midterm: "", semi: "", final: "" }, minPassing: "60" }] }]
+    },
+    {
+        code: 'BIT201', name: 'Data Structures and Algorithms', credits: '2 LEC, 1 LAB', contact: '3', prerequisites: 'BIT103 Computer Programming 2', class: 'Professional Courses', cmo: '25 S, 2015', year: 'SECOND YEAR', sem: '1st Semester',
+        description: 'Study of fundamental data structures (arrays, linked lists, trees, graphs, hash tables) and algorithm analysis techniques.',
+        references: [{ id: "TB1", title: "Data Structures and Algorithm Analysis in C++", type: "Textbook", authors: "Mark Allen Weiss", year: 2020, isbn: "978-0134853765", link: "" }],
+        topics: [{ id: "T1", title: "Linear Data Structures", subtopics: [{ id: "S1", value: "Arrays and Linked Lists" }, { id: "S2", value: "Stacks and Queues" }, { id: "S3", value: "Hash Tables" }], tlas: [{ id: "TLA1", classPhase: "In-class", performedBy: "Student", tlaName: "DS Lab", tlaDescription: "Students implement linked lists, stacks, and queues from scratch.", laboratory: true }] }, { id: "T2", title: "Trees and Graphs", subtopics: [{ id: "S4", value: "Binary Search Trees" }, { id: "S5", value: "Graph Representations" }, { id: "S6", value: "Traversal Algorithms" }], tlas: [{ id: "TLA2", classPhase: "In-class", performedBy: "Student", tlaName: "Tree Lab", tlaDescription: "Students implement BST operations and graph traversal algorithms.", laboratory: true }] }],
+        courseOutcomes: [{ id: 'CO1', description: 'Implement and analyze fundamental data structures and their operations.', poMappings: ['I','','','','','','D','','','','','',''] }, { id: 'CO2', description: 'Apply appropriate data structures to solve computational problems efficiently.', poMappings: ['E','','','','D','','','','','','','',''] }],
+        ilos: [{ id: "CO1-ILO1", courseOutcome: 'Implement and analyze fundamental data structures and their operations.', intendedLearningOutcome: "Implement linked list, stack, and queue data structures with their core operations.", deliveryWeek: "Week 1", allocatedTime: "4 hours", topics: ["Linear Data Structures"], references: ["TB1 - Data Structures and Algorithm Analysis"] }, { id: "CO2-ILO1", courseOutcome: 'Apply appropriate data structures to solve computational problems efficiently.', intendedLearningOutcome: "Select and implement the appropriate data structure for a given problem scenario.", deliveryWeek: "Week 2", allocatedTime: "3 hours", topics: ["Trees and Graphs"], references: ["TB1 - Data Structures and Algorithm Analysis"] }],
+        coAssessmentMethodSets: { CO1: [{ value: "DS Implementation", description: "Implement core data structures from scratch." }], CO2: [{ value: "Algorithm Design", description: "Design algorithms using appropriate data structures." }] },
+        assessments: [{ id: 'A1', tlaName: 'DS Lab', phase: 'In-class', assessmentMethod: 'Code Submission', assessmentDescription: 'Working implementations of linked lists, stacks, and queues.', hasRubric: true, rubrics: [{ id: 1, criteria: 'Implementation correctness', maxScore: '60' }, { id: 2, criteria: 'Time complexity analysis', maxScore: '40' }] }],
+        gradingSystem: [{ co: "CO1", ilos: [{ id: "ILO1", assessments: ["DS Implementation"], weight: { prelim: "100", midterm: "", semi: "", final: "" }, minPassing: "60" }] }]
+    },
+    {
+        code: 'BIT202', name: 'Database Management Systems', credits: '2 LEC, 1 LAB', contact: '3', prerequisites: 'BIT201 Data Structures and Algorithms', class: 'Professional Courses', cmo: '25 S, 2015', year: 'SECOND YEAR', sem: '2nd Semester',
+        description: 'Fundamentals of database systems including relational model, SQL, normalization, transaction processing, and database design.',
+        references: [{ id: "TB1", title: "Database System Concepts", type: "Textbook", authors: "Abraham Silberschatz", year: 2020, isbn: "978-0078022159", link: "" }],
+        topics: [{ id: "T1", title: "Relational Databases and SQL", subtopics: [{ id: "S1", value: "Relational Model" }, { id: "S2", value: "SQL Queries and Joins" }, { id: "S3", value: "Normalization" }], tlas: [{ id: "TLA1", classPhase: "In-class", performedBy: "Student", tlaName: "SQL Lab", tlaDescription: "Students write complex SQL queries including joins, subqueries, and aggregations.", laboratory: true }] }],
+        courseOutcomes: [{ id: 'CO1', description: 'Design and implement relational databases using entity-relationship modeling and SQL.', poMappings: ['I','','','','E','','','','','','','',''] }],
+        ilos: [{ id: "CO1-ILO1", courseOutcome: 'Design and implement relational databases using entity-relationship modeling and SQL.', intendedLearningOutcome: "Write SQL queries to create, read, update, and delete data in relational databases.", deliveryWeek: "Week 1", allocatedTime: "4 hours", topics: ["Relational Databases and SQL"], references: ["TB1 - Database System Concepts"] }],
+        coAssessmentMethodSets: { CO1: [{ value: "Database Design Project", description: "Design and implement a database for a given business scenario." }] },
+        assessments: [{ id: 'A1', tlaName: 'SQL Lab', phase: 'In-class', assessmentMethod: 'Query Submission', assessmentDescription: 'Submit SQL queries demonstrating joins, aggregations, and subqueries.', hasRubric: true, rubrics: [{ id: 1, criteria: 'Query correctness', maxScore: '50' }, { id: 2, criteria: 'Query optimization', maxScore: '50' }] }],
+        gradingSystem: [{ co: "CO1", ilos: [{ id: "ILO1", assessments: ["Database Design Project"], weight: { prelim: "100", midterm: "", semi: "", final: "" }, minPassing: "60" }] }]
+    },
+    {
+        code: 'BIT203', name: 'Object-Oriented Programming', credits: '2 LEC, 1 LAB', contact: '3', prerequisites: 'BIT103 Computer Programming 2', class: 'Professional Courses', cmo: '25 S, 2015', year: 'SECOND YEAR', sem: '1st Semester',
+        description: 'In-depth study of object-oriented programming concepts including design patterns, UML modeling, GUI programming, and event-driven programming.',
+        references: [{ id: "TB1", title: "Head First Design Patterns", type: "Textbook", authors: "Eric Freeman", year: 2020, isbn: "978-1492078005", link: "" }],
+        topics: [{ id: "T1", title: "Design Patterns", subtopics: [{ id: "S1", value: "Creational Patterns" }, { id: "S2", value: "Structural Patterns" }, { id: "S3", value: "Behavioral Patterns" }], tlas: [{ id: "TLA1", classPhase: "In-class", performedBy: "Student", tlaName: "Patterns Lab", tlaDescription: "Students implement Singleton, Factory, Observer, and Strategy patterns.", laboratory: true }] }],
+        courseOutcomes: [{ id: 'CO1', description: 'Apply design patterns and UML modeling to create maintainable object-oriented applications.', poMappings: ['','','E','','E','','','','','','','',''] }],
+        ilos: [{ id: "CO1-ILO1", courseOutcome: 'Apply design patterns and UML modeling to create maintainable object-oriented applications.', intendedLearningOutcome: "Identify and implement appropriate design patterns for given software design problems.", deliveryWeek: "Week 1", allocatedTime: "4 hours", topics: ["Design Patterns"], references: ["TB1 - Head First Design Patterns"] }],
+        coAssessmentMethodSets: { CO1: [{ value: "Pattern Application Project", description: "Apply multiple design patterns in a single application." }] },
+        assessments: [{ id: 'A1', tlaName: 'Patterns Lab', phase: 'In-class', assessmentMethod: 'Code Submission', assessmentDescription: 'Implement at least 3 design patterns in a cohesive application.', hasRubric: true, rubrics: [{ id: 1, criteria: 'Pattern selection appropriateness', maxScore: '40' }, { id: 2, criteria: 'Implementation quality', maxScore: '60' }] }],
+        gradingSystem: [{ co: "CO1", ilos: [{ id: "ILO1", assessments: ["Pattern Application Project"], weight: { prelim: "100", midterm: "", semi: "", final: "" }, minPassing: "60" }] }]
+    },
+    {
+        code: 'BIT204', name: 'Information Management', credits: '2 LEC, 1 LAB', contact: '3', prerequisites: 'BIT202 Database Management Systems', class: 'Professional Courses', cmo: '25 S, 2015', year: 'SECOND YEAR', sem: '2nd Semester',
+        description: 'Concepts and technologies for managing information assets including data warehousing, data mining, business intelligence, and information governance.',
+        references: [{ id: "TB1", title: "Data Mining: Concepts and Techniques", type: "Textbook", authors: "Jiawei Han", year: 2022, isbn: "978-0128117606", link: "" }],
+        topics: [{ id: "T1", title: "Data Warehousing and BI", subtopics: [{ id: "S1", value: "Data Warehouse Architecture" }, { id: "S2", value: "ETL Processes" }, { id: "S3", value: "OLAP and Reporting" }], tlas: [{ id: "TLA1", classPhase: "Pre-class", performedBy: "Instructor", tlaName: "DW Lecture", tlaDescription: "Lecture on data warehouse concepts, star schema, and ETL pipelines.", laboratory: false }] }],
+        courseOutcomes: [{ id: 'CO1', description: 'Design and implement data management solutions using warehousing and business intelligence tools.', poMappings: ['','','','E','D','','','','','','','',''] }],
+        ilos: [{ id: "CO1-ILO1", courseOutcome: 'Design and implement data management solutions using warehousing and business intelligence tools.', intendedLearningOutcome: "Design a star schema data warehouse for a given business domain.", deliveryWeek: "Week 1", allocatedTime: "3 hours", topics: ["Data Warehousing and BI"], references: ["TB1 - Data Mining: Concepts and Techniques"] }],
+        coAssessmentMethodSets: { CO1: [{ value: "Data Warehouse Design", description: "Design a complete data warehouse solution with ETL processes." }] },
+        assessments: [{ id: 'A1', tlaName: 'DW Lecture', phase: 'Pre-class', assessmentMethod: 'Design Document', assessmentDescription: 'Submit data warehouse schema design with ETL plan.', hasRubric: false }],
+        gradingSystem: [{ co: "CO1", ilos: [{ id: "ILO1", assessments: ["Data Warehouse Design"], weight: { prelim: "100", midterm: "", semi: "", final: "" }, minPassing: "60" }] }]
+    },
+    {
+        code: 'BSCS111', name: 'Calculus 1', credits: '3 LEC', contact: '3', prerequisites: 'None', class: 'General Education', cmo: '25 S, 2015', year: 'FIRST YEAR', sem: '1st Semester',
+        description: 'Limits, continuity, differentiation, and applications of derivatives. Introduction to integration.',
+        references: [{ id: "TB1", title: "Calculus: Early Transcendentals", type: "Textbook", authors: "James Stewart", year: 2020, isbn: "978-1337613927", link: "" }],
+        topics: [{ id: "T1", title: "Limits and Derivatives", subtopics: [{ id: "S1", value: "Limits and Continuity" }, { id: "S2", value: "Differentiation Rules" }, { id: "S3", value: "Applications of Derivatives" }], tlas: [{ id: "TLA1", classPhase: "Pre-class", performedBy: "Instructor", tlaName: "Calculus Lecture", tlaDescription: "Lecture on limit theorems, differentiation rules, and optimization applications.", laboratory: false }] }],
+        courseOutcomes: [{ id: 'CO1', description: 'Apply differentiation techniques to solve problems in optimization and rate of change.', poMappings: ['I','','','','','','','','','','','',''] }],
+        ilos: [{ id: "CO1-ILO1", courseOutcome: 'Apply differentiation techniques to solve problems in optimization and rate of change.', intendedLearningOutcome: "Compute derivatives using power, product, quotient, and chain rules.", deliveryWeek: "Week 1", allocatedTime: "3 hours", topics: ["Limits and Derivatives"], references: ["TB1 - Calculus: Early Transcendentals"] }],
+        coAssessmentMethodSets: { CO1: [{ value: "Derivative Problem Set", description: "Problem set covering differentiation rules and applications." }] },
+        assessments: [{ id: 'A1', tlaName: 'Calculus Lecture', phase: 'Pre-class', assessmentMethod: 'Problem Set', assessmentDescription: 'Problem set on limits and derivatives.', hasRubric: false }],
+        gradingSystem: [{ co: "CO1", ilos: [{ id: "ILO1", assessments: ["Derivative Problem Set"], weight: { prelim: "100", midterm: "", semi: "", final: "" }, minPassing: "60" }] }]
+    },
+    {
+        code: 'BSCS112', name: 'Calculus 2', credits: '3 LEC', contact: '3', prerequisites: 'BSCS111 Calculus 1', class: 'General Education', cmo: '25 S, 2015', year: 'FIRST YEAR', sem: '2nd Semester',
+        description: 'Integration techniques, applications of integrals, sequences, series, and parametric equations.',
+        references: [{ id: "TB1", title: "Calculus: Early Transcendentals", type: "Textbook", authors: "James Stewart", year: 2020, isbn: "978-1337613927", link: "" }],
+        topics: [{ id: "T1", title: "Integration Techniques", subtopics: [{ id: "S1", value: "Substitution and Integration by Parts" }, { id: "S2", value: "Trigonometric Integrals" }, { id: "S3", value: "Partial Fractions" }], tlas: [{ id: "TLA1", classPhase: "Pre-class", performedBy: "Instructor", tlaName: "Integration Lecture", tlaDescription: "Lecture on advanced integration techniques and their applications.", laboratory: false }] }],
+        courseOutcomes: [{ id: 'CO1', description: 'Apply integration techniques to compute areas, volumes, and solve applied problems.', poMappings: ['I','','','','','','','','','','','',''] }],
+        ilos: [{ id: "CO1-ILO1", courseOutcome: 'Apply integration techniques to compute areas, volumes, and solve applied problems.', intendedLearningOutcome: "Evaluate integrals using substitution, integration by parts, and partial fractions.", deliveryWeek: "Week 1", allocatedTime: "3 hours", topics: ["Integration Techniques"], references: ["TB1 - Calculus: Early Transcendentals"] }],
+        coAssessmentMethodSets: { CO1: [{ value: "Integration Problem Set", description: "Problem set covering various integration techniques." }] },
+        assessments: [{ id: 'A1', tlaName: 'Integration Lecture', phase: 'Pre-class', assessmentMethod: 'Problem Set', assessmentDescription: 'Problem set on integration techniques.', hasRubric: false }],
+        gradingSystem: [{ co: "CO1", ilos: [{ id: "ILO1", assessments: ["Integration Problem Set"], weight: { prelim: "100", midterm: "", semi: "", final: "" }, minPassing: "60" }] }]
+    },
+    {
+        code: 'BSCS113', name: 'Linear Algebra', credits: '3 LEC', contact: '3', prerequisites: 'BSCS111 Calculus 1', class: 'General Education', cmo: '25 S, 2015', year: 'SECOND YEAR', sem: '1st Semester',
+        description: 'Vector spaces, matrices, linear transformations, eigenvalues, eigenvectors, and applications in computing.',
+        references: [{ id: "TB1", title: "Linear Algebra and Its Applications", type: "Textbook", authors: "David C. Lay", year: 2021, isbn: "978-0135851258", link: "" }],
+        topics: [{ id: "T1", title: "Matrices and Vector Spaces", subtopics: [{ id: "S1", value: "Matrix Operations" }, { id: "S2", value: "Vector Spaces and Subspaces" }, { id: "S3", value: "Linear Transformations" }], tlas: [{ id: "TLA1", classPhase: "Pre-class", performedBy: "Instructor", tlaName: "Linear Algebra Lecture", tlaDescription: "Lecture on matrix operations, vector spaces, and linear transformations.", laboratory: false }] }],
+        courseOutcomes: [{ id: 'CO1', description: 'Solve systems of linear equations and apply matrix operations in computational contexts.', poMappings: ['I','','','','','','','','','','','',''] }],
+        ilos: [{ id: "CO1-ILO1", courseOutcome: 'Solve systems of linear equations and apply matrix operations in computational contexts.', intendedLearningOutcome: "Perform matrix operations including multiplication, inversion, and determinant calculation.", deliveryWeek: "Week 1", allocatedTime: "3 hours", topics: ["Matrices and Vector Spaces"], references: ["TB1 - Linear Algebra and Its Applications"] }],
+        coAssessmentMethodSets: { CO1: [{ value: "Matrix Operations Quiz", description: "Quiz on matrix operations and vector space concepts." }] },
+        assessments: [{ id: 'A1', tlaName: 'Linear Algebra Lecture', phase: 'Pre-class', assessmentMethod: 'Quiz', assessmentDescription: 'Quiz on matrix operations and vector spaces.', hasRubric: false }],
+        gradingSystem: [{ co: "CO1", ilos: [{ id: "ILO1", assessments: ["Matrix Operations Quiz"], weight: { prelim: "100", midterm: "", semi: "", final: "" }, minPassing: "60" }] }]
+    },
+    {
+        code: 'BSCS114', name: 'Probability and Statistics', credits: '3 LEC', contact: '3', prerequisites: 'BSCS112 Calculus 2', class: 'General Education', cmo: '25 S, 2015', year: 'SECOND YEAR', sem: '2nd Semester',
+        description: 'Probability theory, random variables, probability distributions, sampling, hypothesis testing, and regression analysis.',
+        references: [{ id: "TB1", title: "Probability and Statistics for Engineers and Scientists", type: "Textbook", authors: "Walpole, Myers", year: 2020, isbn: "978-0134115856", link: "" }],
+        topics: [{ id: "T1", title: "Probability and Distributions", subtopics: [{ id: "S1", value: "Probability Rules" }, { id: "S2", value: "Random Variables" }, { id: "S3", value: "Normal and Binomial Distributions" }], tlas: [{ id: "TLA1", classPhase: "Pre-class", performedBy: "Instructor", tlaName: "Stats Lecture", tlaDescription: "Lecture on probability theory, distributions, and expected values.", laboratory: false }] }],
+        courseOutcomes: [{ id: 'CO1', description: 'Apply statistical methods to analyze data and make data-driven decisions.', poMappings: ['I','','','','','','','','','','','',''] }],
+        ilos: [{ id: "CO1-ILO1", courseOutcome: 'Apply statistical methods to analyze data and make data-driven decisions.', intendedLearningOutcome: "Calculate probabilities using probability rules and distribution functions.", deliveryWeek: "Week 1", allocatedTime: "3 hours", topics: ["Probability and Distributions"], references: ["TB1 - Probability and Statistics"] }],
+        coAssessmentMethodSets: { CO1: [{ value: "Statistical Analysis", description: "Perform statistical analysis on a dataset with hypothesis testing." }] },
+        assessments: [{ id: 'A1', tlaName: 'Stats Lecture', phase: 'Pre-class', assessmentMethod: 'Problem Set', assessmentDescription: 'Problem set on probability and distributions.', hasRubric: false }],
+        gradingSystem: [{ co: "CO1", ilos: [{ id: "ILO1", assessments: ["Statistical Analysis"], weight: { prelim: "100", midterm: "", semi: "", final: "" }, minPassing: "60" }] }]
+    },
+    {
+        code: 'IT 221', name: 'IT Fundamentals', credits: '3 LEC', contact: '3', prerequisites: 'None', class: 'General Education', cmo: '25 S, 2015', year: 'FIRST YEAR', sem: '1st Semester',
+        description: 'Overview of information technology covering computer systems, networks, databases, web technologies, and IT career paths.',
+        references: [{ id: "TB1", title: "Technology in Action", type: "Textbook", authors: "Alan Evans", year: 2021, isbn: "978-0135438695", link: "" }],
+        topics: [{ id: "T1", title: "IT Overview", subtopics: [{ id: "S1", value: "Computer Systems" }, { id: "S2", value: "Networking Basics" }, { id: "S3", value: "Web Technologies" }], tlas: [{ id: "TLA1", classPhase: "Pre-class", performedBy: "Instructor", tlaName: "IT Overview Lecture", tlaDescription: "Overview of IT domains including systems, networks, web, and databases.", laboratory: false }] }],
+        courseOutcomes: [{ id: 'CO1', description: 'Explain the core domains of information technology and their interrelationships.', poMappings: ['I','','','','','','','','','','','',''] }],
+        ilos: [{ id: "CO1-ILO1", courseOutcome: 'Explain the core domains of information technology and their interrelationships.', intendedLearningOutcome: "Identify the major components of IT infrastructure in an organization.", deliveryWeek: "Week 1", allocatedTime: "3 hours", topics: ["IT Overview"], references: ["TB1 - Technology in Action"] }],
+        coAssessmentMethodSets: { CO1: [{ value: "IT Domain Report", description: "Research report on the various domains of IT." }] },
+        assessments: [{ id: 'A1', tlaName: 'IT Overview Lecture', phase: 'Pre-class', assessmentMethod: 'Quiz', assessmentDescription: 'Quiz on IT domains and career paths.', hasRubric: false }],
+        gradingSystem: [{ co: "CO1", ilos: [{ id: "ILO1", assessments: ["IT Domain Report"], weight: { prelim: "100", midterm: "", semi: "", final: "" }, minPassing: "60" }] }]
+    },
+    {
+        code: 'IT 222', name: 'Systems Analysis and Design', credits: '2 LEC, 1 LAB', contact: '3', prerequisites: 'BIT202 Database Management Systems', class: 'Professional Courses', cmo: '25 S, 2015', year: 'THIRD YEAR', sem: '1st Semester',
+        description: 'Structured approach to analyzing business requirements and designing information systems using UML, use cases, and agile methodologies.',
+        references: [{ id: "TB1", title: "Systems Analysis and Design", type: "Textbook", authors: "Alan Dennis", year: 2020, isbn: "978-1119496489", link: "" }],
+        topics: [{ id: "T1", title: "Requirements Analysis", subtopics: [{ id: "S1", value: "Requirement Gathering" }, { id: "S2", value: "Use Case Modeling" }, { id: "S3", value: "UML Diagrams" }], tlas: [{ id: "TLA1", classPhase: "In-class", performedBy: "Student", tlaName: "UML Lab", tlaDescription: "Students create use case diagrams, class diagrams, and sequence diagrams for a given system.", laboratory: true }] }],
+        courseOutcomes: [{ id: 'CO1', description: 'Analyze business requirements and design information systems using industry-standard modeling techniques.', poMappings: ['','','E','E','I','','','','','','','',''] }],
+        ilos: [{ id: "CO1-ILO1", courseOutcome: 'Analyze business requirements and design information systems using industry-standard modeling techniques.', intendedLearningOutcome: "Create UML diagrams including use case, class, and sequence diagrams.", deliveryWeek: "Week 1", allocatedTime: "4 hours", topics: ["Requirements Analysis"], references: ["TB1 - Systems Analysis and Design"] }],
+        coAssessmentMethodSets: { CO1: [{ value: "System Design Document", description: "Complete system analysis and design document for a business scenario." }] },
+        assessments: [{ id: 'A1', tlaName: 'UML Lab', phase: 'In-class', assessmentMethod: 'Diagram Submission', assessmentDescription: 'Submit complete UML diagrams for a given system specification.', hasRubric: true, rubrics: [{ id: 1, criteria: 'Diagram accuracy', maxScore: '50' }, { id: 2, criteria: 'Completeness', maxScore: '50' }] }],
+        gradingSystem: [{ co: "CO1", ilos: [{ id: "ILO1", assessments: ["System Design Document"], weight: { prelim: "100", midterm: "", semi: "", final: "" }, minPassing: "60" }] }]
+    },
+    {
+        code: 'IT 223', name: 'Business Process Management', credits: '3 LEC', contact: '3', prerequisites: 'IT 222 Systems Analysis and Design', class: 'Professional Courses', cmo: '25 S, 2015', year: 'THIRD YEAR', sem: '2nd Semester',
+        description: 'Concepts and techniques for modeling, analyzing, and optimizing business processes using BPMN and process mining tools.',
+        references: [{ id: "TB1", title: "Fundamentals of Business Process Management", type: "Textbook", authors: "Marlon Dumas", year: 2018, isbn: "978-3662565081", link: "" }],
+        topics: [{ id: "T1", title: "Process Modeling", subtopics: [{ id: "S1", value: "BPMN Notation" }, { id: "S2", value: "Process Analysis" }, { id: "S3", value: "Process Redesign" }], tlas: [{ id: "TLA1", classPhase: "In-class", performedBy: "Student", tlaName: "BPMN Lab", tlaDescription: "Students model business processes using BPMN tools and identify improvement opportunities.", laboratory: true }] }],
+        courseOutcomes: [{ id: 'CO1', description: 'Model and analyze business processes to identify improvement opportunities.', poMappings: ['','','E','E','','','','','','','','',''] }],
+        ilos: [{ id: "CO1-ILO1", courseOutcome: 'Model and analyze business processes to identify improvement opportunities.', intendedLearningOutcome: "Create BPMN diagrams for business processes and identify inefficiencies.", deliveryWeek: "Week 1", allocatedTime: "3 hours", topics: ["Process Modeling"], references: ["TB1 - Fundamentals of Business Process Management"] }],
+        coAssessmentMethodSets: { CO1: [{ value: "Process Redesign Proposal", description: "Analyze a business process and propose improvements with BPMN models." }] },
+        assessments: [{ id: 'A1', tlaName: 'BPMN Lab', phase: 'In-class', assessmentMethod: 'Model Submission', assessmentDescription: 'Submit BPMN diagrams with process analysis and recommendations.', hasRubric: false }],
+        gradingSystem: [{ co: "CO1", ilos: [{ id: "ILO1", assessments: ["Process Redesign Proposal"], weight: { prelim: "100", midterm: "", semi: "", final: "" }, minPassing: "60" }] }]
+    },
+    {
+        code: 'IT 224', name: 'IT Project Management', credits: '3 LEC', contact: '3', prerequisites: 'IT 222 Systems Analysis and Design', class: 'Professional Courses', cmo: '25 S, 2015', year: 'THIRD YEAR', sem: '2nd Semester',
+        description: 'Project management principles applied to IT projects including scope, time, cost, quality, risk management, and agile project management.',
+        references: [{ id: "TB1", title: "A Guide to the Project Management Body of Knowledge", type: "Textbook", authors: "PMI", year: 2021, isbn: "978-1628256642", link: "" }],
+        topics: [{ id: "T1", title: "Project Planning and Agile", subtopics: [{ id: "S1", value: "Work Breakdown Structure" }, { id: "S2", value: "Scheduling and Budgeting" }, { id: "S3", value: "Agile and Scrum" }], tlas: [{ id: "TLA1", classPhase: "In-class", performedBy: "Student", tlaName: "Project Plan Lab", tlaDescription: "Students create a WBS, Gantt chart, and risk register for an IT project.", laboratory: true }] }],
+        courseOutcomes: [{ id: 'CO1', description: 'Plan, execute, and monitor IT projects using industry-standard project management practices.', poMappings: ['','','','','E','','','','','','','',''] }],
+        ilos: [{ id: "CO1-ILO1", courseOutcome: 'Plan, execute, and monitor IT projects using industry-standard project management practices.', intendedLearningOutcome: "Create project plans with work breakdown structures and schedules.", deliveryWeek: "Week 1", allocatedTime: "3 hours", topics: ["Project Planning and Agile"], references: ["TB1 - PMBOK Guide"] }],
+        coAssessmentMethodSets: { CO1: [{ value: "Project Plan", description: "Develop a complete project plan for an IT project." }] },
+        assessments: [{ id: 'A1', tlaName: 'Project Plan Lab', phase: 'In-class', assessmentMethod: 'Plan Submission', assessmentDescription: 'Submit WBS, schedule, budget, and risk management plan.', hasRubric: true, rubrics: [{ id: 1, criteria: 'Plan completeness', maxScore: '50' }, { id: 2, criteria: 'Risk identification', maxScore: '50' }] }],
+        gradingSystem: [{ co: "CO1", ilos: [{ id: "ILO1", assessments: ["Project Plan"], weight: { prelim: "100", midterm: "", semi: "", final: "" }, minPassing: "60" }] }]
+    },
+    {
+        code: 'IT 225', name: 'Social and Professional Issues', credits: '3 LEC', contact: '3', prerequisites: 'None', class: 'General Education', cmo: '25 S, 2015', year: 'FOURTH YEAR', sem: '1st Semester',
+        description: 'Social, ethical, legal, and professional issues in computing including privacy, intellectual property, cybersecurity ethics, and professional conduct.',
+        references: [{ id: "TB1", title: "Ethics in Information Technology", type: "Textbook", authors: "George Reynolds", year: 2022, isbn: "978-0357415406", link: "" }],
+        topics: [{ id: "T1", title: "Computing Ethics and Law", subtopics: [{ id: "S1", value: "Ethical Frameworks" }, { id: "S2", value: "Privacy and Data Protection" }, { id: "S3", value: "Intellectual Property" }], tlas: [{ id: "TLA1", classPhase: "In-class", performedBy: "Student", tlaName: "Ethics Debate", tlaDescription: "Students debate ethical scenarios in computing including privacy, AI ethics, and professional responsibility.", laboratory: false }] }],
+        courseOutcomes: [{ id: 'CO1', description: 'Analyze ethical and professional issues in computing and formulate reasoned positions.', poMappings: ['','','','','','','','','','','','I',''] }],
+        ilos: [{ id: "CO1-ILO1", courseOutcome: 'Analyze ethical and professional issues in computing and formulate reasoned positions.', intendedLearningOutcome: "Apply ethical frameworks to analyze computing-related ethical dilemmas.", deliveryWeek: "Week 1", allocatedTime: "3 hours", topics: ["Computing Ethics and Law"], references: ["TB1 - Ethics in Information Technology"] }],
+        coAssessmentMethodSets: { CO1: [{ value: "Ethics Position Paper", description: "Write a position paper on a current ethical issue in computing." }] },
+        assessments: [{ id: 'A1', tlaName: 'Ethics Debate', phase: 'In-class', assessmentMethod: 'Position Paper', assessmentDescription: 'Research and write a position paper on an ethical issue in computing.', hasRubric: true, rubrics: [{ id: 1, criteria: 'Argument quality', maxScore: '40' }, { id: 2, criteria: 'Use of ethical frameworks', maxScore: '30' }, { id: 3, criteria: 'Research depth', maxScore: '30' }] }],
+        gradingSystem: [{ co: "CO1", ilos: [{ id: "ILO1", assessments: ["Ethics Position Paper"], weight: { prelim: "100", midterm: "", semi: "", final: "" }, minPassing: "60" }] }]
+    },
+    {
+        code: 'IT 226', name: 'Capstone Project Preparation', credits: '2 LEC, 1 LAB', contact: '3', prerequisites: 'IT 224 IT Project Management', class: 'Professional Courses', cmo: '25 S, 2015', year: 'FOURTH YEAR', sem: '1st Semester',
+        description: 'Preparation for the IT capstone project including proposal writing, literature review, methodology selection, and project planning.',
+        references: [{ id: "TB1", title: "Writing the Capstone Project", type: "Textbook", authors: "Larry Page", year: 2022, isbn: "978-1284225831", link: "" }],
+        topics: [{ id: "T1", title: "Proposal Development", subtopics: [{ id: "S1", value: "Problem Identification" }, { id: "S2", value: "Literature Review" }, { id: "S3", value: "Methodology Design" }], tlas: [{ id: "TLA1", classPhase: "In-class", performedBy: "Student", tlaName: "Proposal Workshop", tlaDescription: "Students develop capstone project proposals with problem statements, objectives, and methodology.", laboratory: true }] }],
+        courseOutcomes: [{ id: 'CO1', description: 'Develop a comprehensive capstone project proposal with clear problem definition and methodology.', poMappings: ['','','','','','','','','E','','','',''] }],
+        ilos: [{ id: "CO1-ILO1", courseOutcome: 'Develop a comprehensive capstone project proposal with clear problem definition and methodology.', intendedLearningOutcome: "Write a problem statement and research objectives for an IT capstone project.", deliveryWeek: "Week 1", allocatedTime: "4 hours", topics: ["Proposal Development"], references: ["TB1 - Writing the Capstone Project"] }],
+        coAssessmentMethodSets: { CO1: [{ value: "Proposal Document", description: "Complete capstone proposal with problem statement, literature review, and methodology." }] },
+        assessments: [{ id: 'A1', tlaName: 'Proposal Workshop', phase: 'In-class', assessmentMethod: 'Proposal Submission', assessmentDescription: 'Submit a complete capstone project proposal document.', hasRubric: true, rubrics: [{ id: 1, criteria: 'Problem definition', maxScore: '25' }, { id: 2, criteria: 'Literature review quality', maxScore: '25' }, { id: 3, criteria: 'Methodology appropriateness', maxScore: '25' }, { id: 4, criteria: 'Project plan', maxScore: '25' }] }],
+        gradingSystem: [{ co: "CO1", ilos: [{ id: "ILO1", assessments: ["Proposal Document"], weight: { prelim: "100", midterm: "", semi: "", final: "" }, minPassing: "60" }] }]
+    },
 ]
 
-// Always use built-in data — clear old localStorage cache on app init
+import { enrichSyllabi } from './syllabiDataEnricher.js'
+enrichSyllabi(syllabiData)
 
 // Always use built-in data — clear old localStorage cache on app init
 try {
   localStorage.removeItem('lpms_syllabi_v1')
-} catch (e) {}
+} catch (e) { console.warn('Failed to clear localStorage syllabi cache:', e) }
 
 export const getSyllabusByCode = (code) => {
   try {
@@ -2272,6 +2686,10 @@ export const getSyllabusByCode = (code) => {
         return found
       }
     }
-  } catch (e) {}
-  return syllabiData.find(s => s.code === code)
+  } catch (e) { console.warn('getSyllabusByCode failed:', e) }
+  const found = syllabiData.find(s => s.code === code)
+  if (found && (!found.courseOutcomes || found.courseOutcomes.length === 0)) {
+    enrichSyllabi([found])
+  }
+  return found || null
 };

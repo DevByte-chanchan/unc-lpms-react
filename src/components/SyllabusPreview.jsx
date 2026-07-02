@@ -446,42 +446,42 @@ const SyllabusPreview = ({ isOpen, onClose }) => {
                                                         <td className={styles.refDataCellLeft} style={{ width: colWidths.title }}>{ref.title}</td>
                                                         <td className={styles.refDataCellLeft} style={{ width: colWidths.author }}>{ref.authors}</td>
                                                         <td className={styles.refDataCellLeft} style={{ width: colWidths.link }}>
-                                                            {ref.link && ref.link !== '#' ? (
-                                                                <a href={ref.link} target="_blank" rel="noreferrer" className={styles.refUrlLink}>Open Resource</a>
-                                                            ) : '-'}
-                                                        </td>
-                                                        <td className={styles.refDataCellCenter} style={{ width: colWidths.year }}>
-                                                            {ref.year && ref.year !== '-' ? String(ref.year).split('-')[0] : '-'}
-                                                        </td>
-                                                    </tr>
-                                                )) : (
-                                                    <tr><td colSpan={5} className={styles.refEmpty}>No OER found.</td></tr>
-                                                )}
-                                                </tbody>
-                                            </table>
-                                        )}
+                                                             {ref.link && ref.link !== '#' ? (
+                                                                 <a href={ref.link} target="_blank" rel="noreferrer" className={styles.refUrlLink}>{ref.link}</a>
+                                                             ) : '-'}
+                                                         </td>
+                                                         <td className={styles.refDataCellCenter} style={{ width: colWidths.year }}>
+                                                             {ref.year && ref.year !== '-' ? String(ref.year).split('-')[0] : '-'}
+                                                         </td>
+                                                     </tr>
+                                                 )) : (
+                                                     <tr><td colSpan={5} className={styles.refEmpty}>No OER found.</td></tr>
+                                                 )}
+                                                 </tbody>
+                                             </table>
+                                         )}
 
-                                        {/* TABLE 3: ONLINE RESOURCES */}
-                                        {viewType === 'Online Resources' && (
-                                            <table className={styles.refTable}>
-                                                <thead>
-                                                <tr>
-                                                    <th className={styles.refHeaderCell} style={{ width: colWidths.id }}>ID</th>
-                                                    <th className={styles.refHeaderCell} style={{ width: colWidths.title }}>TITLE</th>
-                                                    <th className={styles.refHeaderCell} style={{ width: colWidths.author }}>AUTHOR/S</th>
-                                                    <th className={styles.refHeaderCell} style={{ width: colWidths.link }}>LINK</th>
-                                                    <th className={styles.refHeaderCell} style={{ width: colWidths.year }}>PUBLICATION YEAR</th>
-                                                </tr>
-                                                </thead>
-                                                <tbody>
-                                                {getData('Online Resources').length > 0 ? getData('Online Resources').map((ref, i) => (
-                                                    <tr key={ref.id || i}>
-                                                        <td className={styles.refDataCellCenter} style={{ width: colWidths.id }}>OR{i + 1}</td>
-                                                        <td className={styles.refDataCellLeft} style={{ width: colWidths.title }}>{ref.title}</td>
-                                                        <td className={styles.refDataCellLeft} style={{ width: colWidths.author }}>{ref.authors}</td>
-                                                        <td className={styles.refDataCellLeft} style={{ width: colWidths.link }}>
-                                                            {ref.link && ref.link !== '#' ? (
-                                                                <a href={ref.link} target="_blank" rel="noreferrer" className={styles.refUrlLink}>Visit Link</a>
+                                         {/* TABLE 3: ONLINE RESOURCES */}
+                                         {viewType === 'Online Resources' && (
+                                             <table className={styles.refTable}>
+                                                 <thead>
+                                                 <tr>
+                                                     <th className={styles.refHeaderCell} style={{ width: colWidths.id }}>ID</th>
+                                                     <th className={styles.refHeaderCell} style={{ width: colWidths.title }}>TITLE</th>
+                                                     <th className={styles.refHeaderCell} style={{ width: colWidths.author }}>AUTHOR/S</th>
+                                                     <th className={styles.refHeaderCell} style={{ width: colWidths.link }}>LINK</th>
+                                                     <th className={styles.refHeaderCell} style={{ width: colWidths.year }}>PUBLICATION YEAR</th>
+                                                 </tr>
+                                                 </thead>
+                                                 <tbody>
+                                                 {getData('Online Resources').length > 0 ? getData('Online Resources').map((ref, i) => (
+                                                     <tr key={ref.id || i}>
+                                                         <td className={styles.refDataCellCenter} style={{ width: colWidths.id }}>OR{i + 1}</td>
+                                                         <td className={styles.refDataCellLeft} style={{ width: colWidths.title }}>{ref.title}</td>
+                                                         <td className={styles.refDataCellLeft} style={{ width: colWidths.author }}>{ref.authors}</td>
+                                                         <td className={styles.refDataCellLeft} style={{ width: colWidths.link }}>
+                                                             {ref.link && ref.link !== '#' ? (
+                                                                 <a href={ref.link} target="_blank" rel="noreferrer" className={styles.refUrlLink}>{ref.link}</a>
                                                             ) : '-'}
                                                         </td>
                                                         <td className={styles.refDataCellCenter} style={{ width: colWidths.year }}>

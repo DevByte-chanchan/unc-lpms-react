@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
 const db = require('./models');
+const authRouter = require('./routes/auth');
 const learningPlansRouter = require('./routes/learningPlans');
 const programDocumentsRouter = require('./routes/programDocuments');
 const syllabiRouter = require('./routes/syllabi');
@@ -15,6 +16,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Routes
+app.use('/api/auth', authRouter);
 app.use('/api/learning-plans', learningPlansRouter);
 app.use('/api/program-documents', programDocumentsRouter);
 app.use('/api/syllabi', syllabiRouter);
@@ -30,15 +32,11 @@ app.use(notFoundHandler);
 // Centralized error handling (must be last)
 app.use(errorHandler);
 
-// Sync database and start server
+// Start server (migrations should be run separately via db:migrate)
 const PORT = process.env.PORT || 4002;
 
-db.sequelize.sync({ alter: false }).then(() => {
-  app.listen(PORT, () => {
-    console.log(`LPSM Backend running on port ${PORT}`);
-  });
-}).catch((error) => {
-  console.error('Failed to sync database:', error);
+app.listen(PORT, () => {
+  console.log(`LPSM Backend running on port ${PORT}`);
 });
 
 module.exports = app;

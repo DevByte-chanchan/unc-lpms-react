@@ -155,7 +155,7 @@ const ILOForm = () => {
     };
 
     const handleConfirmSave = () => {
-        console.log("Saving ILO Data:", {
+        if (import.meta.env.DEV) console.log("Saving ILO Data:", {
             courseOutcome,
             intendedLearningOutcome,
             deliveryWeek,

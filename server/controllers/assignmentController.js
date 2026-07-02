@@ -3,7 +3,7 @@ const { CourseOfferingAssignment, ProgramCourseOffering, Course, Program, Depart
 
 const listAssignments = async (req, res, next) => {
     try {
-        const { page = 1, limit = 25, programId, courseId, stakeholder } = req.query;
+        const { page = 1, limit = 200, programId, courseId, stakeholder } = req.query;
         const offset = (page - 1) * limit;
 
         const whereAssignment = {};

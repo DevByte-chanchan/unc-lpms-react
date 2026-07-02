@@ -12,7 +12,7 @@ export function seedAllData() {
     'lpsm_uploads_v1',
   ]
   keys.forEach(k => {
-    try { localStorage.removeItem(k) } catch (e) {}
+    try { localStorage.removeItem(k) } catch (e) { console.warn('Failed to clear key on seed:', k, e) }
   })
 
   // Seed reference library from refPool

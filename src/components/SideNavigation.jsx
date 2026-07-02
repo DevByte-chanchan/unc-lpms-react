@@ -164,17 +164,7 @@ const SideNavigation = ({ mode = 'instructor' }) => {
                     </div>
                 )}
 
-                {mode === 'instructor' && (
-                    <>
-                        <div
-                            onClick={() => handlePageChange('TOS')}
-                            className={`${styles.list} ${selected === 'TOS' ? styles.selected : ''}`}
-                        >
-                            <FileText size={24} />
-                            <span className={styles.listText}>TOS</span>
-                        </div>
-                    </>
-                )}
+
 
                 {mode === 'program-head' && (
                     <>

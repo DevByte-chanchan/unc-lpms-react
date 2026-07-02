@@ -1,5 +1,14 @@
-const { SyllabusApproval, SyllabusVersion, SyllabusContent, User } = require('../models');
+const { SyllabusApproval, SyllabusVersion, SyllabusContent, User, sequelize } = require('../models');
 const puppeteer = require('puppeteer');
+
+// ponytail: single reusable browser for PDF export. Upgrade to puppeteer-cluster if throughput matters.
+let browserPromise = null;
+const getBrowser = () => {
+  if (!browserPromise) {
+    browserPromise = puppeteer.launch({ headless: 'new' });
+  }
+  return browserPromise;
+};
 
 const createSnapshot = async (courseCode, userId, triggerEvent) => {
   const approval = await SyllabusApproval.findOne({ where: { course_code: courseCode } });
@@ -148,18 +157,19 @@ exports.saveContent = async (req, res) => {
     const { courseCode } = req.params;
     const { academic_year, semester, content } = req.body;
     if (!academic_year || !content) return res.status(400).json({ error: 'academic_year and content are required' });
-    const [record, created] = await SyllabusContent.upsert({
-      course_code: courseCode,
-      academic_year,
-      semester: semester || null,
-      content,
-      created_by: req.userId || null,
-      is_current: true
+    const result = await sequelize.transaction(async (t) => {
+      await SyllabusContent.update({ is_current: false }, { where: { course_code: courseCode }, transaction: t });
+      const [record] = await SyllabusContent.upsert({
+        course_code: courseCode,
+        academic_year,
+        semester: semester || null,
+        content,
+        created_by: req.userId || null,
+        is_current: true
+      }, { transaction: t });
+      return record;
     });
-    if (!created) {
-      await SyllabusContent.update({ is_current: false }, { where: { course_code: courseCode, id: { [require('sequelize').Op.ne]: record.id } } });
-    }
-    res.status(created ? 201 : 200).json(record);
+    res.status(200).json(result);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -172,7 +182,7 @@ exports.exportPdf = async (req, res) => {
     if (!record) return res.status(404).json({ error: 'Syllabus content not found for PDF export' });
     const c = typeof record.content === 'string' ? JSON.parse(record.content) : record.content;
     const topics = c.topics || [];
-    const browser = await puppeteer.launch({ headless: 'new' });
+    const browser = await getBrowser();
     const page = await browser.newPage();
     const html = `<!DOCTYPE html>
 <html><head><meta charset="utf-8"><style>
@@ -205,7 +215,7 @@ ${topics.length ? `<div class="section"><div class="section-title">TOPICS</div><
 </body></html>`;
     await page.setContent(html);
     const pdfBuffer = await page.pdf({ format: 'A4', printBackground: true });
-    await browser.close();
+    await page.close();
     res.set({ 'Content-Type': 'application/pdf', 'Content-Disposition': `attachment; filename=Syllabus_${courseCode}.pdf`, 'Content-Length': pdfBuffer.length });
     res.send(pdfBuffer);
   } catch (error) {

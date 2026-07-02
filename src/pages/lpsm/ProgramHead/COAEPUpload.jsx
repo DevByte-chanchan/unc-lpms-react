@@ -4,9 +4,15 @@ import SkeletonA from '../../../layouts/SkeletonA.jsx';
 import HeaderA from '../../../components/HeaderA.jsx';
 import SideNavigation from '../../../components/SideNavigation.jsx';
 import PDFViewerModal from '../../../components/PDFViewerModal.jsx';
+import { buildCoaepHtml } from '../../../utils/syllabusPdfHtml.js';
+import unclogo from '../../../assets/unclogo.png';
 
 const docList = [
-  { id: '2', name: 'BSIT_COAEP_AY2425.xlsx', file_name: 'COAEP_Template.pdf', uploadedBy: 'DANILA, JUNAR', uploadDate: 'Jan 5, 2025', file_url: '/coaep-template.pdf', instructor_name: 'DANILA, JUNAR', course_id: 'BSIT 212L', course_name: 'Mobile Application Development', submission_date: '2025-01-05', period_label: 'AY 2024-2025, 2nd Sem' },
+  { id: '1', name: 'BSCS_COAEP_AY2425_2ndSem.xlsx', file_name: 'COAEP_BSCS_SWENG.pdf', uploadedBy: 'DANILA, JUNAR', uploadDate: 'Jan 5, 2025', file_url: null, instructor_name: 'DANILA, JUNAR', course_id: 'BSCS 313L', course_name: 'Software Engineering', submission_date: '2025-01-05', period_label: 'AY 2024-2025, 2nd Sem' },
+  { id: '2', name: 'BSIT_COAEP_AY2425_2ndSem.xlsx', file_name: 'COAEP_BSIT_MOBILE.pdf', uploadedBy: 'DANILA, JUNAR', uploadDate: 'Jan 5, 2025', file_url: null, instructor_name: 'DANILA, JUNAR', course_id: 'BSIT 212L', course_name: 'Mobile Application Development', submission_date: '2025-01-05', period_label: 'AY 2024-2025, 2nd Sem' },
+  { id: '3', name: 'BSCS_COAEP_AY2425_1stSem.xlsx', file_name: 'COAEP_BSCS_SWENG2.pdf', uploadedBy: 'DANILA, JUNAR', uploadDate: 'Aug 12, 2024', file_url: null, instructor_name: 'DANILA, JUNAR', course_id: 'BSCS 322L', course_name: 'Software Engineering II', submission_date: '2024-08-12', period_label: 'AY 2024-2025, 1st Sem' },
+  { id: '4', name: 'BSIT_COAEP_AY2425_1stSem.xlsx', file_name: 'COAEP_BSIT_WEB.pdf', uploadedBy: 'DANILA, JUNAR', uploadDate: 'Aug 10, 2024', file_url: null, instructor_name: 'DANILA, JUNAR', course_id: 'BSIT 311', course_name: 'Web Systems & Technologies', submission_date: '2024-08-10', period_label: 'AY 2024-2025, 1st Sem' },
+  { id: '5', name: 'BSCS_COAEP_AY2324_2ndSem.xlsx', file_name: 'COAEP_BSCS_OOP.pdf', uploadedBy: 'DANILA, JUNAR', uploadDate: 'Feb 1, 2024', file_url: null, instructor_name: 'DANILA, JUNAR', course_id: 'BSCS 211', course_name: 'Object-Oriented Programming', submission_date: '2024-02-01', period_label: 'AY 2023-2024, 2nd Sem' },
 ];
 
 const CURRENT_YEAR = new Date().getFullYear();
@@ -72,6 +78,25 @@ const COAEPUpload = () => {
   const [uploadFile, setUploadFile] = useState(null);
   const fileInputRef = useRef(null);
 
+  const handleView = async (doc) => {
+    let logoBase64 = ''
+    try {
+      const resp = await fetch(unclogo)
+      if (resp.ok) {
+        const blob = await resp.blob()
+        logoBase64 = await new Promise((resolve) => {
+          const reader = new FileReader()
+          reader.onload = () => resolve(reader.result)
+          reader.readAsDataURL(blob)
+        })
+      }
+    } catch { console.warn('Logo fetch failed') }
+    const html = buildCoaepHtml(coaepData, logoBase64)
+    const blob = new Blob([html], { type: 'text/html' })
+    const url = URL.createObjectURL(blob)
+    setSelectedFile({ ...doc, file_url: url })
+  }
+
   const content = (
     <div style={{ display: 'flex', flexDirection: 'column', width: '100%', height: '100%', gap: 10, padding: '20px 30px', background: '#FFFFFF', boxSizing: 'border-box' }}>
       <div style={{ display: 'flex', width: '100%', flexDirection: 'row', height: 40, alignItems: 'center', gap: 15, marginBottom: 20 }}>
@@ -89,7 +114,7 @@ const COAEPUpload = () => {
           style={{
             display: 'flex', flexDirection: 'row', justifyContent: 'center', alignItems: 'center',
             padding: '8px 18px', gap: 8, height: 40,
-            background: '#EA1212', borderRadius: 6, color: '#fff', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap', fontSize: 14
+            background: '#1F2937', borderRadius: 6, color: '#fff', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap', fontSize: 14
           }}
         >
           <Upload size={18} color="#FFFFFF" /> Upload COAEP
@@ -108,7 +133,7 @@ const COAEPUpload = () => {
               <tr key={doc.id}>
                 <td style={{ flex: 1 }}>{doc.name}</td>
                 <td style={{ width: 120, textAlign: 'right', fontWeight: 500 }}>
-                  <span className="actionLink" style={{ minWidth: 90, display: 'inline-flex', alignItems: 'center', gap: 5, cursor: 'pointer' }} onClick={() => setSelectedFile(doc)}>
+                  <span className="actionLink" style={{ minWidth: 90, display: 'inline-flex', alignItems: 'center', gap: 5, cursor: 'pointer' }} onClick={() => handleView(doc)}>
                     View <ChevronRight size={16} />
                   </span>
                 </td>
@@ -166,7 +191,10 @@ const COAEPUpload = () => {
         <PDFViewerModal
           file={selectedFile}
           kind="Course Assessment & Evaluation Plan (COAEP)"
-          onClose={() => setSelectedFile(null)}
+          onClose={() => {
+            if (selectedFile.file_url?.startsWith('blob:')) URL.revokeObjectURL(selectedFile.file_url)
+            setSelectedFile(null)
+          }}
           onExport={(f) => {
             if (f.file_url) {
               const a = document.createElement('a');

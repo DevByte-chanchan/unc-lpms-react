@@ -1,13 +1,15 @@
 import { useState, useMemo, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { FileText, AlertCircle, CheckCircle, ChevronRight, Download } from 'react-feather';
+import { FileText, AlertCircle, CheckCircle, ChevronRight, Download, HelpCircle } from 'react-feather';
 import SkeletonA from '../../layouts/SkeletonA.jsx';
 import HeaderA from '../../components/HeaderA.jsx';
 import SideNavigation from '../../components/SideNavigation.jsx';
 import styles from '../../styles/InstructorDashboard.module.scss';
 import { syllabiData, getSyllabusByCode } from '../../data/syllabiData.js';
 import { getWorkflow } from '../../utils/workflowHelpers.js';
+import { buildSyllabusHtml } from '../../utils/syllabusPdfHtml.js';
 import PDFViewerModal from '../../components/PDFViewerModal'
+import unclogo from '../../assets/unclogo.png'
 
 const getProgram = (code) => {
   if (code && code.startsWith('IT ')) return 'Information Technology';
@@ -30,7 +32,7 @@ const getProgram = (code) => {
       })
       if (changed) localStorage.setItem('lpms_syllabi_v1', JSON.stringify(data))
     }
-  } catch (e) {}
+  } catch (e) { console.warn('Instructor name migration failed:', e) }
   localStorage.setItem(FLAG, '1')
 })()
 
@@ -63,13 +65,14 @@ const InstructorDashboard = () => {
       else if (stage === 'submitted') overallStatus = 'DRAFT';
       else overallStatus = 'Under-review';
 
-      const lastUpdated = s.update || 'TBA';
+      const dateAssigned = s.date_assigned || s.update || '—';
+      const dateApproved = wf.dean?.completedAt ? new Date(wf.dean.completedAt).toLocaleDateString() : '—';
 
       return {
         code: s.code,
         name: s.name,
-        program: getProgram(s.code),
-        lastUpdated,
+        dateAssigned,
+        dateApproved,
         overallStatus,
       };
     });
@@ -159,7 +162,53 @@ const InstructorDashboard = () => {
 
   const [statusPopup, setStatusPopup] = useState(null);
   const [popupPos, setPopupPos] = useState(null);
-  const [previewFile, setPreviewFile] = useState(null);
+  const [exportFile, setExportFile] = useState(null);
+  const [exporting, setExporting] = useState(false);
+
+  const closeExportModal = () => {
+    if (exportFile) URL.revokeObjectURL(exportFile.file_url)
+    setExportFile(null)
+  }
+
+  const handleExport = async (course) => {
+    try {
+      setExporting(true)
+      const syllabus = getSyllabusByCode(course.code)
+      if (!syllabus) { alert('Syllabus data not found'); setExporting(false); return }
+      const workflow = getWorkflow(course.code)
+
+      let logoBase64 = ''
+      try {
+        const resp = await fetch(unclogo)
+        if (resp.ok) {
+          const blob = await resp.blob()
+          logoBase64 = await new Promise((resolve) => {
+            const reader = new FileReader()
+            reader.onload = () => resolve(reader.result)
+            reader.readAsDataURL(blob)
+          })
+        }
+      } catch { console.warn('Logo fetch failed') }
+
+      const html = buildSyllabusHtml(syllabus, course.code, workflow, logoBase64)
+      const blob = new Blob([html], { type: 'text/html' })
+      const url = URL.createObjectURL(blob)
+      setExportFile({
+        file_url: url,
+        file_name: `Syllabus_${course.code}.html`,
+        instructor_name: syllabus.instructor || '—',
+        course_id: course.code,
+        course_name: course.name,
+        submission_date: null,
+        period_label: '',
+      })
+    } catch (err) {
+      console.warn('Export failed:', err)
+      alert('Export error: ' + (err?.message || err || 'unknown'))
+    } finally {
+      setExporting(false)
+    }
+  }
 
   const content = (
     <><div className={styles.container}>
@@ -227,62 +276,49 @@ const InstructorDashboard = () => {
         <table>
           <thead>
             <tr>
-              <th width={180}>CODE</th>
-              <th width={340}>COURSE NAME</th>
-              <th width={180}>PROGRAM</th>
-              <th width={180}>LAST UPDATED</th>
-              {activeTab === 'approved' && <th width={100}>EXPORT</th>}
+              <th width={200}>DATE ASSIGNED</th>
+              <th width={150}>CODE</th>
+              <th width={300}>COURSE NAME</th>
+              {activeTab === 'approved' && <th width={250} style={{textAlign:'center'}}>DATE APPROVED</th>}
+              {activeTab === 'approved' && <th style={{ width: 80, textAlign: 'center' }}></th>}
               <th className={styles.fill}></th>
             </tr>
           </thead>
           <tbody>
             {filteredPackages.length === 0 ? (
-              <tr><td colSpan={activeTab === 'approved' ? 6 : 5} style={{ textAlign: 'center', padding: '60px 20px', color: '#9CA3AF' }}>No {tabs.find(t => t.id === activeTab)?.label.toLowerCase()} found.</td></tr>
+              <tr><td colSpan={activeTab === 'approved' ? 6 : 4} style={{ textAlign: 'center', padding: '60px 20px', color: '#9CA3AF' }}>No {tabs.find(t => t.id === activeTab)?.label.toLowerCase()} found.</td></tr>
             ) : (filteredPackages.map((pkg, idx) => (
               <tr key={idx}>
-                <td width={180}>{pkg.code}</td>
-                <td width={340}>{pkg.name}</td>
-                <td width={180}>{pkg.program}</td>
-                <td width={180}>{pkg.lastUpdated}</td>
+                <td width={200}>{pkg.dateAssigned || '—'}</td>
+                <td width={150}>{pkg.code}</td>
+                <td width={300}>{pkg.name}</td>
+                {activeTab === 'approved' && <td width={250} style={{textAlign:'center'}}>{pkg.dateApproved || '—'}</td>}
                 {activeTab === 'approved' && (
-                  <td width={100}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <button
-                        onClick={() => openPreview(pkg)}
-                        className={'actionLink'}
-                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', gap: '4px', fontSize: 13, fontWeight: 500, color: '#111827' }}
-                      >
-                        Export <Download size={16} />
-                      </button>
-                    </div>
+                  <td style={{ width: 80, textAlign: 'center', fontWeight: 500 }}>
+                    <span
+                      className="actionLink"
+                      style={{ minWidth: 90, display: 'inline-flex', alignItems: 'center', gap: 5, cursor: exporting ? 'wait' : 'pointer', justifyContent: 'center', color: '#6b7280' }}
+                      onClick={() => !exporting && handleExport(pkg)}
+                    >
+                      {exporting ? '...' : 'Export'} <Download size={16} />
+                    </span>
                   </td>
                 )}
                 <td className={styles.fill}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'flex-end' }}>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                     <Link className="actionLink" to={`/role/instructor/courses/${encodeURIComponent(pkg.code)}`} state={{ fromTab: activeTab }}
-                      style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 13, fontWeight: 500, textDecoration: 'none', color: '#111827' }}
+                      style={{ minWidth: 90, display: 'inline-flex', alignItems: 'center', gap: 5 }}
                     >
                       View
-                      <ChevronRight size={16} />
+                      <ChevronRight size={18} />
                     </Link>
-                    <div style={{ position: 'relative' }}>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); const rect = e.target.getBoundingClientRect(); setPopupPos({ top: rect.bottom + 6, right: window.innerWidth - rect.right }); setStatusPopup(statusPopup === pkg.code ? null : pkg.code); }}
-                        style={{
-                          width: 28, height: 28, borderRadius: '50%',
-                          background: '#f1f5f9', border: '1px solid #cbd5e1',
-                          cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          padding: 0, color: '#64748b', fontSize: 14, fontWeight: 700,
-                        }}
-                        title="View approval status"
-                      >
-                        ?
-                      </button>
+                    <button onClick={(e) => { e.stopPropagation(); const rect = e.target.getBoundingClientRect(); setPopupPos({ top: rect.bottom + 6, right: window.innerWidth - rect.right }); setStatusPopup(statusPopup === pkg.code ? null : pkg.code); }} className={styles.info}>
+                      <HelpCircle size={18} />
+                    </button>
                       {statusPopup === pkg.code && popupPos && (
                         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 9998 }} onClick={() => { setStatusPopup(null); setPopupPos(null); }} />
                       )}
                     </div>
-                  </div>
                   </td>
               </tr>
             )))}
@@ -324,19 +360,11 @@ const InstructorDashboard = () => {
         </div>
       </div>
     )}
-    {previewFile && (
+    {exportFile && (
       <PDFViewerModal
-        file={previewFile}
-        kind="Learning Plan"
-        onClose={() => setPreviewFile(null)}
-        onExport={(f) => {
-          const a = document.createElement('a')
-          a.href = f.file_url
-          a.download = f.file_name
-          document.body.appendChild(a)
-          a.click()
-          document.body.removeChild(a)
-        }}
+        file={exportFile}
+        kind="Syllabus"
+        onClose={closeExportModal}
       />
     )}
   </>
