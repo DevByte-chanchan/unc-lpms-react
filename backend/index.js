@@ -8,6 +8,7 @@ import coursesRouter from './routes/courses.js';
 import outcomesRouter from './routes/outcomes.js';
 import itemsRouter from './routes/items.js';
 import statusRouter from './routes/status.js';
+import commentsRouter from './routes/comments.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -19,6 +20,7 @@ app.use('/api/courses', coursesRouter);
 app.use('/api/courses', outcomesRouter);
 app.use('/api/courses', itemsRouter);
 app.use('/api/courses', statusRouter);
+app.use('/api/courses', commentsRouter);
 
 const distPath = path.resolve(__dirname, '..', 'dist');
 const indexHtml = path.join(distPath, 'index.html');

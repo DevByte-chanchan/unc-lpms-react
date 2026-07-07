@@ -39,28 +39,34 @@ const TOSCoursesTable = ({}) => {
     const [courses, setCourses] = useState([]);
     const [loading, setLoading] = useState(true);
 
+    const location = useLocation();
     useEffect(() => {
+        const navUpdate = location.state?.tosStatusUpdate;
         fetchCourses()
             .then(data => {
-                if (data && data.length) setCourses(data.filter(c => nortonCourses.has(c.code)));
-                else setCourses(fallbackCourses);
+                let result;
+                if (data && data.length) result = data.filter(c => nortonCourses.has(c.code));
+                else result = fallbackCourses;
+                if (navUpdate) {
+                    result = result.map(c =>
+                        c.name === navUpdate.courseName ? { ...c, status: navUpdate.newStatus } : c
+                    );
+                }
+                setCourses(result);
             })
-            .catch(() => setCourses(fallbackCourses))
+            .catch(() => {
+                let result = fallbackCourses;
+                if (navUpdate) {
+                    result = result.map(c =>
+                        c.name === navUpdate.courseName ? { ...c, status: navUpdate.newStatus } : c
+                    );
+                }
+                setCourses(result);
+            })
             .finally(() => setLoading(false));
     }, []);
 
-    const location = useLocation();
-    useEffect(() => {
-        const update = location.state?.tosStatusUpdate;
-        if (update) {
-            setCourses(prev => prev.map(c =>
-                c.name === update.courseName ? { ...c, status: update.newStatus } : c
-            ));
-            window.history.replaceState({}, document.title);
-        }
-    }, [location.state]);
-
-    const [selectedStatus, setSelectedStatus] = useState('draft');
+    const [selectedStatus, setSelectedStatus] = useState(location.state?.initialStatus || 'draft');
     const [examType, setExamType] = useState('Midterm');
     const [schoolYear, setSchoolYear] = useState(String(currentYear));
     const [semester, setSemester] = useState('1st Semester');

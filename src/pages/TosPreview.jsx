@@ -4,8 +4,6 @@ import { useNavigate } from "react-router-dom";
 import { updateStatus, saveOutcomes, saveItems, updateCourse } from '../services/api.js';
 
 const TOSPreview = ({ isOpen, onClose, outcomeData, questions, courseName = "Human & Computer Interaction", semester = "1st Semester", schoolYear, courseCode, assessmentName, examType }) => {
-    if (!isOpen) return null;
-
     const [showConfirm, setShowConfirm] = useState(false);
     const [countdown, setCountdown] = useState(5);
     const [activeTab, setActiveTab] = useState('tosReport');
@@ -19,30 +17,30 @@ const TOSPreview = ({ isOpen, onClose, outcomeData, questions, courseName = "Hum
 
     const handleConfirm = () => {
         if (countdownRef.current) clearTimeout(countdownRef.current);
-        if (courseCode) {
-            const outcomesPayload = outcomeData.map(r => ({
-                co: r.co,
-                description: r.description || '',
-                totalItems: r.totalItems || 0,
-                ilos: (r.ilos || []).map(ilo => ({
-                    description: ilo.description || '',
-                    hours: ilo.hours || 0,
-                    percentage: ilo.percentage || 0,
-                    items: ilo.items || 0
-                }))
-            }));
-            const cleanQuestions = questions.map(q => ({
-                ...q,
-                choices: (q.choices || []).filter(c => (c.text || '').trim()),
-                rubricRows: (q.rubricRows || []).filter(r => (r.name || '').trim() || (r.description || '').trim()),
-            }));
-            Promise.all([
-                saveOutcomes(courseCode, outcomesPayload),
-                saveItems(courseCode, cleanQuestions),
-                assessmentName ? updateCourse(courseCode, { assessmentName }) : Promise.resolve()
-            ]).then(() => updateStatus(courseCode, 'pending')).catch(() => updateStatus(courseCode, 'pending'));
-        }
-        navigate("/assignedtos", { state: { tosStatusUpdate: { courseName, newStatus: 'pending' } } });
+        const goToTable = () => navigate("/assignedtos", { state: { tosStatusUpdate: { courseName, newStatus: 'pending' } } });
+        if (!courseCode) { goToTable(); return; }
+        const outcomesPayload = outcomeData.map(r => ({
+            co: r.co,
+            description: r.description || '',
+            totalItems: r.totalItems || 0,
+            ilos: (r.ilos || []).map(ilo => ({
+                description: ilo.description || '',
+                hours: ilo.hours || 0,
+                percentage: ilo.percentage || 0,
+                items: ilo.items || 0
+            }))
+        }));
+        const cleanQuestions = questions.map(q => ({
+            ...q,
+            choices: (q.choices || []).filter(c => (c.text || '').trim()),
+            rubricRows: (q.rubricRows || []).filter(r => (r.name || '').trim() || (r.description || '').trim()),
+        }));
+        Promise.all([
+            saveOutcomes(courseCode, outcomesPayload),
+            saveItems(courseCode, cleanQuestions),
+            assessmentName ? updateCourse(courseCode, { assessmentName }) : Promise.resolve()
+        ]).then(() => updateStatus(courseCode, 'pending')).catch(() => updateStatus(courseCode, 'pending'))
+        .then(goToTable);
     };
 
     useEffect(() => {
@@ -96,6 +94,8 @@ const TOSPreview = ({ isOpen, onClose, outcomeData, questions, courseName = "Hum
             }, 0);
         }, 0);
     });
+
+    if (!isOpen) return null;
 
     return (
         <div className={layout.modalOverlay}>

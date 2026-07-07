@@ -23,16 +23,16 @@ function resolveText(txt, ilo, cd) {
 }
 
 const newCourses = [
-    { code: 'BSCS221L', name: 'Object-Oriented Programming',        status: 'pending',  assessmentName: 'Practical Exam' },
-    { code: 'BSCS222L', name: 'Discrete Structures 2',              status: 'returned', assessmentName: 'Written Exam' },
-    { code: 'BSCS312L', name: 'Information Management',             status: 'pending',  assessmentName: 'Midterm Exam' },
-    { code: 'BSCS324L', name: 'Advanced Software Engineering',       status: 'returned', assessmentName: 'Periodic Exam' },
-    { code: 'BSCS342L', name: 'Machine Learning Fundamentals',       status: 'pending',  assessmentName: 'Practical Exam' },
-    { code: 'BSCS223L', name: 'Web Development II',                 status: 'approved', assessmentName: 'Midterm Exam' },
-    { code: 'BSCS314L', name: 'Data Communications',                status: 'approved', assessmentName: 'Written Exam' },
-    { code: 'BSCS323L', name: 'Systems Analysis and Design',        status: 'approved', assessmentName: 'Periodic Exam' },
-    { code: 'BSCS332L', name: 'Network Security',                   status: 'approved', assessmentName: 'Practical Exam' },
-    { code: 'BSCS413L', name: 'Capstone Project 2',                 status: 'approved', assessmentName: 'Project' },
+    { code: 'BSCS221L', name: 'Object-Oriented Programming',        status: 'pending',  assessmentName: 'Practical Exam', instructor: 'NORTON, MONICA' },
+    { code: 'BSCS222L', name: 'Discrete Structures 2',              status: 'returned', assessmentName: 'Written Exam',  instructor: 'NORTON, MONICA' },
+    { code: 'BSCS312L', name: 'Information Management',             status: 'pending',  assessmentName: 'Midterm Exam',  instructor: 'DIAZ, ROSA' },
+    { code: 'BSCS324L', name: 'Advanced Software Engineering',       status: 'returned', assessmentName: 'Periodic Exam', instructor: 'DIAZ, ROSA' },
+    { code: 'BSCS342L', name: 'Machine Learning Fundamentals',       status: 'pending',  assessmentName: 'Practical Exam', instructor: 'NORTON, MONICA' },
+    { code: 'BSCS223L', name: 'Web Development II',                 status: 'approved', assessmentName: 'Midterm Exam',  instructor: 'NORTON, MONICA' },
+    { code: 'BSCS314L', name: 'Data Communications',                status: 'approved', assessmentName: 'Written Exam',  instructor: 'NORTON, MONICA' },
+    { code: 'BSCS323L', name: 'Systems Analysis and Design',        status: 'approved', assessmentName: 'Periodic Exam', instructor: 'NORTON, MONICA' },
+    { code: 'BSCS332L', name: 'Network Security',                   status: 'approved', assessmentName: 'Practical Exam', instructor: 'DIAZ, ROSA' },
+    { code: 'BSCS413L', name: 'Capstone Project 2',                 status: 'approved', assessmentName: 'Project',        instructor: 'JEFFORDS, TERRY' },
 ];
 
 const courseData = [

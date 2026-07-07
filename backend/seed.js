@@ -2,16 +2,16 @@ import { sequelize, Course, CourseOutcome, IloItem, TosStatus, AssessmentItem, I
 import { seedNewCourses } from './seed_new_courses.js';
 
 const courses = [
-    { code: 'BSCS313L', name: 'Human & Computer Interaction' },
-    { code: 'BSCS212L', name: 'Web Development I', assessmentName: 'Written Exam' },
-    { code: 'BSCS111L', name: 'Fundamentals of Programming', assessmentName: 'Written Exam' },
-    { code: 'BSCS214L', name: 'Data Structures and Algorithms', assessmentName: 'Written Exam' },
-    { code: 'BSCS315L', name: 'Operating Systems', assessmentName: 'Periodic Exam' },
-    { code: 'BSCS321L', name: 'Database Management Systems' },
-    { code: 'BSCS322L', name: 'Software Engineering', assessmentName: 'Midterm Exam' },
-    { code: 'BSCS331L', name: 'Computer Networks', assessmentName: 'Periodic Exam' },
-    { code: 'BSCS341L', name: 'Artificial Intelligence', assessmentName: 'Written Exam' },
-    { code: 'BSCS351L', name: 'Cybersecurity Fundamentals', assessmentName: 'Midterm Exam' }
+    { code: 'BSCS313L', name: 'Human & Computer Interaction', instructor: 'NORTON, MONICA' },
+    { code: 'BSCS212L', name: 'Web Development I', assessmentName: 'Written Exam', instructor: 'NORTON, MONICA' },
+    { code: 'BSCS111L', name: 'Fundamentals of Programming', assessmentName: 'Written Exam', instructor: 'NORTON, MONICA' },
+    { code: 'BSCS214L', name: 'Data Structures and Algorithms', assessmentName: 'Written Exam', instructor: 'NORTON, MONICA' },
+    { code: 'BSCS315L', name: 'Operating Systems', assessmentName: 'Periodic Exam', instructor: 'DIAZ, ROSA' },
+    { code: 'BSCS321L', name: 'Database Management Systems', instructor: 'NORTON, MONICA' },
+    { code: 'BSCS322L', name: 'Software Engineering', assessmentName: 'Midterm Exam', instructor: 'DIAZ, ROSA' },
+    { code: 'BSCS331L', name: 'Computer Networks', assessmentName: 'Periodic Exam', instructor: 'JEFFORDS, TERRY' },
+    { code: 'BSCS341L', name: 'Artificial Intelligence', assessmentName: 'Written Exam', instructor: 'NORTON, MONICA' },
+    { code: 'BSCS351L', name: 'Cybersecurity Fundamentals', assessmentName: 'Midterm Exam', instructor: 'DIAZ, ROSA' }
 ];
 
 const statuses = [

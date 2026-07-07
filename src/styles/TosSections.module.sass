@@ -156,7 +156,7 @@
 
 .uploadButton
   padding: 8px 16px
-  background: #3B82F6
+  background: #EA1212
   color: white
   border: none
   border-radius: 4px
@@ -165,7 +165,7 @@
   font-weight: 500
 
   &:hover
-    background: #2563EB
+    background: #B91C1C
 
 .pointsContainer
   display: flex
@@ -222,12 +222,12 @@
 
 .summaryValue
   padding: 8px 16px
-  background: #EFF6FF
-  border: 1px solid #BFDBFE
+  background: #FFF5F5
+  border: 1px solid #FECACA
   border-radius: 4px
   font-size: 16px
   font-weight: 600
-  color: #1E40AF
+  color: #B91C1C
 
   &.current
     background: #F0FDF4
@@ -430,4 +430,445 @@
 @keyframes btnSpin
   to
     transform: rotate(360deg)
+
+.panelLayout
+  display: flex
+  flex-direction: row
+  align-items: stretch
+  gap: 32px
+  width: 100%
+  height: 100%
+
+.panelMain
+  flex: 1
+  min-width: 0
+
+.commentPanel
+  width: 380px
+  min-width: 380px
+  flex-shrink: 0
+  position: sticky
+  top: 0
+  align-self: stretch
+  background: #FAFBFC
+  border: 1px solid #D1D5DB
+  border-top: 3px solid #EA1212
+  border-radius: 10px
+  overflow: hidden
+  display: flex
+  flex-direction: column
+  box-shadow: -4px 0 16px rgba(0, 0, 0, 0.07)
+  animation: panelSlideIn 0.2s ease-out
+
+@keyframes panelSlideIn
+  from
+    opacity: 0
+    transform: translateX(8px)
+  to
+    opacity: 1
+    transform: translateX(0)
+
+.commentPanelHeader
+  display: flex
+  align-items: center
+  justify-content: space-between
+  padding: 16px 20px 14px 20px
+  border-bottom: 1px solid #E5E7EB
+  background: white
+
+.commentPanelTitle
+  font-size: 12px
+  font-weight: 700
+  letter-spacing: 0.07em
+  text-transform: uppercase
+  color: #374151
+
+.commentPanelBody
+  flex: 1
+  padding: 16px 20px
+  overflow-y: auto
+  position: relative
+
+.scrollToFormBtn
+  position: sticky
+  top: 0
+  z-index: 10
+  width: 100%
+  padding: 10px
+  border: 1.5px solid #EA1212
+  border-radius: 8px
+  background: white
+  color: #EA1212
+  cursor: pointer
+  font-size: 13px
+  font-weight: 600
+  text-align: center
+  margin-bottom: 12px
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08)
+
+  &:hover
+    background: #FFF5F5
+
+.commentPanelFooter
+  padding: 10px 20px
+  background: white
+  flex-shrink: 0
+
+.commentFormCard
+  border: 1.5px solid #374151
+  border-radius: 10px
+  padding: 16px
+  background: white
+  margin-bottom: 16px
+
+.commentSectionLabel
+  font-size: 12px
+  font-weight: 600
+  color: #6B7280
+  text-transform: uppercase
+  letter-spacing: 0.05em
+  margin: 20px 0 12px 0
+
+.commentCardDimmed
+  opacity: 0.7
+  transition: opacity 0.2s ease
+
+  &:hover
+    opacity: 1
+
+.commentReturnBtn
+  width: 100%
+  padding: 8px
+  border: 1.5px solid #EA1212
+  border-radius: 6px
+  background: white
+  cursor: pointer
+  font-size: 13px
+  font-weight: 600
+  color: #EA1212
+
+  &:hover:not(:disabled)
+    border-color: #B00000
+    color: #B00000
+    background: #FFF5F5
+
+  &:disabled
+    opacity: 0.4
+    cursor: not-allowed
+
+.commentBtn
+  border: 1.5px solid #EA1212 !important
+  background: white !important
+  color: #EA1212 !important
+  transition: all 0.15s ease
+
+  &:hover
+    border-color: #B00000 !important
+    color: #B00000 !important
+
+.commentBtnActive
+  border: 1.5px solid #1A1A1A !important
+  background: white !important
+  color: #1A1A1A !important
+  transition: all 0.15s ease
+
+  &:hover
+    background: #F9FAFB !important
+
+.commentFormArea
+  margin-bottom: 16px
+  padding-bottom: 16px
+  border-bottom: 1px solid #E5E7EB
+
+.commentScope
+  font-size: 13px
+  font-weight: 600
+  color: #1F2937
+  margin-bottom: 12px
+  padding: 8px 12px
+  background: #F3F4F6
+  border-radius: 6px
+
+.commentTypeSelect
+  width: 100%
+  padding: 8px 12px
+  padding-right: 28px
+  border: 1.5px solid #6B7280
+  border-radius: 6px
+  font-size: 13px
+  margin-bottom: 12px
+  background: white
+  appearance: none
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236B7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")
+  background-repeat: no-repeat
+  background-position: right 12px center
+  box-sizing: border-box
+
+.commentTextarea
+  width: 100%
+  padding: 10px 12px
+  border: 1.5px solid #6B7280
+  border-radius: 6px
+  font-size: 13px
+  resize: none
+  overflow: hidden
+  font-family: inherit
+  margin-bottom: 12px
+  box-sizing: border-box
+  min-height: 40px
+
+.commentFormActions
+  display: flex
+  gap: 8px
+
+.commentCancelBtn
+  flex: 1
+  padding: 8px
+  border: 1.5px solid #6B7280
+  border-radius: 6px
+  background: white
+  cursor: pointer
+  font-size: 13px
+
+.commentAddBtn
+  flex: 1
+  padding: 8px
+  border: none
+  border-radius: 6px
+  background: #EA1212
+  color: white
+  cursor: pointer
+  font-size: 13px
+  font-weight: 500
+
+  &:disabled
+    background: #D1D5DB
+    cursor: not-allowed
+
+.addCommentBtn
+  width: 100%
+  padding: 10px
+  border: 1.5px dashed #000
+  border-radius: 6px
+  background: white
+  cursor: pointer
+  font-size: 13px
+  font-weight: 600
+  color: #374151
+  margin-bottom: 12px
+
+  &:hover
+    background: #F9FAFB
+    border-color: #000
+
+.selectionCard
+  border: 1.5px solid #EA1212
+  border-radius: 8px
+  padding: 16px
+  margin-bottom: 12px
+  background: #FFF8F8
+  text-align: center
+
+.selectionPrompt
+  color: #EA1212
+  font-size: 13px
+  font-style: italic
+  margin-bottom: 10px
+
+.selectionCancel
+  font-size: 12px
+  font-style: normal
+  color: #6B7280
+  cursor: pointer
+  padding: 4px 12px
+  border: 1px solid #D1D5DB
+  border-radius: 5px
+  background: white
+  display: inline-block
+
+  &:hover
+    background: #F3F4F6
+    color: #374151
+
+.commentCard
+  border: 1px solid #E5E7EB
+  border-radius: 8px
+  padding: 12px
+  margin-bottom: 10px
+  background: white
+
+.commentCardHeader
+  display: flex
+  justify-content: space-between
+  align-items: center
+  margin-bottom: 4px
+
+.commentCardScope
+  font-size: 12px
+  font-weight: 600
+  color: #374151
+
+.commentDeleteBtn
+  cursor: pointer
+  color: #9CA3AF
+  flex-shrink: 0
+
+  &:hover
+    color: #EA1212
+
+.commentCardType
+  display: inline-block
+  font-size: 11px
+  padding: 2px 8px
+  border-radius: 4px
+  background: #F3F4F6
+  color: #6B7280
+  margin-bottom: 6px
+
+.commentCardBody
+  font-size: 13px
+  color: #1F2937
+  line-height: 1.5
+
+.commentCardTime
+  font-size: 11px
+  color: #9CA3AF
+  margin-top: 8px
+
+.assessmentCard
+  border: 1px solid transparent
+  border-radius: 8px
+  padding: 16px
+  background: white
+  box-sizing: border-box
+
+.cellSelectable
+  cursor: crosshair !important
+  transition: all 0.2s ease
+  border: 1px solid transparent !important
+  box-sizing: border-box
+
+  &:hover
+    background: #FFF5F5 !important
+    border-color: #EA1212 !important
+
+.cellSelectableTable
+  @extend .cellSelectable
+
+  &:hover
+    font-weight: 500 !important
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12)
+    transform: translateY(-2px)
+
+.cellActive
+  background: #FEF2F2 !important
+  border-color: #EA1212 !important
+
+.cellActiveTable
+  @extend .cellActive
+
+  outline: 2px solid #EA1212 !important
+  outline-offset: -1px
+
+  .cellBox, div
+    font-weight: 600 !important
+
+.coGroup
+  margin-bottom: 8px
+
+.coHeader
+  display: flex
+  align-items: center
+  gap: 8px
+  padding: 10px 12px
+  background: #F9FAFB
+  border-radius: 6px
+  cursor: pointer
+  user-select: none
+
+  &:hover
+    background: #F3F4F6
+
+.coTitle
+  font-weight: 600
+  font-size: 15px
+  color: #1F2937
+
+.iloGroup
+  margin-left: 20px
+  margin-top: 4px
+
+.iloHeader
+  display: flex
+  align-items: center
+  gap: 8px
+  padding: 8px 12px
+  border-radius: 6px
+  cursor: pointer
+  user-select: none
+
+  &:hover
+    background: #F9FAFB
+
+.iloTitle
+  font-weight: 500
+  font-size: 14px
+  color: #374151
+
+.cogGroup
+  margin-left: 40px
+
+.cogHeader
+  font-weight: 500
+  font-size: 13px
+  color: #6B7280
+  padding: 6px 12px 2px
+  text-transform: uppercase
+  letter-spacing: 0.5px
+
+.accordionArrow
+  font-size: 12px
+  color: #9CA3AF
+  flex-shrink: 0
+
+.viewToggleRow
+  display: flex
+  justify-content: space-between
+  align-items: center
+  margin-bottom: 12px
+
+.assessmentLabel
+  font-size: 16px
+  font-weight: 600
+  color: #1F2937
+
+.viewToggleGroup
+  display: flex
+
+.viewToggleBtn
+  padding: 6px 16px
+  font-size: 13px
+  border: 1px solid #D1D5DB
+  background: white
+  color: #6B7280
+  cursor: pointer
+  transition: all 0.15s ease
+
+  &:first-child
+    border-radius: 6px 0 0 6px
+
+  &:last-child
+    border-radius: 0 6px 6px 0
+
+  &:hover
+    background: #F3F4F6
+
+.viewToggleActive
+  background: #EA1212
+  color: white
+  border-color: #EA1212
+
+  &:hover
+    background: #D11111
+    border-color: #D11111
 

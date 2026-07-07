@@ -42,6 +42,7 @@ export async function fetchCourses() {
         return {
             code: c.code,
             name: c.name,
+            instructor: c.instructor || '',
             update: fmt(c.updated_at),
             status: t.status || 'draft',
             dateSubmitted: fmt(t.submittedAt),
@@ -170,4 +171,25 @@ export async function updateStatus(courseCode, status) {
         body: JSON.stringify({ status })
     });
     return await res.json();
+}
+
+export async function fetchComments(courseCode) {
+    const res = await fetch(`${BASE}/${courseCode}/comments`);
+    if (!res.ok) return [];
+    return await res.json();
+}
+
+export async function createComment(courseCode, data) {
+    const res = await fetch(`${BASE}/${courseCode}/comments`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+    });
+    return await res.json();
+}
+
+export async function deleteComment(courseCode, id) {
+    await fetch(`${BASE}/${courseCode}/comments/${id}`, {
+        method: 'DELETE'
+    });
 }

@@ -14,6 +14,10 @@ const Course = sequelize.define('Course', {
         type: DataTypes.STRING(100),
         defaultValue: '',
         field: 'assessment_name'
+    },
+    instructor: {
+        type: DataTypes.STRING(100),
+        defaultValue: ''
     }
 }, {
     tableName: 'courses',

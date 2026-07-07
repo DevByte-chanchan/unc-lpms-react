@@ -38,41 +38,61 @@ const ProgramHeadTOSCoursesTable = () => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
+        const navUpdate = location.state?.tosStatusUpdate;
         fetchCourses()
             .then(apiCourses => {
                 const apiMap = {};
                 if (apiCourses && apiCourses.length) {
                     apiCourses.forEach(c => { apiMap[c.code] = c; });
                 }
-                setCourses(fallbackCourses.map(fc => {
+                const seen = new Set();
+                let result = fallbackCourses.map(fc => {
                     const api = apiMap[fc.code];
+                    seen.add(fc.code);
                     if (!api) return fc;
                     return {
                         ...fc,
+                        instructor: api.instructor || fc.instructor,
+                        status: api.status || fc.status,
                         dateSubmitted: api.dateSubmitted || fc.dateSubmitted,
                         dateStatus: api.dateStatus || fc.dateStatus,
                     };
-                }));
+                });
+                for (const code in apiMap) {
+                    if (!seen.has(code)) {
+                        const api = apiMap[code];
+                        result.push({
+                            code: api.code,
+                            name: api.name,
+                            instructor: api.instructor || '\u2014',
+                            dateSubmitted: api.dateSubmitted || '',
+                            dateStatus: api.dateStatus || '',
+                            status: api.status || 'draft',
+                        });
+                    }
+                }
+                if (navUpdate) {
+                    result = result.map(c =>
+                        c.code === navUpdate.courseCode ? { ...c, status: navUpdate.newStatus } : c
+                    );
+                }
+                setCourses(result);
                 setLoading(false);
             })
             .catch(() => {
-                setCourses(fallbackCourses);
+                let result = fallbackCourses;
+                if (navUpdate) {
+                    result = result.map(c =>
+                        c.code === navUpdate.courseCode ? { ...c, status: navUpdate.newStatus } : c
+                    );
+                }
+                setCourses(result);
                 setLoading(false);
             });
     }, []);
 
     const location = useLocation();
-    useEffect(() => {
-        const update = location.state?.tosStatusUpdate;
-        if (update) {
-            setCourses(prev => prev.map(c =>
-                c.code === update.courseCode ? { ...c, status: update.newStatus } : c
-            ));
-            window.history.replaceState({}, document.title);
-        }
-    }, [location.state]);
-
-    const [selectedStatus, setSelectedStatus] = useState('pending');
+    const [selectedStatus, setSelectedStatus] = useState(location.state?.initialStatus || 'pending');
     const [examType, setExamType] = useState('Midterm');
     const [schoolYear, setSchoolYear] = useState(String(currentYear));
     const [semester, setSemester] = useState('1st Semester');
