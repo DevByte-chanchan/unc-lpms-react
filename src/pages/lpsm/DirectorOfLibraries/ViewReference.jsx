@@ -1,12 +1,11 @@
 import { useParams, useNavigate } from 'react-router-dom';
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { ArrowLeft, Download, FileText } from 'react-feather';
 import SkeletonA from '../../../layouts/SkeletonA.jsx';
 import HeaderA from '../../../components/HeaderA.jsx';
 import SideNavigation from '../../../components/SideNavigation.jsx';
 import styles from '../../../styles/ViewReference.module.scss';
-import { getReferenceById, getReferenceComments, addReferenceComment } from '../../../utils/referenceLibrary.js';
-import { getRoleName } from '../../../utils/roleIdentities.js';
+import { getReferenceById } from '../../../utils/referenceLibrary.js';
 
 /* ── Same data as ReferenceLibrary (would be API in real app) ─────────── */
 const SAMPLE_REFERENCES = [
@@ -22,15 +21,6 @@ const ViewReference = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const ref = getReferenceById(id) || SAMPLE_REFERENCES.find((r) => r.id === parseInt(id));
-  const [viewComments, setViewComments] = useState([]);
-  const [commentText, setCommentText] = useState('');
-
-  useEffect(() => {
-    if (ref) {
-      setViewComments(getReferenceComments(ref.id));
-      setCommentText('');
-    }
-  }, [ref?.id]);
 
   if (!ref) {
     return (
@@ -108,31 +98,6 @@ const ViewReference = () => {
               Download
             </button>
           </div>
-        </div>
-      </div>
-
-      <div className={styles.commentSection} style={{ marginTop: 24, borderTop: '1px solid #e5e7eb', paddingTop: 16 }}>
-        <h4 style={{ margin: '0 0 8px 0', fontSize: 14, fontWeight: 600, color: '#374151' }}>Comments</h4>
-        {viewComments.length === 0 ? (
-          <p style={{ margin: '0 0 8px 0', fontSize: 13, color: '#9ca3af' }}>No comments yet.</p>
-        ) : (
-          <div style={{ marginBottom: 8, display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {viewComments.map(c => (
-              <div key={c.id} style={{ padding: '10px 12px', background: '#f9fafb', borderRadius: 6, border: '1px solid #e5e7eb' }}>
-                <div style={{ fontSize: 13, color: '#111827', marginBottom: 4 }}>{c.text}</div>
-                <div style={{ fontSize: 11, color: '#9ca3af' }}>{c.author} &middot; {new Date(c.createdAt).toLocaleString()}</div>
-              </div>
-            ))}
-          </div>
-        )}
-        <div style={{ display: 'flex', gap: 8 }}>
-          <input type="text" value={commentText} onChange={e => setCommentText(e.target.value)} placeholder="Write a comment..." style={{ flex: 1, padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 13, fontFamily: "'Poppins', sans-serif", outline: 'none' }} />
-          <button onClick={() => {
-            if (!commentText.trim()) return;
-            addReferenceComment(ref.id, commentText.trim(), getRoleName('director-of-libraries'));
-            setViewComments(getReferenceComments(ref.id));
-            setCommentText('');
-          }} style={{ padding: '8px 16px', background: '#1e3a5f', color: 'white', border: 'none', borderRadius: 6, fontSize: 13, fontWeight: 500, cursor: 'pointer', whiteSpace: 'nowrap' }}>Post</button>
         </div>
       </div>
 

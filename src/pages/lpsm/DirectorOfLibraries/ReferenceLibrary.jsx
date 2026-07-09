@@ -6,8 +6,7 @@ import HeaderA from '../../../components/HeaderA.jsx';
 import SideNavigation from '../../../components/SideNavigation.jsx';
 import styles from '../../../styles/ReferenceLibrary.module.scss';
 
-import { getReferences, setReferences, addReference, updateReference, deleteReference, archiveReference, unarchiveReference, getReferenceComments, addReferenceComment } from '../../../utils/referenceLibrary.js';
-import { getRoleName } from '../../../utils/roleIdentities.js';
+import { getReferences, setReferences, addReference, deleteReference, archiveReference, unarchiveReference } from '../../../utils/referenceLibrary.js';
 import { syllabiData } from '../../../data/syllabiData.js';
 import * as XLSX from 'xlsx';
 
@@ -211,21 +210,6 @@ const ReferenceLibrary = () => {
       const updated = getReferences(true);
       setReferences(updated);
       setReferencesState(updated);
-    }
-
-    // Seed test comments once (check by comment count for a known deprecated ref)
-    if (getReferenceComments('TB-DEP-001').length === 0) {
-      const testComments = [
-        { refId: 'TB-DEP-001', text: 'This textbook is 17 years old. Students are using a much newer edition in class now. Please update to the latest edition.', author: 'Library Director' },
-        { refId: 'TB-DEP-001', text: 'Agreed. The 4th edition (2022) is already in our catalog. I will replace this entry.', author: 'Faculty Member' },
-        { refId: 'OR-ISS-001', text: 'The linked resource is no longer accessible — the URL returns a 404 error.', author: 'Library Director' },
-        { refId: 'OR-ISS-001', text: 'Checking with IT if we have a backup mirror. Will report back.', author: 'Faculty Member' },
-        { refId: 'OE-DEP-002', text: 'This OER has been superseded by a newer version available on the Stanford Open Library platform.', author: 'Library Director' },
-        { refId: 'TB-VOLD-001', text: 'This edition is from 1978. C is still relevant but students should reference the ANSI C (2nd Edition) at minimum.', author: 'Library Director' },
-        { refId: 'NUR-OBS-001', text: 'Protocols have changed significantly since 1999. Several procedures in this manual are no longer considered best practice.', author: 'Library Director' },
-        { refId: 'NUR-OBS-001', text: 'We are using the 2025 edition in clinical rotations now. This entry should be archived.', author: 'Clinical Instructor' },
-      ];
-      testComments.forEach(c => addReferenceComment(c.refId, c.text, c.author));
     }
 
     if (existing.length === 0) {
@@ -553,17 +537,7 @@ const ReferenceLibrary = () => {
   const [archiveRef, setArchiveRef] = useState(null);
   const [showBulkModal, setShowBulkModal] = useState(false);
   const [bulkResult, setBulkResult] = useState(null);
-  const [viewComments, setViewComments] = useState([]);
-  const [commentText, setCommentText] = useState('');
   const fileInputRef = useRef(null);
-
-  /* ── Load comments when viewRef changes ────────────────────────────── */
-  useEffect(() => {
-    if (viewRef) {
-      setViewComments(getReferenceComments(viewRef.id));
-      setCommentText('');
-    }
-  }, [viewRef]);
 
   /* ── Stats ─────────────────────────────────────────────────────────── */
   const stats = useMemo(() => {
@@ -833,44 +807,6 @@ const ReferenceLibrary = () => {
               <div className={styles.modalSection}>
                 <h3 className={styles.modalSectionTitle}>Metadata</h3>
                 <div className={styles.modalRow}><span className={styles.modalLabel}>UPLOAD DATE</span><span className={styles.modalValue}>{viewRef.uploadDate ? new Date(viewRef.uploadDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : '—'}</span></div>
-                <div className={styles.issueToggleRow}>
-                  <label className={styles.issueToggleLabel}>
-                    <input type="checkbox" checked={viewRef.hasIssue || false} onChange={() => {
-                      const updated = updateReference(viewRef.id, { hasIssue: !viewRef.hasIssue });
-                      if (updated) {
-                        const newRefs = getReferences(true);
-                        syncReferences(newRefs);
-                        setViewRef(prev => ({ ...prev, hasIssue: !prev.hasIssue }));
-                      }
-                    }} />
-                    <span>Mark as having an issue (instructors cannot use this reference)</span>
-                  </label>
-                </div>
-              </div>
-
-              <div className={styles.commentSection}>
-                <h4 style={{ margin: '0 0 12px 0', fontSize: 14, fontWeight: 600, color: '#374151' }}>Comments</h4>
-                {viewComments.length === 0 ? (
-                  <p style={{ margin: '0 0 12px 0', fontSize: 13, color: '#9ca3af' }}>No comments yet.</p>
-                ) : (
-                  <div style={{ marginBottom: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    {viewComments.map(c => (
-                      <div key={c.id} style={{ padding: '12px 14px', background: '#f9fafb', borderRadius: 8, border: '1px solid #e5e7eb' }}>
-                        <div style={{ fontSize: 13, color: '#111827', marginBottom: 4 }}>{c.text}</div>
-                        <div style={{ fontSize: 11, color: '#9ca3af' }}>{c.author} &middot; {new Date(c.createdAt).toLocaleString()}</div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <input type="text" value={commentText} onChange={e => setCommentText(e.target.value)} placeholder="Write a comment..." style={{ flex: 1, padding: '10px 14px', border: '1px solid #d1d5db', borderRadius: 8, fontSize: 13, fontFamily: "'Poppins', sans-serif", outline: 'none' }} />
-                  <button onClick={() => {
-                    if (!commentText.trim()) return;
-                    addReferenceComment(viewRef.id, commentText.trim(), getRoleName('director-of-libraries'));
-                    setViewComments(getReferenceComments(viewRef.id));
-                    setCommentText('');
-                  }} style={{ padding: '10px 20px', background: '#1e3a5f', color: 'white', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 500, cursor: 'pointer', whiteSpace: 'nowrap' }}>Post</button>
-                </div>
               </div>
             </div>
             <div className={styles.modalActions}>
