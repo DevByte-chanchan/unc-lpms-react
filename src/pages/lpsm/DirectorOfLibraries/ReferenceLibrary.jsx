@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, BookOpen, FileText, Globe, Upload, AlertTriangle, AlertCircle } from 'react-feather';
+import { Plus, BookOpen, FileText, Globe, Upload, AlertTriangle, AlertCircle, X, Maximize, Minimize2 } from 'react-feather';
 import SkeletonA from '../../../layouts/SkeletonA.jsx';
 import HeaderA from '../../../components/HeaderA.jsx';
 import SideNavigation from '../../../components/SideNavigation.jsx';
@@ -537,6 +537,7 @@ const ReferenceLibrary = () => {
   const [archiveRef, setArchiveRef] = useState(null);
   const [showBulkModal, setShowBulkModal] = useState(false);
   const [bulkResult, setBulkResult] = useState(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const fileInputRef = useRef(null);
 
   /* ── Stats ─────────────────────────────────────────────────────────── */
@@ -582,6 +583,11 @@ const ReferenceLibrary = () => {
   const confirmUnarchive = (id) => {
     unarchiveReference(id);
     setReferencesState(getReferences(true));
+  };
+
+  const handleClose = () => {
+    if (isFullscreen) { setIsFullscreen(false); return }
+    setViewRef(null);
   };
 
   const getTypeBadgeClass = (type) => {
@@ -753,13 +759,23 @@ const ReferenceLibrary = () => {
 
       {/* ── VIEW MODAL ──────────────────────────────────────────────────── */}
       {viewRef && (
-        <div className={styles.modalOverlay} onClick={() => setViewRef(null)}>
-          <div className={styles.viewModal} onClick={(e) => e.stopPropagation()}>
+        <>
+          {!isFullscreen && <div onClick={handleClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 2999 }} />}
+          <div role="dialog" aria-modal="true" aria-label="Reference details" style={isFullscreen ? { position: 'fixed', inset: 0, zIndex: 3000, background: '#fff', display: 'flex', flexDirection: 'column', overflow: 'hidden', width: '100%', maxHeight: '100%', borderRadius: 0 } : { position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: 3000 }} className={styles.viewModal} onClick={(e) => e.stopPropagation()}>
             <div className={styles.modalHeader}>
               <h2>REFERENCE DETAILS</h2>
-              <button className={styles.modalClose} onClick={() => setViewRef(null)}>✕</button>
+              <div style={{ display: 'flex', gap: 6 }}>
+                <button onClick={() => setIsFullscreen(v => !v)} title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'} aria-label="Toggle fullscreen" style={{ background: '#fff', border: '1px solid #e2e8f0', cursor: 'pointer', color: '#334155', width: 32, height: 32, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: 6, padding: 0, lineHeight: 0, transition: 'all 0.15s' }}
+                  onMouseEnter={e => { e.currentTarget.style.background = '#f1f5f9'; e.currentTarget.style.borderColor = '#cbd5e1'; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.borderColor = '#e2e8f0'; }}
+                >{isFullscreen ? <Minimize2 size={14} /> : <Maximize size={14} />}</button>
+                <button onClick={handleClose} aria-label="Close" style={{ background: '#E81123', border: '1px solid #E81123', cursor: 'pointer', color: '#fff', width: 32, height: 32, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: 6, padding: 0, lineHeight: 0, transition: 'all 0.15s' }}
+                  onMouseEnter={e => { e.currentTarget.style.background = '#B91C1C'; e.currentTarget.style.borderColor = '#B91C1C'; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = '#E81123'; e.currentTarget.style.color = '#fff'; e.currentTarget.style.borderColor = '#E81123'; }}
+                ><X size={14} /></button>
+              </div>
             </div>
-            <div className={styles.modalBody}>
+            <div className={styles.modalBody} style={isFullscreen ? { flex: 1, overflow: 'auto' } : {}}>
               {isDeprecated(viewRef) && (
                 <div className={styles.warningBanner}>
                   <AlertTriangle size={16} /> This reference is over 5 years old and may be outdated.
@@ -814,7 +830,7 @@ const ReferenceLibrary = () => {
               <button className={styles.modalBtnClose} onClick={() => setViewRef(null)}>Close</button>
             </div>
           </div>
-        </div>
+        </>
       )}
 
       {/* ── ARCHIVE CONFIRMATION MODAL ──────────────────────────────────── */}
