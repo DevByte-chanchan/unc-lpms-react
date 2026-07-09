@@ -589,15 +589,6 @@ const ReferenceLibrary = () => {
     setViewRef(null);
   };
 
-  const getTypeBadgeClass = (type) => {
-    switch (type) {
-      case 'Textbook': return styles.typeBadgeBook;
-      case 'Open Educational Resources': return styles.typeBadgeJournal;
-      case 'Online Resources': return styles.typeBadgeArticle;
-      default: return styles.typeBadgeBook;
-    }
-  };
-
   /* ── Content ───────────────────────────────────────────────────────── */
   const content = (
     <div className={styles.container}>
@@ -721,7 +712,7 @@ const ReferenceLibrary = () => {
                     </div>
                   </td>
                   <td width={260}>{ref.authors}</td>
-                  <td width={210} className={styles.cellNowrap}><span className={`${styles.typeBadge} ${getTypeBadgeClass(ref.type)}`}>{ref.type}</span></td>
+                  <td width={210} className={styles.cellNowrap}>{ref.type}</td>
                   <td width={90} className={styles.cellNowrap}>{ref.year || '—'}</td>
                   <td className="fill">
                     <div className={styles.actionGroup}>
