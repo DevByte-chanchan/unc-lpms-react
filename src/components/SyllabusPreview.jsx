@@ -597,8 +597,8 @@ const SyllabusPreview = ({ isOpen, onClose }) => {
                         const allAssessments = coverageData.assessments || [];
 
                         const colWidthsCC = {
-                            co: '60px', ilo: '220px', topic: '250px',
-                            period: '100px', tla: '350px', assess: '220px', ref: '100px'
+                            co: '40px', ilo: '110px', topic: '140px',
+                            period: '40px', tla: '170px', assess: '120px', ref: '80px'
                         };
 
                         const getILOTopics = (ilo) => {

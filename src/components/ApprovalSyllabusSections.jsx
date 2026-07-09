@@ -121,7 +121,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
           setCpaData({
             course: { code: syllabus.code, title: syllabus.name },
             programOutcomes: [],
-            courseOutcomes: syllabus.ilos ? [...new Set(syllabus.ilos.map(i => i.courseOutcome))].map((co, idx) => ({ id: idx + 1, description: co, poMappings: [] })) : []
+            courseOutcomes: syllabus.courseOutcomes || []
           });
         } else {
           setCpaError(err.message);
@@ -794,13 +794,13 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
               const allAssessments = syllabus?.assessments || []
 
               const ccColWidths = {
-                co: '60px',
-                ilo: '220px',
-                topic: '250px',
-                period: '100px',
-                tla: '350px',
-                assess: '220px',
-                ref: '100px'
+                co: '40px',
+                ilo: '110px',
+                topic: '140px',
+                period: '40px',
+                tla: '170px',
+                assess: '120px',
+                ref: '80px'
               }
 
               const getILOTopics = (ilo) => {
@@ -1221,12 +1221,12 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
             </button>
             <div style={{
               overflow: 'hidden',
-              width: sidebarCollapsed ? 0 : 360,
+              width: sidebarCollapsed ? 0 : 280,
               transition: 'width 0.3s ease',
               flexShrink: 0
             }}>
             <aside style={{
-              width: '360px',
+              width: '280px',
               flexShrink: 0,
               borderLeft: 'none',
             background: '#ffffff',
@@ -1236,7 +1236,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
             height: '100%'
           }}>
             <div style={{
-              padding: '12px 16px',
+              padding: '8px 10px',
               borderBottom: '1px solid #e0e0e0',
               background: '#fafafa',
               boxSizing: 'border-box',
@@ -1246,12 +1246,12 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                marginBottom: '8px',
+                marginBottom: '4px',
                 width: '100%'
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <MessageSquare size={20} strokeWidth={2} color="#4a5568" />
-                  <h4 style={{ margin: 0, fontSize: '15px', fontWeight: 600, color: '#2d3748' }}>
+                  <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 600, color: '#2d3748' }}>
                     Comments
                   </h4>
                 </div>
@@ -1269,7 +1269,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
             <div style={{
               flex: 1,
               overflow: 'auto',
-              padding: '12px',
+              padding: '6px',
               boxSizing: 'border-box',
               width: '100%'
             }}>
@@ -1280,7 +1280,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
                   <p style={{fontSize: '12px', marginTop: '4px'}}>This section has no reviewer comments</p>
                 </div>
               ) : (
-                <div style={{display: 'flex', flexDirection: 'column', gap: '16px'}}>
+                <div style={{display: 'flex', flexDirection: 'column', gap: '10px'}}>
                   {(() => {
                     const groups = {}
                     visibleComments.forEach((c) => {
@@ -1312,7 +1312,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
                               background: '#f7fafc',
                               border: '1px solid #e2e8f0',
                               borderRadius: '8px',
-                              padding: '12px',
+                              padding: '10px',
                               position: 'relative'
                             }}>
                               <div style={{

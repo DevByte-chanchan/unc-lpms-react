@@ -282,7 +282,7 @@ const SyllabusSections = () => {
                     setCpaData({
                         course: { code: syllabus.code, title: syllabus.name },
                         programOutcomes: [],
-                        courseOutcomes: syllabus.ilos ? [...new Set(syllabus.ilos.map(i => i.courseOutcome))].map((co, idx) => ({ id: idx + 1, description: co })) : []
+                        courseOutcomes: syllabus.courseOutcomes || []
                     });
                 } else {
                     setCpaError(err.message);
@@ -889,13 +889,13 @@ const SyllabusSections = () => {
 
                             // Columns Configuration (Fixed Widths) matching old specifications
                             const colWidths = {
-                                co: '60px',
-                                ilo: '220px',
-                                topic: '250px',
-                                period: '100px',
-                                tla: '350px',
-                                assess: '220px',
-                                ref: '100px'
+                                co: '40px',
+                                ilo: '110px',
+                                topic: '140px',
+                                period: '40px',
+                                tla: '170px',
+                                assess: '120px',
+                                ref: '80px'
                             };
 
                             // Helper: Find topics used in an ILO

@@ -543,7 +543,7 @@ const SyllabusRevisionsSections = ({status}) => {
                     position: 'sticky',
                     right: '0',
                     top: '20px',
-                    width: '360px',
+                    width: '280px',
                     height: 'calc(100vh - 80px)',
                     background: '#ffffff',
                     display: 'flex',
@@ -555,7 +555,7 @@ const SyllabusRevisionsSections = ({status}) => {
                     paddingLeft: '4px'
                 }}>
                     <div style={{
-                        padding: '12px 16px',
+                        padding: '8px 10px',
                         borderBottom: '1px solid #e0e0e0',
                         background: '#fafafa',
                         boxSizing: 'border-box',
@@ -565,14 +565,14 @@ const SyllabusRevisionsSections = ({status}) => {
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'space-between',
-                            marginBottom: '8px',
+                            marginBottom: '4px',
                             width: '100%'
                         }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                 <MessageSquare size={20} strokeWidth={2} color="#4a5568" />
                                 <h4 style={{
                                     margin: 0,
-                                    fontSize: '15px',
+                                    fontSize: '14px',
                                     fontWeight: 600,
                                     color: '#2d3748'
                                 }}>
@@ -602,7 +602,7 @@ const SyllabusRevisionsSections = ({status}) => {
                     <div style={{
                         flex: 1,
                         overflow: 'auto',
-                        padding: '12px',
+                        padding: '6px',
                         boxSizing: 'border-box',
                         width: '100%'
                     }}>

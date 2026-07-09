@@ -55,11 +55,11 @@
   width: 100%
   flex-grow: 1
   background: white
-  padding: 20px 30px
+  padding: 20px 16px
   flex-direction: column
   gap: 30px
   min-height: 200px
-  overflow-y: auto
+  overflow-y: hidden
   -webkit-overflow-scrolling: touch
   // allow this flex item to shrink when sidebar expands
   min-width: 0
@@ -75,12 +75,11 @@
   &::-webkit-scrollbar-thumb:hover
     background: #999
 
-section
+.container section
   width: 100%
-  height: 100%
+  height: auto
   display: flex
-  overflow: auto
-  // allow inner sections to shrink inside flex container
+  overflow: visible
   min-width: 0
 
 /* =========================
@@ -130,7 +129,7 @@ section
    ========================= */
 
 .courseDetailsContainer
-  width: 1800px
+  width: 100%
   padding-bottom: 20px
   font-family: Arial, sans-serif
 
@@ -208,8 +207,7 @@ section
 .cpa-container
   display: flex
   flex-direction: column
-  width: 2000px
-  height: 100%
+  width: 100%
   overflow: hidden
 
 .legend
@@ -231,9 +229,9 @@ section
 
 .tableScrollWrapper
   flex-grow: 1
-  overflow: auto
+  overflow-y: auto
+  overflow-x: hidden
   border: 1px solid #000
-  max-height: 60vh
 
   &::-webkit-scrollbar
     width: 10px
@@ -244,7 +242,6 @@ section
 
 .alignmentTable
   width: 100%
-  min-width: 1000px
   border-collapse: collapse !important
 
   display: table !important
@@ -276,7 +273,7 @@ section
   th, td
     display: table-cell !important
     border: 1px solid #000 !important
-    padding: 8px 10px !important
+    padding: 14px 12px !important
     vertical-align: middle
     font-size: 14px
     color: #000
@@ -287,7 +284,7 @@ section
   background-color: #EFEFEF
   font-weight: 600
   text-align: left
-  min-width: 400px
+  min-width: 200px
   position: sticky
   top: 0
   border: 1px solid #000 !important
@@ -295,13 +292,12 @@ section
 
 .descCell
   text-align: left
-  line-height: 1.5
+  line-height: 2
   strong
     font-weight: 700
     margin-right: 5px
 
 .descContent
-  height: 100%
   overflow-y: auto
   line-height: 1.5
   overflow-wrap: anywhere
@@ -310,9 +306,10 @@ section
 .poHeader
   background-color: #EFEFEF
   font-weight: 600
-  text-align: center
-  width: 60px
-  min-width: 60px
+  text-align: center !important
+  vertical-align: middle !important
+  width: 48px
+  min-width: 48px
   position: sticky
   top: 0
   border: 1px solid #000 !important
@@ -331,14 +328,14 @@ section
   display: flex
   flex-direction: column
   width: 100%
-  height: 100%
   overflow: hidden
 
 .ccScrollWrapper
   flex-grow: 1
-  overflow: auto
+  overflow-y: auto
+  overflow-x: hidden
   border: 1px solid #000
-  max-height: 70vh
+  max-height: calc(100vh - 180px)
   background: #fff
 
   &::-webkit-scrollbar
@@ -349,8 +346,8 @@ section
     border-radius: 5px
 
 .ccTable
-  width: max-content
-  min-width: 100%
+  width: 100%
+  table-layout: fixed
   border-collapse: collapse !important
   display: table !important
 
@@ -481,7 +478,6 @@ section
   display: flex
   flex-direction: column
   width: 100%
-  height: 100%
   overflow: hidden
 
 .refHeaderBar
@@ -520,7 +516,8 @@ section
 
 .refScrollWrapper
   flex-grow: 1
-  overflow: auto
+  overflow-y: auto
+  overflow-x: hidden
   border: 1px solid #000
   max-height: 60vh
 
@@ -532,8 +529,8 @@ section
     border-radius: 5px
 
 .refTable
-  width: max-content
-  min-width: 100%
+  width: 100%
+  table-layout: fixed
   border-collapse: collapse !important
 
   display: table !important
@@ -601,9 +598,7 @@ section
   display: flex
   flex-direction: column
   width: 100%
-  height: 100%
   overflow: hidden
-  max-height: 70vh
 
 .criteriaTable
   width: 100%
@@ -640,7 +635,7 @@ section
   th, td
     display: table-cell !important
     border: 1px solid #000 !important
-    padding: 8px 10px !important
+    padding: 12px 14px !important
     vertical-align: middle
     font-size: 14px
     color: #000

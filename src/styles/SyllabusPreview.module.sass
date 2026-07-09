@@ -210,7 +210,6 @@ section
   display: flex
   flex-direction: column
   width: 100%
-  height: 100%
   overflow: hidden // Prevent double scrollbars, let wrapper handle it
 
 .legend
@@ -233,7 +232,8 @@ section
 // --- Scroll Wrapper ---
 .tableScrollWrapper
   flex-grow: 1
-  overflow: auto // Enables Vertical & Horizontal scrolling
+  overflow-y: auto
+  overflow-x: hidden
   border: 1px solid #000 // Outer border for the table area
   max-height: 60vh // Adjust based on your modal height
 
@@ -248,7 +248,6 @@ section
 // --- Strict Table Override ---
 .alignmentTable
   width: 100%
-  min-width: 1000px // Forces horizontal scroll on small screens
   border-collapse: collapse !important
 
   // RESET GLOBAL FLEX STYLES
@@ -282,7 +281,7 @@ section
   th, td
     display: table-cell !important
     border: 1px solid #000 !important
-    padding: 8px 10px !important
+    padding: 20px 20px !important
     vertical-align: middle
     font-size: 14px
     color: #000
@@ -296,7 +295,7 @@ section
   background-color: #EFEFEF // Header Gray
   font-weight: 600
   text-align: left
-  min-width: 400px // Fixed width for description
+  min-width: 200px // Fixed width for description
   position: sticky
   top: 0
   border: 1px solid #000 !important
@@ -304,7 +303,7 @@ section
 
 .descCell
   text-align: left
-  line-height: 1.5
+  line-height: 2
   word-break: break-word !important
   white-space: normal !important
   overflow-wrap: anywhere !important
@@ -313,7 +312,6 @@ section
     margin-right: 5px
 
 .descContent
-  height: 100%
   overflow-y: auto
   line-height: 1.5
   overflow-wrap: anywhere
@@ -323,9 +321,10 @@ section
 .poHeader
   background-color: #EFEFEF // Header Gray
   font-weight: 600
-  text-align: center
-  width: 60px
-  min-width: 60px
+  text-align: center !important
+  vertical-align: middle !important
+  width: 48px
+  min-width: 48px
   position: sticky
   top: 0
   border: 1px solid #000 !important
@@ -344,12 +343,12 @@ section
   display: flex
   flex-direction: column
   width: 100%
-  height: 100%
   overflow: hidden
 
 .tableScrollWrapper
   flex-grow: 1
-  overflow: auto
+  overflow-y: auto
+  overflow-x: hidden
   border: 1px solid #000
   max-height: 70vh
 
@@ -399,7 +398,7 @@ section
   th, td
     display: table-cell !important
     border: 1px solid #000 !important
-    padding: 8px 10px !important
+    padding: 12px 14px !important
     vertical-align: middle
     font-size: 14px
     color: #000
@@ -449,7 +448,6 @@ section
   display: flex
   flex-direction: column
   width: 100%
-  height: 100%
   overflow: hidden // Keeps the page from scrolling, forces inner scroll
 
 // --- 1. DROPDOWN HEADER BAR ---
@@ -489,7 +487,9 @@ section
 // --- 2. SCROLL WRAPPER (Mirrors 'tableScrollWrapper') ---
 .refScrollWrapper
   flex-grow: 1
-  overflow: auto // Enables X and Y scroll
+  overflow-y: auto
+  overflow-x: hidden
+  border: 1px solid #000
   max-height: 60vh // Matches your example height constraint
 
   // Custom scrollbar (Optional, matches your example)
@@ -502,8 +502,8 @@ section
 
 // --- 3. THE TABLE (Mirrors 'criteriaTable') ---
 .refTable
-  width: max-content // Allows table to expand based on fixed column widths
-  min-width: 100%
+  width: 100%
+  table-layout: fixed
   border-collapse: collapse !important // FIXES DOUBLE BORDERS
 
   // RESET GLOBAL FLEX STYLES (Your 'Strict Table Override')
@@ -574,14 +574,14 @@ section
   display: flex
   flex-direction: column
   width: 100%
-  height: 100%
   overflow: hidden
 
 .ccScrollWrapper
   flex-grow: 1
-  overflow: auto
+  overflow-y: auto
+  overflow-x: hidden
   border: 1px solid #000
-  max-height: 70vh
+  max-height: calc(100vh - 180px)
   background: #fff
 
   &::-webkit-scrollbar
@@ -592,8 +592,8 @@ section
     border-radius: 5px
 
 .ccTable
-  width: max-content
-  min-width: 100%
+  width: 100%
+  table-layout: fixed
   border-collapse: collapse !important
   display: table !important
 
