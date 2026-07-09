@@ -701,8 +701,8 @@ const ReferenceLibrary = () => {
         <table>
           <thead>
             <tr>
-              <th width={80}>ID</th>
-              <th width={340}>TITLE</th>
+              <th width={140}>ID</th>
+              <th width={360}>TITLE</th>
               <th width={200}>AUTHOR(S)</th>
               <th width={200}>TYPE</th>
               <th width={80}>YEAR</th>
@@ -714,8 +714,8 @@ const ReferenceLibrary = () => {
             {filtered.length > 0 ? (
               filtered.map((ref) => (
                 <tr key={ref.id}>
-                  <td width={80}>{ref.id}</td>
-                  <td width={340}>
+                  <td width={140}>{ref.id}</td>
+                  <td width={360}>
                     <div className={styles.titleCell}>
                       <span className={styles.refTitle}>{ref.title}</span>
                       {ref.filename && <span className={styles.refFilename}>{ref.filename}</span>}

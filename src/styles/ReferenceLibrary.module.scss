@@ -206,6 +206,7 @@
 table {
   width: 100%;
   border-collapse: collapse;
+  table-layout: fixed;
 
   th {
     padding: 12px 18px;
@@ -215,7 +216,6 @@ table {
     font-weight: 600;
     color: #000;
     white-space: nowrap;
-    word-break: break-word;
   }
 
   td {
@@ -224,11 +224,9 @@ table {
     font-size: 14px;
     color: #000;
     vertical-align: middle;
-    word-break: break-word;
-  }
-
-  td:last-child {
     white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 }
 
