@@ -194,7 +194,6 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
   const hasUnsavedChanges = comments.some(c => c.text?.trim())
   const handleClose = () => {
     if (!readOnly && hasUnsavedChanges) { setShowDiscardConfirm(true); return }
-    if (isFullscreen) { setIsFullscreen(false); return }
     onClose()
   }
   const confirmDiscard = () => { setShowDiscardConfirm(false); onClose() }
