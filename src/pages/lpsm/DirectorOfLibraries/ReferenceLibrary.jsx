@@ -586,7 +586,6 @@ const ReferenceLibrary = () => {
   };
 
   const handleClose = () => {
-    if (isFullscreen) { setIsFullscreen(false); return }
     setViewRef(null);
   };
 
@@ -761,7 +760,7 @@ const ReferenceLibrary = () => {
       {viewRef && (
         <>
           {!isFullscreen && <div onClick={handleClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 2999 }} />}
-          <div role="dialog" aria-modal="true" aria-label="Reference details" style={isFullscreen ? { position: 'fixed', inset: 0, zIndex: 3000, background: '#fff', display: 'flex', flexDirection: 'column', overflow: 'hidden', width: '100%', maxHeight: '100%', borderRadius: 0 } : { position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: 3000 }} className={styles.viewModal} onClick={(e) => e.stopPropagation()}>
+          <div role="dialog" aria-modal="true" aria-label="Reference details" style={isFullscreen ? { position: 'fixed', inset: 0, zIndex: 3000, background: '#fff', display: 'flex', flexDirection: 'column', overflow: 'hidden', width: '100%', maxWidth: '100%', maxHeight: '100%', borderRadius: 0 } : { position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: 3000 }} className={styles.viewModal} onClick={(e) => e.stopPropagation()}>
             <div className={styles.modalHeader}>
               <h2>REFERENCE DETAILS</h2>
               <div style={{ display: 'flex', gap: 6 }}>
