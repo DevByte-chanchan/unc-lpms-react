@@ -703,7 +703,7 @@ const ReferenceLibrary = () => {
           <tbody>
             {filtered.length > 0 ? (
               filtered.map((ref) => (
-                <tr key={ref.id} className={hasIssues(ref) ? styles.rowIssue : isDeprecated(ref) ? styles.rowDeprecated : ''}>
+                <tr key={ref.id} className={hasIssues(ref) && isDeprecated(ref) ? styles.rowBoth : hasIssues(ref) ? styles.rowIssue : isDeprecated(ref) ? styles.rowDeprecated : ''}>
                   <td width={140} className={styles.cellNowrap}>{ref.id}</td>
                   <td width={420}>
                     <div className={styles.titleCell}>
