@@ -27,7 +27,7 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
   const [selectedRefs, setSelectedRefs] = useState([])
   const [libraryRefs, setLibraryRefs] = useState([])
   const [toast, setToast] = useState(null)
-  const [showPreviousComments, setShowPreviousComments] = useState(false)
+  const [showPreviousComments, setShowPreviousComments] = useState(true)
   const [commentedRefIds, setCommentedRefIds] = useState([])
   const [submitting, setSubmitting] = useState(false)
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false)
@@ -465,7 +465,7 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
                 </div>
               )}
               {!readOnly && showPreviousComments && previousComments.length > 0 && (
-                <div style={{ maxHeight: 300, overflow: 'auto', display: 'flex', flexDirection: 'column', gap: 8, padding: '0 4px 8px' }}>
+                <div style={{ maxHeight: 400, overflow: 'auto', display: 'flex', flexDirection: 'column', gap: 8, padding: '0 4px 8px' }}>
                   {previousComments.map(c => (
                     <div key={c.id} style={{ padding: '10px 12px', background: '#f9fafb', borderRadius: 12, border: '1px solid #e5e7eb' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
@@ -582,7 +582,7 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
           </div>
         )}
         {!readOnly && showPreviousComments && previousComments.length > 0 && (
-          <div style={{ maxHeight: 300, overflow: 'auto', display: 'flex', flexDirection: 'column', gap: 8, padding: '0 4px 8px' }}>
+          <div style={{ maxHeight: 400, overflow: 'auto', display: 'flex', flexDirection: 'column', gap: 8, padding: '0 4px 8px' }}>
             {previousComments.map(c => (
               <div key={c.id} style={{ padding: '10px 12px', background: '#f9fafb', borderRadius: 12, border: '1px solid #e5e7eb' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
