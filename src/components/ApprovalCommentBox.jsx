@@ -452,7 +452,7 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
                     onChange={(e) => updateCommentText(comments[0]?.id, e.target.value)}
                     onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleDirectorSubmit() } }}
                   placeholder={'Describe the issue or suggestion for the references...'}
-                    rows={4}
+                    rows={3}
                   />
                 </div>
               </div>
@@ -465,7 +465,7 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
                 </div>
               )}
               {!readOnly && showPreviousComments && previousComments.length > 0 && (
-                <div style={{ maxHeight: 400, overflow: 'auto', display: 'flex', flexDirection: 'column', gap: 8, padding: '0 4px 8px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '0 4px 8px' }}>
                   {previousComments.map(c => (
                     <div key={c.id} style={{ padding: '10px 12px', background: '#f9fafb', borderRadius: 12, border: '1px solid #e5e7eb' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
@@ -582,7 +582,7 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
           </div>
         )}
         {!readOnly && showPreviousComments && previousComments.length > 0 && (
-          <div style={{ maxHeight: 400, overflow: 'auto', display: 'flex', flexDirection: 'column', gap: 8, padding: '0 4px 8px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '0 4px 8px' }}>
             {previousComments.map(c => (
               <div key={c.id} style={{ padding: '10px 12px', background: '#f9fafb', borderRadius: 12, border: '1px solid #e5e7eb' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
