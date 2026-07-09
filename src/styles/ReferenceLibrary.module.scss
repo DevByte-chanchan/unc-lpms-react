@@ -224,9 +224,6 @@ table {
     font-size: 14px;
     color: #000;
     vertical-align: middle;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
   }
 }
 
@@ -297,6 +294,18 @@ table {
 .actionDot {
   color: #d1d5db;
   font-size: 18px;
+}
+
+.rowIssue {
+  background: #fef9c3;
+}
+
+.rowDeprecated {
+  background: #fff7ed;
+}
+
+.cellNowrap {
+  white-space: nowrap;
 }
 
 /* ── Misc ────────────────────────────────────────────────────────────── */

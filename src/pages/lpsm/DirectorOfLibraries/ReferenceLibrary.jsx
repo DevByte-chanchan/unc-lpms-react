@@ -702,33 +702,27 @@ const ReferenceLibrary = () => {
           <thead>
             <tr>
               <th width={140}>ID</th>
-              <th width={360}>TITLE</th>
-              <th width={200}>AUTHOR(S)</th>
-              <th width={200}>TYPE</th>
-              <th width={80}>YEAR</th>
-              <th width={150}>STATUS</th>
+              <th width={420}>TITLE</th>
+              <th width={260}>AUTHOR(S)</th>
+              <th width={180}>TYPE</th>
+              <th width={70}>YEAR</th>
               <th className="fill"></th>
             </tr>
           </thead>
           <tbody>
             {filtered.length > 0 ? (
               filtered.map((ref) => (
-                <tr key={ref.id}>
-                  <td width={140}>{ref.id}</td>
-                  <td width={360}>
+                <tr key={ref.id} className={hasIssues(ref) ? styles.rowIssue : isDeprecated(ref) ? styles.rowDeprecated : ''}>
+                  <td width={140} className={styles.cellNowrap}>{ref.id}</td>
+                  <td width={420}>
                     <div className={styles.titleCell}>
                       <span className={styles.refTitle}>{ref.title}</span>
                       {ref.filename && <span className={styles.refFilename}>{ref.filename}</span>}
                     </div>
                   </td>
-                  <td width={200}>{ref.authors}</td>
-                  <td width={200}><span className={`${styles.typeBadge} ${getTypeBadgeClass(ref.type)}`}>{ref.type}</span></td>
-                  <td width={80}>{ref.year || '—'}</td>
-                  <td width={150}>
-                    {isDeprecated(ref) && <span className={styles.deprecatedBadge}>Deprecated</span>}
-                    {hasIssues(ref) && <span className={styles.issueBadge}>Has Issue</span>}
-                    {!isDeprecated(ref) && !hasIssues(ref) && <span className={styles.goodBadge}>Active</span>}
-                  </td>
+                  <td width={260}>{ref.authors}</td>
+                  <td width={180} className={styles.cellNowrap}><span className={`${styles.typeBadge} ${getTypeBadgeClass(ref.type)}`}>{ref.type}</span></td>
+                  <td width={70} className={styles.cellNowrap}>{ref.year || '—'}</td>
                   <td className="fill">
                     <div className={styles.actionGroup}>
                       <button className={styles.actionView} type="button" onClick={() => setViewRef(ref)}>View</button>
@@ -750,7 +744,7 @@ const ReferenceLibrary = () => {
                 </tr>
               ))
             ) : (
-              <tr><td colSpan="7" className={styles.noData}>No {tab === 'archived' ? 'archived' : ''} references found</td></tr>
+              <tr><td colSpan="6" className={styles.noData}>No {tab === 'archived' ? 'archived' : ''} references found</td></tr>
             )}
           </tbody>
         </table>
