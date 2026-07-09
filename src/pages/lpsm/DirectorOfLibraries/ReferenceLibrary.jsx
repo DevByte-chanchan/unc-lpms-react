@@ -704,8 +704,8 @@ const ReferenceLibrary = () => {
               <th width={140}>ID</th>
               <th width={420}>TITLE</th>
               <th width={260}>AUTHOR(S)</th>
-              <th width={180}>TYPE</th>
-              <th width={70}>YEAR</th>
+              <th width={210}>TYPE</th>
+              <th width={90}>YEAR</th>
               <th className="fill"></th>
             </tr>
           </thead>
@@ -721,8 +721,8 @@ const ReferenceLibrary = () => {
                     </div>
                   </td>
                   <td width={260}>{ref.authors}</td>
-                  <td width={180} className={styles.cellNowrap}><span className={`${styles.typeBadge} ${getTypeBadgeClass(ref.type)}`}>{ref.type}</span></td>
-                  <td width={70} className={styles.cellNowrap}>{ref.year || '—'}</td>
+                  <td width={210} className={styles.cellNowrap}><span className={`${styles.typeBadge} ${getTypeBadgeClass(ref.type)}`}>{ref.type}</span></td>
+                  <td width={90} className={styles.cellNowrap}>{ref.year || '—'}</td>
                   <td className="fill">
                     <div className={styles.actionGroup}>
                       <button className={styles.actionView} type="button" onClick={() => setViewRef(ref)}>View</button>
