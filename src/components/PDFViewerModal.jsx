@@ -283,7 +283,7 @@ const PDFViewerModal = ({ file, kind, onClose, onExport, children }) => {
             >
               <Download size={12} /> {exporting ? 'Exporting…' : 'Download PDF'}
             </button>
-            <button type="button" onClick={isFullscreen ? () => setIsFullscreen(false) : onClose}
+            <button type="button" onClick={onClose}
               style={{
                 width: 32, height: 32, borderRadius: 7,
                 background: '#E81123', color: '#FFFFFF', border: '1px solid #E81123',

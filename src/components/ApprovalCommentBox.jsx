@@ -35,7 +35,10 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
   const firstTextareaRef = useRef(null)
 
   useEffect(() => {
-    if (show) firstTextareaRef.current?.focus()
+    if (show) {
+      firstTextareaRef.current?.focus()
+      setIsFullscreen(false)
+    }
   }, [show])
 
   const showToast = (msg, type = 'success') => {
@@ -410,27 +413,9 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
               <div style={{ textAlign: 'center', padding: '32px 16px', color: '#9ca3af', fontSize: 14 }}>No comments recorded.</div>
             )
           ) : isDirector ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              {!readOnly && previousComments.length > 0 && (
-                <div style={{ textAlign: 'center' }}>
-                  <button onClick={() => setShowPreviousComments(!showPreviousComments)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280', fontSize: 13, textDecoration: 'underline' }}>
-                    {showPreviousComments ? 'Hide' : `View ${previousComments.length} previous comment${previousComments.length > 1 ? 's' : ''}`}
-                  </button>
-                </div>
-              )}
-              {!readOnly && showPreviousComments && previousComments.length > 0 && (
-                <div style={{ maxHeight: 400, overflow: 'auto', display: 'flex', flexDirection: 'column', gap: 8, padding: '0 4px 8px' }}>
-                  {previousComments.map(c => (
-                    <div key={c.id} style={{ padding: '10px 12px', background: '#f9fafb', borderRadius: 12, border: '1px solid #e5e7eb' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                        <span style={{ fontSize: 11, fontWeight: 600, color: '#6b7280' }}>{c.courseCode || ''}</span>
-                        <span style={{ fontSize: 11, color: '#9ca3af' }}>{c.createdAt ? new Date(c.createdAt).toLocaleString() : ''}</span>
-                      </div>
-                      <p style={{ margin: 0, fontSize: 13, color: '#374151', whiteSpace: 'pre-wrap' }}>{c.text || c.comment || ''}</p>
-                    </div>
-                  ))}
-                </div>
-              )}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12, height: '100%' }}>
+              <div style={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {syllabusReferences.length > 0 && (
                 <div style={{ border: '1px solid #e5e7eb', borderRadius: 12, padding: 16, background: '#fff' }}>
                   <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 10, color: '#374151' }}>Learning Plan References</div>
@@ -477,6 +462,28 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
                 </div>
               </div>
               {renderRefBrowser()}
+                </div>
+              </div>
+              {!readOnly && previousComments.length > 0 && (
+                <div style={{ textAlign: 'center' }}>
+                  <button onClick={() => setShowPreviousComments(!showPreviousComments)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280', fontSize: 13, textDecoration: 'underline' }}>
+                    {showPreviousComments ? 'Hide' : `View ${previousComments.length} previous comment${previousComments.length > 1 ? 's' : ''}`}
+                  </button>
+                </div>
+              )}
+              {!readOnly && showPreviousComments && previousComments.length > 0 && (
+                <div style={{ maxHeight: 300, overflow: 'auto', display: 'flex', flexDirection: 'column', gap: 8, padding: '0 4px 8px' }}>
+                  {previousComments.map(c => (
+                    <div key={c.id} style={{ padding: '10px 12px', background: '#f9fafb', borderRadius: 12, border: '1px solid #e5e7eb' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                        <span style={{ fontSize: 11, fontWeight: 600, color: '#6b7280' }}>{c.courseCode || ''}</span>
+                        <span style={{ fontSize: 11, color: '#9ca3af' }}>{c.createdAt ? new Date(c.createdAt).toLocaleString() : ''}</span>
+                      </div>
+                      <p style={{ margin: 0, fontSize: 13, color: '#374151', whiteSpace: 'pre-wrap' }}>{c.text || c.comment || ''}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           ) : (
             <div className={styles.commentListWrapper}>
