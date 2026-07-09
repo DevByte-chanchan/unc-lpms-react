@@ -891,11 +891,11 @@ const SyllabusSections = () => {
                             const colWidths = {
                                 co: '40px',
                                 ilo: '110px',
-                                topic: '140px',
+                                topic: '130px',
                                 period: '40px',
                                 tla: '170px',
                                 assess: '120px',
-                                ref: '80px'
+                                ref: '50px'
                             };
 
                             // Helper: Find topics used in an ILO
@@ -960,7 +960,7 @@ const SyllabusSections = () => {
                                                 <th className={stylesB.ccHeader} style={{ width: colWidths.period }}>PERIOD</th>
                                                 <th className={stylesB.ccHeader} style={{ width: colWidths.tla }}>TEACHING & LEARNING ACTIVITIES (TLAs)</th>
                                                 <th className={stylesB.ccHeader} style={{ width: colWidths.assess }}>ASSESSMENT</th>
-                                                <th className={stylesB.ccHeader} style={{ width: colWidths.ref }}>RESOURCES</th>
+                                                <th className={stylesB.ccHeader} style={{ width: colWidths.ref, overflowWrap: 'break-word', wordBreak: 'break-all' }}>RESOURCES</th>
                                             </tr>
                                             </thead>
                                             <tbody>

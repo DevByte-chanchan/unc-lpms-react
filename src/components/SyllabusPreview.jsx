@@ -597,8 +597,8 @@ const SyllabusPreview = ({ isOpen, onClose }) => {
                         const allAssessments = coverageData.assessments || [];
 
                         const colWidthsCC = {
-                            co: '40px', ilo: '110px', topic: '140px',
-                            period: '40px', tla: '170px', assess: '120px', ref: '80px'
+                            co: '40px', ilo: '110px', topic: '130px',
+                            period: '40px', tla: '170px', assess: '120px', ref: '50px'
                         };
 
                         const getILOTopics = (ilo) => {
@@ -666,7 +666,7 @@ const SyllabusPreview = ({ isOpen, onClose }) => {
                                                 <th className={styles.ccHeader} style={{ width: colWidthsCC.period }}>PERIOD</th>
                                                 <th className={styles.ccHeader} style={{ width: colWidthsCC.tla }}>TEACHING & LEARNING ACTIVITIES (TLAs)</th>
                                                 <th className={styles.ccHeader} style={{ width: colWidthsCC.assess }}>ASSESSMENT</th>
-                                                <th className={styles.ccHeader} style={{ width: colWidthsCC.ref }}>RESOURCES</th>
+                                                <th className={styles.ccHeader} style={{ width: colWidthsCC.ref, overflowWrap: 'break-word', wordBreak: 'break-all' }}>RESOURCES</th>
                                             </tr>
                                             </thead>
                                             <tbody>

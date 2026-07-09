@@ -796,11 +796,11 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
               const ccColWidths = {
                 co: '40px',
                 ilo: '110px',
-                topic: '140px',
+                topic: '130px',
                 period: '40px',
                 tla: '170px',
                 assess: '120px',
-                ref: '80px'
+                ref: '50px'
               }
 
               const getILOTopics = (ilo) => {
@@ -860,7 +860,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
                             <th className={styles.ccHeader} style={{ width: ccColWidths.period }}>PERIOD</th>
                             <th className={styles.ccHeader} style={{ width: ccColWidths.tla }}>TEACHING & LEARNING ACTIVITIES (TLAs)</th>
                             <th className={styles.ccHeader} style={{ width: ccColWidths.assess }}>ASSESSMENT</th>
-                            <th className={styles.ccHeader} style={{ width: ccColWidths.ref }}>RESOURCES</th>
+                            <th className={styles.ccHeader} style={{ width: ccColWidths.ref, overflowWrap: 'break-word', wordBreak: 'break-all' }}>RESOURCES</th>
                           </tr>
                         </thead>
                         <tbody>
