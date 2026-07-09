@@ -442,6 +442,23 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
         return
       }
 
+      // ── Duplicate check: same content + same target ──
+      const incoming = (payload.comments || []).filter(c => c.text?.trim())
+      for (const inc of incoming) {
+        const dup = allArray.find(ex =>
+          ex.courseCode === code &&
+          ex.courseOutcome === (inc.courseOutcome || null) &&
+          ex.ilo === (inc.ilo || null) &&
+          ex.coverageType === (inc.coverageType || null) &&
+          ex.coverageDetail === (inc.coverageDetail || null) &&
+          (ex.comment || '').trim().toLowerCase() === (inc.text || '').trim().toLowerCase()
+        )
+        if (dup) {
+          showToastMsg('Duplicate comment: identical content already exists for this target.', 'warning')
+          return
+        }
+      }
+
       // create a submission id shared by all comments being submitted now
       const now = new Date()
       const submissionId = `${code}-${now.getTime()}`
