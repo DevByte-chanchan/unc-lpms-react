@@ -465,7 +465,7 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
                 </div>
               )}
               {!readOnly && showPreviousComments && previousComments.length > 0 && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '0 4px 8px' }}>
+                <div style={{ maxHeight: 400, overflow: 'auto', display: 'flex', flexDirection: 'column', gap: 8, padding: '0 4px 8px' }}>
                   {previousComments.map(c => (
                     <div key={c.id} style={{ padding: '10px 12px', background: '#f9fafb', borderRadius: 12, border: '1px solid #e5e7eb' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
@@ -574,15 +574,15 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
             </div>
           )}
         </div>
-        {!readOnly && previousComments.length > 0 && (
+        {!readOnly && !isDirector && previousComments.length > 0 && (
           <div style={{ textAlign: 'center', marginBottom: 8 }}>
             <button onClick={() => setShowPreviousComments(!showPreviousComments)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280', fontSize: 13, textDecoration: 'underline' }}>
               {showPreviousComments ? 'Hide' : `View ${previousComments.length} previous comment${previousComments.length > 1 ? 's' : ''}`}
             </button>
           </div>
         )}
-        {!readOnly && showPreviousComments && previousComments.length > 0 && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '0 4px 8px' }}>
+        {!readOnly && !isDirector && showPreviousComments && previousComments.length > 0 && (
+          <div style={{ maxHeight: 400, overflow: 'auto', display: 'flex', flexDirection: 'column', gap: 8, padding: '0 4px 8px' }}>
             {previousComments.map(c => (
               <div key={c.id} style={{ padding: '10px 12px', background: '#f9fafb', borderRadius: 12, border: '1px solid #e5e7eb' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>

@@ -205,8 +205,9 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
 
   const previousComments = React.useMemo(() => {
     return globalComments
+      .filter(c => normalizeRoleKey(c.role) === roleKey)
       .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
-  }, [globalComments])
+  }, [globalComments, roleKey])
 
   // hardcoded reference pool for display (ensures a mix of types per syllabus)
   const refPool = React.useMemo(() => [
