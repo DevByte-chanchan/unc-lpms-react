@@ -529,7 +529,7 @@ const SyllabusSections = () => {
                     <Info strokeWidth={2} size={16}/>
                 </div>}
 
-                <div onClick={handleExportPdf} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '8px 16px', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: pdfExportLoading ? 'wait' : 'pointer', background: pdfExportLoading ? '#94a3b8' : '#19282C', color: 'white', fontFamily: "'Poppins', sans-serif", transition: 'transform 0.2s ease' }}
+                <div onClick={handleExportPdf} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '0 16px', border: 'none', borderRadius: 5, fontSize: 14, fontWeight: 500, height: 40, cursor: pdfExportLoading ? 'wait' : 'pointer', background: pdfExportLoading ? '#94a3b8' : '#19282C', color: 'white', fontFamily: "'Poppins', sans-serif", transition: 'transform 0.3s ease' }}
                     onMouseEnter={e => { if (!pdfExportLoading) e.currentTarget.style.transform = 'scale(1.04)' }}
                     onMouseLeave={e => { if (!pdfExportLoading) e.currentTarget.style.transform = 'scale(1)' }}>
                     <Download size={14} />
