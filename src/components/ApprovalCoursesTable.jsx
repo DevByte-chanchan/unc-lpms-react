@@ -57,19 +57,8 @@ const ApprovalCoursesTable = ({ role = 'approver' }) => {
         if (!syllabus) { alert('Syllabus data not found'); setExporting(false); return }
         const workflow = getWorkflow(getCode(row))
 
-        let logoBase64 = ''
-        try {
-          const resp = await fetch(unclogo)
-          if (!resp.ok) throw new Error('logo fetch failed')
-          const blob = await resp.blob()
-          logoBase64 = await new Promise((resolve) => {
-            const reader = new FileReader()
-            reader.onload = () => resolve(reader.result)
-            reader.readAsDataURL(blob)
-          })
-        } catch { console.warn('Logo fetch failed') }
-
-        const html = buildSyllabusHtml(syllabus, getCode(row), workflow, logoBase64)
+        const logoUrl = new URL(unclogo, window.location.origin).href
+        const html = buildSyllabusHtml(syllabus, getCode(row), workflow, logoUrl)
         const blob = new Blob([html], { type: 'text/html' })
         const url = URL.createObjectURL(blob)
         setExportFile({
@@ -372,7 +361,7 @@ const ApprovalCoursesTable = ({ role = 'approver' }) => {
                                             style={{ minWidth: 90, display: 'inline-flex', alignItems: 'center', gap: 5 }}
                                         >
                                             View
-                                            <ChevronRight size={18} />
+                                            <ChevronRight size={16} />
                                         </Link>
 
                                         {selectedStatus ==='APPROVED' &&

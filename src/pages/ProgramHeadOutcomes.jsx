@@ -61,8 +61,8 @@ const ProgramHeadOutcomes = () => {
       nav={<SideNavigation mode="program-head" />}
       content={
         <div style={{ padding: 20, background: '#FFFFFF' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
-            <h2 style={{ margin: 0 }}>Program Outcomes</h2>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+            <h2 style={{ margin: 0, fontSize: 22, fontWeight: 600 }}>Program Outcomes</h2>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 10 }}>
               <UploadButton onClick={() => setShowModal(true)} />
             </div>

@@ -101,7 +101,7 @@ const TOSCoursesTable = ({}) => {
                                 <td className={styles.fill}>
                                     <Link className="actionLink" to={`/tos/${row.name}`}>
                                         {row.status === 'DRAFT' ? 'Compose' : 'Open'}
-                                        <ChevronRight size={18} />
+                                        <ChevronRight size={16} />
                                     </Link>
                                 </td>
                             </tr>

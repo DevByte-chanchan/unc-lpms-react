@@ -178,20 +178,8 @@ const InstructorDashboard = () => {
       if (!syllabus) { alert('Syllabus data not found'); setExporting(false); return }
       const workflow = getWorkflow(course.code)
 
-      let logoBase64 = ''
-      try {
-        const resp = await fetch(unclogo)
-        if (resp.ok) {
-          const blob = await resp.blob()
-          logoBase64 = await new Promise((resolve) => {
-            const reader = new FileReader()
-            reader.onload = () => resolve(reader.result)
-            reader.readAsDataURL(blob)
-          })
-        }
-      } catch { console.warn('Logo fetch failed') }
-
-      const html = buildSyllabusHtml(syllabus, course.code, workflow, logoBase64)
+      const logoUrl = new URL(unclogo, window.location.origin).href
+      const html = buildSyllabusHtml(syllabus, course.code, workflow, logoUrl)
       const blob = new Blob([html], { type: 'text/html' })
       const url = URL.createObjectURL(blob)
       setExportFile({

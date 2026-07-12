@@ -36,23 +36,12 @@ const CoPoAlignment = () => {
   const [uploadFile, setUploadFile] = useState(null);
   const fileInputRef = useRef(null);
 
-  const handleView = async (doc) => {
+  const handleView = (doc) => {
     const found = getCourseCos(doc.course_id)
     const cos = found ? found.cos : []
     const courseName = found ? found.name : doc.course_name
-    let logoBase64 = ''
-    try {
-      const resp = await fetch(unclogo)
-      if (resp.ok) {
-        const blob = await resp.blob()
-        logoBase64 = await new Promise((resolve) => {
-          const reader = new FileReader()
-          reader.onload = () => resolve(reader.result)
-          reader.readAsDataURL(blob)
-        })
-      }
-    } catch { console.warn('Logo fetch failed') }
-    const html = buildCoPoHtml(cos, doc.course_id, courseName, logoBase64)
+    const logoUrl = new URL(unclogo, window.location.origin).href
+    const html = buildCoPoHtml(cos, doc.course_id, courseName, logoUrl)
     const blob = new Blob([html], { type: 'text/html' })
     const url = URL.createObjectURL(blob)
     setSelectedFile({ ...doc, file_url: url, _courseName: courseName })
@@ -62,7 +51,7 @@ const CoPoAlignment = () => {
     <div style={{ display: 'flex', flexDirection: 'column', width: '100%', height: '100%', gap: 10, padding: '20px 30px', background: '#FFFFFF', boxSizing: 'border-box' }}>
       <div style={{ display: 'flex', width: '100%', flexDirection: 'row', height: 40, alignItems: 'center', gap: 15, marginBottom: 20 }}>
         <h2 style={{ margin: 0, fontSize: 22, fontWeight: 600, whiteSpace: 'nowrap' }}>Course Outcomes & PO Alignment</h2>
-        <div style={{ display: 'flex', padding: '6px 10px', gap: 20, background: '#FFF', boxShadow: '0 1px 3px 0 rgba(0,0,0,0.25)', borderRadius: 4, alignItems: 'center' }}>
+        <div style={{ display: 'flex', padding: '4px 8px', gap: 8, background: '#FFF', boxShadow: '0 1px 3px 0 rgba(0,0,0,0.25)', borderRadius: 4, alignItems: 'center', height: 40, boxSizing: 'border-box' }}>
           <select style={{ fontSize: 14, outline: 'none', border: 0, color: '#DC2626', background: 'transparent', cursor: 'pointer' }}>{yearOptions}</select>
           <select style={{ fontSize: 14, outline: 'none', border: 0, color: '#DC2626', background: 'transparent', cursor: 'pointer' }}>
             <option value="1st Sem">1st Sem</option>

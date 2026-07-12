@@ -344,7 +344,7 @@ const SyllabusRevisionsSections = ({status}) => {
                                                             <td width={400}>{ref.title}</td>
                                                             <td className={styles.fill}>
                                                                 <Link className={'actionLink'} to={`/references/form/${code}/${ref.id}`}>
-                                                                    Open <ChevronRight size={18} />
+                                                                    Open <ChevronRight size={16} />
                                                                 </Link>
                                                             </td>
                                                         </tr>
@@ -397,7 +397,7 @@ const SyllabusRevisionsSections = ({status}) => {
                                                             <td>{topic.title}</td>
                                                             <td className={styles.fill}>
                                                                 <Link className={'actionLink'} to={`/topics/form/${code}/${topic.id}`}>
-                                                                    Open <ChevronRight size={18}/>
+                                                                    Open <ChevronRight size={16}/>
                                                                 </Link>
                                                             </td>
                                                         </tr>
@@ -435,7 +435,7 @@ const SyllabusRevisionsSections = ({status}) => {
                                                             <td>{ilo.id}</td>
                                                             <td className={styles.fill}>
                                                                 <Link className={'actionLink'} to={`/ilos/form/${code}/${ilo.id}`}>
-                                                                    Open <ChevronRight size={18}/>
+                                                                    Open <ChevronRight size={16}/>
                                                                 </Link>
                                                             </td>
                                                         </tr>
@@ -497,7 +497,7 @@ const SyllabusRevisionsSections = ({status}) => {
                                                             <td width={350}>{assessment.phase}</td>
                                                             <td className={styles.fill}>
                                                                 <Link className={'actionLink'} to={`/assessments/form/${code}/${assessment.id}`}>
-                                                                    Open <ChevronRight size={18}/>
+                                                                    Open <ChevronRight size={16}/>
                                                                 </Link>
                                                             </td>
                                                         </tr>

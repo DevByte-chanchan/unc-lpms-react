@@ -641,20 +641,9 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
                   onClick={async () => {
                     setExportingPdf(true)
                     try {
-                      let logoBase64 = ''
-                      try {
-                        const resp = await fetch(unclogo)
-                        if (resp.ok) {
-                          const blob = await resp.blob()
-                          logoBase64 = await new Promise((resolve) => {
-                            const reader = new FileReader()
-                            reader.onload = () => resolve(reader.result)
-                            reader.readAsDataURL(blob)
-                          })
-                        }
-                      } catch { console.warn('Logo fetch failed') }
+                      const logoUrl = new URL(unclogo, window.location.origin).href
                       const wf = getWorkflow(codeToUse)
-                      const html = buildSyllabusHtml(syllabus, codeToUse, wf, logoBase64)
+                      const html = buildSyllabusHtml(syllabus, codeToUse, wf, logoUrl)
                       const blob = new Blob([html], { type: 'text/html' })
                       const url = URL.createObjectURL(blob)
                       setPreviewFile({

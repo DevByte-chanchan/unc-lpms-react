@@ -87,8 +87,8 @@ const ProgramHeadCourseOfferings = () => {
 
     const pageContent = (
         <div style={{ padding: 20, background: '#FFFFFF', minHeight: 'calc(100vh - 100px)', display: 'flex', flexDirection: 'column' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
-                <h2 style={{ margin: 0 }}>Course Offerings</h2>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+                <h2 style={{ margin: 0, fontSize: 22, fontWeight: 600 }}>Course Offerings</h2>
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 10 }}>
                     <UploadButton onClick={() => setShowModal(true)} />
                 </div>
@@ -185,7 +185,7 @@ const ProgramHeadCourseOfferings = () => {
                                     <td className={styles.fill} style={{ minWidth: 160, paddingRight: 10 }}>
                                         <a href="#" className={styles.actionLink} onClick={(e) => { e.preventDefault(); setSelectedCourseDetails(row); setDetailsOpen(true); }} style={{ color: '#111827', display: 'inline-flex', alignItems: 'center' }}>
                                             <span style={{ marginRight: 8 }}>View</span>
-                                            <span className={styles.actionIcon} style={{ color: '#111827' }}><ChevronRight size={18} /></span>
+                                            <span className={styles.actionIcon} style={{ color: '#111827' }}><ChevronRight size={16} /></span>
                                         </a>
                                     </td>
                                 </tr>

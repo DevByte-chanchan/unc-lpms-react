@@ -36,7 +36,7 @@ const FacultyTable = ({ faculty = mockFaculty, onView, hideDepartment = false })
                   style={{ background: 'transparent' }}
                 >
                   View
-                  <ChevronRight size={18} />
+                  <ChevronRight size={16} />
                 </Link>
               </td>
             </tr>

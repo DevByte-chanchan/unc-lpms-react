@@ -702,7 +702,7 @@ const SyllabusSections = () => {
                                                             <Link className={'actionLink'} to={`/references/form/${code}/${ilo.id}/${status}`}>
                         <span className={styles['link-text-wrapper']}>
                             Assign References
-                                                                <ChevronRight size={18} />
+                                                                <ChevronRight size={16} />
                             <div className={styles.fixedWidth}>
                                 {refBadges > 0 && (
                                     <span className={styles['comment-badge']}>{refBadges}</span>
@@ -715,7 +715,7 @@ const SyllabusSections = () => {
                                                             <Link className={'actionLink'} to={`/topics/form/${code}/${ilo.id}/${status}`}>
                         <span className={styles['link-text-wrapper']}>
                             Assign Topics
-                                                                <ChevronRight size={18} />
+                                                                <ChevronRight size={16} />
 
                             <div className={styles.fixedWidth}>
                                 {topicBadges > 0 && (
@@ -729,7 +729,7 @@ const SyllabusSections = () => {
                                                             <Link className={'actionLink'} to={`/tlas/form/${code}/${ilo.id}/${status}`}>
                         <span className={styles['link-text-wrapper']}>
                             Assign TLAs
-                                                                <ChevronRight size={18} />
+                                                                <ChevronRight size={16} />
                             <div className={styles.fixedWidth}>
                                 {/* FIXED: Now accurately checks tlaBadges instead of refBadges */}
                                 {tlaBadges > 0 && (
