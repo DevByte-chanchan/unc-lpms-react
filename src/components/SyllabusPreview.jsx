@@ -343,7 +343,7 @@ const SyllabusPreview = ({ isOpen, onClose }) => {
                                                 <th className={styles.firstColHeader}>
                                                     After completion of the course, the student should be able to:
                                                 </th>
-                                                {['PO1', 'PO2', 'PO3', 'PO4', 'PO5', 'PO6', 'PO7', 'PO8', 'PO9'].map((po) => (
+                                                {['PO1', 'PO2', 'PO3', 'PO4', 'PO5', 'PO6', 'PO7', 'PO8', 'PO9', 'PO10', 'PO11', 'PO12', 'PO13'].map((po) => (
                                                     <th key={po} className={styles.poHeader}>{po}</th>
                                                 ))}
                                             </tr>
@@ -356,7 +356,7 @@ const SyllabusPreview = ({ isOpen, onClose }) => {
                                                             <strong>{co.id}: </strong>
                                                             {co.description}
                                                         </td>
-                                                        {co.poMappings && co.poMappings.slice(0, 9).map((mapping, index) => (
+                                                        {co.poMappings && co.poMappings.slice(0, 13).map((mapping, index) => (
                                                             <td key={index} className={styles.mappingCell}>
                                                                 {mapping || ''}
                                                             </td>
@@ -365,7 +365,7 @@ const SyllabusPreview = ({ isOpen, onClose }) => {
                                                 ))
                                             ) : (
                                                 <tr>
-                                                    <td colSpan="10" style={{ padding: '20px', textAlign: 'center' }}>No outcomes aligned yet.</td>
+                                                    <td colSpan="14" style={{ padding: '20px', textAlign: 'center' }}>No outcomes aligned yet.</td>
                                                 </tr>
                                             )}
                                             </tbody>

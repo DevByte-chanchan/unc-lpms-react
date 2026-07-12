@@ -90,7 +90,7 @@ const SyllabusRevisionsSections = ({status}) => {
         },
     ];
 
-    const programOutcomes = ['PO1', 'PO2', 'PO3', 'PO4', 'PO5', 'PO6', 'PO7', 'PO8', 'PO9'];
+    const programOutcomes = ['PO1', 'PO2', 'PO3', 'PO4', 'PO5', 'PO6', 'PO7', 'PO8', 'PO9', 'PO10', 'PO11', 'PO12', 'PO13'];
 
     const CriteriaForm = React.lazy(() => import('../pages/CriteriaForGradingForm.jsx'));
 
@@ -266,6 +266,10 @@ const SyllabusRevisionsSections = ({status}) => {
                                                     <th width={82}>PO7</th>
                                                     <th width={82}>PO8</th>
                                                     <th width={82}>PO9</th>
+                                                    <th width={82}>PO10</th>
+                                                    <th width={82}>PO11</th>
+                                                    <th width={82}>PO12</th>
+                                                    <th width={82}>PO13</th>
                                                 </tr>
                                                 </thead>
 
@@ -280,7 +284,7 @@ const SyllabusRevisionsSections = ({status}) => {
                                                             <TextArea initialValue={co.description} rows={8} />
                                                         </td>
 
-                                                        {[...Array(9)].map((_, poIndex) => (
+                                                        {[...Array(13)].map((_, poIndex) => (
                                                             <td className={styles.dropdownOptions} key={poIndex}>
                                                                 <select defaultValue={co.poMappings[poIndex] || ''}>
                                                                             <option value="">-</option>

@@ -413,7 +413,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
       )
   const programOutcomes = cpaData.programOutcomes.length > 0
     ? cpaData.programOutcomes
-    : (['PO1','PO2','PO3','PO4','PO5','PO6','PO7','PO8','PO9'].map(key => ({ key })))
+    : (['PO1','PO2','PO3','PO4','PO5','PO6','PO7','PO8','PO9','PO10','PO11','PO12','PO13'].map(key => ({ key })))
 
   const sampleILOs = [
     'CO0-ILO0',

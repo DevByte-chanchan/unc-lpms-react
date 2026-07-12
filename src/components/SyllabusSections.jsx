@@ -641,8 +641,8 @@ const SyllabusSections = () => {
                                                     ? cpaData.programOutcomes.map(po => (
                                                         <th key={po.key} className={stylesB.poHeader}>{po.key}</th>
                                                     ))
-                                                    : // fallback to PO1..PO9 if none returned
-                                                    ['PO1','PO2','PO3','PO4','PO5','PO6','PO7','PO8','PO9'].map(po => (
+                                                    : // fallback to PO1..PO13 if none returned
+                                                    ['PO1','PO2','PO3','PO4','PO5','PO6','PO7','PO8','PO9','PO10','PO11','PO12','PO13'].map(po => (
                                                         <th key={po} className={stylesB.poHeader}>{po}</th>
                                                     ))
                                                 }
@@ -658,7 +658,7 @@ const SyllabusSections = () => {
                                                         </td>
 
                                                         {/* Render mapping cells; ensure we render as many columns as programOutcomes length */}
-                                                        {(cpaData.programOutcomes.length > 0 ? cpaData.programOutcomes : Array(9).fill(null)).map((po, idx) => (
+                                                        {(cpaData.programOutcomes.length > 0 ? cpaData.programOutcomes : Array(13).fill(null)).map((po, idx) => (
                                                             <td key={idx} className={stylesB.mappingCell}>
                                                                 {co.poMappings && co.poMappings[idx] ? co.poMappings[idx] : ''}
                                                             </td>
@@ -667,7 +667,7 @@ const SyllabusSections = () => {
                                                 ))
                                             ) : (
                                                 <tr className={styles.emptyRow}>
-                                                    <td colSpan={(cpaData.programOutcomes.length || 9) + 1}>
+                                                    <td colSpan={(cpaData.programOutcomes.length || 13) + 1}>
                                                         <div className={styles.emptyStateContainer}>
                                                             <Inbox size={40} strokeWidth={1} />
                                                             <span>No course outcomes / alignments found for this course.</span>
