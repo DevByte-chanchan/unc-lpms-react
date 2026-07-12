@@ -4,7 +4,11 @@ import styles from '../../../styles/LearningPlanCompose.module.scss';
 import StatusTracker from '../Shared/StatusTracker';
 import VersionHistoryPanel from './VersionHistoryPanel';
 import TemplateSelector from './TemplateSelector';
-import PDFExportPanel from './PDFExportPanel';
+import PDFViewerModal from '../../../components/PDFViewerModal.jsx';
+import { buildSyllabusHtml } from '../../../utils/syllabusPdfHtml.js';
+import { syllabiData } from '../../../data/syllabiData.js';
+import { getWorkflow } from '../../../utils/workflowHelpers.js';
+import unclogo from '../../../assets/unclogo.png';
 import * as service from '../../../services/learningPlanService';
 
 const LearningPlanCompose = () => {
@@ -20,6 +24,7 @@ const LearningPlanCompose = () => {
   const [loading, setLoading] = useState(!!planId);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
+  const [exportFile, setExportFile] = useState(null);
 
   const userId = parseInt(localStorage.getItem('userId') || '1');
 
@@ -107,6 +112,31 @@ const LearningPlanCompose = () => {
       setSubmitting(false);
     }
   };
+
+  const handleExportLP = () => {
+    if (!courseCode) { alert('Course code is missing'); return }
+    const syllabus = syllabiData.find(s => s.code === courseCode)
+    if (!syllabus) { alert('Syllabus data not found for this course code'); return }
+    const workflow = getWorkflow(courseCode)
+    const logoUrl = new URL(unclogo, window.location.origin).href
+    const html = buildSyllabusHtml(syllabus, courseCode, workflow, logoUrl)
+    const blob = new Blob([html], { type: 'text/html' })
+    const url = URL.createObjectURL(blob)
+    setExportFile({
+      file_url: url,
+      file_name: `Syllabus_${courseCode}.html`,
+      instructor_name: '',
+      course_id: courseCode,
+      course_name: courseName,
+      submission_date: null,
+      period_label: '',
+    })
+  }
+
+  const closeExportModal = () => {
+    if (exportFile?.file_url?.startsWith('blob:')) URL.revokeObjectURL(exportFile.file_url)
+    setExportFile(null)
+  }
 
   if (loading) return <div className={styles.container}>Loading...</div>;
 
@@ -203,14 +233,16 @@ const LearningPlanCompose = () => {
         )}
 
         {plan && plan.status !== 'draft' && (
-          <PDFExportPanel
-            planId={planId}
-            courseCode={courseCode}
-            courseName={courseName}
-            status={plan.status}
-            role={role}
-            userId={userId}
-          />
+          <div className={styles.section}>
+            <h2>Export</h2>
+            <button onClick={handleExportLP} className={styles.btnPrimary}>
+              Export Syllabus Preview
+            </button>
+          </div>
+        )}
+
+        {exportFile && (
+          <PDFViewerModal file={exportFile} onClose={closeExportModal} />
         )}
 
         <div className={styles.section}>
