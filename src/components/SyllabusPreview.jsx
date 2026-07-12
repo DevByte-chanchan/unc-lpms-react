@@ -671,7 +671,9 @@ const SyllabusPreview = ({ isOpen, onClose }) => {
                                             </thead>
                                             <tbody>
                                             {ilos.length > 0 ? ilos.map((ilo, index) => {
-                                                const isFirstOfCO = index % 3 === 0;
+                                                const currentCoPrefix = ilo.id?.split('-')[0] || '';
+                                                const isFirstOfCO = index === ilos.findIndex(item => item.id?.startsWith(currentCoPrefix + '-'));
+                                                const coRowCount = ilos.filter(item => item.id?.startsWith(currentCoPrefix + '-')).length;
                                                 const rowTopics = getILOTopics(ilo);
 
                                                 const preTLAs = getTLAsByPhase(rowTopics, 'Pre-class');
@@ -685,8 +687,8 @@ const SyllabusPreview = ({ isOpen, onClose }) => {
                                                 return (
                                                     <tr key={ilo.id}>
                                                         {isFirstOfCO && (
-                                                            <td rowSpan={3} className={`${styles.ccCell} ${styles.centerText} ${styles.boldText}`} style={{ width: colWidthsCC.co }}>
-                                                                {ilo.id?.split('-')[0]}
+                                                            <td rowSpan={coRowCount} className={`${styles.ccCell} ${styles.centerText} ${styles.boldText}`} style={{ width: colWidthsCC.co }}>
+                                                                {currentCoPrefix}
                                                             </td>
                                                         )}
                                                         <td className={styles.ccCell} style={{ width: colWidthsCC.ilo }}>

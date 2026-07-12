@@ -257,19 +257,19 @@ const SyllabusRevisionsSections = ({status}) => {
                                                 <thead>
                                                 <tr>
                                                     <th className={styles['course-descrip']}>After completing the course, the student should be able to:</th>
-                                                    <th width={82}>PO1</th>
-                                                    <th width={82}>PO2</th>
-                                                    <th width={82}>PO3</th>
-                                                    <th width={82}>PO4</th>
-                                                    <th width={82}>PO5</th>
-                                                    <th width={82}>PO6</th>
-                                                    <th width={82}>PO7</th>
-                                                    <th width={82}>PO8</th>
-                                                    <th width={82}>PO9</th>
-                                                    <th width={82}>PO10</th>
-                                                    <th width={82}>PO11</th>
-                                                    <th width={82}>PO12</th>
-                                                    <th width={82}>PO13</th>
+                                                    <th width={82} className={styles.poHeader}>PO1</th>
+                                                    <th width={82} className={styles.poHeader}>PO2</th>
+                                                    <th width={82} className={styles.poHeader}>PO3</th>
+                                                    <th width={82} className={styles.poHeader}>PO4</th>
+                                                    <th width={82} className={styles.poHeader}>PO5</th>
+                                                    <th width={82} className={styles.poHeader}>PO6</th>
+                                                    <th width={82} className={styles.poHeader}>PO7</th>
+                                                    <th width={82} className={styles.poHeader}>PO8</th>
+                                                    <th width={82} className={styles.poHeader}>PO9</th>
+                                                    <th width={82} className={styles.poHeader}>PO10</th>
+                                                    <th width={82} className={styles.poHeader}>PO11</th>
+                                                    <th width={82} className={styles.poHeader}>PO12</th>
+                                                    <th width={82} className={styles.poHeader}>PO13</th>
                                                 </tr>
                                                 </thead>
 

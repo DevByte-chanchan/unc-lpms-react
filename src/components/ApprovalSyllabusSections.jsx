@@ -871,7 +871,9 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
                         </thead>
                         <tbody>
                           {ilos.length > 0 ? ilos.map((ilo, index) => {
-                            const isFirstOfCO = index % 3 === 0
+                            const currentCoPrefix = ilo.id ? ilo.id.split('-')[0] : ''
+                            const isFirstOfCO = index === ilos.findIndex(item => item.id.startsWith(currentCoPrefix + '-'))
+                            const coRowCount = ilos.filter(item => item.id.startsWith(currentCoPrefix + '-')).length
                             const rowTopics = getILOTopics(ilo)
 
                             const preTLAs = getTLAsByPhase(rowTopics, 'Pre-class')
@@ -886,8 +888,8 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
                             return (
                               <tr key={ilo.id || index}>
                                 {isFirstOfCO && (
-                                  <td rowSpan={3} className={`${styles.ccCell} ${styles.centerText} ${styles.boldText}`} style={{ width: ccColWidths.co }}>
-                                    {ilo.id ? ilo.id.split('-')[0] : ''}
+                                  <td rowSpan={coRowCount} className={`${styles.ccCell} ${styles.centerText} ${styles.boldText}`} style={{ width: ccColWidths.co }}>
+                                    {currentCoPrefix}
                                   </td>
                                 )}
 
@@ -1430,13 +1432,6 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
                       </div>
                     ))
                   })()}
-              </div>
-            )}
-            {effectiveStatus === 'approved' && roleKey !== 'instructor' && hasApproverComments && (
-              <div className={styles.approvalButtons}>
-                <button className={styles.requestRevision} onClick={() => { setReadOnlyCommentModal(true); openComment() }}>
-                  View Comments
-                </button>
               </div>
             )}
           </div>

@@ -612,12 +612,12 @@ export const syllabiData = [
             {
                 id: 'CO2',
                 description: 'User-Centered Design (UCD) principles and ISO 9241-210 standards with given user personas, contextual task flows, and feedback artifacts to develop a User Experience (UX) design that demonstrates user involvement, iterative refinement, and contextual understanding, as evaluated against established UX design criteria.',
-                poMappings: ['','','E','E','','','','','','','','','']
+                poMappings: ['','','E','E','','','','','','E','E','E','']
             },
             {
                 id: 'CO3',
                 description: 'Construct a front-end prototype for a proposed software application by applying HCI design principles, UI/UX laws, accessibility standards, and web accessibility guidelines that demonstrate compliance with best practices in usability, inclusivity, and user engagement.',
-                poMappings: ['','','','D','','D','','','','','','','']
+                poMappings: ['','','','D','','D','','','','E','E','','']
             },
             {
                 id: 'CO4',
@@ -989,10 +989,10 @@ export const syllabiData = [
             }
         ],
         courseOutcomes: [
-            { id: 'CO1', description: 'Apply appropriate software process models and methodologies to manage software development projects.', poMappings: ['E', 'I', '', '', '', 'I', '', '', ''] },
-            { id: 'CO2', description: 'Analyze and specify software requirements using industry-standard documentation techniques.', poMappings: ['', 'E', 'I', '', '', '', 'E', '', ''] },
-            { id: 'CO3', description: 'Design and implement software solutions applying architectural patterns, design principles, and testing strategies.', poMappings: ['', '', 'E', 'E', 'D', '', '', 'I', ''] },
-            { id: 'CO4', description: 'Evaluate software quality through systematic testing and apply project management practices for timely delivery.', poMappings: ['D', '', '', '', '', '', '', 'E', 'I'] }
+            { id: 'CO1', description: 'Apply appropriate software process models and methodologies to manage software development projects.', poMappings: ['E','I','','','','I','','','','I','E','',''] },
+            { id: 'CO2', description: 'Analyze and specify software requirements using industry-standard documentation techniques.', poMappings: ['','E','I','','','','E','','','E','I','E',''] },
+            { id: 'CO3', description: 'Design and implement software solutions applying architectural patterns, design principles, and testing strategies.', poMappings: ['','','E','E','D','','','I','','I','E','',''] },
+            { id: 'CO4', description: 'Evaluate software quality through systematic testing and apply project management practices for timely delivery.', poMappings: ['D','','','','','','','E','I','I','E','E',''] }
         ],
         coAssessmentMethodSets: {
             CO1: [
@@ -1100,10 +1100,10 @@ export const syllabiData = [
             }
         ],
         courseOutcomes: [
-            { id: 'CO1', description: 'Analyze cybersecurity threats, attack vectors, and risk landscapes to recommend appropriate security controls.', poMappings: ['E', 'I', '', '', '', '', 'E', '', ''] },
-            { id: 'CO2', description: 'Apply cryptographic techniques and network security measures to protect data in transit and at rest.', poMappings: ['', 'E', '', 'E', '', 'I', '', '', ''] },
-            { id: 'CO3', description: 'Identify and mitigate common web application vulnerabilities following OWASP standards.', poMappings: ['', '', 'E', '', 'D', '', '', 'I', ''] },
-            { id: 'CO4', description: 'Develop incident response plans and apply forensic analysis techniques to investigate security incidents.', poMappings: ['D', '', '', '', '', '', '', 'E', 'I'] }
+            { id: 'CO1', description: 'Analyze cybersecurity threats, attack vectors, and risk landscapes to recommend appropriate security controls.', poMappings: ['E','I','','','','','E','','','I','I','E','E'] },
+            { id: 'CO2', description: 'Apply cryptographic techniques and network security measures to protect data in transit and at rest.', poMappings: ['','E','','E','','I','','','','I','I','','E'] },
+            { id: 'CO3', description: 'Identify and mitigate common web application vulnerabilities following OWASP standards.', poMappings: ['','','E','','D','','','I','','I','I','',''] },
+            { id: 'CO4', description: 'Develop incident response plans and apply forensic analysis techniques to investigate security incidents.', poMappings: ['D','','','','','','','E','I','I','E','E','E'] }
         ],
         coAssessmentMethodSets: {
             CO1: [
@@ -1210,10 +1210,10 @@ export const syllabiData = [
             }
         ],
         courseOutcomes: [
-            { id: 'CO1', description: 'Explain the structure and services of modern operating systems and how they manage system resources.', poMappings: ['E', 'I', '', '', '', '', 'I', '', ''] },
-            { id: 'CO2', description: 'Implement process and thread management solutions using appropriate scheduling and synchronization techniques.', poMappings: ['', 'E', 'E', '', '', 'I', '', '', ''] },
-            { id: 'CO3', description: 'Design memory management strategies applying paging, segmentation, and virtual memory concepts.', poMappings: ['', '', 'D', 'E', '', '', '', 'I', ''] },
-            { id: 'CO4', description: 'Analyze file system architectures and I/O management techniques to optimize storage performance.', poMappings: ['E', '', '', '', 'D', '', '', '', 'I'] }
+            { id: 'CO1', description: 'Explain the structure and services of modern operating systems and how they manage system resources.', poMappings: ['E','I','','','','','I','','','E','I','',''] },
+            { id: 'CO2', description: 'Implement process and thread management solutions using appropriate scheduling and synchronization techniques.', poMappings: ['','E','E','','','I','','','','I','E','',''] },
+            { id: 'CO3', description: 'Design memory management strategies applying paging, segmentation, and virtual memory concepts.', poMappings: ['','','D','E','','','','I','','I','E','',''] },
+            { id: 'CO4', description: 'Analyze file system architectures and I/O management techniques to optimize storage performance.', poMappings: ['E','','','','D','','','','I','I','I','E',''] }
         ],
         coAssessmentMethodSets: {
             CO1: [
@@ -1324,10 +1324,10 @@ export const syllabiData = [
             }
         ],
         courseOutcomes: [
-            { id: 'CO1', description: 'Analyze network architectures using the OSI and TCP/IP models to explain data flow across networks.', poMappings: ['E', 'I', '', '', '', '', 'I', '', ''] },
-            { id: 'CO2', description: 'Implement application and transport layer protocols through socket programming and traffic analysis.', poMappings: ['', 'E', 'E', '', '', 'I', '', '', ''] },
-            { id: 'CO3', description: 'Design IP addressing schemes and configure routing protocols for enterprise networks.', poMappings: ['', '', 'D', 'E', '', '', '', 'I', ''] },
-            { id: 'CO4', description: 'Configure link layer technologies including Ethernet switching, VLANs, and wireless networks.', poMappings: ['D', '', '', '', 'E', '', '', '', 'I'] }
+            { id: 'CO1', description: 'Analyze network architectures using the OSI and TCP/IP models to explain data flow across networks.', poMappings: ['E','I','','','','','I','','','E','I','E',''] },
+            { id: 'CO2', description: 'Implement application and transport layer protocols through socket programming and traffic analysis.', poMappings: ['','E','E','','','I','','','','I','E','',''] },
+            { id: 'CO3', description: 'Design IP addressing schemes and configure routing protocols for enterprise networks.', poMappings: ['','','D','E','','','','I','','I','E','',''] },
+            { id: 'CO4', description: 'Configure link layer technologies including Ethernet switching, VLANs, and wireless networks.', poMappings: ['D','','','','E','','','','I','I','I','',''] }
         ],
         coAssessmentMethodSets: {
             CO1: [
@@ -1434,10 +1434,10 @@ export const syllabiData = [
             }
         ],
         courseOutcomes: [
-            { id: 'CO1', description: 'Develop semantic, accessible HTML5 structures with responsive CSS3 layouts.', poMappings: ['E', 'I', '', '', '', '', 'I', '', ''] },
-            { id: 'CO2', description: 'Implement interactive client-side functionality using JavaScript and DOM manipulation.', poMappings: ['', 'E', 'E', '', '', 'I', '', '', ''] },
-            { id: 'CO3', description: 'Build modern single-page applications using React framework with component-based architecture.', poMappings: ['', '', 'D', 'E', '', '', '', 'I', ''] },
-            { id: 'CO4', description: 'Integrate web applications with backend services through RESTful APIs and authentication.', poMappings: ['D', '', '', '', 'E', '', '', '', 'I'] }
+            { id: 'CO1', description: 'Develop semantic, accessible HTML5 structures with responsive CSS3 layouts.', poMappings: ['E','I','','','','','I','','','I','E','',''] },
+            { id: 'CO2', description: 'Implement interactive client-side functionality using JavaScript and DOM manipulation.', poMappings: ['','E','E','','','I','','','','I','E','',''] },
+            { id: 'CO3', description: 'Build modern single-page applications using React framework with component-based architecture.', poMappings: ['','','D','E','','','','I','','I','I','',''] },
+            { id: 'CO4', description: 'Integrate web applications with backend services through RESTful APIs and authentication.', poMappings: ['D','','','','E','','','','I','I','I','',''] }
         ],
         coAssessmentMethodSets: {
             CO1: [
@@ -1545,10 +1545,10 @@ export const syllabiData = [
             }
         ],
         courseOutcomes: [
-            { id: 'CO1', description: 'Apply the ML pipeline including data preprocessing, feature engineering, and model evaluation to solve real-world problems.', poMappings: ['E', 'I', '', '', '', '', 'E', '', ''] },
-            { id: 'CO2', description: 'Implement regression and classification algorithms using appropriate libraries and evaluate model performance.', poMappings: ['', 'E', 'E', 'I', '', '', '', '', ''] },
-            { id: 'CO3', description: 'Apply unsupervised learning techniques for clustering and dimensionality reduction.', poMappings: ['', '', 'D', 'E', '', 'I', '', '', ''] },
-            { id: 'CO4', description: 'Build and train neural network models for supervised learning tasks using deep learning frameworks.', poMappings: ['D', '', '', '', 'E', '', '', 'I', ''] }
+            { id: 'CO1', description: 'Apply the ML pipeline including data preprocessing, feature engineering, and model evaluation to solve real-world problems.', poMappings: ['E','I','','','','','E','','','I','I','E',''] },
+            { id: 'CO2', description: 'Implement regression and classification algorithms using appropriate libraries and evaluate model performance.', poMappings: ['','E','E','I','','','','','','I','E','E',''] },
+            { id: 'CO3', description: 'Apply unsupervised learning techniques for clustering and dimensionality reduction.', poMappings: ['','','D','E','','I','','','','I','I','E',''] },
+            { id: 'CO4', description: 'Build and train neural network models for supervised learning tasks using deep learning frameworks.', poMappings: ['D','','','','E','','','I','','I','I','E',''] }
         ],
         coAssessmentMethodSets: {
             CO1: [
@@ -1654,10 +1654,10 @@ export const syllabiData = [
             }
         ],
         courseOutcomes: [
-            { id: 'CO1', description: 'Design conceptual and logical database models using entity-relationship modeling and normalization.', poMappings: ['E', 'I', '', '', '', '', 'E', '', ''] },
-            { id: 'CO2', description: 'Implement and query relational databases using SQL DDL and DML statements.', poMappings: ['', 'E', 'E', 'I', '', '', '', '', ''] },
-            { id: 'CO3', description: 'Manage database transactions ensuring ACID properties and appropriate concurrency control.', poMappings: ['', '', 'D', 'E', '', 'I', '', '', ''] },
-            { id: 'CO4', description: 'Design and implement a complete database solution from requirements through deployment.', poMappings: ['D', '', '', '', 'E', '', '', 'I', ''] }
+            { id: 'CO1', description: 'Design conceptual and logical database models using entity-relationship modeling and normalization.', poMappings: ['E','I','','','','','E','','','I','E','',''] },
+            { id: 'CO2', description: 'Implement and query relational databases using SQL DDL and DML statements.', poMappings: ['','E','E','I','','','','','','I','E','',''] },
+            { id: 'CO3', description: 'Manage database transactions ensuring ACID properties and appropriate concurrency control.', poMappings: ['','','D','E','','I','','','','I','I','',''] },
+            { id: 'CO4', description: 'Design and implement a complete database solution from requirements through deployment.', poMappings: ['D','','','','E','','','I','','I','E','',''] }
         ],
         coAssessmentMethodSets: {
             CO1: [
@@ -1764,10 +1764,10 @@ export const syllabiData = [
             }
         ],
         courseOutcomes: [
-            { id: 'CO1', description: 'Apply mathematical logic to construct and evaluate logical arguments and proofs.', poMappings: ['E', 'I', '', '', '', '', 'E', '', ''] },
-            { id: 'CO2', description: 'Apply set theory, functions, and relations to model computational structures.', poMappings: ['', 'E', 'I', '', '', '', '', '', ''] },
-            { id: 'CO3', description: 'Solve counting problems using combinatorial principles and probability theory.', poMappings: ['', '', 'E', 'I', '', 'E', '', '', ''] },
-            { id: 'CO4', description: 'Model and solve problems using graph theory concepts and algorithms.', poMappings: ['D', '', '', 'E', '', '', '', 'I', ''] }
+            { id: 'CO1', description: 'Apply mathematical logic to construct and evaluate logical arguments and proofs.', poMappings: ['E','I','','','','','E','','','I','I','E',''] },
+            { id: 'CO2', description: 'Apply set theory, functions, and relations to model computational structures.', poMappings: ['','E','I','','','','','','','I','I','',''] },
+            { id: 'CO3', description: 'Solve counting problems using combinatorial principles and probability theory.', poMappings: ['','','E','I','','E','','','','I','I','',''] },
+            { id: 'CO4', description: 'Model and solve problems using graph theory concepts and algorithms.', poMappings: ['D','','','E','','','','I','','I','I','',''] }
         ],
         coAssessmentMethodSets: {
             CO1: [
@@ -1874,10 +1874,10 @@ export const syllabiData = [
             }
         ],
         courseOutcomes: [
-            { id: 'CO1', description: 'Develop information security governance frameworks aligned with industry standards and regulations.', poMappings: ['E', 'I', '', '', '', '', 'E', '', ''] },
-            { id: 'CO2', description: 'Perform risk assessments and develop risk management strategies for organizational assets.', poMappings: ['', 'E', 'E', 'I', '', '', '', '', ''] },
-            { id: 'CO3', description: 'Implement access control models and identity management solutions for enterprise environments.', poMappings: ['', '', 'D', 'E', '', 'I', '', '', ''] },
-            { id: 'CO4', description: 'Design business continuity and disaster recovery plans with compliance audit capabilities.', poMappings: ['D', '', '', '', 'E', '', '', 'I', ''] }
+            { id: 'CO1', description: 'Develop information security governance frameworks aligned with industry standards and regulations.', poMappings: ['E','I','','','','','E','','','I','E','','E'] },
+            { id: 'CO2', description: 'Perform risk assessments and develop risk management strategies for organizational assets.', poMappings: ['','E','E','I','','','','','','I','E','',''] },
+            { id: 'CO3', description: 'Implement access control models and identity management solutions for enterprise environments.', poMappings: ['','','D','E','','I','','','','I','E','',''] },
+            { id: 'CO4', description: 'Design business continuity and disaster recovery plans with compliance audit capabilities.', poMappings: ['D','','','','E','','','I','','I','E','',''] }
         ],
         coAssessmentMethodSets: {
             CO1: [
@@ -1946,9 +1946,9 @@ export const syllabiData = [
             { id: "T4", title: "Graph Algorithms", subtopics: [{ id: "S8", value: "BFS/DFS" }, { id: "S9", value: "Shortest Path" }], tlas: [{ id: "TLA4", classPhase: "Post-class", performedBy: "Student", tlaName: "Graph Project", tlaDescription: "Implement shortest path algorithms on real-world graph data.", laboratory: false }] }
         ],
         courseOutcomes: [
-            { id: 'CO1', description: 'Analyze time and space complexity of algorithms.', poMappings: ['E', 'I', 'I', '', 'E', '', '', '', ''] },
-            { id: 'CO2', description: 'Implement and apply fundamental data structures.', poMappings: ['D', 'E', 'E', '', '', 'I', '', '', ''] },
-            { id: 'CO3', description: 'Design algorithms for sorting, searching, and graph problems.', poMappings: ['', 'E', 'D', 'I', 'E', '', '', '', ''] }
+            { id: 'CO1', description: 'Analyze time and space complexity of algorithms.', poMappings: ['E','I','I','','E','','','','','I','I','E',''] },
+            { id: 'CO2', description: 'Implement and apply fundamental data structures.', poMappings: ['D','E','E','','','I','','','','I','E','',''] },
+            { id: 'CO3', description: 'Design algorithms for sorting, searching, and graph problems.', poMappings: ['','E','D','I','E','','','','','I','E','',''] }
         ],
         ilos: [
             { id: "CO1-ILO1", courseOutcome: "Analyze time and space complexity of algorithms.", intendedLearningOutcome: "Determine asymptotic complexity of algorithms using Big-O notation.", deliveryWeek: "Week 1", allocatedTime: "3 hours", topics: ["Algorithm Analysis"], references: ["TB1 - Introduction to Algorithms", "OR1 - Big-O Cheatsheet"] },
@@ -1982,9 +1982,9 @@ export const syllabiData = [
             { id: "T3", title: "UML Modeling", subtopics: [{ id: "S7", value: "Class Diagrams" }, { id: "S8", value: "Sequence Diagrams" }], tlas: [{ id: "TLA3", classPhase: "Post-class", performedBy: "Student", tlaName: "UML Project", tlaDescription: "Model a real-world system using UML diagrams.", laboratory: false }] }
         ],
         courseOutcomes: [
-            { id: 'CO1', description: 'Apply OOP principles to design modular software systems.', poMappings: ['E', 'I', '', 'E', '', '', '', '', ''] },
-            { id: 'CO2', description: 'Implement design patterns to solve common software problems.', poMappings: ['D', 'E', 'E', '', '', 'I', '', '', ''] },
-            { id: 'CO3', description: 'Create UML models to communicate software architecture.', poMappings: ['', '', 'I', 'E', 'D', '', '', '', ''] }
+            { id: 'CO1', description: 'Apply OOP principles to design modular software systems.', poMappings: ['E','I','','E','','','','','','I','E','',''] },
+            { id: 'CO2', description: 'Implement design patterns to solve common software problems.', poMappings: ['D','E','E','','','I','','','','I','E','',''] },
+            { id: 'CO3', description: 'Create UML models to communicate software architecture.', poMappings: ['','','I','E','D','','','','','E','E','',''] }
         ],
         ilos: [
             { id: "CO1-ILO1", courseOutcome: "Apply OOP principles to design modular software systems.", intendedLearningOutcome: "Design classes using encapsulation, inheritance, and polymorphism.", deliveryWeek: "Week 2", allocatedTime: "3 hours", topics: ["OOP Principles"], references: ["TB1 - Effective Java"] },
@@ -2018,9 +2018,9 @@ export const syllabiData = [
             { id: "T3", title: "Software Testing", subtopics: [{ id: "S6", value: "Unit Testing" }, { id: "S7", value: "Integration Testing" }, { id: "S8", value: "Test-Driven Development" }], tlas: [{ id: "TLA3", classPhase: "In-class", performedBy: "Student", tlaName: "TDD Lab", tlaDescription: "Implement features using test-driven development.", laboratory: true }] }
         ],
         courseOutcomes: [
-            { id: 'CO1', description: 'Apply agile methodologies to manage software projects.', poMappings: ['I', 'I', '', 'E', 'E', '', '', '', ''] },
-            { id: 'CO2', description: 'Elicit and document software requirements.', poMappings: ['E', 'E', '', '', 'I', 'I', '', '', ''] },
-            { id: 'CO3', description: 'Implement and execute software testing strategies.', poMappings: ['D', '', 'E', 'E', '', '', 'I', 'I', ''] }
+            { id: 'CO1', description: 'Apply agile methodologies to manage software projects.', poMappings: ['I','I','','E','E','','','','','I','E','',''] },
+            { id: 'CO2', description: 'Elicit and document software requirements.', poMappings: ['E','E','','','I','I','','','','E','I','',''] },
+            { id: 'CO3', description: 'Implement and execute software testing strategies.', poMappings: ['D','','E','E','','','I','I','','I','E','',''] }
         ],
         ilos: [
             { id: "CO1-ILO1", courseOutcome: "Apply agile methodologies to manage software projects.", intendedLearningOutcome: "Plan and execute a Scrum sprint with user stories and task estimation.", deliveryWeek: "Week 3", allocatedTime: "3 hours", topics: ["SDLC & Agile"], references: ["OR1 - Scrum Guide"] },
@@ -2054,9 +2054,9 @@ export const syllabiData = [
             { id: "T3", title: "Neural Networks", subtopics: [{ id: "S6", value: "Perceptron & MLP" }, { id: "S7", value: "Backpropagation" }, { id: "S8", value: "Deep Learning Basics" }], tlas: [{ id: "TLA3", classPhase: "Post-class", performedBy: "Student", tlaName: "Neural Network Project", tlaDescription: "Build and train a neural network for image classification.", laboratory: false }] }
         ],
         courseOutcomes: [
-            { id: 'CO1', description: 'Apply supervised learning algorithms to classification and regression problems.', poMappings: ['E', 'D', 'E', '', 'E', '', '', '', ''] },
-            { id: 'CO2', description: 'Apply unsupervised learning techniques for data exploration.', poMappings: ['', 'E', 'D', 'I', '', 'I', '', '', ''] },
-            { id: 'CO3', description: 'Design and train neural networks for complex pattern recognition.', poMappings: ['D', '', 'E', 'E', 'D', '', '', '', ''] }
+            { id: 'CO1', description: 'Apply supervised learning algorithms to classification and regression problems.', poMappings: ['E','D','E','','E','','','','','I','I','E',''] },
+            { id: 'CO2', description: 'Apply unsupervised learning techniques for data exploration.', poMappings: ['','E','D','I','','I','','','','I','I','E',''] },
+            { id: 'CO3', description: 'Design and train neural networks for complex pattern recognition.', poMappings: ['D','','E','E','D','','','','','I','E','',''] }
         ],
         ilos: [
             { id: "CO1-ILO1", courseOutcome: "Apply supervised learning algorithms to classification and regression problems.", intendedLearningOutcome: "Train and evaluate regression and classification models.", deliveryWeek: "Week 3", allocatedTime: "3 hours", topics: ["Supervised Learning"], references: ["TB1 - Hands-On Machine Learning"] },
@@ -2090,9 +2090,9 @@ export const syllabiData = [
             { id: "T3", title: "Native APIs & Deployment", subtopics: [{ id: "S6", value: "Camera & Geolocation" }, { id: "S7", value: "Push Notifications" }, { id: "S8", value: "App Store Deployment" }], tlas: [{ id: "TLA3", classPhase: "Post-class", performedBy: "Student", tlaName: "Capstone App", tlaDescription: "Develop and deploy a complete mobile application.", laboratory: false }] }
         ],
         courseOutcomes: [
-            { id: 'CO1', description: 'Build cross-platform mobile applications using React Native.', poMappings: ['D', 'E', 'D', '', 'E', 'I', '', '', ''] },
-            { id: 'CO2', description: 'Design mobile interfaces following platform-specific guidelines.', poMappings: ['E', '', 'I', 'D', '', 'E', '', '', ''] },
-            { id: 'CO3', description: 'Integrate native device APIs and publish apps to app stores.', poMappings: ['D', 'E', '', 'E', '', '', 'I', 'I', ''] }
+            { id: 'CO1', description: 'Build cross-platform mobile applications using React Native.', poMappings: ['D','E','D','','E','I','','','','I','I','',''] },
+            { id: 'CO2', description: 'Design mobile interfaces following platform-specific guidelines.', poMappings: ['E','','I','D','','E','','','','I','E','',''] },
+            { id: 'CO3', description: 'Integrate native device APIs and publish apps to app stores.', poMappings: ['D','E','','E','','','I','I','','I','I','',''] }
         ],
         ilos: [
             { id: "CO1-ILO1", courseOutcome: "Build cross-platform mobile applications using React Native.", intendedLearningOutcome: "Create a multi-screen mobile app with navigation and state management.", deliveryWeek: "Week 4", allocatedTime: "3 hours", topics: ["React Native Fundamentals"], references: ["TB1 - Learning React Native", "OR1 - React Native Documentation"] },
@@ -2126,9 +2126,9 @@ export const syllabiData = [
             { id: "T3", title: "Authentication & Security", subtopics: [{ id: "S6", value: "JWT Authentication" }, { id: "S7", value: "Session Management" }, { id: "S8", value: "Web Security" }], tlas: [{ id: "TLA3", classPhase: "In-class", performedBy: "Student", tlaName: "Auth Lab", tlaDescription: "Implement JWT authentication in a full-stack app.", laboratory: true }] }
         ],
         courseOutcomes: [
-            { id: 'CO1', description: 'Develop frontend interfaces using modern JavaScript frameworks.', poMappings: ['E', 'E', 'D', '', 'E', 'I', '', '', ''] },
-            { id: 'CO2', description: 'Build RESTful APIs with database persistence.', poMappings: ['D', 'E', 'E', 'I', '', '', '', '', ''] },
-            { id: 'CO3', description: 'Implement authentication and security measures in web applications.', poMappings: ['E', '', '', 'D', 'E', 'E', 'I', '', ''] }
+            { id: 'CO1', description: 'Develop frontend interfaces using modern JavaScript frameworks.', poMappings: ['E','E','D','','E','I','','','','I','E','',''] },
+            { id: 'CO2', description: 'Build RESTful APIs with database persistence.', poMappings: ['D','E','E','I','','','','','','I','I','',''] },
+            { id: 'CO3', description: 'Implement authentication and security measures in web applications.', poMappings: ['E','','','D','E','E','I','','','I','E','','E'] }
         ],
         ilos: [
             { id: "CO1-ILO1", courseOutcome: "Develop frontend interfaces using modern JavaScript frameworks.", intendedLearningOutcome: "Build interactive UIs with React components and hooks.", deliveryWeek: "Week 2", allocatedTime: "3 hours", topics: ["Frontend Development"], references: ["OR1 - MDN Web Docs", "OR2 - React Documentation"] },
@@ -2162,9 +2162,9 @@ export const syllabiData = [
             { id: "T3", title: "NoSQL Databases", subtopics: [{ id: "S6", value: "Document Stores (MongoDB)" }, { id: "S7", value: "Key-Value Stores (Redis)" }], tlas: [{ id: "TLA3", classPhase: "Post-class", performedBy: "Student", tlaName: "NoSQL Project", tlaDescription: "Design a data model for a NoSQL database solution.", laboratory: false }] }
         ],
         courseOutcomes: [
-            { id: 'CO1', description: 'Optimize database queries and design efficient indexing strategies.', poMappings: ['E', 'E', 'I', '', '', '', '', 'I', ''] },
-            { id: 'CO2', description: 'Implement backup, recovery, and replication for high availability.', poMappings: ['D', 'E', '', 'I', 'E', '', '', '', ''] },
-            { id: 'CO3', description: 'Design and implement NoSQL data models for modern applications.', poMappings: ['E', '', 'D', 'E', '', 'I', '', '', ''] }
+            { id: 'CO1', description: 'Optimize database queries and design efficient indexing strategies.', poMappings: ['E','E','I','','','','','I','','I','E','',''] },
+            { id: 'CO2', description: 'Implement backup, recovery, and replication for high availability.', poMappings: ['D','E','','I','E','','','','','I','E','',''] },
+            { id: 'CO3', description: 'Design and implement NoSQL data models for modern applications.', poMappings: ['E','','D','E','','I','','','','I','E','',''] }
         ],
         ilos: [
             { id: "CO1-ILO1", courseOutcome: "Optimize database queries and design efficient indexing strategies.", intendedLearningOutcome: "Use EXPLAIN plans to identify and resolve query performance bottlenecks.", deliveryWeek: "Week 3", allocatedTime: "3 hours", topics: ["SQL Optimization"], references: ["TB2 - SQL Performance Explained"] },
@@ -2198,9 +2198,9 @@ export const syllabiData = [
             { id: "T3", title: "Cloud-Native Design", subtopics: [{ id: "S6", value: "Containerization (Docker)" }, { id: "S7", value: "Orchestration (Kubernetes)" }, { id: "S8", value: "CI/CD Pipelines" }], tlas: [{ id: "TLA3", classPhase: "Post-class", performedBy: "Student", tlaName: "Cloud Project", tlaDescription: "Deploy a microservices application on Kubernetes.", laboratory: false }] }
         ],
         courseOutcomes: [
-            { id: 'CO1', description: 'Design microservice-based architectures following enterprise patterns.', poMappings: ['E', 'D', 'E', '', '', 'I', '', '', ''] },
-            { id: 'CO2', description: 'Implement API gateways and message brokering for system integration.', poMappings: ['D', 'E', 'D', 'E', '', '', 'I', '', ''] },
-            { id: 'CO3', description: 'Deploy cloud-native applications using containers and orchestration.', poMappings: ['D', '', 'E', 'D', 'E', '', '', 'I', 'I'] }
+            { id: 'CO1', description: 'Design microservice-based architectures following enterprise patterns.', poMappings: ['E','D','E','','','I','','','','I','E','',''] },
+            { id: 'CO2', description: 'Implement API gateways and message brokering for system integration.', poMappings: ['D','E','D','E','','','I','','','I','E','',''] },
+            { id: 'CO3', description: 'Deploy cloud-native applications using containers and orchestration.', poMappings: ['D','','E','D','E','','','I','I','I','I','',''] }
         ],
         ilos: [
             { id: "CO1-ILO1", courseOutcome: "Design microservice-based architectures following enterprise patterns.", intendedLearningOutcome: "Decompose a monolithic application into microservices.", deliveryWeek: "Week 3", allocatedTime: "3 hours", topics: ["Microservices Architecture"], references: ["TB1 - Building Microservices"] },
@@ -2213,45 +2213,10768 @@ export const syllabiData = [
             { co: "CO3", ilos: [{ id: "ILO1", assessments: ["Cloud Deployment Project"], weight: { prelim: "", midterm: "", semi: "50", final: "50" }, minPassing: "60" }] }
         ]
     },
-    { code: 'BSCS101', name: 'Discrete Mathematics', credits: '3 LEC', contact: '3', prerequisites: 'None', class: 'General Education', cmo: '25 S, 2015', year: 'FIRST YEAR', sem: '1st Semester', description: 'An introduction to discrete mathematical structures.', references: [], topics: [], courseOutcomes: [], coAssessmentMethodSets: {}, assessments: [], ilos: [], gradingSystem: [] },
-    { code: 'BSCS102', name: 'Programming Fundamentals', credits: '2 LEC, 1 LAB', contact: '3', prerequisites: 'None', class: 'Professional Courses', cmo: '25 S, 2015', year: 'FIRST YEAR', sem: '1st Semester', description: 'Introduction to programming using structured and object-oriented paradigms.', references: [], topics: [], courseOutcomes: [], coAssessmentMethodSets: {}, assessments: [], ilos: [], gradingSystem: [] },
-    { code: 'BSCS103', name: 'Data Structures & Algorithms', credits: '2 LEC, 1 LAB', contact: '3', prerequisites: 'BSCS102 Programming Fundamentals', class: 'Professional Courses', cmo: '25 S, 2015', year: 'FIRST YEAR', sem: '2nd Semester', description: 'Study of fundamental data structures and algorithm design techniques.', references: [], topics: [], courseOutcomes: [], coAssessmentMethodSets: {}, assessments: [], ilos: [], gradingSystem: [] },
-    { code: 'BSCS201', name: 'Object-Oriented Programming', credits: '2 LEC, 1 LAB', contact: '3', prerequisites: 'BSCS102 Programming Fundamentals', class: 'Professional Courses', cmo: '25 S, 2015', year: 'SECOND YEAR', sem: '1st Semester', description: 'Advanced programming concepts using OOP principles.', references: [], topics: [], courseOutcomes: [], coAssessmentMethodSets: {}, assessments: [], ilos: [], gradingSystem: [] },
-    { code: 'BSCS202', name: 'Database Management Systems', credits: '2 LEC, 1 LAB', contact: '3', prerequisites: 'BSCS103 Data Structures', class: 'Professional Courses', cmo: '25 S, 2015', year: 'SECOND YEAR', sem: '2nd Semester', description: 'Design and implementation of relational database systems.', references: [], topics: [], courseOutcomes: [], coAssessmentMethodSets: {}, assessments: [], ilos: [], gradingSystem: [] },
-    { code: 'BSCS203', name: 'Discrete Structures II', credits: '3 LEC', contact: '3', prerequisites: 'BSCS101 Discrete Mathematics', class: 'General Education', cmo: '25 S, 2015', year: 'SECOND YEAR', sem: '1st Semester', description: 'Advanced topics in discrete structures for computing.', references: [], topics: [], courseOutcomes: [], coAssessmentMethodSets: {}, assessments: [], ilos: [], gradingSystem: [] },
-    { code: 'BSCS301', name: 'Automata Theory', credits: '3 LEC', contact: '3', prerequisites: 'BSCS103 Data Structures', class: 'Professional Courses', cmo: '25 S, 2015', year: 'THIRD YEAR', sem: '1st Semester', description: 'Study of abstract machines, formal languages, and computational complexity.', references: [], topics: [], courseOutcomes: [], coAssessmentMethodSets: {}, assessments: [], ilos: [], gradingSystem: [] },
-    { code: 'BSCS302', name: 'Compiler Design', credits: '2 LEC, 1 LAB', contact: '3', prerequisites: 'BSCS301 Automata Theory', class: 'Professional Courses', cmo: '25 S, 2015', year: 'THIRD YEAR', sem: '2nd Semester', description: 'Principles and techniques for designing and implementing compilers.', references: [], topics: [], courseOutcomes: [], coAssessmentMethodSets: {}, assessments: [], ilos: [], gradingSystem: [] },
-    { code: 'BSCS303', name: 'Numerical Methods', credits: '2 LEC, 1 LAB', contact: '3', prerequisites: 'BSCS103 Data Structures', class: 'Professional Courses', cmo: '25 S, 2015', year: 'THIRD YEAR', sem: '2nd Semester', description: 'Numerical techniques for solving mathematical problems.', references: [], topics: [], courseOutcomes: [], coAssessmentMethodSets: {}, assessments: [], ilos: [], gradingSystem: [] },
-    { code: 'BSCS401', name: 'Software Quality Assurance', credits: '2 LEC, 1 LAB', contact: '3', prerequisites: 'BSCS322L Software Engineering', class: 'Professional Courses', cmo: '25 S, 2015', year: 'FOURTH YEAR', sem: '1st Semester', description: 'Principles and practices of software quality assurance and testing.', references: [], topics: [], courseOutcomes: [], coAssessmentMethodSets: {}, assessments: [], ilos: [], gradingSystem: [] },
-    { code: 'BSCS402', name: 'Machine Learning', credits: '2 LEC, 1 LAB', contact: '3', prerequisites: 'BSCS301 Automata Theory', class: 'Professional Courses', cmo: '25 S, 2015', year: 'FOURTH YEAR', sem: '1st Semester', description: 'An introduction to machine learning algorithms and their applications.', references: [], topics: [], courseOutcomes: [], coAssessmentMethodSets: {}, assessments: [], ilos: [], gradingSystem: [] },
-    { code: 'BSCS403', name: 'Parallel Computing', credits: '2 LEC, 1 LAB', contact: '3', prerequisites: 'BSCS314L Operating Systems', class: 'Professional Courses', cmo: '25 S, 2015', year: 'FOURTH YEAR', sem: '2nd Semester', description: 'Study of parallel computing architectures and programming models.', references: [], topics: [], courseOutcomes: [], coAssessmentMethodSets: {}, assessments: [], ilos: [], gradingSystem: [] },
-    { code: 'BSCS404', name: 'Computer Graphics', credits: '2 LEC, 1 LAB', contact: '3', prerequisites: 'BSCS103 Data Structures', class: 'Professional Courses', cmo: '25 S, 2015', year: 'FOURTH YEAR', sem: '1st Semester', description: 'Fundamentals of computer graphics, rendering, and visualization.', references: [], topics: [], courseOutcomes: [], coAssessmentMethodSets: {}, assessments: [], ilos: [], gradingSystem: [] },
-    { code: 'BSCS405', name: 'Natural Language Processing', credits: '2 LEC, 1 LAB', contact: '3', prerequisites: 'BSCS301 Automata Theory', class: 'Professional Courses', cmo: '25 S, 2015', year: 'FOURTH YEAR', sem: '2nd Semester', description: 'Study of computational approaches to natural language understanding and generation.', references: [], topics: [], courseOutcomes: [], coAssessmentMethodSets: {}, assessments: [], ilos: [], gradingSystem: [] },
-    { code: 'BSCS406', name: 'Embedded Systems', credits: '2 LEC, 1 LAB', contact: '3', prerequisites: 'BSCS314L Operating Systems', class: 'Professional Courses', cmo: '25 S, 2015', year: 'FOURTH YEAR', sem: '2nd Semester', description: 'Design and programming of embedded systems and IoT devices.', references: [], topics: [], courseOutcomes: [], coAssessmentMethodSets: {}, assessments: [], ilos: [], gradingSystem: [] },
-    { code: 'BSCS407', name: 'Advanced Algorithms', credits: '3 LEC', contact: '3', prerequisites: 'BSCS103 Data Structures', class: 'Professional Courses', cmo: '25 S, 2015', year: 'FOURTH YEAR', sem: '1st Semester', description: 'Advanced algorithmic techniques and complexity analysis.', references: [], topics: [], courseOutcomes: [], coAssessmentMethodSets: {}, assessments: [], ilos: [], gradingSystem: [] },
-    { code: 'BSCS408', name: 'Distributed Systems', credits: '2 LEC, 1 LAB', contact: '3', prerequisites: 'BSCS331L Computer Networks', class: 'Professional Courses', cmo: '25 S, 2015', year: 'FOURTH YEAR', sem: '1st Semester', description: 'Principles and design of distributed computing systems.', references: [], topics: [], courseOutcomes: [], coAssessmentMethodSets: {}, assessments: [], ilos: [], gradingSystem: [] },
-    { code: 'BSCS409', name: 'Blockchain Technology', credits: '2 LEC, 1 LAB', contact: '3', prerequisites: 'BSCS351L Cybersecurity', class: 'Professional Courses', cmo: '25 S, 2015', year: 'FOURTH YEAR', sem: '2nd Semester', description: 'Study of blockchain architecture, smart contracts, and decentralized applications.', references: [], topics: [], courseOutcomes: [], coAssessmentMethodSets: {}, assessments: [], ilos: [], gradingSystem: [] },
-    { code: 'BSCS501', name: 'Capstone Project 1', credits: '3 LEC', contact: '3', prerequisites: 'BSCS409 Blockchain Technology', class: 'Professional Courses', cmo: '25 S, 2015', year: 'FOURTH YEAR', sem: '1st Semester', description: 'First phase of the capstone project focusing on proposal and research.', references: [], topics: [], courseOutcomes: [], coAssessmentMethodSets: {}, assessments: [], ilos: [], gradingSystem: [] },
-    { code: 'BSCS502', name: 'Capstone Project 2', credits: '3 LEC', contact: '3', prerequisites: 'BSCS501 Capstone Project 1', class: 'Professional Courses', cmo: '25 S, 2015', year: 'FOURTH YEAR', sem: '2nd Semester', description: 'Second phase focusing on implementation, testing, and defense.', references: [], topics: [], courseOutcomes: [], coAssessmentMethodSets: {}, assessments: [], ilos: [], gradingSystem: [] },
-    { code: 'BSCS503', name: 'Professional Ethics in Computing', credits: '3 LEC', contact: '3', prerequisites: 'None', class: 'Professional Courses', cmo: '25 S, 2015', year: 'FOURTH YEAR', sem: '1st Semester', description: 'Ethical and legal issues in computing and technology.', references: [], topics: [], courseOutcomes: [], coAssessmentMethodSets: {}, assessments: [], ilos: [], gradingSystem: [] },
-    { code: 'BSCS504', name: 'Technical Writing for CS', credits: '3 LEC', contact: '3', prerequisites: 'None', class: 'General Education', cmo: '25 S, 2015', year: 'FOURTH YEAR', sem: '2nd Semester', description: 'Technical communication and documentation for computer science.', references: [], topics: [], courseOutcomes: [], coAssessmentMethodSets: {}, assessments: [], ilos: [], gradingSystem: [] },
-    { code: 'BSCS505', name: 'Software Architecture', credits: '2 LEC, 1 LAB', contact: '3', prerequisites: 'BSCS322L Software Engineering', class: 'Professional Courses', cmo: '25 S, 2015', year: 'FOURTH YEAR', sem: '1st Semester', description: 'Design and evaluation of software architecture patterns.', references: [], topics: [], courseOutcomes: [], coAssessmentMethodSets: {}, assessments: [], ilos: [], gradingSystem: [] },
-    { code: 'BSCS506', name: 'Data Mining', credits: '2 LEC, 1 LAB', contact: '3', prerequisites: 'BSCS303 Numerical Methods', class: 'Professional Courses', cmo: '25 S, 2015', year: 'FOURTH YEAR', sem: '2nd Semester', description: 'Techniques for discovering patterns in large datasets.', references: [], topics: [], courseOutcomes: [], coAssessmentMethodSets: {}, assessments: [], ilos: [], gradingSystem: [] },
-    { code: 'BSCS507', name: 'Computer Vision', credits: '2 LEC, 1 LAB', contact: '3', prerequisites: 'BSCS404 Computer Graphics', class: 'Professional Courses', cmo: '25 S, 2015', year: 'FOURTH YEAR', sem: '1st Semester', description: 'Image processing, feature detection, and object recognition.', references: [], topics: [], courseOutcomes: [], coAssessmentMethodSets: {}, assessments: [], ilos: [], gradingSystem: [] },
-    { code: 'BSCS508', name: 'Quantum Computing', credits: '3 LEC', contact: '3', prerequisites: 'BSCS301 Automata Theory', class: 'Professional Courses', cmo: '25 S, 2015', year: 'FOURTH YEAR', sem: '2nd Semester', description: 'Introduction to quantum computing principles and algorithms.', references: [], topics: [], courseOutcomes: [], coAssessmentMethodSets: {}, assessments: [], ilos: [], gradingSystem: [] },
-    { code: 'BSCS509', name: 'Big Data Analytics', credits: '2 LEC, 1 LAB', contact: '3', prerequisites: 'BSCS506 Data Mining', class: 'Professional Courses', cmo: '25 S, 2015', year: 'FOURTH YEAR', sem: '2nd Semester', description: 'Distributed processing and analysis of large-scale data.', references: [], topics: [], courseOutcomes: [], coAssessmentMethodSets: {}, assessments: [], ilos: [], gradingSystem: [] },
-    { code: 'BSCS510', name: 'Advanced Web Development', credits: '2 LEC, 1 LAB', contact: '3', prerequisites: 'IT 312 Web Systems', class: 'Professional Courses', cmo: '25 S, 2015', year: 'FOURTH YEAR', sem: '1st Semester', description: 'Full-stack web development with modern frameworks.', references: [], topics: [], courseOutcomes: [], coAssessmentMethodSets: {}, assessments: [], ilos: [], gradingSystem: [] },
-    { code: 'BSCS511', name: 'Mobile Game Development', credits: '2 LEC, 1 LAB', contact: '3', prerequisites: 'BSCS421L Mobile App Development', class: 'Professional Courses', cmo: '25 S, 2015', year: 'FOURTH YEAR', sem: '2nd Semester', description: 'Design and development of games for mobile platforms.', references: [], topics: [], courseOutcomes: [], coAssessmentMethodSets: {}, assessments: [], ilos: [], gradingSystem: [] },
-    { code: 'BSCS512', name: 'IT Infrastructure Management', credits: '2 LEC, 1 LAB', contact: '3', prerequisites: 'BSCS331L Computer Networks', class: 'Professional Courses', cmo: '25 S, 2015', year: 'FOURTH YEAR', sem: '1st Semester', description: 'Management and optimization of IT infrastructure.', references: [], topics: [], courseOutcomes: [], coAssessmentMethodSets: {}, assessments: [], ilos: [], gradingSystem: [] },
-    { code: 'BSCS513', name: 'Information Assurance & Security', credits: '2 LEC, 1 LAB', contact: '3', prerequisites: 'BSCS351L Cybersecurity', class: 'Professional Courses', cmo: '25 S, 2015', year: 'FOURTH YEAR', sem: '1st Semester', description: 'Principles of information assurance, risk management, and security policies.', references: [], topics: [], courseOutcomes: [], coAssessmentMethodSets: {}, assessments: [], ilos: [], gradingSystem: [] },
-    { code: 'BSCS514', name: 'Human Language Technologies', credits: '2 LEC, 1 LAB', contact: '3', prerequisites: 'BSCS405 Natural Language Processing', class: 'Professional Courses', cmo: '25 S, 2015', year: 'FOURTH YEAR', sem: '2nd Semester', description: 'Advanced topics in speech recognition, machine translation, and dialogue systems.', references: [], topics: [], courseOutcomes: [], coAssessmentMethodSets: {}, assessments: [], ilos: [], gradingSystem: [] },
-    { code: 'BSCS515', name: 'Cloud Computing', credits: '2 LEC, 1 LAB', contact: '3', prerequisites: 'BSCS408 Distributed Systems', class: 'Professional Courses', cmo: '25 S, 2015', year: 'FOURTH YEAR', sem: '2nd Semester', description: 'Cloud service models, virtualization, and distributed storage systems.', references: [], topics: [], courseOutcomes: [], coAssessmentMethodSets: {}, assessments: [], ilos: [], gradingSystem: [] },
-    { code: 'BSCS516', name: 'Software Project Management', credits: '3 LEC', contact: '3', prerequisites: 'BSCS322L Software Engineering', class: 'Professional Courses', cmo: '25 S, 2015', year: 'FOURTH YEAR', sem: '1st Semester', description: 'Planning, estimation, and management of software projects.', references: [], topics: [], courseOutcomes: [], coAssessmentMethodSets: {}, assessments: [], ilos: [], gradingSystem: [] },
-    { code: 'BSCS517', name: 'Internet of Things', credits: '2 LEC, 1 LAB', contact: '3', prerequisites: 'BSCS406 Embedded Systems', class: 'Professional Courses', cmo: '25 S, 2015', year: 'FOURTH YEAR', sem: '2nd Semester', description: 'IoT architecture, protocols, and application development.', references: [], topics: [], courseOutcomes: [], coAssessmentMethodSets: {}, assessments: [], ilos: [], gradingSystem: [] },
-    { code: 'BSCS518', name: 'Entrepreneurship in Computing', credits: '3 LEC', contact: '3', prerequisites: 'None', class: 'General Education', cmo: '25 S, 2015', year: 'FOURTH YEAR', sem: '1st Semester', description: 'Business models, innovation, and entrepreneurship in technology.', references: [], topics: [], courseOutcomes: [], coAssessmentMethodSets: {}, assessments: [], ilos: [], gradingSystem: [] },
-    { code: 'IT 411', name: 'Information Management', credits: '2 LEC, 1 LAB', contact: '3', prerequisites: 'BSCS202 Database Systems', class: 'Information Technology', cmo: '25 S, 2015', year: 'FOURTH YEAR', sem: '1st Semester', description: 'Management of information resources and enterprise data.', references: [], topics: [], courseOutcomes: [], coAssessmentMethodSets: {}, assessments: [], ilos: [], gradingSystem: [] },
-    { code: 'IT 412', name: 'Network Administration', credits: '2 LEC, 1 LAB', contact: '3', prerequisites: 'BSCS331L Computer Networks', class: 'Information Technology', cmo: '25 S, 2015', year: 'FOURTH YEAR', sem: '2nd Semester', description: 'Configuration and administration of network infrastructure.', references: [], topics: [], courseOutcomes: [], coAssessmentMethodSets: {}, assessments: [], ilos: [], gradingSystem: [] },
-    { code: 'IT 413', name: 'Systems Administration & Maintenance', credits: '2 LEC, 1 LAB', contact: '3', prerequisites: 'IT 412 Network Administration', class: 'Information Technology', cmo: '25 S, 2015', year: 'FOURTH YEAR', sem: '2nd Semester', description: 'Server administration, backup, and disaster recovery.', references: [], topics: [], courseOutcomes: [], coAssessmentMethodSets: {}, assessments: [], ilos: [], gradingSystem: [] },
+    {
+        code: "BSCS101",
+        name: "Discrete Mathematics",
+        credits: "3 LEC",
+        contact: "3",
+        prerequisites: "None",
+        class: "General Education",
+        cmo: "25 S, 2015",
+        year: "FIRST YEAR",
+        sem: "1st Semester",
+        description: "An introduction to discrete mathematical structures.",
+        references: [
+        {
+          id: "TB1",
+          title: "Discrete Mathematics and Its Applications",
+          type: "Textbook",
+          authors: "Kenneth Rosen",
+          year: 2019,
+          isbn: "978-1259676512",
+          link: ""
+        },
+        {
+          id: "TB2",
+          title: "Concrete Mathematics",
+          type: "Textbook",
+          authors: "Ronald Graham, Donald Knuth",
+          year: 1994,
+          isbn: "978-0201558029",
+          link: ""
+        },
+        {
+          id: "OR1",
+          title: "Discrete Math Tutorial",
+          type: "Online Resources",
+          authors: "TrevTutor",
+          year: 2024,
+          link: "https://www.trevtutor.com/discrete"
+        }
+      ],
+        topics: [
+        {
+          id: "T1",
+          title: "Propositional Logic",
+          subtopics: [
+            {
+              id: "S1",
+              value: "Truth Tables"
+            },
+            {
+              id: "S2",
+              value: "Logical Equivalences"
+            },
+            {
+              id: "S3",
+              value: "Predicates and Quantifiers"
+            }
+          ],
+          tlas: [
+            {
+              id: "TLA1",
+              classPhase: "Pre-class",
+              performedBy: "Instructor",
+              tlaName: "Logic Lecture",
+              tlaDescription: "Introduction to propositional logic, truth tables, and logical equivalences.",
+              laboratory: false
+            },
+            {
+              id: "TLA2",
+              classPhase: "In-class",
+              performedBy: "Student",
+              tlaName: "Logic Exercises",
+              tlaDescription: "Students solve propositional logic problems and construct truth tables.",
+              laboratory: false
+            }
+          ]
+        },
+        {
+          id: "T2",
+          title: "Set Theory",
+          subtopics: [
+            {
+              id: "S4",
+              value: "Set Operations"
+            },
+            {
+              id: "S5",
+              value: "Functions and Relations"
+            },
+            {
+              id: "S6",
+              value: "Cardinality"
+            }
+          ],
+          tlas: [
+            {
+              id: "TLA3",
+              classPhase: "Pre-class",
+              performedBy: "Instructor",
+              tlaName: "Set Theory Lecture",
+              tlaDescription: "Lecture on set operations, functions, and relations.",
+              laboratory: false
+            },
+            {
+              id: "TLA4",
+              classPhase: "In-class",
+              performedBy: "Student",
+              tlaName: "Set Problems",
+              tlaDescription: "Students solve problems involving set operations and relations.",
+              laboratory: false
+            }
+          ]
+        },
+        {
+          id: "T3",
+          title: "Graph Theory",
+          subtopics: [
+            {
+              id: "S7",
+              value: "Graph Types"
+            },
+            {
+              id: "S8",
+              value: "Euler and Hamiltonian Paths"
+            },
+            {
+              id: "S9",
+              value: "Tree Traversals"
+            }
+          ],
+          tlas: [
+            {
+              id: "TLA5",
+              classPhase: "In-class",
+              performedBy: "Student",
+              tlaName: "Graph Lab",
+              tlaDescription: "Students model problems using graph structures and analyze graph properties.",
+              laboratory: true
+            }
+          ]
+        }
+      ],
+        courseOutcomes: [
+        {
+          id: "CO1",
+          description: "Apply logical reasoning and set theory to formulate and solve computational problems.",
+          poMappings: ["I","","","","","","","","","I","I","",""]
+        },
+        {
+          id: "CO2",
+          description: "Analyze relations and functions to determine their properties and applications in computing.",
+          poMappings: ["I","","","","","","","","","I","I","",""]
+        },
+        {
+          id: "CO3",
+          description: "Apply graph theory concepts to model and solve real-world problems.",
+          poMappings: ["","E","I","","","","","","","I","I","",""]
+        }
+      ],
+        coAssessmentMethodSets: {
+        CO1: [
+          {
+            value: "Logic Problem Set",
+            description: "Problem set covering propositional logic, truth tables, and logical equivalences."
+          },
+          {
+            value: "Set Theory Quiz",
+            description: "Quiz on set operations, functions, and relations."
+          }
+        ],
+        CO2: [
+          {
+            value: "Relations Worksheet",
+            description: "Worksheet on properties of relations and functions."
+          }
+        ],
+        CO3: [
+          {
+            value: "Graph Theory Project",
+            description: "Project applying graph algorithms to a real-world problem."
+          }
+        ]
+      },
+        assessments: [
+        {
+          id: "A1",
+          tlaName: "Logic Lecture",
+          phase: "Pre-class",
+          assessmentMethod: "Problem Set",
+          assessmentDescription: "Problem set on propositional logic.",
+          hasRubric: false
+        },
+        {
+          id: "A2",
+          tlaName: "Logic Exercises",
+          phase: "In-class",
+          assessmentMethod: "Quiz",
+          assessmentDescription: "Quiz on logical equivalences and quantifiers.",
+          hasRubric: false
+        },
+        {
+          id: "A3",
+          tlaName: "Graph Lab",
+          phase: "In-class",
+          assessmentMethod: "Lab Report",
+          assessmentDescription: "Graph theory analysis report.",
+          hasRubric: true,
+          rubrics: [
+            {
+              id: 1,
+              criteria: "Correctness",
+              maxScore: "60"
+            },
+            {
+              id: 2,
+              criteria: "Analysis depth",
+              maxScore: "40"
+            }
+          ]
+        }
+      ],
+        ilos: [
+        {
+          id: "CO1-ILO1",
+          courseOutcome: "Apply logical reasoning and set theory to formulate and solve computational problems.",
+          intendedLearningOutcome: "Construct truth tables and evaluate logical expressions.",
+          deliveryWeek: "Week 1",
+          allocatedTime: "3 hours",
+          topics: [
+            "Propositional Logic"
+          ],
+          references: [
+            "TB1 - Discrete Mathematics"
+          ]
+        },
+        {
+          id: "CO2-ILO1",
+          courseOutcome: "Analyze relations and functions to determine their properties and applications in computing.",
+          intendedLearningOutcome: "Determine properties of relations and classify functions.",
+          deliveryWeek: "Week 4",
+          allocatedTime: "3 hours",
+          topics: [
+            "Set Theory"
+          ],
+          references: [
+            "TB1 - Discrete Mathematics"
+          ]
+        },
+        {
+          id: "CO3-ILO1",
+          courseOutcome: "Apply graph theory concepts to model and solve real-world problems.",
+          intendedLearningOutcome: "Implement graph traversal algorithms and analyze their complexity.",
+          deliveryWeek: "Week 7",
+          allocatedTime: "3 hours",
+          topics: [
+            "Graph Theory"
+          ],
+          references: [
+            "TB2 - Concrete Mathematics"
+          ]
+        }
+      ],
+        gradingSystem: [
+        {
+          co: "CO1",
+          ilos: [
+            {
+              id: "ILO1",
+              assessments: [
+                "Logic Problem Set"
+              ],
+              weight: {
+                prelim: "50",
+                midterm: "",
+                semi: "",
+                final: ""
+              },
+              minPassing: "60"
+            },
+            {
+              id: "ILO2",
+              assessments: [
+                "Set Theory Quiz"
+              ],
+              weight: {
+                prelim: "50",
+                midterm: "",
+                semi: "",
+                final: ""
+              },
+              minPassing: "60"
+            }
+          ]
+        },
+        {
+          co: "CO2",
+          ilos: [
+            {
+              id: "ILO1",
+              assessments: [
+                "Relations Worksheet"
+              ],
+              weight: {
+                prelim: "",
+                midterm: "60",
+                semi: "",
+                final: ""
+              },
+              minPassing: "60"
+            }
+          ]
+        },
+        {
+          co: "CO3",
+          ilos: [
+            {
+              id: "ILO1",
+              assessments: [
+                "Graph Theory Project"
+              ],
+              weight: {
+                prelim: "",
+                midterm: "",
+                semi: "60",
+                final: "60"
+              },
+              minPassing: "60"
+            }
+          ]
+        }
+      ]
+    },
+    {
+        code: "BSCS102",
+        name: "Programming Fundamentals",
+        credits: "2 LEC, 1 LAB",
+        contact: "3",
+        prerequisites: "None",
+        class: "Professional Courses",
+        cmo: "25 S, 2015",
+        year: "FIRST YEAR",
+        sem: "1st Semester",
+        description: "Introduction to programming using structured and object-oriented paradigms.",
+        references: [
+        {
+          id: "TB1",
+          title: "Starting Out with Programming Logic & Design",
+          type: "Textbook",
+          authors: "Tony Gaddis",
+          year: 2020,
+          isbn: "978-0134801155",
+          link: ""
+        },
+        {
+          id: "TB2",
+          title: "Introduction to Programming in Python",
+          type: "Textbook",
+          authors: "John Zelle",
+          year: 2016,
+          isbn: "978-1590282755",
+          link: ""
+        },
+        {
+          id: "OR1",
+          title: "Python.org Tutorial",
+          type: "Online Resources",
+          authors: "Python Software Foundation",
+          year: 2024,
+          link: "https://docs.python.org/3/tutorial/"
+        }
+      ],
+        topics: [
+        {
+          id: "T1",
+          title: "Programming Basics",
+          subtopics: [
+            {
+              id: "S1",
+              value: "Variables and Data Types"
+            },
+            {
+              id: "S2",
+              value: "Input/Output"
+            },
+            {
+              id: "S3",
+              value: "Arithmetic Operations"
+            }
+          ],
+          tlas: [
+            {
+              id: "TLA1",
+              classPhase: "Pre-class",
+              performedBy: "Instructor",
+              tlaName: "Intro Programming Lecture",
+              tlaDescription: "Introduction to programming concepts, variables, and data types.",
+              laboratory: false
+            },
+            {
+              id: "TLA2",
+              classPhase: "In-class",
+              performedBy: "Student",
+              tlaName: "Basic Programs Lab",
+              tlaDescription: "Students write simple programs using variables and I/O.",
+              laboratory: true
+            }
+          ]
+        },
+        {
+          id: "T2",
+          title: "Control Structures",
+          subtopics: [
+            {
+              id: "S4",
+              value: "Conditional Statements"
+            },
+            {
+              id: "S5",
+              value: "Loops"
+            },
+            {
+              id: "S6",
+              value: "Nested Control Structures"
+            }
+          ],
+          tlas: [
+            {
+              id: "TLA3",
+              classPhase: "In-class",
+              performedBy: "Student",
+              tlaName: "Control Flow Lab",
+              tlaDescription: "Students implement programs using conditionals and loops.",
+              laboratory: true
+            }
+          ]
+        },
+        {
+          id: "T3",
+          title: "Functions and Arrays",
+          subtopics: [
+            {
+              id: "S7",
+              value: "Function Definition"
+            },
+            {
+              id: "S8",
+              value: "Parameters and Return"
+            },
+            {
+              id: "S9",
+              value: "Array Operations"
+            }
+          ],
+          tlas: [
+            {
+              id: "TLA4",
+              classPhase: "In-class",
+              performedBy: "Student",
+              tlaName: "Functions Lab",
+              tlaDescription: "Students write programs with functions and arrays.",
+              laboratory: true
+            }
+          ]
+        }
+      ],
+        courseOutcomes: [
+        {
+          id: "CO1",
+          description: "Design and implement programs using fundamental programming constructs.",
+          poMappings: ["I","","","","","","","","","I","E","",""]
+        },
+        {
+          id: "CO2",
+          description: "Develop programs using control structures and modular design.",
+          poMappings: ["I","","","","","","","","","I","E","",""]
+        },
+        {
+          id: "CO3",
+          description: "Create programs that manipulate data using arrays and functions.",
+          poMappings: ["","E","I","","","","","","","I","E","",""]
+        }
+      ],
+        coAssessmentMethodSets: {
+        CO1: [
+          {
+            value: "Programming Quiz",
+            description: "Quiz on programming fundamentals."
+          },
+          {
+            value: "Lab Exercises",
+            description: "Basic programming lab exercises."
+          }
+        ],
+        CO2: [
+          {
+            value: "Control Structures Lab",
+            description: "Lab exercise on conditionals and loops."
+          }
+        ],
+        CO3: [
+          {
+            value: "Functions Assignment",
+            description: "Assignment on functions and arrays."
+          }
+        ]
+      },
+        assessments: [
+        {
+          id: "A1",
+          tlaName: "Intro Programming Lecture",
+          phase: "Pre-class",
+          assessmentMethod: "Quiz",
+          assessmentDescription: "Quiz on programming basics.",
+          hasRubric: false
+        },
+        {
+          id: "A2",
+          tlaName: "Basic Programs Lab",
+          phase: "In-class",
+          assessmentMethod: "Lab Submission",
+          assessmentDescription: "Submit working programs.",
+          hasRubric: true,
+          rubrics: [
+            {
+              id: 1,
+              criteria: "Correctness",
+              maxScore: "60"
+            },
+            {
+              id: 2,
+              criteria: "Code style",
+              maxScore: "40"
+            }
+          ]
+        },
+        {
+          id: "A3",
+          tlaName: "Functions Lab",
+          phase: "In-class",
+          assessmentMethod: "Code Submission",
+          assessmentDescription: "Programs demonstrating functions and arrays.",
+          hasRubric: true,
+          rubrics: [
+            {
+              id: 1,
+              criteria: "Functionality",
+              maxScore: "70"
+            },
+            {
+              id: 2,
+              criteria: "Code organization",
+              maxScore: "30"
+            }
+          ]
+        }
+      ],
+        ilos: [
+        {
+          id: "CO1-ILO1",
+          courseOutcome: "Design and implement programs using fundamental programming constructs.",
+          intendedLearningOutcome: "Write programs using variables, data types, and I/O operations.",
+          deliveryWeek: "Week 1",
+          allocatedTime: "3 hours",
+          topics: [
+            "Programming Basics"
+          ],
+          references: [
+            "TB1 - Starting Out with Programming Logic"
+          ]
+        },
+        {
+          id: "CO2-ILO1",
+          courseOutcome: "Develop programs using control structures and modular design.",
+          intendedLearningOutcome: "Implement conditional and iterative logic to solve problems.",
+          deliveryWeek: "Week 3",
+          allocatedTime: "3 hours",
+          topics: [
+            "Control Structures"
+          ],
+          references: [
+            "TB2 - Introduction to Programming in Python"
+          ]
+        },
+        {
+          id: "CO3-ILO1",
+          courseOutcome: "Create programs that manipulate data using arrays and functions.",
+          intendedLearningOutcome: "Design functions with appropriate parameters and return values.",
+          deliveryWeek: "Week 6",
+          allocatedTime: "3 hours",
+          topics: [
+            "Functions and Arrays"
+          ],
+          references: [
+            "OR1 - Python.org Tutorial"
+          ]
+        }
+      ],
+        gradingSystem: [
+        {
+          co: "CO1",
+          ilos: [
+            {
+              id: "ILO1",
+              assessments: [
+                "Lab Exercises"
+              ],
+              weight: {
+                prelim: "50",
+                midterm: "",
+                semi: "",
+                final: ""
+              },
+              minPassing: "60"
+            }
+          ]
+        },
+        {
+          co: "CO2",
+          ilos: [
+            {
+              id: "ILO1",
+              assessments: [
+                "Control Structures Lab"
+              ],
+              weight: {
+                prelim: "",
+                midterm: "60",
+                semi: "",
+                final: ""
+              },
+              minPassing: "60"
+            }
+          ]
+        },
+        {
+          co: "CO3",
+          ilos: [
+            {
+              id: "ILO1",
+              assessments: [
+                "Functions Assignment"
+              ],
+              weight: {
+                prelim: "",
+                midterm: "",
+                semi: "60",
+                final: "60"
+              },
+              minPassing: "60"
+            }
+          ]
+        }
+      ]
+    },
+    {
+        code: "BSCS103",
+        name: "Data Structures & Algorithms",
+        credits: "2 LEC, 1 LAB",
+        contact: "3",
+        prerequisites: "BSCS102 Programming Fundamentals",
+        class: "Professional Courses",
+        cmo: "25 S, 2015",
+        year: "FIRST YEAR",
+        sem: "2nd Semester",
+        description: "Study of fundamental data structures and algorithm design techniques.",
+        references: [
+        {
+          id: "TB1",
+          title: "Data Structures and Algorithm Analysis in C++",
+          type: "Textbook",
+          authors: "Mark Allen Weiss",
+          year: 2020,
+          isbn: "978-0134853765",
+          link: ""
+        },
+        {
+          id: "TB2",
+          title: "Introduction to Algorithms",
+          type: "Textbook",
+          authors: "Thomas H. Cormen",
+          year: 2022,
+          isbn: "978-0262046305",
+          link: ""
+        },
+        {
+          id: "OE1",
+          title: "Visualgo.net",
+          type: "Open Educational Resources",
+          authors: "Steven Halim",
+          year: 2024,
+          link: "https://visualgo.net/"
+        }
+      ],
+        topics: [
+        {
+          id: "T1",
+          title: "Linear Data Structures",
+          subtopics: [
+            {
+              id: "S1",
+              value: "Arrays and Linked Lists"
+            },
+            {
+              id: "S2",
+              value: "Stacks and Queues"
+            },
+            {
+              id: "S3",
+              value: "Hash Tables"
+            }
+          ],
+          tlas: [
+            {
+              id: "TLA1",
+              classPhase: "Pre-class",
+              performedBy: "Instructor",
+              tlaName: "DS Lecture",
+              tlaDescription: "Lecture on linear data structures and their implementations.",
+              laboratory: false
+            },
+            {
+              id: "TLA2",
+              classPhase: "In-class",
+              performedBy: "Student",
+              tlaName: "DS Implementation Lab",
+              tlaDescription: "Students implement linked lists, stacks, and queues.",
+              laboratory: true
+            }
+          ]
+        },
+        {
+          id: "T2",
+          title: "Trees and Graphs",
+          subtopics: [
+            {
+              id: "S4",
+              value: "Binary Search Trees"
+            },
+            {
+              id: "S5",
+              value: "AVL Trees"
+            },
+            {
+              id: "S6",
+              value: "Graph Representations"
+            }
+          ],
+          tlas: [
+            {
+              id: "TLA3",
+              classPhase: "In-class",
+              performedBy: "Student",
+              tlaName: "Tree Lab",
+              tlaDescription: "Students implement BST and tree traversal algorithms.",
+              laboratory: true
+            }
+          ]
+        },
+        {
+          id: "T3",
+          title: "Sorting and Searching",
+          subtopics: [
+            {
+              id: "S7",
+              value: "Merge Sort and Quick Sort"
+            },
+            {
+              id: "S8",
+              value: "Binary Search"
+            },
+            {
+              id: "S9",
+              value: "Complexity Analysis"
+            }
+          ],
+          tlas: [
+            {
+              id: "TLA4",
+              classPhase: "In-class",
+              performedBy: "Student",
+              tlaName: "Sorting Lab",
+              tlaDescription: "Students implement and benchmark sorting algorithms.",
+              laboratory: true
+            }
+          ]
+        }
+      ],
+        courseOutcomes: [
+        {
+          id: "CO1",
+          description: "Implement and analyze fundamental data structures and their operations.",
+          poMappings: ["I","","","","","","E","","","I","E","E",""]
+        },
+        {
+          id: "CO2",
+          description: "Apply appropriate data structures to solve computational problems efficiently.",
+          poMappings: ["E","I","","","","","","","","I","E","E",""]
+        },
+        {
+          id: "CO3",
+          description: "Design and analyze algorithms for sorting, searching, and graph processing.",
+          poMappings: ["","E","E","I","","","","","","I","E","E",""]
+        }
+      ],
+        coAssessmentMethodSets: {
+        CO1: [
+          {
+            value: "DS Implementation",
+            description: "Implement core data structures from scratch."
+          },
+          {
+            value: "DS Quiz",
+            description: "Quiz on data structure properties and operations."
+          }
+        ],
+        CO2: [
+          {
+            value: "Problem Solving",
+            description: "Select and apply appropriate data structures."
+          }
+        ],
+        CO3: [
+          {
+            value: "Algorithm Analysis",
+            description: "Analyze and compare algorithm performance."
+          }
+        ]
+      },
+        assessments: [
+        {
+          id: "A1",
+          tlaName: "DS Lecture",
+          phase: "Pre-class",
+          assessmentMethod: "Quiz",
+          assessmentDescription: "Quiz on data structure concepts.",
+          hasRubric: false
+        },
+        {
+          id: "A2",
+          tlaName: "DS Implementation Lab",
+          phase: "In-class",
+          assessmentMethod: "Code Submission",
+          assessmentDescription: "Working implementations of data structures.",
+          hasRubric: true,
+          rubrics: [
+            {
+              id: 1,
+              criteria: "Correctness",
+              maxScore: "60"
+            },
+            {
+              id: 2,
+              criteria: "Efficiency",
+              maxScore: "40"
+            }
+          ]
+        },
+        {
+          id: "A3",
+          tlaName: "Sorting Lab",
+          phase: "In-class",
+          assessmentMethod: "Lab Report",
+          assessmentDescription: "Sorting algorithm benchmark analysis.",
+          hasRubric: true,
+          rubrics: [
+            {
+              id: 1,
+              criteria: "Implementation",
+              maxScore: "50"
+            },
+            {
+              id: 2,
+              criteria: "Analysis",
+              maxScore: "50"
+            }
+          ]
+        }
+      ],
+        ilos: [
+        {
+          id: "CO1-ILO1",
+          courseOutcome: "Implement and analyze fundamental data structures and their operations.",
+          intendedLearningOutcome: "Implement linked lists, stacks, and queues with their core operations.",
+          deliveryWeek: "Week 1",
+          allocatedTime: "3 hours",
+          topics: [
+            "Linear Data Structures"
+          ],
+          references: [
+            "TB1 - Data Structures and Algorithm Analysis"
+          ]
+        },
+        {
+          id: "CO2-ILO1",
+          courseOutcome: "Apply appropriate data structures to solve computational problems efficiently.",
+          intendedLearningOutcome: "Select the optimal data structure for a given problem scenario.",
+          deliveryWeek: "Week 4",
+          allocatedTime: "3 hours",
+          topics: [
+            "Trees and Graphs"
+          ],
+          references: [
+            "OE1 - Visualgo.net"
+          ]
+        },
+        {
+          id: "CO3-ILO1",
+          courseOutcome: "Design and analyze algorithms for sorting, searching, and graph processing.",
+          intendedLearningOutcome: "Implement sorting algorithms and analyze time complexity.",
+          deliveryWeek: "Week 7",
+          allocatedTime: "3 hours",
+          topics: [
+            "Sorting and Searching"
+          ],
+          references: [
+            "TB2 - Introduction to Algorithms"
+          ]
+        }
+      ],
+        gradingSystem: [
+        {
+          co: "CO1",
+          ilos: [
+            {
+              id: "ILO1",
+              assessments: [
+                "DS Implementation"
+              ],
+              weight: {
+                prelim: "50",
+                midterm: "",
+                semi: "",
+                final: ""
+              },
+              minPassing: "60"
+            }
+          ]
+        },
+        {
+          co: "CO2",
+          ilos: [
+            {
+              id: "ILO1",
+              assessments: [
+                "Problem Solving"
+              ],
+              weight: {
+                prelim: "",
+                midterm: "60",
+                semi: "",
+                final: ""
+              },
+              minPassing: "60"
+            }
+          ]
+        },
+        {
+          co: "CO3",
+          ilos: [
+            {
+              id: "ILO1",
+              assessments: [
+                "Algorithm Analysis"
+              ],
+              weight: {
+                prelim: "",
+                midterm: "",
+                semi: "60",
+                final: "60"
+              },
+              minPassing: "60"
+            }
+          ]
+        }
+      ]
+    },
+    {
+        code: "BSCS201",
+        name: "Object-Oriented Programming",
+        credits: "2 LEC, 1 LAB",
+        contact: "3",
+        prerequisites: "BSCS102 Programming Fundamentals",
+        class: "Professional Courses",
+        cmo: "25 S, 2015",
+        year: "SECOND YEAR",
+        sem: "1st Semester",
+        description: "Advanced programming concepts using OOP principles.",
+        references: [
+        {
+          id: "TB1",
+          title: "Object-Oriented Programming in Java",
+          type: "Textbook",
+          authors: "David J. Barnes",
+          year: 2020,
+          isbn: "978-0134821498",
+          link: ""
+        },
+        {
+          id: "TB2",
+          title: "Head First Design Patterns",
+          type: "Textbook",
+          authors: "Eric Freeman",
+          year: 2020,
+          isbn: "978-1492078005",
+          link: ""
+        },
+        {
+          id: "OR1",
+          title: "Java Tutorials",
+          type: "Online Resources",
+          authors: "Oracle",
+          year: 2024,
+          link: "https://docs.oracle.com/javase/tutorial/"
+        }
+      ],
+        topics: [
+        {
+          id: "T1",
+          title: "OOP Fundamentals",
+          subtopics: [
+            {
+              id: "S1",
+              value: "Classes and Objects"
+            },
+            {
+              id: "S2",
+              value: "Encapsulation"
+            },
+            {
+              id: "S3",
+              value: "Constructors and Methods"
+            }
+          ],
+          tlas: [
+            {
+              id: "TLA1",
+              classPhase: "Pre-class",
+              performedBy: "Instructor",
+              tlaName: "OOP Lecture",
+              tlaDescription: "Introduction to object-oriented programming concepts.",
+              laboratory: false
+            },
+            {
+              id: "TLA2",
+              classPhase: "In-class",
+              performedBy: "Student",
+              tlaName: "OOP Lab 1",
+              tlaDescription: "Students create classes with methods and properties.",
+              laboratory: true
+            }
+          ]
+        },
+        {
+          id: "T2",
+          title: "Inheritance and Polymorphism",
+          subtopics: [
+            {
+              id: "S4",
+              value: "Inheritance Hierarchies"
+            },
+            {
+              id: "S5",
+              value: "Polymorphism"
+            },
+            {
+              id: "S6",
+              value: "Abstract Classes and Interfaces"
+            }
+          ],
+          tlas: [
+            {
+              id: "TLA3",
+              classPhase: "In-class",
+              performedBy: "Student",
+              tlaName: "OOP Lab 2",
+              tlaDescription: "Students implement inheritance hierarchies and polymorphic behavior.",
+              laboratory: true
+            }
+          ]
+        },
+        {
+          id: "T3",
+          title: "Exception Handling and I/O",
+          subtopics: [
+            {
+              id: "S7",
+              value: "Try-Catch-Finally"
+            },
+            {
+              id: "S8",
+              value: "File I/O"
+            },
+            {
+              id: "S9",
+              value: "Serialization"
+            }
+          ],
+          tlas: [
+            {
+              id: "TLA4",
+              classPhase: "In-class",
+              performedBy: "Student",
+              tlaName: "I/O Lab",
+              tlaDescription: "Students implement file I/O and exception handling.",
+              laboratory: true
+            }
+          ]
+        }
+      ],
+        courseOutcomes: [
+        {
+          id: "CO1",
+          description: "Design and implement classes applying OOP principles.",
+          poMappings: ["I","","","","","","","","","I","E","",""]
+        },
+        {
+          id: "CO2",
+          description: "Create reusable software components using inheritance and polymorphism.",
+          poMappings: ["I","","","","E","","","","","I","E","",""]
+        },
+        {
+          id: "CO3",
+          description: "Develop robust applications with proper exception handling and file I/O.",
+          poMappings: ["","E","I","","","","","","","I","E","",""]
+        }
+      ],
+        coAssessmentMethodSets: {
+        CO1: [
+          {
+            value: "Class Design Exercise",
+            description: "Design and implement classes for given specifications."
+          },
+          {
+            value: "OOP Quiz",
+            description: "Quiz on OOP principles."
+          }
+        ],
+        CO2: [
+          {
+            value: "Inheritance Project",
+            description: "Implement an inheritance hierarchy with polymorphic behavior."
+          }
+        ],
+        CO3: [
+          {
+            value: "I/O Assignment",
+            description: "Program with file I/O and exception handling."
+          }
+        ]
+      },
+        assessments: [
+        {
+          id: "A1",
+          tlaName: "OOP Lecture",
+          phase: "Pre-class",
+          assessmentMethod: "Quiz",
+          assessmentDescription: "Quiz on OOP concepts.",
+          hasRubric: false
+        },
+        {
+          id: "A2",
+          tlaName: "OOP Lab 1",
+          phase: "In-class",
+          assessmentMethod: "Code Submission",
+          assessmentDescription: "Class implementation exercise.",
+          hasRubric: true,
+          rubrics: [
+            {
+              id: 1,
+              criteria: "Design",
+              maxScore: "50"
+            },
+            {
+              id: 2,
+              criteria: "Implementation",
+              maxScore: "50"
+            }
+          ]
+        },
+        {
+          id: "A3",
+          tlaName: "OOP Lab 2",
+          phase: "In-class",
+          assessmentMethod: "Lab Report",
+          assessmentDescription: "Inheritance and polymorphism implementation.",
+          hasRubric: true,
+          rubrics: [
+            {
+              id: 1,
+              criteria: "Correctness",
+              maxScore: "60"
+            },
+            {
+              id: 2,
+              criteria: "Code quality",
+              maxScore: "40"
+            }
+          ]
+        }
+      ],
+        ilos: [
+        {
+          id: "CO1-ILO1",
+          courseOutcome: "Design and implement classes applying OOP principles.",
+          intendedLearningOutcome: "Create classes with fields, constructors, and methods.",
+          deliveryWeek: "Week 1",
+          allocatedTime: "3 hours",
+          topics: [
+            "OOP Fundamentals"
+          ],
+          references: [
+            "TB1 - Object-Oriented Programming in Java"
+          ]
+        },
+        {
+          id: "CO2-ILO1",
+          courseOutcome: "Create reusable software components using inheritance and polymorphism.",
+          intendedLearningOutcome: "Design class hierarchies using inheritance and interfaces.",
+          deliveryWeek: "Week 4",
+          allocatedTime: "3 hours",
+          topics: [
+            "Inheritance and Polymorphism"
+          ],
+          references: [
+            "TB2 - Head First Design Patterns"
+          ]
+        },
+        {
+          id: "CO3-ILO1",
+          courseOutcome: "Develop robust applications with proper exception handling and file I/O.",
+          intendedLearningOutcome: "Implement try-catch blocks and file read/write operations.",
+          deliveryWeek: "Week 7",
+          allocatedTime: "3 hours",
+          topics: [
+            "Exception Handling and I/O"
+          ],
+          references: [
+            "OR1 - Java Tutorials"
+          ]
+        }
+      ],
+        gradingSystem: [
+        {
+          co: "CO1",
+          ilos: [
+            {
+              id: "ILO1",
+              assessments: [
+                "Class Design Exercise"
+              ],
+              weight: {
+                prelim: "50",
+                midterm: "",
+                semi: "",
+                final: ""
+              },
+              minPassing: "60"
+            }
+          ]
+        },
+        {
+          co: "CO2",
+          ilos: [
+            {
+              id: "ILO1",
+              assessments: [
+                "Inheritance Project"
+              ],
+              weight: {
+                prelim: "",
+                midterm: "60",
+                semi: "",
+                final: ""
+              },
+              minPassing: "60"
+            }
+          ]
+        },
+        {
+          co: "CO3",
+          ilos: [
+            {
+              id: "ILO1",
+              assessments: [
+                "I/O Assignment"
+              ],
+              weight: {
+                prelim: "",
+                midterm: "",
+                semi: "60",
+                final: "60"
+              },
+              minPassing: "60"
+            }
+          ]
+        }
+      ]
+    },
+    {
+        code: "BSCS202",
+        name: "Database Management Systems",
+        credits: "2 LEC, 1 LAB",
+        contact: "3",
+        prerequisites: "BSCS103 Data Structures",
+        class: "Professional Courses",
+        cmo: "25 S, 2015",
+        year: "SECOND YEAR",
+        sem: "2nd Semester",
+        description: "Design and implementation of relational database systems.",
+        references: [
+        {
+          id: "TB1",
+          title: "Database Management Systems: A Comprehensive Guide",
+          type: "Textbook",
+          authors: "Academic Press",
+          year: 2022,
+          isbn: "978-0000000000",
+          link: ""
+        },
+        {
+          id: "OR1",
+          title: "Database Management Systems Online Resources",
+          type: "Online Resources",
+          authors: "Open Access",
+          year: 2024,
+          link: ""
+        }
+      ],
+        topics: [
+        {
+          id: "T1",
+          title: "Fundamentals",
+          subtopics: [
+            {
+              id: "S1",
+              value: "Core Concepts"
+            },
+            {
+              id: "S2",
+              value: "Principles and Practices"
+            },
+            {
+              id: "S3",
+              value: "Key Methodologies"
+            }
+          ],
+          tlas: [
+            {
+              id: "TLA1",
+              classPhase: "Pre-class",
+              performedBy: "Instructor",
+              tlaName: "Lecture",
+              tlaDescription: "Introduction to database management systems.",
+              laboratory: false
+            },
+            {
+              id: "TLA2",
+              classPhase: "In-class",
+              performedBy: "Student",
+              tlaName: "Activity",
+              tlaDescription: "Hands-on exercise on database management systems fundamentals.",
+              laboratory: true
+            }
+          ]
+        },
+        {
+          id: "T2",
+          title: "Applications",
+          subtopics: [
+            {
+              id: "S4",
+              value: "Implementation"
+            },
+            {
+              id: "S5",
+              value: "Case Studies"
+            },
+            {
+              id: "S6",
+              value: "Best Practices"
+            }
+          ],
+          tlas: [
+            {
+              id: "TLA3",
+              classPhase: "In-class",
+              performedBy: "Student",
+              tlaName: "Project Lab",
+              tlaDescription: "Students apply database management systems concepts to a practical project.",
+              laboratory: true
+            }
+          ]
+        },
+        {
+          id: "T3",
+          title: "Advanced Topics",
+          subtopics: [
+            {
+              id: "S7",
+              value: "Advanced Concepts"
+            },
+            {
+              id: "S8",
+              value: "Emerging Trends"
+            },
+            {
+              id: "S9",
+              value: "Research Directions"
+            }
+          ],
+          tlas: [
+            {
+              id: "TLA4",
+              classPhase: "Post-class",
+              performedBy: "Student",
+              tlaName: "Research Assignment",
+              tlaDescription: "Students research emerging trends in database management systems.",
+              laboratory: false
+            }
+          ]
+        }
+      ],
+        courseOutcomes: [
+        {
+          id: "CO1",
+          description: "Explain the fundamental concepts and principles of database management systems.",
+          poMappings: ["I","","","","","","","","","E","I","",""]
+        },
+        {
+          id: "CO2",
+          description: "Apply database management systems techniques to solve practical problems.",
+          poMappings: ["","","E","","","","","","","E","I","",""]
+        },
+        {
+          id: "CO3",
+          description: "Evaluate emerging trends and advanced concepts in database management systems.",
+          poMappings: ["","","","","","","D","","","I","I","E",""]
+        }
+      ],
+        coAssessmentMethodSets: {
+        CO1: [
+          {
+            value: "Concept Quiz",
+            description: "Quiz on database management systems fundamentals."
+          }
+        ],
+        CO2: [
+          {
+            value: "Practical Exercise",
+            description: "Applied exercise in database management systems."
+          }
+        ],
+        CO3: [
+          {
+            value: "Research Paper",
+            description: "Research paper on advanced database management systems topics."
+          }
+        ]
+      },
+        assessments: [
+        {
+          id: "A1",
+          tlaName: "Lecture",
+          phase: "Pre-class",
+          assessmentMethod: "Quiz",
+          assessmentDescription: "Quiz on database management systems concepts.",
+          hasRubric: false
+        },
+        {
+          id: "A2",
+          tlaName: "Activity",
+          phase: "In-class",
+          assessmentMethod: "Lab Report",
+          assessmentDescription: "Lab report on database management systems exercise.",
+          hasRubric: true,
+          rubrics: [
+            {
+              id: 1,
+              criteria: "Correctness",
+              maxScore: "60"
+            },
+            {
+              id: 2,
+              criteria: "Analysis",
+              maxScore: "40"
+            }
+          ]
+        },
+        {
+          id: "A3",
+          tlaName: "Research Assignment",
+          phase: "Post-class",
+          assessmentMethod: "Research Paper",
+          assessmentDescription: "Research paper on database management systems trends.",
+          hasRubric: true,
+          rubrics: [
+            {
+              id: 1,
+              criteria: "Research depth",
+              maxScore: "50"
+            },
+            {
+              id: 2,
+              criteria: "Analysis",
+              maxScore: "50"
+            }
+          ]
+        }
+      ],
+        ilos: [
+        {
+          id: "CO1-ILO1",
+          courseOutcome: "Explain the fundamental concepts and principles of database management systems.",
+          intendedLearningOutcome: "Describe the core principles of database management systems.",
+          deliveryWeek: "Week 1",
+          allocatedTime: "3 hours",
+          topics: [
+            "Fundamentals"
+          ],
+          references: [
+            "TB1 - Database Management Systems"
+          ]
+        },
+        {
+          id: "CO2-ILO1",
+          courseOutcome: "Apply database management systems techniques to solve practical problems.",
+          intendedLearningOutcome: "Implement solutions using database management systems techniques.",
+          deliveryWeek: "Week 4",
+          allocatedTime: "3 hours",
+          topics: [
+            "Applications"
+          ],
+          references: [
+            "OR1 - Online Resources"
+          ]
+        },
+        {
+          id: "CO3-ILO1",
+          courseOutcome: "Evaluate emerging trends and advanced concepts in database management systems.",
+          intendedLearningOutcome: "Analyze current research and trends in database management systems.",
+          deliveryWeek: "Week 8",
+          allocatedTime: "3 hours",
+          topics: [
+            "Advanced Topics"
+          ],
+          references: [
+            "TB1 - Database Management Systems"
+          ]
+        }
+      ],
+        gradingSystem: [
+        {
+          co: "CO1",
+          ilos: [
+            {
+              id: "ILO1",
+              assessments: [
+                "Concept Quiz"
+              ],
+              weight: {
+                prelim: "50",
+                midterm: "",
+                semi: "",
+                final: ""
+              },
+              minPassing: "60"
+            }
+          ]
+        },
+        {
+          co: "CO2",
+          ilos: [
+            {
+              id: "ILO1",
+              assessments: [
+                "Practical Exercise"
+              ],
+              weight: {
+                prelim: "",
+                midterm: "60",
+                semi: "",
+                final: ""
+              },
+              minPassing: "60"
+            }
+          ]
+        },
+        {
+          co: "CO3",
+          ilos: [
+            {
+              id: "ILO1",
+              assessments: [
+                "Research Paper"
+              ],
+              weight: {
+                prelim: "",
+                midterm: "",
+                semi: "50",
+                final: "50"
+              },
+              minPassing: "60"
+            }
+          ]
+        }
+      ]
+    },
+    {
+        code: "BSCS203",
+        name: "Discrete Structures II",
+        credits: "3 LEC",
+        contact: "3",
+        prerequisites: "BSCS101 Discrete Mathematics",
+        class: "General Education",
+        cmo: "25 S, 2015",
+        year: "SECOND YEAR",
+        sem: "1st Semester",
+        description: "Advanced topics in discrete structures for computing.",
+        references: [
+        {
+          id: "TB1",
+          title: "Discrete Structures II: A Comprehensive Guide",
+          type: "Textbook",
+          authors: "Academic Press",
+          year: 2022,
+          isbn: "978-0000000000",
+          link: ""
+        },
+        {
+          id: "OR1",
+          title: "Discrete Structures II Online Resources",
+          type: "Online Resources",
+          authors: "Open Access",
+          year: 2024,
+          link: ""
+        }
+      ],
+        topics: [
+        {
+          id: "T1",
+          title: "Fundamentals",
+          subtopics: [
+            {
+              id: "S1",
+              value: "Core Concepts"
+            },
+            {
+              id: "S2",
+              value: "Principles and Practices"
+            },
+            {
+              id: "S3",
+              value: "Key Methodologies"
+            }
+          ],
+          tlas: [
+            {
+              id: "TLA1",
+              classPhase: "Pre-class",
+              performedBy: "Instructor",
+              tlaName: "Lecture",
+              tlaDescription: "Introduction to discrete structures ii.",
+              laboratory: false
+            },
+            {
+              id: "TLA2",
+              classPhase: "In-class",
+              performedBy: "Student",
+              tlaName: "Activity",
+              tlaDescription: "Hands-on exercise on discrete structures ii fundamentals.",
+              laboratory: true
+            }
+          ]
+        },
+        {
+          id: "T2",
+          title: "Applications",
+          subtopics: [
+            {
+              id: "S4",
+              value: "Implementation"
+            },
+            {
+              id: "S5",
+              value: "Case Studies"
+            },
+            {
+              id: "S6",
+              value: "Best Practices"
+            }
+          ],
+          tlas: [
+            {
+              id: "TLA3",
+              classPhase: "In-class",
+              performedBy: "Student",
+              tlaName: "Project Lab",
+              tlaDescription: "Students apply discrete structures ii concepts to a practical project.",
+              laboratory: true
+            }
+          ]
+        }
+      ],
+        courseOutcomes: [
+        {
+          id: "CO1",
+          description: "Explain the fundamental concepts and principles of discrete structures ii.",
+          poMappings: ["I","","","","","","","","","E","I","",""]
+        },
+        {
+          id: "CO2",
+          description: "Apply discrete structures ii techniques to solve practical problems.",
+          poMappings: ["","","E","","","","","","","E","I","",""]
+        }
+      ],
+        coAssessmentMethodSets: {
+        CO1: [
+          {
+            value: "Concept Quiz",
+            description: "Quiz on discrete structures ii fundamentals."
+          }
+        ],
+        CO2: [
+          {
+            value: "Practical Exercise",
+            description: "Applied exercise in discrete structures ii."
+          }
+        ]
+      },
+        assessments: [
+        {
+          id: "A1",
+          tlaName: "Lecture",
+          phase: "Pre-class",
+          assessmentMethod: "Quiz",
+          assessmentDescription: "Quiz on discrete structures ii concepts.",
+          hasRubric: false
+        },
+        {
+          id: "A2",
+          tlaName: "Activity",
+          phase: "In-class",
+          assessmentMethod: "Lab Report",
+          assessmentDescription: "Lab report on discrete structures ii exercise.",
+          hasRubric: true,
+          rubrics: [
+            {
+              id: 1,
+              criteria: "Correctness",
+              maxScore: "60"
+            },
+            {
+              id: 2,
+              criteria: "Analysis",
+              maxScore: "40"
+            }
+          ]
+        }
+      ],
+        ilos: [
+        {
+          id: "CO1-ILO1",
+          courseOutcome: "Explain the fundamental concepts and principles of discrete structures ii.",
+          intendedLearningOutcome: "Describe the core principles of discrete structures ii.",
+          deliveryWeek: "Week 1",
+          allocatedTime: "3 hours",
+          topics: [
+            "Fundamentals"
+          ],
+          references: [
+            "TB1 - Discrete Structures II"
+          ]
+        },
+        {
+          id: "CO2-ILO1",
+          courseOutcome: "Apply discrete structures ii techniques to solve practical problems.",
+          intendedLearningOutcome: "Implement solutions using discrete structures ii techniques.",
+          deliveryWeek: "Week 4",
+          allocatedTime: "3 hours",
+          topics: [
+            "Applications"
+          ],
+          references: [
+            "OR1 - Online Resources"
+          ]
+        }
+      ],
+        gradingSystem: [
+        {
+          co: "CO1",
+          ilos: [
+            {
+              id: "ILO1",
+              assessments: [
+                "Concept Quiz"
+              ],
+              weight: {
+                prelim: "50",
+                midterm: "",
+                semi: "",
+                final: ""
+              },
+              minPassing: "60"
+            }
+          ]
+        },
+        {
+          co: "CO2",
+          ilos: [
+            {
+              id: "ILO1",
+              assessments: [
+                "Practical Exercise"
+              ],
+              weight: {
+                prelim: "",
+                midterm: "60",
+                semi: "",
+                final: ""
+              },
+              minPassing: "60"
+            }
+          ]
+        }
+      ]
+    },
+    {
+        code: "BSCS301",
+        name: "Automata Theory",
+        credits: "3 LEC",
+        contact: "3",
+        prerequisites: "BSCS103 Data Structures",
+        class: "Professional Courses",
+        cmo: "25 S, 2015",
+        year: "THIRD YEAR",
+        sem: "1st Semester",
+        description: "Study of abstract machines, formal languages, and computational complexity.",
+        references: [
+        {
+          id: "TB1",
+          title: "Automata Theory: A Comprehensive Guide",
+          type: "Textbook",
+          authors: "Academic Press",
+          year: 2022,
+          isbn: "978-0000000000",
+          link: ""
+        },
+        {
+          id: "OR1",
+          title: "Automata Theory Online Resources",
+          type: "Online Resources",
+          authors: "Open Access",
+          year: 2024,
+          link: ""
+        }
+      ],
+        topics: [
+        {
+          id: "T1",
+          title: "Fundamentals",
+          subtopics: [
+            {
+              id: "S1",
+              value: "Core Concepts"
+            },
+            {
+              id: "S2",
+              value: "Principles and Practices"
+            },
+            {
+              id: "S3",
+              value: "Key Methodologies"
+            }
+          ],
+          tlas: [
+            {
+              id: "TLA1",
+              classPhase: "Pre-class",
+              performedBy: "Instructor",
+              tlaName: "Lecture",
+              tlaDescription: "Introduction to automata theory.",
+              laboratory: false
+            },
+            {
+              id: "TLA2",
+              classPhase: "In-class",
+              performedBy: "Student",
+              tlaName: "Activity",
+              tlaDescription: "Hands-on exercise on automata theory fundamentals.",
+              laboratory: true
+            }
+          ]
+        },
+        {
+          id: "T2",
+          title: "Applications",
+          subtopics: [
+            {
+              id: "S4",
+              value: "Implementation"
+            },
+            {
+              id: "S5",
+              value: "Case Studies"
+            },
+            {
+              id: "S6",
+              value: "Best Practices"
+            }
+          ],
+          tlas: [
+            {
+              id: "TLA3",
+              classPhase: "In-class",
+              performedBy: "Student",
+              tlaName: "Project Lab",
+              tlaDescription: "Students apply automata theory concepts to a practical project.",
+              laboratory: true
+            }
+          ]
+        },
+        {
+          id: "T3",
+          title: "Advanced Topics",
+          subtopics: [
+            {
+              id: "S7",
+              value: "Advanced Concepts"
+            },
+            {
+              id: "S8",
+              value: "Emerging Trends"
+            },
+            {
+              id: "S9",
+              value: "Research Directions"
+            }
+          ],
+          tlas: [
+            {
+              id: "TLA4",
+              classPhase: "Post-class",
+              performedBy: "Student",
+              tlaName: "Research Assignment",
+              tlaDescription: "Students research emerging trends in automata theory.",
+              laboratory: false
+            }
+          ]
+        }
+      ],
+        courseOutcomes: [
+        {
+          id: "CO1",
+          description: "Explain the fundamental concepts and principles of automata theory.",
+          poMappings: ["I","","","","","","","","","E","I","",""]
+        },
+        {
+          id: "CO2",
+          description: "Apply automata theory techniques to solve practical problems.",
+          poMappings: ["","","E","","","","","","","E","I","",""]
+        },
+        {
+          id: "CO3",
+          description: "Evaluate emerging trends and advanced concepts in automata theory.",
+          poMappings: ["","","","","","","D","","","I","I","E",""]
+        }
+      ],
+        coAssessmentMethodSets: {
+        CO1: [
+          {
+            value: "Concept Quiz",
+            description: "Quiz on automata theory fundamentals."
+          }
+        ],
+        CO2: [
+          {
+            value: "Practical Exercise",
+            description: "Applied exercise in automata theory."
+          }
+        ],
+        CO3: [
+          {
+            value: "Research Paper",
+            description: "Research paper on advanced automata theory topics."
+          }
+        ]
+      },
+        assessments: [
+        {
+          id: "A1",
+          tlaName: "Lecture",
+          phase: "Pre-class",
+          assessmentMethod: "Quiz",
+          assessmentDescription: "Quiz on automata theory concepts.",
+          hasRubric: false
+        },
+        {
+          id: "A2",
+          tlaName: "Activity",
+          phase: "In-class",
+          assessmentMethod: "Lab Report",
+          assessmentDescription: "Lab report on automata theory exercise.",
+          hasRubric: true,
+          rubrics: [
+            {
+              id: 1,
+              criteria: "Correctness",
+              maxScore: "60"
+            },
+            {
+              id: 2,
+              criteria: "Analysis",
+              maxScore: "40"
+            }
+          ]
+        },
+        {
+          id: "A3",
+          tlaName: "Research Assignment",
+          phase: "Post-class",
+          assessmentMethod: "Research Paper",
+          assessmentDescription: "Research paper on automata theory trends.",
+          hasRubric: true,
+          rubrics: [
+            {
+              id: 1,
+              criteria: "Research depth",
+              maxScore: "50"
+            },
+            {
+              id: 2,
+              criteria: "Analysis",
+              maxScore: "50"
+            }
+          ]
+        }
+      ],
+        ilos: [
+        {
+          id: "CO1-ILO1",
+          courseOutcome: "Explain the fundamental concepts and principles of automata theory.",
+          intendedLearningOutcome: "Describe the core principles of automata theory.",
+          deliveryWeek: "Week 1",
+          allocatedTime: "3 hours",
+          topics: [
+            "Fundamentals"
+          ],
+          references: [
+            "TB1 - Automata Theory"
+          ]
+        },
+        {
+          id: "CO2-ILO1",
+          courseOutcome: "Apply automata theory techniques to solve practical problems.",
+          intendedLearningOutcome: "Implement solutions using automata theory techniques.",
+          deliveryWeek: "Week 4",
+          allocatedTime: "3 hours",
+          topics: [
+            "Applications"
+          ],
+          references: [
+            "OR1 - Online Resources"
+          ]
+        },
+        {
+          id: "CO3-ILO1",
+          courseOutcome: "Evaluate emerging trends and advanced concepts in automata theory.",
+          intendedLearningOutcome: "Analyze current research and trends in automata theory.",
+          deliveryWeek: "Week 8",
+          allocatedTime: "3 hours",
+          topics: [
+            "Advanced Topics"
+          ],
+          references: [
+            "TB1 - Automata Theory"
+          ]
+        }
+      ],
+        gradingSystem: [
+        {
+          co: "CO1",
+          ilos: [
+            {
+              id: "ILO1",
+              assessments: [
+                "Concept Quiz"
+              ],
+              weight: {
+                prelim: "50",
+                midterm: "",
+                semi: "",
+                final: ""
+              },
+              minPassing: "60"
+            }
+          ]
+        },
+        {
+          co: "CO2",
+          ilos: [
+            {
+              id: "ILO1",
+              assessments: [
+                "Practical Exercise"
+              ],
+              weight: {
+                prelim: "",
+                midterm: "60",
+                semi: "",
+                final: ""
+              },
+              minPassing: "60"
+            }
+          ]
+        },
+        {
+          co: "CO3",
+          ilos: [
+            {
+              id: "ILO1",
+              assessments: [
+                "Research Paper"
+              ],
+              weight: {
+                prelim: "",
+                midterm: "",
+                semi: "50",
+                final: "50"
+              },
+              minPassing: "60"
+            }
+          ]
+        }
+      ]
+    },
+    {
+        code: "BSCS302",
+        name: "Compiler Design",
+        credits: "2 LEC, 1 LAB",
+        contact: "3",
+        prerequisites: "BSCS301 Automata Theory",
+        class: "Professional Courses",
+        cmo: "25 S, 2015",
+        year: "THIRD YEAR",
+        sem: "2nd Semester",
+        description: "Principles and techniques for designing and implementing compilers.",
+        references: [
+        {
+          id: "TB1",
+          title: "Compiler Design: A Comprehensive Guide",
+          type: "Textbook",
+          authors: "Academic Press",
+          year: 2022,
+          isbn: "978-0000000000",
+          link: ""
+        },
+        {
+          id: "OR1",
+          title: "Compiler Design Online Resources",
+          type: "Online Resources",
+          authors: "Open Access",
+          year: 2024,
+          link: ""
+        }
+      ],
+        topics: [
+        {
+          id: "T1",
+          title: "Fundamentals",
+          subtopics: [
+            {
+              id: "S1",
+              value: "Core Concepts"
+            },
+            {
+              id: "S2",
+              value: "Principles and Practices"
+            },
+            {
+              id: "S3",
+              value: "Key Methodologies"
+            }
+          ],
+          tlas: [
+            {
+              id: "TLA1",
+              classPhase: "Pre-class",
+              performedBy: "Instructor",
+              tlaName: "Lecture",
+              tlaDescription: "Introduction to compiler design.",
+              laboratory: false
+            },
+            {
+              id: "TLA2",
+              classPhase: "In-class",
+              performedBy: "Student",
+              tlaName: "Activity",
+              tlaDescription: "Hands-on exercise on compiler design fundamentals.",
+              laboratory: true
+            }
+          ]
+        },
+        {
+          id: "T2",
+          title: "Applications",
+          subtopics: [
+            {
+              id: "S4",
+              value: "Implementation"
+            },
+            {
+              id: "S5",
+              value: "Case Studies"
+            },
+            {
+              id: "S6",
+              value: "Best Practices"
+            }
+          ],
+          tlas: [
+            {
+              id: "TLA3",
+              classPhase: "In-class",
+              performedBy: "Student",
+              tlaName: "Project Lab",
+              tlaDescription: "Students apply compiler design concepts to a practical project.",
+              laboratory: true
+            }
+          ]
+        },
+        {
+          id: "T3",
+          title: "Advanced Topics",
+          subtopics: [
+            {
+              id: "S7",
+              value: "Advanced Concepts"
+            },
+            {
+              id: "S8",
+              value: "Emerging Trends"
+            },
+            {
+              id: "S9",
+              value: "Research Directions"
+            }
+          ],
+          tlas: [
+            {
+              id: "TLA4",
+              classPhase: "Post-class",
+              performedBy: "Student",
+              tlaName: "Research Assignment",
+              tlaDescription: "Students research emerging trends in compiler design.",
+              laboratory: false
+            }
+          ]
+        }
+      ],
+        courseOutcomes: [
+        {
+          id: "CO1",
+          description: "Explain the fundamental concepts and principles of compiler design.",
+          poMappings: ["I","","","","","","","","","E","E","",""]
+        },
+        {
+          id: "CO2",
+          description: "Apply compiler design techniques to solve practical problems.",
+          poMappings: ["","","E","","","","","","","E","E","",""]
+        },
+        {
+          id: "CO3",
+          description: "Evaluate emerging trends and advanced concepts in compiler design.",
+          poMappings: ["","","","","","","D","","","I","E","E",""]
+        }
+      ],
+        coAssessmentMethodSets: {
+        CO1: [
+          {
+            value: "Concept Quiz",
+            description: "Quiz on compiler design fundamentals."
+          }
+        ],
+        CO2: [
+          {
+            value: "Practical Exercise",
+            description: "Applied exercise in compiler design."
+          }
+        ],
+        CO3: [
+          {
+            value: "Research Paper",
+            description: "Research paper on advanced compiler design topics."
+          }
+        ]
+      },
+        assessments: [
+        {
+          id: "A1",
+          tlaName: "Lecture",
+          phase: "Pre-class",
+          assessmentMethod: "Quiz",
+          assessmentDescription: "Quiz on compiler design concepts.",
+          hasRubric: false
+        },
+        {
+          id: "A2",
+          tlaName: "Activity",
+          phase: "In-class",
+          assessmentMethod: "Lab Report",
+          assessmentDescription: "Lab report on compiler design exercise.",
+          hasRubric: true,
+          rubrics: [
+            {
+              id: 1,
+              criteria: "Correctness",
+              maxScore: "60"
+            },
+            {
+              id: 2,
+              criteria: "Analysis",
+              maxScore: "40"
+            }
+          ]
+        },
+        {
+          id: "A3",
+          tlaName: "Research Assignment",
+          phase: "Post-class",
+          assessmentMethod: "Research Paper",
+          assessmentDescription: "Research paper on compiler design trends.",
+          hasRubric: true,
+          rubrics: [
+            {
+              id: 1,
+              criteria: "Research depth",
+              maxScore: "50"
+            },
+            {
+              id: 2,
+              criteria: "Analysis",
+              maxScore: "50"
+            }
+          ]
+        }
+      ],
+        ilos: [
+        {
+          id: "CO1-ILO1",
+          courseOutcome: "Explain the fundamental concepts and principles of compiler design.",
+          intendedLearningOutcome: "Describe the core principles of compiler design.",
+          deliveryWeek: "Week 1",
+          allocatedTime: "3 hours",
+          topics: [
+            "Fundamentals"
+          ],
+          references: [
+            "TB1 - Compiler Design"
+          ]
+        },
+        {
+          id: "CO2-ILO1",
+          courseOutcome: "Apply compiler design techniques to solve practical problems.",
+          intendedLearningOutcome: "Implement solutions using compiler design techniques.",
+          deliveryWeek: "Week 4",
+          allocatedTime: "3 hours",
+          topics: [
+            "Applications"
+          ],
+          references: [
+            "OR1 - Online Resources"
+          ]
+        },
+        {
+          id: "CO3-ILO1",
+          courseOutcome: "Evaluate emerging trends and advanced concepts in compiler design.",
+          intendedLearningOutcome: "Analyze current research and trends in compiler design.",
+          deliveryWeek: "Week 8",
+          allocatedTime: "3 hours",
+          topics: [
+            "Advanced Topics"
+          ],
+          references: [
+            "TB1 - Compiler Design"
+          ]
+        }
+      ],
+        gradingSystem: [
+        {
+          co: "CO1",
+          ilos: [
+            {
+              id: "ILO1",
+              assessments: [
+                "Concept Quiz"
+              ],
+              weight: {
+                prelim: "50",
+                midterm: "",
+                semi: "",
+                final: ""
+              },
+              minPassing: "60"
+            }
+          ]
+        },
+        {
+          co: "CO2",
+          ilos: [
+            {
+              id: "ILO1",
+              assessments: [
+                "Practical Exercise"
+              ],
+              weight: {
+                prelim: "",
+                midterm: "60",
+                semi: "",
+                final: ""
+              },
+              minPassing: "60"
+            }
+          ]
+        },
+        {
+          co: "CO3",
+          ilos: [
+            {
+              id: "ILO1",
+              assessments: [
+                "Research Paper"
+              ],
+              weight: {
+                prelim: "",
+                midterm: "",
+                semi: "50",
+                final: "50"
+              },
+              minPassing: "60"
+            }
+          ]
+        }
+      ]
+    },
+    {
+        code: "BSCS303",
+        name: "Numerical Methods",
+        credits: "2 LEC, 1 LAB",
+        contact: "3",
+        prerequisites: "BSCS103 Data Structures",
+        class: "Professional Courses",
+        cmo: "25 S, 2015",
+        year: "THIRD YEAR",
+        sem: "2nd Semester",
+        description: "Numerical techniques for solving mathematical problems.",
+        references: [
+        {
+          id: "TB1",
+          title: "Numerical Methods: A Comprehensive Guide",
+          type: "Textbook",
+          authors: "Academic Press",
+          year: 2022,
+          isbn: "978-0000000000",
+          link: ""
+        },
+        {
+          id: "OR1",
+          title: "Numerical Methods Online Resources",
+          type: "Online Resources",
+          authors: "Open Access",
+          year: 2024,
+          link: ""
+        }
+      ],
+        topics: [
+        {
+          id: "T1",
+          title: "Fundamentals",
+          subtopics: [
+            {
+              id: "S1",
+              value: "Core Concepts"
+            },
+            {
+              id: "S2",
+              value: "Principles and Practices"
+            },
+            {
+              id: "S3",
+              value: "Key Methodologies"
+            }
+          ],
+          tlas: [
+            {
+              id: "TLA1",
+              classPhase: "Pre-class",
+              performedBy: "Instructor",
+              tlaName: "Lecture",
+              tlaDescription: "Introduction to numerical methods.",
+              laboratory: false
+            },
+            {
+              id: "TLA2",
+              classPhase: "In-class",
+              performedBy: "Student",
+              tlaName: "Activity",
+              tlaDescription: "Hands-on exercise on numerical methods fundamentals.",
+              laboratory: true
+            }
+          ]
+        },
+        {
+          id: "T2",
+          title: "Applications",
+          subtopics: [
+            {
+              id: "S4",
+              value: "Implementation"
+            },
+            {
+              id: "S5",
+              value: "Case Studies"
+            },
+            {
+              id: "S6",
+              value: "Best Practices"
+            }
+          ],
+          tlas: [
+            {
+              id: "TLA3",
+              classPhase: "In-class",
+              performedBy: "Student",
+              tlaName: "Project Lab",
+              tlaDescription: "Students apply numerical methods concepts to a practical project.",
+              laboratory: true
+            }
+          ]
+        }
+      ],
+        courseOutcomes: [
+        {
+          id: "CO1",
+          description: "Explain the fundamental concepts and principles of numerical methods.",
+          poMappings: ["I","","","","","","","","","E","I","",""]
+        },
+        {
+          id: "CO2",
+          description: "Apply numerical methods techniques to solve practical problems.",
+          poMappings: ["","","E","","","","","","","E","I","",""]
+        }
+      ],
+        coAssessmentMethodSets: {
+        CO1: [
+          {
+            value: "Concept Quiz",
+            description: "Quiz on numerical methods fundamentals."
+          }
+        ],
+        CO2: [
+          {
+            value: "Practical Exercise",
+            description: "Applied exercise in numerical methods."
+          }
+        ]
+      },
+        assessments: [
+        {
+          id: "A1",
+          tlaName: "Lecture",
+          phase: "Pre-class",
+          assessmentMethod: "Quiz",
+          assessmentDescription: "Quiz on numerical methods concepts.",
+          hasRubric: false
+        },
+        {
+          id: "A2",
+          tlaName: "Activity",
+          phase: "In-class",
+          assessmentMethod: "Lab Report",
+          assessmentDescription: "Lab report on numerical methods exercise.",
+          hasRubric: true,
+          rubrics: [
+            {
+              id: 1,
+              criteria: "Correctness",
+              maxScore: "60"
+            },
+            {
+              id: 2,
+              criteria: "Analysis",
+              maxScore: "40"
+            }
+          ]
+        }
+      ],
+        ilos: [
+        {
+          id: "CO1-ILO1",
+          courseOutcome: "Explain the fundamental concepts and principles of numerical methods.",
+          intendedLearningOutcome: "Describe the core principles of numerical methods.",
+          deliveryWeek: "Week 1",
+          allocatedTime: "3 hours",
+          topics: [
+            "Fundamentals"
+          ],
+          references: [
+            "TB1 - Numerical Methods"
+          ]
+        },
+        {
+          id: "CO2-ILO1",
+          courseOutcome: "Apply numerical methods techniques to solve practical problems.",
+          intendedLearningOutcome: "Implement solutions using numerical methods techniques.",
+          deliveryWeek: "Week 4",
+          allocatedTime: "3 hours",
+          topics: [
+            "Applications"
+          ],
+          references: [
+            "OR1 - Online Resources"
+          ]
+        }
+      ],
+        gradingSystem: [
+        {
+          co: "CO1",
+          ilos: [
+            {
+              id: "ILO1",
+              assessments: [
+                "Concept Quiz"
+              ],
+              weight: {
+                prelim: "50",
+                midterm: "",
+                semi: "",
+                final: ""
+              },
+              minPassing: "60"
+            }
+          ]
+        },
+        {
+          co: "CO2",
+          ilos: [
+            {
+              id: "ILO1",
+              assessments: [
+                "Practical Exercise"
+              ],
+              weight: {
+                prelim: "",
+                midterm: "60",
+                semi: "",
+                final: ""
+              },
+              minPassing: "60"
+            }
+          ]
+        }
+      ]
+    },
+    {
+        code: "BSCS401",
+        name: "Software Quality Assurance",
+        credits: "2 LEC, 1 LAB",
+        contact: "3",
+        prerequisites: "BSCS322L Software Engineering",
+        class: "Professional Courses",
+        cmo: "25 S, 2015",
+        year: "FOURTH YEAR",
+        sem: "1st Semester",
+        description: "Principles and practices of software quality assurance and testing.",
+        references: [
+        {
+          id: "TB1",
+          title: "Software Quality Assurance: A Comprehensive Guide",
+          type: "Textbook",
+          authors: "Academic Press",
+          year: 2022,
+          isbn: "978-0000000000",
+          link: ""
+        },
+        {
+          id: "OR1",
+          title: "Software Quality Assurance Online Resources",
+          type: "Online Resources",
+          authors: "Open Access",
+          year: 2024,
+          link: ""
+        }
+      ],
+        topics: [
+        {
+          id: "T1",
+          title: "Fundamentals",
+          subtopics: [
+            {
+              id: "S1",
+              value: "Core Concepts"
+            },
+            {
+              id: "S2",
+              value: "Principles and Practices"
+            },
+            {
+              id: "S3",
+              value: "Key Methodologies"
+            }
+          ],
+          tlas: [
+            {
+              id: "TLA1",
+              classPhase: "Pre-class",
+              performedBy: "Instructor",
+              tlaName: "Lecture",
+              tlaDescription: "Introduction to software quality assurance.",
+              laboratory: false
+            },
+            {
+              id: "TLA2",
+              classPhase: "In-class",
+              performedBy: "Student",
+              tlaName: "Activity",
+              tlaDescription: "Hands-on exercise on software quality assurance fundamentals.",
+              laboratory: true
+            }
+          ]
+        },
+        {
+          id: "T2",
+          title: "Applications",
+          subtopics: [
+            {
+              id: "S4",
+              value: "Implementation"
+            },
+            {
+              id: "S5",
+              value: "Case Studies"
+            },
+            {
+              id: "S6",
+              value: "Best Practices"
+            }
+          ],
+          tlas: [
+            {
+              id: "TLA3",
+              classPhase: "In-class",
+              performedBy: "Student",
+              tlaName: "Project Lab",
+              tlaDescription: "Students apply software quality assurance concepts to a practical project.",
+              laboratory: true
+            }
+          ]
+        },
+        {
+          id: "T3",
+          title: "Advanced Topics",
+          subtopics: [
+            {
+              id: "S7",
+              value: "Advanced Concepts"
+            },
+            {
+              id: "S8",
+              value: "Emerging Trends"
+            },
+            {
+              id: "S9",
+              value: "Research Directions"
+            }
+          ],
+          tlas: [
+            {
+              id: "TLA4",
+              classPhase: "Post-class",
+              performedBy: "Student",
+              tlaName: "Research Assignment",
+              tlaDescription: "Students research emerging trends in software quality assurance.",
+              laboratory: false
+            }
+          ]
+        }
+      ],
+        courseOutcomes: [
+        {
+          id: "CO1",
+          description: "Explain the fundamental concepts and principles of software quality assurance.",
+          poMappings: ["I","","","","","","","","","E","I","",""]
+        },
+        {
+          id: "CO2",
+          description: "Apply software quality assurance techniques to solve practical problems.",
+          poMappings: ["","","E","","","","","","","E","I","",""]
+        },
+        {
+          id: "CO3",
+          description: "Evaluate emerging trends and advanced concepts in software quality assurance.",
+          poMappings: ["","","","","","","D","","","I","I","E",""]
+        }
+      ],
+        coAssessmentMethodSets: {
+        CO1: [
+          {
+            value: "Concept Quiz",
+            description: "Quiz on software quality assurance fundamentals."
+          }
+        ],
+        CO2: [
+          {
+            value: "Practical Exercise",
+            description: "Applied exercise in software quality assurance."
+          }
+        ],
+        CO3: [
+          {
+            value: "Research Paper",
+            description: "Research paper on advanced software quality assurance topics."
+          }
+        ]
+      },
+        assessments: [
+        {
+          id: "A1",
+          tlaName: "Lecture",
+          phase: "Pre-class",
+          assessmentMethod: "Quiz",
+          assessmentDescription: "Quiz on software quality assurance concepts.",
+          hasRubric: false
+        },
+        {
+          id: "A2",
+          tlaName: "Activity",
+          phase: "In-class",
+          assessmentMethod: "Lab Report",
+          assessmentDescription: "Lab report on software quality assurance exercise.",
+          hasRubric: true,
+          rubrics: [
+            {
+              id: 1,
+              criteria: "Correctness",
+              maxScore: "60"
+            },
+            {
+              id: 2,
+              criteria: "Analysis",
+              maxScore: "40"
+            }
+          ]
+        },
+        {
+          id: "A3",
+          tlaName: "Research Assignment",
+          phase: "Post-class",
+          assessmentMethod: "Research Paper",
+          assessmentDescription: "Research paper on software quality assurance trends.",
+          hasRubric: true,
+          rubrics: [
+            {
+              id: 1,
+              criteria: "Research depth",
+              maxScore: "50"
+            },
+            {
+              id: 2,
+              criteria: "Analysis",
+              maxScore: "50"
+            }
+          ]
+        }
+      ],
+        ilos: [
+        {
+          id: "CO1-ILO1",
+          courseOutcome: "Explain the fundamental concepts and principles of software quality assurance.",
+          intendedLearningOutcome: "Describe the core principles of software quality assurance.",
+          deliveryWeek: "Week 1",
+          allocatedTime: "3 hours",
+          topics: [
+            "Fundamentals"
+          ],
+          references: [
+            "TB1 - Software Quality Assurance"
+          ]
+        },
+        {
+          id: "CO2-ILO1",
+          courseOutcome: "Apply software quality assurance techniques to solve practical problems.",
+          intendedLearningOutcome: "Implement solutions using software quality assurance techniques.",
+          deliveryWeek: "Week 4",
+          allocatedTime: "3 hours",
+          topics: [
+            "Applications"
+          ],
+          references: [
+            "OR1 - Online Resources"
+          ]
+        },
+        {
+          id: "CO3-ILO1",
+          courseOutcome: "Evaluate emerging trends and advanced concepts in software quality assurance.",
+          intendedLearningOutcome: "Analyze current research and trends in software quality assurance.",
+          deliveryWeek: "Week 8",
+          allocatedTime: "3 hours",
+          topics: [
+            "Advanced Topics"
+          ],
+          references: [
+            "TB1 - Software Quality Assurance"
+          ]
+        }
+      ],
+        gradingSystem: [
+        {
+          co: "CO1",
+          ilos: [
+            {
+              id: "ILO1",
+              assessments: [
+                "Concept Quiz"
+              ],
+              weight: {
+                prelim: "50",
+                midterm: "",
+                semi: "",
+                final: ""
+              },
+              minPassing: "60"
+            }
+          ]
+        },
+        {
+          co: "CO2",
+          ilos: [
+            {
+              id: "ILO1",
+              assessments: [
+                "Practical Exercise"
+              ],
+              weight: {
+                prelim: "",
+                midterm: "60",
+                semi: "",
+                final: ""
+              },
+              minPassing: "60"
+            }
+          ]
+        },
+        {
+          co: "CO3",
+          ilos: [
+            {
+              id: "ILO1",
+              assessments: [
+                "Research Paper"
+              ],
+              weight: {
+                prelim: "",
+                midterm: "",
+                semi: "50",
+                final: "50"
+              },
+              minPassing: "60"
+            }
+          ]
+        }
+      ]
+    },
+    {
+        code: "BSCS402",
+        name: "Machine Learning",
+        credits: "2 LEC, 1 LAB",
+        contact: "3",
+        prerequisites: "BSCS301 Automata Theory",
+        class: "Professional Courses",
+        cmo: "25 S, 2015",
+        year: "FOURTH YEAR",
+        sem: "1st Semester",
+        description: "An introduction to machine learning algorithms and their applications.",
+        references: [
+        {
+          id: "TB1",
+          title: "Machine Learning: A Comprehensive Guide",
+          type: "Textbook",
+          authors: "Academic Press",
+          year: 2022,
+          isbn: "978-0000000000",
+          link: ""
+        },
+        {
+          id: "OR1",
+          title: "Machine Learning Online Resources",
+          type: "Online Resources",
+          authors: "Open Access",
+          year: 2024,
+          link: ""
+        }
+      ],
+        topics: [
+        {
+          id: "T1",
+          title: "Fundamentals",
+          subtopics: [
+            {
+              id: "S1",
+              value: "Core Concepts"
+            },
+            {
+              id: "S2",
+              value: "Principles and Practices"
+            },
+            {
+              id: "S3",
+              value: "Key Methodologies"
+            }
+          ],
+          tlas: [
+            {
+              id: "TLA1",
+              classPhase: "Pre-class",
+              performedBy: "Instructor",
+              tlaName: "Lecture",
+              tlaDescription: "Introduction to machine learning.",
+              laboratory: false
+            },
+            {
+              id: "TLA2",
+              classPhase: "In-class",
+              performedBy: "Student",
+              tlaName: "Activity",
+              tlaDescription: "Hands-on exercise on machine learning fundamentals.",
+              laboratory: true
+            }
+          ]
+        },
+        {
+          id: "T2",
+          title: "Applications",
+          subtopics: [
+            {
+              id: "S4",
+              value: "Implementation"
+            },
+            {
+              id: "S5",
+              value: "Case Studies"
+            },
+            {
+              id: "S6",
+              value: "Best Practices"
+            }
+          ],
+          tlas: [
+            {
+              id: "TLA3",
+              classPhase: "In-class",
+              performedBy: "Student",
+              tlaName: "Project Lab",
+              tlaDescription: "Students apply machine learning concepts to a practical project.",
+              laboratory: true
+            }
+          ]
+        },
+        {
+          id: "T3",
+          title: "Advanced Topics",
+          subtopics: [
+            {
+              id: "S7",
+              value: "Advanced Concepts"
+            },
+            {
+              id: "S8",
+              value: "Emerging Trends"
+            },
+            {
+              id: "S9",
+              value: "Research Directions"
+            }
+          ],
+          tlas: [
+            {
+              id: "TLA4",
+              classPhase: "Post-class",
+              performedBy: "Student",
+              tlaName: "Research Assignment",
+              tlaDescription: "Students research emerging trends in machine learning.",
+              laboratory: false
+            }
+          ]
+        }
+      ],
+        courseOutcomes: [
+        {
+          id: "CO1",
+          description: "Explain the fundamental concepts and principles of machine learning.",
+          poMappings: ["I","","","","","","","","","E","I","E",""]
+        },
+        {
+          id: "CO2",
+          description: "Apply machine learning techniques to solve practical problems.",
+          poMappings: ["","","E","","","","","","","E","I","E",""]
+        },
+        {
+          id: "CO3",
+          description: "Evaluate emerging trends and advanced concepts in machine learning.",
+          poMappings: ["","","","","","","D","","","I","I","E",""]
+        }
+      ],
+        coAssessmentMethodSets: {
+        CO1: [
+          {
+            value: "Concept Quiz",
+            description: "Quiz on machine learning fundamentals."
+          }
+        ],
+        CO2: [
+          {
+            value: "Practical Exercise",
+            description: "Applied exercise in machine learning."
+          }
+        ],
+        CO3: [
+          {
+            value: "Research Paper",
+            description: "Research paper on advanced machine learning topics."
+          }
+        ]
+      },
+        assessments: [
+        {
+          id: "A1",
+          tlaName: "Lecture",
+          phase: "Pre-class",
+          assessmentMethod: "Quiz",
+          assessmentDescription: "Quiz on machine learning concepts.",
+          hasRubric: false
+        },
+        {
+          id: "A2",
+          tlaName: "Activity",
+          phase: "In-class",
+          assessmentMethod: "Lab Report",
+          assessmentDescription: "Lab report on machine learning exercise.",
+          hasRubric: true,
+          rubrics: [
+            {
+              id: 1,
+              criteria: "Correctness",
+              maxScore: "60"
+            },
+            {
+              id: 2,
+              criteria: "Analysis",
+              maxScore: "40"
+            }
+          ]
+        },
+        {
+          id: "A3",
+          tlaName: "Research Assignment",
+          phase: "Post-class",
+          assessmentMethod: "Research Paper",
+          assessmentDescription: "Research paper on machine learning trends.",
+          hasRubric: true,
+          rubrics: [
+            {
+              id: 1,
+              criteria: "Research depth",
+              maxScore: "50"
+            },
+            {
+              id: 2,
+              criteria: "Analysis",
+              maxScore: "50"
+            }
+          ]
+        }
+      ],
+        ilos: [
+        {
+          id: "CO1-ILO1",
+          courseOutcome: "Explain the fundamental concepts and principles of machine learning.",
+          intendedLearningOutcome: "Describe the core principles of machine learning.",
+          deliveryWeek: "Week 1",
+          allocatedTime: "3 hours",
+          topics: [
+            "Fundamentals"
+          ],
+          references: [
+            "TB1 - Machine Learning"
+          ]
+        },
+        {
+          id: "CO2-ILO1",
+          courseOutcome: "Apply machine learning techniques to solve practical problems.",
+          intendedLearningOutcome: "Implement solutions using machine learning techniques.",
+          deliveryWeek: "Week 4",
+          allocatedTime: "3 hours",
+          topics: [
+            "Applications"
+          ],
+          references: [
+            "OR1 - Online Resources"
+          ]
+        },
+        {
+          id: "CO3-ILO1",
+          courseOutcome: "Evaluate emerging trends and advanced concepts in machine learning.",
+          intendedLearningOutcome: "Analyze current research and trends in machine learning.",
+          deliveryWeek: "Week 8",
+          allocatedTime: "3 hours",
+          topics: [
+            "Advanced Topics"
+          ],
+          references: [
+            "TB1 - Machine Learning"
+          ]
+        }
+      ],
+        gradingSystem: [
+        {
+          co: "CO1",
+          ilos: [
+            {
+              id: "ILO1",
+              assessments: [
+                "Concept Quiz"
+              ],
+              weight: {
+                prelim: "50",
+                midterm: "",
+                semi: "",
+                final: ""
+              },
+              minPassing: "60"
+            }
+          ]
+        },
+        {
+          co: "CO2",
+          ilos: [
+            {
+              id: "ILO1",
+              assessments: [
+                "Practical Exercise"
+              ],
+              weight: {
+                prelim: "",
+                midterm: "60",
+                semi: "",
+                final: ""
+              },
+              minPassing: "60"
+            }
+          ]
+        },
+        {
+          co: "CO3",
+          ilos: [
+            {
+              id: "ILO1",
+              assessments: [
+                "Research Paper"
+              ],
+              weight: {
+                prelim: "",
+                midterm: "",
+                semi: "50",
+                final: "50"
+              },
+              minPassing: "60"
+            }
+          ]
+        }
+      ]
+    },
+    {
+        code: "BSCS403",
+        name: "Parallel Computing",
+        credits: "2 LEC, 1 LAB",
+        contact: "3",
+        prerequisites: "BSCS314L Operating Systems",
+        class: "Professional Courses",
+        cmo: "25 S, 2015",
+        year: "FOURTH YEAR",
+        sem: "2nd Semester",
+        description: "Study of parallel computing architectures and programming models.",
+        references: [
+        {
+          id: "TB1",
+          title: "Parallel Computing: A Comprehensive Guide",
+          type: "Textbook",
+          authors: "Academic Press",
+          year: 2022,
+          isbn: "978-0000000000",
+          link: ""
+        },
+        {
+          id: "OR1",
+          title: "Parallel Computing Online Resources",
+          type: "Online Resources",
+          authors: "Open Access",
+          year: 2024,
+          link: ""
+        }
+      ],
+        topics: [
+        {
+          id: "T1",
+          title: "Fundamentals",
+          subtopics: [
+            {
+              id: "S1",
+              value: "Core Concepts"
+            },
+            {
+              id: "S2",
+              value: "Principles and Practices"
+            },
+            {
+              id: "S3",
+              value: "Key Methodologies"
+            }
+          ],
+          tlas: [
+            {
+              id: "TLA1",
+              classPhase: "Pre-class",
+              performedBy: "Instructor",
+              tlaName: "Lecture",
+              tlaDescription: "Introduction to parallel computing.",
+              laboratory: false
+            },
+            {
+              id: "TLA2",
+              classPhase: "In-class",
+              performedBy: "Student",
+              tlaName: "Activity",
+              tlaDescription: "Hands-on exercise on parallel computing fundamentals.",
+              laboratory: true
+            }
+          ]
+        },
+        {
+          id: "T2",
+          title: "Applications",
+          subtopics: [
+            {
+              id: "S4",
+              value: "Implementation"
+            },
+            {
+              id: "S5",
+              value: "Case Studies"
+            },
+            {
+              id: "S6",
+              value: "Best Practices"
+            }
+          ],
+          tlas: [
+            {
+              id: "TLA3",
+              classPhase: "In-class",
+              performedBy: "Student",
+              tlaName: "Project Lab",
+              tlaDescription: "Students apply parallel computing concepts to a practical project.",
+              laboratory: true
+            }
+          ]
+        }
+      ],
+        courseOutcomes: [
+        {
+          id: "CO1",
+          description: "Explain the fundamental concepts and principles of parallel computing.",
+          poMappings: ["I","","","","","","","","","E","I","",""]
+        },
+        {
+          id: "CO2",
+          description: "Apply parallel computing techniques to solve practical problems.",
+          poMappings: ["","","E","","","","","","","E","I","",""]
+        }
+      ],
+        coAssessmentMethodSets: {
+        CO1: [
+          {
+            value: "Concept Quiz",
+            description: "Quiz on parallel computing fundamentals."
+          }
+        ],
+        CO2: [
+          {
+            value: "Practical Exercise",
+            description: "Applied exercise in parallel computing."
+          }
+        ]
+      },
+        assessments: [
+        {
+          id: "A1",
+          tlaName: "Lecture",
+          phase: "Pre-class",
+          assessmentMethod: "Quiz",
+          assessmentDescription: "Quiz on parallel computing concepts.",
+          hasRubric: false
+        },
+        {
+          id: "A2",
+          tlaName: "Activity",
+          phase: "In-class",
+          assessmentMethod: "Lab Report",
+          assessmentDescription: "Lab report on parallel computing exercise.",
+          hasRubric: true,
+          rubrics: [
+            {
+              id: 1,
+              criteria: "Correctness",
+              maxScore: "60"
+            },
+            {
+              id: 2,
+              criteria: "Analysis",
+              maxScore: "40"
+            }
+          ]
+        }
+      ],
+        ilos: [
+        {
+          id: "CO1-ILO1",
+          courseOutcome: "Explain the fundamental concepts and principles of parallel computing.",
+          intendedLearningOutcome: "Describe the core principles of parallel computing.",
+          deliveryWeek: "Week 1",
+          allocatedTime: "3 hours",
+          topics: [
+            "Fundamentals"
+          ],
+          references: [
+            "TB1 - Parallel Computing"
+          ]
+        },
+        {
+          id: "CO2-ILO1",
+          courseOutcome: "Apply parallel computing techniques to solve practical problems.",
+          intendedLearningOutcome: "Implement solutions using parallel computing techniques.",
+          deliveryWeek: "Week 4",
+          allocatedTime: "3 hours",
+          topics: [
+            "Applications"
+          ],
+          references: [
+            "OR1 - Online Resources"
+          ]
+        }
+      ],
+        gradingSystem: [
+        {
+          co: "CO1",
+          ilos: [
+            {
+              id: "ILO1",
+              assessments: [
+                "Concept Quiz"
+              ],
+              weight: {
+                prelim: "50",
+                midterm: "",
+                semi: "",
+                final: ""
+              },
+              minPassing: "60"
+            }
+          ]
+        },
+        {
+          co: "CO2",
+          ilos: [
+            {
+              id: "ILO1",
+              assessments: [
+                "Practical Exercise"
+              ],
+              weight: {
+                prelim: "",
+                midterm: "60",
+                semi: "",
+                final: ""
+              },
+              minPassing: "60"
+            }
+          ]
+        }
+      ]
+    },
+    {
+        code: "BSCS404",
+        name: "Computer Graphics",
+        credits: "2 LEC, 1 LAB",
+        contact: "3",
+        prerequisites: "BSCS103 Data Structures",
+        class: "Professional Courses",
+        cmo: "25 S, 2015",
+        year: "FOURTH YEAR",
+        sem: "1st Semester",
+        description: "Fundamentals of computer graphics, rendering, and visualization.",
+        references: [
+        {
+          id: "TB1",
+          title: "Computer Graphics: A Comprehensive Guide",
+          type: "Textbook",
+          authors: "Academic Press",
+          year: 2022,
+          isbn: "978-0000000000",
+          link: ""
+        },
+        {
+          id: "OR1",
+          title: "Computer Graphics Online Resources",
+          type: "Online Resources",
+          authors: "Open Access",
+          year: 2024,
+          link: ""
+        }
+      ],
+        topics: [
+        {
+          id: "T1",
+          title: "Fundamentals",
+          subtopics: [
+            {
+              id: "S1",
+              value: "Core Concepts"
+            },
+            {
+              id: "S2",
+              value: "Principles and Practices"
+            },
+            {
+              id: "S3",
+              value: "Key Methodologies"
+            }
+          ],
+          tlas: [
+            {
+              id: "TLA1",
+              classPhase: "Pre-class",
+              performedBy: "Instructor",
+              tlaName: "Lecture",
+              tlaDescription: "Introduction to computer graphics.",
+              laboratory: false
+            },
+            {
+              id: "TLA2",
+              classPhase: "In-class",
+              performedBy: "Student",
+              tlaName: "Activity",
+              tlaDescription: "Hands-on exercise on computer graphics fundamentals.",
+              laboratory: true
+            }
+          ]
+        },
+        {
+          id: "T2",
+          title: "Applications",
+          subtopics: [
+            {
+              id: "S4",
+              value: "Implementation"
+            },
+            {
+              id: "S5",
+              value: "Case Studies"
+            },
+            {
+              id: "S6",
+              value: "Best Practices"
+            }
+          ],
+          tlas: [
+            {
+              id: "TLA3",
+              classPhase: "In-class",
+              performedBy: "Student",
+              tlaName: "Project Lab",
+              tlaDescription: "Students apply computer graphics concepts to a practical project.",
+              laboratory: true
+            }
+          ]
+        },
+        {
+          id: "T3",
+          title: "Advanced Topics",
+          subtopics: [
+            {
+              id: "S7",
+              value: "Advanced Concepts"
+            },
+            {
+              id: "S8",
+              value: "Emerging Trends"
+            },
+            {
+              id: "S9",
+              value: "Research Directions"
+            }
+          ],
+          tlas: [
+            {
+              id: "TLA4",
+              classPhase: "Post-class",
+              performedBy: "Student",
+              tlaName: "Research Assignment",
+              tlaDescription: "Students research emerging trends in computer graphics.",
+              laboratory: false
+            }
+          ]
+        }
+      ],
+        courseOutcomes: [
+        {
+          id: "CO1",
+          description: "Explain the fundamental concepts and principles of computer graphics.",
+          poMappings: ["I","","","","","","","","","E","I","",""]
+        },
+        {
+          id: "CO2",
+          description: "Apply computer graphics techniques to solve practical problems.",
+          poMappings: ["","","E","","","","","","","E","I","",""]
+        },
+        {
+          id: "CO3",
+          description: "Evaluate emerging trends and advanced concepts in computer graphics.",
+          poMappings: ["","","","","","","D","","","I","I","E",""]
+        }
+      ],
+        coAssessmentMethodSets: {
+        CO1: [
+          {
+            value: "Concept Quiz",
+            description: "Quiz on computer graphics fundamentals."
+          }
+        ],
+        CO2: [
+          {
+            value: "Practical Exercise",
+            description: "Applied exercise in computer graphics."
+          }
+        ],
+        CO3: [
+          {
+            value: "Research Paper",
+            description: "Research paper on advanced computer graphics topics."
+          }
+        ]
+      },
+        assessments: [
+        {
+          id: "A1",
+          tlaName: "Lecture",
+          phase: "Pre-class",
+          assessmentMethod: "Quiz",
+          assessmentDescription: "Quiz on computer graphics concepts.",
+          hasRubric: false
+        },
+        {
+          id: "A2",
+          tlaName: "Activity",
+          phase: "In-class",
+          assessmentMethod: "Lab Report",
+          assessmentDescription: "Lab report on computer graphics exercise.",
+          hasRubric: true,
+          rubrics: [
+            {
+              id: 1,
+              criteria: "Correctness",
+              maxScore: "60"
+            },
+            {
+              id: 2,
+              criteria: "Analysis",
+              maxScore: "40"
+            }
+          ]
+        },
+        {
+          id: "A3",
+          tlaName: "Research Assignment",
+          phase: "Post-class",
+          assessmentMethod: "Research Paper",
+          assessmentDescription: "Research paper on computer graphics trends.",
+          hasRubric: true,
+          rubrics: [
+            {
+              id: 1,
+              criteria: "Research depth",
+              maxScore: "50"
+            },
+            {
+              id: 2,
+              criteria: "Analysis",
+              maxScore: "50"
+            }
+          ]
+        }
+      ],
+        ilos: [
+        {
+          id: "CO1-ILO1",
+          courseOutcome: "Explain the fundamental concepts and principles of computer graphics.",
+          intendedLearningOutcome: "Describe the core principles of computer graphics.",
+          deliveryWeek: "Week 1",
+          allocatedTime: "3 hours",
+          topics: [
+            "Fundamentals"
+          ],
+          references: [
+            "TB1 - Computer Graphics"
+          ]
+        },
+        {
+          id: "CO2-ILO1",
+          courseOutcome: "Apply computer graphics techniques to solve practical problems.",
+          intendedLearningOutcome: "Implement solutions using computer graphics techniques.",
+          deliveryWeek: "Week 4",
+          allocatedTime: "3 hours",
+          topics: [
+            "Applications"
+          ],
+          references: [
+            "OR1 - Online Resources"
+          ]
+        },
+        {
+          id: "CO3-ILO1",
+          courseOutcome: "Evaluate emerging trends and advanced concepts in computer graphics.",
+          intendedLearningOutcome: "Analyze current research and trends in computer graphics.",
+          deliveryWeek: "Week 8",
+          allocatedTime: "3 hours",
+          topics: [
+            "Advanced Topics"
+          ],
+          references: [
+            "TB1 - Computer Graphics"
+          ]
+        }
+      ],
+        gradingSystem: [
+        {
+          co: "CO1",
+          ilos: [
+            {
+              id: "ILO1",
+              assessments: [
+                "Concept Quiz"
+              ],
+              weight: {
+                prelim: "50",
+                midterm: "",
+                semi: "",
+                final: ""
+              },
+              minPassing: "60"
+            }
+          ]
+        },
+        {
+          co: "CO2",
+          ilos: [
+            {
+              id: "ILO1",
+              assessments: [
+                "Practical Exercise"
+              ],
+              weight: {
+                prelim: "",
+                midterm: "60",
+                semi: "",
+                final: ""
+              },
+              minPassing: "60"
+            }
+          ]
+        },
+        {
+          co: "CO3",
+          ilos: [
+            {
+              id: "ILO1",
+              assessments: [
+                "Research Paper"
+              ],
+              weight: {
+                prelim: "",
+                midterm: "",
+                semi: "50",
+                final: "50"
+              },
+              minPassing: "60"
+            }
+          ]
+        }
+      ]
+    },
+    {
+        code: "BSCS405",
+        name: "Natural Language Processing",
+        credits: "2 LEC, 1 LAB",
+        contact: "3",
+        prerequisites: "BSCS301 Automata Theory",
+        class: "Professional Courses",
+        cmo: "25 S, 2015",
+        year: "FOURTH YEAR",
+        sem: "2nd Semester",
+        description: "Study of computational approaches to natural language understanding and generation.",
+        references: [
+        {
+          id: "TB1",
+          title: "Natural Language Processing: A Comprehensive Guide",
+          type: "Textbook",
+          authors: "Academic Press",
+          year: 2022,
+          isbn: "978-0000000000",
+          link: ""
+        },
+        {
+          id: "OR1",
+          title: "Natural Language Processing Online Resources",
+          type: "Online Resources",
+          authors: "Open Access",
+          year: 2024,
+          link: ""
+        }
+      ],
+        topics: [
+        {
+          id: "T1",
+          title: "Fundamentals",
+          subtopics: [
+            {
+              id: "S1",
+              value: "Core Concepts"
+            },
+            {
+              id: "S2",
+              value: "Principles and Practices"
+            },
+            {
+              id: "S3",
+              value: "Key Methodologies"
+            }
+          ],
+          tlas: [
+            {
+              id: "TLA1",
+              classPhase: "Pre-class",
+              performedBy: "Instructor",
+              tlaName: "Lecture",
+              tlaDescription: "Introduction to natural language processing.",
+              laboratory: false
+            },
+            {
+              id: "TLA2",
+              classPhase: "In-class",
+              performedBy: "Student",
+              tlaName: "Activity",
+              tlaDescription: "Hands-on exercise on natural language processing fundamentals.",
+              laboratory: true
+            }
+          ]
+        },
+        {
+          id: "T2",
+          title: "Applications",
+          subtopics: [
+            {
+              id: "S4",
+              value: "Implementation"
+            },
+            {
+              id: "S5",
+              value: "Case Studies"
+            },
+            {
+              id: "S6",
+              value: "Best Practices"
+            }
+          ],
+          tlas: [
+            {
+              id: "TLA3",
+              classPhase: "In-class",
+              performedBy: "Student",
+              tlaName: "Project Lab",
+              tlaDescription: "Students apply natural language processing concepts to a practical project.",
+              laboratory: true
+            }
+          ]
+        }
+      ],
+        courseOutcomes: [
+        {
+          id: "CO1",
+          description: "Explain the fundamental concepts and principles of natural language processing.",
+          poMappings: ["I","","","","","","","","","E","I","",""]
+        },
+        {
+          id: "CO2",
+          description: "Apply natural language processing techniques to solve practical problems.",
+          poMappings: ["","","E","","","","","","","E","I","",""]
+        }
+      ],
+        coAssessmentMethodSets: {
+        CO1: [
+          {
+            value: "Concept Quiz",
+            description: "Quiz on natural language processing fundamentals."
+          }
+        ],
+        CO2: [
+          {
+            value: "Practical Exercise",
+            description: "Applied exercise in natural language processing."
+          }
+        ]
+      },
+        assessments: [
+        {
+          id: "A1",
+          tlaName: "Lecture",
+          phase: "Pre-class",
+          assessmentMethod: "Quiz",
+          assessmentDescription: "Quiz on natural language processing concepts.",
+          hasRubric: false
+        },
+        {
+          id: "A2",
+          tlaName: "Activity",
+          phase: "In-class",
+          assessmentMethod: "Lab Report",
+          assessmentDescription: "Lab report on natural language processing exercise.",
+          hasRubric: true,
+          rubrics: [
+            {
+              id: 1,
+              criteria: "Correctness",
+              maxScore: "60"
+            },
+            {
+              id: 2,
+              criteria: "Analysis",
+              maxScore: "40"
+            }
+          ]
+        }
+      ],
+        ilos: [
+        {
+          id: "CO1-ILO1",
+          courseOutcome: "Explain the fundamental concepts and principles of natural language processing.",
+          intendedLearningOutcome: "Describe the core principles of natural language processing.",
+          deliveryWeek: "Week 1",
+          allocatedTime: "3 hours",
+          topics: [
+            "Fundamentals"
+          ],
+          references: [
+            "TB1 - Natural Language Processing"
+          ]
+        },
+        {
+          id: "CO2-ILO1",
+          courseOutcome: "Apply natural language processing techniques to solve practical problems.",
+          intendedLearningOutcome: "Implement solutions using natural language processing techniques.",
+          deliveryWeek: "Week 4",
+          allocatedTime: "3 hours",
+          topics: [
+            "Applications"
+          ],
+          references: [
+            "OR1 - Online Resources"
+          ]
+        }
+      ],
+        gradingSystem: [
+        {
+          co: "CO1",
+          ilos: [
+            {
+              id: "ILO1",
+              assessments: [
+                "Concept Quiz"
+              ],
+              weight: {
+                prelim: "50",
+                midterm: "",
+                semi: "",
+                final: ""
+              },
+              minPassing: "60"
+            }
+          ]
+        },
+        {
+          co: "CO2",
+          ilos: [
+            {
+              id: "ILO1",
+              assessments: [
+                "Practical Exercise"
+              ],
+              weight: {
+                prelim: "",
+                midterm: "60",
+                semi: "",
+                final: ""
+              },
+              minPassing: "60"
+            }
+          ]
+        }
+      ]
+    },
+    {
+        code: "BSCS406",
+        name: "Embedded Systems",
+        credits: "2 LEC, 1 LAB",
+        contact: "3",
+        prerequisites: "BSCS314L Operating Systems",
+        class: "Professional Courses",
+        cmo: "25 S, 2015",
+        year: "FOURTH YEAR",
+        sem: "2nd Semester",
+        description: "Design and programming of embedded systems and IoT devices.",
+        references: [
+        {
+          id: "TB1",
+          title: "Embedded Systems: A Comprehensive Guide",
+          type: "Textbook",
+          authors: "Academic Press",
+          year: 2022,
+          isbn: "978-0000000000",
+          link: ""
+        },
+        {
+          id: "OR1",
+          title: "Embedded Systems Online Resources",
+          type: "Online Resources",
+          authors: "Open Access",
+          year: 2024,
+          link: ""
+        }
+      ],
+        topics: [
+        {
+          id: "T1",
+          title: "Fundamentals",
+          subtopics: [
+            {
+              id: "S1",
+              value: "Core Concepts"
+            },
+            {
+              id: "S2",
+              value: "Principles and Practices"
+            },
+            {
+              id: "S3",
+              value: "Key Methodologies"
+            }
+          ],
+          tlas: [
+            {
+              id: "TLA1",
+              classPhase: "Pre-class",
+              performedBy: "Instructor",
+              tlaName: "Lecture",
+              tlaDescription: "Introduction to embedded systems.",
+              laboratory: false
+            },
+            {
+              id: "TLA2",
+              classPhase: "In-class",
+              performedBy: "Student",
+              tlaName: "Activity",
+              tlaDescription: "Hands-on exercise on embedded systems fundamentals.",
+              laboratory: true
+            }
+          ]
+        },
+        {
+          id: "T2",
+          title: "Applications",
+          subtopics: [
+            {
+              id: "S4",
+              value: "Implementation"
+            },
+            {
+              id: "S5",
+              value: "Case Studies"
+            },
+            {
+              id: "S6",
+              value: "Best Practices"
+            }
+          ],
+          tlas: [
+            {
+              id: "TLA3",
+              classPhase: "In-class",
+              performedBy: "Student",
+              tlaName: "Project Lab",
+              tlaDescription: "Students apply embedded systems concepts to a practical project.",
+              laboratory: true
+            }
+          ]
+        },
+        {
+          id: "T3",
+          title: "Advanced Topics",
+          subtopics: [
+            {
+              id: "S7",
+              value: "Advanced Concepts"
+            },
+            {
+              id: "S8",
+              value: "Emerging Trends"
+            },
+            {
+              id: "S9",
+              value: "Research Directions"
+            }
+          ],
+          tlas: [
+            {
+              id: "TLA4",
+              classPhase: "Post-class",
+              performedBy: "Student",
+              tlaName: "Research Assignment",
+              tlaDescription: "Students research emerging trends in embedded systems.",
+              laboratory: false
+            }
+          ]
+        }
+      ],
+        courseOutcomes: [
+        {
+          id: "CO1",
+          description: "Explain the fundamental concepts and principles of embedded systems.",
+          poMappings: ["I","","","","","","","","","E","I","",""]
+        },
+        {
+          id: "CO2",
+          description: "Apply embedded systems techniques to solve practical problems.",
+          poMappings: ["","","E","","","","","","","E","I","",""]
+        },
+        {
+          id: "CO3",
+          description: "Evaluate emerging trends and advanced concepts in embedded systems.",
+          poMappings: ["","","","","","","D","","","I","I","E",""]
+        }
+      ],
+        coAssessmentMethodSets: {
+        CO1: [
+          {
+            value: "Concept Quiz",
+            description: "Quiz on embedded systems fundamentals."
+          }
+        ],
+        CO2: [
+          {
+            value: "Practical Exercise",
+            description: "Applied exercise in embedded systems."
+          }
+        ],
+        CO3: [
+          {
+            value: "Research Paper",
+            description: "Research paper on advanced embedded systems topics."
+          }
+        ]
+      },
+        assessments: [
+        {
+          id: "A1",
+          tlaName: "Lecture",
+          phase: "Pre-class",
+          assessmentMethod: "Quiz",
+          assessmentDescription: "Quiz on embedded systems concepts.",
+          hasRubric: false
+        },
+        {
+          id: "A2",
+          tlaName: "Activity",
+          phase: "In-class",
+          assessmentMethod: "Lab Report",
+          assessmentDescription: "Lab report on embedded systems exercise.",
+          hasRubric: true,
+          rubrics: [
+            {
+              id: 1,
+              criteria: "Correctness",
+              maxScore: "60"
+            },
+            {
+              id: 2,
+              criteria: "Analysis",
+              maxScore: "40"
+            }
+          ]
+        },
+        {
+          id: "A3",
+          tlaName: "Research Assignment",
+          phase: "Post-class",
+          assessmentMethod: "Research Paper",
+          assessmentDescription: "Research paper on embedded systems trends.",
+          hasRubric: true,
+          rubrics: [
+            {
+              id: 1,
+              criteria: "Research depth",
+              maxScore: "50"
+            },
+            {
+              id: 2,
+              criteria: "Analysis",
+              maxScore: "50"
+            }
+          ]
+        }
+      ],
+        ilos: [
+        {
+          id: "CO1-ILO1",
+          courseOutcome: "Explain the fundamental concepts and principles of embedded systems.",
+          intendedLearningOutcome: "Describe the core principles of embedded systems.",
+          deliveryWeek: "Week 1",
+          allocatedTime: "3 hours",
+          topics: [
+            "Fundamentals"
+          ],
+          references: [
+            "TB1 - Embedded Systems"
+          ]
+        },
+        {
+          id: "CO2-ILO1",
+          courseOutcome: "Apply embedded systems techniques to solve practical problems.",
+          intendedLearningOutcome: "Implement solutions using embedded systems techniques.",
+          deliveryWeek: "Week 4",
+          allocatedTime: "3 hours",
+          topics: [
+            "Applications"
+          ],
+          references: [
+            "OR1 - Online Resources"
+          ]
+        },
+        {
+          id: "CO3-ILO1",
+          courseOutcome: "Evaluate emerging trends and advanced concepts in embedded systems.",
+          intendedLearningOutcome: "Analyze current research and trends in embedded systems.",
+          deliveryWeek: "Week 8",
+          allocatedTime: "3 hours",
+          topics: [
+            "Advanced Topics"
+          ],
+          references: [
+            "TB1 - Embedded Systems"
+          ]
+        }
+      ],
+        gradingSystem: [
+        {
+          co: "CO1",
+          ilos: [
+            {
+              id: "ILO1",
+              assessments: [
+                "Concept Quiz"
+              ],
+              weight: {
+                prelim: "50",
+                midterm: "",
+                semi: "",
+                final: ""
+              },
+              minPassing: "60"
+            }
+          ]
+        },
+        {
+          co: "CO2",
+          ilos: [
+            {
+              id: "ILO1",
+              assessments: [
+                "Practical Exercise"
+              ],
+              weight: {
+                prelim: "",
+                midterm: "60",
+                semi: "",
+                final: ""
+              },
+              minPassing: "60"
+            }
+          ]
+        },
+        {
+          co: "CO3",
+          ilos: [
+            {
+              id: "ILO1",
+              assessments: [
+                "Research Paper"
+              ],
+              weight: {
+                prelim: "",
+                midterm: "",
+                semi: "50",
+                final: "50"
+              },
+              minPassing: "60"
+            }
+          ]
+        }
+      ]
+    },
+    {
+        code: "BSCS407",
+        name: "Advanced Algorithms",
+        credits: "3 LEC",
+        contact: "3",
+        prerequisites: "BSCS103 Data Structures",
+        class: "Professional Courses",
+        cmo: "25 S, 2015",
+        year: "FOURTH YEAR",
+        sem: "1st Semester",
+        description: "Advanced algorithmic techniques and complexity analysis.",
+        references: [
+        {
+          id: "TB1",
+          title: "Advanced Algorithms: A Comprehensive Guide",
+          type: "Textbook",
+          authors: "Academic Press",
+          year: 2022,
+          isbn: "978-0000000000",
+          link: ""
+        },
+        {
+          id: "OR1",
+          title: "Advanced Algorithms Online Resources",
+          type: "Online Resources",
+          authors: "Open Access",
+          year: 2024,
+          link: ""
+        }
+      ],
+        topics: [
+        {
+          id: "T1",
+          title: "Fundamentals",
+          subtopics: [
+            {
+              id: "S1",
+              value: "Core Concepts"
+            },
+            {
+              id: "S2",
+              value: "Principles and Practices"
+            },
+            {
+              id: "S3",
+              value: "Key Methodologies"
+            }
+          ],
+          tlas: [
+            {
+              id: "TLA1",
+              classPhase: "Pre-class",
+              performedBy: "Instructor",
+              tlaName: "Lecture",
+              tlaDescription: "Introduction to advanced algorithms.",
+              laboratory: false
+            },
+            {
+              id: "TLA2",
+              classPhase: "In-class",
+              performedBy: "Student",
+              tlaName: "Activity",
+              tlaDescription: "Hands-on exercise on advanced algorithms fundamentals.",
+              laboratory: true
+            }
+          ]
+        },
+        {
+          id: "T2",
+          title: "Applications",
+          subtopics: [
+            {
+              id: "S4",
+              value: "Implementation"
+            },
+            {
+              id: "S5",
+              value: "Case Studies"
+            },
+            {
+              id: "S6",
+              value: "Best Practices"
+            }
+          ],
+          tlas: [
+            {
+              id: "TLA3",
+              classPhase: "In-class",
+              performedBy: "Student",
+              tlaName: "Project Lab",
+              tlaDescription: "Students apply advanced algorithms concepts to a practical project.",
+              laboratory: true
+            }
+          ]
+        }
+      ],
+        courseOutcomes: [
+        {
+          id: "CO1",
+          description: "Explain the fundamental concepts and principles of advanced algorithms.",
+          poMappings: ["I","","","","","","","","","E","I","",""]
+        },
+        {
+          id: "CO2",
+          description: "Apply advanced algorithms techniques to solve practical problems.",
+          poMappings: ["","","E","","","","","","","E","I","",""]
+        }
+      ],
+        coAssessmentMethodSets: {
+        CO1: [
+          {
+            value: "Concept Quiz",
+            description: "Quiz on advanced algorithms fundamentals."
+          }
+        ],
+        CO2: [
+          {
+            value: "Practical Exercise",
+            description: "Applied exercise in advanced algorithms."
+          }
+        ]
+      },
+        assessments: [
+        {
+          id: "A1",
+          tlaName: "Lecture",
+          phase: "Pre-class",
+          assessmentMethod: "Quiz",
+          assessmentDescription: "Quiz on advanced algorithms concepts.",
+          hasRubric: false
+        },
+        {
+          id: "A2",
+          tlaName: "Activity",
+          phase: "In-class",
+          assessmentMethod: "Lab Report",
+          assessmentDescription: "Lab report on advanced algorithms exercise.",
+          hasRubric: true,
+          rubrics: [
+            {
+              id: 1,
+              criteria: "Correctness",
+              maxScore: "60"
+            },
+            {
+              id: 2,
+              criteria: "Analysis",
+              maxScore: "40"
+            }
+          ]
+        }
+      ],
+        ilos: [
+        {
+          id: "CO1-ILO1",
+          courseOutcome: "Explain the fundamental concepts and principles of advanced algorithms.",
+          intendedLearningOutcome: "Describe the core principles of advanced algorithms.",
+          deliveryWeek: "Week 1",
+          allocatedTime: "3 hours",
+          topics: [
+            "Fundamentals"
+          ],
+          references: [
+            "TB1 - Advanced Algorithms"
+          ]
+        },
+        {
+          id: "CO2-ILO1",
+          courseOutcome: "Apply advanced algorithms techniques to solve practical problems.",
+          intendedLearningOutcome: "Implement solutions using advanced algorithms techniques.",
+          deliveryWeek: "Week 4",
+          allocatedTime: "3 hours",
+          topics: [
+            "Applications"
+          ],
+          references: [
+            "OR1 - Online Resources"
+          ]
+        }
+      ],
+        gradingSystem: [
+        {
+          co: "CO1",
+          ilos: [
+            {
+              id: "ILO1",
+              assessments: [
+                "Concept Quiz"
+              ],
+              weight: {
+                prelim: "50",
+                midterm: "",
+                semi: "",
+                final: ""
+              },
+              minPassing: "60"
+            }
+          ]
+        },
+        {
+          co: "CO2",
+          ilos: [
+            {
+              id: "ILO1",
+              assessments: [
+                "Practical Exercise"
+              ],
+              weight: {
+                prelim: "",
+                midterm: "60",
+                semi: "",
+                final: ""
+              },
+              minPassing: "60"
+            }
+          ]
+        }
+      ]
+    },
+    {
+        code: "BSCS408",
+        name: "Distributed Systems",
+        credits: "2 LEC, 1 LAB",
+        contact: "3",
+        prerequisites: "BSCS331L Computer Networks",
+        class: "Professional Courses",
+        cmo: "25 S, 2015",
+        year: "FOURTH YEAR",
+        sem: "1st Semester",
+        description: "Principles and design of distributed computing systems.",
+        references: [
+        {
+          id: "TB1",
+          title: "Distributed Systems: A Comprehensive Guide",
+          type: "Textbook",
+          authors: "Academic Press",
+          year: 2022,
+          isbn: "978-0000000000",
+          link: ""
+        },
+        {
+          id: "OR1",
+          title: "Distributed Systems Online Resources",
+          type: "Online Resources",
+          authors: "Open Access",
+          year: 2024,
+          link: ""
+        }
+      ],
+        topics: [
+        {
+          id: "T1",
+          title: "Fundamentals",
+          subtopics: [
+            {
+              id: "S1",
+              value: "Core Concepts"
+            },
+            {
+              id: "S2",
+              value: "Principles and Practices"
+            },
+            {
+              id: "S3",
+              value: "Key Methodologies"
+            }
+          ],
+          tlas: [
+            {
+              id: "TLA1",
+              classPhase: "Pre-class",
+              performedBy: "Instructor",
+              tlaName: "Lecture",
+              tlaDescription: "Introduction to distributed systems.",
+              laboratory: false
+            },
+            {
+              id: "TLA2",
+              classPhase: "In-class",
+              performedBy: "Student",
+              tlaName: "Activity",
+              tlaDescription: "Hands-on exercise on distributed systems fundamentals.",
+              laboratory: true
+            }
+          ]
+        },
+        {
+          id: "T2",
+          title: "Applications",
+          subtopics: [
+            {
+              id: "S4",
+              value: "Implementation"
+            },
+            {
+              id: "S5",
+              value: "Case Studies"
+            },
+            {
+              id: "S6",
+              value: "Best Practices"
+            }
+          ],
+          tlas: [
+            {
+              id: "TLA3",
+              classPhase: "In-class",
+              performedBy: "Student",
+              tlaName: "Project Lab",
+              tlaDescription: "Students apply distributed systems concepts to a practical project.",
+              laboratory: true
+            }
+          ]
+        },
+        {
+          id: "T3",
+          title: "Advanced Topics",
+          subtopics: [
+            {
+              id: "S7",
+              value: "Advanced Concepts"
+            },
+            {
+              id: "S8",
+              value: "Emerging Trends"
+            },
+            {
+              id: "S9",
+              value: "Research Directions"
+            }
+          ],
+          tlas: [
+            {
+              id: "TLA4",
+              classPhase: "Post-class",
+              performedBy: "Student",
+              tlaName: "Research Assignment",
+              tlaDescription: "Students research emerging trends in distributed systems.",
+              laboratory: false
+            }
+          ]
+        }
+      ],
+        courseOutcomes: [
+        {
+          id: "CO1",
+          description: "Explain the fundamental concepts and principles of distributed systems.",
+          poMappings: ["I","","","","","","","","","E","I","",""]
+        },
+        {
+          id: "CO2",
+          description: "Apply distributed systems techniques to solve practical problems.",
+          poMappings: ["","","E","","","","","","","E","I","",""]
+        },
+        {
+          id: "CO3",
+          description: "Evaluate emerging trends and advanced concepts in distributed systems.",
+          poMappings: ["","","","","","","D","","","I","I","E",""]
+        }
+      ],
+        coAssessmentMethodSets: {
+        CO1: [
+          {
+            value: "Concept Quiz",
+            description: "Quiz on distributed systems fundamentals."
+          }
+        ],
+        CO2: [
+          {
+            value: "Practical Exercise",
+            description: "Applied exercise in distributed systems."
+          }
+        ],
+        CO3: [
+          {
+            value: "Research Paper",
+            description: "Research paper on advanced distributed systems topics."
+          }
+        ]
+      },
+        assessments: [
+        {
+          id: "A1",
+          tlaName: "Lecture",
+          phase: "Pre-class",
+          assessmentMethod: "Quiz",
+          assessmentDescription: "Quiz on distributed systems concepts.",
+          hasRubric: false
+        },
+        {
+          id: "A2",
+          tlaName: "Activity",
+          phase: "In-class",
+          assessmentMethod: "Lab Report",
+          assessmentDescription: "Lab report on distributed systems exercise.",
+          hasRubric: true,
+          rubrics: [
+            {
+              id: 1,
+              criteria: "Correctness",
+              maxScore: "60"
+            },
+            {
+              id: 2,
+              criteria: "Analysis",
+              maxScore: "40"
+            }
+          ]
+        },
+        {
+          id: "A3",
+          tlaName: "Research Assignment",
+          phase: "Post-class",
+          assessmentMethod: "Research Paper",
+          assessmentDescription: "Research paper on distributed systems trends.",
+          hasRubric: true,
+          rubrics: [
+            {
+              id: 1,
+              criteria: "Research depth",
+              maxScore: "50"
+            },
+            {
+              id: 2,
+              criteria: "Analysis",
+              maxScore: "50"
+            }
+          ]
+        }
+      ],
+        ilos: [
+        {
+          id: "CO1-ILO1",
+          courseOutcome: "Explain the fundamental concepts and principles of distributed systems.",
+          intendedLearningOutcome: "Describe the core principles of distributed systems.",
+          deliveryWeek: "Week 1",
+          allocatedTime: "3 hours",
+          topics: [
+            "Fundamentals"
+          ],
+          references: [
+            "TB1 - Distributed Systems"
+          ]
+        },
+        {
+          id: "CO2-ILO1",
+          courseOutcome: "Apply distributed systems techniques to solve practical problems.",
+          intendedLearningOutcome: "Implement solutions using distributed systems techniques.",
+          deliveryWeek: "Week 4",
+          allocatedTime: "3 hours",
+          topics: [
+            "Applications"
+          ],
+          references: [
+            "OR1 - Online Resources"
+          ]
+        },
+        {
+          id: "CO3-ILO1",
+          courseOutcome: "Evaluate emerging trends and advanced concepts in distributed systems.",
+          intendedLearningOutcome: "Analyze current research and trends in distributed systems.",
+          deliveryWeek: "Week 8",
+          allocatedTime: "3 hours",
+          topics: [
+            "Advanced Topics"
+          ],
+          references: [
+            "TB1 - Distributed Systems"
+          ]
+        }
+      ],
+        gradingSystem: [
+        {
+          co: "CO1",
+          ilos: [
+            {
+              id: "ILO1",
+              assessments: [
+                "Concept Quiz"
+              ],
+              weight: {
+                prelim: "50",
+                midterm: "",
+                semi: "",
+                final: ""
+              },
+              minPassing: "60"
+            }
+          ]
+        },
+        {
+          co: "CO2",
+          ilos: [
+            {
+              id: "ILO1",
+              assessments: [
+                "Practical Exercise"
+              ],
+              weight: {
+                prelim: "",
+                midterm: "60",
+                semi: "",
+                final: ""
+              },
+              minPassing: "60"
+            }
+          ]
+        },
+        {
+          co: "CO3",
+          ilos: [
+            {
+              id: "ILO1",
+              assessments: [
+                "Research Paper"
+              ],
+              weight: {
+                prelim: "",
+                midterm: "",
+                semi: "50",
+                final: "50"
+              },
+              minPassing: "60"
+            }
+          ]
+        }
+      ]
+    },
+    {
+        code: "BSCS409",
+        name: "Blockchain Technology",
+        credits: "2 LEC, 1 LAB",
+        contact: "3",
+        prerequisites: "BSCS351L Cybersecurity",
+        class: "Professional Courses",
+        cmo: "25 S, 2015",
+        year: "FOURTH YEAR",
+        sem: "2nd Semester",
+        description: "Study of blockchain architecture, smart contracts, and decentralized applications.",
+        references: [
+        {
+          id: "TB1",
+          title: "Blockchain Technology: A Comprehensive Guide",
+          type: "Textbook",
+          authors: "Academic Press",
+          year: 2022,
+          isbn: "978-0000000000",
+          link: ""
+        },
+        {
+          id: "OR1",
+          title: "Blockchain Technology Online Resources",
+          type: "Online Resources",
+          authors: "Open Access",
+          year: 2024,
+          link: ""
+        }
+      ],
+        topics: [
+        {
+          id: "T1",
+          title: "Fundamentals",
+          subtopics: [
+            {
+              id: "S1",
+              value: "Core Concepts"
+            },
+            {
+              id: "S2",
+              value: "Principles and Practices"
+            },
+            {
+              id: "S3",
+              value: "Key Methodologies"
+            }
+          ],
+          tlas: [
+            {
+              id: "TLA1",
+              classPhase: "Pre-class",
+              performedBy: "Instructor",
+              tlaName: "Lecture",
+              tlaDescription: "Introduction to blockchain technology.",
+              laboratory: false
+            },
+            {
+              id: "TLA2",
+              classPhase: "In-class",
+              performedBy: "Student",
+              tlaName: "Activity",
+              tlaDescription: "Hands-on exercise on blockchain technology fundamentals.",
+              laboratory: true
+            }
+          ]
+        },
+        {
+          id: "T2",
+          title: "Applications",
+          subtopics: [
+            {
+              id: "S4",
+              value: "Implementation"
+            },
+            {
+              id: "S5",
+              value: "Case Studies"
+            },
+            {
+              id: "S6",
+              value: "Best Practices"
+            }
+          ],
+          tlas: [
+            {
+              id: "TLA3",
+              classPhase: "In-class",
+              performedBy: "Student",
+              tlaName: "Project Lab",
+              tlaDescription: "Students apply blockchain technology concepts to a practical project.",
+              laboratory: true
+            }
+          ]
+        },
+        {
+          id: "T3",
+          title: "Advanced Topics",
+          subtopics: [
+            {
+              id: "S7",
+              value: "Advanced Concepts"
+            },
+            {
+              id: "S8",
+              value: "Emerging Trends"
+            },
+            {
+              id: "S9",
+              value: "Research Directions"
+            }
+          ],
+          tlas: [
+            {
+              id: "TLA4",
+              classPhase: "Post-class",
+              performedBy: "Student",
+              tlaName: "Research Assignment",
+              tlaDescription: "Students research emerging trends in blockchain technology.",
+              laboratory: false
+            }
+          ]
+        }
+      ],
+        courseOutcomes: [
+        {
+          id: "CO1",
+          description: "Explain the fundamental concepts and principles of blockchain technology.",
+          poMappings: ["I","","","","","","","","","E","I","",""]
+        },
+        {
+          id: "CO2",
+          description: "Apply blockchain technology techniques to solve practical problems.",
+          poMappings: ["","","E","","","","","","","E","I","",""]
+        },
+        {
+          id: "CO3",
+          description: "Evaluate emerging trends and advanced concepts in blockchain technology.",
+          poMappings: ["","","","","","","D","","","I","I","E",""]
+        }
+      ],
+        coAssessmentMethodSets: {
+        CO1: [
+          {
+            value: "Concept Quiz",
+            description: "Quiz on blockchain technology fundamentals."
+          }
+        ],
+        CO2: [
+          {
+            value: "Practical Exercise",
+            description: "Applied exercise in blockchain technology."
+          }
+        ],
+        CO3: [
+          {
+            value: "Research Paper",
+            description: "Research paper on advanced blockchain technology topics."
+          }
+        ]
+      },
+        assessments: [
+        {
+          id: "A1",
+          tlaName: "Lecture",
+          phase: "Pre-class",
+          assessmentMethod: "Quiz",
+          assessmentDescription: "Quiz on blockchain technology concepts.",
+          hasRubric: false
+        },
+        {
+          id: "A2",
+          tlaName: "Activity",
+          phase: "In-class",
+          assessmentMethod: "Lab Report",
+          assessmentDescription: "Lab report on blockchain technology exercise.",
+          hasRubric: true,
+          rubrics: [
+            {
+              id: 1,
+              criteria: "Correctness",
+              maxScore: "60"
+            },
+            {
+              id: 2,
+              criteria: "Analysis",
+              maxScore: "40"
+            }
+          ]
+        },
+        {
+          id: "A3",
+          tlaName: "Research Assignment",
+          phase: "Post-class",
+          assessmentMethod: "Research Paper",
+          assessmentDescription: "Research paper on blockchain technology trends.",
+          hasRubric: true,
+          rubrics: [
+            {
+              id: 1,
+              criteria: "Research depth",
+              maxScore: "50"
+            },
+            {
+              id: 2,
+              criteria: "Analysis",
+              maxScore: "50"
+            }
+          ]
+        }
+      ],
+        ilos: [
+        {
+          id: "CO1-ILO1",
+          courseOutcome: "Explain the fundamental concepts and principles of blockchain technology.",
+          intendedLearningOutcome: "Describe the core principles of blockchain technology.",
+          deliveryWeek: "Week 1",
+          allocatedTime: "3 hours",
+          topics: [
+            "Fundamentals"
+          ],
+          references: [
+            "TB1 - Blockchain Technology"
+          ]
+        },
+        {
+          id: "CO2-ILO1",
+          courseOutcome: "Apply blockchain technology techniques to solve practical problems.",
+          intendedLearningOutcome: "Implement solutions using blockchain technology techniques.",
+          deliveryWeek: "Week 4",
+          allocatedTime: "3 hours",
+          topics: [
+            "Applications"
+          ],
+          references: [
+            "OR1 - Online Resources"
+          ]
+        },
+        {
+          id: "CO3-ILO1",
+          courseOutcome: "Evaluate emerging trends and advanced concepts in blockchain technology.",
+          intendedLearningOutcome: "Analyze current research and trends in blockchain technology.",
+          deliveryWeek: "Week 8",
+          allocatedTime: "3 hours",
+          topics: [
+            "Advanced Topics"
+          ],
+          references: [
+            "TB1 - Blockchain Technology"
+          ]
+        }
+      ],
+        gradingSystem: [
+        {
+          co: "CO1",
+          ilos: [
+            {
+              id: "ILO1",
+              assessments: [
+                "Concept Quiz"
+              ],
+              weight: {
+                prelim: "50",
+                midterm: "",
+                semi: "",
+                final: ""
+              },
+              minPassing: "60"
+            }
+          ]
+        },
+        {
+          co: "CO2",
+          ilos: [
+            {
+              id: "ILO1",
+              assessments: [
+                "Practical Exercise"
+              ],
+              weight: {
+                prelim: "",
+                midterm: "60",
+                semi: "",
+                final: ""
+              },
+              minPassing: "60"
+            }
+          ]
+        },
+        {
+          co: "CO3",
+          ilos: [
+            {
+              id: "ILO1",
+              assessments: [
+                "Research Paper"
+              ],
+              weight: {
+                prelim: "",
+                midterm: "",
+                semi: "50",
+                final: "50"
+              },
+              minPassing: "60"
+            }
+          ]
+        }
+      ]
+    },
+    {
+        code: "BSCS501",
+        name: "Capstone Project 1",
+        credits: "3 LEC",
+        contact: "3",
+        prerequisites: "BSCS409 Blockchain Technology",
+        class: "Professional Courses",
+        cmo: "25 S, 2015",
+        year: "FOURTH YEAR",
+        sem: "1st Semester",
+        description: "First phase of the capstone project focusing on proposal and research.",
+        references: [
+        {
+          id: "TB1",
+          title: "Capstone Project 1: A Comprehensive Guide",
+          type: "Textbook",
+          authors: "Academic Press",
+          year: 2022,
+          isbn: "978-0000000000",
+          link: ""
+        },
+        {
+          id: "OR1",
+          title: "Capstone Project 1 Online Resources",
+          type: "Online Resources",
+          authors: "Open Access",
+          year: 2024,
+          link: ""
+        }
+      ],
+        topics: [
+        {
+          id: "T1",
+          title: "Fundamentals",
+          subtopics: [
+            {
+              id: "S1",
+              value: "Core Concepts"
+            },
+            {
+              id: "S2",
+              value: "Principles and Practices"
+            },
+            {
+              id: "S3",
+              value: "Key Methodologies"
+            }
+          ],
+          tlas: [
+            {
+              id: "TLA1",
+              classPhase: "Pre-class",
+              performedBy: "Instructor",
+              tlaName: "Lecture",
+              tlaDescription: "Introduction to capstone project 1.",
+              laboratory: false
+            },
+            {
+              id: "TLA2",
+              classPhase: "In-class",
+              performedBy: "Student",
+              tlaName: "Activity",
+              tlaDescription: "Hands-on exercise on capstone project 1 fundamentals.",
+              laboratory: true
+            }
+          ]
+        },
+        {
+          id: "T2",
+          title: "Applications",
+          subtopics: [
+            {
+              id: "S4",
+              value: "Implementation"
+            },
+            {
+              id: "S5",
+              value: "Case Studies"
+            },
+            {
+              id: "S6",
+              value: "Best Practices"
+            }
+          ],
+          tlas: [
+            {
+              id: "TLA3",
+              classPhase: "In-class",
+              performedBy: "Student",
+              tlaName: "Project Lab",
+              tlaDescription: "Students apply capstone project 1 concepts to a practical project.",
+              laboratory: true
+            }
+          ]
+        }
+      ],
+        courseOutcomes: [
+        {
+          id: "CO1",
+          description: "Explain the fundamental concepts and principles of capstone project 1.",
+          poMappings: ["I","","","","","","","","","E","E","",""]
+        },
+        {
+          id: "CO2",
+          description: "Apply capstone project 1 techniques to solve practical problems.",
+          poMappings: ["","","E","","","","","","","E","E","",""]
+        }
+      ],
+        coAssessmentMethodSets: {
+        CO1: [
+          {
+            value: "Concept Quiz",
+            description: "Quiz on capstone project 1 fundamentals."
+          }
+        ],
+        CO2: [
+          {
+            value: "Practical Exercise",
+            description: "Applied exercise in capstone project 1."
+          }
+        ]
+      },
+        assessments: [
+        {
+          id: "A1",
+          tlaName: "Lecture",
+          phase: "Pre-class",
+          assessmentMethod: "Quiz",
+          assessmentDescription: "Quiz on capstone project 1 concepts.",
+          hasRubric: false
+        },
+        {
+          id: "A2",
+          tlaName: "Activity",
+          phase: "In-class",
+          assessmentMethod: "Lab Report",
+          assessmentDescription: "Lab report on capstone project 1 exercise.",
+          hasRubric: true,
+          rubrics: [
+            {
+              id: 1,
+              criteria: "Correctness",
+              maxScore: "60"
+            },
+            {
+              id: 2,
+              criteria: "Analysis",
+              maxScore: "40"
+            }
+          ]
+        }
+      ],
+        ilos: [
+        {
+          id: "CO1-ILO1",
+          courseOutcome: "Explain the fundamental concepts and principles of capstone project 1.",
+          intendedLearningOutcome: "Describe the core principles of capstone project 1.",
+          deliveryWeek: "Week 1",
+          allocatedTime: "3 hours",
+          topics: [
+            "Fundamentals"
+          ],
+          references: [
+            "TB1 - Capstone Project 1"
+          ]
+        },
+        {
+          id: "CO2-ILO1",
+          courseOutcome: "Apply capstone project 1 techniques to solve practical problems.",
+          intendedLearningOutcome: "Implement solutions using capstone project 1 techniques.",
+          deliveryWeek: "Week 4",
+          allocatedTime: "3 hours",
+          topics: [
+            "Applications"
+          ],
+          references: [
+            "OR1 - Online Resources"
+          ]
+        }
+      ],
+        gradingSystem: [
+        {
+          co: "CO1",
+          ilos: [
+            {
+              id: "ILO1",
+              assessments: [
+                "Concept Quiz"
+              ],
+              weight: {
+                prelim: "50",
+                midterm: "",
+                semi: "",
+                final: ""
+              },
+              minPassing: "60"
+            }
+          ]
+        },
+        {
+          co: "CO2",
+          ilos: [
+            {
+              id: "ILO1",
+              assessments: [
+                "Practical Exercise"
+              ],
+              weight: {
+                prelim: "",
+                midterm: "60",
+                semi: "",
+                final: ""
+              },
+              minPassing: "60"
+            }
+          ]
+        }
+      ]
+    },
+    {
+        code: "BSCS502",
+        name: "Capstone Project 2",
+        credits: "3 LEC",
+        contact: "3",
+        prerequisites: "BSCS501 Capstone Project 1",
+        class: "Professional Courses",
+        cmo: "25 S, 2015",
+        year: "FOURTH YEAR",
+        sem: "2nd Semester",
+        description: "Second phase focusing on implementation, testing, and defense.",
+        references: [
+        {
+          id: "TB1",
+          title: "Capstone Project 2: A Comprehensive Guide",
+          type: "Textbook",
+          authors: "Academic Press",
+          year: 2022,
+          isbn: "978-0000000000",
+          link: ""
+        },
+        {
+          id: "OR1",
+          title: "Capstone Project 2 Online Resources",
+          type: "Online Resources",
+          authors: "Open Access",
+          year: 2024,
+          link: ""
+        }
+      ],
+        topics: [
+        {
+          id: "T1",
+          title: "Fundamentals",
+          subtopics: [
+            {
+              id: "S1",
+              value: "Core Concepts"
+            },
+            {
+              id: "S2",
+              value: "Principles and Practices"
+            },
+            {
+              id: "S3",
+              value: "Key Methodologies"
+            }
+          ],
+          tlas: [
+            {
+              id: "TLA1",
+              classPhase: "Pre-class",
+              performedBy: "Instructor",
+              tlaName: "Lecture",
+              tlaDescription: "Introduction to capstone project 2.",
+              laboratory: false
+            },
+            {
+              id: "TLA2",
+              classPhase: "In-class",
+              performedBy: "Student",
+              tlaName: "Activity",
+              tlaDescription: "Hands-on exercise on capstone project 2 fundamentals.",
+              laboratory: true
+            }
+          ]
+        },
+        {
+          id: "T2",
+          title: "Applications",
+          subtopics: [
+            {
+              id: "S4",
+              value: "Implementation"
+            },
+            {
+              id: "S5",
+              value: "Case Studies"
+            },
+            {
+              id: "S6",
+              value: "Best Practices"
+            }
+          ],
+          tlas: [
+            {
+              id: "TLA3",
+              classPhase: "In-class",
+              performedBy: "Student",
+              tlaName: "Project Lab",
+              tlaDescription: "Students apply capstone project 2 concepts to a practical project.",
+              laboratory: true
+            }
+          ]
+        }
+      ],
+        courseOutcomes: [
+        {
+          id: "CO1",
+          description: "Explain the fundamental concepts and principles of capstone project 2.",
+          poMappings: ["I","","","","","","","","","E","E","",""]
+        },
+        {
+          id: "CO2",
+          description: "Apply capstone project 2 techniques to solve practical problems.",
+          poMappings: ["","","E","","","","","","","E","E","",""]
+        }
+      ],
+        coAssessmentMethodSets: {
+        CO1: [
+          {
+            value: "Concept Quiz",
+            description: "Quiz on capstone project 2 fundamentals."
+          }
+        ],
+        CO2: [
+          {
+            value: "Practical Exercise",
+            description: "Applied exercise in capstone project 2."
+          }
+        ]
+      },
+        assessments: [
+        {
+          id: "A1",
+          tlaName: "Lecture",
+          phase: "Pre-class",
+          assessmentMethod: "Quiz",
+          assessmentDescription: "Quiz on capstone project 2 concepts.",
+          hasRubric: false
+        },
+        {
+          id: "A2",
+          tlaName: "Activity",
+          phase: "In-class",
+          assessmentMethod: "Lab Report",
+          assessmentDescription: "Lab report on capstone project 2 exercise.",
+          hasRubric: true,
+          rubrics: [
+            {
+              id: 1,
+              criteria: "Correctness",
+              maxScore: "60"
+            },
+            {
+              id: 2,
+              criteria: "Analysis",
+              maxScore: "40"
+            }
+          ]
+        }
+      ],
+        ilos: [
+        {
+          id: "CO1-ILO1",
+          courseOutcome: "Explain the fundamental concepts and principles of capstone project 2.",
+          intendedLearningOutcome: "Describe the core principles of capstone project 2.",
+          deliveryWeek: "Week 1",
+          allocatedTime: "3 hours",
+          topics: [
+            "Fundamentals"
+          ],
+          references: [
+            "TB1 - Capstone Project 2"
+          ]
+        },
+        {
+          id: "CO2-ILO1",
+          courseOutcome: "Apply capstone project 2 techniques to solve practical problems.",
+          intendedLearningOutcome: "Implement solutions using capstone project 2 techniques.",
+          deliveryWeek: "Week 4",
+          allocatedTime: "3 hours",
+          topics: [
+            "Applications"
+          ],
+          references: [
+            "OR1 - Online Resources"
+          ]
+        }
+      ],
+        gradingSystem: [
+        {
+          co: "CO1",
+          ilos: [
+            {
+              id: "ILO1",
+              assessments: [
+                "Concept Quiz"
+              ],
+              weight: {
+                prelim: "50",
+                midterm: "",
+                semi: "",
+                final: ""
+              },
+              minPassing: "60"
+            }
+          ]
+        },
+        {
+          co: "CO2",
+          ilos: [
+            {
+              id: "ILO1",
+              assessments: [
+                "Practical Exercise"
+              ],
+              weight: {
+                prelim: "",
+                midterm: "60",
+                semi: "",
+                final: ""
+              },
+              minPassing: "60"
+            }
+          ]
+        }
+      ]
+    },
+    {
+        code: "BSCS503",
+        name: "Professional Ethics in Computing",
+        credits: "3 LEC",
+        contact: "3",
+        prerequisites: "None",
+        class: "Professional Courses",
+        cmo: "25 S, 2015",
+        year: "FOURTH YEAR",
+        sem: "1st Semester",
+        description: "Ethical and legal issues in computing and technology.",
+        references: [
+        {
+          id: "TB1",
+          title: "Professional Ethics in Computing: A Comprehensive Guide",
+          type: "Textbook",
+          authors: "Academic Press",
+          year: 2022,
+          isbn: "978-0000000000",
+          link: ""
+        },
+        {
+          id: "OR1",
+          title: "Professional Ethics in Computing Online Resources",
+          type: "Online Resources",
+          authors: "Open Access",
+          year: 2024,
+          link: ""
+        }
+      ],
+        topics: [
+        {
+          id: "T1",
+          title: "Fundamentals",
+          subtopics: [
+            {
+              id: "S1",
+              value: "Core Concepts"
+            },
+            {
+              id: "S2",
+              value: "Principles and Practices"
+            },
+            {
+              id: "S3",
+              value: "Key Methodologies"
+            }
+          ],
+          tlas: [
+            {
+              id: "TLA1",
+              classPhase: "Pre-class",
+              performedBy: "Instructor",
+              tlaName: "Lecture",
+              tlaDescription: "Introduction to professional ethics in computing.",
+              laboratory: false
+            },
+            {
+              id: "TLA2",
+              classPhase: "In-class",
+              performedBy: "Student",
+              tlaName: "Activity",
+              tlaDescription: "Hands-on exercise on professional ethics in computing fundamentals.",
+              laboratory: true
+            }
+          ]
+        },
+        {
+          id: "T2",
+          title: "Applications",
+          subtopics: [
+            {
+              id: "S4",
+              value: "Implementation"
+            },
+            {
+              id: "S5",
+              value: "Case Studies"
+            },
+            {
+              id: "S6",
+              value: "Best Practices"
+            }
+          ],
+          tlas: [
+            {
+              id: "TLA3",
+              classPhase: "In-class",
+              performedBy: "Student",
+              tlaName: "Project Lab",
+              tlaDescription: "Students apply professional ethics in computing concepts to a practical project.",
+              laboratory: true
+            }
+          ]
+        }
+      ],
+        courseOutcomes: [
+        {
+          id: "CO1",
+          description: "Explain the fundamental concepts and principles of professional ethics in computing.",
+          poMappings: ["I","","","","","","","","","E","I","","E"]
+        },
+        {
+          id: "CO2",
+          description: "Apply professional ethics in computing techniques to solve practical problems.",
+          poMappings: ["","","E","","","","","","","E","I","","E"]
+        }
+      ],
+        coAssessmentMethodSets: {
+        CO1: [
+          {
+            value: "Concept Quiz",
+            description: "Quiz on professional ethics in computing fundamentals."
+          }
+        ],
+        CO2: [
+          {
+            value: "Practical Exercise",
+            description: "Applied exercise in professional ethics in computing."
+          }
+        ]
+      },
+        assessments: [
+        {
+          id: "A1",
+          tlaName: "Lecture",
+          phase: "Pre-class",
+          assessmentMethod: "Quiz",
+          assessmentDescription: "Quiz on professional ethics in computing concepts.",
+          hasRubric: false
+        },
+        {
+          id: "A2",
+          tlaName: "Activity",
+          phase: "In-class",
+          assessmentMethod: "Lab Report",
+          assessmentDescription: "Lab report on professional ethics in computing exercise.",
+          hasRubric: true,
+          rubrics: [
+            {
+              id: 1,
+              criteria: "Correctness",
+              maxScore: "60"
+            },
+            {
+              id: 2,
+              criteria: "Analysis",
+              maxScore: "40"
+            }
+          ]
+        }
+      ],
+        ilos: [
+        {
+          id: "CO1-ILO1",
+          courseOutcome: "Explain the fundamental concepts and principles of professional ethics in computing.",
+          intendedLearningOutcome: "Describe the core principles of professional ethics in computing.",
+          deliveryWeek: "Week 1",
+          allocatedTime: "3 hours",
+          topics: [
+            "Fundamentals"
+          ],
+          references: [
+            "TB1 - Professional Ethics in Computing"
+          ]
+        },
+        {
+          id: "CO2-ILO1",
+          courseOutcome: "Apply professional ethics in computing techniques to solve practical problems.",
+          intendedLearningOutcome: "Implement solutions using professional ethics in computing techniques.",
+          deliveryWeek: "Week 4",
+          allocatedTime: "3 hours",
+          topics: [
+            "Applications"
+          ],
+          references: [
+            "OR1 - Online Resources"
+          ]
+        }
+      ],
+        gradingSystem: [
+        {
+          co: "CO1",
+          ilos: [
+            {
+              id: "ILO1",
+              assessments: [
+                "Concept Quiz"
+              ],
+              weight: {
+                prelim: "50",
+                midterm: "",
+                semi: "",
+                final: ""
+              },
+              minPassing: "60"
+            }
+          ]
+        },
+        {
+          co: "CO2",
+          ilos: [
+            {
+              id: "ILO1",
+              assessments: [
+                "Practical Exercise"
+              ],
+              weight: {
+                prelim: "",
+                midterm: "60",
+                semi: "",
+                final: ""
+              },
+              minPassing: "60"
+            }
+          ]
+        }
+      ]
+    },
+    {
+        code: "BSCS504",
+        name: "Technical Writing for CS",
+        credits: "3 LEC",
+        contact: "3",
+        prerequisites: "None",
+        class: "General Education",
+        cmo: "25 S, 2015",
+        year: "FOURTH YEAR",
+        sem: "2nd Semester",
+        description: "Technical communication and documentation for computer science.",
+        references: [
+        {
+          id: "TB1",
+          title: "Technical Writing for CS: A Comprehensive Guide",
+          type: "Textbook",
+          authors: "Academic Press",
+          year: 2022,
+          isbn: "978-0000000000",
+          link: ""
+        },
+        {
+          id: "OR1",
+          title: "Technical Writing for CS Online Resources",
+          type: "Online Resources",
+          authors: "Open Access",
+          year: 2024,
+          link: ""
+        }
+      ],
+        topics: [
+        {
+          id: "T1",
+          title: "Fundamentals",
+          subtopics: [
+            {
+              id: "S1",
+              value: "Core Concepts"
+            },
+            {
+              id: "S2",
+              value: "Principles and Practices"
+            },
+            {
+              id: "S3",
+              value: "Key Methodologies"
+            }
+          ],
+          tlas: [
+            {
+              id: "TLA1",
+              classPhase: "Pre-class",
+              performedBy: "Instructor",
+              tlaName: "Lecture",
+              tlaDescription: "Introduction to technical writing for cs.",
+              laboratory: false
+            },
+            {
+              id: "TLA2",
+              classPhase: "In-class",
+              performedBy: "Student",
+              tlaName: "Activity",
+              tlaDescription: "Hands-on exercise on technical writing for cs fundamentals.",
+              laboratory: true
+            }
+          ]
+        },
+        {
+          id: "T2",
+          title: "Applications",
+          subtopics: [
+            {
+              id: "S4",
+              value: "Implementation"
+            },
+            {
+              id: "S5",
+              value: "Case Studies"
+            },
+            {
+              id: "S6",
+              value: "Best Practices"
+            }
+          ],
+          tlas: [
+            {
+              id: "TLA3",
+              classPhase: "In-class",
+              performedBy: "Student",
+              tlaName: "Project Lab",
+              tlaDescription: "Students apply technical writing for cs concepts to a practical project.",
+              laboratory: true
+            }
+          ]
+        }
+      ],
+        courseOutcomes: [
+        {
+          id: "CO1",
+          description: "Explain the fundamental concepts and principles of technical writing for cs.",
+          poMappings: ["I","","","","","","","","","E","I","",""]
+        },
+        {
+          id: "CO2",
+          description: "Apply technical writing for cs techniques to solve practical problems.",
+          poMappings: ["","","E","","","","","","","E","I","",""]
+        }
+      ],
+        coAssessmentMethodSets: {
+        CO1: [
+          {
+            value: "Concept Quiz",
+            description: "Quiz on technical writing for cs fundamentals."
+          }
+        ],
+        CO2: [
+          {
+            value: "Practical Exercise",
+            description: "Applied exercise in technical writing for cs."
+          }
+        ]
+      },
+        assessments: [
+        {
+          id: "A1",
+          tlaName: "Lecture",
+          phase: "Pre-class",
+          assessmentMethod: "Quiz",
+          assessmentDescription: "Quiz on technical writing for cs concepts.",
+          hasRubric: false
+        },
+        {
+          id: "A2",
+          tlaName: "Activity",
+          phase: "In-class",
+          assessmentMethod: "Lab Report",
+          assessmentDescription: "Lab report on technical writing for cs exercise.",
+          hasRubric: true,
+          rubrics: [
+            {
+              id: 1,
+              criteria: "Correctness",
+              maxScore: "60"
+            },
+            {
+              id: 2,
+              criteria: "Analysis",
+              maxScore: "40"
+            }
+          ]
+        }
+      ],
+        ilos: [
+        {
+          id: "CO1-ILO1",
+          courseOutcome: "Explain the fundamental concepts and principles of technical writing for cs.",
+          intendedLearningOutcome: "Describe the core principles of technical writing for cs.",
+          deliveryWeek: "Week 1",
+          allocatedTime: "3 hours",
+          topics: [
+            "Fundamentals"
+          ],
+          references: [
+            "TB1 - Technical Writing for CS"
+          ]
+        },
+        {
+          id: "CO2-ILO1",
+          courseOutcome: "Apply technical writing for cs techniques to solve practical problems.",
+          intendedLearningOutcome: "Implement solutions using technical writing for cs techniques.",
+          deliveryWeek: "Week 4",
+          allocatedTime: "3 hours",
+          topics: [
+            "Applications"
+          ],
+          references: [
+            "OR1 - Online Resources"
+          ]
+        }
+      ],
+        gradingSystem: [
+        {
+          co: "CO1",
+          ilos: [
+            {
+              id: "ILO1",
+              assessments: [
+                "Concept Quiz"
+              ],
+              weight: {
+                prelim: "50",
+                midterm: "",
+                semi: "",
+                final: ""
+              },
+              minPassing: "60"
+            }
+          ]
+        },
+        {
+          co: "CO2",
+          ilos: [
+            {
+              id: "ILO1",
+              assessments: [
+                "Practical Exercise"
+              ],
+              weight: {
+                prelim: "",
+                midterm: "60",
+                semi: "",
+                final: ""
+              },
+              minPassing: "60"
+            }
+          ]
+        }
+      ]
+    },
+    {
+        code: "BSCS505",
+        name: "Software Architecture",
+        credits: "2 LEC, 1 LAB",
+        contact: "3",
+        prerequisites: "BSCS322L Software Engineering",
+        class: "Professional Courses",
+        cmo: "25 S, 2015",
+        year: "FOURTH YEAR",
+        sem: "1st Semester",
+        description: "Design and evaluation of software architecture patterns.",
+        references: [
+        {
+          id: "TB1",
+          title: "Software Architecture: A Comprehensive Guide",
+          type: "Textbook",
+          authors: "Academic Press",
+          year: 2022,
+          isbn: "978-0000000000",
+          link: ""
+        },
+        {
+          id: "OR1",
+          title: "Software Architecture Online Resources",
+          type: "Online Resources",
+          authors: "Open Access",
+          year: 2024,
+          link: ""
+        }
+      ],
+        topics: [
+        {
+          id: "T1",
+          title: "Fundamentals",
+          subtopics: [
+            {
+              id: "S1",
+              value: "Core Concepts"
+            },
+            {
+              id: "S2",
+              value: "Principles and Practices"
+            },
+            {
+              id: "S3",
+              value: "Key Methodologies"
+            }
+          ],
+          tlas: [
+            {
+              id: "TLA1",
+              classPhase: "Pre-class",
+              performedBy: "Instructor",
+              tlaName: "Lecture",
+              tlaDescription: "Introduction to software architecture.",
+              laboratory: false
+            },
+            {
+              id: "TLA2",
+              classPhase: "In-class",
+              performedBy: "Student",
+              tlaName: "Activity",
+              tlaDescription: "Hands-on exercise on software architecture fundamentals.",
+              laboratory: true
+            }
+          ]
+        },
+        {
+          id: "T2",
+          title: "Applications",
+          subtopics: [
+            {
+              id: "S4",
+              value: "Implementation"
+            },
+            {
+              id: "S5",
+              value: "Case Studies"
+            },
+            {
+              id: "S6",
+              value: "Best Practices"
+            }
+          ],
+          tlas: [
+            {
+              id: "TLA3",
+              classPhase: "In-class",
+              performedBy: "Student",
+              tlaName: "Project Lab",
+              tlaDescription: "Students apply software architecture concepts to a practical project.",
+              laboratory: true
+            }
+          ]
+        },
+        {
+          id: "T3",
+          title: "Advanced Topics",
+          subtopics: [
+            {
+              id: "S7",
+              value: "Advanced Concepts"
+            },
+            {
+              id: "S8",
+              value: "Emerging Trends"
+            },
+            {
+              id: "S9",
+              value: "Research Directions"
+            }
+          ],
+          tlas: [
+            {
+              id: "TLA4",
+              classPhase: "Post-class",
+              performedBy: "Student",
+              tlaName: "Research Assignment",
+              tlaDescription: "Students research emerging trends in software architecture.",
+              laboratory: false
+            }
+          ]
+        }
+      ],
+        courseOutcomes: [
+        {
+          id: "CO1",
+          description: "Explain the fundamental concepts and principles of software architecture.",
+          poMappings: ["I","","","","","","","","","E","I","",""]
+        },
+        {
+          id: "CO2",
+          description: "Apply software architecture techniques to solve practical problems.",
+          poMappings: ["","","E","","","","","","","E","I","",""]
+        },
+        {
+          id: "CO3",
+          description: "Evaluate emerging trends and advanced concepts in software architecture.",
+          poMappings: ["","","","","","","D","","","I","I","E",""]
+        }
+      ],
+        coAssessmentMethodSets: {
+        CO1: [
+          {
+            value: "Concept Quiz",
+            description: "Quiz on software architecture fundamentals."
+          }
+        ],
+        CO2: [
+          {
+            value: "Practical Exercise",
+            description: "Applied exercise in software architecture."
+          }
+        ],
+        CO3: [
+          {
+            value: "Research Paper",
+            description: "Research paper on advanced software architecture topics."
+          }
+        ]
+      },
+        assessments: [
+        {
+          id: "A1",
+          tlaName: "Lecture",
+          phase: "Pre-class",
+          assessmentMethod: "Quiz",
+          assessmentDescription: "Quiz on software architecture concepts.",
+          hasRubric: false
+        },
+        {
+          id: "A2",
+          tlaName: "Activity",
+          phase: "In-class",
+          assessmentMethod: "Lab Report",
+          assessmentDescription: "Lab report on software architecture exercise.",
+          hasRubric: true,
+          rubrics: [
+            {
+              id: 1,
+              criteria: "Correctness",
+              maxScore: "60"
+            },
+            {
+              id: 2,
+              criteria: "Analysis",
+              maxScore: "40"
+            }
+          ]
+        },
+        {
+          id: "A3",
+          tlaName: "Research Assignment",
+          phase: "Post-class",
+          assessmentMethod: "Research Paper",
+          assessmentDescription: "Research paper on software architecture trends.",
+          hasRubric: true,
+          rubrics: [
+            {
+              id: 1,
+              criteria: "Research depth",
+              maxScore: "50"
+            },
+            {
+              id: 2,
+              criteria: "Analysis",
+              maxScore: "50"
+            }
+          ]
+        }
+      ],
+        ilos: [
+        {
+          id: "CO1-ILO1",
+          courseOutcome: "Explain the fundamental concepts and principles of software architecture.",
+          intendedLearningOutcome: "Describe the core principles of software architecture.",
+          deliveryWeek: "Week 1",
+          allocatedTime: "3 hours",
+          topics: [
+            "Fundamentals"
+          ],
+          references: [
+            "TB1 - Software Architecture"
+          ]
+        },
+        {
+          id: "CO2-ILO1",
+          courseOutcome: "Apply software architecture techniques to solve practical problems.",
+          intendedLearningOutcome: "Implement solutions using software architecture techniques.",
+          deliveryWeek: "Week 4",
+          allocatedTime: "3 hours",
+          topics: [
+            "Applications"
+          ],
+          references: [
+            "OR1 - Online Resources"
+          ]
+        },
+        {
+          id: "CO3-ILO1",
+          courseOutcome: "Evaluate emerging trends and advanced concepts in software architecture.",
+          intendedLearningOutcome: "Analyze current research and trends in software architecture.",
+          deliveryWeek: "Week 8",
+          allocatedTime: "3 hours",
+          topics: [
+            "Advanced Topics"
+          ],
+          references: [
+            "TB1 - Software Architecture"
+          ]
+        }
+      ],
+        gradingSystem: [
+        {
+          co: "CO1",
+          ilos: [
+            {
+              id: "ILO1",
+              assessments: [
+                "Concept Quiz"
+              ],
+              weight: {
+                prelim: "50",
+                midterm: "",
+                semi: "",
+                final: ""
+              },
+              minPassing: "60"
+            }
+          ]
+        },
+        {
+          co: "CO2",
+          ilos: [
+            {
+              id: "ILO1",
+              assessments: [
+                "Practical Exercise"
+              ],
+              weight: {
+                prelim: "",
+                midterm: "60",
+                semi: "",
+                final: ""
+              },
+              minPassing: "60"
+            }
+          ]
+        },
+        {
+          co: "CO3",
+          ilos: [
+            {
+              id: "ILO1",
+              assessments: [
+                "Research Paper"
+              ],
+              weight: {
+                prelim: "",
+                midterm: "",
+                semi: "50",
+                final: "50"
+              },
+              minPassing: "60"
+            }
+          ]
+        }
+      ]
+    },
+    {
+        code: "BSCS506",
+        name: "Data Mining",
+        credits: "2 LEC, 1 LAB",
+        contact: "3",
+        prerequisites: "BSCS303 Numerical Methods",
+        class: "Professional Courses",
+        cmo: "25 S, 2015",
+        year: "FOURTH YEAR",
+        sem: "2nd Semester",
+        description: "Techniques for discovering patterns in large datasets.",
+        references: [
+        {
+          id: "TB1",
+          title: "Data Mining: A Comprehensive Guide",
+          type: "Textbook",
+          authors: "Academic Press",
+          year: 2022,
+          isbn: "978-0000000000",
+          link: ""
+        },
+        {
+          id: "OR1",
+          title: "Data Mining Online Resources",
+          type: "Online Resources",
+          authors: "Open Access",
+          year: 2024,
+          link: ""
+        }
+      ],
+        topics: [
+        {
+          id: "T1",
+          title: "Fundamentals",
+          subtopics: [
+            {
+              id: "S1",
+              value: "Core Concepts"
+            },
+            {
+              id: "S2",
+              value: "Principles and Practices"
+            },
+            {
+              id: "S3",
+              value: "Key Methodologies"
+            }
+          ],
+          tlas: [
+            {
+              id: "TLA1",
+              classPhase: "Pre-class",
+              performedBy: "Instructor",
+              tlaName: "Lecture",
+              tlaDescription: "Introduction to data mining.",
+              laboratory: false
+            },
+            {
+              id: "TLA2",
+              classPhase: "In-class",
+              performedBy: "Student",
+              tlaName: "Activity",
+              tlaDescription: "Hands-on exercise on data mining fundamentals.",
+              laboratory: true
+            }
+          ]
+        },
+        {
+          id: "T2",
+          title: "Applications",
+          subtopics: [
+            {
+              id: "S4",
+              value: "Implementation"
+            },
+            {
+              id: "S5",
+              value: "Case Studies"
+            },
+            {
+              id: "S6",
+              value: "Best Practices"
+            }
+          ],
+          tlas: [
+            {
+              id: "TLA3",
+              classPhase: "In-class",
+              performedBy: "Student",
+              tlaName: "Project Lab",
+              tlaDescription: "Students apply data mining concepts to a practical project.",
+              laboratory: true
+            }
+          ]
+        },
+        {
+          id: "T3",
+          title: "Advanced Topics",
+          subtopics: [
+            {
+              id: "S7",
+              value: "Advanced Concepts"
+            },
+            {
+              id: "S8",
+              value: "Emerging Trends"
+            },
+            {
+              id: "S9",
+              value: "Research Directions"
+            }
+          ],
+          tlas: [
+            {
+              id: "TLA4",
+              classPhase: "Post-class",
+              performedBy: "Student",
+              tlaName: "Research Assignment",
+              tlaDescription: "Students research emerging trends in data mining.",
+              laboratory: false
+            }
+          ]
+        }
+      ],
+        courseOutcomes: [
+        {
+          id: "CO1",
+          description: "Explain the fundamental concepts and principles of data mining.",
+          poMappings: ["I","","","","","","","","","E","I","",""]
+        },
+        {
+          id: "CO2",
+          description: "Apply data mining techniques to solve practical problems.",
+          poMappings: ["","","E","","","","","","","E","I","",""]
+        },
+        {
+          id: "CO3",
+          description: "Evaluate emerging trends and advanced concepts in data mining.",
+          poMappings: ["","","","","","","D","","","I","I","E",""]
+        }
+      ],
+        coAssessmentMethodSets: {
+        CO1: [
+          {
+            value: "Concept Quiz",
+            description: "Quiz on data mining fundamentals."
+          }
+        ],
+        CO2: [
+          {
+            value: "Practical Exercise",
+            description: "Applied exercise in data mining."
+          }
+        ],
+        CO3: [
+          {
+            value: "Research Paper",
+            description: "Research paper on advanced data mining topics."
+          }
+        ]
+      },
+        assessments: [
+        {
+          id: "A1",
+          tlaName: "Lecture",
+          phase: "Pre-class",
+          assessmentMethod: "Quiz",
+          assessmentDescription: "Quiz on data mining concepts.",
+          hasRubric: false
+        },
+        {
+          id: "A2",
+          tlaName: "Activity",
+          phase: "In-class",
+          assessmentMethod: "Lab Report",
+          assessmentDescription: "Lab report on data mining exercise.",
+          hasRubric: true,
+          rubrics: [
+            {
+              id: 1,
+              criteria: "Correctness",
+              maxScore: "60"
+            },
+            {
+              id: 2,
+              criteria: "Analysis",
+              maxScore: "40"
+            }
+          ]
+        },
+        {
+          id: "A3",
+          tlaName: "Research Assignment",
+          phase: "Post-class",
+          assessmentMethod: "Research Paper",
+          assessmentDescription: "Research paper on data mining trends.",
+          hasRubric: true,
+          rubrics: [
+            {
+              id: 1,
+              criteria: "Research depth",
+              maxScore: "50"
+            },
+            {
+              id: 2,
+              criteria: "Analysis",
+              maxScore: "50"
+            }
+          ]
+        }
+      ],
+        ilos: [
+        {
+          id: "CO1-ILO1",
+          courseOutcome: "Explain the fundamental concepts and principles of data mining.",
+          intendedLearningOutcome: "Describe the core principles of data mining.",
+          deliveryWeek: "Week 1",
+          allocatedTime: "3 hours",
+          topics: [
+            "Fundamentals"
+          ],
+          references: [
+            "TB1 - Data Mining"
+          ]
+        },
+        {
+          id: "CO2-ILO1",
+          courseOutcome: "Apply data mining techniques to solve practical problems.",
+          intendedLearningOutcome: "Implement solutions using data mining techniques.",
+          deliveryWeek: "Week 4",
+          allocatedTime: "3 hours",
+          topics: [
+            "Applications"
+          ],
+          references: [
+            "OR1 - Online Resources"
+          ]
+        },
+        {
+          id: "CO3-ILO1",
+          courseOutcome: "Evaluate emerging trends and advanced concepts in data mining.",
+          intendedLearningOutcome: "Analyze current research and trends in data mining.",
+          deliveryWeek: "Week 8",
+          allocatedTime: "3 hours",
+          topics: [
+            "Advanced Topics"
+          ],
+          references: [
+            "TB1 - Data Mining"
+          ]
+        }
+      ],
+        gradingSystem: [
+        {
+          co: "CO1",
+          ilos: [
+            {
+              id: "ILO1",
+              assessments: [
+                "Concept Quiz"
+              ],
+              weight: {
+                prelim: "50",
+                midterm: "",
+                semi: "",
+                final: ""
+              },
+              minPassing: "60"
+            }
+          ]
+        },
+        {
+          co: "CO2",
+          ilos: [
+            {
+              id: "ILO1",
+              assessments: [
+                "Practical Exercise"
+              ],
+              weight: {
+                prelim: "",
+                midterm: "60",
+                semi: "",
+                final: ""
+              },
+              minPassing: "60"
+            }
+          ]
+        },
+        {
+          co: "CO3",
+          ilos: [
+            {
+              id: "ILO1",
+              assessments: [
+                "Research Paper"
+              ],
+              weight: {
+                prelim: "",
+                midterm: "",
+                semi: "50",
+                final: "50"
+              },
+              minPassing: "60"
+            }
+          ]
+        }
+      ]
+    },
+    {
+        code: "BSCS507",
+        name: "Computer Vision",
+        credits: "2 LEC, 1 LAB",
+        contact: "3",
+        prerequisites: "BSCS404 Computer Graphics",
+        class: "Professional Courses",
+        cmo: "25 S, 2015",
+        year: "FOURTH YEAR",
+        sem: "1st Semester",
+        description: "Image processing, feature detection, and object recognition.",
+        references: [
+        {
+          id: "TB1",
+          title: "Computer Vision: A Comprehensive Guide",
+          type: "Textbook",
+          authors: "Academic Press",
+          year: 2022,
+          isbn: "978-0000000000",
+          link: ""
+        },
+        {
+          id: "OR1",
+          title: "Computer Vision Online Resources",
+          type: "Online Resources",
+          authors: "Open Access",
+          year: 2024,
+          link: ""
+        }
+      ],
+        topics: [
+        {
+          id: "T1",
+          title: "Fundamentals",
+          subtopics: [
+            {
+              id: "S1",
+              value: "Core Concepts"
+            },
+            {
+              id: "S2",
+              value: "Principles and Practices"
+            },
+            {
+              id: "S3",
+              value: "Key Methodologies"
+            }
+          ],
+          tlas: [
+            {
+              id: "TLA1",
+              classPhase: "Pre-class",
+              performedBy: "Instructor",
+              tlaName: "Lecture",
+              tlaDescription: "Introduction to computer vision.",
+              laboratory: false
+            },
+            {
+              id: "TLA2",
+              classPhase: "In-class",
+              performedBy: "Student",
+              tlaName: "Activity",
+              tlaDescription: "Hands-on exercise on computer vision fundamentals.",
+              laboratory: true
+            }
+          ]
+        },
+        {
+          id: "T2",
+          title: "Applications",
+          subtopics: [
+            {
+              id: "S4",
+              value: "Implementation"
+            },
+            {
+              id: "S5",
+              value: "Case Studies"
+            },
+            {
+              id: "S6",
+              value: "Best Practices"
+            }
+          ],
+          tlas: [
+            {
+              id: "TLA3",
+              classPhase: "In-class",
+              performedBy: "Student",
+              tlaName: "Project Lab",
+              tlaDescription: "Students apply computer vision concepts to a practical project.",
+              laboratory: true
+            }
+          ]
+        },
+        {
+          id: "T3",
+          title: "Advanced Topics",
+          subtopics: [
+            {
+              id: "S7",
+              value: "Advanced Concepts"
+            },
+            {
+              id: "S8",
+              value: "Emerging Trends"
+            },
+            {
+              id: "S9",
+              value: "Research Directions"
+            }
+          ],
+          tlas: [
+            {
+              id: "TLA4",
+              classPhase: "Post-class",
+              performedBy: "Student",
+              tlaName: "Research Assignment",
+              tlaDescription: "Students research emerging trends in computer vision.",
+              laboratory: false
+            }
+          ]
+        }
+      ],
+        courseOutcomes: [
+        {
+          id: "CO1",
+          description: "Explain the fundamental concepts and principles of computer vision.",
+          poMappings: ["I","","","","","","","","","E","I","",""]
+        },
+        {
+          id: "CO2",
+          description: "Apply computer vision techniques to solve practical problems.",
+          poMappings: ["","","E","","","","","","","E","I","",""]
+        },
+        {
+          id: "CO3",
+          description: "Evaluate emerging trends and advanced concepts in computer vision.",
+          poMappings: ["","","","","","","D","","","I","I","E",""]
+        }
+      ],
+        coAssessmentMethodSets: {
+        CO1: [
+          {
+            value: "Concept Quiz",
+            description: "Quiz on computer vision fundamentals."
+          }
+        ],
+        CO2: [
+          {
+            value: "Practical Exercise",
+            description: "Applied exercise in computer vision."
+          }
+        ],
+        CO3: [
+          {
+            value: "Research Paper",
+            description: "Research paper on advanced computer vision topics."
+          }
+        ]
+      },
+        assessments: [
+        {
+          id: "A1",
+          tlaName: "Lecture",
+          phase: "Pre-class",
+          assessmentMethod: "Quiz",
+          assessmentDescription: "Quiz on computer vision concepts.",
+          hasRubric: false
+        },
+        {
+          id: "A2",
+          tlaName: "Activity",
+          phase: "In-class",
+          assessmentMethod: "Lab Report",
+          assessmentDescription: "Lab report on computer vision exercise.",
+          hasRubric: true,
+          rubrics: [
+            {
+              id: 1,
+              criteria: "Correctness",
+              maxScore: "60"
+            },
+            {
+              id: 2,
+              criteria: "Analysis",
+              maxScore: "40"
+            }
+          ]
+        },
+        {
+          id: "A3",
+          tlaName: "Research Assignment",
+          phase: "Post-class",
+          assessmentMethod: "Research Paper",
+          assessmentDescription: "Research paper on computer vision trends.",
+          hasRubric: true,
+          rubrics: [
+            {
+              id: 1,
+              criteria: "Research depth",
+              maxScore: "50"
+            },
+            {
+              id: 2,
+              criteria: "Analysis",
+              maxScore: "50"
+            }
+          ]
+        }
+      ],
+        ilos: [
+        {
+          id: "CO1-ILO1",
+          courseOutcome: "Explain the fundamental concepts and principles of computer vision.",
+          intendedLearningOutcome: "Describe the core principles of computer vision.",
+          deliveryWeek: "Week 1",
+          allocatedTime: "3 hours",
+          topics: [
+            "Fundamentals"
+          ],
+          references: [
+            "TB1 - Computer Vision"
+          ]
+        },
+        {
+          id: "CO2-ILO1",
+          courseOutcome: "Apply computer vision techniques to solve practical problems.",
+          intendedLearningOutcome: "Implement solutions using computer vision techniques.",
+          deliveryWeek: "Week 4",
+          allocatedTime: "3 hours",
+          topics: [
+            "Applications"
+          ],
+          references: [
+            "OR1 - Online Resources"
+          ]
+        },
+        {
+          id: "CO3-ILO1",
+          courseOutcome: "Evaluate emerging trends and advanced concepts in computer vision.",
+          intendedLearningOutcome: "Analyze current research and trends in computer vision.",
+          deliveryWeek: "Week 8",
+          allocatedTime: "3 hours",
+          topics: [
+            "Advanced Topics"
+          ],
+          references: [
+            "TB1 - Computer Vision"
+          ]
+        }
+      ],
+        gradingSystem: [
+        {
+          co: "CO1",
+          ilos: [
+            {
+              id: "ILO1",
+              assessments: [
+                "Concept Quiz"
+              ],
+              weight: {
+                prelim: "50",
+                midterm: "",
+                semi: "",
+                final: ""
+              },
+              minPassing: "60"
+            }
+          ]
+        },
+        {
+          co: "CO2",
+          ilos: [
+            {
+              id: "ILO1",
+              assessments: [
+                "Practical Exercise"
+              ],
+              weight: {
+                prelim: "",
+                midterm: "60",
+                semi: "",
+                final: ""
+              },
+              minPassing: "60"
+            }
+          ]
+        },
+        {
+          co: "CO3",
+          ilos: [
+            {
+              id: "ILO1",
+              assessments: [
+                "Research Paper"
+              ],
+              weight: {
+                prelim: "",
+                midterm: "",
+                semi: "50",
+                final: "50"
+              },
+              minPassing: "60"
+            }
+          ]
+        }
+      ]
+    },
+    {
+        code: "BSCS508",
+        name: "Quantum Computing",
+        credits: "3 LEC",
+        contact: "3",
+        prerequisites: "BSCS301 Automata Theory",
+        class: "Professional Courses",
+        cmo: "25 S, 2015",
+        year: "FOURTH YEAR",
+        sem: "2nd Semester",
+        description: "Introduction to quantum computing principles and algorithms.",
+        references: [
+        {
+          id: "TB1",
+          title: "Quantum Computing: A Comprehensive Guide",
+          type: "Textbook",
+          authors: "Academic Press",
+          year: 2022,
+          isbn: "978-0000000000",
+          link: ""
+        },
+        {
+          id: "OR1",
+          title: "Quantum Computing Online Resources",
+          type: "Online Resources",
+          authors: "Open Access",
+          year: 2024,
+          link: ""
+        }
+      ],
+        topics: [
+        {
+          id: "T1",
+          title: "Fundamentals",
+          subtopics: [
+            {
+              id: "S1",
+              value: "Core Concepts"
+            },
+            {
+              id: "S2",
+              value: "Principles and Practices"
+            },
+            {
+              id: "S3",
+              value: "Key Methodologies"
+            }
+          ],
+          tlas: [
+            {
+              id: "TLA1",
+              classPhase: "Pre-class",
+              performedBy: "Instructor",
+              tlaName: "Lecture",
+              tlaDescription: "Introduction to quantum computing.",
+              laboratory: false
+            },
+            {
+              id: "TLA2",
+              classPhase: "In-class",
+              performedBy: "Student",
+              tlaName: "Activity",
+              tlaDescription: "Hands-on exercise on quantum computing fundamentals.",
+              laboratory: true
+            }
+          ]
+        },
+        {
+          id: "T2",
+          title: "Applications",
+          subtopics: [
+            {
+              id: "S4",
+              value: "Implementation"
+            },
+            {
+              id: "S5",
+              value: "Case Studies"
+            },
+            {
+              id: "S6",
+              value: "Best Practices"
+            }
+          ],
+          tlas: [
+            {
+              id: "TLA3",
+              classPhase: "In-class",
+              performedBy: "Student",
+              tlaName: "Project Lab",
+              tlaDescription: "Students apply quantum computing concepts to a practical project.",
+              laboratory: true
+            }
+          ]
+        }
+      ],
+        courseOutcomes: [
+        {
+          id: "CO1",
+          description: "Explain the fundamental concepts and principles of quantum computing.",
+          poMappings: ["I","","","","","","","","","E","I","",""]
+        },
+        {
+          id: "CO2",
+          description: "Apply quantum computing techniques to solve practical problems.",
+          poMappings: ["","","E","","","","","","","E","I","",""]
+        }
+      ],
+        coAssessmentMethodSets: {
+        CO1: [
+          {
+            value: "Concept Quiz",
+            description: "Quiz on quantum computing fundamentals."
+          }
+        ],
+        CO2: [
+          {
+            value: "Practical Exercise",
+            description: "Applied exercise in quantum computing."
+          }
+        ]
+      },
+        assessments: [
+        {
+          id: "A1",
+          tlaName: "Lecture",
+          phase: "Pre-class",
+          assessmentMethod: "Quiz",
+          assessmentDescription: "Quiz on quantum computing concepts.",
+          hasRubric: false
+        },
+        {
+          id: "A2",
+          tlaName: "Activity",
+          phase: "In-class",
+          assessmentMethod: "Lab Report",
+          assessmentDescription: "Lab report on quantum computing exercise.",
+          hasRubric: true,
+          rubrics: [
+            {
+              id: 1,
+              criteria: "Correctness",
+              maxScore: "60"
+            },
+            {
+              id: 2,
+              criteria: "Analysis",
+              maxScore: "40"
+            }
+          ]
+        }
+      ],
+        ilos: [
+        {
+          id: "CO1-ILO1",
+          courseOutcome: "Explain the fundamental concepts and principles of quantum computing.",
+          intendedLearningOutcome: "Describe the core principles of quantum computing.",
+          deliveryWeek: "Week 1",
+          allocatedTime: "3 hours",
+          topics: [
+            "Fundamentals"
+          ],
+          references: [
+            "TB1 - Quantum Computing"
+          ]
+        },
+        {
+          id: "CO2-ILO1",
+          courseOutcome: "Apply quantum computing techniques to solve practical problems.",
+          intendedLearningOutcome: "Implement solutions using quantum computing techniques.",
+          deliveryWeek: "Week 4",
+          allocatedTime: "3 hours",
+          topics: [
+            "Applications"
+          ],
+          references: [
+            "OR1 - Online Resources"
+          ]
+        }
+      ],
+        gradingSystem: [
+        {
+          co: "CO1",
+          ilos: [
+            {
+              id: "ILO1",
+              assessments: [
+                "Concept Quiz"
+              ],
+              weight: {
+                prelim: "50",
+                midterm: "",
+                semi: "",
+                final: ""
+              },
+              minPassing: "60"
+            }
+          ]
+        },
+        {
+          co: "CO2",
+          ilos: [
+            {
+              id: "ILO1",
+              assessments: [
+                "Practical Exercise"
+              ],
+              weight: {
+                prelim: "",
+                midterm: "60",
+                semi: "",
+                final: ""
+              },
+              minPassing: "60"
+            }
+          ]
+        }
+      ]
+    },
+    {
+        code: "BSCS509",
+        name: "Big Data Analytics",
+        credits: "2 LEC, 1 LAB",
+        contact: "3",
+        prerequisites: "BSCS506 Data Mining",
+        class: "Professional Courses",
+        cmo: "25 S, 2015",
+        year: "FOURTH YEAR",
+        sem: "2nd Semester",
+        description: "Distributed processing and analysis of large-scale data.",
+        references: [
+        {
+          id: "TB1",
+          title: "Big Data Analytics: A Comprehensive Guide",
+          type: "Textbook",
+          authors: "Academic Press",
+          year: 2022,
+          isbn: "978-0000000000",
+          link: ""
+        },
+        {
+          id: "OR1",
+          title: "Big Data Analytics Online Resources",
+          type: "Online Resources",
+          authors: "Open Access",
+          year: 2024,
+          link: ""
+        }
+      ],
+        topics: [
+        {
+          id: "T1",
+          title: "Fundamentals",
+          subtopics: [
+            {
+              id: "S1",
+              value: "Core Concepts"
+            },
+            {
+              id: "S2",
+              value: "Principles and Practices"
+            },
+            {
+              id: "S3",
+              value: "Key Methodologies"
+            }
+          ],
+          tlas: [
+            {
+              id: "TLA1",
+              classPhase: "Pre-class",
+              performedBy: "Instructor",
+              tlaName: "Lecture",
+              tlaDescription: "Introduction to big data analytics.",
+              laboratory: false
+            },
+            {
+              id: "TLA2",
+              classPhase: "In-class",
+              performedBy: "Student",
+              tlaName: "Activity",
+              tlaDescription: "Hands-on exercise on big data analytics fundamentals.",
+              laboratory: true
+            }
+          ]
+        },
+        {
+          id: "T2",
+          title: "Applications",
+          subtopics: [
+            {
+              id: "S4",
+              value: "Implementation"
+            },
+            {
+              id: "S5",
+              value: "Case Studies"
+            },
+            {
+              id: "S6",
+              value: "Best Practices"
+            }
+          ],
+          tlas: [
+            {
+              id: "TLA3",
+              classPhase: "In-class",
+              performedBy: "Student",
+              tlaName: "Project Lab",
+              tlaDescription: "Students apply big data analytics concepts to a practical project.",
+              laboratory: true
+            }
+          ]
+        }
+      ],
+        courseOutcomes: [
+        {
+          id: "CO1",
+          description: "Explain the fundamental concepts and principles of big data analytics.",
+          poMappings: ["I","","","","","","","","","E","I","",""]
+        },
+        {
+          id: "CO2",
+          description: "Apply big data analytics techniques to solve practical problems.",
+          poMappings: ["","","E","","","","","","","E","I","",""]
+        }
+      ],
+        coAssessmentMethodSets: {
+        CO1: [
+          {
+            value: "Concept Quiz",
+            description: "Quiz on big data analytics fundamentals."
+          }
+        ],
+        CO2: [
+          {
+            value: "Practical Exercise",
+            description: "Applied exercise in big data analytics."
+          }
+        ]
+      },
+        assessments: [
+        {
+          id: "A1",
+          tlaName: "Lecture",
+          phase: "Pre-class",
+          assessmentMethod: "Quiz",
+          assessmentDescription: "Quiz on big data analytics concepts.",
+          hasRubric: false
+        },
+        {
+          id: "A2",
+          tlaName: "Activity",
+          phase: "In-class",
+          assessmentMethod: "Lab Report",
+          assessmentDescription: "Lab report on big data analytics exercise.",
+          hasRubric: true,
+          rubrics: [
+            {
+              id: 1,
+              criteria: "Correctness",
+              maxScore: "60"
+            },
+            {
+              id: 2,
+              criteria: "Analysis",
+              maxScore: "40"
+            }
+          ]
+        }
+      ],
+        ilos: [
+        {
+          id: "CO1-ILO1",
+          courseOutcome: "Explain the fundamental concepts and principles of big data analytics.",
+          intendedLearningOutcome: "Describe the core principles of big data analytics.",
+          deliveryWeek: "Week 1",
+          allocatedTime: "3 hours",
+          topics: [
+            "Fundamentals"
+          ],
+          references: [
+            "TB1 - Big Data Analytics"
+          ]
+        },
+        {
+          id: "CO2-ILO1",
+          courseOutcome: "Apply big data analytics techniques to solve practical problems.",
+          intendedLearningOutcome: "Implement solutions using big data analytics techniques.",
+          deliveryWeek: "Week 4",
+          allocatedTime: "3 hours",
+          topics: [
+            "Applications"
+          ],
+          references: [
+            "OR1 - Online Resources"
+          ]
+        }
+      ],
+        gradingSystem: [
+        {
+          co: "CO1",
+          ilos: [
+            {
+              id: "ILO1",
+              assessments: [
+                "Concept Quiz"
+              ],
+              weight: {
+                prelim: "50",
+                midterm: "",
+                semi: "",
+                final: ""
+              },
+              minPassing: "60"
+            }
+          ]
+        },
+        {
+          co: "CO2",
+          ilos: [
+            {
+              id: "ILO1",
+              assessments: [
+                "Practical Exercise"
+              ],
+              weight: {
+                prelim: "",
+                midterm: "60",
+                semi: "",
+                final: ""
+              },
+              minPassing: "60"
+            }
+          ]
+        }
+      ]
+    },
+    {
+        code: "BSCS510",
+        name: "Advanced Web Development",
+        credits: "2 LEC, 1 LAB",
+        contact: "3",
+        prerequisites: "IT 312 Web Systems",
+        class: "Professional Courses",
+        cmo: "25 S, 2015",
+        year: "FOURTH YEAR",
+        sem: "1st Semester",
+        description: "Full-stack web development with modern frameworks.",
+        references: [
+        {
+          id: "TB1",
+          title: "Advanced Web Development: A Comprehensive Guide",
+          type: "Textbook",
+          authors: "Academic Press",
+          year: 2022,
+          isbn: "978-0000000000",
+          link: ""
+        },
+        {
+          id: "OR1",
+          title: "Advanced Web Development Online Resources",
+          type: "Online Resources",
+          authors: "Open Access",
+          year: 2024,
+          link: ""
+        }
+      ],
+        topics: [
+        {
+          id: "T1",
+          title: "Fundamentals",
+          subtopics: [
+            {
+              id: "S1",
+              value: "Core Concepts"
+            },
+            {
+              id: "S2",
+              value: "Principles and Practices"
+            },
+            {
+              id: "S3",
+              value: "Key Methodologies"
+            }
+          ],
+          tlas: [
+            {
+              id: "TLA1",
+              classPhase: "Pre-class",
+              performedBy: "Instructor",
+              tlaName: "Lecture",
+              tlaDescription: "Introduction to advanced web development.",
+              laboratory: false
+            },
+            {
+              id: "TLA2",
+              classPhase: "In-class",
+              performedBy: "Student",
+              tlaName: "Activity",
+              tlaDescription: "Hands-on exercise on advanced web development fundamentals.",
+              laboratory: true
+            }
+          ]
+        },
+        {
+          id: "T2",
+          title: "Applications",
+          subtopics: [
+            {
+              id: "S4",
+              value: "Implementation"
+            },
+            {
+              id: "S5",
+              value: "Case Studies"
+            },
+            {
+              id: "S6",
+              value: "Best Practices"
+            }
+          ],
+          tlas: [
+            {
+              id: "TLA3",
+              classPhase: "In-class",
+              performedBy: "Student",
+              tlaName: "Project Lab",
+              tlaDescription: "Students apply advanced web development concepts to a practical project.",
+              laboratory: true
+            }
+          ]
+        },
+        {
+          id: "T3",
+          title: "Advanced Topics",
+          subtopics: [
+            {
+              id: "S7",
+              value: "Advanced Concepts"
+            },
+            {
+              id: "S8",
+              value: "Emerging Trends"
+            },
+            {
+              id: "S9",
+              value: "Research Directions"
+            }
+          ],
+          tlas: [
+            {
+              id: "TLA4",
+              classPhase: "Post-class",
+              performedBy: "Student",
+              tlaName: "Research Assignment",
+              tlaDescription: "Students research emerging trends in advanced web development.",
+              laboratory: false
+            }
+          ]
+        }
+      ],
+        courseOutcomes: [
+        {
+          id: "CO1",
+          description: "Explain the fundamental concepts and principles of advanced web development.",
+          poMappings: ["I","","","","","","","","","E","E","",""]
+        },
+        {
+          id: "CO2",
+          description: "Apply advanced web development techniques to solve practical problems.",
+          poMappings: ["","","E","","","","","","","E","E","",""]
+        },
+        {
+          id: "CO3",
+          description: "Evaluate emerging trends and advanced concepts in advanced web development.",
+          poMappings: ["","","","","","","D","","","I","E","E",""]
+        }
+      ],
+        coAssessmentMethodSets: {
+        CO1: [
+          {
+            value: "Concept Quiz",
+            description: "Quiz on advanced web development fundamentals."
+          }
+        ],
+        CO2: [
+          {
+            value: "Practical Exercise",
+            description: "Applied exercise in advanced web development."
+          }
+        ],
+        CO3: [
+          {
+            value: "Research Paper",
+            description: "Research paper on advanced advanced web development topics."
+          }
+        ]
+      },
+        assessments: [
+        {
+          id: "A1",
+          tlaName: "Lecture",
+          phase: "Pre-class",
+          assessmentMethod: "Quiz",
+          assessmentDescription: "Quiz on advanced web development concepts.",
+          hasRubric: false
+        },
+        {
+          id: "A2",
+          tlaName: "Activity",
+          phase: "In-class",
+          assessmentMethod: "Lab Report",
+          assessmentDescription: "Lab report on advanced web development exercise.",
+          hasRubric: true,
+          rubrics: [
+            {
+              id: 1,
+              criteria: "Correctness",
+              maxScore: "60"
+            },
+            {
+              id: 2,
+              criteria: "Analysis",
+              maxScore: "40"
+            }
+          ]
+        },
+        {
+          id: "A3",
+          tlaName: "Research Assignment",
+          phase: "Post-class",
+          assessmentMethod: "Research Paper",
+          assessmentDescription: "Research paper on advanced web development trends.",
+          hasRubric: true,
+          rubrics: [
+            {
+              id: 1,
+              criteria: "Research depth",
+              maxScore: "50"
+            },
+            {
+              id: 2,
+              criteria: "Analysis",
+              maxScore: "50"
+            }
+          ]
+        }
+      ],
+        ilos: [
+        {
+          id: "CO1-ILO1",
+          courseOutcome: "Explain the fundamental concepts and principles of advanced web development.",
+          intendedLearningOutcome: "Describe the core principles of advanced web development.",
+          deliveryWeek: "Week 1",
+          allocatedTime: "3 hours",
+          topics: [
+            "Fundamentals"
+          ],
+          references: [
+            "TB1 - Advanced Web Development"
+          ]
+        },
+        {
+          id: "CO2-ILO1",
+          courseOutcome: "Apply advanced web development techniques to solve practical problems.",
+          intendedLearningOutcome: "Implement solutions using advanced web development techniques.",
+          deliveryWeek: "Week 4",
+          allocatedTime: "3 hours",
+          topics: [
+            "Applications"
+          ],
+          references: [
+            "OR1 - Online Resources"
+          ]
+        },
+        {
+          id: "CO3-ILO1",
+          courseOutcome: "Evaluate emerging trends and advanced concepts in advanced web development.",
+          intendedLearningOutcome: "Analyze current research and trends in advanced web development.",
+          deliveryWeek: "Week 8",
+          allocatedTime: "3 hours",
+          topics: [
+            "Advanced Topics"
+          ],
+          references: [
+            "TB1 - Advanced Web Development"
+          ]
+        }
+      ],
+        gradingSystem: [
+        {
+          co: "CO1",
+          ilos: [
+            {
+              id: "ILO1",
+              assessments: [
+                "Concept Quiz"
+              ],
+              weight: {
+                prelim: "50",
+                midterm: "",
+                semi: "",
+                final: ""
+              },
+              minPassing: "60"
+            }
+          ]
+        },
+        {
+          co: "CO2",
+          ilos: [
+            {
+              id: "ILO1",
+              assessments: [
+                "Practical Exercise"
+              ],
+              weight: {
+                prelim: "",
+                midterm: "60",
+                semi: "",
+                final: ""
+              },
+              minPassing: "60"
+            }
+          ]
+        },
+        {
+          co: "CO3",
+          ilos: [
+            {
+              id: "ILO1",
+              assessments: [
+                "Research Paper"
+              ],
+              weight: {
+                prelim: "",
+                midterm: "",
+                semi: "50",
+                final: "50"
+              },
+              minPassing: "60"
+            }
+          ]
+        }
+      ]
+    },
+    {
+        code: "BSCS511",
+        name: "Mobile Game Development",
+        credits: "2 LEC, 1 LAB",
+        contact: "3",
+        prerequisites: "BSCS421L Mobile App Development",
+        class: "Professional Courses",
+        cmo: "25 S, 2015",
+        year: "FOURTH YEAR",
+        sem: "2nd Semester",
+        description: "Design and development of games for mobile platforms.",
+        references: [
+        {
+          id: "TB1",
+          title: "Mobile Game Development: A Comprehensive Guide",
+          type: "Textbook",
+          authors: "Academic Press",
+          year: 2022,
+          isbn: "978-0000000000",
+          link: ""
+        },
+        {
+          id: "OR1",
+          title: "Mobile Game Development Online Resources",
+          type: "Online Resources",
+          authors: "Open Access",
+          year: 2024,
+          link: ""
+        }
+      ],
+        topics: [
+        {
+          id: "T1",
+          title: "Fundamentals",
+          subtopics: [
+            {
+              id: "S1",
+              value: "Core Concepts"
+            },
+            {
+              id: "S2",
+              value: "Principles and Practices"
+            },
+            {
+              id: "S3",
+              value: "Key Methodologies"
+            }
+          ],
+          tlas: [
+            {
+              id: "TLA1",
+              classPhase: "Pre-class",
+              performedBy: "Instructor",
+              tlaName: "Lecture",
+              tlaDescription: "Introduction to mobile game development.",
+              laboratory: false
+            },
+            {
+              id: "TLA2",
+              classPhase: "In-class",
+              performedBy: "Student",
+              tlaName: "Activity",
+              tlaDescription: "Hands-on exercise on mobile game development fundamentals.",
+              laboratory: true
+            }
+          ]
+        },
+        {
+          id: "T2",
+          title: "Applications",
+          subtopics: [
+            {
+              id: "S4",
+              value: "Implementation"
+            },
+            {
+              id: "S5",
+              value: "Case Studies"
+            },
+            {
+              id: "S6",
+              value: "Best Practices"
+            }
+          ],
+          tlas: [
+            {
+              id: "TLA3",
+              classPhase: "In-class",
+              performedBy: "Student",
+              tlaName: "Project Lab",
+              tlaDescription: "Students apply mobile game development concepts to a practical project.",
+              laboratory: true
+            }
+          ]
+        }
+      ],
+        courseOutcomes: [
+        {
+          id: "CO1",
+          description: "Explain the fundamental concepts and principles of mobile game development.",
+          poMappings: ["I","","","","","","","","","E","E","",""]
+        },
+        {
+          id: "CO2",
+          description: "Apply mobile game development techniques to solve practical problems.",
+          poMappings: ["","","E","","","","","","","E","E","",""]
+        }
+      ],
+        coAssessmentMethodSets: {
+        CO1: [
+          {
+            value: "Concept Quiz",
+            description: "Quiz on mobile game development fundamentals."
+          }
+        ],
+        CO2: [
+          {
+            value: "Practical Exercise",
+            description: "Applied exercise in mobile game development."
+          }
+        ]
+      },
+        assessments: [
+        {
+          id: "A1",
+          tlaName: "Lecture",
+          phase: "Pre-class",
+          assessmentMethod: "Quiz",
+          assessmentDescription: "Quiz on mobile game development concepts.",
+          hasRubric: false
+        },
+        {
+          id: "A2",
+          tlaName: "Activity",
+          phase: "In-class",
+          assessmentMethod: "Lab Report",
+          assessmentDescription: "Lab report on mobile game development exercise.",
+          hasRubric: true,
+          rubrics: [
+            {
+              id: 1,
+              criteria: "Correctness",
+              maxScore: "60"
+            },
+            {
+              id: 2,
+              criteria: "Analysis",
+              maxScore: "40"
+            }
+          ]
+        }
+      ],
+        ilos: [
+        {
+          id: "CO1-ILO1",
+          courseOutcome: "Explain the fundamental concepts and principles of mobile game development.",
+          intendedLearningOutcome: "Describe the core principles of mobile game development.",
+          deliveryWeek: "Week 1",
+          allocatedTime: "3 hours",
+          topics: [
+            "Fundamentals"
+          ],
+          references: [
+            "TB1 - Mobile Game Development"
+          ]
+        },
+        {
+          id: "CO2-ILO1",
+          courseOutcome: "Apply mobile game development techniques to solve practical problems.",
+          intendedLearningOutcome: "Implement solutions using mobile game development techniques.",
+          deliveryWeek: "Week 4",
+          allocatedTime: "3 hours",
+          topics: [
+            "Applications"
+          ],
+          references: [
+            "OR1 - Online Resources"
+          ]
+        }
+      ],
+        gradingSystem: [
+        {
+          co: "CO1",
+          ilos: [
+            {
+              id: "ILO1",
+              assessments: [
+                "Concept Quiz"
+              ],
+              weight: {
+                prelim: "50",
+                midterm: "",
+                semi: "",
+                final: ""
+              },
+              minPassing: "60"
+            }
+          ]
+        },
+        {
+          co: "CO2",
+          ilos: [
+            {
+              id: "ILO1",
+              assessments: [
+                "Practical Exercise"
+              ],
+              weight: {
+                prelim: "",
+                midterm: "60",
+                semi: "",
+                final: ""
+              },
+              minPassing: "60"
+            }
+          ]
+        }
+      ]
+    },
+    {
+        code: "BSCS512",
+        name: "IT Infrastructure Management",
+        credits: "2 LEC, 1 LAB",
+        contact: "3",
+        prerequisites: "BSCS331L Computer Networks",
+        class: "Professional Courses",
+        cmo: "25 S, 2015",
+        year: "FOURTH YEAR",
+        sem: "1st Semester",
+        description: "Management and optimization of IT infrastructure.",
+        references: [
+        {
+          id: "TB1",
+          title: "IT Infrastructure Management: A Comprehensive Guide",
+          type: "Textbook",
+          authors: "Academic Press",
+          year: 2022,
+          isbn: "978-0000000000",
+          link: ""
+        },
+        {
+          id: "OR1",
+          title: "IT Infrastructure Management Online Resources",
+          type: "Online Resources",
+          authors: "Open Access",
+          year: 2024,
+          link: ""
+        }
+      ],
+        topics: [
+        {
+          id: "T1",
+          title: "Fundamentals",
+          subtopics: [
+            {
+              id: "S1",
+              value: "Core Concepts"
+            },
+            {
+              id: "S2",
+              value: "Principles and Practices"
+            },
+            {
+              id: "S3",
+              value: "Key Methodologies"
+            }
+          ],
+          tlas: [
+            {
+              id: "TLA1",
+              classPhase: "Pre-class",
+              performedBy: "Instructor",
+              tlaName: "Lecture",
+              tlaDescription: "Introduction to it infrastructure management.",
+              laboratory: false
+            },
+            {
+              id: "TLA2",
+              classPhase: "In-class",
+              performedBy: "Student",
+              tlaName: "Activity",
+              tlaDescription: "Hands-on exercise on it infrastructure management fundamentals.",
+              laboratory: true
+            }
+          ]
+        },
+        {
+          id: "T2",
+          title: "Applications",
+          subtopics: [
+            {
+              id: "S4",
+              value: "Implementation"
+            },
+            {
+              id: "S5",
+              value: "Case Studies"
+            },
+            {
+              id: "S6",
+              value: "Best Practices"
+            }
+          ],
+          tlas: [
+            {
+              id: "TLA3",
+              classPhase: "In-class",
+              performedBy: "Student",
+              tlaName: "Project Lab",
+              tlaDescription: "Students apply it infrastructure management concepts to a practical project.",
+              laboratory: true
+            }
+          ]
+        },
+        {
+          id: "T3",
+          title: "Advanced Topics",
+          subtopics: [
+            {
+              id: "S7",
+              value: "Advanced Concepts"
+            },
+            {
+              id: "S8",
+              value: "Emerging Trends"
+            },
+            {
+              id: "S9",
+              value: "Research Directions"
+            }
+          ],
+          tlas: [
+            {
+              id: "TLA4",
+              classPhase: "Post-class",
+              performedBy: "Student",
+              tlaName: "Research Assignment",
+              tlaDescription: "Students research emerging trends in it infrastructure management.",
+              laboratory: false
+            }
+          ]
+        }
+      ],
+        courseOutcomes: [
+        {
+          id: "CO1",
+          description: "Explain the fundamental concepts and principles of it infrastructure management.",
+          poMappings: ["I","","","","","","","","","E","I","",""]
+        },
+        {
+          id: "CO2",
+          description: "Apply it infrastructure management techniques to solve practical problems.",
+          poMappings: ["","","E","","","","","","","E","I","",""]
+        },
+        {
+          id: "CO3",
+          description: "Evaluate emerging trends and advanced concepts in it infrastructure management.",
+          poMappings: ["","","","","","","D","","","I","I","E",""]
+        }
+      ],
+        coAssessmentMethodSets: {
+        CO1: [
+          {
+            value: "Concept Quiz",
+            description: "Quiz on it infrastructure management fundamentals."
+          }
+        ],
+        CO2: [
+          {
+            value: "Practical Exercise",
+            description: "Applied exercise in it infrastructure management."
+          }
+        ],
+        CO3: [
+          {
+            value: "Research Paper",
+            description: "Research paper on advanced it infrastructure management topics."
+          }
+        ]
+      },
+        assessments: [
+        {
+          id: "A1",
+          tlaName: "Lecture",
+          phase: "Pre-class",
+          assessmentMethod: "Quiz",
+          assessmentDescription: "Quiz on it infrastructure management concepts.",
+          hasRubric: false
+        },
+        {
+          id: "A2",
+          tlaName: "Activity",
+          phase: "In-class",
+          assessmentMethod: "Lab Report",
+          assessmentDescription: "Lab report on it infrastructure management exercise.",
+          hasRubric: true,
+          rubrics: [
+            {
+              id: 1,
+              criteria: "Correctness",
+              maxScore: "60"
+            },
+            {
+              id: 2,
+              criteria: "Analysis",
+              maxScore: "40"
+            }
+          ]
+        },
+        {
+          id: "A3",
+          tlaName: "Research Assignment",
+          phase: "Post-class",
+          assessmentMethod: "Research Paper",
+          assessmentDescription: "Research paper on it infrastructure management trends.",
+          hasRubric: true,
+          rubrics: [
+            {
+              id: 1,
+              criteria: "Research depth",
+              maxScore: "50"
+            },
+            {
+              id: 2,
+              criteria: "Analysis",
+              maxScore: "50"
+            }
+          ]
+        }
+      ],
+        ilos: [
+        {
+          id: "CO1-ILO1",
+          courseOutcome: "Explain the fundamental concepts and principles of it infrastructure management.",
+          intendedLearningOutcome: "Describe the core principles of it infrastructure management.",
+          deliveryWeek: "Week 1",
+          allocatedTime: "3 hours",
+          topics: [
+            "Fundamentals"
+          ],
+          references: [
+            "TB1 - IT Infrastructure Management"
+          ]
+        },
+        {
+          id: "CO2-ILO1",
+          courseOutcome: "Apply it infrastructure management techniques to solve practical problems.",
+          intendedLearningOutcome: "Implement solutions using it infrastructure management techniques.",
+          deliveryWeek: "Week 4",
+          allocatedTime: "3 hours",
+          topics: [
+            "Applications"
+          ],
+          references: [
+            "OR1 - Online Resources"
+          ]
+        },
+        {
+          id: "CO3-ILO1",
+          courseOutcome: "Evaluate emerging trends and advanced concepts in it infrastructure management.",
+          intendedLearningOutcome: "Analyze current research and trends in it infrastructure management.",
+          deliveryWeek: "Week 8",
+          allocatedTime: "3 hours",
+          topics: [
+            "Advanced Topics"
+          ],
+          references: [
+            "TB1 - IT Infrastructure Management"
+          ]
+        }
+      ],
+        gradingSystem: [
+        {
+          co: "CO1",
+          ilos: [
+            {
+              id: "ILO1",
+              assessments: [
+                "Concept Quiz"
+              ],
+              weight: {
+                prelim: "50",
+                midterm: "",
+                semi: "",
+                final: ""
+              },
+              minPassing: "60"
+            }
+          ]
+        },
+        {
+          co: "CO2",
+          ilos: [
+            {
+              id: "ILO1",
+              assessments: [
+                "Practical Exercise"
+              ],
+              weight: {
+                prelim: "",
+                midterm: "60",
+                semi: "",
+                final: ""
+              },
+              minPassing: "60"
+            }
+          ]
+        },
+        {
+          co: "CO3",
+          ilos: [
+            {
+              id: "ILO1",
+              assessments: [
+                "Research Paper"
+              ],
+              weight: {
+                prelim: "",
+                midterm: "",
+                semi: "50",
+                final: "50"
+              },
+              minPassing: "60"
+            }
+          ]
+        }
+      ]
+    },
+    {
+        code: "BSCS513",
+        name: "Information Assurance & Security",
+        credits: "2 LEC, 1 LAB",
+        contact: "3",
+        prerequisites: "BSCS351L Cybersecurity",
+        class: "Professional Courses",
+        cmo: "25 S, 2015",
+        year: "FOURTH YEAR",
+        sem: "1st Semester",
+        description: "Principles of information assurance, risk management, and security policies.",
+        references: [
+        {
+          id: "TB1",
+          title: "Information Assurance & Security: A Comprehensive Guide",
+          type: "Textbook",
+          authors: "Academic Press",
+          year: 2022,
+          isbn: "978-0000000000",
+          link: ""
+        },
+        {
+          id: "OR1",
+          title: "Information Assurance & Security Online Resources",
+          type: "Online Resources",
+          authors: "Open Access",
+          year: 2024,
+          link: ""
+        }
+      ],
+        topics: [
+        {
+          id: "T1",
+          title: "Fundamentals",
+          subtopics: [
+            {
+              id: "S1",
+              value: "Core Concepts"
+            },
+            {
+              id: "S2",
+              value: "Principles and Practices"
+            },
+            {
+              id: "S3",
+              value: "Key Methodologies"
+            }
+          ],
+          tlas: [
+            {
+              id: "TLA1",
+              classPhase: "Pre-class",
+              performedBy: "Instructor",
+              tlaName: "Lecture",
+              tlaDescription: "Introduction to information assurance & security.",
+              laboratory: false
+            },
+            {
+              id: "TLA2",
+              classPhase: "In-class",
+              performedBy: "Student",
+              tlaName: "Activity",
+              tlaDescription: "Hands-on exercise on information assurance & security fundamentals.",
+              laboratory: true
+            }
+          ]
+        },
+        {
+          id: "T2",
+          title: "Applications",
+          subtopics: [
+            {
+              id: "S4",
+              value: "Implementation"
+            },
+            {
+              id: "S5",
+              value: "Case Studies"
+            },
+            {
+              id: "S6",
+              value: "Best Practices"
+            }
+          ],
+          tlas: [
+            {
+              id: "TLA3",
+              classPhase: "In-class",
+              performedBy: "Student",
+              tlaName: "Project Lab",
+              tlaDescription: "Students apply information assurance & security concepts to a practical project.",
+              laboratory: true
+            }
+          ]
+        },
+        {
+          id: "T3",
+          title: "Advanced Topics",
+          subtopics: [
+            {
+              id: "S7",
+              value: "Advanced Concepts"
+            },
+            {
+              id: "S8",
+              value: "Emerging Trends"
+            },
+            {
+              id: "S9",
+              value: "Research Directions"
+            }
+          ],
+          tlas: [
+            {
+              id: "TLA4",
+              classPhase: "Post-class",
+              performedBy: "Student",
+              tlaName: "Research Assignment",
+              tlaDescription: "Students research emerging trends in information assurance & security.",
+              laboratory: false
+            }
+          ]
+        }
+      ],
+        courseOutcomes: [
+        {
+          id: "CO1",
+          description: "Explain the fundamental concepts and principles of information assurance & security.",
+          poMappings: ["I","","","","","","","","","E","I","","E"]
+        },
+        {
+          id: "CO2",
+          description: "Apply information assurance & security techniques to solve practical problems.",
+          poMappings: ["","","E","","","","","","","E","I","","E"]
+        },
+        {
+          id: "CO3",
+          description: "Evaluate emerging trends and advanced concepts in information assurance & security.",
+          poMappings: ["","","","","","","D","","","I","I","E","E"]
+        }
+      ],
+        coAssessmentMethodSets: {
+        CO1: [
+          {
+            value: "Concept Quiz",
+            description: "Quiz on information assurance & security fundamentals."
+          }
+        ],
+        CO2: [
+          {
+            value: "Practical Exercise",
+            description: "Applied exercise in information assurance & security."
+          }
+        ],
+        CO3: [
+          {
+            value: "Research Paper",
+            description: "Research paper on advanced information assurance & security topics."
+          }
+        ]
+      },
+        assessments: [
+        {
+          id: "A1",
+          tlaName: "Lecture",
+          phase: "Pre-class",
+          assessmentMethod: "Quiz",
+          assessmentDescription: "Quiz on information assurance & security concepts.",
+          hasRubric: false
+        },
+        {
+          id: "A2",
+          tlaName: "Activity",
+          phase: "In-class",
+          assessmentMethod: "Lab Report",
+          assessmentDescription: "Lab report on information assurance & security exercise.",
+          hasRubric: true,
+          rubrics: [
+            {
+              id: 1,
+              criteria: "Correctness",
+              maxScore: "60"
+            },
+            {
+              id: 2,
+              criteria: "Analysis",
+              maxScore: "40"
+            }
+          ]
+        },
+        {
+          id: "A3",
+          tlaName: "Research Assignment",
+          phase: "Post-class",
+          assessmentMethod: "Research Paper",
+          assessmentDescription: "Research paper on information assurance & security trends.",
+          hasRubric: true,
+          rubrics: [
+            {
+              id: 1,
+              criteria: "Research depth",
+              maxScore: "50"
+            },
+            {
+              id: 2,
+              criteria: "Analysis",
+              maxScore: "50"
+            }
+          ]
+        }
+      ],
+        ilos: [
+        {
+          id: "CO1-ILO1",
+          courseOutcome: "Explain the fundamental concepts and principles of information assurance & security.",
+          intendedLearningOutcome: "Describe the core principles of information assurance & security.",
+          deliveryWeek: "Week 1",
+          allocatedTime: "3 hours",
+          topics: [
+            "Fundamentals"
+          ],
+          references: [
+            "TB1 - Information Assurance & Security"
+          ]
+        },
+        {
+          id: "CO2-ILO1",
+          courseOutcome: "Apply information assurance & security techniques to solve practical problems.",
+          intendedLearningOutcome: "Implement solutions using information assurance & security techniques.",
+          deliveryWeek: "Week 4",
+          allocatedTime: "3 hours",
+          topics: [
+            "Applications"
+          ],
+          references: [
+            "OR1 - Online Resources"
+          ]
+        },
+        {
+          id: "CO3-ILO1",
+          courseOutcome: "Evaluate emerging trends and advanced concepts in information assurance & security.",
+          intendedLearningOutcome: "Analyze current research and trends in information assurance & security.",
+          deliveryWeek: "Week 8",
+          allocatedTime: "3 hours",
+          topics: [
+            "Advanced Topics"
+          ],
+          references: [
+            "TB1 - Information Assurance & Security"
+          ]
+        }
+      ],
+        gradingSystem: [
+        {
+          co: "CO1",
+          ilos: [
+            {
+              id: "ILO1",
+              assessments: [
+                "Concept Quiz"
+              ],
+              weight: {
+                prelim: "50",
+                midterm: "",
+                semi: "",
+                final: ""
+              },
+              minPassing: "60"
+            }
+          ]
+        },
+        {
+          co: "CO2",
+          ilos: [
+            {
+              id: "ILO1",
+              assessments: [
+                "Practical Exercise"
+              ],
+              weight: {
+                prelim: "",
+                midterm: "60",
+                semi: "",
+                final: ""
+              },
+              minPassing: "60"
+            }
+          ]
+        },
+        {
+          co: "CO3",
+          ilos: [
+            {
+              id: "ILO1",
+              assessments: [
+                "Research Paper"
+              ],
+              weight: {
+                prelim: "",
+                midterm: "",
+                semi: "50",
+                final: "50"
+              },
+              minPassing: "60"
+            }
+          ]
+        }
+      ]
+    },
+    {
+        code: "BSCS514",
+        name: "Human Language Technologies",
+        credits: "2 LEC, 1 LAB",
+        contact: "3",
+        prerequisites: "BSCS405 Natural Language Processing",
+        class: "Professional Courses",
+        cmo: "25 S, 2015",
+        year: "FOURTH YEAR",
+        sem: "2nd Semester",
+        description: "Advanced topics in speech recognition, machine translation, and dialogue systems.",
+        references: [
+        {
+          id: "TB1",
+          title: "Human Language Technologies: A Comprehensive Guide",
+          type: "Textbook",
+          authors: "Academic Press",
+          year: 2022,
+          isbn: "978-0000000000",
+          link: ""
+        },
+        {
+          id: "OR1",
+          title: "Human Language Technologies Online Resources",
+          type: "Online Resources",
+          authors: "Open Access",
+          year: 2024,
+          link: ""
+        }
+      ],
+        topics: [
+        {
+          id: "T1",
+          title: "Fundamentals",
+          subtopics: [
+            {
+              id: "S1",
+              value: "Core Concepts"
+            },
+            {
+              id: "S2",
+              value: "Principles and Practices"
+            },
+            {
+              id: "S3",
+              value: "Key Methodologies"
+            }
+          ],
+          tlas: [
+            {
+              id: "TLA1",
+              classPhase: "Pre-class",
+              performedBy: "Instructor",
+              tlaName: "Lecture",
+              tlaDescription: "Introduction to human language technologies.",
+              laboratory: false
+            },
+            {
+              id: "TLA2",
+              classPhase: "In-class",
+              performedBy: "Student",
+              tlaName: "Activity",
+              tlaDescription: "Hands-on exercise on human language technologies fundamentals.",
+              laboratory: true
+            }
+          ]
+        },
+        {
+          id: "T2",
+          title: "Applications",
+          subtopics: [
+            {
+              id: "S4",
+              value: "Implementation"
+            },
+            {
+              id: "S5",
+              value: "Case Studies"
+            },
+            {
+              id: "S6",
+              value: "Best Practices"
+            }
+          ],
+          tlas: [
+            {
+              id: "TLA3",
+              classPhase: "In-class",
+              performedBy: "Student",
+              tlaName: "Project Lab",
+              tlaDescription: "Students apply human language technologies concepts to a practical project.",
+              laboratory: true
+            }
+          ]
+        }
+      ],
+        courseOutcomes: [
+        {
+          id: "CO1",
+          description: "Explain the fundamental concepts and principles of human language technologies.",
+          poMappings: ["I","","","","","","","","","E","I","",""]
+        },
+        {
+          id: "CO2",
+          description: "Apply human language technologies techniques to solve practical problems.",
+          poMappings: ["","","E","","","","","","","E","I","",""]
+        }
+      ],
+        coAssessmentMethodSets: {
+        CO1: [
+          {
+            value: "Concept Quiz",
+            description: "Quiz on human language technologies fundamentals."
+          }
+        ],
+        CO2: [
+          {
+            value: "Practical Exercise",
+            description: "Applied exercise in human language technologies."
+          }
+        ]
+      },
+        assessments: [
+        {
+          id: "A1",
+          tlaName: "Lecture",
+          phase: "Pre-class",
+          assessmentMethod: "Quiz",
+          assessmentDescription: "Quiz on human language technologies concepts.",
+          hasRubric: false
+        },
+        {
+          id: "A2",
+          tlaName: "Activity",
+          phase: "In-class",
+          assessmentMethod: "Lab Report",
+          assessmentDescription: "Lab report on human language technologies exercise.",
+          hasRubric: true,
+          rubrics: [
+            {
+              id: 1,
+              criteria: "Correctness",
+              maxScore: "60"
+            },
+            {
+              id: 2,
+              criteria: "Analysis",
+              maxScore: "40"
+            }
+          ]
+        }
+      ],
+        ilos: [
+        {
+          id: "CO1-ILO1",
+          courseOutcome: "Explain the fundamental concepts and principles of human language technologies.",
+          intendedLearningOutcome: "Describe the core principles of human language technologies.",
+          deliveryWeek: "Week 1",
+          allocatedTime: "3 hours",
+          topics: [
+            "Fundamentals"
+          ],
+          references: [
+            "TB1 - Human Language Technologies"
+          ]
+        },
+        {
+          id: "CO2-ILO1",
+          courseOutcome: "Apply human language technologies techniques to solve practical problems.",
+          intendedLearningOutcome: "Implement solutions using human language technologies techniques.",
+          deliveryWeek: "Week 4",
+          allocatedTime: "3 hours",
+          topics: [
+            "Applications"
+          ],
+          references: [
+            "OR1 - Online Resources"
+          ]
+        }
+      ],
+        gradingSystem: [
+        {
+          co: "CO1",
+          ilos: [
+            {
+              id: "ILO1",
+              assessments: [
+                "Concept Quiz"
+              ],
+              weight: {
+                prelim: "50",
+                midterm: "",
+                semi: "",
+                final: ""
+              },
+              minPassing: "60"
+            }
+          ]
+        },
+        {
+          co: "CO2",
+          ilos: [
+            {
+              id: "ILO1",
+              assessments: [
+                "Practical Exercise"
+              ],
+              weight: {
+                prelim: "",
+                midterm: "60",
+                semi: "",
+                final: ""
+              },
+              minPassing: "60"
+            }
+          ]
+        }
+      ]
+    },
+    {
+        code: "BSCS515",
+        name: "Cloud Computing",
+        credits: "2 LEC, 1 LAB",
+        contact: "3",
+        prerequisites: "BSCS408 Distributed Systems",
+        class: "Professional Courses",
+        cmo: "25 S, 2015",
+        year: "FOURTH YEAR",
+        sem: "2nd Semester",
+        description: "Cloud service models, virtualization, and distributed storage systems.",
+        references: [
+        {
+          id: "TB1",
+          title: "Cloud Computing: A Comprehensive Guide",
+          type: "Textbook",
+          authors: "Academic Press",
+          year: 2022,
+          isbn: "978-0000000000",
+          link: ""
+        },
+        {
+          id: "OR1",
+          title: "Cloud Computing Online Resources",
+          type: "Online Resources",
+          authors: "Open Access",
+          year: 2024,
+          link: ""
+        }
+      ],
+        topics: [
+        {
+          id: "T1",
+          title: "Fundamentals",
+          subtopics: [
+            {
+              id: "S1",
+              value: "Core Concepts"
+            },
+            {
+              id: "S2",
+              value: "Principles and Practices"
+            },
+            {
+              id: "S3",
+              value: "Key Methodologies"
+            }
+          ],
+          tlas: [
+            {
+              id: "TLA1",
+              classPhase: "Pre-class",
+              performedBy: "Instructor",
+              tlaName: "Lecture",
+              tlaDescription: "Introduction to cloud computing.",
+              laboratory: false
+            },
+            {
+              id: "TLA2",
+              classPhase: "In-class",
+              performedBy: "Student",
+              tlaName: "Activity",
+              tlaDescription: "Hands-on exercise on cloud computing fundamentals.",
+              laboratory: true
+            }
+          ]
+        },
+        {
+          id: "T2",
+          title: "Applications",
+          subtopics: [
+            {
+              id: "S4",
+              value: "Implementation"
+            },
+            {
+              id: "S5",
+              value: "Case Studies"
+            },
+            {
+              id: "S6",
+              value: "Best Practices"
+            }
+          ],
+          tlas: [
+            {
+              id: "TLA3",
+              classPhase: "In-class",
+              performedBy: "Student",
+              tlaName: "Project Lab",
+              tlaDescription: "Students apply cloud computing concepts to a practical project.",
+              laboratory: true
+            }
+          ]
+        },
+        {
+          id: "T3",
+          title: "Advanced Topics",
+          subtopics: [
+            {
+              id: "S7",
+              value: "Advanced Concepts"
+            },
+            {
+              id: "S8",
+              value: "Emerging Trends"
+            },
+            {
+              id: "S9",
+              value: "Research Directions"
+            }
+          ],
+          tlas: [
+            {
+              id: "TLA4",
+              classPhase: "Post-class",
+              performedBy: "Student",
+              tlaName: "Research Assignment",
+              tlaDescription: "Students research emerging trends in cloud computing.",
+              laboratory: false
+            }
+          ]
+        }
+      ],
+        courseOutcomes: [
+        {
+          id: "CO1",
+          description: "Explain the fundamental concepts and principles of cloud computing.",
+          poMappings: ["I","","","","","","","","","E","I","",""]
+        },
+        {
+          id: "CO2",
+          description: "Apply cloud computing techniques to solve practical problems.",
+          poMappings: ["","","E","","","","","","","E","I","",""]
+        },
+        {
+          id: "CO3",
+          description: "Evaluate emerging trends and advanced concepts in cloud computing.",
+          poMappings: ["","","","","","","D","","","I","I","E",""]
+        }
+      ],
+        coAssessmentMethodSets: {
+        CO1: [
+          {
+            value: "Concept Quiz",
+            description: "Quiz on cloud computing fundamentals."
+          }
+        ],
+        CO2: [
+          {
+            value: "Practical Exercise",
+            description: "Applied exercise in cloud computing."
+          }
+        ],
+        CO3: [
+          {
+            value: "Research Paper",
+            description: "Research paper on advanced cloud computing topics."
+          }
+        ]
+      },
+        assessments: [
+        {
+          id: "A1",
+          tlaName: "Lecture",
+          phase: "Pre-class",
+          assessmentMethod: "Quiz",
+          assessmentDescription: "Quiz on cloud computing concepts.",
+          hasRubric: false
+        },
+        {
+          id: "A2",
+          tlaName: "Activity",
+          phase: "In-class",
+          assessmentMethod: "Lab Report",
+          assessmentDescription: "Lab report on cloud computing exercise.",
+          hasRubric: true,
+          rubrics: [
+            {
+              id: 1,
+              criteria: "Correctness",
+              maxScore: "60"
+            },
+            {
+              id: 2,
+              criteria: "Analysis",
+              maxScore: "40"
+            }
+          ]
+        },
+        {
+          id: "A3",
+          tlaName: "Research Assignment",
+          phase: "Post-class",
+          assessmentMethod: "Research Paper",
+          assessmentDescription: "Research paper on cloud computing trends.",
+          hasRubric: true,
+          rubrics: [
+            {
+              id: 1,
+              criteria: "Research depth",
+              maxScore: "50"
+            },
+            {
+              id: 2,
+              criteria: "Analysis",
+              maxScore: "50"
+            }
+          ]
+        }
+      ],
+        ilos: [
+        {
+          id: "CO1-ILO1",
+          courseOutcome: "Explain the fundamental concepts and principles of cloud computing.",
+          intendedLearningOutcome: "Describe the core principles of cloud computing.",
+          deliveryWeek: "Week 1",
+          allocatedTime: "3 hours",
+          topics: [
+            "Fundamentals"
+          ],
+          references: [
+            "TB1 - Cloud Computing"
+          ]
+        },
+        {
+          id: "CO2-ILO1",
+          courseOutcome: "Apply cloud computing techniques to solve practical problems.",
+          intendedLearningOutcome: "Implement solutions using cloud computing techniques.",
+          deliveryWeek: "Week 4",
+          allocatedTime: "3 hours",
+          topics: [
+            "Applications"
+          ],
+          references: [
+            "OR1 - Online Resources"
+          ]
+        },
+        {
+          id: "CO3-ILO1",
+          courseOutcome: "Evaluate emerging trends and advanced concepts in cloud computing.",
+          intendedLearningOutcome: "Analyze current research and trends in cloud computing.",
+          deliveryWeek: "Week 8",
+          allocatedTime: "3 hours",
+          topics: [
+            "Advanced Topics"
+          ],
+          references: [
+            "TB1 - Cloud Computing"
+          ]
+        }
+      ],
+        gradingSystem: [
+        {
+          co: "CO1",
+          ilos: [
+            {
+              id: "ILO1",
+              assessments: [
+                "Concept Quiz"
+              ],
+              weight: {
+                prelim: "50",
+                midterm: "",
+                semi: "",
+                final: ""
+              },
+              minPassing: "60"
+            }
+          ]
+        },
+        {
+          co: "CO2",
+          ilos: [
+            {
+              id: "ILO1",
+              assessments: [
+                "Practical Exercise"
+              ],
+              weight: {
+                prelim: "",
+                midterm: "60",
+                semi: "",
+                final: ""
+              },
+              minPassing: "60"
+            }
+          ]
+        },
+        {
+          co: "CO3",
+          ilos: [
+            {
+              id: "ILO1",
+              assessments: [
+                "Research Paper"
+              ],
+              weight: {
+                prelim: "",
+                midterm: "",
+                semi: "50",
+                final: "50"
+              },
+              minPassing: "60"
+            }
+          ]
+        }
+      ]
+    },
+    {
+        code: "BSCS516",
+        name: "Software Project Management",
+        credits: "3 LEC",
+        contact: "3",
+        prerequisites: "BSCS322L Software Engineering",
+        class: "Professional Courses",
+        cmo: "25 S, 2015",
+        year: "FOURTH YEAR",
+        sem: "1st Semester",
+        description: "Planning, estimation, and management of software projects.",
+        references: [
+        {
+          id: "TB1",
+          title: "Software Project Management: A Comprehensive Guide",
+          type: "Textbook",
+          authors: "Academic Press",
+          year: 2022,
+          isbn: "978-0000000000",
+          link: ""
+        },
+        {
+          id: "OR1",
+          title: "Software Project Management Online Resources",
+          type: "Online Resources",
+          authors: "Open Access",
+          year: 2024,
+          link: ""
+        }
+      ],
+        topics: [
+        {
+          id: "T1",
+          title: "Fundamentals",
+          subtopics: [
+            {
+              id: "S1",
+              value: "Core Concepts"
+            },
+            {
+              id: "S2",
+              value: "Principles and Practices"
+            },
+            {
+              id: "S3",
+              value: "Key Methodologies"
+            }
+          ],
+          tlas: [
+            {
+              id: "TLA1",
+              classPhase: "Pre-class",
+              performedBy: "Instructor",
+              tlaName: "Lecture",
+              tlaDescription: "Introduction to software project management.",
+              laboratory: false
+            },
+            {
+              id: "TLA2",
+              classPhase: "In-class",
+              performedBy: "Student",
+              tlaName: "Activity",
+              tlaDescription: "Hands-on exercise on software project management fundamentals.",
+              laboratory: true
+            }
+          ]
+        },
+        {
+          id: "T2",
+          title: "Applications",
+          subtopics: [
+            {
+              id: "S4",
+              value: "Implementation"
+            },
+            {
+              id: "S5",
+              value: "Case Studies"
+            },
+            {
+              id: "S6",
+              value: "Best Practices"
+            }
+          ],
+          tlas: [
+            {
+              id: "TLA3",
+              classPhase: "In-class",
+              performedBy: "Student",
+              tlaName: "Project Lab",
+              tlaDescription: "Students apply software project management concepts to a practical project.",
+              laboratory: true
+            }
+          ]
+        },
+        {
+          id: "T3",
+          title: "Advanced Topics",
+          subtopics: [
+            {
+              id: "S7",
+              value: "Advanced Concepts"
+            },
+            {
+              id: "S8",
+              value: "Emerging Trends"
+            },
+            {
+              id: "S9",
+              value: "Research Directions"
+            }
+          ],
+          tlas: [
+            {
+              id: "TLA4",
+              classPhase: "Post-class",
+              performedBy: "Student",
+              tlaName: "Research Assignment",
+              tlaDescription: "Students research emerging trends in software project management.",
+              laboratory: false
+            }
+          ]
+        }
+      ],
+        courseOutcomes: [
+        {
+          id: "CO1",
+          description: "Explain the fundamental concepts and principles of software project management.",
+          poMappings: ["I","","","","","","","","","E","E","",""]
+        },
+        {
+          id: "CO2",
+          description: "Apply software project management techniques to solve practical problems.",
+          poMappings: ["","","E","","","","","","","E","E","",""]
+        },
+        {
+          id: "CO3",
+          description: "Evaluate emerging trends and advanced concepts in software project management.",
+          poMappings: ["","","","","","","D","","","I","E","E",""]
+        }
+      ],
+        coAssessmentMethodSets: {
+        CO1: [
+          {
+            value: "Concept Quiz",
+            description: "Quiz on software project management fundamentals."
+          }
+        ],
+        CO2: [
+          {
+            value: "Practical Exercise",
+            description: "Applied exercise in software project management."
+          }
+        ],
+        CO3: [
+          {
+            value: "Research Paper",
+            description: "Research paper on advanced software project management topics."
+          }
+        ]
+      },
+        assessments: [
+        {
+          id: "A1",
+          tlaName: "Lecture",
+          phase: "Pre-class",
+          assessmentMethod: "Quiz",
+          assessmentDescription: "Quiz on software project management concepts.",
+          hasRubric: false
+        },
+        {
+          id: "A2",
+          tlaName: "Activity",
+          phase: "In-class",
+          assessmentMethod: "Lab Report",
+          assessmentDescription: "Lab report on software project management exercise.",
+          hasRubric: true,
+          rubrics: [
+            {
+              id: 1,
+              criteria: "Correctness",
+              maxScore: "60"
+            },
+            {
+              id: 2,
+              criteria: "Analysis",
+              maxScore: "40"
+            }
+          ]
+        },
+        {
+          id: "A3",
+          tlaName: "Research Assignment",
+          phase: "Post-class",
+          assessmentMethod: "Research Paper",
+          assessmentDescription: "Research paper on software project management trends.",
+          hasRubric: true,
+          rubrics: [
+            {
+              id: 1,
+              criteria: "Research depth",
+              maxScore: "50"
+            },
+            {
+              id: 2,
+              criteria: "Analysis",
+              maxScore: "50"
+            }
+          ]
+        }
+      ],
+        ilos: [
+        {
+          id: "CO1-ILO1",
+          courseOutcome: "Explain the fundamental concepts and principles of software project management.",
+          intendedLearningOutcome: "Describe the core principles of software project management.",
+          deliveryWeek: "Week 1",
+          allocatedTime: "3 hours",
+          topics: [
+            "Fundamentals"
+          ],
+          references: [
+            "TB1 - Software Project Management"
+          ]
+        },
+        {
+          id: "CO2-ILO1",
+          courseOutcome: "Apply software project management techniques to solve practical problems.",
+          intendedLearningOutcome: "Implement solutions using software project management techniques.",
+          deliveryWeek: "Week 4",
+          allocatedTime: "3 hours",
+          topics: [
+            "Applications"
+          ],
+          references: [
+            "OR1 - Online Resources"
+          ]
+        },
+        {
+          id: "CO3-ILO1",
+          courseOutcome: "Evaluate emerging trends and advanced concepts in software project management.",
+          intendedLearningOutcome: "Analyze current research and trends in software project management.",
+          deliveryWeek: "Week 8",
+          allocatedTime: "3 hours",
+          topics: [
+            "Advanced Topics"
+          ],
+          references: [
+            "TB1 - Software Project Management"
+          ]
+        }
+      ],
+        gradingSystem: [
+        {
+          co: "CO1",
+          ilos: [
+            {
+              id: "ILO1",
+              assessments: [
+                "Concept Quiz"
+              ],
+              weight: {
+                prelim: "50",
+                midterm: "",
+                semi: "",
+                final: ""
+              },
+              minPassing: "60"
+            }
+          ]
+        },
+        {
+          co: "CO2",
+          ilos: [
+            {
+              id: "ILO1",
+              assessments: [
+                "Practical Exercise"
+              ],
+              weight: {
+                prelim: "",
+                midterm: "60",
+                semi: "",
+                final: ""
+              },
+              minPassing: "60"
+            }
+          ]
+        },
+        {
+          co: "CO3",
+          ilos: [
+            {
+              id: "ILO1",
+              assessments: [
+                "Research Paper"
+              ],
+              weight: {
+                prelim: "",
+                midterm: "",
+                semi: "50",
+                final: "50"
+              },
+              minPassing: "60"
+            }
+          ]
+        }
+      ]
+    },
+    {
+        code: "BSCS517",
+        name: "Internet of Things",
+        credits: "2 LEC, 1 LAB",
+        contact: "3",
+        prerequisites: "BSCS406 Embedded Systems",
+        class: "Professional Courses",
+        cmo: "25 S, 2015",
+        year: "FOURTH YEAR",
+        sem: "2nd Semester",
+        description: "IoT architecture, protocols, and application development.",
+        references: [
+        {
+          id: "TB1",
+          title: "Internet of Things: A Comprehensive Guide",
+          type: "Textbook",
+          authors: "Academic Press",
+          year: 2022,
+          isbn: "978-0000000000",
+          link: ""
+        },
+        {
+          id: "OR1",
+          title: "Internet of Things Online Resources",
+          type: "Online Resources",
+          authors: "Open Access",
+          year: 2024,
+          link: ""
+        }
+      ],
+        topics: [
+        {
+          id: "T1",
+          title: "Fundamentals",
+          subtopics: [
+            {
+              id: "S1",
+              value: "Core Concepts"
+            },
+            {
+              id: "S2",
+              value: "Principles and Practices"
+            },
+            {
+              id: "S3",
+              value: "Key Methodologies"
+            }
+          ],
+          tlas: [
+            {
+              id: "TLA1",
+              classPhase: "Pre-class",
+              performedBy: "Instructor",
+              tlaName: "Lecture",
+              tlaDescription: "Introduction to internet of things.",
+              laboratory: false
+            },
+            {
+              id: "TLA2",
+              classPhase: "In-class",
+              performedBy: "Student",
+              tlaName: "Activity",
+              tlaDescription: "Hands-on exercise on internet of things fundamentals.",
+              laboratory: true
+            }
+          ]
+        },
+        {
+          id: "T2",
+          title: "Applications",
+          subtopics: [
+            {
+              id: "S4",
+              value: "Implementation"
+            },
+            {
+              id: "S5",
+              value: "Case Studies"
+            },
+            {
+              id: "S6",
+              value: "Best Practices"
+            }
+          ],
+          tlas: [
+            {
+              id: "TLA3",
+              classPhase: "In-class",
+              performedBy: "Student",
+              tlaName: "Project Lab",
+              tlaDescription: "Students apply internet of things concepts to a practical project.",
+              laboratory: true
+            }
+          ]
+        }
+      ],
+        courseOutcomes: [
+        {
+          id: "CO1",
+          description: "Explain the fundamental concepts and principles of internet of things.",
+          poMappings: ["I","","","","","","","","","E","I","",""]
+        },
+        {
+          id: "CO2",
+          description: "Apply internet of things techniques to solve practical problems.",
+          poMappings: ["","","E","","","","","","","E","I","",""]
+        }
+      ],
+        coAssessmentMethodSets: {
+        CO1: [
+          {
+            value: "Concept Quiz",
+            description: "Quiz on internet of things fundamentals."
+          }
+        ],
+        CO2: [
+          {
+            value: "Practical Exercise",
+            description: "Applied exercise in internet of things."
+          }
+        ]
+      },
+        assessments: [
+        {
+          id: "A1",
+          tlaName: "Lecture",
+          phase: "Pre-class",
+          assessmentMethod: "Quiz",
+          assessmentDescription: "Quiz on internet of things concepts.",
+          hasRubric: false
+        },
+        {
+          id: "A2",
+          tlaName: "Activity",
+          phase: "In-class",
+          assessmentMethod: "Lab Report",
+          assessmentDescription: "Lab report on internet of things exercise.",
+          hasRubric: true,
+          rubrics: [
+            {
+              id: 1,
+              criteria: "Correctness",
+              maxScore: "60"
+            },
+            {
+              id: 2,
+              criteria: "Analysis",
+              maxScore: "40"
+            }
+          ]
+        }
+      ],
+        ilos: [
+        {
+          id: "CO1-ILO1",
+          courseOutcome: "Explain the fundamental concepts and principles of internet of things.",
+          intendedLearningOutcome: "Describe the core principles of internet of things.",
+          deliveryWeek: "Week 1",
+          allocatedTime: "3 hours",
+          topics: [
+            "Fundamentals"
+          ],
+          references: [
+            "TB1 - Internet of Things"
+          ]
+        },
+        {
+          id: "CO2-ILO1",
+          courseOutcome: "Apply internet of things techniques to solve practical problems.",
+          intendedLearningOutcome: "Implement solutions using internet of things techniques.",
+          deliveryWeek: "Week 4",
+          allocatedTime: "3 hours",
+          topics: [
+            "Applications"
+          ],
+          references: [
+            "OR1 - Online Resources"
+          ]
+        }
+      ],
+        gradingSystem: [
+        {
+          co: "CO1",
+          ilos: [
+            {
+              id: "ILO1",
+              assessments: [
+                "Concept Quiz"
+              ],
+              weight: {
+                prelim: "50",
+                midterm: "",
+                semi: "",
+                final: ""
+              },
+              minPassing: "60"
+            }
+          ]
+        },
+        {
+          co: "CO2",
+          ilos: [
+            {
+              id: "ILO1",
+              assessments: [
+                "Practical Exercise"
+              ],
+              weight: {
+                prelim: "",
+                midterm: "60",
+                semi: "",
+                final: ""
+              },
+              minPassing: "60"
+            }
+          ]
+        }
+      ]
+    },
+    {
+        code: "BSCS518",
+        name: "Entrepreneurship in Computing",
+        credits: "3 LEC",
+        contact: "3",
+        prerequisites: "None",
+        class: "General Education",
+        cmo: "25 S, 2015",
+        year: "FOURTH YEAR",
+        sem: "1st Semester",
+        description: "Business models, innovation, and entrepreneurship in technology.",
+        references: [
+        {
+          id: "TB1",
+          title: "Entrepreneurship in Computing: A Comprehensive Guide",
+          type: "Textbook",
+          authors: "Academic Press",
+          year: 2022,
+          isbn: "978-0000000000",
+          link: ""
+        },
+        {
+          id: "OR1",
+          title: "Entrepreneurship in Computing Online Resources",
+          type: "Online Resources",
+          authors: "Open Access",
+          year: 2024,
+          link: ""
+        }
+      ],
+        topics: [
+        {
+          id: "T1",
+          title: "Fundamentals",
+          subtopics: [
+            {
+              id: "S1",
+              value: "Core Concepts"
+            },
+            {
+              id: "S2",
+              value: "Principles and Practices"
+            },
+            {
+              id: "S3",
+              value: "Key Methodologies"
+            }
+          ],
+          tlas: [
+            {
+              id: "TLA1",
+              classPhase: "Pre-class",
+              performedBy: "Instructor",
+              tlaName: "Lecture",
+              tlaDescription: "Introduction to entrepreneurship in computing.",
+              laboratory: false
+            },
+            {
+              id: "TLA2",
+              classPhase: "In-class",
+              performedBy: "Student",
+              tlaName: "Activity",
+              tlaDescription: "Hands-on exercise on entrepreneurship in computing fundamentals.",
+              laboratory: true
+            }
+          ]
+        },
+        {
+          id: "T2",
+          title: "Applications",
+          subtopics: [
+            {
+              id: "S4",
+              value: "Implementation"
+            },
+            {
+              id: "S5",
+              value: "Case Studies"
+            },
+            {
+              id: "S6",
+              value: "Best Practices"
+            }
+          ],
+          tlas: [
+            {
+              id: "TLA3",
+              classPhase: "In-class",
+              performedBy: "Student",
+              tlaName: "Project Lab",
+              tlaDescription: "Students apply entrepreneurship in computing concepts to a practical project.",
+              laboratory: true
+            }
+          ]
+        }
+      ],
+        courseOutcomes: [
+        {
+          id: "CO1",
+          description: "Explain the fundamental concepts and principles of entrepreneurship in computing.",
+          poMappings: ["I","","","","","","","","","E","I","",""]
+        },
+        {
+          id: "CO2",
+          description: "Apply entrepreneurship in computing techniques to solve practical problems.",
+          poMappings: ["","","E","","","","","","","E","I","",""]
+        }
+      ],
+        coAssessmentMethodSets: {
+        CO1: [
+          {
+            value: "Concept Quiz",
+            description: "Quiz on entrepreneurship in computing fundamentals."
+          }
+        ],
+        CO2: [
+          {
+            value: "Practical Exercise",
+            description: "Applied exercise in entrepreneurship in computing."
+          }
+        ]
+      },
+        assessments: [
+        {
+          id: "A1",
+          tlaName: "Lecture",
+          phase: "Pre-class",
+          assessmentMethod: "Quiz",
+          assessmentDescription: "Quiz on entrepreneurship in computing concepts.",
+          hasRubric: false
+        },
+        {
+          id: "A2",
+          tlaName: "Activity",
+          phase: "In-class",
+          assessmentMethod: "Lab Report",
+          assessmentDescription: "Lab report on entrepreneurship in computing exercise.",
+          hasRubric: true,
+          rubrics: [
+            {
+              id: 1,
+              criteria: "Correctness",
+              maxScore: "60"
+            },
+            {
+              id: 2,
+              criteria: "Analysis",
+              maxScore: "40"
+            }
+          ]
+        }
+      ],
+        ilos: [
+        {
+          id: "CO1-ILO1",
+          courseOutcome: "Explain the fundamental concepts and principles of entrepreneurship in computing.",
+          intendedLearningOutcome: "Describe the core principles of entrepreneurship in computing.",
+          deliveryWeek: "Week 1",
+          allocatedTime: "3 hours",
+          topics: [
+            "Fundamentals"
+          ],
+          references: [
+            "TB1 - Entrepreneurship in Computing"
+          ]
+        },
+        {
+          id: "CO2-ILO1",
+          courseOutcome: "Apply entrepreneurship in computing techniques to solve practical problems.",
+          intendedLearningOutcome: "Implement solutions using entrepreneurship in computing techniques.",
+          deliveryWeek: "Week 4",
+          allocatedTime: "3 hours",
+          topics: [
+            "Applications"
+          ],
+          references: [
+            "OR1 - Online Resources"
+          ]
+        }
+      ],
+        gradingSystem: [
+        {
+          co: "CO1",
+          ilos: [
+            {
+              id: "ILO1",
+              assessments: [
+                "Concept Quiz"
+              ],
+              weight: {
+                prelim: "50",
+                midterm: "",
+                semi: "",
+                final: ""
+              },
+              minPassing: "60"
+            }
+          ]
+        },
+        {
+          co: "CO2",
+          ilos: [
+            {
+              id: "ILO1",
+              assessments: [
+                "Practical Exercise"
+              ],
+              weight: {
+                prelim: "",
+                midterm: "60",
+                semi: "",
+                final: ""
+              },
+              minPassing: "60"
+            }
+          ]
+        }
+      ]
+    },
+    {
+        code: "IT 411",
+        name: "Information Management",
+        credits: "2 LEC, 1 LAB",
+        contact: "3",
+        prerequisites: "BSCS202 Database Systems",
+        class: "Information Technology",
+        cmo: "25 S, 2015",
+        year: "FOURTH YEAR",
+        sem: "1st Semester",
+        description: "Management of information resources and enterprise data.",
+        references: [
+        {
+          id: "TB1",
+          title: "Information Management: A Comprehensive Guide",
+          type: "Textbook",
+          authors: "Academic Press",
+          year: 2022,
+          isbn: "978-0000000000",
+          link: ""
+        },
+        {
+          id: "OR1",
+          title: "Information Management Online Resources",
+          type: "Online Resources",
+          authors: "Open Access",
+          year: 2024,
+          link: ""
+        }
+      ],
+        topics: [
+        {
+          id: "T1",
+          title: "Fundamentals",
+          subtopics: [
+            {
+              id: "S1",
+              value: "Core Concepts"
+            },
+            {
+              id: "S2",
+              value: "Principles and Practices"
+            },
+            {
+              id: "S3",
+              value: "Key Methodologies"
+            }
+          ],
+          tlas: [
+            {
+              id: "TLA1",
+              classPhase: "Pre-class",
+              performedBy: "Instructor",
+              tlaName: "Lecture",
+              tlaDescription: "Introduction to information management.",
+              laboratory: false
+            },
+            {
+              id: "TLA2",
+              classPhase: "In-class",
+              performedBy: "Student",
+              tlaName: "Activity",
+              tlaDescription: "Hands-on exercise on information management fundamentals.",
+              laboratory: true
+            }
+          ]
+        },
+        {
+          id: "T2",
+          title: "Applications",
+          subtopics: [
+            {
+              id: "S4",
+              value: "Implementation"
+            },
+            {
+              id: "S5",
+              value: "Case Studies"
+            },
+            {
+              id: "S6",
+              value: "Best Practices"
+            }
+          ],
+          tlas: [
+            {
+              id: "TLA3",
+              classPhase: "In-class",
+              performedBy: "Student",
+              tlaName: "Project Lab",
+              tlaDescription: "Students apply information management concepts to a practical project.",
+              laboratory: true
+            }
+          ]
+        },
+        {
+          id: "T3",
+          title: "Advanced Topics",
+          subtopics: [
+            {
+              id: "S7",
+              value: "Advanced Concepts"
+            },
+            {
+              id: "S8",
+              value: "Emerging Trends"
+            },
+            {
+              id: "S9",
+              value: "Research Directions"
+            }
+          ],
+          tlas: [
+            {
+              id: "TLA4",
+              classPhase: "Post-class",
+              performedBy: "Student",
+              tlaName: "Research Assignment",
+              tlaDescription: "Students research emerging trends in information management.",
+              laboratory: false
+            }
+          ]
+        }
+      ],
+        courseOutcomes: [
+        {
+          id: "CO1",
+          description: "Explain the fundamental concepts and principles of information management.",
+          poMappings: ["I","","","","","","","","","E","I","",""]
+        },
+        {
+          id: "CO2",
+          description: "Apply information management techniques to solve practical problems.",
+          poMappings: ["","","E","","","","","","","E","I","",""]
+        },
+        {
+          id: "CO3",
+          description: "Evaluate emerging trends and advanced concepts in information management.",
+          poMappings: ["","","","","","","D","","","I","I","E",""]
+        }
+      ],
+        coAssessmentMethodSets: {
+        CO1: [
+          {
+            value: "Concept Quiz",
+            description: "Quiz on information management fundamentals."
+          }
+        ],
+        CO2: [
+          {
+            value: "Practical Exercise",
+            description: "Applied exercise in information management."
+          }
+        ],
+        CO3: [
+          {
+            value: "Research Paper",
+            description: "Research paper on advanced information management topics."
+          }
+        ]
+      },
+        assessments: [
+        {
+          id: "A1",
+          tlaName: "Lecture",
+          phase: "Pre-class",
+          assessmentMethod: "Quiz",
+          assessmentDescription: "Quiz on information management concepts.",
+          hasRubric: false
+        },
+        {
+          id: "A2",
+          tlaName: "Activity",
+          phase: "In-class",
+          assessmentMethod: "Lab Report",
+          assessmentDescription: "Lab report on information management exercise.",
+          hasRubric: true,
+          rubrics: [
+            {
+              id: 1,
+              criteria: "Correctness",
+              maxScore: "60"
+            },
+            {
+              id: 2,
+              criteria: "Analysis",
+              maxScore: "40"
+            }
+          ]
+        },
+        {
+          id: "A3",
+          tlaName: "Research Assignment",
+          phase: "Post-class",
+          assessmentMethod: "Research Paper",
+          assessmentDescription: "Research paper on information management trends.",
+          hasRubric: true,
+          rubrics: [
+            {
+              id: 1,
+              criteria: "Research depth",
+              maxScore: "50"
+            },
+            {
+              id: 2,
+              criteria: "Analysis",
+              maxScore: "50"
+            }
+          ]
+        }
+      ],
+        ilos: [
+        {
+          id: "CO1-ILO1",
+          courseOutcome: "Explain the fundamental concepts and principles of information management.",
+          intendedLearningOutcome: "Describe the core principles of information management.",
+          deliveryWeek: "Week 1",
+          allocatedTime: "3 hours",
+          topics: [
+            "Fundamentals"
+          ],
+          references: [
+            "TB1 - Information Management"
+          ]
+        },
+        {
+          id: "CO2-ILO1",
+          courseOutcome: "Apply information management techniques to solve practical problems.",
+          intendedLearningOutcome: "Implement solutions using information management techniques.",
+          deliveryWeek: "Week 4",
+          allocatedTime: "3 hours",
+          topics: [
+            "Applications"
+          ],
+          references: [
+            "OR1 - Online Resources"
+          ]
+        },
+        {
+          id: "CO3-ILO1",
+          courseOutcome: "Evaluate emerging trends and advanced concepts in information management.",
+          intendedLearningOutcome: "Analyze current research and trends in information management.",
+          deliveryWeek: "Week 8",
+          allocatedTime: "3 hours",
+          topics: [
+            "Advanced Topics"
+          ],
+          references: [
+            "TB1 - Information Management"
+          ]
+        }
+      ],
+        gradingSystem: [
+        {
+          co: "CO1",
+          ilos: [
+            {
+              id: "ILO1",
+              assessments: [
+                "Concept Quiz"
+              ],
+              weight: {
+                prelim: "50",
+                midterm: "",
+                semi: "",
+                final: ""
+              },
+              minPassing: "60"
+            }
+          ]
+        },
+        {
+          co: "CO2",
+          ilos: [
+            {
+              id: "ILO1",
+              assessments: [
+                "Practical Exercise"
+              ],
+              weight: {
+                prelim: "",
+                midterm: "60",
+                semi: "",
+                final: ""
+              },
+              minPassing: "60"
+            }
+          ]
+        },
+        {
+          co: "CO3",
+          ilos: [
+            {
+              id: "ILO1",
+              assessments: [
+                "Research Paper"
+              ],
+              weight: {
+                prelim: "",
+                midterm: "",
+                semi: "50",
+                final: "50"
+              },
+              minPassing: "60"
+            }
+          ]
+        }
+      ]
+    },
+    {
+        code: "IT 412",
+        name: "Network Administration",
+        credits: "2 LEC, 1 LAB",
+        contact: "3",
+        prerequisites: "BSCS331L Computer Networks",
+        class: "Information Technology",
+        cmo: "25 S, 2015",
+        year: "FOURTH YEAR",
+        sem: "2nd Semester",
+        description: "Configuration and administration of network infrastructure.",
+        references: [
+        {
+          id: "TB1",
+          title: "Network Administration: A Comprehensive Guide",
+          type: "Textbook",
+          authors: "Academic Press",
+          year: 2022,
+          isbn: "978-0000000000",
+          link: ""
+        },
+        {
+          id: "OR1",
+          title: "Network Administration Online Resources",
+          type: "Online Resources",
+          authors: "Open Access",
+          year: 2024,
+          link: ""
+        }
+      ],
+        topics: [
+        {
+          id: "T1",
+          title: "Fundamentals",
+          subtopics: [
+            {
+              id: "S1",
+              value: "Core Concepts"
+            },
+            {
+              id: "S2",
+              value: "Principles and Practices"
+            },
+            {
+              id: "S3",
+              value: "Key Methodologies"
+            }
+          ],
+          tlas: [
+            {
+              id: "TLA1",
+              classPhase: "Pre-class",
+              performedBy: "Instructor",
+              tlaName: "Lecture",
+              tlaDescription: "Introduction to network administration.",
+              laboratory: false
+            },
+            {
+              id: "TLA2",
+              classPhase: "In-class",
+              performedBy: "Student",
+              tlaName: "Activity",
+              tlaDescription: "Hands-on exercise on network administration fundamentals.",
+              laboratory: true
+            }
+          ]
+        },
+        {
+          id: "T2",
+          title: "Applications",
+          subtopics: [
+            {
+              id: "S4",
+              value: "Implementation"
+            },
+            {
+              id: "S5",
+              value: "Case Studies"
+            },
+            {
+              id: "S6",
+              value: "Best Practices"
+            }
+          ],
+          tlas: [
+            {
+              id: "TLA3",
+              classPhase: "In-class",
+              performedBy: "Student",
+              tlaName: "Project Lab",
+              tlaDescription: "Students apply network administration concepts to a practical project.",
+              laboratory: true
+            }
+          ]
+        },
+        {
+          id: "T3",
+          title: "Advanced Topics",
+          subtopics: [
+            {
+              id: "S7",
+              value: "Advanced Concepts"
+            },
+            {
+              id: "S8",
+              value: "Emerging Trends"
+            },
+            {
+              id: "S9",
+              value: "Research Directions"
+            }
+          ],
+          tlas: [
+            {
+              id: "TLA4",
+              classPhase: "Post-class",
+              performedBy: "Student",
+              tlaName: "Research Assignment",
+              tlaDescription: "Students research emerging trends in network administration.",
+              laboratory: false
+            }
+          ]
+        }
+      ],
+        courseOutcomes: [
+        {
+          id: "CO1",
+          description: "Explain the fundamental concepts and principles of network administration.",
+          poMappings: ["I","","","","","","","","","E","I","",""]
+        },
+        {
+          id: "CO2",
+          description: "Apply network administration techniques to solve practical problems.",
+          poMappings: ["","","E","","","","","","","E","I","",""]
+        },
+        {
+          id: "CO3",
+          description: "Evaluate emerging trends and advanced concepts in network administration.",
+          poMappings: ["","","","","","","D","","","I","I","E",""]
+        }
+      ],
+        coAssessmentMethodSets: {
+        CO1: [
+          {
+            value: "Concept Quiz",
+            description: "Quiz on network administration fundamentals."
+          }
+        ],
+        CO2: [
+          {
+            value: "Practical Exercise",
+            description: "Applied exercise in network administration."
+          }
+        ],
+        CO3: [
+          {
+            value: "Research Paper",
+            description: "Research paper on advanced network administration topics."
+          }
+        ]
+      },
+        assessments: [
+        {
+          id: "A1",
+          tlaName: "Lecture",
+          phase: "Pre-class",
+          assessmentMethod: "Quiz",
+          assessmentDescription: "Quiz on network administration concepts.",
+          hasRubric: false
+        },
+        {
+          id: "A2",
+          tlaName: "Activity",
+          phase: "In-class",
+          assessmentMethod: "Lab Report",
+          assessmentDescription: "Lab report on network administration exercise.",
+          hasRubric: true,
+          rubrics: [
+            {
+              id: 1,
+              criteria: "Correctness",
+              maxScore: "60"
+            },
+            {
+              id: 2,
+              criteria: "Analysis",
+              maxScore: "40"
+            }
+          ]
+        },
+        {
+          id: "A3",
+          tlaName: "Research Assignment",
+          phase: "Post-class",
+          assessmentMethod: "Research Paper",
+          assessmentDescription: "Research paper on network administration trends.",
+          hasRubric: true,
+          rubrics: [
+            {
+              id: 1,
+              criteria: "Research depth",
+              maxScore: "50"
+            },
+            {
+              id: 2,
+              criteria: "Analysis",
+              maxScore: "50"
+            }
+          ]
+        }
+      ],
+        ilos: [
+        {
+          id: "CO1-ILO1",
+          courseOutcome: "Explain the fundamental concepts and principles of network administration.",
+          intendedLearningOutcome: "Describe the core principles of network administration.",
+          deliveryWeek: "Week 1",
+          allocatedTime: "3 hours",
+          topics: [
+            "Fundamentals"
+          ],
+          references: [
+            "TB1 - Network Administration"
+          ]
+        },
+        {
+          id: "CO2-ILO1",
+          courseOutcome: "Apply network administration techniques to solve practical problems.",
+          intendedLearningOutcome: "Implement solutions using network administration techniques.",
+          deliveryWeek: "Week 4",
+          allocatedTime: "3 hours",
+          topics: [
+            "Applications"
+          ],
+          references: [
+            "OR1 - Online Resources"
+          ]
+        },
+        {
+          id: "CO3-ILO1",
+          courseOutcome: "Evaluate emerging trends and advanced concepts in network administration.",
+          intendedLearningOutcome: "Analyze current research and trends in network administration.",
+          deliveryWeek: "Week 8",
+          allocatedTime: "3 hours",
+          topics: [
+            "Advanced Topics"
+          ],
+          references: [
+            "TB1 - Network Administration"
+          ]
+        }
+      ],
+        gradingSystem: [
+        {
+          co: "CO1",
+          ilos: [
+            {
+              id: "ILO1",
+              assessments: [
+                "Concept Quiz"
+              ],
+              weight: {
+                prelim: "50",
+                midterm: "",
+                semi: "",
+                final: ""
+              },
+              minPassing: "60"
+            }
+          ]
+        },
+        {
+          co: "CO2",
+          ilos: [
+            {
+              id: "ILO1",
+              assessments: [
+                "Practical Exercise"
+              ],
+              weight: {
+                prelim: "",
+                midterm: "60",
+                semi: "",
+                final: ""
+              },
+              minPassing: "60"
+            }
+          ]
+        },
+        {
+          co: "CO3",
+          ilos: [
+            {
+              id: "ILO1",
+              assessments: [
+                "Research Paper"
+              ],
+              weight: {
+                prelim: "",
+                midterm: "",
+                semi: "50",
+                final: "50"
+              },
+              minPassing: "60"
+            }
+          ]
+        }
+      ]
+    },
+    {
+        code: "IT 413",
+        name: "Systems Administration & Maintenance",
+        credits: "2 LEC, 1 LAB",
+        contact: "3",
+        prerequisites: "IT 412 Network Administration",
+        class: "Information Technology",
+        cmo: "25 S, 2015",
+        year: "FOURTH YEAR",
+        sem: "2nd Semester",
+        description: "Server administration, backup, and disaster recovery.",
+        references: [
+        {
+          id: "TB1",
+          title: "Systems Administration & Maintenance: A Comprehensive Guide",
+          type: "Textbook",
+          authors: "Academic Press",
+          year: 2022,
+          isbn: "978-0000000000",
+          link: ""
+        },
+        {
+          id: "OR1",
+          title: "Systems Administration & Maintenance Online Resources",
+          type: "Online Resources",
+          authors: "Open Access",
+          year: 2024,
+          link: ""
+        }
+      ],
+        topics: [
+        {
+          id: "T1",
+          title: "Fundamentals",
+          subtopics: [
+            {
+              id: "S1",
+              value: "Core Concepts"
+            },
+            {
+              id: "S2",
+              value: "Principles and Practices"
+            },
+            {
+              id: "S3",
+              value: "Key Methodologies"
+            }
+          ],
+          tlas: [
+            {
+              id: "TLA1",
+              classPhase: "Pre-class",
+              performedBy: "Instructor",
+              tlaName: "Lecture",
+              tlaDescription: "Introduction to systems administration & maintenance.",
+              laboratory: false
+            },
+            {
+              id: "TLA2",
+              classPhase: "In-class",
+              performedBy: "Student",
+              tlaName: "Activity",
+              tlaDescription: "Hands-on exercise on systems administration & maintenance fundamentals.",
+              laboratory: true
+            }
+          ]
+        },
+        {
+          id: "T2",
+          title: "Applications",
+          subtopics: [
+            {
+              id: "S4",
+              value: "Implementation"
+            },
+            {
+              id: "S5",
+              value: "Case Studies"
+            },
+            {
+              id: "S6",
+              value: "Best Practices"
+            }
+          ],
+          tlas: [
+            {
+              id: "TLA3",
+              classPhase: "In-class",
+              performedBy: "Student",
+              tlaName: "Project Lab",
+              tlaDescription: "Students apply systems administration & maintenance concepts to a practical project.",
+              laboratory: true
+            }
+          ]
+        },
+        {
+          id: "T3",
+          title: "Advanced Topics",
+          subtopics: [
+            {
+              id: "S7",
+              value: "Advanced Concepts"
+            },
+            {
+              id: "S8",
+              value: "Emerging Trends"
+            },
+            {
+              id: "S9",
+              value: "Research Directions"
+            }
+          ],
+          tlas: [
+            {
+              id: "TLA4",
+              classPhase: "Post-class",
+              performedBy: "Student",
+              tlaName: "Research Assignment",
+              tlaDescription: "Students research emerging trends in systems administration & maintenance.",
+              laboratory: false
+            }
+          ]
+        }
+      ],
+        courseOutcomes: [
+        {
+          id: "CO1",
+          description: "Explain the fundamental concepts and principles of systems administration & maintenance.",
+          poMappings: ["I","","","","","","","","","E","I","",""]
+        },
+        {
+          id: "CO2",
+          description: "Apply systems administration & maintenance techniques to solve practical problems.",
+          poMappings: ["","","E","","","","","","","E","I","",""]
+        },
+        {
+          id: "CO3",
+          description: "Evaluate emerging trends and advanced concepts in systems administration & maintenance.",
+          poMappings: ["","","","","","","D","","","I","I","E",""]
+        }
+      ],
+        coAssessmentMethodSets: {
+        CO1: [
+          {
+            value: "Concept Quiz",
+            description: "Quiz on systems administration & maintenance fundamentals."
+          }
+        ],
+        CO2: [
+          {
+            value: "Practical Exercise",
+            description: "Applied exercise in systems administration & maintenance."
+          }
+        ],
+        CO3: [
+          {
+            value: "Research Paper",
+            description: "Research paper on advanced systems administration & maintenance topics."
+          }
+        ]
+      },
+        assessments: [
+        {
+          id: "A1",
+          tlaName: "Lecture",
+          phase: "Pre-class",
+          assessmentMethod: "Quiz",
+          assessmentDescription: "Quiz on systems administration & maintenance concepts.",
+          hasRubric: false
+        },
+        {
+          id: "A2",
+          tlaName: "Activity",
+          phase: "In-class",
+          assessmentMethod: "Lab Report",
+          assessmentDescription: "Lab report on systems administration & maintenance exercise.",
+          hasRubric: true,
+          rubrics: [
+            {
+              id: 1,
+              criteria: "Correctness",
+              maxScore: "60"
+            },
+            {
+              id: 2,
+              criteria: "Analysis",
+              maxScore: "40"
+            }
+          ]
+        },
+        {
+          id: "A3",
+          tlaName: "Research Assignment",
+          phase: "Post-class",
+          assessmentMethod: "Research Paper",
+          assessmentDescription: "Research paper on systems administration & maintenance trends.",
+          hasRubric: true,
+          rubrics: [
+            {
+              id: 1,
+              criteria: "Research depth",
+              maxScore: "50"
+            },
+            {
+              id: 2,
+              criteria: "Analysis",
+              maxScore: "50"
+            }
+          ]
+        }
+      ],
+        ilos: [
+        {
+          id: "CO1-ILO1",
+          courseOutcome: "Explain the fundamental concepts and principles of systems administration & maintenance.",
+          intendedLearningOutcome: "Describe the core principles of systems administration & maintenance.",
+          deliveryWeek: "Week 1",
+          allocatedTime: "3 hours",
+          topics: [
+            "Fundamentals"
+          ],
+          references: [
+            "TB1 - Systems Administration & Maintenance"
+          ]
+        },
+        {
+          id: "CO2-ILO1",
+          courseOutcome: "Apply systems administration & maintenance techniques to solve practical problems.",
+          intendedLearningOutcome: "Implement solutions using systems administration & maintenance techniques.",
+          deliveryWeek: "Week 4",
+          allocatedTime: "3 hours",
+          topics: [
+            "Applications"
+          ],
+          references: [
+            "OR1 - Online Resources"
+          ]
+        },
+        {
+          id: "CO3-ILO1",
+          courseOutcome: "Evaluate emerging trends and advanced concepts in systems administration & maintenance.",
+          intendedLearningOutcome: "Analyze current research and trends in systems administration & maintenance.",
+          deliveryWeek: "Week 8",
+          allocatedTime: "3 hours",
+          topics: [
+            "Advanced Topics"
+          ],
+          references: [
+            "TB1 - Systems Administration & Maintenance"
+          ]
+        }
+      ],
+        gradingSystem: [
+        {
+          co: "CO1",
+          ilos: [
+            {
+              id: "ILO1",
+              assessments: [
+                "Concept Quiz"
+              ],
+              weight: {
+                prelim: "50",
+                midterm: "",
+                semi: "",
+                final: ""
+              },
+              minPassing: "60"
+            }
+          ]
+        },
+        {
+          co: "CO2",
+          ilos: [
+            {
+              id: "ILO1",
+              assessments: [
+                "Practical Exercise"
+              ],
+              weight: {
+                prelim: "",
+                midterm: "60",
+                semi: "",
+                final: ""
+              },
+              minPassing: "60"
+            }
+          ]
+        },
+        {
+          co: "CO3",
+          ilos: [
+            {
+              id: "ILO1",
+              assessments: [
+                "Research Paper"
+              ],
+              weight: {
+                prelim: "",
+                midterm: "",
+                semi: "50",
+                final: "50"
+              },
+              minPassing: "60"
+            }
+          ]
+        }
+      ]
+    },
     {
         code: 'IT 313',
         name: 'Networking 1',
@@ -2273,9 +12996,9 @@ export const syllabiData = [
             { id: "T2", title: "IP Addressing & Subnetting", subtopics: [{ id: "S4", value: "IPv4 and IPv6 Addressing" }, { id: "S5", value: "Subnet Mask and CIDR" }, { id: "S6", value: "VLSM and Route Summarization" }], tlas: [{ id: "TLA3", classPhase: "In-class", performedBy: "Student", tlaName: "Subnetting Exercise", tlaDescription: "Hands-on exercise where students calculate subnets, host ranges, and broadcast addresses for given network scenarios.", laboratory: true }] }
         ],
         courseOutcomes: [
-            { id: 'CO1', description: 'Explain the fundamental concepts of computer networking, including the OSI and TCP/IP models, and differentiate between various network topologies and protocols.', poMappings: ['I','','','','','','','','','','','',''] },
-            { id: 'CO2', description: 'Design and implement IP addressing schemes using subnetting, VLSM, and CIDR techniques for given network requirements.', poMappings: ['','','','E','E','','','','','','','',''] },
-            { id: 'CO3', description: 'Configure basic routing and switching in a simulated network environment using industry-standard tools.', poMappings: ['','','','','D','','D','','','','','',''] }
+            { id: 'CO1', description: 'Explain the fundamental concepts of computer networking, including the OSI and TCP/IP models, and differentiate between various network topologies and protocols.', poMappings: ['I','','','','','','','','','E','I','',''] },
+            { id: 'CO2', description: 'Design and implement IP addressing schemes using subnetting, VLSM, and CIDR techniques for given network requirements.', poMappings: ['','','','E','E','','','','','I','E','',''] },
+            { id: 'CO3', description: 'Configure basic routing and switching in a simulated network environment using industry-standard tools.', poMappings: ['','','','','D','','D','','','I','I','',''] }
         ],
         ilos: [
             { id: "CO1-ILO1", courseOutcome: 'Explain the fundamental concepts of computer networking, including the OSI and TCP/IP models, and differentiate between various network topologies and protocols.', intendedLearningOutcome: "Identify the functions of each OSI layer and map them to TCP/IP model equivalents.", deliveryWeek: "Week 1", allocatedTime: "3 hours", topics: ["Network Fundamentals & OSI Model"], references: ["TB1 - Computer Networking: A Top-Down Approach"] },
@@ -2312,7 +13035,7 @@ export const syllabiData = [
             { id: "T2", title: "Machine Learning Fundamentals", subtopics: [{ id: "S4", value: "Supervised vs Unsupervised Learning" }, { id: "S5", value: "Decision Trees and Random Forests" }, { id: "S6", value: "Neural Networks Basics" }], tlas: [{ id: "TLA3", classPhase: "In-class", performedBy: "Student", tlaName: "ML Model Training Lab", tlaDescription: "Students train and evaluate decision tree and neural network models using scikit-learn on a provided dataset.", laboratory: true }] }
         ],
         courseOutcomes: [
-            { id: 'CO1', description: 'Implement and compare various search algorithms to solve well-defined problems in AI.', poMappings: ['I','','E','','','','','','','','','',''] },
+            { id: 'CO1', description: 'Implement and compare various search algorithms to solve well-defined problems in AI.', poMappings: ['I','','E','','','','','','','I','E','',''] },
             { id: 'CO2', description: 'Apply machine learning techniques to classify and predict outcomes from structured datasets.', poMappings: ['','E','','','D','','','','','','I','',''] }
         ],
         ilos: [
@@ -2348,8 +13071,8 @@ export const syllabiData = [
             { id: "T2", title: "Video Compression and Streaming", subtopics: [{ id: "S4", value: "MPEG and H.264 Standards" }, { id: "S5", value: "Adaptive Bitrate Streaming" }, { id: "S6", value: "HTML5 Video and Audio APIs" }], tlas: [{ id: "TLA2", classPhase: "In-class", performedBy: "Student", tlaName: "Video Compression Lab", tlaDescription: "Students use FFmpeg to compress videos with different codecs and compare quality and file size tradeoffs.", laboratory: true }] }
         ],
         courseOutcomes: [
-            { id: 'CO1', description: 'Explain the fundamental concepts of digital media representation, compression, and storage for audio, image, and video formats.', poMappings: ['I','','','','','','','','','','','',''] },
-            { id: 'CO2', description: 'Create and optimize multimedia content using industry-standard tools and techniques for web deployment.', poMappings: ['','E','','','E','','D','','','','','',''] }
+            { id: 'CO1', description: 'Explain the fundamental concepts of digital media representation, compression, and storage for audio, image, and video formats.', poMappings: ['I','','','','','','','','','E','I','',''] },
+            { id: 'CO2', description: 'Create and optimize multimedia content using industry-standard tools and techniques for web deployment.', poMappings: ['','E','','','E','','D','','','I','E','',''] }
         ],
         ilos: [
             { id: "CO1-ILO1", courseOutcome: 'Explain the fundamental concepts of digital media representation, compression, and storage for audio, image, and video formats.', intendedLearningOutcome: "Compare lossless and lossy compression techniques and their impact on media quality.", deliveryWeek: "Week 1", allocatedTime: "3 hours", topics: ["Digital Audio and Image Fundamentals"], references: ["TB1 - Multimedia: Making It Work"] },
@@ -2415,8 +13138,8 @@ export const syllabiData = [
             { id: "T2", title: "Backend Development and APIs", subtopics: [{ id: "S4", value: "Node.js and Express Framework" }, { id: "S5", value: "RESTful API Design" }, { id: "S6", value: "Database Integration (MongoDB/SQL)" }], tlas: [{ id: "TLA3", classPhase: "In-class", performedBy: "Student", tlaName: "API Development Lab", tlaDescription: "Students create a RESTful API with Express that performs CRUD operations on a MongoDB database.", laboratory: true }] }
         ],
         courseOutcomes: [
-            { id: 'CO1', description: 'Build responsive user interfaces using modern HTML5, CSS3, and JavaScript techniques.', poMappings: ['','','','','I','','D','','','','','',''] },
-            { id: 'CO2', description: 'Develop server-side applications and RESTful APIs using Node.js and database integration.', poMappings: ['','','','','D','','D','','E','','','',''] }
+            { id: 'CO1', description: 'Build responsive user interfaces using modern HTML5, CSS3, and JavaScript techniques.', poMappings: ['','','','','I','','D','','','I','I','',''] },
+            { id: 'CO2', description: 'Develop server-side applications and RESTful APIs using Node.js and database integration.', poMappings: ['','','','','D','','D','','E','I','E','',''] }
         ],
         ilos: [
             { id: "CO1-ILO1", courseOutcome: 'Build responsive user interfaces using modern HTML5, CSS3, and JavaScript techniques.', intendedLearningOutcome: "Create semantically structured HTML5 documents that meet WCAG accessibility standards.", deliveryWeek: "Week 1", allocatedTime: "3 hours", topics: ["Frontend Development"], references: ["OR1 - MDN Web Docs"] },
@@ -2452,7 +13175,7 @@ export const syllabiData = [
             { id: "T2", title: "Microservices and API Management", subtopics: [{ id: "S4", value: "Microservices Design Patterns" }, { id: "S5", value: "API Gateway Pattern" }, { id: "S6", value: "Message Queues and Event-Driven Architecture" }], tlas: [{ id: "TLA2", classPhase: "In-class", performedBy: "Student", tlaName: "Microservices Lab", tlaDescription: "Students design and deploy a simple microservices-based system with Docker, API gateway, and message queue.", laboratory: true }] }
         ],
         courseOutcomes: [
-            { id: 'CO1', description: 'Design enterprise integration solutions using SOA principles and middleware technologies.', poMappings: ['I','','','','E','','','','','','','',''] },
+            { id: 'CO1', description: 'Design enterprise integration solutions using SOA principles and middleware technologies.', poMappings: ['I','','','','E','','','','','I','E','',''] },
             { id: 'CO2', description: 'Implement microservices-based architectures with API gateways and event-driven communication.', poMappings: ['','D','','','D','E','','','','','','I',''] }
         ],
         ilos: [
@@ -2472,7 +13195,7 @@ export const syllabiData = [
         description: 'Foundational concepts of computing including hardware, software, data representation, and problem-solving using computers.',
         references: [{ id: "TB1", title: "Computing Essentials", type: "Textbook", authors: "Timothy J. O'Leary", year: 2021, isbn: "978-1260092855", link: "" }],
         topics: [{ id: "T1", title: "Computing Fundamentals", subtopics: [{ id: "S1", value: "History of Computing" }, { id: "S2", value: "Hardware Components" }, { id: "S3", value: "Software Categories" }], tlas: [{ id: "TLA1", classPhase: "Pre-class", performedBy: "Instructor", tlaName: "Intro Lecture", tlaDescription: "Overview of computing history, hardware, and software concepts.", laboratory: false }] }],
-        courseOutcomes: [{ id: 'CO1', description: 'Explain fundamental computing concepts including hardware, software, and data representation.', poMappings: ['I','','','','','','','','','','','',''] }],
+        courseOutcomes: [{ id: 'CO1', description: 'Explain fundamental computing concepts including hardware, software, and data representation.', poMappings: ['I','','','','','','','','','E','I','',''] }],
         ilos: [{ id: "CO1-ILO1", courseOutcome: 'Explain fundamental computing concepts including hardware, software, and data representation.', intendedLearningOutcome: "Identify the major components of a computer system and their functions.", deliveryWeek: "Week 1", allocatedTime: "3 hours", topics: ["Computing Fundamentals"], references: ["TB1 - Computing Essentials"] }],
         coAssessmentMethodSets: { CO1: [{ value: "Computing Basics Quiz", description: "Quiz covering hardware, software, and terminology." }] },
         assessments: [{ id: 'A1', tlaName: 'Intro Lecture', phase: 'Pre-class', assessmentMethod: 'Quiz', assessmentDescription: 'Conceptual quiz on computing fundamentals.', hasRubric: false }],
@@ -2483,7 +13206,7 @@ export const syllabiData = [
         description: 'Introduction to programming using a high-level language. Covers variables, control structures, functions, arrays, and basic algorithms.',
         references: [{ id: "TB1", title: "Starting Out with Programming Logic & Design", type: "Textbook", authors: "Tony Gaddis", year: 2020, isbn: "978-0134801155", link: "" }],
         topics: [{ id: "T1", title: "Programming Fundamentals", subtopics: [{ id: "S1", value: "Variables and Data Types" }, { id: "S2", value: "Control Structures" }, { id: "S3", value: "Functions and Arrays" }], tlas: [{ id: "TLA1", classPhase: "In-class", performedBy: "Student", tlaName: "Programming Lab 1", tlaDescription: "Students write basic programs using variables, conditionals, and loops.", laboratory: true }] }],
-        courseOutcomes: [{ id: 'CO1', description: 'Design and implement simple programs using fundamental programming constructs.', poMappings: ['I','','','','','','','','','','','',''] }],
+        courseOutcomes: [{ id: 'CO1', description: 'Design and implement simple programs using fundamental programming constructs.', poMappings: ['I','','','','','','','','','I','E','',''] }],
         ilos: [{ id: "CO1-ILO1", courseOutcome: 'Design and implement simple programs using fundamental programming constructs.', intendedLearningOutcome: "Write programs using variables, conditionals, and loops to solve basic problems.", deliveryWeek: "Week 1", allocatedTime: "4 hours", topics: ["Programming Fundamentals"], references: ["TB1 - Starting Out with Programming Logic & Design"] }],
         coAssessmentMethodSets: { CO1: [{ value: "Programming Exercise", description: "Complete programming exercises demonstrating control structures and functions." }] },
         assessments: [{ id: 'A1', tlaName: 'Programming Lab 1', phase: 'In-class', assessmentMethod: 'Code Submission', assessmentDescription: 'Submit working programs with proper syntax and logic.', hasRubric: true, rubrics: [{ id: 1, criteria: 'Correctness', maxScore: '50' }, { id: 2, criteria: 'Code style', maxScore: '50' }] }],
@@ -2494,7 +13217,7 @@ export const syllabiData = [
         description: 'Advanced programming concepts including object-oriented programming, inheritance, polymorphism, file I/O, and exception handling.',
         references: [{ id: "TB1", title: "Object-Oriented Programming in Java", type: "Textbook", authors: "David J. Barnes", year: 2020, isbn: "978-0134821498", link: "" }],
         topics: [{ id: "T1", title: "Object-Oriented Programming", subtopics: [{ id: "S1", value: "Classes and Objects" }, { id: "S2", value: "Inheritance and Polymorphism" }, { id: "S3", value: "File I/O and Exceptions" }], tlas: [{ id: "TLA1", classPhase: "In-class", performedBy: "Student", tlaName: "OOP Lab", tlaDescription: "Students implement classes with inheritance hierarchies and file persistence.", laboratory: true }] }],
-        courseOutcomes: [{ id: 'CO1', description: 'Apply object-oriented programming principles to design and implement software solutions.', poMappings: ['I','','','','E','','','','','','','',''] }],
+        courseOutcomes: [{ id: 'CO1', description: 'Apply object-oriented programming principles to design and implement software solutions.', poMappings: ['I','','','','E','','','','','I','E','',''] }],
         ilos: [{ id: "CO1-ILO1", courseOutcome: 'Apply object-oriented programming principles to design and implement software solutions.', intendedLearningOutcome: "Design class hierarchies using inheritance and polymorphism.", deliveryWeek: "Week 1", allocatedTime: "4 hours", topics: ["Object-Oriented Programming"], references: ["TB1 - Object-Oriented Programming in Java"] }],
         coAssessmentMethodSets: { CO1: [{ value: "OOP Project", description: "Design and implement an application using OOP principles." }] },
         assessments: [{ id: 'A1', tlaName: 'OOP Lab', phase: 'In-class', assessmentMethod: 'Project Output', assessmentDescription: 'Working OOP application with class hierarchy and file persistence.', hasRubric: true, rubrics: [{ id: 1, criteria: 'OOP design quality', maxScore: '50' }, { id: 2, criteria: 'Functionality', maxScore: '50' }] }],
@@ -2505,7 +13228,7 @@ export const syllabiData = [
         description: 'Study of discrete mathematical structures including logic, set theory, combinatorics, graph theory, and Boolean algebra.',
         references: [{ id: "TB1", title: "Discrete Mathematics and Its Applications", type: "Textbook", authors: "Kenneth Rosen", year: 2019, isbn: "978-1259676512", link: "" }],
         topics: [{ id: "T1", title: "Logic and Set Theory", subtopics: [{ id: "S1", value: "Propositional Logic" }, { id: "S2", value: "Predicate Logic" }, { id: "S3", value: "Set Operations" }], tlas: [{ id: "TLA1", classPhase: "Pre-class", performedBy: "Instructor", tlaName: "Discrete Math Lecture", tlaDescription: "Lecture on propositional logic, truth tables, and set theory fundamentals.", laboratory: false }] }],
-        courseOutcomes: [{ id: 'CO1', description: 'Apply discrete mathematical concepts to solve computing problems.', poMappings: ['I','','','','','','','','','','','',''] }],
+        courseOutcomes: [{ id: 'CO1', description: 'Apply discrete mathematical concepts to solve computing problems.', poMappings: ['I','','','','','','','','','I','I','',''] }],
         ilos: [{ id: "CO1-ILO1", courseOutcome: 'Apply discrete mathematical concepts to solve computing problems.', intendedLearningOutcome: "Construct truth tables and evaluate logical expressions.", deliveryWeek: "Week 1", allocatedTime: "3 hours", topics: ["Logic and Set Theory"], references: ["TB1 - Discrete Mathematics and Its Applications"] }],
         coAssessmentMethodSets: { CO1: [{ value: "Problem Set", description: "Complete problem sets covering logic, sets, and combinatorics." }] },
         assessments: [{ id: 'A1', tlaName: 'Discrete Math Lecture', phase: 'Pre-class', assessmentMethod: 'Problem Set', assessmentDescription: 'Written problem set on logic and set theory.', hasRubric: false }],
@@ -2516,7 +13239,7 @@ export const syllabiData = [
         description: 'Study of fundamental data structures (arrays, linked lists, trees, graphs, hash tables) and algorithm analysis techniques.',
         references: [{ id: "TB1", title: "Data Structures and Algorithm Analysis in C++", type: "Textbook", authors: "Mark Allen Weiss", year: 2020, isbn: "978-0134853765", link: "" }],
         topics: [{ id: "T1", title: "Linear Data Structures", subtopics: [{ id: "S1", value: "Arrays and Linked Lists" }, { id: "S2", value: "Stacks and Queues" }, { id: "S3", value: "Hash Tables" }], tlas: [{ id: "TLA1", classPhase: "In-class", performedBy: "Student", tlaName: "DS Lab", tlaDescription: "Students implement linked lists, stacks, and queues from scratch.", laboratory: true }] }, { id: "T2", title: "Trees and Graphs", subtopics: [{ id: "S4", value: "Binary Search Trees" }, { id: "S5", value: "Graph Representations" }, { id: "S6", value: "Traversal Algorithms" }], tlas: [{ id: "TLA2", classPhase: "In-class", performedBy: "Student", tlaName: "Tree Lab", tlaDescription: "Students implement BST operations and graph traversal algorithms.", laboratory: true }] }],
-        courseOutcomes: [{ id: 'CO1', description: 'Implement and analyze fundamental data structures and their operations.', poMappings: ['I','','','','','','D','','','','','',''] }, { id: 'CO2', description: 'Apply appropriate data structures to solve computational problems efficiently.', poMappings: ['E','','','','D','','','','','','','',''] }],
+        courseOutcomes: [{ id: 'CO1', description: 'Implement and analyze fundamental data structures and their operations.', poMappings: ['I','','','','','','D','','','I','E','E',''] }, { id: 'CO2', description: 'Apply appropriate data structures to solve computational problems efficiently.', poMappings: ['E','','','','D','','','','','I','E','E',''] }],
         ilos: [{ id: "CO1-ILO1", courseOutcome: 'Implement and analyze fundamental data structures and their operations.', intendedLearningOutcome: "Implement linked list, stack, and queue data structures with their core operations.", deliveryWeek: "Week 1", allocatedTime: "4 hours", topics: ["Linear Data Structures"], references: ["TB1 - Data Structures and Algorithm Analysis"] }, { id: "CO2-ILO1", courseOutcome: 'Apply appropriate data structures to solve computational problems efficiently.', intendedLearningOutcome: "Select and implement the appropriate data structure for a given problem scenario.", deliveryWeek: "Week 2", allocatedTime: "3 hours", topics: ["Trees and Graphs"], references: ["TB1 - Data Structures and Algorithm Analysis"] }],
         coAssessmentMethodSets: { CO1: [{ value: "DS Implementation", description: "Implement core data structures from scratch." }], CO2: [{ value: "Algorithm Design", description: "Design algorithms using appropriate data structures." }] },
         assessments: [{ id: 'A1', tlaName: 'DS Lab', phase: 'In-class', assessmentMethod: 'Code Submission', assessmentDescription: 'Working implementations of linked lists, stacks, and queues.', hasRubric: true, rubrics: [{ id: 1, criteria: 'Implementation correctness', maxScore: '60' }, { id: 2, criteria: 'Time complexity analysis', maxScore: '40' }] }],
@@ -2527,7 +13250,7 @@ export const syllabiData = [
         description: 'Fundamentals of database systems including relational model, SQL, normalization, transaction processing, and database design.',
         references: [{ id: "TB1", title: "Database System Concepts", type: "Textbook", authors: "Abraham Silberschatz", year: 2020, isbn: "978-0078022159", link: "" }],
         topics: [{ id: "T1", title: "Relational Databases and SQL", subtopics: [{ id: "S1", value: "Relational Model" }, { id: "S2", value: "SQL Queries and Joins" }, { id: "S3", value: "Normalization" }], tlas: [{ id: "TLA1", classPhase: "In-class", performedBy: "Student", tlaName: "SQL Lab", tlaDescription: "Students write complex SQL queries including joins, subqueries, and aggregations.", laboratory: true }] }],
-        courseOutcomes: [{ id: 'CO1', description: 'Design and implement relational databases using entity-relationship modeling and SQL.', poMappings: ['I','','','','E','','','','','','','',''] }],
+        courseOutcomes: [{ id: 'CO1', description: 'Design and implement relational databases using entity-relationship modeling and SQL.', poMappings: ['I','','','','E','','','','','I','E','',''] }],
         ilos: [{ id: "CO1-ILO1", courseOutcome: 'Design and implement relational databases using entity-relationship modeling and SQL.', intendedLearningOutcome: "Write SQL queries to create, read, update, and delete data in relational databases.", deliveryWeek: "Week 1", allocatedTime: "4 hours", topics: ["Relational Databases and SQL"], references: ["TB1 - Database System Concepts"] }],
         coAssessmentMethodSets: { CO1: [{ value: "Database Design Project", description: "Design and implement a database for a given business scenario." }] },
         assessments: [{ id: 'A1', tlaName: 'SQL Lab', phase: 'In-class', assessmentMethod: 'Query Submission', assessmentDescription: 'Submit SQL queries demonstrating joins, aggregations, and subqueries.', hasRubric: true, rubrics: [{ id: 1, criteria: 'Query correctness', maxScore: '50' }, { id: 2, criteria: 'Query optimization', maxScore: '50' }] }],
@@ -2538,7 +13261,7 @@ export const syllabiData = [
         description: 'In-depth study of object-oriented programming concepts including design patterns, UML modeling, GUI programming, and event-driven programming.',
         references: [{ id: "TB1", title: "Head First Design Patterns", type: "Textbook", authors: "Eric Freeman", year: 2020, isbn: "978-1492078005", link: "" }],
         topics: [{ id: "T1", title: "Design Patterns", subtopics: [{ id: "S1", value: "Creational Patterns" }, { id: "S2", value: "Structural Patterns" }, { id: "S3", value: "Behavioral Patterns" }], tlas: [{ id: "TLA1", classPhase: "In-class", performedBy: "Student", tlaName: "Patterns Lab", tlaDescription: "Students implement Singleton, Factory, Observer, and Strategy patterns.", laboratory: true }] }],
-        courseOutcomes: [{ id: 'CO1', description: 'Apply design patterns and UML modeling to create maintainable object-oriented applications.', poMappings: ['','','E','','E','','','','','','','',''] }],
+        courseOutcomes: [{ id: 'CO1', description: 'Apply design patterns and UML modeling to create maintainable object-oriented applications.', poMappings: ['','','E','','E','','','','','I','E','',''] }],
         ilos: [{ id: "CO1-ILO1", courseOutcome: 'Apply design patterns and UML modeling to create maintainable object-oriented applications.', intendedLearningOutcome: "Identify and implement appropriate design patterns for given software design problems.", deliveryWeek: "Week 1", allocatedTime: "4 hours", topics: ["Design Patterns"], references: ["TB1 - Head First Design Patterns"] }],
         coAssessmentMethodSets: { CO1: [{ value: "Pattern Application Project", description: "Apply multiple design patterns in a single application." }] },
         assessments: [{ id: 'A1', tlaName: 'Patterns Lab', phase: 'In-class', assessmentMethod: 'Code Submission', assessmentDescription: 'Implement at least 3 design patterns in a cohesive application.', hasRubric: true, rubrics: [{ id: 1, criteria: 'Pattern selection appropriateness', maxScore: '40' }, { id: 2, criteria: 'Implementation quality', maxScore: '60' }] }],
@@ -2549,7 +13272,7 @@ export const syllabiData = [
         description: 'Concepts and technologies for managing information assets including data warehousing, data mining, business intelligence, and information governance.',
         references: [{ id: "TB1", title: "Data Mining: Concepts and Techniques", type: "Textbook", authors: "Jiawei Han", year: 2022, isbn: "978-0128117606", link: "" }],
         topics: [{ id: "T1", title: "Data Warehousing and BI", subtopics: [{ id: "S1", value: "Data Warehouse Architecture" }, { id: "S2", value: "ETL Processes" }, { id: "S3", value: "OLAP and Reporting" }], tlas: [{ id: "TLA1", classPhase: "Pre-class", performedBy: "Instructor", tlaName: "DW Lecture", tlaDescription: "Lecture on data warehouse concepts, star schema, and ETL pipelines.", laboratory: false }] }],
-        courseOutcomes: [{ id: 'CO1', description: 'Design and implement data management solutions using warehousing and business intelligence tools.', poMappings: ['','','','E','D','','','','','','','',''] }],
+        courseOutcomes: [{ id: 'CO1', description: 'Design and implement data management solutions using warehousing and business intelligence tools.', poMappings: ['','','','E','D','','','','','I','E','',''] }],
         ilos: [{ id: "CO1-ILO1", courseOutcome: 'Design and implement data management solutions using warehousing and business intelligence tools.', intendedLearningOutcome: "Design a star schema data warehouse for a given business domain.", deliveryWeek: "Week 1", allocatedTime: "3 hours", topics: ["Data Warehousing and BI"], references: ["TB1 - Data Mining: Concepts and Techniques"] }],
         coAssessmentMethodSets: { CO1: [{ value: "Data Warehouse Design", description: "Design a complete data warehouse solution with ETL processes." }] },
         assessments: [{ id: 'A1', tlaName: 'DW Lecture', phase: 'Pre-class', assessmentMethod: 'Design Document', assessmentDescription: 'Submit data warehouse schema design with ETL plan.', hasRubric: false }],
@@ -2560,7 +13283,7 @@ export const syllabiData = [
         description: 'Limits, continuity, differentiation, and applications of derivatives. Introduction to integration.',
         references: [{ id: "TB1", title: "Calculus: Early Transcendentals", type: "Textbook", authors: "James Stewart", year: 2020, isbn: "978-1337613927", link: "" }],
         topics: [{ id: "T1", title: "Limits and Derivatives", subtopics: [{ id: "S1", value: "Limits and Continuity" }, { id: "S2", value: "Differentiation Rules" }, { id: "S3", value: "Applications of Derivatives" }], tlas: [{ id: "TLA1", classPhase: "Pre-class", performedBy: "Instructor", tlaName: "Calculus Lecture", tlaDescription: "Lecture on limit theorems, differentiation rules, and optimization applications.", laboratory: false }] }],
-        courseOutcomes: [{ id: 'CO1', description: 'Apply differentiation techniques to solve problems in optimization and rate of change.', poMappings: ['I','','','','','','','','','','','',''] }],
+        courseOutcomes: [{ id: 'CO1', description: 'Apply differentiation techniques to solve problems in optimization and rate of change.', poMappings: ['I','','','','','','','','','I','I','',''] }],
         ilos: [{ id: "CO1-ILO1", courseOutcome: 'Apply differentiation techniques to solve problems in optimization and rate of change.', intendedLearningOutcome: "Compute derivatives using power, product, quotient, and chain rules.", deliveryWeek: "Week 1", allocatedTime: "3 hours", topics: ["Limits and Derivatives"], references: ["TB1 - Calculus: Early Transcendentals"] }],
         coAssessmentMethodSets: { CO1: [{ value: "Derivative Problem Set", description: "Problem set covering differentiation rules and applications." }] },
         assessments: [{ id: 'A1', tlaName: 'Calculus Lecture', phase: 'Pre-class', assessmentMethod: 'Problem Set', assessmentDescription: 'Problem set on limits and derivatives.', hasRubric: false }],
@@ -2571,7 +13294,7 @@ export const syllabiData = [
         description: 'Integration techniques, applications of integrals, sequences, series, and parametric equations.',
         references: [{ id: "TB1", title: "Calculus: Early Transcendentals", type: "Textbook", authors: "James Stewart", year: 2020, isbn: "978-1337613927", link: "" }],
         topics: [{ id: "T1", title: "Integration Techniques", subtopics: [{ id: "S1", value: "Substitution and Integration by Parts" }, { id: "S2", value: "Trigonometric Integrals" }, { id: "S3", value: "Partial Fractions" }], tlas: [{ id: "TLA1", classPhase: "Pre-class", performedBy: "Instructor", tlaName: "Integration Lecture", tlaDescription: "Lecture on advanced integration techniques and their applications.", laboratory: false }] }],
-        courseOutcomes: [{ id: 'CO1', description: 'Apply integration techniques to compute areas, volumes, and solve applied problems.', poMappings: ['I','','','','','','','','','','','',''] }],
+        courseOutcomes: [{ id: 'CO1', description: 'Apply integration techniques to compute areas, volumes, and solve applied problems.', poMappings: ['I','','','','','','','','','I','I','',''] }],
         ilos: [{ id: "CO1-ILO1", courseOutcome: 'Apply integration techniques to compute areas, volumes, and solve applied problems.', intendedLearningOutcome: "Evaluate integrals using substitution, integration by parts, and partial fractions.", deliveryWeek: "Week 1", allocatedTime: "3 hours", topics: ["Integration Techniques"], references: ["TB1 - Calculus: Early Transcendentals"] }],
         coAssessmentMethodSets: { CO1: [{ value: "Integration Problem Set", description: "Problem set covering various integration techniques." }] },
         assessments: [{ id: 'A1', tlaName: 'Integration Lecture', phase: 'Pre-class', assessmentMethod: 'Problem Set', assessmentDescription: 'Problem set on integration techniques.', hasRubric: false }],
@@ -2582,7 +13305,7 @@ export const syllabiData = [
         description: 'Vector spaces, matrices, linear transformations, eigenvalues, eigenvectors, and applications in computing.',
         references: [{ id: "TB1", title: "Linear Algebra and Its Applications", type: "Textbook", authors: "David C. Lay", year: 2021, isbn: "978-0135851258", link: "" }],
         topics: [{ id: "T1", title: "Matrices and Vector Spaces", subtopics: [{ id: "S1", value: "Matrix Operations" }, { id: "S2", value: "Vector Spaces and Subspaces" }, { id: "S3", value: "Linear Transformations" }], tlas: [{ id: "TLA1", classPhase: "Pre-class", performedBy: "Instructor", tlaName: "Linear Algebra Lecture", tlaDescription: "Lecture on matrix operations, vector spaces, and linear transformations.", laboratory: false }] }],
-        courseOutcomes: [{ id: 'CO1', description: 'Solve systems of linear equations and apply matrix operations in computational contexts.', poMappings: ['I','','','','','','','','','','','',''] }],
+        courseOutcomes: [{ id: 'CO1', description: 'Solve systems of linear equations and apply matrix operations in computational contexts.', poMappings: ['I','','','','','','','','','I','I','',''] }],
         ilos: [{ id: "CO1-ILO1", courseOutcome: 'Solve systems of linear equations and apply matrix operations in computational contexts.', intendedLearningOutcome: "Perform matrix operations including multiplication, inversion, and determinant calculation.", deliveryWeek: "Week 1", allocatedTime: "3 hours", topics: ["Matrices and Vector Spaces"], references: ["TB1 - Linear Algebra and Its Applications"] }],
         coAssessmentMethodSets: { CO1: [{ value: "Matrix Operations Quiz", description: "Quiz on matrix operations and vector space concepts." }] },
         assessments: [{ id: 'A1', tlaName: 'Linear Algebra Lecture', phase: 'Pre-class', assessmentMethod: 'Quiz', assessmentDescription: 'Quiz on matrix operations and vector spaces.', hasRubric: false }],
@@ -2593,7 +13316,7 @@ export const syllabiData = [
         description: 'Probability theory, random variables, probability distributions, sampling, hypothesis testing, and regression analysis.',
         references: [{ id: "TB1", title: "Probability and Statistics for Engineers and Scientists", type: "Textbook", authors: "Walpole, Myers", year: 2020, isbn: "978-0134115856", link: "" }],
         topics: [{ id: "T1", title: "Probability and Distributions", subtopics: [{ id: "S1", value: "Probability Rules" }, { id: "S2", value: "Random Variables" }, { id: "S3", value: "Normal and Binomial Distributions" }], tlas: [{ id: "TLA1", classPhase: "Pre-class", performedBy: "Instructor", tlaName: "Stats Lecture", tlaDescription: "Lecture on probability theory, distributions, and expected values.", laboratory: false }] }],
-        courseOutcomes: [{ id: 'CO1', description: 'Apply statistical methods to analyze data and make data-driven decisions.', poMappings: ['I','','','','','','','','','','','',''] }],
+        courseOutcomes: [{ id: 'CO1', description: 'Apply statistical methods to analyze data and make data-driven decisions.', poMappings: ['I','','','','','','','','','I','I','E',''] }],
         ilos: [{ id: "CO1-ILO1", courseOutcome: 'Apply statistical methods to analyze data and make data-driven decisions.', intendedLearningOutcome: "Calculate probabilities using probability rules and distribution functions.", deliveryWeek: "Week 1", allocatedTime: "3 hours", topics: ["Probability and Distributions"], references: ["TB1 - Probability and Statistics"] }],
         coAssessmentMethodSets: { CO1: [{ value: "Statistical Analysis", description: "Perform statistical analysis on a dataset with hypothesis testing." }] },
         assessments: [{ id: 'A1', tlaName: 'Stats Lecture', phase: 'Pre-class', assessmentMethod: 'Problem Set', assessmentDescription: 'Problem set on probability and distributions.', hasRubric: false }],
@@ -2604,7 +13327,7 @@ export const syllabiData = [
         description: 'Overview of information technology covering computer systems, networks, databases, web technologies, and IT career paths.',
         references: [{ id: "TB1", title: "Technology in Action", type: "Textbook", authors: "Alan Evans", year: 2021, isbn: "978-0135438695", link: "" }],
         topics: [{ id: "T1", title: "IT Overview", subtopics: [{ id: "S1", value: "Computer Systems" }, { id: "S2", value: "Networking Basics" }, { id: "S3", value: "Web Technologies" }], tlas: [{ id: "TLA1", classPhase: "Pre-class", performedBy: "Instructor", tlaName: "IT Overview Lecture", tlaDescription: "Overview of IT domains including systems, networks, web, and databases.", laboratory: false }] }],
-        courseOutcomes: [{ id: 'CO1', description: 'Explain the core domains of information technology and their interrelationships.', poMappings: ['I','','','','','','','','','','','',''] }],
+        courseOutcomes: [{ id: 'CO1', description: 'Explain the core domains of information technology and their interrelationships.', poMappings: ['I','','','','','','','','','E','I','',''] }],
         ilos: [{ id: "CO1-ILO1", courseOutcome: 'Explain the core domains of information technology and their interrelationships.', intendedLearningOutcome: "Identify the major components of IT infrastructure in an organization.", deliveryWeek: "Week 1", allocatedTime: "3 hours", topics: ["IT Overview"], references: ["TB1 - Technology in Action"] }],
         coAssessmentMethodSets: { CO1: [{ value: "IT Domain Report", description: "Research report on the various domains of IT." }] },
         assessments: [{ id: 'A1', tlaName: 'IT Overview Lecture', phase: 'Pre-class', assessmentMethod: 'Quiz', assessmentDescription: 'Quiz on IT domains and career paths.', hasRubric: false }],
@@ -2615,7 +13338,7 @@ export const syllabiData = [
         description: 'Structured approach to analyzing business requirements and designing information systems using UML, use cases, and agile methodologies.',
         references: [{ id: "TB1", title: "Systems Analysis and Design", type: "Textbook", authors: "Alan Dennis", year: 2020, isbn: "978-1119496489", link: "" }],
         topics: [{ id: "T1", title: "Requirements Analysis", subtopics: [{ id: "S1", value: "Requirement Gathering" }, { id: "S2", value: "Use Case Modeling" }, { id: "S3", value: "UML Diagrams" }], tlas: [{ id: "TLA1", classPhase: "In-class", performedBy: "Student", tlaName: "UML Lab", tlaDescription: "Students create use case diagrams, class diagrams, and sequence diagrams for a given system.", laboratory: true }] }],
-        courseOutcomes: [{ id: 'CO1', description: 'Analyze business requirements and design information systems using industry-standard modeling techniques.', poMappings: ['','','E','E','I','','','','','','','',''] }],
+        courseOutcomes: [{ id: 'CO1', description: 'Analyze business requirements and design information systems using industry-standard modeling techniques.', poMappings: ['','','E','E','I','','','','','I','E','E',''] }],
         ilos: [{ id: "CO1-ILO1", courseOutcome: 'Analyze business requirements and design information systems using industry-standard modeling techniques.', intendedLearningOutcome: "Create UML diagrams including use case, class, and sequence diagrams.", deliveryWeek: "Week 1", allocatedTime: "4 hours", topics: ["Requirements Analysis"], references: ["TB1 - Systems Analysis and Design"] }],
         coAssessmentMethodSets: { CO1: [{ value: "System Design Document", description: "Complete system analysis and design document for a business scenario." }] },
         assessments: [{ id: 'A1', tlaName: 'UML Lab', phase: 'In-class', assessmentMethod: 'Diagram Submission', assessmentDescription: 'Submit complete UML diagrams for a given system specification.', hasRubric: true, rubrics: [{ id: 1, criteria: 'Diagram accuracy', maxScore: '50' }, { id: 2, criteria: 'Completeness', maxScore: '50' }] }],
@@ -2626,7 +13349,7 @@ export const syllabiData = [
         description: 'Concepts and techniques for modeling, analyzing, and optimizing business processes using BPMN and process mining tools.',
         references: [{ id: "TB1", title: "Fundamentals of Business Process Management", type: "Textbook", authors: "Marlon Dumas", year: 2018, isbn: "978-3662565081", link: "" }],
         topics: [{ id: "T1", title: "Process Modeling", subtopics: [{ id: "S1", value: "BPMN Notation" }, { id: "S2", value: "Process Analysis" }, { id: "S3", value: "Process Redesign" }], tlas: [{ id: "TLA1", classPhase: "In-class", performedBy: "Student", tlaName: "BPMN Lab", tlaDescription: "Students model business processes using BPMN tools and identify improvement opportunities.", laboratory: true }] }],
-        courseOutcomes: [{ id: 'CO1', description: 'Model and analyze business processes to identify improvement opportunities.', poMappings: ['','','E','E','','','','','','','','',''] }],
+        courseOutcomes: [{ id: 'CO1', description: 'Model and analyze business processes to identify improvement opportunities.', poMappings: ['','','E','E','','','','','','I','I','E',''] }],
         ilos: [{ id: "CO1-ILO1", courseOutcome: 'Model and analyze business processes to identify improvement opportunities.', intendedLearningOutcome: "Create BPMN diagrams for business processes and identify inefficiencies.", deliveryWeek: "Week 1", allocatedTime: "3 hours", topics: ["Process Modeling"], references: ["TB1 - Fundamentals of Business Process Management"] }],
         coAssessmentMethodSets: { CO1: [{ value: "Process Redesign Proposal", description: "Analyze a business process and propose improvements with BPMN models." }] },
         assessments: [{ id: 'A1', tlaName: 'BPMN Lab', phase: 'In-class', assessmentMethod: 'Model Submission', assessmentDescription: 'Submit BPMN diagrams with process analysis and recommendations.', hasRubric: false }],
@@ -2637,7 +13360,7 @@ export const syllabiData = [
         description: 'Project management principles applied to IT projects including scope, time, cost, quality, risk management, and agile project management.',
         references: [{ id: "TB1", title: "A Guide to the Project Management Body of Knowledge", type: "Textbook", authors: "PMI", year: 2021, isbn: "978-1628256642", link: "" }],
         topics: [{ id: "T1", title: "Project Planning and Agile", subtopics: [{ id: "S1", value: "Work Breakdown Structure" }, { id: "S2", value: "Scheduling and Budgeting" }, { id: "S3", value: "Agile and Scrum" }], tlas: [{ id: "TLA1", classPhase: "In-class", performedBy: "Student", tlaName: "Project Plan Lab", tlaDescription: "Students create a WBS, Gantt chart, and risk register for an IT project.", laboratory: true }] }],
-        courseOutcomes: [{ id: 'CO1', description: 'Plan, execute, and monitor IT projects using industry-standard project management practices.', poMappings: ['','','','','E','','','','','','','',''] }],
+        courseOutcomes: [{ id: 'CO1', description: 'Plan, execute, and monitor IT projects using industry-standard project management practices.', poMappings: ['','','','','E','','','','','I','E','',''] }],
         ilos: [{ id: "CO1-ILO1", courseOutcome: 'Plan, execute, and monitor IT projects using industry-standard project management practices.', intendedLearningOutcome: "Create project plans with work breakdown structures and schedules.", deliveryWeek: "Week 1", allocatedTime: "3 hours", topics: ["Project Planning and Agile"], references: ["TB1 - PMBOK Guide"] }],
         coAssessmentMethodSets: { CO1: [{ value: "Project Plan", description: "Develop a complete project plan for an IT project." }] },
         assessments: [{ id: 'A1', tlaName: 'Project Plan Lab', phase: 'In-class', assessmentMethod: 'Plan Submission', assessmentDescription: 'Submit WBS, schedule, budget, and risk management plan.', hasRubric: true, rubrics: [{ id: 1, criteria: 'Plan completeness', maxScore: '50' }, { id: 2, criteria: 'Risk identification', maxScore: '50' }] }],
@@ -2659,7 +13382,7 @@ export const syllabiData = [
         description: 'Preparation for the IT capstone project including proposal writing, literature review, methodology selection, and project planning.',
         references: [{ id: "TB1", title: "Writing the Capstone Project", type: "Textbook", authors: "Larry Page", year: 2022, isbn: "978-1284225831", link: "" }],
         topics: [{ id: "T1", title: "Proposal Development", subtopics: [{ id: "S1", value: "Problem Identification" }, { id: "S2", value: "Literature Review" }, { id: "S3", value: "Methodology Design" }], tlas: [{ id: "TLA1", classPhase: "In-class", performedBy: "Student", tlaName: "Proposal Workshop", tlaDescription: "Students develop capstone project proposals with problem statements, objectives, and methodology.", laboratory: true }] }],
-        courseOutcomes: [{ id: 'CO1', description: 'Develop a comprehensive capstone project proposal with clear problem definition and methodology.', poMappings: ['','','','','','','','','E','','','',''] }],
+        courseOutcomes: [{ id: 'CO1', description: 'Develop a comprehensive capstone project proposal with clear problem definition and methodology.', poMappings: ['','','','','','','','','E','I','E','',''] }],
         ilos: [{ id: "CO1-ILO1", courseOutcome: 'Develop a comprehensive capstone project proposal with clear problem definition and methodology.', intendedLearningOutcome: "Write a problem statement and research objectives for an IT capstone project.", deliveryWeek: "Week 1", allocatedTime: "4 hours", topics: ["Proposal Development"], references: ["TB1 - Writing the Capstone Project"] }],
         coAssessmentMethodSets: { CO1: [{ value: "Proposal Document", description: "Complete capstone proposal with problem statement, literature review, and methodology." }] },
         assessments: [{ id: 'A1', tlaName: 'Proposal Workshop', phase: 'In-class', assessmentMethod: 'Proposal Submission', assessmentDescription: 'Submit a complete capstone project proposal document.', hasRubric: true, rubrics: [{ id: 1, criteria: 'Problem definition', maxScore: '25' }, { id: 2, criteria: 'Literature review quality', maxScore: '25' }, { id: 3, criteria: 'Methodology appropriateness', maxScore: '25' }, { id: 4, criteria: 'Project plan', maxScore: '25' }] }],

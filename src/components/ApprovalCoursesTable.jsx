@@ -15,6 +15,8 @@ const getProgram = (code) => {
   return 'Computer Science';
 };
 
+const EXPORT_ROLES = ['dean', 'vpaa', 'instructor'];
+
 const ApprovalCoursesTable = ({ role = 'approver' }) => {
     const currentYear = new Date().getFullYear();
     const startYear = 2000;
@@ -348,7 +350,7 @@ const ApprovalCoursesTable = ({ role = 'approver' }) => {
                                 <td width={150}>{getCode(row)}</td>
                                 <td width={300}>{getName(row)}</td>
                                 {selectedStatus === 'APPROVED' && <td width={250}>{(() => { const d = row.d_date_accepted || getWorkflow(getCode(row))?.dean?.completedAt; return d ? new Date(d).toLocaleDateString() : '-'; })()}</td>}
-                                {selectedStatus === 'APPROVED' && <td style={{ width: 80, textAlign: 'center', fontWeight: 500 }}>
+                                {selectedStatus === 'APPROVED' && EXPORT_ROLES.includes(role) && <td style={{ width: 80, textAlign: 'center', fontWeight: 500 }}>
                                     <span className="actionLink" style={{ minWidth: 90, display: 'inline-flex', alignItems: 'center', gap: 5, cursor: exporting ? 'wait' : 'pointer', justifyContent: 'center', color: '#6b7280' }} onClick={() => !exporting && handleExport(row)}>
                                         {exporting ? '...' : 'Export'} <Download size={16} />
                                     </span>
