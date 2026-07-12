@@ -525,14 +525,16 @@ const SyllabusSections = () => {
                         </div></>
                 }
 
-                <div onClick={handleExportPdf} className={styles.draft} style={{ cursor: pdfExportLoading ? 'wait' : 'pointer', opacity: pdfExportLoading ? 0.6 : 1 }}>
-                    <Download size={14} />
-                    {pdfExportLoading ? 'Exporting...' : 'Export'}
-                </div>
-
                 {status !== 'draft' && <div ref={workflowBtnRef} className={styles.more} onClick={() => { const r = workflowBtnRef.current?.getBoundingClientRect(); const popupH = 280; if (r) setWorkflowPopupPos({ right: window.innerWidth - r.right, top: r.bottom + 4 + popupH > window.innerHeight ? r.top - popupH - 4 : r.bottom + 4 }); setShowWorkflowPopup(true); }}>
                     <Info strokeWidth={2} size={16}/>
                 </div>}
+
+                <div onClick={handleExportPdf} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '8px 16px', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: pdfExportLoading ? 'wait' : 'pointer', background: pdfExportLoading ? '#94a3b8' : '#19282C', color: 'white', fontFamily: "'Poppins', sans-serif", transition: 'transform 0.2s ease' }}
+                    onMouseEnter={e => { if (!pdfExportLoading) e.currentTarget.style.transform = 'scale(1.04)' }}
+                    onMouseLeave={e => { if (!pdfExportLoading) e.currentTarget.style.transform = 'scale(1)' }}>
+                    <Download size={14} />
+                    {pdfExportLoading ? 'Exporting...' : 'Export'}
+                </div>
 
 
             </div>
@@ -1273,17 +1275,12 @@ const SyllabusSections = () => {
                             { key: 'Program Head', data: wf.programHead },
                             { key: 'Dean', data: wf.dean },
                         ]
-                        const badgeMap = {
-                            Accepted: { color: '#047857', background: '#ecfdf5' },
-                            Returned: { color: '#dc2626', background: '#fef2f2' },
-                            Pending: { color: '#b45309', background: '#fffbeb' },
-                        }
                         return (
                             <>
                                 <div onClick={() => setShowWorkflowPopup(false)} style={{ position: 'fixed', inset: 0, zIndex: 1199 }} />
                                 <div style={{ position: 'fixed', right: workflowPopupPos?.right ?? 20, top: workflowPopupPos?.top ?? 80, width: 340, background: '#fff', border: '1px solid #ddd', borderRadius: 6, boxShadow: '0 6px 18px rgba(0,0,0,0.12)', zIndex: 1200, padding: 12 }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, background: '#f8fafc', padding: '6px 10px', borderRadius: 4 }}>
-                                        <strong style={{ color: '#0F172A' }}>View details</strong>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                                        <strong>View details</strong>
                                         <button onClick={() => setShowWorkflowPopup(false)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', padding: 4 }}>
                                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6b7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><line x1="15" y1="9" x2="9" y2="15" /><line x1="9" y1="9" x2="15" y2="15" /></svg>
                                         </button>
@@ -1294,15 +1291,12 @@ const SyllabusSections = () => {
                                         </div>
                                         {approvers.map((a, idx) => {
                                             const status = a.data?.status || 'pending'
-                                            const label = status === 'done' ? 'Accepted' : status === 'returned' ? 'Returned' : 'Pending'
-                                            const b = badgeMap[label] || { color: '#6b7280', background: '#f3f4f6' }
                                             return (
                                                 <div key={idx} style={{ marginBottom: 10, paddingBottom: 8, borderBottom: '1px solid #f0f0f0' }}>
-                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                                                        <div style={{ fontWeight: 600 }}>{a.key}</div>
-                                                        <span style={{ ...b, padding: '2px 8px', borderRadius: 99, fontWeight: 600, fontSize: 11 }}>{label}</span>
-                                                    </div>
-                                                    {a.data?.completedAt ? <div style={{ fontSize: 13, color: '#333' }}>{new Date(a.data.completedAt).toLocaleString()}</div> : <div style={{ fontSize: 13, color: '#999' }}>—</div>}
+                                                    <div style={{ fontWeight: 600, marginBottom: 4 }}>{a.key}</div>
+                                                    {status === 'done' && a.data?.completedAt ? <div style={{ fontSize: 13, color: '#333' }}><strong>Approved at:</strong> {new Date(a.data.completedAt).toLocaleString()}</div> : null}
+                                                    {status === 'returned' && a.data?.completedAt ? <div style={{ fontSize: 13, color: '#dc2626' }}><strong>Returned at:</strong> {new Date(a.data.completedAt).toLocaleString()}</div> : null}
+                                                    {status === 'pending' ? <div style={{ fontSize: 13, color: '#999' }}>Pending</div> : null}
                                                 </div>
                                             )
                                         })}
