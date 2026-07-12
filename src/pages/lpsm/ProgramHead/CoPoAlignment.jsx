@@ -50,7 +50,7 @@ const CoPoAlignment = () => {
   const content = (
     <div style={{ display: 'flex', flexDirection: 'column', width: '100%', height: '100%', gap: 10, padding: '20px 30px', background: '#FFFFFF', boxSizing: 'border-box' }}>
       <div style={{ display: 'flex', width: '100%', flexDirection: 'row', height: 40, alignItems: 'center', gap: 15, marginBottom: 20 }}>
-        <h2 style={{ margin: 0, fontSize: 22, fontWeight: 600, whiteSpace: 'nowrap' }}>Course Outcomes & PO Alignment</h2>
+        <h2 style={{ margin: 0, fontSize: 22, fontWeight: 600, whiteSpace: 'nowrap' }}>COURSE OUTCOMES & PO ALIGNMENT</h2>
         <div style={{ display: 'flex', padding: '4px 8px', gap: 8, background: '#FFF', boxShadow: '0 1px 3px 0 rgba(0,0,0,0.25)', borderRadius: 4, alignItems: 'center', height: 40, boxSizing: 'border-box' }}>
           <select style={{ fontSize: 14, outline: 'none', border: 0, color: '#DC2626', background: 'transparent', cursor: 'pointer' }}>{yearOptions}</select>
           <select style={{ fontSize: 14, outline: 'none', border: 0, color: '#DC2626', background: 'transparent', cursor: 'pointer' }}>
