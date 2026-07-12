@@ -1,15 +1,18 @@
 
 import styles from '../styles/SyllabusSections.module.sass'
-import stylesB from '../styles/SyllabusPreview.module.sass'; // Ensure this has the new modal CSS classes
-import {ChevronLeft, ChevronRight, Plus, Search, Inbox, Play, Send, Info} from 'react-feather';
+import stylesB from '../styles/SyllabusPreview.module.sass';
+import {ChevronLeft, ChevronRight, Plus, Search, Inbox, Play, Send, Info, Download} from 'react-feather';
 import React, {useEffect, useState} from "react";
 import {Link, useNavigate, useParams, useSearchParams} from "react-router-dom";
 import SyllabusPreview from "./SyllabusPreview.jsx";
+import PDFViewerModal from './PDFViewerModal.jsx';
+import { buildSyllabusHtml } from "../utils/syllabusPdfHtml.js";
 import {fetchJson} from "../utils/api";
 import { getSyllabusByCode } from "../data/syllabiData.js";
 import { getWorkflow } from "../utils/workflowHelpers.js";
-import { getPreviousYearContent, exportSyllabusPdf } from "../services/syllabusService.js";
+import { getPreviousYearContent } from "../services/syllabusService.js";
 import { seedDummyComments } from "../utils/seedDummyComments.js";
+import unclogo from '../assets/unclogo.png';
 
 const SyllabusSections = () => {
     const [searchParams, setSearchParams] = useSearchParams();
@@ -145,6 +148,7 @@ const SyllabusSections = () => {
     // Sprint 3: auto-population + PDF export states
     const [previousYearLoading, setPreviousYearLoading] = useState(false);
     const [pdfExportLoading, setPdfExportLoading] = useState(false);
+    const [previewFile, setPreviewFile] = useState(null);
 
     const handleLoadPreviousYear = async () => {
         if (!window.confirm('Load content from the previous academic year? Current data will be overwritten.')) return;
@@ -178,20 +182,33 @@ const SyllabusSections = () => {
     const handleExportPdf = async () => {
         setPdfExportLoading(true);
         try {
-            const response = await exportSyllabusPdf(code);
-            const blob = new Blob([response.data], { type: 'application/pdf' });
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `LearningPlan_${code}.pdf`;
-            a.click();
-            window.URL.revokeObjectURL(url);
+            const syllabus = getSyllabusByCode(code)
+            if (!syllabus) { alert('Syllabus data not found'); setPdfExportLoading(false); return }
+            const workflow = getWorkflow(code)
+            const logoUrl = new URL(unclogo, window.location.origin).href
+            const html = buildSyllabusHtml(syllabus, code, workflow, logoUrl)
+            const blob = new Blob([html], { type: 'text/html' })
+            const url = URL.createObjectURL(blob)
+            setPreviewFile({
+                file_url: url,
+                file_name: `Syllabus_${code}.html`,
+                instructor_name: syllabus.instructor || '',
+                course_id: code,
+                course_name: syllabus.name || '',
+                submission_date: null,
+                period_label: '',
+            })
         } catch (err) {
-            alert(err.response?.data?.error || err.message || 'Failed to export PDF');
+            alert('Export error: ' + (err?.message || err || 'unknown'))
         } finally {
             setPdfExportLoading(false);
         }
     };
+
+    const closeExportModal = () => {
+        if (previewFile?.file_url?.startsWith('blob:')) URL.revokeObjectURL(previewFile.file_url)
+        setPreviewFile(null)
+    }
 
     // course details state
     const [courseDetailsData, setCourseDetailsData] = useState({
@@ -491,15 +508,6 @@ const SyllabusSections = () => {
                 </div>
 
 
-                <div onClick={handleExportPdf} className={styles.draft} style={{ cursor: pdfExportLoading ? 'wait' : 'pointer', opacity: pdfExportLoading ? 0.6 : 1 }}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
-                    {pdfExportLoading ? 'Exporting...' : 'Export PDF'}
-                </div>
-
-                {status !== 'draft' && <div ref={workflowBtnRef} className={styles.more} onClick={() => { const r = workflowBtnRef.current?.getBoundingClientRect(); const popupH = 280; if (r) setWorkflowPopupPos({ right: window.innerWidth - r.right, top: r.bottom + 4 + popupH > window.innerHeight ? r.top - popupH - 4 : r.bottom + 4 }); setShowWorkflowPopup(true); }}>
-                    <Info strokeWidth={2} size={16}/>
-                </div>}
-
                 {(status === 'draft' || status === 'returned') &&
                     <>
                         <div onClick={handleLoadPreviousYear} className={styles.draft} style={{ cursor: previousYearLoading ? 'wait' : 'pointer', opacity: previousYearLoading ? 0.6 : 1 }}>
@@ -516,6 +524,15 @@ const SyllabusSections = () => {
                             Submit
                         </div></>
                 }
+
+                <div onClick={handleExportPdf} className={styles.draft} style={{ cursor: pdfExportLoading ? 'wait' : 'pointer', opacity: pdfExportLoading ? 0.6 : 1 }}>
+                    <Download size={14} />
+                    {pdfExportLoading ? 'Exporting...' : 'Export'}
+                </div>
+
+                {status !== 'draft' && <div ref={workflowBtnRef} className={styles.more} onClick={() => { const r = workflowBtnRef.current?.getBoundingClientRect(); const popupH = 280; if (r) setWorkflowPopupPos({ right: window.innerWidth - r.right, top: r.bottom + 4 + popupH > window.innerHeight ? r.top - popupH - 4 : r.bottom + 4 }); setShowWorkflowPopup(true); }}>
+                    <Info strokeWidth={2} size={16}/>
+                </div>}
 
 
             </div>
@@ -1265,8 +1282,8 @@ const SyllabusSections = () => {
                             <>
                                 <div onClick={() => setShowWorkflowPopup(false)} style={{ position: 'fixed', inset: 0, zIndex: 1199 }} />
                                 <div style={{ position: 'fixed', right: workflowPopupPos?.right ?? 20, top: workflowPopupPos?.top ?? 80, width: 340, background: '#fff', border: '1px solid #ddd', borderRadius: 6, boxShadow: '0 6px 18px rgba(0,0,0,0.12)', zIndex: 1200, padding: 12 }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                                        <strong>View details</strong>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, background: '#f8fafc', padding: '6px 10px', borderRadius: 4 }}>
+                                        <strong style={{ color: '#0F172A' }}>View details</strong>
                                         <button onClick={() => setShowWorkflowPopup(false)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', padding: 4 }}>
                                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6b7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><line x1="15" y1="9" x2="9" y2="15" /><line x1="9" y1="9" x2="15" y2="15" /></svg>
                                         </button>
@@ -1294,6 +1311,10 @@ const SyllabusSections = () => {
                             </>
                         )
                     })()}
+
+                    {previewFile && (
+                        <PDFViewerModal file={previewFile} onClose={closeExportModal} />
+                    )}
 
             </div>
         </div>
