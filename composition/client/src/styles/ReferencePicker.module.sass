@@ -113,6 +113,9 @@
   border-radius: 4px
   color: #4A5568
   font-weight: 700
+  width: 80px
+  display: flex
+  justify-content: center
 
 .empty
   padding: 20px
@@ -125,3 +128,30 @@
   font-size: 12px
   margin-top: 4px
   display: block
+
+a
+  font-size: 14px
+
+
+/* ADD THIS ANIMATION BLOCK */
+@keyframes selectionPulse
+  0%
+    background-color: #90CDF4 /* A noticeably darker blue to draw the eye */
+  100%
+    background-color: #EBF8FF
+
+.row
+  display: flex
+  align-items: flex-start
+  padding: 12px
+  gap: 12px
+  border-bottom: 1px solid #F1F5F9
+  cursor: pointer
+  transition: background 0.2s
+  &:hover
+    background: #F1F5F9
+
+  /* UPDATE THIS NESTED CLASS */
+  &.selectedRow
+    background: #EBF8FF
+    animation: selectionPulse 0.6s ease-out forwards /* Triggers when class is applied */

@@ -1,0 +1,367 @@
+.modalOverlay
+  position: fixed
+  top: 0
+  left: 0
+  width: 100%
+  height: 100%
+  background: rgba(0, 0, 0, 0.7)
+  z-index: 1000
+  display: flex
+  justify-content: center
+  align-items: center
+
+.modalContent
+  background: #FFFFFF
+  padding: 30px
+  border-radius: 8px
+  width: 95vw
+  height: 90vh
+  display: flex
+  flex-direction: column
+  position: relative
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2)
+  overflow: hidden
+
+.closeButton
+  position: absolute
+  top: 15px
+  right: 20px
+  background: none
+  border: none
+  font-size: 28px
+  cursor: pointer
+  color: #888
+  line-height: 1
+  outline: none
+  &:hover
+    color: #000
+    outline: none
+
+.previewTitle
+  margin: 0 0 10px 0
+  font-size: 20px
+  font-weight: 700
+  color: #333
+
+// Workspace Separation Architecture
+.splitContainer
+  display: flex
+  width: 100%
+  height: calc(100% - 40px)
+  gap: 24px
+  overflow: hidden
+  margin-top: 10px
+
+.leftPreviewPane
+  width: 65%
+  height: 100%
+  display: flex
+  flex-direction: column
+  overflow: hidden
+
+.rightLedgerPane
+  width: 35%
+  height: 100%
+  border-left: 1px solid #e2e8f0
+  padding-left: 20px
+  overflow-y: auto
+  display: flex
+  flex-direction: column
+
+.titleBorder
+  margin-top: 0.5rem
+  margin-bottom: 1rem
+  display: flex
+  border-radius: 4px
+  align-items: center
+  height: 36px
+
+
+.sidebarTitle
+  font-size: 16px
+  font-weight: 600
+
+// Section Selector Elements Architecture
+.navi
+  width: 100%
+  display: flex
+  align-items: center
+
+.section-select
+  width: 99.5%
+  padding-right: 20px
+  border: 1px solid #CCC
+  border-radius: 4px
+
+.section-select
+  select
+    padding: 6px 10px
+    font-size: 14px
+    outline: none
+    background-color: transparent
+    cursor: pointer
+    width: 100%
+    border: 0
+
+
+// Revision Accordion System Design
+.accordionStack
+  display: flex
+  flex-direction: column
+  gap: 12px
+  margin-top: 10px
+
+.accordionItem
+  border: 1px solid #e2e8f0
+  border-radius: 3px
+  background: #ffffff
+  overflow: hidden
+
+.accordionHeader
+  display: flex
+  justify-content: space-between
+  align-items: center
+  padding: 12px 16px
+  background: #f8fafc
+  cursor: pointer
+  user-select: none
+  &:hover
+    background: #f1f5f9
+
+.accordionMetaInfo
+  display: flex
+  align-items: center
+  gap: 10px
+
+.revLabelText
+  font-size: 14px
+  font-weight: 500
+
+.toggleArrow
+  font-size: 11px
+  color: #777
+
+.statusMiniTag
+  font-size: 10px
+  font-weight: 500
+  padding: 2px 6px
+  border-radius: 4px
+  text-transform: uppercase
+
+.approved
+  background: #dcfce7
+  color: #15803d
+
+.archived
+  background: #f1f5f9
+  color: #475569
+
+.accordionContent
+  display: none
+  border-top: 1px solid #e2e8f0
+  padding: 16px
+  &.open
+    display: block
+
+// Core Structural Timeline Track Placement Rules
+.timelineTrack
+  position: relative
+  padding-left: 28px
+  display: flex
+  flex-direction: column
+  gap: 24px
+
+  &::before
+    content: ''
+    position: absolute
+    left: 8px
+    top: 6px
+    bottom: 6px
+    width: 2px
+    background: #e2e8f0
+
+.timelineNode
+  position: relative
+  display: flex
+  flex-direction: column
+
+// Solid Core Geometric Node Indicators (Replaces broken Icon dependency)
+.circleIndicator
+  position: absolute
+  left: -24px
+  top: 4px
+  width: 10px
+  height: 10px
+  border-radius: 50%
+  background: #cbd5e1
+  border: 2px solid #ffffff
+  box-shadow: 0 0 0 2px #e2e8f0
+  z-index: 2
+
+  &.routed
+    background: #3b82f6
+    box-shadow: 0 0 0 2px #dbeafe
+  &.warn
+    background: #ef4444
+    box-shadow: 0 0 0 2px #fee2e2
+  &.fix
+    background: #10b981
+    box-shadow: 0 0 0 2px #d1fae5
+  &.endorse
+    background: #6366f1
+    box-shadow: 0 0 0 2px #e0e7ff
+  &.approve
+    background: #059669
+    box-shadow: 0 0 0 2px #d1fae5
+
+.timelineNodeBody
+  padding-left: 6px
+
+.timelineMessageText
+  font-size: 13px
+  color: #555
+  line-height: 1.5
+
+.highlightText
+  font-weight: 700
+  color: #111
+
+.highlightRole
+  font-weight: 700
+  color: #111
+  text-decoration: underline
+  text-decoration-color: #e2e8f0
+
+// Dynamic Context Card Frames Design
+.commentsWrapperList
+  display: flex
+  flex-direction: column
+  gap: 10px
+  margin-top: 12px
+
+.commentCardFrame
+  background: #f8fafc
+  border: 1px solid #e2e8f0
+  border-radius: 6px
+  padding: 10px 12px
+
+.commentCardMetaBar
+  display: flex
+  align-items: center
+  gap: 6px
+  margin-bottom: 6px
+  flex-wrap: wrap
+
+.staticMutedLabel
+  font-size: 11px
+  color: #888
+  text-transform: uppercase
+  letter-spacing: 0.5px
+
+.highContrastEntityText
+  font-size: 12px
+  font-weight: 700
+  color: #111
+
+.contextBadge
+  font-size: 10px
+  font-weight: 700
+  padding: 1px 5px
+  border-radius: 3px
+  text-transform: uppercase
+  &.topic
+    background: #e0e7ff
+    color: #4f46e5
+  &.reference
+    background: #ccfbf1
+    color: #0d9488
+  &.tla
+    background: #fef3c7
+    color: #d97706
+
+.commentBlockquoteBox
+  margin: 0
+  padding-left: 8px
+  border-left: 2px solid #cbd5e1
+  font-size: 12px
+  font-style: italic
+  color: #555
+  line-height: 1.4
+
+
+.circleIndicator
+  position: absolute
+  left: -24px
+  top: 4px
+  width: 10px
+  height: 10px
+  border-radius: 50%
+  background: #cbd5e1
+  border: 2px solid #ffffff
+  box-shadow: 0 0 0 2px #e2e8f0
+  z-index: 2
+
+  &.assigned
+    background: #6366f1 // Indigo
+    box-shadow: 0 0 0 2px #e0e7ff
+  &.submitted
+    background: #3b82f6 // Blue
+    box-shadow: 0 0 0 2px #dbeafe
+  &.returned
+    background: #ef4444 // Red
+    box-shadow: 0 0 0 2px #fee2e2
+  &.accepted
+    background: #10b981 // Green
+    box-shadow: 0 0 0 2px #d1fae5
+  &.approved
+    background: #059669 // Dark Green
+    box-shadow: 0 0 0 2px #a7f3d0
+
+.timelineNodeBody
+  padding-left: 6px
+
+.timelineMessageText
+  font-size: 13px
+  color: #555
+  line-height: 1.5
+
+.semiBoldText
+  font-weight: 600
+  color: #111
+
+.highlightRole
+  font-weight: 700
+  color: #111
+  text-decoration: underline
+  text-decoration-color: #e2e8f0
+
+// Dynamic Context Card Frames Design
+.commentsWrapperList
+  display: flex
+  flex-direction: column
+  gap: 10px
+  margin-top: 12px
+
+.commentCardFrame
+  background: #f8fafc
+  border: 1px solid #e2e8f0
+  border-radius: 6px
+  padding: 10px 12px
+
+.commentCardMetaBar
+  display: flex
+  align-items: center
+  gap: 6px
+  margin-bottom: 6px
+  flex-wrap: wrap
+
+.staticMutedLabel
+  font-size: 11px
+  color: #888
+  text-transform: uppercase
+  letter-spacing: 0.5px
+
+.highContrastEntityText
+  font-size: 12px
+  font-weight: 600 // Diminished from overly bold 700
+  color: #111

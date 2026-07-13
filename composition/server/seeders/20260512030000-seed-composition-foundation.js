@@ -35,15 +35,17 @@ module.exports = {
             { program_id: 6, dept_id: 2, name: 'Bachelor of Science in Civil Engineering', stakeholder_id: null, createdAt: now, updatedAt: now }
         ], {});
 
-        // 3) Courses
-        // course_id explicit so we can reference them in prerequisites and offerings
+        // ============================================================================
+// 3) Courses
+// course_id explicit so we can reference them in prerequisites and offerings
+// ============================================================================
         await queryInterface.bulkInsert('Courses', [
             {
                 course_id: 1,
                 course_no: "BIT313L",
                 course_title: 'Human and Computer Interaction',
-                credit: 3,
-                contact_hrs: '23',
+                credit: '2 LEC, 1 LAB',
+                contact_hrs: '2 Hrs Lec, 3 Hrs Lab',
                 classification: 'Professional Courses',
                 cmo: 'CMO No. 25 S. 2015',
                 year_lvl: 'THIRD YEAR',
@@ -54,8 +56,8 @@ module.exports = {
                 course_id: 2,
                 course_no: "BIT302",
                 course_title: 'Web Development II',
-                credit: 3,
-                contact_hrs: '30',
+                credit: '2 LEC, 1 LAB',
+                contact_hrs: '2 Hrs Lec, 3 Hrs Lab',
                 classification: 'Professional Courses',
                 cmo: 'CMO No. 12 S. 2018',
                 year_lvl: 'SECOND YEAR',
@@ -66,8 +68,8 @@ module.exports = {
                 course_id: 3,
                 course_no: "BIT201",
                 course_title: 'Database Systems',
-                credit: 3,
-                contact_hrs: '30',
+                credit: '2 LEC, 1 LAB',
+                contact_hrs: '2 Hrs Lec, 3 Hrs Lab',
                 classification: 'Core Courses',
                 cmo: 'CMO No. 8 S. 2017',
                 year_lvl: 'SECOND YEAR',
@@ -78,8 +80,8 @@ module.exports = {
                 course_id: 4,
                 course_no: "BIT202",
                 course_title: 'Software Engineering',
-                credit: 3,
-                contact_hrs: '30',
+                credit: '3 LEC, 0 LAB',
+                contact_hrs: '3 Hrs Lec, 0 Hrs Lab',
                 classification: 'Core Courses',
                 cmo: 'CMO No. 9 S. 2017',
                 year_lvl: 'THIRD YEAR',
@@ -90,8 +92,8 @@ module.exports = {
                 course_id: 5,
                 course_no: "BIT203",
                 course_title: 'Mobile Application Development',
-                credit: 3,
-                contact_hrs: '22',
+                credit: '2 LEC, 1 LAB',
+                contact_hrs: '2 Hrs Lec, 3 Hrs Lab',
                 classification: 'Elective',
                 cmo: 'CMO No. 14 S. 2019',
                 year_lvl: 'THIRD YEAR',
@@ -102,8 +104,8 @@ module.exports = {
                 course_id: 6,
                 course_no: "BIT204",
                 course_title: 'Network Security',
-                credit: 3,
-                contact_hrs: '30',
+                credit: '2 LEC, 1 LAB',
+                contact_hrs: '2 Hrs Lec, 3 Hrs Lab',
                 classification: 'Professional Courses',
                 cmo: 'CMO No. 20 S. 2020',
                 year_lvl: 'THIRD YEAR',
@@ -114,8 +116,8 @@ module.exports = {
                 course_id: 7,
                 course_no: "BIT205",
                 course_title: 'Data Structures and Algorithms',
-                credit: 3,
-                contact_hrs: '30',
+                credit: '2 LEC, 1 LAB',
+                contact_hrs: '2 Hrs Lec, 3 Hrs Lab',
                 classification: 'Core Courses',
                 cmo: 'CMO No. 7 S. 2016',
                 year_lvl: 'SECOND YEAR',
@@ -126,8 +128,8 @@ module.exports = {
                 course_id: 8,
                 course_no: "BIT206",
                 course_title: 'Introduction to Artificial Intelligence',
-                credit: 3,
-                contact_hrs: '30',
+                credit: '3 LEC, 0 LAB',
+                contact_hrs: '3 Hrs Lec, 0 Hrs Lab',
                 classification: 'Elective',
                 cmo: 'CMO No. 22 S. 2021',
                 year_lvl: 'THIRD YEAR',
@@ -138,8 +140,8 @@ module.exports = {
                 course_id: 9,
                 course_no: "BIT207",
                 course_title: 'Web Security and Performance',
-                credit: 3,
-                contact_hrs: '22',
+                credit: '2 LEC, 1 LAB',
+                contact_hrs: '2 Hrs Lec, 3 Hrs Lab',
                 classification: 'Elective',
                 cmo: 'CMO No. 18 S. 2019',
                 year_lvl: 'THIRD YEAR',
@@ -315,119 +317,22 @@ Through lectures, hands-on projects, and usability testing, learners will develo
 
         // 9) CourseOfferingAssignments
         // Each ProgramCourseOffering should have one CourseOfferingAssignment (1:1)
-        // For the HCI offering (pc_offering_id = 1) create assignment with date_assigned empty (null)
+        // Streamlined to exclude all dropped role-specific date columns
         await queryInterface.bulkInsert('CourseOfferingAssignments', [
-            // Draft: Human & Computer Interaction (no submitted date)
+            // Draft: Human & Computer Interaction (no assigned/submitted dates)
             {
                 pc_offering_id: 1,
                 stakeholder_id: null,
-                date_assigned: new Date('2026-03-05'),
+                date_assigned: now,
                 date_submitted: null,
                 date_updated: null,
-                ph_date_returned: null,
-                ic_date_returned: null,
-                ld_date_returned: null,
-                d_date_returned: null,
-                ph_date_accepted: null,
-                ic_date_accepted: null,
-                ld_date_accepted: null,
-                d_date_accepted: null,
-                createdAt: now,
-                updatedAt: now
-            },
-
-            // Pending/Approved examples (submitted dates present)
-            {
-                pc_offering_id: 2,
-                stakeholder_id: null,
-                date_assigned: new Date('2026-03-06'),
-                date_submitted: new Date('2026-03-10'),
-                date_updated: new Date('2026-03-12'),
-                ph_date_returned: null,
-                ic_date_returned: null,
-                ld_date_returned: null,
-                d_date_returned: null,
-                ph_date_accepted: new Date('2026-03-11'),
-                ic_date_accepted: new Date('2026-03-11'),
-                ld_date_accepted: new Date('2026-03-11'),
-                d_date_accepted: new Date('2026-03-11'),
-                createdAt: now,
-                updatedAt: now
-            },
-            {
-                pc_offering_id: 3,
-                stakeholder_id: null,
-                date_assigned: new Date('2026-03-07'),
-                date_submitted: new Date('2026-03-12'),
-                date_updated: new Date('2026-03-14'),
-                ph_date_returned: null,
-                ic_date_returned: null,
-                ld_date_returned: null,
-                d_date_returned: null,
-                ph_date_accepted: new Date('2026-03-13'),
-                ic_date_accepted: new Date('2026-03-13'),
-                ld_date_accepted: new Date('2026-03-13'),
-                d_date_accepted: new Date('2026-03-15'),
-                createdAt: now,
-                updatedAt: now
-            },
-
-            // Draft records (extra two)
-            {
-                pc_offering_id: 4,
-                stakeholder_id: null,
-                date_assigned: new Date('2026-03-09'),
-                date_submitted: null,
-                date_updated: null,
-                ph_date_returned: null,
-                ic_date_returned: null,
-                ld_date_returned: null,
-                d_date_returned: null,
-                ph_date_accepted: null,
-                ic_date_accepted: null,
-                ld_date_accepted: null,
-                d_date_accepted: null,
-                createdAt: now,
-                updatedAt: now
-            },
-            //Pending Records
-            {
-                pc_offering_id: 5,
-                stakeholder_id: null,
-                date_assigned: new Date('2026-03-07'),
-                date_submitted: new Date('2026-03-12'),
-                date_updated: null,
-                ph_date_returned: null,
-                ic_date_returned: new Date('2026-03-14'),
-                ld_date_returned: null,
-                d_date_returned: null,
-                ph_date_accepted: null,
-                ic_date_accepted: null,
-                ld_date_accepted: new Date('2026-03-15'),
-                d_date_accepted: null,
-                createdAt: now,
-                updatedAt: now
-            },
-
-            {
-                pc_offering_id: 6,
-                stakeholder_id: null,
-                date_assigned: new Date('2026-03-07'),
-                date_submitted: new Date('2026-03-12'),
-                date_updated: null,
-                ph_date_returned: null,
-                ic_date_returned: new Date('2026-03-14'),
-                ld_date_returned: null,
-                d_date_returned: null,
-                ph_date_accepted: null,
-                ic_date_accepted: null,
-                ld_date_accepted: new Date('2026-03-13'),
-                d_date_accepted: null,
                 createdAt: now,
                 updatedAt: now
             },
 
         ], {});
+
+
 
         //
         // 1) References (24 total: 8 TEXTBOOKS, 8 ONLINE_RESOURCES, 8 OPEN_EDU_RESOURCES)
@@ -528,9 +433,9 @@ Through lectures, hands-on projects, and usability testing, learners will develo
         }
         await queryInterface.bulkInsert('ILOReferences', iloReferences, {});
 
-        //
-        // 4) Topics (25 topics) — distribute across the 12 ILOs (1-3 topics per ILO to reach 25)
-        //
+        // ============================================================================
+        // 4) Topics (25 topics) — Insert cleanly without any foreign keys
+        // ============================================================================
         const topicTitles = [
             'Cognitive Models in HCI', 'User Persona Creation', 'Card Sorting Methods', 'Information Architecture Patterns',
             'Heuristic Evaluation Techniques', 'Wireframing Basics', 'Color Theory for Interfaces', 'Gestalt in UI',
@@ -540,155 +445,51 @@ Through lectures, hands-on projects, and usability testing, learners will develo
             'Form Design Best Practices', 'Mobile-first Layouts', 'Responsive Grid Systems', 'Visual Hierarchy', 'Feedback & Error Handling'
         ];
 
-        // Assign topics to ilos in round-robin but ensure each ILO gets at least 1-2 topics
-        const topicsToInsert = [];
-        for (let i = 0; i < topicTitles.length; i++) {
-            const ilo = ilosRows[i % ilosRows.length]; // round-robin across 12 ilos
-            topicsToInsert.push({
-                ilo_id: ilo.ilo_id,
-                title: topicTitles[i],
-                createdAt: now,
-                updatedAt: now
-            });
-        }
+        const topicsToInsert = topicTitles.map(title => ({
+            title: title,
+            createdAt: now,
+            updatedAt: now
+        }));
 
         await queryInterface.bulkInsert('Topics', topicsToInsert, {});
 
+        // Fetch back just the topic_id and title (no ilo_id)
         const topicsRows = await queryInterface.sequelize.query(
-            'SELECT topic_id, ilo_id, title FROM `Topics` ORDER BY topic_id ASC;',
+            'SELECT topic_id, title FROM `Topics` ORDER BY topic_id ASC;',
             { type: queryInterface.sequelize.QueryTypes.SELECT }
         );
 
-        // Define realistic subtopics for each topic
+        // ============================================================================
+        // 5) Subtopics Definition mapping (Unchanged, remains fully functional)
+        // ============================================================================
         const subtopicsMap = {
-            'Cognitive Models in HCI': [
-                'Mental models and interface design',
-                'Norman’s stages of action',
-                'Cognitive load in interaction'
-            ],
-            'User Persona Creation': [
-                'Gathering demographic data',
-                'Empathy mapping',
-                'Validating personas with research'
-            ],
-            'Card Sorting Methods': [
-                'Open vs closed card sorting',
-                'Analyzing card sort results',
-                'Tools for card sorting'
-            ],
-            'Information Architecture Patterns': [
-                'Hierarchical structures',
-                'Faceted navigation',
-                'Sitemaps and flow diagrams'
-            ],
-            'Heuristic Evaluation Techniques': [
-                'Nielsen’s 10 heuristics',
-                'Severity ratings',
-                'Reporting usability issues'
-            ],
-            'Wireframing Basics': [
-                'Sketching low-fidelity wireframes',
-                'Digital wireframing tools',
-                'Iterating wireframes with feedback'
-            ],
-            'Color Theory for Interfaces': [
-                'Contrast and readability',
-                'Color psychology in UI',
-                'Accessibility and color blindness'
-            ],
-            'Gestalt in UI': [
-                'Proximity and grouping',
-                'Similarity and consistency',
-                'Closure and continuity'
-            ],
-            'Figma Components Workshop': [
-                'Creating reusable components',
-                'Variants and states',
-                'Component libraries'
-            ],
-            'Prototyping Interactions': [
-                'Click-through prototypes',
-                'Transitions and animations',
-                'Testing interactive flows'
-            ],
-            'Micro-interaction Patterns': [
-                'Feedback and feedforward',
-                'Loading indicators',
-                'Error prevention cues'
-            ],
-            'Accessibility Audits': [
-                'WCAG 2.1 guidelines',
-                'Screen reader testing',
-                'Keyboard navigation checks'
-            ],
-            'Usability Metrics and KPIs': [
-                'Task success rate',
-                'Time on task',
-                'Error frequency'
-            ],
-            'Moderated Testing Protocols': [
-                'Preparing test scripts',
-                'Facilitating sessions',
-                'Recording observations'
-            ],
-            'Task Design for Usability Tests': [
-                'Scenario creation',
-                'Task realism',
-                'Measuring task outcomes'
-            ],
-            'Data-driven Iteration': [
-                'Analyzing usability data',
-                'Prioritizing design changes',
-                'A/B testing results'
-            ],
-            'User Research Synthesis': [
-                'Affinity diagramming',
-                'Identifying themes',
-                'Turning insights into requirements'
-            ],
-            'Affinity Mapping': [
-                'Clustering qualitative data',
-                'Collaborative mapping',
-                'Deriving actionable insights'
-            ],
-            'Navigation Design': [
-                'Global vs local navigation',
-                'Breadcrumbs',
-                'Mobile navigation patterns'
-            ],
-            'Content Strategy': [
-                'Content audits',
-                'Voice and tone',
-                'Content governance'
-            ],
-            'Form Design Best Practices': [
-                'Field grouping',
-                'Error messages',
-                'Progressive disclosure'
-            ],
-            'Mobile-first Layouts': [
-                'Responsive breakpoints',
-                'Touch targets',
-                'Performance considerations'
-            ],
-            'Responsive Grid Systems': [
-                '12-column grids',
-                'Flexbox and CSS Grid',
-                'Adaptive layouts'
-            ],
-            'Visual Hierarchy': [
-                'Typography scale',
-                'Use of whitespace',
-                'Contrast and emphasis'
-            ],
-            'Feedback & Error Handling': [
-                'Inline validation',
-                'Success messages',
-                'Error recovery strategies'
-            ]
+            'Cognitive Models in HCI': ['Mental models and interface design', 'Norman’s stages of action', 'Cognitive load in interaction'],
+            'User Persona Creation': ['Gathering demographic data', 'Empathy mapping', 'Validating personas with research'],
+            'Card Sorting Methods': ['Open vs closed card sorting', 'Analyzing card sort results', 'Tools for card sorting'],
+            'Information Architecture Patterns': ['Hierarchical structures', 'Faceted navigation', 'Sitemaps and flow diagrams'],
+            'Heuristic Evaluation Techniques': ['Nielsen’s 10 heuristics', 'Severity ratings', 'Reporting usability issues'],
+            'Wireframing Basics': ['Sketching low-fidelity wireframes', 'Digital wireframing tools', 'Iterating wireframes with feedback'],
+            'Color Theory for Interfaces': ['Contrast and readability', 'Color psychology in UI', 'Accessibility and color blindness'],
+            'Gestalt in UI': ['Proximity and grouping', 'Similarity and consistency', 'Closure and continuity'],
+            'Figma Components Workshop': ['Creating reusable components', 'Variants and states', 'Component libraries'],
+            'Prototyping Interactions': ['Click-through prototypes', 'Transitions and animations', 'Testing interactive flows'],
+            'Micro-interaction Patterns': ['Feedback and feedforward', 'Loading indicators', 'Error prevention cues'],
+            'Accessibility Audits': ['WCAG 2.1 guidelines', 'Screen reader testing', 'Keyboard navigation checks'],
+            'Usability Metrics and KPIs': ['Task success rate', 'Time on task', 'Error frequency'],
+            'Moderated Testing Protocols': ['Preparing test scripts', 'Facilitating sessions', 'Recording observations'],
+            'Task Design for Usability Tests': ['Scenario creation', 'Task realism', 'Measuring task outcomes'],
+            'Data-driven Iteration': ['Analyzing usability data', 'Prioritizing design changes', 'A/B testing results'],
+            'User Research Synthesis': ['Affinity diagramming', 'Identifying themes', 'Turning insights into requirements'],
+            'Affinity Mapping': ['Clustering qualitative data', 'Collaborative mapping', 'Deriving actionable insights'],
+            'Navigation Design': ['Global vs local navigation', 'Breadcrumbs', 'Mobile navigation patterns'],
+            'Content Strategy': ['Content audits', 'Voice and tone', 'Content governance'],
+            'Form Design Best Practices': ['Field grouping', 'Error messages', 'Progressive disclosure'],
+            'Mobile-first Layouts': ['Responsive breakpoints', 'Touch targets', 'Performance considerations'],
+            'Responsive Grid Systems': ['12-column grids', 'Flexbox and CSS Grid', 'Adaptive layouts'],
+            'Visual Hierarchy': ['Typography scale', 'Use of whitespace', 'Contrast and emphasis'],
+            'Feedback & Error Handling': ['Inline validation', 'Success messages', 'Error recovery strategies']
         };
 
-// Build subtopicsToInsert from topicsRows using the map
         const subtopicsToInsert = [];
         for (const t of topicsRows) {
             const subs = subtopicsMap[t.title] || [];
@@ -705,179 +506,241 @@ Through lectures, hands-on projects, and usability testing, learners will develo
 
         await queryInterface.bulkInsert('Subtopics', subtopicsToInsert, {});
 
-
-// 6) ILOTopic join entries: assign 1-2 topics per ILO (use topicsRows)
+        // ============================================================================
+        // 6) ILOTopic Join Entries — Execute Round-Robin directly using junction logic
+        // ============================================================================
         const iloTopicInserts = [];
 
-// Validate source arrays
-        if (!Array.isArray(topicsRows)) {
-            throw new Error('topicsRows is not defined or not an array. Ensure topics are seeded/fetched earlier.');
+        if (!Array.isArray(topicsRows) || topicsRows.length === 0) {
+            throw new Error('topicsRows is empty or invalid.');
         }
-        if (!Array.isArray(ilosRows)) {
-            throw new Error('ilosRows is not defined or not an array. Ensure ILOs are seeded/fetched earlier.');
-        }
-
-        const topicsByIlo = {};
-        for (const t of topicsRows) {
-            if (t == null || t.ilo_id == null || t.topic_id == null) continue;
-            const iloId = Number(t.ilo_id);
-            const topicId = Number(t.topic_id);
-            topicsByIlo[iloId] = topicsByIlo[iloId] || [];
-            topicsByIlo[iloId].push(topicId);
+        if (!Array.isArray(ilosRows) || ilosRows.length === 0) {
+            throw new Error('ilosRows is empty or invalid.');
         }
 
-        for (const ilo of ilosRows) {
-            if (ilo == null || ilo.ilo_id == null) {
-                console.warn('Skipping invalid ILO row:', ilo);
-                continue;
-            }
-            const iloId = Number(ilo.ilo_id);
-            const topicsForIlo = topicsByIlo[iloId] || [];
+        // Loop through all 25 seeded topics and distribute them round-robin across the 12 ILOs
+        for (let i = 0; i < topicsRows.length; i++) {
+            const currentTopic = topicsRows[i];
+            const matchingIlo = ilosRows[i % ilosRows.length]; // Evenly spreads the 25 topics across the 12 ILOs
 
-            // Skip ILOs that have no topics
-            if (topicsForIlo.length === 0) {
-                console.warn(`No topics found for ILO ${iloId}; skipping ILOTopic inserts for this ILO.`);
-                continue;
-            }
-
-            // pick 1-2 topics (if more exist)
-            const pickCount = Math.min(2, topicsForIlo.length);
-            for (let k = 0; k < pickCount; k++) {
-                const topicId = topicsForIlo[k % topicsForIlo.length];
-                iloTopicInserts.push({
-                    ilo_id: iloId,
-                    topic_id: Number(topicId),
-                    createdAt: now,
-                    updatedAt: now
-                });
-            }
+            iloTopicInserts.push({
+                ilo_id: Number(matchingIlo.ilo_id),
+                topic_id: Number(currentTopic.topic_id),
+                createdAt: now,
+                updatedAt: now
+            });
         }
 
-// Optional: remove duplicates (if you want unique pairs)
-        const seen = new Set();
-        const deduped = [];
-        for (const r of iloTopicInserts) {
-            const key = `${r.ilo_id}:${r.topic_id}`;
-            if (!seen.has(key)) {
-                seen.add(key);
-                deduped.push(r);
-            }
-        }
+        // Perform bulk insertion safely into the pure junction entity
+        await queryInterface.bulkInsert('ILOTopics', iloTopicInserts, {});
+        console.log(`Successfully mapped ${iloTopicInserts.length} pure junction records in ILOTopics.`);
 
-        if (deduped.length === 0) {
-            console.warn('No ILOTopic rows prepared; nothing to insert.');
-        } else {
-            await queryInterface.bulkInsert('ILOTopics', deduped, {});
-            console.log(`Inserted ${deduped.length} ILOTopic rows.`);
-        }
-
+        // Re-fetch junction table configuration for subsequent down-stream dependencies (e.g. TopicTLAs)
         const iloTopicsRows = await queryInterface.sequelize.query(
             'SELECT ilo_topic_id FROM `ILOTopics`;',
             { type: queryInterface.sequelize.QueryTypes.SELECT }
         );
 
-
-
-        //
+// ============================================================================
         // 7) Teaching and Learning Activities (25 TLAs)
-        //
-        const tlaNames = [
-            'Lecture: Cognitive Foundations', 'Workshop: Persona Building', 'Card Sorting Session', 'IA Design Lab',
-            'Heuristic Walkthrough', 'Wireframe Sprint', 'Color & Contrast Lab', 'Gestalt Demo',
-            'Figma Components Lab', 'Prototype Interaction Lab', 'Micro-interaction Studio', 'Accessibility Checklist Session',
-            'Usability Metrics Workshop', 'Moderated Test Practice', 'Task Analysis Session', 'Iteration Planning',
-            'Research Synthesis Clinic', 'Affinity Mapping Workshop', 'Navigation Prototyping', 'Content Strategy Clinic',
-            'Form Design Workshop', 'Mobile-first Lab', 'Responsive Grid Workshop', 'Visual Hierarchy Studio', 'Feedback Handling Lab'
+        // ============================================================================
+        const classPhases = ['preclass', 'inclass', 'postclass'];
+
+        const tlaSourceData = [
+            {
+                name: 'Lecture: Cognitive Foundations',
+                is_lab: false,
+                description: 'An in-depth overview of human-computer interaction principles, focusing on cognitive load theory, mental models, working memory constraints, and how users process visual information hierarchies.'
+            },
+            {
+                name: 'Workshop: Persona Building',
+                is_lab: false,
+                description: 'A collaborative user profiling session where research data is synthesized into empathetic user personas, explicitly defining user goals, behaviors, frustrations, and demographic archetypes.'
+            },
+            {
+                name: 'Card Sorting Session',
+                is_lab: true,
+                description: 'An interactive information architecture exercise utilizing both open and closed card sorting techniques to analyze user mental models and inform menu structures.'
+            },
+            {
+                name: 'IA Design Lab',
+                is_lab: true,
+                description: 'A hands-on technical lab focused on architecting comprehensive system navigation systems, detailed user flows, and hierarchical site maps for multi-tiered application environments.'
+            },
+            {
+                name: 'Heuristic Walkthrough',
+                is_lab: false,
+                description: 'An analytical evaluation session where user interfaces are systematically inspected against Nielsen’s ten usability heuristics to identify critical interaction flaws and compliance violations.'
+            },
+            {
+                name: 'Wireframe Sprint',
+                is_lab: true,
+                description: 'A rapid ideation design sprint focused on sketching low-fidelity layout concepts, establishing content priority, and exploring structural UI alternatives under fixed time boundaries.'
+            },
+            {
+                name: 'Color & Contrast Lab',
+                is_lab: true,
+                description: 'A practical laboratory application utilizing color theory, semantic palette construction, and strict WCAG 2.1 accessibility tools to verify contrast ratios across digital layouts.'
+            },
+            {
+                name: 'Gestalt Demo',
+                is_lab: false,
+                description: 'A live interface deconstruction demo analyzing real-world application screens to illustrate principles of visual perception including proximity, similarity, continuity, and closure.'
+            },
+            {
+                name: 'Figma Components Lab',
+                is_lab: true,
+                description: 'An advanced software-based design lab training students to build scalable design tokens, reusable UI atomic components, responsive auto-layouts, and modular variant component sets.'
+            },
+            {
+                name: 'Prototype Interaction Lab',
+                is_lab: true,
+                description: 'A technical workspace focused on converting static low-fidelity wireframes into functional high-fidelity user flows using custom interactive transitions, gestures, triggers, and overlays.'
+            },
+            {
+                name: 'Micro-interaction Studio',
+                is_lab: true,
+                description: 'A specialized visual design workshop dedicated to crafting functional animations, state-change transitions, loading sequences, and tactile system button feedback parameters.'
+            },
+            {
+                name: 'Accessibility Checklist Session',
+                is_lab: false,
+                description: 'A structured evaluation session auditing interface layouts against global regulatory standards like the Web Content Accessibility Guidelines (WCAG) for screen-reader navigation.'
+            },
+            {
+                name: 'Usability Metrics Workshop',
+                is_lab: false,
+                description: 'A quantitative engineering workshop covering layout efficiency benchmarks such as task completion rates, user error frequencies, time-on-task metrics, and System Usability Scale (SUS) logging.'
+            },
+            {
+                name: 'Moderated Test Practice',
+                is_lab: false,
+                description: 'A simulation-driven practical training lab where teams alternate roles as usability moderators and test participants, practicing script execution, un-biased prompting, and data logging.'
+            },
+            {
+                name: 'Task Analysis Session',
+                is_lab: false,
+                description: 'A behavioral breakdown exercise focusing on decomposing complex multi-step user operations into discrete, logical interaction choices to eliminate friction along user pathways.'
+            },
+            {
+                name: 'Iteration Planning',
+                is_lab: false,
+                description: 'A collaborative management session where product teams evaluate post-testing usability logs, isolate critical experience bugs, and plan redesign task allocations for upcoming sprints.'
+            },
+            {
+                name: 'Research Synthesis Clinic',
+                is_lab: false,
+                description: 'An analytical data processing workshop dedicated to extracting meaningful user behavior trends from raw qualitative interview notes and converting findings into actionable insights.'
+            },
+            {
+                name: 'Affinity Mapping Workshop',
+                is_lab: false,
+                description: 'A physical or digital collaborative clustering exercise used to visually isolate, categorize, and prioritize scattered design ideas, feature requests, and unstructured research observations.'
+            },
+            {
+                name: 'Navigation Prototyping',
+                is_lab: true,
+                description: 'A targeted prototyping laboratory exploring dynamic interactive navigation patterns, comparing the usability of slide-out drawer menus, tab bars, breadcrumbs, and step-by-step systems.'
+            },
+            {
+                name: 'Content Strategy Clinic',
+                is_lab: false,
+                description: 'A specialized copy editing workshop focused on interface microcopy optimization, defining brand voice consistency, writing clear inline validation errors, and designing readable headers.'
+            },
+            {
+                name: 'Form Design Workshop',
+                is_lab: false,
+                description: 'A dedicated design session centered on input optimization best practices, covering multi-column layouts, inline confirmation loops, placeholder etiquette, and assistive help positioning.'
+            },
+            {
+                name: 'Mobile-first Lab',
+                is_lab: true,
+                description: 'A progressive design lab forcing the architecture of user interfaces within tightly constrained screen areas before expanding layouts outwards across larger desktop monitors.'
+            },
+            {
+                name: 'Responsive Grid Workshop',
+                is_lab: true,
+                description: 'A structural layout session guiding the setup of flexible 12-column grid structures, responsive breakpoints, fluid layout units, and flexbox alignment components.'
+            },
+            {
+                name: 'Visual Hierarchy Studio',
+                is_lab: true,
+                description: 'An aesthetic composition studio focused on controlling user gaze and priority layout processing through strategic deployment of scale, typographical variations, whitespace, and tonal contrast.'
+            },
+            {
+                name: 'Feedback Handling Lab',
+                is_lab: true,
+                description: 'A specialized interaction workspace designing elegant screen states for real-time notifications, modal confirmation systems, missing content placeholders, and transaction successes.'
+            }
         ];
 
-        // performed_by: alternate 'T' and 'S'; class_phase cycle through preclass,inclass,postclass
-        const classPhases = ['preclass', 'inclass', 'postclass'];
-        const tlasToInsert = tlaNames.map((name, idx) => ({
-            tla_name: name,
-            description: `${name} - practical session and exercises.`,
+        const tlasToInsert = tlaSourceData.map((tla, idx) => ({
+            tla_name: tla.name,
+            description: tla.description,
             performed_by: (idx % 2 === 0) ? 'T' : 'S',
             class_phase: classPhases[idx % classPhases.length],
+            is_lab: tla.is_lab,
             createdAt: now,
             updatedAt: now
         }));
 
         await queryInterface.bulkInsert('TeachingAndLearningActivities', tlasToInsert, {});
 
-        // Fetch TLAs
         const tlasRows = await queryInterface.sequelize.query(
-            `SELECT tla_id, tla_name FROM TeachingAndLearningActivities ORDER BY tla_id ASC LIMIT ${tlaNames.length};`,
+            `SELECT tla_id, tla_name FROM TeachingAndLearningActivities ORDER BY tla_id ASC LIMIT ${tlaSourceData.length};`,
             { type: queryInterface.sequelize.QueryTypes.SELECT }
         );
 
-// ============================================================================
-// 8) TLA Assignment: 1 shared TLA assigned to multiple ILOTopics (Grouped)
-// ============================================================================
+        // ============================================================================
+        // 8) TLA Assignment: Map ISOLATED, non-overlapping TLAs per unique ILO
+        // ============================================================================
+        const iloJunctionRows = await queryInterface.sequelize.query(
+            'SELECT ilo_topic_id, ilo_id FROM `ILOTopics` ORDER BY ilo_id ASC, ilo_topic_id ASC;',
+            { type: queryInterface.sequelize.QueryTypes.SELECT }
+        );
+
+        const uniqueIloIds = [...new Set(iloJunctionRows.map(r => r.ilo_id))].sort((a, b) => a - b);
         const topicTlaInserts = [];
 
-        if (!Array.isArray(iloTopicsRows) || iloTopicsRows.length === 0) {
-            throw new Error('iloTopicsRows is not defined or empty. Ensure ILOTopics are seeded before TopicTLAs.');
-        }
-        if (!Array.isArray(tlasRows) || tlasRows.length === 0) {
-            throw new Error('tlasRows is not defined or empty. Ensure TLAs are seeded before TopicTLAs.');
-        }
+        // Distribute dedicated chunks of the 25 TLAs to unique ILOs so they never blend weights
+        for (let u = 0; u < uniqueIloIds.length; u++) {
+            const currentIloId = uniqueIloIds[u];
+            const matchingJunctionRows = iloJunctionRows.filter(r => r.ilo_id === currentIloId);
 
-// Group size decides how many ILOTopics will share each unique TLA record.
-// A group size of 2 means exactly two ILOTopics get assigned to the same TLA.
-        const groupSize = 2;
+            const tla1 = tlasRows[(u * 2) % tlasRows.length];
+            const tla2 = tlasRows[(u * 2 + 1) % tlasRows.length];
 
-        for (let i = 0; i < iloTopicsRows.length; i++) {
-            const iloTopic = iloTopicsRows[i];
+            for (let j = 0; j < matchingJunctionRows.length; j++) {
+                const jRow = matchingJunctionRows[j];
+                const selectedTla = (j === 0) ? tla1 : tla2;
 
-            if (!iloTopic || (iloTopic.ilo_topic_id == null)) {
-                console.warn('Skipping invalid iloTopic row:', iloTopic);
-                continue;
+                topicTlaInserts.push({
+                    ilo_topic_id: Number(jRow.ilo_topic_id),
+                    tla_id: Number(selectedTla.tla_id),
+                    createdAt: now,
+                    updatedAt: now
+                });
             }
-
-            // Math.floor(i / groupSize) guarantees that the index pointer
-            // stays on the SAME TLA for 'groupSize' iterations before moving to the next one!
-            const rollingGroupIndex = Math.floor(i / groupSize);
-            const tla = tlasRows[rollingGroupIndex % tlasRows.length];
-
-            // 🧠 FIX: Changed '!la' to '!tla'
-            if (!tla || (tla.tla_id == null)) {
-                throw new Error(`Missing TLA at index ${rollingGroupIndex % tlasRows.length}`);
-            }
-
-            topicTlaInserts.push({
-                ilo_topic_id: Number(iloTopic.ilo_topic_id),
-                tla_id: Number(tla.tla_id),
-                createdAt: now,
-                updatedAt: now
-            });
         }
 
-// Deduplicate pairs to safeguard database unique index constraints
-        const seen2 = new Set();
-        const deduped2 = [];
+        const seenJunctions = new Set();
+        const dedupedJunctions = [];
         for (const r of topicTlaInserts) {
             const key = `${r.ilo_topic_id}:${r.tla_id}`;
-            if (!seen2.has(key)) {
-                seen2.add(key);
-                deduped2.push(r);
+            if (!seenJunctions.has(key)) {
+                seenJunctions.add(key);
+                dedupedJunctions.push(r);
             }
         }
 
-        if (deduped2.length === 0) {
-            console.warn('No TopicTLA rows prepared; nothing to insert.');
-        } else {
-            try {
-                await queryInterface.bulkInsert('TopicTLAs', deduped2, {});
-                console.log(`Successfully inserted ${deduped2.length} TLA rows with a grouped distribution.`);
-            } catch (err) {
-                console.error('bulkInsert TopicTLAs failed:', err);
-                throw err;
-            }
+        if (dedupedJunctions.length > 0) {
+            await queryInterface.bulkInsert('TopicTLAs', dedupedJunctions, {});
+            console.log(`Successfully linked ${dedupedJunctions.length} isolated relation records in TopicTLAs.`);
         }
 
-
-// ============================================================================
-// 9) TLAAssessments: Aligned directly to the grouped relations
-// ============================================================================
+        // ============================================================================
+        // 9) TLAAssessments: Aligned directly to the isolated relations (Exact 20/30/50 weights)
+        // ============================================================================
         const topicTlaRows = await queryInterface.sequelize.query(
             `SELECT
                  tt.topic_tla_id,
@@ -895,8 +758,14 @@ Through lectures, hands-on projects, and usability testing, learners will develo
         );
 
         const tlasByIlo = {};
+        const seenIloTlaPairs = new Set();
+
         for (const row of topicTlaRows) {
             if (!row.ilo_id) continue;
+            const pairKey = `${row.ilo_id}:${row.tla_id}`;
+            if (seenIloTlaPairs.has(pairKey)) continue;
+            seenIloTlaPairs.add(pairKey);
+
             tlasByIlo[row.ilo_id] = tlasByIlo[row.ilo_id] || [];
             tlasByIlo[row.ilo_id].push({
                 tla_id: row.tla_id,
@@ -905,8 +774,13 @@ Through lectures, hands-on projects, and usability testing, learners will develo
             });
         }
 
+        const assessmentMapRows = await queryInterface.sequelize.query(
+            `SELECT ilo_id, co_id FROM IntendedLearningOutcomes ORDER BY co_id ASC, ilo_id ASC;`,
+            { type: queryInterface.sequelize.QueryTypes.SELECT }
+        );
+
         const ilosByCo = {};
-        for (const ilo of ilosRows) {
+        for (const ilo of assessmentMapRows) {
             ilosByCo[ilo.co_id] = ilosByCo[ilo.co_id] || [];
             ilosByCo[ilo.co_id].push(ilo.ilo_id);
         }
@@ -916,23 +790,22 @@ Through lectures, hands-on projects, and usability testing, learners will develo
         const tlaAssessmentInserts = [];
 
         const coIds = Object.keys(ilosByCo).map(Number).sort((a, b) => a - b);
-// Explicit weight mapping for ILO1 (20), ILO2 (30), ILO3 (50)
-        const weightMap = [20, 30, 50];
+        const fixedWeights = [20, 30, 50];
 
         for (let coIndex = 0; coIndex < coIds.length; coIndex++) {
             const coId = coIds[coIndex];
             const iloIds = ilosByCo[coId] || [];
             const periodForThisCO = periods[coIndex % periods.length];
 
+            if (iloIds.length === 0) continue;
+
             for (let idx = 0; idx < iloIds.length; idx++) {
                 const iloId = iloIds[idx];
 
-                // Use the map to force weights: 20, 30, 50 based on the ILO position
-                const weightNum = weightMap[idx] || 50;
-
+                // Guarantees strictly: ILO1 = 20%, ILO2 = 30%, ILO3 = 50%
+                const weightNum = fixedWeights[idx % fixedWeights.length];
                 const tlaEntries = tlasByIlo[iloId] || [];
 
-                // Fallback: If no TLA found, use a placeholder so the row is still created
                 const effectiveEntries = tlaEntries.length > 0
                     ? tlaEntries
                     : [{
@@ -953,16 +826,35 @@ Through lectures, hands-on projects, and usability testing, learners will develo
                     const entry = effectiveEntries[a % effectiveEntries.length];
                     const assessmentType = assessmentTypes[(iloId + a) % assessmentTypes.length];
 
-                    // If even our fallback failed to get a TLA_ID, skip this specific assessment
-                    // but the ILO row will still exist because of the outer loop
                     if (!entry.tla_id) continue;
 
                     const assignedWeight = String(perAssessmentWeights[a]);
 
+                    let contextualDescription = '';
+                    switch (assessmentType) {
+                        case 'Quiz':
+                            contextualDescription = `A comprehensive theoretical assessment measuring memory retention, rule frameworks, and process execution criteria for ${entry.topic_title}.`;
+                            break;
+                        case 'Lab Exercise':
+                            contextualDescription = `A hands-on practical implementation lab focused on constructing configurations, layout components, and individual feature validations targeting ${entry.topic_title}.`;
+                            break;
+                        case 'Project':
+                            contextualDescription = `An integrated milestone build task requiring teams to engineer, document, and deploy comprehensive workspace components utilizing principles of ${entry.topic_title}.`;
+                            break;
+                        case 'Presentation':
+                            contextualDescription = `A structured interface walkthrough and technical design defense covering workflow architectures, testing methodologies, and iteration loops used during ${entry.topic_title}.`;
+                            break;
+                        case 'Case Study':
+                            contextualDescription = `An analytical review and systems critique of existing implementation models, isolating transaction bottlenecks and outlining optimization plans regarding ${entry.topic_title}.`;
+                            break;
+                        default:
+                            contextualDescription = `A structured performance metric check evaluating application competencies and design constraints regarding ${entry.topic_title}.`;
+                    }
+
                     tlaAssessmentInserts.push({
                         tla_id: entry.tla_id,
-                        name: `${assessmentType}: ${entry.topic_title}`,
-                        description: `${assessmentType} assessment for ILO ${iloId}.`,
+                        name: assessmentType,
+                        description: contextualDescription,
                         period: periodForThisCO,
                         weight: assignedWeight,
                         min_passing: 60,
@@ -974,10 +866,12 @@ Through lectures, hands-on projects, and usability testing, learners will develo
         }
 
         await queryInterface.bulkInsert('TLAAssessments', tlaAssessmentInserts, {});
-        console.log(`Successfully inserted ${tlaAssessmentInserts.length} TLAAssessment rows.`);
+        console.log(`Successfully inserted ${tlaAssessmentInserts.length} isolated TLAAssessment rows with clean 20/30/50 weights.`);
 
-
+        // insert here
     },
+
+
     async down (queryInterface, Sequelize) {
         // Delete in reverse order to avoid FK constraint issues
         await queryInterface.bulkDelete('CourseOfferingAssignments', null, {});

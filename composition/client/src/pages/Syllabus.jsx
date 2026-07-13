@@ -4,7 +4,7 @@ import Header from "../components/Header.jsx";
 import SyllabusSections from "../components/SyllabusSections.jsx";
 import SideNavigation from "../components/SideNavigation.jsx";
 
-const Syllabus = ({}) => {
+const Syllabus = () => {
     return (
         <Skeleton
             header={<Header role="Instructor" name="NORTON, MONICA"  />}

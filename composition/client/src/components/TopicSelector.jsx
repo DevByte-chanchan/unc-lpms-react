@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import styles from '../styles/TopicSelector.module.sass';
 import { Search, Plus, Trash2, Copy, X, ChevronDown, List, Edit2 } from 'react-feather';
 
@@ -11,11 +11,36 @@ const TopicSelector = ({ label, options = [], value = [], onChange, error, disab
     const getTopicKey = (t) => t.topic_id || t._temp_id;
     const getSubtopicKey = (s) => s.subtopic_id || s._temp_id;
 
+    // Extracted selection logic to a useCallback so it can be used for sorting
+    const isTopicSelected = useCallback((topic) => {
+        if (!topic || !topic.title) return false;
+        return value.some(t => String(t.title).trim().toLowerCase() === String(topic.title).trim().toLowerCase());
+    }, [value]);
+
+    // Filter AND Sort by search term and selection status
+    const filteredOptions = useMemo(() => {
+        // 1. Filter based on search term
+        let results = options.filter(opt =>
+            (opt.title || '').toLowerCase().includes(searchTerm.toLowerCase())
+        );
+
+        // 2. Sort results so that Selected items ALWAYS bubble to the top
+        results.sort((a, b) => {
+            const aSelected = isTopicSelected(a);
+            const bSelected = isTopicSelected(b);
+
+            if (aSelected && !bSelected) return -1; // 'a' moves up
+            if (!aSelected && bSelected) return 1;  // 'b' moves up
+            return 0; // maintain relative order if both are same state
+        });
+
+        return results;
+    }, [options, searchTerm, isTopicSelected]);
+
     const handleSelectTopic = (topic) => {
         if (disabled) return;
 
-        // Compare by title to prevent duplicating names
-        const isSelected = value.some(t => String(t.title).trim().toLowerCase() === String(topic.title).trim().toLowerCase());
+        const isSelected = isTopicSelected(topic);
 
         if (isSelected) {
             onChange(value.filter(t => String(t.title).trim().toLowerCase() !== String(topic.title).trim().toLowerCase()));
@@ -126,10 +151,6 @@ const TopicSelector = ({ label, options = [], value = [], onChange, error, disab
         }));
     };
 
-    const filteredOptions = options.filter(opt =>
-        opt.title.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-
     return (
         <div className={styles.container}>
             <label className={styles.label}>{label}</label>
@@ -162,7 +183,7 @@ const TopicSelector = ({ label, options = [], value = [], onChange, error, disab
                             <div className={styles.optionsList}>
                                 {filteredOptions.length > 0 ? (
                                     filteredOptions.map(opt => {
-                                        const isSelected = value.some(t => String(t.title).trim().toLowerCase() === String(opt.title).trim().toLowerCase());
+                                        const isSelected = isTopicSelected(opt);
                                         return (
                                             <div
                                                 key={opt.topic_id || opt._temp_id}
@@ -206,7 +227,6 @@ const TopicSelector = ({ label, options = [], value = [], onChange, error, disab
                                     >
                                         <div className={styles.topicHeaderCard}>
                                             <div className={styles.topicTitleGroup}>
-                                                <span className={styles.topicBadge}>Topic</span>
                                                 <div className={styles.inputWrapper}>
                                                     <Edit2 size={12} className={styles.editIcon} />
                                                     <input

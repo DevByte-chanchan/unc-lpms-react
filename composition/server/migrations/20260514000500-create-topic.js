@@ -8,18 +8,8 @@ module.exports = {
                 primaryKey: true,
                 autoIncrement: true
             },
-            ilo_id: {
-                type: Sequelize.INTEGER,
-                allowNull: false,
-                references: {
-                    model: 'IntendedLearningOutcomes',
-                    key: 'ilo_id'
-                },
-                onUpdate: 'CASCADE',
-                onDelete: 'CASCADE'
-            },
             title: {
-                type: Sequelize.STRING(70),
+                type: Sequelize.STRING(200),
                 allowNull: false
             },
             createdAt: {

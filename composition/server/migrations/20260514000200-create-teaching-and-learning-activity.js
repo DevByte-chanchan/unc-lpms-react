@@ -24,6 +24,11 @@ module.exports = {
                 type: Sequelize.STRING(30),
                 allowNull: false
             },
+            is_lab: {
+                type: Sequelize.BOOLEAN,
+                allowNull: false,
+                defaultValue: false
+            },
             createdAt: {
                 type: Sequelize.DATE,
                 allowNull: false,

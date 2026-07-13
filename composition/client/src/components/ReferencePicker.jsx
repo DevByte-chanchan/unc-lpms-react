@@ -1,17 +1,17 @@
 // src/components/ReferencePicker.jsx
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import styles from '../styles/ReferencePicker.module.sass';
 import { Search, Book, Globe, Unlock, ExternalLink, Plus } from 'react-feather';
 
 /**
  * ReferencePicker
  * Props:
- *  - options: array of reference objects
- *  - value: array of selected reference objects
- *  - onChange: (newArray) => void
- *  - error: string
- *  - disabled: boolean
- *  - onAddReference: () => void
+ * - options: array of reference objects
+ * - value: array of selected reference objects
+ * - onChange: (newArray) => void
+ * - error: string
+ * - disabled: boolean
+ * - onAddReference: () => void
  */
 const ReferencePicker = ({ options = [], value = [], onChange, error, disabled, onAddReference }) => {
     const [searchTerm, setSearchTerm] = useState('');
@@ -49,12 +49,25 @@ const ReferencePicker = ({ options = [], value = [], onChange, error, disabled, 
         });
     }, [options]);
 
-    // Filter by search term and active type (use normalized typeKey for comparison)
+    // Extracted selection logic to a useCallback so it can be used for sorting
+    const isRefSelected = useCallback((ref) => {
+        return (value || []).some(item => {
+            if (!item) return false;
+            if (item.reference_id != null && ref.reference_id != null) {
+                return Number(item.reference_id) === Number(ref.reference_id);
+            }
+            // fallback to title match for temp items
+            return String(item.title || '').trim() === String(ref.title || '').trim();
+        });
+    }, [value]);
+
+    // Filter AND Sort by search term, active type, and selection status
     const filteredOptions = useMemo(() => {
         const term = String(searchTerm || '').trim().toLowerCase();
         const activeKey = activeFilter === 'All' ? null : normalizeTypeKey(activeFilter);
 
-        return normalizedOptions.filter(ref => {
+        // 1. Filter out items based on search and tabs
+        let results = normalizedOptions.filter(ref => {
             // Type filter using normalized key
             if (activeKey && String(ref.typeKey || '') !== activeKey) {
                 return false;
@@ -67,7 +80,19 @@ const ReferencePicker = ({ options = [], value = [], onChange, error, disabled, 
             const inIsbn = String(ref.isbn || '').toLowerCase().includes(term);
             return inTitle || inAuthor || inIsbn;
         });
-    }, [normalizedOptions, searchTerm, activeFilter]);
+
+        // 2. Sort results so that Selected items ALWAYS bubble to the top
+        results.sort((a, b) => {
+            const aSelected = isRefSelected(a);
+            const bSelected = isRefSelected(b);
+
+            if (aSelected && !bSelected) return -1; // 'a' moves up
+            if (!aSelected && bSelected) return 1;  // 'b' moves up
+            return 0; // maintain relative order if both are same state
+        });
+
+        return results;
+    }, [normalizedOptions, searchTerm, activeFilter, isRefSelected]);
 
     const getIcon = (type) => {
         if (!type) return <Globe size={16} />;
@@ -75,17 +100,6 @@ const ReferencePicker = ({ options = [], value = [], onChange, error, disabled, 
         if (t.includes('textbook')) return <Book size={16} />;
         if (t.includes('open') || t.includes('oer')) return <Unlock size={16} />;
         return <Globe size={16} />;
-    };
-
-    const isRefSelected = (ref) => {
-        return (value || []).some(item => {
-            if (!item) return false;
-            if (item.reference_id != null && ref.reference_id != null) {
-                return Number(item.reference_id) === Number(ref.reference_id);
-            }
-            // fallback to title match for temp items
-            return String(item.title || '').trim() === String(ref.title || '').trim();
-        });
     };
 
     const handleToggle = (reference) => {
@@ -116,7 +130,7 @@ const ReferencePicker = ({ options = [], value = [], onChange, error, disabled, 
                             <Search size={16} />
                             <input
                                 type="text"
-                                placeholder="Search by title, author or ISBN..."
+                                placeholder="Search"
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                                 disabled={disabled}
@@ -193,7 +207,7 @@ const ReferencePicker = ({ options = [], value = [], onChange, error, disabled, 
                                                 onClick={(e) => e.stopPropagation()}
                                                 title="View resource"
                                             >
-                                                View <ExternalLink size={12} />
+                                                View <ExternalLink size={14} />
                                             </a>
                                         )}
                                         <div className={styles.typeTag}>{ref.type}</div>

@@ -1,5 +1,5 @@
 import {Link} from "react-router-dom";
-import {ChevronLeft} from "react-feather";
+import {Check, CheckCircle, ChevronLeft} from "react-feather";
 import React from "react";
 import styles from "../styles/FormNavigation.module.sass";
 
@@ -10,12 +10,12 @@ const FormNavigation = ({ goBack, onSave }) => { // 1. Add onSave prop
     return (
         <div className={styles.navi}>
             <div onClick={goBackHandler} className={styles.return}>
-                <ChevronLeft />
+                <ChevronLeft size={20} />
             </div>
             <div className={'fill'}></div>
 
             <div className={styles.save} onClick={onSave} style={{cursor: 'pointer'}}>
-                Save
+                <CheckCircle size={20}/> &nbsp; Save
             </div>
         </div>
     )

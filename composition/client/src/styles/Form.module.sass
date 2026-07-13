@@ -5,15 +5,213 @@
   flex-direction: column
   gap: 6px
 
+.mainCont
+  width: 100%
+  display: flex
+  flex-direction: row
+  flex-grow: 1
+  height: 100%
+  gap: 6px
+
+.leftCont
+  flex-grow: 1
+  height: 100%
+
+.rightCont
+  width: 430px
+  background: white
+  height: 100%
+
+.checklistCard
+  background: #ffffff
+  overflow: hidden
+  display: flex
+  flex-direction: column
+  width: 100%
+  height: 100%
+  box-sizing: border-box
+  padding-bottom: 100px
+
+.checklistHeader
+  display: flex
+  align-items: center
+  gap: 10px
+  padding: 16px 20px
+  background: #f8fafc
+  border-bottom: 1px solid #e0e4ec
+  width: 100%
+  box-sizing: border-box
+
+  .headerIcon
+    color: #475569
+
+  h3
+    font-size: 1.1rem
+    font-weight: 600
+    color: #1e293b
+    margin: 0
+
+.emptyChecklist
+  padding: 40px 20px
+  text-align: center
+  color: #94a3b8
+  font-size: 0.95rem
+
+.checklistWrapper
+  display: flex
+  flex-direction: column
+  overflow-y: auto
+  overflow-x: hidden
+  flex: 1
+  padding: 10px 0
+
+.checklistItem
+  display: flex
+  align-items: flex-start
+  gap: 14px
+  padding: 16px 20px
+  border-bottom: 1px solid #f1f5f9
+  cursor: pointer
+  transition: background 0.2s ease, opacity 0.2s ease
+  width: 100%
+  box-sizing: border-box
+
+  &:last-child
+    border-bottom: none
+
+  &:hover
+    background: #f8fafc
+
+  &.itemResolved
+    opacity: 0.65
+
+    .commentMessage
+      text-decoration: line-through
+      color: #94a3b8
+
+    .targetContextBadge
+      background: #f1f5f9
+      color: #94a3b8
+
+// Custom Minimalist Checkbox Realization
+.checkboxControl
+  position: relative
+  width: 18px
+  height: 18px
+  margin-top: 3px
+  flex-shrink: 0
+
+  input
+    position: absolute
+    opacity: 0
+    cursor: pointer
+    height: 0
+    width: 0
+
+    &:checked ~ .customCheckmark
+      background-color: #2e7d32
+      border-color: #2e7d32
+
+      &:after
+        display: block
+
+  .customCheckmark
+    position: absolute
+    top: 0
+    left: 0
+    height: 18px
+    width: 18px
+    background-color: #ffffff
+    border: 2px solid #cbd5e1
+    border-radius: 4px
+    transition: all 0.2s ease
+
+    &:after
+      content: ""
+      position: absolute
+      display: none
+      left: 5px
+      top: 2px
+      width: 4px
+      height: 8px
+      border: solid white
+      border-width: 0 2px 2px 0
+      transform: rotate(45deg)
+
+.commentContent
+  display: flex
+  flex-direction: column
+  gap: 6px
+  flex: 1
+  min-width: 0
+
+// Modern Context Target Component Badge Hierarchy
+.targetContextBadge
+  align-self: flex-start
+  display: inline-flex
+  align-items: center
+  gap: 4px
+  background: #edf2f7
+  color: #4a5568
+  padding: 6px 14px
+  border-radius: 3px
+  font-size: 0.78rem
+  font-weight: 500
+  letter-spacing: -0.01em
+  max-width: 100%
+  overflow: hidden
+  text-overflow: ellipsis
+  white-space: nowrap
+
+  .targetPrefix
+    font-weight: 700
+    color: #718096
+    text-transform: uppercase
+    font-size: 0.7rem
+
+  .targetText
+    overflow: hidden
+    text-overflow: ellipsis
+
+.commentMessage
+  font-size: 0.92rem
+  line-height: 1.45
+  color: #334155
+  margin: 0
+  word-break: break-word
+
+.commentMetadata
+  display: flex
+  align-items: center
+  gap: 6px
+  font-size: 0.8rem
+  color: #64748b
+  margin-top: 2px
+
+  .metaRole
+    font-weight: 600
+    color: #475569
+
+  .metaDivider
+    color: #cbd5e1
+
+  .metaDate
+    font-size: 0.78rem
+
+.rubric-cell
+  width: 400px
+  background: yellow
+  height: 100%
+
 .form-container
   display: flex
   background: white
   flex-grow: 1
-  height: 200px
-  padding: 15px 30px 50px 30px
+  padding: 15px 30px 100px 30px
   flex-direction: column
   overflow-y: auto
   gap: 6px
+  height: 100%
 
 .list
   display: flex
@@ -91,7 +289,7 @@
   left: 0
   width: 100vw
   height: 100vh
-  background-color: rgba(0, 0, 0, 0.5) // Dimmed background
+  background-color: rgba(0, 0, 0, 0.5)
   display: flex
   justify-content: center
   align-items: center
@@ -119,6 +317,11 @@
     .closeIcon
       cursor: pointer
       color: #888
+      border: none
+      background: transparent
+      display: flex
+      align-items: center
+      justify-content: center
       &:hover
         color: #333
 
@@ -175,63 +378,258 @@
     opacity: 1
     transform: translateY(0)
 
-// ASSESSMENT FORM
 
-.assessmentField
+// =============================================
+// --- ADDED TLA WORKSPACE SET STYLES ---
+// =============================================
+
+.workspaceHeader
+  display: flex
+
+
+
+.workspaceSubtitle
+  margin: 4px 0 0 0
+  font-size: 0.875rem
+  color: #64748b
+  line-height: 1.4
+
+.flippedBadgeContainer
+  margin-left: auto
+  display: flex
+  align-items: center
+  padding: 8px 16px
+
+.flippedCheckbox
+  width: 16px
+  height: 16px
+  accent-color: #007bff
+  cursor: pointer
+
+.flippedLabel
+  margin-left: 10px
+  font-size: 0.875rem
+  color: #334155
+  font-weight: 500
+  cursor: pointer
+  user-select: none
+
+.tlaWorkspaceCardsDeck
+  display: flex
+  flex-direction: column
+  gap: 24px
+
+.tlaCard
+  background-color: #ffffff
+  border: 1px solid #e2e8f0
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05)
+  transition: all 0.35s ease-in-out
   position: relative
-  padding-left: 20px
-  width: 100%
+  overflow: hidden
 
-.assessmentDropdown
-  font-size: 16px
+  &.newlyAddedCard
+    border: 2px solid #007bff
+    box-shadow: 0 0 15px rgba(0, 123, 255, 0.2)
+
+.cardAccentStrip
+  height: 4px
+  background-color: #007bff
+  transition: background-color 0.2s ease
+
+  &.isLabAccent
+    background-color: #10b981
+
+.cardHeaderTop
+  display: flex
+  align-items: center
+  justify-content: space-between
+  padding: 8px 24px
+  border-bottom: 1px solid #f1f5f9
+  background-color: #f8fafc
+
+.cardHeaderLeft
   display: flex
   align-items: center
   gap: 10px
-  align-self: stretch
-  border-radius: 3px
-  border: 1px solid #DCE2F0
-  padding-right: 20px
-  background: white
-  cursor: text
-  transition: border-color .2s ease-in-out
 
-  //&.open
-  //  border-color: #007bff
+.cardHeaderIndex
+  display: flex
+  align-items: center
+  justify-content: center
+  width: 28px
+  height: 28px
+  border-radius: 50%
+  background-color: #e0f2fe
+  color: #007bff
+  font-size: 0.85rem
+  font-weight: bold
 
-  input
-    width: 100%
-    height: 100%
-    padding: 8px 15px
-    border: 0
-    outline: none
-    font-size: 14px
-    background: transparent
-    font-family: Manrope, sans-serif
+  &.isLabIndex
+    background-color: #d1fae5
+    color: #10b981
 
-.dropdownArrow
-  pointer-events: none
-  font-size: 14px
-  color: #000
+.cardHeaderTitle
+  font-weight: 600
+  color: #1e293b
+  font-size: 0.95rem
 
-.assessmentOptions
-  position: absolute
-  top: 100%
-  left: 20px
-  right: 0
-  background: white
-  border: 1px solid #DCE2F0
-  border-top: none
-  max-height: 220px
-  overflow-y: auto
-  z-index: 100
-  box-shadow: 0 4px 10px rgba(0,0,0,.1)
-
-.assessmentOption
-  padding: 10px 15px
-  font-size: 14px
+.cardRemoveBtn
+  border: none
+  background: transparent
   cursor: pointer
+  padding: 6px 12px
+  border-radius: 4px
+  display: flex
+  align-items: center
+  gap: 6px
+  color: #94a3b8
+  transition: all 0.2s ease
+  font-family: inherit
+  font-size: 0.85rem
+  font-weight: 500
 
   &:hover
-    background: #767676
-    color: white
+    color: #f43f5e
+    background-color: #fff1f2
 
+.cardBodyContent
+  padding: 24px
+  display: flex
+  flex-direction: column
+  gap: 20px
+
+.fieldsGridTwo
+  display: grid
+  grid-template-columns: 1.2fr 1fr
+  gap: 20px
+
+.fieldsGridThree
+  display: grid
+  grid-template-columns: 1fr 1fr 1fr
+  gap: 20px
+  align-items: end
+
+.labCheckboxWrapper
+  height: 40px
+  display: flex
+  align-items: center
+  border: 1px solid #DCE2F0
+  border-radius: 3px
+  padding: 0 14px
+  background-color: #ffffff
+  transition: all 0.2s ease
+  box-sizing: border-box
+  margin-top: 19px
+  margin-left: 20px
+
+
+  &.isLabActive
+    background-color: #f0fdf4
+    border-color: #bbf7d0
+
+.labCheckboxInput
+  width: 16px
+  height: 16px
+  accent-color: #10b981
+  cursor: pointer
+
+.labCheckboxLabel
+  margin-left: 10px
+  font-size: 0.85rem
+  font-weight: 500
+  color: #475569
+  cursor: pointer
+  width: 100%
+  user-select: none
+
+  &.isLabActiveLabel
+    color: #15803d
+
+.assessmentSectionWrapper
+  margin-top: 4px
+  padding-top: 16px
+  border-top: 1px dashed #e2e8f0
+  margin-left: 18px
+
+.addAssessmentBtn
+  display: flex
+  align-items: center
+  gap: 8px
+  border: 1px dashed #bfdbfe
+  background: #f0f7ff
+  color: #007bff
+  padding: 10px 16px
+  border-radius: 6px
+  font-size: 0.85rem
+  font-weight: 500
+  cursor: pointer
+  transition: all 0.2s ease
+  font-family: inherit
+
+  &:hover
+    background: #e0f0ff
+    border-color: #007bff
+
+.assessmentBox
+  background-color: #f8fafc
+  border: 1px solid #e2e8f0
+  border-radius: 8px
+  padding: 16px
+  position: relative
+
+.assessmentBoxHeader
+  display: flex
+  justify-content: space-between
+  align-items: center
+  margin-bottom: 14px
+
+.assessmentBoxTitle
+  display: flex
+  align-items: center
+  gap: 6px
+  color: #1e293b
+  font-size: 0.85rem
+  font-weight: 600
+
+.removeAssessmentBtn
+  border: none
+  background: transparent
+  color: #94a3b8
+  cursor: pointer
+  display: flex
+  align-items: center
+  padding: 4px
+  border-radius: 4px
+  transition: all 0.2s ease
+
+  &:hover
+    color: #f43f5e
+    background-color: #fff1f2
+
+.duplicatorContainerWrapper
+  margin-top: 24px
+  background: #ffffff
+  padding: 12px
+  border-radius: 8px
+  border: 1px dashed #cbd5e1
+
+.modalSuccessIconWrapper
+  background-color: #dcfce7
+  padding: 10px
+  border-radius: 50%
+  display: flex
+  align-items: center
+  justify-content: center
+  align-self: center
+
+.modalSuccessTitle
+  font-weight: 600
+  color: #1e293b
+  margin-bottom: 2px
+  text-align: left
+  font-size: 1.05rem
+
+.modalSuccessText
+  font-size: 0.88rem
+  color: #64748b
+  text-align: left

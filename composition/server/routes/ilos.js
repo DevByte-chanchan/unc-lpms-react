@@ -1,9 +1,10 @@
 // routes/syllabusRoutes.js
 const express = require('express');
 const router = express.Router();
-const { getILOsByCourseCode } = require('../controllers/iloController');
+// Updated import to reflect the version-controlled controller function name
+const { getILOsByPcOffering } = require('../controllers/iloController');
 
-// GET /api/syllabus/:courseCode/ilos
-router.get('/:courseCode', getILOsByCourseCode);
+// GET /api/ilos/:pcId/:revNum
+router.get('/:pcId/:revNum', getILOsByPcOffering);
 
 module.exports = router;

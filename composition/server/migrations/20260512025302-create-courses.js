@@ -17,11 +17,11 @@ module.exports = {
                 allowNull: false
             },
             credit: {
-                type: Sequelize.INTEGER,
+                type: Sequelize.STRING(30), // UPDATED: Changed from INTEGER to support format fields
                 allowNull: false
             },
             contact_hrs: {
-                type: Sequelize.STRING(2),
+                type: Sequelize.STRING(30), // UPDATED: Expanded from STRING(2) to prevent string truncation
                 allowNull: false
             },
             classification: {

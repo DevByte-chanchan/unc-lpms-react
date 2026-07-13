@@ -61,13 +61,9 @@ async function getTlasForIlo(req, res) {
                     const tlaId = tlaObj.tla_id;
                     const matchingAss = assessmentRecords.find(a => a.tla_id === tlaId);
 
-                    let assessmentType = '';
-                    let assessmentDetail = '';
-                    if (matchingAss && matchingAss.name) {
-                        const parts = matchingAss.name.split(':');
-                        assessmentType = parts[0] ? parts[0].trim() : '';
-                        assessmentDetail = parts.slice(1).join(':').trim();
-                    }
+                    // UPDATED: Extracted directly from native columns (No more delimiter-splitting strings)
+                    const assessmentType = matchingAss ? (matchingAss.name || '') : '';
+                    const assessmentDetail = matchingAss ? (matchingAss.description || '') : '';
 
                     // Handles both snake_case (DB) and camelCase (Sequelize standard)
                     return {
@@ -78,6 +74,7 @@ async function getTlasForIlo(req, res) {
                         classPhase: tlaObj.class_phase || tlaObj.classPhase || '',
                         tlaDescription: tlaObj.description || tlaObj.tlaDescription || '',
                         laboratory: Boolean(tlaObj.laboratory),
+                        isLab: Boolean(tlaObj.is_lab || tlaObj.isLab || false),
                         assessmentType,
                         assessmentDetail
                     };
@@ -89,8 +86,8 @@ async function getTlasForIlo(req, res) {
         const allAssessments = await TLAAssessment.findAll({ attributes: ['name'] });
         const assessmentTypesSet = new Set();
         allAssessments.forEach(a => {
-            if (a.name && a.name.includes(':')) {
-                assessmentTypesSet.add(a.name.split(':')[0].trim());
+            if (a.name) {
+                assessmentTypesSet.add(a.name.trim());
             }
         });
 
@@ -127,13 +124,14 @@ async function syncTlasToIlo(req, res) {
             let currentTlaId = tlaData.id;
             const isExisting = typeof currentTlaId === 'number';
 
-            // Align payload with your database column naming
+            // Align payload with database column naming
             const tlaPayload = {
                 tla_name: tlaData.tlaName,
                 class_phase: tlaData.classPhase,
                 performed_by: tlaData.performedBy,
                 description: tlaData.tlaDescription,
-                laboratory: tlaData.laboratory ? 1 : 0
+                laboratory: tlaData.isLab ? 1 : 0,
+                is_lab: tlaData.isLab ? true : false
             };
 
             // A. Upsert the core TLA record
@@ -144,24 +142,32 @@ async function syncTlasToIlo(req, res) {
                 currentTlaId = newTla.tla_id || newTla.id;
             }
 
-            // B. Upsert TLAAssessment
-            const combinedAssessmentName = `${tlaData.assessmentType || 'General'}: ${tlaData.assessmentDetail || ''}`;
+            // B. Upsert TLAAssessment (Conditional & Optional management mapping)
             const existingAssessment = await TLAAssessment.findOne({ where: { tla_id: currentTlaId }, transaction: t });
 
-            if (existingAssessment) {
-                await TLAAssessment.update(
-                    { name: combinedAssessmentName, description: combinedAssessmentName },
-                    { where: { tla_id: currentTlaId }, transaction: t }
-                );
+            if (tlaData.assessmentType || tlaData.assessmentDetail) {
+                const assessmentPayload = {
+                    name: tlaData.assessmentType || 'General',
+                    description: tlaData.assessmentDetail || ''
+                };
+
+                if (existingAssessment) {
+                    await TLAAssessment.update(assessmentPayload, { where: { tla_id: currentTlaId }, transaction: t });
+                } else {
+                    await TLAAssessment.create({
+                        tla_id: currentTlaId,
+                        name: assessmentPayload.name,
+                        description: assessmentPayload.description,
+                        period: 'm',
+                        weight: '20',
+                        min_passing: 60
+                    }, { transaction: t });
+                }
             } else {
-                await TLAAssessment.create({
-                    tla_id: currentTlaId,
-                    name: combinedAssessmentName,
-                    description: combinedAssessmentName,
-                    period: 'm',
-                    weight: '20',
-                    min_passing: 60
-                }, { transaction: t });
+                // If the user manually opted out or cleared fields, clear database links
+                if (existingAssessment) {
+                    await TLAAssessment.destroy({ where: { tla_id: currentTlaId }, transaction: t });
+                }
             }
 
             // C. Sync TopicTLA Mappings safely using ilo_topic_id

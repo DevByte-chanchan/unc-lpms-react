@@ -3,7 +3,10 @@ const app = express();
 const port = process.env.PORT || 5000;
 const cors = require('cors');
 
-app.use(cors({ origin: 'http://localhost:5173' }));
+app.use(cors({
+    origin: ['http://localhost:5173', 'http://192.168.254.106:5173']
+}));
+
 app.use(express.json());
 
 // routes
@@ -26,11 +29,19 @@ const referencesRoutes = require('./routes/references');
 const iloReferencesRoutes = require('./routes/iloReferences');
 const topicsRoutes = require('./routes/topics');
 const tlaRoutes = require('./routes/tlaRoutes');
+const commentRoutes = require('./routes/comments');
+const courseCoverageRoutes = require('./routes/courseCoverage');
+const courseReferenceRoutes = require('./routes/courseReferenceRoutes');
+const revisionRoutes = require('./routes/revisionRoutes');
 
+app.use('/api/revisions', revisionRoutes);
 app.use('/api/references', referencesRoutes);
 app.use('/api/ilo-references', iloReferencesRoutes);
 app.use('/api/topics', topicsRoutes);
 app.use('/api/tlas', tlaRoutes);
+app.use('/api/comments', commentRoutes);
+app.use('/api/course-coverage', courseCoverageRoutes);
+app.use('/api', courseReferenceRoutes);
 
 // global error handler
 app.use((err, req, res, next) => {

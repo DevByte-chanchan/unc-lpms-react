@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import SkeletonA from "../layouts/Skeleton.jsx";
 import HeaderA from "../components/Header.jsx";
 import FormNavigation from "../components/FormNavigation.jsx";
@@ -10,10 +10,11 @@ import DropdownMultiSelect from "../components/DropdownMultiSelect.jsx";
 import TypeableDropdown from "../components/TypeableDropdown";
 import TextArea from "../components/TextArea.jsx";
 import Duplicator from "../components/Duplicator.jsx";
-import { X, CheckCircle } from "react-feather";
+import { X, CheckCircle, MessageSquare, Plus, Award, Trash2 } from "react-feather";
 import SideNavigation from "../components/SideNavigation.jsx";
 
-const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:5000';
+// Imported universal API client utility
+import { fetchJson } from "../utils/api.js";
 
 /* Inline modal component */
 function InlineModal({ isOpen, title, onClose, children, actions }) {
@@ -23,7 +24,7 @@ function InlineModal({ isOpen, title, onClose, children, actions }) {
             <div className={styles.modal}>
                 <div className={styles.modalHeader}>
                     <h3 id="modal-title">{title}</h3>
-                    <button type="button" aria-label="Close" onClick={onClose} style={{ background: 'transparent', border: 'none', padding: 6 }}>
+                    <button type="button" aria-label="Close" onClick={onClose} className={styles.closeIcon}>
                         <X size={16} />
                     </button>
                 </div>
@@ -36,7 +37,7 @@ function InlineModal({ isOpen, title, onClose, children, actions }) {
 
 const TLAForm = () => {
     const navigate = useNavigate();
-    const { iloId } = useParams();
+    const { courseCode, iloId, status } = useParams();
 
     const FLIPPED_OPTIONS = ['Pre-class', 'In-class', 'Post-class'];
     const STANDARD_OPTIONS = ['Asynchronous', 'Synchronous'];
@@ -49,6 +50,11 @@ const TLAForm = () => {
     const [errors, setErrors] = useState({});
     const [tlas, setTlas] = useState([]);
     const [showConfirm, setShowConfirm] = useState(false);
+    const [newestCardId, setNewestCardId] = useState(null);
+
+    // Checklist State for TLA Reviews
+    const [reviewComments, setReviewComments] = useState([]);
+    const workspaceContainerRef = useRef(null);
 
     // --- Data Normalization Helpers ---
     const normalizeClassPhase = (val) => {
@@ -62,39 +68,51 @@ const TLAForm = () => {
         return val;
     };
 
-    const mapDbToUi = (tla) => ({
-        ...tla,
-        performedBy: tla.performedBy === 'T' ? 'Instructor' : tla.performedBy === 'S' ? 'Student' : tla.performedBy,
-        classPhase: normalizeClassPhase(tla.classPhase)
-    });
+    const mapDbToUi = (tla) => {
+        const hasExistingAssessment = Boolean(tla.assessmentType || tla.assessmentDetail);
+        return {
+            ...tla,
+            performedBy: tla.performedBy === 'T' ? 'Instructor' : tla.performedBy === 'S' ? 'Student' : tla.performedBy,
+            classPhase: normalizeClassPhase(tla.classPhase),
+            isLab: Boolean(tla.isLab || tla.is_lab || false),
+            hasAssessment: hasExistingAssessment
+        };
+    };
 
     const mapUiToDb = (tla) => ({
         ...tla,
-        performedBy: tla.performedBy === 'Instructor' ? 'T' : tla.performedBy === 'Student' ? 'S' : tla.performedBy
+        performedBy: tla.performedBy === 'Instructor' ? 'T' : tla.performedBy === 'Student' ? 'S' : tla.performedBy,
+        assessmentType: tla.hasAssessment ? tla.assessmentType : '',
+        assessmentDetail: tla.hasAssessment ? tla.assessmentDetail : ''
     });
 
-    async function fetchJson(url, opts) {
-        const res = await fetch(url, opts);
-        if (!res.ok) {
-            const text = await res.text().catch(() => '');
-            const message = text ? `HTTP ${res.status}: ${text}` : `HTTP ${res.status}`;
-            const err = new Error(message);
-            err.status = res.status;
-            throw err;
-        }
-        return res.json();
-    }
-
-    // 1. Fetch Existing Data
+    // Fetch Core Data & Filtered TLA Review Comments
     useEffect(() => {
         const fetchTlaData = async () => {
             try {
-                const data = await fetchJson(`${API_BASE}/api/tlas/ilo/${iloId}`);
+                const tlaUrl = `/api/tlas/ilo/${iloId}`;
+                const commentsUrl = `/api/comments/filter/${encodeURIComponent(iloId)}/tlas`;
+
+                const fetchPromises = [fetchJson(tlaUrl)];
+                if (status === 'returned') {
+                    fetchPromises.push(fetchJson(commentsUrl));
+                }
+
+                const results = await Promise.all(fetchPromises);
+                const data = results[0];
+                const targetedComments = results[1] || [];
+
                 const { availableTopics, topicIdMap, tlas: existingTlas, assessmentTypeSuggestions } = data;
 
                 setAvailableTopics(availableTopics || []);
                 setTopicIdMap(topicIdMap || {});
-                setAssessmentSuggestions(assessmentTypeSuggestions || ['Case Study', 'Presentation', 'Exam', 'Report']);
+                setAssessmentSuggestions(assessmentTypeSuggestions || ['Case Study', 'Presentation', 'Exam', 'Report', 'Lab Exercise']);
+
+                // Normalize comments data states
+                setReviewComments(targetedComments.map(c => ({
+                    ...c,
+                    resolved_status: c.resolved_status === 1 || c.resolved_status === true
+                })));
 
                 if (existingTlas && existingTlas.length > 0) {
                     const mappedTlas = existingTlas.map(mapDbToUi);
@@ -105,24 +123,29 @@ const TLAForm = () => {
                 } else {
                     setTlas([{
                         id: Date.now(), selectedTopics: [], classPhase: '', performedBy: '',
-                        tlaName: '', tlaDescription: '', laboratory: false,
-                        assessmentType: '', assessmentDetail: ''
+                        tlaName: '', tlaDescription: '', laboratory: false, isLab: false,
+                        hasAssessment: false, assessmentType: '', assessmentDetail: ''
                     }]);
                 }
             } catch (error) {
-                console.error("Error fetching TLA data:", error);
+                console.error("Error fetching TLA data components:", error);
             } finally {
                 setIsLoading(false);
             }
         };
         if (iloId) fetchTlaData();
-    }, [iloId]);
+    }, [iloId, status]);
+
+    // Handle local user checklist interactions
+    const handleToggleCommentResolution = (commentId) => {
+        setReviewComments(prev => prev.map(c =>
+            c.comment_id === commentId ? { ...c, resolved_status: !c.resolved_status } : c
+        ));
+    };
 
     const getAvailableOptionsForTla = (currentTlaId) => {
-        const selectedInOtherTlas = tlas
-            .filter(t => t.id !== currentTlaId)
-            .flatMap(t => t.selectedTopics);
-        return availableTopics.filter(topic => !selectedInOtherTlas.includes(topic));
+        // Return all available topics to allow repeating ILO topics across multiple TLAs
+        return availableTopics;
     };
 
     const goBackHandler = () => navigate(-1);
@@ -134,10 +157,18 @@ const TLAForm = () => {
     };
 
     const handleTlaAdd = () => {
+        const generatedId = Date.now() + Math.random();
+        setNewestCardId(generatedId);
         setTlas([...tlas, {
-            id: Date.now() + Math.random(), selectedTopics: [], classPhase: '', performedBy: '',
-            tlaName: '', tlaDescription: '', laboratory: false, assessmentType: '', assessmentDetail: ''
+            id: generatedId, selectedTopics: [], classPhase: '', performedBy: '',
+            tlaName: '', tlaDescription: '', laboratory: false, isLab: false,
+            hasAssessment: false, assessmentType: '', assessmentDetail: ''
         }]);
+
+        // Clear highlight flash after 1.2 seconds
+        setTimeout(() => {
+            setNewestCardId(null);
+        }, 1200);
     };
 
     const handleTlaDelete = (idToDelete) => {
@@ -159,9 +190,11 @@ const TLAForm = () => {
             if (!tla.performedBy) newErrors[`tla_${tla.id}_performedBy`] = "Required";
             if (!tla.tlaName.trim()) newErrors[`tla_${tla.id}_tlaName`] = "TLA Name required";
             if (!tla.tlaDescription.trim()) newErrors[`tla_${tla.id}_tlaDescription`] = "Description required";
-            if (!tla.assessmentType.trim()) newErrors[`tla_${tla.id}_assessmentType`] = "Required";
-            // Now validating Assessment Detail
-            if (!tla.assessmentDetail.trim()) newErrors[`tla_${tla.id}_assessmentDetail`] = "Detail required";
+
+            if (tla.hasAssessment) {
+                if (!tla.assessmentType.trim()) newErrors[`tla_${tla.id}_assessmentType`] = "Required";
+                if (!tla.assessmentDetail.trim()) newErrors[`tla_${tla.id}_assessmentDetail`] = "Detail required";
+            }
         });
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
@@ -173,7 +206,20 @@ const TLAForm = () => {
         const payloadTlas = tlas.map(mapUiToDb);
 
         try {
-            await fetchJson(`${API_BASE}/api/tlas/ilo/${iloId}`, {
+            if (status === 'returned' && reviewComments.length > 0) {
+                const commentPayload = reviewComments.map(c => ({
+                    comment_id: c.comment_id,
+                    resolved_status: c.resolved_status ? 1 : 0
+                }));
+
+                await fetchJson(`/api/comments/update-resolution`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ updates: commentPayload })
+                });
+            }
+
+            await fetchJson(`/api/tlas/ilo/${iloId}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -183,12 +229,20 @@ const TLAForm = () => {
             });
             setShowConfirm(true);
         } catch (error) {
-            console.error("Error saving TLAs:", error);
-            alert("Failed to save. Check console for details.");
+            console.error("Error saving TLAs details profile:", error);
+            alert("Failed to save changes. Please view logs.");
         }
     };
 
-    if (isLoading) return <div>Loading...</div>;
+    const getCommentTargetLabel = (comment) => {
+        if (comment.target_title) return comment.target_title;
+        const match = tlas.find(t =>
+            Number(t.topic_tla_id) === Number(comment.target_id) || Number(t.id) === Number(comment.target_id)
+        );
+        return match ? match.tlaName : `TLA Element ID: ${comment.target_id}`;
+    };
+
+    if (isLoading) return <div className={styles.emptyChecklist}>Loading Workspace Environments...</div>;
 
     return (
         <SkeletonA
@@ -197,105 +251,267 @@ const TLAForm = () => {
             content={
                 <div className={styles.container}>
                     <FormNavigation goBack={goBackHandler} onSave={handleSaveClick} />
-                    <div className={styles['form-container']}>
-                        <h2>Teaching & Learning Activities</h2>
-                        <div className={'checkbox'} style={{ marginBottom: '20px' }}>
-                            <input
-                                checked={flipped}
-                                onChange={handleFlippedChange}
-                                type="checkbox"
-                                id="flippedCheck"
-                            />
-                            <label htmlFor="flippedCheck" style={{ marginLeft: '8px' }}>Flipped Approach</label>
+
+                    <div className={styles.mainCont}>
+                        <div className={styles.leftCont}>
+                            <div className={styles['form-container']}>
+
+                                {/* Dynamic Workspace Dashboard Header Segment */}
+                                <div className={styles.workspaceHeader}>
+                                    <div className={styles.workspaceTitleBlock}>
+                                        <h2 className={styles.workspaceTitle}>Teaching & Learning Activities</h2>
+                                    </div>
+                                    <div className={styles.flippedBadgeContainer}>
+                                        <input
+                                            checked={flipped}
+                                            onChange={handleFlippedChange}
+                                            type="checkbox"
+                                            id="flippedCheck"
+                                            className={styles.flippedCheckbox}
+                                        />
+                                        <label htmlFor="flippedCheck" className={styles.flippedLabel}>Flipped Approach</label>
+                                    </div>
+                                </div>
+
+                                {/* Main Workspace Cards Deck Map */}
+                                <div ref={workspaceContainerRef} className={styles.tlaWorkspaceCardsDeck}>
+                                    {tlas.map((item, index) => {
+                                        const isNewlyAdded = item.id === newestCardId;
+                                        return (
+                                            <div
+                                                key={item.id}
+                                                className={`${styles.tlaCard} ${isNewlyAdded ? styles.newlyAddedCard : ''}`}
+                                            >
+                                                {/* Top Accent Striping Decor */}
+                                                <div className={`${styles.cardAccentStrip} ${item.isLab ? styles.isLabAccent : ''}`} />
+
+                                                {/* Card Header contextual menu controls */}
+                                                <div className={styles.cardHeaderTop}>
+                                                    <div className={styles.cardHeaderLeft}>
+                                                        <div className={`${styles.cardHeaderIndex} ${item.isLab ? styles.isLabIndex : ''}`}>
+                                                            {index + 1}
+                                                        </div>
+                                                        {/*<span className={styles.cardHeaderTitle}>*/}
+                                                        {/*    {item.tlaName ? item.tlaName : "New Unnamed Activity Instance"}*/}
+                                                        {/*</span>*/}
+                                                    </div>
+
+                                                    {tlas.length > 1 && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleTlaDelete(item.id)}
+                                                            className={styles.cardRemoveBtn}
+                                                            title="Delete Activity Node"
+                                                        >
+                                                            <Trash2 size={15} />
+                                                            <span>Remove</span>
+                                                        </button>
+                                                    )}
+                                                </div>
+
+                                                {/* Core Configuration Layout Fields Grid */}
+                                                <div className={styles.cardBodyContent}>
+                                                    <div className={styles.fieldsGridTwo}>
+                                                        <TextField
+                                                            label={'TLA Name'}
+                                                            value={item.tlaName}
+                                                            onChange={(val) => handleTlaChange(item.id, 'tlaName', val)}
+                                                            error={errors[`tla_${item.id}_tlaName`]}
+                                                            placeholder="e.g., Interactive Code Demo..."
+                                                        />
+                                                        <Dropdown
+                                                            options={['Student', 'Instructor']}
+                                                            label={'Performed By'}
+                                                            value={item.performedBy}
+                                                            onChange={(val) => handleTlaChange(item.id, 'performedBy', val)}
+                                                            error={errors[`tla_${item.id}_performedBy`]}
+                                                        />
+
+                                                    </div>
+
+                                                    <div className={styles.fieldsGridTwo}>
+                                                        <Dropdown
+                                                            options={flipped ? FLIPPED_OPTIONS : STANDARD_OPTIONS}
+                                                            label={'Class Phase'}
+                                                            value={item.classPhase}
+                                                            onChange={(val) => handleTlaChange(item.id, 'classPhase', val)}
+                                                            error={errors[`tla_${item.id}_classPhase`]}
+                                                        />
+
+                                                        {/* Modernized Laboratory Toggle Configuration Field */}
+                                                        <div className={`${styles.labCheckboxWrapper} ${item.isLab ? styles.isLabActive : ''}`}>
+                                                            <input
+                                                                type="checkbox"
+                                                                id={`lab_check_${item.id}`}
+                                                                checked={item.isLab}
+                                                                onChange={(e) => handleTlaChange(item.id, 'isLab', e.target.checked)}
+                                                                className={styles.labCheckboxInput}
+                                                            />
+                                                            <label htmlFor={`lab_check_${item.id}`} className={`${styles.labCheckboxLabel} ${item.isLab ? styles.isLabActiveLabel : ''}`}>
+                                                                Laboratory
+                                                            </label>
+                                                        </div>
+                                                    </div>
+
+
+                                                        <DropdownMultiSelect
+                                                            options={getAvailableOptionsForTla(item.id)}
+                                                            label={'Topic Title(s)'}
+                                                            value={item.selectedTopics}
+                                                            onChange={(val) => handleTlaChange(item.id, 'selectedTopics', val)}
+                                                            error={errors[`tla_${item.id}_selectedTopics`]}
+                                                        />
+
+
+
+                                                    <TextArea
+                                                        label={'TLA Description'}
+                                                        value={item.tlaDescription}
+                                                        onChange={(val) => handleTlaChange(item.id, 'tlaDescription', val)}
+                                                        error={errors[`tla_${item.id}_tlaDescription`]}
+                                                        rows={3}
+                                                        placeholder="Describe the activity procedures and expected outputs..."
+                                                    />
+
+                                                    {/* Optional Assessment Framework Wrapper */}
+                                                    <div className={styles.assessmentSectionWrapper}>
+                                                        {!item.hasAssessment ? (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleTlaChange(item.id, 'hasAssessment', true)}
+                                                                className={styles.addAssessmentBtn}
+                                                            >
+                                                                <Plus size={15} />
+                                                                Add Assessment
+                                                            </button>
+                                                        ) : (
+                                                            <div className={styles.assessmentBox}>
+                                                                <div className={styles.assessmentBoxHeader}>
+                                                                    <div className={styles.assessmentBoxTitle}>
+                                                                        <Award size={15} />
+                                                                        <span>Linked Assessment Matrix (Optional)</span>
+                                                                    </div>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => {
+                                                                            handleTlaChange(item.id, 'hasAssessment', false);
+                                                                            handleTlaChange(item.id, 'assessmentType', '');
+                                                                            handleTlaChange(item.id, 'assessmentDetail', '');
+                                                                        }}
+                                                                        className={styles.removeAssessmentBtn}
+                                                                        title="Remove Assessment"
+                                                                    >
+                                                                        <X size={16} />
+                                                                    </button>
+                                                                </div>
+
+                                                                <div className={styles.fieldsGridTwo}>
+                                                                    <TypeableDropdown
+                                                                        options={assessmentSuggestions}
+                                                                        label={'Assessment Type'}
+                                                                        value={item.assessmentType}
+                                                                        onChange={(val) => handleTlaChange(item.id, 'assessmentType', val)}
+                                                                        error={errors[`tla_${item.id}_assessmentType`]}
+                                                                    />
+                                                                    <TextField
+                                                                        label={'Assessment Detail'}
+                                                                        value={item.assessmentDetail}
+                                                                        onChange={(val) => handleTlaChange(item.id, 'assessmentDetail', val)}
+                                                                        error={errors[`tla_${item.id}_assessmentDetail`]}
+                                                                        placeholder="e.g., Usability Metrics and KPIs"
+                                                                    />
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                    </div>
+
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+
+                                <div className={styles.duplicatorContainerWrapper}>
+                                    <Duplicator onAdd={handleTlaAdd} name={'TLA'} />
+                                </div>
+
+                                <InlineModal
+                                    isOpen={showConfirm}
+                                    title="Saved"
+                                    onClose={() => setShowConfirm(false)}
+                                >
+                                    <div className={styles.list}>
+                                        <div className={styles.modalSuccessIconWrapper}>
+                                            <CheckCircle size={24} color="#10b981" />
+                                        </div>
+                                        <div>
+                                            <div className={styles.modalSuccessTitle}>Saved Successfully</div>
+                                            <div className={styles.modalSuccessText}>TLAs data elements synchronized successfully.</div>
+                                        </div>
+                                    </div>
+                                </InlineModal>
+                            </div>
                         </div>
 
-                        {tlas.map((item) => (
-                            <div className={styles.list} key={item.id}>
-                                <div className={styles.tlas}>
-                                    <div className={styles.list}>
-                                        <DropdownMultiSelect
-                                            options={getAvailableOptionsForTla(item.id)}
-                                            label={'Topic Title(s)'}
-                                            value={item.selectedTopics}
-                                            onChange={(val) => handleTlaChange(item.id, 'selectedTopics', val)}
-                                            error={errors[`tla_${item.id}_selectedTopics`]}
-                                        />
-                                        <TextField
-                                            label={'TLA Name'}
-                                            value={item.tlaName}
-                                            onChange={(val) => handleTlaChange(item.id, 'tlaName', val)}
-                                            error={errors[`tla_${item.id}_tlaName`]}
-                                            placeholder="e.g., Interactive Code Demo..."
-                                        />
+                        {/* Interactive Dynamic TLA Review Corrections Card Container */}
+                        {status === 'returned' && (
+                            <div className={styles.rightCont}>
+                                <div className={styles.checklistCard}>
+                                    <div className={styles.checklistHeader}>
+                                        <MessageSquare size={18} className={styles.headerIcon} />
+                                        <h3>Review Corrections</h3>
                                     </div>
 
-                                    <div className={styles.list}>
-                                        <Dropdown
-                                            options={flipped ? FLIPPED_OPTIONS : STANDARD_OPTIONS}
-                                            label={'Class Phase'}
-                                            value={item.classPhase}
-                                            onChange={(val) => handleTlaChange(item.id, 'classPhase', val)}
-                                            error={errors[`tla_${item.id}_classPhase`]}
-                                        />
-                                        <Dropdown
-                                            options={['Student', 'Instructor']}
-                                            label={'Performed By'}
-                                            value={item.performedBy}
-                                            onChange={(val) => handleTlaChange(item.id, 'performedBy', val)}
-                                            error={errors[`tla_${item.id}_performedBy`]}
-                                        />
-                                    </div>
+                                    {reviewComments.length === 0 ? (
+                                        <div className={styles.emptyChecklist}>
+                                            <p>No unresolved activity layout notes found for this entry.</p>
+                                        </div>
+                                    ) : (
+                                        <div className={styles.checklistWrapper}>
+                                            {reviewComments.map((comment) => (
+                                                <label
+                                                    key={comment.comment_id}
+                                                    className={`${styles.checklistItem} ${comment.resolved_status ? styles.itemResolved : ''}`}
+                                                >
+                                                    <div className={styles.checkboxControl}>
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={comment.resolved_status}
+                                                            onChange={() => handleToggleCommentResolution(comment.comment_id)}
+                                                        />
+                                                        <span className={styles.customCheckmark}></span>
+                                                    </div>
 
-                                    <TextArea
-                                        label={'TLA Description'}
-                                        value={item.tlaDescription}
-                                        onChange={(val) => handleTlaChange(item.id, 'tlaDescription', val)}
-                                        error={errors[`tla_${item.id}_tlaDescription`]}
-                                        rows={4}
-                                        placeholder="Describe the activity procedures and expected outputs..."
-                                    />
+                                                    <div className={styles.commentContent}>
+                                                        <div className={styles.targetContextBadge}>
+                                                            {/*<span className={styles.targetPrefix}>Target:</span>*/}
+                                                            <span className={styles.targetText}>{getCommentTargetLabel(comment)}</span>
+                                                        </div>
 
-                                    <div className={styles.list}>
-                                        <TypeableDropdown
-                                            options={assessmentSuggestions}
-                                            label={'Assessment Type'}
-                                            value={item.assessmentType}
-                                            onChange={(val) => handleTlaChange(item.id, 'assessmentType', val)}
-                                            error={errors[`tla_${item.id}_assessmentType`]}
-                                        />
-                                        <TextField
-                                            label={'Assessment Detail'}
-                                            value={item.assessmentDetail}
-                                            onChange={(val) => handleTlaChange(item.id, 'assessmentDetail', val)}
-                                            error={errors[`tla_${item.id}_assessmentDetail`]}
-                                            placeholder="e.g., Usability Metrics and KPIs"
-                                        />
-                                    </div>
-                                </div>
+                                                        <p className={styles.commentMessage}>{comment.message}</p>
 
-                                <div onClick={() => handleTlaDelete(item.id)} className={styles.deleteButton} style={{cursor: 'pointer'}}>
-                                    <X size={20} color={'#FF5252'} />
+                                                        <div className={styles.commentMetadata}>
+                                                            <span className={styles.metaRole}>{comment.commenter_role.replace(/_/g, ' ')}</span>
+                                                            <span className={styles.metaDivider}>•</span>
+                                                            <span className={styles.metaDate}>
+                                                                {new Date(comment.createdAt).toLocaleDateString(undefined, {
+                                                                    month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+                                                                })}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </label>
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
                             </div>
-                        ))}
-                        <Duplicator onAdd={handleTlaAdd} name={'TLA'} />
-
-                        {/* Confirmation modal */}
-                        <InlineModal
-                            isOpen={showConfirm}
-                            title="Saved"
-                            onClose={() => setShowConfirm(false)}
-                        >
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                                <CheckCircle size={20} color="#2e7d32" />
-                                <div>TLAs saved successfully.</div>
-                            </div>
-                        </InlineModal>
+                        )}
                     </div>
                 </div>
             }
         />
-    )
-}
+    );
+};
 
 export default TLAForm;

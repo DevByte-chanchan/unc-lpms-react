@@ -1,11 +1,8 @@
 // controllers/courseCriteriaController.js
 const {
-    Course,
-    ProgramCourseOffering,
     CourseOutcome,
     IntendedLearningOutcome,
     ILOTopic,
-    Topic,
     TopicTLA,
     TLAAssessment
 } = require('../models');
@@ -27,43 +24,14 @@ function parseWeight(w) {
     return Number.isFinite(n) ? n : null;
 }
 
-/**
- * Returns gradingSystem array shaped to match the original JSX
- */
-async function getCourseCriteriaByCourseCode(req, res) {
+async function getCourseCriteriaByPcOffering(req, res) {
     try {
-        const courseCode = req.params.courseCode;
-        if (!courseCode) return res.status(400).json({ message: 'courseCode is required' });
+        const { pcId, revNum } = req.params;
+        if (!pcId || !revNum) return res.status(400).json({ message: 'pcId and revNum are required' });
 
-        // 1) find course by course_no
-        const course = await Course.findOne({
-            where: { course_no: courseCode },
-            attributes: ['course_id', 'course_no', 'course_title']
-        });
-        if (!course) return res.status(404).json({ message: 'Course not found' });
-
-        // 2) find latest program course offering for that course_id
-        const pco = await ProgramCourseOffering.findOne({
-            where: { course_id: course.course_id },
-            attributes: ['pc_offering_id', 'program_id', 'revision_number'],
-            order: [['revision_number', 'DESC']]
-        });
-        if (!pco) {
-            const emptyGrading = Array.from({ length: 4 }, (_, i) => ({
-                co: `CO${i + 1}`,
-                ilos: Array.from({ length: 3 }, (_, j) => ({
-                    id: `ILO${j + 1}`,
-                    assessments: '',
-                    weight: { prelim: '', midterm: '', semi: '', final: '' },
-                    minPassing: 60
-                }))
-            }));
-            return res.json({ gradingSystem: emptyGrading });
-        }
-
-        // 3) fetch course outcomes
+        // Direct fetch: Find course outcomes linked explicitly to this pc_offering_id
         const courseOutcomes = await CourseOutcome.findAll({
-            where: { pc_offering_id: pco.pc_offering_id },
+            where: { pc_offering_id: pcId },
             attributes: ['co_id', 'co_description'],
             order: [['co_id', 'ASC']]
         });
@@ -97,18 +65,18 @@ async function getCourseCriteriaByCourseCode(req, res) {
                     continue;
                 }
 
-                // 4) find the ilo_topic_id linked to this ILO
+                // Find the ilo_topic_id linked to this ILO
                 const iloTopics = await ILOTopic.findAll({
                     where: { ilo_id: iloRecord.ilo_id },
-                    attributes: ['ilo_topic_id'], // Fetch the correct join key
+                    attributes: ['ilo_topic_id'],
                     raw: true
                 });
                 const iloTopicIds = iloTopics.map(t => t.ilo_topic_id).filter(Boolean);
 
-                // 5) find TopicTLA rows for these ilo_topic_ids to get tla_ids
+                // Find TopicTLA rows for these ilo_topic_ids to get tla_ids
                 const topicTlaRows = iloTopicIds.length
                     ? await TopicTLA.findAll({
-                        where: { ilo_topic_id: iloTopicIds }, // Use the join key
+                        where: { ilo_topic_id: iloTopicIds },
                         attributes: ['tla_id'],
                         raw: true
                     })
@@ -116,7 +84,7 @@ async function getCourseCriteriaByCourseCode(req, res) {
 
                 const tlaIds = topicTlaRows.map(t => t.tla_id).filter(Boolean);
 
-                // 6) fetch TLAAssessments for these tlaIds
+                // Fetch TLAAssessments for these tlaIds
                 const assessments = tlaIds.length
                     ? await TLAAssessment.findAll({
                         where: { tla_id: tlaIds },
@@ -125,7 +93,6 @@ async function getCourseCriteriaByCourseCode(req, res) {
                     })
                     : [];
 
-                // Aggregate assessment names and weights per period
                 const assessmentNames = [];
                 const weightAcc = { prelim: 0, midterm: 0, semi: 0, final: 0 };
                 let minPassingValue = null;
@@ -155,17 +122,14 @@ async function getCourseCriteriaByCourseCode(req, res) {
                 });
             }
 
-            gradingSystem.push({
-                co: coLabel,
-                ilos
-            });
+            gradingSystem.push({ co: coLabel, ilos });
         }
 
         return res.json({ gradingSystem });
     } catch (err) {
-        console.error('getCourseCriteriaByCourseCode error:', err);
+        console.error('getCourseCriteriaByPcOffering error:', err);
         return res.status(500).json({ message: 'Internal server error' });
     }
 }
 
-module.exports = { getCourseCriteriaByCourseCode };
+module.exports = { getCourseCriteriaByPcOffering };

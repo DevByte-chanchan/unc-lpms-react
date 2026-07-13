@@ -305,3 +305,31 @@
   font-size: 13px
   color: #A0AEC0
   font-style: italic
+
+/* ADD THIS ANIMATION BLOCK */
+@keyframes selectionPulsePicker
+  0%
+    background-color: #90CDF4 /* Noticeable darker blue pulse */
+  100%
+    background-color: #EBF8FF
+
+.optionItem
+  padding: 12px 15px
+  display: flex
+  align-items: center
+  gap: 12px
+  cursor: pointer
+  border-bottom: 1px solid #EDF2F7
+  font-size: 14px
+  &:hover
+    background: #F7FAFC
+
+  /* UPDATE THIS NESTED CLASS */
+  &.selectedOpt
+    background: #EBF8FF
+    animation: selectionPulsePicker 0.6s ease-out forwards /* Triggers instantly when class is applied */
+
+  .subCount
+    margin-left: auto
+    font-size: 11px
+    color: #A0AEC0
