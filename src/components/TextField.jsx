@@ -1,12 +1,12 @@
 import styles from '../styles/Fields.module.sass'
 
-const TextField = ({ label, disabled, value, initialValue, onChange, error, placeholder }) => {
+const TextField = ({ label, disabled, value, initialValue, onChange, error, placeholder, style: containerStyle }) => {
 
     // LOGIC: Use 'value' if controlled (forms), otherwise use 'initialValue' (read-only views)
     const actualValue = value !== undefined ? value : initialValue;
 
     return (
-        <div className={styles.container}>
+        <div className={styles.container} style={containerStyle}>
             <div className={styles.label}>{label}</div>
 
             {/* Wrapper holds the border */}

@@ -8,7 +8,7 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
   const storageKey = 'approval_comments_v1'
 
   const defaultComment = () => ({
-    id: crypto.randomUUID(),
+    id: (crypto.randomUUID && crypto.randomUUID()) || `fallback-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
     components: { references: false, topics: false, tlas: false },
     text: '',
     comment: '',
@@ -19,11 +19,13 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
     coverageType: '',
     courseOutcome: '',
     ilo: '',
-    coverageDetail: ''
+    coverageDetail: '',
+    commentedRefId: ''
   })
 
   const [comments, setComments] = useState([defaultComment()])
   const [searchTerm, setSearchTerm] = useState('')
+  const [refTypeFilter, setRefTypeFilter] = useState('')
   const [selectedRefs, setSelectedRefs] = useState([])
   const [libraryRefs, setLibraryRefs] = useState([])
   const [toast, setToast] = useState(null)
@@ -89,6 +91,9 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
 
   useEffect(() => {
     if (!show) return
+    setSelectedRefs([])
+    const isDir = approverRole && (String(approverRole).toLowerCase().includes('library') || String(approverRole).toLowerCase().includes('libraries'))
+    if (isDir) setComments([defaultComment()])
     try {
       const raw = localStorage.getItem('approval_comment_draft_v1')
       if (!raw) return
@@ -108,10 +113,11 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
         })
         const roleKeyCheck = normalizeRoleKey(approverRole || (JSON.parse(localStorage.getItem('user')||'null')?.role))
         const forced = normalized.map(n => ({ ...n, recipientRole: roleKeyCheck === 'dean' ? 'program_head' : 'instructor' }))
-        setComments(forced)
+        const isDirector = approverRole && (String(approverRole).toLowerCase().includes('library') || String(approverRole).toLowerCase().includes('libraries'))
+        setComments(isDirector ? forced.slice(0, 1) : forced)
       }
       if (parsed.selectedRefs) setSelectedRefs(parsed.selectedRefs)
-      if (parsed.commentedRefIds) setCommentedRefIds(parsed.commentedRefIds)
+      if (!isDirector && parsed.commentedRefIds) setCommentedRefIds(parsed.commentedRefIds)
       if (parsed.searchTerm) setSearchTerm(parsed.searchTerm)
     } catch (e) { console.warn('Failed to restore draft', e) }
   }, [show, approverRole])
@@ -124,6 +130,10 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
     setComments((prev) =>
       prev.map((c) => (c.id === commentId ? { ...c, components: { ...c.components, [key]: !c.components[key] } } : c))
     )
+  }
+
+  const updateComment = (commentId, patch) => {
+    setComments((prev) => prev.map((c) => (c.id === commentId ? { ...c, ...patch } : c)))
   }
 
   const updateCommentText = (commentId, text) => {
@@ -163,7 +173,7 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
       ...prev,
       {
         ...defaultComment(),
-        id: crypto.randomUUID(),
+    id: crypto.randomUUID?.() || Math.random().toString(36).substr(2, 9) + Date.now().toString(36),
         reviewer: seedData.name,
         role: seedData.role,
         recipientRole: normalizeRoleKey(approverRole) === 'dean' ? 'program_head' : 'instructor'
@@ -211,6 +221,7 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
   const CURRENT_YEAR = new Date().getFullYear()
 
   const filteredLibraryRefs = libraryRefs.filter(ref => {
+    if (refTypeFilter && ref.type !== refTypeFilter) return false
     if (!searchTerm) return true
     const q = searchTerm.toLowerCase()
     return ref.title?.toLowerCase().includes(q)
@@ -236,9 +247,19 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
   }
 
   const renderRefBrowser = () => (
-    <div style={{ marginTop: 16, border: '1px solid #e5e7eb', borderRadius: 12, padding: 20, background: '#fafafa' }}>
-      <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 14, color: '#111827' }}>Suggest References from Library</div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, border: '1px solid #A4A9AF', borderRadius: 12, padding: '10px 16px', marginBottom: 14, background: '#fff' }}>
+    <div style={{ border: '1px solid #e5e7eb', borderRadius: 6, padding: 16, background: '#fafafa', display: 'flex', flexDirection: 'column', overflow: 'hidden', ...(isFullscreen ? { flex: 1 } : { height: 480 }) }}>
+      <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 12, color: '#111827' }}>Suggest References from Library</div>
+      <select
+        value={refTypeFilter}
+        onChange={(e) => setRefTypeFilter(e.target.value)}
+        style={{ width: '100%', padding: '8px 10px', borderRadius: 6, border: '1px solid #d1d5db', fontSize: 12, fontFamily: "'Poppins', sans-serif", background: '#fff', color: '#374151', marginBottom: 12, boxSizing: 'border-box' }}
+      >
+        <option value="">All Types</option>
+        <option value="Textbook">Textbooks</option>
+        <option value="Open Educational Resources">Open Educational Resources</option>
+        <option value="Online Resources">Online Resources</option>
+      </select>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, border: '1px solid #A4A9AF', borderRadius: 6, padding: '10px 16px', marginBottom: 12, background: '#fff' }}>
         <Search size={16} color="#9ca3af" />
         <input
           type="text"
@@ -248,14 +269,14 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
           className={styles.searchInput}
         />
       </div>
-      <div style={{ maxHeight: 300, overflow: 'auto', display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div style={{ overflow: 'auto', display: 'flex', flexDirection: 'column', gap: 10, paddingRight: 18, ...(isFullscreen ? { flex: 1, minHeight: 0 } : { maxHeight: 300 }) }}>
         {filteredLibraryRefs.length > 0 ? filteredLibraryRefs.map(ref => {
           const badgeStyle = getTypeBadgeStyle(ref.type)
           const deprecated = isDeprecated(ref)
           const issues = hasIssues(ref)
           const isSelected = selectedRefs.some(r => r.id === ref.id)
           return (
-            <label key={ref.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 14, padding: '14px 16px', borderRadius: 12, cursor: 'pointer', background: isSelected ? '#e0f2fe' : '#fff', border: isSelected ? '2px solid #1e3a5f' : '1px solid #e5e7eb', transition: 'all 0.15s ease' }}>
+            <label key={ref.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '12px 14px', borderRadius: 6, cursor: 'pointer', background: isSelected ? '#e0f2fe' : '#fff', border: isSelected ? '2px solid #1e3a5f' : '1px solid #e5e7eb', transition: 'all 0.15s ease' }}>
               <input
                 type="checkbox"
                 checked={isSelected}
@@ -269,7 +290,6 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
                 </div>
                 <div style={{ fontSize: 13, color: '#6b7280' }}>{ref.authors} &middot; {ref.year || 'N/A'}</div>
                 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                  {!deprecated && !issues && <span style={{ fontSize: 11, fontWeight: 500, padding: '2px 8px', borderRadius: 99, background: '#f0fdf4', color: '#16a34a' }}>Active</span>}
                   {deprecated && !issues && <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 99, background: '#fef3c7', color: '#b45309' }}>Deprecated</span>}
                   {issues && <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 99, background: '#fef2f2', color: '#dc2626' }}>Has Issue</span>}
                 </div>
@@ -283,7 +303,7 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
         )}
       </div>
       {selectedRefs.length > 0 && (
-        <div style={{ marginTop: 12, padding: '10px 14px', background: '#f0fdf4', borderRadius: 12, fontSize: 13, color: '#047857', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{ marginTop: 12, padding: '8px 12px', background: '#f0fdf4', borderRadius: 6, fontSize: 13, color: '#047857', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
           {selectedRefs.length} reference{selectedRefs.length > 1 ? 's' : ''} selected to suggest
         </div>
@@ -303,7 +323,7 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
   const handleSubmit = () => {
     if (submitting) return
     const filledComments = comments.filter((c) => c.text?.trim() && c.courseOutcome && c.ilo && c.coverageType && c.coverageDetail)
-    if (filledComments.length === 0) return
+    if (filledComments.length === 0 && selectedRefs.length === 0) return
 
     const lastText = filledComments[filledComments.length - 1]?.text?.trim()
     if (lastText) {
@@ -333,35 +353,47 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
 
   const handleDirectorSubmit = () => {
     if (submitting) return
-    const text = comments[0]?.text?.trim()
-    if (!text) return
+    const filledComments = comments.filter(c => c.text?.trim() && c.commentedRefId)
+    if (filledComments.length === 0 && selectedRefs.length === 0) return
 
     try {
       const raw = localStorage.getItem('approval_comments_v1')
       const all = raw ? JSON.parse(raw) : []
       const currentRole = normalizeRoleKey(approverRole || localStorage.getItem('approver_role') || '')
       const roleComments = (Array.isArray(all) ? all : []).filter(c => normalizeRoleKey(c.role) === currentRole).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-      const lastComment = roleComments[0]
-      if (lastComment && lastComment.text?.trim() === text) {
-        showToast('This comment is identical to your last comment.', 'warning')
-        return
+      if (filledComments.length > 0) {
+        const lastComment = roleComments[0]
+        if (lastComment && lastComment.text?.trim() === filledComments[0].text) {
+          showToast('This comment is identical to your last comment.', 'warning')
+          return
+        }
       }
     } catch (e) { console.warn('Failed to check duplicate', e) }
 
     setSubmitting(true)
 
     submitComments({
-      comments: [{
-        ...comments[0],
-        text,
-        components: {}
-      }],
-      commentedReferences: commentedRefIds,
+      comments: filledComments.map(c => ({ ...c, components: {} })),
+      commentedReferences: filledComments.map(c => c.commentedRefId),
       suggestedReferences: selectedRefs,
       createdAt: new Date().toISOString()
     })
     setSubmitting(false)
   }
+
+  const directorFilled = comments.filter(c => c.text?.trim() && c.commentedRefId).length
+  const directorSuggested = selectedRefs.length
+  const directorParts = []
+  if (directorFilled > 0) directorParts.push(`Comment${directorFilled > 1 ? 's' : ''}`)
+  if (directorSuggested > 0) directorParts.push(`Suggestion${directorSuggested > 1 ? 's' : ''}`)
+  const directorLabel = directorParts.length > 0 ? `Return with ${directorParts.join(' and ')}` : 'Return with Comments'
+
+  const normalFilled = comments.filter(c => c.text?.trim() && c.courseOutcome && c.ilo && c.coverageType && c.coverageDetail).length
+  const normalSuggested = selectedRefs.length
+  const normalParts = []
+  if (normalFilled > 0) normalParts.push(`Comment${normalFilled > 1 ? 's' : ''}`)
+  if (normalSuggested > 0) normalParts.push(`Suggestion${normalSuggested > 1 ? 's' : ''}`)
+  const normalLabel = normalParts.length > 0 ? `Return with ${normalParts.join(' and ')}` : 'Return with Comments'
 
   return (
     <>
@@ -400,7 +432,7 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
             previousComments.length > 0 ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {previousComments.map(c => (
-                  <div key={c.id} style={{ padding: '10px 12px', background: '#f9fafb', borderRadius: 12, border: '1px solid #e5e7eb' }}>
+                  <div key={c.id} style={{ padding: '10px 12px', background: '#f9fafb', borderRadius: 6, border: '1px solid #e5e7eb' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
                       <span style={{ fontSize: 11, fontWeight: 600, color: '#6b7280' }}>{c.courseCode || ''}</span>
                       <span style={{ fontSize: 11, color: '#9ca3af' }}>{c.createdAt ? new Date(c.createdAt).toLocaleString() : ''}</span>
@@ -415,53 +447,55 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
           ) : isDirector ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12, height: '100%' }}>
               <div style={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <div style={{ display: 'flex', gap: 16, alignItems: 'stretch', height: '100%' }}>
+              <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
               {syllabusReferences.length > 0 && (
-                <div style={{ border: '1px solid #e5e7eb', borderRadius: 12, padding: 16, background: '#fff' }}>
-                  <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 10, color: '#374151' }}>Learning Plan References</div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                    {syllabusReferences.map(ref => {
-                      const dep = isDeprecated(ref)
-                      const iss = hasIssues(ref)
-                      const isChecked = commentedRefIds.includes(ref.id)
-                      return (
-                        <label key={ref.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px', borderRadius: 12, cursor: 'pointer', background: isChecked ? '#e0f2fe' : 'transparent', border: '1px solid ' + (isChecked ? '#93c5fd' : 'transparent'), transition: 'all 0.15s ease' }}>
-                          <input
-                            type="checkbox"
-                            checked={isChecked}
-                            onChange={() => setCommentedRefIds(prev =>
-                              prev.includes(ref.id) ? prev.filter(id => id !== ref.id) : [...prev, ref.id]
-                            )}
-                            style={{ accentColor: '#1e3a5f', width: 16, height: 16, flexShrink: 0 }}
-                          />
-                          <span style={{ flex: 1, fontSize: 13, color: '#374151', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{ref.title}</span>
-                          <span style={{ fontSize: 11, color: '#9ca3af', whiteSpace: 'nowrap' }}>{ref.year || 'N/A'}</span>
-                          {!dep && !iss && <span style={{ fontSize: 10, fontWeight: 500, padding: '2px 6px', borderRadius: 99, background: '#f0fdf4', color: '#16a34a', whiteSpace: 'nowrap' }}>Active</span>}
-                          {dep && !iss && <span style={{ fontSize: 10, fontWeight: 600, padding: '2px 6px', borderRadius: 99, background: '#fef3c7', color: '#b45309', whiteSpace: 'nowrap' }}>Deprecated</span>}
-                          {iss && <span style={{ fontSize: 10, fontWeight: 600, padding: '2px 6px', borderRadius: 99, background: '#fef2f2', color: '#dc2626', whiteSpace: 'nowrap' }}>Has Issue</span>}
-                        </label>
-                      )
-                    })}
+                <div style={{ border: '1px solid #e5e7eb', borderRadius: 6, padding: 16, background: '#fafafa', display: 'flex', flexDirection: 'column', overflow: 'hidden', ...(isFullscreen ? { flex: 1 } : { height: 480 }) }}>
+                  <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 12, color: '#111827' }}>Learning Plan References</div>
+                  <div style={{ overflow: 'auto', flex: 1, minHeight: 0, paddingRight: 18 }}>
+                  {comments.map((c, idx) => (
+                    <div key={c.id} style={{ marginBottom: idx < comments.length - 1 ? 12 : 0, paddingBottom: idx < comments.length - 1 ? 12 : 0, borderBottom: idx < comments.length - 1 ? '1px solid #e5e7eb' : 'none' }}>
+                      <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
+                        <select
+                          value={c.commentedRefId}
+                          onChange={(e) => updateComment(c.id, { commentedRefId: e.target.value })}
+                          style={{ flex: 1, padding: '8px 10px', borderRadius: 6, border: '1px solid #d1d5db', fontSize: 12, fontFamily: "'Poppins', sans-serif", background: '#fff', color: '#374151' }}
+                        >
+                          <option value="">-- Select a reference --</option>
+                          {syllabusReferences.map(ref => (
+                            <option key={ref.id} value={ref.id}>{ref.title} ({ref.year || 'N/A'}){isDeprecated(ref) ? ' [Deprecated]' : ''}{hasIssues(ref) ? ' [Has Issue]' : ''}</option>
+                          ))}
+                        </select>
+                        {comments.length > 1 && (
+                          <button onClick={() => removeCommentSection(c.id)} style={{ width: 32, height: 32, borderRadius: 6, border: '1px solid #E81123', background: '#E81123', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, padding: 0, transition: 'all 0.15s' }}
+                            onMouseEnter={e => { e.currentTarget.style.background = '#B91C1C'; e.currentTarget.style.borderColor = '#B91C1C'; }}
+                            onMouseLeave={e => { e.currentTarget.style.background = '#E81123'; e.currentTarget.style.borderColor = '#E81123'; }}>
+                            <X size={11} strokeWidth={2.5} color="currentColor" />
+                          </button>
+                        )}
+                      </div>
+                      <textarea
+                        className={styles.textarea}
+                        value={c.text || ''}
+                        onChange={(e) => updateCommentText(c.id, e.target.value)}
+                        onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleDirectorSubmit() } }}
+                        placeholder={'Describe the issue or suggestion...'}
+                        style={{ width: '100%', boxSizing: 'border-box', minHeight: 140, resize: 'vertical' }}
+                      />
+                    </div>
+                  ))}
                   </div>
-                  {commentedRefIds.length > 0 && (
-                    <div style={{ marginTop: 8, fontSize: 12, color: '#1e3a5f', fontWeight: 500 }}>{commentedRefIds.length} reference{commentedRefIds.length > 1 ? 's' : ''} selected</div>
-                  )}
+                  <div className={styles.addCommentRow}>
+                    <button onClick={addCommentSection} className={styles.addButton}>
+                      + Add another comment
+                    </button>
+                  </div>
                 </div>
               )}
-              <div className={styles.commentItem}>
-                <div className={styles.commentBody}>
-                  <textarea
-                    ref={firstTextareaRef}
-                    className={styles.textarea}
-                    value={comments[0]?.text || ''}
-                    onChange={(e) => updateCommentText(comments[0]?.id, e.target.value)}
-                    onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleDirectorSubmit() } }}
-                  placeholder={'Describe the issue or suggestion for the references...'}
-                    rows={3}
-                  />
-                </div>
               </div>
+              <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
               {renderRefBrowser()}
+              </div>
                 </div>
               </div>
               {!readOnly && previousComments.length > 0 && (
@@ -474,7 +508,7 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
               {!readOnly && showPreviousComments && previousComments.length > 0 && (
                 <div style={{ maxHeight: 300, overflow: 'auto', display: 'flex', flexDirection: 'column', gap: 8, padding: '0 4px 8px' }}>
                   {previousComments.map(c => (
-                    <div key={c.id} style={{ padding: '10px 12px', background: '#f9fafb', borderRadius: 12, border: '1px solid #e5e7eb' }}>
+                    <div key={c.id} style={{ padding: '10px 12px', background: '#f9fafb', borderRadius: 6, border: '1px solid #e5e7eb' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
                         <span style={{ fontSize: 11, fontWeight: 600, color: '#6b7280' }}>{c.courseCode || ''}</span>
                         <span style={{ fontSize: 11, color: '#9ca3af' }}>{c.createdAt ? new Date(c.createdAt).toLocaleString() : ''}</span>
@@ -547,7 +581,7 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
                               {c.coverageType === 'References' && syllabusReferences.map((r) => {
                                 const dep = isDeprecated(r)
                                 const iss = hasIssues(r)
-                                const statusSuffix = iss ? ' [Has Issue]' : dep ? ' [Deprecated]' : ' [Active]'
+                                const statusSuffix = iss ? ' [Has Issue]' : dep ? ' [Deprecated]' : ''
                                 return (
                                 <option key={r.id} value={r.title}>
                                   {r.title}{r.authors ? ` — ${r.authors}` : ''}{statusSuffix}
@@ -605,13 +639,13 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
           {isDirector ? (
             <button
               onClick={handleDirectorSubmit}
-              disabled={!comments[0]?.text?.trim() || submitting}
-              className={`${styles.submit} ${!comments[0]?.text?.trim() || submitting ? styles.disabled : ''}`}
+              disabled={(!comments[0]?.text?.trim() && selectedRefs.length === 0) || submitting}
+              className={`${styles.submit} ${(!comments[0]?.text?.trim() && selectedRefs.length === 0) || submitting ? styles.disabled : ''}`}
             >
-              Return with Comments
+              {directorLabel}
             </button>
           ) : (
-            <button onClick={handleSubmit} disabled={saveDisabled || submitting} className={`${styles.submit} ${saveDisabled || submitting ? styles.disabled : ''}`}>Return with Comments</button>
+            <button onClick={handleSubmit} disabled={saveDisabled || submitting} className={`${styles.submit} ${saveDisabled || submitting ? styles.disabled : ''}`}>{normalLabel}</button>
           )}
         </div>}
       </div>

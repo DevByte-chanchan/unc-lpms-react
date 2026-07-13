@@ -2,7 +2,7 @@ import styles from '../styles/DropdownA.module.sass'
 
 
 
-const DropdownA = ({ label, disabled, value, initialValue, options, inline = false, onChange, error }) => {
+const DropdownA = ({ label, disabled, value, initialValue, options, inline = false, onChange, error, style: containerStyle }) => {
 
 
 
@@ -80,7 +80,7 @@ const DropdownA = ({ label, disabled, value, initialValue, options, inline = fal
 
     return (
 
-        <div className={styles.container}>
+        <div className={styles.container} style={containerStyle}>
 
             <div className={styles.label}>{label}</div>
 

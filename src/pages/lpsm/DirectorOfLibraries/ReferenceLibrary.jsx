@@ -1,9 +1,9 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Plus, BookOpen, FileText, Globe, Upload, AlertTriangle, AlertCircle, X, Maximize, Minimize2 } from 'react-feather';
 import SkeletonA from '../../../layouts/SkeletonA.jsx';
 import HeaderA from '../../../components/HeaderA.jsx';
 import SideNavigation from '../../../components/SideNavigation.jsx';
+import AddReferenceModal from '../../../components/AddReferenceModal.jsx';
 import styles from '../../../styles/ReferenceLibrary.module.scss';
 
 import { getReferences, setReferences, addReference, deleteReference, archiveReference, unarchiveReference } from '../../../utils/referenceLibrary.js';
@@ -118,8 +118,9 @@ const getDeptColor = (dept) => DEPARTMENT_COLORS[dept] || '#9ca3af';
 const getDeptShort = (dept) => DEPARTMENT_SHORT[dept] || dept;
 
 const ReferenceLibrary = () => {
-  const navigate = useNavigate();
   const [references, setReferencesState] = useState(() => getReferences(true));
+  const [addRefOpen, setAddRefOpen] = useState(false);
+  const [editRef, setEditRef] = useState(null);
   const [filterType, setFilterType] = useState('');
   const [filterDepartment, setFilterDepartment] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -661,7 +662,7 @@ const ReferenceLibrary = () => {
           </select>
         </div>
         <div className={styles.actionsGroup} data-collapsible-buttons>
-          <button className={styles.addBtn} type="button" onClick={() => navigate('/role/director-of-libraries/add-reference')}>
+          <button className={styles.addBtn} type="button" onClick={() => { setEditRef(null); setAddRefOpen(true); }}>
             <Plus size={16} /><span className="btn-label">Add Reference</span>
           </button>
           <button className={styles.bulkBtn} type="button" onClick={() => fileInputRef.current?.click()}>
@@ -718,7 +719,7 @@ const ReferenceLibrary = () => {
                     <div className={styles.actionGroup}>
                       <button className={styles.actionView} type="button" onClick={() => setViewRef(ref)}>View</button>
                       <span className={styles.actionDot}>·</span>
-                      <button className={styles.actionEdit} type="button" onClick={() => navigate(`/role/director-of-libraries/edit-reference/${ref.id}`)}>Edit</button>
+                      <button className={styles.actionEdit} type="button" onClick={() => { setEditRef(ref); setAddRefOpen(true); }}>Edit</button>
                       {tab === 'archived' ? (
                         <>
                           <span className={styles.actionDot}>·</span>
@@ -878,12 +879,22 @@ const ReferenceLibrary = () => {
     </div>
   );
 
+  const handleModalSaved = () => setReferencesState(getReferences(true));
+
   return (
-    <SkeletonA
-      header={<HeaderA role="Director of Libraries" name="SANTOS, MARIA" />}
-      nav={<SideNavigation mode="director-of-libraries" />}
-      content={content}
-    />
+    <>
+      <SkeletonA
+        header={<HeaderA role="Director of Libraries" name="SANTOS, MARIA" />}
+        nav={<SideNavigation mode="director-of-libraries" />}
+        content={content}
+      />
+      <AddReferenceModal
+        show={addRefOpen}
+        onClose={() => setAddRefOpen(false)}
+        refToEdit={editRef}
+        onSaved={handleModalSaved}
+      />
+    </>
   );
 };
 
