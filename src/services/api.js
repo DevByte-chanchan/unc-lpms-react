@@ -91,13 +91,13 @@ export async function fetchItems(courseCode) {
     const data = await res.json();
     return data.map(item => ({
         id: item.id,
+        iloId: item.iloId,
+        iloItem: item.iloItem || null,
         question: item.instruction || '',
         rubricItem: '',
         points: String(item.points || 0),
         span: item.span || 1,
         cognitiveLevel: cogToFrontend(item.cognitiveLevel) || '',
-        co: item.co || '',
-        ilo: item.ilo || '',
         choices: (item.choices || []).map(c => ({
             id: c.id,
             label: c.label || '',
