@@ -1,9 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import styles from '../styles/CoursesTable.module.sass';
-import { ChevronRight, Edit, XCircle, HelpCircle } from 'react-feather';
+import { ChevronRight, Edit, XCircle, HelpCircle, Download } from 'react-feather';
 import { fetchJson } from "../utils/api.js";
 import { getWorkflow } from "../utils/workflowHelpers.js";
+import { getSyllabi } from "../utils/dataStore.js";
+import { buildSyllabusHtml } from "../utils/syllabusPdfHtml.js";
+import PDFViewerModal from './PDFViewerModal.jsx';
+import unclogo from '../assets/unclogo.png';
 
 // --- Custom Date Formatters to Ensure Global Consistency (mirrors composition client) ---
 const formatDate = (dateString) => {
@@ -74,6 +78,8 @@ const CoursesTable = () => {
     const [assignments, setAssignments] = useState([]);
     const [loading, setLoading] = useState(false);
     const [popup, setPopup] = useState({ open: false, data: null });
+    const [exportFile, setExportFile] = useState(null);
+    const [exporting, setExporting] = useState(false);
 
     useEffect(() => {
         loadAssignments();
@@ -144,6 +150,40 @@ const CoursesTable = () => {
         const pco = assignment.ProgramCourseOffering || {};
         const course = pco.Course || {};
         return course.course_title || course.title || course.name || pco.course_description || '-';
+    };
+
+    // RETAINED: PDF/HTML export of an approved learning plan (official UNC form)
+    const handlePreview = (row) => {
+        try {
+            setExporting(true);
+            const code = getCode(row);
+            const syllabus = (getSyllabi() || []).find(s => s.code === code);
+            if (!syllabus) { alert('Syllabus data not found for ' + code); setExporting(false); return; }
+            const workflow = getWorkflow(code);
+            const logoUrl = new URL(unclogo, window.location.origin).href;
+            const html = buildSyllabusHtml(syllabus, code, workflow, logoUrl);
+            const blob = new Blob([html], { type: 'text/html' });
+            const url = URL.createObjectURL(blob);
+            setExportFile({
+                file_url: url,
+                file_name: `Syllabus_${code}.html`,
+                instructor_name: row.instructor || '—',
+                course_id: code,
+                course_name: getName(row),
+                submission_date: row.date_submitted || workflow?.submittedAt || '',
+                period_label: row.period || '',
+            });
+        } catch (err) {
+            console.warn('Preview generation failed:', err);
+            alert('Failed to generate preview: ' + (err?.message || err));
+        } finally {
+            setExporting(false);
+        }
+    };
+
+    const closeExportModal = () => {
+        if (exportFile?.file_url?.startsWith('blob:')) URL.revokeObjectURL(exportFile.file_url);
+        setExportFile(null);
     };
 
     const computeOverallStatus = (row) => {
@@ -334,6 +374,16 @@ const CoursesTable = () => {
                                         </Link>
 
                                         {selectedStatus === 'APPROVED' &&
+                                            <span
+                                                className="actionLink"
+                                                style={{ display: 'inline-flex', alignItems: 'center', gap: 5, cursor: exporting ? 'wait' : 'pointer', color: '#6b7280' }}
+                                                onClick={() => !exporting && handlePreview(row)}
+                                            >
+                                                {exporting ? '...' : 'Export'} <Download size={16} />
+                                            </span>
+                                        }
+
+                                        {selectedStatus === 'APPROVED' &&
                                             <button onClick={() => openPopup(row)} className={styles.info}>
                                                 <HelpCircle size={18} />
                                             </button>
@@ -396,6 +446,14 @@ const CoursesTable = () => {
             </div>
 
             {popup.open && <DetailsPopup data={popup.data} onClose={closePopup} />}
+
+            {exportFile && (
+                <PDFViewerModal
+                    file={exportFile}
+                    kind="Syllabus"
+                    onClose={closeExportModal}
+                />
+            )}
         </div>
     );
 };
