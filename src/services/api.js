@@ -131,8 +131,7 @@ export async function fetchItems(courseCode) {
 
 export async function saveItems(courseCode, items) {
     const body = items.map(item => ({
-        co: item.co || '',
-        ilo: item.ilo || '',
+        iloId: item.iloId || null,
         instruction: item.instruction || item.question || '',
         points: parseInt(item.points) || 0,
         span: parseInt(item.span) || 1,

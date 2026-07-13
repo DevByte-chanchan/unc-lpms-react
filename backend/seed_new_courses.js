@@ -374,6 +374,7 @@ function generateItems(courseCode) {
                     courseCode,
                     co,
                     ilo: iloKey,
+                    iloIdx,
                     instruction: resolveText(tpl.q, ilo, cd),
                     points: tpl.p || 2,
                     span: effectiveSpan,
