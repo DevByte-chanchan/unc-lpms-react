@@ -16,7 +16,7 @@
   flex-direction: column
   height: max-content
   padding: 20px 40px 20px 40px
-  border-radius: 5px
+  border-radius: 4px
   border: 1px solid #DDDFDF
   box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.25)
   margin-bottom: 20px
@@ -29,9 +29,9 @@
 
 .uploadButton
   padding: 10px 20px 10px 15px
-  background: #EA1212
+  background: #1A1A1A
   color: white
-  border: none
+  border: 1.5px solid #1A1A1A
   border-radius: 20px
   cursor: pointer
   height: 40px
@@ -40,10 +40,11 @@
   font-weight: 500
   display: flex
   align-items: center
-  flex-wrap: wrap
+  outline: none
 
   &:hover
-    background: black
+    background: #F3F4F6
+    color: #1A1A1A
 
 .clearButton
   padding: 10px 20px 10px 15px
@@ -182,7 +183,7 @@
   align-items: center
   justify-content: center
   height: 36px
-  font-size: 13px
+  font-size: 14px
 
 .tableRow
   display: grid
@@ -199,7 +200,7 @@
   font-weight: 500
   color: #6B7280
   height: 36px
-  font-size: 13px
+  font-size: 14px
 
 .questionInput
   width: 100%
@@ -216,7 +217,7 @@
   padding: 10px 28px 10px 10px
   border: 1px solid #DDDFDF
   border-radius: 5px
-  font-size: 13px
+  font-size: 14px
   background: white
   appearance: none
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236B7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")
@@ -234,7 +235,7 @@
   padding: 10px
   border: 1px solid #DDDFDF
   border-radius: 5px
-  font-size: 13px
+  font-size: 14px
   text-align: center
   height: 42px
   box-sizing: border-box
@@ -248,6 +249,9 @@
   border-radius: 4px
   cursor: pointer
   height: 42px
+  font-weight: 500
+  border: none
+  outline: none
 
   &:hover
     background: #DC2626
@@ -315,6 +319,8 @@
   align-items: center
   justify-content: center
   cursor: pointer
+  font-weight: 500
+  outline: none
 
   &:hover
     background: #DC2626
@@ -393,7 +399,7 @@
 
 .mSectionSub
   margin: 0
-  font-size: 12px
+  font-size: 14px
   color: #6B7280
   line-height: 1.5
 
@@ -409,8 +415,8 @@
   padding: 12px 16px
   background: #fff5f5
   border: 1px solid #fca5a5
-  border-radius: 6px
-  font-size: 13px
+  border-radius: 4px
+  font-size: 14px
   font-weight: 500
   color: #b00000
   text-align: center
@@ -424,8 +430,8 @@
   padding: 10px 16px
   background: #fff5f5
   border: 1px solid #fca5a5
-  border-radius: 6px
-  font-size: 13px
+  border-radius: 4px
+  font-size: 14px
   color: #b00000
   display: flex
   align-items: center
@@ -440,7 +446,7 @@
     color: white
     border: none
     border-radius: 4px
-    font-size: 12px
+    font-size: 14px
     font-weight: 600
     cursor: pointer
 
@@ -457,12 +463,13 @@
   overflow: hidden
   text-overflow: ellipsis
   white-space: nowrap
-  font-size: 13px
+  font-size: 14px
+  font-size: 14px
   color: #1A1A1A
   line-height: 1.4
 
 .mItemEmpty
-  font-size: 12px
+  font-size: 14px
   color: #bbb
   font-style: italic
 
@@ -529,7 +536,7 @@
 .mStepVal
   min-width: 24px
   text-align: center
-  font-size: 13px
+  font-size: 14px
   font-weight: 700
   color: #1A1A1A
   user-select: none
@@ -546,7 +553,7 @@
   padding: 0 30px 0 10px
   border: 1px solid #DDDFDF
   border-radius: 6px
-  font-size: 13px
+  font-size: 14px
   color: #1A1A1A
   background-color: white
   appearance: none
@@ -559,6 +566,9 @@
   &:focus
     outline: none
     border-color: #EA1212
+
+  option
+    font-size: 14px
 
 .mSelectDisabled
   background-color: #F3F4F6
@@ -577,7 +587,7 @@
   padding: 0 8px
   border: 1px solid #DDDFDF
   border-radius: 6px
-  font-size: 13px
+  font-size: 14px
   text-align: center
   color: #1A1A1A
   background: white
@@ -605,6 +615,7 @@
   cursor: pointer
   color: white
   transition: background 0.12s
+  outline: none
   padding: 0
 
   svg
@@ -640,7 +651,7 @@
   align-self: stretch
   background: white
   border: 1px solid #DDDFDF
-  border-radius: 10px
+  border-radius: 4px
   overflow: hidden
   display: flex
   flex-direction: column
@@ -653,14 +664,14 @@
   border-bottom: 1px solid #F1F3F5
 
 .tTitle
-  font-size: 11px
+  font-size: 13px
   font-weight: 700
   letter-spacing: 0.07em
   text-transform: uppercase
   color: #6B7280
 
 .tTotalPill
-  font-size: 12px
+  font-size: 13px
   font-weight: 700
   padding: 3px 10px
   border-radius: 10px
@@ -695,7 +706,7 @@
   gap: 10px
   padding: 12px
   background: #F9FAFB
-  border-radius: 8px
+  border-radius: 4px
 
 .tCoTitle
   font-size: 13px
@@ -712,7 +723,7 @@
   min-height: 30px
 
 .tIloId
-  font-size: 12px
+  font-size: 13px
   font-weight: 700
   color: #374151
   width: 38px
@@ -740,7 +751,7 @@
   background: #fbbf24
 
 .tIloCount
-  font-size: 12px
+  font-size: 13px
   font-weight: 700
   color: #374151
   width: 36px
@@ -763,7 +774,7 @@
   height: 100%
   min-height: 0
   overflow: hidden
-  background: #F9FAFB
+  background: white
   display: flex
   flex-direction: column
 
@@ -811,7 +822,7 @@
   background: #FFF4F4
   border-bottom: 1px solid #fca5a5
   color: #b00000
-  font-size: 13px
+  font-size: 14px
   font-weight: 500
   text-align: center
   animation: bWarnFadeIn 0.3s ease
@@ -871,7 +882,7 @@
 
 // Status pill in top bar
 .bStatusPill
-  font-size: 12px
+  font-size: 14px
   font-weight: 700
   padding: 3px 12px
   border-radius: 20px
@@ -895,24 +906,22 @@
 // ── Top bar buttons ───────────────────────────────────────────────────────────
 
 .bBtnSave
-  display: inline-flex
-  align-items: center
-  gap: 7px
-  height: 40px
-  padding: 0 22px
-  background: #1A1A1A
-  color: #ffffff
-  border: none
+  padding: 10px 24px
+  border: 1.5px solid #1A1A1A
   border-radius: 6px
-  font-size: 13px
-  font-weight: 600
+  background: #1A1A1A
+  color: white
   cursor: pointer
+  font-size: 14px
+  font-weight: 500
   white-space: nowrap
   flex-shrink: 0
   transition: background 0.15s, opacity 0.15s
+  outline: none
 
   &:hover:not(:disabled)
-    background: #EA1212
+    background: #F3F4F6
+    color: #1A1A1A
 
   &:disabled
     background: #9CA3AF
@@ -921,24 +930,22 @@
     opacity: 0.7
 
 .bBtnExport
-  display: inline-flex
-  align-items: center
-  gap: 6px
-  height: 40px
-  padding: 0 20px
-  background: #EA1212
-  color: #ffffff
-  border: none
+  padding: 10px 18px
+  border: 1.5px solid #1A1A1A
   border-radius: 6px
-  font-size: 13px
-  font-weight: 500
+  background: white
+  color: #1A1A1A
   cursor: pointer
+  font-size: 14px
+  font-weight: 500
   white-space: nowrap
   flex-shrink: 0
   transition: background 0.15s
+  outline: none
 
   &:hover
-    background: #C00000
+    background: #1A1A1A
+    color: white
 
 // ── Warning modal ─────────────────────────────────────────────────────────────
 .bWarnOverlay
@@ -952,7 +959,7 @@
 
 .bWarnBox
   background: white
-  border-radius: 12px
+  border-radius: 4px
   padding: 28px 32px
   max-width: 380px
   width: 90%
@@ -965,7 +972,7 @@
   margin: 0 0 8px 0
 
 .bWarnBody
-  font-size: 13px
+  font-size: 14px
   color: #6B7280
   line-height: 1.6
   margin: 0 0 20px 0
@@ -982,10 +989,11 @@
   color: #374151
   border: 1.5px solid #DDDFDF
   border-radius: 6px
-  font-size: 13px
+  font-size: 14px
   font-weight: 500
   cursor: pointer
   transition: all 0.12s
+  outline: none
 
   &:hover
     border-color: #374151
@@ -995,15 +1003,17 @@
   padding: 0 20px
   background: #EA1212
   color: #ffffff
-  border: none
+  border: 1.5px solid #EA1212
   border-radius: 6px
-  font-size: 13px
-  font-weight: 600
+  font-size: 14px
+  font-weight: 500
   cursor: pointer
   transition: background 0.15s
+  outline: none
 
   &:hover
-    background: #C00000
+    background: white
+    color: #EA1212
 
 // ── Scrollable item list ──────────────────────────────────────────────────────
 .bList
@@ -1036,7 +1046,7 @@
   justify-content: center
   background: #EA1212
   border: none
-  border-radius: 0 10px 10px 0
+  border-radius: 0 4px 4px 0
   cursor: pointer
   color: white
   flex-shrink: 0
@@ -1055,7 +1065,7 @@
   flex: 1
   min-width: 0
   border: 1px solid #DDDFDF
-  border-radius: 10px
+  border-radius: 4px
   background: white
   overflow: hidden
   box-shadow: 0 1px 3px rgba(0,0,0,0.06)
@@ -1066,7 +1076,7 @@
 
 // Card with delete button attached — flatten right side
 .bCardDelMode
-  border-radius: 10px 0 0 10px
+  border-radius: 4px 0 0 4px
   border-right: none
 
 .bCardIncomplete
@@ -1107,21 +1117,23 @@
 .bPtsInline
   display: flex
   align-items: center
-  gap: 4px
+  gap: 8px
   align-self: center
+  padding-right: 8px
+  border-right: 1px solid #E5E7EB
 
 .bPtsInlineLabel
-  font-size: 11px
+  font-size: 14px
   font-weight: 600
-  color: #6B7280
+  color: #374151
 
 .bPtsInlineInput
   width: 52px
   height: 34px
   padding: 0 6px
-  border: 2px solid #1A1A1A
+  border: 1.5px solid #DDDFDF
   border-radius: 6px
-  font-size: 13px
+  font-size: 14px
   font-weight: 700
   text-align: center
   color: #1A1A1A
@@ -1144,7 +1156,7 @@
   gap: 6px
 
 .bSpanEditHint
-  font-size: 12px
+  font-size: 14px
   font-weight: 500
   color: #6B7280
   white-space: nowrap
@@ -1155,7 +1167,7 @@
   padding: 0 6px
   border: 2px solid #EA1212
   border-radius: 6px
-  font-size: 13px
+  font-size: 14px
   font-weight: 700
   text-align: center
   color: #1A1A1A
@@ -1184,6 +1196,7 @@
   cursor: pointer
   transition: background 0.12s
   padding: 0
+  outline: none
 
   svg
     display: block
@@ -1205,6 +1218,7 @@
   cursor: pointer
   transition: all 0.12s
   padding: 0
+  outline: none
 
   svg
     display: block
@@ -1226,6 +1240,7 @@
   cursor: pointer
   transition: all 0.12s
   padding: 0
+  outline: none
 
   svg
     display: block
@@ -1245,8 +1260,8 @@
   color: #b00000
   border: 1.5px solid #fca5a5
   border-radius: 6px
-  font-size: 12px
-  font-weight: 600
+  font-size: 14px
+  font-weight: 500
   cursor: pointer
   white-space: nowrap
   transition: all 0.12s
@@ -1289,7 +1304,7 @@
 
 // Group label (Choices / Rubric)
 .bGroupLabel
-  font-size: 11px
+  font-size: 14px
   font-weight: 700
   letter-spacing: 0.06em
   text-transform: uppercase
@@ -1311,9 +1326,9 @@
   gap: 8px
 
 .bChoiceLetter
-  font-size: 13px
+  font-size: 14px
   font-weight: 700
-  color: #EA1212
+  color: #6B7280
   width: 20px
   text-align: center
   flex-shrink: 0
@@ -1326,7 +1341,7 @@
   padding: 6px 10px
   border: 1.5px solid #DDDFDF
   border-radius: 5px
-  font-size: 13px
+  font-size: 14px
   background: white
   font-family: inherit
   min-width: 0
@@ -1340,25 +1355,26 @@
     outline: none
     border-color: #EA1212
 
-// Link-style "add another" button
 .bLinkBtn
   display: inline-flex
   align-items: center
   gap: 4px
   padding: 6px 12px
   background: transparent
-  border: 1.5px solid #EA1212
+  border: 1.5px solid #1A1A1A
   border-radius: 20px
-  color: #EA1212
-  font-size: 12px
-  font-weight: 600
+  color: #1A1A1A
+  font-size: 14px
+  font-weight: 500
   cursor: pointer
   margin-top: 2px
   transition: all 0.15s
+  outline: none
 
   &:hover
-    background: #fee2e2
-    border-color: #EA1212
+    background: #4B5563
+    color: white
+    border-color: #4B5563
 
   &:focus
     outline: none
@@ -1380,7 +1396,7 @@
   justify-content: flex-start
 
 .bWeightPill
-  font-size: 11px
+  font-size: 16px
   font-weight: 700
   padding: 2px 8px
   border-radius: 20px
@@ -1430,7 +1446,7 @@
     width: fit-content
 
 .bRubricPtsTotal
-  font-size: 11px
+  font-size: 14px
   font-weight: 700
   color: #7a6200
   background: #fff9e0
@@ -1459,7 +1475,7 @@
   padding: 4px 8px
   border: 1.5px solid #DDDFDF
   border-radius: 5px
-  font-size: 12px
+  font-size: 14px
   font-family: inherit
   background: white
   box-sizing: border-box
@@ -1481,7 +1497,7 @@
   padding: 4px 8px
   border: 1.5px solid #DDDFDF
   border-radius: 5px
-  font-size: 12px
+  font-size: 14px
   font-family: inherit
   background: white
   box-sizing: border-box
@@ -1493,49 +1509,48 @@
     outline: none
     border-color: #d4af00
 
-.bRubricWeightWrap
+.bRubricWeightIn
   min-height: 30px
+  padding: 4px 6px
   border: 1.5px solid #DDDFDF
   border-radius: 5px
-  background: white
-  overflow: hidden
-  transition: border-color 0.12s
-  box-sizing: border-box
-
-.bRubricWeightIn
-  width: 100%
-  border: none
-  padding: 4px 6px
-  font-size: 12px
+  font-size: 14px
   font-family: inherit
   text-align: center
-  background: transparent
-  min-width: 0
+  background: white
+  width: 100%
+  box-sizing: border-box
   resize: none
   overflow: hidden
   line-height: 1.4
-  min-height: 22px
-  box-sizing: border-box
-  display: block
 
   &:focus
     outline: none
+    border-color: #d4af00
 
-
+.bRubricWeightErr
+  border-color: #EA1212 !important
+  background-color: #FFF4F4 !important
 
 .bRubricPts
   min-height: 30px
-  display: flex
-  align-items: flex-start
-  justify-content: center
-  font-size: 12px
+  padding: 4px 2px
+  font-size: 14px
   font-weight: 600
   color: #7a6200
   background: #fff9e0
   border-radius: 4px
   text-align: center
-  padding: 4px 2px
+  width: 100%
   box-sizing: border-box
+  resize: none
+  overflow: hidden
+  line-height: 1.4
+  border: none
+  font-family: inherit
+
+  &:focus
+    outline: none
 
 // Generic icon remove button
 .bIconRemove
@@ -1591,36 +1606,39 @@
   padding: 0 16px
   background: #1A1A1A
   color: #ffffff
-  border: none
+  border: 1.5px solid #1A1A1A
   border-radius: 20px
-  font-size: 12px
+  font-size: 14px
   font-weight: 500
   cursor: pointer
   white-space: nowrap
   transition: all 0.12s
+  outline: none
 
   &:hover
-    background: #EA1212
+    background: #F3F4F6
+    color: #1A1A1A
 
-// Add Rubric — red bg, white text
 .bBtnAddRubric
   display: inline-flex
   align-items: center
   gap: 6px
   height: 34px
   padding: 0 16px
-  background: #EA1212
+  background: #1A1A1A
   color: #ffffff
-  border: none
+  border: 1.5px solid #1A1A1A
   border-radius: 20px
-  font-size: 12px
+  font-size: 14px
   font-weight: 500
   cursor: pointer
   white-space: nowrap
   transition: all 0.12s
+  outline: none
 
   &:hover
-    background: #C00000
+    background: #F3F4F6
+    color: #1A1A1A
 
 // Toggle rubric — light red bg, dark red text
 .bBtnToggleRubric
@@ -1629,20 +1647,21 @@
   gap: 6px
   height: 34px
   padding: 0 16px
-  background: #fee2e2
-  color: #b00000
-  border: 1.5px solid #fca5a5
+  background: #F3F4F6
+  color: #6B7280
+  border: 1.5px solid #D1D5DB
   border-radius: 20px
-  font-size: 12px
+  font-size: 14px
   font-weight: 500
   cursor: pointer
   white-space: nowrap
   transition: all 0.12s
+  outline: none
 
   &:hover
-    background: #EA1212
+    background: #4B5563
     color: white
-    border-color: #EA1212
+    border-color: #4B5563
 
 // Scroll-to-top button (lower-right corner of builder)
 .bScrollTop
@@ -1664,6 +1683,7 @@
   transition: background 0.12s, opacity 0.2s
   opacity: 0
   pointer-events: none
+  outline: none
 
 .bScrollTopVisible
   opacity: 1
@@ -1671,3 +1691,7 @@
 
   &:hover
     background: #EA1212
+
+.bScrollTopShifted
+  right: calc(380px + 32px + 24px)
+

@@ -12,6 +12,16 @@ const Comment = sequelize.define('Comment', {
         allowNull: false,
         field: 'course_code'
     },
+    courseOutcomeId: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        field: 'course_outcome_id'
+    },
+    assessmentItemId: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        field: 'assessment_item_id'
+    },
     co: {
         type: DataTypes.STRING(20),
         defaultValue: ''

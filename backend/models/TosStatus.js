@@ -14,6 +14,7 @@ const TosStatus = sequelize.define('TosStatus', {
     },
     status: {
         type: DataTypes.ENUM('draft', 'pending', 'approved', 'returned'),
+        allowNull: false,
         defaultValue: 'draft'
     },
     submittedAt: {

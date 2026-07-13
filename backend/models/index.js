@@ -23,10 +23,19 @@ ItemChoice.belongsTo(AssessmentItem, { foreignKey: 'itemId', as: 'item' });
 AssessmentItem.hasMany(ItemRubric, { foreignKey: 'itemId', as: 'rubrics' });
 ItemRubric.belongsTo(AssessmentItem, { foreignKey: 'itemId', as: 'item' });
 
+IloItem.hasMany(AssessmentItem, { foreignKey: 'iloId', as: 'assessmentItems' });
+AssessmentItem.belongsTo(IloItem, { foreignKey: 'iloId', as: 'iloItem' });
+
 Course.hasOne(TosStatus, { foreignKey: 'courseCode', as: 'tosStatus' });
 TosStatus.belongsTo(Course, { foreignKey: 'courseCode', as: 'course' });
 
 Course.hasMany(Comment, { foreignKey: 'courseCode', as: 'comments' });
 Comment.belongsTo(Course, { foreignKey: 'courseCode', as: 'course' });
+
+Comment.belongsTo(CourseOutcome, { foreignKey: 'courseOutcomeId', as: 'courseOutcome' });
+CourseOutcome.hasMany(Comment, { foreignKey: 'courseOutcomeId', as: 'comments' });
+
+Comment.belongsTo(AssessmentItem, { foreignKey: 'assessmentItemId', as: 'assessmentItem' });
+AssessmentItem.hasMany(Comment, { foreignKey: 'assessmentItemId', as: 'comments' });
 
 export { sequelize, Course, CourseOutcome, IloItem, AssessmentItem, ItemChoice, ItemRubric, TosStatus, Comment };

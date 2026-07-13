@@ -13,10 +13,12 @@ const ItemChoice = sequelize.define('ItemChoice', {
         field: 'item_id'
     },
     label: {
-        type: DataTypes.STRING(10)
+        type: DataTypes.STRING(10),
+        allowNull: false
     },
     text: {
-        type: DataTypes.TEXT
+        type: DataTypes.TEXT,
+        allowNull: false
     },
     isCorrect: {
         type: DataTypes.BOOLEAN,

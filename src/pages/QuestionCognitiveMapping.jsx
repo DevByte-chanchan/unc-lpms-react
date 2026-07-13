@@ -107,36 +107,32 @@ const RubricRow = ({ row, itemPoints, totalWeight, rowPoints, nameError, onChang
                     if (trimmed !== e.target.value) onChange({ ...row, description: trimmed }, 'description');
                 }}
             />
-            <div className={`${layout.bRubricWeightWrap} ${isOver ? layout.bRubricWeightErr : ''}`}>
-                <AutoResizeTextarea
-                    ref={weightRef}
-                    className={layout.bRubricWeightIn}
-                    placeholder="0"
-                    value={row.weight ? row.weight + '%' : ''}
-                    rows={1}
-                    readOnly={readOnly}
-                    onChange={e => {
-                        const raw = e.target.value.replace(/[^0-9]/g, '');
-                        const num = Math.min(Number(raw) || 0, 100);
-                        onChange({ ...row, weight: String(num) }, 'weight');
-                    }}
-                />
-            </div>
-            <div className={layout.bRubricPts}>
-                <AutoResizeTextarea
-                    ref={ptsRef}
-                    className={layout.bRubricWeightIn}
-                    placeholder="0"
-                    value={rowPoints !== undefined ? String(rowPoints) : ''}
-                    rows={1}
-                    readOnly={readOnly}
-                    onChange={e => {
-                        const raw = e.target.value.replace(/[^0-9]/g, '');
-                        const num = Math.min(Number(raw) || 0, 999);
-                        onChange({ ...row, pts: String(num) }, 'pts');
-                    }}
-                />
-            </div>
+            <AutoResizeTextarea
+                ref={weightRef}
+                className={`${layout.bRubricWeightIn}${isOver ? ` ${layout.bRubricWeightErr}` : ''}`}
+                placeholder="0"
+                value={row.weight ? row.weight + '%' : ''}
+                rows={1}
+                readOnly={readOnly}
+                onChange={e => {
+                    const raw = e.target.value.replace(/[^0-9]/g, '');
+                    const num = Math.min(Number(raw) || 0, 100);
+                    onChange({ ...row, weight: String(num) }, 'weight');
+                }}
+            />
+            <AutoResizeTextarea
+                ref={ptsRef}
+                className={layout.bRubricPts}
+                placeholder="0"
+                value={rowPoints !== undefined ? String(rowPoints) : ''}
+                rows={1}
+                readOnly={readOnly}
+                onChange={e => {
+                    const raw = e.target.value.replace(/[^0-9]/g, '');
+                    const num = Math.min(Number(raw) || 0, 999);
+                    onChange({ ...row, pts: String(num) }, 'pts');
+                }}
+            />
             {!readOnly && (
                 <button className={layout.bIconRemove} onClick={onRemove} title="Remove">
                     <X size={12} strokeWidth={2.5} />
@@ -147,7 +143,7 @@ const RubricRow = ({ row, itemPoints, totalWeight, rowPoints, nameError, onChang
 };
 
 // ─── AssessmentBuilder ────────────────────────────────────────────────────────
-const AssessmentBuilder = ({ totalSlots, initialItems, onSaveReturn, builderSaveRef, onProgressUpdate, highlightKey, assessmentName, onAssessmentNameChange, assessmentNames = ['Midterm Exam', 'Final Exam', 'Written Exam', 'Practical Exam', 'Oral Exam', 'Quiz', 'Project', 'Assignment', 'Periodic Exam'], showDuplicateWarning, duplicateIds, onDismissDuplicateWarning, readOnly = false }) => {
+const AssessmentBuilder = ({ totalSlots, initialItems, onSaveReturn, builderSaveRef, onProgressUpdate, highlightKey, assessmentName, onAssessmentNameChange, assessmentNames = ['Midterm Exam', 'Final Exam', 'Written Exam', 'Practical Exam', 'Oral Exam', 'Quiz', 'Project', 'Assignment', 'Periodic Exam'], showDuplicateWarning, duplicateIds, onDismissDuplicateWarning, readOnly = false, showComments }) => {
     const [selectedAssessment, setSelectedAssessment] = useState(assessmentName || '');
     const [spanEdit, setSpanEdit] = useState(null);
     const [warnData, setWarnData] = useState(null);
@@ -452,6 +448,7 @@ const AssessmentBuilder = ({ totalSlots, initialItems, onSaveReturn, builderSave
                 span: it.span || 1,
                 co: ex.co || '',
                 ilo: ex.ilo || '',
+                iloId: ex.iloId || null,
                 points: it.points || ex.points || '',
                 cognitiveLevel: ex.cognitiveLevel || '',
             };
@@ -840,7 +837,7 @@ const AssessmentBuilder = ({ totalSlots, initialItems, onSaveReturn, builderSave
                 </div>
             </div>{/* end bScroll */}
 
-            <button className={`${layout.bScrollTop} ${showScrollTop ? layout.bScrollTopVisible : ''}`} onClick={() => {
+            <button className={`${layout.bScrollTop}${showComments ? ` ${layout.bScrollTopShifted}` : ''} ${showScrollTop ? layout.bScrollTopVisible : ''}`} onClick={() => {
                 document.querySelector('[data-bscroll]')?.scrollTo({ top: 0, behavior: 'smooth' });
             }}>
                 <ChevronUp size={40} strokeWidth={2.5} />
@@ -916,6 +913,7 @@ const QuestionCognitiveMapping = ({
                                        assessmentName,
                                        onAssessmentNameChange,
                                        readOnly = false,
+                                       showComments,
                                    }) => {
 
     const [showPostSaveWarning, setShowPostSaveWarning] = useState(false);
@@ -928,7 +926,7 @@ const QuestionCognitiveMapping = ({
     const createEmptyQuestion = () => ({
         id: uid(), question: '', rubricItem: '',
         choices: [], rubricRows: [], points: '',
-        co: '', ilo: '', cognitiveLevel: '', span: 1,
+        co: '', ilo: '', iloId: null, cognitiveLevel: '', span: 1,
     });
 
     const getTotalRequiredItems = () =>
@@ -982,9 +980,15 @@ const QuestionCognitiveMapping = ({
         setQuestions(prev => prev.map(q => {
             if (q.id !== id) return q;
             const u = { ...q, [field]: value };
-            if (field === 'co') { u.ilo = ''; u.cognitiveLevel = ''; }
+            if (field === 'co') { u.ilo = ''; u.cognitiveLevel = ''; u.iloId = null; }
             if (field === 'ilo' && !getAllowedCognitiveLevels(value).includes(u.cognitiveLevel))
                 u.cognitiveLevel = '';
+            // resolve iloId from outcomeData when both co and ilo are set
+            if (u.co && u.ilo) {
+                const outcome = outcomeData.find(o => o.co === u.co);
+                const iloItem = outcome?.ilos?.find(il => il.id === u.ilo);
+                if (iloItem && iloItem.iloDbId) u.iloId = iloItem.iloDbId;
+            }
             return u;
         }));
     };
@@ -1041,6 +1045,7 @@ const QuestionCognitiveMapping = ({
                 span: si.span || ex.span || 1,
                 co: isCleared ? '' : (ex.co || si.co || ''),
                 ilo: isCleared ? '' : (ex.ilo || si.ilo || ''),
+                iloId: isCleared ? null : (ex.iloId || si.iloId || null),
                 cognitiveLevel: isCleared ? '' : (ex.cognitiveLevel || si.cognitiveLevel || ''),
             };
         });
@@ -1098,6 +1103,7 @@ const QuestionCognitiveMapping = ({
                     setShowDuplicateWarning(false);
                 }}
                 readOnly={readOnly}
+                showComments={showComments}
             />
         );
     }
@@ -1114,18 +1120,45 @@ const QuestionCognitiveMapping = ({
         <div className={layout.mOuter}>
             {/* LEFT: scrollable mapping */}
             <div className={layout.mScrollArea}>
+                {showComments && !showBuilder && (
+                    <div style={{ position: 'sticky', top: 0, zIndex: 10, marginBottom: 16, padding: '12px 16px', background: '#F9FAFB', borderRadius: 4, border: '1px solid #E5E7EB', fontSize: 13, display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 24 }}>
+                        <span style={{ fontWeight: 600, color: '#374151', whiteSpace: 'nowrap' }}>Item Allocation</span>
+                        <span style={{
+                             padding: '2px 10px', borderRadius: 4, fontWeight: 600, fontSize: 13, whiteSpace: 'nowrap',
+                             background: isOverflow ? '#FEE2E2' : totalCurrent === totalRequired ? '#DCFCE7' : '#FEF3C7',
+                             color: isOverflow ? '#B00000' : totalCurrent === totalRequired ? '#166534' : '#92400E'
+                         }}>{totalCurrent}/{totalRequired}</span>
+                        <span style={{ width: 1, height: 20, background: '#D1D5DB', flexShrink: 0 }} />
+                        {outcomeData.map(co => (
+                            <span key={co.co} style={{ display: 'inline-flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+                                <span style={{ fontWeight: 500, color: '#6B7280', whiteSpace: 'nowrap' }}>{co.co}</span>
+                                {co.ilos.map(ilo => {
+                                    const used = currentCounts[co.co]?.ilos[ilo.id] || 0;
+                                    const status = used === ilo.items ? 'ok' : used > ilo.items ? 'over' : 'under';
+                                    return (
+                                        <span key={ilo.id} style={{
+                                             whiteSpace: 'nowrap', padding: '2px 10px', borderRadius: 4, fontSize: 13, fontWeight: 500,
+                                             background: status === 'ok' ? '#DCFCE7' : status === 'over' ? '#FEE2E2' : '#FEF3C7',
+                                             color: status === 'ok' ? '#166534' : status === 'over' ? '#B00000' : '#92400E'
+                                         }}>
+                                            {ilo.id}:&nbsp;&nbsp;{used}/{ilo.items}
+                                        </span>
+                                    );
+                                })}
+                            </span>
+                        ))}
+                    </div>
+                )}
                 <div className={layout.section} style={{ position: 'relative' }}>
                     <div className={layout.sectionHeader}>
                         <div>
                             <h2 className={layout.mSectionTitle}>Assessment Item – Cognitive Level Alignment</h2>
-                            <p className={layout.mSectionSub}>Map each item to a CO, ILO, and Bloom's level.</p>
+                            <p className={layout.mSectionSub}>Edit assessment first then map each item to a CO, ILO, and Bloom's level.</p>
                         </div>
-                        {!readOnly && (
-                            <button className={layout.uploadButton} onClick={() => onShowBuilderChange(true)}>
-                                <FileText size={14} style={{ marginRight: 6 }} />
-                                {hasBuiltItems ? 'Edit Assessment' : 'Build Assessment'}
-                            </button>
-                        )}
+                        <button className={layout.uploadButton} onClick={() => onShowBuilderChange(true)}>
+                            <FileText size={14} style={{ marginRight: 6 }} />
+                            {readOnly ? 'Assessment Items' : hasBuiltItems ? 'Edit Assessment' : 'Build Assessment'}
+                        </button>
                     </div>
 
                     {isOverflow && (
@@ -1221,14 +1254,16 @@ const QuestionCognitiveMapping = ({
             </div>
 
             {/* RIGHT: sticky tracker panel */}
-            <TrackerPanel
-                outcomeData={outcomeData}
-                currentCounts={currentCounts}
-                totalRequired={totalRequired}
-                totalCurrent={totalCurrent}
-                isOverflow={isOverflow}
-                getIloStatus={getIloStatus}
-            />
+            {!showComments && (
+                <TrackerPanel
+                    outcomeData={outcomeData}
+                    currentCounts={currentCounts}
+                    totalRequired={totalRequired}
+                    totalCurrent={totalCurrent}
+                    isOverflow={isOverflow}
+                    getIloStatus={getIloStatus}
+                />
+            )}
         </div>
     );
 };

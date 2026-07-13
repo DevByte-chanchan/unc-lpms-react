@@ -12,7 +12,7 @@ router.get('/:code/comments', async (req, res) => {
 });
 
 router.post('/:code/comments', async (req, res) => {
-    const { co, ilo, cognitiveLevel, itemNumber, type, body } = req.body;
+    const { co, ilo, cognitiveLevel, itemNumber, type, body, courseOutcomeId, assessmentItemId } = req.body;
     const comment = await Comment.create({
         courseCode: req.params.code,
         co: co || '',
@@ -20,7 +20,9 @@ router.post('/:code/comments', async (req, res) => {
         cognitiveLevel: cognitiveLevel || '',
         itemNumber: itemNumber || '',
         type: type || '',
-        body
+        body,
+        courseOutcomeId: courseOutcomeId || null,
+        assessmentItemId: assessmentItemId || null,
     });
     res.json(comment);
 });

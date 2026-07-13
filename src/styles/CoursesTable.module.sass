@@ -28,14 +28,61 @@
 
 
 .header .header-select
-  font-size: 14px
+  font-size: 13px
   outline: none
   border: 0
   color: #DC2626
   background: transparent
 
-select option
-  font-size: 12px
+:global(.filter-container)
+  p
+    font-size: 14px
+  select
+    font-size: 13px
+
+.yearDropdown
+  position: relative
+  display: inline-block
+
+.yearTrigger
+  font-size: 14px
+  outline: none
+  border: 0
+  color: #DC2626
+  background: transparent
+  cursor: pointer
+  padding: 0
+  font-family: inherit
+  font-weight: inherit
+
+.yearList
+  position: absolute
+  top: 100%
+  left: 0
+  z-index: 100
+  max-height: 252px
+  overflow-y: auto
+  background: #fff
+  border: 1px solid #ddd
+  border-radius: 4px
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15)
+  min-width: 100px
+  list-style: none
+  padding: 4px 0
+  margin: 4px 0 0
+
+.yearItem
+  font-size: 14px
+  padding: 6px 16px
+  cursor: pointer
+  white-space: nowrap
+  color: #1A1A1A
+
+.yearItem:hover
+  background: #F3F4F6
+
+.header select option, :global(.filter-container) select option
+  font-size: 13px
 
 ::-webkit-scrollbar
   display: none
@@ -90,5 +137,6 @@ select option
   color: #888
   font-size: 14px
   width: 100%
+
 
 

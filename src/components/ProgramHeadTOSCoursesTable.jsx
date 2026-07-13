@@ -136,10 +136,10 @@ const ProgramHeadTOSCoursesTable = () => {
                 <table>
                     <thead>
                     <tr>
+                        <th width={200}>{statusHeader}</th>
                         <th width={130}>CODE</th>
                         <th width={300}>COURSE NAME</th>
                         <th width={200}>INSTRUCTOR</th>
-                        <th width={200}>{statusHeader}</th>
                         <th className={styles.fill}></th>
                     </tr>
                     </thead>
@@ -149,10 +149,10 @@ const ProgramHeadTOSCoursesTable = () => {
                         .filter(row => row.status === selectedStatus)
                         .map((row, index) => (
                             <tr key={index}>
+                                <td width={200}>{selectedStatus === 'pending' ? row.dateSubmitted : row.dateStatus}</td>
                                 <td width={130}>{row.code}</td>
                                 <td width={300}>{row.name}</td>
                                 <td width={200}>{row.instructor}</td>
-                                <td width={200}>{selectedStatus === 'pending' ? row.dateSubmitted : row.dateStatus}</td>
                                 <td className={styles.fill}>
                                     {row.status === 'pending' ? (
                                         <Link className="actionLink" to={`/tos/${row.code}`} state={{ tosStatus: row.status, courseName: row.name, examType, schoolYear, semester, role: 'program-head' }}>

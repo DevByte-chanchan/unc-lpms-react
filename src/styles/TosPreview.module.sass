@@ -151,9 +151,9 @@
 
 .uploadButton
   padding: 10px 20px 10px 15px
-  background: #EA1212
+  background: #1A1A1A
   color: white
-  border: none
+  border: 1.5px solid #1A1A1A
   border-radius: 20px
   cursor: pointer
   height: 40px
@@ -162,11 +162,15 @@
   font-weight: 500
   display: flex
   align-items: center
+
+  &:hover
+    background: #F3F4F6
+    color: #1A1A1A
   flex-wrap: wrap
 
 .export
   padding: 10px 20px 10px 15px
-  background: #EA1212
+  background: #1A1A1A
   color: white
   border: none
   border-radius: 20px
@@ -179,7 +183,7 @@
   align-items: center
 
   &:hover
-    background: black
+    background: #EA1212
 
 .modalOverlay
   position: fixed
@@ -227,7 +231,7 @@
   margin: 0 0 2px
 
 .assessmentName
-  font-size: 13px
+  font-size: 14px
   color: #6B7280
   font-weight: 500
 
@@ -360,7 +364,7 @@
   border: none
   border-radius: 6px
   outline: none
-  font-size: 13px
+  font-size: 14px
   font-weight: 600
   color: #6B7280
   background: transparent
@@ -414,7 +418,7 @@
   opacity: 0.6
 
 .emptyText
-  font-size: 15px
+  font-size: 14px
   font-weight: 500
   color: #9CA3AF
   margin: 0
@@ -440,7 +444,7 @@
 .assessmentQuestion
   display: flex
   gap: 8px
-  font-size: 15px
+  font-size: 14px
   line-height: 1.5
   margin-bottom: 8px
 
@@ -494,13 +498,13 @@
 
 .rubricLabel
   font-weight: 700
-  font-size: 13px
+  font-size: 14px
   color: #374151
   text-transform: uppercase
   letter-spacing: 0.5px
 
 .rubricPoints
-  font-size: 12px
+  font-size: 14px
   color: #6B7280
   font-weight: 500
 
@@ -513,14 +517,14 @@
   display: grid
   grid-template-columns: 250px 1fr 60px 44px
   gap: 8px
-  font-size: 13px
+  font-size: 14px
   padding: 4px 6px
   align-items: center
 
 .rubricHeaderRow
   font-weight: 700
   color: #374151
-  font-size: 11px
+  font-size: 14px
   text-transform: uppercase
   letter-spacing: 0.3px
   padding: 4px 6px 2px
@@ -552,3 +556,4 @@
 .rubricPts
   color: #374151
   text-align: center
+

@@ -1,8 +1,8 @@
 import React, { useState } from "react";
-import { Trash2, Loader } from "react-feather";
+import { Loader } from "react-feather";
 import styles from "../styles/BuilderNavigation.module.sass";
 
-const BuilderNavigation = ({ onSave, onExport, onClearAll, filledCount, totalSlots, allFilled, tosStatus = 'draft', readOnly = false }) => {
+const BuilderNavigation = ({ onSave, onClose, onExport, onClearAll, filledCount, totalSlots, allFilled, tosStatus = 'draft', readOnly = false }) => {
     const [saving, setSaving] = useState(false);
     const canExport = tosStatus === 'approved';
     const handleSave = async () => {
@@ -18,7 +18,7 @@ const BuilderNavigation = ({ onSave, onExport, onClearAll, filledCount, totalSlo
                     {saving ? 'Saving…' : 'Save & Return'}
                 </div>
             ) : (
-                <div className={styles.return} style={{ color: '#999', cursor: 'default' }}>View Only</div>
+                <div className={styles.return} onClick={onClose} style={{ cursor: 'pointer' }}>Return</div>
             )}
             <div style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 10 }}>
                 <div className={styles.progressTrack}>
@@ -29,15 +29,16 @@ const BuilderNavigation = ({ onSave, onExport, onClearAll, filledCount, totalSlo
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 {!readOnly && (
                     <div className={styles.clearBtn} onClick={onClearAll} style={{ cursor: 'pointer' }}>
-                        <Trash2 size={14} />
+                        Clear All
                     </div>
                 )}
+                {canExport && (
                 <div style={{ position: 'relative' }}>
-                    <div className={`${styles.exportBtn} ${!canExport ? styles.exportDisabled : ''}`} onClick={canExport ? onExport : undefined}>
+                    <div className={`${styles.exportBtn}`} onClick={onExport}>
                         Export
                     </div>
-                    {!canExport && <span className={styles.exportTooltip}>Can only export when approved</span>}
                 </div>
+                )}
             </div>
         </div>
     )

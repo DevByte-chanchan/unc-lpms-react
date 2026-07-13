@@ -17,7 +17,7 @@ const TOSPreview = ({ isOpen, onClose, outcomeData, questions, courseName = "Hum
 
     const handleConfirm = () => {
         if (countdownRef.current) clearTimeout(countdownRef.current);
-        const goToTable = () => navigate("/assignedtos", { state: { tosStatusUpdate: { courseName, newStatus: 'pending' } } });
+        const goToTable = () => navigate("/assignedtos", { state: { tosStatusUpdate: { courseName, newStatus: 'pending' }, initialStatus: 'pending' } });
         if (!courseCode) { goToTable(); return; }
         const outcomesPayload = outcomeData.map(r => ({
             co: r.co,

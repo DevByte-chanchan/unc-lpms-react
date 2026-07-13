@@ -1,5 +1,5 @@
 import styles from '../styles/SyllabusSections.module.sass'
-import {ChevronLeft, Loader, Trash2} from 'react-feather';
+import {ChevronLeft, ChevronUp, Loader, Trash2} from 'react-feather';
 import React, {useCallback, useEffect, useRef, useState} from "react";
 import {useNavigate, useSearchParams, useLocation, useParams} from "react-router-dom";
 import layout from "../styles/TosSections.module.sass";
@@ -20,6 +20,7 @@ const TosSections = ({status, role = 'instructor'}) => {
     const [expandedILOs, setExpandedILOs] = useState(new Set());
     const [viewMode, setViewMode] = useState('normal');
     const [lastClickedItemId, setLastClickedItemId] = useState(null);
+    const [viewItemsTarget, setViewItemsTarget] = useState(null);
     const navigate = useNavigate();
     const [searchParams, setSearchParams] = useSearchParams();
     const isProgramHead = role === 'program-head';
@@ -56,6 +57,8 @@ const TosSections = ({status, role = 'instructor'}) => {
     const { code: courseCode } = useParams();
     const [effectiveStatus, setEffectiveStatus] = useState(location.state?.tosStatus || 'draft');
     const readOnly = !isProgramHead && (effectiveStatus === 'pending' || effectiveStatus === 'approved');
+    const isReturnedView = isProgramHead && effectiveStatus === 'returned';
+    const isInstructorReturned = !isProgramHead && effectiveStatus === 'returned';
     const courseName = location.state?.courseName || '';
     const fromExamType = location.state?.examType || 'Midterm';
     const fromSchoolYear = location.state?.schoolYear || String(new Date().getFullYear());
@@ -72,6 +75,8 @@ const TosSections = ({status, role = 'instructor'}) => {
     const [exportErrors, setExportErrors] = useState({ outcomeOverview: [], assessmentMapping: [], tosSummary: [] });
     const [showExportErrorModal, setShowExportErrorModal] = useState(false);
     const [submitLoading, setSubmitLoading] = useState(false);
+    const [approveLoading, setApproveLoading] = useState(false);
+    const [returnLoading, setReturnLoading] = useState(false);
     const submitGuardRef = useRef(false);
 
     useEffect(() => {
@@ -85,8 +90,9 @@ const TosSections = ({status, role = 'instructor'}) => {
         }).catch(() => {});
 
         fetchOutcomes(courseCode).then(data => {
-            if (!data) return;
+            if (!data) throw new Error('no data');
             const mapped = data.map(o => ({
+                dbId: o.id,
                 co: o.co,
                 description: o.description || '',
                 totalHours: (o.ilos || []).reduce((s, i) => s + (i.hours || 0), 0),
@@ -94,6 +100,7 @@ const TosSections = ({status, role = 'instructor'}) => {
                 totalItems: (o.ilos || []).reduce((s, i) => s + (i.items || 0), 0),
                 ilos: (o.ilos || []).map((ilo, idx) => ({
                     id: `ILO${idx + 1}`,
+                    iloDbId: ilo.id,
                     description: ilo.description || '',
                     hours: ilo.hours || 0,
                     percentage: ilo.percentage || 0,
@@ -101,17 +108,32 @@ const TosSections = ({status, role = 'instructor'}) => {
                 }))
             }));
             setRows(mapped.length ? mapped : getDefaultOutlines());
+            // build iloLookup: iloDbId → { co, iloLabel }
+            const lookup = {};
+            data.forEach(o => {
+                (o.ilos || []).forEach((ilo, idx) => {
+                    lookup[ilo.id] = { co: o.co, iloLabel: `ILO${idx + 1}` };
+                });
+            });
+            iloLookupRef.current = lookup;
         }).catch(() => {
             setRows(getDefaultOutlines());
         });
+        // always fetch items (even if outcomes failed)
         fetchItems(courseCode).then(data => {
-            if (data && data.length) setQuestions(data);
+            if (data && data.length) {
+                const lookup = iloLookupRef.current;
+                setQuestions(data.map(q => {
+                    const info = lookup[q.iloId] || {};
+                    return { ...q, co: info.co || q.iloItem?.outcome?.co || '', ilo: info.iloLabel || '' };
+                }));
+            }
         }).catch(() => {});
         fetchComments(courseCode).then(data => {
             if (data && data.length) {
                 setComments(data.map(c => ({
                     id: c.id,
-                    scope: { co: c.co, ilo: c.ilo, cognitiveLevel: c.cognitiveLevel, itemNumber: c.itemNumber },
+                    scope: { co: c.co, ilo: c.ilo, cognitiveLevel: c.cognitiveLevel, itemNumber: c.itemNumber, courseOutcomeId: c.courseOutcomeId, assessmentItemId: c.assessmentItemId },
                     type: c.type,
                     body: c.body,
                     timestamp: new Date(c.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) + ' ' + new Date(c.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
@@ -119,6 +141,21 @@ const TosSections = ({status, role = 'instructor'}) => {
             }
         }).catch(() => {});
     }, [courseCode, dataLoaded]);
+
+    // re-derive item co/ilo when outcomes load after items
+    useEffect(() => {
+        const lookup = iloLookupRef.current;
+        if (!Object.keys(lookup).length) return;
+        setQuestions(prev => prev.map(q => {
+            if (q.co && q.ilo) return q;
+            const info = lookup[q.iloId] || {};
+            return { ...q, co: info.co || q.iloItem?.outcome?.co || q.co, ilo: info.iloLabel || q.ilo };
+        }));
+    }, [rows]);
+
+    useEffect(() => {
+        if (isReturnedView || isInstructorReturned) setShowComment(true);
+    }, [isReturnedView, isInstructorReturned]);
 
     const clearFieldError = (key) => {
         setErrorFields(prev => { const n = { ...prev }; delete n[key]; return n; });
@@ -247,12 +284,19 @@ const TosSections = ({status, role = 'instructor'}) => {
         });
     };
 
+    const viewItemsNavRef = useRef(false);
+
     useEffect(() => {
+        if (selectedSection !== 'Assessment Items') return;
         if (viewMode === 'group' && questions.length > 0) {
+            if (viewItemsNavRef.current) {
+                viewItemsNavRef.current = false;
+                return;
+            }
             setExpandedCOs(new Set(questions.map(q => q.co).filter(Boolean)));
             setExpandedILOs(new Set(questions.filter(q => q.co && q.ilo).map(q => `${q.co}|${q.ilo}`)));
         }
-    }, [viewMode, questions]);
+    }, [viewMode, questions, selectedSection]);
 
     useEffect(() => {
         if (!lastClickedItemId) return;
@@ -283,6 +327,7 @@ const TosSections = ({status, role = 'instructor'}) => {
     const [showClearConfirm, setShowClearConfirm] = useState(false);
     const [builderKey, setBuilderKey] = useState(0);
     const builderSaveRef = useRef(null);
+    const iloLookupRef = useRef({});
     const [showComment, setShowComment] = useState(false);
     const commentRef = useRef(null);
     const commentBtnRef = useRef(null);
@@ -308,6 +353,8 @@ const TosSections = ({status, role = 'instructor'}) => {
     const [commentType, setCommentType] = useState('Item count');
     const [commentBody, setCommentBody] = useState('');
     const [scrolledPastForm, setScrolledPastForm] = useState(false);
+    const assessmentBodyRef = useRef(null);
+    const [scrolledPastAssessmentTop, setScrolledPastAssessmentTop] = useState(false);
     const [showApproveConfirm, setShowApproveConfirm] = useState(false);
     const [showReturnConfirm, setShowReturnConfirm] = useState(false);
     const [showApproveCountdown, setShowApproveCountdown] = useState(false);
@@ -316,6 +363,24 @@ const TosSections = ({status, role = 'instructor'}) => {
     const [returnCountdown, setReturnCountdown] = useState(5);
     const approveTimerRef = useRef(null);
     const returnTimerRef = useRef(null);
+    const preApproveTimerRef = useRef(null);
+    const preReturnTimerRef = useRef(null);
+
+    const [commentCategory, setCommentCategory] = useState('outcomeOverview');
+
+    useEffect(() => {
+        if (selectedSection === 'Outcome Overview') setCommentCategory('outcomeOverview');
+        else if (selectedSection === 'Assessment Item-Cognitive Level Alignment') setCommentCategory('alignment');
+        else if (selectedSection === 'TOS Summary') setCommentCategory('alignment');
+    }, [selectedSection]);
+
+    const filteredComments = comments.filter(c => {
+        const isNumberItems = c.scope.cognitiveLevel === 'Number of Items';
+        const hasItemNumber = !!c.scope.itemNumber;
+        if (commentCategory === 'outcomeOverview') return isNumberItems && !hasItemNumber;
+        if (commentCategory === 'assessmentItems') return hasItemNumber;
+        return !isNumberItems && !hasItemNumber;
+    });
 
     const handleCommentScroll = useCallback(() => {
         if (commentBodyRef.current) {
@@ -336,14 +401,55 @@ const TosSections = ({status, role = 'instructor'}) => {
         }
     };
 
+    const handleAssessmentScroll = useCallback(() => {
+        if (assessmentBodyRef.current) {
+            setScrolledPastAssessmentTop(assessmentBodyRef.current.scrollTop > 200);
+        }
+    }, []);
+
+    useEffect(() => {
+        const el = assessmentBodyRef.current;
+        if (!el || !isProgramHead || selectedSection !== 'Assessment Items') return;
+        el.addEventListener('scroll', handleAssessmentScroll);
+        return () => el.removeEventListener('scroll', handleAssessmentScroll);
+    }, [handleAssessmentScroll, selectedSection, isProgramHead]);
+
     const isActiveCell = useCallback((co, ilo, cognitiveLevel, itemNumber) => {
         if (!activeScope) return false;
         return activeScope.co === co && activeScope.ilo === ilo && activeScope.cognitiveLevel === cognitiveLevel && (activeScope.itemNumber || null) === (itemNumber || null);
     }, [activeScope]);
 
-    const handleCellClick = (co, ilo, cognitiveLevel, itemNumber) => {
+    const isTargetCell = (co, ilo, cognitiveLevel) => {
+        if (!viewItemsTarget) return false;
+        return viewItemsTarget.co === co && viewItemsTarget.ilo === ilo && viewItemsTarget.cognitiveLevel === cognitiveLevel;
+    };
+
+    const prevViewItemsRef = useRef(null);
+    if (viewItemsTarget) prevViewItemsRef.current = viewItemsTarget;
+    const displayTarget = viewItemsTarget || prevViewItemsRef.current;
+    const [, forceRender] = useState(0);
+
+    useEffect(() => {
+        if (!viewItemsTarget) return;
+        const timer = setTimeout(() => setViewItemsTarget(null), 5000);
+        return () => clearTimeout(timer);
+    }, [viewItemsTarget]);
+
+    useEffect(() => {
+        if (viewItemsTarget || !prevViewItemsRef.current) return;
+        const timer = setTimeout(() => {
+            prevViewItemsRef.current = null;
+            forceRender(n => n + 1);
+        }, 300);
+        return () => clearTimeout(timer);
+    }, [viewItemsTarget]);
+
+    const handleCellClick = (co, ilo, cognitiveLevel, itemNumber, fks = {}) => {
         if (!addingComment) return;
-        setActiveScope({ co: co || '\u2014', ilo: ilo || '\u2014', cognitiveLevel: cognitiveLevel || '\u2014', itemNumber });
+        const scopeKey = `${co || '\u2014'}|${ilo || '\u2014'}|${cognitiveLevel || '\u2014'}|${itemNumber || ''}`;
+        const currentKey = activeScope ? `${activeScope.co}|${activeScope.ilo}|${activeScope.cognitiveLevel}|${activeScope.itemNumber || ''}` : '';
+        if (scopeKey === currentKey) return;
+        setActiveScope({ co: co || '\u2014', ilo: ilo || '\u2014', cognitiveLevel: cognitiveLevel || '\u2014', itemNumber, courseOutcomeId: fks.courseOutcomeId || null, assessmentItemId: fks.assessmentItemId || null });
         setCommentType(itemNumber ? 'Question' : 'Item count');
         setCommentBody('');
     };
@@ -357,7 +463,9 @@ const TosSections = ({status, role = 'instructor'}) => {
                 cognitiveLevel: activeScope.cognitiveLevel === '\u2014' ? '' : activeScope.cognitiveLevel,
                 itemNumber: activeScope.itemNumber || '',
                 type: commentType,
-                body: commentBody.trim()
+                body: commentBody.trim(),
+                courseOutcomeId: activeScope.courseOutcomeId || null,
+                assessmentItemId: activeScope.assessmentItemId || null,
             });
             setComments(prev => [...prev, {
                 id: saved.id,
@@ -512,11 +620,19 @@ const TosSections = ({status, role = 'instructor'}) => {
     };
 
     const handleStartApprove = () => {
-        setShowApproveConfirm(true);
+        setApproveLoading(true);
+        preApproveTimerRef.current = setTimeout(() => {
+            setApproveLoading(false);
+            setShowApproveConfirm(true);
+        }, 800);
     };
 
     const handleStartReturn = () => {
-        setShowReturnConfirm(true);
+        setReturnLoading(true);
+        preReturnTimerRef.current = setTimeout(() => {
+            setReturnLoading(false);
+            setShowReturnConfirm(true);
+        }, 800);
     };
 
     const handleConfirmApprove = () => {
@@ -534,14 +650,14 @@ const TosSections = ({status, role = 'instructor'}) => {
     const handleApprove = async () => {
         if (courseCode) {
             await updateStatus(courseCode, 'approved');
-            navigate('/role/program-head/tos', { state: { tosStatusUpdate: { courseCode, newStatus: 'approved' } } });
+            navigate('/role/program-head/tos', { state: { tosStatusUpdate: { courseCode, newStatus: 'approved' }, initialStatus: 'approved' } });
         }
     };
 
     const handleReturn = async () => {
         if (courseCode) {
             await updateStatus(courseCode, 'returned');
-            navigate('/role/program-head/tos', { state: { tosStatusUpdate: { courseCode, newStatus: 'returned' } } });
+            navigate('/role/program-head/tos', { state: { tosStatusUpdate: { courseCode, newStatus: 'returned' }, initialStatus: 'returned' } });
         }
     };
 
@@ -567,12 +683,58 @@ const TosSections = ({status, role = 'instructor'}) => {
         return () => { if (returnTimerRef.current) clearTimeout(returnTimerRef.current); };
     }, [showReturnCountdown, returnCountdown]);
 
+    useEffect(() => {
+        return () => {
+            if (preApproveTimerRef.current) clearTimeout(preApproveTimerRef.current);
+            if (preReturnTimerRef.current) clearTimeout(preReturnTimerRef.current);
+        };
+    }, []);
+
+    const handleCommentNavigation = (c) => {
+        if (c.scope.itemNumber) {
+            if (isProgramHead && selectedSection !== 'Assessment Items') setPhSection('Assessment Items');
+            else if (!isProgramHead) setSearchParams({ section: 'Assessment Items' });
+            viewItemsNavRef.current = true;
+            setViewMode('group');
+            const coSet = new Set(c.scope.ilo && c.scope.ilo !== '\u2014' ? questions.map(q => q.co).filter(Boolean) : [c.scope.co]);
+            const iloSet = c.scope.ilo && c.scope.ilo !== '\u2014' ? new Set([`${c.scope.co}|${c.scope.ilo}`]) : new Set();
+            setExpandedCOs(coSet);
+            setExpandedILOs(iloSet);
+            setTimeout(() => {
+                const co = c.scope.co;
+                const ilo = c.scope.ilo;
+                const cog = c.scope.cognitiveLevel;
+                const el = document.querySelector(`[data-co="${co}"][data-ilo="${ilo}"][data-cog="${cog}"]`) || document.querySelector(`[data-ilo-header="${co}|${ilo}"]`) || document.getElementById(`co-header-${co}`);
+                if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 600);
+        } else {
+            if (isProgramHead && selectedSection !== 'Table of Specifications Report') setPhSection('Table of Specifications Report');
+            const co = c.scope.co;
+            const ilo = c.scope.ilo;
+            const rowKey = ilo && ilo !== '\u2014' ? `${co}|${ilo}` : co;
+            setTimeout(() => {
+                const el = document.querySelector(`[data-tos-row="${rowKey}"]`);
+                if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 400);
+        }
+    };
+
+    const InfoBadge = ({ text }) => (
+        text ? (
+            <span className={layout.infoBadge}>
+                <span className={layout.infoIcon}>!</span>
+                <span className={layout.infoTooltip}>{text}</span>
+            </span>
+        ) : null
+    );
+
     return (
         <>
             <div className={styles.container}>
                 {showBuilder ? (
                     <BuilderNavigation
                         onSave={() => builderSaveRef.current && builderSaveRef.current()}
+                        onClose={() => setShowBuilder(false)}
                         onExport={handleBuilderExport}
                         onClearAll={() => setShowClearConfirm(true)}
                         filledCount={filledCount}
@@ -597,7 +759,7 @@ const TosSections = ({status, role = 'instructor'}) => {
 
                         <div className={styles['section-select']}>
                             <select value={selectedSection} onChange={handleSectionChange}>
-                                {isProgramHead ? (
+                                {isReturnedView || isProgramHead ? (
                                     <>
                                         <option value="Table of Specifications Report">Table of Specifications Report</option>
                                         <option value="Assessment Items">Assessment Items</option>
@@ -612,13 +774,16 @@ const TosSections = ({status, role = 'instructor'}) => {
                             </select>
                         </div>
 
-                        {isProgramHead ? (
+                        {isReturnedView || isInstructorReturned ? (
+                            <span className={styles.draft} style={{ color: '#999', cursor: 'default' }}>View Only</span>
+                        ) : isProgramHead ? (
                             <>
                                 <div ref={commentBtnRef} className={`${styles.draft} ${layout.commentBtn} ${showComment ? layout.commentBtnActive : ''}`} onClick={toggleCommentPanel}>
                                     Add Comment
                                 </div>
-                                <button className={styles.submit} onClick={handleStartApprove}>
-                                    Approve
+                                <button className={styles.submit} onClick={handleStartApprove} disabled={approveLoading}>
+                                    {approveLoading ? <Loader size={16} className={layout.spinner} /> : null}
+                                    {approveLoading ? 'Approving…' : 'Approve'}
                                 </button>
                             </>
                         ) : readOnly ? (
@@ -739,25 +904,25 @@ const TosSections = ({status, role = 'instructor'}) => {
                                                     <tbody>
                                                     {rows.map(co => (
                                                         <React.Fragment key={co.co}>
-                                                            <tr style={{ background: '#F9FAFB', height: '50px' }}>
-                                                                <td><div className={previewLayout.cellBox} style={{ fontWeight: 'bold' }}>{co.co}</div></td>
+                                                            <tr data-tos-row={co.co} style={{ background: '#F9FAFB', height: '50px' }}>
+                                                                 <td><div className={previewLayout.cellBox} style={{ fontWeight: 'bold' }}>{co.co}<InfoBadge text={co.description} /></div></td>
                                                                 <td><div className={previewLayout.cellBox}>{co.totalHours || 0}</div></td>
                                                                 <td><div className={previewLayout.cellBox}>{co.totalPercentage || 0}</div></td>
-                                                                 <td className={`${addingComment ? `${layout.cellSelectableTable}${isActiveCell(co.co, '\u2014', 'Number of Items') ? ` ${layout.cellActiveTable}` : ''}` : ''}`} onClick={addingComment ? () => handleCellClick(co.co, '\u2014', 'Number of Items') : undefined}><div className={previewLayout.cellBox}>{co.totalItems || 0}</div></td>
+                                                                  <td className={`${addingComment ? `${layout.cellSelectableTable}${isActiveCell(co.co, '\u2014', 'Number of Items') ? ` ${layout.cellActiveTable}` : ''}` : `${layout.cellClickable}${isTargetCell(co.co, '\u2014', 'Number of Items') ? ` ${layout.cellTargeted}` : ''}`}`} onClick={e => addingComment ? handleCellClick(co.co, '\u2014', 'Number of Items', undefined, { courseOutcomeId: co.dbId }) : (() => { const r = e.currentTarget.getBoundingClientRect(); setViewItemsTarget({ co: co.co, ilo: '\u2014', cognitiveLevel: 'Number of Items', top: r.bottom, left: r.left, width: r.width }); })()}><div className={previewLayout.cellBox}>{co.totalItems || 0}</div></td>
                                                                   {cognitiveLevels.map(level => (
                                                                      <td key={level} style={{ background: 'white' }}></td>
                                                                  ))}
                                                              </tr>
-                                                             {co.ilos.map(ilo => (
-                                                                 <tr key={ilo.id}>
-                                                                     <td><div className={previewLayout.cellBox}>{ilo.id}</div></td>
+                                                              {co.ilos.map(ilo => (
+                                                                  <tr key={ilo.id} data-tos-row={`${co.co}|${ilo.id}`}>
+                                                                      <td><div className={previewLayout.cellBox}>{ilo.id}<InfoBadge text={ilo.description} /></div></td>
                                                                      <td><div className={previewLayout.cellBox}>{ilo.hours || 0}</div></td>
                                                                      <td><div className={previewLayout.cellBox}>{ilo.percentage || 0}</div></td>
-                                                                      <td className={`${addingComment ? `${layout.cellSelectableTable}${isActiveCell(co.co, ilo.id, 'Number of Items') ? ` ${layout.cellActiveTable}` : ''}` : ''}`} onClick={addingComment ? () => handleCellClick(co.co, ilo.id, 'Number of Items') : undefined}><div className={previewLayout.cellBox}>{ilo.items || 0}</div></td>
+                                                                        <td className={`${addingComment ? `${layout.cellSelectableTable}${isActiveCell(co.co, ilo.id, 'Number of Items') ? ` ${layout.cellActiveTable}` : ''}` : `${layout.cellClickable}${isTargetCell(co.co, ilo.id, 'Number of Items') ? ` ${layout.cellTargeted}` : ''}`}`} onClick={e => addingComment ? handleCellClick(co.co, ilo.id, 'Number of Items', undefined, { courseOutcomeId: co.dbId }) : (() => { const r = e.currentTarget.getBoundingClientRect(); setViewItemsTarget({ co: co.co, ilo: ilo.id, cognitiveLevel: 'Number of Items', top: r.bottom, left: r.left, width: r.width }); })()}><div className={previewLayout.cellBox}>{ilo.items || 0}</div></td>
                                                                      {cognitiveLevels.map(level => {
                                                                          const items = aggregatedData[co.co][ilo.id][level];
                                                                          return (
-                                                                              <td key={level} className={`${addingComment ? `${layout.cellSelectableTable}${isActiveCell(co.co, ilo.id, level) ? ` ${layout.cellActiveTable}` : ''}` : ''}`} onClick={addingComment ? () => handleCellClick(co.co, ilo.id, level) : undefined}>
+                                                                                <td key={level} className={`${addingComment ? `${layout.cellSelectableTable}${isActiveCell(co.co, ilo.id, level) ? ` ${layout.cellActiveTable}` : ''}` : `${layout.cellClickable}${isTargetCell(co.co, ilo.id, level) ? ` ${layout.cellTargeted}` : ''}`}`} onClick={e => addingComment ? handleCellClick(co.co, ilo.id, level, undefined, { courseOutcomeId: co.dbId }) : (() => { const r = e.currentTarget.getBoundingClientRect(); setViewItemsTarget({ co: co.co, ilo: ilo.id, cognitiveLevel: level, top: r.bottom, left: r.left, width: r.width }); })()}>
                                                                                  <div className={previewLayout.cellBox} style={{ flexDirection: 'column', gap: 2 }}>
                                                                                      {items.length === 0 ? '\u2014' : items.map((item, i) => (
                                                                                          <span key={i}>{item.span} x {item.points}</span>
@@ -770,7 +935,7 @@ const TosSections = ({status, role = 'instructor'}) => {
                                                              ))}
                                                          </React.Fragment>
                                                      ))}
-                                                     <tr style={{ background: '#F9FAFB', height: '50px', fontWeight: '500' }}>
+                                                     <tr data-tos-row="Total" style={{ background: '#F9FAFB', height: '50px', fontWeight: '500' }}>
                                                          <td><div className={previewLayout.cellBox}>Total</div></td>
                                                          <td><div className={previewLayout.cellBox}>{totalHours}</div></td>
                                                          <td><div className={previewLayout.cellBox}>{totalPercentage}</div></td>
@@ -788,7 +953,12 @@ const TosSections = ({status, role = 'instructor'}) => {
                             )}
                             {selectedSection === 'Assessment Items' && (
                                 <section>
-                                    <div className={`${previewLayout.assessmentBody} ${previewLayout.tabContent}`}>
+                                    <div ref={assessmentBodyRef} className={`${previewLayout.assessmentBody} ${previewLayout.tabContent}`}>
+                                        {scrolledPastAssessmentTop && (
+                                            <div className={layout.scrollToFormBtn} onClick={() => assessmentBodyRef.current?.scrollTo({ top: 0, behavior: 'smooth' })}>
+                                                <ChevronUp size={22} strokeWidth={2.5} />
+                                            </div>
+                                        )}
                                         <div className={layout.viewToggleRow}>
                                             <span className={layout.assessmentLabel}>Assessment: {assessmentName || 'Midterm'}</span>
                                             <div className={layout.viewToggleGroup}>
@@ -834,7 +1004,7 @@ const TosSections = ({status, role = 'instructor'}) => {
                                                     const label = start === end ? String(start) : `${start}\u2013${end}`;
                                                     const hasRubric = q.rubricRows && q.rubricRows.length > 0;
                                                     return (
-                                                        <div key={q.id} data-item-id={q.id} className={`${previewLayout.assessmentItem} ${layout.assessmentCard}${addingComment ? ` ${layout.cellSelectable}${isActiveCell(q.co, q.ilo, q.cognitiveLevel, label) ? ` ${layout.cellActive}` : ''}` : ''}`} onClick={addingComment ? () => { setLastClickedItemId(q.id); handleCellClick(q.co, q.ilo, q.cognitiveLevel, label); } : undefined}>
+                                                        <div key={q.id} data-item-id={q.id} className={`${previewLayout.assessmentItem} ${layout.assessmentCard}${addingComment ? ` ${layout.cellSelectable}${isActiveCell(q.co, q.ilo, q.cognitiveLevel, label) ? ` ${layout.cellActive}` : ''}` : ''}`} onClick={addingComment ? () => { setLastClickedItemId(q.id); handleCellClick(q.co, q.ilo, q.cognitiveLevel, label, { assessmentItemId: q.id }); } : undefined}>
                                                             <div className={previewLayout.assessmentQuestion}>
                                                                 <span className={previewLayout.questionNumber}>{label}.</span>
                                                                 <span className={previewLayout.questionText}>{q.question || '(no question)'}</span>
@@ -892,24 +1062,36 @@ const TosSections = ({status, role = 'instructor'}) => {
                                                         </div>
                                                     );
                                                 };
+                                                const coDesc = {};
+                                                const iloDesc = {};
+                                                rows.forEach(c => {
+                                                    coDesc[c.co] = c.description;
+                                                    c.ilos.forEach(il => { iloDesc[`${c.co}|${il.id}`] = il.description; });
+                                                });
                                                 return viewMode === 'normal' ? (
                                                     questions.map(q => renderItem(q))
                                                 ) : (
                                                     Object.entries(grouped).map(([co, ilos]) => (
                                                         <div key={co} className={layout.coGroup}>
-                                                            <div className={layout.coHeader} onClick={() => toggleCO(co)}>
-                                                                <span className={layout.accordionArrow}>{expandedCOs.has(co) ? '\u25BE' : '\u25B8'}</span>
-                                                                <span className={layout.coTitle}>{co}</span>
-                                                            </div>
+                                                             <div className={layout.coHeader} id={`co-header-${co}`} onClick={() => toggleCO(co)}>
+                                                                 <span className={layout.accordionArrow}>{expandedCOs.has(co) ? '\u25BE' : '\u25B8'}</span>
+                                                                 <div>
+                                                                     <span className={layout.coTitle}>{co}</span>
+                                                                     {coDesc[co] && <div className={layout.coDesc}>{coDesc[co]}</div>}
+                                                                 </div>
+                                                             </div>
                                                             {expandedCOs.has(co) && Object.entries(ilos).map(([ilo, cogs]) => (
                                                                 <div key={ilo} className={layout.iloGroup}>
-                                                                    <div className={layout.iloHeader} onClick={() => toggleILO(`${co}|${ilo}`)}>
-                                                                        <span className={layout.accordionArrow}>{expandedILOs.has(`${co}|${ilo}`) ? '\u25BE' : '\u25B8'}</span>
-                                                                        <span className={layout.iloTitle}>{ilo}</span>
-                                                                    </div>
+                                                                      <div className={layout.iloHeader} data-ilo-header={`${co}|${ilo}`} onClick={() => toggleILO(`${co}|${ilo}`)}>
+                                                                         <span className={layout.accordionArrow}>{expandedILOs.has(`${co}|${ilo}`) ? '\u25BE' : '\u25B8'}</span>
+                                                                         <div>
+                                                                             <span className={layout.iloTitle}>{ilo}</span>
+                                                                             {iloDesc[`${co}|${ilo}`] && <div className={layout.iloDesc}>{iloDesc[`${co}|${ilo}`]}</div>}
+                                                                         </div>
+                                                                     </div>
                                                                     {expandedILOs.has(`${co}|${ilo}`) && Object.entries(cogs).map(([cog, items]) => (
-                                                                        <div key={cog} className={layout.cogGroup}>
-                                                                            <div className={layout.cogHeader}>{cog}</div>
+                                                                         <div key={cog} className={layout.cogGroup}>
+                                                                             <div className={layout.cogHeader} data-co={co} data-ilo={ilo} data-cog={cog}>{cog}</div>
                                                                             {items.map(renderItem)}
                                                                         </div>
                                                                     ))}
@@ -924,15 +1106,38 @@ const TosSections = ({status, role = 'instructor'}) => {
                                 </section>
                             )}
                             </div>
-                            {showComment && <div ref={commentRef} className={layout.commentPanel}>
+                            {displayTarget && (
+                                <div className={`${layout.viewItemsOverlay}${!viewItemsTarget ? ` ${layout.viewItemsHidden}` : ''}`} onClick={() => setViewItemsTarget(null)} />
+                            )}
+                            {displayTarget && (
+                                <div className={`${layout.viewItemsPopup}${!viewItemsTarget ? ` ${layout.viewItemsHidden}` : ''}`} style={{ top: displayTarget.top + 4, left: displayTarget.left + displayTarget.width / 2 }}>
+                                       <button className={layout.viewItemsBtn} onClick={() => {
+                                            const t = viewItemsTarget;
+                                            setViewItemsTarget(null);
+                                            if (isProgramHead) setPhSection('Assessment Items');
+                                            else setSearchParams({ section: 'Assessment Items' });
+                                            viewItemsNavRef.current = true;
+                                            setViewMode('group');
+                                           const coSet = new Set(t.ilo && t.ilo !== '\u2014' ? questions.map(q => q.co).filter(Boolean) : [t.co]);
+                                           const iloSet = t.ilo && t.ilo !== '\u2014' ? new Set([`${t.co}|${t.ilo}`]) : new Set();
+                                           setExpandedCOs(coSet);
+                                           setExpandedILOs(iloSet);
+                                           setTimeout(() => {
+                                               const el = document.querySelector(`[data-co="${t.co}"][data-ilo="${t.ilo}"][data-cog="${t.cognitiveLevel}"]`) || document.querySelector(`[data-ilo-header="${t.co}|${t.ilo}"]`) || document.getElementById(`co-header-${t.co}`);
+                                               if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                           }, 600);
+                                       }}>View Assessment Items</button>
+                                </div>
+                            )}
+                            {(showComment || isReturnedView) && <div ref={commentRef} className={layout.commentPanel}>
                                 <div className={layout.commentPanelHeader}>
                                     <span className={layout.commentPanelTitle}>Comments</span>
-                                    <span style={{ cursor: 'pointer', fontSize: 18, lineHeight: 1, color: '#888', userSelect: 'none' }} onClick={closeCommentPanel}>&times;</span>
+                                    {!isReturnedView && <span style={{ cursor: 'pointer', fontSize: 18, lineHeight: 1, color: '#888', userSelect: 'none' }} onClick={closeCommentPanel}>&times;</span>}
                                 </div>
                                 <div ref={commentBodyRef} className={layout.commentPanelBody}>
-                                    {addingComment && activeScope && scrolledPastForm && (
+                                    {scrolledPastForm && (
                                         <div className={layout.scrollToFormBtn} onClick={scrollToForm}>
-                                            ↑ Back to comment form
+                                            <ChevronUp size={22} strokeWidth={2.5} />
                                         </div>
                                     )}
                                     {addingComment && activeScope ? (
@@ -965,7 +1170,7 @@ const TosSections = ({status, role = 'instructor'}) => {
                                                 <button className={layout.selectionCancel} onClick={handleCancelComment}>Cancel</button>
                                             </div>
                                         </div>
-                                    ) : (
+                                    ) : isReturnedView ? null : (
                                         <button className={layout.addCommentBtn} onClick={() => setAddingComment(true)}>
                                             + New Comment
                                         </button>
@@ -977,10 +1182,10 @@ const TosSections = ({status, role = 'instructor'}) => {
                                         <div style={{ textAlign: 'center', color: '#9CA3AF', fontSize: 13, padding: '40px 0' }}>No comments yet</div>
                                     )}
                                     {comments.map(c => (
-                                        <div key={c.id} className={`${layout.commentCard}${addingComment ? ` ${layout.commentCardDimmed}` : ''}`}>
+                                        <div key={c.id} className={`${layout.commentCard}${addingComment ? ` ${layout.commentCardDimmed}` : ''}`} onClick={() => handleCommentNavigation(c)} style={{ cursor: 'pointer' }}>
                                             <div className={layout.commentCardHeader}>
                                                 <div className={layout.commentCardScope}>{c.scope.co}{c.scope.ilo !== '—' ? ` → ${c.scope.ilo}` : ''} → {c.scope.cognitiveLevel}{c.scope.itemNumber ? ` → Item ${c.scope.itemNumber}` : ''}</div>
-                                                <Trash2 size={14} className={layout.commentDeleteBtn} onClick={() => handleDeleteComment(c.id)} />
+                                                {!isReturnedView && <Trash2 size={14} className={layout.commentDeleteBtn} onClick={() => handleDeleteComment(c.id)} />}
                                             </div>
                                             {c.scope.ilo !== '—' && <div className={layout.commentCardType}>{c.type}</div>}
                                             <div className={layout.commentCardBody}>{c.body}</div>
@@ -988,12 +1193,188 @@ const TosSections = ({status, role = 'instructor'}) => {
                                         </div>
                                     ))}
                                 </div>
-                                <div className={layout.commentPanelFooter}>
-                                    <button className={layout.commentReturnBtn} disabled={comments.length === 0} onClick={handleStartReturn}>Return</button>
-                                </div>
+                                {!isReturnedView && <div className={layout.commentPanelFooter}>
+                                    <button className={layout.commentReturnBtn} disabled={comments.length === 0 || returnLoading} onClick={handleStartReturn}>
+                                        {returnLoading ? <Loader size={16} className={layout.spinner} /> : null}
+                                        {returnLoading ? 'Returning…' : 'Return'}
+                                    </button>
+                                </div>}
                             </div>}
                         </div>
                         )
+                    : isInstructorReturned ? (
+                        <div className={layout.panelLayout}>
+                            <div className={layout.panelMain}>
+                                {selectedSection === 'Outcome Overview' &&
+                                    <section>
+                                        <table className={`${layout.table} ${layout.TOSTable}`}>
+                                            <thead>
+                                            <tr>
+                                                <th>ILOs</th>
+                                                <th>DESCRIPTION</th>
+                                                <th>NO. OF HOURS</th>
+                                                <th>%</th>
+                                                <th>NO. OF ITEMS</th>
+                                            </tr>
+                                            </thead>
+                                            <tbody>
+                                            {rows.map((co, coIndex) => (
+                                                <React.Fragment key={co.co}>
+                                                    <tr>
+                                                        <td>
+                                                            <div className={`${layout.cellBox} ${layout.blankCell}`}>
+                                                                {co.co}
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            <div className={layout.blankCell} style={{ textAlign: 'left', fontSize: 14 }}>
+                                                                {co.description}
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            <div className={`${layout.cellBox} ${layout.blankCell}`}>
+                                                                {co.totalHours}
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            <div className={`${layout.cellBox} ${layout.blankCell}`}>
+                                                                {co.totalPercentage}
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            <div className={layout.cellBox}>
+                                                                    <input
+                                                                     className={`${layout.totalCoPoint} ${layout.input} ${errorFields[`oo-totalItems-${coIndex}`] ? layout.inputError : ''}`}
+                                                                     type="text"
+                                                                     inputMode="numeric"
+                                                                     readOnly={readOnly}
+                                                                     value={co.totalItems}
+                                                                     onChange={(e) => handleTotalItemsChange(coIndex, e.target.value)}
+                                                                     onKeyDown={(e) => {
+                                                                         if (readOnly) return;
+                                                                         if (!/[0-9]/.test(e.key) && !['Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+                                                                             e.preventDefault();
+                                                                         }
+                                                                     }}
+                                                                />
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+
+                                                    {co.ilos.map((ilo, iloIndex) => (
+                                                        <tr key={`${co.co}-${ilo.id}`}>
+                                                            <td>
+                                                                <div className={`${layout.cellBox} ${layout.mutedBold}`}>
+                                                                    {ilo.id}
+                                                                </div>
+                                                            </td>
+                                                            <td>
+                                                                <div className={`${layout.cellBox} ${layout.readable}`}>
+                                                                    {ilo.description}
+                                                                </div>
+                                                            </td>
+                                                            <td>
+                                                                <div className={`${layout.cellBox} ${layout.muted}`}>
+                                                                    {ilo.hours}
+                                                                </div>
+                                                            </td>
+                                                            <td>
+                                                                <div className={`${layout.cellBox} ${layout.muted}`}>
+                                                                    {ilo.percentage}
+                                                                </div>
+                                                            </td>
+                                                        <td>
+                                                            <div className={layout.cellBox}>
+                                                                <input
+                                                                     className={`${layout.point} ${layout.input} ${errorFields[`oo-items-${coIndex}-${iloIndex}`] ? layout.inputError : ''}`}
+                                                                     type="text"
+                                                                     inputMode="numeric"
+                                                                     readOnly={readOnly}
+                                                                     value={ilo.items}
+                                                                     onChange={(e) => handleItemsChange(coIndex, iloIndex, e.target.value)}
+                                                                />
+                                                            </div>
+                                                        </td>
+                                                        </tr>
+                                                    ))}
+
+                                                    {coIndex < rows.length - 1 && (
+                                                        <tr key={`${co.co}-spacer`} style={{height: '16px'}} />
+                                                    )}
+                                                </React.Fragment>
+                                            ))}
+                                            </tbody>
+                                        </table>
+                                    </section>
+                                }
+
+                                {selectedSection === 'Assessment Item-Cognitive Level Alignment' && (
+                                    <section>
+                                        <QuestionCognitiveMapping
+                                            key={builderKey}
+                                            outcomeData={rows}
+                                            questions={questions}
+                                            setQuestions={setQuestions}
+                                            assessmentMode={assessmentMode}
+                                            rubricCategories={rubricCategories}
+                                            setRubricCategories={setRubricCategories}
+                                            showBuilder={showBuilder}
+                                            onShowBuilderChange={setShowBuilder}
+                                            builderSaveRef={builderSaveRef}
+                                            onProgressUpdate={handleBuilderProgress}
+                                            errorFields={errorFields}
+                                            clearFieldError={clearFieldError}
+                                            courseCode={courseCode}
+                                            assessmentName={assessmentName}
+                                            onAssessmentNameChange={setAssessmentName}
+                                            readOnly={readOnly}
+                                            showComments
+                                        />
+                                    </section>
+                                )}
+
+                                {selectedSection === 'TOS Summary' &&
+                                    <section>
+                                        <TOSSummary outcomeData={rows} questions={questions} />
+                                    </section>
+                                }
+                            </div>
+                            <div ref={commentRef} className={layout.commentPanel}>
+                                <div className={layout.commentPanelHeader}>
+                                    <span className={layout.commentPanelTitle}>Comments</span>
+                                </div>
+                                <div ref={commentBodyRef} className={layout.commentPanelBody}>
+                                    {scrolledPastForm && (
+                                        <div className={layout.scrollToFormBtn} onClick={scrollToForm}>
+                                            <ChevronUp size={22} strokeWidth={2.5} />
+                                        </div>
+                                    )}
+                                    <select
+                                        value={commentCategory}
+                                        onChange={e => setCommentCategory(e.target.value)}
+                                        style={{ width: '100%', padding: '8px 28px 8px 12px', borderRadius: 5, border: '1px solid #DDDFDF', fontSize: 14, fontWeight: 500, color: '#333', background: '#fff', outline: 'none', cursor: 'pointer', appearance: 'none', backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'12\' height=\'12\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%23666\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3E%3Cpolyline points=\'6 9 12 15 18 9\'%3E%3C/polyline%3E%3C/svg%3E")', backgroundRepeat: 'no-repeat', backgroundPosition: 'right 10px center', backgroundSize: 14, marginBottom: 12 }}
+                                    >
+                                        <option value="outcomeOverview" style={{ fontSize: 14 }}>Outcome Overview</option>
+                                        <option value="alignment" style={{ fontSize: 14 }}>Alignment</option>
+                                        <option value="assessmentItems" style={{ fontSize: 14 }}>Assessment Items</option>
+                                    </select>
+                                    {filteredComments.length === 0 && (
+                                        <div style={{ textAlign: 'center', color: '#9CA3AF', fontSize: 13, padding: '40px 0' }}>No comments yet</div>
+                                    )}
+                                    {filteredComments.map(c => (
+                                        <div key={c.id} className={layout.commentCard}>
+                                            <div className={layout.commentCardHeader}>
+                                                <div className={layout.commentCardScope}>{c.scope.co}{c.scope.ilo !== '—' ? ` → ${c.scope.ilo}` : ''} → {c.scope.cognitiveLevel}{c.scope.itemNumber ? ` → Item ${c.scope.itemNumber}` : ''}</div>
+                                            </div>
+                                            {c.scope.ilo !== '—' && <div className={layout.commentCardType}>{c.type}</div>}
+                                            <div className={layout.commentCardBody}>{c.body}</div>
+                                            <div className={layout.commentCardTime}>{c.timestamp}</div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    )
                     : (
                         <>
                             {selectedSection === 'Outcome Overview' &&
@@ -1018,7 +1399,9 @@ const TosSections = ({status, role = 'instructor'}) => {
                                                         </div>
                                                     </td>
                                                     <td>
-                                                        <div className={layout.blankCell}></div>
+                                                        <div className={layout.blankCell} style={{ textAlign: 'left', fontSize: 14 }}>
+                                                            {co.description}
+                                                        </div>
                                                     </td>
                                                     <td>
                                                         <div className={`${layout.cellBox} ${layout.blankCell}`}>
@@ -1208,11 +1591,11 @@ const TosSections = ({status, role = 'instructor'}) => {
             )}
 
             {showApproveConfirm && (
-                <div className={layout.modalOverlay} onClick={() => setShowApproveConfirm(false)}>
+                <div className={layout.modalOverlay} onClick={() => { setShowApproveConfirm(false); setApproveLoading(false); }}>
                     <div className={layout.modal} onClick={e => e.stopPropagation()}>
                         <div className={layout.modalHeader}>
                             <h3 style={{ color: "#1A1A1A" }}>Approve TOS</h3>
-                            <span style={{ cursor: "pointer", fontSize: "20px", color: "#999" }} onClick={() => setShowApproveConfirm(false)}>×</span>
+                            <span style={{ cursor: "pointer", fontSize: "20px", color: "#999" }} onClick={() => { setShowApproveConfirm(false); setApproveLoading(false); }}>×</span>
                         </div>
                         <div className={layout.modalBody}>
                             {comments.length > 0 ? (
@@ -1222,7 +1605,7 @@ const TosSections = ({status, role = 'instructor'}) => {
                             )}
                         </div>
                         <div className={layout.modalActions}>
-                            <button className={layout.cancelBtn} onClick={() => setShowApproveConfirm(false)}>Cancel</button>
+                            <button className={layout.cancelBtn} onClick={() => { setShowApproveConfirm(false); setApproveLoading(false); }}>Cancel</button>
                             <button className={layout.confirmBtn} onClick={handleConfirmApprove}>
                                 {comments.length > 0 ? 'Proceed to approval' : 'Confirm'}
                             </button>
@@ -1232,31 +1615,31 @@ const TosSections = ({status, role = 'instructor'}) => {
             )}
 
             {showApproveCountdown && (
-                <div className={layout.modalOverlay} onClick={() => { if (approveTimerRef.current) clearTimeout(approveTimerRef.current); setShowApproveCountdown(false); }}>
+                <div className={layout.modalOverlay} onClick={() => { if (approveTimerRef.current) clearTimeout(approveTimerRef.current); setShowApproveCountdown(false); setApproveLoading(false); }}>
                     <div className={previewLayout.confirmPopup} onClick={e => e.stopPropagation()}>
                         <div className={previewLayout.confirmTextRow}>
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#19282C" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-                            <p className={previewLayout.confirmText}>{comments.length > 0 ? 'Approving TOS — comments will be discarded' : 'Approving TOS'}</p>
+                            <p className={previewLayout.confirmText}>{comments.length > 0 ? 'Approving TOS (comments will be discarded)' : 'Approving TOS'}</p>
                         </div>
                         <div className={previewLayout.spinner} />
                         <span className={previewLayout.countdown}>{approveCountdown}s</span>
-                        <button className={previewLayout.undoBtn} onClick={() => { if (approveTimerRef.current) clearTimeout(approveTimerRef.current); setShowApproveCountdown(false); }}>Undo</button>
+                        <button className={previewLayout.undoBtn} onClick={() => { if (approveTimerRef.current) clearTimeout(approveTimerRef.current); setShowApproveCountdown(false); setApproveLoading(false); }}>Undo</button>
                     </div>
                 </div>
             )}
 
             {showReturnConfirm && (
-                <div className={layout.modalOverlay} onClick={() => setShowReturnConfirm(false)}>
+                <div className={layout.modalOverlay} onClick={() => { setShowReturnConfirm(false); setReturnLoading(false); }}>
                     <div className={layout.modal} onClick={e => e.stopPropagation()}>
                         <div className={layout.modalHeader}>
                             <h3 style={{ color: "#1A1A1A" }}>Return TOS</h3>
-                            <span style={{ cursor: "pointer", fontSize: "20px", color: "#999" }} onClick={() => setShowReturnConfirm(false)}>×</span>
+                            <span style={{ cursor: "pointer", fontSize: "20px", color: "#999" }} onClick={() => { setShowReturnConfirm(false); setReturnLoading(false); }}>×</span>
                         </div>
                         <div className={layout.modalBody}>
                             <p style={{ color: "#555" }}>Return this TOS with comments?</p>
                         </div>
                         <div className={layout.modalActions}>
-                            <button className={layout.cancelBtn} onClick={() => setShowReturnConfirm(false)}>Cancel</button>
+                            <button className={layout.cancelBtn} onClick={() => { setShowReturnConfirm(false); setReturnLoading(false); }}>Cancel</button>
                             <button className={layout.confirmBtn} onClick={handleConfirmReturn}>
                                 Confirm
                             </button>
@@ -1266,7 +1649,7 @@ const TosSections = ({status, role = 'instructor'}) => {
             )}
 
             {showReturnCountdown && (
-                <div className={layout.modalOverlay} onClick={() => { if (returnTimerRef.current) clearTimeout(returnTimerRef.current); setShowReturnCountdown(false); }}>
+                <div className={layout.modalOverlay} onClick={() => { if (returnTimerRef.current) clearTimeout(returnTimerRef.current); setShowReturnCountdown(false); setReturnLoading(false); }}>
                     <div className={previewLayout.confirmPopup} onClick={e => e.stopPropagation()}>
                         <div className={previewLayout.confirmTextRow}>
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#19282C" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
@@ -1274,7 +1657,7 @@ const TosSections = ({status, role = 'instructor'}) => {
                         </div>
                         <div className={previewLayout.spinner} />
                         <span className={previewLayout.countdown}>{returnCountdown}s</span>
-                        <button className={previewLayout.undoBtn} onClick={() => { if (returnTimerRef.current) clearTimeout(returnTimerRef.current); setShowReturnCountdown(false); }}>Undo</button>
+                        <button className={previewLayout.undoBtn} onClick={() => { if (returnTimerRef.current) clearTimeout(returnTimerRef.current); setShowReturnCountdown(false); setReturnLoading(false); }}>Undo</button>
                     </div>
                 </div>
             )}

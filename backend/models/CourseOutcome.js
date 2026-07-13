@@ -17,7 +17,8 @@ const CourseOutcome = sequelize.define('CourseOutcome', {
         allowNull: false
     },
     description: {
-        type: DataTypes.TEXT
+        type: DataTypes.TEXT,
+        allowNull: false
     },
     totalItems: {
         type: DataTypes.INTEGER,

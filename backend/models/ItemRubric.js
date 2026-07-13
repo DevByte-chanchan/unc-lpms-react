@@ -13,7 +13,8 @@ const ItemRubric = sequelize.define('ItemRubric', {
         field: 'item_id'
     },
     criteria: {
-        type: DataTypes.TEXT
+        type: DataTypes.TEXT,
+        allowNull: false
     },
     description: {
         type: DataTypes.TEXT

@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { AssessmentItem, ItemChoice, ItemRubric } from '../models/index.js';
+import { AssessmentItem, ItemChoice, ItemRubric, IloItem, CourseOutcome } from '../models/index.js';
 
 const router = Router();
 
@@ -8,7 +8,8 @@ router.get('/:code/items', async (req, res) => {
         where: { courseCode: req.params.code },
         include: [
             { model: ItemChoice, as: 'choices' },
-            { model: ItemRubric, as: 'rubrics' }
+            { model: ItemRubric, as: 'rubrics' },
+            { model: IloItem, as: 'iloItem', include: [{ model: CourseOutcome, as: 'outcome' }] }
         ],
         order: [['id', 'ASC']]
     });
@@ -23,7 +24,7 @@ router.put('/:code/items', async (req, res) => {
 
     const created = [];
     for (const item of items) {
-        const { choices, rubrics, ...itemData } = item;
+        const { choices, rubrics, co, ilo, ...itemData } = item;
         const createdItem = await AssessmentItem.create({
             ...itemData,
             courseCode: code
@@ -43,7 +44,8 @@ router.put('/:code/items', async (req, res) => {
         const fullItem = await AssessmentItem.findByPk(createdItem.id, {
             include: [
                 { model: ItemChoice, as: 'choices' },
-                { model: ItemRubric, as: 'rubrics' }
+                { model: ItemRubric, as: 'rubrics' },
+                { model: IloItem, as: 'iloItem', include: [{ model: CourseOutcome, as: 'outcome' }] }
             ]
         });
         created.push(fullItem);

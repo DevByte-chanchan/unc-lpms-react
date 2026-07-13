@@ -12,12 +12,14 @@ const AssessmentItem = sequelize.define('AssessmentItem', {
         allowNull: false,
         field: 'course_code'
     },
-    co: {
-        type: DataTypes.STRING(10),
-        allowNull: false
+    iloId: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        field: 'ilo_id'
     },
     instruction: {
         type: DataTypes.TEXT,
+        allowNull: false,
         defaultValue: ''
     },
     points: {
@@ -28,12 +30,9 @@ const AssessmentItem = sequelize.define('AssessmentItem', {
         type: DataTypes.INTEGER,
         defaultValue: 1
     },
-    ilo: {
-        type: DataTypes.STRING(10),
-        defaultValue: ''
-    },
     cognitiveLevel: {
         type: DataTypes.ENUM('Remembering', 'Understanding', 'Applying', 'Analyzing', 'Evaluating', 'Creating'),
+        allowNull: false,
         field: 'cognitive_level'
     }
 }, {

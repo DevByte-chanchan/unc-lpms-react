@@ -55,6 +55,8 @@
   align-items: center
   text-align: center
   font-size: 14px
+  box-sizing: border-box
+  height: 100%
   border-spacing: 10px
 
   input, .dropdown
@@ -156,16 +158,17 @@
 
 .uploadButton
   padding: 8px 16px
-  background: #EA1212
+  background: #1A1A1A
   color: white
-  border: none
+  border: 1.5px solid #1A1A1A
   border-radius: 4px
   cursor: pointer
   font-size: 14px
   font-weight: 500
 
   &:hover
-    background: #B91C1C
+    background: #F3F4F6
+    color: #1A1A1A
 
 .pointsContainer
   display: flex
@@ -191,7 +194,7 @@
   gap: 4px
 
 .iloLabel
-  font-size: 12px
+  font-size: 14px
   color: #6B7280
 
 .pointsBox
@@ -217,7 +220,7 @@
   gap: 4px
 
 .summaryLabel
-  font-size: 12px
+  font-size: 14px
   color: #6B7280
 
 .summaryValue
@@ -297,6 +300,9 @@
   cursor: pointer
   margin-left: 20px
   min-height: 45px
+  font-weight: 500
+  border: none
+  outline: none
 
   &:hover
     background: #DC2626
@@ -319,7 +325,7 @@
 .modeBox
   background: white
   padding: 32px
-  border-radius: 8px
+  border-radius: 4px
   width: 500px
   text-align: center
   box-shadow: 0 10px 25px rgba(0,0,0,0.2)
@@ -337,6 +343,8 @@
   cursor: pointer
   background: #4B5563
   color: white
+  font-weight: 500
+  outline: none
 
 .modeButtons button:last-child
   background: #6B7280
@@ -356,7 +364,7 @@
 .modal
   background: white
   width: 400px
-  border-radius: 8px
+  border-radius: 4px
   box-shadow: 0 4px 20px rgba(0,0,0,0.2)
   overflow: hidden
   animation: fadeIn 0.2s ease-out
@@ -403,6 +411,7 @@
       font-weight: 600
       font-size: 14px
       transition: background 0.12s
+      outline: none
 
     .cancelBtn
       background: #f9f9f9
@@ -414,8 +423,10 @@
     .confirmBtn
       background: #EA1212
       color: white
+      border: 1.5px solid #EA1212
       &:hover
-        background: #C00000
+        background: white
+        color: #EA1212
 
 .errorBlock
   margin-bottom: 12px
@@ -453,7 +464,7 @@
   background: #FAFBFC
   border: 1px solid #D1D5DB
   border-top: 3px solid #EA1212
-  border-radius: 10px
+  border-radius: 4px
   overflow: hidden
   display: flex
   flex-direction: column
@@ -477,7 +488,7 @@
   background: white
 
 .commentPanelTitle
-  font-size: 12px
+  font-size: 16px
   font-weight: 700
   letter-spacing: 0.07em
   text-transform: uppercase
@@ -491,23 +502,26 @@
 
 .scrollToFormBtn
   position: sticky
-  top: 0
+  top: 12px
   z-index: 10
-  width: 100%
-  padding: 10px
-  border: 1.5px solid #EA1212
-  border-radius: 8px
-  background: white
-  color: #EA1212
+  width: 42px
+  height: 42px
+  border-radius: 50%
+  border: none
+  background: #444
+  color: white
+  display: flex
+  align-items: center
+  justify-content: center
   cursor: pointer
-  font-size: 13px
-  font-weight: 600
-  text-align: center
-  margin-bottom: 12px
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08)
+  margin: 0 auto 12px
+  outline: none
+  transition: background 0.12s
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2)
+  flex-shrink: 0
 
   &:hover
-    background: #FFF5F5
+    background: #EA1212
 
 .commentPanelFooter
   padding: 10px 20px
@@ -516,13 +530,13 @@
 
 .commentFormCard
   border: 1.5px solid #374151
-  border-radius: 10px
+  border-radius: 4px
   padding: 16px
   background: white
   margin-bottom: 16px
 
 .commentSectionLabel
-  font-size: 12px
+  font-size: 14px
   font-weight: 600
   color: #6B7280
   text-transform: uppercase
@@ -543,28 +557,35 @@
   border-radius: 6px
   background: white
   cursor: pointer
-  font-size: 13px
-  font-weight: 600
+  font-size: 14px
+  font-weight: 500
   color: #EA1212
+  display: inline-flex
+  align-items: center
+  outline: none
+  justify-content: center
+  gap: 4px
+  transition: all 0.12s
 
   &:hover:not(:disabled)
-    border-color: #B00000
-    color: #B00000
-    background: #FFF5F5
+    background: #EA1212
+    color: white
+    border-color: #EA1212
 
   &:disabled
     opacity: 0.4
     cursor: not-allowed
 
 .commentBtn
-  border: 1.5px solid #EA1212 !important
+  border: 1.5px solid #1A1A1A !important
   background: white !important
-  color: #EA1212 !important
+  color: #1A1A1A !important
   transition: all 0.15s ease
 
   &:hover
-    border-color: #B00000 !important
-    color: #B00000 !important
+    background: #4B5563 !important
+    color: white !important
+    border-color: #4B5563 !important
 
 .commentBtnActive
   border: 1.5px solid #1A1A1A !important
@@ -573,7 +594,9 @@
   transition: all 0.15s ease
 
   &:hover
-    background: #F9FAFB !important
+    background: #4B5563 !important
+    color: white !important
+    border-color: #4B5563 !important
 
 .commentFormArea
   margin-bottom: 16px
@@ -581,7 +604,7 @@
   border-bottom: 1px solid #E5E7EB
 
 .commentScope
-  font-size: 13px
+  font-size: 14px
   font-weight: 600
   color: #1F2937
   margin-bottom: 12px
@@ -595,7 +618,7 @@
   padding-right: 28px
   border: 1.5px solid #6B7280
   border-radius: 6px
-  font-size: 13px
+  font-size: 14px
   margin-bottom: 12px
   background: white
   appearance: none
@@ -609,7 +632,7 @@
   padding: 10px 12px
   border: 1.5px solid #6B7280
   border-radius: 6px
-  font-size: 13px
+  font-size: 14px
   resize: none
   overflow: hidden
   font-family: inherit
@@ -628,21 +651,34 @@
   border-radius: 6px
   background: white
   cursor: pointer
-  font-size: 13px
+  font-size: 14px
+  font-weight: 500
+  outline: none
+  transition: all 0.12s
+
+  &:hover
+    background: #F3F4F6
 
 .commentAddBtn
   flex: 1
   padding: 8px
-  border: none
+  border: 1.5px solid #1A1A1A
   border-radius: 6px
-  background: #EA1212
+  background: #1A1A1A
   color: white
   cursor: pointer
-  font-size: 13px
+  font-size: 14px
   font-weight: 500
+  transition: all 0.12s
+
+  &:hover:not(:disabled)
+    background: #4B5563
+    color: white
+    border-color: #4B5563
 
   &:disabled
     background: #D1D5DB
+    border-color: #bbb
     cursor: not-allowed
 
 .addCommentBtn
@@ -652,18 +688,21 @@
   border-radius: 6px
   background: white
   cursor: pointer
-  font-size: 13px
-  font-weight: 600
+  font-size: 14px
+  font-weight: 500
   color: #374151
   margin-bottom: 12px
+  outline: none
+  transition: all 0.12s
 
   &:hover
-    background: #F9FAFB
-    border-color: #000
+    background: #4B5563
+    color: white
+    border-color: #4B5563
 
 .selectionCard
   border: 1.5px solid #EA1212
-  border-radius: 8px
+  border-radius: 4px
   padding: 16px
   margin-bottom: 12px
   background: #FFF8F8
@@ -671,12 +710,13 @@
 
 .selectionPrompt
   color: #EA1212
-  font-size: 13px
+  font-size: 14px
   font-style: italic
   margin-bottom: 10px
 
 .selectionCancel
-  font-size: 12px
+  font-size: 14px
+  font-weight: 500
   font-style: normal
   color: #6B7280
   cursor: pointer
@@ -685,6 +725,7 @@
   border-radius: 5px
   background: white
   display: inline-block
+  outline: none
 
   &:hover
     background: #F3F4F6
@@ -692,10 +733,15 @@
 
 .commentCard
   border: 1px solid #E5E7EB
-  border-radius: 8px
+  border-radius: 4px
   padding: 12px
   margin-bottom: 10px
   background: white
+  cursor: pointer
+  transition: background 0.15s ease
+
+  &:hover
+    background: #F9FAFB
 
 .commentCardHeader
   display: flex
@@ -704,7 +750,7 @@
   margin-bottom: 4px
 
 .commentCardScope
-  font-size: 12px
+  font-size: 14px
   font-weight: 600
   color: #374151
 
@@ -718,7 +764,7 @@
 
 .commentCardType
   display: inline-block
-  font-size: 11px
+  font-size: 14px
   padding: 2px 8px
   border-radius: 4px
   background: #F3F4F6
@@ -726,19 +772,19 @@
   margin-bottom: 6px
 
 .commentCardBody
-  font-size: 13px
+  font-size: 14px
   color: #1F2937
   line-height: 1.5
 
 .commentCardTime
-  font-size: 11px
+  font-size: 14px
   color: #9CA3AF
   margin-top: 8px
 
 .assessmentCard
   border: 1px solid transparent
-  border-radius: 8px
-  padding: 16px
+  border-radius: 4px
+  padding: 5px 16px
   background: white
   box-sizing: border-box
 
@@ -773,6 +819,18 @@
   .cellBox, div
     font-weight: 600 !important
 
+.cellClickable
+  cursor: pointer
+
+  &:hover
+    background: #F3F4F6
+
+  &:active
+    background: #E5E7EB
+
+.cellTargeted
+  background: #F3F4F6
+
 .coGroup
   margin-bottom: 8px
 
@@ -793,10 +851,18 @@
   font-weight: 600
   font-size: 15px
   color: #1F2937
+  line-height: 1.4
+
+.coDesc
+  font-size: 14px
+  color: #6B7280
+  line-height: 1.4
+  margin-top: 2px
 
 .iloGroup
   margin-left: 20px
   margin-top: 4px
+  margin-bottom: 8px
 
 .iloHeader
   display: flex
@@ -814,20 +880,28 @@
   font-weight: 500
   font-size: 14px
   color: #374151
+  line-height: 1.4
+
+.iloDesc
+  font-size: 14px
+  color: #6B7280
+  line-height: 1.4
+  margin-top: 2px
 
 .cogGroup
   margin-left: 40px
+  margin-top: 6px
 
 .cogHeader
   font-weight: 500
-  font-size: 13px
+  font-size: 14px
   color: #6B7280
-  padding: 6px 12px 2px
+  padding: 6px 12px 6px
   text-transform: uppercase
   letter-spacing: 0.5px
 
 .accordionArrow
-  font-size: 12px
+  font-size: 14px
   color: #9CA3AF
   flex-shrink: 0
 
@@ -835,7 +909,7 @@
   display: flex
   justify-content: space-between
   align-items: center
-  margin-bottom: 12px
+  margin-bottom: 24px
 
 .assessmentLabel
   font-size: 16px
@@ -846,8 +920,14 @@
   display: flex
 
 .viewToggleBtn
-  padding: 6px 16px
-  font-size: 13px
+  height: 100%
+  padding: 8px 12px
+  border: 1px solid #D1D5DB
+  border-left: none
+  background: white
+  cursor: pointer
+  font-size: 14px
+  font-weight: 500
   border: 1px solid #D1D5DB
   background: white
   color: #6B7280
@@ -864,11 +944,102 @@
     background: #F3F4F6
 
 .viewToggleActive
-  background: #EA1212
+  background: #1A1A1A
   color: white
-  border-color: #EA1212
+  border-color: #1A1A1A
 
   &:hover
-    background: #D11111
-    border-color: #D11111
+    background: #F3F4F6
+    color: #1A1A1A
+    border-color: #1A1A1A
+
+.infoBadge
+  position: relative
+  display: inline-flex
+  align-items: center
+  margin-left: 4px
+  vertical-align: middle
+
+.infoIcon
+  display: inline-flex
+  align-items: center
+  justify-content: center
+  width: 16px
+  height: 16px
+  border-radius: 50%
+  border: 1.5px solid #9CA3AF
+  color: #9CA3AF
+  font-size: 10px
+  font-weight: 700
+  line-height: 16px
+  cursor: pointer
+  transition: all 0.15s ease
+
+  &:hover
+    border-color: #EA1212
+    color: #EA1212
+
+  &:hover + .infoTooltip
+    opacity: 1
+    visibility: visible
+
+.infoTooltip
+  position: absolute
+  top: 50%
+  left: calc(100% + 8px)
+  transform: translateY(-50%)
+  background: #1A1A1A
+  color: white
+  font-size: 13px
+  padding: 6px 10px
+  border-radius: 4px
+  max-width: 320px
+  width: max-content
+  white-space: normal
+  pointer-events: none
+  z-index: 100
+  opacity: 0
+  visibility: hidden
+  transition: opacity 0.2s
+
+.viewItemsOverlay
+  position: fixed
+  top: 0
+  left: 0
+  right: 0
+  bottom: 0
+  z-index: 99
+  transition: opacity 0.3s ease
+
+.viewItemsPopup
+  position: fixed
+  z-index: 100
+  background: white
+  border: 1px solid #D1D5DB
+  border-radius: 6px
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15)
+  padding: 4px
+  transform: translateX(-50%)
+  transition: opacity 0.3s ease
+
+.viewItemsHidden
+  opacity: 0
+  pointer-events: none
+
+.viewItemsBtn
+  padding: 6px 14px
+  font-size: 14px
+  font-weight: 500
+  border: 1.5px solid #1A1A1A
+  border-radius: 4px
+  background: #1A1A1A
+  color: white
+  cursor: pointer
+  white-space: nowrap
+  transition: background 0.15s ease
+
+  &:hover
+    background: #F3F4F6
+    color: #1A1A1A
+
 

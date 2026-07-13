@@ -429,12 +429,24 @@ async function seedNewCourses() {
 
     const codes = newCourses.map(c => c.code);
     for (const code of codes) {
+        // build iloId lookup: (courseCode, co, iloIdx) → iloId
+        const outcomeRows = await CourseOutcome.findAll({
+            where: { courseCode: code },
+            include: [{ model: IloItem, as: 'ilos' }],
+            order: [['co', 'ASC']]
+        });
+        const iloIdMap = {};
+        outcomeRows.forEach(o => {
+            (o.ilos || []).forEach((ilo, idx) => {
+                iloIdMap[`${o.co}|${idx}`] = ilo.id;
+            });
+        });
+
         const items = generateItems(code);
         for (const item of items) {
             const created = await AssessmentItem.create({
                 courseCode: item.courseCode,
-                co: item.co,
-                ilo: item.ilo,
+                iloId: iloIdMap[`${item.co}|${item.iloIdx}`],
                 instruction: item.instruction,
                 points: item.points,
                 span: item.span,

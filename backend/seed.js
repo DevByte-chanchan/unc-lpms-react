@@ -1,5 +1,6 @@
 import { sequelize, Course, CourseOutcome, IloItem, TosStatus, AssessmentItem, ItemChoice, ItemRubric } from './models/index.js';
 import { seedNewCourses } from './seed_new_courses.js';
+import { seedReturnedComments } from './seed_comments.js';
 
 const courses = [
     { code: 'BSCS313L', name: 'Human & Computer Interaction', instructor: 'NORTON, MONICA' },
@@ -391,6 +392,20 @@ const iloTemplates = {
 async function createItemsForCourse(courseCode) {
     const cd = courseData.find(c => c.courseCode === courseCode);
     if (!cd) return;
+
+    // lookup iloId by (outcome.co, position within outcome)
+    const outcomeRows = await CourseOutcome.findAll({
+        where: { courseCode },
+        include: [{ model: IloItem, as: 'ilos' }],
+        order: [['co', 'ASC']]
+    });
+    const iloIdMap = {};
+    outcomeRows.forEach(o => {
+        (o.ilos || []).forEach((ilo, idx) => {
+            iloIdMap[`${o.co}|${idx}`] = ilo.id;
+        });
+    });
+
     for (const outcome of cd.outcomes) {
         for (let iloIdx = 0; iloIdx < outcome.ilos.length; iloIdx++) {
             const ilo = outcome.ilos[iloIdx];
@@ -407,8 +422,7 @@ async function createItemsForCourse(courseCode) {
                 if (effectiveSpan <= 0) break;
                 const made = await AssessmentItem.create({
                     courseCode,
-                    co: outcome.co,
-                    ilo: iloKey,
+                    iloId: iloIdMap[`${outcome.co}|${iloIdx}`],
                     instruction: resolveText(tpl.q, ilo, cd),
                     points: tpl.p || 2,
                     span: effectiveSpan,
@@ -474,6 +488,7 @@ async function seed() {
     await createItemsForCourse('BSCS331L');
 
     await seedNewCourses();
+    await seedReturnedComments();
 
     console.log('Database seeded successfully');
     process.exit(0);
