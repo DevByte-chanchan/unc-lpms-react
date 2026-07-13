@@ -53,14 +53,16 @@ import { logActivity } from './utils/auditLogger';
 
 // ── Seed demo data only if none exists ───────────────────────────────────
 ;(function seedOnce() {
-  const CURRENT_SEED_VERSION = 'v4'
+  const CURRENT_SEED_VERSION = 'v5'
   const versionFlag = `lpsm_seed_version_${CURRENT_SEED_VERSION}`
   if (localStorage.getItem(versionFlag)) {
     // Already seeded at this version — maintain existing data
     return
   }
-  // Version mismatch or first visit — clear old flags so seedDemoWorkflows runs fresh
-  ;['lpsm_full_seed_v1', 'lpsm_workflow_seeded_v1', 'lpsm_workflow_seeded_v2', 'lpsm_workflow_seeded_v3'].forEach(k => {
+  // Version mismatch or first visit — clear old flags AND the stored workflow state so
+  // seedDemoWorkflows repopulates fresh with diverse stages (submitted/review/returned/approved).
+  // Without clearing the data, previously-seeded entries stay 'submitted' and the Assigned tab stays empty.
+  ;['lpsm_full_seed_v1', 'lpsm_workflow_seeded_v1', 'lpsm_workflow_seeded_v2', 'lpsm_workflow_seeded_v3', 'lpsm_workflow_seeded_v4', 'lpsm_workflow_v1'].forEach(k => {
     try { localStorage.removeItem(k) } catch (e) { console.warn('Failed to clear localStorage key:', k, e) }
   })
 

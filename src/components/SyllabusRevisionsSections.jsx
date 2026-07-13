@@ -641,8 +641,13 @@ const SyllabusRevisionsSections = ({status}) => {
 
                                         const ordered = Object.values(groups).sort((a, b) => (b.submittedAt || '').localeCompare(a.submittedAt || ''))
                                         return ordered.map((g, gi) => (
-                                            <div key={gi} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                                                <div style={{ fontSize: 13, fontWeight: 700, color: '#2d3748' }}>{g.submissionLabel}{g.submittedAt ? ` — ${new Date(g.submittedAt).toLocaleString()}` : ''}</div>
+                                            <div key={gi} style={{ display: 'flex', flexDirection: 'column', gap: 8, paddingTop: gi > 0 ? 10 : 0, borderTop: gi > 0 ? '1px solid #edf2f7' : 'none' }}>
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                                                    <span style={{ fontSize: 12, fontWeight: 700, color: '#2d3748', textTransform: 'uppercase', letterSpacing: '0.4px' }}>{g.submissionLabel}</span>
+                                                    {g.submittedAt && !String(g.submissionLabel).includes(new Date(g.submittedAt).toLocaleString()) && (
+                                                        <span style={{ fontSize: 11, color: '#a0aec0' }}>{new Date(g.submittedAt).toLocaleString()}</span>
+                                                    )}
+                                                </div>
                                                 {g.items.map((comment, idx) => {
                                                     const componentTags = getComponentTags(comment);
                                                     return (
@@ -709,7 +714,7 @@ const SyllabusRevisionsSections = ({status}) => {
                                                                                 )
                                                                             })()
                                                                         }
-                                                                    {isRecent(comment.createdAt || comment.submittedAt || comment.timestamp, 7) && (
+                                                                    {isRecent(comment.createdAt || comment.submittedAt || comment.timestamp) && (
                                                                         <span style={{
                                                                             marginLeft: 8,
                                                                             fontSize: '11px',
@@ -751,34 +756,37 @@ const SyllabusRevisionsSections = ({status}) => {
                                                                 </div>
                                                             )}
 
-                                                            {(comment.courseOutcome || comment.ilo) && (
-                                                                <div style={{
-                                                                    display: 'flex',
-                                                                    gap: '8px',
-                                                                    marginBottom: '8px',
-                                                                    fontSize: '11px',
-                                                                    color: '#718096'
-                                                                }}>
-                                                                    {comment.courseOutcome && (
-                                                                        <span style={{
-                                                                            background: '#f0f4f8',
-                                                                            padding: '2px 6px',
-                                                                            borderRadius: '4px'
-                                                                        }}>
-                                                                            <strong>CO:</strong> {comment.courseOutcome}
-                                                                        </span>
+                                                            {(comment.courseOutcome || comment.ilo || comment.coverageType || (Array.isArray(comment.coverageDetail) ? comment.coverageDetail.length : comment.coverageDetail)) && (() => {
+                                                                const targetText = Array.isArray(comment.coverageDetail) ? comment.coverageDetail.join(', ') : (comment.coverageDetail || '')
+                                                                return (
+                                                                <div style={{ marginBottom: '8px', fontSize: '11px', color: '#718096' }}>
+                                                                    {targetText && (
+                                                                        <div style={{ marginBottom: '4px' }}>
+                                                                            <span style={{ background: '#e0f2fe', padding: '2px 6px', borderRadius: '4px' }}>
+                                                                                <strong>Target:</strong> {targetText}
+                                                                            </span>
+                                                                        </div>
                                                                     )}
-                                                                    {comment.ilo && (
-                                                                        <span style={{
-                                                                            background: '#f0f4f8',
-                                                                            padding: '2px 6px',
-                                                                            borderRadius: '4px'
-                                                                        }}>
-                                                                            <strong>ILO:</strong> {comment.ilo}
-                                                                        </span>
-                                                                    )}
+                                                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                                                                        {comment.courseOutcome && (
+                                                                            <span style={{ background: '#f0f4f8', padding: '2px 6px', borderRadius: '4px' }}>
+                                                                                <strong>CO:</strong> {comment.courseOutcome}
+                                                                            </span>
+                                                                        )}
+                                                                        {comment.ilo && (
+                                                                            <span style={{ background: '#f0f4f8', padding: '2px 6px', borderRadius: '4px' }}>
+                                                                                <strong>ILO:</strong> {comment.ilo}
+                                                                            </span>
+                                                                        )}
+                                                                        {comment.coverageType && (
+                                                                            <span style={{ background: '#f0f4f8', padding: '2px 6px', borderRadius: '4px' }}>
+                                                                                <strong>Coverage:</strong> {comment.coverageType}
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
                                                                 </div>
-                                                            )}
+                                                                )
+                                                            })()}
 
                                                             <p style={{
                                                                 fontSize: '13px',

@@ -200,6 +200,11 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
     if (roleKey === 'instructor') {
       return globalComments.filter(c => !(c.recipientRole === 'program_head' && !c.resolved))
     }
+    // Approvers only see their own comments — not those of other approvers
+    const approverRoles = ['program-head', 'dean', 'industry-consultant', 'director-of-libraries']
+    if (approverRoles.includes(roleKey)) {
+      return globalComments.filter(c => normalizeRoleKey(c.role) === roleKey)
+    }
     return globalComments
   }, [globalComments, roleKey])
 
@@ -450,7 +455,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
           ex.courseOutcome === (inc.courseOutcome || null) &&
           ex.ilo === (inc.ilo || null) &&
           ex.coverageType === (inc.coverageType || null) &&
-          ex.coverageDetail === (inc.coverageDetail || null) &&
+          (Array.isArray(ex.coverageDetail) ? ex.coverageDetail.join('|') : (ex.coverageDetail || '')) === (Array.isArray(inc.coverageDetail) ? inc.coverageDetail.join('|') : (inc.coverageDetail || '')) &&
           (ex.comment || '').trim().toLowerCase() === (inc.text || '').trim().toLowerCase()
         )
         if (dup) {
@@ -463,7 +468,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
       const now = new Date()
       const submissionId = `${code}-${now.getTime()}`
       const submittedAt = payload.createdAt || now.toISOString()
-      const submissionLabel = `Submission ${new Date(submittedAt).toLocaleString()}`
+      const submissionLabel = 'Submission'
 
       const reviewerNames = { 'instructor': 'CASIMERO, DANNY', 'program-head': 'DANILA, JUNAR', 'dean': 'REYES, AGNES', 'director-of-libraries': 'GARCIA, CARLOS', 'industry-consultant': 'CRUZ, ROBERTO' }
       const storedUser = JSON.parse(localStorage.getItem('user') || 'null')
@@ -492,7 +497,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
         courseOutcome: c.courseOutcome || null,
         ilo: c.ilo || null,
         coverageType: c.coverageType || null,
-        coverageDetail: c.coverageDetail || null,
+        coverageDetail: (Array.isArray(c.coverageDetail) ? (c.coverageDetail.length ? c.coverageDetail : null) : (c.coverageDetail || null)),
         status: 'pending',
         resolved: false,
         suggestedRefs: (payload.suggestedReferences || []).map(r => ({
@@ -800,13 +805,13 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
               const allAssessments = syllabus?.assessments || []
 
               const ccColWidths = {
-                co: '40px',
-                ilo: '110px',
-                topic: '130px',
-                period: '40px',
-                tla: '170px',
-                assess: '120px',
-                ref: '50px'
+                co: '45px',
+                ilo: '170px',
+                topic: '195px',
+                period: '90px',
+                tla: '300px',
+                assess: '220px',
+                ref: '110px'
               }
 
               const getILOTopics = (ilo) => {
@@ -872,8 +877,15 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
                         <tbody>
                           {ilos.length > 0 ? ilos.map((ilo, index) => {
                             const currentCoPrefix = ilo.id ? ilo.id.split('-')[0] : ''
-                            const isFirstOfCO = index === ilos.findIndex(item => item.id.startsWith(currentCoPrefix + '-'))
-                            const coRowCount = ilos.filter(item => item.id.startsWith(currentCoPrefix + '-')).length
+                            // Consecutive-run safe rowspan: no overlap when COs aren't contiguous
+                            const prevCoPrefix = index > 0 ? ((ilos[index - 1].id || '').split('-')[0]) : null
+                            const isFirstOfCO = currentCoPrefix !== prevCoPrefix
+                            let coRowCount = 1
+                            if (isFirstOfCO) {
+                              for (let j = index + 1; j < ilos.length && (ilos[j].id || '').split('-')[0] === currentCoPrefix; j++) {
+                                coRowCount++
+                              }
+                            }
                             const rowTopics = getILOTopics(ilo)
 
                             const preTLAs = getTLAsByPhase(rowTopics, 'Pre-class')
@@ -1307,8 +1319,13 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
 
                     const ordered = Object.values(groups).sort((a, b) => (b.submittedAt || '').localeCompare(a.submittedAt || ''))
                     return ordered.map((g, gi) => (
-                      <div key={gi} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: '#2d3748' }}>{g.submissionLabel}{g.submittedAt ? ` — ${new Date(g.submittedAt).toLocaleString()}` : ''}</div>
+                      <div key={gi} style={{ display: 'flex', flexDirection: 'column', gap: 8, paddingTop: gi > 0 ? 10 : 0, borderTop: gi > 0 ? '1px solid #edf2f7' : 'none' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                          <span style={{ fontSize: 12, fontWeight: 700, color: '#2d3748', textTransform: 'uppercase', letterSpacing: '0.4px' }}>{g.submissionLabel}</span>
+                          {g.submittedAt && !String(g.submissionLabel).includes(new Date(g.submittedAt).toLocaleString()) && (
+                            <span style={{ fontSize: 11, color: '#a0aec0' }}>{new Date(g.submittedAt).toLocaleString()}</span>
+                          )}
+                        </div>
                         {g.items.map((comment, idx) => {
                           const componentTags = getComponentTags(comment);
                           const seedIndex = globalComments.indexOf(comment)
@@ -1339,11 +1356,10 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
                                       </span>
                                     )}
                                   </div>
-                                  {isRecent(comment.createdAt || comment.submittedAt || comment.timestamp, 7) && (
+                                  {isRecent(comment.createdAt || comment.submittedAt || comment.timestamp) && (
                                     <span style={{ marginLeft: 8, fontSize: '11px', background: '#2d3748', color: '#fff', padding: '2px 6px', borderRadius: '12px', fontWeight: 600 }}>New</span>
                                   )}
                                 </div>
-                                <span style={{ fontSize: '11px', color: '#a0aec0' }}>Comment {idx + 1}</span>
                               </div>
 
                               {componentTags.length > 0 && (
@@ -1356,30 +1372,37 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
                                 </div>
                               )}
 
-                              {(comment.courseOutcome || comment.ilo) && (
-                                <div style={{ display: 'flex', gap: '8px', marginBottom: '8px', fontSize: '11px', color: '#718096' }}>
-                                  {comment.courseOutcome && (
-                                    <span style={{ background: '#f0f4f8', padding: '2px 6px', borderRadius: '4px' }}>
-                                      <strong>CO:</strong> {comment.courseOutcome}
-                                    </span>
-                                  )}
-                                  {comment.ilo && (
-                                    <span style={{ background: '#f0f4f8', padding: '2px 6px', borderRadius: '4px' }}>
-                                      <strong>ILO:</strong> {comment.ilo}
-                                    </span>
-                                  )}
-                                </div>
-                              )}
-
-                              {(comment.coverageType || comment.coverageDetail) && (
-                                <div style={{ display: 'flex', gap: '8px', marginBottom: '8px', fontSize: '11px', color: '#718096' }}>
-                                  {comment.coverageType && (
-                                    <span style={{ background: '#e0f2fe', padding: '2px 6px', borderRadius: '4px' }}>
-                                      <strong>{comment.coverageType}:</strong> {comment.coverageDetail || ''}
-                                    </span>
-                                  )}
-                                </div>
-                              )}
+                              {(comment.courseOutcome || comment.ilo || comment.coverageType || (Array.isArray(comment.coverageDetail) ? comment.coverageDetail.length : comment.coverageDetail)) && (() => {
+                                const targetText = Array.isArray(comment.coverageDetail) ? comment.coverageDetail.join(', ') : (comment.coverageDetail || '')
+                                return (
+                                  <div style={{ marginBottom: '8px', fontSize: '11px', color: '#718096' }}>
+                                    {targetText && (
+                                      <div style={{ marginBottom: '4px' }}>
+                                        <span style={{ background: '#e0f2fe', padding: '2px 6px', borderRadius: '4px' }}>
+                                          <strong>Target:</strong> {targetText}
+                                        </span>
+                                      </div>
+                                    )}
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                                      {comment.courseOutcome && (
+                                        <span style={{ background: '#f0f4f8', padding: '2px 6px', borderRadius: '4px' }}>
+                                          <strong>CO:</strong> {comment.courseOutcome}
+                                        </span>
+                                      )}
+                                      {comment.ilo && (
+                                        <span style={{ background: '#f0f4f8', padding: '2px 6px', borderRadius: '4px' }}>
+                                          <strong>ILO:</strong> {comment.ilo}
+                                        </span>
+                                      )}
+                                      {comment.coverageType && (
+                                        <span style={{ background: '#f0f4f8', padding: '2px 6px', borderRadius: '4px' }}>
+                                          <strong>Coverage:</strong> {comment.coverageType}
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                )
+                              })()}
 
                               <p style={{ fontSize: '13px', lineHeight: '1.6', color: '#4a5568', margin: '0 0 8px 0' }}>
                                 {comment.comment}

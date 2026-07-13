@@ -65,19 +65,17 @@ export const getComponentTags = (comment) => {
   }
   if (isSelected('references')) tags.push('References')
   if (isSelected('grading')) tags.push('Grading Criteria')
-  if (comment?.coverageType) {
-    const ct = String(comment.coverageType).trim()
-    if (ct) tags.push(`Coverage: ${ct}`)
-  }
+  // Coverage type is now shown in the CO/ILO/Coverage row, so it's no longer duplicated here
   return tags
 }
 
-export const isRecent = (iso, days = 7) => {
+// "New" badge window — comment counts as recent for this many hours after it was made
+export const isRecent = (iso, hours = 1) => {
   if (!iso) return false
   try {
     const then = new Date(iso)
     const diff = Date.now() - then.getTime()
-    return diff < days * 24 * 60 * 60 * 1000
+    return diff < hours * 60 * 60 * 1000
   } catch {
     return false
   }

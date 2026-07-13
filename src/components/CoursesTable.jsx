@@ -1,14 +1,34 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import styles from '../styles/CoursesTable.module.sass';
-import { ChevronRight, Edit, XCircle, HelpCircle, Download } from 'react-feather';
+import { ChevronRight, Edit, XCircle, HelpCircle } from 'react-feather';
 import { fetchJson } from "../utils/api.js";
-import { syllabiData } from "../data/syllabiData.js";
-import { getSyllabi } from "../utils/dataStore.js";
 import { getWorkflow } from "../utils/workflowHelpers.js";
-import { buildSyllabusHtml } from "../utils/syllabusPdfHtml.js";
-import PDFViewerModal from './PDFViewerModal.jsx';
-import unclogo from '../assets/unclogo.png';
+
+// --- Custom Date Formatters to Ensure Global Consistency (mirrors composition client) ---
+const formatDate = (dateString) => {
+    if (!dateString) return '-';
+    const d = new Date(dateString);
+    if (isNaN(d.getTime())) return '-';
+    return d.toISOString().split('T')[0]; // Outputs: YYYY-MM-DD
+};
+
+const formatDateTime = (dateString) => {
+    if (!dateString) return '-';
+    const d = new Date(dateString);
+    if (isNaN(d.getTime())) return '-';
+
+    const datePart = d.toISOString().split('T')[0]; // YYYY-MM-DD
+
+    let hours = d.getHours();
+    const minutes = String(d.getMinutes()).padStart(2, '0');
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12;
+    hours = hours ? hours : 12;
+
+    const timePart = `${String(hours).padStart(2, '0')}:${minutes} ${ampm}`;
+    return `${datePart} ${timePart}`;
+};
 
 const CoursesTable = () => {
     const currentYear = new Date().getFullYear();
@@ -16,128 +36,98 @@ const CoursesTable = () => {
     const semOptions = ['1st Sem', '2nd Sem'];
     const yearOptions = [];
     for (let i = currentYear; i >= startYear; i--) {
-        yearOptions.push(<option key={i} value={i}>{i}</option>);
+        const schoolYearLabel = `${i} - ${i + 1}`;
+        yearOptions.push(
+            <option key={i} value={i}>
+                {schoolYearLabel}
+            </option>
+        );
     }
 
-    const statuses = ["DRAFT", "PENDING", "RETURNED", "APPROVED"];
+    const [selectedYear, setSelectedYear] = useState(currentYear);
+    const [selectedSem, setSelectedSem] = useState(semOptions[0] || "");
+
+    const statusesOptions = ["DRAFT", "PENDING", "RETURNED", "APPROVED"];
+    const [statuses, setStatuses] = useState(statusesOptions);
 
     const [searchParams, setSearchParams] = useSearchParams();
-
     const [selectedStatus, setSelectedStatus] = useState(() => {
         const fromUrl = searchParams.get('status');
-        if (fromUrl && statuses.some(s => s.toLowerCase() === fromUrl.toLowerCase())) {
+        if (fromUrl && statusesOptions.some(s => s.toLowerCase() === fromUrl.toLowerCase())) {
             return fromUrl.toUpperCase();
         }
         return 'DRAFT';
     });
 
-    const updateStatus = (status) => {
-        setSelectedStatus(status);
-        setSearchParams({ status: status.toLowerCase() });
-    };
+    // Year drives which status tabs are available (past years only show APPROVED)
+    useEffect(() => {
+        if (String(selectedYear) !== String(currentYear)) {
+            setStatuses(["APPROVED"]);
+            setSelectedStatus("APPROVED");
+        } else {
+            setStatuses(statusesOptions);
+            setSelectedStatus(prev => (statusesOptions.includes(prev) ? prev : "DRAFT"));
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [selectedYear, currentYear]);
+
     const [assignments, setAssignments] = useState([]);
     const [loading, setLoading] = useState(false);
-    const [popup, setPopup] = useState({ open: false, data: null, pos: null });
-    const [exportFile, setExportFile] = useState(null);
-    const [exporting, setExporting] = useState(false);
+    const [popup, setPopup] = useState({ open: false, data: null });
 
     useEffect(() => {
         loadAssignments();
     }, []);
 
+    const updateStatus = (status) => {
+        setSelectedStatus(status);
+        setSearchParams({ status: status.toLowerCase() });
+    };
     const handleStatusChange = (e) => updateStatus(e.target.value);
 
-    const closeExportModal = () => {
-      if (exportFile?.file_url?.startsWith('blob:')) URL.revokeObjectURL(exportFile.file_url)
-      setExportFile(null)
-    }
+    // === LOGIC RETAINED: static seed rows (mirrors the composition demo assignments) ===
+    // Each row's date fields drive computeOverallStatus (Draft / Pending / Returned / Approved).
+    const makeRow = ({ code, title, assigned, submitted = null, updated = null, approved = null, accepts = {}, returns = {} }) => ({
+        date_assigned: assigned,
+        date_submitted: submitted,
+        date_updated: updated,
+        date_approved: approved,
+        ic_date_accepted: accepts.ic || null,
+        ld_date_accepted: accepts.ld || null,
+        ph_date_accepted: accepts.ph || null,
+        d_date_accepted: accepts.d || null,
+        ic_date_returned: returns.ic || null,
+        ld_date_returned: returns.ld || null,
+        ph_date_returned: returns.ph || null,
+        d_date_returned: returns.d || null,
+        ProgramCourseOffering: { Course: { course_no: code, course_title: title } },
+    });
 
-    const handlePreview = async (row) => {
-      try {
-        setExporting(true)
-        const syllabus = getSyllabi().find(s => s.code === getCode(row))
-        if (!syllabus) { alert('Syllabus data not found'); setExporting(false); return }
-        const workflow = getWorkflow(getCode(row))
-
-        const logoUrl = new URL(unclogo, window.location.origin).href
-        const html = buildSyllabusHtml(syllabus, getCode(row), workflow, logoUrl)
-        const blob = new Blob([html], { type: 'text/html' })
-        const url = URL.createObjectURL(blob)
-        setExportFile({
-          file_url: url,
-          file_name: `Syllabus_${getCode(row)}.html`,
-          instructor_name: row.instructor || '—',
-          course_id: getCode(row),
-          course_name: getName(row),
-          submission_date: row.date_submitted || workflow?.submittedAt || '',
-          period_label: row.period || '',
-        })
-      } catch (err) {
-        console.warn('Preview generation failed:', err)
-        alert('Failed to generate preview: ' + (err?.message || err))
-      } finally {
-        setExporting(false)
-      }
-    }
-
-
-    // Map static syllabiData to the row shape the table expects
-    const mapStaticToRows = () => {
-        const now = new Date().toISOString();
-        return syllabiData.map((s, i) => {
-            const mod = i % 4;
-            const row = {
-                date_assigned: s.update || now,
-                date_submitted: null,
-                d_date_accepted: null,
-                d_date_returned: null,
-                ph_date_returned: null,
-                ic_date_returned: null,
-                ld_date_returned: null,
-                date_updated: null,
-                ProgramCourseOffering: {
-                    Course: {
-                        course_no: s.code,
-                        course_title: s.name
-                    }
-                }
-            };
-
-            if (mod === 0) {
-                // DRAFT — keep as-is
-            } else if (mod === 1) {
-                // PENDING — has date_submitted but no acceptances
-                row.date_submitted = s.update || now;
-            } else if (mod === 2) {
-                // APPROVED — fully accepted
-                row.date_submitted = s.update || now;
-                row.ic_date_accepted = now;
-                row.ld_date_accepted = now;
-                row.ph_date_accepted = now;
-                row.d_date_accepted = now;
-            } else if (mod === 3) {
-                // RETURNED — returned by one approver
-                row.date_submitted = s.update || now;
-                row.ic_date_accepted = now;
-                row.ld_date_returned = now;
-            }
-
-            return row;
-        });
-    };
+    const mapStaticToRows = () => ([
+        // DRAFT
+        makeRow({ code: 'BIT313L', title: 'Human and Computer Interaction', assigned: '2026-07-13T15:40:45.000Z' }),
+        makeRow({ code: 'BIT312L', title: 'Integrative Programming and Technologies', assigned: '2026-06-01T00:00:00.000Z' }),
+        // PENDING (submitted, awaiting review)
+        makeRow({ code: 'BIT321L', title: 'System Integration & Architecture', assigned: '2026-06-01T00:00:00.000Z', submitted: '2026-06-15T00:00:00.000Z' }),
+        // RETURNED (industry consultant returned)
+        makeRow({ code: 'BIT311L', title: 'Platform Technologies', assigned: '2026-06-01T00:00:00.000Z', submitted: '2026-06-10T00:00:00.000Z', returns: { ic: '2026-06-15T02:15:00.000Z' } }),
+        makeRow({ code: 'MATH311L', title: 'Statistics', assigned: '2026-06-01T00:00:00.000Z', submitted: '2026-06-10T00:00:00.000Z', returns: { ic: '2026-06-15T02:15:00.000Z' } }),
+        // APPROVED (all approvers accepted incl. Dean)
+        makeRow({ code: 'BIT213L', title: 'Object-Oriented Programming', assigned: '2026-06-01T00:00:00.000Z', submitted: '2026-06-12T02:00:00.000Z', updated: '2026-06-22T01:00:00.000Z', approved: '2026-06-28T07:00:00.000Z', accepts: { ic: '2026-06-24T05:00:00.000Z', ld: '2026-06-23T02:00:00.000Z', ph: '2026-06-25T01:45:00.000Z', d: '2026-06-28T07:00:00.000Z' } }),
+        makeRow({ code: 'BIT213L', title: 'Object-Oriented Programming', assigned: '2025-06-01T01:00:00.000Z', submitted: '2025-06-15T02:00:00.000Z', updated: '2025-06-25T01:00:00.000Z', approved: '2025-07-02T07:00:00.000Z', accepts: { ic: '2025-06-27T05:00:00.000Z', ld: '2025-06-26T02:00:00.000Z', ph: '2025-06-28T01:45:00.000Z', d: '2025-07-02T07:00:00.000Z' } }),
+    ]);
 
     async function loadAssignments() {
+        // Show static data immediately so the table is never stuck on "Loading…"
+        setAssignments(mapStaticToRows());
         setLoading(true);
         try {
-            // Centralized fetch handles network checks and parsing automatically
-            const data = await fetchJson('/api/assignments');
-
-            // Normalize: backend may return { data: [...] } or { rows: [...] } or array
+            const data = await fetchJson('/api/assignments', { timeout: 6000 });
             const rows = Array.isArray(data) ? data : (data.data || data.rows || []);
-            setAssignments(rows);
+            if (Array.isArray(rows) && rows.length > 0) setAssignments(rows);
         } catch (err) {
             console.warn("API unavailable, using static syllabiData as fallback");
-            setAssignments(mapStaticToRows());
+            // static rows already set above
         } finally {
             setLoading(false);
         }
@@ -178,136 +168,92 @@ const CoursesTable = () => {
         return 'Pending';
     };
 
-    // Build per-approver display object for popup
-    const buildApproverStatus = (row) => {
-        const approvers = [
-            {
-                key: 'Industry Consultant',
-                accepted: row?.ic_date_accepted,
-                returned: row?.ic_date_returned,
-                updated: row?.date_updated
-            },
-            {
-                key: 'Director of Libraries',
-                accepted: row?.ld_date_accepted,
-                returned: row?.ld_date_returned,
-                updated: row?.date_updated
-            },
-            {
-                key: 'Program Head',
-                accepted: row?.ph_date_accepted,
-                returned: row?.ph_date_returned,
-                updated: row?.date_updated
-            },
-            {
-                key: 'Dean',
-                accepted: row?.d_date_accepted,
-                returned: row?.d_date_returned,
-                updated: row?.date_updated
-            }
+    // Build the approver list for the details popup from the local workflow state
+    const buildApproverStatuses = (code) => {
+        const wf = getWorkflow(code || '');
+        const mapNode = (node) => {
+            const s = node?.status;
+            if (s === 'done') return { status: 'Accepted', acceptedAt: node.completedAt };
+            if (s === 'returned') return { status: 'Returned', returnedAt: node.completedAt };
+            return { status: 'Pending' };
+        };
+        return [
+            { title: 'Industry Consultant', ...mapNode(wf.parallelReview?.industry_consultant) },
+            { title: 'Library Director', ...mapNode(wf.parallelReview?.library_director) },
+            { title: 'Program Head', ...mapNode(wf.programHead) },
+            { title: 'Dean', ...mapNode(wf.dean) },
         ];
+    };
 
-        return approvers.map(a => {
-            if (a.accepted) {
-                return { title: a.key, status: 'Accepted', acceptedAt: a.accepted };
+    const openPopup = (row) => {
+        const code = getCode(row);
+        const wf = getWorkflow(code || '');
+        setPopup({
+            open: true,
+            data: {
+                submittedAt: wf.submittedAt || row.date_submitted || null,
+                approverStatuses: buildApproverStatuses(code),
             }
-            if (a.returned) {
-                const details = { title: a.key, status: 'Returned', returnedAt: a.returned };
-                if (a.updated && a.updated !== a.returned) details.updatedAt = a.updated;
-                return details;
-            }
-            return { title: a.key, status: 'Pending' };
         });
     };
 
-    const openPopup = (row, e) => {
-        const rect = e?.currentTarget?.getBoundingClientRect();
-        const code = getCode(row);
-        const wf = getWorkflow(code || '');
-        const popupH = 280;
-        const top = rect ? (rect.bottom + 4 + popupH > window.innerHeight ? rect.top - popupH - 4 : rect.bottom + 4) : 80;
-        setPopup({ open: true, data: { workflow: wf, code }, pos: rect ? { right: window.innerWidth - rect.right, top } : null });
+    const closePopup = () => setPopup({ open: false, data: null });
+
+    // Approved date derived from the local workflow (Dean completion)
+    const getApprovedDate = (row) => {
+        return row.date_approved || getWorkflow(getCode(row) || '')?.dean?.completedAt || null;
     };
 
-    const closePopup = () => setPopup({ open: false, data: null, pos: null });
-
-    // Calculate counts for each status
-    const getStatusCount = (statusName) => {
-        return assignments.filter(row => computeOverallStatus(row).toUpperCase() === statusName).length;
-    };
-
-
-    const statusBadge = (status) => {
-        const map = {
-            Draft: { color: '#6b7280', background: '#f3f4f6' },
-            Pending: { color: '#b45309', background: '#fffbeb' },
-            Returned: { color: '#dc2626', background: '#fef2f2' },
-            Approved: { color: '#047857', background: '#ecfdf5' },
-        };
-        const s = map[status] || { color: '#6b7280', background: '#f3f4f6' };
-        return <span style={{ ...s, padding: '3px 10px', borderRadius: 99, fontWeight: 600, fontSize: 12 }}>{status}</span>;
-    };
-
-    // Filter rows by selectedStatus
     const filteredRows = assignments.filter(row => {
         const overall = computeOverallStatus(row);
         return overall.toUpperCase() === selectedStatus;
     });
 
-    // Popup component
-    const DetailsPopup = ({ data, onClose, pos }) => {
+    const DetailsPopup = ({ data, onClose }) => {
         if (!data) return null;
-        const wf = data.workflow || {}
-        const submittedAt = wf.submittedAt || null
-        const approvers = [
-            { key: 'Industry Consultant', wfKey: wf.parallelReview?.industry_consultant },
-            { key: 'Director of Libraries', wfKey: wf.parallelReview?.library_director },
-            { key: 'Program Head', wfKey: wf.programHead },
-            { key: 'Dean', wfKey: wf.dean },
-        ]
+        const { submittedAt, approverStatuses } = data;
         return (
-            <>
-                <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 1199 }} />
-                <div style={{
-                    position: 'fixed',
-                    right: pos?.right ?? 20,
-                    top: pos?.top ?? 80,
-                    width: 340,
-                    background: '#fff',
-                    border: '1px solid #ddd',
-                    borderRadius: 6,
-                    boxShadow: '0 6px 18px rgba(0,0,0,0.12)',
-                    zIndex: 1200,
-                    padding: 12
-                }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                        <strong>View details</strong>
-                        <button onClick={onClose} style={{ border: 'none', background: 'transparent', cursor: 'pointer', padding: 4 }} aria-label="Close details">
-                            <XCircle size={18} />
-                        </button>
-                    </div>
-
-                    <div style={{ fontSize: 13, marginBottom: 10 }}>
-                        <div style={{ color: '#666', marginBottom: 8 }}>
-                            <strong>Submitted at:</strong> {submittedAt ? new Date(submittedAt).toLocaleString() : '-'}
-                        </div>
-
-                        {approvers.map((a, idx) => {
-                            const status = a.wfKey?.status || 'pending'
-                            return (
-                            <div key={idx} style={{ marginBottom: 10, paddingBottom: 8, borderBottom: '1px solid #f0f0f0' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                                    <div style={{ fontWeight: 600 }}>{a.key}</div>
-                                </div>
-                                {status === 'done' && a.wfKey?.completedAt ? <div style={{ fontSize: 13, color: '#333' }}><strong>Approved at:</strong> {new Date(a.wfKey.completedAt).toLocaleString()}</div> : null}
-                                {status === 'returned' && a.wfKey?.completedAt ? <div style={{ fontSize: 13, color: '#dc2626' }}><strong>Returned at:</strong> {new Date(a.wfKey.completedAt).toLocaleString()}</div> : null}
-                                {status === 'pending' ? <div style={{ fontSize: 13, color: '#999' }}>Pending</div> : null}
-                            </div>
-                            );
-                        })}
-                    </div>
+            <div style={{
+                position: 'fixed',
+                right: 20,
+                top: 80,
+                width: 340,
+                background: '#fff',
+                border: '1px solid #ddd',
+                borderRadius: 6,
+                boxShadow: '0 6px 18px rgba(0,0,0,0.12)',
+                zIndex: 1200,
+                padding: 12
+            }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                    <strong>View details</strong>
+                    <button onClick={onClose} style={{ border: 'none', background: 'transparent', cursor: 'pointer', padding: 4 }} aria-label="Close details">
+                        <XCircle size={18} />
+                    </button>
                 </div>
-            </>
+
+                <div style={{ fontSize: 13, marginBottom: 10 }}>
+                    <div style={{ color: '#666', marginBottom: 8 }}>
+                        <strong>Submitted at:</strong> {formatDateTime(submittedAt)}
+                    </div>
+
+                    {approverStatuses.map((a, idx) => (
+                        <div key={idx} style={{ marginBottom: 10, paddingBottom: 8, borderBottom: '1px solid #f0f0f0' }}>
+                            <div style={{ fontWeight: 600 }}>{a.title}</div>
+                            <div style={{ fontSize: 13, color: '#333' }}>
+                                {a.status === 'Accepted' && <div>Accepted at: {formatDateTime(a.acceptedAt)}</div>}
+                                {a.status === 'Returned' && (
+                                    <>
+                                        <div>Returned at: {formatDateTime(a.returnedAt)}</div>
+                                        {a.updatedAt && <div>Updated at: {formatDateTime(a.updatedAt)}</div>}
+                                    </>
+                                )}
+                                {a.status === 'Pending' && <div>Pending</div>}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
         );
     };
 
@@ -315,12 +261,20 @@ const CoursesTable = () => {
         <div className={styles['courses-table']}>
             <div className={styles.header}>
                 <h2>ASSIGNED COURSES</h2>
-
                 <div className={styles.filterA}>
-                    <select className={styles['header-select']}>
+                    <select
+                        className={styles['header-select']}
+                        value={selectedYear}
+                        onChange={(e) => setSelectedYear(e.target.value)}
+                    >
                         {yearOptions}
                     </select>
-                    <select className={styles['header-select']}>
+
+                    <select
+                        className={styles['header-select']}
+                        value={selectedSem}
+                        onChange={(e) => setSelectedSem(e.target.value)}
+                    >
                         {semOptions.map(sem => (
                             <option key={sem} value={sem}>{sem}</option>
                         ))}
@@ -332,8 +286,6 @@ const CoursesTable = () => {
                 <div className={styles['filter-container']}>
                     <div className={styles['segmented-control']}>
                         {statuses.map((status) => {
-                            const count = getStatusCount(status);
-                            const isReturned = status === 'RETURNED';
                             return (
                                 <button
                                     key={status}
@@ -341,16 +293,7 @@ const CoursesTable = () => {
                                     className={`${styles['control-item']} ${selectedStatus === status ? styles['active'] : ''}`}
                                     onClick={() => handleStatusChange({ target: { value: status } })}
                                 >
-
                                     {status.charAt(0) + status.slice(1).toLowerCase()}
-                                    {/*<span*/}
-                                    {/*    style={{*/}
-                                    {/*    marginLeft: '4px',*/}
-                                    {/*    color: isReturned ? '#e74c3c' : 'inherit',*/}
-                                    {/*    fontWeight: isReturned ? 'bold' : 'normal'*/}
-                                    {/*}}>*/}
-                                    {/*    ({count})*/}
-                                    {/*</span>*/}
                                 </button>
                             );
                         })}
@@ -359,96 +302,87 @@ const CoursesTable = () => {
             </div>
 
             <div className={styles['table-container']}>
-                {loading && <div>Loading...</div>}
+                {loading && assignments.length === 0 && <div>Loading...</div>}
 
+                {/* DRAFT and APPROVED TABLE */}
                 {(selectedStatus === 'DRAFT' || selectedStatus === 'APPROVED') &&
                     <table>
                         <thead>
                         <tr>
                             <th width={200}>DATE ASSIGNED</th>
                             <th width={150}>CODE</th>
-                            <th width={550}>COURSE NAME</th>
-                            {selectedStatus === 'APPROVED' && <th width={250} style={{textAlign:'center'}}>DATE APPROVED</th>}
-                            {selectedStatus === 'APPROVED' && <th style={{ width: 80, textAlign: 'center' }}></th>}
+                            <th width={350}>COURSE NAME</th>
+                            {selectedStatus === 'APPROVED' && <th width={200}>DATE APPROVED</th>}
                             <th className={styles.fill}></th>
                         </tr>
                         </thead>
                         <tbody>
                         {filteredRows.map((row, index) => (
                             <tr key={index}>
-                                <td width={200}>{row.date_assigned ? new Date(row.date_assigned).toLocaleDateString() : '-'}</td>
+                                <td width={200}>{formatDate(row.date_assigned)}</td>
                                 <td width={150}>{getCode(row)}</td>
-                                <td width={550}>{getName(row)}</td>
-                                {selectedStatus === 'DRAFT' ? null : null}
-                                {selectedStatus === 'APPROVED' && <td width={250} style={{textAlign:'center'}}>{(() => { const d = row.d_date_accepted || getWorkflow(getCode(row))?.dean?.completedAt; return d ? new Date(d).toLocaleDateString() : '-'; })()}</td>}
-                                {selectedStatus === 'APPROVED' && <td style={{ width: 80, textAlign: 'center', fontWeight: 500 }}>
-                                    <span className="actionLink" style={{ minWidth: 90, display: 'inline-flex', alignItems: 'center', gap: 5, cursor: exporting ? 'wait' : 'pointer', justifyContent: 'center', color: '#6b7280' }} onClick={() => !exporting && handlePreview(row)}>
-                                        {exporting ? '...' : 'Export'} <Download size={16} />
-                                    </span>
-                                </td>}
+                                <td width={350}>{getName(row)}</td>
+                                {selectedStatus === 'APPROVED' && <td width={200}>{formatDate(getApprovedDate(row))}</td>}
                                 <td className={styles.fill}>
                                     <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                                         <Link
                                             className={'actionLink'}
                                             to={`/courses/${getCode(row)}/${selectedStatus.toLowerCase()}`}
-                                            style={{ minWidth: 90, display: 'inline-flex', alignItems: 'center', gap: 5 }}
                                         >
                                             {selectedStatus === 'DRAFT' ? 'Compose' : 'View'}
-                                            <ChevronRight size={16} />
+                                            <ChevronRight size={18} />
                                         </Link>
 
-                                        {selectedStatus ==='APPROVED' &&
-                                            <button onClick={(e) => openPopup(row, e)} className={styles.info}>
+                                        {selectedStatus === 'APPROVED' &&
+                                            <button onClick={() => openPopup(row)} className={styles.info}>
                                                 <HelpCircle size={18} />
                                             </button>
                                         }
-
                                     </div>
                                 </td>
+                                <td></td>
                             </tr>
                         ))}
                         </tbody>
                     </table>
                 }
 
+                {/* PENDING and RETURNED TABLE */}
                 {(selectedStatus === 'PENDING' || selectedStatus === 'RETURNED') &&
                     <table>
                         <thead>
                         <tr>
                             <th width={200}>DATE ASSIGNED</th>
                             <th width={150}>CODE</th>
-                            <th width={550}>COURSE NAME</th>
+                            <th width={350}>COURSE NAME</th>
                             <th className={styles.fill}></th>
                         </tr>
                         </thead>
                         <tbody>
                         {filteredRows.map((row, index) => {
                             const overallStatus = computeOverallStatus(row);
-                            let overallDisplay = overallStatus;
                             return (
                                 <tr key={index}>
-                                    <td width={200}>{row.date_assigned ? new Date(row.date_assigned).toLocaleDateString() : '-'}</td>
+                                    <td width={200}>{formatDate(row.date_assigned)}</td>
                                     <td width={150}>{getCode(row)}</td>
-                                    <td width={550}>{getName(row)}</td>
+                                    <td width={350}>{getName(row)}</td>
 
                                     <td className={styles.fill}>
                                         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                                            {overallDisplay === 'Returned' ? (
+                                            {overallStatus === 'Returned' ? (
                                                 <Link className={'actionLink'}
                                                       to={`/courses/${getCode(row)}/${selectedStatus.toLowerCase()}`}
-                                                      style={{ minWidth: 90, display: 'inline-flex', alignItems: 'center', gap: 5 }}
                                                 >
                                                     Update<Edit size={16} />
                                                 </Link>
                                             ) : (
                                                 <Link className={'actionLink'}
                                                       to={`/courses/${getCode(row)}/${selectedStatus.toLowerCase()}`}
-                                                      style={{ minWidth: 90, display: 'inline-flex', alignItems: 'center', gap: 5 }}
                                                 >
                                                     View <ChevronRight size={16} />
                                                 </Link>
                                             )}
-                                            <button onClick={(e) => openPopup(row, e)} className={styles.info}>
+                                            <button onClick={() => openPopup(row)} className={styles.info}>
                                                 <HelpCircle opacity={.8} size={18} />
                                             </button>
                                         </div>
@@ -461,15 +395,7 @@ const CoursesTable = () => {
                 }
             </div>
 
-            {popup.open && popup.data && <DetailsPopup data={popup.data} onClose={closePopup} pos={popup.pos} />}
-
-            {exportFile && (
-                <PDFViewerModal
-                    file={exportFile}
-                    kind="Syllabus"
-                    onClose={closeExportModal}
-                />
-            )}
+            {popup.open && <DetailsPopup data={popup.data} onClose={closePopup} />}
         </div>
     );
 };

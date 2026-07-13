@@ -335,22 +335,31 @@
 .ccScrollWrapper
   flex-grow: 1
   overflow-y: auto
-  overflow-x: hidden
+  overflow-x: auto
   border: 1px solid #000
   max-height: calc(100vh - 180px)
   background: #fff
+  // Reserve a lane for the scrollbar so it sits outside content (like references)
+  scrollbar-gutter: stable
+  scrollbar-width: thin
+  scrollbar-color: #ccc #f1f1f1
 
   &::-webkit-scrollbar
-    width: 10px
-    height: 10px
+    width: 12px
+    height: 12px
+  &::-webkit-scrollbar-track
+    background: #f1f1f1
   &::-webkit-scrollbar-thumb
     background: #ccc
-    border-radius: 5px
+    border-radius: 6px
+    border: 2px solid #f1f1f1
 
 .ccTable
+  min-width: 1130px
   width: 100%
   table-layout: fixed
-  border-collapse: collapse !important
+  border-collapse: separate !important
+  border-spacing: 0 !important
   display: table !important
 
   thead
@@ -373,7 +382,8 @@
 
   th, td
     display: table-cell !important
-    border: 1px solid #000 !important
+    border-right: 1px solid #000 !important
+    border-bottom: 1px solid #000 !important
     padding: 10px 8px !important
     vertical-align: top
     font-size: 14px

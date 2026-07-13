@@ -52,7 +52,7 @@ const InstructorDashboard = () => {
 
   const tabs = [
     { id: 'drafted', label: 'DRAFTED COURSES', statuses: ['DRAFT'] },
-    { id: 'assigned', label: 'ASSIGNED COURSES', statuses: ['PENDING', 'RETURNED'] },
+    { id: 'assigned', label: 'ASSIGNED COURSES', statuses: ['Under-review', 'RETURNED'] },
     { id: 'approved', label: 'APPROVED COURSES', statuses: ['APPROVED'] },
   ];
 
@@ -333,7 +333,7 @@ const InstructorDashboard = () => {
             <div style={{ fontSize: 13, fontWeight: 600, color: '#0F172A' }}>{r.name}</div>
             <div style={{ fontSize: 11, color: '#64748B' }}>{r.role}</div>
             <div style={{ fontSize: 12, marginTop: 2 }}>
-              {r.status === 'approved' ? <span style={{ color: '#047857' }}>Approved at: {r.completedAt ? new Date(r.completedAt).toLocaleString() : '—'}</span> : null}
+              {r.status === 'approved' ? <span style={{ color: '#047857' }}>{r.role === 'Dean' ? 'Approved' : 'Accepted'} at: {r.completedAt ? new Date(r.completedAt).toLocaleString() : '—'}</span> : null}
               {r.status === 'returned' ? <span style={{ color: '#dc2626' }}>Returned at: {r.completedAt ? new Date(r.completedAt).toLocaleString() : '—'}</span> : null}
               {r.status === 'pending' || r.status === 'waiting' ? <span style={{ color: '#999' }}>Pending</span> : null}
             </div>

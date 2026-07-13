@@ -494,11 +494,11 @@ const SyllabusSections = () => {
                     <select value={selectedSection} onChange={handleSectionChange}>
                         <option value="Course Details">Course Details</option>
                         <option value="Course and Program Outcome Alignment">Course and Program Outcome Alignment</option>
+                        {(status === 'approved' || status === 'pending' || status === 'draft' || status === 'returned') &&
+                            <option value="Course Coverage">Course Coverage</option>
+                        }
                         {(status === 'approved' || status === 'pending') &&
-                            <>
-                                <option value="Course Coverage">Course Coverage</option>
-                                <option value="References Summary">References</option>
-                            </>
+                            <option value="References Summary">References</option>
                         }
                         {(status === 'draft' || status === 'returned') &&
                             <option value="Intended Learning Outcomes">Intended Learning Outcomes</option>
@@ -908,13 +908,13 @@ const SyllabusSections = () => {
 
                             // Columns Configuration (Fixed Widths) matching old specifications
                             const colWidths = {
-                                co: '40px',
-                                ilo: '110px',
-                                topic: '130px',
-                                period: '40px',
-                                tla: '170px',
-                                assess: '120px',
-                                ref: '50px'
+                                co: '45px',
+                                ilo: '170px',
+                                topic: '195px',
+                                period: '90px',
+                                tla: '300px',
+                                assess: '220px',
+                                ref: '110px'
                             };
 
                             // Helper: Find topics used in an ILO
@@ -936,10 +936,10 @@ const SyllabusSections = () => {
                                 return tlas;
                             };
 
-                            // Helper: Find Assessments for a list of TLAs based on backend relational ID keys
+                            // Helper: Find Assessments for a list of TLAs matched by tlaName
                             const getAssessmentsForTLAs = (tlas) => {
                                 return tlas.flatMap(tla =>
-                                    allAssessments.filter(a => a.tlaId === tla.tlaId)
+                                    allAssessments.filter(a => a.tlaName === tla.tlaName)
                                 );
                             };
 
@@ -1011,9 +1011,15 @@ const SyllabusSections = () => {
                                                 const cleanILOId = ilo.id.includes('-') ? ilo.id.split('-')[1] : ilo.id;
                                                 const currentCoPrefix = ilo.id.split('-')[0];
 
-                                                // DYNAMIC ROWSPAN CALCULATION
-                                                const isFirstOfCO = index === ilos.findIndex(item => item.id.startsWith(currentCoPrefix + '-'));
-                                                const coRowCount = ilos.filter(item => item.id.startsWith(currentCoPrefix + '-')).length;
+                                                // DYNAMIC ROWSPAN CALCULATION (consecutive-run safe: no overlap when COs aren't contiguous)
+                                                const prevCoPrefix = index > 0 ? ilos[index - 1].id.split('-')[0] : null;
+                                                const isFirstOfCO = currentCoPrefix !== prevCoPrefix;
+                                                let coRowCount = 1;
+                                                if (isFirstOfCO) {
+                                                    for (let j = index + 1; j < ilos.length && ilos[j].id.split('-')[0] === currentCoPrefix; j++) {
+                                                        coRowCount++;
+                                                    }
+                                                }
 
                                                 return (
                                                     <tr key={ilo.id}>

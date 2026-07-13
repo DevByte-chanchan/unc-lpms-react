@@ -1,4 +1,4 @@
-function generateCOS(code, name) {
+function generateCOSBase(code, name) {
   const n = name.toLowerCase()
   if (n.includes('discrete') && !n.includes('ii')) return [
     { id:'CO1', description:'Apply set theory, logic, and proof techniques to solve discrete math problems.', poMappings:['E','I','','','','','','',''] },
@@ -177,13 +177,38 @@ function generateCOS(code, name) {
   ]
 }
 
-function generateILOs(code, name, cos) {
+// Ensure a course exposes a consistent set of 4 course outcomes (CO-PO alignment standard).
+// Pads shorter lists with a synthesized final outcome; longer lists are left untouched.
+function padToFourCOs(cos, name) {
+  if (!Array.isArray(cos) || cos.length >= 4) return cos
+  const poLen = (cos[0] && cos[0].poMappings && cos[0].poMappings.length) || 9
+  const baseName = String(name || '').replace(/:.+/, '').trim() || 'the course'
+  const padded = [...cos]
+  while (padded.length < 4) {
+    const idx = padded.length
+    padded.push({
+      id: `CO${idx + 1}`,
+      description: `Evaluate and justify ${baseName} solutions using appropriate criteria, standards, and evidence-based reasoning.`,
+      poMappings: Array.from({ length: poLen }, (_, k) => (k === Math.min(poLen - 1, 4) ? 'E' : '')),
+    })
+  }
+  return padded
+}
+
+function generateCOS(code, name) {
+  return padToFourCOs(generateCOSBase(code, name), name)
+}
+
+function generateILOs(code, name, cos, topics) {
   const n = name.toLowerCase()
   const isLight = n.includes('ethics') || n.includes('writing') || n.includes('entrepreneurship') || n.includes('numerical') || n.includes('automata') || n.includes('quantum') || n.includes('discrete') || n.includes('compiler') || n.includes('project') || n.includes('management')
   const ilos = []
   cos.forEach((co, i) => {
     const count = isLight ? 1 : Math.min(2, 3 - i)
     for (let j = 1; j <= count; j++) {
+      // Pick a topic title that actually exists in the generated topics array
+      const topicIndex = (i * count + (j - 1)) % topics.length
+      const topicTitle = topics[topicIndex]?.title || name.replace(/:.+/, '').trim()
       ilos.push({
         id: `CO${i+1}-ILO${j}`,
         courseOutcome: co.description,
@@ -192,8 +217,8 @@ function generateILOs(code, name, cos) {
           : `Implement solutions using ${name} techniques and tools.`,
         deliveryWeek: `Week ${(i * 3) + j}`,
         allocatedTime: `${isLight ? 2 : 3} hours`,
-        topics: [name.replace(/:.+/, '').trim()],
-        references: [`R1 - ${name} Reference`],
+        topics: [topicTitle],
+        references: [`TB1 - ${name}: Principles and Practice`, `OR1 - ${name} Learning Resources`],
       })
     }
   })
@@ -257,20 +282,132 @@ function generateCoAssessmentMethodSets(cos) {
   return sets
 }
 
+/**
+ * Expand courses that already have courseOutcomes but have too few topics/TLAs/assessments.
+ * Working courses (BSCS322L etc.) have: 5 topics, 3 subtopics each, ~8 TLAs, ~8 assessments.
+ * This function brings sparse courses up to that standard.
+ */
+function expandSparseData(s) {
+  const topics = s.topics || []
+  // If course already has 4+ topics, it's already well-formed (like the working courses)
+  if (topics.length >= 4) return
+
+  const name = s.name
+  const cos = s.courseOutcomes || []
+  const baseName = name.replace(/:.+/, '').trim()
+
+  // Build 5 rich topics with 3 subtopics and TLAs each (matching working pattern)
+  const topicTemplates = [
+    { suffix: 'Fundamentals', subs: ['Core Principles', 'Key Terminology', 'Historical Context'],
+      tlas: [
+        { phase: 'Pre-class', by: 'Instructor', name: `${baseName} Introduction Lecture`, desc: `Comprehensive introduction to ${name} principles, terminology, and foundational concepts.`, lab: false },
+        { phase: 'In-class', by: 'Student', name: `${baseName} Fundamentals Workshop`, desc: `Hands-on workshop applying fundamental ${name} concepts through guided exercises.`, lab: true },
+      ]
+    },
+    { suffix: 'Core Methods', subs: ['Primary Techniques', 'Analysis Methods', 'Implementation Strategies'],
+      tlas: [
+        { phase: 'In-class', by: 'Student', name: `${baseName} Methods Lab`, desc: `Laboratory session implementing core ${name} methods and techniques.`, lab: true },
+      ]
+    },
+    { suffix: 'Design & Implementation', subs: ['Design Patterns', 'System Architecture', 'Best Practices'],
+      tlas: [
+        { phase: 'Pre-class', by: 'Instructor', name: `${baseName} Design Lecture`, desc: `Lecture on design principles and architectural considerations for ${name}.`, lab: false },
+        { phase: 'In-class', by: 'Student', name: `${baseName} Implementation Lab`, desc: `Students implement ${name} solutions following design specifications.`, lab: true },
+      ]
+    },
+    { suffix: 'Testing & Evaluation', subs: ['Testing Strategies', 'Performance Metrics', 'Quality Assurance'],
+      tlas: [
+        { phase: 'In-class', by: 'Student', name: `${baseName} Testing Exercise`, desc: `Students perform testing and evaluation of ${name} implementations.`, lab: true },
+        { phase: 'Post-class', by: 'Student', name: `${baseName} Evaluation Report`, desc: `Comprehensive evaluation report analyzing ${name} outcomes and quality metrics.`, lab: false },
+      ]
+    },
+    { suffix: 'Applications & Integration', subs: ['Real-world Applications', 'System Integration', 'Case Studies'],
+      tlas: [
+        { phase: 'In-class', by: 'Student', name: `${baseName} Integration Project`, desc: `Capstone integration project applying ${name} concepts to real-world scenarios.`, lab: true },
+      ]
+    },
+  ]
+
+  // Preserve any existing topic titles that match what we'd generate, but rebuild all
+  const newTopics = topicTemplates.map((tmpl, idx) => ({
+    id: `T${idx + 1}`,
+    title: `${baseName} ${tmpl.suffix}`,
+    subtopics: tmpl.subs.map((sub, si) => ({ id: `S${idx * 3 + si + 1}`, value: sub })),
+    tlas: tmpl.tlas.map((tla, ti) => ({
+      id: `TLA${idx * 2 + ti + 1}`,
+      classPhase: tla.phase,
+      performedBy: tla.by,
+      tlaName: tla.name,
+      tlaDescription: tla.desc,
+      laboratory: tla.lab,
+    })),
+  }))
+
+  // Collect all TLA names for assessment generation
+  const allTLAs = newTopics.flatMap(t => t.tlas)
+
+  // Build assessments: one per TLA (matching working pattern of ~8 assessments)
+  const newAssessments = allTLAs.map((tla, idx) => ({
+    id: `A${idx + 1}`,
+    tlaName: tla.tlaName,
+    phase: tla.classPhase,
+    assessmentMethod: `${tla.tlaName} Assessment`,
+    assessmentDescription: `Assessment for ${tla.tlaDescription.substring(0, 80)}`,
+    hasRubric: idx === 0,
+  }))
+
+  // Build ILOs: distribute topics across COs (matching working pattern)
+  const newIlos = []
+  cos.forEach((co, i) => {
+    // Each CO gets 2 ILOs (except last CO gets 1), matching working courses' ~8 ILOs for 4 COs
+    const iloCount = (i < cos.length - 1) ? 2 : (8 - newIlos.length > 0 ? Math.max(1, 8 - newIlos.length) : 1)
+    for (let j = 0; j < iloCount && newIlos.length < 9; j++) {
+      const topicIdx = (newIlos.length) % newTopics.length
+      newIlos.push({
+        id: `${co.id}-ILO${j + 1}`,
+        courseOutcome: co.description,
+        intendedLearningOutcome: j === 0
+          ? `Analyze and apply ${name} concepts related to ${newTopics[topicIdx].title.toLowerCase()}.`
+          : `Implement solutions using ${name} techniques for ${newTopics[topicIdx].title.toLowerCase()}.`,
+        deliveryWeek: `Week ${newIlos.length + 1}`,
+        allocatedTime: '3 hours',
+        topics: [newTopics[topicIdx].title],
+        references: (s.references || []).slice(0, 2).map(r => `${r.id} - ${r.title}`),
+      })
+    }
+  })
+
+  // Apply the expanded data
+  s.topics = newTopics
+  s.assessments = newAssessments
+  s.ilos = newIlos
+}
+
 export function enrichSyllabi(data) {
   let enriched = 0
   data.forEach(s => {
     if (!s.sdg) s.sdg = 'SDG4 - Quality Education'
-    if (s.courseOutcomes && s.courseOutcomes.length > 0) return
-    const cos = generateCOS(s.code, s.name)
-    s.courseOutcomes = cos
-    s.ilos = generateILOs(s.code, s.name, cos)
-    s.topics = generateTopics(s.name)
-    s.references = generateReferences(s.name)
-    s.assessments = generateAssessments(cos, s.topics)
-    s.coAssessmentMethodSets = generateCoAssessmentMethodSets(cos)
-    s.gradingSystem = generateGradingSystem(cos)
-    enriched++
+
+    // Pass 1: Generate all data for courses with no courseOutcomes at all
+    if (!s.courseOutcomes || s.courseOutcomes.length === 0) {
+      const cos = generateCOS(s.code, s.name)
+      s.courseOutcomes = cos
+      s.topics = generateTopics(s.name)
+      s.ilos = generateILOs(s.code, s.name, cos, s.topics)
+      s.references = generateReferences(s.name)
+      s.assessments = generateAssessments(cos, s.topics)
+      s.coAssessmentMethodSets = generateCoAssessmentMethodSets(cos)
+      s.gradingSystem = generateGradingSystem(cos)
+      enriched++
+    }
+
+    // Pass 2: Expand sparse courses that have courseOutcomes but too few topics/TLAs
+    expandSparseData(s)
+
+    // Pass 3: Guarantee a consistent set of 4 course outcomes for CO-PO alignment
+    if (Array.isArray(s.courseOutcomes) && s.courseOutcomes.length > 0 && s.courseOutcomes.length < 4) {
+      s.courseOutcomes = padToFourCOs(s.courseOutcomes, s.name)
+    }
   })
   return data
 }

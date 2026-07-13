@@ -3,6 +3,10 @@ import { Search, X, Maximize, Minimize2, CheckCircle, AlertCircle } from 'react-
 import styles from '../styles/ApprovalCommentBox.module.sass'
 import { getReferences } from '../utils/referenceLibrary.js'
 import { getReviewerByRole, getReviewerSeedData, normalizeRoleKey, isDeprecated, hasIssues } from '../utils/approvalHelpers.js'
+import DropdownMultiSelect from './DropdownMultiSelect.jsx'
+
+// coverageDetail may be an array (multi-select) or a legacy string — this reports whether anything is selected
+const hasCoverageDetail = (c) => Array.isArray(c.coverageDetail) ? c.coverageDetail.length > 0 : !!c.coverageDetail
 
 const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = [], ilos = [], approverRole = null, coverageEntries = [], syllabusTopics = [], syllabusReferences = [], readOnly = false, previousComments: previousCommentsProp = [] }) => {
   const storageKey = 'approval_comments_v1'
@@ -19,7 +23,7 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
     coverageType: '',
     courseOutcome: '',
     ilo: '',
-    coverageDetail: '',
+    coverageDetail: [],
     commentedRefId: ''
   })
 
@@ -146,13 +150,13 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
         if (c.id !== commentId) return c
         const allowedIlos = coToIlos[courseOutcome] || resolvedIlos
         const nextIlo = allowedIlos.includes(c.ilo) ? c.ilo : ''
-        return { ...c, courseOutcome, ilo: nextIlo, coverageType: '', coverageDetail: '' }
+        return { ...c, courseOutcome, ilo: nextIlo, coverageType: '', coverageDetail: [] }
       })
     )
   }
 
   const updateCommentCoverageType = (commentId, coverageType) => {
-    setComments((prev) => prev.map((c) => (c.id === commentId ? { ...c, coverageType, coverageDetail: '' } : c)))
+    setComments((prev) => prev.map((c) => (c.id === commentId ? { ...c, coverageType, coverageDetail: [] } : c)))
   }
 
   const updateCommentCoverageDetail = (commentId, coverageDetail) => {
@@ -200,7 +204,7 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
   if (!show) return null
 
   const commentsWithText = comments.filter((c) => c.text && c.text.trim())
-  const hasCompleteComment = comments.some(c => c.text?.trim() && c.courseOutcome && c.ilo && c.coverageType && c.coverageDetail)
+  const hasCompleteComment = comments.some(c => c.text?.trim() && c.courseOutcome && c.ilo && c.coverageType && hasCoverageDetail(c))
 
   const saveDisabled = !hasCompleteComment
 
@@ -322,7 +326,7 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
 
   const handleSubmit = () => {
     if (submitting) return
-    const filledComments = comments.filter((c) => c.text?.trim() && c.courseOutcome && c.ilo && c.coverageType && c.coverageDetail)
+    const filledComments = comments.filter((c) => c.text?.trim() && c.courseOutcome && c.ilo && c.coverageType && hasCoverageDetail(c))
     if (filledComments.length === 0 && selectedRefs.length === 0) return
 
     const lastText = filledComments[filledComments.length - 1]?.text?.trim()
@@ -388,7 +392,7 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
   if (directorSuggested > 0) directorParts.push(`Suggestion${directorSuggested > 1 ? 's' : ''}`)
   const directorLabel = directorParts.length > 0 ? `Return with ${directorParts.join(' and ')}` : 'Return with Comments'
 
-  const normalFilled = comments.filter(c => c.text?.trim() && c.courseOutcome && c.ilo && c.coverageType && c.coverageDetail).length
+  const normalFilled = comments.filter(c => c.text?.trim() && c.courseOutcome && c.ilo && c.coverageType && hasCoverageDetail(c)).length
   const normalSuggested = selectedRefs.length
   const normalParts = []
   if (normalFilled > 0) normalParts.push(`Comment${normalFilled > 1 ? 's' : ''}`)
@@ -570,32 +574,22 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
                           </div>
 
                           <div className={styles.field}>
-                            <label className={styles.label}>Coverage Entry</label>
-                            <select className={styles.select} value={c.coverageDetail} onChange={(e) => updateCommentCoverageDetail(c.id, e.target.value)} disabled={!c.coverageType}>
-                              <option value="">-- select coverage entry --</option>
-                              {c.coverageType === 'Topic' && syllabusTopics.map((t) => (
-                                <option key={t.id} value={t.title}>
-                                  {t.title}{t.subtopics ? ` (${t.subtopics.length} subtopics)` : ''}
-                                </option>
-                              ))}
-                              {c.coverageType === 'References' && syllabusReferences.map((r) => {
-                                const dep = isDeprecated(r)
-                                const iss = hasIssues(r)
-                                const statusSuffix = iss ? ' [Has Issue]' : dep ? ' [Deprecated]' : ''
-                                return (
-                                <option key={r.id} value={r.title}>
-                                  {r.title}{r.authors ? ` — ${r.authors}` : ''}{statusSuffix}
-                                </option>
-                              )})}
-                              {c.coverageType === 'TLA' && syllabusTopics.flatMap(t => (t.tlas || []).map(tla => ({
-                                ...tla,
-                                topicTitle: t.title
-                              }))).map((tla) => (
-                                <option key={tla.id} value={tla.tlaName}>
-                                  {tla.tlaName}{tla.topicTitle ? ` (${tla.topicTitle})` : ''}
-                                </option>
-                              ))}
-                            </select>
+                            <label className={styles.label}>Target</label>
+                            <DropdownMultiSelect
+                              style={{ padding: 0, width: '100%' }}
+                              disabled={!c.coverageType}
+                              value={Array.isArray(c.coverageDetail) ? c.coverageDetail : (c.coverageDetail ? [c.coverageDetail] : [])}
+                              onChange={(vals) => updateCommentCoverageDetail(c.id, vals)}
+                              options={
+                                c.coverageType === 'Topic'
+                                  ? syllabusTopics.map((t) => t.title)
+                                  : c.coverageType === 'References'
+                                    ? syllabusReferences.map((r) => r.title)
+                                    : c.coverageType === 'TLA'
+                                      ? syllabusTopics.flatMap((t) => (t.tlas || []).map((tla) => tla.tlaName))
+                                      : []
+                              }
+                            />
                           </div>
                         </div>
 

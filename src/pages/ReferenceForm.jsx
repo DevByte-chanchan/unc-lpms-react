@@ -13,7 +13,6 @@ import { X, CheckCircle, MessageSquare } from 'react-feather';
 
 // Imported universal API client utility
 import { fetchJson } from "../utils/api.js";
-import { getSyllabusByCode } from "../data/syllabiData.js";
 
 function InlineModal({ isOpen, title, onClose, children, actions }) {
     if (!isOpen) return null;
@@ -35,9 +34,7 @@ function InlineModal({ isOpen, title, onClose, children, actions }) {
 
 const ReferenceForm = () => {
     const navigate = useNavigate();
-    const routeParams = useParams();
-    const { courseCode, iloId, status } = routeParams;
-    const code = routeParams.code;
+    const { courseCode, iloId, status } = useParams();
     const goBackHandler = () => navigate(-1);
 
     const [allReferences, setAllReferences] = useState([]);
@@ -70,7 +67,9 @@ const ReferenceForm = () => {
 
                 // Leveraging the centralized utility setup to auto-parse promises
                 const fetchPromises = [fetchJson(refsUrl), fetchJson(assignedUrl)];
-                fetchPromises.push(fetchJson(commentsUrl));
+                if (status === 'returned') {
+                    fetchPromises.push(fetchJson(commentsUrl));
+                }
 
                 const results = await Promise.all(fetchPromises);
 
@@ -78,11 +77,7 @@ const ReferenceForm = () => {
                 const assigned = results[1];
                 let targetedComments = [];
 
-                if (!Array.isArray(refs) || refs.length === 0) {
-                    throw new Error('Empty references from API');
-                }
-
-                if (results[2]) {
+                if (status === 'returned' && results[2]) {
                     targetedComments = results[2];
                 }
 
@@ -121,61 +116,10 @@ const ReferenceForm = () => {
                 setSelectedRefs(assignedRefObjects);
             } catch (err) {
                 console.error('Load initial targets failure: ', err);
-                if (!mounted) return;
-                const syllabus = getSyllabusByCode(code);
-                if (syllabus && syllabus.references) {
-                    const normalizedRefs = syllabus.references.map(r => ({
-                        reference_id: r.id,
-                        title: r.title || '',
-                        type: r.type || '',
-                        author: r.author || r.authors || '',
-                        isbn: r.isbn || '',
-                        link: r.link || '',
-                        publication_year: r.publication_year || null,
-                        ...r
-                    }));
-                    setAllReferences(normalizedRefs);
-                    const ilo = (syllabus.ilos || []).find(i => i.id === iloId);
-                    if (ilo && ilo.references) {
-                        const assigned = normalizedRefs.filter(r =>
-                            ilo.references.some(refStr => refStr.includes(r.id))
-                        );
-                        setAssignedReferences(assigned);
-                        setSelectedRefs(assigned);
-                    }
-                }
-                if (mounted) setValidationError(null);
+                if (mounted) setValidationError(err.message || 'Failed to initialize view data.');
             } finally {
                 // FIXED: Resolved syntax slip block from 'file' back to 'finally'
                 if (mounted) setLoading(false);
-            }
-
-            // Always load comments from localStorage and merge with API/static comments
-            if (mounted) {
-                try {
-                    const raw = localStorage.getItem('approval_comments_v1');
-                    if (raw) {
-                        const all = JSON.parse(raw);
-                        const localComments = all
-                            .filter(c => c.ilo === iloId && c.coverageType === 'References')
-                            .map(c => ({
-                                comment_id: c.id,
-                                target_title: c.coverageDetail || '',
-                                target_id: '',
-                                message: c.comment,
-                                commenter_role: c.role,
-                                createdAt: c.createdAt || c.submittedAt,
-                                resolved_status: c.resolved
-                            }));
-                        setReviewComments(prev => {
-                            const existingIds = new Set(prev.map(c => c.comment_id));
-                            const newOnes = localComments.filter(c => !existingIds.has(c.comment_id));
-                            return [...prev, ...newOnes];
-                        });
-                    }
-                } catch (e) {
-                    console.error('Failed to load comments from localStorage', e);
-                }
             }
         }
 

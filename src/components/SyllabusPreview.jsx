@@ -597,8 +597,8 @@ const SyllabusPreview = ({ isOpen, onClose }) => {
                         const allAssessments = coverageData.assessments || [];
 
                         const colWidthsCC = {
-                            co: '40px', ilo: '110px', topic: '130px',
-                            period: '40px', tla: '170px', assess: '120px', ref: '50px'
+                            co: '45px', ilo: '170px', topic: '195px',
+                            period: '90px', tla: '300px', assess: '220px', ref: '110px'
                         };
 
                         const getILOTopics = (ilo) => {
@@ -672,8 +672,15 @@ const SyllabusPreview = ({ isOpen, onClose }) => {
                                             <tbody>
                                             {ilos.length > 0 ? ilos.map((ilo, index) => {
                                                 const currentCoPrefix = ilo.id?.split('-')[0] || '';
-                                                const isFirstOfCO = index === ilos.findIndex(item => item.id?.startsWith(currentCoPrefix + '-'));
-                                                const coRowCount = ilos.filter(item => item.id?.startsWith(currentCoPrefix + '-')).length;
+                                                // Consecutive-run safe rowspan: no overlap when COs aren't contiguous
+                                                const prevCoPrefix = index > 0 ? (ilos[index - 1].id?.split('-')[0] || '') : null;
+                                                const isFirstOfCO = currentCoPrefix !== prevCoPrefix;
+                                                let coRowCount = 1;
+                                                if (isFirstOfCO) {
+                                                    for (let j = index + 1; j < ilos.length && (ilos[j].id?.split('-')[0] || '') === currentCoPrefix; j++) {
+                                                        coRowCount++;
+                                                    }
+                                                }
                                                 const rowTopics = getILOTopics(ilo);
 
                                                 const preTLAs = getTLAsByPhase(rowTopics, 'Pre-class');
