@@ -208,7 +208,7 @@ const SideNavigation = ({ mode = 'instructor' }) => {
                             <button className={styles.popupItem} onClick={() => gotoRole('/role/director-of-libraries/approval-course-table')}>Director of Libraries</button>
                             <button className={styles.popupItem} onClick={() => gotoRole('/role/industry-consultant/approval-course-table')}>Industry Consultant</button>
                             <button className={styles.popupItem} onClick={() => gotoRole('/role/dean')}>Dean</button>
-                            <button className={styles.popupItem} onClick={() => gotoRole('/role/ovpaa')}>OIC-OVPAA</button>
+                            <button className={styles.popupItem} onClick={() => gotoRole('/role/ovpaa')}>VPAA</button>
                         </div>
                     )}
                 </div>

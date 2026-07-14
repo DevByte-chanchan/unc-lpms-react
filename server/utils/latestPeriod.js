@@ -1,19 +1,31 @@
 /**
- * Active-term guard.
+ * Current-term guard.
  *
- * The business rule: each AcademicPeriod has an explicit lifecycle
- * status — 'Active' (editable) or 'Closed' (globally read-only).
- * The OVPAA closes a period manually when the term ends; from that
- * moment no controller may accept writes targeting that period.
+ * THE RULE: exactly ONE term is writable — the CURRENT one. Every previous term
+ * is read-only, full stop.
+ *
+ * This used to be "any period whose status says Active is writable", and that is
+ * not the same thing. Nothing in the system guarantees a single Active row:
+ * createPeriod stamps every new period 'Active'; creating a term only closes the
+ * one term the UI happened to consider current; and the lazy auto-close pass
+ * skips any period with a NULL end_date. So Active rows accumulate — and each one
+ * was a fully writable term. A period from two school years ago accepted writes
+ * (POST /faculty {period_id: 6} → 201) purely because a stale flag said Active.
+ *
+ * Status alone can therefore never be trusted as a permission. The question is
+ * not "is this period flagged Active" but "IS THIS THE CURRENT TERM" — which is
+ * derived, not stored, and so cannot go stale:
+ *
+ *     writable(p)  ⇔  p.status === 'Active'  AND  p.id === getActiveTermId()
+ *
+ * The legacy names below are the giveaway that this was the original intent:
+ * enforceLatestPeriod / isLatestPeriodId / getLatestPeriodId. The semantics had
+ * drifted to status-only; this restores what they always claimed.
  *
  * Exported (legacy names kept for call-site compatibility):
  *   - enforceLatestPeriod / enforceActiveTerm  — Express guard
  *   - isLatestPeriodId  / isActiveTermId       — boolean check
- *   - getLatestPeriodId / getActiveTermId      — picks the most recent Active term
- *
- * Internally everything routes through `isActiveTermId(periodId)`,
- * which reads `academic_periods.status` and returns true only when
- * the period exists and is Active.
+ *   - getLatestPeriodId / getActiveTermId      — picks the current (most recent Active) term
  */
 import db from '../models/index.js';
 
@@ -59,21 +71,36 @@ export async function isActiveTermId(periodId) {
   try {
     const row = await AcademicPeriod.findByPk(periodId, { attributes: ['status'], raw: true });
     if (!row) return true; // unknown period — let downstream raise a clearer error
-    return row.status === 'Active';
+    if (row.status !== 'Active') return false;
+
+    // Flagged Active is necessary but NOT sufficient: it must also be the term
+    // we currently rank as the newest Active one. A stranded Active row from an
+    // old school year fails here, which is the whole point.
+    const currentId = await getActiveTermId();
+    return currentId != null && Number(currentId) === Number(periodId);
   } catch (_err) {
     return true;
   }
 }
 
+/**
+ * 403 with a message that says which of the two ways this term is locked, since
+ * "closed" and "superseded by a newer term" call for different user actions.
+ */
 export async function enforceActiveTerm(res, periodId) {
-  const ok = await isActiveTermId(periodId);
-  if (!ok) {
-    res.status(403).json({
-      message: 'This term is closed — switch to an Active term to make changes.',
-    });
-    return false;
-  }
-  return true;
+  if (await isActiveTermId(periodId)) return true;
+
+  let message = 'This term is read-only — switch to the current term to make changes.';
+  try {
+    const row = await AcademicPeriod.findByPk(periodId, { attributes: ['status', 'label'], raw: true });
+    const name = (row && row.label) ? '“' + row.label + '”' : 'This term';
+    message = (row && row.status !== 'Active')
+      ? name + ' is closed — switch to the current term to make changes.'
+      : name + ' is a past term — only the current term can be edited.';
+  } catch (_err) { /* fall back to the generic message */ }
+
+  res.status(403).json({ message });
+  return false;
 }
 
 // Legacy export aliases — keep existing controller imports working.

@@ -39,7 +39,7 @@ const ViewRecordModal = ({ title, fields, initial, onClose, onEdit, canEdit = tr
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div className={styles.title}>{title}</div>
           <button onClick={onClose} style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 0, lineHeight: 0, display: 'inline-flex', alignItems: 'center' }}>
-            <X size={22} color="#111827" />
+            <X size={22} color="#18191A" />
           </button>
         </div>
 
@@ -50,7 +50,7 @@ const ViewRecordModal = ({ title, fields, initial, onClose, onEdit, canEdit = tr
             <label className={styles.label}>{f.label}</label>
             <div style={{
               padding: '4px 0',
-              fontSize: 14, fontWeight: 500, color: '#111827',
+              fontSize: 14, fontWeight: 500, color: '#18191A',
               whiteSpace: f.type === 'textarea' ? 'pre-wrap' : 'normal',
             }}>
               {renderValue(f, initial && initial[f.key])}

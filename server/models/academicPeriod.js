@@ -19,6 +19,7 @@ export default (sequelize, DataTypes) =>
     'AcademicPeriod',
     {
       id: {
+        field: 'academic_period_id',
         type: DataTypes.INTEGER.UNSIGNED,
         primaryKey: true,
         autoIncrement: true,

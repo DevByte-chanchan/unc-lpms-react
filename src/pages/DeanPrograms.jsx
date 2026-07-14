@@ -5,6 +5,9 @@ import AddRecordModal from "../components/AddRecordModal.jsx";
 import EditEntityModal from "../components/EditEntityModal.jsx";
 import ConfirmModal from "../components/ConfirmModal.jsx";
 import ViewArchivedButton from "../components/ViewArchivedButton.jsx";
+import UndoUploadButton from "../components/UndoUploadButton.jsx";
+import UploadPreviewFlow from "../components/UploadPreviewFlow.jsx";
+import DialogShell from "../components/DialogShell.jsx";
 import { Search, ArrowUp, ArrowDown, Upload, Plus, Clipboard } from "react-feather";
 import syllabusStyles from '../styles/SyllabusSections.module.sass';
 import { ProgramsAPI, FacultyAPI } from '../services/api.js';
@@ -21,7 +24,7 @@ const normalizeFacultyName = (name) =>
     .trim();
 
 const ActionBtn = ({ onClick, icon, label, disabled, variant }) => (
-  <button onClick={onClick} disabled={disabled} style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '8px 18px', gap: 8, width: 240, height: 40, background: variant === 'white' ? '#FFFFFF' : (disabled ? '#9CA3AF' : '#EA1212'), borderRadius: 6, color: variant === 'white' ? '#374151' : '#fff', border: variant === 'white' ? '1px solid #D1D5DB' : 'none', cursor: disabled ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap', opacity: disabled ? (variant === 'white' ? 0.6 : 0.7) : 1 }}>
+  <button onClick={onClick} disabled={disabled} style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '8px 18px', gap: 8, width: 240, height: 40, background: variant === 'white' ? '#FFFFFF' : (disabled ? '#9CA3AF' : '#18191A'), borderRadius: 6, color: variant === 'white' ? '#374151' : '#fff', border: variant === 'white' ? '1px solid #D1D5DB' : 'none', cursor: disabled ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap', opacity: disabled ? (variant === 'white' ? 0.6 : 0.7) : 1 }}>
     <span style={{ width: 22, height: 22, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{icon}</span>
     {label}
   </button>
@@ -36,14 +39,18 @@ const DeanPrograms = () => {
   const [editingProgram, setEditingProgram] = React.useState(null);
   const [confirmUpload, setConfirmUpload]     = React.useState(false);
   const [selectedFile, setSelectedFile] = React.useState(null);
+  // The file under review in the Preview & Confirm overlay. Nothing is written
+  // while this is set — the commit only happens on "Confirm & Import".
+  const [pendingFile, setPendingFile]   = React.useState(null);
   const [searchQuery, setSearchQuery]   = React.useState('');
   const [programsList, setProgramsList] = React.useState([]);
   const [faculty, setFaculty]           = React.useState([]);
-  const [uploading, setUploading]       = React.useState(false);
-  const [uploadError, setUploadError]   = React.useState(null);
   // Post-upload review state: { warnings: [{id, code, name, program_head}], index }
   const [unmatchedReview, setUnmatchedReview] = React.useState(null);
   const fileInputRef = React.useRef(null);
+
+  // Bumped on every successful upload so the Undo button re-reads its batch.
+  const [uploadCount, setUploadCount]         = React.useState(0);
 
   const refresh = React.useCallback(() => {
     if (!periodId) { setProgramsList([]); setFaculty([]); return; }
@@ -80,27 +87,46 @@ const DeanPrograms = () => {
 
   const showTable = programsList.length > 0;
 
-  const handleConfirmUpload = async () => {
+  // Drop whatever is in the picker, so re-opening it never shows a stale file
+  // name from a run the user already abandoned.
+  const clearPicker = React.useCallback(() => {
+    setSelectedFile(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  }, []);
+
+  // Picking a file no longer uploads it — it hands it to the Preview & Confirm
+  // overlay. The write happens there, on "Confirm & Import", and not before.
+  const handleReviewFile = () => {
     if (!selectedFile) { alert('Please choose a file first'); return; }
     if (!periodId)     { alert('Select an academic period first'); return; }
-    setUploading(true); setUploadError(null);
-    try {
-      const result = await ProgramsAPI.upload(selectedFile, periodId);
-      await refresh();
-      setShowModal(false);
-      setSelectedFile(null);
-      if (fileInputRef.current) fileInputRef.current.value = '';
-      // If any rows reference a faculty name not in the master list,
-      // open the per-row review modal. User confirms each Yes (keep)
-      // or No (delete the row).
-      if (result && Array.isArray(result.warnings) && result.warnings.length > 0) {
-        setUnmatchedReview({ warnings: result.warnings, index: 0 });
-      }
-    } catch (err) {
-      setUploadError(err.message || 'Upload failed');
-    } finally {
-      setUploading(false);
+    setShowModal(false);
+    setPendingFile(selectedFile);
+  };
+
+  // "Confirm & Import" succeeded — everything the old handleConfirmUpload did
+  // after a successful upload happens here instead.
+  //
+  // The unmatched-head review still runs AFTER the commit, and it has to: it
+  // deletes rows by id (ProgramsAPI.remove), so the rows must exist first. The
+  // preview now WARNS about the same unmatched heads beforehand, which means the
+  // user can usually fix the sheet instead of ever reaching this cleanup.
+  const onUploadCommitted = async (result) => {
+    await refresh();
+    setUploadCount((n) => n + 1);
+    clearPicker();
+    if (result && Array.isArray(result.warnings) && result.warnings.length > 0) {
+      setUnmatchedReview({ warnings: result.warnings, index: 0 });
     }
+  };
+
+  // Undone — put the user back where they can pick the RIGHT file.
+  const onUploadUndone = async () => {
+    await refresh();
+    setUploadCount((n) => n + 1);
+    setUnmatchedReview(null);
+    setPendingFile(null);
+    clearPicker();
+    setShowModal(true);
   };
 
   // Review modal action: keep this row (move on to next) or delete it.
@@ -129,6 +155,7 @@ const DeanPrograms = () => {
       status: record.status || 'Active',
     }, periodId);
     await refresh();
+    setUploadCount((n) => n + 1);   // a manual add is undoable too
   };
 
   const onSaveEdit = async (patch) => {
@@ -170,6 +197,7 @@ const DeanPrograms = () => {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
         <h2 style={{ margin: 0 }}>Programs</h2>
         <div style={{ display: 'flex', gap: 10 }}>
+          <UndoUploadButton entity="programs" periodId={periodId} disabled={!periodId || !isCurrentTermActive} refreshKey={uploadCount} onUndone={refresh} />
           <ActionBtn variant="white" onClick={() => { if (programsList.length > 0) { setConfirmUpload(true); } else { setShowModal(true); } }} disabled={!periodId || !isCurrentTermActive} icon={<Upload size={18} color="#374151" />} label="Upload Program List" />
           {showTable && isCurrentTermActive && <ActionBtn onClick={() => setShowAddModal(true)} icon={<Plus size={18} color="#FFFFFF" />} label="Add Program" />}
         </div>
@@ -177,7 +205,7 @@ const DeanPrograms = () => {
 
       {!isCurrentTermActive && currentPeriod && (
         <div style={{ marginBottom: 12, padding: '10px 14px', background: '#FEF3C7', border: '1px solid #FCD34D', borderRadius: 8, color: '#92400E', fontSize: 13, lineHeight: '1.4' }}>
-          <strong>Read-only:</strong> {currentPeriod.label} is closed. Switch to an Active term to make changes.
+          <strong>Read-only:</strong> {currentPeriod.label} is not the current term. Switch to the current term to make changes.
         </div>
       )}
 
@@ -212,7 +240,7 @@ const DeanPrograms = () => {
           <div style={{ width: 100, height: 100, borderRadius: 16, background: '#F3F4F6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <Clipboard size={48} color="#9CA3AF" />
           </div>
-          <div style={{ fontSize: 18, fontWeight: 600, color: '#111827' }}>No programs yet</div>
+          <div style={{ fontSize: 18, fontWeight: 600, color: '#18191A' }}>No programs yet</div>
           <div style={{ color: '#6B7280', textAlign: 'center', maxWidth: 420, fontSize: 14, lineHeight: '1.5' }}>{periodId ? ('Upload a program list for ' + (currentPeriod ? currentPeriod.label : 'this period') + ' to get started.') : 'Select an academic period to begin.'}</div>
         </div>
       )}
@@ -260,7 +288,7 @@ const DeanPrograms = () => {
           <>
             <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 60 }} />
             <div role="dialog" aria-modal="true" style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: 'min(480px, 92vw)', background: '#FFFFFF', borderRadius: 12, zIndex: 61, padding: 24, boxShadow: '0 18px 50px rgba(0,0,0,0.25)' }}>
-              <div style={{ fontSize: 18, fontWeight: 600, color: '#111827', marginBottom: 8 }}>
+              <div style={{ fontSize: 18, fontWeight: 600, color: '#18191A', marginBottom: 8 }}>
                 Unmatched Faculty — Row {unmatchedReview.index + 1} of {unmatchedReview.warnings.length}
               </div>
               <div style={{ fontSize: 14, color: '#374151', lineHeight: '1.5', marginBottom: 16 }}>
@@ -269,7 +297,7 @@ const DeanPrograms = () => {
               </div>
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
                 <button onClick={reviewReject} style={{ height: 40, padding: '0 18px', background: '#FFFFFF', border: '1px solid #B91C1C', color: '#B91C1C', borderRadius: 8, cursor: 'pointer', fontWeight: 500 }}>No, discard</button>
-                <button onClick={reviewKeep} style={{ height: 40, padding: '0 18px', background: '#1F2937', color: '#FFFFFF', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 500 }}>Yes, keep</button>
+                <button onClick={reviewKeep} style={{ height: 40, padding: '0 18px', background: '#18191A', color: '#FFFFFF', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 500 }}>Yes, keep</button>
               </div>
             </div>
           </>
@@ -279,32 +307,49 @@ const DeanPrograms = () => {
       <ConfirmModal
         open={confirmUpload}
         title="Replace program data?"
-        message={'Uploading this file will replace existing programs for ' + (currentPeriod ? currentPeriod.label : 'this period') + '. Proceed?'}
+        message={'Uploading a file will replace existing programs for ' + (currentPeriod ? currentPeriod.label : 'this period') + '. You\'ll review the file before anything is saved. Proceed?'}
         confirmLabel="Continue to upload"
         onConfirm={() => { setConfirmUpload(false); setShowModal(true); }}
         onCancel={() => setConfirmUpload(false)}
       />
 
 
-      {showModal && (
-        <>
-          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.35)', zIndex: 2 }} onClick={() => !uploading && setShowModal(false)} />
-          <div style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: 600, padding: 24, background: '#FFFFFF', borderRadius: 10, display: 'flex', flexDirection: 'column', gap: 16, zIndex: 3, boxShadow: '0 10px 30px rgba(0,0,0,0.15)' }}>
+      <DialogShell
+        open={showModal}
+        onBackdropClick={() => setShowModal(false)}
+        ariaLabel="Upload Program List"
+        panelStyle={{ width: 600, maxWidth: '94vw', padding: 24, background: '#FFFFFF', borderRadius: 10, display: 'flex', flexDirection: 'column', gap: 16, boxShadow: '0 10px 30px rgba(0,0,0,0.15)' }}
+      >
             <div style={{ fontSize: 20, fontWeight: 600 }}>Upload Program List</div>
             <div onClick={() => fileInputRef.current && fileInputRef.current.click()} onDragOver={(e) => e.preventDefault()} onDrop={(e) => { e.preventDefault(); const f = e.dataTransfer.files && e.dataTransfer.files[0]; if (f) setSelectedFile(f); }} style={{ border: '2px dashed #D1D5DB', borderRadius: 8, padding: 28, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
               <Upload size={36} color="#9CA3AF" />
-              <div style={{ fontWeight: 600, color: '#111827' }}>{selectedFile ? selectedFile.name : 'Drag & drop file here'}</div>
+              <div style={{ fontWeight: 600, color: '#18191A' }}>{selectedFile ? selectedFile.name : 'Drag & drop file here'}</div>
               <div style={{ color: '#6B7280', fontSize: 13 }}>Upload .xlsx, .xls or .csv</div>
               <input type="file" ref={fileInputRef} accept=".csv,.xlsx,.xls" onChange={(e) => { const f = e.target.files && e.target.files[0]; if (f) setSelectedFile(f); }} style={{ display: 'none' }} />
             </div>
-            {uploadError && <div style={{ color: '#B91C1C', fontSize: 13 }}>{uploadError}</div>}
-            <div style={{ display: 'flex', gap: 12 }}>
-              <button disabled={uploading} onClick={() => { setSelectedFile(null); setShowModal(false); }} style={{ flex: 1, height: 40, background: '#FFFFFF', border: '1px solid #111827', borderRadius: 8, color: '#111827', cursor: uploading ? 'not-allowed' : 'pointer', fontWeight: 500 }}>Cancel</button>
-              <button disabled={uploading} onClick={handleConfirmUpload} style={{ flex: 1, height: 40, background: '#1F2937', border: 'none', borderRadius: 8, color: '#FFFFFF', cursor: uploading ? 'not-allowed' : 'pointer', fontWeight: 500, opacity: uploading ? 0.7 : 1 }}>{uploading ? 'Uploading…' : 'Upload'}</button>
+            <div style={{ color: '#6B7280', fontSize: 13 }}>
+              You'll see exactly what's in the file — and what would fail — before anything is saved.
             </div>
-          </div>
-        </>
-      )}
+            <div style={{ display: 'flex', gap: 12 }}>
+              <button onClick={() => { clearPicker(); setShowModal(false); }} style={{ flex: 1, height: 40, background: '#FFFFFF', border: '1px solid #18191A', borderRadius: 8, color: '#18191A', cursor: 'pointer', fontWeight: 500 }}>Cancel</button>
+              <button disabled={!selectedFile} onClick={handleReviewFile} style={{ flex: 1, height: 40, background: '#18191A', border: 'none', borderRadius: 8, color: '#FFFFFF', cursor: selectedFile ? 'pointer' : 'not-allowed', fontWeight: 500, opacity: selectedFile ? 1 : 0.6 }}>Review file</button>
+            </div>
+      </DialogShell>
+
+      {/* Preview & Confirm, then the 30-second undo toast. The unmatched-head
+          review still fires after the commit, from onUploadCommitted. */}
+      <UploadPreviewFlow
+        file={pendingFile}
+        entity="programs"
+        periodId={periodId}
+        title="Upload Program List"
+        preview={(f) => ProgramsAPI.uploadPreview(f, periodId)}
+        commit={(f) => ProgramsAPI.upload(f, periodId)}
+        onBack={() => { setPendingFile(null); setShowModal(true); }}
+        onCancel={() => { setPendingFile(null); clearPicker(); }}
+        onCommitted={onUploadCommitted}
+        onUndone={onUploadUndone}
+      />
     </div>
   );
 };

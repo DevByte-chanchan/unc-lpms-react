@@ -5,8 +5,85 @@ import { getPeriodId, safeWhereForPeriod } from '../utils/periodScope.js';
 import { filterOneToExistingColumns, safeDestroyByPeriod, safeWhere } from '../utils/dbHelpers.js';
 import { describeSequelizeError } from '../utils/uploadHelpers.js';
 import { enforceLatestPeriod } from '../utils/latestPeriod.js';
+import { isPreviewRequest, PreviewRows, previewResponse } from '../utils/importPreview.js';
+import { beginImportBatch, beginManualBatch, completeImportBatch } from './importController.js';
 
-const { IndustryConsultant, CourseOffering, ConsultantCourse } = db;
+const { IndustryConsultant, Course, ConsultantCourse, Faculty } = db;
+
+/**
+ * Normalise a person's name for fuzzy matching against the Faculty list —
+ * drop common honorifics ("Dr.", "Prof.", "Engr."…) and collapse
+ * punctuation/whitespace, so "Dr. Maria Santos" still matches a Faculty row
+ * stored as "Maria Santos". Mirrors the Course Assignment controller.
+ */
+function normalizeName(name) {
+  return String(name || '')
+    .toLowerCase()
+    .replace(/\b(dr|prof|professor|engr|engineer|atty|mr|mrs|ms|sir|maam|ma'?am)\.?\s+/g, '')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+}
+
+/**
+ * Map a matched Faculty member's status → the consultant's two-value status.
+ * Only an ACTIVE faculty makes the consultant Active; every other faculty
+ * status (On Leave / Emeritus / Inactive) makes the consultant Unavailable
+ * (which archives the row). Callers only reach this with a real match.
+ */
+function consultantStatusForFaculty(facultyStatus) {
+  return String(facultyStatus || '').trim().toLowerCase() === 'active' ? 'Active' : 'Unavailable';
+}
+
+/**
+ * Build the period's Faculty lookup, keyed two ways — exact (trim+lowercase)
+ * and honorific-stripped — so a consultant name resolves the same way the
+ * Course Assignment page resolves its faculty.
+ */
+async function loadFacultyMap(period_id) {
+  const fWhere = await safeWhere(Faculty, { period_id });
+  const facultyList = await Faculty.findAll({ where: fWhere, attributes: ['id', 'name', 'status'] });
+  const byName = new Map();
+  const byNorm = new Map();
+  for (const f of facultyList) {
+    byName.set(String(f.name).trim().toLowerCase(), f);
+    byNorm.set(normalizeName(f.name), f);
+  }
+  return { byName, byNorm };
+}
+
+// Resolve a consultant name against the Faculty map (exact, then normalised).
+// Returns the Faculty row or null (null = "not in the Faculty list").
+function matchFaculty(name, facultyMap) {
+  if (!name) return null;
+  return facultyMap.byName.get(String(name).trim().toLowerCase())
+    || facultyMap.byNorm.get(normalizeName(name))
+    || null;
+}
+
+/**
+ * Re-derive each NON-overridden consultant's status from the matched Faculty
+ * member and persist any change — so the consultant list stays linked to the
+ * Faculty list on every load. A row the Program Head manually set
+ * (status_overridden) is left untouched. An unmatched name is set blank.
+ */
+async function syncConsultantStatuses(rows, facultyMap) {
+  for (const row of rows) {
+    if (row.status_overridden) continue;
+    const faculty = matchFaculty(row.name, facultyMap);
+    const derived = faculty ? consultantStatusForFaculty(faculty.status) : null;
+    if ((row.status || null) !== (derived || null)) {
+      await row.update({ status: derived });
+    }
+  }
+}
+
+// Serialize a consultant row with the derived `in_faculty_list` flag the
+// frontend uses to show the "name not in Faculty list" note in the Manage form.
+function withFacultyFlag(row, facultyMap) {
+  const json = row.toJSON();
+  json.in_faculty_list = !!matchFaculty(row.name, facultyMap);
+  return json;
+}
 
 /**
  * Find course codes already assigned to OTHER consultants in the same
@@ -41,19 +118,30 @@ async function findCrossConsultantConflicts({ consultantId, periodId, codes }) {
 }
 
 // Include used everywhere a consultant is returned so the frontend
-// always gets the full list of assigned courses.
+// always gets the full list of assigned courses. The catalog's column names
+// are aliased to the { id, code, title } shape the page already consumes.
 const coursesInclude = {
-  model: CourseOffering,
+  model: Course,
   as: 'courses',
   through: { attributes: [] },
-  attributes: ['id', 'code', 'title'],
+  attributes: [['course_id', 'id'], ['course_no', 'code'], ['course_title', 'title']],
 };
 
 /**
+ * Load the period's catalog courses keyed by lower-cased code — the same
+ * lookup the picker's options are built from, so a code that the Program Head
+ * can choose is a code that resolves here.
+ */
+async function loadCourseMap(periodId) {
+  const where = await safeWhere(Course, { period_id: periodId });
+  const courses = await Course.findAll({ where, attributes: ['course_id', 'course_no'] });
+  return new Map(courses.map((c) => [String(c.course_no).toLowerCase(), c]));
+}
+
+/**
  * Replace a consultant's assigned-course links with `codes`.
- * Each code is resolved to a CourseOffering within the consultant's
- * period; an unmatched code is still stored (with a null FK) so the
- * raw value is not lost.
+ * Each code is resolved against the period's catalog; an unmatched code is
+ * still stored (with a null FK) so the raw value is not lost.
  */
 async function syncConsultantCourses(consultantId, periodId, codes) {
   const list = Array.isArray(codes)
@@ -63,16 +151,14 @@ async function syncConsultantCourses(consultantId, periodId, codes) {
   await ConsultantCourse.destroy({ where: { consultant_id: consultantId } });
   if (list.length === 0) return;
 
-  const where = await safeWhere(CourseOffering, { period_id: periodId });
-  const courses = await CourseOffering.findAll({ where, attributes: ['id', 'code'] });
-  const byCode = new Map(courses.map((c) => [String(c.code).toLowerCase(), c]));
+  const byCode = await loadCourseMap(periodId);
 
   const joinRows = list.map((code) => {
     const c = byCode.get(code.toLowerCase());
     return {
       consultant_id: consultantId,
-      course_offering_id: c ? c.id : null,
-      course_code: c ? c.code : code,
+      course_id: c ? c.course_id : null,
+      course_code: c ? c.course_no : code,
     };
   });
   await ConsultantCourse.bulkCreate(joinRows);
@@ -81,6 +167,7 @@ async function syncConsultantCourses(consultantId, periodId, codes) {
 export async function listConsultants(req, res, next) {
   try {
     const where = await safeWhereForPeriod(IndustryConsultant, req);
+    const period_id = getPeriodId(req);
     const rows = await IndustryConsultant.findAll({
       where,
       order: [['name', 'ASC']],
@@ -88,7 +175,18 @@ export async function listConsultants(req, res, next) {
     });
     // Per OVPAA spec: Industry Consultant table starts blank in every
     // new term. No clone-on-first-use here.
-    res.json(rows);
+    //
+    // Live link to the Faculty list: each non-overridden consultant's status
+    // is re-derived from its matched faculty (Active → Active; any other
+    // faculty status → Unavailable; unmatched → blank) on every load, so the
+    // page reflects the current Faculty statuses without a manual re-sync.
+    const facultyMap = period_id
+      ? await loadFacultyMap(period_id)
+      : { byName: new Map(), byNorm: new Map() };
+    if (period_id && rows.length > 0) {
+      await syncConsultantStatuses(rows, facultyMap);
+    }
+    res.json(rows.map((r) => withFacultyFlag(r, facultyMap)));
   } catch (err) { next(err); }
 }
 
@@ -98,26 +196,42 @@ export async function getConsultant(req, res, next) {
       include: [coursesInclude],
     });
     if (!row) return res.status(404).json({ message: 'Consultant not found' });
-    res.json(row);
+    const facultyMap = row.period_id
+      ? await loadFacultyMap(row.period_id)
+      : { byName: new Map(), byNorm: new Map() };
+    res.json(withFacultyFlag(row, facultyMap));
   } catch (err) { next(err); }
 }
 
 export async function createConsultant(req, res) {
   try {
-    const { name, status, assigned_course_code, assigned_course_codes } = req.body;
+    const { name, assigned_course_code, assigned_course_codes } = req.body;
     const period_id = getPeriodId(req);
     if (!name)      return res.status(400).json({ message: 'name is required' });
     if (!period_id) return res.status(400).json({ message: 'period_id is required' });
     if (!(await enforceLatestPeriod(res, period_id))) return;
+    // Status is auto-linked to the Faculty list (not taken from the request):
+    // a matched faculty drives Active/Unavailable; an unmatched name stays
+    // blank until the Program Head sets it in the Manage form.
+    const facultyMap = await loadFacultyMap(period_id);
+    const faculty = matchFaculty(name, facultyMap);
+    const derivedStatus = faculty ? consultantStatusForFaculty(faculty.status) : null;
     const safe = await filterOneToExistingColumns(IndustryConsultant, {
-      name, status: status || null, assigned_course_code, period_id,
+      name, status: derivedStatus, status_overridden: false, assigned_course_code, period_id,
     });
+    // Snapshot first, so a row added by hand is undoable the same way an
+    // uploaded one is. Covers consultant_courses too, so undo also drops the
+    // course links created below.
+    const batch = await beginManualBatch('industry_consultants', period_id, name);
+
     const created = await IndustryConsultant.create(safe);
     if (Array.isArray(assigned_course_codes)) {
       await syncConsultantCourses(created.id, period_id, assigned_course_codes);
     }
+    await completeImportBatch(batch, { added: 1 });
+
     const withCourses = await IndustryConsultant.findByPk(created.id, { include: [coursesInclude] });
-    res.status(201).json(withCourses);
+    res.status(201).json(withFacultyFlag(withCourses, facultyMap));
   } catch (err) {
     res.status(400).json({ message: describeSequelizeError(err) });
   }
@@ -139,6 +253,9 @@ export async function updateConsultant(req, res) {
     for (const k of editable) {
       if (req.body[k] !== undefined) patch[k] = req.body[k] === '' ? null : req.body[k];
     }
+    // A manual status edit in the Manage form pins the value: mark it
+    // overridden so the Faculty auto-link stops overwriting it on load.
+    if (req.body.status !== undefined) patch.status_overridden = true;
     const safe = await filterOneToExistingColumns(IndustryConsultant, patch);
     await row.update(safe);
 
@@ -162,8 +279,9 @@ export async function updateConsultant(req, res) {
       await syncConsultantCourses(row.id, row.period_id, req.body.assigned_course_codes);
     }
 
+    const facultyMap = await loadFacultyMap(row.period_id);
     const updated = await IndustryConsultant.findByPk(row.id, { include: [coursesInclude] });
-    res.json(updated);
+    res.json(withFacultyFlag(updated, facultyMap));
   } catch (err) {
     res.status(400).json({ message: describeSequelizeError(err) });
   }
@@ -191,7 +309,8 @@ export async function assignCourse(req, res) {
     // course picker), so codes is ignored in that case.
     const nextStatus = req.body.status;
     if (nextStatus !== undefined) {
-      await consultant.update({ status: nextStatus || null });
+      // Manual status choice pins the value (stops Faculty auto-linking).
+      await consultant.update({ status: nextStatus || null, status_overridden: true });
     }
 
     if (nextStatus === 'Unavailable') {
@@ -209,8 +328,9 @@ export async function assignCourse(req, res) {
       await syncConsultantCourses(consultant.id, consultant.period_id, codes);
     }
 
+    const facultyMap = await loadFacultyMap(consultant.period_id);
     const updated = await IndustryConsultant.findByPk(consultant.id, { include: [coursesInclude] });
-    res.json(updated);
+    res.json(withFacultyFlag(updated, facultyMap));
   } catch (err) {
     res.status(400).json({ message: describeSequelizeError(err) });
   }
@@ -240,19 +360,47 @@ export async function uploadConsultants(req, res) {
   try {
     const { rows, headers } = parseSheet(req.file.path);
 
-    const coWhere = await safeWhere(CourseOffering, { period_id });
-    const courses = await CourseOffering.findAll({ where: coWhere, attributes: ['id', 'code'] });
-    const courseByCode = new Map(courses.map((c) => [String(c.code).toLowerCase(), c]));
+    const courseByCode = await loadCourseMap(period_id);
+
+    // Faculty lookup so each uploaded consultant's status links to the Faculty
+    // list: a matched faculty drives Active/Unavailable; an unmatched name
+    // (not in the Faculty list) is left blank for the Program Head to resolve.
+    const facultyMap = await loadFacultyMap(period_id);
 
     const records = [];   // { name, assigned_course_code, codes: [] }
     const errors  = [];
+    // Every sheet row, valid or not, in sheet order — this is what the preview
+    // table renders. Built in the SAME pass as `records` so the two can't drift.
+    const preview = new PreviewRows();
 
     rows.forEach((row, i) => {
+      const rowNum = i + 2;   // sheet row: the header is row 1
       const name = pick(row, 'name');
       const assigned = pick(row, 'assignedcourse', 'course');
+
+      const cells = {
+        Name:              name ? String(name).trim() : '',
+        'Assigned Course': assigned ? String(assigned).trim() : '',
+      };
+
       if (!name) {
-        errors.push({ row: i + 2, message: 'Missing Name — skipped.' });
+        errors.push({ row: rowNum, message: 'Missing Name — skipped.' });
+        preview.error(rowNum, cells, [
+          { field: 'Name', message: 'Missing NAME — this row will be skipped.' },
+        ]);
         return;
+      }
+
+      // The same two warnings the commit raises, surfaced before the write rather
+      // than after it. Both still import — they just land needing manual attention.
+      const rowWarnings = [];
+
+      // Flag names that aren't in the Faculty list: they import fine but their
+      // status can't be linked (left blank), so the Program Head must set it.
+      if (!matchFaculty(name, facultyMap)) {
+        const message = '"' + String(name).trim() + '" is not in this period\'s Faculty list; status left blank for manual assignment.';
+        errors.push({ row: rowNum, message, level: 'warning' });
+        rowWarnings.push({ field: 'Name', message });
       }
       // The "Assigned Course" cell may list several courses.
       const codes = assigned
@@ -260,13 +408,15 @@ export async function uploadConsultants(req, res) {
         : [];
       codes.forEach((code) => {
         if (!courseByCode.get(code.toLowerCase())) {
-          errors.push({
-            row: i + 2,
-            message: 'Course "' + code + '" not found in this period\'s Course Offerings; manual assignment required.',
-            level: 'warning',
-          });
+          const message = 'Course "' + code + '" not found in this period\'s Courses; manual assignment required.';
+          errors.push({ row: rowNum, message, level: 'warning' });
+          rowWarnings.push({ field: 'Assigned Course', message });
         }
       });
+
+      if (rowWarnings.length > 0) preview.warning(rowNum, cells, rowWarnings);
+      else preview.ok(rowNum, cells);
+
       records.push({
         name: String(name).trim(),
         assigned_course_code: assigned ? String(assigned).trim() : null,
@@ -274,20 +424,40 @@ export async function uploadConsultants(req, res) {
       });
     });
 
+    // ---------- PREVIEW: persist NOTHING and return before the snapshot ----------
+    // Everything below this line writes — and this upload DESTROYS the period's
+    // consultants (and their course links) before re-inserting.
+    if (isPreviewRequest(req)) {
+      return previewResponse(res, {
+        filename: req.file.originalname,
+        headers,
+        preview,
+      });
+    }
+
     if (records.length === 0) {
       return res.status(400).json({ message: 'No valid rows found.', headers, errors });
     }
+
+    // Photograph the period BEFORE the destroy below — the snapshot covers
+    // consultant_courses too, so undo restores the course links as well.
+    const batch = await beginImportBatch('industry_consultants', period_id, req.file.originalname);
 
     // Replace the period's consultants (CASCADE clears their join rows),
     // then recreate each consultant with its course links.
     const removed = await safeDestroyByPeriod(IndustryConsultant, period_id);
     let inserted = 0;
     for (const rec of records) {
+      const faculty = matchFaculty(rec.name, facultyMap);
+      const status = faculty ? consultantStatusForFaculty(faculty.status) : null;
       const consultant = await IndustryConsultant.create({
         name: rec.name,
         assigned_course_code: rec.assigned_course_code,
         period_id,
-        status: 'Active',   // bulk uploads default to Active, like manual adds
+        // Linked to the Faculty list: Active-faculty → Active, other faculty
+        // statuses → Unavailable, name not in the Faculty list → blank.
+        status,
+        status_overridden: false,
       });
       inserted += 1;
       if (rec.codes.length > 0) {
@@ -295,13 +465,15 @@ export async function uploadConsultants(req, res) {
           const c = courseByCode.get(code.toLowerCase());
           return {
             consultant_id: consultant.id,
-            course_offering_id: c ? c.id : null,
-            course_code: c ? c.code : code,
+            course_id: c ? c.course_id : null,
+            course_code: c ? c.course_no : code,
           };
         });
         await ConsultantCourse.bulkCreate(joinRows);
       }
     }
+
+    await completeImportBatch(batch, { inserted, replaced: removed });
 
     res.status(201).json({
       replaced: removed,

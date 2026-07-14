@@ -39,6 +39,24 @@ function uploadFile(path, file, periodId) {
   return request(path, { method: 'POST', body: fd });
 }
 
+/**
+ * Dry-run an upload against the SAME route that commits it (`?preview=1`), so
+ * the rows the user reviews are the rows the server would actually write —
+ * parsed and validated by the real importer, never re-implemented client-side.
+ * Persists nothing. Returns:
+ *   { preview, filename, detectedColumns, total, validCount, errorCount,
+ *     rows: [{ rowNum, level: 'ok'|'warning'|'error', cells, errors }] }
+ */
+function uploadPreview(path, file, periodId, extra) {
+  const fd = new FormData();
+  fd.append('file', file);
+  if (periodId) fd.append('period_id', String(periodId));
+  Object.entries(extra || {}).forEach(([k, v]) => {
+    if (v !== undefined && v !== null && v !== '') fd.append(k, String(v));
+  });
+  return request(path, { method: 'POST', body: fd, query: { preview: 1 } });
+}
+
 const idPath = (base, id) => base + '/' + id;
 
 export const PeriodsAPI = {
@@ -58,6 +76,8 @@ export const DepartmentsAPI = {
   unlistMany:  (ids) => request('/departments/unlist', { method: 'PATCH', body: { ids } }),
   remove:      (id) => request(idPath('/departments', id), { method: 'DELETE' }),
   upload:      (file, periodId) => uploadFile('/departments/upload', file, periodId),
+  // Dry run — same route, nothing written. Feeds the Preview & Confirm step.
+  uploadPreview: (file, periodId) => uploadPreview('/departments/upload', file, periodId),
 };
 
 export const FacultyAPI = {
@@ -68,6 +88,8 @@ export const FacultyAPI = {
   inactivateMany: (ids) => request('/faculty/inactivate', { method: 'PATCH', body: { ids } }),
   remove: (id) => request(idPath('/faculty', id), { method: 'DELETE' }),
   upload: (file, periodId) => uploadFile('/faculty/upload', file, periodId),
+  // Dry run — same route, nothing written. Feeds the Preview & Confirm step.
+  uploadPreview: (file, periodId) => uploadPreview('/faculty/upload', file, periodId),
 };
 
 // Curriculum catalog (period-scoped — each term owns its own copy, cloned
@@ -123,17 +145,13 @@ export const ProgramsAPI = {
   update: (id, patch) => request(idPath('/programs', id), { method: 'PATCH', body: patch }),
   remove: (id) => request(idPath('/programs', id), { method: 'DELETE' }),
   upload: (file, periodId) => uploadFile('/programs/upload', file, periodId),
+  // Dry run — same route, nothing written. Feeds the Preview & Confirm step.
+  uploadPreview: (file, periodId) => uploadPreview('/programs/upload', file, periodId),
 };
 
-export const CourseOfferingsAPI = {
-  list:   (periodId) => request('/course-offerings', { query: { period_id: periodId } }),
-  get:    (id) => request(idPath('/course-offerings', id)),
-  create: (data, periodId) => request('/course-offerings', { method: 'POST', body: { ...data, period_id: periodId } }),
-  update: (id, patch) => request(idPath('/course-offerings', id), { method: 'PATCH', body: patch }),
-  assign: (id, instructor_name) => request(idPath('/course-offerings', id) + '/assign', { method: 'PATCH', body: { instructor_name } }),
-  remove: (id) => request(idPath('/course-offerings', id), { method: 'DELETE' }),
-  upload: (file, periodId) => uploadFile('/course-offerings/upload', file, periodId),
-};
+// NOTE: there is no CourseOfferingsAPI. The `course_offerings` table was
+// dissolved into the catalog — the Course Offerings page reads CoursesAPI,
+// and a consultant's assigned courses resolve against the catalog too.
 
 export const ConsultantsAPI = {
   list:   (periodId) => request('/industry-consultants', { query: { period_id: periodId } }),
@@ -143,22 +161,66 @@ export const ConsultantsAPI = {
   assign: (id, payload) => request(idPath('/industry-consultants', id) + '/assign', { method: 'PATCH', body: payload }),
   remove: (id) => request(idPath('/industry-consultants', id), { method: 'DELETE' }),
   upload: (file, periodId) => uploadFile('/industry-consultants/upload', file, periodId),
+  // Dry run — same route, nothing written. Feeds the Preview & Confirm step.
+  uploadPreview: (file, periodId) => uploadPreview('/industry-consultants/upload', file, periodId),
 };
 
-export const CourseAssignmentsAPI = {
-  list:   (periodId) => request('/course-assignments', { query: { period_id: periodId } }),
-  get:    (id) => request(idPath('/course-assignments', id)),
-  create: (data, periodId) => request('/course-assignments', { method: 'POST', body: { ...data, period_id: periodId } }),
-  update: (id, patch) => request(idPath('/course-assignments', id), { method: 'PATCH', body: patch }),
-  remove: (id) => request(idPath('/course-assignments', id), { method: 'DELETE' }),
-  upload: (file, periodId) => uploadFile('/course-assignments/upload', file, periodId),
-  revalidate: (periodId) => request('/course-assignments/revalidate', { method: 'POST', query: { period_id: periodId } }),
+// An assignment fills a course OFFERING — a (course × program) pairing — so
+// every write carries the program the Program Head is working in. Without it a
+// course code can't identify a single offering (GE 101 is offered by several
+// programs, each with its own syllabus and its own assigned faculty).
+export const CourseOfferingAssignmentsAPI = {
+  list:   (periodId) => request('/course-offering-assignments', { query: { period_id: periodId } }),
+  get:    (id) => request(idPath('/course-offering-assignments', id)),
+  create: (data, periodId, programId) => request('/course-offering-assignments', {
+    method: 'POST',
+    body: { ...data, period_id: periodId, program_id: programId ?? null },
+  }),
+  update: (id, patch) => request(idPath('/course-offering-assignments', id), { method: 'PATCH', body: patch }),
+  remove: (id) => request(idPath('/course-offering-assignments', id), { method: 'DELETE' }),
+  upload: (file, periodId, programId) => {
+    const fd = new FormData();
+    fd.append('file', file);
+    if (periodId)  fd.append('period_id', String(periodId));
+    if (programId) fd.append('program_id', String(programId));
+    return request('/course-offering-assignments/upload', { method: 'POST', body: fd });
+  },
+  // Dry run — same route, nothing written.
+  //
+  // `program_id` (snake) is NOT optional and NOT a typo: the controller reads
+  // req.body.program_id, and an assignment resolves against a (course × program)
+  // offering. Send a different program than the commit — or none — and every row
+  // comes back "Unassigned" in the preview and then imports cleanly anyway. The
+  // preview would be warning about problems the real import doesn't have, which
+  // is the one kind of wrong that teaches users to ignore it.
+  //
+  // (Courses spells the same idea `programId` (camel). They are different routes
+  // reading different fields; do not "tidy" one into the other.)
+  uploadPreview: (file, periodId, programId) =>
+    uploadPreview('/course-offering-assignments/upload', file, periodId, { program_id: programId }),
+  revalidate: (periodId) => request('/course-offering-assignments/revalidate', { method: 'POST', query: { period_id: periodId } }),
+};
+
+// Undo for the bulk-upload buttons. The backend snapshots the affected tables
+// before each upload and keeps them restorable for 30 SECONDS; `latest` returns
+// null once that window closes, so the UI can go quiet on its own.
+//
+// The deadline lives on the server (UNDO_WINDOW_MS in server/utils/importUndo.js)
+// and reaches the client as `batch.ms_remaining`. Count down from that — never
+// from a hardcoded 30 — or the toast and the server will disagree the moment
+// the constant moves.
+//
+// entity: 'departments' | 'faculty' | 'programs' | 'courses'
+//         | 'course_offering_assignments' | 'industry_consultants'
+export const ImportsAPI = {
+  latest: (entity, periodId) => request('/imports/latest', { query: { entity, period_id: periodId } }),
+  undo:   (batchId) => request(idPath('/imports', batchId) + '/undo', { method: 'POST' }),
 };
 
 export const ArchiveAPI = {
   // Period-scoped list of archived records for one module. moduleType:
   //   'academic_terms' | 'departments' | 'faculty' | 'programs'
-  //   | 'course_offerings' | 'consultants' | 'course_assignments'.
+  //   | 'consultants' | 'course_offering_assignments'.
   // periodId is the dashboard's active term; required for every module
   // except 'academic_terms' (which is the period itself).
   // Returns { rows: [...] }.

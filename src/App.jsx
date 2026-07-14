@@ -2,6 +2,7 @@ import './App.css'
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { PeriodProvider, ScopedPeriodProvider } from './services/period.jsx'
 import { CurrentUserProvider } from './services/currentUser.jsx'
+import DialogBackdrop from './components/DialogBackdrop.jsx'
 
 import AssignedCourses from "./pages/AssignedCourses.jsx";
 import Syllabus from "./pages/Syllabus.jsx";
@@ -16,7 +17,7 @@ import SyllabusRevisions from "./pages/SyllabusRevisions.jsx";
 import ApprovalCourses from "./pages/ApprovalCourses.jsx";
 import ProgramHeadConsultant from "./pages/ProgramHeadConsultant.jsx";
 import ProgramHeadIndustryConsultant from "./pages/ProgramHeadIndustryConsultant.jsx";
-import ProgramHeadCourseOfferings from "./pages/ProgramHeadCourseOfferings.jsx";
+import ProgramHeadCourses from "./pages/ProgramHeadCourses.jsx";
 import ProgramHeadCourseAssignment from "./pages/ProgramHeadCourseAssignment.jsx";
 import ApprovalSyllabus from "./pages/ApprovalSyllabus.jsx";
 import Dean from "./pages/Dean.jsx";
@@ -27,6 +28,9 @@ function App() {
     <Router>
       <PeriodProvider>
         <CurrentUserProvider>
+        {/* The app's one modal dim layer. Mounted here, never by a dialog — see
+            services/dialogBackdrop.js for why. */}
+        <DialogBackdrop />
         <div className="appPage">
           <Routes>
             <Route path={'/'} element={<AssignedCourses />} />
@@ -50,7 +54,7 @@ function App() {
                 navigation. */}
             <Route path={'/role/industry-consultant'} element={<ProgramHeadConsultant />} />
             <Route path={'/role/program-head/industry-consultant'} element={<ScopedPeriodProvider><ProgramHeadIndustryConsultant /></ScopedPeriodProvider>} />
-            <Route path={'/role/program-head/course-offerings'} element={<ScopedPeriodProvider><ProgramHeadCourseOfferings /></ScopedPeriodProvider>} />
+            <Route path={'/role/program-head/course-offerings'} element={<ScopedPeriodProvider><ProgramHeadCourses /></ScopedPeriodProvider>} />
             <Route path={'/role/program-head/course-assignment'} element={<ScopedPeriodProvider><ProgramHeadCourseAssignment /></ScopedPeriodProvider>} />
             <Route path={'/role/dean'} element={<ScopedPeriodProvider><Dean /></ScopedPeriodProvider>} />
             <Route path={'/role/ovpaa'} element={<ScopedPeriodProvider><OVPAA /></ScopedPeriodProvider>} />

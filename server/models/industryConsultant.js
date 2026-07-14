@@ -6,13 +6,14 @@
  *
  * The "Assigned Course" cell may be blank on upload; Program Heads
  * fill it in later via the assignment UI, which resolves it to a
- * CourseOffering.id.
+ * courses.course_id.
  */
 export default (sequelize, DataTypes) =>
   sequelize.define(
     'IndustryConsultant',
     {
       id: {
+        field: 'industry_consultant_id',
         type: DataTypes.INTEGER.UNSIGNED,
         primaryKey: true,
         autoIncrement: true,
@@ -29,15 +30,25 @@ export default (sequelize, DataTypes) =>
       assigned_course_id: {
         type: DataTypes.INTEGER.UNSIGNED,
         allowNull: true,
-        comment: 'Resolved FK to course_offerings.id.',
+        comment: 'Resolved FK to courses.course_id. Legacy single-course link; consultant_courses is authoritative.',
       },
       status: {
         type: DataTypes.STRING(16),
         allowNull: true,
         defaultValue: null,
-        comment: 'Active | Unavailable — blank on upload; set during Assign.',
+        comment: 'Active | Unavailable — auto-linked to the matched Faculty status; blank when the name is not in the Faculty list.',
       },
-      period_id: { type: DataTypes.INTEGER.UNSIGNED, allowNull: true },
+      // Auto-linking (status mirrors the matched Faculty member's status) runs
+      // on every load — EXCEPT when the Program Head has manually set the status
+      // in the Manage form, in which case this flag is true and the manual value
+      // is kept verbatim (the link no longer overwrites it).
+      status_overridden: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: false,
+        comment: 'True once a Program Head manually sets the status; stops faculty auto-linking.',
+      },
+      period_id: { type: DataTypes.INTEGER.UNSIGNED, allowNull: true, field: 'academic_period_id' },
     },
     {
       tableName: 'industry_consultants',

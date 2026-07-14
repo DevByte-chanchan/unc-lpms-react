@@ -24,7 +24,7 @@ const OutcomesTable = ({ outcomes = [] }) => (
   <div style={{ background: '#FFFFFF' }}>
     <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0 }}>
       <thead>
-        <tr style={{ background: '#F3F4F6', color: '#111827', textAlign: 'left' }}>
+        <tr style={{ background: '#F3F4F6', color: '#18191A', textAlign: 'left' }}>
           <th style={{ padding: '12px 16px', width: 120 }}>ID</th>
           <th style={{ padding: '12px 16px' }}>DESCRIPTION</th>
         </tr>
@@ -57,7 +57,7 @@ const ProgramHeadOutcomes = () => {
 
   return (
     <Skeleton
-      header={<Header role="Program Head" name="DANILA, JUNE ARREB C." />}
+      header={<Header role="Program Head" name="VANCE, OLIVIA" />}
       nav={<SideNavigation mode="program-head" />}
       content={
         <div style={{ padding: 20, background: '#FFFFFF' }}>
@@ -112,7 +112,7 @@ const ProgramHeadOutcomes = () => {
                         style={{
                           display: 'flex', alignItems: 'center', gap: 8,
                           width: '100%', background: 'transparent', border: 'none', cursor: 'pointer',
-                          padding: '8px 10px', borderRadius: 6, color: '#111827'
+                          padding: '8px 10px', borderRadius: 6, color: '#18191A'
                         }}
                       >
                         <ArrowUp size={18} color="#374151" />
@@ -123,7 +123,7 @@ const ProgramHeadOutcomes = () => {
                         style={{
                           display: 'flex', alignItems: 'center', gap: 8,
                           width: '100%', background: 'transparent', border: 'none', cursor: 'pointer',
-                          padding: '8px 10px', borderRadius: 6, color: '#111827'
+                          padding: '8px 10px', borderRadius: 6, color: '#18191A'
                         }}
                       >
                         <ArrowDown size={18} color="#374151" />
@@ -140,7 +140,7 @@ const ProgramHeadOutcomes = () => {
                     border: '1px solid #A4A9AF', borderRadius: 24, background: '#FFFFFF'
                   }}>
                     <Search size={20} color="#A4A9AF" />
-                    <input type="text" placeholder="Search" style={{ flex: 1, height: 22, border: 'none', outline: 'none', fontSize: 16, color: '#111827', background: 'transparent' }} />
+                    <input type="text" placeholder="Search" style={{ flex: 1, height: 22, border: 'none', outline: 'none', fontSize: 16, color: '#18191A', background: 'transparent' }} />
                   </div>
                 </div>
               </div>
@@ -171,8 +171,8 @@ const ProgramHeadOutcomes = () => {
                 </div>
 
                 <div style={{ display: 'flex', gap: 16 }}>
-                  <button onClick={() => { setSelectedFile(null); if (fileInputRef.current) fileInputRef.current.value = ''; setShowModal(false); }} style={{ flex: 1, padding: '12px 32px', background: '#FFFFFF', border: '2px solid #111827', borderRadius: 6, color: '#111827', cursor: 'pointer' }}>Cancel</button>
-                  <button onClick={() => { if (!selectedFile) { alert('Please choose a file first'); return; } setShowModal(false); setShowTable(true); }} style={{ flex: 1, padding: '12px 32px', background: '#1F2937', borderRadius: 6, color: '#FFFFFF', border: 'none', cursor: 'pointer' }}>Upload</button>
+                  <button onClick={() => { setSelectedFile(null); if (fileInputRef.current) fileInputRef.current.value = ''; setShowModal(false); }} style={{ flex: 1, padding: '12px 32px', background: '#FFFFFF', border: '2px solid #18191A', borderRadius: 6, color: '#18191A', cursor: 'pointer' }}>Cancel</button>
+                  <button onClick={() => { if (!selectedFile) { alert('Please choose a file first'); return; } setShowModal(false); setShowTable(true); }} style={{ flex: 1, padding: '12px 32px', background: '#18191A', borderRadius: 6, color: '#FFFFFF', border: 'none', cursor: 'pointer' }}>Upload</button>
                 </div>
               </div>
             </div>

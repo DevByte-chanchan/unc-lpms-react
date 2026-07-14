@@ -1,7 +1,7 @@
 /**
  * Course Assignment — Program Head feature.
  *
- * The Course Assignment module has its own table (course_assignments),
+ * The Course Assignment module has its own table (course_offering_assignments),
  * separate from Course Offerings. Each row pairs a course with an assigned
  * faculty member; its status MIRRORS that faculty's status in the Faculty list:
  *
@@ -26,13 +26,17 @@ import AddRecordModal from "../components/AddRecordModal.jsx";
 import EditEntityModal from "../components/EditEntityModal.jsx";
 import ConfirmModal from "../components/ConfirmModal.jsx";
 import ViewArchivedButton from "../components/ViewArchivedButton.jsx";
+import UndoUploadButton from "../components/UndoUploadButton.jsx";
+import UploadPreviewFlow from "../components/UploadPreviewFlow.jsx";
+import DialogShell from "../components/DialogShell.jsx";
 import RowActionsMenu from "../components/RowActionsMenu.jsx";
-import CourseOfferingPicker from "../components/CourseOfferingPicker.jsx";
+import CoursePicker from "../components/CoursePicker.jsx";
+import ContributorsPicker from "../components/ContributorsPicker.jsx";
 import { DateCell } from "../components/RecordTimestamps.jsx";
 import { Search, Upload, Plus, Clipboard, Edit3, ChevronDown, Check, AlertTriangle, RefreshCw } from "react-feather";
 import styles from '../styles/CoursesTable.module.sass';
 import syllabusStyles from '../styles/SyllabusSections.module.sass';
-import { CourseAssignmentsAPI, CoursesAPI, FacultyAPI } from '../services/api.js';
+import { CourseOfferingAssignmentsAPI, CoursesAPI, FacultyAPI } from '../services/api.js';
 import { usePeriod } from '../services/period.jsx';
 import { useCurrentUser } from '../services/currentUser.jsx';
 import { useHeadProgram } from '../services/useHeadProgram.js';
@@ -42,7 +46,7 @@ import SortableTh from "../components/SortableTh.jsx";
 import { courseMatchesPeriod } from '../services/courseTerm.js';
 
 const ActionBtn = ({ onClick, icon, label, disabled, variant }) => (
-  <button onClick={onClick} disabled={disabled} style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '8px 18px', gap: 8, minWidth: 240, height: 40, background: variant === 'white' ? '#FFFFFF' : (disabled ? '#9CA3AF' : '#EA1212'), borderRadius: 6, color: variant === 'white' ? '#374151' : '#fff', border: variant === 'white' ? '1px solid #D1D5DB' : 'none', cursor: disabled ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap', opacity: disabled ? (variant === 'white' ? 0.6 : 0.7) : 1 }}>
+  <button onClick={onClick} disabled={disabled} style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '8px 18px', gap: 8, minWidth: 240, height: 40, background: variant === 'white' ? '#FFFFFF' : (disabled ? '#9CA3AF' : '#18191A'), borderRadius: 6, color: variant === 'white' ? '#374151' : '#fff', border: variant === 'white' ? '1px solid #D1D5DB' : 'none', cursor: disabled ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap', opacity: disabled ? (variant === 'white' ? 0.6 : 0.7) : 1 }}>
     <span style={{ width: 22, height: 22, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{icon}</span>
     {label}
   </button>
@@ -85,15 +89,19 @@ const ProgramHeadCourseAssignment = () => {
   const [editingAssignment, setEditingAssignment] = React.useState(null);
   const [confirmUpload, setConfirmUpload]     = React.useState(false);
   const [selectedFile, setSelectedFile]       = React.useState(null);
-  const [uploading, setUploading]             = React.useState(false);
-  const [uploadError, setUploadError]         = React.useState(null);
+  // The file under review in the Preview & Confirm overlay. Nothing is written
+  // while this is set — the commit only happens on "Confirm & Import".
+  const [pendingFile, setPendingFile]         = React.useState(null);
   const [uploadReview, setUploadReview]       = React.useState(null);   // { inserted, warnings: [] }
   const [revalidating, setRevalidating]       = React.useState(false);
   const fileInputRef = React.useRef(null);
 
+  // Bumped on every successful upload so the Undo button re-reads its batch.
+  const [uploadCount, setUploadCount]         = React.useState(0);
+
   const refresh = React.useCallback(() => {
     if (!periodId) { setAssignments([]); setCourses([]); setFaculty([]); return; }
-    CourseAssignmentsAPI.list(periodId).then((rows) => setAssignments(Array.isArray(rows) ? rows : [])).catch(() => setAssignments([]));
+    CourseOfferingAssignmentsAPI.list(periodId).then((rows) => setAssignments(Array.isArray(rows) ? rows : [])).catch(() => setAssignments([]));
     // Courses come from the period-scoped curriculum catalog (the Courses
     // page), filtered to those that actually belong to THIS term's semester
     // (a 1st-Sem assignment must not offer a 2nd-Sem course), then normalised
@@ -117,24 +125,48 @@ const ProgramHeadCourseAssignment = () => {
     return cc ? (courses.find((c) => String(c.code).trim().toLowerCase() === cc) || null) : null;
   };
 
-  const handleConfirmUpload = async () => {
-    if (!selectedFile) { alert('Please choose a file first'); return; }
-    if (!periodId)     { alert('Select an academic period first'); return; }
-    setUploading(true); setUploadError(null);
-    try {
-      const result = await CourseAssignmentsAPI.upload(selectedFile, periodId);
-      await refresh();
-      setShowModal(false);
-      setSelectedFile(null);
-      if (fileInputRef.current) fileInputRef.current.value = '';
-      if (result && Array.isArray(result.warnings) && result.warnings.length > 0) {
-        setUploadReview({ inserted: result.inserted, warnings: result.warnings });
-      }
-    } catch (err) {
-      setUploadError(err.message || 'Upload failed');
-    } finally {
-      setUploading(false);
+  // Drop whatever is in the picker, so re-opening it never shows a stale file
+  // name from a run the user already abandoned.
+  const clearPicker = React.useCallback(() => {
+    setSelectedFile(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  }, []);
+
+  // Picking a file no longer uploads it — it hands it to the Preview & Confirm
+  // overlay. The write happens there, on "Confirm & Import", and not before.
+  const handleReviewFile = () => {
+    if (!selectedFile)      { alert('Please choose a file first'); return; }
+    if (!periodId)          { alert('Select an academic period first'); return; }
+    // An assignment resolves against a (course × program) offering, so a preview
+    // taken without a program would warn about problems the real import won't
+    // have. selectedProgramId is populated asynchronously; don't race it.
+    if (!selectedProgramId) { alert('Still loading your program — try again in a moment.'); return; }
+    setShowModal(false);
+    setPendingFile(selectedFile);
+  };
+
+  // "Confirm & Import" succeeded — everything the old handleConfirmUpload did
+  // after a successful upload happens here instead.
+  const onUploadCommitted = async (result) => {
+    await refresh();
+    setUploadCount((n) => n + 1);
+    clearPicker();
+    // The post-upload validation report still fires. It is now largely redundant
+    // with the preview — which shows these same warnings BEFORE the write — but
+    // it costs nothing and it is what this page has always done.
+    if (result && Array.isArray(result.warnings) && result.warnings.length > 0) {
+      setUploadReview({ inserted: result.inserted, warnings: result.warnings });
     }
+  };
+
+  // Undone — put the user back where they can pick the RIGHT file.
+  const onUploadUndone = async () => {
+    await refresh();
+    setUploadCount((n) => n + 1);
+    setUploadReview(null);
+    setPendingFile(null);
+    clearPicker();
+    setShowModal(true);
   };
 
   // Add/Edit pick the course + faculty from dropdowns bound to this period's
@@ -145,8 +177,9 @@ const ProgramHeadCourseAssignment = () => {
     // title so the saved row carries both course no. and course name.
     const course = findCourse(rawRecord.course_code);
     const record = { ...rawRecord, course_name: course ? course.title : (rawRecord.course_name || '') };
-    await CourseAssignmentsAPI.create(record, periodId);
+    await CourseOfferingAssignmentsAPI.create(record, periodId, selectedProgramId);
     await refresh();
+    setUploadCount((n) => n + 1);   // a manual add is undoable too
   };
 
   const onSaveEdit = async (rawPatch) => {
@@ -156,7 +189,7 @@ const ProgramHeadCourseAssignment = () => {
       const course = findCourse(patch.course_code);
       patch.course_name = course ? course.title : (patch.course_name || '');
     }
-    await CourseAssignmentsAPI.update(editingAssignment.id, patch);
+    await CourseOfferingAssignmentsAPI.update(editingAssignment.id, patch);
     await refresh();
   };
 
@@ -164,7 +197,7 @@ const ProgramHeadCourseAssignment = () => {
   // table and shows up in the global Floating Archive instead.
   const onArchiveAssignment = async () => {
     if (!editingAssignment) return;
-    await CourseAssignmentsAPI.update(editingAssignment.id, { status: 'Archived' });
+    await CourseOfferingAssignmentsAPI.update(editingAssignment.id, { status: 'Archived' });
     await refresh();
     setEditingAssignment(null);
   };
@@ -177,7 +210,7 @@ const ProgramHeadCourseAssignment = () => {
     if (!periodId || revalidating) return;
     setRevalidating(true);
     try {
-      const r = await CourseAssignmentsAPI.revalidate(periodId);
+      const r = await CourseOfferingAssignmentsAPI.revalidate(periodId);
       await refresh();
       const summary = (r && r.summary) || {};
       const breakdown = Object.keys(summary).length
@@ -196,7 +229,7 @@ const ProgramHeadCourseAssignment = () => {
 
   // Edit-status handler for the course-assignment archive (restore → Active).
   const onEditStatus = React.useCallback(async (row, newStatus) => {
-    await CourseAssignmentsAPI.update(row.id, { status: newStatus });
+    await CourseOfferingAssignmentsAPI.update(row.id, { status: newStatus });
     await refresh();
   }, [refresh]);
 
@@ -226,12 +259,13 @@ const ProgramHeadCourseAssignment = () => {
 
   // Column-header sort for the assignments table (default: Course No. asc).
   const ASSIGN_COLUMNS = [
-    { key: 'course_code',   label: 'COURSE NO.',       width: 150, type: 'text' },
-    { key: 'course_name',   label: 'COURSE OFFERING',  width: 260, type: 'text', thStyle: { flex: '1 1 auto', minWidth: 240 } },
-    { key: 'year_level',    label: 'YEAR LEVEL',       width: 140, type: 'number', sortValue: (r) => yearLevelNum(r.year_level) || 99 },
-    { key: 'faculty_name',  label: 'ASSIGNED FACULTY', width: 200, type: 'text', thStyle: { flex: '1 1 auto', minWidth: 180 } },
-    { key: 'date_assigned', label: 'DATE ASSIGNED',    width: 170, type: 'date' },
-    { key: 'status',        label: 'STATUS',           width: 130, type: 'number', sortValue: (r) => statusRank('courseassign', r.status) },
+    { key: 'course_code',   label: 'COURSE NO.',       width: 160, type: 'text' },
+    { key: 'course_name',   label: 'COURSE OFFERING',  width: 280, type: 'text', thStyle: { flex: '1 1 auto', minWidth: 240 } },
+    { key: 'year_level',    label: 'YEAR LEVEL',       width: 150, type: 'number', sortValue: (r) => yearLevelNum(r.year_level) || 99 },
+    { key: 'faculty_name',  label: 'LEAD FACULTY',     width: 170, type: 'text', thStyle: { flex: '1 1 auto', minWidth: 140 } },
+    { key: 'contributors',  label: 'CONTRIBUTORS',     width: 150, type: 'text', sortable: false, thStyle: { flex: '1 1 auto', minWidth: 120 } },
+    { key: 'date_assigned', label: 'DATE ASSIGNED',    width: 180, type: 'date' },
+    { key: 'status',        label: 'STATUS',           width: 140, type: 'number', sortValue: (r) => statusRank('courseassign', r.status) },
   ];
   const [assignSort, setAssignSort] = React.useState({ sortKey: 'course_code', sortDir: 'asc' });
   const onAssignSort = (key) => setAssignSort((s) => nextSort(s, key));
@@ -248,7 +282,7 @@ const ProgramHeadCourseAssignment = () => {
 
   // Courses already on the table (non-archived) can't be assigned twice — the
   // combined picker hides them. (The row being edited keeps its own course
-  // visible; CourseOfferingPicker excludes everything except the current value.)
+  // visible; CoursePicker excludes everything except the current value.)
   const assignedCodeSet = React.useMemo(() => {
     const main = partitionByArchive(assignments, 'courseassign').main;
     return new Set(main.map((a) => String(a.course_code || '').toLowerCase()).filter(Boolean));
@@ -261,7 +295,7 @@ const ProgramHeadCourseAssignment = () => {
   const courseOfferingField = {
     key: 'course_code', label: 'Course Offering', required: true,
     render: ({ value, onChange }) => (
-      <CourseOfferingPicker
+      <CoursePicker
         value={value}
         onChange={(code) => onChange(code)}
         courses={courses}
@@ -270,9 +304,27 @@ const ProgramHeadCourseAssignment = () => {
     ),
   };
 
+  // Contributors (co-teachers) — a multi-select beside the single Lead Faculty.
+  // `type: 'checkboxes'` only tells the modals to keep this value as an ARRAY
+  // (init + dirty-diff); the custom render swaps in the chip picker, which reads
+  // the live lead from `values` so the lead can't also be a contributor.
+  // Value is an array of faculty NAMES; the backend resolves ids + dedupes.
+  const contributorsField = {
+    key: 'contributors', label: 'Contributors', type: 'checkboxes',
+    render: ({ value, onChange, values }) => (
+      <ContributorsPicker
+        value={Array.isArray(value) ? value : []}
+        onChange={onChange}
+        options={facultyOptions}
+        excludeValue={values && values.faculty_name}
+      />
+    ),
+  };
+
   const addFields = [
     courseOfferingField,
-    { key: 'faculty_name', label: 'Assigned Faculty', type: 'searchable-select', options: facultyOptions, placeholder: 'Search faculty…' },
+    { key: 'faculty_name', label: 'Lead Faculty', type: 'searchable-select', options: facultyOptions, placeholder: 'Search faculty…' },
+    contributorsField,
   ];
 
   // Program switcher — shown only when the user heads more than one program.
@@ -295,7 +347,7 @@ const ProgramHeadCourseAssignment = () => {
                     <span style={{ fontSize: 13, fontWeight: 700, color: '#0F172A' }}>{p.code}</span>
                     <span style={{ fontSize: 12, color: '#64748B', marginLeft: 8 }}>{p.name}</span>
                   </span>
-                  {active && <Check size={15} color="#EA1212" />}
+                  {active && <Check size={15} color="#18191A" />}
                 </button>
               );
             })}
@@ -311,7 +363,7 @@ const ProgramHeadCourseAssignment = () => {
       <div style={{ width: 92, height: 92, borderRadius: 12, background: '#FEF3C7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <AlertTriangle size={40} color="#B45309" />
       </div>
-      <div style={{ fontSize: 18, fontWeight: 600, color: '#111827' }}>No program assigned for this term</div>
+      <div style={{ fontSize: 18, fontWeight: 600, color: '#18191A' }}>No program assigned for this term</div>
       <div style={{ color: '#6B7280', textAlign: 'center', maxWidth: 440 }}>
         You're not set as a Program Head for any program in {currentPeriod ? currentPeriod.label : 'this term'}. Ask your Dean to assign you, or switch to a term where you're already assigned.
       </div>
@@ -325,7 +377,7 @@ const ProgramHeadCourseAssignment = () => {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
           <div style={{ minWidth: 0, display: 'flex', gap: 12 }}>
-            <div style={{ width: 4, alignSelf: 'stretch', borderRadius: 2, background: '#EA1212', flexShrink: 0 }} />
+            <div style={{ width: 4, alignSelf: 'stretch', borderRadius: 2, background: '#18191A', flexShrink: 0 }} />
             <div style={{ minWidth: 0 }}>
               <div style={{ fontSize: 24, color: '#0F172A', letterSpacing: '-0.01em', lineHeight: 1.25 }}>
                 {programCode
@@ -350,6 +402,7 @@ const ProgramHeadCourseAssignment = () => {
                 <RefreshCw size={18} />
               </button>
             )}
+            <UndoUploadButton entity="course_offering_assignments" periodId={periodId} disabled={!periodId || !isCurrentTermActive} refreshKey={uploadCount} onUndone={refresh} />
             <ActionBtn variant="white" onClick={() => { if (assignments.length > 0) { setConfirmUpload(true); } else { setShowModal(true); } }} disabled={!periodId || !isCurrentTermActive} icon={<Upload size={18} color="#374151" />} label="Upload Course Assignment" />
             {showTable && isCurrentTermActive && <ActionBtn onClick={() => setShowAddModal(true)} icon={<Plus size={18} color="#FFFFFF" />} label="Add Assignment" />}
           </div>
@@ -364,14 +417,14 @@ const ProgramHeadCourseAssignment = () => {
           term where they're assigned (View Archived hides while blocked). */}
       <div className={syllabusStyles.header} style={{ marginBottom: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
         <PeriodSelector prominent />
-        {!noProgramAssigned && <ViewArchivedButton moduleType="course_assignments" onEditStatus={onEditStatus} />}
+        {!noProgramAssigned && <ViewArchivedButton moduleType="course_offering_assignments" onEditStatus={onEditStatus} />}
       </div>
 
       {noProgramAssigned ? blockedState : (<>
 
       {!isCurrentTermActive && currentPeriod && (
         <div style={{ marginBottom: 12, padding: '10px 14px', background: '#FEF3C7', border: '1px solid #FCD34D', borderRadius: 8, color: '#92400E', fontSize: 13, lineHeight: '1.4' }}>
-          <strong>Read-only:</strong> {currentPeriod.label} is closed. Switch to an Active term to make changes.
+          <strong>Read-only:</strong> {currentPeriod.label} is not the current term. Switch to the current term to make changes.
         </div>
       )}
 
@@ -394,7 +447,7 @@ const ProgramHeadCourseAssignment = () => {
               <div style={{ width: 72, height: 72, borderRadius: 12, background: '#F3F4F6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Clipboard size={30} color="#9CA3AF" />
               </div>
-              <div style={{ fontSize: 15, fontWeight: 600, color: '#111827' }}>
+              <div style={{ fontSize: 15, fontWeight: 600, color: '#18191A' }}>
                 {yearFilter !== 'all' ? ('No ' + (YEAR_ORDINAL[yearFilter] || '') + '-year assignments yet') : 'No matching assignments'}
               </div>
               <div style={{ fontSize: 13, color: '#6B7280', maxWidth: 360 }}>
@@ -416,18 +469,47 @@ const ProgramHeadCourseAssignment = () => {
             <tbody>
               {sortedAssignments.map((row) => (
                 <tr key={row.id}>
-                  <td width={150}>{row.course_code}</td>
-                  <td width={260} style={{ flex: '1 1 auto', minWidth: 240 }}>
+                  <td width={160}>{row.course_code}</td>
+                  <td width={280} style={{ flex: '1 1 auto', minWidth: 240 }}>
                     <span title={row.course_name || ''} style={{ minWidth: 0, flex: '1 1 auto', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {row.course_name || ''}
                     </span>
                   </td>
-                  <td width={140}>{(() => { const n = yearLevelNum(row.year_level); return n ? (YEAR_ORDINAL[n] + ' Year') : (row.year_level || <span style={{ color: '#9CA3AF' }}>—</span>); })()}</td>
-                  <td width={200} style={{ flex: '1 1 auto', minWidth: 180 }}>{row.faculty_name || <span style={{ color: '#9CA3AF' }}>— Unassigned —</span>}</td>
-                  <td width={170} style={{ whiteSpace: 'nowrap' }}>
+                  <td width={150}>{(() => { const n = yearLevelNum(row.year_level); return n ? (YEAR_ORDINAL[n] + ' Year') : (row.year_level || <span style={{ color: '#9CA3AF' }}>—</span>); })()}</td>
+                  <td width={170} style={{ flex: '1 1 auto', minWidth: 140 }}>
+                    {row.faculty_name ? (
+                      <span title={row.faculty_name} style={{ display: 'inline-flex', alignItems: 'center', maxWidth: '100%', padding: '2px 9px', borderRadius: 9999, fontSize: 12, color: '#0F172A', background: '#F1F5F9', border: '1px solid #E2E8F0' }}>
+                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.faculty_name}</span>
+                      </span>
+                    ) : (
+                      <span style={{ color: '#9CA3AF' }}>— Unassigned —</span>
+                    )}
+                  </td>
+                  <td width={150} style={{ flex: '1 1 auto', minWidth: 120 }}>
+                    {(() => {
+                      const list = Array.isArray(row.contributors) ? row.contributors : [];
+                      if (list.length === 0) return <span style={{ color: '#9CA3AF' }}>—</span>;
+                      const shown = list.slice(0, 2);
+                      const extra = list.length - shown.length;
+                      const chip = { display: 'inline-flex', alignItems: 'center', maxWidth: 130, padding: '2px 9px', borderRadius: 9999, fontSize: 12, color: '#0F172A', background: '#F1F5F9', border: '1px solid #E2E8F0' };
+                      return (
+                        <span style={{ display: 'inline-flex', flexWrap: 'wrap', gap: 4, alignItems: 'center' }}>
+                          {shown.map((c, i) => (
+                            <span key={(c && c.faculty_id) || c.faculty_name || i} title={c.faculty_name} style={chip}>
+                              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.faculty_name}</span>
+                            </span>
+                          ))}
+                          {extra > 0 && (
+                            <span title={list.slice(2).map((c) => c.faculty_name).join(', ')} style={{ ...chip, fontWeight: 600, color: '#475569' }}>+{extra}</span>
+                          )}
+                        </span>
+                      );
+                    })()}
+                  </td>
+                  <td width={180} style={{ whiteSpace: 'nowrap' }}>
                     <DateCell value={row.date_assigned} />
                   </td>
-                  <td width={130}>
+                  <td width={140}>
                     <span style={{ ...statusPillStyle('courseassign', row.status), padding: '4px 10px', borderRadius: 4, fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap' }}>
                       {row.status}
                     </span>
@@ -453,7 +535,7 @@ const ProgramHeadCourseAssignment = () => {
           <div style={{ width: 92, height: 92, borderRadius: 12, background: '#F3F4F6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <Clipboard size={40} color="#9CA3AF" />
           </div>
-          <div style={{ fontSize: 18, fontWeight: 600, color: '#111827' }}>No course assignments yet</div>
+          <div style={{ fontSize: 18, fontWeight: 600, color: '#18191A' }}>No course assignments yet</div>
           <div style={{ color: '#6B7280', textAlign: 'center', maxWidth: 480 }}>{periodId ? ('Upload a course assignment file for ' + (currentPeriod ? currentPeriod.label : 'this period') + ' to get started — each row is validated against Course Offerings and Faculty.') : 'Select an academic period to begin.'}</div>
         </div>
       )}
@@ -477,12 +559,20 @@ const ProgramHeadCourseAssignment = () => {
           fields={[
             courseOfferingField,
             {
-              key: 'faculty_name', label: 'Assigned Faculty', type: 'searchable-select',
+              key: 'faculty_name', label: 'Lead Faculty', type: 'searchable-select',
               options: facultyOptions, placeholder: 'Select faculty…', searchable: false,
               highlight: editingAssignment.status === 'Unassigned' && !editingAssignment.faculty_id,
             },
+            contributorsField,
           ]}
-          record={editingAssignment}
+          // The modal manages contributors as an array of NAMES; the stored
+          // shape is { faculty_id, faculty_name }, so flatten to names here.
+          record={{
+            ...editingAssignment,
+            contributors: Array.isArray(editingAssignment.contributors)
+              ? editingAssignment.contributors.map((c) => c.faculty_name)
+              : [],
+          }}
           onSave={onSaveEdit}
           onClose={() => setEditingAssignment(null)}
           onRemove={onArchiveAssignment}
@@ -493,7 +583,7 @@ const ProgramHeadCourseAssignment = () => {
       <ConfirmModal
         open={confirmUpload}
         title="Replace course assignment data?"
-        message={'Uploading this file will replace existing course assignments for ' + (currentPeriod ? currentPeriod.label : 'this period') + '. Proceed?'}
+        message={'Uploading a file will replace existing course assignments for ' + (currentPeriod ? currentPeriod.label : 'this period') + '. You\'ll review the file before anything is saved. Proceed?'}
         confirmLabel="Continue to upload"
         onConfirm={() => { setConfirmUpload(false); setShowModal(true); }}
         onCancel={() => setConfirmUpload(false)}
@@ -504,7 +594,7 @@ const ProgramHeadCourseAssignment = () => {
           <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 60 }} onClick={() => setUploadReview(null)} />
           <div role="dialog" aria-modal="true" style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: 'min(640px, 92vw)', maxHeight: '80vh', background: '#FFFFFF', borderRadius: 12, zIndex: 61, display: 'flex', flexDirection: 'column', boxShadow: '0 18px 50px rgba(0,0,0,0.25)' }}>
             <div style={{ padding: '20px 24px', borderBottom: '1px solid #E5E7EB' }}>
-              <div style={{ fontSize: 20, fontWeight: 600, color: '#111827' }}>Upload validation</div>
+              <div style={{ fontSize: 20, fontWeight: 600, color: '#18191A' }}>Upload validation</div>
               <div style={{ fontSize: 13, color: '#6B7280', marginTop: 2 }}>
                 {uploadReview.inserted} assignment{uploadReview.inserted === 1 ? '' : 's'} imported. {uploadReview.warnings.length} need{uploadReview.warnings.length === 1 ? 's' : ''} attention:
               </div>
@@ -512,7 +602,7 @@ const ProgramHeadCourseAssignment = () => {
             <div style={{ padding: '8px 24px', overflowY: 'auto' }}>
               {uploadReview.warnings.map((w, i) => (
                 <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, padding: '10px 0', borderBottom: '1px solid #F3F4F6' }}>
-                  <div style={{ fontSize: 14, color: '#111827' }}>
+                  <div style={{ fontSize: 14, color: '#18191A' }}>
                     <strong>Row {w.row}</strong> — {w.course_code}{w.faculty_name ? ' / ' + w.faculty_name : ''}
                     <div style={{ fontSize: 12, color: '#6B7280', marginTop: 2 }}>{w.message}</div>
                   </div>
@@ -521,32 +611,54 @@ const ProgramHeadCourseAssignment = () => {
               ))}
             </div>
             <div style={{ padding: '16px 24px', borderTop: '1px solid #E5E7EB', display: 'flex', justifyContent: 'flex-end' }}>
-              <button onClick={() => setUploadReview(null)} style={{ height: 40, padding: '0 20px', background: '#1F2937', color: '#FFFFFF', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 500 }}>Got it</button>
+              <button onClick={() => setUploadReview(null)} style={{ height: 40, padding: '0 20px', background: '#18191A', color: '#FFFFFF', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 500 }}>Got it</button>
             </div>
           </div>
         </>
       )}
 
 
-      {showModal && (
-        <>
-          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.35)', zIndex: 2 }} onClick={() => !uploading && setShowModal(false)} />
-          <div style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: 600, padding: 24, background: '#FFFFFF', borderRadius: 10, display: 'flex', flexDirection: 'column', gap: 16, zIndex: 3, boxShadow: '0 10px 30px rgba(0,0,0,0.15)' }}>
+      <DialogShell
+        open={showModal}
+        onBackdropClick={() => setShowModal(false)}
+        ariaLabel="Upload Course Assignment"
+        panelStyle={{ width: 600, maxWidth: '94vw', padding: 24, background: '#FFFFFF', borderRadius: 10, display: 'flex', flexDirection: 'column', gap: 16, boxShadow: '0 10px 30px rgba(0,0,0,0.15)' }}
+      >
             <div style={{ fontSize: 20, fontWeight: 600 }}>Upload Course Assignment</div>
             <div onClick={() => fileInputRef.current && fileInputRef.current.click()} onDragOver={(e) => e.preventDefault()} onDrop={(e) => { e.preventDefault(); const f = e.dataTransfer.files && e.dataTransfer.files[0]; if (f) setSelectedFile(f); }} style={{ border: '2px dashed #D1D5DB', borderRadius: 8, padding: 28, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
               <Upload size={36} color="#9CA3AF" />
-              <div style={{ fontWeight: 600, color: '#111827' }}>{selectedFile ? selectedFile.name : 'Drag & drop file here'}</div>
+              <div style={{ fontWeight: 600, color: '#18191A' }}>{selectedFile ? selectedFile.name : 'Drag & drop file here'}</div>
               <div style={{ color: '#6B7280', fontSize: 13 }}>Upload .xlsx, .xls or .csv</div>
               <input type="file" ref={fileInputRef} accept=".csv,.xlsx,.xls" onChange={(e) => { const f = e.target.files && e.target.files[0]; if (f) setSelectedFile(f); }} style={{ display: 'none' }} />
             </div>
-            {uploadError && <div style={{ color: '#B91C1C', fontSize: 13 }}>{uploadError}</div>}
-            <div style={{ display: 'flex', gap: 12 }}>
-              <button disabled={uploading} onClick={() => { setSelectedFile(null); setShowModal(false); }} style={{ flex: 1, height: 40, background: '#FFFFFF', border: '1px solid #111827', borderRadius: 8, color: '#111827', cursor: uploading ? 'not-allowed' : 'pointer', fontWeight: 500 }}>Cancel</button>
-              <button disabled={uploading} onClick={handleConfirmUpload} style={{ flex: 1, height: 40, background: '#1F2937', border: 'none', borderRadius: 8, color: '#FFFFFF', cursor: uploading ? 'not-allowed' : 'pointer', fontWeight: 500, opacity: uploading ? 0.7 : 1 }}>{uploading ? 'Uploading…' : 'Upload'}</button>
+            <div style={{ color: '#6B7280', fontSize: 13 }}>
+              You'll see exactly what's in the file — and what would fail — before anything is saved.
             </div>
-          </div>
-        </>
-      )}
+            <div style={{ display: 'flex', gap: 12 }}>
+              <button onClick={() => { clearPicker(); setShowModal(false); }} style={{ flex: 1, height: 40, background: '#FFFFFF', border: '1px solid #18191A', borderRadius: 8, color: '#18191A', cursor: 'pointer', fontWeight: 500 }}>Cancel</button>
+              <button disabled={!selectedFile} onClick={handleReviewFile} style={{ flex: 1, height: 40, background: '#18191A', border: 'none', borderRadius: 8, color: '#FFFFFF', cursor: selectedFile ? 'pointer' : 'not-allowed', fontWeight: 500, opacity: selectedFile ? 1 : 0.6 }}>Review file</button>
+            </div>
+      </DialogShell>
+
+      {/* Preview & Confirm, then the 30-second undo toast.
+          `key` on the program id is load-bearing: the overlay only re-runs its dry
+          run when the FILE changes, but `commit` closes over the CURRENT
+          selectedProgramId. Switch program mid-review and the commit would import
+          against a program the preview never saw. Re-keying remounts the overlay
+          and re-previews, so the two can never disagree. */}
+      <UploadPreviewFlow
+        key={'assign-preview-' + String(selectedProgramId)}
+        file={pendingFile}
+        entity="course_offering_assignments"
+        periodId={periodId}
+        title="Upload Course Assignment"
+        preview={(f) => CourseOfferingAssignmentsAPI.uploadPreview(f, periodId, selectedProgramId)}
+        commit={(f) => CourseOfferingAssignmentsAPI.upload(f, periodId, selectedProgramId)}
+        onBack={() => { setPendingFile(null); setShowModal(true); }}
+        onCancel={() => { setPendingFile(null); clearPicker(); }}
+        onCommitted={onUploadCommitted}
+        onUndone={onUploadUndone}
+      />
     </div>
   );
 

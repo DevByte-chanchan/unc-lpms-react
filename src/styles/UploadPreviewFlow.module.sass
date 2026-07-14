@@ -1,0 +1,545 @@
+// Preview & Confirm — the review dialog between picking a file and writing it,
+// plus the undo toast that follows the commit.
+//
+// Palette is the module's existing one: primary #18191A, text #374151,
+// borders #D1D5DB, error #B91C1C, muted #6B7280. The green is picked to sit
+// beside that red at the same weight, so "ready" and "errors" read as a pair.
+//
+// ⚠ THE GLOBAL TABLE RESET
+// src/index.css turns EVERY table in this app into a flexbox:
+//   table { display: flex; flex-direction: column }
+//   thead tr, tbody tr { display: flex }
+//   th, td { display: flex }
+//   tbody { padding-bottom: 96px }
+// That is fine for the app's card-style lists, but it means a <table> here is
+// not a table at all — each cell sizes to its own content, so columns cannot
+// share a grid, and `table-layout: fixed` / <colgroup> are ignored outright
+// (they have no meaning on a flex container).
+//
+// So this file restores real table display first, and only then imposes the
+// grid. These class selectors (0,1,1) outrank the global element selectors
+// (0,0,1), which is what lets a scoped fix beat a global one.
+
+$primary: #18191A
+$primary-hover: #33353A
+$text: #374151
+$border: #D1D5DB
+$muted: #6B7280
+$error: #B91C1C
+$error-bg: #FEF2F2
+$error-border: #FECACA
+$ok: #047857
+$ok-bg: #ECFDF5
+$ok-border: #A7F3D0
+$warn: #92400E
+$warn-bg: #FFFBEB
+
+// ---------- dialog: panel ----------
+
+// There is no .backdrop here any more. The dim is the app's single shared layer
+// (styles/DialogMotion.module.sass + services/dialogBackdrop.js) — this dialog
+// merely holds it, and keeps holding it while it hands off to the page's import
+// summary, so the two dialogs swap over one continuous backdrop instead of
+// destroying one and building another.
+//
+// The dim still has NO click handler: a file is staged and unsaved, and a stray
+// click on it must not throw the review away. X / Back / Cancel / Escape are the
+// only ways out — DialogShell is given no onBackdropClick.
+//
+// Centring and the fade/scale come from DialogShell's layer; this is only the
+// panel's own size and skin.
+.panel
+  width: min(1200px, 94vw)
+  height: min(88vh, 900px)
+  background: #FFFFFF
+  border-radius: 12px
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.24)
+  overflow: hidden
+  display: flex
+  flex-direction: column
+
+// ---------- header ----------
+
+.header
+  flex-shrink: 0
+  padding: 20px 24px 16px
+  display: flex
+  flex-direction: column
+  gap: 16px
+
+.headerTop
+  display: flex
+  align-items: flex-start
+  justify-content: space-between
+  gap: 16px
+
+.title
+  margin: 0
+  font-size: 20px
+  font-weight: 600
+  color: #18191A
+
+.closeBtn
+  background: transparent
+  border: none
+  padding: 4px
+  line-height: 0
+  cursor: pointer
+  border-radius: 6px
+
+  &:hover
+    background: #F3F4F6
+
+  &:disabled
+    cursor: not-allowed
+    opacity: 0.5
+
+// The filename is the single strongest cue that the wrong file was picked,
+// so it gets the weight a heading would.
+.filename
+  display: inline-flex
+  align-items: center
+  gap: 10px
+  padding: 10px 14px
+  background: #F9FAFB
+  border: 1px solid $border
+  border-radius: 8px
+  align-self: flex-start
+  max-width: 100%
+
+.filenameText
+  font-size: 16px
+  font-weight: 600
+  color: #18191A
+  overflow: hidden
+  text-overflow: ellipsis
+  white-space: nowrap
+
+.filenameHint
+  font-size: 13px
+  color: $muted
+  white-space: nowrap
+
+// ---------- stepper ----------
+
+.stepper
+  display: flex
+  align-items: center
+  gap: 12px
+  flex-wrap: wrap
+
+.step
+  display: flex
+  align-items: center
+  gap: 8px
+
+.stepDot
+  width: 26px
+  height: 26px
+  border-radius: 13px
+  display: flex
+  align-items: center
+  justify-content: center
+  font-size: 13px
+  font-weight: 600
+  flex-shrink: 0
+  border: 1px solid $border
+  background: #FFFFFF
+  color: $muted
+
+.stepDotDone
+  background: $ok
+  border-color: $ok
+  color: #FFFFFF
+
+.stepDotActive
+  background: $primary
+  border-color: $primary
+  color: #FFFFFF
+
+.stepLabel
+  font-size: 14px
+  color: $muted
+
+.stepLabelActive
+  color: #18191A
+  font-weight: 600
+
+.stepBar
+  width: 44px
+  height: 2px
+  background: $border
+  border-radius: 1px
+
+.stepBarDone
+  background: $ok
+
+// ---------- validation summary ----------
+
+.summary
+  display: flex
+  align-items: center
+  gap: 12px
+  flex-wrap: wrap
+
+.card
+  display: flex
+  align-items: center
+  gap: 10px
+  padding: 12px 16px
+  border-radius: 8px
+  border: 1px solid transparent
+  min-width: 200px
+
+.cardOk
+  background: $ok-bg
+  border-color: $ok-border
+  color: $ok
+
+.cardError
+  background: $error-bg
+  border-color: $error-border
+  color: $error
+
+.cardCount
+  font-size: 20px
+  font-weight: 700
+  line-height: 1
+
+.cardText
+  font-size: 14px
+  font-weight: 500
+
+.toggle
+  display: inline-flex
+  align-items: center
+  gap: 8px
+  height: 40px
+  padding: 0 14px
+  margin-left: auto
+  border-radius: 6px
+  border: 1px solid $border
+  background: #FFFFFF
+  color: $text
+  font-size: 14px
+  cursor: pointer
+
+  &:hover:not(:disabled)
+    background: #F9FAFB
+
+  &:disabled
+    cursor: not-allowed
+    opacity: 0.5
+
+.toggleOn
+  background: $error-bg
+  border-color: $error-border
+  color: $error
+
+  &:hover:not(:disabled)
+    background: $error-bg
+
+// ---------- table ----------
+
+// Scrolls both ways: vertically through the rows, horizontally when a sheet has
+// more columns than fit. min-height: 0 is what actually lets a flex child
+// scroll — without it the child grows to fit its content and the panel spills.
+.tableWrap
+  flex: 1
+  min-height: 0
+  overflow: auto
+  margin: 0 24px
+  border: 1px solid $border
+  border-radius: 8px
+  background: #FFFFFF
+
+// Every display: * below is undoing the global flex reset described at the top
+// of this file. Drop them and the columns stop sharing a grid.
+.table
+  display: table
+  table-layout: fixed          // honour the <colgroup>; ignore content width
+  width: 100%
+  border-collapse: collapse
+  min-width: 0                 // beats the global `min-width: fit-content`
+  overflow: visible            // beats the global `overflow-y: hidden`
+  gap: 0
+  font-size: 14px
+
+  thead
+    display: table-header-group
+
+  tbody
+    display: table-row-group
+    // The global rule parks 96px of dead space under every tbody.
+    padding-bottom: 0
+    overflow: visible
+    gap: 0
+
+  tr
+    display: table-row
+    box-shadow: none           // the global rule shadows every row like a card
+    background: transparent
+
+  th,
+  td
+    display: table-cell
+    text-align: left
+    vertical-align: middle
+    padding: 12px 16px
+    font-size: 14px
+    height: 44px
+
+  th
+    background: #F9FAFB
+    color: $text
+    font-weight: 600
+    white-space: nowrap
+    position: sticky
+    top: 0
+    z-index: 1
+    // border-collapse: collapse detaches borders from sticky cells — they stay
+    // behind with the table box and the header scrolls away naked. An inset
+    // shadow is painted by the cell itself, so it travels with it.
+    box-shadow: inset 0 -1px 0 $border
+
+  td
+    color: $text
+    border-bottom: 1px solid #F3F4F6
+
+  tbody tr:last-child td
+    border-bottom: none
+
+// Data cells hold one line. table-layout: fixed would otherwise let a long
+// email or a 60-character name blow the column out; the full value lives in the
+// cell's title attribute, so nothing is actually lost.
+.cell
+  overflow: hidden
+  text-overflow: ellipsis
+  white-space: nowrap
+
+.rowNum
+  text-align: right
+  color: $muted
+  font-variant-numeric: tabular-nums
+  white-space: nowrap
+
+// The reason column wraps — truncating the explanation of WHY a row fails would
+// defeat the point of showing it. It is the one column allowed to set the row's
+// height.
+.issue
+  white-space: normal
+
+// Soft red tint — enough to scan for, not enough to fight the text.
+.rowError td
+  background: $error-bg
+  border-bottom-color: $error-border
+
+.rowWarning td
+  background: $warn-bg
+
+.cellBad
+  color: $error
+  font-weight: 600
+
+.reason
+  display: flex
+  align-items: flex-start
+  gap: 6px
+  font-size: 13px
+  line-height: 1.4
+
+.reasonError
+  color: $error
+
+.reasonWarning
+  color: $warn
+
+.empty
+  padding: 48px 24px
+  text-align: center
+  color: $muted
+  font-size: 14px
+  line-height: 1.6
+
+// ---------- footer ----------
+
+// Pinned to the bottom of the PANEL, not the viewport — it is inside the flex
+// column, so flex-shrink: 0 is all the pinning it needs.
+.footer
+  flex-shrink: 0
+  display: flex
+  align-items: center
+  justify-content: space-between
+  gap: 12px
+  padding: 16px 24px
+  background: #FFFFFF
+  border-top: 1px solid $border
+
+.footerRight
+  display: flex
+  align-items: center
+  gap: 12px
+
+.btn
+  display: inline-flex
+  align-items: center
+  justify-content: center
+  gap: 8px
+  height: 40px
+  padding: 0 20px
+  border-radius: 6px
+  font-size: 14px
+  font-weight: 500
+  cursor: pointer
+  white-space: nowrap
+
+  &:disabled
+    cursor: not-allowed
+    opacity: 0.6
+
+.btnGhost
+  background: #FFFFFF
+  border: 1px solid $border
+  color: $text
+
+  &:hover:not(:disabled)
+    background: #F9FAFB
+
+.btnOutline
+  background: #FFFFFF
+  border: 1px solid #18191A
+  color: #18191A
+
+  &:hover:not(:disabled)
+    background: #F3F4F6
+
+.btnPrimary
+  background: $primary
+  border: 1px solid $primary
+  color: #FFFFFF
+
+  // Lighter on hover, not darker: $primary is all but black now, so darkening it
+  // is a change nobody can see. (This briefly WAS $primary — a hover that did
+  // nothing at all — when every dark tone was unified onto one black.)
+  &:hover:not(:disabled)
+    background: $primary-hover
+
+.error
+  color: $error
+  font-size: 13px
+
+// ---------- undo toast ----------
+
+// z-index 100 puts the toast ABOVE ReconciliationModal (overlay 90 / modal 91).
+// It has to: on most pages the reconciliation modal opens the instant the upload
+// lands, and at z-index 80 the toast sat UNDER its dimming overlay — visible but
+// dead, with Undo and the X swallowed by the overlay for the entire 30 seconds.
+// A 30-second escape hatch you cannot click is not an escape hatch.
+.toast
+  position: fixed
+  left: 24px
+  bottom: 24px
+  z-index: 100
+  display: flex
+  align-items: center
+  gap: 16px
+  max-width: min(560px, calc(100vw - 48px))
+  padding: 14px 14px 14px 18px
+  background: #18191A
+  border-radius: 8px
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.28)
+  color: #FFFFFF
+  animation: toastIn 0.18s ease-out
+
+@keyframes toastIn
+  from
+    opacity: 0
+    transform: translateY(8px)
+  to
+    opacity: 1
+    transform: translateY(0)
+
+.toastText
+  display: flex
+  flex-direction: column
+  gap: 2px
+  font-size: 14px
+  line-height: 1.4
+
+.toastSub
+  font-size: 12px
+  color: #9CA3AF
+
+.toastActions
+  display: flex
+  align-items: center
+  gap: 6px
+  margin-left: auto
+
+// The same control as the page's Undo button (UndoUploadButton.jsx): 40px tall,
+// 6px radius, 18px CornerUpLeft icon, 8px gap, weight 500, sentence-case label.
+// It keeps a WHITE background with dark text rather than inheriting the page
+// button's white-on-white — this one sits on a near-black toast, and the escape
+// hatch has to be the first thing the eye lands on. Contrast is the only thing
+// that differs; it is not a ghost button.
+.undoBtn
+  display: inline-flex
+  align-items: center
+  gap: 8px
+  height: 40px
+  padding: 0 18px
+  border-radius: 6px
+  border: none
+  background: #FFFFFF
+  color: #18191A
+  font-size: 14px
+  font-weight: 500
+  cursor: pointer
+  white-space: nowrap
+
+  &:hover:not(:disabled)
+    background: #E5E7EB
+
+  &:disabled
+    cursor: not-allowed
+    opacity: 0.6
+
+.undoIcon
+  width: 22px
+  height: 22px
+  display: inline-flex
+  align-items: center
+  justify-content: center
+
+// The remaining seconds — red and tabular so the digits don't jitter as they
+// tick. Identical treatment in the page button, because it is the same clock.
+.count
+  font-variant-numeric: tabular-nums
+  color: $error
+  font-weight: 700
+
+.dismiss
+  display: inline-flex
+  align-items: center
+  justify-content: center
+  width: 32px
+  height: 32px
+  border-radius: 6px
+  border: none
+  background: transparent
+  color: #9CA3AF
+  cursor: pointer
+
+  &:hover
+    background: rgba(255, 255, 255, 0.12)
+    color: #FFFFFF
+
+// The undo confirm dialog has to clear ReconciliationModal too, and ConfirmModal
+// hardcodes z-index 60/61 — a shared component we don't get to renumber for one
+// caller. A positioned ancestor with a z-index creates a stacking context, and
+// fixed-position descendants are painted INSIDE it, so the dialog's own 60/61
+// become local and the whole thing lands above the modal at 110. Zero-height
+// wrapper; it only exists to carry the stacking context.
+.undoDialogLayer
+  position: relative
+  z-index: 110

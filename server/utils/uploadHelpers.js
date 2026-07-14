@@ -19,20 +19,37 @@
 import { sequelize } from '../config/sequelize.js';
 
 const columnCache = new Map();
-async function getColumnSet(tableName) {
-  if (columnCache.has(tableName)) return columnCache.get(tableName);
-  const desc = await sequelize.getQueryInterface().describeTable(tableName);
-  const set = new Set(Object.keys(desc));
-  columnCache.set(tableName, set);
-  return set;
+
+/**
+ * Model ATTRIBUTE names whose underlying column exists.
+ *
+ * Callers pass attribute names (`period_id`), but the table stores columns
+ * (`academic_period_id`) wherever a model declares `field:`. Matching attribute
+ * keys directly against column names would silently drop every mapped key — so
+ * resolve each attribute through its `field` first. (Same trap as dbHelpers.js.)
+ */
+async function getAttributeSet(model) {
+  const key = model.tableName;
+  if (columnCache.has(key)) return columnCache.get(key);
+
+  const desc = await sequelize.getQueryInterface().describeTable(model.tableName);
+  const columns = new Set(Object.keys(desc));
+
+  const attrs = new Set();
+  for (const [name, def] of Object.entries(model.rawAttributes || {})) {
+    const column = (def && def.field) || name;
+    if (columns.has(column)) attrs.add(name);
+  }
+
+  columnCache.set(key, attrs);
+  return attrs;
 }
 export function clearUploadColumnCache() { columnCache.clear(); }
 
 export async function bulkUpsert(model, records, updateKeys, options = {}) {
   if (!Array.isArray(records) || records.length === 0) return [];
 
-  const tableName = model.tableName;
-  const cols = await getColumnSet(tableName);
+  const cols = await getAttributeSet(model);
   const key  = options.key || 'code';
 
   // Filter each record to known columns; collect natural keys.

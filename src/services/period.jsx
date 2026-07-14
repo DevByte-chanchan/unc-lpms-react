@@ -27,6 +27,7 @@ const API_BASE = (import.meta.env && import.meta.env.VITE_API_URL) || 'http://lo
 const PeriodContext = React.createContext({
   periods: [],
   currentPeriod: null,
+  activeTerm: null,
   isCurrentTermActive: true,
   apiReachable: true,
   setCurrentPeriodId: () => {},
@@ -48,6 +49,35 @@ const rankPeriod = (p) => {
   const m = String(p.school_year || '').match(/(\d{4})/);
   const year = m ? Number(m[1]) : 0;
   return year * 1e9 + semesterRank(p.semester) * 1e6 + (Number(p.sort_order) || 0) * 1e3 + (Number(p.id) || 0);
+};
+
+/**
+ * THE CURRENT TERM — the newest Active period. Derived, never stored.
+ *
+ * `status === 'Active'` cannot be used as a permission on its own: nothing keeps
+ * a single period Active. New periods are created Active, creating a term closes
+ * only the one term the UI thought was current, and the server's auto-close pass
+ * skips periods with no end date. Active rows pile up, and under the old rule
+ * every one of them was fully editable — including terms from two school years
+ * ago, on every page, with the server accepting the writes.
+ *
+ * So the gate asks "is this THE current term", not "is this flagged Active".
+ * The server enforces the identical rule (server/utils/latestPeriod.js); this is
+ * only what hides the buttons.
+ */
+const currentTermOf = (periods) => {
+  const list = Array.isArray(periods) ? periods : [];
+  const actives = list.filter((p) => p.status === 'Active');
+  if (actives.length === 0) return null;
+  return actives.reduce((best, p) => (rankPeriod(p) > rankPeriod(best) ? p : best), actives[0]);
+};
+
+// Writable only if this period IS the current term. A closed term fails because
+// it is never Active; a stranded past term fails because it is not the newest.
+const isWritable = (period, periods) => {
+  if (!period) return true;   // nothing selected — don't block the empty-state Add flow
+  const current = currentTermOf(periods);
+  return !!current && current.id === period.id;
 };
 
 export const PeriodProvider = ({ children }) => {
@@ -108,18 +138,24 @@ export const PeriodProvider = ({ children }) => {
 
   const currentPeriod = periods.find((p) => p.id === currentId) || null;
 
-  // Single source of truth for the read-only lock. Treat "no period
+  // THE current term — the one writable period. Published on the context so the
+  // selector can mark every other term with a Lock without re-deriving the rule.
+  const activeTerm = React.useMemo(() => currentTermOf(periods), [periods]);
+
+  // Single source of truth for the read-only lock: the selected period must BE
+  // the current term, not merely carry an Active flag. Treat "no period
   // selected" as editable so the empty-state Add flow isn't blocked.
-  const isCurrentTermActive = !currentPeriod || currentPeriod.status === 'Active';
+  const isCurrentTermActive = isWritable(currentPeriod, periods);
 
   const value = React.useMemo(() => ({
     periods,
     currentPeriod,
+    activeTerm,
     isCurrentTermActive,
     apiReachable,
     setCurrentPeriodId: setCurrentId,
     refreshPeriods,
-  }), [periods, currentPeriod, isCurrentTermActive, apiReachable, refreshPeriods]);
+  }), [periods, currentPeriod, activeTerm, isCurrentTermActive, apiReachable, refreshPeriods]);
 
   return <PeriodContext.Provider value={value}>{children}</PeriodContext.Provider>;
 };
@@ -140,32 +176,32 @@ export const ScopedPeriodProvider = ({ children }) => {
 
   const periods = parent.periods;
 
-  // Default selection for this page = the most recent Active term (the
-  // authoritative "current" term), falling back to the global current.
+  const activeTerm = React.useMemo(() => currentTermOf(periods), [periods]);
+
+  // Default selection for this page = the current term, falling back to the
+  // global current when there is no Active term at all.
   const defaultId = React.useMemo(() => {
+    if (activeTerm) return activeTerm.id;
     const list = Array.isArray(periods) ? periods : [];
-    const actives = list.filter((p) => p.status === 'Active');
-    const pool = actives.length > 0 ? actives : list;
-    if (pool.length === 0) return parent.currentPeriod ? parent.currentPeriod.id : null;
-    let best = pool[0];
-    for (let i = 1; i < pool.length; i += 1) {
-      if (rankPeriod(pool[i]) > rankPeriod(best)) best = pool[i];
-    }
-    return best.id;
-  }, [periods, parent.currentPeriod]);
+    if (list.length === 0) return parent.currentPeriod ? parent.currentPeriod.id : null;
+    return list.reduce((best, p) => (rankPeriod(p) > rankPeriod(best) ? p : best), list[0]).id;
+  }, [activeTerm, periods, parent.currentPeriod]);
 
   const effectiveId = scopedId != null ? scopedId : defaultId;
   const currentPeriod = (Array.isArray(periods) ? periods : []).find((p) => p.id === effectiveId) || null;
-  const isCurrentTermActive = !currentPeriod || currentPeriod.status === 'Active';
+  // Same rule as the root provider — viewing a past term on one page is
+  // read-only there too, however that term's status row happens to read.
+  const isCurrentTermActive = isWritable(currentPeriod, periods);
 
   const value = React.useMemo(() => ({
     periods,
     currentPeriod,
+    activeTerm,
     isCurrentTermActive,
     apiReachable: parent.apiReachable,
     setCurrentPeriodId: setScopedId,
     refreshPeriods: parent.refreshPeriods,
-  }), [periods, currentPeriod, isCurrentTermActive, parent.apiReachable, parent.refreshPeriods]);
+  }), [periods, currentPeriod, activeTerm, isCurrentTermActive, parent.apiReachable, parent.refreshPeriods]);
 
   return <PeriodContext.Provider value={value}>{children}</PeriodContext.Provider>;
 };

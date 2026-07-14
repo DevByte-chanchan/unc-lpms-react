@@ -25,14 +25,14 @@
  * and errors exposed to screen readers.
  */
 import React from 'react';
-import { X, Calendar, Lock, Save, ArrowLeft } from 'react-feather';
+import { X, Calendar, Lock, Save, ArrowLeft, AlertTriangle } from 'react-feather';
 import SearchableSelect from './SearchableSelect.jsx';
 import { formatDateOnly, formatTimestamp } from './RecordTimestamps.jsx';
 
 const C = {
   bg: '#FFFFFF', bgMuted: '#F3F4F6', border: '#E5E7EB', inputBorder: '#D1D5DB',
-  text: '#111827', textSec: '#374151', textMuted: '#6B7280', textTert: '#9CA3AF',
-  danger: '#B91C1C', dangerBorder: '#DC2626', primary: '#EA1212',
+  text: '#18191A', textSec: '#374151', textMuted: '#6B7280', textTert: '#9CA3AF',
+  danger: '#B91C1C', dangerBorder: '#DC2626', primary: '#18191A',
 };
 
 const idOf = (key) => 'eem-field-' + key;
@@ -51,7 +51,7 @@ const arraysDiffer = (a, b) => {
   return x.length !== y.length || x.some((v) => !y.includes(v)) || y.some((v) => !x.includes(v));
 };
 
-const EditEntityModal = ({ title, termLabel, record, fields = [], onSave, onClose, onBack, onRemove, removeLabel = 'Remove', columns = 1, width = 'min(460px, 94vw)', validate }) => {
+const EditEntityModal = ({ title, termLabel, record, fields = [], onSave, onClose, onBack, onRemove, removeLabel = 'Remove', columns = 1, width = 'min(460px, 94vw)', validate, notice }) => {
   const initialValues = React.useMemo(() => {
     const v = {};
     fields.forEach((f) => {
@@ -168,7 +168,7 @@ const EditEntityModal = ({ title, termLabel, record, fields = [], onSave, onClos
     if (typeof f.render === 'function') {
       return (
         <div id={idOf(f.key)} aria-describedby={helpId(f.key)}>
-          {f.render({ value: values[f.key], onChange: (v) => setField(f.key, v), invalid })}
+          {f.render({ value: values[f.key], onChange: (v) => setField(f.key, v), invalid, values })}
         </div>
       );
     }
@@ -213,7 +213,7 @@ const EditEntityModal = ({ title, termLabel, record, fields = [], onSave, onClos
                 style={{ flex: 1, height: 32, border: 'none', borderRadius: 9999, padding: 0,
                   background: selected ? C.bg : 'transparent', color: selected ? C.text : C.textMuted,
                   fontWeight: selected ? 600 : 500, fontSize: 13, cursor: 'pointer',
-                  boxShadow: selected ? 'inset 0 0 0 1.5px #111827' : 'none' }}>
+                  boxShadow: selected ? 'inset 0 0 0 1.5px #18191A' : 'none' }}>
                 {label}
               </button>
             );
@@ -312,6 +312,14 @@ const EditEntityModal = ({ title, termLabel, record, fields = [], onSave, onClos
               </span>
             </div>
           )}
+
+          {/* Optional warning banner (e.g. "name not in the Faculty list"). */}
+          {notice && (
+            <div role="note" style={{ display: 'flex', alignItems: 'flex-start', gap: 8, margin: '0 0 14px', padding: '10px 12px', background: '#FEF3C7', border: '1px solid #FCD34D', borderRadius: 8, color: '#92400E', fontSize: 12.5, lineHeight: 1.4 }}>
+              <AlertTriangle size={15} style={{ flexShrink: 0, marginTop: 1 }} />
+              <span>{notice}</span>
+            </div>
+          )}
         </div>
 
         {/* Fields */}
@@ -352,7 +360,7 @@ const EditEntityModal = ({ title, termLabel, record, fields = [], onSave, onClos
             <button onClick={submit} disabled={!saveEnabled} title={!isDirty ? 'Make a change to enable saving' : undefined}
               style={{ height: 40, padding: '0 18px', borderRadius: 6, fontSize: 14, fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 6,
                 border: 'none', background: saveEnabled ? C.primary : '#E5E7EB', color: saveEnabled ? '#FFFFFF' : '#9CA3AF',
-                cursor: saveEnabled ? 'pointer' : 'not-allowed', boxShadow: saveEnabled ? '0 1px 2px rgba(234,18,18,0.35)' : 'none' }}>
+                cursor: saveEnabled ? 'pointer' : 'not-allowed', boxShadow: saveEnabled ? '0 1px 2px rgba(24,25,26,0.25)' : 'none' }}>
               <Save size={16} /> {saving ? 'Saving…' : 'Save'}
             </button>
           </div>

@@ -2,24 +2,22 @@
 // user decide what to do with the rows that exist in the database
 // but aren't in the freshly uploaded Excel.
 
-.overlay
-  position: fixed
-  inset: 0
-  background: rgba(0, 0, 0, 0.4)
-  z-index: 90
-
+// No .overlay any more. This modal opens the instant Preview & Confirm closes,
+// and its own dim layer used to fade in ON TOP of that dialog's — two backdrops
+// briefly stacked, which is the dark flash we set out to remove. It now holds the
+// app's single shared backdrop instead (DialogShell → services/dialogBackdrop.js).
+//
+// Positioning is DialogShell's too: centring here with translate(-50%, -50%)
+// would be overwritten by the panel's scale animation and throw the dialog into
+// the corner mid-fade. This class is now only the modal's size and skin.
 .modal
-  position: fixed
-  top: 50%
-  left: 50%
-  transform: translate(-50%, -50%)
   width: 560px
+  max-width: 94vw
   max-height: 84vh
   overflow-y: auto
   padding: 28px
   background: #FFFFFF
   border-radius: 12px
-  z-index: 91
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18)
   display: flex
   flex-direction: column
@@ -28,7 +26,7 @@
 .title
   font-size: 20px
   font-weight: 600
-  color: #111827
+  color: #18191A
   margin: 0
 
 .subtitle
@@ -53,7 +51,7 @@
 .rowName
   font-size: 14px
   font-weight: 600
-  color: #111827
+  color: #18191A
 
 .rowMeta
   font-size: 12px
@@ -117,7 +115,7 @@
 
 .btnPrimary
   background: #EAB308
-  color: #111827
+  color: #18191A
   border: none
 
   &:hover
@@ -125,8 +123,8 @@
 
 .btnOutline
   background: #FFFFFF
-  color: #111827
-  border: 1px solid #111827
+  color: #18191A
+  border: 1px solid #18191A
 
   &:hover
     background: #F3F4F6

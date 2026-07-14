@@ -21,7 +21,7 @@ import { FacultyAPI } from './api.js';
 // The stubbed signed-in user. Swap this for the authenticated principal.
 // NOTE: `name` must match this person's Faculty record exactly (that's how
 // facultyId — and thus "my programs" — is resolved until real auth exists).
-const STUB_USER = { name: 'June Arreb Danila', role: 'Program Head' };
+const STUB_USER = { name: 'Olivia Vance', role: 'Program Head' };
 
 // Same normalization the backend uses for name matching (sans honorific strip,
 // which isn't needed for an exact stub name) — collapse to lowercase words.

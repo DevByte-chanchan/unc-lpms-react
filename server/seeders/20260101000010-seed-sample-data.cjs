@@ -20,11 +20,11 @@ module.exports = {
       { name: 'College of Engineering and Architecture',          code: 'CEA',  dean: 'Prof. Juan Dela Cruz', created_at: t, updated_at: t },
       { name: 'Criminal Justice Education',                       code: 'CJE',  dean: 'Dr. Ana Reyes',      created_at: t, updated_at: t },
       { name: 'School of Business and Accountancy',               code: 'SBA',  dean: 'Prof. Mark Tan',     created_at: t, updated_at: t },
-      { name: 'School of Computer and Information Sciences',      code: 'SCIS', dean: 'Agnes Reyes',        created_at: t, updated_at: t },
+      { name: 'School of Computer and Information Sciences',      code: 'SCIS', dean: 'Sophia Sterling',    created_at: t, updated_at: t },
     ]);
 
     await queryInterface.bulkInsert('faculty', [
-      { name: 'Agnes Reyes',         role: 'Professor',           department: 'School of Computer and Information Sciences', status: 'Active',   about: 'Agnes Reyes is a dedicated and experienced educator in the field of Computer and Information Sciences. With a passion for both teaching and technology, she has spent over a decade fostering the next generation of tech professionals.', created_at: t, updated_at: t },
+      { name: 'Sophia Sterling',     role: 'Professor',           department: 'School of Computer and Information Sciences', status: 'Active',   about: 'Sophia Sterling is a dedicated and experienced educator in the field of Computer and Information Sciences. With a passion for both teaching and technology, she has spent over a decade fostering the next generation of tech professionals.', created_at: t, updated_at: t },
       { name: 'Dr. Maria Santos',    role: 'Dean',                department: 'College of Education',                        status: 'Active',   about: 'A specialist in curriculum development and educational leadership, Dr. Santos focuses on integrating modern pedagogical techniques.', created_at: t, updated_at: t },
       { name: 'Prof. Juan Dela Cruz',role: 'Associate Professor', department: 'College of Engineering and Architecture',     status: 'Active',   about: 'Licensed architect with a focus on sustainable urban design and structural integrity in high-density projects.', created_at: t, updated_at: t },
       { name: 'Dr. Ana Reyes',       role: 'Assistant Professor', department: 'Criminal Justice Education',                  status: 'On Leave', about: 'Dr. Reyes has extensive experience in forensic psychology and has served as a consultant for national law enforcement.', created_at: t, updated_at: t },

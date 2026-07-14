@@ -14,6 +14,7 @@
  */
 import React from 'react';
 import { X } from 'react-feather';
+import DialogShell from './DialogShell.jsx';
 import styles from '../styles/ReconciliationModal.module.sass';
 
 const ReconciliationModal = ({
@@ -46,10 +47,17 @@ const ReconciliationModal = ({
     }
   };
 
+  // `open` is always true: the pages mount this only when there is something to
+  // reconcile. What DialogShell buys us is the shared backdrop and the same fade
+  // + scale as the dialog that just handed off to it — Preview & Confirm fades
+  // out, this fades in, and the dim underneath is one continuous layer.
   return (
-    <>
-      <div className={styles.overlay} onClick={() => !saving && onClose && onClose()} />
-      <div className={styles.modal} role="dialog" aria-modal="true">
+    <DialogShell
+      open
+      onBackdropClick={() => !saving && onClose && onClose()}
+      panelClassName={styles.modal}
+      ariaLabel={title}
+    >
         <div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
             <h2 className={styles.title}>{title}</h2>
@@ -59,7 +67,7 @@ const ReconciliationModal = ({
               aria-label="Close"
               style={{ background: 'transparent', border: 'none', cursor: saving ? 'not-allowed' : 'pointer', padding: 0, lineHeight: 0, display: 'inline-flex', alignItems: 'center', flexShrink: 0 }}
             >
-              <X size={22} color="#111827" />
+              <X size={22} color="#18191A" />
             </button>
           </div>
           <p className={styles.subtitle}>
@@ -96,8 +104,7 @@ const ReconciliationModal = ({
             {saving ? 'Saving…' : 'Confirm Selection'}
           </button>
         </div>
-      </div>
-    </>
+    </DialogShell>
   );
 };
 

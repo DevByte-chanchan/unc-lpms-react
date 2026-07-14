@@ -22,8 +22,12 @@ import { assertDbConnection, sequelize } from './config/sequelize.js';
 import { clearColumnCache } from './utils/dbHelpers.js';
 import { relaxCodeUniqueConstraints } from './utils/relaxIndexes.js';
 import { pruneDuplicateIndexes } from './utils/pruneIndexes.js';
-import { relaxCourseAssignmentOfferingFk } from './utils/relaxCourseAssignmentFk.js';
+import { dissolveCourseOfferings } from './utils/dissolveCourseOfferings.js';
+import { enforceForeignKeyDeleteRules } from './utils/foreignKeyRules.js';
 import { seedCurriculumIfEmpty, backfillYearLevelsFromCatalog } from './controllers/courseController.js';
+import { rebuildOfferings, ensureOfferingConstraints, repairCrossPeriodAssignments } from './utils/rebuildOfferings.js';
+import { renameAssignmentsTable } from './utils/renameAssignmentsTable.js';
+import { renameIdColumns } from './utils/renameIdColumns.js';
 import { backfillProgramHeadIds } from './controllers/programController.js';
 
 dotenv.config();
@@ -82,10 +86,37 @@ const PORT = Number(process.env.PORT || 4000);
     console.log('[boot] step 1.5: prune duplicate indexes…');
     await pruneDuplicateIndexes();
 
-    // Drop accumulated/incorrect FKs on course_assignments.course_offering_id
-    // BEFORE sync (sync won't re-add them now that the association is gone).
-    console.log('[boot] step 1.6: relax course_assignments FK…');
-    await relaxCourseAssignmentOfferingFk();
+    // Retire course_offerings and repoint everything that referenced it onto
+    // the catalog. MUST run before sync, so sync can then build the new FKs
+    // against rows that exist. No-op once the table is gone.
+    console.log('[boot] step 1.6: dissolve course_offerings…');
+    await dissolveCourseOfferings();
+
+    // sync() creates a missing FK but never rewrites an existing one's delete
+    // rule, so a FK that synced with the wrong ON DELETE would stay wrong.
+    // Drop the mismatched ones here and let sync rebuild them from the models.
+    console.log('[boot] step 1.7: enforce FK delete rules…');
+    await enforceForeignKeyDeleteRules();
+
+    // Turn program_course_offerings into a true (course × program) associative
+    // entity. MUST precede sync(): sync would drop courses.program_id (the data
+    // this reads), and could not add UNIQUE(course_id, program_id) while the
+    // old duplicate rows still exist.
+    // course_assignments → course_offering_assignments. FIRST, and before
+    // sync(): every step below (and sync itself) addresses the table by its new
+    // name, and sync would otherwise create an empty one alongside the real one.
+    console.log('[boot] step 1.75: rename assignments table…');
+    await renameAssignmentsTable();
+
+    // Key columns → <entity>_id, with every FK matching the PK it points at.
+    // Runs after the TABLE rename (it addresses course_offering_assignments by
+    // its new name) and before everything else, since every step below — and
+    // sync() itself — now addresses columns by their new names.
+    console.log('[boot] step 1.76: rename key columns (PK/FK → <entity>_id)…');
+    await renameIdColumns();
+
+    console.log('[boot] step 1.8: rebuild course offerings (course × program)…');
+    await rebuildOfferings();
 
     console.log('[boot] step 2: sync (alter mode — adds missing columns)…');
     await sequelize.sync({ alter: true });
@@ -95,15 +126,29 @@ const PORT = Number(process.env.PORT || 4000);
     await relaxCodeUniqueConstraints();
     console.log('[db] code-unique constraints relaxed (cross-period clones can now insert).');
 
+    // Cut loose any assignment holding another period's course BEFORE the
+    // offering backfill below tries to link it. Ordering matters: that backfill
+    // is what turns a cross-period course_id into a cross-period offering link,
+    // and the offering link is globally UNIQUE — which is what was breaking the
+    // Course Assignment upload with "Duplicate value for ca_offering_unique".
+    await repairCrossPeriodAssignments();
+
+    // Runs every boot, unguarded: drops the legacy index that forbids one
+    // course in two programs, and links any assignment still missing its
+    // offering. Deliberately NOT inside rebuildOfferings — that one is guarded,
+    // and a guard already skipped these once.
+    await ensureOfferingConstraints();
+
     await seedCurriculumIfEmpty();
 
     // One-time (idempotent) backfill: resolve programs.program_head_id from
     // the existing program_head name + period faculty list.
     await backfillProgramHeadIds();
 
-    // One-time (idempotent) backfill: sync course_offerings/course_assignments
+    // One-time (idempotent) backfill: sync course_offerings/course_offering_assignments
     // year_level from the catalog so moved courses reflect everywhere.
     await backfillYearLevelsFromCatalog();
+
 
     console.log('[boot] no auto-seed (periods are user-managed).');
   } catch (err) {

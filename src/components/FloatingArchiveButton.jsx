@@ -24,7 +24,7 @@ const FloatingArchiveButton = ({ moduleType, onEditStatus }) => {
         style={{
           position: 'fixed', right: 24, bottom: 24, zIndex: 50,
           width: 56, height: 56, borderRadius: 28,
-          background: '#1F2937', color: '#FFFFFF', border: 'none',
+          background: '#18191A', color: '#FFFFFF', border: 'none',
           cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
           boxShadow: '0 8px 24px rgba(0,0,0,0.28)',
         }}

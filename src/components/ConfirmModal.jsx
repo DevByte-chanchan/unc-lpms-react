@@ -38,7 +38,7 @@ const ConfirmModal = ({
   if (!open) return null;
 
   const destructive = tone === 'destructive';
-  const accent      = destructive ? '#B91C1C' : '#1F2937';
+  const accent      = destructive ? '#B91C1C' : '#18191A';
   const accentBg    = destructive ? '#FEE2E2' : '#E5E7EB';
   const Icon        = destructive ? Trash2 : AlertTriangle;
 
@@ -65,7 +65,7 @@ const ConfirmModal = ({
           }}>
             <Icon size={22} color={accent} />
           </div>
-          <div style={{ fontSize: 18, fontWeight: 600, color: '#111827' }}>{title}</div>
+          <div style={{ fontSize: 18, fontWeight: 600, color: '#18191A' }}>{title}</div>
         </div>
         <div style={{ fontSize: 14, color: '#374151', lineHeight: '1.5' }}>{message}</div>
         <div style={{ display: 'flex', gap: 12, marginTop: 4 }}>
@@ -73,8 +73,8 @@ const ConfirmModal = ({
             disabled={busy}
             onClick={onCancel}
             style={{
-              flex: 1, height: 40, background: '#FFFFFF', border: '1px solid #111827',
-              borderRadius: 8, color: '#111827', cursor: busy ? 'not-allowed' : 'pointer', fontWeight: 500,
+              flex: 1, height: 40, background: '#FFFFFF', border: '1px solid #18191A',
+              borderRadius: 8, color: '#18191A', cursor: busy ? 'not-allowed' : 'pointer', fontWeight: 500,
             }}
           >
             {cancelLabel}
@@ -84,7 +84,7 @@ const ConfirmModal = ({
             onClick={onConfirm}
             style={{
               flex: 1, height: 40,
-              background: destructive ? '#B91C1C' : '#1F2937',
+              background: destructive ? '#B91C1C' : '#18191A',
               border: 'none', borderRadius: 8, color: '#FFFFFF',
               cursor: busy ? 'not-allowed' : 'pointer', fontWeight: 500,
               opacity: busy ? 0.7 : 1,

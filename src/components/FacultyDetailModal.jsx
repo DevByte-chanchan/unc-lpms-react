@@ -67,7 +67,7 @@ const FacultyDetailModal = ({ facultyId, onClose, fallback = null, onEdit, canEd
             </div>
           </div>
           <button className={styles.closeBtn} onClick={onClose} aria-label="Close" style={{ padding: 0, lineHeight: 0, display: 'inline-flex', alignItems: 'center', flexShrink: 0 }}>
-            <X size={22} color="#111827" />
+            <X size={22} color="#18191A" />
           </button>
         </div>
 
@@ -122,7 +122,7 @@ const FacultyDetailModal = ({ facultyId, onClose, fallback = null, onEdit, canEd
                   onClick={() => onEdit(data)}
                   style={{
                     display: 'inline-flex', alignItems: 'center', gap: 6,
-                    height: 40, padding: '0 18px', background: '#1F2937',
+                    height: 40, padding: '0 18px', background: '#18191A',
                     color: '#FFFFFF', border: 'none', borderRadius: 8,
                     cursor: 'pointer', fontWeight: 500,
                   }}

@@ -130,7 +130,7 @@ const CourseCard = ({ course, onOpen }) => {
         border: '1px solid ' + (hover ? ACCENT : SLATE2),
         borderRadius: 14, padding: 16,
         display: 'flex', flexDirection: 'column', gap: 12,
-        boxShadow: hover ? '0 8px 22px rgba(185,28,28,0.10), 0 2px 4px rgba(15,23,42,0.04)' : '0 1px 3px rgba(15,23,42,0.05)',
+        boxShadow: hover ? '0 8px 22px rgba(24,25,26,0.10), 0 2px 4px rgba(15,23,42,0.04)' : '0 1px 3px rgba(15,23,42,0.05)',
         transform: hover ? 'translateY(-2px)' : 'translateY(0)',
         transition: 'border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease',
       }}
@@ -208,7 +208,7 @@ const YearCard = ({ label, count, summary, onOpen }) => {
         border: '1px solid ' + (hover ? ACCENT : SLATE2),
         borderRadius: 14, overflow: 'hidden',
         display: 'flex', flexDirection: 'column',
-        boxShadow: hover ? '0 8px 22px rgba(185,28,28,0.10), 0 2px 4px rgba(15,23,42,0.04)' : '0 1px 3px rgba(15,23,42,0.05)',
+        boxShadow: hover ? '0 8px 22px rgba(24,25,26,0.10), 0 2px 4px rgba(15,23,42,0.04)' : '0 1px 3px rgba(15,23,42,0.05)',
         transform: hover ? 'translateY(-2px)' : 'translateY(0)',
         transition: 'border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease',
       }}
@@ -660,7 +660,7 @@ const ProgramHeadCourseOfferings = () => {
       <div style={{ width: 92, height: 92, borderRadius: 12, background: '#F3F4F6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <Clipboard size={40} color="#9CA3AF" />
       </div>
-      <div style={{ fontSize: 18, fontWeight: 600, color: '#111827' }}>{periodId ? ('No courses for ' + programLabel + ' yet') : 'No academic term selected'}</div>
+      <div style={{ fontSize: 18, fontWeight: 600, color: '#18191A' }}>{periodId ? ('No courses for ' + programLabel + ' yet') : 'No academic term selected'}</div>
       <div style={{ color: SLATE5, textAlign: 'center', maxWidth: 420 }}>{periodId ? 'Use Upload Course Offerings to import this term’s curriculum from the school’s system. Each term keeps its own courses — a new sem/term starts empty.' : 'Select an academic term to view its curriculum.'}</div>
     </div>
   );
@@ -672,7 +672,7 @@ const ProgramHeadCourseOfferings = () => {
       <div style={{ width: 92, height: 92, borderRadius: 12, background: '#FEF3C7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <AlertTriangle size={40} color="#B45309" />
       </div>
-      <div style={{ fontSize: 18, fontWeight: 600, color: '#111827' }}>No program assigned for this term</div>
+      <div style={{ fontSize: 18, fontWeight: 600, color: '#18191A' }}>No program assigned for this term</div>
       <div style={{ color: SLATE5, textAlign: 'center', maxWidth: 440 }}>
         You're not set as a Program Head for any program in {currentPeriod ? currentPeriod.label : 'this term'}. Ask your Dean to assign you, or switch to a term where you're already assigned.
       </div>
@@ -704,7 +704,7 @@ const ProgramHeadCourseOfferings = () => {
                 {SORT_FIELDS.map((f) => {
                   const active = sortField === f.key;
                   return (
-                    <button key={f.key} onClick={() => setSortField(f.key)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', background: active ? SLATE1 : 'transparent', border: 'none', cursor: 'pointer', padding: '8px 10px', borderRadius: 6, color: '#111827', fontSize: 14, fontWeight: active ? 600 : 500 }}>
+                    <button key={f.key} onClick={() => setSortField(f.key)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', background: active ? SLATE1 : 'transparent', border: 'none', cursor: 'pointer', padding: '8px 10px', borderRadius: 6, color: '#18191A', fontSize: 14, fontWeight: active ? 600 : 500 }}>
                       <span>{f.label}</span>
                       {active && <Check size={15} color={ACCENT} />}
                     </button>
@@ -712,11 +712,11 @@ const ProgramHeadCourseOfferings = () => {
                 })}
                 <div style={{ height: 1, background: SLATE2, margin: '6px 4px' }} />
                 <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase', color: SLATE5, padding: '2px 10px 4px' }}>Order</div>
-                <button onClick={() => setSortDir('asc')} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', background: sortDir === 'asc' ? SLATE1 : 'transparent', border: 'none', cursor: 'pointer', padding: '8px 10px', borderRadius: 6, color: '#111827', fontSize: 14 }}>
+                <button onClick={() => setSortDir('asc')} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', background: sortDir === 'asc' ? SLATE1 : 'transparent', border: 'none', cursor: 'pointer', padding: '8px 10px', borderRadius: 6, color: '#18191A', fontSize: 14 }}>
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><ArrowUp size={15} color="#374151" /> Ascending</span>
                   {sortDir === 'asc' && <Check size={15} color={ACCENT} />}
                 </button>
-                <button onClick={() => setSortDir('desc')} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', background: sortDir === 'desc' ? SLATE1 : 'transparent', border: 'none', cursor: 'pointer', padding: '8px 10px', borderRadius: 6, color: '#111827', fontSize: 14 }}>
+                <button onClick={() => setSortDir('desc')} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', background: sortDir === 'desc' ? SLATE1 : 'transparent', border: 'none', cursor: 'pointer', padding: '8px 10px', borderRadius: 6, color: '#18191A', fontSize: 14 }}>
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><ArrowDown size={15} color="#374151" /> Descending</span>
                   {sortDir === 'desc' && <Check size={15} color={ACCENT} />}
                 </button>
@@ -771,7 +771,7 @@ const ProgramHeadCourseOfferings = () => {
           </div>
           {yearCount === 0 ? (
             <>
-              <div style={{ fontSize: 17, fontWeight: 600, color: '#111827' }}>No courses in {yearLabelOf(selectedYear)} yet</div>
+              <div style={{ fontSize: 17, fontWeight: 600, color: '#18191A' }}>No courses in {yearLabelOf(selectedYear)} yet</div>
               <div style={{ color: SLATE5, maxWidth: 420 }}>
                 {isCurrentTermActive
                   ? 'Use Upload Course Offerings to import this year level’s curriculum from the school’s system.'
@@ -780,7 +780,7 @@ const ProgramHeadCourseOfferings = () => {
             </>
           ) : (
             <>
-              <div style={{ fontSize: 17, fontWeight: 600, color: '#111827' }}>No matching courses</div>
+              <div style={{ fontSize: 17, fontWeight: 600, color: '#18191A' }}>No matching courses</div>
               <div style={{ color: SLATE5, maxWidth: 420 }}>Nothing matches “{searchQuery}”. Try a different search.</div>
             </>
           )}
@@ -809,7 +809,7 @@ const ProgramHeadCourseOfferings = () => {
       <div style={{ border: '1px solid ' + SLATE2, borderRadius: 14, padding: 22, background: '#FFFFFF', boxShadow: '0 1px 3px rgba(15,23,42,0.05)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16 }}>
           <div style={{ minWidth: 0 }}>
-            <div style={{ display: 'inline-block', fontSize: 12, fontWeight: 600, color: '#1F2937', background: SLATE1, border: '1px solid ' + SLATE2, padding: '3px 10px', borderRadius: 9999, marginBottom: 10 }}>
+            <div style={{ display: 'inline-block', fontSize: 12, fontWeight: 600, color: '#18191A', background: SLATE1, border: '1px solid ' + SLATE2, padding: '3px 10px', borderRadius: 9999, marginBottom: 10 }}>
               {headerCourse.course_no}
             </div>
             <h2 style={{ margin: 0, fontSize: 24, fontWeight: 600, color: SLATE9, letterSpacing: '-0.01em' }}>{headerCourse.course_title}</h2>
@@ -819,7 +819,7 @@ const ProgramHeadCourseOfferings = () => {
               type="button"
               onClick={() => setEditing(headerCourse)}
               title="Edit credit / contact hours, or archive this course"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 8, height: 38, padding: '0 18px', flexShrink: 0, background: '#1F2937', border: 'none', borderRadius: 8, color: '#FFFFFF', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 8, height: 38, padding: '0 18px', flexShrink: 0, background: '#18191A', border: 'none', borderRadius: 8, color: '#FFFFFF', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}
             >
               <Edit2 size={15} /> Edit
             </button>
@@ -873,7 +873,7 @@ const ProgramHeadCourseOfferings = () => {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             {offerings.map((o) => (
               <div key={o.pc_offering_id} style={{ border: '1px solid ' + SLATE2, borderRadius: 12, padding: 16, background: '#FFFFFF', display: 'flex', gap: 14, alignItems: 'flex-start' }}>
-                <div style={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 10px', borderRadius: 8, background: SLATE05, border: '1px solid ' + SLATE2, color: '#1F2937', fontSize: 12, fontWeight: 600 }}>
+                <div style={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 10px', borderRadius: 8, background: SLATE05, border: '1px solid ' + SLATE2, color: '#18191A', fontSize: 12, fontWeight: 600 }}>
                   <FileText size={13} color={SLATE5} /> Revision {o.revision_number}
                 </div>
                 <div style={{ fontSize: 14, lineHeight: 1.6, color: SLATE7, minWidth: 0 }}>
@@ -900,8 +900,8 @@ const ProgramHeadCourseOfferings = () => {
           <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.35)', zIndex: 2 }} onClick={closeUpload} />
           <div role="dialog" aria-modal="true" style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: 'min(560px, 94vw)', maxHeight: '90vh', overflowY: 'auto', background: '#FFFFFF', borderRadius: 10, padding: 24, display: 'flex', flexDirection: 'column', gap: 16, zIndex: 3, boxShadow: '0 10px 30px rgba(0,0,0,0.15)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={{ fontSize: 20, fontWeight: 600, color: '#111827' }}>Upload Course Offerings</div>
-              <button onClick={closeUpload} disabled={uploading} style={{ background: 'transparent', border: 'none', cursor: uploading ? 'not-allowed' : 'pointer', padding: 0, lineHeight: 0, display: 'inline-flex', alignItems: 'center' }}><X size={22} color="#111827" /></button>
+              <div style={{ fontSize: 20, fontWeight: 600, color: '#18191A' }}>Upload Course Offerings</div>
+              <button onClick={closeUpload} disabled={uploading} style={{ background: 'transparent', border: 'none', cursor: uploading ? 'not-allowed' : 'pointer', padding: 0, lineHeight: 0, display: 'inline-flex', alignItems: 'center' }}><X size={22} color="#18191A" /></button>
             </div>
 
             {!uploadResult ? (
@@ -913,7 +913,7 @@ const ProgramHeadCourseOfferings = () => {
                   style={{ border: '2px dashed #D1D5DB', borderRadius: 8, padding: 28, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, cursor: 'pointer' }}
                 >
                   <Upload size={36} color="#9CA3AF" />
-                  <div style={{ fontWeight: 600, color: '#111827' }}>{pickedFile ? pickedFile.name : 'Drag & drop file here'}</div>
+                  <div style={{ fontWeight: 600, color: '#18191A' }}>{pickedFile ? pickedFile.name : 'Drag & drop file here'}</div>
                   <div style={{ color: SLATE5, fontSize: 13 }}>Upload .xlsx, .xls or .csv</div>
                   <input type="file" ref={uploadInputRef} accept=".csv,.xlsx,.xls" onChange={(e) => { const f = e.target.files && e.target.files[0]; if (f) setPickedFile(f); }} style={{ display: 'none' }} />
                 </div>
@@ -922,8 +922,8 @@ const ProgramHeadCourseOfferings = () => {
                 </div>
                 {uploadError && <div style={{ color: '#B91C1C', fontSize: 13 }}>{uploadError}</div>}
                 <div style={{ display: 'flex', gap: 12 }}>
-                  <button disabled={uploading} onClick={closeUpload} style={{ flex: 1, height: 40, background: '#FFFFFF', border: '1px solid #111827', borderRadius: 8, color: '#111827', cursor: uploading ? 'not-allowed' : 'pointer', fontWeight: 500 }}>Cancel</button>
-                  <button disabled={uploading || !pickedFile} onClick={onUploadCourses} style={{ flex: 1, height: 40, background: '#1F2937', border: 'none', borderRadius: 8, color: '#FFFFFF', cursor: (uploading || !pickedFile) ? 'not-allowed' : 'pointer', fontWeight: 500, opacity: (uploading || !pickedFile) ? 0.7 : 1 }}>{uploading ? 'Uploading…' : 'Upload'}</button>
+                  <button disabled={uploading} onClick={closeUpload} style={{ flex: 1, height: 40, background: '#FFFFFF', border: '1px solid #18191A', borderRadius: 8, color: '#18191A', cursor: uploading ? 'not-allowed' : 'pointer', fontWeight: 500 }}>Cancel</button>
+                  <button disabled={uploading || !pickedFile} onClick={onUploadCourses} style={{ flex: 1, height: 40, background: '#18191A', border: 'none', borderRadius: 8, color: '#FFFFFF', cursor: (uploading || !pickedFile) ? 'not-allowed' : 'pointer', fontWeight: 500, opacity: (uploading || !pickedFile) ? 0.7 : 1 }}>{uploading ? 'Uploading…' : 'Upload'}</button>
                 </div>
               </>
             ) : (
@@ -1020,7 +1020,7 @@ const ProgramHeadCourseOfferings = () => {
                   )}
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                  <button onClick={closeUpload} style={{ height: 40, padding: '0 20px', background: '#1F2937', border: 'none', borderRadius: 8, color: '#FFFFFF', cursor: 'pointer', fontWeight: 500 }}>Done</button>
+                  <button onClick={closeUpload} style={{ height: 40, padding: '0 20px', background: '#18191A', border: 'none', borderRadius: 8, color: '#FFFFFF', cursor: 'pointer', fontWeight: 500 }}>Done</button>
                 </div>
               </>
             )}
@@ -1208,7 +1208,7 @@ const ProgramHeadCourseOfferings = () => {
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '14px 20px', borderTop: '1px solid ' + SLATE2 }}>
-              <button onClick={() => setArchiveOpen(false)} style={{ height: 40, padding: '0 20px', background: '#1F2937', border: 'none', borderRadius: 8, color: '#FFFFFF', cursor: 'pointer', fontWeight: 500 }}>Done</button>
+              <button onClick={() => setArchiveOpen(false)} style={{ height: 40, padding: '0 20px', background: '#18191A', border: 'none', borderRadius: 8, color: '#FFFFFF', cursor: 'pointer', fontWeight: 500 }}>Done</button>
             </div>
           </div>
         </>

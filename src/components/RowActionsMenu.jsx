@@ -49,7 +49,7 @@ const KebabIcon = ({ color = '#374151' }) => (
 
 const linkStyle = {
   background: 'transparent', border: 'none', padding: 0,
-  color: '#111827', fontWeight: 500, cursor: 'pointer',
+  color: '#18191A', fontWeight: 500, cursor: 'pointer',
   textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6,
 };
 
@@ -124,7 +124,7 @@ const RowActionsMenu = ({ row, inline = [], actions = [], label = 'More actions'
           key={a.key || a.label}
           href="#"
           onClick={(e) => { e.preventDefault(); e.stopPropagation(); a.onClick(row); }}
-          style={{ ...linkStyle, color: a.danger ? '#B91C1C' : '#111827' }}
+          style={{ ...linkStyle, color: a.danger ? '#B91C1C' : '#18191A' }}
         >
           {a.icon}
           <span>{a.label}</span>
@@ -181,7 +181,7 @@ const RowActionsMenu = ({ row, inline = [], actions = [], label = 'More actions'
                     padding: '9px 10px', borderRadius: 6,
                     background: 'transparent', border: 'none', cursor: 'pointer',
                     fontSize: 13, fontWeight: 500,
-                    color: a.danger ? '#B91C1C' : '#111827',
+                    color: a.danger ? '#B91C1C' : '#18191A',
                   }}
                   onMouseEnter={(e) => { e.currentTarget.style.background = a.danger ? '#FEF2F2' : '#F3F4F6'; }}
                   onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}

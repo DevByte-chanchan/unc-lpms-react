@@ -27,20 +27,22 @@ const startYear = (sy) => {
 const rank = (p) => startYear(p.school_year) * 1000 + semRank(p.semester);
 
 const PeriodSelector = ({ prominent = false }) => {
-  const { periods, currentPeriod, setCurrentPeriodId } = usePeriod();
+  const { periods, currentPeriod, activeTerm, isCurrentTermActive, setCurrentPeriodId } = usePeriod();
   const empty = !Array.isArray(periods) || periods.length === 0;
 
-  // Sort: Active terms first (newest → oldest), then Closed/locked terms
-  // (newest → oldest). The currently-selected term still gets a soft
-  // highlight inside the list regardless of position.
+  // Locked = anything that is not THE current term (the newest Active one, per
+  // services/period.jsx and the server's utils/latestPeriod.js). That covers both
+  // explicitly Closed terms AND terms still flagged Active but superseded by a
+  // newer one — the latter are already read-only everywhere else, so keying this
+  // icon off `status` alone made them look editable when they aren't.
+  const isLocked = (p) => !activeTerm || p.id !== activeTerm.id;
+
+  // Sort: strictly chronological, newest → oldest. Status is NOT part of the
+  // order — grouping Active above Closed interleaves the school years and
+  // reads as random. Closed terms keep their place and are marked with a Lock.
   const sortedPeriods = React.useMemo(() => {
     if (!Array.isArray(periods)) return [];
-    return [...periods].sort((a, b) => {
-      const aActive = a.status === 'Active' ? 0 : 1;
-      const bActive = b.status === 'Active' ? 0 : 1;
-      if (aActive !== bActive) return aActive - bActive;
-      return rank(b) - rank(a);
-    });
+    return [...periods].sort((a, b) => rank(b) - rank(a));
   }, [periods]);
 
   const [open, setOpen] = React.useState(false);
@@ -65,7 +67,7 @@ const PeriodSelector = ({ prominent = false }) => {
 
   return (
     <div className={styles.wrapper} ref={wrapRef}>
-      <span className={styles.label} style={prominent ? { fontWeight: 700, color: '#111827' } : undefined}>
+      <span className={styles.label} style={prominent ? { fontWeight: 700, color: '#18191A' } : undefined}>
         <Calendar size={prominent ? 16 : 14} color="#374151" />
         Current Term:
       </span>
@@ -83,13 +85,13 @@ const PeriodSelector = ({ prominent = false }) => {
             display: 'inline-flex', alignItems: 'center', gap: 8,
             height: 40, padding: '0 14px',
             border: '1px solid #D1D5DB', background: '#F8FAFC',
-            borderRadius: 9999, fontSize: 14, fontWeight: 600, color: '#111827',
+            borderRadius: 9999, fontSize: 14, fontWeight: 600, color: '#18191A',
             cursor: empty ? 'not-allowed' : 'pointer',
             backgroundImage: 'none',  // override the SASS background chevron
           } : {
             display: 'inline-flex', alignItems: 'center', gap: 6,
             border: '1px solid #D1D5DB', background: '#FFFFFF',
-            fontSize: 13, color: '#111827', cursor: empty ? 'not-allowed' : 'pointer',
+            fontSize: 13, color: '#18191A', cursor: empty ? 'not-allowed' : 'pointer',
             backgroundImage: 'none',  // override the SASS background chevron
             paddingRight: 10,
           }}
@@ -111,23 +113,28 @@ const PeriodSelector = ({ prominent = false }) => {
           >
             {sortedPeriods.map((p) => {
               const isSelected = currentPeriod && p.id === currentPeriod.id;
-              const isClosed   = p.status === 'Closed';
+              const locked     = isLocked(p);
               return (
                 <button
                   key={p.id}
                   type="button"
                   onClick={() => pick(p.id)}
+                  title={locked
+                    ? (p.status === 'Closed'
+                        ? 'Closed term — read-only.'
+                        : 'Past term — only the current term can be edited.')
+                    : 'Current term'}
                   style={{
                     width: '100%', textAlign: 'left',
                     display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
                     padding: '8px 10px', borderRadius: 6,
                     background: isSelected ? '#F3F4F6' : 'transparent',
                     border: 'none', cursor: 'pointer',
-                    fontSize: 13, color: isClosed ? '#6B7280' : '#111827',
+                    fontSize: 13, color: locked ? '#6B7280' : '#18191A',
                   }}
                 >
                   <span>{prettifyLabel(p.label)}</span>
-                  {isClosed && <Lock size={14} color="#6B7280" />}
+                  {locked && <Lock size={14} color="#6B7280" />}
                 </button>
               );
             })}
@@ -135,12 +142,14 @@ const PeriodSelector = ({ prominent = false }) => {
         )}
       </div>
 
-      {currentPeriod && currentPeriod.status === 'Closed' && (
+      {currentPeriod && !isCurrentTermActive && (
         <span
           style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: '#6B7280', fontSize: 12, marginLeft: 4 }}
-          title="This term is closed (read-only)."
+          title={currentPeriod.status === 'Closed'
+            ? 'This term is closed (read-only).'
+            : 'This is a past term — only the current term can be edited.'}
         >
-          <Lock size={14} /> closed
+          <Lock size={14} /> {currentPeriod.status === 'Closed' ? 'closed' : 'read-only'}
         </span>
       )}
 

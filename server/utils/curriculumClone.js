@@ -21,7 +21,7 @@
  */
 import db from '../models/index.js';
 
-const { AcademicPeriod, Course, Prerequisite, ProgramCourseOffering } = db;
+const { AcademicPeriod, Course, Prerequisite, ProgramCourseOffering, Program } = db;
 
 const semesterRank = (sem) => {
   const s = String(sem || '').trim().toLowerCase();
@@ -86,17 +86,37 @@ export async function cloneCurriculumFromPriorPeriod(currentPeriodId) {
       });
     }
 
-    // 3. Clone course offering revisions, re-pointing course_id.
+    // 3. Clone the (course × program) offerings, re-pointing BOTH ends.
+    //
+    // Programs are period-scoped too, so the prior term's program_id names a
+    // row belonging to the OLD term. Copying it verbatim (as this used to) left
+    // the cloned offering pointing at another term's program — the offering
+    // looked fine and was silently wrong. Re-resolve by program CODE, which is
+    // the one identifier stable across terms.
+    const priorPrograms = await Program.findAll({ where: { period_id: p.id }, attributes: ['id', 'code'], raw: true });
+    const thisPrograms  = await Program.findAll({ where: { period_id: currentPeriodId }, attributes: ['id', 'code'], raw: true });
+    const codeByOldId   = new Map(priorPrograms.map((r) => [r.id, String(r.code).trim().toLowerCase()]));
+    const idByCode      = new Map(thisPrograms.map((r) => [String(r.code).trim().toLowerCase(), r.id]));
+
     const offerings = await ProgramCourseOffering.findAll({ where: { course_id: oldIds }, raw: true });
     for (const o of offerings) {
       const newCourse = idMap.get(o.course_id);
       if (!newCourse) continue;
-      await ProgramCourseOffering.create({
-        revision_number: o.revision_number,
-        course_id: newCourse,
-        program_id: o.program_id,
-        dept_id: o.dept_id,
-        course_description: o.course_description,
+
+      // The program must exist in the NEW term. If it doesn't (the program
+      // wasn't carried forward), the offering has no valid owner — skip it
+      // rather than write a dangling one.
+      const newProgram = idByCode.get(codeByOldId.get(o.program_id));
+      if (!newProgram) continue;
+
+      await ProgramCourseOffering.findOrCreate({
+        where:    { course_id: newCourse, program_id: newProgram },
+        defaults: {
+          course_id: newCourse,
+          program_id: newProgram,
+          revision_number: o.revision_number,
+          course_description: o.course_description,
+        },
       });
     }
 

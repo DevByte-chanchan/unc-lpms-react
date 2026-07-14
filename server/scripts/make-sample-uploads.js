@@ -2,19 +2,22 @@
  * Generates realistic, cross-consistent sample bulk-upload spreadsheets — one
  * per importer in the app. The data is internally consistent (program heads,
  * course instructors and assigned faculty all refer to people in the Faculty
- * sheet; course codes line up across catalog / offerings / assignments /
- * consultants), so uploading them in order yields a fully verified dataset.
+ * sheet; course codes line up across catalog / assignments / consultants), so
+ * uploading them in order yields a fully verified dataset.
  *
  *   sample_departments.xlsx          → uploadDepartments
  *   sample_faculty.xlsx              → uploadFaculty
  *   sample_programs.xlsx             → uploadPrograms          (program head ↔ Faculty)
- *   sample_courses.xlsx              → uploadCourses           (catalog: Course Offerings page)
- *   sample_course_offerings.xlsx     → uploadCourseOfferings
- *   sample_industry_consultants.xlsx → uploadConsultants       (assigned course ↔ offerings)
- *   sample_course_assignments.xlsx   → uploadCourseAssignments (course ↔ catalog, faculty ↔ Faculty)
+ *   sample_courses.xlsx              → uploadCourses           (the catalog)
+ *   sample_industry_consultants.xlsx → uploadConsultants       (assigned course ↔ catalog)
+ *   sample_course_offering_assignments.xlsx   → uploadCourseOfferingAssignments (course ↔ catalog, faculty ↔ Faculty)
+ *
+ * There is no offerings sheet: `course_offerings` was dissolved into the
+ * catalog, so `courses` IS the term's offering and sample_courses.xlsx is the
+ * only curriculum import.
  *
  * Recommended upload order (so every row matches its master list and verifies):
- *   1) Departments  2) Faculty  3) Programs  4) Courses + Course Offerings
+ *   1) Departments  2) Faculty  3) Programs  4) Courses
  *   5) Industry Consultants  6) Course Assignments
  *
  * Run:  node scripts/make-sample-uploads.js   (from the server/ folder)
@@ -50,7 +53,7 @@ const departments = [
 const CCS = 'College of Computer Studies';
 const faculty = [
   // Program heads (names match the Programs sheet's Program Head column)
-  { 'Name': 'June Arreb Danila',  'Role': 'Program Head',        'Department': CCS,                      'Status': 'Active',   'Sex': 'Male',   'Birthdate': '1985-03-14', 'Email': 'jdanila@unc.edu.ph',   'Contact Number': '0917 555 0101' },
+  { 'Name': 'Olivia Vance',       'Role': 'Program Head',        'Department': CCS,                      'Status': 'Active',   'Sex': 'Female', 'Birthdate': '1985-03-14', 'Email': 'ovance@unc.edu.ph',    'Contact Number': '0917 555 0101' },
   { 'Name': 'Alan Turing',        'Role': 'Program Head',        'Department': CCS,                      'Status': 'Active',   'Sex': 'Male',   'Birthdate': '1982-06-23', 'Email': 'aturing@unc.edu.ph',   'Contact Number': '0917 555 0102' },
   { 'Name': 'Sarah Jenkins',      'Role': 'Program Head',        'Department': CCS,                      'Status': 'Active',   'Sex': 'Female', 'Birthdate': '1987-09-02', 'Email': 'sjenkins@unc.edu.ph',  'Contact Number': '0917 555 0103' },
   { 'Name': 'Thomas Bayes',       'Role': 'Program Head',        'Department': CCS,                      'Status': 'Active',   'Sex': 'Male',   'Birthdate': '1980-11-18', 'Email': 'tbayes@unc.edu.ph',    'Contact Number': '0917 555 0104' },
@@ -75,7 +78,7 @@ const faculty = [
 // Required: Code, Name. Program Head is matched to the Faculty list (honorifics
 // are stripped, so "Dr. Alan Turing" still matches "Alan Turing").
 const programs = [
-  { 'Code': 'BSIT', 'Name': 'Bachelor of Science in Information Technology', 'Program Head': 'June Arreb Danila', 'Status': 'Active' },
+  { 'Code': 'BSIT', 'Name': 'Bachelor of Science in Information Technology', 'Program Head': 'Olivia Vance',      'Status': 'Active' },
   { 'Code': 'BSCS', 'Name': 'Bachelor of Science in Computer Science',       'Program Head': 'Alan Turing',       'Status': 'Active' },
   { 'Code': 'BSIS', 'Name': 'Bachelor of Science in Information Systems',    'Program Head': 'Sarah Jenkins',     'Status': 'Active' },
   { 'Code': 'BSDA', 'Name': 'Bachelor of Science in Data Analytics',        'Program Head': 'Thomas Bayes',      'Status': 'Active' },
@@ -101,24 +104,6 @@ const courses = [
   { 'Program': 'BSIT', 'Course No.': 'BIT401',  'Course Title': 'Capstone Project 1',             'Credit': '3 LEC, 0 LAB', 'Contact Hours': '3 Hrs Lec',            'Classification': 'Professional Courses', 'CMO': 'CMO No. 25 S. 2015', 'Year Level': 'FOURTH YEAR', 'Term': TERM, 'Prerequisites': 'BIT303' },
 ];
 
-// --- Course Offerings (course_offerings table) ------------------------------
-// Required: CODE, DESCRIPTION. INSTRUCTOR is matched to a Faculty name in the
-// period (else saved unresolved). CREDIT + CONTACT HOURS mirror the catalog so
-// the sheet carries the full course info (UNITS = their lecture+lab total).
-// This term's offered subset of the catalog.
-const offerings = [
-  { 'CODE': 'BIT101',  'DESCRIPTION': 'Introduction to Computing',      'CREDIT': '3 LEC, 0 LAB', 'CONTACT HOURS': '3 Hrs Lec',            'UNITS': 3, 'TERM': '1st Semester', 'YEAR LEVEL': 'FIRST YEAR',  'INSTRUCTOR': 'Bianca G. Reyes' },
-  { 'CODE': 'BIT102',  'DESCRIPTION': 'Computer Programming 1',         'CREDIT': '2 LEC, 1 LAB', 'CONTACT HOURS': '2 Hrs Lec, 3 Hrs Lab', 'UNITS': 3, 'TERM': '1st Semester', 'YEAR LEVEL': 'FIRST YEAR',  'INSTRUCTOR': 'Bowen Higgins' },
-  { 'CODE': 'BIT201',  'DESCRIPTION': 'Database Systems',               'CREDIT': '2 LEC, 1 LAB', 'CONTACT HOURS': '2 Hrs Lec, 3 Hrs Lab', 'UNITS': 3, 'TERM': '1st Semester', 'YEAR LEVEL': 'SECOND YEAR', 'INSTRUCTOR': 'Marceline Avila' },
-  { 'CODE': 'BIT202',  'DESCRIPTION': 'Object-Oriented Programming',    'CREDIT': '2 LEC, 1 LAB', 'CONTACT HOURS': '2 Hrs Lec, 3 Hrs Lab', 'UNITS': 3, 'TERM': '1st Semester', 'YEAR LEVEL': 'SECOND YEAR', 'INSTRUCTOR': 'Christine A. Dizon' },
-  { 'CODE': 'BIT205',  'DESCRIPTION': 'Data Structures and Algorithms', 'CREDIT': '2 LEC, 1 LAB', 'CONTACT HOURS': '2 Hrs Lec, 3 Hrs Lab', 'UNITS': 3, 'TERM': '1st Semester', 'YEAR LEVEL': 'SECOND YEAR', 'INSTRUCTOR': 'Dennis Ignacio' },
-  { 'CODE': 'BIT301',  'DESCRIPTION': 'Web Development',                'CREDIT': '2 LEC, 1 LAB', 'CONTACT HOURS': '2 Hrs Lec, 3 Hrs Lab', 'UNITS': 3, 'TERM': '1st Semester', 'YEAR LEVEL': 'THIRD YEAR',  'INSTRUCTOR': 'Saige Fuentes' },
-  { 'CODE': 'BIT303',  'DESCRIPTION': 'Software Engineering',           'CREDIT': '3 LEC, 0 LAB', 'CONTACT HOURS': '3 Hrs Lec',            'UNITS': 3, 'TERM': '1st Semester', 'YEAR LEVEL': 'THIRD YEAR',  'INSTRUCTOR': 'Danny B. Casimero' },
-  { 'CODE': 'BIT304',  'DESCRIPTION': 'Network Security',              'CREDIT': '2 LEC, 1 LAB', 'CONTACT HOURS': '2 Hrs Lec, 3 Hrs Lab', 'UNITS': 3, 'TERM': '1st Semester', 'YEAR LEVEL': 'THIRD YEAR',  'INSTRUCTOR': 'Michael R. Lee' },
-  { 'CODE': 'BIT313L', 'DESCRIPTION': 'Human and Computer Interaction', 'CREDIT': '2 LEC, 1 LAB', 'CONTACT HOURS': '2 Hrs Lec, 3 Hrs Lab', 'UNITS': 3, 'TERM': '1st Semester', 'YEAR LEVEL': 'THIRD YEAR',  'INSTRUCTOR': 'Harold T. Lim' },
-  { 'CODE': 'BIT401',  'DESCRIPTION': 'Capstone Project 1',            'CREDIT': '3 LEC, 0 LAB', 'CONTACT HOURS': '3 Hrs Lec',            'UNITS': 3, 'TERM': '1st Semester', 'YEAR LEVEL': 'FOURTH YEAR', 'INSTRUCTOR': 'Danny B. Casimero' },
-];
-
 // --- Industry Consultants ---------------------------------------------------
 // Required: Name. Assigned Course = Course Offering code(s), comma/; separated;
 // each must exist in the term's Course Offerings (else flagged for manual fix).
@@ -132,20 +117,19 @@ const consultants = [
 ];
 
 // --- Course Assignments -----------------------------------------------------
-// COURSE NO. is matched to the Course catalog; ASSIGNED FACULTY to the Faculty
-// list. A row's status mirrors the assigned faculty's status. YEAR LEVEL
-// mirrors the course's year level and drives the 1st–4th year filter.
+// COURSE NO. is matched to the Course catalog; LEAD FACULTY to the Faculty list
+// (this is the lead/signatory — a row's status mirrors the LEAD's status only).
+// CONTRIBUTORS are co-teachers (semicolon-separated, may be empty); they're
+// resolved against the Faculty list but never affect status or the row count,
+// and the lead is dropped if it also appears here. YEAR LEVEL mirrors the
+// course's year level and drives the 1st–4th year filter.
 const assignments = [
-  { 'COURSE NO.': 'BIT101',  'COURSE OFFERING': 'Introduction to Computing',      'YEAR LEVEL': '1st Year', 'ASSIGNED FACULTY': 'Bianca G. Reyes',    'DATE ASSIGNED': DATE_ASSIGNED },
-  { 'COURSE NO.': 'BIT102',  'COURSE OFFERING': 'Computer Programming 1',         'YEAR LEVEL': '1st Year', 'ASSIGNED FACULTY': 'Bowen Higgins',      'DATE ASSIGNED': DATE_ASSIGNED },
-  { 'COURSE NO.': 'BIT201',  'COURSE OFFERING': 'Database Systems',               'YEAR LEVEL': '2nd Year', 'ASSIGNED FACULTY': 'Marceline Avila',    'DATE ASSIGNED': DATE_ASSIGNED },
-  { 'COURSE NO.': 'BIT202',  'COURSE OFFERING': 'Object-Oriented Programming',    'YEAR LEVEL': '2nd Year', 'ASSIGNED FACULTY': 'Christine A. Dizon', 'DATE ASSIGNED': DATE_ASSIGNED },
-  { 'COURSE NO.': 'BIT205',  'COURSE OFFERING': 'Data Structures and Algorithms', 'YEAR LEVEL': '2nd Year', 'ASSIGNED FACULTY': 'Dennis Ignacio',     'DATE ASSIGNED': DATE_ASSIGNED },
-  { 'COURSE NO.': 'BIT301',  'COURSE OFFERING': 'Web Development',                'YEAR LEVEL': '3rd Year', 'ASSIGNED FACULTY': 'Saige Fuentes',      'DATE ASSIGNED': DATE_ASSIGNED },
-  { 'COURSE NO.': 'BIT303',  'COURSE OFFERING': 'Software Engineering',           'YEAR LEVEL': '3rd Year', 'ASSIGNED FACULTY': 'Danny B. Casimero',  'DATE ASSIGNED': DATE_ASSIGNED },
-  { 'COURSE NO.': 'BIT304',  'COURSE OFFERING': 'Network Security',               'YEAR LEVEL': '3rd Year', 'ASSIGNED FACULTY': 'Michael R. Lee',     'DATE ASSIGNED': DATE_ASSIGNED },
-  { 'COURSE NO.': 'BIT313L', 'COURSE OFFERING': 'Human and Computer Interaction', 'YEAR LEVEL': '3rd Year', 'ASSIGNED FACULTY': 'Harold T. Lim',      'DATE ASSIGNED': DATE_ASSIGNED },
-  { 'COURSE NO.': 'BIT401',  'COURSE OFFERING': 'Capstone Project 1',             'YEAR LEVEL': '4th Year', 'ASSIGNED FACULTY': 'Danny B. Casimero',  'DATE ASSIGNED': DATE_ASSIGNED },
+  { 'COURSE NO.': 'BIT101', 'COURSE OFFERING': 'Introduction to Computing',      'YEAR LEVEL': '1st Year', 'LEAD FACULTY': 'Bianca G. Reyes',    'CONTRIBUTORS': 'Bowen Higgins; Harold T. Lim',                    'DATE ASSIGNED': DATE_ASSIGNED },
+  { 'COURSE NO.': 'BIT102', 'COURSE OFFERING': 'Computer Programming 1',         'YEAR LEVEL': '1st Year', 'LEAD FACULTY': 'Bowen Higgins',      'CONTRIBUTORS': 'Christine A. Dizon',                              'DATE ASSIGNED': DATE_ASSIGNED },
+  { 'COURSE NO.': 'BIT201', 'COURSE OFFERING': 'Database Systems',               'YEAR LEVEL': '2nd Year', 'LEAD FACULTY': 'Marceline Avila',    'CONTRIBUTORS': '',                                                'DATE ASSIGNED': DATE_ASSIGNED },
+  { 'COURSE NO.': 'BIT202', 'COURSE OFFERING': 'Object-Oriented Programming',    'YEAR LEVEL': '2nd Year', 'LEAD FACULTY': 'Christine A. Dizon', 'CONTRIBUTORS': 'Danny B. Casimero; Dennis Ignacio; Michael R. Lee', 'DATE ASSIGNED': DATE_ASSIGNED },
+  { 'COURSE NO.': 'BIT205', 'COURSE OFFERING': 'Data Structures and Algorithms', 'YEAR LEVEL': '2nd Year', 'LEAD FACULTY': 'Dennis Ignacio',     'CONTRIBUTORS': 'Marceline Avila',                                 'DATE ASSIGNED': DATE_ASSIGNED },
+  { 'COURSE NO.': 'BIT301', 'COURSE OFFERING': 'Web Development',                'YEAR LEVEL': '3rd Year', 'LEAD FACULTY': 'Saige Fuentes',      'CONTRIBUTORS': 'Harold T. Lim; Bianca G. Reyes',                  'DATE ASSIGNED': DATE_ASSIGNED },
 ];
 
 function writeBook(rows, sheetName, fileName) {
@@ -165,7 +149,6 @@ writeBook(departments, 'Departments',          'sample_departments.xlsx');
 writeBook(faculty,     'Faculty',              'sample_faculty.xlsx');
 writeBook(programs,    'Programs',             'sample_programs.xlsx');
 writeBook(courses,     'Courses',              'sample_courses.xlsx');
-writeBook(offerings,   'Course Offerings',     'sample_course_offerings.xlsx');
 writeBook(consultants, 'Industry Consultants', 'sample_industry_consultants.xlsx');
-writeBook(assignments, 'Course Assignments',   'sample_course_assignments.xlsx');
+writeBook(assignments, 'Course Assignments',   'sample_course_offering_assignments.xlsx');
 console.log('Done. Files are in: ' + outDir);

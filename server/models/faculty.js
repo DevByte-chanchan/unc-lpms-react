@@ -13,6 +13,7 @@ export default (sequelize, DataTypes) =>
     'Faculty',
     {
       id: {
+        field: 'faculty_id',
         type: DataTypes.INTEGER.UNSIGNED,
         primaryKey: true,
         autoIncrement: true,
@@ -52,7 +53,7 @@ export default (sequelize, DataTypes) =>
       birthdate:      { type: DataTypes.DATEONLY,    allowNull: true },
       email:          { type: DataTypes.STRING(100), allowNull: true },
       contact_number: { type: DataTypes.STRING(32),  allowNull: true },
-      period_id:      { type: DataTypes.INTEGER.UNSIGNED, allowNull: true },
+      period_id:      { type: DataTypes.INTEGER.UNSIGNED, allowNull: true, field: 'academic_period_id' },
     },
     {
       tableName: 'faculty',

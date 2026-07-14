@@ -41,12 +41,12 @@ export default (sequelize, DataTypes) =>
       // that reads the catalog (Industry Consultant picker, Course Assignment),
       // but kept in the DB so they can be restored.
       archived:       { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
-      period_id:      { type: DataTypes.INTEGER.UNSIGNED, allowNull: true },
-      // The program this course belongs to, resolved on bulk upload from a
-      // Program column in the sheet (by code/name) or defaulted to the program
-      // the uploader is currently viewing. Nullable: legacy/unscoped rows and
-      // sheets without a program column leave this empty.
-      program_id:     { type: DataTypes.INTEGER.UNSIGNED, allowNull: true },
+      period_id:      { type: DataTypes.INTEGER.UNSIGNED, allowNull: true, field: 'academic_period_id' },
+      // NOTE: there is deliberately no program_id here. A course is offered by
+      // MANY programs (GE 101 is taught in BSIT, BSCS, BSN…), so the course →
+      // program link is many-to-many and lives in program_course_offerings,
+      // the associative entity. A column here could only express one program,
+      // which is precisely the thing the model has to stop claiming.
     },
     { tableName: 'courses', timestamps: true }
   );

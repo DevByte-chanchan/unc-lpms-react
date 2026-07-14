@@ -24,7 +24,7 @@ const TABLES = [
   'departments',
   'programs',
   'faculty',
-  'course_offerings',
+  'courses',
   'industry_consultants',
 ];
 

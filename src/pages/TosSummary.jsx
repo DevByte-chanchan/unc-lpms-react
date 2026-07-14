@@ -53,7 +53,7 @@ const TOSSummary = ({ outcomeData, questions }) => {
                                 disabled
                                 value={getCoComputedTotal(co.co)}
                                 className={layout.numberInput}
-                                style={{ width: '50px', textAlign: 'center', fontWeight: '500', backgroundColor: '#FFFFFF', color: '#000000' }}
+                                style={{ width: '50px', textAlign: 'center', fontWeight: '500', backgroundColor: '#FFFFFF', color: '#18191A' }}
                             />
                         </div>
                     </div>
@@ -62,7 +62,7 @@ const TOSSummary = ({ outcomeData, questions }) => {
                             disabled
                             value={co.description || `Description`}
                             className={layout.numberInput}
-                            style={{ width: '100%', backgroundColor: '#FFFFFF', color: '#000000', textAlign: 'left', resize: 'none', minHeight: '60px' }}
+                            style={{ width: '100%', backgroundColor: '#FFFFFF', color: '#18191A', textAlign: 'left', resize: 'none', minHeight: '60px' }}
                             rows={3}
                         />
                     </div>
@@ -74,7 +74,7 @@ const TOSSummary = ({ outcomeData, questions }) => {
                                     disabled
                                     value={ilo.description || ''}
                                     className={layout.numberInput}
-                                    style={{ width: '100%', backgroundColor: '#FFFFFF', color: '#000000', textAlign: 'left', resize: 'none', minHeight: '40px' }}
+                                    style={{ width: '100%', backgroundColor: '#FFFFFF', color: '#18191A', textAlign: 'left', resize: 'none', minHeight: '40px' }}
                                     rows={2}
                                 />
                             </div>

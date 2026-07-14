@@ -18,7 +18,8 @@
 import React from 'react';
 import { Search, ArrowUp, ArrowDown, Eye, Download, FileText, Layers, ChevronDown, Check } from 'react-feather';
 
-const ACCENT     = '#B91C1C';
+const ACCENT       = '#18191A';   // solid actions (Export) — black, not the error red
+const ACCENT_HOVER = '#33353A';   // lighter on hover: ACCENT is already near-black
 const SLATE_900  = '#0F172A';
 const SLATE_700  = '#334155';
 const SLATE_600  = '#475569';
@@ -94,8 +95,8 @@ const RowActionButton = ({ onClick, icon, label, variant = 'outline' }) => {
   const [hover, setHover] = React.useState(false);
   const styles = variant === 'solid'
     ? {
-        background: hover ? '#991B1B' : ACCENT,
-        color: '#FFFFFF', border: '1px solid ' + (hover ? '#991B1B' : ACCENT),
+        background: hover ? ACCENT_HOVER : ACCENT,
+        color: '#FFFFFF', border: '1px solid ' + (hover ? ACCENT_HOVER : ACCENT),
       }
     : {
         background: hover ? SLATE_50 : '#FFFFFF',

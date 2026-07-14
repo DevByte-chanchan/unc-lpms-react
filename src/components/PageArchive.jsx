@@ -22,10 +22,9 @@ const RESTORE_OPTIONS = {
   academic_terms:     ['Active'],
   departments:        ['Active'],
   programs:           ['Active'],
-  course_offerings:   ['Active'],
   faculty:            ['Active', 'On Leave'],
   consultants:        ['Active'],
-  course_assignments: ['Active'],
+  course_offering_assignments: ['Active'],
 };
 
 // moduleType slug → { title, entity (for pill styling), columns to render }.
@@ -54,17 +53,12 @@ const MODULES = {
     entity: 'program',
     cols:   [['code', 'Code'], ['name', 'Name'], ['program_head', 'Faculty Name']],
   },
-  course_offerings: {
-    title:  'Course Offerings',
-    entity: 'courseoffer',
-    cols:   [['code', 'Code'], ['title', 'Course Name'], ['units', 'Units']],
-  },
   consultants: {
     title:  'Industry Consultants',
     entity: 'consultant',
     cols:   [['name', 'Name'], ['assigned_course_code', 'Assigned Course']],
   },
-  course_assignments: {
+  course_offering_assignments: {
     title:  'Course Assignments',
     entity: 'courseassign',
     cols:   [['course_code', 'Course ID'], ['course_name', 'Course Name'], ['faculty_name', 'Assigned Faculty']],
@@ -148,7 +142,7 @@ const PageArchive = ({ moduleType, onClose, onEditStatus }) => {
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: '20px 24px', borderBottom: '1px solid #E5E7EB' }}>
           <div>
-            <div style={{ fontSize: 20, fontWeight: 600, color: '#111827' }}>Archived {title}</div>
+            <div style={{ fontSize: 20, fontWeight: 600, color: '#18191A' }}>Archived {title}</div>
             <div style={{ fontSize: 13, color: '#6B7280', marginTop: 2 }}>
               {cfg && cfg.hidePeriodColumn
                 ? 'All closed terms. To restore a term, use the Edit Status button on its row.'
@@ -158,7 +152,7 @@ const PageArchive = ({ moduleType, onClose, onEditStatus }) => {
             </div>
           </div>
           <button onClick={onClose} style={{ background: 'transparent', border: 'none', cursor: 'pointer' }}>
-            <X size={22} color="#111827" />
+            <X size={22} color="#18191A" />
           </button>
         </div>
 
@@ -218,7 +212,7 @@ const PageArchive = ({ moduleType, onClose, onEditStatus }) => {
                           style={{
                             display: 'inline-flex', alignItems: 'center', gap: 6,
                             padding: '6px 10px', borderRadius: 6,
-                            background: '#FFFFFF', border: '1px solid #111827', color: '#111827',
+                            background: '#FFFFFF', border: '1px solid #18191A', color: '#18191A',
                             cursor: busyId === r.id ? 'not-allowed' : 'pointer',
                             fontSize: 13, fontWeight: 500, opacity: busyId === r.id ? 0.7 : 1,
                           }}
@@ -259,7 +253,7 @@ const PageArchive = ({ moduleType, onClose, onEditStatus }) => {
                 style={{
                   width: '100%', textAlign: 'left', padding: '8px 10px',
                   background: 'transparent', border: 'none', cursor: 'pointer',
-                  borderRadius: 4, fontSize: 14, color: '#111827',
+                  borderRadius: 4, fontSize: 14, color: '#18191A',
                 }}
               >
                 {opt}
@@ -294,7 +288,7 @@ const archiveCellStyle = {
   display: 'table-cell',
   padding: '12px 16px',
   borderBottom: '1px solid #F3F4F6',
-  color: '#111827',
+  color: '#18191A',
   verticalAlign: 'middle',
 };
 

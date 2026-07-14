@@ -15,7 +15,8 @@
 import React from 'react';
 import { X, Download, FileText, User, Calendar, BookOpen } from 'react-feather';
 
-const ACCENT     = '#B91C1C';
+const ACCENT       = '#18191A';   // solid actions (Export) — black, not the error red
+const ACCENT_HOVER = '#33353A';   // lighter on hover: ACCENT is already near-black
 const SLATE_900  = '#0F172A';
 const SLATE_700  = '#334155';
 const SLATE_500  = '#64748B';
@@ -76,7 +77,7 @@ const PDFViewerModal = ({ file, kind, onClose, onExport }) => {
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: 1 }}>
             <div style={{
               width: 38, height: 38, borderRadius: 10,
-              background: '#FEE2E2', color: ACCENT,
+              background: SLATE_100, color: ACCENT,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               flexShrink: 0,
             }}>
@@ -100,10 +101,10 @@ const PDFViewerModal = ({ file, kind, onClose, onExport }) => {
                 background: ACCENT, color: '#FFFFFF', border: 'none', cursor: 'pointer',
                 fontSize: 13, fontWeight: 600,
                 display: 'inline-flex', alignItems: 'center', gap: 6,
-                boxShadow: '0 2px 8px rgba(185,28,28,0.20)',
+                boxShadow: '0 2px 8px rgba(24,25,26,0.20)',
                 transition: 'background 0.15s ease',
               }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = '#991B1B'; }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = ACCENT_HOVER; }}
               onMouseLeave={(e) => { e.currentTarget.style.background = ACCENT; }}
             >
               <Download size={13} /> Export
@@ -166,7 +167,7 @@ const PDFViewerModal = ({ file, kind, onClose, onExport }) => {
                 }}>
                   <div style={{
                     width: 64, height: 64, borderRadius: 14,
-                    background: '#FEE2E2', color: ACCENT,
+                    background: SLATE_100, color: ACCENT,
                     display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                     marginBottom: 14,
                   }}>

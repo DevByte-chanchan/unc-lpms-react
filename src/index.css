@@ -33,6 +33,11 @@ body {
   min-width: 320px;
   height: 100vh;
   overflow: hidden;
+  /* The app's black. Nothing set a base text colour, so every element that
+     didn't name one inherited the BROWSER's default — pure #000 — and no amount
+     of replacing hex values in the components could reach it. Set here once, so
+     unstyled text is the same black as everything else. */
+  color: #18191A;
 }
 
 #root {
@@ -163,7 +168,7 @@ th, td {
 
 .add-button{
     display: flex;
-    background: #EA1212;
+    background: #18191A;
     padding: 10px 20px 10px 15px;
     align-items: center;
     color: white;
@@ -228,7 +233,7 @@ th, td {
 .x{
     display: flex;
     height: 100%;
-    background: #F94545;
+    background: #18191A;
     justify-content: center;
     align-items: center;
     padding: 0 15px;

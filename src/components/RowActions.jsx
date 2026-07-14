@@ -22,7 +22,7 @@ const linkStyle = {
   background: 'transparent',
   border: 'none',
   padding: 0,
-  color: '#111827',
+  color: '#18191A',
   fontWeight: 500,
   cursor: 'pointer',
   textDecoration: 'none',

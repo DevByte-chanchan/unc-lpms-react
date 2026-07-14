@@ -15,7 +15,7 @@
 import { Op } from 'sequelize';
 import db from '../models/index.js';
 
-const { Department, Faculty, Program, CourseOffering, IndustryConsultant, CourseAssignment, AcademicPeriod } = db;
+const { Department, Faculty, Program, IndustryConsultant, CourseOfferingAssignment, AcademicPeriod } = db;
 
 const periodInclude = {
   model: db.AcademicPeriod,
@@ -30,9 +30,8 @@ const MODULES = {
   departments:        { model: Department,         statuses: ['Unlisted', 'Archived'],   order: [['name', 'ASC']] },
   faculty:            { model: Faculty,            statuses: ['Emeritus', 'Inactive'],   order: [['name', 'ASC']] },
   programs:           { model: Program,            statuses: ['Unlisted'],               order: [['code', 'ASC']] },
-  course_offerings:   { model: CourseOffering,     statuses: ['Unlisted', 'Cancelled'],  order: [['code', 'ASC']] },
   consultants:        { model: IndustryConsultant, statuses: ['Unavailable', 'Offboarded'], order: [['name', 'ASC']] },
-  course_assignments: { model: CourseAssignment,   statuses: ['Archived'],               order: [['course_code', 'ASC']] },
+  course_offering_assignments: { model: CourseOfferingAssignment,   statuses: ['Archived'],               order: [['course_code', 'ASC']] },
   academic_terms:     { model: AcademicPeriod,     statuses: ['Closed'],                 order: [['school_year', 'DESC']], selfPeriod: true },
 };
 

@@ -49,7 +49,7 @@ const ProgramHeadConsultant = () => {
 
   return (
     <Skeleton
-      header={<Header role="Program Head" name="DANILA, JUNE ARREB C." />}
+      header={<Header role="Program Head" name="VANCE, OLIVIA" />}
       nav={<SideNavigation mode="program-head" />}
       content={
         <div style={{ padding: 20, background: '#FFFFFF' }}>
@@ -96,7 +96,7 @@ const ProgramHeadConsultant = () => {
                       style={{
                         display: 'flex', alignItems: 'center', gap: 8,
                         width: '100%', background: 'transparent', border: 'none', cursor: 'pointer',
-                        padding: '8px 10px', borderRadius: 6, color: '#111827'
+                        padding: '8px 10px', borderRadius: 6, color: '#18191A'
                       }}
                     >
                       <ArrowUp size={18} color="#374151" />
@@ -107,7 +107,7 @@ const ProgramHeadConsultant = () => {
                       style={{
                         display: 'flex', alignItems: 'center', gap: 8,
                         width: '100%', background: 'transparent', border: 'none', cursor: 'pointer',
-                        padding: '8px 10px', borderRadius: 6, color: '#111827'
+                        padding: '8px 10px', borderRadius: 6, color: '#18191A'
                       }}
                     >
                       <ArrowDown size={18} color="#374151" />
@@ -160,8 +160,8 @@ const ProgramHeadConsultant = () => {
                 </div>
 
                 <div style={{ display: 'flex', gap: 16 }}>
-                  <button onClick={() => { setSelectedFile(null); if (fileInputRef.current) fileInputRef.current.value = ''; setShowModal(false); }} style={{ flex: 1, padding: '12px 32px', background: '#FFFFFF', border: '2px solid #111827', borderRadius: 6, color: '#111827', cursor: 'pointer' }}>Cancel</button>
-                  <button onClick={() => { if (!selectedFile) { alert('Please choose a file first'); return; } setShowModal(false); setShowTable(true); }} style={{ flex: 1, padding: '12px 32px', background: '#1F2937', borderRadius: 6, color: '#FFFFFF', border: 'none', cursor: 'pointer' }}>Upload</button>
+                  <button onClick={() => { setSelectedFile(null); if (fileInputRef.current) fileInputRef.current.value = ''; setShowModal(false); }} style={{ flex: 1, padding: '12px 32px', background: '#FFFFFF', border: '2px solid #18191A', borderRadius: 6, color: '#18191A', cursor: 'pointer' }}>Cancel</button>
+                  <button onClick={() => { if (!selectedFile) { alert('Please choose a file first'); return; } setShowModal(false); setShowTable(true); }} style={{ flex: 1, padding: '12px 32px', background: '#18191A', borderRadius: 6, color: '#FFFFFF', border: 'none', cursor: 'pointer' }}>Upload</button>
                 </div>
               </div>
             </div>
@@ -180,37 +180,37 @@ const ProgramHeadConsultant = () => {
                   fontFamily: 'Poppins, sans-serif'
                 }}
               >
-                <h2 style={{ margin: 0, fontSize: 20, fontWeight: 600, color: '#111827' }}>Assign Industry Consultant</h2>
+                <h2 style={{ margin: 0, fontSize: 20, fontWeight: 600, color: '#18191A' }}>Assign Industry Consultant</h2>
 
                 {/* Name */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <User size={20} color={'#111827'} />
-                    <span style={{ color: '#111827' }}>Name</span>
+                    <User size={20} color={'#18191A'} />
+                    <span style={{ color: '#18191A' }}>Name</span>
                   </div>
-                  <div style={{ padding: '12px 16px', color: '#111827' }}>{(selectedConsultant && selectedConsultant.name) || consultant.name}</div>
+                  <div style={{ padding: '12px 16px', color: '#18191A' }}>{(selectedConsultant && selectedConsultant.name) || consultant.name}</div>
                 </div>
 
                 {/* Department */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <Briefcase size={20} color={'#111827'} />
-                    <span style={{ color: '#111827' }}>Department</span>
+                    <Briefcase size={20} color={'#18191A'} />
+                    <span style={{ color: '#18191A' }}>Department</span>
                   </div>
-                  <div style={{ padding: '12px 16px', color: '#111827' }}>{(selectedConsultant && selectedConsultant.department) || consultant.department}</div>
+                  <div style={{ padding: '12px 16px', color: '#18191A' }}>{(selectedConsultant && selectedConsultant.department) || consultant.department}</div>
                 </div>
 
                 {/* Course Offerings */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <Clipboard size={20} color={'#111827'} />
-                    <span style={{ color: '#111827' }}>Course Offerings</span>
+                    <Clipboard size={20} color={'#18191A'} />
+                    <span style={{ color: '#18191A' }}>Course Offerings</span>
                   </div>
                   <div style={{ position: 'relative' }}>
                     <select
                       value={selectedCourse}
                       onChange={(e) => setSelectedCourse(e.target.value)}
-                      style={{ width: '100%', padding: '12px 16px', background: '#FFFFFF', border: '1px solid #D1D5DB', borderRadius: 8, color: '#111827', appearance: 'none', cursor: 'pointer' }}
+                      style={{ width: '100%', padding: '12px 16px', background: '#FFFFFF', border: '1px solid #D1D5DB', borderRadius: 8, color: '#18191A', appearance: 'none', cursor: 'pointer' }}
                     >
                       <option value="">No selected</option>
                       {courses.map((course) => (
@@ -232,7 +232,7 @@ const ProgramHeadConsultant = () => {
                     setSelectedCourse('');
                     setSelectedConsultantIndex(null);
                   }}
-                  style={{ width: '100%', padding: '12px 16px', background: '#2C3744', color: '#FFFFFF', borderRadius: 8, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
+                  style={{ width: '100%', padding: '12px 16px', background: '#18191A', color: '#FFFFFF', borderRadius: 8, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
                 >
                   <Clipboard size={20} />
                   <span>Assign</span>
@@ -241,7 +241,7 @@ const ProgramHeadConsultant = () => {
                 {/* Cancel */}
                 <button
                   onClick={() => setAssignOpen(false)}
-                  style={{ width: '100%', padding: '12px 16px', border: '2px solid #111827', background: '#FFFFFF', borderRadius: 8, color: '#111827', cursor: 'pointer' }}
+                  style={{ width: '100%', padding: '12px 16px', border: '2px solid #18191A', background: '#FFFFFF', borderRadius: 8, color: '#18191A', cursor: 'pointer' }}
                 >
                   Cancel
                 </button>

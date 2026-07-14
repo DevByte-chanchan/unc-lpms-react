@@ -1,0 +1,34 @@
+<mxfile host="app.diagrams.net" type="device">
+  <diagram name="Sequence 3 — Course Assignment" id="sequence-3-course-assignment">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="826" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="t3" value="Sequence 3 — Course Assignment" style="text;html=1;align=center;fontSize=16;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="380" y="20" width="420" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="c3" value="&lt;div style=&quot;font-weight:bold;text-align:center;border-bottom:1px solid #000;padding:3px 0&quot;&gt;COURSES&lt;/div&gt;&lt;table style=&quot;width:100%;border-collapse:collapse;font-size:10px&quot;&gt;&lt;tbody&gt;&lt;tr&gt;&lt;td style=&quot;width:86px;color:#666&quot;&gt;PK,AI,NN&lt;/td&gt;&lt;td&gt;course_id (int)&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td style=&quot;width:86px;color:#666&quot;&gt;NN&lt;/td&gt;&lt;td&gt;course_no (varchar(32))&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td style=&quot;width:86px;color:#666&quot;&gt;NN&lt;/td&gt;&lt;td&gt;course_title (varchar(150))&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td style=&quot;width:86px;color:#666&quot;&gt;&lt;/td&gt;&lt;td&gt;year_lvl (varchar(32))&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td style=&quot;width:86px;color:#666&quot;&gt;FK&lt;/td&gt;&lt;td&gt;period_id (int)&lt;/td&gt;&lt;/tr&gt;&lt;/tbody&gt;&lt;/table&gt;" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacing=0;spacingTop=-2;fontSize=10;dashed=1;fillColor=#F5F5F5;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="60" y="80" width="300" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="f3" value="&lt;div style=&quot;font-weight:bold;text-align:center;border-bottom:1px solid #000;padding:3px 0&quot;&gt;FACULTY&lt;/div&gt;&lt;table style=&quot;width:100%;border-collapse:collapse;font-size:10px&quot;&gt;&lt;tbody&gt;&lt;tr&gt;&lt;td style=&quot;width:86px;color:#666&quot;&gt;PK,AI,NN&lt;/td&gt;&lt;td&gt;id (int)&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td style=&quot;width:86px;color:#666&quot;&gt;NN&lt;/td&gt;&lt;td&gt;name (varchar(100))&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td style=&quot;width:86px;color:#666&quot;&gt;NN&lt;/td&gt;&lt;td&gt;role (varchar(64))&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td style=&quot;width:86px;color:#666&quot;&gt;FK&lt;/td&gt;&lt;td&gt;department_id (int)&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td style=&quot;width:86px;color:#666&quot;&gt;FK&lt;/td&gt;&lt;td&gt;period_id (int)&lt;/td&gt;&lt;/tr&gt;&lt;/tbody&gt;&lt;/table&gt;" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacing=0;spacingTop=-2;fontSize=10;dashed=1;fillColor=#F5F5F5;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="60" y="260" width="300" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="ca" value="&lt;div style=&quot;font-weight:bold;text-align:center;border-bottom:1px solid #000;padding:3px 0&quot;&gt;COURSE_ASSIGNMENTS&lt;/div&gt;&lt;table style=&quot;width:100%;border-collapse:collapse;font-size:10px&quot;&gt;&lt;tbody&gt;&lt;tr&gt;&lt;td style=&quot;width:86px;color:#666&quot;&gt;PK,AI,NN&lt;/td&gt;&lt;td&gt;id (int)&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td style=&quot;width:86px;color:#666&quot;&gt;FK,NN&lt;/td&gt;&lt;td&gt;course_id (int)&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td style=&quot;width:86px;color:#666&quot;&gt;FK&lt;/td&gt;&lt;td&gt;faculty_id (int)&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td style=&quot;width:86px;color:#666&quot;&gt;&lt;/td&gt;&lt;td&gt;contributors (json)&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td style=&quot;width:86px;color:#666&quot;&gt;NN,DEF&lt;/td&gt;&lt;td&gt;status (varchar(16) : 'Pending Match')&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td style=&quot;width:86px;color:#666&quot;&gt;&lt;/td&gt;&lt;td&gt;date_assigned (datetime)&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td style=&quot;width:86px;color:#666&quot;&gt;FK&lt;/td&gt;&lt;td&gt;period_id (int)&lt;/td&gt;&lt;/tr&gt;&lt;/tbody&gt;&lt;/table&gt;" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacing=0;spacingTop=-2;fontSize=10;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="600" y="130" width="300" height="156" as="geometry" />
+        </mxCell>
+        <mxCell id="p3" value="&lt;div style=&quot;font-weight:bold;text-align:center;border-bottom:1px solid #000;padding:3px 0&quot;&gt;ACADEMIC_PERIODS&lt;/div&gt;&lt;table style=&quot;width:100%;border-collapse:collapse;font-size:10px&quot;&gt;&lt;tbody&gt;&lt;tr&gt;&lt;td style=&quot;width:86px;color:#666&quot;&gt;PK,AI,NN&lt;/td&gt;&lt;td&gt;id (int)&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td style=&quot;width:86px;color:#666&quot;&gt;UQ,NN&lt;/td&gt;&lt;td&gt;label (varchar(64))&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td style=&quot;width:86px;color:#666&quot;&gt;NN,DEF&lt;/td&gt;&lt;td&gt;status (enum('Active','Closed'))&lt;/td&gt;&lt;/tr&gt;&lt;/tbody&gt;&lt;/table&gt;" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacing=0;spacingTop=-2;fontSize=10;dashed=1;fillColor=#F5F5F5;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="600" y="340" width="300" height="84" as="geometry" />
+        </mxCell>
+        <mxCell id="e11" value="via course_id [SET NULL]" style="edgeStyle=entityRelationEdgeStyle;rounded=0;html=1;fontSize=9;strokeColor=#000000;endArrow=ERmany;startArrow=ERone;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="c3" target="ca">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e12" value="via faculty_id [SET NULL]" style="edgeStyle=entityRelationEdgeStyle;rounded=0;html=1;fontSize=9;strokeColor=#000000;endArrow=ERmany;startArrow=ERone;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="f3" target="ca">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e13" value="via period_id [SET NULL]" style="edgeStyle=entityRelationEdgeStyle;rounded=0;html=1;fontSize=9;strokeColor=#000000;endArrow=ERmany;startArrow=ERone;exitX=0.5;exitY=0;entryX=0.5;entryY=1;" edge="1" parent="1" source="p3" target="ca">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

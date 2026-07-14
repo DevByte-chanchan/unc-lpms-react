@@ -3,7 +3,7 @@
  *
  * Four-panel grid:
  *   ┌───────────────────────┬───────────────────────────────┐
- *   │ Current Term (red)    │ Submitted Syllabus chart      │
+ *   │ Current Term          │ Submitted Learning Plan chart │
  *   ├───────────────────────┼───────────────────────────────┤
  *   │ Past Terms (white)    │ TOS chart                     │
  *   └───────────────────────┴───────────────────────────────┘
@@ -38,14 +38,45 @@ const YEARS = Array.from({ length: 16 }, (_, i) => thisYear - 5 + i);
 // after the data purge — counts will populate once syllabus/TOS tracking
 // hooks are wired up to real upload events.
 const DEPARTMENTS = ['COE', 'CEA', 'CJE', 'SBA', 'SAS', 'SNAHS', 'SSNS'];
-const MOCK_SYLLABUS = DEPARTMENTS.map((d) => ({ dept: d, count: 0 }));
-const MOCK_TOS      = DEPARTMENTS.map((d) => ({ dept: d, count: 0 }));
+
+// PLACEHOLDER DATA — not real submissions.
+//
+// Both charts were plotting a count of 0 for every department, so they drew as
+// empty grids: axes, labels, no bars. Nothing was broken; there was simply
+// nothing to show. These are hand-picked numbers so the charts read as charts
+// while the real feeds are still being wired up — the two sets differ on purpose
+// so the panels don't look like a copy-paste of each other, and both stay under
+// the y-axis ceiling of 15.
+//
+// Swap these for the live counts (grouped by department, for the current term)
+// and MockChart needs no changes at all.
+const MOCK_LEARNING_PLAN = [
+  { dept: 'COE',   count: 12 },
+  { dept: 'CEA',   count: 9  },
+  { dept: 'CJE',   count: 6  },
+  { dept: 'SBA',   count: 14 },
+  { dept: 'SAS',   count: 8  },
+  { dept: 'SNAHS', count: 11 },
+  { dept: 'SSNS',  count: 5  },
+];
+const MOCK_TOS = [
+  { dept: 'COE',   count: 8  },
+  { dept: 'CEA',   count: 13 },
+  { dept: 'CJE',   count: 4  },
+  { dept: 'SBA',   count: 10 },
+  { dept: 'SAS',   count: 12 },
+  { dept: 'SNAHS', count: 7  },
+  { dept: 'SSNS',  count: 9  },
+];
 
 // ────────────────────────────── helpers ──────────────────────────────
 
-const ACCENT = '#B91C1C';
-const ACCENT_HOVER = '#991B1B';
-const RED_RING = 'rgba(220, 38, 38, 0.18)';
+const ACCENT = '#18191A';
+// Lighter, not darker: ACCENT is already all but black, so darkening it on hover
+// is a change nobody can see. (It briefly WAS the same value as ACCENT, which is
+// a hover state that does nothing at all.)
+const ACCENT_HOVER = '#33353A';
+const FOCUS_RING = 'rgba(24, 25, 26, 0.18)';
 const SLATE_900 = '#0F172A';
 const SLATE_700 = '#334155';
 const SLATE_600 = '#475569';
@@ -101,13 +132,16 @@ const whiteCard = {
   position: 'relative', overflow: 'hidden',
 };
 
-// Current Term card — display mode uses the institutional red so the
-// active term reads as the page's accent. Edit / Update modes morph
-// to a white card (formCard) so the dense form reads cleanly.
+// Current Term card — a white card with black type, wearing the SAME border as
+// every other card on this page (whiteCard above): 1px slate, same radius, same
+// shadow. It was a solid red slab, then briefly a red outline; the dashboard is
+// monochrome now and the card carries its own emphasis through the 64px year.
+// Edit / Update modes morph to formCard so the dense form reads cleanly.
 const displayCard = {
-  background: ACCENT, color: '#FFFFFF', borderRadius: 16,
+  background: '#FFFFFF', color: SLATE_900, borderRadius: 12,
   padding: '12px 20px 28px', display: 'flex', flexDirection: 'column', minHeight: 0,
-  boxShadow: '0 6px 18px rgba(185,28,28,0.20)',
+  border: '1px solid ' + SLATE_200,
+  boxShadow: '0 1px 2px rgba(15,23,42,0.04), 0 1px 3px rgba(15,23,42,0.04)',
   position: 'relative', overflow: 'hidden',
 };
 const formCard = {
@@ -177,7 +211,7 @@ const SelectField = ({ label, value, onChange, disabled, children, hideLabel }) 
   const baseBg      = '#F8FAFC';
   const active      = open || focused;
   const borderColor = active ? ACCENT : SLATE_200;
-  const ringShadow  = active ? '0 0 0 4px ' + RED_RING : 'none';
+  const ringShadow  = active ? '0 0 0 4px ' + FOCUS_RING : 'none';
 
   return (
     <div style={{
@@ -287,7 +321,7 @@ const DateField = ({ label, value, onChange, disabled, surface = 'light', min, m
   const iconColor   = focused ? (isEdit ? ACCENT : SLATE_700) : SLATE_400;
   const borderColor = invalid ? ACCENT : focused ? focusBorder : baseBorder;
   const ringShadow  = focused
-    ? (isEdit ? '0 0 0 4px ' + RED_RING
+    ? (isEdit ? '0 0 0 4px ' + FOCUS_RING
        : isRed ? '0 0 0 3px rgba(255,255,255,0.25)'
        : '0 0 0 3px rgba(15,23,42,0.08)')
     : 'none';
@@ -355,7 +389,7 @@ const DateField = ({ label, value, onChange, disabled, surface = 'light', min, m
         <span style={{
           marginTop: 2, fontSize: 11, fontWeight: 500, textTransform: 'none',
           letterSpacing: 'normal',
-          color: isRed ? '#FECACA' : ACCENT,
+          color: isRed ? '#D1D5DB' : ACCENT,
           display: 'inline-flex', alignItems: 'center', gap: 4,
         }}>
           <AlertTriangle size={12} /> {hint}
@@ -396,12 +430,15 @@ const MockChart = ({ title, data }) => {
       <div style={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'stretch' }}>
         <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid meet" style={{ width: '100%', height: '100%' }}>
           <defs>
-            {/* Vertical crimson gradient — lighter at the top of the pill,
-                deepening toward the base for a clean premium look. */}
+            {/* Vertical gradient — RED at the top of the pill, fading to white at the
+                base. Inverted from the original (which was light-topped and deepened
+                downward), so the colour sits where the value is read.
+                The bars are the one thing on this dashboard carrying a quantity, and
+                the only thing still carrying colour. */}
             <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%"   stopColor="#F87171" />
-              <stop offset="55%"  stopColor="#DC2626" />
-              <stop offset="100%" stopColor="#991B1B" />
+              <stop offset="0%"   stopColor="#B91C1C" />
+              <stop offset="55%"  stopColor="#E5837F" />
+              <stop offset="100%" stopColor="#FFFFFF" />
             </linearGradient>
           </defs>
 
@@ -513,9 +550,20 @@ const AcademicTerms = () => {
     return actives.reduce((best, p) => (rank(p) > rank(best) ? p : best), actives[0]);
   }, [periods]);
 
+  // Every term that ISN'T the current one is a past term — regardless of what its
+  // status column says.
+  //
+  // This used to filter on status === 'Closed', which meant a period that was
+  // Active but NOT the newest Active one belonged to neither list: not the
+  // current term, not a past term. It appeared nowhere on this page, so the one
+  // person who could close it couldn't see it — while every other page in the app
+  // happily let users edit it. Deriving the list from "not current" makes a
+  // stranded term impossible to hide.
   const pastTerms = React.useMemo(() => (
-    periods.filter((p) => p.status === 'Closed').sort((a, b) => rank(b) - rank(a))
-  ), [periods]);
+    periods
+      .filter((p) => !currentTerm || p.id !== currentTerm.id)
+      .sort((a, b) => rank(b) - rank(a))
+  ), [periods, currentTerm]);
 
   const mostRecentPastId = pastTerms[0] && pastTerms[0].id;
 
@@ -698,7 +746,7 @@ const AcademicTerms = () => {
       </div>
 
       {!apiReachable && (
-        <div style={{ marginBottom: 12, padding: '12px 16px', background: '#FEE2E2', border: '1px solid #FCA5A5', borderRadius: 8, color: ACCENT, fontSize: 13 }}>
+        <div style={{ marginBottom: 12, padding: '12px 16px', background: '#F3F4F6', border: '1px solid #D1D5DB', borderRadius: 8, color: ACCENT, fontSize: 13 }}>
           <strong>Cannot reach the API.</strong> Restart <code>npm run dev</code> in the <code>server</code> folder.
         </div>
       )}
@@ -740,12 +788,12 @@ const AcademicTerms = () => {
         }}>
           {!currentTerm && !isFocused('current-update') && (
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12, textAlign: 'center' }}>
-              <div style={{ fontSize: 20, fontWeight: 600, color: '#FFFFFF' }}>No active term yet</div>
-              <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.85)' }}>Click <strong>Update Term</strong> to create the first one.</div>
+              <div style={{ fontSize: 20, fontWeight: 600, color: SLATE_900 }}>No active term yet</div>
+              <div style={{ fontSize: 13, color: SLATE_500 }}>Click <strong>Update Term</strong> to create the first one.</div>
               <button
                 onClick={() => startUpdate('term')}
                 style={{
-                  background: '#FFFFFF', color: ACCENT, border: 'none', cursor: 'pointer',
+                  background: ACCENT, color: '#FFFFFF', border: 'none', cursor: 'pointer',
                   padding: '0 20px', height: 40, borderRadius: 12, fontSize: 14, fontWeight: 600,
                   display: 'inline-flex', alignItems: 'center', gap: 8,
                   boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
@@ -761,7 +809,7 @@ const AcademicTerms = () => {
               {/* ── COLLAPSED state ── Only eyebrow + big year + semester + down arrow */}
               {!isExpanded && (
                 <>
-                  <div style={{ ...eyebrow('rgba(255,255,255,0.80)'), textAlign: 'left' }}>
+                  <div style={{ ...eyebrow(SLATE_500), textAlign: 'left' }}>
                     Current Term
                   </div>
                   <div style={{
@@ -771,13 +819,13 @@ const AcademicTerms = () => {
                     textAlign: 'center', gap: 10,
                   }}>
                     <div style={{
-                      fontSize: 64, fontWeight: 800, color: '#FFFFFF',
+                      fontSize: 64, fontWeight: 800, color: SLATE_900,
                       letterSpacing: '-0.02em', lineHeight: 1,
                     }}>
                       {currentTerm.school_year}
                     </div>
                     <div style={{
-                      fontSize: 22, fontWeight: 500, color: 'rgba(255,255,255,0.95)',
+                      fontSize: 22, fontWeight: 500, color: SLATE_700,
                       lineHeight: 1.2,
                     }}>
                       {formatSemester(currentTerm.semester)}
@@ -791,16 +839,16 @@ const AcademicTerms = () => {
                     style={{
                       alignSelf: 'center', marginTop: 12,
                       background: 'transparent', border: 'none',
-                      color: '#FFFFFF', cursor: 'pointer',
+                      color: SLATE_900, cursor: 'pointer',
                       padding: 2, borderRadius: 9999,
                       display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                       animation: 'dashArrowBob 1.6s ease-in-out infinite',
                       transition: 'transform 0.2s ease, background 0.15s ease',
                     }}
-                    onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.12)'; e.currentTarget.style.transform = 'scale(1.1)'; }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(15,23,42,0.06)'; e.currentTarget.style.transform = 'scale(1.1)'; }}
                     onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.transform = 'scale(1)'; }}
                   >
-                    <ChevronDown size={22} color="#FFFFFF" strokeWidth={2.5} />
+                    <ChevronDown size={22} color={SLATE_900} strokeWidth={2.5} />
                   </button>
                 </>
               )}
@@ -817,26 +865,26 @@ const AcademicTerms = () => {
                     style={{
                       alignSelf: 'center', marginBottom: 12,
                       background: 'transparent', border: 'none',
-                      color: '#FFFFFF', cursor: 'pointer',
+                      color: SLATE_900, cursor: 'pointer',
                       padding: 2, borderRadius: 9999,
                       display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                       transition: 'transform 0.2s ease, background 0.15s ease',
                     }}
-                    onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.12)'; e.currentTarget.style.transform = 'scale(1.1)'; }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(15,23,42,0.06)'; e.currentTarget.style.transform = 'scale(1.1)'; }}
                     onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.transform = 'scale(1)'; }}
                   >
-                    <ChevronUp size={22} color="#FFFFFF" strokeWidth={2.5} />
+                    <ChevronUp size={22} color={SLATE_900} strokeWidth={2.5} />
                   </button>
 
                   {/* Subtle divider — clear breathing room under the up-arrow */}
-                  <div style={{ borderTop: '1px solid rgba(255,255,255,0.20)', margin: '0 0 12px' }} />
+                  <div style={{ borderTop: '1px solid ' + SLATE_200, margin: '0 0 12px' }} />
 
                   {/* Semester Duration */}
                   <div style={{ marginBottom: 10 }}>
-                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: 'rgba(255,255,255,0.85)', fontSize: 13, fontWeight: 500 }}>
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: SLATE_500, fontSize: 13, fontWeight: 500 }}>
                       <Calendar size={12} /> Semester Duration
                     </div>
-                    <div style={{ marginTop: 4, fontSize: 14, fontWeight: 500, color: '#FFFFFF' }}>
+                    <div style={{ marginTop: 4, fontSize: 14, fontWeight: 500, color: SLATE_900 }}>
                       {fmtDate(currentTerm.start_date)} &nbsp;—&nbsp; {fmtDate(currentTerm.end_date)}
                     </div>
                   </div>
@@ -844,18 +892,18 @@ const AcademicTerms = () => {
                   {/* Midterm + Finals deadlines */}
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', columnGap: 16 }}>
                     <div>
-                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: 'rgba(255,255,255,0.85)', fontSize: 13, fontWeight: 500 }}>
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: SLATE_500, fontSize: 13, fontWeight: 500 }}>
                         <Clock size={12} /> Midterm Deadline
                       </div>
-                      <div style={{ marginTop: 4, fontSize: 14, fontWeight: 500, color: '#FFFFFF' }}>
+                      <div style={{ marginTop: 4, fontSize: 14, fontWeight: 500, color: SLATE_900 }}>
                         {fmtDate(currentTerm.midterm_deadline)}
                       </div>
                     </div>
                     <div>
-                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: 'rgba(255,255,255,0.85)', fontSize: 13, fontWeight: 500 }}>
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: SLATE_500, fontSize: 13, fontWeight: 500 }}>
                         <FileText size={12} /> Finals Deadline
                       </div>
-                      <div style={{ marginTop: 4, fontSize: 14, fontWeight: 500, color: '#FFFFFF' }}>
+                      <div style={{ marginTop: 4, fontSize: 14, fontWeight: 500, color: SLATE_900 }}>
                         {fmtDate(currentTerm.finals_deadline)}
                       </div>
                     </div>
@@ -875,35 +923,40 @@ const AcademicTerms = () => {
                   <div style={{
                     display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                     gap: 10, marginTop: 10, paddingTop: 10,
-                    borderTop: '1px solid rgba(255,255,255,0.15)',
+                    borderTop: '1px solid ' + SLATE_100,
                   }}>
                     <button
                       onClick={startEdit}
                       style={{
-                        background: 'transparent', color: '#FFFFFF',
-                        border: '1px solid rgba(255,255,255,0.45)',
+                        background: 'transparent', color: SLATE_900,
+                        border: '1px solid ' + SLATE_300,
                         cursor: 'pointer', padding: '0 14px', height: 34, borderRadius: 10,
                         fontSize: 13, fontWeight: 500,
                         display: 'inline-flex', alignItems: 'center', gap: 6,
                         transition: 'background 0.15s ease, border-color 0.15s ease',
                       }}
-                      onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.10)'; e.currentTarget.style.borderColor = '#FFFFFF'; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.45)'; }}
+                      onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(15,23,42,0.06)'; e.currentTarget.style.borderColor = SLATE_500; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = SLATE_300; }}
                     >
                       <Edit2 size={13} /> Edit
                     </button>
                     <button
                       onClick={() => startUpdate(nextAction)}
                       style={{
-                        background: '#FFFFFF', color: ACCENT, border: 'none', cursor: 'pointer',
+                        background: ACCENT, color: '#FFFFFF', border: 'none', cursor: 'pointer',
                         padding: '0 16px', height: 34, borderRadius: 10,
                         fontSize: 13, fontWeight: 600,
                         display: 'inline-flex', alignItems: 'center', gap: 6,
                         boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
-                        transition: 'background 0.15s ease',
+                        transition: 'background 0.15s ease, color 0.15s ease',
                       }}
-                      onMouseEnter={(e) => { e.currentTarget.style.background = '#FEE2E2'; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.background = '#FFFFFF'; }}
+                      // Inverts on hover: light background, BLACK text. The handlers
+                      // used to only touch the background — a leftover from when this
+                      // was a white pill on a red card — so hovering a black button
+                      // with white text turned it white-on-white and the label vanished.
+                      // Whatever the background does, the text has to follow it.
+                      onMouseEnter={(e) => { e.currentTarget.style.background = '#F3F4F6'; e.currentTarget.style.color = SLATE_900; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.background = ACCENT; e.currentTarget.style.color = '#FFFFFF'; }}
                     >
                       <RefreshCw size={13} /> {nextAction === 'sem' ? 'Update Sem' : 'Update Term'}
                     </button>
@@ -959,7 +1012,7 @@ const AcademicTerms = () => {
                 </div>
 
                 {error && (
-                  <div style={{ fontSize: 12, color: ACCENT, background: '#FEF2F2', border: '1px solid #FECACA', padding: '10px 12px', borderRadius: 10, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                  <div style={{ fontSize: 12, color: ACCENT, background: '#F9FAFB', border: '1px solid #E5E7EB', padding: '10px 12px', borderRadius: 10, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                     <AlertTriangle size={12} /> {error}
                   </div>
                 )}
@@ -982,11 +1035,11 @@ const AcademicTerms = () => {
                 <button
                   onClick={saveEdit} disabled={saving || !editValid}
                   style={{
-                    background: (saving || !editValid) ? '#FCA5A5' : ACCENT,
+                    background: (saving || !editValid) ? '#9CA3AF' : ACCENT,
                     color: '#FFFFFF', border: 'none', cursor: (saving || !editValid) ? 'not-allowed' : 'pointer',
                     padding: '0 24px', height: 44, borderRadius: 12, fontSize: 14, fontWeight: 600,
                     display: 'inline-flex', alignItems: 'center', gap: 8,
-                    boxShadow: (saving || !editValid) ? 'none' : '0 4px 12px rgba(185,28,28,0.25)',
+                    boxShadow: (saving || !editValid) ? 'none' : '0 4px 12px rgba(15,23,42,0.18)',
                     transition: 'background 0.15s ease, box-shadow 0.15s ease',
                   }}
                   onMouseEnter={(e) => { if (!saving && editValid) e.currentTarget.style.background = ACCENT_HOVER; }}
@@ -1095,7 +1148,7 @@ const AcademicTerms = () => {
                   </div>
 
                   {error && (
-                    <div style={{ fontSize: 12, color: ACCENT, background: '#FEF2F2', border: '1px solid #FECACA', padding: '10px 12px', borderRadius: 10, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                    <div style={{ fontSize: 12, color: ACCENT, background: '#F9FAFB', border: '1px solid #E5E7EB', padding: '10px 12px', borderRadius: 10, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                       <AlertTriangle size={12} /> {error}
                     </div>
                   )}
@@ -1118,11 +1171,11 @@ const AcademicTerms = () => {
                   <button
                     onClick={saveUpdate} disabled={saving || !updateValid}
                     style={{
-                      background: (saving || !updateValid) ? '#FCA5A5' : ACCENT,
+                      background: (saving || !updateValid) ? '#9CA3AF' : ACCENT,
                       color: '#FFFFFF', border: 'none', cursor: (saving || !updateValid) ? 'not-allowed' : 'pointer',
                       padding: '0 24px', height: 44, borderRadius: 12, fontSize: 14, fontWeight: 600,
                       display: 'inline-flex', alignItems: 'center', gap: 8,
-                      boxShadow: (saving || !updateValid) ? 'none' : '0 4px 12px rgba(185,28,28,0.25)',
+                      boxShadow: (saving || !updateValid) ? 'none' : '0 4px 12px rgba(15,23,42,0.18)',
                       transition: 'background 0.15s ease, box-shadow 0.15s ease',
                     }}
                     onMouseEnter={(e) => { if (!saving && updateValid) e.currentTarget.style.background = ACCENT_HOVER; }}
@@ -1140,7 +1193,7 @@ const AcademicTerms = () => {
 
         {/* ───── Syllabus chart ───── */}
         <div style={whiteCard}>
-          <MockChart title="Submitted Syllabus" data={MOCK_SYLLABUS} />
+          <MockChart title="Submitted Learning Plan" data={MOCK_LEARNING_PLAN} />
           {dimCharts && <DimOverlay />}
         </div>
 
@@ -1221,7 +1274,7 @@ const AcademicTerms = () => {
                   </div>
 
                   {error && (
-                    <div style={{ fontSize: 12, color: ACCENT, background: '#FEF2F2', border: '1px solid #FECACA', padding: '10px 12px', borderRadius: 10, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                    <div style={{ fontSize: 12, color: ACCENT, background: '#F9FAFB', border: '1px solid #E5E7EB', padding: '10px 12px', borderRadius: 10, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                       <AlertTriangle size={12} /> {error}
                     </div>
                   )}
@@ -1246,11 +1299,11 @@ const AcademicTerms = () => {
                   <button
                     onClick={() => savePastEdit(p)} disabled={saving || !pastEditValid}
                     style={{
-                      background: (saving || !pastEditValid) ? '#FCA5A5' : ACCENT,
+                      background: (saving || !pastEditValid) ? '#9CA3AF' : ACCENT,
                       color: '#FFFFFF', border: 'none', cursor: (saving || !pastEditValid) ? 'not-allowed' : 'pointer',
                       padding: '0 24px', height: 44, borderRadius: 12, fontSize: 14, fontWeight: 600,
                       display: 'inline-flex', alignItems: 'center', gap: 8,
-                      boxShadow: (saving || !pastEditValid) ? 'none' : '0 4px 12px rgba(185,28,28,0.25)',
+                      boxShadow: (saving || !pastEditValid) ? 'none' : '0 4px 12px rgba(15,23,42,0.18)',
                       transition: 'background 0.15s ease, box-shadow 0.15s ease',
                     }}
                     onMouseEnter={(e) => { if (!saving && pastEditValid) e.currentTarget.style.background = ACCENT_HOVER; }}
@@ -1279,6 +1332,21 @@ const AcademicTerms = () => {
           >
             {pastTerms.map((p) => {
               const isMostRecent = p.id === mostRecentPastId;
+              // LOCKED IS A FACT ABOUT THE TERM, NOT ABOUT ITS POSITION IN THIS LIST.
+              //
+              // This used to be `!isMostRecent` alone, which meant the badge and the
+              // Edit button were decided by where a term sat in the list and never
+              // consulted its status. Both directions were wrong at once: the term
+              // just gone showed no lock and offered Edit even when it was Closed,
+              // while terms that were genuinely still Active showed "locked" — and
+              // those were the stranded rows the OVPAA most needed to see and close.
+              //
+              // The server now closes every superseded term (academicPeriodController),
+              // so "not Closed" among past terms means the previous one. Edit still
+              // requires isMostRecent as well: two independent reasons to refuse,
+              // rather than trusting either alone.
+              const isClosed  = p.status === 'Closed';
+              const canEdit   = isMostRecent && !isClosed;
               const editing = focus === 'past-edit-' + p.id;
               const viewing = focus === 'past-view-' + p.id;
               return (
@@ -1305,8 +1373,8 @@ const AcademicTerms = () => {
                         </span>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        {!isMostRecent && (
-                          <span title="Older terms are locked"
+                        {isClosed && (
+                          <span title="This term is closed — read-only."
                             style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: SLATE_400, fontSize: 12 }}>
                             <Lock size={12} /> locked
                           </span>
@@ -1379,10 +1447,12 @@ const AcademicTerms = () => {
                         </div>
                       </div>
 
-                      {/* Footer actions — Edit only for the most recent past term */}
+                      {/* Footer actions — Edit only for the previous term, and only
+                          while it is still open. A Closed term is read-only, and
+                          offering Edit on one was the page contradicting itself. */}
                       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, paddingTop: 4 }}>
                         <Btn variant="outline" onClick={cancelFocus}><X size={12} /> Close</Btn>
-                        {isMostRecent && (
+                        {canEdit && (
                           <Btn variant="accent" onClick={() => startPastEdit(p)}><Edit2 size={12} /> Edit</Btn>
                         )}
                       </div>

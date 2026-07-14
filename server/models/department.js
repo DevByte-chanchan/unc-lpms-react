@@ -11,12 +11,13 @@ export default (sequelize, DataTypes) =>
   sequelize.define(
     'Department',
     {
-      id: { type: DataTypes.INTEGER.UNSIGNED, primaryKey: true, autoIncrement: true },
+      id: { type: DataTypes.INTEGER.UNSIGNED, primaryKey: true, autoIncrement: true, field: 'department_id' },
       name:   { type: DataTypes.STRING(100), allowNull: false },
       code:   { type: DataTypes.STRING(16),  allowNull: false },
       dean:   { type: DataTypes.STRING(50),  allowNull: true },
       status: { type: DataTypes.STRING(16),  allowNull: false, defaultValue: 'Active' },
       period_id: {
+        field: 'academic_period_id',
         type: DataTypes.INTEGER.UNSIGNED,
         allowNull: true,
         comment: 'FK to academic_periods.id — every row is period-scoped.',

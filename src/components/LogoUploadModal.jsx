@@ -264,7 +264,7 @@ const LogoUploadModal = ({ dept, departments, onClose, onSaved }) => {
                         border: isSelected
                           ? '2px solid ' + ACCENT
                           : (isNone ? '2px dashed ' + SLATE_300 : '1px solid ' + SLATE_200),
-                        boxShadow: isSelected ? '0 0 0 3px rgba(185,28,28,0.12)' : 'none',
+                        boxShadow: isSelected ? '0 0 0 3px rgba(24,25,26,0.12)' : 'none',
                         borderRadius: 12, cursor: isLocked ? 'not-allowed' : 'pointer',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                         padding: 12, overflow: 'hidden', position: 'relative',

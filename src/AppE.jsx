@@ -11,7 +11,7 @@ import AssessmentForm from "./pages/AssessmentForm.jsx";
 import ApprovalCourses from "./pages/ApprovalCourses.jsx";
 import ProgramHeadConsultant from "./pages/ProgramHeadConsultant.jsx";
 import ProgramHeadIndustryConsultant from "./pages/ProgramHeadIndustryConsultant.jsx";
-import ProgramHeadCourseOfferings from "./pages/ProgramHeadCourseOfferings.jsx";
+import ProgramHeadCourses from "./pages/ProgramHeadCourses.jsx";
 import ApprovalSyllabus from "./pages/ApprovalSyllabus.jsx";
 import Dean from "./pages/Dean.jsx";
 import HRStaff from "./pages/HRStaff.jsx";
@@ -27,7 +27,7 @@ function App() {
                      {/* Specific role pages - must come BEFORE the generic :approver route */}
                     <Route path={'/role/industry-consultant'} element={<ProgramHeadConsultant />} />
                     <Route path={'/role/program-head/industry-consultant'} element={<ProgramHeadIndustryConsultant />} />
-                    <Route path={'/role/program-head/course-offerings'} element={<ProgramHeadCourseOfferings />} />
+                    <Route path={'/role/program-head/course-offerings'} element={<ProgramHeadCourses />} />
                     <Route path={'/role/dean'} element={<Dean />} />
                     <Route path={'/role/hr-staff'} element={<HRStaff />} />
                      {/* Generic role pages: default to approval-course-table */}

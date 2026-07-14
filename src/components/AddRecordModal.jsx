@@ -59,7 +59,7 @@ const AddRecordModal = ({ title, fields, initial, onSubmit, onClose }) => {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div className={styles.title}>{title}</div>
           <button onClick={onClose} disabled={saving} style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 0, lineHeight: 0, display: 'inline-flex', alignItems: 'center' }}>
-            <X size={22} color="#111827" />
+            <X size={22} color="#18191A" />
           </button>
         </div>
 
@@ -68,7 +68,7 @@ const AddRecordModal = ({ title, fields, initial, onSubmit, onClose }) => {
             <label className={styles.label}>{f.label}{f.required && <span style={{ color: '#B91C1C' }}> *</span>}</label>
 
             {typeof f.render === 'function' ? (
-              f.render({ value: values[f.key], onChange: (v) => setField(f.key, v) })
+              f.render({ value: values[f.key], onChange: (v) => setField(f.key, v), values })
             ) : f.type === 'checkboxes' ? (
               <div style={{ maxHeight: 200, overflowY: 'auto', border: '1px solid #D1D5DB', borderRadius: 6, padding: '8px 12px' }}>
                 {(f.options || []).length === 0 && (
@@ -141,8 +141,8 @@ const AddRecordModal = ({ title, fields, initial, onSubmit, onClose }) => {
           </button>
           <button onClick={submit} disabled={saving}
             style={{ height: 40, padding: '0 18px', borderRadius: 6, fontSize: 14, fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 6,
-              border: 'none', background: saving ? '#E5E7EB' : '#EA1212', color: saving ? '#9CA3AF' : '#FFFFFF',
-              cursor: saving ? 'not-allowed' : 'pointer', boxShadow: saving ? 'none' : '0 1px 2px rgba(234,18,18,0.35)' }}>
+              border: 'none', background: saving ? '#E5E7EB' : '#18191A', color: saving ? '#9CA3AF' : '#FFFFFF',
+              cursor: saving ? 'not-allowed' : 'pointer', boxShadow: saving ? 'none' : '0 1px 2px rgba(24,25,26,0.25)' }}>
             <Save size={16} /> {saving ? 'Saving…' : 'Save'}
           </button>
         </div>

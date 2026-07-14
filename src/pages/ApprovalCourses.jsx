@@ -42,7 +42,7 @@ const ApprovalCourses = ({ isEmbedded = false, roleOverride = null }) => {
     // Otherwise, wrap with full layout
     return (
         <Skeleton
-            header={<Header role={displayRole} name="DANILA, JUN ARREB" />}
+            header={<Header role={displayRole} name="VANCE, OLIVIA" />}
             content={content}
             nav={<SideNavigation mode={approver || 'program-head'} />}
         />

@@ -163,10 +163,10 @@ const EditRecordModal = ({ title, fields, initial, onSubmit, onClose, onRemove, 
                   display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                   padding: 0, lineHeight: 1,
                   background: selected ? '#FFFFFF' : 'transparent',
-                  color: selected ? '#111827' : '#6B7280',
+                  color: selected ? '#18191A' : '#6B7280',
                   fontWeight: selected ? 600 : 500, fontSize: 13, cursor: 'pointer',
                   WebkitTapHighlightColor: 'transparent',
-                  boxShadow: selected ? 'inset 0 0 0 1.5px #111827' : 'none',
+                  boxShadow: selected ? 'inset 0 0 0 1.5px #18191A' : 'none',
                   transition: 'background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease',
                 }}
               >
@@ -248,14 +248,14 @@ const EditRecordModal = ({ title, fields, initial, onSubmit, onClose, onRemove, 
                   aria-label="Back"
                   style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 4, display: 'inline-flex', alignItems: 'center', borderRadius: 6 }}
                 >
-                  <ArrowLeft size={20} color="#111827" />
+                  <ArrowLeft size={20} color="#18191A" />
                 </button>
               )}
               <div className={styles.title}>{title}</div>
             </div>
           </div>
           <button onClick={onClose} disabled={saving || removing} style={{ background: 'transparent', border: 'none', cursor: 'pointer', flexShrink: 0, padding: 0, lineHeight: 0, display: 'inline-flex', alignItems: 'center' }}>
-            <X size={22} color="#111827" />
+            <X size={22} color="#18191A" />
           </button>
         </div>
 

@@ -12,8 +12,10 @@ import { parseSheet, safeUnlink, pick, canonicalize } from '../utils/excelParser
 import { getPeriodId, safeWhereForPeriod, whereForPeriod } from '../utils/periodScope.js';
 import { safeWhere } from '../utils/dbHelpers.js';
 import { rankPeriod } from '../utils/periodClone.js';
+import { PreviewRows, previewResponse } from '../utils/importPreview.js';
+import { beginImportBatch, completeImportBatch } from './importController.js';
 
-const { Course, Prerequisite, ProgramCourseOffering, AcademicPeriod, CourseOffering, CourseAssignment, Program } = db;
+const { Course, Prerequisite, ProgramCourseOffering, AcademicPeriod, CourseOfferingAssignment, Program } = db;
 // (curriculum schema realigned to lpms_composition sample)
 
 // Canonicalize messy / mixed year-level inputs (from uploads or manual entry)
@@ -75,30 +77,24 @@ function makeProgramResolver(programs, defaultProgramId) {
   };
 }
 
-// The course's year level is denormalized onto the Course Offerings used by
-// the Industry Consultant picker (course_offerings.year_level) and onto
-// existing Course Assignments (course_assignments.year_level). When the
-// catalog course's year level changes, push it to those copies so every page
-// reflects the new level. Matched by course code within the SAME period.
+// The course's year level is denormalized onto existing Course Assignments
+// (course_offering_assignments.year_level). When the catalog course's year level
+// changes, push it to those copies so every page reflects the new level.
+// Matched by course code within the SAME period.
 async function syncYearLevelForCourse(courseNo, periodId, yearLvl) {
   if (!courseNo || !periodId) return;
   try {
-    await CourseOffering.update({ year_level: yearLvl }, { where: { code: courseNo, period_id: periodId } });
+    await CourseOfferingAssignment.update({ year_level: yearLvl }, { where: { course_code: courseNo, period_id: periodId } });
   } catch (err) {
-    console.warn('[courses] year-level sync → course_offerings skipped: ' + (err && err.message));
-  }
-  try {
-    await CourseAssignment.update({ year_level: yearLvl }, { where: { course_code: courseNo, period_id: periodId } });
-  } catch (err) {
-    console.warn('[courses] year-level sync → course_assignments skipped: ' + (err && err.message));
+    console.warn('[courses] year-level sync → course_offering_assignments skipped: ' + (err && err.message));
   }
 }
 
 /**
  * One-time (idempotent) backfill: re-derive year_level on every Course
- * Offering and Course Assignment from the catalog (matched by code within the
- * same period). Fixes rows that went stale before edit-time propagation
- * existed. Safe on every boot — only writes rows whose value actually changes.
+ * Assignment from the catalog (matched by code within the same period).
+ * Fixes rows that went stale before edit-time propagation existed. Safe on
+ * every boot — only writes rows whose value actually changes.
  */
 export async function backfillYearLevelsFromCatalog() {
   try {
@@ -110,16 +106,7 @@ export async function backfillYearLevelsFromCatalog() {
     }
     let changed = 0;
 
-    const offerings = await CourseOffering.findAll({ attributes: ['id', 'code', 'year_level', 'period_id'] });
-    for (const o of offerings) {
-      if (!o.period_id || !o.code) continue;
-      const want = byKey.get(o.period_id + '|' + String(o.code).trim().toLowerCase());
-      if (want !== undefined && (o.year_level ?? null) !== (want ?? null)) {
-        await o.update({ year_level: want }); changed++;
-      }
-    }
-
-    const assignments = await CourseAssignment.findAll({ attributes: ['id', 'course_code', 'year_level', 'period_id'] });
+    const assignments = await CourseOfferingAssignment.findAll({ attributes: ['id', 'course_code', 'year_level', 'period_id'] });
     for (const a of assignments) {
       if (!a.period_id || !a.course_code) continue;
       const want = byKey.get(a.period_id + '|' + String(a.course_code).trim().toLowerCase());
@@ -128,7 +115,7 @@ export async function backfillYearLevelsFromCatalog() {
       }
     }
 
-    if (changed) console.log('[courses] backfilled year_level on ' + changed + ' offering/assignment row(s) from catalog.');
+    if (changed) console.log('[courses] backfilled year_level on ' + changed + ' assignment row(s) from catalog.');
   } catch (err) {
     console.warn('[courses] year-level backfill skipped: ' + (err && err.message));
   }
@@ -238,9 +225,15 @@ export async function getCourse(req, res, next) {
     const row = await Course.findByPk(req.params.id, {
       include: [
         { model: Course, as: 'prerequisites', through: { attributes: [] }, attributes: ['course_id', 'course_no', 'course_title'] },
-        { model: ProgramCourseOffering, as: 'revisions', attributes: ['pc_offering_id', 'revision_number', 'course_description'] },
+        // Every program that offers this course, each with its own description.
+        {
+          model: ProgramCourseOffering,
+          as: 'offerings',
+          attributes: ['pc_offering_id', 'program_id', 'revision_number', 'course_description'],
+          include: [{ model: Program, as: 'program', attributes: ['id', 'code', 'name'] }],
+        },
       ],
-      order: [[{ model: ProgramCourseOffering, as: 'revisions' }, 'revision_number', 'ASC']],
+      order: [[{ model: ProgramCourseOffering, as: 'offerings' }, 'pc_offering_id', 'ASC']],
     });
     if (!row) return res.status(404).json({ message: 'Course not found' });
     res.json(row);
@@ -375,12 +368,35 @@ function parseCourseRows(rows) {
   const trim = (v) => (v != null && String(v).trim() !== '' ? String(v).trim() : null);
   const parsed = [];
   const errors = [];
+  // The rows the commit will SKIP, with their cell values kept. `errors` only
+  // carries a message, which is enough to tell the user a count but not enough
+  // to draw the row — and the preview table has to show the bad rows, since a
+  // wrong file is mostly bad rows.
+  const skipped = [];
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i];
     const course_no    = pick(row, 'courseno', 'coursenumber', 'coursecode', 'code', 'courseid', 'subjectcode', 'catalogno', 'catalognumber', 'subject');
     const course_title = pick(row, 'coursetitle', 'title', 'coursename', 'descriptivetitle', 'subjecttitle', 'descriptiontitle', 'description', 'name');
     if (!course_no || !course_title) {
       errors.push({ row: i + 2, message: 'Missing Course No. or Course Title — skipped.' });
+      // A skipped row is still drawn in the preview, and it is drawn with the
+      // SAME columns as an importable one — so it has to carry the same fields.
+      // Capturing only the key ones left the rest of a bad row's cells blank,
+      // which read as "the file is missing that data" rather than "this row is
+      // being dropped for the reason in the Issue column".
+      skipped.push({
+        rowNum:         i + 2,
+        course_no:      trim(course_no),
+        course_title:   trim(course_title),
+        program_raw:    trim(pick(row, 'program', 'programcode', 'prog', 'programname', 'programtitle', 'curriculum', 'degreeprogram', 'degree', 'major', 'majorprogram')),
+        year_lvl_raw:   trim(pick(row, 'yearlevel', 'yearlvl', 'year', 'level', 'yr', 'yearstanding', 'standing')),
+        term:           trim(pick(row, 'term', 'semester', 'sem', 'schoolyear', 'sy', 'termsemester')),
+        credit:         trim(pick(row, 'credit', 'credits', 'creditunits', 'creditunit', 'units', 'unit', 'noofunits', 'totalunits', 'lecladbcredit')),
+        contact_hrs:    trim(pick(row, 'contacthours', 'contacthrs', 'contacthour', 'contact', 'hours', 'hrs', 'hoursperweek', 'hrsperweek', 'lechours')),
+        classification: trim(pick(row, 'classification', 'classif', 'category', 'coursecategory', 'type', 'coursetype', 'courseclassification')),
+        cmo:            trim(pick(row, 'cmo', 'cmono', 'cmonumber', 'cmoref', 'memo', 'chedmemo', 'chedmemono', 'ched')),
+        prereqRaw:      pick(row, 'prerequisites', 'prerequisite', 'prereq', 'prereqs', 'prerequisitecode', 'prerequisitecodes', 'prerequisiteno', 'prerequisitecourses'),
+      });
       continue;
     }
     const codeStr = String(course_no).trim();
@@ -405,7 +421,7 @@ function parseCourseRows(rows) {
       prereqRaw:      pick(row, 'prerequisites', 'prerequisite', 'prereq', 'prereqs', 'prerequisitecode', 'prerequisitecodes', 'prerequisiteno', 'prerequisitecourses'),
     });
   }
-  return { parsed, errors };
+  return { parsed, errors, skipped };
 }
 
 export async function uploadCourses(req, res) {
@@ -422,10 +438,13 @@ export async function uploadCourses(req, res) {
       String((req.query && req.query.preview) || (req.body && req.body.preview) || '').toLowerCase()
     );
 
-    const { parsed, errors } = parseCourseRows(rows);
+    const { parsed, errors, skipped } = parseCourseRows(rows);
 
-    // Genuinely empty / wrong-shaped file — same guidance for preview & commit.
-    if (parsed.length === 0) {
+    // Genuinely empty / wrong-shaped file. The COMMIT still refuses it — but the
+    // preview no longer does, matching facultyController: a file with nothing
+    // importable in it is precisely the wrong-file case this step exists to
+    // catch, and a table of red rows says so far better than a one-line error.
+    if (!isPreview && parsed.length === 0) {
       return res.status(400).json({
         message: 'No valid course rows found. Your sheet needs a Course No. column (e.g. "Course No.", "Code", "Subject Code") and a Course Title column (e.g. "Course Title", "Description").',
         headers,
@@ -463,14 +482,84 @@ export async function uploadCourses(req, res) {
           term:           p.term,
           prerequisites:  p.prereqRaw || null,
         }));
-      return res.json({
-        detectedColumns: headers,
-        total: parsed.length,
-        recognizedCount: parsed.length - unassigned.length,
-        inferredYearCount,        // year levels inferred from the course code
-        programColumnPresent: parsed.some((p) => p.program_raw),
-        unresolvedPrograms: Array.from(unresolvedPrograms),
-        unassigned,
+
+      // The shared Preview & Confirm table. Courses' OWN preview keys below are
+      // untouched and still drive the year-level reconciliation popup — this step
+      // sits in front of that one, it does not replace it.
+      //
+      // Both the importable rows and the skipped ones, back in sheet order: a
+      // preview that quietly omitted the rows it was going to drop would hide the
+      // very thing the user is here to catch.
+      const preview = new PreviewRows();
+      // EVERY field the importer reads out of the sheet, in sheet-ish order — not
+      // just the five it used to show. The point of this table is "here is what we
+      // understood from your file"; a column the importer reads but the preview
+      // hides is a value the user cannot check before it is written. A column that
+      // comes out blank is itself the answer: the sheet had no such column (or the
+      // header wasn't one we recognise), which is exactly what they need to see.
+      const cellsFor = (p) => ({
+        'Course No.':     p.course_no || '',
+        'Course Title':   p.course_title || '',
+        Program:          p.program_raw || '',
+        'Year Level':     p.year_lvl_raw || '',
+        Term:             p.term || '',
+        Credit:           p.credit || '',
+        'Contact Hours':  p.contact_hrs || '',
+        Classification:   p.classification || '',
+        CMO:              p.cmo || '',
+        Prerequisites:    p.prereqRaw ? String(p.prereqRaw).trim() : '',
+      });
+
+      const all = [
+        ...parsed.map((p) => ({ p, bad: false })),
+        ...skipped.map((p) => ({ p, bad: true })),
+      ].sort((a, b) => a.p.rowNum - b.p.rowNum);
+
+      for (const { p, bad } of all) {
+        const cells = cellsFor(p);
+        if (bad) {
+          const missing = [];
+          if (!p.course_no)    missing.push({ field: 'Course No.',   message: 'Missing COURSE NO. — this row will be skipped.' });
+          if (!p.course_title) missing.push({ field: 'Course Title', message: 'Missing COURSE TITLE — this row will be skipped.' });
+          preview.error(p.rowNum, cells, missing);
+          continue;
+        }
+        // A year level we couldn't recognize is NOT an error — the popup after
+        // this step is exactly where the user resolves it. Say so plainly.
+        const rowWarnings = [];
+        if (p.year_lvl === null) {
+          rowWarnings.push({
+            field: 'Year Level',
+            message: p.year_lvl_raw
+              ? 'Year level "' + p.year_lvl_raw + '" wasn\'t recognized — you\'ll set it in the next step.'
+              : 'No year level given — you\'ll set it in the next step.',
+          });
+        }
+        if (p.program_raw && resolveProgramId(p.program_raw) === null) {
+          rowWarnings.push({
+            field: 'Program',
+            message: 'Program "' + p.program_raw + '" is not in this period; the row falls back to the program you\'re viewing.',
+          });
+        }
+        if (rowWarnings.length > 0) preview.warning(p.rowNum, cells, rowWarnings);
+        else preview.ok(p.rowNum, cells);
+      }
+
+      return previewResponse(res, {
+        filename: req.file.originalname,
+        headers,
+        preview,
+        extra: {
+          // Courses' existing contract, unchanged. `total` deliberately overrides
+          // previewResponse's row count: the year-level popup and the page's
+          // summary have always counted IMPORTABLE rows, not sheet rows.
+          total: parsed.length,
+          recognizedCount: parsed.length - unassigned.length,
+          inferredYearCount,        // year levels inferred from the course code
+          programColumnPresent: parsed.some((p) => p.program_raw),
+          unresolvedPrograms: Array.from(unresolvedPrograms),
+          unassigned,
+        },
       });
     }
 
@@ -500,11 +589,23 @@ export async function uploadCourses(req, res) {
     // share that term's semester.
     const semester = await periodSemester(period_id);
 
+    // Photograph the period before the upsert below overwrites anything —
+    // this is what the Undo button restores. Past the preview early-return, so
+    // a preview never leaves a batch behind; the snapshot also covers
+    // prerequisites / revisions / course_offering_assignments, which this upload
+    // rewrites downstream.
+    const batch = await beginImportBatch('courses', period_id, req.file.originalname);
+
     let inserted = 0;
     let updated = 0;
+    let offeringsCreated = 0; // new (course × program) pairings recorded
     let notImported = 0;     // "Don't import" rows from the popup
     let assignedViaPopup = 0; // rows whose year level came from the popup
     const rowExtras = []; // { course_id, ownKey, prereqRaw }
+    // Identities of the rows we added / updated, so the frontend summary can
+    // list exactly WHICH courses changed (not just the counts).
+    const addedCourses = [];   // { code, title }
+    const updatedCourses = []; // { code, title }
     // Per-year distribution of the upserted rows, so the frontend can show
     // where each course landed (and how many couldn't be matched to a year).
     const yearTally = { 'FIRST YEAR': 0, 'SECOND YEAR': 0, 'THIRD YEAR': 0, 'FOURTH YEAR': 0, unassigned: 0 };
@@ -528,6 +629,9 @@ export async function uploadCourses(req, res) {
 
       const program_id = resolveProgramId(p.program_raw);
 
+      // NOTE: program_id is deliberately NOT a column on the course. A course is
+      // offered by many programs, so the pairing is recorded as an OFFERING
+      // (program_course_offerings) once the course row exists — see below.
       const fields = {
         course_no:      p.course_no,
         course_title:   p.course_title,
@@ -537,7 +641,6 @@ export async function uploadCourses(req, res) {
         cmo:            p.cmo,
         term:           p.term,
         year_lvl,
-        program_id,
         // Semester is inherited from the term (not read from the sheet).
         semester,
       };
@@ -550,11 +653,30 @@ export async function uploadCourses(req, res) {
       if (id) {
         await Course.update(fields, { where: { course_id: id } });
         updated++;
+        updatedCourses.push({ code: p.course_no, title: p.course_title });
       } else {
         const created = await Course.create({ ...fields, period_id });
         id = created.course_id;
         byNo.set(key, id);
         inserted++;
+        addedCourses.push({ code: p.course_no, title: p.course_title });
+      }
+
+      // Record the (course × program) pairing as an OFFERING — this is what
+      // makes "GE 101 is offered by BSIT" true, and it's what a syllabus and a
+      // course assignment hang off. findOrCreate because a re-upload of the
+      // same curriculum must not duplicate the offering (the unique index on
+      // (course_id, program_id) would reject it anyway).
+      //
+      // A row with no resolvable program yields no offering: the course still
+      // enters the catalog, but reads as "not offered by any program" until
+      // someone gives it one. We surface that as `unresolvedPrograms` already.
+      if (program_id != null) {
+        const [, madeOffering] = await ProgramCourseOffering.findOrCreate({
+          where:    { course_id: id, program_id },
+          defaults: { course_id: id, program_id, revision_number: 1, course_description: null },
+        });
+        if (madeOffering) offeringsCreated++;
       }
 
       // Tally where this upserted row landed by year level.
@@ -582,8 +704,15 @@ export async function uploadCourses(req, res) {
       }
     }
 
+    await completeImportBatch(batch, { inserted, updated });
+
     res.status(201).json({
       inserted, updated,
+      // New (course × program) offerings recorded by this upload.
+      offeringsCreated,
+      // WHICH courses were added / updated (code + title), for the summary list.
+      addedCourses,
+      updatedCourses,
       skipped: errors.length,    // rows skipped for missing Course No./Title
       notImported,               // "Don't import" rows from the popup
       assignedViaPopup,          // rows whose year level was set in the popup
@@ -647,18 +776,18 @@ export async function seedCurriculumIfEmpty() {
     { course_id: byNo['BIT202'], course_prerequisite_id: byNo['BIT205'] }, // Software Eng ← Data Structures
   ]);
 
-  // Course offerings (descriptions) — mirrors ProgramCourseOfferings sample.
-  await ProgramCourseOffering.bulkCreate([
-    { course_id: byNo['BIT313L'], revision_number: 1, program_id: 1, dept_id: 3, course_description: 'This course explores the principles and practices of Human-Computer Interaction (HCI), focusing on human factors, usability, and interface design.' },
-    { course_id: byNo['BIT302'],  revision_number: 1, program_id: 1, dept_id: 3, course_description: 'Advanced web development topics and frameworks.' },
-    { course_id: byNo['BIT201'],  revision_number: 1, program_id: 1, dept_id: 3, course_description: 'Database design, normalization, and SQL.' },
-    { course_id: byNo['BIT202'],  revision_number: 1, program_id: 2, dept_id: 3, course_description: 'Software development lifecycle and best practices.' },
-    { course_id: byNo['BIT203'],  revision_number: 1, program_id: 1, dept_id: 3, course_description: 'Mobile app design and deployment.' },
-    { course_id: byNo['BIT204'],  revision_number: 1, program_id: 2, dept_id: 3, course_description: 'Principles of network security and defense.' },
-    { course_id: byNo['BIT205'],  revision_number: 1, program_id: 1, dept_id: 3, course_description: 'Core algorithms and data structure implementations.' },
-    { course_id: byNo['BIT207'],  revision_number: 1, program_id: 1, dept_id: 3, course_description: 'Web performance, caching, and security practices.' },
-  ]);
+  // Offerings are NOT seeded here.
+  //
+  // An offering is a (course × program) pairing, and program_id is a real FK
+  // now. The old seed hard-coded program_id 1/2 and dept_id 3 — ids that match
+  // no actual program or department, which is exactly why those columns could
+  // never be constrained. Inventing them again would either re-introduce that
+  // corruption or fail the FK outright on a fresh database.
+  //
+  // Offerings are created where they're actually known: when a Program Head
+  // uploads their curriculum, each row is paired with that program. Until then
+  // a seeded course is simply "not offered by any program yet".
 
   // eslint-disable-next-line no-console
-  console.log('[curriculum] seeded ' + courses.length + ' sample courses (lpms_composition shape).');
+  console.log('[curriculum] seeded ' + courses.length + ' sample courses (no offerings — a program uploads those).');
 }

@@ -1,0 +1,98 @@
+// DIALOG MOTION — the app's ONE modal backdrop, plus the enter/exit animation
+// every dialog panel shares.
+//
+// WHY THIS FILE EXISTS
+// Each dialog used to paint its own dim layer. When one dialog handed off to the
+// next (Preview & Confirm → the import summary), React unmounted the first and
+// mounted the second in the same frame: two backdrops swapping, which reads as a
+// dark flash. There is now a single backdrop, ref-counted by whoever is open
+// (services/dialogBackdrop.js), so a handoff leaves it untouched — only the
+// PANELS move.
+//
+// DURATION AND EASING LIVE HERE AND NOWHERE ELSE.
+// The panels unmount on `animationend`, so JS does not need to know how long the
+// animation runs — but it keeps a safety-net timeout in case the event never
+// fires (a display:none'd or detached panel emits nothing). That timeout reads
+// --dialog-motion off :root rather than hardcoding a number, so the two cannot
+// drift apart. See dialogMotionMs() in services/dialogBackdrop.js.
+//
+// The easing is the undo toast's (`toastIn`, ease-out) so the app moves as one.
+
+// `html`, not `:root` — in Sass's indented syntax a line beginning with a colon
+// is the legacy property syntax, so `:root` parses as a property named "root".
+// Same element, same inheritance, no ambiguity.
+html
+  --dialog-motion: 200ms
+  --dialog-ease: ease-out
+
+@media (prefers-reduced-motion: reduce)
+  html
+    // 1ms, not 0s: panels unmount on animationend, and a zero-duration animation
+    // is not guaranteed to fire one. 1ms is an instant swap that still emits the
+    // event, so the sequencing keeps working with no motion on screen.
+    --dialog-motion: 1ms
+
+// ---------- the one backdrop ----------
+
+// Always mounted, never remounted — that is the whole point. It is transparent
+// and click-through at rest, so it costs nothing when no dialog is open, and it
+// cannot flicker on a handoff because it is never torn down.
+.backdrop
+  position: fixed
+  inset: 0
+  z-index: 70
+  background: rgba(0, 0, 0, 0.45)
+  opacity: 0
+  pointer-events: none
+  transition: opacity var(--dialog-motion) var(--dialog-ease)
+
+.backdropOpen
+  opacity: 1
+  pointer-events: auto
+
+// ---------- the panel ----------
+
+// Centering lives on the LAYER (flexbox), not on the panel, and that is load
+// bearing: the panel animates `transform: scale()`, and a panel centred the old
+// way (top/left 50% + translate(-50%, -50%)) would have its translate wiped out
+// by the animation and jump to the bottom-right quadrant mid-fade.
+//
+// The layer itself is click-through so the backdrop underneath keeps whatever
+// click behaviour its owner registered; the panel takes pointer events back.
+.panelLayer
+  position: fixed
+  inset: 0
+  z-index: 71
+  display: flex
+  align-items: center
+  justify-content: center
+  padding: 24px
+  pointer-events: none
+
+.panelEntering
+  pointer-events: auto
+  animation: panelIn var(--dialog-motion) var(--dialog-ease) both
+
+// No pointer events on the way out — a dialog that is 20% visible must not still
+// be clickable, and the one taking its place is already on screen.
+.panelLeaving
+  pointer-events: none
+  animation: panelOut var(--dialog-motion) var(--dialog-ease) both
+
+// A slight settle, not a zoom. 0.98 is enough to read as movement at 200ms
+// without the dialog appearing to fly at the user.
+@keyframes panelIn
+  from
+    opacity: 0
+    transform: scale(0.98)
+  to
+    opacity: 1
+    transform: scale(1)
+
+@keyframes panelOut
+  from
+    opacity: 1
+    transform: scale(1)
+  to
+    opacity: 0
+    transform: scale(0.98)

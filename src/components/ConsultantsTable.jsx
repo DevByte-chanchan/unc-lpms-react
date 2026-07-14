@@ -17,7 +17,7 @@ const ConsultantsTable = ({ consultants = [], onAssign, hideDepartment = false, 
     ...(!hideDepartment ? [{ key: 'department', label: 'DEPARTMENT', width: 400, type: 'text' }] : []),
     // Wider so "CODE — Course Name" fits on one line before the Status column.
     { key: 'assignedCourse', label: 'ASSIGNED COURSE OFFERING', width: 440, type: 'text', sortValue: firstCourse, thStyle: { flex: '1 1 auto', minWidth: 280 } },
-    { key: 'status', label: 'STATUS', width: 130, type: 'number', thStyle: { paddingLeft: 24 }, sortable: false },
+    { key: 'status', label: 'STATUS', width: 130, type: 'number', thStyle: { paddingLeft: 0 }, sortable: false },
   ], [hideDepartment]);
 
   const [sort, setSort] = React.useState({ sortKey: 'name', sortDir: 'asc' });
@@ -61,7 +61,7 @@ const ConsultantsTable = ({ consultants = [], onAssign, hideDepartment = false, 
                     (c.assignedCourse || '')
                   )}
                 </td>
-                <td width={130} style={{ paddingLeft: 24 }}>
+                <td width={130} style={{ paddingLeft: 0 }}>
                   {status ? (
                     <span style={{ ...statusPillStyle('consultant', status), padding: '4px 10px', borderRadius: 4, fontSize: 12, fontWeight: 600 }}>
                       {status}

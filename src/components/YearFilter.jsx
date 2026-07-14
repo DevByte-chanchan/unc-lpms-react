@@ -18,7 +18,9 @@
 import React from 'react';
 import { Layers, ChevronDown, Check } from 'react-feather';
 
-const RED = '#EA1212';
+// The selected-option accent. Black, not the brand red it used to be — red is reserved
+// for errors and destructive actions now, and a filter being active is neither.
+const ACCENT = '#18191A';
 const OPTIONS = [
   { key: 'all', label: 'All Year Levels' },
   { key: 1, label: '1st Year' },
@@ -48,7 +50,7 @@ export default function YearFilter({ value, onChange, counts = {}, total = 0 }) 
         type="button"
         onClick={() => setOpen((v) => !v)}
         // Subtle ring on focus instead of the default black outline.
-        onFocus={(e) => { e.currentTarget.style.boxShadow = '0 0 0 3px rgba(234,18,18,0.15)'; }}
+        onFocus={(e) => { e.currentTarget.style.boxShadow = '0 0 0 3px rgba(24,25,26,0.15)'; }}
         onBlur={(e) => { e.currentTarget.style.boxShadow = 'none'; }}
         style={{
           display: 'inline-flex', alignItems: 'center', gap: 8,
@@ -59,7 +61,7 @@ export default function YearFilter({ value, onChange, counts = {}, total = 0 }) 
       >
         <Layers size={16} color="#6B7280" />
         <span style={{ color: '#6B7280', fontWeight: 500 }}>Year Level:</span>
-        <span style={{ color: '#111827', fontWeight: 600 }}>{current.label}</span>
+        <span style={{ color: '#18191A', fontWeight: 600 }}>{current.label}</span>
         <ChevronDown size={16} color="#6B7280" style={{ marginLeft: 2 }} />
       </button>
 
@@ -86,7 +88,7 @@ export default function YearFilter({ value, onChange, counts = {}, total = 0 }) 
                   width: '100%', textAlign: 'left', border: 'none', borderRadius: 6,
                   padding: '8px 10px', outline: 'none',
                   cursor: disabled ? 'not-allowed' : 'pointer',
-                  background: active ? RED : 'transparent',
+                  background: active ? ACCENT : 'transparent',
                   color: active ? '#FFFFFF' : (disabled ? '#C4C9D1' : '#374151'),
                   fontSize: 14, fontWeight: active ? 600 : 500,
                 }}

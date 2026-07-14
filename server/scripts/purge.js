@@ -30,10 +30,12 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // FK-safe TRUNCATE order (cheap because we disable FK checks anyway,
 // but listed in child→parent order for clarity).
 const TABLES = [
-  'course_assignments',
+  'course_offering_assignments',
   'consultant_courses',
   'industry_consultants',
-  'course_offerings',
+  'prerequisites',
+  'program_course_offerings',
+  'courses',
   'programs',
   'faculty',
   'departments',

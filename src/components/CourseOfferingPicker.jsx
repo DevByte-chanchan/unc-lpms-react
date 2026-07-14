@@ -148,7 +148,7 @@ const CourseOfferingPicker = ({ value, onChange, courses = [], excludeCodes = []
           <span
             style={{
               display: 'inline-flex', alignItems: 'center', gap: 6, minWidth: 0,
-              padding: '4px 8px', background: '#E5E7EB', color: '#111827',
+              padding: '4px 8px', background: '#E5E7EB', color: '#18191A',
               borderRadius: 9999, fontSize: 13, fontWeight: 500, maxWidth: '100%',
             }}
           >

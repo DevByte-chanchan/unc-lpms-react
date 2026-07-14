@@ -9,6 +9,7 @@ export default (sequelize, DataTypes) =>
     'Program',
     {
       id: {
+        field: 'program_id',
         type: DataTypes.INTEGER.UNSIGNED,
         primaryKey: true,
         autoIncrement: true,
@@ -42,6 +43,7 @@ export default (sequelize, DataTypes) =>
         allowNull: true,
       },
       period_id: {
+        field: 'academic_period_id',
         type: DataTypes.INTEGER.UNSIGNED,
         allowNull: true,
       },

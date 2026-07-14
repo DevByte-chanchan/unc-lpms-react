@@ -5,11 +5,13 @@ import { filterOneToExistingColumns, safeDestroyByPeriod, safeWhere } from '../u
 import { bulkUpsert, describeSequelizeError } from '../utils/uploadHelpers.js';
 import { cloneFromPriorPeriod } from '../utils/periodClone.js';
 import { enforceLatestPeriod } from '../utils/latestPeriod.js';
+import { isPreviewRequest, PreviewRows, previewResponse } from '../utils/importPreview.js';
+import { beginImportBatch, beginManualBatch, completeImportBatch } from './importController.js';
 
 const { Program, Faculty } = db;
 
 // Strips honorifics so "Dr. Maria Santos" matches "Maria Santos".
-// Mirrors normalizeName in courseAssignmentController.
+// Mirrors normalizeName in courseOfferingAssignmentController.
 const normalizeFacultyName = (name) =>
   String(name || '')
     .toLowerCase()
@@ -126,7 +128,12 @@ export async function createProgram(req, res, next) {
     if (!(await enforceLatestPeriod(res, period_id))) return;
     const program_head_id = await resolveHeadId(program_head, period_id);
     const safe = await filterOneToExistingColumns(Program, { code, name, program_head, program_head_id, status: status || 'Active', period_id });
+    // Snapshot first, so a row added by hand is undoable the same way an
+    // uploaded one is.
+    const batch = await beginManualBatch('programs', period_id, name);
     const created = await Program.create(safe);
+    await completeImportBatch(batch, { added: 1 });
+
     res.status(201).json(created);
   } catch (err) {
     res.status(400).json({ message: describeSequelizeError(err) });
@@ -189,33 +196,86 @@ export async function uploadPrograms(req, res) {
 
     const records = [];
     const errors  = [];
+    // Every sheet row, valid or not, in sheet order — this is what the preview
+    // table renders. Built in the SAME pass as `records` so the two can't drift.
+    const preview = new PreviewRows();
 
     rows.forEach((row, i) => {
+      const rowNum       = i + 2;   // sheet row: the header is row 1
       const code         = pick(row, 'code');
       const name         = pick(row, 'name');
       const program_head = pick(row, 'programhead', 'facultyname', 'faculty', 'head');
       const status       = pick(row, 'status');
+
+      const cells = {
+        Code:           code ? String(code).trim() : '',
+        Name:           name ? String(name).trim() : '',
+        'Program Head': program_head ? String(program_head).trim() : '',
+        Status:         status ? String(status).trim() : 'Active',
+      };
+
       if (!code || !name) {
-        errors.push({ row: i + 2, message: 'Missing CODE or NAME — skipped.' });
+        const missing = [];
+        if (!code) missing.push({ field: 'Code', message: 'Missing CODE — this row will be skipped.' });
+        if (!name) missing.push({ field: 'Name', message: 'Missing NAME — this row will be skipped.' });
+        errors.push({ row: rowNum, message: 'Missing CODE or NAME — skipped.' });
+        preview.error(rowNum, cells, missing);
         return;
       }
+
       const headName = program_head ? String(program_head).trim() : null;
+      const headId   = headName ? (facultyByKey.get(normalizeFacultyName(headName)) ?? null) : null;
+
+      // The commit only discovers an unmatched head AFTER the write, by re-reading
+      // the DB — which is why the page has to clean up afterwards, one row at a
+      // time. `facultyByKey` is already in hand here, so the preview can say it
+      // BEFORE anything is written. A blank head is not a warning; only a name
+      // that doesn't match anyone is.
+      const rowWarnings = [];
+      if (headName && headId === null) {
+        rowWarnings.push({
+          field: 'Program Head',
+          message: '"' + headName + '" is not in this period\'s Faculty list — the program imports with no head linked.',
+        });
+      }
+
+      if (rowWarnings.length > 0) preview.warning(rowNum, cells, rowWarnings);
+      else preview.ok(rowNum, cells);
+
       records.push({
         code: String(code).trim(),
         name: String(name).trim(),
         program_head: headName,
-        program_head_id: headName ? (facultyByKey.get(normalizeFacultyName(headName)) ?? null) : null,
+        program_head_id: headId,
         status: status ? String(status).trim() : 'Active',
         period_id,
       });
     });
 
+    // ---------- PREVIEW: persist NOTHING and return before the snapshot ----------
+    // Everything below this line writes — and this upload DESTROYS the period's
+    // programs before re-inserting. Returning past this point would wipe the list
+    // on what the user was told was a dry run.
+    if (isPreviewRequest(req)) {
+      return previewResponse(res, {
+        filename: req.file.originalname,
+        headers,
+        preview,
+      });
+    }
+
     if (records.length === 0) {
       return res.status(400).json({ message: 'No valid rows found.', headers, errors });
     }
 
+    // Photograph the period BEFORE the destroy below — this upload replaces
+    // the whole program list, so the snapshot is the only way back.
+    const batch = await beginImportBatch('programs', period_id, req.file.originalname);
+
     const removed = await safeDestroyByPeriod(Program, period_id);
     const created = await bulkUpsert(Program, records, ['name', 'program_head', 'program_head_id', 'status']);
+
+    await completeImportBatch(batch, { inserted: created.length, replaced: removed });
 
     // Cross-reference each row's program_head against the period's Faculty
     // master list. Rows whose head isn't a known Faculty name surface as

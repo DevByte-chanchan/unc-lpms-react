@@ -42,7 +42,7 @@ const OVPAA = () => {
 
   return (
     <SkeletonA
-      header={<HeaderA role="OIC-OVPAA" name="NORTON, MONICA" />}
+      header={<HeaderA role="VPAA" name="NORTON, MONICA" />}
       nav={<SideNavigation mode="ovpaa" />}
       content={renderContent()}
     />

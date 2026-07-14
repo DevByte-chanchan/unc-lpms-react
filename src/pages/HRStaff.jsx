@@ -13,14 +13,21 @@ import EditEntityModal from "../components/EditEntityModal.jsx";
 import ReconciliationModal from "../components/ReconciliationModal.jsx";
 import ConfirmModal from "../components/ConfirmModal.jsx";
 import ViewArchivedButton from "../components/ViewArchivedButton.jsx";
+import UndoUploadButton from "../components/UndoUploadButton.jsx";
+import UploadPreviewFlow from "../components/UploadPreviewFlow.jsx";
+import DialogShell from "../components/DialogShell.jsx";
 import { Upload, Plus, Search, ArrowUp, ArrowDown } from "react-feather";
 import syllabusStyles from '../styles/SyllabusSections.module.sass';
 import { DepartmentsAPI } from '../services/api.js';
 import { usePeriod } from '../services/period.jsx';
 import { STATUS_OPTIONS, partitionByArchive } from '../services/statusPolicy.js';
 
+// The solid variant is the page's primary action — the Add button, and only it.
+// Black, not the brand red: red on a control that CREATES a row reads as danger
+// (the palette uses it for delete/error everywhere else), and the page already
+// spends its red on genuinely destructive things. Text and icon stay white.
 const ActionBtn = ({ onClick, icon, label, disabled, variant }) => (
-  <button onClick={onClick} disabled={disabled} style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '8px 18px', gap: 8, width: 240, height: 40, background: variant === 'white' ? '#FFFFFF' : (disabled ? '#9CA3AF' : '#EA1212'), borderRadius: 6, color: variant === 'white' ? '#374151' : '#fff', border: variant === 'white' ? '1px solid #D1D5DB' : 'none', cursor: disabled ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap', opacity: disabled ? (variant === 'white' ? 0.6 : 0.7) : 1 }}>
+  <button onClick={onClick} disabled={disabled} style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '8px 18px', gap: 8, width: 240, height: 40, background: variant === 'white' ? '#FFFFFF' : (disabled ? '#9CA3AF' : '#18191A'), borderRadius: 6, color: variant === 'white' ? '#374151' : '#fff', border: variant === 'white' ? '1px solid #D1D5DB' : 'none', cursor: disabled ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap', opacity: disabled ? (variant === 'white' ? 0.6 : 0.7) : 1 }}>
     <span style={{ width: 22, height: 22, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{icon}</span>
     {label}
   </button>
@@ -43,11 +50,15 @@ const HRStaff = () => {
   const [confirmUpload, setConfirmUpload]     = React.useState(false);
   const [recon, setRecon]                     = React.useState(null);   // { missing: [] }
   const [selectedFile, setSelectedFile]       = React.useState(null);
+  // The file under review in the Preview & Confirm overlay. Nothing is written
+  // while this is set — the commit only happens on "Confirm & Import".
+  const [pendingFile, setPendingFile]         = React.useState(null);
   const [searchQuery, setSearchQuery]         = React.useState('');
   const [departments, setDepartments]         = React.useState([]);
-  const [uploading, setUploading]             = React.useState(false);
-  const [uploadError, setUploadError]         = React.useState(null);
   const fileInputRef = React.useRef(null);
+
+  // Bumped on every successful upload so the Undo button re-reads its batch.
+  const [uploadCount, setUploadCount]         = React.useState(0);
 
   const refresh = React.useCallback(() => {
     if (!periodId) { setDepartments([]); return; }
@@ -60,31 +71,53 @@ const HRStaff = () => {
 
   const showTable = departments.length > 0;
 
-  const onConfirmUpload = async () => {
+  // Drop whatever is in the picker, so re-opening it never shows a stale file
+  // name from a run the user already abandoned.
+  const clearPicker = React.useCallback(() => {
+    setSelectedFile(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  }, []);
+
+  // Picking a file no longer uploads it — it hands it to the Preview & Confirm
+  // overlay. The write happens there, on "Confirm & Import", and not before.
+  const handleReviewFile = () => {
     if (!selectedFile) { alert('Please choose a file first'); return; }
     if (!periodId)     { alert('Select an academic period first'); return; }
-    setUploading(true); setUploadError(null);
-    try {
-      const result = await DepartmentsAPI.upload(selectedFile, periodId);
-      await refresh();
-      setShowUploadModal(false);
-      setSelectedFile(null);
-      if (fileInputRef.current) fileInputRef.current.value = '';
-      // Smart-sync: if anything in the DB wasn't in the Excel, open
-      // the reconciliation modal.
-      if (result && Array.isArray(result.missing) && result.missing.length > 0) {
-        setRecon({ missing: result.missing });
-      }
-    } catch (err) {
-      setUploadError(err.message || 'Upload failed');
-    } finally {
-      setUploading(false);
+    setShowUploadModal(false);
+    setPendingFile(selectedFile);
+  };
+
+  // "Confirm & Import" succeeded — everything the old onConfirmUpload did after
+  // a successful upload happens here instead, reconciliation included.
+  const onUploadCommitted = async (result) => {
+    // Open the reconciliation modal FIRST, synchronously. Preview & Confirm calls
+    // this at the end of its exit animation and unmounts the moment it returns;
+    // anything the incoming dialog needs must be set before the first `await`, or
+    // it mounts a round-trip later — with the shared backdrop already released
+    // and half-way through fading out. Same dialogs, same order, no gap.
+    // Smart-sync: if anything in the DB wasn't in the Excel, reconcile it.
+    if (result && Array.isArray(result.missing) && result.missing.length > 0) {
+      setRecon({ missing: result.missing });
     }
+    clearPicker();
+    await refresh();
+    setUploadCount((n) => n + 1);
+  };
+
+  // Undone — put the user back where they can pick the RIGHT file.
+  const onUploadUndone = async () => {
+    await refresh();
+    setUploadCount((n) => n + 1);
+    setRecon(null);
+    setPendingFile(null);
+    clearPicker();
+    setShowUploadModal(true);
   };
 
   const onAddDepartment = async (record) => {
     await DepartmentsAPI.create(record, periodId);
     await refresh();
+    setUploadCount((n) => n + 1);   // a manual add is undoable too
   };
 
   const onSaveEdit = async (patch) => {
@@ -138,6 +171,7 @@ const HRStaff = () => {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
             <h2 style={{ margin: 0 }}>Departments</h2>
             <div style={{ display: 'flex', gap: 10 }}>
+              <UndoUploadButton entity="departments" periodId={periodId} disabled={!periodId || !isCurrentTermActive} refreshKey={uploadCount} onUndone={refresh} />
               <ActionBtn variant="white" onClick={() => { if (departments.length > 0) { setConfirmUpload(true); } else { setShowUploadModal(true); } }} disabled={!periodId || !isCurrentTermActive} icon={<Upload size={18} color="#374151" />} label="Upload Department List" />
               {showTable && isCurrentTermActive && <ActionBtn onClick={() => setShowAddModal(true)} icon={<Plus size={18} color="#FFFFFF" />} label="Add Department" />}
             </div>
@@ -145,7 +179,7 @@ const HRStaff = () => {
 
           {!isCurrentTermActive && currentPeriod && (
             <div style={{ marginBottom: 12, padding: '10px 14px', background: '#FEF3C7', border: '1px solid #FCD34D', borderRadius: 8, color: '#92400E', fontSize: 13, lineHeight: '1.4' }}>
-              <strong>Read-only:</strong> {currentPeriod.label} is closed. Switch to an Active term to make changes.
+              <strong>Read-only:</strong> {currentPeriod.label} is not the current term. Switch to the current term to make changes.
             </div>
           )}
 
@@ -178,7 +212,7 @@ const HRStaff = () => {
               <div style={{ width: 100, height: 100, borderRadius: 16, background: '#F3F4F6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Upload size={48} color="#9CA3AF" />
               </div>
-              <div style={{ fontSize: 18, fontWeight: 600, color: '#111827' }}>No departments yet</div>
+              <div style={{ fontSize: 18, fontWeight: 600, color: '#18191A' }}>No departments yet</div>
               <div style={{ color: '#6B7280', textAlign: 'center', maxWidth: 420, fontSize: 14, lineHeight: '1.5' }}>{periodId ? ('Upload a department list for ' + (currentPeriod ? currentPeriod.label : 'this period') + ' to get started.') : 'Select an academic period to begin.'}</div>
             </div>
           )}
@@ -212,7 +246,7 @@ const HRStaff = () => {
           <ConfirmModal
             open={confirmUpload}
             title="Replace department data?"
-            message={'Uploading this file will replace existing departments for ' + (currentPeriod ? currentPeriod.label : 'this period') + '. Existing rows not in the new file will be flagged for reconciliation. Proceed?'}
+            message={'Uploading a file will replace existing departments for ' + (currentPeriod ? currentPeriod.label : 'this period') + '. Existing rows not in the new file will be flagged for reconciliation. You\'ll review the file before anything is saved. Proceed?'}
             confirmLabel="Continue to upload"
             onConfirm={() => { setConfirmUpload(false); setShowUploadModal(true); }}
             onCancel={() => setConfirmUpload(false)}
@@ -228,25 +262,42 @@ const HRStaff = () => {
           )}
 
 
-          {showUploadModal && (
-            <>
-              <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.35)', zIndex: 2 }} onClick={() => !uploading && setShowUploadModal(false)} />
-              <div style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: 600, padding: 24, background: '#FFFFFF', borderRadius: 10, display: 'flex', flexDirection: 'column', gap: 16, zIndex: 3, boxShadow: '0 10px 30px rgba(0,0,0,0.15)' }}>
+          <DialogShell
+            open={showUploadModal}
+            onBackdropClick={() => setShowUploadModal(false)}
+            ariaLabel="Upload Department List"
+            panelStyle={{ width: 600, maxWidth: '94vw', padding: 24, background: '#FFFFFF', borderRadius: 10, display: 'flex', flexDirection: 'column', gap: 16, boxShadow: '0 10px 30px rgba(0,0,0,0.15)' }}
+          >
                 <div style={{ fontSize: 20, fontWeight: 600 }}>Upload Department List</div>
                 <div onClick={() => fileInputRef.current && fileInputRef.current.click()} onDragOver={(e) => e.preventDefault()} onDrop={(e) => { e.preventDefault(); const f = e.dataTransfer.files && e.dataTransfer.files[0]; if (f) setSelectedFile(f); }} style={{ border: '2px dashed #D1D5DB', borderRadius: 8, padding: 28, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
                   <Upload size={36} color="#9CA3AF" />
-                  <div style={{ fontWeight: 600, color: '#111827' }}>{selectedFile ? selectedFile.name : 'Drag & drop file here'}</div>
+                  <div style={{ fontWeight: 600, color: '#18191A' }}>{selectedFile ? selectedFile.name : 'Drag & drop file here'}</div>
                   <div style={{ color: '#6B7280', fontSize: 13 }}>Upload .xlsx, .xls or .csv</div>
                   <input type="file" ref={fileInputRef} accept=".csv,.xlsx,.xls" onChange={(e) => { const f = e.target.files && e.target.files[0]; if (f) setSelectedFile(f); }} style={{ display: 'none' }} />
                 </div>
-                {uploadError && <div style={{ color: '#B91C1C', fontSize: 13 }}>{uploadError}</div>}
-                <div style={{ display: 'flex', gap: 12 }}>
-                  <button disabled={uploading} onClick={() => { setSelectedFile(null); setShowUploadModal(false); }} style={{ flex: 1, height: 40, background: '#FFFFFF', border: '1px solid #111827', borderRadius: 8, color: '#111827', cursor: uploading ? 'not-allowed' : 'pointer', fontWeight: 500 }}>Cancel</button>
-                  <button disabled={uploading} onClick={onConfirmUpload} style={{ flex: 1, height: 40, background: '#1F2937', border: 'none', borderRadius: 8, color: '#FFFFFF', cursor: uploading ? 'not-allowed' : 'pointer', fontWeight: 500, opacity: uploading ? 0.7 : 1 }}>{uploading ? 'Uploading…' : 'Upload'}</button>
+                <div style={{ color: '#6B7280', fontSize: 13 }}>
+                  You'll see exactly what's in the file — and what would fail — before anything is saved.
                 </div>
-              </div>
-            </>
-          )}
+                <div style={{ display: 'flex', gap: 12 }}>
+                  <button onClick={() => { clearPicker(); setShowUploadModal(false); }} style={{ flex: 1, height: 40, background: '#FFFFFF', border: '1px solid #18191A', borderRadius: 8, color: '#18191A', cursor: 'pointer', fontWeight: 500 }}>Cancel</button>
+                  <button disabled={!selectedFile} onClick={handleReviewFile} style={{ flex: 1, height: 40, background: '#18191A', border: 'none', borderRadius: 8, color: '#FFFFFF', cursor: selectedFile ? 'pointer' : 'not-allowed', fontWeight: 500, opacity: selectedFile ? 1 : 0.6 }}>Review file</button>
+                </div>
+          </DialogShell>
+
+          {/* Preview & Confirm, then the 30-second undo toast. The reconciliation
+              modal still fires after the commit, from onUploadCommitted. */}
+          <UploadPreviewFlow
+            file={pendingFile}
+            entity="departments"
+            periodId={periodId}
+            title="Upload Department List"
+            preview={(f) => DepartmentsAPI.uploadPreview(f, periodId)}
+            commit={(f) => DepartmentsAPI.upload(f, periodId)}
+            onBack={() => { setPendingFile(null); setShowUploadModal(true); }}
+            onCancel={() => { setPendingFile(null); clearPicker(); }}
+            onCommitted={onUploadCommitted}
+            onUndone={onUploadUndone}
+          />
     </div>
   );
 };

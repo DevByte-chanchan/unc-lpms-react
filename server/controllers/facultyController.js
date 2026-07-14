@@ -5,6 +5,8 @@ import { filterOneToExistingColumns, safeDestroyByPeriod, safeWhere } from '../u
 import { bulkUpsert, describeSequelizeError } from '../utils/uploadHelpers.js';
 import { cloneFromPriorPeriod } from '../utils/periodClone.js';
 import { enforceLatestPeriod } from '../utils/latestPeriod.js';
+import { isPreviewRequest, PreviewRows, previewResponse } from '../utils/importPreview.js';
+import { beginImportBatch, beginManualBatch, completeImportBatch } from './importController.js';
 
 const { Faculty, Department } = db;
 
@@ -70,7 +72,12 @@ export async function createFaculty(req, res) {
       sex, birthdate: birthdate || null, email, contact_number,
       period_id,
     });
+    // Snapshot first, so a row added by hand is undoable the same way an
+    // uploaded one is.
+    const batch = await beginManualBatch('faculty', period_id, name);
     const created = await Faculty.create(safe);
+    await completeImportBatch(batch, { added: 1 });
+
     res.status(201).json(created);
   } catch (err) {
     res.status(400).json({ message: describeSequelizeError(err) });
@@ -163,8 +170,12 @@ export async function uploadFaculty(req, res) {
 
     const records = [];
     const errors  = [];
+    // Every sheet row, valid or not, in sheet order — this is what the preview
+    // table renders. Built in the SAME pass as `records` so the two can't drift.
+    const preview = new PreviewRows();
 
     rows.forEach((row, i) => {
+      const rowNum      = i + 2;   // sheet row: the header is row 1
       const name        = pick(row, 'name', 'fullname', 'facultyname', 'completename', 'employeename');
       const role        = pick(row, 'role', 'position', 'designation', 'rank');
       const departmentN = pick(row, 'department');
@@ -175,17 +186,42 @@ export async function uploadFaculty(req, res) {
       const email       = pick(row, 'email', 'emailaddress');
       const contact     = pick(row, 'contactnumber', 'contact', 'phone', 'mobilenumber', 'mobile');
 
+      // The columns the preview shows. Deliberately not every field — these are
+      // the ones that tell a user at a glance whether this is the right file.
+      const cells = {
+        Name:         name ? String(name).trim() : '',
+        Role:         role ? String(role).trim() : '',
+        Department:   departmentN ? String(departmentN).trim() : '',
+        Status:       status ? String(status).trim() : 'Active',
+        Email:        email ? String(email).trim() : '',
+        'Contact No.': contact ? String(contact).trim() : '',
+      };
+
       if (!name || !role) {
-        errors.push({ row: i + 2, message: 'Missing NAME or ROLE — skipped.' });
+        const missing = [];
+        if (!name) missing.push({ field: 'Name', message: 'Missing NAME — this row will be skipped.' });
+        if (!role) missing.push({ field: 'Role', message: 'Missing ROLE — this row will be skipped.' });
+        errors.push({ row: rowNum, message: 'Missing NAME or ROLE — skipped.' });
+        preview.error(rowNum, cells, missing);
         return;
       }
 
       let department_id = null;
+      const rowWarnings = [];
       if (departmentN) {
         const dept = deptByName.get(String(departmentN).toLowerCase());
         if (dept) department_id = dept.id;
-        else errors.push({ row: i + 2, message: 'Department "' + departmentN + '" not found in this period; stored as free text.', level: 'warning' });
+        else {
+          const message = 'Department "' + departmentN + '" not found in this period; stored as free text.';
+          errors.push({ row: rowNum, message, level: 'warning' });
+          rowWarnings.push({ field: 'Department', message });
+        }
       }
+
+      // A warning still imports — it just carries a caveat, so it never counts
+      // towards the "rows with errors" tally.
+      if (rowWarnings.length > 0) preview.warning(rowNum, cells, rowWarnings);
+      else preview.ok(rowNum, cells);
 
       records.push({
         name:           String(name).trim(),
@@ -201,6 +237,18 @@ export async function uploadFaculty(req, res) {
         period_id,
       });
     });
+
+    // ---------- PREVIEW: persist NOTHING and return before the snapshot ----------
+    // Past this point the upload starts writing. A file with zero valid rows is
+    // NOT an error here (unlike the commit path below) — it is the wrong-file
+    // case this step exists to catch, and the red rows say so better than a 400.
+    if (isPreviewRequest(req)) {
+      return previewResponse(res, {
+        filename: req.file.originalname,
+        headers,
+        preview,
+      });
+    }
 
     if (records.length === 0) {
       const detected = headers && headers.length ? headers.join(', ') : '(none)';
@@ -222,6 +270,10 @@ export async function uploadFaculty(req, res) {
     });
     const existingByName = new Map(existing.map((r) => [String(r.name).trim().toLowerCase(), r]));
 
+    // Photograph the period before the merge below overwrites anything —
+    // this is what the Undo button restores.
+    const batch = await beginImportBatch('faculty', period_id, req.file.originalname);
+
     let inserted = 0;
     let updated  = 0;
     for (const rec of records) {
@@ -235,6 +287,8 @@ export async function uploadFaculty(req, res) {
         inserted += 1;
       }
     }
+
+    await completeImportBatch(batch, { inserted, updated });
 
     const seenNames = new Set(records.map((r) => String(r.name).trim().toLowerCase()));
     const missing = existing.filter((r) => !seenNames.has(String(r.name).trim().toLowerCase()));

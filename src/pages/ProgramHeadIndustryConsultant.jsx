@@ -11,11 +11,14 @@ import EditEntityModal from "../components/EditEntityModal.jsx";
 import ViewRecordModal from "../components/ViewRecordModal.jsx";
 import ConfirmModal from "../components/ConfirmModal.jsx";
 import ViewArchivedButton from "../components/ViewArchivedButton.jsx";
+import UndoUploadButton from "../components/UndoUploadButton.jsx";
+import UploadPreviewFlow from "../components/UploadPreviewFlow.jsx";
+import DialogShell from "../components/DialogShell.jsx";
 import { RecordMeta } from "../components/RecordTimestamps.jsx";
 import styles from '../styles/CoursesTable.module.sass';
 import syllabusStyles from '../styles/SyllabusSections.module.sass';
 import dd from '../styles/DropdownMenu.module.sass';
-import { ConsultantsAPI, CourseOfferingsAPI, CoursesAPI, FacultyAPI } from '../services/api.js';
+import { ConsultantsAPI, CoursesAPI, FacultyAPI } from '../services/api.js';
 import { courseMatchesPeriod } from '../services/courseTerm.js';
 import { usePeriod } from '../services/period.jsx';
 import { useCurrentUser } from '../services/currentUser.jsx';
@@ -23,7 +26,7 @@ import { useHeadProgram } from '../services/useHeadProgram.js';
 import { STATUS_OPTIONS, partitionByArchive } from '../services/statusPolicy.js';
 
 const ActionBtn = ({ onClick, icon, label, disabled, variant }) => (
-  <button onClick={onClick} disabled={disabled} style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '8px 18px', gap: 8, width: 240, height: 40, background: variant === 'white' ? '#FFFFFF' : (disabled ? '#9CA3AF' : '#EA1212'), borderRadius: 6, color: variant === 'white' ? '#374151' : '#fff', border: variant === 'white' ? '1px solid #D1D5DB' : 'none', cursor: disabled ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap', opacity: disabled ? (variant === 'white' ? 0.6 : 0.7) : 1 }}>
+  <button onClick={onClick} disabled={disabled} style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '8px 18px', gap: 8, width: 240, height: 40, background: variant === 'white' ? '#FFFFFF' : (disabled ? '#9CA3AF' : '#18191A'), borderRadius: 6, color: variant === 'white' ? '#374151' : '#fff', border: variant === 'white' ? '1px solid #D1D5DB' : 'none', cursor: disabled ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap', opacity: disabled ? (variant === 'white' ? 0.6 : 0.7) : 1 }}>
     <span style={{ width: 22, height: 22, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{icon}</span>
     {label}
   </button>
@@ -62,7 +65,7 @@ const sameCourseList = (a, b) =>
  * - Courses in `excludedByCode` are shown disabled with the holder's
  *   name (already assigned to another consultant in this period).
  */
-// SCIS year-level helper — mirrors ProgramHeadCourseOfferings.jsx so the course
+// SCIS year-level helper — mirrors ProgramHeadCourses.jsx so the course
 // picker can group / filter offerings by year. Matches "first/1st/1",
 // "second/2nd/2", etc.; returns null when the level is unknown.
 const YEAR_DEFS = [
@@ -170,9 +173,9 @@ const CourseTagPicker = ({ courses, value, onChange, excludedByCode }) => {
               style={{
                 display: 'inline-flex', alignItems: 'center', gap: 6,
                 height: 28, padding: '0 12px', borderRadius: 9999, fontSize: 13, fontWeight: 500, cursor: 'pointer',
-                background: active ? '#EA1212' : '#FFFFFF',
+                background: active ? '#18191A' : '#FFFFFF',
                 color: active ? '#FFFFFF' : '#374151',
-                border: '1px solid ' + (active ? '#EA1212' : '#D1D5DB'),
+                border: '1px solid ' + (active ? '#18191A' : '#D1D5DB'),
               }}
             >
               {chip.label}
@@ -197,7 +200,7 @@ const CourseTagPicker = ({ courses, value, onChange, excludedByCode }) => {
             key={code}
             style={{
               display: 'inline-flex', alignItems: 'center', gap: 6,
-              padding: '4px 8px', background: '#E5E7EB', color: '#111827',
+              padding: '4px 8px', background: '#E5E7EB', color: '#18191A',
               borderRadius: 9999, fontSize: 13, fontWeight: 500,
             }}
           >
@@ -319,12 +322,13 @@ const ProgramHeadIndustryConsultant = () => {
   const [selectedConsultant, setSelectedConsultant] = React.useState(null);
   const [pickedCourseCodes, setPickedCourseCodes]   = React.useState([]);
   const [selectedFile, setSelectedFile] = React.useState(null);
+  // The file under review in the Preview & Confirm overlay. Nothing is written
+  // while this is set — the commit only happens on "Confirm & Import".
+  const [pendingFile, setPendingFile]   = React.useState(null);
   const [searchQuery, setSearchQuery]   = React.useState('');
   const [consultants, setConsultants]   = React.useState([]);
   const [courses, setCourses]           = React.useState([]);
   const [facultyOptions, setFacultyOptions] = React.useState([]); // Name dropdown: { value: name, label: name, sub: role }
-  const [uploading, setUploading]       = React.useState(false);
-  const [uploadError, setUploadError]   = React.useState(null);
   const fileInputRef = React.useRef(null);
 
   // The course picker sources STRAIGHT from the curriculum catalog (the Course
@@ -345,8 +349,10 @@ const ProgramHeadIndustryConsultant = () => {
         setCourses((prev) => (sameCourseList(prev, next) ? prev : next));
       })
       .catch(() => setCourses([]));
-    CourseOfferingsAPI.list(periodId).catch(() => {}); // keep offerings synced for assignment
   }, [periodId, currentPeriod]);
+
+  // Bumped on every successful upload so the Undo button re-reads its batch.
+  const [uploadCount, setUploadCount]         = React.useState(0);
 
   const refresh = React.useCallback(() => {
     if (!periodId) { setConsultants([]); setCourses([]); return; }
@@ -404,30 +410,47 @@ const ProgramHeadIndustryConsultant = () => {
 
   const showTable = consultants.length > 0;
 
-  const handleConfirmUpload = async () => {
+  // Drop whatever is in the picker, so re-opening it never shows a stale file
+  // name from a run the user already abandoned.
+  const clearPicker = React.useCallback(() => {
+    setSelectedFile(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  }, []);
+
+  // Picking a file no longer uploads it — it hands it to the Preview & Confirm
+  // overlay. The write happens there, on "Confirm & Import", and not before.
+  const handleReviewFile = () => {
     if (!selectedFile) { alert('Please choose a file first'); return; }
     if (!periodId)     { alert('Select an academic period first'); return; }
-    setUploading(true); setUploadError(null);
-    try {
-      await ConsultantsAPI.upload(selectedFile, periodId);
-      await refresh();
-      setShowModal(false);
-      setSelectedFile(null);
-      if (fileInputRef.current) fileInputRef.current.value = '';
-    } catch (err) {
-      setUploadError(err.message || 'Upload failed');
-    } finally {
-      setUploading(false);
-    }
+    setShowModal(false);
+    setPendingFile(selectedFile);
+  };
+
+  // "Confirm & Import" succeeded. This page has no post-upload reconciliation —
+  // the preview's warnings (name not in the Faculty list, course not found) are
+  // now the whole story, and they arrive before the write instead of after it.
+  const onUploadCommitted = async () => {
+    await refresh();
+    setUploadCount((n) => n + 1);
+    clearPicker();
+  };
+
+  // Undone — put the user back where they can pick the RIGHT file.
+  const onUploadUndone = async () => {
+    await refresh();
+    setUploadCount((n) => n + 1);
+    setPendingFile(null);
+    clearPicker();
+    setShowModal(true);
   };
 
   const onAddConsultant = async (record) => {
-    // Manual adds default to Active — the user is explicitly enrolling
-    // this consultant, so they're presumed available right away.
-    // (Upload still creates rows with blank status; that path goes
-    // through Assign for status assignment.)
-    await ConsultantsAPI.create({ ...record, status: 'Active' }, periodId);
+    // Status is auto-linked to the Faculty list by the server (the Name is
+    // picked from that list, so a manual add resolves to a faculty member and
+    // takes their Active/Unavailable state). No status is sent from here.
+    await ConsultantsAPI.create(record, periodId);
     await refresh();
+    setUploadCount((n) => n + 1);   // a manual add is undoable too
   };
 
   const onSaveEdit = async (patch) => {
@@ -540,7 +563,7 @@ const ProgramHeadIndustryConsultant = () => {
                     <span style={{ fontSize: 13, fontWeight: 700, color: '#0F172A' }}>{p.code}</span>
                     <span style={{ fontSize: 12, color: '#64748B', marginLeft: 8 }}>{p.name}</span>
                   </span>
-                  {active && <Check size={15} color="#EA1212" />}
+                  {active && <Check size={15} color="#18191A" />}
                 </button>
               );
             })}
@@ -556,7 +579,7 @@ const ProgramHeadIndustryConsultant = () => {
       <div style={{ width: 92, height: 92, borderRadius: 12, background: '#FEF3C7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <AlertTriangle size={40} color="#B45309" />
       </div>
-      <div style={{ fontSize: 18, fontWeight: 600, color: '#111827' }}>No program assigned for this term</div>
+      <div style={{ fontSize: 18, fontWeight: 600, color: '#18191A' }}>No program assigned for this term</div>
       <div style={{ color: '#6B7280', textAlign: 'center', maxWidth: 440 }}>
         You're not set as a Program Head for any program in {currentPeriod ? currentPeriod.label : 'this term'}. Ask your Dean to assign you, or switch to a term where you're already assigned.
       </div>
@@ -569,7 +592,7 @@ const ProgramHeadIndustryConsultant = () => {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
           <div style={{ minWidth: 0, display: 'flex', gap: 12 }}>
-            <div style={{ width: 4, alignSelf: 'stretch', borderRadius: 2, background: '#EA1212', flexShrink: 0 }} />
+            <div style={{ width: 4, alignSelf: 'stretch', borderRadius: 2, background: '#18191A', flexShrink: 0 }} />
             <div style={{ minWidth: 0 }}>
               <div style={{ fontSize: 24, color: '#0F172A', letterSpacing: '-0.01em', lineHeight: 1.25 }}>
                 {programCode
@@ -583,6 +606,7 @@ const ProgramHeadIndustryConsultant = () => {
         </div>
         {!noProgramAssigned && (
           <div style={{ display: 'flex', gap: 10 }}>
+            <UndoUploadButton entity="industry_consultants" periodId={periodId} disabled={!periodId || !isCurrentTermActive} refreshKey={uploadCount} onUndone={refresh} />
             <ActionBtn variant="white" onClick={() => { if (consultants.length > 0) { setConfirmUpload(true); } else { setShowModal(true); } }} disabled={!periodId || !isCurrentTermActive} icon={<Upload size={18} color="#374151" />} label="Upload Consultant List" />
             {showTable && isCurrentTermActive && (
               <ActionBtn onClick={() => setShowAddModal(true)} icon={<Plus size={18} color="#FFFFFF" />} label="Add Consultant" />
@@ -606,7 +630,7 @@ const ProgramHeadIndustryConsultant = () => {
 
       {!isCurrentTermActive && currentPeriod && (
         <div style={{ marginBottom: 12, padding: '10px 14px', background: '#FEF3C7', border: '1px solid #FCD34D', borderRadius: 8, color: '#92400E', fontSize: 13, lineHeight: '1.4' }}>
-          <strong>Read-only:</strong> {currentPeriod.label} is closed. Switch to an Active term to make changes.
+          <strong>Read-only:</strong> {currentPeriod.label} is not the current term. Switch to the current term to make changes.
         </div>
       )}
 
@@ -635,7 +659,7 @@ const ProgramHeadIndustryConsultant = () => {
           <div style={{ width: 92, height: 92, borderRadius: 12, background: '#F3F4F6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <Clipboard size={40} color="#9CA3AF" />
           </div>
-          <div style={{ fontSize: 18, fontWeight: 600, color: '#111827' }}>No consultants yet</div>
+          <div style={{ fontSize: 18, fontWeight: 600, color: '#18191A' }}>No consultants yet</div>
           <div style={{ color: '#6B7280', textAlign: 'center', maxWidth: 420 }}>{periodId ? ('Upload a consultant list for ' + (currentPeriod ? currentPeriod.label : 'this period') + ' to get started.') : 'Select an academic period to begin.'}</div>
         </div>
       )}
@@ -682,6 +706,9 @@ const ProgramHeadIndustryConsultant = () => {
           key={'consultant-edit-' + editingConsultant.id}
           title="Edit consultant"
           termLabel={currentPeriod ? currentPeriod.label : undefined}
+          notice={editingConsultant.in_faculty_list === false
+            ? 'This name is not in the Faculty list, so its status can’t be linked to a faculty member. Pick a status below to set it manually.'
+            : undefined}
           fields={[
             // Name is picked from the Dean's faculty list (the current value is
             // kept selectable even if it isn't in the list).
@@ -692,7 +719,10 @@ const ProgramHeadIndustryConsultant = () => {
                   ? <div style={{ fontSize: 13, color: '#6B7280', padding: '8px 12px', border: '1px solid #D1D5DB', borderRadius: 6 }}>No courses in this period yet.</div>
                   : <CourseTagPicker courses={courses} value={value} onChange={onChange} excludedByCode={takenByOther} />
               ) },
-            { key: 'status', label: 'Status', type: 'select', options: STATUS_OPTIONS.consultant },
+            { key: 'status', label: 'Status', type: 'select', options: STATUS_OPTIONS.consultant,
+              helper: editingConsultant.in_faculty_list === false
+                ? 'Not in the Faculty list — set the status manually.'
+                : 'Linked to the Faculty list; editing here overrides the link.' },
           ]}
           record={{ ...editingConsultant, assigned_course_codes: consultantCourseCodes(editingConsultant) }}
           onSave={onSaveEdit}
@@ -704,7 +734,7 @@ const ProgramHeadIndustryConsultant = () => {
       <ConfirmModal
         open={confirmUpload}
         title="Replace consultant data?"
-        message={'Uploading this file will replace existing consultants for ' + (currentPeriod ? currentPeriod.label : 'this period') + '. Proceed?'}
+        message={'Uploading a file will replace existing consultants for ' + (currentPeriod ? currentPeriod.label : 'this period') + '. You\'ll review the file before anything is saved. Proceed?'}
         confirmLabel="Continue to upload"
         onConfirm={() => { setConfirmUpload(false); setShowModal(true); }}
         onCancel={() => setConfirmUpload(false)}
@@ -715,7 +745,7 @@ const ProgramHeadIndustryConsultant = () => {
           <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 30 }} onClick={() => setAssignOpen(false)} />
           <div role="dialog" aria-modal="true" style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: 'min(560px, 94vw)', background: '#FFFFFF', borderRadius: 10, padding: 24, display: 'flex', flexDirection: 'column', gap: 20, zIndex: 40 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #E5E7EB', paddingBottom: 14 }}>
-              <h2 style={{ margin: 0, fontSize: 20, fontWeight: 600, color: '#111827' }}>Manage Consultant</h2>
+              <h2 style={{ margin: 0, fontSize: 20, fontWeight: 600, color: '#18191A' }}>Manage Consultant</h2>
               <button onClick={() => setAssignOpen(false)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 0, lineHeight: 0, display: 'inline-flex', alignItems: 'center' }}><X size={22} /></button>
             </div>
             <RecordMeta record={selectedConsultant} style={{ marginTop: -8, marginBottom: 4 }} />
@@ -812,7 +842,7 @@ const ProgramHeadIndustryConsultant = () => {
                 disabled={!assignStatus}
                 style={{
                   flex: 1, width: '100%', height: 40, padding: '0 20px',
-                  background: !assignStatus ? '#9CA3AF' : '#2C3744',
+                  background: !assignStatus ? '#9CA3AF' : '#18191A',
                   color: '#FFFFFF', borderRadius: 8, border: 'none',
                   cursor: !assignStatus ? 'not-allowed' : 'pointer',
                   gap: 8, fontWeight: 500, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
@@ -826,25 +856,42 @@ const ProgramHeadIndustryConsultant = () => {
       )}
 
 
-      {showModal && (
-        <>
-          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.35)', zIndex: 2 }} onClick={() => !uploading && setShowModal(false)} />
-          <div style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: 600, padding: 24, background: '#FFFFFF', borderRadius: 10, display: 'flex', flexDirection: 'column', gap: 16, zIndex: 3, boxShadow: '0 10px 30px rgba(0,0,0,0.15)' }}>
+      <DialogShell
+        open={showModal}
+        onBackdropClick={() => setShowModal(false)}
+        ariaLabel="Upload Consultant List"
+        panelStyle={{ width: 600, maxWidth: '94vw', padding: 24, background: '#FFFFFF', borderRadius: 10, display: 'flex', flexDirection: 'column', gap: 16, boxShadow: '0 10px 30px rgba(0,0,0,0.15)' }}
+      >
             <div style={{ fontSize: 20, fontWeight: 600 }}>Upload Consultant List</div>
             <div onClick={() => fileInputRef.current && fileInputRef.current.click()} onDragOver={(e) => e.preventDefault()} onDrop={(e) => { e.preventDefault(); const f = e.dataTransfer.files && e.dataTransfer.files[0]; if (f) setSelectedFile(f); }} style={{ border: '2px dashed #D1D5DB', borderRadius: 8, padding: 28, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
               <Upload size={36} color="#9CA3AF" />
-              <div style={{ fontWeight: 600, color: '#111827' }}>{selectedFile ? selectedFile.name : 'Drag & drop file here'}</div>
+              <div style={{ fontWeight: 600, color: '#18191A' }}>{selectedFile ? selectedFile.name : 'Drag & drop file here'}</div>
               <div style={{ color: '#6B7280', fontSize: 13 }}>Upload .xlsx, .xls or .csv</div>
               <input type="file" ref={fileInputRef} accept=".csv,.xlsx,.xls" onChange={(e) => { const f = e.target.files && e.target.files[0]; if (f) setSelectedFile(f); }} style={{ display: 'none' }} />
             </div>
-            {uploadError && <div style={{ color: '#B91C1C', fontSize: 13 }}>{uploadError}</div>}
-            <div style={{ display: 'flex', gap: 12 }}>
-              <button disabled={uploading} onClick={() => { setSelectedFile(null); setShowModal(false); }} style={{ flex: 1, height: 40, background: '#FFFFFF', border: '1px solid #111827', borderRadius: 8, color: '#111827', cursor: uploading ? 'not-allowed' : 'pointer', fontWeight: 500 }}>Cancel</button>
-              <button disabled={uploading} onClick={handleConfirmUpload} style={{ flex: 1, height: 40, background: '#1F2937', border: 'none', borderRadius: 8, color: '#FFFFFF', cursor: uploading ? 'not-allowed' : 'pointer', fontWeight: 500, opacity: uploading ? 0.7 : 1 }}>{uploading ? 'Uploading…' : 'Upload'}</button>
+            <div style={{ color: '#6B7280', fontSize: 13 }}>
+              You'll see exactly what's in the file — and what would fail — before anything is saved.
             </div>
-          </div>
-        </>
-      )}
+            <div style={{ display: 'flex', gap: 12 }}>
+              <button onClick={() => { clearPicker(); setShowModal(false); }} style={{ flex: 1, height: 40, background: '#FFFFFF', border: '1px solid #18191A', borderRadius: 8, color: '#18191A', cursor: 'pointer', fontWeight: 500 }}>Cancel</button>
+              <button disabled={!selectedFile} onClick={handleReviewFile} style={{ flex: 1, height: 40, background: '#18191A', border: 'none', borderRadius: 8, color: '#FFFFFF', cursor: selectedFile ? 'pointer' : 'not-allowed', fontWeight: 500, opacity: selectedFile ? 1 : 0.6 }}>Review file</button>
+            </div>
+      </DialogShell>
+
+      {/* Preview & Confirm, then the 30-second undo toast. Mounted inside
+          `content` — this page's return wraps everything in <SkeletonA>. */}
+      <UploadPreviewFlow
+        file={pendingFile}
+        entity="industry_consultants"
+        periodId={periodId}
+        title="Upload Consultant List"
+        preview={(f) => ConsultantsAPI.uploadPreview(f, periodId)}
+        commit={(f) => ConsultantsAPI.upload(f, periodId)}
+        onBack={() => { setPendingFile(null); setShowModal(true); }}
+        onCancel={() => { setPendingFile(null); clearPicker(); }}
+        onCommitted={onUploadCommitted}
+        onUndone={onUploadUndone}
+      />
     </div>
   );
 

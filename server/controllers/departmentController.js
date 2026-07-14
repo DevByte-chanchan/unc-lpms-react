@@ -9,6 +9,8 @@ import { filterOneToExistingColumns } from '../utils/dbHelpers.js';
 import { bulkUpsert, describeSequelizeError } from '../utils/uploadHelpers.js';
 import { cloneFromPriorPeriod } from '../utils/periodClone.js';
 import { enforceLatestPeriod } from '../utils/latestPeriod.js';
+import { isPreviewRequest, PreviewRows, previewResponse } from '../utils/importPreview.js';
+import { beginImportBatch, beginManualBatch, completeImportBatch } from './importController.js';
 
 const { Department } = db;
 
@@ -57,7 +59,12 @@ export async function createDepartment(req, res) {
     const safe = await filterOneToExistingColumns(Department, {
       name, code, dean, status: status || 'Active', period_id,
     });
+    // Snapshot first, so a row added by hand is undoable the same way an
+    // uploaded one is.
+    const batch = await beginManualBatch('departments', period_id, name);
     const created = await Department.create(safe);
+    await completeImportBatch(batch, { added: 1 });
+
     res.status(201).json(created);
   } catch (err) { res.status(400).json({ message: describeSequelizeError(err) }); }
 }
@@ -120,15 +127,34 @@ export async function uploadDepartments(req, res) {
     const records = [];
     const errors  = [];
     const seenNames = new Set();
+    // Every sheet row, valid or not, in sheet order — this is what the preview
+    // table renders. Built in the SAME pass as `records` so the two can't drift.
+    const preview = new PreviewRows();
 
     rows.forEach((row, i) => {
+      const rowNum = i + 2;   // sheet row: the header is row 1
       const name = pick(row, 'name');
       const code = pick(row, 'code');
       const dean = pick(row, 'dean');
+
+      // Enough to answer "is this the right file", not a full data dump. Status
+      // isn't shown because the sheet's is ignored — every row imports Active.
+      const cells = {
+        Name: name ? String(name).trim() : '',
+        Code: code ? String(code).trim() : '',
+        Dean: dean ? String(dean).trim() : '',
+      };
+
       if (!name || !code) {
-        errors.push({ row: i + 2, message: 'Missing NAME or CODE — skipped.' });
+        const missing = [];
+        if (!name) missing.push({ field: 'Name', message: 'Missing NAME — this row will be skipped.' });
+        if (!code) missing.push({ field: 'Code', message: 'Missing CODE — this row will be skipped.' });
+        errors.push({ row: rowNum, message: 'Missing NAME or CODE — skipped.' });
+        preview.error(rowNum, cells, missing);
         return;
       }
+
+      preview.ok(rowNum, cells);
       seenNames.add(String(name).trim().toLowerCase());
       records.push({
         name: String(name).trim(),
@@ -139,6 +165,17 @@ export async function uploadDepartments(req, res) {
       });
     });
 
+    // ---------- PREVIEW: persist NOTHING and return before the snapshot ----------
+    // Everything below this line writes. A preview past it would leave an
+    // ImportBatch behind and offer an Undo for an import that never happened.
+    if (isPreviewRequest(req)) {
+      return previewResponse(res, {
+        filename: req.file.originalname,
+        headers,
+        preview,
+      });
+    }
+
     if (records.length === 0) {
       return res.status(400).json({ message: 'No valid rows found.', headers, errors });
     }
@@ -148,8 +185,14 @@ export async function uploadDepartments(req, res) {
       attributes: ['id', 'name', 'code', 'status'],
       raw: true,
     });
+    // Photograph the period before the upsert below overwrites anything —
+    // this is what the Undo button restores.
+    const batch = await beginImportBatch('departments', period_id, req.file.originalname);
+
     const created = await bulkUpsert(Department, records, ['name', 'dean', 'status']);
     const missing = existing.filter((row) => !seenNames.has(String(row.name).trim().toLowerCase()));
+
+    await completeImportBatch(batch, { inserted: created.length });
 
     res.status(201).json({ inserted: created.length, skipped: errors.length, errors, headers, missing });
   } catch (err) {

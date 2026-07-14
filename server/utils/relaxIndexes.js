@@ -15,11 +15,10 @@
  */
 import { sequelize } from '../config/sequelize.js';
 
-const TABLES = ['departments', 'programs', 'course_offerings'];
+const TABLES = ['departments', 'programs'];
 const COMPOSITE_NAMES = {
   departments:      'departments_code_period_unique',
   programs:         'programs_code_period_unique',
-  course_offerings: 'course_offerings_code_period_unique',
 };
 
 function fieldName(f) {
@@ -47,16 +46,26 @@ async function dropSingleCodeUnique(qi, tableName) {
   }
 }
 
+// Raw SQL below bypasses Sequelize's attribute→column mapping, so it needs the
+// real column names — and the PK is now named after its own entity.
+const PK_COLUMN = {
+  departments: 'department_id',
+  programs:    'program_id',
+};
+
 async function dedupe(tableName) {
-  // Keep lowest id per (code, period_id); delete the rest.
-  // period_id may be NULL for legacy rows — treat those as a single
+  // Keep lowest id per (code, academic_period_id); delete the rest.
+  // The period may be NULL for legacy rows — treat those as a single
   // bucket so they too get deduped against each other.
+  const pk = PK_COLUMN[tableName];
+  if (!pk) return;
+
   const sql =
     'DELETE t1 FROM `' + tableName + '` AS t1 ' +
     'JOIN `' + tableName + '` AS t2 ' +
     '  ON t1.code = t2.code ' +
-    '  AND ((t1.period_id <=> t2.period_id)) ' +
-    '  AND t1.id > t2.id;';
+    '  AND ((t1.academic_period_id <=> t2.academic_period_id)) ' +
+    '  AND t1.`' + pk + '` > t2.`' + pk + '`;';
   try {
     const [result] = await sequelize.query(sql);
     const removed = (result && (result.affectedRows || 0));
@@ -75,11 +84,12 @@ async function ensureCompositeUnique(qi, tableName) {
   if (already) return;
   try {
     await qi.addIndex(tableName, {
-      fields: ['code', 'period_id'],
+      // COLUMN names, not model attributes.
+      fields: ['code', 'academic_period_id'],
       unique: true,
       name: indexName,
     });
-    console.log('[indexes] added UNIQUE(code, period_id) on ' + tableName + ' as "' + indexName + '"');
+    console.log('[indexes] added UNIQUE(code, academic_period_id) on ' + tableName + ' as "' + indexName + '"');
   } catch (err) {
     console.warn('[indexes] could not add composite unique on ' + tableName + ':', err.message);
   }
