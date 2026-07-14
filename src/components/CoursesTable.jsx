@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import styles from '../styles/CoursesTable.module.sass';
-import { ChevronRight, Edit, XCircle, HelpCircle, Download } from 'react-feather';
+import { ChevronRight, Edit, XCircle, HelpCircle, Download, MoreVertical } from 'react-feather';
 import { fetchJson } from "../utils/api.js";
 import { getWorkflow } from "../utils/workflowHelpers.js";
 import { getSyllabi } from "../utils/dataStore.js";
@@ -80,6 +80,7 @@ const CoursesTable = () => {
     const [popup, setPopup] = useState({ open: false, data: null });
     const [exportFile, setExportFile] = useState(null);
     const [exporting, setExporting] = useState(false);
+    const [menuOpenIndex, setMenuOpenIndex] = useState(null);
 
     useEffect(() => {
         loadAssignments();
@@ -364,31 +365,50 @@ const CoursesTable = () => {
                                 <td width={350}>{getName(row)}</td>
                                 {selectedStatus === 'APPROVED' && <td width={200}>{formatDate(getApprovedDate(row))}</td>}
                                 <td className={styles.fill}>
-                                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                                        <Link
-                                            className={'actionLink'}
-                                            to={`/courses/${getCode(row)}/${selectedStatus.toLowerCase()}`}
-                                        >
-                                            {selectedStatus === 'DRAFT' ? 'Compose' : 'View'}
-                                            <ChevronRight size={18} />
-                                        </Link>
-
-                                        {selectedStatus === 'APPROVED' &&
-                                            <span
-                                                className="actionLink"
-                                                style={{ display: 'inline-flex', alignItems: 'center', gap: 5, cursor: exporting ? 'wait' : 'pointer', color: '#6b7280' }}
-                                                onClick={() => !exporting && handlePreview(row)}
+                                    {selectedStatus === 'APPROVED' ? (
+                                        <div style={{ position: 'relative', display: 'flex', justifyContent: 'flex-end', width: '100%' }}>
+                                            <button
+                                                onClick={() => setMenuOpenIndex(menuOpenIndex === index ? null : index)}
+                                                className={styles.info}
+                                                aria-label="Actions"
+                                                style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#475569', display: 'inline-flex', alignItems: 'center', padding: 4 }}
                                             >
-                                                {exporting ? '...' : 'Export'} <Download size={16} />
-                                            </span>
-                                        }
-
-                                        {selectedStatus === 'APPROVED' &&
-                                            <button onClick={() => openPopup(row)} className={styles.info}>
-                                                <HelpCircle size={18} />
+                                                <MoreVertical size={18} />
                                             </button>
-                                        }
-                                    </div>
+                                            {menuOpenIndex === index && (
+                                                <>
+                                                    <div onClick={() => setMenuOpenIndex(null)} style={{ position: 'fixed', inset: 0, zIndex: 40 }} />
+                                                    <div style={{ position: 'absolute', right: 0, top: '100%', marginTop: 4, background: '#fff', border: '1px solid #e2e8f0', borderRadius: 8, boxShadow: '0 6px 18px rgba(0,0,0,0.12)', zIndex: 41, minWidth: 150, overflow: 'hidden' }}>
+                                                        <Link
+                                                            to={`/courses/${getCode(row)}/${selectedStatus.toLowerCase()}`}
+                                                            className={'actionLink'}
+                                                            onClick={() => setMenuOpenIndex(null)}
+                                                            style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', fontSize: 14, color: '#334155' }}
+                                                        >
+                                                            <ChevronRight size={16} /> View
+                                                        </Link>
+                                                        <div style={{ height: 1, background: '#e2e8f0' }} />
+                                                        <button
+                                                            onClick={() => { setMenuOpenIndex(null); if (!exporting) handlePreview(row); }}
+                                                            style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', fontSize: 14, width: '100%', border: 'none', background: 'transparent', cursor: 'pointer', color: '#334155', textAlign: 'left' }}
+                                                        >
+                                                            <Download size={16} /> {exporting ? 'Exporting…' : 'Export'}
+                                                        </button>
+                                                    </div>
+                                                </>
+                                            )}
+                                        </div>
+                                    ) : (
+                                        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                                            <Link
+                                                className={'actionLink'}
+                                                to={`/courses/${getCode(row)}/${selectedStatus.toLowerCase()}`}
+                                            >
+                                                Compose
+                                                <ChevronRight size={18} />
+                                            </Link>
+                                        </div>
+                                    )}
                                 </td>
                                 <td></td>
                             </tr>
@@ -432,9 +452,6 @@ const CoursesTable = () => {
                                                     View <ChevronRight size={16} />
                                                 </Link>
                                             )}
-                                            <button onClick={() => openPopup(row)} className={styles.info}>
-                                                <HelpCircle opacity={.8} size={18} />
-                                            </button>
                                         </div>
                                     </td>
                                 </tr>
