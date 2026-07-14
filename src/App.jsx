@@ -1,6 +1,7 @@
 import './App.css'
 import {BrowserRouter as Router, Routes, Route, Navigate} from 'react-router-dom'
 import AssignedCourses from "./pages/AssignedCourses.jsx";
+import CommentRecorder from "./pages/CommentRecorder.jsx";
 import Syllabus from "./pages/Syllabus.jsx";
 import ReferenceForm from "./pages/ReferenceForm.jsx";
 import TopicForm from "./pages/TopicForm.jsx";
@@ -133,6 +134,7 @@ function App() {
                     <Routes>
                         {/* --- INSTRUCTOR / DEFAULT ROUTES --- */}
                         <Route path={'/'} element={<ErrorBoundary><AssignedCourses /></ErrorBoundary>} />
+                        <Route path={'/record-comments'} element={<ErrorBoundary><CommentRecorder /></ErrorBoundary>} />
                         <Route path={'/assignedtos'} element={<ErrorBoundary><AssignedTOS /></ErrorBoundary>} />
 
                         {/* --- COURSE EDITING ROUTES --- */}

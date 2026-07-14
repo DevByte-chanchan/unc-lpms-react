@@ -4,7 +4,8 @@ const port = process.env.PORT || 5000;
 const cors = require('cors');
 
 app.use(cors({
-    origin: ['http://localhost:5173', 'http://192.168.254.105:5173']
+    // Allow any localhost dev port (5173/5180/etc.) so the frontend can call the API.
+    origin: true
 }));
 
 app.use(express.json({ limit: '10mb' }));

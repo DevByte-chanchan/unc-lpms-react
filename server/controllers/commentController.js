@@ -117,3 +117,70 @@ exports.updateResolutionStatuses = async (req, res) => {
         return res.status(500).json({ message: 'Internal database transaction failure updating checkpoints.' });
     }
 };
+
+/**
+ * POST /api/comments
+ * Creates an approver comment plus its selected targets (topics/references/tlas).
+ * Body: { co_assign_id, commenter_role, message, ilo_id, comment_for, target_ids: [] }
+ */
+exports.createComment = async (req, res) => {
+    try {
+        const {
+            co_assign_id = null,
+            commenter_role,
+            message,
+            ilo_id = null,
+            comment_for = null,
+            target_ids = []
+        } = req.body || {};
+
+        if (!commenter_role || !message || !String(message).trim()) {
+            return res.status(400).json({ message: 'commenter_role and message are required.' });
+        }
+
+        const normalizedFor = comment_for ? String(comment_for).toLowerCase().trim() : null;
+        const ids = Array.isArray(target_ids)
+            ? target_ids.filter(v => v !== null && v !== undefined && v !== '')
+            : [];
+
+        const commentId = await sequelize.transaction(async (t) => {
+            const [insertId] = await sequelize.query(
+                `INSERT INTO Comments
+                     (commenter_role, message, resolved_status, co_assign_id, ilo_id, comment_for, createdAt, updatedAt)
+                 VALUES (?, ?, false, ?, ?, ?, NOW(), NOW());`,
+                {
+                    replacements: [commenter_role, message, co_assign_id, ilo_id, normalizedFor],
+                    type: Sequelize.QueryTypes.INSERT,
+                    transaction: t
+                }
+            );
+
+            if (ids.length > 0) {
+                const placeholders = ids.map(() => '(?, ?, NOW(), NOW())').join(', ');
+                const flat = [];
+                ids.forEach(tid => { flat.push(insertId, tid); });
+                await sequelize.query(
+                    `INSERT INTO CommentTargets (comment_id, target_id, createdAt, updatedAt) VALUES ${placeholders};`,
+                    { replacements: flat, transaction: t }
+                );
+            }
+
+            return insertId;
+        });
+
+        const [created] = await sequelize.query(
+            `SELECT comment_id, commenter_role, message, resolved_status, co_assign_id, ilo_id, comment_for, createdAt
+             FROM Comments WHERE comment_id = ?;`,
+            { replacements: [commentId], type: Sequelize.QueryTypes.SELECT }
+        );
+        const targets = await sequelize.query(
+            `SELECT target_id FROM CommentTargets WHERE comment_id = ?;`,
+            { replacements: [commentId], type: Sequelize.QueryTypes.SELECT }
+        );
+
+        return res.status(201).json({ data: { ...created, targets: targets.map(r => r.target_id) } });
+    } catch (error) {
+        console.error('Error creating comment:', error);
+        return res.status(500).json({ message: 'Internal server error creating comment.' });
+    }
+};

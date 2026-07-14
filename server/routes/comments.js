@@ -11,4 +11,7 @@ router.get('/filter/:iloId/:commentFor', commentController.getCommentsByTarget);
 // REUSABLE: Batch update handler to save state changes
 router.put('/update-resolution', commentController.updateResolutionStatuses);
 
+// Create an approver comment + its selected targets (topics/references/tlas)
+router.post('/', commentController.createComment);
+
 module.exports = router;
