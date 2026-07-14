@@ -540,7 +540,7 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
                       )}
 
                       <div className={styles.commentBody}>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 12, marginBottom: 8 }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 14 }}>
                           <div className={styles.field}>
                             <label className={styles.label}>Course Outcome</label>
                             <select className={styles.select} value={c.courseOutcome} onChange={(e) => updateCommentCourseOutcome(c.id, e.target.value)}>
@@ -593,7 +593,10 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
                           </div>
                         </div>
 
-                        <textarea className={styles.textarea} value={c.text} onChange={(e) => updateCommentText(c.id, e.target.value)} placeholder={'Describe the issue or suggestion...'} rows={4} />
+                        <div className={styles.field}>
+                          <label className={styles.label}>Comment</label>
+                          <textarea className={styles.textarea} value={c.text} onChange={(e) => updateCommentText(c.id, e.target.value)} placeholder={'Describe the issue or suggestion...'} rows={4} />
+                        </div>
 
                       </div>
                     </div>

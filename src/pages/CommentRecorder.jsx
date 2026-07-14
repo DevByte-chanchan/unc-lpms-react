@@ -6,7 +6,20 @@ import DropdownMultiSelect from '../components/DropdownMultiSelect.jsx';
 // Chains: assignment -> ILO -> coverage type -> target(s) -> message, then POSTs to /api/comments.
 // Targets are saved as real numeric IDs (topic_id / reference_id / tla_id) via CommentTargets.
 
-const ROLES = ['Program Head', 'Dean', 'Industry Consultant', 'Director of Libraries'];
+// The commenter is the logged-in approver — read from localStorage 'user', not a dropdown.
+const ROLE_LABELS = {
+    'program-head': 'Program Head',
+    'dean': 'Dean',
+    'industry-consultant': 'Industry Consultant',
+    'director-of-libraries': 'Director of Libraries',
+};
+const getCurrentRole = () => {
+    try {
+        const user = JSON.parse(localStorage.getItem('user') || 'null');
+        const key = user?.role || '';
+        return ROLE_LABELS[key] || (key || 'Approver');
+    } catch { return 'Approver'; }
+};
 
 const COVERAGE_OPTIONS = [
     { value: 'topics', label: 'Topic' },
@@ -28,7 +41,7 @@ export default function CommentRecorder() {
     const [targets, setTargets] = useState([]); // [{ id, label }]
     const [selectedLabels, setSelectedLabels] = useState([]);
     const [message, setMessage] = useState('');
-    const [role, setRole] = useState(ROLES[0]);
+    const [role] = useState(getCurrentRole);
     const [busy, setBusy] = useState(false);
     const [toast, setToast] = useState(null);
 
@@ -147,10 +160,8 @@ export default function CommentRecorder() {
             </p>
 
             <div style={field}>
-                <span style={label}>Reviewer role</span>
-                <select style={select} value={role} onChange={(e) => setRole(e.target.value)}>
-                    {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
-                </select>
+                <span style={label}>Reviewing as</span>
+                <div style={{ ...select, background: '#f8fafc', color: '#334155', fontWeight: 600 }}>{role}</div>
             </div>
 
             <div style={field}>
