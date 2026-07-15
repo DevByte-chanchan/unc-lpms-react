@@ -2,6 +2,7 @@ import React, { useState, useEffect, Suspense } from "react";
 import styles from '../styles/SyllabusPreview.module.sass';
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { fetchJson } from "../utils/api";
+import { normalizeGradingSystem } from '../utils/gradingCriteria.js';
 
 const SyllabusPreview = ({ isOpen, onClose }) => {
     // 1. Guard clause for modal visibility
@@ -303,7 +304,7 @@ const SyllabusPreview = ({ isOpen, onClose }) => {
                                             <td className={styles.valueCell}>{courseDetailsData.cmo}</td>
                                         </tr>
                                         <tr>
-                                            <th className={styles.labelCell}>Learning Plan Revision No.</th>
+                                            <th className={styles.labelCell}>Syllabus Revision No.</th>
                                             <td className={styles.valueCell}>{courseDetailsData.revision}</td>
                                         </tr>
                                         <tr>
@@ -406,7 +407,7 @@ const SyllabusPreview = ({ isOpen, onClose }) => {
                                                     <th className={styles.refHeaderCell} style={{ width: colWidths.title }}>TITLE</th>
                                                     <th className={styles.refHeaderCell} style={{ width: colWidths.author }}>AUTHOR/S</th>
                                                     <th className={styles.refHeaderCell} style={{ width: colWidths.link }}>ISBN</th>
-                                                    <th className={styles.refHeaderCell} style={{ width: colWidths.year }}>PUBLICATION YEAR</th>
+                                                    <th className={styles.refHeaderCell} style={{ width: colWidths.year }}>YEAR</th>
                                                 </tr>
                                                 </thead>
                                                 <tbody>
@@ -436,7 +437,7 @@ const SyllabusPreview = ({ isOpen, onClose }) => {
                                                     <th className={styles.refHeaderCell} style={{ width: colWidths.title }}>TITLE</th>
                                                     <th className={styles.refHeaderCell} style={{ width: colWidths.author }}>AUTHOR/S</th>
                                                     <th className={styles.refHeaderCell} style={{ width: colWidths.link }}>LINK</th>
-                                                    <th className={styles.refHeaderCell} style={{ width: colWidths.year }}>PUBLICATION YEAR</th>
+                                                    <th className={styles.refHeaderCell} style={{ width: colWidths.year }}>YEAR</th>
                                                 </tr>
                                                 </thead>
                                                 <tbody>
@@ -447,7 +448,7 @@ const SyllabusPreview = ({ isOpen, onClose }) => {
                                                         <td className={styles.refDataCellLeft} style={{ width: colWidths.author }}>{ref.authors}</td>
                                                         <td className={styles.refDataCellLeft} style={{ width: colWidths.link }}>
                                                              {ref.link && ref.link !== '#' ? (
-                                                                 <a href={ref.link} target="_blank" rel="noreferrer" className={styles.refUrlLink}>{ref.link}</a>
+                                                                 <a href={ref.link} target="_blank" rel="noreferrer" className={styles.refUrlLink}>Visit</a>
                                                              ) : '-'}
                                                          </td>
                                                          <td className={styles.refDataCellCenter} style={{ width: colWidths.year }}>
@@ -470,7 +471,7 @@ const SyllabusPreview = ({ isOpen, onClose }) => {
                                                      <th className={styles.refHeaderCell} style={{ width: colWidths.title }}>TITLE</th>
                                                      <th className={styles.refHeaderCell} style={{ width: colWidths.author }}>AUTHOR/S</th>
                                                      <th className={styles.refHeaderCell} style={{ width: colWidths.link }}>LINK</th>
-                                                     <th className={styles.refHeaderCell} style={{ width: colWidths.year }}>PUBLICATION YEAR</th>
+                                                     <th className={styles.refHeaderCell} style={{ width: colWidths.year }}>YEAR</th>
                                                  </tr>
                                                  </thead>
                                                  <tbody>
@@ -481,7 +482,7 @@ const SyllabusPreview = ({ isOpen, onClose }) => {
                                                          <td className={styles.refDataCellLeft} style={{ width: colWidths.author }}>{ref.authors}</td>
                                                          <td className={styles.refDataCellLeft} style={{ width: colWidths.link }}>
                                                              {ref.link && ref.link !== '#' ? (
-                                                                 <a href={ref.link} target="_blank" rel="noreferrer" className={styles.refUrlLink}>{ref.link}</a>
+                                                                 <a href={ref.link} target="_blank" rel="noreferrer" className={styles.refUrlLink}>Visit</a>
                                                             ) : '-'}
                                                         </td>
                                                         <td className={styles.refDataCellCenter} style={{ width: colWidths.year }}>
@@ -502,7 +503,7 @@ const SyllabusPreview = ({ isOpen, onClose }) => {
 
                     {/* ---------------- CRITERIA FOR GRADING ---------------- */}
                     {selectedSection === 'Criteria for Grading' && (() => {
-                        const gradingSystem = criteriaData.gradingSystem || [];
+                        const gradingSystem = normalizeGradingSystem(criteriaData.gradingSystem || [], getSyllabusByCode(code)?.gradingSystem || []);
 
                         const calculateTotal = (period) => {
                             let total = 0;
@@ -525,7 +526,7 @@ const SyllabusPreview = ({ isOpen, onClose }) => {
                                         <table className={styles.criteriaTable}>
                                             <thead>
                                             <tr>
-                                                <th rowSpan="2" className={styles.headerCell} style={{ width: '100px' }}>COURSE OUTCOME</th>
+                                                <th rowSpan="2" className={styles.headerCell} style={{ width: '120px' }}>COURSE OUTCOME</th>
                                                 <th rowSpan="2" className={styles.headerCell} style={{ width: '80px' }}>ILO #</th>
                                                 <th rowSpan="2" className={styles.headerCell}>ASSESSMENTS</th>
                                                 <th colSpan="4" className={styles.headerCell}>WEIGHT %</th>
@@ -550,7 +551,7 @@ const SyllabusPreview = ({ isOpen, onClose }) => {
                                                                     </td>
                                                                 )}
                                                                 <td className={styles.dataCellCenter}>
-                                                                    <span style={{ fontWeight: '500' }}>{ilo.id}</span>
+                                                                    <span style={{ fontWeight: '500' }}>{ilo.displayId || `${group.co}-${ilo.id}`}</span>
                                                                 </td>
                                                                 <td className={styles.dataCellCenter}>
                                                                     {Array.isArray(ilo.assessments)

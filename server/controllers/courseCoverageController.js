@@ -1,4 +1,5 @@
 // controllers/courseCoverageController.js
+const { getCourseCoverage: getStaticCourseCoverage } = require('../utils/staticData');
 const {
     Course,
     ProgramCourseOffering,
@@ -31,6 +32,8 @@ exports.getCourseCoverage = async (req, res, next) => {
         });
 
         if (!courseRecord) {
+            const fallback = getStaticCourseCoverage(courseCode);
+            if (fallback) return res.status(200).json(fallback);
             return res.status(200).json({ ilos: [], topics: [], assessments: [] });
         }
         const courseId = courseRecord.course_id || courseRecord.id;
@@ -41,6 +44,8 @@ exports.getCourseCoverage = async (req, res, next) => {
         });
 
         if (!offering) {
+            const fallback = getStaticCourseCoverage(courseCode);
+            if (fallback) return res.status(200).json(fallback);
             return res.status(200).json({ ilos: [], topics: [], assessments: [] });
         }
         const pcOfferingId = offering.pc_offering_id || offering.id;
@@ -52,6 +57,8 @@ exports.getCourseCoverage = async (req, res, next) => {
 
         const coIds = courseOutcomes.map(co => co.co_id || co.id);
         if (coIds.length === 0) {
+            const fallback = getStaticCourseCoverage(courseCode);
+            if (fallback) return res.status(200).json(fallback);
             return res.status(200).json({ ilos: [], topics: [], assessments: [] });
         }
 
@@ -69,6 +76,8 @@ exports.getCourseCoverage = async (req, res, next) => {
 
         const iloIds = ilos.map(ilo => ilo.ilo_id);
         if (iloIds.length === 0) {
+            const fallback = getStaticCourseCoverage(courseCode);
+            if (fallback) return res.status(200).json(fallback);
             return res.status(200).json({ ilos: [], topics: [], assessments: [] });
         }
 

@@ -77,7 +77,8 @@ const ReferenceForm = () => {
                 const assigned = results[1];
                 let targetedComments = [];
 
-                if (status === 'returned' && results[2]) {
+                if (status === 'returned' && Array.isArray(results[2])) {
+                    // Live backend is authoritative; comments already carry target_id + comment_for.
                     targetedComments = results[2];
                 }
 

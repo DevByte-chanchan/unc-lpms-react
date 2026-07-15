@@ -1,0 +1,11 @@
+globalThis.localStorage = { getItem:()=>null, setItem:()=>{}, removeItem:()=>{} };
+const { enrichSyllabi } = await import('./src/data/syllabiDataEnricher.js');
+const test = [{ code:'BIT301', name:'Web Systems and Technologies', credits:'3 units', contact:'3 hours', year:'THIRD YEAR', sem:'1st Semester' }];
+enrichSyllabi(test);
+const s = test[0];
+const n = k => Array.isArray(s[k]) ? s[k].length : (s[k]?'yes':'no');
+console.log('COs:',n('courseOutcomes'),'ILOs:',n('ilos'),'topics:',n('topics'),'refs:',n('references'),'assessments:',n('assessments'),'grading:',n('gradingSystem'),'coAMS:',n('coAssessmentMethodSets'));
+console.log('CO1:', s.courseOutcomes[0].id, '-', String(s.courseOutcomes[0].description).slice(0,60));
+console.log('ILO1:', s.ilos[0].id, '-', String(s.ilos[0].intendedLearningOutcome).slice(0,55));
+console.log('topic1:', s.topics[0].title, '| tlas:', (s.topics[0].tlas||[]).length);
+console.log('grading CO1-ILO1 weight:', JSON.stringify(s.gradingSystem[0].ilos[0].weight));

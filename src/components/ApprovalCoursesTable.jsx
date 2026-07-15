@@ -5,6 +5,7 @@ import { ChevronRight, XCircle, HelpCircle, Download } from 'react-feather';
 import { fetchJson } from "../utils/api.js";
 import { syllabiData } from "../data/syllabiData.js";
 import { getWorkflow } from "../utils/workflowHelpers.js";
+import { getCoursesForRole } from "../utils/demoCourses.js";
 import { getSyllabi } from "../utils/dataStore.js";
 import { buildSyllabusHtml } from "../utils/syllabusPdfHtml.js";
 import PDFViewerModal from "./PDFViewerModal.jsx";
@@ -16,6 +17,13 @@ const getProgram = (code) => {
 };
 
 const EXPORT_ROLES = ['dean', 'vpaa', 'instructor'];
+
+const formatDate = (dateString) => {
+    if (!dateString) return '-';
+    const d = new Date(dateString);
+    if (isNaN(d.getTime())) return '-';
+    return d.toISOString().split('T')[0];
+};
 
 const ApprovalCoursesTable = ({ role = 'approver' }) => {
     const currentYear = new Date().getFullYear();
@@ -102,52 +110,9 @@ const ApprovalCoursesTable = ({ role = 'approver' }) => {
         });
     };
 
-    const mapStaticToRows = () => {
-        const now = new Date().toISOString();
-        return syllabiData.map((s, i) => {
-            const mod = i % 4;
-            const row = {
-                code: s.code,
-                name: s.name,
-                program: getProgram(s.code),
-                instructor: 'Danny Casimero',
-                date_assigned: s.update || now,
-                date_submitted: null,
-                d_date_accepted: null,
-                d_date_returned: null,
-                ph_date_returned: null,
-                ic_date_returned: null,
-                ld_date_returned: null,
-                date_updated: null,
-                ic_date_accepted: null,
-                ld_date_accepted: null,
-                ph_date_accepted: null,
-            };
-
-            if (mod === 0) {
-                // DRAFT — keep as-is
-            } else if (mod === 1) {
-                // PENDING — has date_submitted but no acceptances
-                row.date_submitted = s.update || now;
-            } else if (mod === 2) {
-                // APPROVED — fully accepted
-                row.date_submitted = s.update || now;
-                row.ic_date_accepted = now;
-                row.ld_date_accepted = now;
-                row.ph_date_accepted = now;
-                row.d_date_accepted = now;
-            } else if (mod === 3) {
-                // RETURNED — returned by one approver
-                row.date_submitted = s.update || now;
-                row.ic_date_accepted = now;
-                row.ld_date_returned = now;
-            }
-
-            return row;
-        });
-    };
-
     const getOverallStatus = (row) => {
+        // Canonical demo status wins — keeps every role consistent.
+        if (row.status) return row.status.charAt(0).toUpperCase() + row.status.slice(1);
         const code = getCode(row) || '';
         const wf = getWorkflow(code);
         const isDefault = !wf?.submittedAt &&
@@ -180,34 +145,11 @@ const ApprovalCoursesTable = ({ role = 'approver' }) => {
         return <span style={{ ...s, padding: '3px 10px', borderRadius: 99, fontWeight: 600, fontSize: 12 }}>{status}</span>;
     };
 
-    async function loadAssignments() {
+    function loadAssignments() {
         setLoading(true);
-        try {
-            const data = await fetchJson('/api/assignments');
-            const rows = Array.isArray(data) ? data : (data.data || data.rows || []);
-            setAssignments(rows.map(r => ({
-                code: r.ProgramCourseOffering?.Course?.course_no || r.code || '-',
-                name: r.ProgramCourseOffering?.Course?.course_title || r.name || '-',
-                program: getProgram(r.ProgramCourseOffering?.Course?.course_no || r.code || ''),
-                instructor: r.instructor || 'Danny Casimero',
-                date_assigned: r.date_assigned || '',
-                date_submitted: r.date_submitted || null,
-                d_date_accepted: r.d_date_accepted || null,
-                d_date_returned: r.d_date_returned || null,
-                ph_date_returned: r.ph_date_returned || null,
-                ic_date_returned: r.ic_date_returned || null,
-                ld_date_returned: r.ld_date_returned || null,
-                ic_date_accepted: r.ic_date_accepted || null,
-                ld_date_accepted: r.ld_date_accepted || null,
-                ph_date_accepted: r.ph_date_accepted || null,
-                date_updated: r.date_updated || null,
-            })));
-        } catch (err) {
-            console.warn("API unavailable, using static syllabiData as fallback");
-            setAssignments(mapStaticToRows());
-        } finally {
-            setLoading(false);
-        }
+        // Single source of truth — same courses/tabs for every role.
+        setAssignments(getCoursesForRole(role));
+        setLoading(false);
     }
 
     const getCode = (row) => row.code;
@@ -272,12 +214,15 @@ const ApprovalCoursesTable = ({ role = 'approver' }) => {
 
                         {approvers.map((a, idx) => {
                             const status = a.wfKey?.status || 'pending';
+                            // "Approved" is reserved for the Dean; the other three approvers "Accept".
+                            const doneLabel = a.key === 'Dean' ? 'Approved' : 'Accepted';
                             return (
                             <div key={idx} style={{ marginBottom: 10, paddingBottom: 8, borderBottom: '1px solid #f0f0f0' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
                                     <div style={{ fontWeight: 600, color: '#666' }}>{a.key}</div>
                                 </div>
-                                {status === 'done' && a.wfKey?.completedAt ? <div style={{ fontSize: 13, color: '#666' }}><strong>Approved at:</strong> {new Date(a.wfKey.completedAt).toLocaleString()}</div> : null}
+                                {status === 'done' && a.wfKey?.completedAt ? <div style={{ fontSize: 13, color: '#666' }}><strong>{doneLabel} at:</strong> {new Date(a.wfKey.completedAt).toLocaleString()}</div> : null}
+                                {status === 'done' && !a.wfKey?.completedAt ? <div style={{ fontSize: 13, color: '#047857' }}>{doneLabel}</div> : null}
                                 {status === 'returned' && a.wfKey?.completedAt ? <div style={{ fontSize: 13, color: '#666' }}><strong>Returned at:</strong> {new Date(a.wfKey.completedAt).toLocaleString()}</div> : null}
                                 {status === 'pending' ? <div style={{ fontSize: 13, color: '#666' }}>Pending</div> : null}
                             </div>
@@ -335,21 +280,21 @@ const ApprovalCoursesTable = ({ role = 'approver' }) => {
                     <table>
                         <thead>
                         <tr>
-                            <th width={200}>DATE ASSIGNED</th>
-                            <th width={150}>CODE</th>
-                            <th width={300}>COURSE NAME</th>
-                            {selectedStatus === 'APPROVED' && <th width={250}>DATE APPROVED</th>}
-                            {selectedStatus === 'APPROVED' && <th style={{ width: 80, textAlign: 'center' }}></th>}
+                            <th width={200} style={{textAlign:'center'}}>DATE ASSIGNED</th>
+                            <th width={150} style={{textAlign:'center'}}>CODE</th>
+                            <th width={300} style={{textAlign:'center'}}>COURSE NAME</th>
+                            {selectedStatus === 'APPROVED' && <th width={200} style={{textAlign:'center'}}>DATE APPROVED</th>}
+                            {selectedStatus === 'APPROVED' && EXPORT_ROLES.includes(role) && <th style={{ width: 80, textAlign: 'center' }}></th>}
                             <th className={styles.fill}></th>
                         </tr>
                         </thead>
                         <tbody>
                         {filteredRows.map((row, index) => (
                             <tr key={index}>
-                                <td width={200}>{row.date_assigned ? new Date(row.date_assigned).toLocaleDateString() : '-'}</td>
+                                <td width={200}>{formatDate(row.date_assigned)}</td>
                                 <td width={150}>{getCode(row)}</td>
                                 <td width={300}>{getName(row)}</td>
-                                {selectedStatus === 'APPROVED' && <td width={250}>{(() => { const d = row.d_date_accepted || getWorkflow(getCode(row))?.dean?.completedAt; return d ? new Date(d).toLocaleDateString() : '-'; })()}</td>}
+                                {selectedStatus === 'APPROVED' && <td width={200}>{(() => { const d = row.d_date_accepted || getWorkflow(getCode(row))?.dean?.completedAt; return d ? formatDate(d) : '-'; })()}</td>}
                                 {selectedStatus === 'APPROVED' && EXPORT_ROLES.includes(role) && <td style={{ width: 80, textAlign: 'center', fontWeight: 500 }}>
                                     <span className="actionLink" style={{ minWidth: 90, display: 'inline-flex', alignItems: 'center', gap: 5, cursor: exporting ? 'wait' : 'pointer', justifyContent: 'center', color: '#6b7280' }} onClick={() => !exporting && handleExport(row)}>
                                         {exporting ? '...' : 'Export'} <Download size={16} />
@@ -384,9 +329,9 @@ const ApprovalCoursesTable = ({ role = 'approver' }) => {
                     <table>
                         <thead>
                         <tr>
-                            <th width={200}>DATE ASSIGNED</th>
-                            <th width={150}>CODE</th>
-                            <th width={550}>COURSE NAME</th>
+                            <th width={200} style={{textAlign:'center'}}>DATE ASSIGNED</th>
+                            <th width={150} style={{textAlign:'center'}}>CODE</th>
+                            <th width={350} style={{textAlign:'center'}}>COURSE NAME</th>
                             <th className={styles.fill}></th>
                         </tr>
                         </thead>
@@ -395,9 +340,9 @@ const ApprovalCoursesTable = ({ role = 'approver' }) => {
                             const overallStatus = getOverallStatus(row);
                             return (
                                 <tr key={index}>
-                                    <td width={200}>{row.date_assigned ? new Date(row.date_assigned).toLocaleDateString() : '-'}</td>
+                                    <td width={200}>{formatDate(row.date_assigned)}</td>
                                     <td width={150}>{getCode(row)}</td>
-                                    <td width={550}>{getName(row)}</td>
+                                    <td width={350}>{getName(row)}</td>
 
                                     <td className={styles.fill}>
                                         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>

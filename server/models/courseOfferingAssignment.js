@@ -21,6 +21,13 @@ module.exports = (sequelize, DataTypes) => {
 
     CourseOfferingAssignment.associate = function(models) {
         CourseOfferingAssignment.belongsTo(models.ProgramCourseOffering, { foreignKey: 'pc_offering_id' });
+        // Revision tracker: workflow timeline events + comments hang off the assignment.
+        if (models.AssignmentWorkflowLog) {
+            CourseOfferingAssignment.hasMany(models.AssignmentWorkflowLog, { foreignKey: 'co_assign_id', as: 'workflowLogs' });
+        }
+        if (models.Comment) {
+            CourseOfferingAssignment.hasMany(models.Comment, { foreignKey: 'co_assign_id', as: 'comments' });
+        }
     };
 
     return CourseOfferingAssignment;

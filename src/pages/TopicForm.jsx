@@ -69,8 +69,13 @@ const TopicForm = () => {
                 setAvailableTopics(Array.isArray(results[0]) ? results[0] : []);
                 setSelectedTopics(Array.isArray(results[1]) ? results[1] : []);
 
-                if (status === 'returned' && results[2]) {
-                    setReviewComments(results[2].map(c => ({
+                let targetedComments = [];
+                if (status === 'returned' && Array.isArray(results[2])) {
+                    // Live backend is authoritative; comments already carry target_id + comment_for.
+                    targetedComments = results[2];
+                }
+                if (targetedComments.length) {
+                    setReviewComments(targetedComments.map(c => ({
                         ...c,
                         resolved_status: c.resolved_status === 1 || c.resolved_status === true
                     })));

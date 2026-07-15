@@ -5,6 +5,7 @@ import { ChevronRight, Edit, XCircle, HelpCircle, Download } from 'react-feather
 import { fetchJson } from "../utils/api.js";
 import { getWorkflow } from "../utils/workflowHelpers.js";
 import { getSyllabi } from "../utils/dataStore.js";
+import { getCoursesForRole } from "../utils/demoCourses.js";
 import { buildSyllabusHtml } from "../utils/syllabusPdfHtml.js";
 import PDFViewerModal from './PDFViewerModal.jsx';
 import unclogo from '../assets/unclogo.png';
@@ -75,7 +76,7 @@ const CoursesTable = () => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selectedYear, currentYear]);
 
-    const [assignments, setAssignments] = useState([]);
+    const [assignments, setAssignments] = useState(() => getCoursesForRole('instructor'));
     const [loading, setLoading] = useState(false);
     const [popup, setPopup] = useState({ open: false, data: null });
     const [exportFile, setExportFile] = useState(null);
@@ -91,49 +92,15 @@ const CoursesTable = () => {
     };
     const handleStatusChange = (e) => updateStatus(e.target.value);
 
-    // === LOGIC RETAINED: static seed rows (mirrors the composition demo assignments) ===
-    // Each row's date fields drive computeOverallStatus (Draft / Pending / Returned / Approved).
-    const makeRow = ({ code, title, assigned, submitted = null, updated = null, approved = null, accepts = {}, returns = {} }) => ({
-        date_assigned: assigned,
-        date_submitted: submitted,
-        date_updated: updated,
-        date_approved: approved,
-        ic_date_accepted: accepts.ic || null,
-        ld_date_accepted: accepts.ld || null,
-        ph_date_accepted: accepts.ph || null,
-        d_date_accepted: accepts.d || null,
-        ic_date_returned: returns.ic || null,
-        ld_date_returned: returns.ld || null,
-        ph_date_returned: returns.ph || null,
-        d_date_returned: returns.d || null,
-        ProgramCourseOffering: { Course: { course_no: code, course_title: title } },
-    });
-
-    const mapStaticToRows = () => ([
-        // DRAFT
-        makeRow({ code: 'BIT313L', title: 'Human and Computer Interaction', assigned: '2026-07-13T15:40:45.000Z' }),
-        makeRow({ code: 'BIT312L', title: 'Integrative Programming and Technologies', assigned: '2026-06-01T00:00:00.000Z' }),
-        // PENDING (submitted, awaiting review)
-        makeRow({ code: 'BIT321L', title: 'System Integration & Architecture', assigned: '2026-06-01T00:00:00.000Z', submitted: '2026-06-15T00:00:00.000Z' }),
-        // RETURNED (industry consultant returned)
-        makeRow({ code: 'BIT311L', title: 'Platform Technologies', assigned: '2026-06-01T00:00:00.000Z', submitted: '2026-06-10T00:00:00.000Z', returns: { ic: '2026-06-15T02:15:00.000Z' } }),
-        makeRow({ code: 'MATH311L', title: 'Statistics', assigned: '2026-06-01T00:00:00.000Z', submitted: '2026-06-10T00:00:00.000Z', returns: { ic: '2026-06-15T02:15:00.000Z' } }),
-        // APPROVED (all approvers accepted incl. Dean)
-        makeRow({ code: 'BIT213L', title: 'Object-Oriented Programming', assigned: '2026-06-01T00:00:00.000Z', submitted: '2026-06-12T02:00:00.000Z', updated: '2026-06-22T01:00:00.000Z', approved: '2026-06-28T07:00:00.000Z', accepts: { ic: '2026-06-24T05:00:00.000Z', ld: '2026-06-23T02:00:00.000Z', ph: '2026-06-25T01:45:00.000Z', d: '2026-06-28T07:00:00.000Z' } }),
-        makeRow({ code: 'BIT213L', title: 'Object-Oriented Programming', assigned: '2025-06-01T01:00:00.000Z', submitted: '2025-06-15T02:00:00.000Z', updated: '2025-06-25T01:00:00.000Z', approved: '2025-07-02T07:00:00.000Z', accepts: { ic: '2025-06-27T05:00:00.000Z', ld: '2025-06-26T02:00:00.000Z', ph: '2025-06-28T01:45:00.000Z', d: '2025-07-02T07:00:00.000Z' } }),
-    ]);
-
-    async function loadAssignments() {
-        // Show static data immediately so the table is never stuck on "Loading…"
-        setAssignments(mapStaticToRows());
+    // Single source of truth — instructor sees all four tabs, same courses as every other role.
+    function loadAssignments() {
         setLoading(true);
         try {
-            const data = await fetchJson('/api/assignments', { timeout: 6000 });
-            const rows = Array.isArray(data) ? data : (data.data || data.rows || []);
-            if (Array.isArray(rows) && rows.length > 0) setAssignments(rows);
+            const rows = getCoursesForRole('instructor') || [];
+            setAssignments(rows);
         } catch (err) {
-            console.warn("API unavailable, using static syllabiData as fallback");
-            // static rows already set above
+            console.warn('Failed to load assigned courses:', err);
+            setAssignments([]);
         } finally {
             setLoading(false);
         }
@@ -143,13 +110,13 @@ const CoursesTable = () => {
     const getCode = (assignment) => {
         const pco = assignment.ProgramCourseOffering || {};
         const course = pco.Course || {};
-        return course.course_no || course.code || course.course_id || pco.course_id || assignment.pc_offering_id || '-';
+        return assignment.code || course.course_no || course.code || course.course_id || pco.course_id || assignment.pc_offering_id || '-';
     };
 
     const getName = (assignment) => {
         const pco = assignment.ProgramCourseOffering || {};
         const course = pco.Course || {};
-        return course.course_title || course.title || course.name || pco.course_description || '-';
+        return assignment.name || course.course_title || course.title || course.name || pco.course_description || '-';
     };
 
     // RETAINED: PDF/HTML export of an approved learning plan (official UNC form)
@@ -187,6 +154,8 @@ const CoursesTable = () => {
     };
 
     const computeOverallStatus = (row) => {
+        // Canonical demo status wins — keeps every role consistent.
+        if (row.status) return row.status.charAt(0).toUpperCase() + row.status.slice(1);
         const code = getCode(row) || '';
         const wf = getWorkflow(code);
         const isDefault = !wf?.submittedAt &&
@@ -246,7 +215,9 @@ const CoursesTable = () => {
 
     const filteredRows = assignments.filter(row => {
         const overall = computeOverallStatus(row);
-        return overall.toUpperCase() === selectedStatus;
+        const normalized = overall.toUpperCase();
+        const explicit = String(row.status || '').toUpperCase();
+        return normalized === selectedStatus || explicit === selectedStatus;
     });
 
     const DetailsPopup = ({ data, onClose }) => {
@@ -349,10 +320,11 @@ const CoursesTable = () => {
                     <table>
                         <thead>
                         <tr>
-                            <th width={200}>DATE ASSIGNED</th>
-                            <th width={150}>CODE</th>
-                            <th width={350}>COURSE NAME</th>
-                            {selectedStatus === 'APPROVED' && <th width={200}>DATE APPROVED</th>}
+                            <th width={200} style={{textAlign:'center'}}>DATE ASSIGNED</th>
+                            <th width={150} style={{textAlign:'center'}}>CODE</th>
+                            <th width={350} style={{textAlign:'center'}}>COURSE NAME</th>
+                            {selectedStatus === 'APPROVED' && <th width={200} style={{textAlign:'center'}}>DATE APPROVED</th>}
+                            {selectedStatus === 'APPROVED' && <th style={{ width: 80, textAlign: 'center' }}></th>}
                             <th className={styles.fill}></th>
                         </tr>
                         </thead>
@@ -363,6 +335,17 @@ const CoursesTable = () => {
                                 <td width={150}>{getCode(row)}</td>
                                 <td width={350}>{getName(row)}</td>
                                 {selectedStatus === 'APPROVED' && <td width={200}>{formatDate(getApprovedDate(row))}</td>}
+                                {selectedStatus === 'APPROVED' &&
+                                    <td style={{ width: 80, textAlign: 'center', fontWeight: 500 }}>
+                                        <span
+                                            className="actionLink"
+                                            style={{ minWidth: 90, display: 'inline-flex', alignItems: 'center', gap: 5, cursor: exporting ? 'wait' : 'pointer', justifyContent: 'center', color: '#6b7280' }}
+                                            onClick={() => !exporting && handlePreview(row)}
+                                        >
+                                            {exporting ? '...' : 'Export'} <Download size={16} />
+                                        </span>
+                                    </td>
+                                }
                                 <td className={styles.fill}>
                                     <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                                         <Link
@@ -372,16 +355,6 @@ const CoursesTable = () => {
                                             {selectedStatus === 'DRAFT' ? 'Compose' : 'View'}
                                             <ChevronRight size={18} />
                                         </Link>
-
-                                        {selectedStatus === 'APPROVED' &&
-                                            <span
-                                                className="actionLink"
-                                                style={{ display: 'inline-flex', alignItems: 'center', gap: 5, cursor: exporting ? 'wait' : 'pointer', color: '#6b7280' }}
-                                                onClick={() => !exporting && handlePreview(row)}
-                                            >
-                                                {exporting ? '...' : 'Export'} <Download size={16} />
-                                            </span>
-                                        }
 
                                         {selectedStatus === 'APPROVED' &&
                                             <button onClick={() => openPopup(row)} className={styles.info}>
@@ -402,9 +375,9 @@ const CoursesTable = () => {
                     <table>
                         <thead>
                         <tr>
-                            <th width={200}>DATE ASSIGNED</th>
-                            <th width={150}>CODE</th>
-                            <th width={350}>COURSE NAME</th>
+                            <th width={200} style={{textAlign:'center'}}>DATE ASSIGNED</th>
+                            <th width={150} style={{textAlign:'center'}}>CODE</th>
+                            <th width={350} style={{textAlign:'center'}}>COURSE NAME</th>
                             <th className={styles.fill}></th>
                         </tr>
                         </thead>

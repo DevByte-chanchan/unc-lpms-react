@@ -1,4 +1,5 @@
 // controllers/referenceSummaryController.js
+const { getReferences: getStaticReferences } = require('../utils/staticData');
 const {
     Course,
     ProgramCourseOffering,
@@ -31,6 +32,8 @@ exports.getReferenceSummary = async (req, res, next) => {
         });
 
         if (!courseRecord) {
+            const fallback = getStaticReferences(courseCode);
+            if (fallback) return res.status(200).json(fallback);
             return res.status(200).json({ references: [], Textbook: [], "Open Educational Resources": [], "Online Resources": [] });
         }
         const courseId = courseRecord.course_id || courseRecord.id;
@@ -41,6 +44,8 @@ exports.getReferenceSummary = async (req, res, next) => {
         });
 
         if (!offering) {
+            const fallback = getStaticReferences(courseCode);
+            if (fallback) return res.status(200).json(fallback);
             return res.status(200).json({ references: [], Textbook: [], "Open Educational Resources": [], "Online Resources": [] });
         }
         const pcOfferingId = offering.pc_offering_id || offering.id;
@@ -52,6 +57,8 @@ exports.getReferenceSummary = async (req, res, next) => {
 
         const coIds = courseOutcomes.map(co => co.co_id || co.id);
         if (coIds.length === 0) {
+            const fallback = getStaticReferences(courseCode);
+            if (fallback) return res.status(200).json(fallback);
             return res.status(200).json({ references: [], Textbook: [], "Open Educational Resources": [], "Online Resources": [] });
         }
 
@@ -63,6 +70,8 @@ exports.getReferenceSummary = async (req, res, next) => {
 
         const iloIds = ilos.map(ilo => ilo.ilo_id);
         if (iloIds.length === 0) {
+            const fallback = getStaticReferences(courseCode);
+            if (fallback) return res.status(200).json(fallback);
             return res.status(200).json({ references: [], Textbook: [], "Open Educational Resources": [], "Online Resources": [] });
         }
 

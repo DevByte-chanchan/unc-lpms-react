@@ -42,6 +42,9 @@ app.use('/api/comments', commentRoutes);
 app.use('/api/course-coverage', courseCoverageRoutes);
 app.use('/api', courseReferenceRoutes);
 
+const revisionRoutes = require('./routes/revisionRoutes');
+app.use('/api/revisions', revisionRoutes);
+
 const exportPdfRoutes = require('./routes/exportPdf');
 app.use('/api', exportPdfRoutes);
 

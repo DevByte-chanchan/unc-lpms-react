@@ -1,4 +1,5 @@
 // controllers/iloController.js
+const { getILOs: getStaticILOs } = require('../utils/staticData');
 const { Course, ProgramCourseOffering, CourseOutcome, IntendedLearningOutcome } = require('../models');
 
 async function getILOsByCourseCode(req, res) {
@@ -14,6 +15,8 @@ async function getILOsByCourseCode(req, res) {
             attributes: ['course_id', 'course_no']
         });
         if (!course) {
+            const fallback = getStaticILOs(courseCode);
+            if (fallback) return res.json(fallback);
             return res.status(404).json({ message: 'Course not found' });
         }
 
@@ -23,6 +26,8 @@ async function getILOsByCourseCode(req, res) {
             attributes: ['pc_offering_id']
         });
         if (!pcos || pcos.length === 0) {
+            const fallback = getStaticILOs(courseCode);
+            if (fallback) return res.json(fallback);
             return res.status(404).json({ message: 'Program course offering not found for this course' });
         }
 
@@ -54,6 +59,11 @@ async function getILOsByCourseCode(req, res) {
                 description: ilo.description,
                 hours: ilo.hours
             });
+        }
+
+        if (courseOutcomes.length === 0) {
+            const fallback = getStaticILOs(courseCode);
+            if (fallback) return res.json(fallback);
         }
 
         const resultCourseOutcomes = courseOutcomes.map(co => ({

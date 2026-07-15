@@ -105,10 +105,10 @@ const DirectorOfLibraries = () => {
       header={<Header role="Director Of Libraries" name="SANTOS, MARIA" />}
       nav={<SideNavigation mode="director-of-libraries" />}
       content={
-        <div style={{ padding: 20, display: 'grid', gap: 16 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
           <ApprovalCoursesTable role="director-of-libraries" />
 
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
+          <div style={{ padding: '0 30px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
             <div>
               <h2>Director of Libraries - Reference Library</h2>
               <p>Manage reference materials and suggest them to learning plans.</p>

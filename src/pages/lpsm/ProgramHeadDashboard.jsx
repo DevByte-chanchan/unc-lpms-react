@@ -5,67 +5,32 @@ import SkeletonA from '../../layouts/SkeletonA.jsx';
 import HeaderA from '../../components/HeaderA.jsx';
 import SideNavigation from '../../components/SideNavigation.jsx';
 import styles from '../../styles/ProgramHeadDashboard.module.scss';
-
-const programHeadSyllabi = [
-  {
-    id: '101',
-    courseCode: 'CS 101',
-    courseName: 'Introduction to Computer Science',
-    semester: 'Fall 2024',
-    program: 'Computer Science',
-    documents: { peo_alignment: true, coaep: true, co_po_alignment: true },
-    lastUpdated: 'May 12, 2026'
-  },
-  {
-    id: '201',
-    courseCode: 'CS 201',
-    courseName: 'Data Structures',
-    semester: 'Fall 2024',
-    program: 'Computer Science',
-    documents: { peo_alignment: true, coaep: false, co_po_alignment: false },
-    lastUpdated: 'May 10, 2026'
-  },
-  {
-    id: '301',
-    courseCode: 'CS 301',
-    courseName: 'Algorithms',
-    semester: 'Fall 2024',
-    program: 'Computer Science',
-    documents: { peo_alignment: false, coaep: false, co_po_alignment: false },
-    lastUpdated: 'May 8, 2026'
-  },
-  {
-    id: '102',
-    courseCode: 'CS 102',
-    courseName: 'Programming Fundamentals',
-    semester: 'Spring 2024',
-    program: 'Computer Science',
-    documents: { peo_alignment: true, coaep: true, co_po_alignment: true },
-    lastUpdated: 'Jan 15, 2026'
-  },
-  {
-    id: '101M',
-    courseCode: 'MATH 101',
-    courseName: 'Calculus I',
-    semester: 'Fall 2024',
-    program: 'Mathematics',
-    documents: { peo_alignment: true, coaep: true, co_po_alignment: true },
-    lastUpdated: 'May 5, 2026'
-  }
-];
+import { getUnifiedSyllabi } from '../../utils/dataStore.js';
 
 const ProgramHeadDashboard = () => {
   const [search, setSearch] = useState('');
 
+  const syllabiData = useMemo(() => {
+    return getUnifiedSyllabi().map(s => ({
+      id: s.code,
+      courseCode: s.code,
+      courseName: s.name,
+      semester: s.sem || s.semester || '—',
+      program: s.code && s.code.startsWith('IT ') ? 'Information Technology' : 'Computer Science',
+      documents: { peo_alignment: false, coaep: false, co_po_alignment: false },
+      lastUpdated: s.update || '—'
+    }));
+  }, []);
+
   const filteredSyllabi = useMemo(() => {
-    return programHeadSyllabi.filter((item) => {
+    return syllabiData.filter((item) => {
       const q = search.toLowerCase();
       return item.courseCode.toLowerCase().includes(q) || item.courseName.toLowerCase().includes(q);
     });
-  }, [search]);
+  }, [search, syllabiData]);
 
-  const total = programHeadSyllabi.length;
-  const documentsPending = programHeadSyllabi.filter((item) => {
+  const total = syllabiData.length;
+  const documentsPending = syllabiData.filter((item) => {
     const uploadedCount = Object.values(item.documents).filter(Boolean).length;
     return uploadedCount < 3;
   }).length;

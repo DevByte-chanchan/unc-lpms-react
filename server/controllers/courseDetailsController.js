@@ -1,4 +1,5 @@
 // controllers/courseDetailsController.js
+const { getCourseDetails: getStaticCourseDetails } = require('../utils/staticData');
 const { Course, ProgramCourseOffering, Prerequisite } = require('../models');
 
 async function getCourseDetailsByCourseCode(req, res) {
@@ -20,7 +21,11 @@ async function getCourseDetailsByCourseCode(req, res) {
                 'term'
             ]
         });
-        if (!course) return res.status(404).json({ message: 'Course not found' });
+        if (!course) {
+            const fallback = getStaticCourseDetails(courseCode);
+            if (fallback) return res.json(fallback);
+            return res.status(404).json({ message: 'Course not found' });
+        }
 
         const pco = await ProgramCourseOffering.findOne({
             where: { course_id: course.course_id },

@@ -75,7 +75,7 @@ async function main() {
       1,
       courseId,
       programId,
-      3,
+      1,
       (s.name || '') + ' - syllabus',
       now, now,
     ])

@@ -5,9 +5,8 @@ import SkeletonA from '../../layouts/SkeletonA.jsx';
 import HeaderA from '../../components/HeaderA.jsx';
 import SideNavigation from '../../components/SideNavigation.jsx';
 import styles from '../../styles/InstructorDashboard.module.scss';
-import { syllabiData, getSyllabusByCode } from '../../data/syllabiData.js';
-import { getSyllabus as getEnrichedSyllabus } from '../../utils/dataStore.js';
-import { getWorkflow } from '../../utils/workflowHelpers.js';
+import { getSyllabusByCode } from '../../data/syllabiData.js';
+import { getUnifiedSyllabi, getSyllabus as getEnrichedSyllabus } from '../../utils/dataStore.js';
 import { buildSyllabusHtml } from '../../utils/syllabusPdfHtml.js';
 import PDFViewerModal from '../../components/PDFViewerModal'
 import unclogo from '../../assets/unclogo.png'
@@ -21,7 +20,8 @@ const getProgram = (code) => {
   const FLAG = 'lpsm_instructor_fix_v2'
   if (localStorage.getItem(FLAG)) return
   try {
-    const raw = localStorage.getItem('lpms_syllabi_v1')
+    const KEY = 'lpms_syllabi_v2'
+    const raw = localStorage.getItem(KEY)
     if (raw) {
       const data = JSON.parse(raw)
       let changed = false
@@ -31,7 +31,7 @@ const getProgram = (code) => {
           changed = true
         }
       })
-      if (changed) localStorage.setItem('lpms_syllabi_v1', JSON.stringify(data))
+      if (changed) localStorage.setItem(KEY, JSON.stringify(data))
     }
   } catch (e) { console.warn('Instructor name migration failed:', e) }
   localStorage.setItem(FLAG, '1')
@@ -57,12 +57,13 @@ const InstructorDashboard = () => {
   ];
 
   const courses = useMemo(() => {
-    return syllabiData.map(s => {
-      const wf = getWorkflow(s.code);
+    return getUnifiedSyllabi().map(s => {
+      const wf = s.workflow || {};
       const stage = wf.currentStage || 'submitted';
       let overallStatus = 'Draft';
       if (stage === 'approved') overallStatus = 'APPROVED';
       else if (stage === 'returned') overallStatus = 'RETURNED';
+      else if (stage === 'submitted' && wf.submittedAt) overallStatus = 'Under-review';
       else if (stage === 'submitted') overallStatus = 'DRAFT';
       else overallStatus = 'Under-review';
 
@@ -265,9 +266,9 @@ const InstructorDashboard = () => {
         <table>
           <thead>
             <tr>
-              <th width={200}>DATE ASSIGNED</th>
-              <th width={150}>CODE</th>
-              <th width={300}>COURSE NAME</th>
+              <th width={200} style={{textAlign:'center'}}>DATE ASSIGNED</th>
+              <th width={150} style={{textAlign:'center'}}>CODE</th>
+              <th width={300} style={{textAlign:'center'}}>COURSE NAME</th>
               {activeTab === 'approved' && <th width={250} style={{textAlign:'center'}}>DATE APPROVED</th>}
               {activeTab === 'approved' && <th style={{ width: 80, textAlign: 'center' }}></th>}
               <th className={styles.fill}></th>

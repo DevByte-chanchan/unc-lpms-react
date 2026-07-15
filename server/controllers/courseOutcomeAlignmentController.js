@@ -1,4 +1,5 @@
 // controllers/courseOutcomeAlignmentController.js
+const { getCourseOutcomeAlignment: getStaticAlignment } = require('../utils/staticData');
 const { Course, ProgramCourseOffering, CourseOutcome, ProgramOutcomeAlignment, ProgramOutcome } = require('../models');
 
 async function getCourseProgramOutcomeAlignment(req, res) {
@@ -11,7 +12,11 @@ async function getCourseProgramOutcomeAlignment(req, res) {
             where: { course_no: courseCode },
             attributes: ['course_id', 'course_no', 'course_title']
         });
-        if (!course) return res.status(404).json({ message: 'Course not found' });
+        if (!course) {
+            const fallback = getStaticAlignment(courseCode);
+            if (fallback) return res.json(fallback);
+            return res.status(404).json({ message: 'Course not found' });
+        }
 
         // 2) find the program course offering(s) for that course_id (use latest revision if multiple)
         const pco = await ProgramCourseOffering.findOne({
@@ -20,6 +25,8 @@ async function getCourseProgramOutcomeAlignment(req, res) {
             order: [['revision_number', 'DESC']]
         });
         if (!pco) {
+            const fallback = getStaticAlignment(courseCode);
+            if (fallback) return res.json(fallback);
             return res.json({ course: { code: course.course_no, title: course.course_title }, programOutcomes: [], courseOutcomes: [] });
         }
 

@@ -1,22 +1,31 @@
 import { syllabiData as staticSyllabi } from '../data/syllabiData.js'
 import { enrichSyllabi } from '../data/syllabiDataEnricher.js'
+import { getWorkflow } from './workflowHelpers.js'
 
-const SYLLABI_KEY = 'lpms_syllabi_v1'
+const SYLLABI_KEY = 'lpms_syllabi_v2'
 const SUGGESTIONS_KEY = 'lpms_suggestions_v1'
 
+function safeStorage() {
+  if (typeof window !== 'undefined' && window.localStorage) {
+    return window.localStorage
+  }
+  return null
+}
+
 function initSyllabi() {
+  const storage = safeStorage()
   try {
-    const raw = localStorage.getItem(SYLLABI_KEY)
+    const raw = storage ? storage.getItem(SYLLABI_KEY) : null
     if (raw) {
       const data = JSON.parse(raw)
       enrichSyllabi(data)
-      localStorage.setItem(SYLLABI_KEY, JSON.stringify(data))
+      if (storage) storage.setItem(SYLLABI_KEY, JSON.stringify(data))
       return data
     }
   } catch (e) { console.warn('Failed to parse stored syllabi, reinitializing:', e) }
   const enriched = [...staticSyllabi]
   enrichSyllabi(enriched)
-  localStorage.setItem(SYLLABI_KEY, JSON.stringify(enriched))
+  if (storage) storage.setItem(SYLLABI_KEY, JSON.stringify(enriched))
   return enriched
 }
 
@@ -29,6 +38,13 @@ const normalizeInstructor = (s) => {
 
 export function getSyllabi() {
   return initSyllabi().map(normalizeInstructor)
+}
+
+export function getUnifiedSyllabi() {
+  return initSyllabi().map(s => {
+    const wf = getWorkflow(s.code)
+    return { ...s, workflow: wf, currentStage: wf.currentStage }
+  })
 }
 
 export function getSyllabus(code) {
@@ -57,8 +73,9 @@ export function addReference(code, ref) {
 }
 
 export function getSuggestions(courseCode) {
+  const storage = safeStorage()
   try {
-    const raw = localStorage.getItem(SUGGESTIONS_KEY)
+    const raw = storage ? storage.getItem(SUGGESTIONS_KEY) : null
     const all = raw ? JSON.parse(raw) : []
     if (!Array.isArray(all)) return []
     return courseCode ? all.filter(s => s.courseCode === courseCode) : all
@@ -66,6 +83,7 @@ export function getSuggestions(courseCode) {
 }
 
 export function addSuggestion(courseCode, reference, suggestedBy) {
+  const storage = safeStorage()
   const all = getSuggestions(null)
   const suggestion = {
     id: `SUG-${Date.now()}`,
@@ -76,17 +94,18 @@ export function addSuggestion(courseCode, reference, suggestedBy) {
     status: 'pending'
   }
   all.push(suggestion)
-  localStorage.setItem(SUGGESTIONS_KEY, JSON.stringify(all))
+  if (storage) storage.setItem(SUGGESTIONS_KEY, JSON.stringify(all))
   return suggestion
 }
 
 export function acceptSuggestion(suggestionId) {
+  const storage = safeStorage()
   const all = getSuggestions(null)
   const idx = all.findIndex(s => s.id === suggestionId)
   if (idx === -1) return null
   all[idx].status = 'accepted'
   all[idx].acceptedAt = new Date().toISOString()
-  localStorage.setItem(SUGGESTIONS_KEY, JSON.stringify(all))
+  if (storage) storage.setItem(SUGGESTIONS_KEY, JSON.stringify(all))
   const rawType = (all[idx].reference.type || '').toLowerCase()
   const mappedType = rawType === 'book' ? 'Textbook'
     : rawType.includes('online') ? 'Online Resources'
@@ -104,11 +123,12 @@ export function acceptSuggestion(suggestionId) {
 }
 
 export function rejectSuggestion(suggestionId) {
+  const storage = safeStorage()
   const all = getSuggestions(null)
   const idx = all.findIndex(s => s.id === suggestionId)
   if (idx === -1) return null
   all[idx].status = 'rejected'
   all[idx].rejectedAt = new Date().toISOString()
-  localStorage.setItem(SUGGESTIONS_KEY, JSON.stringify(all))
+  if (storage) storage.setItem(SUGGESTIONS_KEY, JSON.stringify(all))
   return all[idx]
 }

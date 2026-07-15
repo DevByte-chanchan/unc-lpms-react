@@ -1,0 +1,10 @@
+globalThis.localStorage = { getItem:()=>null, setItem:()=>{}, removeItem:()=>{} };
+const { syllabiData } = await import('./src/data/syllabiData.js');
+const { enrichSyllabi } = await import('./src/data/syllabiDataEnricher.js');
+enrichSyllabi(syllabiData);
+console.log("runtime total:", syllabiData.length);
+const has = f => syllabiData.filter(s => Array.isArray(s[f]) ? s[f].length : !!s[f]).length;
+for (const f of ["courseOutcomes","ilos","topics","references","gradingSystem"]) console.log(f.padEnd(16), has(f));
+const full = syllabiData.filter(s=>(s.courseOutcomes||[]).length&&(s.ilos||[]).length&&(s.topics||[]).length&&(s.references||[]).length&&s.gradingSystem);
+console.log("FULL(all5):", full.length, "of", syllabiData.length);
+console.log("sample codes:", syllabiData.slice(0,20).map(s=>s.code).join(", "));

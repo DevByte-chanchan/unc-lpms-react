@@ -100,7 +100,8 @@ const TLAForm = () => {
 
                 const results = await Promise.all(fetchPromises);
                 const data = results[0];
-                const targetedComments = results[1] || [];
+                // Live backend is authoritative; comments already carry target_id + comment_for.
+                const targetedComments = Array.isArray(results[1]) ? results[1] : [];
 
                 const { availableTopics, topicIdMap, tlas: existingTlas, assessmentTypeSuggestions } = data;
 

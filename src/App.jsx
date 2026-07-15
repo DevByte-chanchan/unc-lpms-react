@@ -49,7 +49,7 @@ import ProtectedRoute from "./components/ProtectedRoute.jsx";
 // Error Boundary
 import ErrorBoundary from "./components/ErrorBoundary.jsx";
 
-import { seedDemoWorkflows } from './utils/workflowHelpers';
+import { seedDemoWorkflowsCanonical } from './utils/demoCourses';
 import { logActivity } from './utils/auditLogger';
 
 // ── Seed demo data only if none exists ───────────────────────────────────
@@ -96,7 +96,7 @@ import { logActivity } from './utils/auditLogger';
   localStorage.setItem(versionFlag, '1')
 })()
 
-seedDemoWorkflows()
+seedDemoWorkflowsCanonical()
 
 
 // Seed audit activity log if empty
@@ -140,6 +140,7 @@ function App() {
                         {/* --- COURSE EDITING ROUTES --- */}
                         <Route path={'/courses/:code'} element={<ErrorBoundary><Syllabus /></ErrorBoundary>} />
                         <Route path={'/courses/:code/:status'} element={<ErrorBoundary><Syllabus /></ErrorBoundary>} />
+                        <Route path={'/courses/:pcId/:revNum/:status'} element={<ErrorBoundary><Syllabus /></ErrorBoundary>} />
                         <Route path={'/revisions/:code'} element={<ErrorBoundary><SyllabusRevisions /></ErrorBoundary>} />
 
                         {/* --- FORMS --- */}

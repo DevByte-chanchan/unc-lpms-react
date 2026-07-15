@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import styles from '../../../styles/VPAADashboard.module.scss';
 import * as service from '../../../services/learningPlanService';
 import * as syllabusService from '../../../services/syllabusService';
-import { getSyllabi } from '../../../utils/dataStore';
+import { getUnifiedSyllabi } from '../../../utils/dataStore';
 import { exportSyllabusToPDF } from '../../../utils/pdfExport';
 import { FileText, Clipboard } from 'react-feather';
 import {
@@ -62,13 +62,13 @@ const VPAADashboard = () => {
   };
 
   const syllabi = useMemo(() => {
-    const all = getSyllabi() || [];
+    const all = getUnifiedSyllabi() || [];
     return all.map(s => ({
       ...s,
       courseName: s.course_name || s.name || s.courseName || s.title || '',
       code: s.code || s.course_code || ''
     }));
-  }, []);
+  }, [refreshKey]);
 
   const effectiveSyllabi = useMemo(() => {
     const filterVal = syllabiStatusFilter;

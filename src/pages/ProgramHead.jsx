@@ -38,16 +38,18 @@ const ProgramHead = () => {
       header={<HeaderA role="Program Head" name="DANILA, JUNAR" />}
       nav={<SideNavigation mode="program-head" />}
       content={
-        <div style={{ padding: 20, display: 'grid', gap: 16 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
           <ApprovalCoursesTable role="program-head" />
 
-          <h2>Program Head - Document Uploads</h2>
-          <p>Upload supporting documents for learning plan review.</p>
-          <RoleUploadPanel role={'program-head'} courseCode={undefined} uploadSlots={uploadSlots} onUploadsChange={setUploads} />
-          <p className={uploadStyles.subtleText}>{`${completedCount} of ${totalCount} documents uploaded`}</p>
-          <div className={uploadStyles.bottomActions}>
-            <button type="button" className={uploadStyles.btnOutline}>Save as Draft</button>
-            <button type="button" className={uploadStyles.btnPrimary} disabled={!allUploaded}>Submit for Review</button>
+          <div style={{ padding: '0 30px' }}>
+            <h2>Program Head - Document Uploads</h2>
+            <p>Upload supporting documents for learning plan review.</p>
+            <RoleUploadPanel role={'program-head'} courseCode={undefined} uploadSlots={uploadSlots} onUploadsChange={setUploads} />
+            <p className={uploadStyles.subtleText}>{`${completedCount} of ${totalCount} documents uploaded`}</p>
+            <div className={uploadStyles.bottomActions}>
+              <button type="button" className={uploadStyles.btnOutline}>Save as Draft</button>
+              <button type="button" className={uploadStyles.btnPrimary} disabled={!allUploaded}>Submit for Review</button>
+            </div>
           </div>
         </div>
       }

@@ -10,6 +10,7 @@ import { getSuggestions, addSuggestion, acceptSuggestion, rejectSuggestion, getS
 import { getReferences, getReferenceById } from '../utils/referenceLibrary'
 import { normalizeRoleKey, isDeprecated, hasIssues, getRoleColor, getComponentTags, isRecent, reviewerSeeds } from '../utils/approvalHelpers.js'
 import { fetchJson } from "../utils/api.js"
+import { normalizeGradingSystem } from '../utils/gradingCriteria.js'
 import PDFViewerModal from './PDFViewerModal'
 import { buildSyllabusHtml } from "../utils/syllabusPdfHtml.js"
 import { seedDummyComments } from "../utils/seedDummyComments.js"
@@ -53,6 +54,14 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
   const [cpaData, setCpaData] = useState({ course: { code: '', title: '' }, programOutcomes: [], courseOutcomes: [] })
   const [cpaLoading, setCpaLoading] = useState(false)
   const [cpaError, setCpaError] = useState(null)
+  const [courseDetails, setCourseDetails] = useState(null)
+  const [courseDetailsLoading, setCourseDetailsLoading] = useState(false)
+  const [coverageData, setCoverageData] = useState(null)
+  const [coverageLoading, setCoverageLoading] = useState(false)
+  const [criteriaData, setCriteriaData] = useState(null)
+  const [criteriaLoading, setCriteriaLoading] = useState(false)
+  const [refData, setRefData] = useState(null)
+  const [refLoading, setRefLoading] = useState(false)
 
   // refs to sections for auto-scroll
   const courseDetailsRef = useRef(null)
@@ -134,8 +143,100 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
     return () => { mounted = false; };
   }, [codeToUse]);
 
+  // API load: Course Details
+  useEffect(() => {
+    if (!codeToUse) return;
+    let mounted = true;
+    async function fetchCourseDetails() {
+      setCourseDetailsLoading(true);
+      try {
+        const data = await fetchJson('/api/course-details/' + encodeURIComponent(codeToUse));
+        if (mounted) setCourseDetails(data);
+      } catch (err) {
+        if (mounted) setCourseDetails(null);
+      } finally {
+        if (mounted) setCourseDetailsLoading(false);
+      }
+    }
+    fetchCourseDetails();
+    return () => { mounted = false; };
+  }, [codeToUse]);
+
+  // API load: Course Coverage (ilos + topics + assessments)
+  useEffect(() => {
+    if (!codeToUse) return;
+    let mounted = true;
+    async function fetchCoverage() {
+      setCoverageLoading(true);
+      try {
+        const data = await fetchJson('/api/course-coverage/' + encodeURIComponent(codeToUse));
+        if (mounted) setCoverageData(data);
+      } catch (err) {
+        if (mounted) setCoverageData(null);
+      } finally {
+        if (mounted) setCoverageLoading(false);
+      }
+    }
+    fetchCoverage();
+    return () => { mounted = false; };
+  }, [codeToUse]);
+
+  // API load: Criteria for Grading
+  useEffect(() => {
+    if (!codeToUse) return;
+    let mounted = true;
+    async function fetchCriteria() {
+      setCriteriaLoading(true);
+      try {
+        const data = await fetchJson('/api/course-criteria/' + encodeURIComponent(codeToUse));
+        if (mounted) setCriteriaData(data);
+      } catch (err) {
+        if (mounted) setCriteriaData(null);
+      } finally {
+        if (mounted) setCriteriaLoading(false);
+      }
+    }
+    fetchCriteria();
+    return () => { mounted = false; };
+  }, [codeToUse]);
+
+  // API load: References
+  useEffect(() => {
+    if (!codeToUse) return;
+    let mounted = true;
+    async function fetchRefs() {
+      setRefLoading(true);
+      try {
+        const data = await fetchJson('/api/courses/' + encodeURIComponent(codeToUse) + '/references');
+        if (mounted) setRefData(data);
+      } catch (err) {
+        if (mounted) setRefData(null);
+      } finally {
+        if (mounted) setRefLoading(false);
+      }
+    }
+    fetchRefs();
+    return () => { mounted = false; };
+  }, [codeToUse]);
+
+  // resolve data: API first, fall back to syllabus static data
+  const resolvedCourse = courseDetails || syllabus
+  const coverage = coverageData || { ilos: syllabus?.ilos || [], topics: syllabus?.topics || [], assessments: syllabus?.assessments || [] }
+  const criteria = criteriaData || { gradingSystem: syllabus?.gradingSystem || [] }
+  const resolvedRefs = (() => {
+    if (refData) {
+      if (Array.isArray(refData)) return refData
+      if (refData.data) return Array.isArray(refData.data) ? refData.data : (refData.data.Textbook || refData.data.references || [])
+      if (refData.Textbook || refData['Open Educational Resources'] || refData['Online Resources']) {
+        return [...(refData.Textbook || []), ...(refData['Open Educational Resources'] || []), ...(refData['Online Resources'] || [])]
+      }
+      return refData.references || []
+    }
+    return syllabus?.references || []
+  })()
+
   // safe access to syllabus references (use resolved `syllabus` like SyllabusPreview)
-  const allReferences = syllabus?.references || []
+  const allReferences = resolvedRefs
 
   const libraryRefs = React.useMemo(() => getReferences(), [refreshKey])
 
@@ -697,49 +798,49 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
                     <tbody>
                     <tr>
                       <th className={styles.labelCell}>Course No.</th>
-                      <td className={styles.valueCell}>{syllabus?.code || ''}</td>
+                      <td className={styles.valueCell}>{resolvedCourse?.code || resolvedCourse?.course_no || ''}</td>
                       <th className={styles.descHeader}>Course Description</th>
                     </tr>
                     <tr>
                       <th className={styles.labelCell}>Course Title</th>
-                      <td className={styles.valueCell}><strong>{syllabus?.name || ''}</strong></td>
+                      <td className={styles.valueCell}><strong>{resolvedCourse?.name || resolvedCourse?.course_title || ''}</strong></td>
                       <td rowSpan="9" className={styles.descCell}>
                         <div className={styles.descContent}>
-                          {syllabus?.description || ''}
+                          {resolvedCourse?.description || ''}
                         </div>
                       </td>
                     </tr>
                     <tr>
                       <th className={styles.labelCell}>Credit</th>
-                      <td className={styles.valueCell}>{syllabus?.credits || ''}</td>
+                      <td className={styles.valueCell}>{resolvedCourse?.credits || ''}</td>
                     </tr>
                     <tr>
                       <th className={styles.labelCell}>Contact Hours/Week</th>
-                      <td className={styles.valueCell}>{syllabus?.contact || ''}</td>
+                      <td className={styles.valueCell}>{resolvedCourse?.contact || ''}</td>
                     </tr>
                     <tr>
                       <th className={styles.labelCell}>Pre-requisites</th>
-                      <td className={styles.valueCell}>{syllabus?.prerequisites || ''}</td>
+                      <td className={styles.valueCell}>{resolvedCourse?.prerequisites || ''}</td>
                     </tr>
                     <tr>
                       <th className={styles.labelCell}>Classification/Field</th>
-                      <td className={styles.valueCell}>{syllabus?.class || ''}</td>
+                      <td className={styles.valueCell}>{resolvedCourse?.class || ''}</td>
                     </tr>
                     <tr>
                       <th className={styles.labelCell}>CMO</th>
-                      <td className={styles.valueCell}>{syllabus?.cmo || ''}</td>
+                      <td className={styles.valueCell}>{resolvedCourse?.cmo || ''}</td>
                     </tr>
                     <tr>
-                      <th className={styles.labelCell}>Learning Plan Revision No.</th>
-                      <td className={styles.valueCell}>{syllabus?.revision || '0'}</td>
+                      <th className={styles.labelCell}>Syllabus Revision No.</th>
+                      <td className={styles.valueCell}>{resolvedCourse?.revision || '0'}</td>
                     </tr>
                     <tr>
                       <th className={styles.labelCell}>Year Level</th>
-                      <td className={styles.valueCell}>{syllabus?.year || ''}</td>
+                      <td className={styles.valueCell}>{resolvedCourse?.year || ''}</td>
                     </tr>
                     <tr>
                       <th className={styles.labelCell}>Term</th>
-                      <td className={styles.valueCell}>{syllabus?.sem || ''}</td>
+                      <td className={styles.valueCell}>{resolvedCourse?.sem || ''}</td>
                     </tr>
                     </tbody>
                   </table>
@@ -774,9 +875,9 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
                         </tr>
                         </thead>
                         <tbody>
-                        {courseOutcomes.length > 0 ? courseOutcomes.map((co) => (
+                        {courseOutcomes.length > 0 ? courseOutcomes.map((co, coIdx) => (
                           <tr key={co.id}>
-                            <td className={styles.descCell}>{co.description}</td>
+                            <td className={styles.descCell}>{/^\s*CO\d/i.test(co.description) ? co.description : `CO${coIdx + 1}: ${co.description}`}</td>
                             {Array.from({ length: programOutcomes.length }).map((_, idx) => (
                               <td key={idx} className={styles.mappingCell}>
                                 {co.poMappings && co.poMappings[idx] ? co.poMappings[idx] : ''}
@@ -800,9 +901,9 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
 
             {/* Course Coverage */}
             {activeSelectedSection === 'Course Coverage' && (() => {
-              const ilos = syllabus?.ilos || []
-              const allTopics = syllabus?.topics || []
-              const allAssessments = syllabus?.assessments || []
+              const ilos = coverage?.ilos || []
+              const allTopics = coverage?.topics || []
+              const allAssessments = coverage?.assessments || []
 
               const ccColWidths = {
                 co: '45px',
@@ -982,7 +1083,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
                             <th className={stylesB.refHeaderCell} style={{ width: 300 }}>TITLE</th>
                             <th className={stylesB.refHeaderCell} style={{ width: 200 }}>AUTHOR/S</th>
                             <th className={stylesB.refHeaderCell} style={{ width: 200 }}>LINK</th>
-                            <th className={stylesB.refHeaderCell} style={{ width: 100 }}>PUBLICATION YEAR</th>
+                            <th className={stylesB.refHeaderCell} style={{ width: 100 }}>YEAR</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -998,7 +1099,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
                                 <td className={stylesB.refDataCellLeft} style={{ width: 300 }}>{ref.title}</td>
                                 <td className={stylesB.refDataCellLeft} style={{ width: 200 }}>{ref.authors}</td>
                                 <td className={stylesB.refDataCellLeft} style={{ width: 200 }}>
-                                  {ref._type === 'TB' ? (ref.isbn || '-') : (ref.link && ref.link !== '#' ? <a href={ref.link} target="_blank" rel="noreferrer" className={stylesB.refUrlLink}>{ref.link}</a> : '-')}
+                                  {ref._type === 'TB' ? (ref.isbn || '-') : (ref.link && ref.link !== '#' ? <a href={ref.link} target="_blank" rel="noreferrer" className={stylesB.refUrlLink}>Visit</a> : '-')}
                                 </td>
                                 <td className={stylesB.refDataCellCenter} style={{ width: 100 }}>{ref.year || '-'}</td>
                               </tr>
@@ -1017,7 +1118,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
                             <th className={stylesB.refHeaderCell} style={{ width: 300 }}>TITLE</th>
                             <th className={stylesB.refHeaderCell} style={{ width: 200 }}>AUTHOR/S</th>
                             <th className={stylesB.refHeaderCell} style={{ width: 200 }}>ISBN</th>
-                            <th className={stylesB.refHeaderCell} style={{ width: 100 }}>PUBLICATION YEAR</th>
+                            <th className={stylesB.refHeaderCell} style={{ width: 100 }}>YEAR</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -1045,7 +1146,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
                             <th className={stylesB.refHeaderCell} style={{ width: 300 }}>TITLE</th>
                             <th className={stylesB.refHeaderCell} style={{ width: 200 }}>AUTHOR/S</th>
                             <th className={stylesB.refHeaderCell} style={{ width: 200 }}>LINK</th>
-                            <th className={stylesB.refHeaderCell} style={{ width: 100 }}>PUBLICATION YEAR</th>
+                            <th className={stylesB.refHeaderCell} style={{ width: 100 }}>YEAR</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -1057,7 +1158,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
                                 <td className={stylesB.refDataCellLeft} style={{ width: 200 }}>{ref.authors}</td>
                                 <td className={stylesB.refDataCellLeft} style={{ width: 200 }}>
                                   {ref.link && ref.link !== '#' ? (
-                                    <a href={ref.link} target="_blank" rel="noreferrer" className={stylesB.refUrlLink}>{ref.link}</a>
+                                    <a href={ref.link} target="_blank" rel="noreferrer" className={stylesB.refUrlLink}>Visit</a>
                                   ) : '-'}
                                 </td>
                                 <td className={stylesB.refDataCellCenter} style={{ width: 100 }}>{ref.year || '-'}</td>
@@ -1077,7 +1178,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
                             <th className={stylesB.refHeaderCell} style={{ width: 300 }}>TITLE</th>
                             <th className={stylesB.refHeaderCell} style={{ width: 200 }}>AUTHOR/S</th>
                             <th className={stylesB.refHeaderCell} style={{ width: 200 }}>LINK</th>
-                            <th className={stylesB.refHeaderCell} style={{ width: 100 }}>PUBLICATION YEAR</th>
+                            <th className={stylesB.refHeaderCell} style={{ width: 100 }}>YEAR</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -1089,7 +1190,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
                                 <td className={stylesB.refDataCellLeft} style={{ width: 200 }}>{ref.authors}</td>
                                 <td className={stylesB.refDataCellLeft} style={{ width: 200 }}>
                                   {ref.link && ref.link !== '#' ? (
-                                    <a href={ref.link} target="_blank" rel="noreferrer" className={stylesB.refUrlLink}>{ref.link}</a>
+                                    <a href={ref.link} target="_blank" rel="noreferrer" className={stylesB.refUrlLink}>Visit</a>
                                   ) : '-'}
                                 </td>
                                 <td className={stylesB.refDataCellCenter} style={{ width: 100 }}>{ref.year || '-'}</td>
@@ -1108,7 +1209,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
 
             {/* Criteria for Grading */}
             {activeSelectedSection === 'Criteria for Grading' && (() => {
-              const gradingSystem = syllabus?.gradingSystem || [];
+              const gradingSystem = normalizeGradingSystem(criteria?.gradingSystem || [], syllabus?.gradingSystem || []);
 
               const calculateTotal = (period) => {
                 let total = 0;
@@ -1129,7 +1230,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
                       <table className={styles.criteriaTable}>
                         <thead>
                           <tr>
-                            <th rowSpan="2" className={styles.headerCell} style={{ width: '100px' }}>COURSE OUTCOME</th>
+                            <th rowSpan="2" className={styles.headerCell} style={{ width: '120px' }}>COURSE OUTCOME</th>
                             <th rowSpan="2" className={styles.headerCell} style={{ width: '80px' }}>ILO #</th>
                             <th rowSpan="2" className={styles.headerCell}>ASSESSMENTS</th>
                             <th colSpan="4" className={styles.headerCell}>WEIGHT %</th>
@@ -1154,7 +1255,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
                                       </td>
                                     )}
                                     <td className={styles.dataCellCenter}>
-                                      <span style={{ fontWeight: '500' }}>{ilo.id}</span>
+                                      <span style={{ fontWeight: '500' }}>{ilo.displayId || `${group.co}-${ilo.id}`}</span>
                                     </td>
                                     <td className={styles.dataCellCenter}>
                                       {Array.isArray(ilo.assessments)
@@ -1472,8 +1573,8 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
         courseOutcomes={courseOutcomes}
         ilos={sampleILOs}
         approverRole={currentRole}
-        coverageEntries={syllabus?.ilos || []}
-        syllabusTopics={syllabus?.topics || []}
+        coverageEntries={coverage?.ilos || []}
+        syllabusTopics={coverage?.topics || []}
         syllabusReferences={displayRefs}
         readOnly={readOnlyCommentModal}
         previousComments={previousComments}
@@ -1555,7 +1656,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
                         <div style={{ fontWeight: 600 }}>{a.key}</div>
                       </div>
-                      {status === 'done' && a.data?.completedAt ? <div style={{ fontSize: 13, color: '#333' }}><strong>Approved at:</strong> {new Date(a.data.completedAt).toLocaleString()}</div> : null}
+                      {status === 'done' && a.data?.completedAt ? <div style={{ fontSize: 13, color: '#333' }}><strong>{a.key === 'Dean' ? 'Approved' : 'Accepted'} at:</strong> {new Date(a.data.completedAt).toLocaleString()}</div> : null}
                       {status === 'returned' && a.data?.completedAt ? <div style={{ fontSize: 13, color: '#dc2626' }}><strong>Returned at:</strong> {new Date(a.data.completedAt).toLocaleString()}</div> : null}
                       {status === 'pending' ? <div style={{ fontSize: 13, color: '#999' }}>Pending</div> : null}
                     </div>

@@ -1,10 +1,11 @@
 
 import styles from '../styles/SyllabusSections.module.sass'
 import stylesB from '../styles/SyllabusPreview.module.sass';
-import {ChevronLeft, ChevronRight, Plus, Search, Inbox, Play, Send, Info, Download} from 'react-feather';
+import {ChevronLeft, ChevronRight, Plus, Search, Inbox, Play, Send, Info, Download, MoreVertical} from 'react-feather';
 import React, {useEffect, useState} from "react";
 import {Link, useNavigate, useParams, useSearchParams} from "react-router-dom";
 import SyllabusPreview from "./SyllabusPreview.jsx";
+import Revisions from "./Revisions.jsx";
 import PDFViewerModal from './PDFViewerModal.jsx';
 import { buildSyllabusHtml } from "../utils/syllabusPdfHtml.js";
 import {fetchJson} from "../utils/api";
@@ -12,6 +13,7 @@ import { getSyllabusByCode } from "../data/syllabiData.js";
 import { getWorkflow } from "../utils/workflowHelpers.js";
 import { getPreviousYearContent } from "../services/syllabusService.js";
 import { seedDummyComments } from "../utils/seedDummyComments.js";
+import { normalizeGradingSystem } from "../utils/gradingCriteria.js";
 import unclogo from '../assets/unclogo.png';
 
 const SyllabusSections = () => {
@@ -41,6 +43,7 @@ const SyllabusSections = () => {
     };
 
     const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+    const [showRevisions, setShowRevisions] = useState(false);
     const [showWorkflowPopup, setShowWorkflowPopup] = useState(false);
     const [workflowPopupPos, setWorkflowPopupPos] = useState(null);
     const workflowBtnRef = React.useRef(null);
@@ -48,6 +51,8 @@ const SyllabusSections = () => {
     // ilo
     const params = useParams();
     const code = params.code || (new URLSearchParams(window.location.search)).get('code');
+    const pcId = params.pcId || null;
+    const revNum = params.revNum || null;
 
     const [iloData, setIloData] = useState({ course: null, courseOutcomes: [], ilos: [] });
     const [loading, setLoading] = useState(false);
@@ -126,7 +131,7 @@ const SyllabusSections = () => {
                         const allComments = JSON.parse(raw);
                         const countsMap = {};
                         allComments.forEach(c => {
-                            if (c.status !== 'resolved') {
+                            if (c.status !== 'resolved' && c.courseCode === code) {
                                 const typeKey = c.coverageType?.toLowerCase() || '';
                                 const badgeKey = typeKey === 'topic' ? 'topics' : typeKey === 'tla' ? 'tlas' : typeKey;
                                 const key = `${c.ilo}_${badgeKey}`;
@@ -230,18 +235,22 @@ const SyllabusSections = () => {
 
                 if (!mounted) return;
 
+                // Fall back to the static syllabus for any field the API returns blank,
+                // so a blank DB value never wipes out fields that just flashed in.
+                const staticSyl = getSyllabusByCode(code) || {};
+                const pick = (apiVal, staticVal) => (apiVal != null && String(apiVal).trim() !== '') ? apiVal : (staticVal ?? '');
                 setCourseDetailsData({
-                    code: data.code ?? '',
-                    name: data.name ?? '',
-                    description: data.description ?? '',
-                    credits: data.credits ?? '',
-                    contact: data.contact ?? '',
-                    prerequisites: data.prerequisites ?? '',
-                    class: data.class ?? '',
-                    cmo: data.cmo ?? '',
-                    revision: data.revision ?? 0,
-                    year: data.year ?? '',
-                    sem: data.sem ?? ''
+                    code: pick(data.code, staticSyl.code),
+                    name: pick(data.name, staticSyl.name),
+                    description: pick(data.description, staticSyl.description),
+                    credits: pick(data.credits, staticSyl.credits),
+                    contact: pick(data.contact, staticSyl.contact),
+                    prerequisites: pick(data.prerequisites, staticSyl.prerequisites),
+                    class: pick(data.class, staticSyl.class),
+                    cmo: pick(data.cmo, staticSyl.cmo),
+                    revision: data.revision ?? staticSyl.revision ?? 0,
+                    year: pick(data.year, staticSyl.year),
+                    sem: pick(data.sem, staticSyl.sem)
                 });
             } catch (err) {
                 console.warn('API unavailable for course details, using static data');
@@ -319,30 +328,34 @@ const SyllabusSections = () => {
     const [criteriaError, setCriteriaError] = useState(null);
 
     useEffect(() => {
-        if (!code) return;
+        const endpoint = pcId
+            ? `/api/course-criteria/${encodeURIComponent(pcId)}/${encodeURIComponent(revNum || 1)}`
+            : '/api/course-criteria/' + encodeURIComponent(code);
+        if (!pcId && !code) return;
         let mounted = true;
+
+        // Helper: does a gradingSystem have a full 3 ILOs on every CO?
+        const isComplete = (gs) => Array.isArray(gs) && gs.length > 0 &&
+            gs.every(g => Array.isArray(g.ilos) && g.ilos.length >= 3);
 
         async function fetchCriteria() {
             setCriteriaLoading(true);
             setCriteriaError(null);
+            // The normalized static grading system always has 3 ILOs/CO with weights summing to 100.
+            const staticGS = (getSyllabusByCode(code) || {}).gradingSystem;
             try {
-                const data = await fetchJson('/api/course-criteria/' + encodeURIComponent(code));
-
+                const data = await fetchJson(endpoint);
                 if (!mounted) return;
-
-                setCriteriaData({
-                    gradingSystem: Array.isArray(data.gradingSystem) ? data.gradingSystem : []
-                });
+                // Prefer the API only if it is complete (3 ILOs per CO); otherwise use the static table.
+                const apiGS = Array.isArray(data.gradingSystem) ? data.gradingSystem : [];
+                const normalizedApiGS = normalizeGradingSystem(apiGS, staticGS || []);
+                const normalizedStaticGS = normalizeGradingSystem(staticGS || [], staticGS || []);
+                setCriteriaData({ gradingSystem: isComplete(normalizedApiGS) ? normalizedApiGS : (normalizedStaticGS || normalizedApiGS) });
             } catch (err) {
                 console.warn('API unavailable for criteria, using static data');
                 if (!mounted) return;
-                const syllabus = getSyllabusByCode(code);
-                if (syllabus && syllabus.gradingSystem) {
-                    setCriteriaData({ gradingSystem: syllabus.gradingSystem });
-                } else {
-                    setCriteriaError(err.message);
-                    setCriteriaData({ gradingSystem: [] });
-                }
+                setCriteriaData({ gradingSystem: normalizeGradingSystem(staticGS || [], staticGS || []) });
+                if (!staticGS) setCriteriaError(err.message);
             } finally {
                 if (mounted) setCriteriaLoading(false);
             }
@@ -350,7 +363,7 @@ const SyllabusSections = () => {
 
         fetchCriteria();
         return () => { mounted = false; };
-    }, [code]);
+    }, [code, pcId, revNum]);
 
     // Helper method to safely isolate badge numbers
     const getBadgeCount = (iloId, type) => {
@@ -497,9 +510,7 @@ const SyllabusSections = () => {
                         {(status === 'approved' || status === 'pending' || status === 'draft' || status === 'returned') &&
                             <option value="Course Coverage">Course Coverage</option>
                         }
-                        {(status === 'approved' || status === 'pending') &&
-                            <option value="References Summary">References</option>
-                        }
+                        <option value="References Summary">References</option>
                         {(status === 'draft' || status === 'returned') &&
                             <option value="Intended Learning Outcomes">Intended Learning Outcomes</option>
                         }
@@ -521,16 +532,20 @@ const SyllabusSections = () => {
                         </div></>
                 }
 
-                {status !== 'draft' && <div ref={workflowBtnRef} className={styles.more} onClick={() => { const r = workflowBtnRef.current?.getBoundingClientRect(); const popupH = 280; if (r) setWorkflowPopupPos({ right: window.innerWidth - r.right, top: r.bottom + 4 + popupH > window.innerHeight ? r.top - popupH - 4 : r.bottom + 4 }); setShowWorkflowPopup(true); }}>
-                    <Info strokeWidth={2} size={16}/>
-                </div>}
+                {status === 'approved' &&
+                    <div onClick={() => setShowRevisions(true)} className={styles.more} title="Revision tracking" style={{ display: 'inline-flex', alignItems: 'center', cursor: 'pointer', color: 'inherit' }}>
+                        <MoreVertical strokeWidth={2} size={16}/>
+                    </div>
+                }
 
-                <div onClick={handleExportPdf} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '0 16px', border: 'none', borderRadius: 5, fontSize: 14, fontWeight: 500, height: 40, cursor: pdfExportLoading ? 'wait' : 'pointer', background: pdfExportLoading ? '#94a3b8' : '#19282C', color: 'white', fontFamily: "'Poppins', sans-serif", transition: 'transform 0.3s ease' }}
-                    onMouseEnter={e => { if (!pdfExportLoading) e.currentTarget.style.transform = 'scale(1.04)' }}
-                    onMouseLeave={e => { if (!pdfExportLoading) e.currentTarget.style.transform = 'scale(1)' }}>
-                    <Download size={14} />
-                    {pdfExportLoading ? 'Exporting...' : 'Export'}
-                </div>
+                {(status === 'approved' || status === 'done') &&
+                    <div onClick={handleExportPdf} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '0 16px', border: 'none', borderRadius: 5, fontSize: 14, fontWeight: 500, height: 40, cursor: pdfExportLoading ? 'wait' : 'pointer', background: pdfExportLoading ? '#94a3b8' : '#19282C', color: 'white', fontFamily: "'Poppins', sans-serif", transition: 'transform 0.3s ease' }}
+                        onMouseEnter={e => { if (!pdfExportLoading) e.currentTarget.style.transform = 'scale(1.04)' }}
+                        onMouseLeave={e => { if (!pdfExportLoading) e.currentTarget.style.transform = 'scale(1)' }}>
+                        <Download size={14} />
+                        {pdfExportLoading ? 'Exporting...' : 'Export'}
+                    </div>
+                }
 
 
             </div>
@@ -591,7 +606,7 @@ const SyllabusSections = () => {
                                         </tr>
 
                                         <tr>
-                                            <th className={stylesB.labelCell}>Learning Plan Revision No.</th>
+                                            <th className={stylesB.labelCell}>Syllabus Revision No.</th>
                                             <td className={stylesB.valueCell}>{courseDetailsData?.revision ?? 0}</td>
                                         </tr>
 
@@ -647,10 +662,10 @@ const SyllabusSections = () => {
 
                                             <tbody>
                                             {cpaData.courseOutcomes && cpaData.courseOutcomes.length > 0 ? (
-                                                cpaData.courseOutcomes.map(co => (
+                                                cpaData.courseOutcomes.map((co, coIdx) => (
                                                     <tr key={co.id}>
                                                         <td className={stylesB.descCell}>
-                                                            {co.description}
+                                                            {/^\s*CO\d/i.test(co.description) ? co.description : `CO${coIdx + 1}: ${co.description}`}
                                                         </td>
 
                                                         {/* Render mapping cells; ensure we render as many columns as programOutcomes length */}
@@ -692,11 +707,23 @@ const SyllabusSections = () => {
                                         </tr>
                                         </thead>
                                         <tbody>
-                                        {iloData.ilos && iloData.ilos.length > 0 ? (
-                                            iloData.ilos.map((ilo, index) => {
-                                                const coNumber = ilo.co_id;
-                                                const iloNumber = (index % 3) + 1;
-                                                const entryLabel = `CO${coNumber}-ILO${iloNumber}`;
+                                        {iloData.ilos && iloData.ilos.length > 0 ? (() => {
+                                            const coIloCounters = {};
+                                            // Map raw DB co_id -> sequential CO number (1..4) so labels read CO1-ILO1, not CO25-ILO1.
+                                            const coSeq = {};
+                                            (iloData.courseOutcomes || []).forEach((c, i) => { coSeq[c.co_id] = i + 1; });
+                                            return iloData.ilos.map((ilo, index) => {
+                                                const rawCo = ilo.co_id;
+                                                const idStr = typeof ilo.id === 'string' ? ilo.id : '';
+                                                // Prefer the canonical id ("CO2-ILO1"); otherwise number per-CO with a sequential CO#.
+                                                let entryLabel;
+                                                if (/^CO\d+-ILO\d+$/i.test(idStr)) {
+                                                    entryLabel = idStr.toUpperCase();
+                                                } else {
+                                                    coIloCounters[rawCo] = (coIloCounters[rawCo] || 0) + 1;
+                                                    const seqCo = coSeq[rawCo] || rawCo;
+                                                    entryLabel = `CO${seqCo}-ILO${coIloCounters[rawCo]}`;
+                                                }
 
                                                 // Evaluate counts safely
                                                 const refBadges = getBadgeCount(ilo.id, 'references');
@@ -757,8 +784,8 @@ const SyllabusSections = () => {
                                                         </td>
                                                     </tr>
                                                 );
-                                            })
-                                        ) : (
+                                            });
+                                        })() : (
                                             <tr className={styles.emptyRow}>
                                                 <td colSpan={3}>
                                                     <div className={styles.emptyStateContainer}>
@@ -779,7 +806,7 @@ const SyllabusSections = () => {
 
                         {selectedSection === 'Criteria for Grading' && (() => {
                             // --- 1. RETRIEVE DATA ---
-                            const gradingSystem = criteriaData.gradingSystem || [];
+                            const gradingSystem = normalizeGradingSystem(criteriaData.gradingSystem || [], getSyllabusByCode(code)?.gradingSystem || []);
 
                             // --- 2. HELPER: Calculate Totals ---
                             const calculateTotal = (period) => {
@@ -801,7 +828,7 @@ const SyllabusSections = () => {
                                         <table className={stylesB.criteriaTable}>
                                             <thead>
                                             <tr>
-                                                <th rowSpan="2" className={stylesB.headerCell} style={{ width: '100px' }}>COURSE OUTCOME</th>
+                                                <th rowSpan="2" className={stylesB.headerCell} style={{ width: '120px' }}>COURSE OUTCOME</th>
                                                 {/* Adjusted width since description is gone */}
                                                 <th rowSpan="2" className={stylesB.headerCell} style={{ width: '80px' }}>ILO #</th>
                                                 <th rowSpan="2" className={stylesB.headerCell}>ASSESSMENTS</th>
@@ -833,18 +860,18 @@ const SyllabusSections = () => {
 
                                                                 {/* COURSE OUTCOME CELL (Spans all ILOs) */}
                                                                 {index === 0 && (
-                                                                    <td rowSpan={group.ilos.length} className={styles.coCell}>
-                                                                        <strong>{group.co}</strong>
+                                                                    <td rowSpan={group.ilos.length} className={stylesB.coCell}>
+                                                                        {group.co}
                                                                     </td>
                                                                 )}
 
-                                                                {/* ILO Cell - Display ONLY the ID (e.g., ILO1) centered */}
-                                                                <td className={styles.dataCellCenter}>
-                                                                    <span style={{ fontWeight: '500' }}>{ilo.id}</span>
+                                                                {/* ILO Cell - Display the shared CO-ILO label so it matches Course Coverage */}
+                                                                <td className={stylesB.dataCellCenter}>
+                                                                    <span style={{ fontWeight: '500' }}>{ilo.displayId || `${group.co}-${ilo.id}`}</span>
                                                                 </td>
 
                                                                 {/* Assessments */}
-                                                                <td className={styles.dataCellCenter}>
+                                                                <td className={stylesB.dataCellLeft}>
                                                                     {Array.isArray(ilo.assessments)
                                                                         ? ilo.assessments.join(', ')
                                                                         : ilo.assessments}
@@ -1131,7 +1158,7 @@ const SyllabusSections = () => {
                                                 <th className={stylesB.refHeaderCell} style={{ width: colWidths.title }}>TITLE</th>
                                                 <th className={stylesB.refHeaderCell} style={{ width: colWidths.author }}>AUTHOR/S</th>
                                                 <th className={stylesB.refHeaderCell} style={{ width: colWidths.link }}>LINK</th>
-                                                <th className={stylesB.refHeaderCell} style={{ width: colWidths.year }}>PUBLICATION YEAR</th>
+                                                <th className={stylesB.refHeaderCell} style={{ width: colWidths.year }}>YEAR</th>
                                             </tr>
                                             </thead>
                                             <tbody>
@@ -1147,7 +1174,7 @@ const SyllabusSections = () => {
                                                         <td className={stylesB.refDataCellLeft} style={{ width: colWidths.title }}>{ref.title}</td>
                                                         <td className={stylesB.refDataCellLeft} style={{ width: colWidths.author }}>{ref.authors}</td>
                                                         <td className={stylesB.refDataCellLeft} style={{ width: colWidths.link }}>
-                                                             {ref._type === 'TB' ? (ref.isbn || '-') : (ref.link && ref.link !== '#' ? <a href={ref.link} target="_blank" rel="noreferrer" className={stylesB.refUrlLink}>{ref.link}</a> : '-')}
+                                                             {ref._type === 'TB' ? (ref.isbn || '-') : (ref.link && ref.link !== '#' ? <a href={ref.link} target="_blank" rel="noreferrer" className={stylesB.refUrlLink}>Visit</a> : '-')}
                                                         </td>
                                                         <td className={stylesB.refDataCellCenter} style={{ width: colWidths.year }}>
                                                             {ref.year && ref.year !== '-' ? String(ref.year).split('-')[0] : '-'}
@@ -1168,7 +1195,7 @@ const SyllabusSections = () => {
                                                 <th className={stylesB.refHeaderCell} style={{ width: colWidths.title }}>TITLE</th>
                                                 <th className={stylesB.refHeaderCell} style={{ width: colWidths.author }}>AUTHOR/S</th>
                                                 <th className={stylesB.refHeaderCell} style={{ width: colWidths.link }}>ISBN</th>
-                                                <th className={stylesB.refHeaderCell} style={{ width: colWidths.year }}>PUBLICATION YEAR</th>
+                                                <th className={stylesB.refHeaderCell} style={{ width: colWidths.year }}>YEAR</th>
                                             </tr>
                                             </thead>
                                             <tbody>
@@ -1196,7 +1223,7 @@ const SyllabusSections = () => {
                                                 <th className={stylesB.refHeaderCell} style={{ width: colWidths.title }}>TITLE</th>
                                                 <th className={stylesB.refHeaderCell} style={{ width: colWidths.author }}>AUTHOR/S</th>
                                                 <th className={stylesB.refHeaderCell} style={{ width: colWidths.link }}>LINK</th>
-                                                <th className={stylesB.refHeaderCell} style={{ width: colWidths.year }}>PUBLICATION YEAR</th>
+                                                <th className={stylesB.refHeaderCell} style={{ width: colWidths.year }}>YEAR</th>
                                             </tr>
                                             </thead>
                                             <tbody>
@@ -1207,7 +1234,7 @@ const SyllabusSections = () => {
                                                     <td className={stylesB.refDataCellLeft} style={{ width: colWidths.author }}>{ref.authors}</td>
                                                     <td className={stylesB.refDataCellLeft} style={{ width: colWidths.link }}>
                                                          {ref.link && ref.link !== '#' ? (
-                                                             <a href={ref.link} target="_blank" rel="noreferrer" className={stylesB.refUrlLink}>{ref.link}</a>
+                                                             <a href={ref.link} target="_blank" rel="noreferrer" className={stylesB.refUrlLink}>Visit</a>
                                                          ) : '-'}
                                                      </td>
                                                      <td className={stylesB.refDataCellCenter} style={{ width: colWidths.year }}>
@@ -1228,7 +1255,7 @@ const SyllabusSections = () => {
                                                  <th className={stylesB.refHeaderCell} style={{ width: colWidths.title }}>TITLE</th>
                                                  <th className={stylesB.refHeaderCell} style={{ width: colWidths.author }}>AUTHOR/S</th>
                                                  <th className={stylesB.refHeaderCell} style={{ width: colWidths.link }}>LINK</th>
-                                                 <th className={stylesB.refHeaderCell} style={{ width: colWidths.year }}>PUBLICATION YEAR</th>
+                                                 <th className={stylesB.refHeaderCell} style={{ width: colWidths.year }}>YEAR</th>
                                              </tr>
                                              </thead>
                                              <tbody>
@@ -1239,7 +1266,7 @@ const SyllabusSections = () => {
                                                      <td className={stylesB.refDataCellLeft} style={{ width: colWidths.author }}>{ref.authors}</td>
                                                      <td className={stylesB.refDataCellLeft} style={{ width: colWidths.link }}>
                                                          {ref.link && ref.link !== '#' ? (
-                                                             <a href={ref.link} target="_blank" rel="noreferrer" className={stylesB.refUrlLink}>{ref.link}</a>
+                                                             <a href={ref.link} target="_blank" rel="noreferrer" className={stylesB.refUrlLink}>Visit</a>
                                                         ) : '-'}
                                                     </td>
                                                     <td className={stylesB.refDataCellCenter} style={{ width: colWidths.year }}>
@@ -1263,6 +1290,11 @@ const SyllabusSections = () => {
                         <SyllabusPreview
                             isOpen={isPreviewOpen}
                             onClose={() => setIsPreviewOpen(false)}
+                        />
+                        <Revisions
+                            isOpen={showRevisions}
+                            onClose={() => setShowRevisions(false)}
+                            code={code}
                         />
                     </>
                 )}
@@ -1296,7 +1328,7 @@ const SyllabusSections = () => {
                                             return (
                                                 <div key={idx} style={{ marginBottom: 10, paddingBottom: 8, borderBottom: '1px solid #f0f0f0' }}>
                                                     <div style={{ fontWeight: 600, marginBottom: 4 }}>{a.key}</div>
-                                                    {status === 'done' && a.data?.completedAt ? <div style={{ fontSize: 13, color: '#333' }}><strong>Approved at:</strong> {new Date(a.data.completedAt).toLocaleString()}</div> : null}
+                                                    {status === 'done' && a.data?.completedAt ? <div style={{ fontSize: 13, color: '#333' }}><strong>{a.key === 'Dean' ? 'Approved' : 'Accepted'} at:</strong> {new Date(a.data.completedAt).toLocaleString()}</div> : null}
                                                     {status === 'returned' && a.data?.completedAt ? <div style={{ fontSize: 13, color: '#dc2626' }}><strong>Returned at:</strong> {new Date(a.data.completedAt).toLocaleString()}</div> : null}
                                                     {status === 'pending' ? <div style={{ fontSize: 13, color: '#999' }}>Pending</div> : null}
                                                 </div>

@@ -5,10 +5,10 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   server: {
-    // Pin this branch's dev server to 5175 so it stays put. strictPort makes it
-    // fail loudly rather than silently wandering to another port.
-    port: 5175,
-    strictPort: true,
+    // Preferred port, but allow Vite to auto-pick the next free one so it ALWAYS
+    // starts even if zombie dev servers are squatting on ports.
+    port: 5180,
+    strictPort: false,
     proxy: {
       '/api': {
         target: 'http://localhost:5000',

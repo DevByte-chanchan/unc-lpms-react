@@ -1,3 +1,7 @@
+// Short, generic assessment method names (matches the compact style used in 5174)
+// so the Criteria table cells stay one line instead of wrapping to tall boxes.
+const ASSESSMENT_METHODS = ['Quiz', 'Lab Exercise', 'Project Milestone', 'Case Analysis', 'Diagram Schema', 'Presentation', 'Report', 'Rubric Evaluation']
+
 function generateCOSBase(code, name) {
   const n = name.toLowerCase()
   if (n.includes('discrete') && !n.includes('ii')) return [
@@ -255,7 +259,7 @@ function generateAssessments(cos, topics) {
     id: `A${i+1}`,
     tlaName: i < topics.length ? (topics[i].tlas?.[0]?.tlaName || 'Assessment') : 'Assessment',
     phase: i === 0 ? 'Prelim' : i === 1 ? 'Midterm' : 'Finals',
-    assessmentMethod: co.description.substring(0, 60),
+    assessmentMethod: ASSESSMENT_METHODS[i % ASSESSMENT_METHODS.length],
     assessmentDescription: `Assessment for ${co.description.substring(0, 50)}`,
     hasRubric: i === 0,
   }))
@@ -287,6 +291,40 @@ function generateCoAssessmentMethodSets(cos) {
  * Working courses (BSCS322L etc.) have: 5 topics, 3 subtopics each, ~8 TLAs, ~8 assessments.
  * This function brings sparse courses up to that standard.
  */
+const ILO_TEMPLATES = {
+  CO1: [
+    (desc) => `Explain the core principles and foundational concepts of ${desc}.`,
+    (desc) => `Apply fundamental ${desc} techniques to solve basic computing problems.`,
+  ],
+  CO2: [
+    (desc) => `Analyze ${desc} problems using appropriate methodologies and tools.`,
+    (desc) => `Design solutions for ${desc} scenarios using established patterns and practices.`,
+  ],
+  CO3: [
+    (desc) => `Develop ${desc} implementations following design specifications and best practices.`,
+    (desc) => `Integrate ${desc} components into cohesive working systems.`,
+  ],
+  CO4: [
+    (desc) => `Evaluate ${desc} outcomes against quality metrics and performance criteria.`,
+    (desc) => `Critique ${desc} approaches and justify recommendations with evidence-based reasoning.`,
+  ],
+}
+
+function improveILODescriptions(s) {
+  const desc = (s.description || '').replace(/\.$/, '').trim()
+  // Description is mid-sentence context; name is a proper noun kept as-is
+  const ctx = desc.length < 80 ? desc.charAt(0).toLowerCase() + desc.slice(1) : s.name
+  const ilos = s.ilos || []
+  ilos.forEach(ilo => {
+    const [coId] = ilo.id.split('-')
+    const num = parseInt(ilo.id.split('ILO')[1], 10) - 1
+    const templates = ILO_TEMPLATES[coId]
+    if (templates && templates[num]) {
+      ilo.intendedLearningOutcome = templates[num](ctx)
+    }
+  })
+}
+
 function expandSparseData(s) {
   const topics = s.topics || []
   // If course already has 4+ topics, it's already well-formed (like the working courses)
@@ -351,7 +389,7 @@ function expandSparseData(s) {
     id: `A${idx + 1}`,
     tlaName: tla.tlaName,
     phase: tla.classPhase,
-    assessmentMethod: `${tla.tlaName} Assessment`,
+    assessmentMethod: ASSESSMENT_METHODS[idx % ASSESSMENT_METHODS.length],
     assessmentDescription: `Assessment for ${tla.tlaDescription.substring(0, 80)}`,
     hasRubric: idx === 0,
   }))
@@ -404,9 +442,111 @@ export function enrichSyllabi(data) {
     // Pass 2: Expand sparse courses that have courseOutcomes but too few topics/TLAs
     expandSparseData(s)
 
-    // Pass 3: Guarantee a consistent set of 4 course outcomes for CO-PO alignment
+    // Pass 3a: Repair broken CO-PO alignment. Some hand-authored courses have
+    // duplicate CO descriptions or course outcomes with no PO mappings at all,
+    // which makes the CO-PO table render blank/duplicated. Regenerate the whole
+    // set from the course-aware template when that happens.
+    if (Array.isArray(s.courseOutcomes) && s.courseOutcomes.length > 0) {
+      const descs = s.courseOutcomes.map(c => String(c.description || '').trim().toLowerCase())
+      const hasDupDesc = new Set(descs).size !== descs.length
+      const hasEmptyMapping = s.courseOutcomes.some(c => !Array.isArray(c.poMappings) || !c.poMappings.some(v => v && String(v).trim()))
+      if (hasDupDesc || hasEmptyMapping) {
+        s.courseOutcomes = generateCOS(s.code, s.name)
+      }
+    }
+
+    // Pass 3b: Guarantee a consistent set of 4 course outcomes for CO-PO alignment
     if (Array.isArray(s.courseOutcomes) && s.courseOutcomes.length > 0 && s.courseOutcomes.length < 4) {
       s.courseOutcomes = padToFourCOs(s.courseOutcomes, s.name)
+    }
+
+    // Pass 3c: Ensure exactly 3 ILOs per CO (ILO1-ILO3) so Course Coverage and Criteria
+    // both render three rows per CO (previously some COs only had 1-2 ILOs).
+    if (Array.isArray(s.courseOutcomes) && s.courseOutcomes.length > 0) {
+      const topicTitles = (s.topics || []).map(t => t.title).filter(Boolean)
+      const allRefs = (s.ilos || []).flatMap(i => i.references || [])
+      const refPool = allRefs.length ? [...new Set(allRefs)] : (s.references || []).map(r => `${r.id} - ${r.title}`)
+      const ILO_VERBS = ['Explain', 'Apply', 'Evaluate']
+      const byCo = {}
+      for (const ilo of (s.ilos || [])) {
+        const co = String(ilo.id).split('-')[0]
+        ;(byCo[co] = byCo[co] || []).push(ilo)
+      }
+      const rebuilt = []
+      s.courseOutcomes.forEach((co, ci) => {
+        const coKey = `CO${ci + 1}`
+        const existing = byCo[coKey] || byCo[co.id] || []
+        for (let j = 0; j < 3; j++) {
+          if (existing[j]) {
+            existing[j].id = `${coKey}-ILO${j + 1}`
+            existing[j].courseOutcome = co.description
+            rebuilt.push(existing[j])
+          } else {
+            const topic = topicTitles.length ? topicTitles[(ci * 3 + j) % topicTitles.length] : co.description
+            rebuilt.push({
+              id: `${coKey}-ILO${j + 1}`,
+              courseOutcome: co.description,
+              intendedLearningOutcome: `${ILO_VERBS[j]} ${s.name} concepts and techniques in applied contexts.`,
+              deliveryWeek: `Week ${ci * 3 + j + 1}`,
+              allocatedTime: '3 hours',
+              topics: topic ? [topic] : [],
+              references: refPool.slice(0, 2),
+            })
+          }
+        }
+      })
+      s.ilos = rebuilt
+    }
+
+    // Pass 4: Replace template ILO descriptions with meaningful ones using course context
+    improveILODescriptions(s)
+
+    // Pass 5: Normalize assessment method names to short generic labels for EVERY course
+    // (incl. hand-authored ones) so the Criteria table cells stay compact like 5174.
+    if (Array.isArray(s.assessments)) {
+      s.assessments.forEach((a, i) => {
+        a.assessmentMethod = ASSESSMENT_METHODS[i % ASSESSMENT_METHODS.length]
+      })
+    }
+
+    // Pass 6: Ensure a 2-sentence course description exists (Course Details should never be blank).
+    {
+      let desc = String(s.description || '').trim()
+      if (!desc) {
+        desc = `This course introduces the core principles, methods, and practical applications of ${s.name}.`
+      }
+      // Guarantee at least two sentences by appending a second one when needed.
+      if ((desc.match(/[.!?]/g) || []).length < 2) {
+        if (!/[.!?]$/.test(desc)) desc += '.'
+        desc += ` Through lectures, hands-on activities, and assessments, students develop the practical skills needed to apply ${s.name} concepts to real-world computing problems.`
+      }
+      s.description = desc
+    }
+
+    // Pass 7: Normalize the grading system to 3 ILOs per CO (ILO1-ILO3), each CO mapped to
+    // one assessment period with weights that sum to 100 (20/30/50), matching 5174's Criteria table.
+    if (Array.isArray(s.courseOutcomes) && s.courseOutcomes.length > 0) {
+      const PERIODS = ['prelim', 'midterm', 'semi', 'final']
+      const ILO_WEIGHTS = ['20', '30', '50']
+      s.gradingSystem = s.courseOutcomes.map((co, ci) => {
+        const period = PERIODS[ci % 4]
+        return {
+          co: `CO${ci + 1}`,
+          ilos: [0, 1, 2].map(j => {
+            const weight = { prelim: '', midterm: '', semi: '', final: '' }
+            weight[period] = ILO_WEIGHTS[j]
+            return {
+              id: `ILO${j + 1}`,
+              assessments: [
+                ASSESSMENT_METHODS[(ci * 3 + j) % ASSESSMENT_METHODS.length],
+                ASSESSMENT_METHODS[(ci * 3 + j + 1) % ASSESSMENT_METHODS.length],
+              ],
+              weight,
+              minPassing: '60',
+            }
+          }),
+        }
+      })
     }
   })
   return data

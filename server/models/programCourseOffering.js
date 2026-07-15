@@ -17,6 +17,8 @@ module.exports = (sequelize, DataTypes) => {
         ProgramCourseOffering.belongsTo(models.Department, { foreignKey: 'dept_id' });
         ProgramCourseOffering.hasMany(models.CourseOutcome, { foreignKey: 'pc_offering_id' });
         ProgramCourseOffering.hasMany(models.CourseOfferingAssignment, { foreignKey: 'pc_offering_id' });
+        // aliased copy used by the revision tracker's include
+        ProgramCourseOffering.hasMany(models.CourseOfferingAssignment, { foreignKey: 'pc_offering_id', as: 'assignments' });
     };
 
     return ProgramCourseOffering;
