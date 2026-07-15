@@ -244,7 +244,7 @@ const CoursesTable = () => {
     return (
         <div className={styles['courses-table']}>
             <div className={styles.header}>
-                <h2>ASSIGNED COURSES</h2>
+                <h2>ASSIGNED COURSE OFFERINGS </h2>
                 <div className={styles.filterA}>
                     <select
                         className={styles['header-select']}

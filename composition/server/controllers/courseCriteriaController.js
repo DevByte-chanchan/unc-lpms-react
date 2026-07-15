@@ -42,7 +42,7 @@ async function getCourseCriteriaByPcOffering(req, res) {
             const coLabel = `CO${coIndex + 1}`;
             const coRecord = courseOutcomes[coIndex] || null;
 
-            const ilosForCo = coRecord
+            const allIlosForCo = coRecord
                 ? await IntendedLearningOutcome.findAll({
                     where: { co_id: coRecord.co_id },
                     attributes: ['ilo_id', 'description', 'hours'],
@@ -50,10 +50,15 @@ async function getCourseCriteriaByPcOffering(req, res) {
                 })
                 : [];
 
+            // Filter out Course Orientation
+            // If there are exactly 4 ILOs, the first one is the orientation.
+            // We slice it off to keep only the 3 graded ILOs.
+            const gradedIlos = allIlosForCo.length === 4 ? allIlosForCo.slice(1) : allIlosForCo;
+
             const ilos = [];
             for (let iloPos = 0; iloPos < 3; iloPos++) {
                 const iloLabel = `ILO${iloPos + 1}`;
-                const iloRecord = ilosForCo[iloPos] || null;
+                const iloRecord = gradedIlos[iloPos] || null;
 
                 if (!iloRecord) {
                     ilos.push({

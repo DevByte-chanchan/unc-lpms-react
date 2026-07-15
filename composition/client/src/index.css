@@ -61,9 +61,13 @@ button {
     background-color: #1a1a1a;
     cursor: pointer;
     transition: border-color 0.25s;
+    outline: none !important;
+
 }
 button:hover {
     border-color: #646cff;
+    border: none !important;
+    outline: none !important;
 }
 button:focus,
 button:focus-visible {

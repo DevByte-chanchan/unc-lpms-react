@@ -2,7 +2,7 @@
 
 /**
  * Seeder: Single Course Learning Plan - "Integrative Programming and Technologies"
- * Status Target: DRAFT
+ * Status Target: DRAFT (date_submitted: null)
  * Run: npx sequelize-cli db:seed --seed 20260514000000-seed-draft-lp-integrative-prog.js
  */
 
@@ -11,7 +11,7 @@ module.exports = {
         const now = new Date();
 
         // ============================================================================
-        // 1. COURSE CREATION
+        // 1) Course Creation
         // ============================================================================
         await queryInterface.bulkInsert('Courses', [{
             course_no: 'BIT312L',
@@ -26,301 +26,400 @@ module.exports = {
             updatedAt: now
         }], {});
 
-        const course = await queryInterface.sequelize.query(
+        const courseRecord = await queryInterface.sequelize.query(
             `SELECT course_id FROM Courses WHERE course_no = 'BIT312L' ORDER BY course_id DESC LIMIT 1;`,
             { type: queryInterface.sequelize.QueryTypes.SELECT }
         );
-        const courseId = course[0].course_id;
+        const courseId = courseRecord[0].course_id;
 
         // ============================================================================
-        // 2. PROGRAM COURSE OFFERING
+        // 2) Program Course Offering
         // ============================================================================
         await queryInterface.bulkInsert('ProgramCourseOfferings', [{
             revision_number: 1,
             course_id: courseId,
-            program_id: 1, // BSIT Program
-            dept_id: 3,    // SCIS Department
-            course_description: 'Examines the methodologies, architectural blueprints, and modern middleware technologies required to safely integrate heterogeneous enterprise applications and distributed components. Students explore api-first paradigms, service-oriented system interactions, data normalization across conflicting schemas, message brokers, asynchronous choreographies, and enterprise security configurations spanning multi-platform software environments.',
+            program_id: 1, // BSIT
+            dept_id: 3,    // SCIS
+            course_description: 'Examines the methodologies, architectural blueprints, and modern middleware technologies required to safely integrate heterogeneous enterprise applications and distributed components. Students explore API-first paradigms, service-oriented system interactions, data normalization, message brokers, asynchronous choreographies, and enterprise security configurations spanning multi-platform software environments.',
             createdAt: now,
             updatedAt: now
         }], {});
 
-        const offering = await queryInterface.sequelize.query(
-            `SELECT pc_offering_id FROM ProgramCourseOfferings WHERE course_id = ${courseId} LIMIT 1;`,
+        const offeringRecord = await queryInterface.sequelize.query(
+            `SELECT pc_offering_id FROM ProgramCourseOfferings WHERE course_id = ${courseId} ORDER BY pc_offering_id DESC LIMIT 1;`,
             { type: queryInterface.sequelize.QueryTypes.SELECT }
         );
-        const offeringId = offering[0].pc_offering_id;
+        const pcId = offeringRecord[0].pc_offering_id;
 
         // ============================================================================
-        // 3. COURSE OFFERING ASSIGNMENT (STATUS = DRAFT)
+        // 3) Course Offering Assignment (STATUS: DRAFT)
         // ============================================================================
         await queryInterface.bulkInsert('CourseOfferingAssignments', [{
-            pc_offering_id: offeringId,
+            pc_offering_id: pcId,
             stakeholder_id: null,
             date_assigned: new Date('2026-06-01'),
-            date_submitted: null, // Left null deliberately to strictly enforce DRAFT status
+            date_submitted: null, // STRICTLY ENFORCING DRAFT STATUS
             date_updated: null,
             createdAt: now,
             updatedAt: now
         }], {});
 
         // ============================================================================
-        // 4. COURSE OUTCOMES (4 records)
+        // 4) Course Outcomes
         // ============================================================================
         await queryInterface.bulkInsert('CourseOutcomes', [
-            { pc_offering_id: offeringId, co_description: 'CO1: Formulate and design robust integration architectures across heterogeneous ecosystems using advanced API-first design principles and structured middleware solutions.', createdAt: now, updatedAt: now },
-            { pc_offering_id: offeringId, co_description: 'CO2: Construct high-performance data transformation channels using structured multi-platform serialization formats to securely synchronize decoupled relational and non-relational database models.', createdAt: now, updatedAt: now },
-            { pc_offering_id: offeringId, co_description: 'CO3: Coordinate asynchronous processes and enterprise software pipelines through event-driven brokers, message-oriented middleware patterns, and reactive workflows.', createdAt: now, updatedAt: now },
-            { pc_offering_id: offeringId, co_description: 'CO4: Validate, optimize, and audit security layers, token distribution models, and performance thresholds of data nodes functioning in microservice arrangements.', createdAt: now, updatedAt: now }
+            { pc_offering_id: pcId, co_description: 'CO1: Formulate and design robust integration architectures across heterogeneous ecosystems using advanced API-first design principles and structured middleware solutions.', createdAt: now, updatedAt: now },
+            { pc_offering_id: pcId, co_description: 'CO2: Construct high-performance data transformation channels using structured multi-platform serialization formats to securely synchronize decoupled database models.', createdAt: now, updatedAt: now },
+            { pc_offering_id: pcId, co_description: 'CO3: Coordinate asynchronous processes and enterprise software pipelines through event-driven brokers, message-oriented middleware patterns, and reactive workflows.', createdAt: now, updatedAt: now },
+            { pc_offering_id: pcId, co_description: 'CO4: Validate, optimize, and audit security layers, token distribution models, and performance thresholds of data nodes functioning in microservice arrangements.', createdAt: now, updatedAt: now }
         ], {});
 
-        const cos = await queryInterface.sequelize.query(
-            `SELECT co_id FROM CourseOutcomes WHERE pc_offering_id = ${offeringId} ORDER BY co_id ASC;`,
+        const cosRows = await queryInterface.sequelize.query(
+            `SELECT co_id FROM CourseOutcomes WHERE pc_offering_id = ${pcId} ORDER BY co_id ASC;`,
             { type: queryInterface.sequelize.QueryTypes.SELECT }
         );
 
         // ============================================================================
-        // 4.5. PROGRAM OUTCOME ALIGNMENTS
+        // 5) Program Outcome Alignments
         // ============================================================================
         await queryInterface.bulkInsert('ProgramOutcomeAlignments', [
-            // CO1 Alignments
-            { co_id: cos[0].co_id, po_id: 2, attainment_level: 'I', createdAt: now, updatedAt: now },
-            { co_id: cos[0].co_id, po_id: 5, attainment_level: 'E', createdAt: now, updatedAt: now },
-            { co_id: cos[0].co_id, po_id: 9, attainment_level: 'D', createdAt: now, updatedAt: now },
-
-            // CO2 Alignments
-            { co_id: cos[1].co_id, po_id: 3, attainment_level: 'E', createdAt: now, updatedAt: now },
-            { co_id: cos[1].co_id, po_id: 6, attainment_level: 'I', createdAt: now, updatedAt: now },
-            { co_id: cos[1].co_id, po_id: 10, attainment_level: 'D', createdAt: now, updatedAt: now },
-
-            // CO3 Alignments
-            { co_id: cos[2].co_id, po_id: 4, attainment_level: 'D', createdAt: now, updatedAt: now },
-            { co_id: cos[2].co_id, po_id: 1, attainment_level: 'I', createdAt: now, updatedAt: now },
-            { co_id: cos[2].co_id, po_id: 7, attainment_level: 'E', createdAt: now, updatedAt: now },
-
-            // CO4 Alignments
-            { co_id: cos[3].co_id, po_id: 2, attainment_level: 'I', createdAt: now, updatedAt: now },
-            { co_id: cos[3].co_id, po_id: 8, attainment_level: 'E', createdAt: now, updatedAt: now },
-            { co_id: cos[3].co_id, po_id: 5, attainment_level: 'D', createdAt: now, updatedAt: now }
+            { co_id: cosRows[0].co_id, po_id: 2, attainment_level: 'I', createdAt: now, updatedAt: now },
+            { co_id: cosRows[0].co_id, po_id: 5, attainment_level: 'E', createdAt: now, updatedAt: now },
+            { co_id: cosRows[0].co_id, po_id: 9, attainment_level: 'D', createdAt: now, updatedAt: now },
+            { co_id: cosRows[1].co_id, po_id: 3, attainment_level: 'E', createdAt: now, updatedAt: now },
+            { co_id: cosRows[1].co_id, po_id: 6, attainment_level: 'I', createdAt: now, updatedAt: now },
+            { co_id: cosRows[1].co_id, po_id: 10, attainment_level: 'D', createdAt: now, updatedAt: now },
+            { co_id: cosRows[2].co_id, po_id: 4, attainment_level: 'D', createdAt: now, updatedAt: now },
+            { co_id: cosRows[2].co_id, po_id: 1, attainment_level: 'I', createdAt: now, updatedAt: now },
+            { co_id: cosRows[2].co_id, po_id: 7, attainment_level: 'E', createdAt: now, updatedAt: now },
+            { co_id: cosRows[3].co_id, po_id: 2, attainment_level: 'I', createdAt: now, updatedAt: now },
+            { co_id: cosRows[3].co_id, po_id: 8, attainment_level: 'E', createdAt: now, updatedAt: now },
+            { co_id: cosRows[3].co_id, po_id: 5, attainment_level: 'D', createdAt: now, updatedAt: now }
         ], {});
 
         // ============================================================================
-        // 5. INTENDED LEARNING OUTCOMES (12 records, 3 per CO)
+        // 6) References (Curated & Real-world Aligned)
         // ============================================================================
-        const iloData = [
-            // CO1 (Prelim Period)
-            { co_id: cos[0].co_id, description: 'Analyze enterprise architectural abstractions to distinguish between remote procedure interfaces and loosely coupled system hooks.', hours: 6 },
-            { co_id: cos[0].co_id, description: 'Establish clean RESTful design schemas and GraphQL contracts matching the upper tiers of the Richardson Maturity Framework.', hours: 6 },
-            { co_id: cos[0].co_id, description: 'Model interface translation modules capable of safely interconnecting legacy monolithic databases with contemporary microservices.', hours: 6 },
-            // CO2 (Midterm Period)
-            { co_id: cos[1].co_id, description: 'Execute cross-platform data serializations using language-agnostic engines including Protocol Buffers, Avro, and JSON specifications.', hours: 6 },
-            { co_id: cos[1].co_id, description: 'Implement optimized data communication backbones utilizing low-latency gRPC patterns running directly over HTTP/2 transport rules.', hours: 6 },
-            { co_id: cos[1].co_id, description: 'Build automated transformation adapters to remediate structural fields moving between relational datasets and unindexed document storage warehouses.', hours: 6 },
-            // CO3 (Semi-Final Period)
-            { co_id: cos[2].co_id, description: 'Configure multi-node message-oriented middleware platforms to support scalable point-to-point queues and event subscriptions.', hours: 6 },
-            { co_id: cos[2].co_id, description: 'Deploy resilient exception handshakes and callback routines to protect runtime data pipelines against sporadic infrastructure interruptions.', hours: 6 },
-            { co_id: cos[2].co_id, description: 'Manage compound state actions traversing detached databases by orchestrating asynchronous message paths guided by the Saga design pattern.', hours: 6 },
-            // CO4 (Final Period)
-            { co_id: cos[3].co_id, description: 'Apply identity management and multi-tenant authorization policies utilizing secure OAuth 2.0 structures and signed JSON Web Tokens.', hours: 6 },
-            { co_id: cos[3].co_id, description: 'Establish zero-trust transaction perimeters by routing application traffic through API gateways running active mutual TLS validations.', hours: 6 },
-            { co_id: cos[3].co_id, description: 'Analyze distributed tracing spans to identify microservice request blockages, parsing overheads, and network processing inefficiencies.', hours: 6 }
+        const references = [
+            // Textbooks
+            { title: 'Enterprise Integration Patterns', author: 'Gregor Hohpe', isbn: '978-0321200686', link: null, publication_year: new Date('2003-01-01'), type: 'TEXTBOOK', createdAt: now, updatedAt: now },
+            { title: 'Building Microservices', author: 'Sam Newman', isbn: '978-1491950357', link: null, publication_year: new Date('2021-01-01'), type: 'TEXTBOOK', createdAt: now, updatedAt: now },
+            { title: 'Designing Data-Intensive Applications', author: 'Martin Kleppmann', isbn: '978-1449373320', link: null, publication_year: new Date('2017-01-01'), type: 'TEXTBOOK', createdAt: now, updatedAt: now },
+            // Online/OER
+            { title: 'AWS Well-Architected Framework', author: 'Amazon Web Services', isbn: null, link: 'https://aws.amazon.com/architecture/', publication_year: new Date('2024-01-01'), type: 'ONLINE', createdAt: now, updatedAt: now },
+            { title: 'The Twelve-Factor App', author: 'Adam Wiggins', isbn: null, link: 'https://12factor.net/', publication_year: new Date('2017-01-01'), type: 'ONLINE', createdAt: now, updatedAt: now },
+            { title: 'GraphQL Specification', author: 'GraphQL Foundation', isbn: null, link: 'https://spec.graphql.org/', publication_year: new Date('2024-01-01'), type: 'OER', createdAt: now, updatedAt: now },
+            { title: 'Kafka: The Definitive Guide', author: 'Confluent', isbn: null, link: 'https://www.confluent.io/', publication_year: new Date('2023-01-01'), type: 'OER', createdAt: now, updatedAt: now },
+            // Required Orientation Docs
+            { title: 'UNC Student Handbook', author: 'University of Nueva Caceres', isbn: null, link: 'https://unc.edu.ph/student-handbook', publication_year: new Date('2024-06-01'), type: 'ONLINE', createdAt: now, updatedAt: now },
+            { title: 'CCS VMO Curated Materials', author: 'CCS Dean\'s Office', isbn: null, link: 'https://unc.edu.ph/ccs-vmo', publication_year: new Date('2024-06-01'), type: 'OER', createdAt: now, updatedAt: now }
         ];
 
-        await queryInterface.bulkInsert('IntendedLearningOutcomes', iloData.map(i => ({ ...i, createdAt: now, updatedAt: now })), {});
+        await queryInterface.bulkInsert('References', references, {});
 
-        const ilos = await queryInterface.sequelize.query(
-            `SELECT ilo_id FROM IntendedLearningOutcomes WHERE co_id IN (${cos.map(c => c.co_id).join(',')}) ORDER BY ilo_id ASC;`,
+        const refsRows = await queryInterface.sequelize.query(
+            `SELECT reference_id, title, type FROM \`References\` ORDER BY reference_id DESC LIMIT ${references.length};`,
+            { type: queryInterface.sequelize.QueryTypes.SELECT }
+        ).then(res => res.reverse());
+
+        // ============================================================================
+        // 7) Intended Learning Outcomes
+        // ============================================================================
+        const ilos = [
+            // CO1
+            { co_id: cosRows[0].co_id, description: "Cite the value and relevance of the University's and the College's VMO as related to the course", weeks: 1.0, hours: 2, is_orientation: true, createdAt: now, updatedAt: now },
+            { co_id: cosRows[0].co_id, description: 'Analyze enterprise architectural abstractions to distinguish between remote procedure interfaces and loosely coupled system hooks.', weeks: 1.0, hours: 5, assessment_tool: 'Objective Type Quiz', createdAt: now, updatedAt: now },
+            { co_id: cosRows[0].co_id, description: 'Establish clean RESTful design schemas and GraphQL contracts matching the Richardson Maturity Framework.', weeks: 1.0, hours: 5, assessment_tool: 'Schema Design Activity', createdAt: now, updatedAt: now },
+            { co_id: cosRows[0].co_id, description: 'Model interface translation modules capable of interconnecting legacy monolithic databases with microservices.', weeks: 2.0, hours: 10, assessment_tool: 'Architecture Blueprint Proposal', createdAt: now, updatedAt: now },
+            // CO2
+            { co_id: cosRows[1].co_id, description: 'Execute cross-platform data serializations using language-agnostic engines (Protocol Buffers, Avro, JSON).', weeks: 1.0, hours: 5, assessment_tool: 'Objective Type Quiz', createdAt: now, updatedAt: now },
+            { co_id: cosRows[1].co_id, description: 'Implement optimized data communication backbones utilizing low-latency gRPC patterns over HTTP/2.', weeks: 1.0, hours: 5, assessment_tool: 'Implementation Document', createdAt: now, updatedAt: now },
+            { co_id: cosRows[1].co_id, description: 'Build automated transformation adapters to remediate structural fields moving between relational datasets.', weeks: 2.0, hours: 10, assessment_tool: 'Adapter Code Presentation', createdAt: now, updatedAt: now },
+            // CO3
+            { co_id: cosRows[2].co_id, description: 'Configure multi-node message-oriented middleware platforms to support scalable event subscriptions.', weeks: 1.0, hours: 5, assessment_tool: 'Objective Type Quiz', createdAt: now, updatedAt: now },
+            { co_id: cosRows[2].co_id, description: 'Deploy resilient exception handshakes and callback routines to protect runtime data pipelines.', weeks: 1.0, hours: 5, assessment_tool: 'Pipeline Schematic', createdAt: now, updatedAt: now },
+            { co_id: cosRows[2].co_id, description: 'Manage compound state actions traversing detached databases guided by the Saga design pattern.', weeks: 2.0, hours: 10, assessment_tool: 'Saga State Workflow Presentation', createdAt: now, updatedAt: now },
+            // CO4
+            { co_id: cosRows[3].co_id, description: 'Apply identity management and multi-tenant authorization policies utilizing OAuth 2.0 and JSON Web Tokens.', weeks: 1.0, hours: 5, assessment_tool: 'Objective Type Quiz', createdAt: now, updatedAt: now },
+            { co_id: cosRows[3].co_id, description: 'Establish zero-trust transaction perimeters by routing application traffic through API gateways.', weeks: 1.0, hours: 5, assessment_tool: 'Security Implementation Document', createdAt: now, updatedAt: now },
+            { co_id: cosRows[3].co_id, description: 'Analyze distributed tracing spans to identify microservice request blockages and processing inefficiencies.', weeks: 2.0, hours: 10, assessment_tool: 'Tracing Report Defense', createdAt: now, updatedAt: now }
+        ];
+
+        await queryInterface.bulkInsert('IntendedLearningOutcomes', ilos, {});
+
+        const ilosRows = await queryInterface.sequelize.query(
+            `SELECT ilo_id, co_id, description, is_orientation FROM IntendedLearningOutcomes WHERE co_id IN (${cosRows.map(c => c.co_id).join(',')}) ORDER BY ilo_id ASC;`,
             { type: queryInterface.sequelize.QueryTypes.SELECT }
         );
 
         // ============================================================================
-        // 6. TOPICS & SUBTOPICS (35 records)
+        // 8) ILOReferences Assignment
+        // ============================================================================
+        const orientationIloResult = await queryInterface.sequelize.query(
+            'SELECT ilo_id FROM IntendedLearningOutcomes WHERE is_orientation = true ORDER BY ilo_id DESC LIMIT 1;',
+            { type: queryInterface.sequelize.QueryTypes.SELECT }
+        );
+        const orientationIlo = orientationIloResult.length > 0 ? orientationIloResult[0] : null;
+
+        const textbooks = refsRows.filter(r => r.type === 'TEXTBOOK');
+        const others = refsRows.filter(r => r.type !== 'TEXTBOOK');
+        const technicalIlos = ilosRows.filter(ilo => !ilo.is_orientation);
+
+        const iloReferences = [];
+
+        // Handle Orientation References
+        if (orientationIlo) {
+            const studentHandbook = refsRows.find(r => r.title.includes('UNC Student Handbook'));
+            const vmoMaterials = refsRows.find(r => r.title.includes('CCS VMO'));
+
+            if (studentHandbook) iloReferences.push({ reference_id: studentHandbook.reference_id, ilo_id: orientationIlo.ilo_id, createdAt: now, updatedAt: now });
+            if (vmoMaterials) iloReferences.push({ reference_id: vmoMaterials.reference_id, ilo_id: orientationIlo.ilo_id, createdAt: now, updatedAt: now });
+        }
+
+        // Handle Technical References Round-Robin
+        for (let i = 0; i < technicalIlos.length; i++) {
+            const ilo = technicalIlos[i];
+            const textbookRef = textbooks[i % textbooks.length];
+            const onlineRef = others[i % others.length];
+
+            if (textbookRef) iloReferences.push({ reference_id: textbookRef.reference_id, ilo_id: ilo.ilo_id, createdAt: now, updatedAt: now });
+            if (onlineRef) iloReferences.push({ reference_id: onlineRef.reference_id, ilo_id: ilo.ilo_id, createdAt: now, updatedAt: now });
+        }
+        await queryInterface.bulkInsert('ILOReferences', iloReferences, {});
+
+        // ============================================================================
+        // 9) Topics
         // ============================================================================
         const topicTitles = [
-            'Foundations of Systems Integration', 'Enterprise Integration Patterns (EIP)', 'Service-Oriented Architecture (SOA) Principles',
-            'API-First Development Methodologies', 'RESTful API Design and Richardson Maturity', 'GraphQL Schema Definition and Optimization',
-            'gRPC and High-Performance RPC Frameworks', 'Data Serialization Formats (JSON, XML, YAML)', 'Advanced Schema Validation Techniques',
-            'Middleware Architecture Foundations', 'Message-Oriented Middleware (MOM)', 'Publish-Subscribe Messaging Models',
-            'Point-to-Point Message Queuing', 'Apache Kafka and Event Streaming', 'RabbitMQ and AMQP Standardizations',
-            'Asynchronous Programming and Callbacks', 'Webhooks and Real-Time Event Notifications', 'Enterprise Service Bus (ESB) Configurations',
-            'Data Transformation and Mapping Pipelines', 'Distributed Database Synchronization', 'Two-Phase Commit vs. Saga Patterns',
-            'API Gateway Routing and Management', 'Service Discovery and Registry Patterns', 'Distributed Caching Topologies (Redis)',
-            'Rate Limiting and Throttling Core Logic', 'Circuit Breaker and Retry Resiliencies', 'OAuth 2.0 Authorization Protocols',
-            'JSON Web Tokens (JWT) Security Framework', 'Identity Federation and Single Sign-On (SSO)', 'Mutual TLS (mTLS) and Transport Encryption',
-            'API Performance Metrics and Latency Analysis', 'Distributed Tracing and Logging (OpenTelemetry)', 'Containerization for Integration Systems',
-            'Cloud-Native Hybrid Integrations', 'End-to-End Integration Testing Strategies'
+            'Course Orientation and VMO Alignment',
+            'Enterprise Integration Architectural Abstractions',
+            'RESTful API Design and Richardson Maturity Model',
+            'Legacy System Integrations and Translators',
+            'Cross-Platform Data Serialization Protocols',
+            'gRPC and HTTP/2 Transport Rules',
+            'Automated Data Transformation Adapters',
+            'Message-Oriented Middleware Configurations',
+            'Resilient Exception Handshakes and Callbacks',
+            'Saga Design Pattern and Orchestration',
+            'OAuth 2.0 and JSON Web Tokens',
+            'API Gateways and Mutual TLS',
+            'Distributed Tracing and Overhead Analysis'
         ];
 
         await queryInterface.bulkInsert('Topics', topicTitles.map(t => ({ title: t, createdAt: now, updatedAt: now })), {});
-        const topics = await queryInterface.sequelize.query(
-            `SELECT topic_id, title FROM Topics ORDER BY topic_id DESC LIMIT 35;`,
+
+        const topicsRows = await queryInterface.sequelize.query(
+            `SELECT topic_id, title FROM Topics ORDER BY topic_id DESC LIMIT ${topicTitles.length};`,
             { type: queryInterface.sequelize.QueryTypes.SELECT }
         ).then(res => res.reverse());
 
+        // ============================================================================
+        // 10) Subtopics
+        // ============================================================================
+        const subtopicsMap = {
+            'Course Orientation and VMO Alignment': [
+                'University and College VMO, Core Values, and Quality Policy',
+                'Course Outline, Course Description, and Classroom Policies',
+                'AI Usage Policy and Course Requirements'
+            ],
+            'Enterprise Integration Architectural Abstractions': [
+                'RPC vs Loosely Coupled Systems', 'Microservice Design Paradigms', 'Component De-coupling'
+            ],
+            'RESTful API Design and Richardson Maturity Model': [
+                'HATEOAS Integration', 'Idempotency in API Endpoints', 'GraphQL Schema Differences'
+            ],
+            'Legacy System Integrations and Translators': [
+                'Anti-Corruption Layers', 'Strangler Fig Pattern', 'WSDL Contract Deconstruction'
+            ],
+            'Cross-Platform Data Serialization Protocols': [
+                'JSON vs XML vs YAML', 'Protocol Buffers Efficiency', 'Avro Schema Evolution'
+            ],
+            'gRPC and HTTP/2 Transport Rules': [
+                'Bi-directional Streaming', 'Multiplexing Connections', 'Latency Mitigation'
+            ],
+            'Automated Data Transformation Adapters': [
+                'ETL Pipelines', 'Relational to Document Mappings', 'Data Cleansing Hooks'
+            ],
+            'Message-Oriented Middleware Configurations': [
+                'Publish/Subscribe Paradigms', 'Kafka Topics and Partitions', 'RabbitMQ Exchanges'
+            ],
+            'Resilient Exception Handshakes and Callbacks': [
+                'Circuit Breakers', 'Exponential Backoff and Retries', 'Dead Letter Queues'
+            ],
+            'Saga Design Pattern and Orchestration': [
+                'Choreography vs Orchestration', 'Compensating Transactions', 'Handling Eventual Consistency'
+            ],
+            'OAuth 2.0 and JSON Web Tokens': [
+                'Authorization Grant Flows', 'JWT Signature Forgery Risks', 'Identity Federation'
+            ],
+            'API Gateways and Mutual TLS': [
+                'Rate Limiting Algorithms', 'Service Mesh Traversal', 'mTLS Policy Enforcement'
+            ],
+            'Distributed Tracing and Overhead Analysis': [
+                'OpenTelemetry Integration', 'Identifying Network Bottlenecks', 'Log Aggregation'
+            ]
+        };
+
         const subtopicsToInsert = [];
-        topics.forEach(t => {
-            subtopicsToInsert.push({ topic_id: t.topic_id, title: `Core Theoretical Architectures of ${t.title}`, sequence_order: 1, createdAt: now, updatedAt: now });
-            subtopicsToInsert.push({ topic_id: t.topic_id, title: `Practical Programming and Deployment Workflows`, sequence_order: 2, createdAt: now, updatedAt: now });
-            subtopicsToInsert.push({ topic_id: t.topic_id, title: `Security Assessments and System Resiliency Engineering`, sequence_order: 3, createdAt: now, updatedAt: now });
-        });
+        for (const t of topicsRows) {
+            const subs = subtopicsMap[t.title] || [];
+            subs.forEach((subTitle, idx) => {
+                subtopicsToInsert.push({ topic_id: t.topic_id, title: subTitle, sequence_order: idx + 1, createdAt: now, updatedAt: now });
+            });
+        }
         await queryInterface.bulkInsert('Subtopics', subtopicsToInsert, {});
 
         // ============================================================================
-        // 7. REFERENCES (35 records)
-        // ============================================================================
-        const textbooks = [
-            { title: 'Enterprise Integration Patterns', author: 'Gregor Hohpe', isbn: '978-0321200686', pubYear: '2003' },
-            { title: 'Building Microservices', author: 'Sam Newman', isbn: '978-1491950357', pubYear: '2021' },
-            { title: 'Clean Architecture', author: 'Robert C. Martin', isbn: '978-0134494166', pubYear: '2017' },
-            { title: 'Domain-Driven Design', author: 'Eric Evans', isbn: '978-0321125217', pubYear: '2003' },
-            { title: 'Patterns of Enterprise Application Architecture', author: 'Martin Fowler', isbn: '978-0321127426', pubYear: '2002' },
-            { title: 'Designing Data-Intensive Applications', author: 'Martin Kleppmann', isbn: '978-1449373320', pubYear: '2017' },
-            { title: 'RESTful Web Services', author: 'Leonard Richardson', isbn: '978-0596529260', pubYear: '2007' },
-            { title: 'Cloud Native Patterns', author: 'Cornelia Davis', isbn: '978-1617294297', pubYear: '2019' },
-            { title: 'Service-Oriented Architecture', author: 'Thomas Erl', isbn: '978-0131858589', pubYear: '2005' },
-            { title: 'Site Reliability Engineering', author: 'Betsy Beyer', isbn: '978-1491929124', pubYear: '2016' },
-            { title: 'The Phoenix Project', author: 'Gene Kim', isbn: '978-1942788294', pubYear: '2013' },
-            { title: 'Implementing Domain-Driven Design', author: 'Vaughn Vernon', isbn: '978-0321834577', pubYear: '2013' }
-        ];
-
-        const onlineResources = [
-            { title: 'AWS Well-Architected Framework', author: 'Amazon Web Services', link: 'https://aws.amazon.com/architecture/well-architected/', pubYear: '2024' },
-            { title: 'Azure Architecture Center', author: 'Microsoft', link: 'https://learn.microsoft.com/en-us/azure/architecture/', pubYear: '2025' },
-            { title: 'Google Cloud Architecture Framework', author: 'Google', link: 'https://cloud.google.com/architecture/framework', pubYear: '2025' },
-            { title: 'The Twelve-Factor App', author: 'Adam Wiggins', link: 'https://12factor.net/', pubYear: '2017' },
-            { title: 'RedHat Integration Guide', author: 'RedHat', link: 'https://access.redhat.com/documentation/en-us/red_hat_fuse/', pubYear: '2023' },
-            { title: 'Martin Fowler Blog: Microservices', author: 'Martin Fowler', link: 'https://martinfowler.com/microservices/', pubYear: '2024' },
-            { title: 'Docker Official Documentation', author: 'Docker Inc.', link: 'https://docs.docker.com/', pubYear: '2026' },
-            { title: 'Kubernetes Documentation', author: 'CNCF', link: 'https://kubernetes.io/docs/home/', pubYear: '2026' },
-            { title: 'GraphQL Specification', author: 'Facebook/GraphQL Foundation', link: 'https://spec.graphql.org/', pubYear: '2024' },
-            { title: 'Spring Integration Reference', author: 'VMware', link: 'https://docs.spring.io/spring-integration/reference/', pubYear: '2025' },
-            { title: 'Nginx Architecture Overview', author: 'F5 Inc', link: 'https://www.nginx.com/blog/inside-nginx/', pubYear: '2022' },
-            { title: 'Kafka: The Definitive Guide', author: 'Confluent', link: 'https://www.confluent.io/resources/kafka-the-definitive-guide/', pubYear: '2023' }
-        ];
-
-        const oerResources = [
-            { title: 'Software Engineering (MIT OCW)', author: 'MIT Press', link: 'https://ocw.mit.edu/', pubYear: '2020' },
-            { title: 'Operating Systems and Middleware', author: 'Max Hailperin', link: 'https://gustavus.edu/mcs/max/os-book/', pubYear: '2018' },
-            { title: 'Introduction to Computer Architecture', author: 'OpenStax', link: 'https://openstax.org/', pubYear: '2021' },
-            { title: 'Software Architecture for Developers', author: 'Simon Brown', link: 'https://softwarearchitecturefordevelopers.com/', pubYear: '2019' },
-            { title: 'Distributed Systems for Web Developers', author: 'OER Commons', link: 'https://www.oercommons.org/', pubYear: '2022' },
-            { title: 'Web Programming Foundations', author: 'University of Minnesota', link: 'https://open.umn.edu/opentextbooks/', pubYear: '2023' },
-            { title: 'Foundations of Software Testing', author: 'Various', link: 'https://oer.galileo.usg.edu/', pubYear: '2020' },
-            { title: 'Data Structures and Algorithms', author: 'Lafore', link: 'https://www.oercommons.org/courseware/', pubYear: '2019' },
-            { title: 'Cloud Computing Concepts', author: 'UIUC', link: 'https://www.coursera.org/learn/cloud-computing', pubYear: '2021' },
-            { title: 'Network Security Essentials', author: 'OER Project', link: 'https://www.oercommons.org/', pubYear: '2020' },
-            { title: 'Programming Language Design', author: 'PL Design Archive', link: 'https://www.oercommons.org/', pubYear: '2022' }
-        ];
-
-        const referenceData = [
-            ...textbooks.map(b => ({ title: b.title, author: b.author, isbn: b.isbn, link: null, publication_year: new Date(`${b.pubYear}-01-01`), type: 'TEXTBOOK', createdAt: now, updatedAt: now })),
-            ...onlineResources.map(o => ({ title: o.title, author: o.author, isbn: null, link: o.link, publication_year: new Date(`${o.pubYear}-01-01`), type: 'ONLINE', createdAt: now, updatedAt: now })),
-            ...oerResources.map(o => ({ title: o.title, author: o.author, isbn: null, link: o.link, publication_year: new Date(`${o.pubYear}-01-01`), type: 'OER', createdAt: now, updatedAt: now }))
-        ];
-
-        await queryInterface.bulkInsert('References', referenceData, {});
-
-        const references = await queryInterface.sequelize.query(
-            `SELECT reference_id FROM \`References\` ORDER BY reference_id DESC LIMIT 35;`,
-            { type: queryInterface.sequelize.QueryTypes.SELECT }
-        ).then(res => res.reverse());
-
-        // ============================================================================
-        // 8. TLAs (35 records)
-        // ============================================================================
-        const tlaTitles = [
-            'System Connectivity Mapping', 'API Schema Validation Lab', 'GraphQL Query Optimization Studio', 'Legacy Adapter Configuration',
-            'Distributed Queue Orchestration', 'gRPC Multicast Implementation', 'OAuth Token Audit Session', 'Docker Integration Bridge Build',
-            'Service Mesh Traversal Exercise', 'Gateway Throttling Configuration Lab', 'Saga Workflow Simulation', 'XML Payload Refactoring',
-            'JWT Vulnerability Assessment', 'mTLS Policy Definition Session', 'Data Pipeline Aggregator Build', 'Identity Federation Workshop',
-            'Redis Cluster Hydration Drills', 'Load-Balanced Gateway Stress Test', 'Webhook Callback Receiver Code', 'Circuit Breaker Injection Lab',
-            'Microservice Route Registry Tasks', 'RabbitMQ Exchange Configurations', 'B2B Protocol Translation Audits', 'Cloud Function Data Triggering',
-            'CI/CD Deployment Integrity Checks', 'Integration Security Analysis', 'Distributed Database Shard Syncs', 'Protobuf Schema Interoperability Labs',
-            'OIDC Signature Checks', 'MOM High Availability Deployments', 'API In-Place Version Migration', 'OpenTelemetry Tracing Analysis',
-            'Strangler Pattern Infrastructure Builds', 'Failover Recovery Tests', 'Enterprise Integration Architecture Blueprinting'
-        ];
-
-        await queryInterface.bulkInsert('TeachingAndLearningActivities', tlaTitles.map((t, idx) => ({
-            tla_name: t, description: `Comprehensive practical engagement focusing on executing concepts related to ${t}.`,
-            performed_by: idx % 2 === 0 ? 'S' : 'I', class_phase: ['pre', 'in', 'post'][idx % 3], is_lab: idx % 2 === 0 ? '1' : '0', createdAt: now, updatedAt: now
-        })), {});
-
-        const tlas = await queryInterface.sequelize.query(
-            `SELECT tla_id FROM TeachingAndLearningActivities ORDER BY tla_id DESC LIMIT 35;`,
-            { type: queryInterface.sequelize.QueryTypes.SELECT }
-        ).then(res => res.reverse());
-
-        // ============================================================================
-        // 9. JUNCTION MAPPINGS (ILOTopics, ILOReferences)
+        // 11) ILOTopics (1-to-1 Mapping)
         // ============================================================================
         const iloTopicInserts = [];
-        const iloReferenceInserts = [];
+        const orientationTopic = topicsRows.find(t => t.title === 'Course Orientation and VMO Alignment');
 
-        for (let i = 0; i < 12; i++) {
-            const iloId = ilos[i].ilo_id;
+        if (orientationIlo && orientationTopic) {
+            iloTopicInserts.push({
+                ilo_id: Number(orientationIlo.ilo_id),
+                topic_id: Number(orientationTopic.topic_id),
+                createdAt: now, updatedAt: now
+            });
+        }
 
-            iloTopicInserts.push({ ilo_id: iloId, topic_id: topics[i * 2].topic_id, createdAt: now, updatedAt: now });
-            iloTopicInserts.push({ ilo_id: iloId, topic_id: topics[(i * 2) + 1].topic_id, createdAt: now, updatedAt: now });
+        const technicalTopicsRows = topicsRows.filter(t => t.title !== 'Course Orientation and VMO Alignment');
+        const technicalIlosRows = await queryInterface.sequelize.query(
+            `SELECT ilo_id FROM IntendedLearningOutcomes WHERE (is_orientation = false OR is_orientation IS NULL) AND co_id IN (${cosRows.map(c => c.co_id).join(',')}) ORDER BY ilo_id ASC;`,
+            { type: queryInterface.sequelize.QueryTypes.SELECT }
+        );
 
-            iloReferenceInserts.push({ ilo_id: iloId, reference_id: references[i * 2].reference_id, createdAt: now, updatedAt: now });
-            iloReferenceInserts.push({ ilo_id: iloId, reference_id: references[(i * 2) + 1].reference_id, createdAt: now, updatedAt: now });
+        for (let i = 0; i < technicalTopicsRows.length; i++) {
+            const currentTopic = technicalTopicsRows[i];
+            const matchingIlo = technicalIlosRows[i % technicalIlosRows.length];
+            iloTopicInserts.push({
+                ilo_id: Number(matchingIlo.ilo_id),
+                topic_id: Number(currentTopic.topic_id),
+                createdAt: now, updatedAt: now
+            });
         }
         await queryInterface.bulkInsert('ILOTopics', iloTopicInserts, {});
-        await queryInterface.bulkInsert('ILOReferences', iloReferenceInserts, {});
 
-        const iloTopics = await queryInterface.sequelize.query(
-            `SELECT ilo_topic_id FROM ILOTopics ORDER BY ilo_topic_id DESC LIMIT 24;`,
+        const iloTopicsRows = await queryInterface.sequelize.query(
+            `SELECT ilo_topic_id FROM ILOTopics ORDER BY ilo_topic_id DESC LIMIT ${topicTitles.length};`,
             { type: queryInterface.sequelize.QueryTypes.SELECT }
         ).then(res => res.reverse());
 
         // ============================================================================
-        // 10. TOPIC TLAs
+        // 12) Teaching and Learning Activities (3 per Topic)
+        // ============================================================================
+        const tlasToInsert = [];
+        topicsRows.forEach((topic) => {
+            if (topic.title === 'Course Orientation and VMO Alignment') {
+                tlasToInsert.push({ tla_name: 'VMO & Outcomes Reading Assignment', description: 'Read the materials on UNC VMO and CCS VMO, Program Educational Objectives (PEOs), and Program Outcomes (POs)', performed_by: 'S', class_phase: 'preclass', is_lab: true, createdAt: now, updatedAt: now });
+                tlasToInsert.push({ tla_name: 'Course Orientation Lecture & Collaborative Forum', description: 'The orientation will cover course outcomes and topic outline, assessment and evaluation activities, grading and class policies, and the flipped classroom approach. It will also introduce LinkedIn courses under MQUAP and explain the AI usage policy.', performed_by: 'T', class_phase: 'inclass', is_lab: false, createdAt: now, updatedAt: now });
+                tlasToInsert.push({ tla_name: 'VMO Visual Alignment Poster & Foundation AI Course', description: 'Self-paced completion of the Google Introduction to Generative AI', performed_by: 'S', class_phase: 'postclass', is_lab: true, createdAt: now, updatedAt: now });
+            } else {
+                tlasToInsert.push({ tla_name: `Core Materials Reading of ${topic.title}`, description: `Students execute self-paced prep learning by reading target chapters, lecture slides, and online course files. Students prepare personal reference summaries noting key conceptual distinctions.`, performed_by: 'S', class_phase: 'preclass', is_lab: true, createdAt: now, updatedAt: now });
+                tlasToInsert.push({ tla_name: `Structured Seminar ${topic.title}`, description: `An in-depth theoretical analysis and system discussion covering core criteria, system mechanics, and enterprise architectural guidelines. Includes live demonstrations and real-time interactive assessment quizzes.`, performed_by: 'T', class_phase: 'inclass', is_lab: false, createdAt: now, updatedAt: now });
+                tlasToInsert.push({ tla_name: `Integration Review & Implementation of ${topic.title}`, description: `A practical laboratory follow-up where the instructor reviews previous quizzes to identify pain points, coordinates tailored feedback, and executes independent integration code updates.`, performed_by: 'S', class_phase: 'postclass', is_lab: true, createdAt: now, updatedAt: now });
+            }
+        });
+
+        await queryInterface.bulkInsert('TeachingAndLearningActivities', tlasToInsert, {});
+
+        const tlasRows = await queryInterface.sequelize.query(
+            `SELECT tla_id, tla_name FROM TeachingAndLearningActivities ORDER BY tla_id DESC LIMIT ${tlasToInsert.length};`,
+            { type: queryInterface.sequelize.QueryTypes.SELECT }
+        ).then(res => res.reverse());
+
+        // ============================================================================
+        // 13) TopicTLAs Assignment
         // ============================================================================
         const topicTlaInserts = [];
-        for (let i = 0; i < 24; i++) {
-            topicTlaInserts.push({
-                ilo_topic_id: iloTopics[i].ilo_topic_id,
-                tla_id: tlas[i].tla_id,
-                createdAt: now, updatedAt: now
-            });
+        for (let i = 0; i < iloTopicsRows.length; i++) {
+            const jRow = iloTopicsRows[i];
+            const preTla = tlasRows[i * 3];
+            const inTla = tlasRows[i * 3 + 1];
+            const postTla = tlasRows[i * 3 + 2];
+
+            topicTlaInserts.push(
+                { ilo_topic_id: jRow.ilo_topic_id, tla_id: preTla.tla_id, createdAt: now, updatedAt: now },
+                { ilo_topic_id: jRow.ilo_topic_id, tla_id: inTla.tla_id, createdAt: now, updatedAt: now },
+                { ilo_topic_id: jRow.ilo_topic_id, tla_id: postTla.tla_id, createdAt: now, updatedAt: now }
+            );
         }
         await queryInterface.bulkInsert('TopicTLAs', topicTlaInserts, {});
 
         // ============================================================================
-        // 11. TLA ASSESSMENTS
-        // Constraint: 20/30/50 grading matrix per period. Min passing 60.
-        // Periods: CO1(p), CO2(m), CO3(s), CO4(f)
+        // 14) TLAAssessments (20/30/50 Rigorous Weight Mapping)
         // ============================================================================
-        const assessmentInserts = [];
+        const tlaAssessmentInserts = [];
         const periods = ['p', 'm', 's', 'f'];
-        const weightDistribution = [10, 15, 25]; // Forms 10*2=20, 15*2=30, 25*2=50. Total = 100 per term.
-        const assessmentNames = ['Technical Examination', 'Laboratory Project', 'Integration Exercise', 'Architecture Presentation', 'Code Review Checklist'];
 
-        for (let i = 0; i < 12; i++) {
+        for (let i = 0; i < technicalIlosRows.length; i++) {
             const coIndex = Math.floor(i / 3);
-            const iloPosInCo = i % 3;
+            const iloIndex = i % 3;
+            const currentPeriod = periods[coIndex];
 
-            const targetPeriod = periods[coIndex];
-            const targetWeightPerAssessment = String(weightDistribution[iloPosInCo]);
+            // Assigned TLA matches the IN-CLASS phase of the specific topic (i + 1 due to orientation index 0)
+            const assignedTlaId = tlasRows[(i + 1) * 3 + 1].tla_id;
 
-            const assignedTlasForIlo = [tlas[i * 2].tla_id, tlas[(i * 2) + 1].tla_id];
+            let assessmentName = '';
+            let assessmentDescription = '';
+            let assessmentWeight = '20';
 
-            assignedTlasForIlo.forEach((tlaId, idx) => {
-                assessmentInserts.push({
-                    tla_id: tlaId,
-                    name: assessmentNames[(i + idx) % assessmentNames.length],
-                    description: `Summative integration test configured to calculate functional logic execution metrics.`,
-                    period: targetPeriod,
-                    weight: targetWeightPerAssessment,
-                    min_passing: 60,
-                    createdAt: now,
-                    updatedAt: now
-                });
+            if (iloIndex === 0) {
+                assessmentName = 'Objective-Type Quiz';
+                assessmentWeight = '20';
+
+                if (coIndex === 0) assessmentDescription = 'Covering architectural abstractions, API boundaries, and middleware decoupling techniques.';
+                else if (coIndex === 1) assessmentDescription = 'Covering serialization methodologies and efficient data transport formatting constraints.';
+                else if (coIndex === 2) assessmentDescription = 'Covering asynchronous event-driven models, publish/subscribe theories, and Kafka mechanics.';
+                else assessmentDescription = 'Covering distributed identity management, OAuth 2.0 flows, and robust zero-trust policies.';
+            } else if (iloIndex === 1) {
+                assessmentWeight = '30';
+
+                if (coIndex === 0) {
+                    assessmentName = 'Schema Design Activity';
+                    assessmentDescription = 'A structured exercise involving the design of RESTful constraints and GraphQL schemas.';
+                } else if (coIndex === 1) {
+                    assessmentName = 'Implementation Document';
+                    assessmentDescription = 'A technical implementation record specifying the deployment of gRPC tunnels and JSON structures.';
+                } else if (coIndex === 2) {
+                    assessmentName = 'Pipeline Schematic';
+                    assessmentDescription = 'A visual configuration detailing broker pathways, dead letter queues, and exception catch blocks.';
+                } else {
+                    assessmentName = 'Security Implementation Document';
+                    assessmentDescription = 'A formal security audit report evaluating gateway traversal rules and active mTLS endpoints.';
+                }
+            } else {
+                assessmentWeight = '50';
+
+                if (coIndex === 0) {
+                    assessmentName = 'Architecture Blueprint Proposal';
+                    assessmentDescription = 'A comprehensive capstone blueprint proposing end-to-end integration mapping for legacy systems.';
+                } else if (coIndex === 1) {
+                    assessmentName = 'Adapter Code Presentation';
+                    assessmentDescription = 'An interactive presentation showcasing automated data transformation pipelines across heterogeneous endpoints.';
+                } else if (coIndex === 2) {
+                    assessmentName = 'Saga State Workflow Presentation';
+                    assessmentDescription = 'An interactive demonstration resolving distributed transaction failures through compensating saga state events.';
+                } else {
+                    assessmentName = 'Tracing Report Defense';
+                    assessmentDescription = 'A final presentation utilizing OpenTelemetry spans to isolate, analyze, and diagnose microservice inefficiencies.';
+                }
+            }
+
+            tlaAssessmentInserts.push({
+                tla_id: assignedTlaId,
+                name: assessmentName,
+                description: assessmentDescription,
+                period: currentPeriod,
+                weight: assessmentWeight,
+                min_passing: 60,
+                createdAt: now,
+                updatedAt: now
             });
         }
 
-        await queryInterface.bulkInsert('TLAAssessments', assessmentInserts, {});
-        console.log(`Successfully completed rigorous data mapping for draft course BIT312L.`);
+        await queryInterface.bulkInsert('TLAAssessments', tlaAssessmentInserts, {});
+        console.log(`Successfully completed rigorous data mapping for DRAFT course BIT312L using foundational flow.`);
     },
 
     async down(queryInterface, Sequelize) {

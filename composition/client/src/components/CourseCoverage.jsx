@@ -159,42 +159,72 @@ const CourseCoverage = ({ offeringID, revisionNum, status, selectedSection, styl
                     </tr>
                     </thead>
                     <tbody>
-                    {ilos.length > 0 ? ilos.map((ilo, index) => {
-                        const rowTopics = getILOTopics(ilo);
+                    {(() => {
+                        let lastCoPrefix = null;
+                        let iloDisplaySequence = 0;
+                        let coItemIndex = 0; // Tracks the element's position within its current CO group
 
-                        const preTLAs = getTLAsByPhase(rowTopics, 'Pre-class');
-                        const inTLAs = getTLAsByPhase(rowTopics, 'In-class');
-                        const postTLAs = getTLAsByPhase(rowTopics, 'Post-class');
+                        return ilos.length > 0 ? ilos.map((ilo, index) => {
+                            const rowTopics = getILOTopics(ilo);
 
-                        const allRowTLAs = [...preTLAs, ...inTLAs, ...postTLAs];
-                        const rawAssessments = getAssessmentsForTLAs(allRowTLAs);
+                            const preTLAs = getTLAsByPhase(rowTopics, 'Pre-class');
+                            const inTLAs = getTLAsByPhase(rowTopics, 'In-class');
+                            const postTLAs = getTLAsByPhase(rowTopics, 'Post-class');
 
-                        const uniqueAssessments = [];
-                        const seenAssessKeys = new Set();
+                            const allRowTLAs = [...preTLAs, ...inTLAs, ...postTLAs];
+                            const rawAssessments = getAssessmentsForTLAs(allRowTLAs);
 
-                        rawAssessments.forEach(assess => {
-                            const key = `${assess.id}-${assess.assessmentName}`.toLowerCase();
-                            if (!seenAssessKeys.has(key)) {
-                                seenAssessKeys.add(key);
-                                uniqueAssessments.push(assess);
+                            const uniqueAssessments = [];
+                            const seenAssessKeys = new Set();
+
+                            rawAssessments.forEach(assess => {
+                                const key = `${assess.id}-${assess.assessmentName}`.toLowerCase();
+                                if (!seenAssessKeys.has(key)) {
+                                    seenAssessKeys.add(key);
+                                    uniqueAssessments.push(assess);
+                                }
+                            });
+
+                            const currentCoPrefix = ilo.id.split('-')[0];
+
+                            // 1. Reset or increment the inner position index when crossing CO boundaries
+                            if (currentCoPrefix !== lastCoPrefix) {
+                                lastCoPrefix = currentCoPrefix;
+                                coItemIndex = 0;
+                            } else {
+                                coItemIndex++;
                             }
-                        });
 
-                        const cleanILOId = ilo.id.includes('-') ? ilo.id.split('-')[1] : ilo.id;
-                        const currentCoPrefix = ilo.id.split('-')[0];
+                            // 2. Count the total number of ILOs assigned to this specific CO prefix
+                            const totalIlosInCo = ilos.filter(item => item.id.startsWith(currentCoPrefix + '-')).length;
 
-                        const isFirstOfCO = index === ilos.findIndex(item => item.id.startsWith(currentCoPrefix + '-'));
-                        const coRowCount = ilos.filter(item => item.id.startsWith(currentCoPrefix + '-')).length;
+                            // 3. Condition: If there are exactly 4 rows in this CO, automatically flag the 1st one (index 0)
+                            const isCourseOrientation = (totalIlosInCo === 4 && coItemIndex === 0);
 
-                        // Target identifier calculations for badge logic
-                        const targetIloId = ilo.db_id || ilo.ilo_id || ilo.id;
-                        const refCount = coverageCommentCounts[`${targetIloId}_references`] || 0;
-                        const topicCount = coverageCommentCounts[`${targetIloId}_topics`] || 0;
-                        const tlaCount = coverageCommentCounts[`${targetIloId}_tlas`] || 0;
-                        const totalRowUnresolved = refCount + topicCount + tlaCount;
+                            // 4. Handle sequential numbering shifts based on the flag
+                            if (coItemIndex === 0) {
+                                iloDisplaySequence = isCourseOrientation ? 0 : 1;
+                            } else {
+                                if (!isCourseOrientation) {
+                                    iloDisplaySequence++;
+                                }
+                            }
 
-                        return (
-                            <tr key={ilo.id}>
+                            // 5. Build dynamic cleanILOId or leave blank if it matches Course Orientation
+                            const cleanILOId = isCourseOrientation ? "" : `ILO${iloDisplaySequence}`;
+
+                            const isFirstOfCO = index === ilos.findIndex(item => item.id.startsWith(currentCoPrefix + '-'));
+                            const coRowCount = totalIlosInCo;
+
+                            // Target identifier calculations for badge logic
+                            const targetIloId = ilo.db_id || ilo.ilo_id || ilo.id;
+                            const refCount = coverageCommentCounts[`${targetIloId}_references`] || 0;
+                            const topicCount = coverageCommentCounts[`${targetIloId}_topics`] || 0;
+                            const tlaCount = coverageCommentCounts[`${targetIloId}_tlas`] || 0;
+                            const totalRowUnresolved = refCount + topicCount + tlaCount;
+
+                            return (
+                                <tr key={ilo.id}>
                                 {/* CO COLUMN */}
                                 {isFirstOfCO && (
                                     <td
@@ -268,10 +298,11 @@ const CourseCoverage = ({ offeringID, revisionNum, status, selectedSection, styl
                                     ))}
                                 </td>
                             </tr>
+                            );
+                        }) : (
+                            <tr><td colSpan={7} style={{ padding: '20px', textAlign: 'center' }}>No coverage data available.</td></tr>
                         );
-                    }) : (
-                        <tr><td colSpan={7} style={{ padding: '20px', textAlign: 'center' }}>No coverage data available.</td></tr>
-                    )}
+                    })()} {/* <-- Add this closing signature right before </tbody> */}
                     </tbody>
                 </table>
             </div>

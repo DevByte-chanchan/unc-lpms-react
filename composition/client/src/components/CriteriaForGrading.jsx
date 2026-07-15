@@ -147,6 +147,11 @@ const CriteriaForGrading = ({ offeringID, revisionNum, status, styles, stylesB, 
                         gradingSystem.map((group) => (
                             <React.Fragment key={group.co}>
                                 {group.ilos.map((ilo, index) => {
+                                    // Since Course Orientation is already excluded from the grading data,
+                                    // the items in this array are purely the graded ILOs.
+                                    // We simply number them sequentially starting from 1 (index + 1).
+                                    const displayLabel = `ILO ${index + 1}`;
+
                                     // Retrieve criteria comment count for badge display
                                     const criteriaBadges = getBadgeCount(ilo.id, 'criteria');
 
@@ -160,10 +165,10 @@ const CriteriaForGrading = ({ offeringID, revisionNum, status, styles, stylesB, 
                                                 </td>
                                             )}
 
-                                            {/* ILO Cell */}
+                                            {/* ILO Cell - Fixed Sequential Numbering */}
                                             <td className={styles.dataCellCenter}>
                                                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
-                                                    <span style={{ fontWeight: '500' }}>{ilo.id}</span>
+                                                    <span style={{ fontWeight: '500' }}>{displayLabel}</span>
                                                     {/* Append notification badge next to item identifier when returned */}
                                                     {status === 'returned' && criteriaBadges > 0 && (
                                                         <span className={styles['comment-badge']}>{criteriaBadges}</span>

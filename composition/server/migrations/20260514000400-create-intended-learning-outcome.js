@@ -24,7 +24,20 @@ module.exports = {
             },
             hours: {
                 type: Sequelize.INTEGER,
-                allowNull: false
+                allowNull: true // Changed to nullable
+            },
+            weeks: {
+                type: Sequelize.DECIMAL(4, 2),
+                allowNull: true // Added weeks
+            },
+            assessment_tool: {
+                type: Sequelize.STRING(200),
+                allowNull: true // Added assessment tool
+            },
+            is_orientation:{
+                type: Sequelize.BOOLEAN,
+                defaultValue: false,
+                allowNull: true,
             },
             createdAt: {
                 type: Sequelize.DATE,

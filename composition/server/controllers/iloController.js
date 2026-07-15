@@ -30,7 +30,7 @@ async function getILOsByPcOffering(req, res) {
         const coIds = courseOutcomes.map(co => co.co_id);
         const ilos = await IntendedLearningOutcome.findAll({
             where: { co_id: coIds },
-            attributes: ['ilo_id', 'co_id', 'description', 'hours'],
+            attributes: ['ilo_id', 'co_id', 'description', 'hours', 'weeks'],
             order: [['co_id', 'ASC'], ['ilo_id', 'ASC']]
         });
 
@@ -42,7 +42,8 @@ async function getILOsByPcOffering(req, res) {
                 id: ilo.ilo_id,
                 co_id: ilo.co_id,
                 description: ilo.description,
-                hours: ilo.hours
+                hours: ilo.hours,
+                weeks: ilo.weeks,
             });
         }
 

@@ -241,6 +241,10 @@ exports.getCourseCoverage = async (req, res, next) => {
 
         // Format final payload and handle row number index resets per CO grouping
         const coIloCounters = {};
+
+        // Track the running week sequence
+        let currentWeekStart = 1;
+
         const compiledIlos = ilos.map(ilo => {
             const currentIloId = ilo.ilo_id;
             const currentCoId = ilo.co_id;
@@ -254,11 +258,24 @@ exports.getCourseCoverage = async (req, res, next) => {
                 .filter(t => t.iloId === currentIloId)
                 .map(t => t.title);
 
+            // Calculate the sequential Delivery Week
+            const duration = Math.trunc(ilo.weeks) || 0;
+            let deliveryWeekString = '';
+
+            if (duration === 1) {
+                deliveryWeekString = `Week ${currentWeekStart}`;
+                currentWeekStart += 1;
+            } else if (duration > 1) {
+                const endWeek = currentWeekStart + duration - 1;
+                deliveryWeekString = `Week ${currentWeekStart} - ${endWeek}`;
+                currentWeekStart += duration;
+            }
+
             return {
                 id: `CO${coNum}-ILO${localIloIndexNum}`,
                 intendedLearningOutcome: ilo.description || ilo.intendedLearningOutcome || '',
-                deliveryWeek: ilo.hours ? `${ilo.hours} hrs allocated` : '',
-                allocatedTime: `${ilo.hours || 0} hrs`,
+                deliveryWeek: deliveryWeekString,
+                allocatedTime: `(${ilo.hours || 0} hrs)`,
                 topics: relatedTopicTitles,
                 references: formattedReferencesByIlo[currentIloId] || []
             };

@@ -9,7 +9,7 @@ module.exports = {
                 autoIncrement: true
             },
             tla_name: {
-                type: Sequelize.STRING(70),
+                type: Sequelize.STRING(200),
                 allowNull: false
             },
             description: {
