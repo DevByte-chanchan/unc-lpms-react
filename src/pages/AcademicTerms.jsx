@@ -1332,21 +1332,22 @@ const AcademicTerms = () => {
           >
             {pastTerms.map((p) => {
               const isMostRecent = p.id === mostRecentPastId;
-              // LOCKED IS A FACT ABOUT THE TERM, NOT ABOUT ITS POSITION IN THIS LIST.
+              // THE MOST RECENT PAST TERM IS ALWAYS EDITABLE — the rest are locked.
               //
-              // This used to be `!isMostRecent` alone, which meant the badge and the
-              // Edit button were decided by where a term sat in the list and never
-              // consulted its status. Both directions were wrong at once: the term
-              // just gone showed no lock and offered Edit even when it was Closed,
-              // while terms that were genuinely still Active showed "locked" — and
-              // those were the stranded rows the OVPAA most needed to see and close.
+              // The term that just ended is the one the OVPAA most often needs to
+              // correct (a wrong end date, a missed deadline), and the backend is
+              // built around exactly that: autoCloseSupersededTerms spares the term
+              // immediately before the current one, and updatePeriod imposes no
+              // status check, so a Closed period can still be patched.
               //
-              // The server now closes every superseded term (academicPeriodController),
-              // so "not Closed" among past terms means the previous one. Edit still
-              // requires isMostRecent as well: two independent reasons to refuse,
-              // rather than trusting either alone.
+              // We previously also required `!isClosed`, but creating a new term
+              // explicitly closes the one it supersedes (saveUpdate → PeriodsAPI.close),
+              // so the most recent past term is essentially always Closed — and the
+              // Edit button vanished the moment it landed in this list. Gating on
+              // position alone matches the backend's intent: newest past term →
+              // editable; every older term → locked and read-only.
               const isClosed  = p.status === 'Closed';
-              const canEdit   = isMostRecent && !isClosed;
+              const canEdit   = isMostRecent;
               const editing = focus === 'past-edit-' + p.id;
               const viewing = focus === 'past-view-' + p.id;
               return (
@@ -1373,7 +1374,7 @@ const AcademicTerms = () => {
                         </span>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        {isClosed && (
+                        {isClosed && !isMostRecent && (
                           <span title="This term is closed — read-only."
                             style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: SLATE_400, fontSize: 12 }}>
                             <Lock size={12} /> locked
