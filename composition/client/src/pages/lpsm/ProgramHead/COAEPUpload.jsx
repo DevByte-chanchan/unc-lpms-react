@@ -7,6 +7,9 @@ import PDFViewerModal from '../../../components/PDFViewerModal.jsx';
 import { buildCoaepHtml } from '../../../utils/syllabusPdfHtml.js';
 import { getAllPrograms, getProgramName, getProgramCourses, getCoaepData, saveCoaepData } from '../../../utils/programCurriculumData.js';
 import unclogo from '../../../assets/unclogo.png';
+import { FONT, BTN_DARK, BTN_OUTLINE, BTN_DANGER, TH, THC, TD, TDC } from './uiTokens.js';
+import { fetchJson } from '../../../utils/api.js';
+import tbl from '../../../styles/AlignmentTables.module.sass';
 
 const CURRENT_YEAR = new Date().getFullYear()
 
@@ -28,13 +31,46 @@ const COAEPUpload = () => {
     if (!programCode && programs.length > 0) setProgramCode(programs[0])
   }, [programs])
 
+  // Programs + courses come from the DATABASE (assignments carry both);
+  // static lists are only a fallback when the server is unreachable.
+  const [serverPrograms, setServerPrograms] = useState([])
   useEffect(() => {
-    if (programCode) {
-      const cs = getProgramCourses(programCode)
-      setCourses(cs)
-      if (cs.length > 0 && !cs.find(c => c.code === courseCode)) setCourseCode(cs[0].code)
-    }
-  }, [programCode])
+    let mounted = true
+    fetchJson('/api/assignments')
+      .then(resp => {
+        if (!mounted) return
+        const rows = Array.isArray(resp) ? resp : (resp.data || [])
+        const seenC = new Set(); const cs = []
+        const seenP = new Set(); const ps = []
+        rows.forEach(r => {
+          const c = r.ProgramCourseOffering?.Course
+          const p = r.ProgramCourseOffering?.Program
+          if (c?.course_no && !seenC.has(c.course_no)) {
+            seenC.add(c.course_no)
+            cs.push({ code: c.course_no, name: c.course_title || '' })
+          }
+          if (p?.name && !seenP.has(p.name)) { seenP.add(p.name); ps.push(p.name) }
+        })
+        cs.sort((a, b) => a.code.localeCompare(b.code))
+        if (cs.length > 0) {
+          setCourses(cs)
+          setServerPrograms(ps)
+          if (ps.length > 0) setProgramCode(ps[0])
+          if (!cs.find(c => c.code === courseCode)) setCourseCode(cs[0].code)
+        } else {
+          const fallback = getProgramCourses(programCode)
+          setCourses(fallback)
+          if (fallback.length > 0 && !fallback.find(c => c.code === courseCode)) setCourseCode(fallback[0].code)
+        }
+      })
+      .catch(() => {
+        if (!mounted) return
+        const fallback = getProgramCourses(programCode || programs[0])
+        setCourses(fallback)
+        if (fallback.length > 0 && !fallback.find(c => c.code === courseCode)) setCourseCode(fallback[0].code)
+      })
+    return () => { mounted = false }
+  }, [])
 
   useEffect(() => {
     if (programCode && courseCode) {
@@ -43,10 +79,43 @@ const COAEPUpload = () => {
     }
   }, [programCode, courseCode])
 
+  // Real COAEP content (COs, ILOs, assessment tools) straight from the database
+  const [serverCoaep, setServerCoaep] = useState(null)
+  useEffect(() => {
+    if (!courseCode) return
+    let mounted = true
+    setServerCoaep(null)
+    fetchJson(`/api/coaep/${encodeURIComponent(courseCode)}`)
+      .then(d => { if (mounted) setServerCoaep(d) })
+      .catch(() => { if (mounted) setServerCoaep(null) })
+    return () => { mounted = false }
+  }, [courseCode])
+
+  // What we display/print: a manually-uploaded record with real content, otherwise
+  // a record built from the course's actual DB data — never a blank page.
+  // Records saved with the old one-CO placeholder are treated as absent.
+  const courseObj = courses.find(c => c.code === courseCode)
+  // Official COAEP form holds a maximum of 4 COs — cap regardless of source
+  // (old saved records may contain more, e.g. merged revisions)
+  const capCos = (rec) => rec ? { ...rec, cos: (rec.cos || []).slice(0, 4) } : rec
+  const uploaded = coaepRecord && (coaepRecord.cos || []).length > 1 ? capCos(coaepRecord) : null
+  const effectiveRecord = uploaded || (serverCoaep ? capCos({
+    header: {
+      facultyName: 'CASIMERO, DANNY',
+      schoolYear: '2025-2026',
+      course: `${courseCode} — ${serverCoaep.course?.title || courseObj?.name || ''}`,
+      semester: '1st Semester',
+    },
+    cos: serverCoaep.cos,
+    preparedBy: 'CASIMERO, DANNY',
+    approvedBy: 'DANILA, JUNAR (Program Head)',
+    dateSubmitted: new Date().toLocaleDateString('en-US'),
+  }) : null)
+
   const handleView = () => {
-    if (!coaepRecord) return
+    if (!effectiveRecord) return
     const logoUrl = new URL(unclogo, window.location.origin).href
-    const html = buildCoaepHtml(coaepRecord, logoUrl)
+    const html = buildCoaepHtml(effectiveRecord, logoUrl)
     const blob = new Blob([html], { type: 'text/html' })
     const url = URL.createObjectURL(blob)
     setSelectedFile({
@@ -71,7 +140,8 @@ const COAEPUpload = () => {
         course: `${courseCode} — ${course?.name || ''}`,
         semester: form.semester,
       },
-      cos: [
+      // Use the course's real COs/ILOs from the database when available
+      cos: (serverCoaep?.cos && serverCoaep.cos.length > 0) ? serverCoaep.cos : [
         {
           number: '1.0',
           statement: 'Course Outcome 1',
@@ -104,54 +174,70 @@ const COAEPUpload = () => {
     <div style={{ display: 'flex', flexDirection: 'column', width: '100%', height: '100%', gap: 10, padding: '20px 30px', background: '#FFFFFF', boxSizing: 'border-box' }}>
       <div style={{ display: 'flex', width: '100%', flexDirection: 'row', height: 40, alignItems: 'center', gap: 15, marginBottom: 20 }}>
         <h2 style={{ margin: 0, fontSize: 22, fontWeight: 600, whiteSpace: 'nowrap' }}>COURSE ASSESSMENT &amp; EVALUATION PLAN (COAEP)</h2>
-        <select value={programCode} onChange={e => { setProgramCode(e.target.value); setCourseCode('') }}
-          style={{ padding: '6px 12px', fontSize: 14, borderRadius: 4, border: '1px solid #D1D5DB', background: '#FFF', cursor: 'pointer', marginLeft: 16 }}>
-          {programs.map(p => <option key={p} value={p}>{p} — {getProgramName(p)}</option>)}
-        </select>
         <select value={courseCode} onChange={e => setCourseCode(e.target.value)}
-          style={{ padding: '6px 12px', fontSize: 14, borderRadius: 4, border: '1px solid #D1D5DB', background: '#FFF', cursor: 'pointer' }}>
-          {courses.map(c => <option key={c.code} value={c.code}>{c.code} — {c.name}</option>)}
+          style={{ padding: '6px 12px', fontSize: 14, borderRadius: 4, border: '1px solid #D1D5DB', background: '#FFF', cursor: 'pointer', marginLeft: 16, fontFamily: FONT }}>
+          {courses.map(c => <option key={c.code} value={c.code}>{c.name}</option>)}
         </select>
         <div style={{ flexGrow: 1 }} />
         {coaepRecord && (
           <>
             <button onClick={handleView}
-              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 18px', height: 40, background: '#2563EB', borderRadius: 6, color: '#fff', border: 'none', cursor: 'pointer', fontSize: 14 }}>
+              style={BTN_DARK}>
               <ChevronRight size={16} /> View COAEP
             </button>
             <button onClick={handleDelete}
-              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 18px', height: 40, background: '#DC2626', borderRadius: 6, color: '#fff', border: 'none', cursor: 'pointer', fontSize: 14 }}>
+              style={BTN_DANGER}>
               <Trash2 size={16} /> Delete
             </button>
           </>
         )}
         <button onClick={() => setShowUpload(true)}
-          style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 18px', height: 40, background: '#1F2937', borderRadius: 6, color: '#fff', border: 'none', cursor: 'pointer', fontSize: 14 }}>
+          style={BTN_DARK}>
           <Upload size={16} /> {coaepRecord ? 'Replace' : 'Upload'} COAEP
         </button>
       </div>
 
-      {course && <div style={{ fontSize: 14, color: '#4B5563', marginBottom: 12 }}><strong>Program:</strong> {programCode} — {getProgramName(programCode)} &nbsp;|&nbsp; <strong>Course:</strong> {courseCode} — {course.name}</div>}
+      {course && <div style={{ fontSize: 14, color: '#4B5563', marginBottom: 12, fontFamily: FONT }}><strong>Course:</strong> {course.name}</div>}
 
-      {coaepRecord ? (
-        <div style={{ background: '#F9FAFB', border: '1px solid #E5E7EB', borderRadius: 8, padding: 20 }}>
-          <h3 style={{ margin: '0 0 12px', fontSize: 16 }}>COAEP Details</h3>
-          <table style={{ width: '100%', fontSize: 14, borderCollapse: 'collapse' }}>
+      {effectiveRecord ? (
+        // Table view — same design as CO-PO / PO-PEO alignment pages
+        <div style={{ overflow: 'auto', flex: 1 }}>
+          <table className={tbl.alignTable}>
+            <colgroup>
+              <col style={{ width: 40 }} />
+              <col style={{ width: '21%' }} />
+              <col style={{ width: '29%' }} />
+              <col style={{ width: '22%' }} />
+              <col />
+            </colgroup>
+            <thead>
+              <tr>
+                <th className={tbl.center}>#</th>
+                <th>Course Outcome Statement</th>
+                <th>Intended Learning Outcome</th>
+                <th>Assessment Tool</th>
+                <th>Performance Target</th>
+              </tr>
+            </thead>
             <tbody>
-              <tr><td style={{ padding: '6px 12px', fontWeight: 600, width: 140 }}>Faculty:</td><td style={{ padding: '6px 12px' }}>{coaepRecord.header?.facultyName || '—'}</td></tr>
-              <tr><td style={{ padding: '6px 12px', fontWeight: 600 }}>School Year:</td><td style={{ padding: '6px 12px' }}>{coaepRecord.header?.schoolYear || '—'}</td></tr>
-              <tr><td style={{ padding: '6px 12px', fontWeight: 600 }}>Semester:</td><td style={{ padding: '6px 12px' }}>{coaepRecord.header?.semester || '—'}</td></tr>
-              <tr><td style={{ padding: '6px 12px', fontWeight: 600 }}>Prepared By:</td><td style={{ padding: '6px 12px' }}>{coaepRecord.preparedBy || '—'}</td></tr>
-              <tr><td style={{ padding: '6px 12px', fontWeight: 600 }}>Approved By:</td><td style={{ padding: '6px 12px' }}>{coaepRecord.approvedBy || '—'}</td></tr>
-              <tr><td style={{ padding: '6px 12px', fontWeight: 600 }}>Date Submitted:</td><td style={{ padding: '6px 12px' }}>{coaepRecord.dateSubmitted || '—'}</td></tr>
-              <tr><td style={{ padding: '6px 12px', fontWeight: 600, verticalAlign: 'top' }}>Course Outcomes:</td>
-                <td style={{ padding: '6px 12px' }}>{(coaepRecord.cos || []).length} CO(s) defined</td></tr>
+              {(effectiveRecord.cos || []).map((co, ci) => {
+                const ilos = (co.ilos || []).length ? co.ilos : [{ outcome: '', assessmentTool: '' }]
+                return ilos.map((ilo, ii) => (
+                  <tr key={`${ci}-${ii}`}>
+                    {ii === 0 && <td className={tbl.center} style={{ fontWeight: 700 }} rowSpan={ilos.length}>{ci + 1}</td>}
+                    {ii === 0 && <td rowSpan={ilos.length}>{co.statement}</td>}
+                    <td>{ilo.outcome}</td>
+                    <td>{ilo.assessmentTool || '—'}</td>
+                    <td>{ilo.performanceTarget || effectiveRecord.performanceTarget || 'At least 90% of enrolled students with a rating of at least 60% of the total score'}</td>
+                  </tr>
+                ))
+              })}
             </tbody>
           </table>
         </div>
       ) : (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1, color: '#9CA3AF', fontSize: 16 }}>
-          No COAEP uploaded for this course in {programCode} program.
+          This course has no composed learning plan yet — COAEP content will appear once its COs and ILOs exist.
         </div>
       )}
 

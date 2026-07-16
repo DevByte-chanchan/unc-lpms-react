@@ -1,30 +1,39 @@
 import React, { useEffect, useState, useRef, useMemo } from 'react'
 import { Link, useSearchParams, useParams, useNavigate, useLocation } from 'react-router-dom'
-import { ChevronLeft, ChevronRight, Info, MessageSquare, Inbox, Download } from 'react-feather'
+import { ChevronLeft, MessageSquare, Inbox, Download, MoreVertical, Check } from 'react-feather'
 import styles from '../styles/ApprovalSyllabusSections.module.sass'
+import subStyles from '../styles/SyllabusSections.module.sass'
 import stylesB from '../styles/SyllabusPreview.module.sass'
+import stylesC from '../styles/SyllabusSections.module.sass'
 import ApprovalCommentBox from './ApprovalCommentBox.jsx'
-import { getSyllabusByCode, syllabiData } from '../data/syllabiData.js'
-import { getWorkflow, setWorkflow, advanceWorkflow, resetWorkflowStage } from '../utils/workflowHelpers'
-import { getSuggestions, addSuggestion, acceptSuggestion, rejectSuggestion, getSyllabus as getEnrichedSyllabus } from '../utils/dataStore'
+import { getWorkflow, setWorkflow, advanceWorkflow } from '../utils/workflowHelpers'
+import { getSuggestions, addSuggestion, acceptSuggestion, rejectSuggestion, getSyllabus } from '../utils/dataStore'
 import { getReferences, getReferenceById } from '../utils/referenceLibrary'
-import { normalizeRoleKey, isDeprecated, hasIssues, getRoleColor, getComponentTags, isRecent, reviewerSeeds } from '../utils/approvalHelpers.js'
+import { normalizeRoleKey, getRoleColor, getComponentTags, isRecent, reviewerSeeds } from '../utils/approvalHelpers.js'
 import { fetchJson } from "../utils/api.js"
-import { normalizeGradingSystem } from '../utils/gradingCriteria.js'
+import { seedDummyComments } from "../utils/seedDummyComments.js"
+
+import Revisions from './Revisions.jsx'
 import PDFViewerModal from './PDFViewerModal'
 import { buildSyllabusHtml } from "../utils/syllabusPdfHtml.js"
-import { seedDummyComments } from "../utils/seedDummyComments.js"
 import unclogo from '../assets/unclogo.png'
+import CourseCoverage from './CourseCoverage'
+import ReferenceSummary from './ReferenceSummary'
+import OutcomeAlignment from './OutcomeAlignment'
+import CriteriaForGrading from './CriteriaForGrading'
 
-const defaultSections = [
-  'Course Details',
-  'Course and Program Outcome Alignment',
-  'Course Coverage',
-  'References',
-  'Criteria for Grading',
-]
 
-const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', courseCode = '', embedded = false, externalSelectedSection = null, workflow: workflowProp = null }) => {
+
+const sectionLabels = {
+  'Course Details': 'Course Details',
+  'Course and Program Outcome Alignment': 'Course and Program Outcome Alignment',
+  'Course Coverage': 'Course Coverage',
+  'References Summary': 'References',
+  'Criteria for Grading': 'Criteria for Grading',
+}
+const defaultSections = Object.keys(sectionLabels)
+
+const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', courseCode = '', embedded = false, externalSelectedSection = null, workflow: workflowProp = null, pcId = null, revNum = null }) => {
   const [searchParams] = useSearchParams()
   const [selectedSection, setSelectedSection] = useState(defaultSections[0])
   const statusParam = searchParams.get('status')
@@ -35,27 +44,32 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
   const navigate = useNavigate()
   const location = useLocation()
 
+  const [isOpen, setIsOpen] = useState(false)
+  const dropdownRef = useRef(null)
+  const [isRevisionsOpen, setIsRevisionsOpen] = useState(false)
+
   const [showCommentModal, setShowCommentModal] = useState(false)
   const [readOnlyCommentModal, setReadOnlyCommentModal] = useState(false)
   const [workflowState, setWorkflowState] = useState(() => workflowProp || getWorkflow(courseCode || ''))
-  const [showApproveModal, setShowApproveModal] = useState(false)
+  // Approve confirmation flow (matches the instructor's submit modal):
+  // IDLE → CONFIRM → WAITING (undo countdown) → DONE
+  const [approvePhase, setApprovePhase] = useState('IDLE')
+  const [approveTimeLeft, setApproveTimeLeft] = useState(5)
+  const approveTimerRef = useRef(null)
   const [showSubmitModal, setShowSubmitModal] = useState(false)
-  const [showWorkflowPopup, setShowWorkflowPopup] = useState(false)
-  const [workflowPopupPos, setWorkflowPopupPos] = useState(null)
+
   const [globalComments, setGlobalComments] = useState([])
   const [suggestions, setSuggestions] = useState([])
   const [refreshKey, setRefreshKey] = useState(0)
   const [toast, setToast] = useState(null)
-  const [localRefs, setLocalRefs] = useState(null)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
-  const [refTypeFilter, setRefTypeFilter] = useState('')
   const [previewFile, setPreviewFile] = useState(null)
   const [exportingPdf, setExportingPdf] = useState(false)
   const [cpaData, setCpaData] = useState({ course: { code: '', title: '' }, programOutcomes: [], courseOutcomes: [] })
   const [cpaLoading, setCpaLoading] = useState(false)
   const [cpaError, setCpaError] = useState(null)
   const [courseDetails, setCourseDetails] = useState(null)
-  const [courseDetailsLoading, setCourseDetailsLoading] = useState(false)
+  const [courseDetailsLoading, setCourseDetailsLoading] = useState(true)
   const [coverageData, setCoverageData] = useState(null)
   const [coverageLoading, setCoverageLoading] = useState(false)
   const [criteriaData, setCriteriaData] = useState(null)
@@ -63,106 +77,147 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
   const [refData, setRefData] = useState(null)
   const [refLoading, setRefLoading] = useState(false)
 
-  // refs to sections for auto-scroll
+  // refs to sections for auto-scroll (coverage + references still inline)
   const courseDetailsRef = useRef(null)
   const alignmentRef = useRef(null)
+  const criteriaRef = useRef(null)
   const coverageRef = useRef(null)
   const referencesRef = useRef(null)
-  const criteriaRef = useRef(null)
   const containerRef = useRef(null)
+
+  const { code: routeCode } = useParams();
+  const codeToUse = routeCode || courseCode
+  const validPcId = pcId && !Number.isNaN(Number(pcId)) && String(Number(pcId)) === String(pcId) ? pcId : null
+  const validRevNum = revNum && !Number.isNaN(Number(revNum)) && String(Number(revNum)) === String(revNum) ? revNum : null
+
+  const initialLoading = !codeToUse || (validPcId && validRevNum && courseDetailsLoading && courseDetails === null)
+
+  const toggleMenu = (event) => {
+    event.stopPropagation()
+    setIsOpen(prev => !prev)
+  }
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsOpen(false)
+      }
+    }
+    if (isOpen) {
+      document.addEventListener('click', handleClickOutside)
+    }
+    return () => {
+      document.removeEventListener('click', handleClickOutside)
+    }
+  }, [isOpen])
 
   const handleSectionChange = (e) => {
     setSelectedSection(e.target.value)
   }
-  
-  const { code: routeCode } = useParams();
-  const codeToUse = routeCode || courseCode || (syllabiData && syllabiData.length ? syllabiData[0].code : undefined)
-  if (!routeCode && courseCode) console.debug('ApprovalSyllabusSections: using courseCode prop as fallback:', courseCode)
-  if (!routeCode && !courseCode) console.debug('ApprovalSyllabusSections: no code param or prop; using first syllabiData entry:', codeToUse)
-  const syllabus = getEnrichedSyllabus(codeToUse) || getSyllabusByCode(codeToUse) || (syllabiData && syllabiData.length ? syllabiData[0] : undefined)
 
-  // keep workflowState in sync
+  // Normalize the workflow stage on load (e.g. returned → dean once all
+  // parallel reviewers have re-accepted) so button gating reflects reality
+  // without waiting for someone to perform another action.
   useEffect(() => {
-    const wf = getWorkflow(codeToUse || '')
-    setWorkflowState(wf)
-  }, [codeToUse])
-
-  // seed dummy comments on first load, then load persisted comments for this course
-  useEffect(() => { seedDummyComments(codeToUse) }, [codeToUse])
+    if (!codeToUse) return
+    try {
+      const wf = advanceWorkflow(codeToUse)
+      if (wf) setWorkflowState(wf)
+    } catch (e) { /* non-fatal */ }
+  }, [codeToUse, refreshKey])
 
   useEffect(() => {
     try {
-      const raw = localStorage.getItem('approval_comments_v1')
-      const all = raw ? JSON.parse(raw) : []
-      const commentsArray = Array.isArray(all) ? all : []
-      const courseComments = commentsArray.filter(c => c.courseCode === codeToUse)
+      // Sweep any leftover demo seed comments (all courses), then load real ones
+      seedDummyComments()
+
+      const refreshed = JSON.parse(localStorage.getItem('approval_comments_v1') || '[]')
+      const courseComments = (Array.isArray(refreshed) ? refreshed : []).filter(c => c.courseCode === codeToUse)
       setGlobalComments(courseComments)
     } catch (e) {
       setGlobalComments([])
     }
   }, [codeToUse, refreshKey])
 
-  // Sync server-side comments (the ones the instructor sees in Review Corrections)
-  // into the approver sidebar, keeping CO/ILO/target connections intact.
+  // Merge server-side comments into localStorage so approvers see the same comments as the instructor.
+  // Fetches by course code (works even without pcId/revNum in the URL) and keeps
+  // CO/ILO/target connections from the enriched endpoint.
   useEffect(() => {
     if (!codeToUse) return
     let mounted = true
 
-    const coverageMap = { references: 'References', topics: 'Topic', tlas: 'TLA' }
-    const roleLabels = {
-      'industry-consultant': 'Industry Consultant',
-      'director-of-libraries': 'Director of Libraries',
-      'program-head': 'Program Head',
-      'dean': 'Dean',
-      'instructor': 'Instructor',
+    const roleToLabel = {
+      'INDUSTRY_CONSULTANT': 'Industry Consultant',
+      'DIRECTOR_OF_LIBRARIES': 'Director of Libraries',
+      'PROGRAM_HEAD': 'Program Head',
+      'DEAN': 'Dean',
+      'INSTRUCTOR': 'Instructor',
     }
-    const reviewerNames = {
-      'industry-consultant': 'CRUZ, ROBERTO',
-      'director-of-libraries': 'GARCIA, CARLOS',
-      'program-head': 'DANILA, JUNAR',
-      'dean': 'REYES, AGNES',
-      'instructor': 'CASIMERO, DANNY',
+    const roleToName = {
+      'INDUSTRY_CONSULTANT': 'CRUZ, ROBERTO',
+      'DIRECTOR_OF_LIBRARIES': 'SANTOS, MARIA',
+      'LIBRARY_DIRECTOR': 'SANTOS, MARIA',
+      'PROGRAM_HEAD': 'DANILA, JUNAR',
+      'DEAN': 'REYES, AGNES',
+      'INSTRUCTOR': 'CASIMERO, DANNY',
     }
+    const coverageMap = { 'references': 'References', 'topics': 'Topic', 'tlas': 'TLA' }
 
     async function syncServerComments() {
       try {
-        const rows = await fetchJson('/api/comments/course/' + encodeURIComponent(codeToUse))
+        const qs = validPcId ? `?pcId=${validPcId}` : ''
+        const rows = await fetchJson(`/api/comments/by-course/${encodeURIComponent(codeToUse)}${qs}`)
         if (!mounted || !Array.isArray(rows) || rows.length === 0) return
 
-        const converted = rows.map(r => {
-          const rk = normalizeRoleKey(r.commenter_role)
-          const co = r.co_no ? `CO${r.co_no}` : null
-          const ilo = r.co_no && r.ilo_no ? `CO${r.co_no}-ILO${r.ilo_no}` : null
-          return {
-            id: `server-${r.comment_id}`,
-            courseCode: codeToUse,
-            section: 'Course Coverage',
-            submissionId: `server-${codeToUse}`,
-            submissionLabel: 'Review Corrections',
-            submittedAt: r.createdAt,
-            createdAt: r.createdAt,
-            reviewer: reviewerNames[rk] || r.commenter_role,
-            role: roleLabels[rk] || r.commenter_role,
-            recipientRole: rk === 'instructor' ? null : 'instructor',
-            components: {},
-            comment: r.message,
-            courseOutcome: co,
-            ilo,
-            coverageType: coverageMap[r.comment_for] || null,
-            coverageDetail: r.target_title || null,
-            status: r.resolved_status ? 'resolved' : 'pending',
-            resolved: !!r.resolved_status,
-            ...(r.resolved_date ? { resolvedAt: r.resolved_date } : {}),
-            suggestedRefs: [],
-          }
-        })
+        const raw = localStorage.getItem('approval_comments_v1') || '[]'
+        const all = JSON.parse(raw)
+        const list = Array.isArray(all) ? all : []
+        // Content-based dedup: skip server rows whose text already exists as a
+        // seed/manual comment for this course so the sidebar never shows duplicates.
+        const existingTexts = new Set(
+          list
+            .filter(c => c.courseCode === codeToUse && !String(c.id || '').startsWith('server-'))
+            .map(c => (c.comment || '').trim().toLowerCase())
+        )
+
+        const converted = rows
+          .filter(r => {
+            const full = (r.message || '').trim().toLowerCase()
+            // server copies of DOL comments carry an appended suggestion line —
+            // compare the base text too so they don't duplicate in the sidebar
+            const base = (r.message || '').split('\n\nSuggested reference')[0].trim().toLowerCase()
+            return !existingTexts.has(full) && !existingTexts.has(base)
+          })
+          .map(r => {
+            const co = r.co_no ? `CO${r.co_no}` : null
+            const ilo = r.co_no && r.ilo_no ? `CO${r.co_no}-ILO${r.ilo_no}` : null
+            return {
+              id: `server-${r.comment_id}`,
+              courseCode: codeToUse,
+              section: 'Course Coverage',
+              submissionId: `server-${codeToUse}`,
+              submissionLabel: 'Review Corrections',
+              submittedAt: r.createdAt,
+              createdAt: r.createdAt,
+              reviewer: roleToName[r.commenter_role] || r.commenter_role,
+              role: roleToLabel[r.commenter_role] || r.commenter_role,
+              recipientRole: r.commenter_role === 'INSTRUCTOR' ? 'industry-consultant' : 'instructor',
+              components: {},
+              comment: r.message,
+              courseOutcome: co,
+              ilo,
+              coverageType: coverageMap[r.comment_for] || null,
+              coverageDetail: r.target_title || null,
+              suggestedRefs: [],
+              status: r.resolved_status ? 'resolved' : 'pending',
+              resolved: !!r.resolved_status,
+              resolvedAt: null,
+            }
+          })
 
         // Upsert: replace this course's previous server- entries so resolution
-        // status changes made by the instructor stay in sync.
-        const raw = localStorage.getItem('approval_comments_v1')
-        const all = raw ? JSON.parse(raw) : []
-        const list = Array.isArray(all) ? all : []
-        const others = list.filter(c => !(c.courseCode === codeToUse && String(c.id).startsWith('server-')))
+        // status changes made by the instructor stay in sync on reload.
+        const others = list.filter(c => !(c.courseCode === codeToUse && String(c.id || '').startsWith('server-')))
         const merged = [...others, ...converted]
         localStorage.setItem('approval_comments_v1', JSON.stringify(merged))
 
@@ -170,13 +225,13 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
           setGlobalComments(merged.filter(c => c.courseCode === codeToUse))
         }
       } catch (e) {
-        if (import.meta.env.DEV) console.warn('Server comment sync skipped:', e?.message)
+        if (import.meta.env.DEV) console.warn('Server comment sync skipped:', e.message)
       }
     }
 
     syncServerComments()
     return () => { mounted = false }
-  }, [codeToUse, refreshKey])
+  }, [validPcId, codeToUse, refreshKey])
 
   // load suggestions
   useEffect(() => {
@@ -185,13 +240,13 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
 
   // CPA data loading (Course & Program Outcome Alignment)
   useEffect(() => {
-    if (!codeToUse) return;
+    if (!validPcId || !validRevNum) return;
     let mounted = true;
     async function fetchCPA() {
       setCpaLoading(true);
       setCpaError(null);
       try {
-        const data = await fetchJson('/api/course-outcome-alignment/' + encodeURIComponent(codeToUse));
+        const data = await fetchJson(`/api/course-outcome-alignment/${validPcId}/${validRevNum}`);
         if (!mounted) return;
         setCpaData({
           course: data.course ?? { code: '', title: '' },
@@ -199,34 +254,24 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
           courseOutcomes: data.courseOutcomes ?? []
         });
       } catch (err) {
-        console.warn('API unavailable for CPA, using static data');
         if (!mounted) return;
-        const syllabus = getSyllabusByCode(codeToUse);
-        if (syllabus) {
-          setCpaData({
-            course: { code: syllabus.code, title: syllabus.name },
-            programOutcomes: [],
-            courseOutcomes: syllabus.courseOutcomes || []
-          });
-        } else {
-          setCpaError(err.message);
-        }
+        setCpaError(err.message);
       } finally {
         if (mounted) setCpaLoading(false);
       }
     }
     fetchCPA();
     return () => { mounted = false; };
-  }, [codeToUse]);
+  }, [validPcId, validRevNum]);
 
   // API load: Course Details
   useEffect(() => {
-    if (!codeToUse) return;
+    if (!validPcId || !validRevNum) return;
     let mounted = true;
     async function fetchCourseDetails() {
       setCourseDetailsLoading(true);
       try {
-        const data = await fetchJson('/api/course-details/' + encodeURIComponent(codeToUse));
+        const data = await fetchJson(`/api/course-details/${validPcId}/${validRevNum}`);
         if (mounted) setCourseDetails(data);
       } catch (err) {
         if (mounted) setCourseDetails(null);
@@ -236,16 +281,16 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
     }
     fetchCourseDetails();
     return () => { mounted = false; };
-  }, [codeToUse]);
+  }, [validPcId, validRevNum]);
 
   // API load: Course Coverage (ilos + topics + assessments)
   useEffect(() => {
-    if (!codeToUse) return;
+    if (!validPcId || !validRevNum) return;
     let mounted = true;
     async function fetchCoverage() {
       setCoverageLoading(true);
       try {
-        const data = await fetchJson('/api/course-coverage/' + encodeURIComponent(codeToUse));
+        const data = await fetchJson(`/api/course-coverage/${validPcId}/${validRevNum}`);
         if (mounted) setCoverageData(data);
       } catch (err) {
         if (mounted) setCoverageData(null);
@@ -255,16 +300,16 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
     }
     fetchCoverage();
     return () => { mounted = false; };
-  }, [codeToUse]);
+  }, [validPcId, validRevNum]);
 
   // API load: Criteria for Grading
   useEffect(() => {
-    if (!codeToUse) return;
+    if (!validPcId || !validRevNum) return;
     let mounted = true;
     async function fetchCriteria() {
       setCriteriaLoading(true);
       try {
-        const data = await fetchJson('/api/course-criteria/' + encodeURIComponent(codeToUse));
+        const data = await fetchJson(`/api/course-criteria/${validPcId}/${validRevNum}`);
         if (mounted) setCriteriaData(data);
       } catch (err) {
         if (mounted) setCriteriaData(null);
@@ -274,16 +319,16 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
     }
     fetchCriteria();
     return () => { mounted = false; };
-  }, [codeToUse]);
+  }, [validPcId, validRevNum]);
 
   // API load: References
   useEffect(() => {
-    if (!codeToUse) return;
+    if (!validPcId || !validRevNum) return;
     let mounted = true;
     async function fetchRefs() {
       setRefLoading(true);
       try {
-        const data = await fetchJson('/api/courses/' + encodeURIComponent(codeToUse) + '/references');
+        const data = await fetchJson(`/api/courses/${validPcId}/${validRevNum}/references`);
         if (mounted) setRefData(data);
       } catch (err) {
         if (mounted) setRefData(null);
@@ -293,26 +338,49 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
     }
     fetchRefs();
     return () => { mounted = false; };
-  }, [codeToUse]);
+  }, [validPcId, validRevNum]);
 
-  // resolve data: API first, fall back to syllabus static data
-  const resolvedCourse = courseDetails || syllabus
-  const coverage = coverageData || { ilos: syllabus?.ilos || [], topics: syllabus?.topics || [], assessments: syllabus?.assessments || [] }
-  const criteria = criteriaData || { gradingSystem: syllabus?.gradingSystem || [] }
+  // resolve data: API first, fall back to empty
+  const resolvedCourse = courseDetails
+  const coverage = coverageData || { ilos: [], topics: [], assessments: [] }
+  const criteria = criteriaData || { gradingSystem: [] }
   const resolvedRefs = (() => {
     if (refData) {
       if (Array.isArray(refData)) return refData
-      if (refData.data) return Array.isArray(refData.data) ? refData.data : (refData.data.Textbook || refData.data.references || [])
+      if (refData.data) {
+        if (Array.isArray(refData.data)) return refData.data
+        const merged = [...(refData.data.Textbook || []), ...(refData.data['Open Educational Resources'] || []), ...(refData.data['Online Resources'] || [])]
+        if (merged.length) return merged
+        return refData.data.references || []
+      }
       if (refData.Textbook || refData['Open Educational Resources'] || refData['Online Resources']) {
         return [...(refData.Textbook || []), ...(refData['Open Educational Resources'] || []), ...(refData['Online Resources'] || [])]
       }
       return refData.references || []
     }
-    return syllabus?.references || []
+    return []
   })()
 
-  // safe access to syllabus references (use resolved `syllabus` like SyllabusPreview)
+  // safe access to syllabus references
   const allReferences = resolvedRefs
+
+  // build a composite syllabus object for buildSyllabusHtml (PDF export)
+  const syllabus = React.useMemo(() => {
+    const rawSyl = getSyllabus(codeToUse || '')
+    return {
+      ...resolvedCourse,
+      instructor: resolvedCourse?.instructor || rawSyl?.instructor || '',
+      courseOutcomes: cpaData?.courseOutcomes || [],
+      ilos: coverage?.ilos || [],
+      topics: coverage?.topics || [],
+      assessments: coverage?.assessments || [],
+      gradingSystem: criteria?.gradingSystem || [],
+      references: resolvedRefs,
+      code: codeToUse,
+      course_no: resolvedCourse?.code || '',
+      course_title: resolvedCourse?.name || '',
+    }
+  }, [resolvedCourse, coverage, criteria, resolvedRefs, codeToUse, cpaData])
 
   const libraryRefs = React.useMemo(() => getReferences(), [refreshKey])
 
@@ -377,10 +445,12 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
     if (roleKey === 'instructor') {
       return globalComments.filter(c => !(c.recipientRole === 'program_head' && !c.resolved))
     }
-    // Approvers only see their own comments — not those of other approvers
+    // Approvers see their own comments + comments addressed to them (instructor responses)
     const approverRoles = ['program-head', 'dean', 'industry-consultant', 'director-of-libraries']
     if (approverRoles.includes(roleKey)) {
-      return globalComments.filter(c => normalizeRoleKey(c.role) === roleKey)
+      return globalComments.filter(c =>
+        normalizeRoleKey(c.role) === roleKey || c.recipientRole === roleKey
+      )
     }
     return globalComments
   }, [globalComments, roleKey])
@@ -391,73 +461,19 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
       .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
   }, [globalComments, roleKey])
 
-  // hardcoded reference pool for display (ensures a mix of types per syllabus)
-  const refPool = React.useMemo(() => [
-    { id: "TB1", title: "Software Engineering: A Practitioner's Approach", type: "Textbook", authors: "Roger S. Pressman", year: 2020, isbn: "978-1260548006", link: "" },
-    { id: "TB2", title: "Software Engineering", type: "Textbook", authors: "Ian Sommerville", year: 2021, isbn: "978-0133943030", link: "" },
-    { id: "TB3", title: "Clean Architecture", type: "Textbook", authors: "Robert C. Martin", year: 2018, isbn: "978-0134494166", link: "" },
-    { id: "TB4", title: "Operating System Concepts", type: "Textbook", authors: "Silberschatz, Galvin, Gagne", year: 2019, isbn: "978-1119456339", link: "" },
-    { id: "TB5", title: "Computer Networking: A Top-Down Approach", type: "Textbook", authors: "Kurose & Ross", year: 2022, isbn: "978-0136681557", link: "" },
-    { id: "TB6", title: "Database System Concepts", type: "Textbook", authors: "Silberschatz, Korth, Sudarshan", year: 2020, isbn: "978-1260084504", link: "" },
-    { id: "TB7", title: "Discrete Mathematics and Its Applications", type: "Textbook", authors: "Kenneth H. Rosen", year: 2019, isbn: "978-1259676512", link: "" },
-    { id: "TB8", title: "Introduction to Algorithms", type: "Textbook", authors: "Cormen, Leiserson, Rivest, Stein", year: 2022, isbn: "978-0262046305", link: "" },
-    { id: "OE1", title: "SWEBOK (Software Engineering Body of Knowledge)", type: "Open Educational Resources", authors: "IEEE Computer Society", year: 2021, isbn: "", link: "https://www.computer.org/education/bodies-of-knowledge/software-engineering" },
-    { id: "OE2", title: "MIT 6.828: Operating Systems Engineering", type: "Open Educational Resources", authors: "MIT OpenCourseWare", year: 2022, isbn: "", link: "https://pdos.csail.mit.edu/6.828/" },
-    { id: "OE3", title: "Beej's Guide to Network Programming", type: "Open Educational Resources", authors: "Brian Hall", year: 2023, isbn: "", link: "https://beej.us/guide/bgnet/" },
-    { id: "OE4", title: "Stanford Database Course", type: "Open Educational Resources", authors: "Jennifer Widom", year: 2021, isbn: "", link: "https://cs145-fb.stanford.edu/" },
-    { id: "OE5", title: "FreeCodeCamp Web Design Certification", type: "Open Educational Resources", authors: "FreeCodeCamp", year: 2023, isbn: "", link: "https://www.freecodecamp.org/" },
-    { id: "OR1", title: "Agile Manifesto", type: "Online Resources", authors: "Agile Alliance", year: 2001, isbn: "", link: "https://agilemanifesto.org/" },
-    { id: "OR2", title: "OWASP Top Ten", type: "Online Resources", authors: "OWASP Foundation", year: 2021, isbn: "", link: "https://owasp.org/www-project-top-ten/" },
-    { id: "OR3", title: "MDN Web Docs", type: "Online Resources", authors: "Mozilla", year: 2023, isbn: "", link: "https://developer.mozilla.org/" },
-    { id: "OR4", title: "NIST Cybersecurity Framework", type: "Online Resources", authors: "NIST", year: 2024, isbn: "", link: "https://www.nist.gov/cyberframework" },
-    { id: "OR5", title: "PostgreSQL Documentation", type: "Online Resources", authors: "PostgreSQL Global Development Group", year: 2024, isbn: "", link: "https://www.postgresql.org/docs/" },
-    { id: "OR6", title: "Scikit-learn Documentation", type: "Online Resources", authors: "Scikit-learn Developers", year: 2024, isbn: "", link: "https://scikit-learn.org/stable/" },
-  ], [])
-
-  // reset localRefs on navigation so each course gets its own seeded picks
-  useEffect(() => { setLocalRefs(null) }, [codeToUse])
-
-  // initialize syllabus-specific references: picks from refPool ensuring at least 2 types
-  useEffect(() => {
-    if (!localRefs && codeToUse && refPool.length > 0) {
-      const hash = codeToUse.split('').reduce((a, c) => a + c.charCodeAt(0), 0)
-      let seed = hash
-      const seededRandom = () => {
-        seed = (seed * 9301 + 49297) % 233280
-        return seed / 233280
-      }
-      const tbs = refPool.filter(r => r.type === 'Textbook')
-      const oes = refPool.filter(r => r.type === 'Open Educational Resources')
-      const ors = refPool.filter(r => r.type === 'Online Resources')
-      const pickOne = (arr) => arr[Math.floor(seededRandom() * arr.length)]
-      const pickN = (arr, n) => [...arr].sort(() => seededRandom() - 0.5).slice(0, n)
-      const picks = []
-      picks.push(pickOne(tbs))
-      picks.push(pickOne(oes))
-      picks.push(pickOne(ors))
-      const extra = 1 + Math.floor(seededRandom() * 3)
-      const extras = pickN(refPool, extra)
-      extras.forEach(r => { if (!picks.find(p => p.id === r.id)) picks.push(r) })
-      setLocalRefs(picks)
-    }
-  }, [codeToUse, refPool])
-  // isDeprecated, hasIssues imported from approvalHelpers
-
   const enrichRef = (ref) => {
     const libRef = libraryRefs.find(r => r.id === ref.id)
-    return libRef ? { ...ref, ...libRef, type: ref.type } : ref
+    return libRef ? { ...ref, ...libRef } : ref
   }
-  const displayRefs = (localRefs || allReferences).map(enrichRef)
+  // ponytail: displayRefs uses API data only, no mock refPool
+  const displayRefs = allReferences.map(enrichRef)
 
   // scroll to selected section when it changes (respect externalSelectedSection when embedded)
   useEffect(() => {
     const active = externalSelectedSection || selectedSection
     const mapping = {
-      'Course Details': courseDetailsRef,
-      'Course and Program Outcome Alignment': alignmentRef,
       'Course Coverage': coverageRef,
       'References': referencesRef,
-      'Criteria for Grading': criteriaRef,
     }
 
     const targetRef = mapping[active]
@@ -484,6 +500,25 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
     setTimeout(() => setToast(null), 3000)
   }
 
+  // Module 2 integration: persist workflow actions (submit / return / approve)
+  // to the server so course-table statuses reflect real state across sessions.
+  const ACTOR_ROLE_MAP = {
+    'instructor': 'INSTRUCTOR',
+    'industry-consultant': 'INDUSTRY_CONSULTANT',
+    'director-of-libraries': 'LIBRARY_DIRECTOR',
+    'program-head': 'PROGRAM_HEAD',
+    'dean': 'DEAN',
+  }
+  const recordWorkflowAction = (actionType) => {
+    const actor = ACTOR_ROLE_MAP[roleKey]
+    if (!actor || !codeToUse) return
+    fetchJson('/api/assignments/action', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ actor_role: actor, action_type: actionType, pcId: validPcId, code: codeToUse })
+    }).catch(e => { if (import.meta.env.DEV) console.warn('Workflow action not persisted to server:', e?.message) })
+  }
+
   const handleApprove = () => {
     try {
       const wf = getWorkflow(codeToUse || '')
@@ -508,12 +543,26 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
       advanceWorkflow(codeToUse)
       setWorkflowState(getWorkflow(codeToUse))
       setRefreshKey(k => k + 1)
+      recordWorkflowAction('ACCEPTED')
     } catch (e) {
       console.error('Failed to approve', e)
     }
-    setShowApproveModal(false)
-    showToastMsg('Learning Plan approved successfully!')
   }
+
+  // Approve countdown: gives the approver a window to undo before it takes effect
+  useEffect(() => {
+    if (approvePhase === 'WAITING' && approveTimeLeft > 0) {
+      approveTimerRef.current = setTimeout(() => setApproveTimeLeft(t => t - 1), 1000)
+    } else if (approvePhase === 'WAITING' && approveTimeLeft === 0) {
+      handleApprove()
+      setApprovePhase('DONE')
+      setTimeout(() => setApprovePhase('IDLE'), 1500)
+    }
+    return () => clearTimeout(approveTimerRef.current)
+  }, [approvePhase, approveTimeLeft])
+
+  const confirmApprove = () => { setApprovePhase('WAITING'); setApproveTimeLeft(5) }
+  const cancelApprove = () => { setApprovePhase('IDLE'); setApproveTimeLeft(5) }
 
   const handleSubmitForReview = () => {
     try {
@@ -552,6 +601,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
       setWorkflow(codeToUse, wf)
       setWorkflowState(getWorkflow(codeToUse))
       setRefreshKey(k => k + 1)
+      recordWorkflowAction('SUBMITTED')
     } catch (e) {
       console.error('Failed to submit', e)
     }
@@ -597,16 +647,22 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
     ? cpaData.programOutcomes
     : (['PO1','PO2','PO3','PO4','PO5','PO6','PO7','PO8','PO9','PO10','PO11','PO12','PO13'].map(key => ({ key })))
 
-  const sampleILOs = [
-    'CO0-ILO0',
-    'CO1-ILO1',
-    'CO1-ILO2',
-    'CO1-ILO3',
-    'CO2-ILO1',
-    'CO2-ILO2',
-    'CO2-ILO3',
-    'CO3-ILO1'
-  ]
+  const realILOs = React.useMemo(() => {
+    if (!coverage?.ilos || coverage.ilos.length === 0) return []
+    return coverage.ilos.map(ilo => ilo.id).filter(Boolean)
+  }, [coverage])
+
+  const realCoToIlos = React.useMemo(() => {
+    const map = {}
+    if (!coverage?.ilos) return map
+    coverage.ilos.forEach(ilo => {
+      if (!ilo.id) return
+      const coPrefix = ilo.id.split('-')[0]
+      if (!map[coPrefix]) map[coPrefix] = []
+      if (!map[coPrefix].includes(ilo.id)) map[coPrefix].push(ilo.id)
+    })
+    return map
+  }, [coverage])
 
   const handleSubmitComment = (payload) => {
     if (import.meta.env.DEV) console.log('Submitted approval comment', { ...payload, role: roleKey })
@@ -647,7 +703,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
       const submittedAt = payload.createdAt || now.toISOString()
       const submissionLabel = 'Submission'
 
-      const reviewerNames = { 'instructor': 'CASIMERO, DANNY', 'program-head': 'DANILA, JUNAR', 'dean': 'REYES, AGNES', 'director-of-libraries': 'GARCIA, CARLOS', 'industry-consultant': 'CRUZ, ROBERTO' }
+      const reviewerNames = { 'instructor': 'CASIMERO, DANNY', 'program-head': 'DANILA, JUNAR', 'dean': 'REYES, AGNES', 'director-of-libraries': 'SANTOS, MARIA', 'industry-consultant': 'CRUZ, ROBERTO' }
       const storedUser = JSON.parse(localStorage.getItem('user') || 'null')
       const reviewer = reviewerNames[roleKey] || storedUser?.name || 'Approver'
       const roleLabel = roleKey === 'program-head' ? 'Program Head'
@@ -687,8 +743,79 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
         }))
       }))
 
+      // DOL comments target references directly — attach the reference titles
+      // so the sidebar shows [REFERENCES: ...] chips like other roles' comments.
+      const dolRefTitles = roleKey === 'director-of-libraries'
+        ? (payload.commentedReferences || []).map(id => getReferenceById(id)?.title).filter(Boolean)
+        : []
+      if (dolRefTitles.length > 0) {
+        prepared.forEach(p => {
+          if (!p.coverageType) p.coverageType = 'References'
+          if (!p.coverageDetail || (Array.isArray(p.coverageDetail) && p.coverageDetail.length === 0)) p.coverageDetail = dolRefTitles
+        })
+      }
+
       const newComments = [...allArray, ...prepared]
       localStorage.setItem(storageKey, JSON.stringify(newComments))
+
+      // Persist each comment to the SERVER too, so the instructor sees it in
+      // Review Corrections and the notif badges count it. CO/ILO labels are
+      // resolved to real ids server-side.
+      const forMap = { 'Topic': 'topics', 'References': 'references', 'TLA': 'tlas' }
+      prepared.forEach(c => {
+        const coIndex = c.courseOutcome ? parseInt(String(c.courseOutcome).replace(/\D/g, ''), 10) : null
+        const iloIndex = c.ilo && String(c.ilo).includes('ILO') ? parseInt(String(c.ilo).split('ILO')[1], 10) : null
+        if (!coIndex || !iloIndex) return // untargeted comments stay local-only
+        const targetTitles = Array.isArray(c.coverageDetail) ? c.coverageDetail : (c.coverageDetail ? [c.coverageDetail] : [])
+        fetchJson('/api/comments/by-course', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            code,
+            commenter_role: ACTOR_ROLE_MAP[roleKey] || roleKey.toUpperCase(),
+            message: c.comment,
+            co_index: coIndex,
+            ilo_index: iloIndex,
+            comment_for: forMap[c.coverageType] || null,
+            target_titles: targetTitles,
+          })
+        }).catch(e => { if (import.meta.env.DEV) console.warn('Comment not persisted to server:', e?.message) })
+      })
+
+      // Director of Libraries flow: no CO/ILO pickers — the comment targets a
+      // reference directly, and the server resolves the ILO from that reference.
+      // Suggested references are appended to the message so the instructor
+      // sees them in Review Corrections too.
+      const commentedRefIds = (payload.commentedReferences || []).filter(Boolean)
+      const suggested = payload.suggestedReferences || []
+      if (roleKey === 'director-of-libraries' && (commentedRefIds.length > 0 || suggested.length > 0)) {
+        const text = (payload.comments || []).map(c => c.text).filter(t => t && t.trim()).join('\n')
+        const suggestionLine = suggested.length > 0
+          ? `Suggested reference${suggested.length > 1 ? 's' : ''}: ` +
+            suggested.map(r => `${r.title}${r.authors ? ' — ' + r.authors : ''}`).join('; ')
+          : ''
+        // Message = comment text (+ suggestions), or the suggestions alone
+        const message = text
+          ? (suggestionLine ? `${text}\n\n${suggestionLine}` : text)
+          : suggestionLine
+        if (message) {
+          const postToServer = (targetTitles) => fetchJson('/api/comments/by-course', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              code,
+              commenter_role: 'LIBRARY_DIRECTOR',
+              message,
+              comment_for: 'references',
+              target_titles: targetTitles,
+            })
+          }).catch(e => { if (import.meta.env.DEV) console.warn('DOL comment not persisted to server:', e?.message) })
+
+          const targetTitles = commentedRefIds.map(id => getReferenceById(id)?.title).filter(Boolean)
+          if (targetTitles.length > 0) targetTitles.forEach(t => postToServer([t]))
+          else postToServer([]) // suggestion-only — server attaches to the course's first reference ILO
+        }
+      }
 
       console.debug('Saved approver comments', { code, section: selectedSection, count: prepared.length })
 
@@ -708,6 +835,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
         setWorkflow(codeToUse, wf)
         advanceWorkflow(codeToUse)
         setWorkflowState(getWorkflow(codeToUse))
+        recordWorkflowAction('RETURNED')
       }
     } catch (e) {
       console.error('Failed to persist approval comment', e)
@@ -730,7 +858,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
     if (!defaultSections.includes(selectedSection)) setSelectedSection(defaultSections[0])
   }, [selectedSection])
 
-  const activeSelectedSection = externalSelectedSection || selectedSection
+  const activeSelectedSection = (externalSelectedSection || selectedSection) === 'References' ? 'References Summary' : (externalSelectedSection || selectedSection)
 
   // getRoleColor, getComponentTags, isRecent imported from approvalHelpers
 
@@ -753,6 +881,19 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
     const updated = (globalComments || []).map(c => c.id === commentId ? { ...c, resolved: true, status: 'resolved', resolvedAt: new Date().toISOString() } : c)
     setGlobalComments(updated)
     saveGlobalCommentsToStorage(updated)
+    // Server-synced comment: persist the resolution to the database too, so the
+    // approver sees the check from any session (and the next sync doesn't revert it).
+    const idStr = String(commentId)
+    if (idStr.startsWith('server-')) {
+      const serverId = Number(idStr.replace('server-', ''))
+      if (!Number.isNaN(serverId)) {
+        fetchJson('/api/comments/update-resolution', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ updates: [{ comment_id: serverId, resolved_status: true }] })
+        }).catch(e => { if (import.meta.env.DEV) console.warn('Failed to sync resolution to server:', e?.message) })
+      }
+    }
   }
 
   return (
@@ -767,612 +908,241 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
 
           <div className={styles['section-select']}>
             <select value={selectedSection} onChange={handleSectionChange}>
-              {defaultSections.map((s) => <option key={s} value={s}>{s}</option>)}
+              {defaultSections.map((s) => <option key={s} value={s}>{sectionLabels[s]}</option>)}
             </select>
           </div>
 
-          <div style={{ padding: '0 16px', borderRadius: 5, background: '#dbdfe3', cursor: 'pointer', display: 'flex', alignItems: 'center', height: 40 }} onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); const popupH = 280; setWorkflowPopupPos({ right: window.innerWidth - r.right, top: r.bottom + 4 + popupH > window.innerHeight ? r.top - popupH - 4 : r.bottom + 4 }); setShowWorkflowPopup(true); }}>
-            <Info strokeWidth={2} size={18} />
-          </div>
-
-          {/* approval controls */}
-          <div className={styles.actions} style={{ marginLeft: 'auto', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-            {effectiveStatus !== 'approved' && roleKey === 'instructor' && (
-              <div className={styles.approvalButtons}>
-                {(() => {
-                  const wf = workflowState || getWorkflow(codeToUse || '')
-                  const stage = wf?.currentStage || 'submitted'
-                  const isReturned = stage === 'returned'
-                  const hasUnresolved = globalComments.some(c => !c.resolved)
-                  return (
-                    <button className={styles.approve} onClick={() => {
-                      if (!isRoleActive()) {
-                        showToastMsg('Previous approvers have not completed their review yet.', 'warning')
-                        return
-                      }
-                      if (isReturned && hasUnresolved) {
-                        showToastMsg('Please address all reviewer comments first before submitting your revision.', 'warning')
-                        return
-                      }
-                      setShowSubmitModal(true)
-                    }}>
-                      {isReturned ? 'Submit Revision' : 'Submit for Review'}
-                    </button>
-                  )
-                })()}
-              </div>
-            )}
-            {effectiveStatus !== 'approved' && roleKey !== 'instructor' && (
-              <div className={styles.approvalButtons}>
-                <button className={`${styles.requestRevision} ${!isRoleActive() ? styles['disabled-btn'] : ''}`} onClick={() => {
-                  if (hasRoleApproved()) { setReadOnlyCommentModal(true); openComment() }
-                  else if (isRoleActive()) { setReadOnlyCommentModal(false); openComment() }
+          {/* approval controls — direct children of .navi like instructor */}
+          {(() => {
+            if (effectiveStatus !== 'approved' && roleKey === 'instructor') {
+              const wf = workflowState || getWorkflow(codeToUse || '')
+              const stage = wf?.currentStage || 'submitted'
+              const isReturned = stage === 'returned'
+              const hasUnresolved = globalComments.some(c => c.recipientRole === 'instructor' && !c.resolved)
+              return (
+                <div className={styles.submit} onClick={() => {
+                  if (!isRoleActive()) {
+                    showToastMsg('Previous approvers have not completed their review yet.', 'warning')
+                    return
+                  }
+                  if (isReturned && hasUnresolved) {
+                    showToastMsg('Please address all reviewer comments first before submitting your revision.', 'warning')
+                    return
+                  }
+                  setShowSubmitModal(true)
+                }}>
+                  {isReturned ? 'Submit Revision' : 'Submit for Review'}
+                </div>
+              )
+            }
+            if (effectiveStatus !== 'approved' && roleKey !== 'instructor') {
+              return (<>
+                <div className={`${styles.draft} ${!(isRoleActive() || hasRoleApproved()) ? styles['disabled-btn'] : ''}`} onClick={() => {
+                  // Approvers can always ADD comments while the plan is in review —
+                  // including in the returned stage or after their own approval.
+                  if (isRoleActive() || hasRoleApproved()) { setReadOnlyCommentModal(false); openComment() }
                   else if (roleKey === 'dean') showToastMsg('Waiting for previous approvers to complete their review.', 'warning')
                   else showToastMsg('Commenting is not available until the workflow reaches your review stage.', 'warning')
-                }}>{hasRoleApproved() ? 'View Comments' : 'Add Comment'}</button>
-                <button className={`${styles.approve} ${(!isRoleActive() || hasRoleApproved()) ? styles['disabled-btn'] : ''}`} onClick={() => {
+                }}><MessageSquare size={16} /> Add Comment</div>
+                <div className={`${styles.submit} ${(!isRoleActive() || hasRoleApproved()) ? styles['disabled-btn'] : ''}`} onClick={() => {
                   if (hasRoleApproved()) showToastMsg('You have already approved this learning plan.', 'warning')
-                  else if (isRoleActive()) setShowApproveModal(true)
+                  else if (isRoleActive()) setApprovePhase('CONFIRM')
                   else if (roleKey === 'dean') showToastMsg('Waiting for previous approvers to complete their review.', 'warning')
-                }}>Approve</button>
-              </div>
-            )}
-            {effectiveStatus === 'approved' && (roleKey === 'instructor' || roleKey === 'dean' || roleKey === 'vpaa') && (
-              <div className={styles.approvalButtons}>
-                <button
-                  onClick={async () => {
-                    setExportingPdf(true)
-                    try {
-                      const logoUrl = new URL(unclogo, window.location.origin).href
-                      const wf = getWorkflow(codeToUse)
-                      const html = buildSyllabusHtml(syllabus, codeToUse, wf, logoUrl)
-                      const blob = new Blob([html], { type: 'text/html' })
-                      const url = URL.createObjectURL(blob)
-                      setPreviewFile({
-                        file_url: url,
-                        file_name: `Syllabus_${codeToUse}.html`,
-                        instructor_name: syllabus?.instructor || '—',
-                        course_id: codeToUse,
-                        course_name: syllabus?.name || '',
-                        submission_date: syllabus?.update || '',
-                        period_label: (syllabus?.year || '') + ' — ' + (syllabus?.sem || ''),
-                      })
-                    } catch (err) {
-                      console.warn('Export generation failed:', err)
-                      alert('Failed to generate export: ' + (err?.message || err))
-                    } finally {
-                      setExportingPdf(false)
-                    }
-                  }}
-                  style={{
-                    display: 'inline-flex', alignItems: 'center', gap: 8,
-                    padding: '10px 20px', border: 'none', borderRadius: 8,
-                    fontSize: 14, fontWeight: 600, cursor: 'pointer',
-                    background: exportingPdf ? '#94a3b8' : '#19282C', color: 'white',
-                    fontFamily: "'Poppins', sans-serif",
-                    transition: 'transform 0.2s ease'
-                  }}
-                  onMouseEnter={e => { if (!exportingPdf) e.currentTarget.style.transform = 'scale(1.04)' }}
-                  onMouseLeave={e => { if (!exportingPdf) e.currentTarget.style.transform = 'scale(1)' }}
-                >
+                }}><Check size={16} /> Approve</div>
+              </>)
+            }
+            if (effectiveStatus === 'approved' && roleKey === 'vpaa') {
+              return (<>
+                <div className={styles.submit} style={{ marginLeft: 'auto' }} onClick={async () => {
+                  setExportingPdf(true)
+                  try {
+                    const logoUrl = new URL(unclogo, window.location.origin).href
+                    const wf = getWorkflow(codeToUse)
+                    const html = buildSyllabusHtml(syllabus, codeToUse, wf, logoUrl)
+                    const blob = new Blob([html], { type: 'text/html' })
+                    const url = URL.createObjectURL(blob)
+                    setPreviewFile({
+                      file_url: url,
+                      file_name: `Syllabus_${codeToUse}.html`,
+                      instructor_name: syllabus?.instructor || '—',
+                      course_id: codeToUse,
+                      course_name: syllabus?.name || '',
+                      submission_date: syllabus?.update || '',
+                      period_label: (syllabus?.year || '') + ' — ' + (syllabus?.sem || ''),
+                    })
+                  } catch (err) {
+                    console.warn('Export generation failed:', err)
+                    alert('Failed to generate export: ' + (err?.message || err))
+                  } finally {
+                    setExportingPdf(false)
+                  }
+                }}>
                   <Download size={16} /> Export
-                </button>
-              </div>
-            )}
-          </div>
+                </div>
+              </>)
+            }
+            if (effectiveStatus === 'approved' && (roleKey === 'instructor' || roleKey === 'dean')) {
+              return (<>
+                <div className={styles.divider}>
+                  <div className={styles.line}></div>
+                </div>
+                <div onClick={toggleMenu} ref={dropdownRef} className={`${styles.more} ${isOpen ? styles.active : ''}`}>
+                  <div className={styles.moreIcon}>
+                    <MoreVertical strokeWidth={2} size={16} />
+                  </div>
+                  <div className={styles.dropdownMenu}>
+                    <button type="button" onClick={(e) => { e.stopPropagation(); setIsRevisionsOpen(true); setIsOpen(false); }}>
+                      Revisions
+                    </button>
+                  </div>
+                </div>
+                <div className={styles.submit} style={{ marginLeft: 'auto' }} onClick={async () => {
+                  setExportingPdf(true)
+                  try {
+                    const logoUrl = new URL(unclogo, window.location.origin).href
+                    const wf = getWorkflow(codeToUse)
+                    const html = buildSyllabusHtml(syllabus, codeToUse, wf, logoUrl)
+                    const blob = new Blob([html], { type: 'text/html' })
+                    const url = URL.createObjectURL(blob)
+                    setPreviewFile({
+                      file_url: url,
+                      file_name: `Syllabus_${codeToUse}.html`,
+                      instructor_name: syllabus?.instructor || '—',
+                      course_id: codeToUse,
+                      course_name: syllabus?.name || '',
+                      submission_date: syllabus?.update || '',
+                      period_label: (syllabus?.year || '') + ' — ' + (syllabus?.sem || ''),
+                    })
+                  } catch (err) {
+                    console.warn('Export generation failed:', err)
+                    alert('Failed to generate export: ' + (err?.message || err))
+                  } finally {
+                    setExportingPdf(false)
+                  }
+                }}>
+                  <Download size={16} /> Export
+                </div>
+              </>)
+            }
+            if (effectiveStatus === 'approved') {
+              return (<>
+                <div className={styles.divider}>
+                  <div className={styles.line}></div>
+                </div>
+                <div onClick={toggleMenu} ref={dropdownRef} className={`${styles.more} ${isOpen ? styles.active : ''}`}>
+                  <div className={styles.moreIcon}>
+                    <MoreVertical strokeWidth={2} size={16} />
+                  </div>
+                  <div className={styles.dropdownMenu}>
+                    <button type="button" onClick={(e) => { e.stopPropagation(); setIsRevisionsOpen(true); setIsOpen(false); }}>
+                      Revisions
+                    </button>
+                  </div>
+                </div>
+              </>)
+            }
+            return null
+          })()}
         </div>
       )}
 
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden', minHeight: 0 }}>
         <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
           <div className={styles['dynamic-sections']} ref={containerRef}>
-            {/* COURSE DETAILS (copied from SyllabusPreview) */}
+            {initialLoading ? (
+              <div className={styles.loadingContainer}>
+                <div className={styles.spinner}></div>
+              </div>
+            ) : (
+            <>
             {activeSelectedSection === 'Course Details' && (
               <section ref={courseDetailsRef}>
-                <div className={styles.courseDetailsContainer}>
-                  <table className={styles.documentTable}>
+                <div className={stylesB.courseDetailsContainer}>
+                  <table className={stylesB.documentTable}>
                     <tbody>
                     <tr>
-                      <th className={styles.labelCell}>Course No.</th>
-                      <td className={styles.valueCell}>{resolvedCourse?.code || resolvedCourse?.course_no || ''}</td>
-                      <th className={styles.descHeader}>Course Description</th>
+                      <th className={stylesB.labelCell}>Course No.</th>
+                      <td className={stylesB.valueCell}>{resolvedCourse?.code || ''}</td>
+                      <th className={stylesB.descHeader}>Course Description</th>
                     </tr>
                     <tr>
-                      <th className={styles.labelCell}>Course Title</th>
-                      <td className={styles.valueCell}><strong>{resolvedCourse?.name || resolvedCourse?.course_title || ''}</strong></td>
-                      <td rowSpan="9" className={styles.descCell}>
-                        <div className={styles.descContent}>
-                          {resolvedCourse?.description || ''}
-                        </div>
-                      </td>
+                      <th className={stylesB.labelCell}>Course Title</th>
+                      <td className={stylesB.valueCell}><strong>{resolvedCourse?.name || ''}</strong></td>
+                      <td rowSpan="9" className={stylesB.descCell}>{resolvedCourse?.description || ''}</td>
                     </tr>
-                    <tr>
-                      <th className={styles.labelCell}>Credit</th>
-                      <td className={styles.valueCell}>{resolvedCourse?.credits || ''}</td>
-                    </tr>
-                    <tr>
-                      <th className={styles.labelCell}>Contact Hours/Week</th>
-                      <td className={styles.valueCell}>{resolvedCourse?.contact || ''}</td>
-                    </tr>
-                    <tr>
-                      <th className={styles.labelCell}>Pre-requisites</th>
-                      <td className={styles.valueCell}>{resolvedCourse?.prerequisites || ''}</td>
-                    </tr>
-                    <tr>
-                      <th className={styles.labelCell}>Classification/Field</th>
-                      <td className={styles.valueCell}>{resolvedCourse?.class || ''}</td>
-                    </tr>
-                    <tr>
-                      <th className={styles.labelCell}>CMO</th>
-                      <td className={styles.valueCell}>{resolvedCourse?.cmo || ''}</td>
-                    </tr>
-                    <tr>
-                      <th className={styles.labelCell}>Syllabus Revision No.</th>
-                      <td className={styles.valueCell}>{resolvedCourse?.revision || '0'}</td>
-                    </tr>
-                    <tr>
-                      <th className={styles.labelCell}>Year Level</th>
-                      <td className={styles.valueCell}>{resolvedCourse?.year || ''}</td>
-                    </tr>
-                    <tr>
-                      <th className={styles.labelCell}>Term</th>
-                      <td className={styles.valueCell}>{resolvedCourse?.sem || ''}</td>
-                    </tr>
+                    <tr><th className={stylesB.labelCell}>Credit</th><td className={stylesB.valueCell}>{resolvedCourse?.credits || ''}</td></tr>
+                    <tr><th className={stylesB.labelCell}>Contact Hours/Week</th><td className={stylesB.valueCell}>{resolvedCourse?.contact || ''}</td></tr>
+                    <tr><th className={stylesB.labelCell}>Pre-requisites</th><td className={stylesB.valueCell}>{resolvedCourse?.prerequisites || ''}</td></tr>
+                    <tr><th className={stylesB.labelCell}>Classification/Field</th><td className={stylesB.valueCell}>{resolvedCourse?.class || ''}</td></tr>
+                    <tr><th className={stylesB.labelCell}>CMO</th><td className={stylesB.valueCell}>{resolvedCourse?.cmo || ''}</td></tr>
+                    <tr><th className={stylesB.labelCell}>Syllabus Revision No.</th><td className={stylesB.valueCell}>{resolvedCourse?.revision ?? 0}</td></tr>
+                    <tr><th className={stylesB.labelCell}>Year Level</th><td className={stylesB.valueCell}>{resolvedCourse?.year || ''}</td></tr>
+                    <tr><th className={stylesB.labelCell}>Term</th><td className={stylesB.valueCell}>{resolvedCourse?.sem || ''}</td></tr>
                     </tbody>
                   </table>
                 </div>
               </section>
             )}
 
-            {/* Course and Program Outcome Alignment */}
             {activeSelectedSection === 'Course and Program Outcome Alignment' && (
               <section ref={alignmentRef}>
-                <div className={styles['cpa-container']}>
-                  <div className={styles.legend}>
-                    <span className={styles.legendTitle}>Legend:</span>
-                    <div className={styles.legendItems}>
-                      <span><strong>I</strong> – Introductory</span>
-                      <span><strong>E</strong> – Enabling</span>
-                      <span><strong>D</strong> – Demonstrative</span>
-                    </div>
-                  </div>
-
-                  <div className={styles.tableScrollWrapper}>
-                    {cpaLoading ? (
-                      <div style={{ padding: 20, textAlign: 'center' }}>Loading Course & Program Alignment...</div>
-                    ) : (
-                      <table className={styles.alignmentTable}>
-                        <thead>
-                        <tr>
-                          <th className={styles.firstColHeader}>After completion of the course, the student should be able to:</th>
-                          {programOutcomes.map(po => (
-                            <th key={po.key || po} className={styles.poHeader}>{po.key || po}</th>
-                          ))}
-                        </tr>
-                        </thead>
-                        <tbody>
-                        {courseOutcomes.length > 0 ? courseOutcomes.map((co, coIdx) => (
-                          <tr key={co.id}>
-                            <td className={styles.descCell}>{/^\s*CO\d/i.test(co.description) ? co.description : `CO${coIdx + 1}: ${co.description}`}</td>
-                            {Array.from({ length: programOutcomes.length }).map((_, idx) => (
-                              <td key={idx} className={styles.mappingCell}>
-                                {co.poMappings && co.poMappings[idx] ? co.poMappings[idx] : ''}
-                              </td>
-                            ))}
-                          </tr>
-                        )) : (
-                          <tr>
-                            <td colSpan={programOutcomes.length + 1} style={{ textAlign: 'center', padding: 20, color: '#666' }}>
-                              No course outcomes / alignments found for this course.
-                            </td>
-                          </tr>
-                        )}
-                        </tbody>
-                      </table>
-                    )}
-                  </div>
-                </div>
+                <OutcomeAlignment
+                  offeringID={validPcId}
+                  revisionNum={validRevNum}
+                  styles={stylesC}
+                  stylesB={stylesB}
+                  fetchJson={fetchJson}
+                />
               </section>
             )}
 
             {/* Course Coverage */}
-            {activeSelectedSection === 'Course Coverage' && (() => {
-              const ilos = coverage?.ilos || []
-              const allTopics = coverage?.topics || []
-              const allAssessments = coverage?.assessments || []
+            {activeSelectedSection === 'Course Coverage' && (
+              <section ref={coverageRef}>
+                <CourseCoverage
+                  offeringID={validPcId}
+                  revisionNum={validRevNum}
+                  status={effectiveStatus}
+                  selectedSection={activeSelectedSection}
+                  styles={stylesC}
+                  stylesB={stylesB}
+                  fetchJson={fetchJson}
+                />
+              </section>
+            )}
 
-              const ccColWidths = {
-                co: '45px',
-                ilo: '170px',
-                topic: '195px',
-                period: '90px',
-                tla: '300px',
-                assess: '220px',
-                ref: '110px'
-              }
-
-              const getILOTopics = (ilo) => {
-                return (ilo.topics || []).map(topicTitle =>
-                  allTopics.find(t => t.title === topicTitle)
-                ).filter(Boolean)
-              }
-
-              const getTLAsByPhase = (topics, phase) => {
-                let tlas = []
-                topics.forEach(topic => {
-                  if (topic.tlas) {
-                    const filtered = topic.tlas.filter(t => t.classPhase && t.classPhase.toLowerCase() === phase.toLowerCase())
-                    tlas = [...tlas, ...filtered]
-                  }
-                })
-                return tlas
-              }
-
-              const getAssessmentsForTLAs = (tlas) => {
-                return tlas.map(tla =>
-                  allAssessments.find(a => a.tlaName === tla.tlaName)
-                ).filter(Boolean)
-              }
-
-              const getRefId = (refString) => (refString || '').split(' - ')[0]
-
-              const TlaGroup = ({ title, tlas }) => {
-                if (!tlas || tlas.length === 0) return null
-                return (
-                  <div className={styles.tlaGroupBlock}>
-                    <div className={styles.tlaPhaseHeader}>{title}</div>
-                    {tlas.map(tla => (
-                      <div key={tla.id} className={styles.tlaItem}>
-                        <div className={styles.tlaNameLine}>
-                          <span className={styles.perfTag}>{tla.performedBy === 'Instructor' ? '[I]' : '[S]'}</span>
-                          <span className={styles.boldText}> {tla.tlaName}</span>
-                          {tla.laboratory && <span className={styles.labTag}> (Lab)</span>}
-                        </div>
-                        <div className={styles.descText}>{tla.tlaDescription}</div>
-                      </div>
-                    ))}
-                  </div>
-                )
-              }
-
-              return (
-                <section ref={coverageRef}>
-                  <div className={styles.ccContainer}>
-                    <div className={styles.ccScrollWrapper}>
-                      <table className={styles.ccTable}>
-                        <thead>
-                          <tr>
-                            <th className={styles.ccHeader} style={{ width: ccColWidths.co }}>CO</th>
-                            <th className={styles.ccHeader} style={{ width: ccColWidths.ilo }}>ILO</th>
-                            <th className={styles.ccHeader} style={{ width: ccColWidths.topic }}>TOPIC</th>
-                            <th className={styles.ccHeader} style={{ width: ccColWidths.period }}>PERIOD</th>
-                            <th className={styles.ccHeader} style={{ width: ccColWidths.tla }}>TEACHING & LEARNING ACTIVITIES (TLAs)</th>
-                            <th className={styles.ccHeader} style={{ width: ccColWidths.assess }}>ASSESSMENT</th>
-                            <th className={styles.ccHeader} style={{ width: ccColWidths.ref, overflowWrap: 'break-word', wordBreak: 'break-all' }}>RESOURCES</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {ilos.length > 0 ? ilos.map((ilo, index) => {
-                            const currentCoPrefix = ilo.id ? ilo.id.split('-')[0] : ''
-                            // Consecutive-run safe rowspan: no overlap when COs aren't contiguous
-                            const prevCoPrefix = index > 0 ? ((ilos[index - 1].id || '').split('-')[0]) : null
-                            const isFirstOfCO = currentCoPrefix !== prevCoPrefix
-                            let coRowCount = 1
-                            if (isFirstOfCO) {
-                              for (let j = index + 1; j < ilos.length && (ilos[j].id || '').split('-')[0] === currentCoPrefix; j++) {
-                                coRowCount++
-                              }
-                            }
-                            const rowTopics = getILOTopics(ilo)
-
-                            const preTLAs = getTLAsByPhase(rowTopics, 'Pre-class')
-                            const inTLAs = getTLAsByPhase(rowTopics, 'In-class')
-                            const postTLAs = getTLAsByPhase(rowTopics, 'Post-class')
-
-                            const allRowTLAs = [...preTLAs, ...inTLAs, ...postTLAs]
-                            const uniqueAssessments = [...new Set(getAssessmentsForTLAs(allRowTLAs))]
-
-                            const cleanILOId = ilo.id ? (ilo.id.includes('-') ? ilo.id.split('-')[1] : ilo.id) : ''
-
-                            return (
-                              <tr key={ilo.id || index}>
-                                {isFirstOfCO && (
-                                  <td rowSpan={coRowCount} className={`${styles.ccCell} ${styles.centerText} ${styles.boldText}`} style={{ width: ccColWidths.co }}>
-                                    {currentCoPrefix}
-                                  </td>
-                                )}
-
-                                <td className={styles.ccCell} style={{ width: ccColWidths.ilo }}>
-                                  <div className={styles.boldText} style={{marginBottom: '5px'}}>{cleanILOId}</div>
-                                  {ilo.intendedLearningOutcome}
-                                </td>
-
-                                <td className={styles.ccCell} style={{ width: ccColWidths.topic }}>
-                                  {rowTopics.map(t => (
-                                    <div key={t.id} className={styles.topicBlock}>
-                                      <div className={styles.topicTitle}>{t.title}</div>
-                                      <ul className={styles.subtopicList}>
-                                        {t.subtopics && t.subtopics.map(sub => (<li key={sub.id}>{sub.value}</li>))}
-                                      </ul>
-                                    </div>
-                                  ))}
-                                </td>
-
-                                <td className={`${styles.ccCell} ${styles.centerText}`} style={{ width: ccColWidths.period }}>
-                                  <div className={styles.boldText}>{ilo.deliveryWeek}</div>
-                                  <div>{ilo.allocatedTime}</div>
-                                </td>
-
-                                <td className={styles.ccCell} style={{ width: ccColWidths.tla }}>
-                                  <TlaGroup title="PRE-CLASS" tlas={preTLAs} />
-                                  <TlaGroup title="IN-CLASS" tlas={inTLAs} />
-                                  <TlaGroup title="POST-CLASS" tlas={postTLAs} />
-                                  {allRowTLAs.length === 0 && <span className={styles.descText}>No activities listed.</span>}
-                                </td>
-
-                                <td className={styles.ccCell} style={{ width: ccColWidths.assess }}>
-                                  {uniqueAssessments.map((assess, i) => (
-                                    <div key={i} className={styles.assessItem}>
-                                      <div className={styles.boldText}>{assess.tlaName}</div>
-                                      <div className={styles.descText}>{assess.assessmentMethod}</div>
-                                      {assess.hasRubric && <div className={styles.rubricTag}>Rubric Available</div>}
-                                    </div>
-                                  ))}
-                                </td>
-
-                                <td className={`${styles.ccCell} ${styles.centerText}`} style={{ width: ccColWidths.ref }}>
-                                  {(ilo.references || []).map((ref, i) => (<div key={i}>{getRefId(ref)}</div>))}
-                                </td>
-                              </tr>
-                            )
-                          }) : (
-                            <tr><td colSpan={7} style={{padding: '20px', textAlign: 'center'}}>No coverage data available.</td></tr>
-                          )}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                </section>
-              )
-            })()}
-
-            {/* References (styled like instructor) */}
-            {activeSelectedSection === 'References' && (
+            {/* References */}
+            {activeSelectedSection === 'References Summary' && (
               <section ref={referencesRef}>
-                <div className={stylesB.refContainer}>
-                  <div className={stylesB.refHeaderBar}>
-                    <select value={refTypeFilter} onChange={e => setRefTypeFilter(e.target.value)} className={stylesB.refSelect}>
-                      <option value="">ALL</option>
-                      <option value="Textbook">TEXTBOOKS</option>
-                      <option value="Open Educational Resources">OPEN EDUCATIONAL RESOURCES</option>
-                      <option value="Online Resources">ONLINE RESOURCES</option>
-                    </select>
-                    <div className={stylesB.refArrow}>▼</div>
-                  </div>
-                  <div className={stylesB.refScrollWrapper}>
-                    {refTypeFilter === '' ? (
-                      /* --- ALL: one combined table --- */
-                      <table className={stylesB.refTable}>
-                        <thead>
-                          <tr>
-                            <th className={stylesB.refHeaderCell} style={{ width: 70 }}>ID</th>
-                            <th className={stylesB.refHeaderCell} style={{ width: 300 }}>TITLE</th>
-                            <th className={stylesB.refHeaderCell} style={{ width: 200 }}>AUTHOR/S</th>
-                            <th className={stylesB.refHeaderCell} style={{ width: 200 }}>Open Resource</th>
-                            <th className={stylesB.refHeaderCell} style={{ width: 100 }}>YEAR</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {(() => {
-                            const all = [
-                              ...displayRefs.filter(r => r.type === 'Textbook').map(r => ({ ...r, _type: 'TB' })),
-                              ...displayRefs.filter(r => r.type === 'Open Educational Resources').map(r => ({ ...r, _type: 'OE' })),
-                              ...displayRefs.filter(r => r.type === 'Online Resources').map(r => ({ ...r, _type: 'OR' })),
-                            ];
-                            return all.length > 0 ? all.map((ref, i) => (
-                              <tr key={ref.id || i}>
-                                <td className={stylesB.refDataCellCenter} style={{ width: 70 }}>{ref._type}{i + 1}</td>
-                                <td className={stylesB.refDataCellLeft} style={{ width: 300 }}>{ref.title}</td>
-                                <td className={stylesB.refDataCellLeft} style={{ width: 200 }}>{ref.authors}</td>
-                                <td className={stylesB.refDataCellLeft} style={{ width: 200 }}>
-                                  {ref.isbn || (ref.link && ref.link.startsWith('http') ? <a href={ref.link} target="_blank" rel="noreferrer" className={stylesB.refUrlLink}>Open Resource</a> : '-')}
-                                </td>
-                                <td className={stylesB.refDataCellCenter} style={{ width: 100 }}>{ref.year || '-'}</td>
-                              </tr>
-                            )) : (
-                              <tr><td colSpan={5} className={stylesB.refEmpty}>No references found.</td></tr>
-                            );
-                          })()}
-                        </tbody>
-                      </table>
-                    ) : refTypeFilter === 'Textbook' ? (
-                      /* --- TEXTBOOKS --- */
-                      <table className={stylesB.refTable}>
-                        <thead>
-                          <tr>
-                            <th className={stylesB.refHeaderCell} style={{ width: 70 }}>ID</th>
-                            <th className={stylesB.refHeaderCell} style={{ width: 300 }}>TITLE</th>
-                            <th className={stylesB.refHeaderCell} style={{ width: 200 }}>AUTHOR/S</th>
-                            <th className={stylesB.refHeaderCell} style={{ width: 200 }}>ISBN</th>
-                            <th className={stylesB.refHeaderCell} style={{ width: 100 }}>YEAR</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {displayRefs.filter(r => r.type === 'Textbook').length > 0
-                          ? displayRefs.filter(r => r.type === 'Textbook').map((ref, i) => (
-                              <tr key={ref.id || i}>
-                                <td className={stylesB.refDataCellCenter} style={{ width: 70 }}>TB{i + 1}</td>
-                                <td className={stylesB.refDataCellLeft} style={{ width: 300 }}>{ref.title}</td>
-                                <td className={stylesB.refDataCellLeft} style={{ width: 200 }}>{ref.authors}</td>
-                                <td className={stylesB.refDataCellLeft} style={{ width: 200 }}>{ref.isbn || '-'}</td>
-                                <td className={stylesB.refDataCellCenter} style={{ width: 100 }}>{ref.year || '-'}</td>
-                              </tr>
-                            ))
-                          : (
-                            <tr><td colSpan={5} className={stylesB.refEmpty}>No Textbooks found.</td></tr>
-                          )}
-                        </tbody>
-                      </table>
-                    ) : refTypeFilter === 'Open Educational Resources' ? (
-                      /* --- OER --- */
-                      <table className={stylesB.refTable}>
-                        <thead>
-                          <tr>
-                            <th className={stylesB.refHeaderCell} style={{ width: 70 }}>ID</th>
-                            <th className={stylesB.refHeaderCell} style={{ width: 300 }}>TITLE</th>
-                            <th className={stylesB.refHeaderCell} style={{ width: 200 }}>AUTHOR/S</th>
-                            <th className={stylesB.refHeaderCell} style={{ width: 200 }}>LINK</th>
-                            <th className={stylesB.refHeaderCell} style={{ width: 100 }}>YEAR</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {displayRefs.filter(r => r.type === 'Open Educational Resources').length > 0
-                          ? displayRefs.filter(r => r.type === 'Open Educational Resources').map((ref, i) => (
-                              <tr key={ref.id || i}>
-                                <td className={stylesB.refDataCellCenter} style={{ width: 70 }}>OE{i + 1}</td>
-                                <td className={stylesB.refDataCellLeft} style={{ width: 300 }}>{ref.title}</td>
-                                <td className={stylesB.refDataCellLeft} style={{ width: 200 }}>{ref.authors}</td>
-                                <td className={stylesB.refDataCellLeft} style={{ width: 200 }}>
-                                  {ref.link && ref.link.startsWith('http') ? (
-                                    <a href={ref.link} target="_blank" rel="noreferrer" className={stylesB.refUrlLink}>Open Resource</a>
-                                  ) : '-'}
-                                </td>
-                                <td className={stylesB.refDataCellCenter} style={{ width: 100 }}>{ref.year || '-'}</td>
-                              </tr>
-                            ))
-                          : (
-                            <tr><td colSpan={5} className={stylesB.refEmpty}>No OER found.</td></tr>
-                          )}
-                        </tbody>
-                      </table>
-                    ) : (
-                      /* --- ONLINE RESOURCES --- */
-                      <table className={stylesB.refTable}>
-                        <thead>
-                          <tr>
-                            <th className={stylesB.refHeaderCell} style={{ width: 70 }}>ID</th>
-                            <th className={stylesB.refHeaderCell} style={{ width: 300 }}>TITLE</th>
-                            <th className={stylesB.refHeaderCell} style={{ width: 200 }}>AUTHOR/S</th>
-                            <th className={stylesB.refHeaderCell} style={{ width: 200 }}>LINK</th>
-                            <th className={stylesB.refHeaderCell} style={{ width: 100 }}>YEAR</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {displayRefs.filter(r => r.type === 'Online Resources').length > 0
-                          ? displayRefs.filter(r => r.type === 'Online Resources').map((ref, i) => (
-                              <tr key={ref.id || i}>
-                                <td className={stylesB.refDataCellCenter} style={{ width: 70 }}>OR{i + 1}</td>
-                                <td className={stylesB.refDataCellLeft} style={{ width: 300 }}>{ref.title}</td>
-                                <td className={stylesB.refDataCellLeft} style={{ width: 200 }}>{ref.authors}</td>
-                                <td className={stylesB.refDataCellLeft} style={{ width: 200 }}>
-                                  {ref.link && ref.link.startsWith('http') ? (
-                                    <a href={ref.link} target="_blank" rel="noreferrer" className={stylesB.refUrlLink}>Open Resource</a>
-                                  ) : '-'}
-                                </td>
-                                <td className={stylesB.refDataCellCenter} style={{ width: 100 }}>{ref.year || '-'}</td>
-                              </tr>
-                            ))
-                          : (
-                            <tr><td colSpan={5} className={stylesB.refEmpty}>No Online Resources found.</td></tr>
-                          )}
-                        </tbody>
-                      </table>
-                    )}
-                  </div>
-                </div>
+                <ReferenceSummary
+                  offeringID={validPcId}
+                  revisionNum={validRevNum}
+                  status={effectiveStatus}
+                  selectedSection={activeSelectedSection}
+                  styles={stylesC}
+                  stylesB={stylesB}
+                  fetchJson={fetchJson}
+                />
               </section>
             )}
 
             {/* Criteria for Grading */}
-            {activeSelectedSection === 'Criteria for Grading' && (() => {
-              const gradingSystem = normalizeGradingSystem(criteria?.gradingSystem || [], syllabus?.gradingSystem || []);
+            {activeSelectedSection === 'Criteria for Grading' && (
+              <section ref={criteriaRef}>
+                <CriteriaForGrading
+                  offeringID={validPcId}
+                  revisionNum={validRevNum}
+                  status={effectiveStatus}
+                  styles={stylesC}
+                  stylesB={stylesB}
+                  fetchJson={fetchJson}
+                />
+              </section>
+            )}
 
-              const calculateTotal = (period) => {
-                let total = 0;
-                gradingSystem.forEach(group => {
-                  if (group.ilos) {
-                    group.ilos.forEach(ilo => {
-                      total += Number(ilo.weight?.[period] || 0);
-                    });
-                  }
-                });
-                return total;
-              };
-
-              return (
-                <section ref={criteriaRef}>
-                  <div className={styles.criteriaContainer}>
-                    <div className={styles.tableScrollWrapper}>
-                      <table className={styles.criteriaTable}>
-                        <thead>
-                          <tr>
-                            <th rowSpan="2" className={styles.headerCell} style={{ width: '120px' }}>COURSE OUTCOME</th>
-                            <th rowSpan="2" className={styles.headerCell} style={{ width: '80px' }}>ILO #</th>
-                            <th rowSpan="2" className={styles.headerCell}>ASSESSMENTS</th>
-                            <th colSpan="4" className={styles.headerCell}>WEIGHT %</th>
-                            <th rowSpan="2" className={styles.headerCell}>MIN PASSING %</th>
-                          </tr>
-                          <tr className={styles.subHeaderRow}>
-                            <th className={styles.subHeader}>Prelim</th>
-                            <th className={styles.subHeader}>Midterm</th>
-                            <th className={styles.subHeader}>Semi</th>
-                            <th className={styles.subHeader}>Final</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {gradingSystem.length > 0 ? (
-                            gradingSystem.map((group) => (
-                              <React.Fragment key={group.co}>
-                                {group.ilos.map((ilo, index) => (
-                                  <tr key={`${group.co}-${ilo.id}`}>
-                                    {index === 0 && (
-                                      <td rowSpan={group.ilos.length} className={styles.coCell}>
-                                        <strong>{group.co}</strong>
-                                      </td>
-                                    )}
-                                    <td className={styles.dataCellCenter}>
-                                      <span style={{ fontWeight: '500' }}>{ilo.displayId || `${group.co}-${ilo.id}`}</span>
-                                    </td>
-                                    <td className={styles.dataCellCenter}>
-                                      {Array.isArray(ilo.assessments)
-                                        ? ilo.assessments.join(', ')
-                                        : ilo.assessments}
-                                    </td>
-                                    <td className={styles.dataCellCenter}>{ilo.weight?.prelim || ''}</td>
-                                    <td className={styles.dataCellCenter}>{ilo.weight?.midterm || ''}</td>
-                                    <td className={styles.dataCellCenter}>{ilo.weight?.semi || ''}</td>
-                                    <td className={styles.dataCellCenter}>{ilo.weight?.final || ''}</td>
-                                    <td className={styles.dataCellCenter}>{ilo.minPassing}</td>
-                                  </tr>
-                                ))}
-                              </React.Fragment>
-                            ))
-                          ) : (
-                            <tr>
-                              <td colSpan="8" style={{ textAlign: 'center', padding: '20px' }}>
-                                No grading criteria available.
-                              </td>
-                            </tr>
-                          )}
-
-                          <tr className={styles.totalRow}>
-                            <td colSpan="3" className={styles.totalLabel}>TOTAL</td>
-                            <td className={styles.dataCellCenter}>{calculateTotal('prelim')}%</td>
-                            <td className={styles.dataCellCenter}>{calculateTotal('midterm')}%</td>
-                            <td className={styles.dataCellCenter}>{calculateTotal('semi')}%</td>
-                            <td className={styles.dataCellCenter}>{calculateTotal('final')}%</td>
-                            <td></td>
-                          </tr>
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                </section>
-              );
-            })()}
 
             {/* Reference suggestions for instructor */}
-            {roleKey === 'instructor' && activeSelectedSection === 'References' && suggestions.filter(s => s.status === 'pending').length > 0 && (
+            {roleKey === 'instructor' && activeSelectedSection === 'References Summary' && suggestions.filter(s => s.status === 'pending').length > 0 && (
               <div style={{ marginTop: 24, padding: '16px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8 }}>
                 <h4 style={{ margin: '0 0 12px 0', fontSize: 15, fontWeight: 600, color: '#92400e' }}>
                   Suggested References from Director of Libraries
@@ -1393,16 +1163,17 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
                 </div>
               </div>
             )}
+            </>)}
           </div>
         </div>
 
-        {!embedded && activeSelectedSection === 'Course Coverage' && (
+        {!embedded && roleKey !== 'vpaa' && activeSelectedSection === 'Course Coverage' && (
           <div style={{ display: 'flex', alignItems: 'stretch', height: '100%', flexShrink: 0 }}>
             <button onClick={() => setSidebarCollapsed(c => !c)} style={{
-              width: 28, border: 'none', borderLeft: '1px solid #e2e8f0', background: '#fafafa',
+              width: 26, border: 'none', borderLeft: '1px solid #e2e8f0', background: '#fafafa',
               cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-              color: sidebarCollapsed ? '#2563eb' : '#9ca3af', padding: 0, fontSize: 14, borderRadius: 0,
-              transition: 'color 0.2s', position: 'relative'
+              color: sidebarCollapsed ? '#2563eb' : '#94a3b8', padding: 0, fontSize: 13, borderRadius: 0,
+              transition: 'color 0.2s', position: 'relative', flexShrink: 0
             }}>
               {sidebarCollapsed ? (
                 <>
@@ -1418,223 +1189,173 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
             </button>
             <div style={{
               overflow: 'hidden',
-              width: sidebarCollapsed ? 0 : 280,
-              transition: 'width 0.3s ease',
+              width: sidebarCollapsed ? 0 : 380,
+              transition: 'width 0.2s ease',
               flexShrink: 0
             }}>
             <aside style={{
-              width: '280px',
+              width: 380,
               flexShrink: 0,
-              borderLeft: 'none',
-            background: '#ffffff',
-            display: 'flex',
-            flexDirection: 'column',
-            overflow: 'hidden',
-            height: '100%'
-          }}>
-            <div style={{
-              padding: '8px 10px',
-              borderBottom: '1px solid #e0e0e0',
-              background: '#fafafa',
-              boxSizing: 'border-box',
-              width: '100%'
+              background: '#fff',
+              display: 'flex',
+              flexDirection: 'column',
+              overflow: 'hidden',
+              height: '100%',
+              borderLeft: '1px solid #e2e8f0'
             }}>
               <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                marginBottom: '4px',
-                width: '100%'
+                display: 'flex', alignItems: 'center', gap: 10,
+                padding: '16px 20px',
+                background: '#f8fafc',
+                borderBottom: '1px solid #e0e4ec'
               }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <MessageSquare size={20} strokeWidth={2} color="#4a5568" />
-                  <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 600, color: '#2d3748' }}>
-                    Comments
-                  </h4>
-                </div>
-                <div style={{ display: 'flex', gap: 8, alignItems: 'center', width: '100%', justifyContent: 'flex-end' }}>
-                  <span style={{ fontSize: '12px', color: '#718096', fontWeight: 500 }}>
-                    {visibleComments.length} {visibleComments.length === 1 ? 'comment' : 'comments'}
-                  </span>
-                </div>
+                <MessageSquare size={18} color="#475569" />
+                <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600, color: '#1e293b', flex: 1 }}>
+                  Comments
+                </h4>
+                <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 500 }}>
+                  {visibleComments.length} {visibleComments.length === 1 ? 'comment' : 'comments'}
+                </span>
               </div>
-              <p style={{ margin: 0, fontSize: '12px', color: '#718096', fontWeight: 500 }}>
-                {activeSelectedSection}
-              </p>
-            </div>
 
-            <div style={{
-              flex: 1,
-              overflow: 'auto',
-              padding: '6px',
-              boxSizing: 'border-box',
-              width: '100%'
-            }}>
-              {visibleComments.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '40px 20px', color: '#a0aec0' }}>
-                  <Inbox size={48} strokeWidth={1.5} style={{margin: '0 auto 12px'}} />
-                  <p style={{fontSize: '14px', margin: 0}}>No comments yet</p>
-                  <p style={{fontSize: '12px', marginTop: '4px'}}>This section has no reviewer comments</p>
-                </div>
-              ) : (
-                <div style={{display: 'flex', flexDirection: 'column', gap: '10px'}}>
-                  {(() => {
-                    const groups = {}
-                    visibleComments.forEach((c) => {
-                      const sid = c.submissionId || 'single'
-                      groups[sid] = groups[sid] || { submissionLabel: c.submissionLabel || sid, submittedAt: c.submittedAt || c.createdAt || null, items: [] }
-                      groups[sid].items.push(c)
-                    })
-
-                    Object.values(groups).forEach(g => {
-                      g.items = (g.items || []).slice().sort((a, b) => {
-                        const aa = a.createdAt || a.submittedAt || ''
-                        const bb = b.createdAt || b.submittedAt || ''
-                        return aa.localeCompare(bb)
-                      })
-                    })
-
-                    const ordered = Object.values(groups).sort((a, b) => (b.submittedAt || '').localeCompare(a.submittedAt || ''))
-                    return ordered.map((g, gi) => (
-                      <div key={gi} style={{ display: 'flex', flexDirection: 'column', gap: 8, paddingTop: gi > 0 ? 10 : 0, borderTop: gi > 0 ? '1px solid #edf2f7' : 'none' }}>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                          <span style={{ fontSize: 12, fontWeight: 700, color: '#2d3748', textTransform: 'uppercase', letterSpacing: '0.4px' }}>{g.submissionLabel}</span>
-                          {g.submittedAt && !String(g.submissionLabel).includes(new Date(g.submittedAt).toLocaleString()) && (
-                            <span style={{ fontSize: 11, color: '#a0aec0' }}>{new Date(g.submittedAt).toLocaleString()}</span>
-                          )}
-                        </div>
-                        {g.items.map((comment, idx) => {
-                          const componentTags = getComponentTags(comment);
-                          const seedIndex = globalComments.indexOf(comment)
-                          const seedData = reviewerSeeds[seedIndex % reviewerSeeds.length] || {}
-                          const displayName = comment.reviewer || seedData.name || 'Reviewer'
-                          const displayRole = comment.role || seedData.role || 'Approver'
-                          return (
-                            <div key={comment.id} style={{
-                              background: '#f7fafc',
-                              border: '1px solid #e2e8f0',
-                              borderRadius: '8px',
-                              padding: '10px',
-                              position: 'relative'
-                            }}>
-                              <div style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'space-between',
-                                marginBottom: '8px'
+              <div style={{ flex: 1, overflow: 'auto', padding: '10px 0' }}>
+                {visibleComments.length === 0 ? (
+                  <div style={{ padding: '40px 20px', textAlign: 'center', color: '#94a3b8', fontSize: '0.95rem' }}>
+                    <Inbox size={40} strokeWidth={1.5} style={{ margin: '0 auto 10px', display: 'block' }} />
+                    <p style={{ margin: 0 }}>No comments yet</p>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    {visibleComments.map((comment) => {
+                      const roleKeyToLabel = { 'instructor': 'Instructor', 'program-head': 'Program Head', 'dean': 'Dean', 'director-of-libraries': 'Director of Libraries', 'industry-consultant': 'Industry Consultant' }
+                      const isRecipient = ({ 'instructor': 'instructor', 'program-head': 'program_head' }[roleKey]) === comment.recipientRole
+                      const coverageType = comment.coverageType || ''
+                      return (
+                        <div key={comment.id} style={{
+                          display: 'flex', alignItems: 'flex-start', gap: 14,
+                          padding: '16px 20px',
+                          borderBottom: '1px solid #f1f5f9',
+                          opacity: comment.resolved ? 0.65 : 1,
+                          transition: 'background 0.2s ease, opacity 0.2s ease'
+                        }}
+                          onMouseEnter={(e) => { e.currentTarget.style.background = '#f8fafc' }}
+                          onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}>
+                          <div style={{ position: 'relative', width: 18, height: 18, marginTop: 3, flexShrink: 0 }}>
+                            {comment.resolved ? (
+                              <span style={{
+                                display: 'inline-block', width: 18, height: 18, borderRadius: 4,
+                                backgroundColor: '#2e7d32', border: '2px solid #2e7d32',
+                                position: 'relative', boxSizing: 'border-box'
                               }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                  <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: getRoleColor(displayRole) }}></div>
-                                  <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                    <span style={{ fontSize: '13px', fontWeight: 600, color: '#2d3748' }}>{displayName}</span>
-                                    {displayRole && (
-                                      <span title={displayRole} style={{ fontSize: '12px', color: getRoleColor(displayRole) || '#718096', marginTop: 2, fontWeight: 500 }}>
-                                        {displayRole}
-                                      </span>
-                                    )}
-                                  </div>
-                                  {isRecent(comment.createdAt || comment.submittedAt || comment.timestamp) && (
-                                    <span style={{ marginLeft: 8, fontSize: '11px', background: '#2d3748', color: '#fff', padding: '2px 6px', borderRadius: '12px', fontWeight: 600 }}>New</span>
-                                  )}
-                                </div>
-                              </div>
+                                <span style={{
+                                  position: 'absolute', left: 4, top: 1, width: 5, height: 9,
+                                  border: 'solid white', borderWidth: '0 2px 2px 0',
+                                  transform: 'rotate(45deg)'
+                                }} />
+                              </span>
+                            ) : isRecipient ? (
+                              <label style={{ cursor: 'pointer', display: 'block', width: 18, height: 18 }}
+                                title="Mark as fixed — the approver will see this comment checked"
+                                onClick={(e) => { e.stopPropagation(); markCommentResolved(comment.id) }}>
+                                <input type="checkbox"
+                                  style={{ position: 'absolute', opacity: 0, cursor: 'pointer', width: 0, height: 0 }}
+                                  onChange={() => markCommentResolved(comment.id)} />
+                                <span style={{
+                                  position: 'absolute', top: 0, left: 0, width: 18, height: 18,
+                                  backgroundColor: '#fff', border: '2px solid #cbd5e1', borderRadius: 4,
+                                  boxSizing: 'border-box', transition: 'all 0.2s'
+                                }} />
+                              </label>
+                            ) : null}
+                          </div>
 
-                              {componentTags.length > 0 && (
-                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '8px' }}>
-                                  {componentTags.map((tag, i) => (
-                                    <span key={i} style={{ fontSize: '10px', color: '#4a5568', background: '#e2e8f0', padding: '2px 8px', borderRadius: '12px', fontWeight: 500 }}>
-                                      {tag}
-                                    </span>
-                                  ))}
-                                </div>
-                              )}
-
-                              {(comment.courseOutcome || comment.ilo || comment.coverageType || (Array.isArray(comment.coverageDetail) ? comment.coverageDetail.length : comment.coverageDetail)) && (() => {
-                                const targetText = Array.isArray(comment.coverageDetail) ? comment.coverageDetail.join(', ') : (comment.coverageDetail || '')
-                                return (
-                                  <div style={{ marginBottom: '8px', fontSize: '11px', color: '#718096' }}>
-                                    {targetText && (
-                                      <div style={{ marginBottom: '4px' }}>
-                                        <span style={{ background: '#e0f2fe', padding: '2px 6px', borderRadius: '4px' }}>
-                                          <strong>Target:</strong> {targetText}
-                                        </span>
-                                      </div>
-                                    )}
-                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                                      {comment.courseOutcome && (
-                                        <span style={{ background: '#f0f4f8', padding: '2px 6px', borderRadius: '4px' }}>
-                                          <strong>CO:</strong> {comment.courseOutcome}
-                                        </span>
-                                      )}
-                                      {comment.ilo && (
-                                        <span style={{ background: '#f0f4f8', padding: '2px 6px', borderRadius: '4px' }}>
-                                          <strong>ILO:</strong> {comment.ilo}
-                                        </span>
-                                      )}
-                                      {comment.coverageType && (
-                                        <span style={{ background: '#f0f4f8', padding: '2px 6px', borderRadius: '4px' }}>
-                                          <strong>Coverage:</strong> {comment.coverageType}
-                                        </span>
-                                      )}
-                                    </div>
-                                  </div>
-                                )
-                              })()}
-
-                              <p style={{ fontSize: '13px', lineHeight: '1.6', color: '#4a5568', margin: '0 0 8px 0' }}>
-                                {comment.comment}
-                              </p>
-
-                              {comment.suggestedRefs && comment.suggestedRefs.length > 0 && (
-                                <div style={{ marginTop: 8, padding: '8px 12px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 6 }}>
-                                  <div style={{ fontSize: 11, fontWeight: 600, color: '#92400e', marginBottom: 4 }}>Suggested References:</div>
-                                  {comment.suggestedRefs.map((sr, si) => (
-                                    <div key={si} style={{ fontSize: 12, color: '#78350f', marginBottom: 2 }}>
-                                      {sr.title}{sr.authors ? ` — ${sr.authors}` : ''}{sr.year ? ` (${sr.year})` : ''}
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
-
-                              <div style={{ fontSize: '11px', color: '#a0aec0', marginTop: '8px' }}>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flex: 1, minWidth: 0 }}>
+                            {(coverageType || comment.courseOutcome || comment.ilo) && (
+                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, alignItems: 'center' }}>
+                                {comment.courseOutcome && (
+                                  <span style={{ background: comment.resolved ? '#f1f5f9' : '#edf2f7', padding: '4px 10px', borderRadius: 3, fontSize: '0.78rem', fontWeight: 500, letterSpacing: '-0.01em', color: comment.resolved ? '#94a3b8' : '#4a5568' }}>
+                                    [CO: {comment.courseOutcome}]
+                                  </span>
+                                )}
+                                {comment.ilo && (
+                                  <span style={{ background: comment.resolved ? '#f1f5f9' : '#edf2f7', padding: '4px 10px', borderRadius: 3, fontSize: '0.78rem', fontWeight: 500, letterSpacing: '-0.01em', color: comment.resolved ? '#94a3b8' : '#4a5568' }}>
+                                    [ILO: {comment.ilo}]
+                                  </span>
+                                )}
                                 {(() => {
-                                  const ts = comment.createdAt || comment.submittedAt || comment.timestamp || null
-                                  return ts ? new Date(ts).toLocaleString() : ''
-                                })()}
-                                {(() => {
-                                  const roleCanMark = { 'instructor': 'instructor', 'program-head': 'program_head' }
-                                  const roleKeyToLabel = { 'instructor': 'Instructor', 'program-head': 'Program Head', 'dean': 'Dean', 'director-of-libraries': 'Director of Libraries', 'industry-consultant': 'Industry Consultant' }
-                                  const isRecipient = roleCanMark[roleKey] === comment.recipientRole
-                                  const isSender = comment.role === roleKeyToLabel[roleKey]
-                                  if (comment.resolved) {
-                                    const label = isSender ? 'Addressed ✓' : 'Resolved'
-                                    return (
-                                      <span style={{ marginLeft: 8, color: '#38a169', fontWeight: 600 }}>
-                                        {label}{comment.resolvedAt ? ` — ${new Date(comment.resolvedAt).toLocaleString()}` : ''}
-                                      </span>
-                                    )
-                                  } else if (isRecipient) {
-                                    return (
-                                      <button 
-                                        onClick={() => markCommentResolved(comment.id)} 
-                                        style={{ marginLeft: 8, fontSize: 12, padding: '4px 8px', color: '#ffffff', backgroundColor: '#3182ce', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
-                                      >
-                                        Mark addressed
-                                      </button>
-                                    )
+                                  // coverageDetail may be an array (UI comments) or a string (server-synced comments)
+                                  const details = Array.isArray(comment.coverageDetail)
+                                    ? comment.coverageDetail
+                                    : (comment.coverageDetail ? [comment.coverageDetail] : [])
+                                  const ct = comment.coverageType || 'Topic'
+                                  const colors = comment.resolved
+                                    ? { background: '#f1f5f9', color: '#94a3b8' }
+                                    : {
+                                        background: ct === 'Topic' ? '#e0f2fe' : ct === 'TLA' ? '#ede9fe' : ct === 'References' ? '#fef3c7' : '#edf2f7',
+                                        color: ct === 'Topic' ? '#0369a1' : ct === 'TLA' ? '#6d28d9' : ct === 'References' ? '#92400e' : '#4a5568',
+                                      }
+                                  const chipStyle = {
+                                    ...colors, padding: '4px 10px', borderRadius: 3, fontSize: '0.78rem', fontWeight: 500,
+                                    letterSpacing: '-0.01em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 240
                                   }
-                                  return null
+                                  if (details.length === 0) {
+                                    // no target name — still show the coverage type so the comment stays connected
+                                    return comment.coverageType ? (
+                                      <span style={chipStyle}>[{ct.toUpperCase()}]</span>
+                                    ) : null
+                                  }
+                                  return details.map((detail, di) => (
+                                    <span key={di} style={chipStyle}>
+                                      [{ct.toUpperCase()}: {detail}]
+                                    </span>
+                                  ))
                                 })()}
                               </div>
+                            )}
+
+                            <p style={{
+                              margin: 0, fontSize: '0.92rem', lineHeight: 1.45, color: comment.resolved ? '#94a3b8' : '#334155',
+                              wordBreak: 'break-word',
+                              textDecoration: comment.resolved ? 'line-through' : 'none'
+                            }}>
+                              {comment.comment}
+                            </p>
+
+                            {comment.suggestedRefs && comment.suggestedRefs.length > 0 && (
+                              <div style={{ padding: '6px 10px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 4, fontSize: '0.75rem' }}>
+                                <div style={{ fontWeight: 600, color: '#92400e', marginBottom: 2 }}>Suggested References:</div>
+                                {comment.suggestedRefs.map((sr, si) => (
+                                  <div key={si} style={{ color: '#78350f' }}>
+                                    {sr.title}{sr.authors ? ` — ${sr.authors}` : ''}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+
+                            <div style={{ fontSize: '0.8rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: 6, marginTop: 2, flexWrap: 'wrap' }}>
+                              <span style={{ fontWeight: 600, color: '#475569' }}>{comment.reviewer || 'Reviewer'}</span>
+                              <span style={{ color: '#cbd5e1' }}>•</span>
+                              <span style={{ fontSize: '0.78rem' }}>{comment.createdAt || comment.submittedAt ? new Date(comment.createdAt || comment.submittedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''}</span>
+                              {comment.resolved && (
+                                <span style={{
+                                  display: 'inline-flex', alignItems: 'center', gap: 4,
+                                  background: '#dcfce7', color: '#166534',
+                                  padding: '2px 10px', borderRadius: 10,
+                                  fontSize: '0.75rem', fontWeight: 600, marginLeft: 'auto'
+                                }}>
+                                  <span style={{ fontSize: '0.8rem', lineHeight: 1 }}>✓</span>
+                                  Fixed by instructor
+                                  {comment.resolvedAt ? ` · ${new Date(comment.resolvedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}` : ''}
+                                </span>
+                              )}
                             </div>
-                          )
-                        })}
-                      </div>
-                    ))
-                  })()}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
               </div>
-            )}
-          </div>
             </aside>
             </div>
           </div>
@@ -1647,31 +1368,58 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
         onClose={closeComment}
         onSubmit={handleSubmitComment}
         courseOutcomes={courseOutcomes}
-        ilos={sampleILOs}
+        ilos={realILOs}
         approverRole={currentRole}
         coverageEntries={coverage?.ilos || []}
         syllabusTopics={coverage?.topics || []}
         syllabusReferences={displayRefs}
         readOnly={readOnlyCommentModal}
         previousComments={previousComments}
+        coToIlosProp={Object.keys(realCoToIlos).length ? realCoToIlos : undefined}
       />
 
-      {/* ── APPROVE CONFIRMATION MODAL ─────────────────────────────────── */}
-      {showApproveModal && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(2px)' }} onClick={() => setShowApproveModal(false)}>
-          <div style={{ background: 'white', borderRadius: 16, width: 420, maxWidth: '90vw', padding: 32, textAlign: 'center', boxShadow: '0 20px 60px rgba(0,0,0,0.15)', fontFamily: "'Poppins', sans-serif" }} onClick={(e) => e.stopPropagation()}>
-            <div style={{ marginBottom: 16 }}>
-              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#047857" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><polyline points="16 8 10 16 7 13" /></svg>
+      {/* ── APPROVE CONFIRMATION (matches instructor submit modal, with undo countdown) ── */}
+      {approvePhase !== 'IDLE' && (
+        <div className={subStyles.submitOverlay}>
+          {approvePhase === 'CONFIRM' && (
+            <div className={subStyles.submitModal}>
+              <div className={subStyles.submitModalHeader}>
+                Approve Learning Plan
+              </div>
+              <div className={subStyles.submitModalBody}>
+                Are you sure you want to approve this learning plan for <strong>{codeToUse}</strong>? This will advance the workflow to the next stage.
+              </div>
+              <div className={subStyles.submitModalActions}>
+                <button className={subStyles.btnCancelPlain} onClick={cancelApprove}>Cancel</button>
+                <button className={subStyles.btnConfirmDark} onClick={confirmApprove}>Yes, Approve</button>
+              </div>
             </div>
-            <h3 style={{ fontSize: 20, fontWeight: 600, color: 'black', margin: '0 0 10px' }}>Approve Learning Plan</h3>
-            <p style={{ fontSize: 14, color: '#6b7280', fontWeight: 300, margin: '0 0 24px', lineHeight: 1.5 }}>
-              Are you sure you want to approve this learning plan for <strong>{codeToUse}</strong>? This will advance the workflow to the next stage.
-            </p>
-            <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
-              <button style={{ padding: '10px 24px', background: 'transparent', color: 'black', border: '1px solid #A4A9AF', borderRadius: 6, fontSize: 14, fontWeight: 500, cursor: 'pointer', fontFamily: "'Poppins', sans-serif" }} onClick={() => setShowApproveModal(false)}>Cancel</button>
-              <button style={{ padding: '10px 24px', background: '#19282C', color: 'white', border: 'none', borderRadius: 6, fontSize: 14, fontWeight: 500, cursor: 'pointer', fontFamily: "'Poppins', sans-serif" }} onClick={handleApprove}>Approve</button>
+          )}
+
+          {approvePhase === 'WAITING' && (
+            <div className={subStyles.submitModal}>
+              <div className={subStyles.waitingBody}>
+                <div className={subStyles.waitingText}>
+                  Approving in <strong>{approveTimeLeft}</strong> seconds...
+                </div>
+                <div className={subStyles.progressContainer}>
+                  <div className={subStyles.progressBar} style={{ animationDuration: '5s' }}></div>
+                </div>
+              </div>
+              <div className={subStyles.submitModalActionsFull}>
+                <button className={subStyles.btnUndoBlock} onClick={cancelApprove}>Cancel Approval</button>
+              </div>
             </div>
-          </div>
+          )}
+
+          {approvePhase === 'DONE' && (
+            <div className={subStyles.submitModal}>
+              <div className={subStyles.waitingBodyCenter}>
+                <div className={subStyles.successIcon}>✓</div>
+                <div className={subStyles.waitingTextSmall}>Learning Plan Approved!</div>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -1701,48 +1449,13 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
         )
       })()}
 
-      {/* ── WORKFLOW POPUP ──────────────────────────────────────────────── */}
-      {showWorkflowPopup && (() => {
-        const wf = getWorkflow(codeToUse || '')
-        const submittedAt = wf.submittedAt || null
-        const approvers = [
-          { key: 'Industry Consultant', data: wf.parallelReview?.industry_consultant },
-          { key: 'Director of Libraries', data: wf.parallelReview?.library_director },
-          { key: 'Program Head', data: wf.programHead },
-          { key: 'Dean', data: wf.dean },
-        ]
-        return (
-          <>
-            <div onClick={() => setShowWorkflowPopup(false)} style={{ position: 'fixed', inset: 0, zIndex: 1199 }} />
-            <div style={{ position: 'fixed', right: workflowPopupPos?.right ?? 20, top: workflowPopupPos?.top ?? 80, width: 340, background: '#fff', border: '1px solid #ddd', borderRadius: 6, boxShadow: '0 6px 18px rgba(0,0,0,0.12)', zIndex: 1200, padding: 12 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                <strong>View details</strong>
-                <button onClick={() => setShowWorkflowPopup(false)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', padding: 4 }}>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6b7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><line x1="15" y1="9" x2="9" y2="15" /><line x1="9" y1="9" x2="15" y2="15" /></svg>
-                </button>
-              </div>
-              <div style={{ fontSize: 13, marginBottom: 10 }}>
-                <div style={{ color: '#666', marginBottom: 8 }}>
-                  <strong>Submitted at:</strong> {submittedAt ? new Date(submittedAt).toLocaleString() : '-'}
-                </div>
-                {approvers.map((a, idx) => {
-                  const status = a.data?.status || 'pending'
-                  return (
-                    <div key={idx} style={{ marginBottom: 10, paddingBottom: 8, borderBottom: '1px solid #f0f0f0' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                        <div style={{ fontWeight: 600 }}>{a.key}</div>
-                      </div>
-                      {status === 'done' && a.data?.completedAt ? <div style={{ fontSize: 13, color: '#333' }}><strong>{a.key === 'Dean' ? 'Approved' : 'Accepted'} at:</strong> {new Date(a.data.completedAt).toLocaleString()}</div> : null}
-                      {status === 'returned' && a.data?.completedAt ? <div style={{ fontSize: 13, color: '#dc2626' }}><strong>Returned at:</strong> {new Date(a.data.completedAt).toLocaleString()}</div> : null}
-                      {status === 'pending' ? <div style={{ fontSize: 13, color: '#999' }}>Pending</div> : null}
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-          </>
-        )
-      })()}
+      {/* ── REVISIONS OVERLAY ──────────────────────────────────────────────── */}
+      <Revisions
+        isOpen={isRevisionsOpen}
+        onClose={() => setIsRevisionsOpen(false)}
+        pcId={validPcId}
+        revNum={validRevNum}
+      />
 
       {/* ── PDF VIEWER MODAL ───────────────────────────────────────────── */}
       {previewFile && (
