@@ -1,4 +1,4 @@
-const { Topic, Subtopic, ILOTopic, sequelize } = require('../models');
+const { Topic, Subtopic, ILOTopic, TopicTLA, sequelize } = require('../models');
 const { Op } = require('sequelize');
 
 // Fetch topics that are EITHER unassigned OR assigned to the current iloId
@@ -12,7 +12,7 @@ async function getAvailableTopics(req, res) {
             where: { ilo_id: { [Op.ne]: iloId } },
             attributes: ['topic_id']
         });
-        const excludedTopicIds = assignedToOthers.map(t => t.topic_id);
+        const excludedTopicIds = assignedToOthers.map(t => Number(t.topic_id));
 
         // Fetch topics not in the excluded list, include their subtopics
         const topics = await Topic.findAll({
@@ -72,17 +72,20 @@ async function getAssignedTopics(req, res) {
 async function assignTopicsToILO(req, res) {
     const t = await sequelize.transaction();
     try {
-        const { ilo_id, topics } = req.body;
-        if (!ilo_id || !Array.isArray(topics)) {
+        const rawIloId = req.body.ilo_id;
+        const topics = req.body.topics;
+
+        if (!rawIloId || !Array.isArray(topics)) {
             await t.rollback();
             return res.status(400).json({ message: 'ilo_id and topics array are required' });
         }
 
+        const ilo_id = Number(rawIloId);
         const finalTopicIds = [];
 
         // 1. Process each topic (Create or Update)
         for (const topicData of topics) {
-            let currentTopicId = topicData.topic_id;
+            let currentTopicId = topicData.topic_id ? Number(topicData.topic_id) : null;
 
             if (!currentTopicId) {
                 // It's a manual/custom topic from the frontend
@@ -114,11 +117,29 @@ async function assignTopicsToILO(req, res) {
             }
         }
 
-        // 2. Re-map the relationships inside your ILOTopics junction table
-        await ILOTopic.destroy({ where: { ilo_id }, transaction: t });
+        // 2. Re-map the relationships SAFELY (Preserving ilo_topic_id for TLA connections)
+        const existingMappings = await ILOTopic.findAll({ where: { ilo_id }, transaction: t });
 
-        if (finalTopicIds.length > 0) {
-            const mappings = finalTopicIds.map(tid => ({
+        // CRITICAL FIX: Force both DB arrays and Frontend arrays to be integers
+        const existingTopicIds = existingMappings.map(m => Number(m.topic_id));
+        const incomingTopicIds = finalTopicIds.map(id => Number(id));
+
+        const topicsToRemove = existingTopicIds.filter(id => !incomingTopicIds.includes(id));
+        const topicsToAdd = incomingTopicIds.filter(id => !existingTopicIds.includes(id));
+
+        // Only delete the mappings that were explicitly removed by the user
+        if (topicsToRemove.length > 0) {
+            const iloTopicsToRemove = existingMappings.filter(m => topicsToRemove.includes(Number(m.topic_id)));
+            const iloTopicIdsToRemove = iloTopicsToRemove.map(m => Number(m.ilo_topic_id));
+
+            // Cleanup orphaned TLAs linked to the removed topics
+            await TopicTLA.destroy({ where: { ilo_topic_id: iloTopicIdsToRemove }, transaction: t });
+            await ILOTopic.destroy({ where: { ilo_topic_id: iloTopicIdsToRemove }, transaction: t });
+        }
+
+        // Only create new mappings for freshly added topics
+        if (topicsToAdd.length > 0) {
+            const mappings = topicsToAdd.map(tid => ({
                 ilo_id,
                 topic_id: tid
             }));
