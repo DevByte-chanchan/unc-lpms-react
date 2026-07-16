@@ -7,18 +7,8 @@ import PDFViewerModal from '../../../components/PDFViewerModal.jsx';
 import { buildPoPeoHtml } from '../../../utils/syllabusPdfHtml.js';
 import { getAllPrograms, getProgramName, getPoPeoData, savePoPeoData, resetPoPeoDefaults } from '../../../utils/programCurriculumData.js';
 import unclogo from '../../../assets/unclogo.png';
-import tbl from '../../../styles/AlignmentTables.module.sass';
 
 const GAS_LABELS = ['EC', 'CL', 'ERC', 'LL']
-
-/* ── app design tokens: matches syllabus tables + existing buttons ── */
-const FONT = "'Poppins', sans-serif"
-export const BTN_DARK = { display: 'flex', alignItems: 'center', gap: 6, padding: '10px 20px', height: 40, background: '#19282C', borderRadius: 6, color: '#fff', border: 'none', cursor: 'pointer', fontSize: 14, fontWeight: 500, fontFamily: FONT }
-export const BTN_OUTLINE = { display: 'flex', alignItems: 'center', gap: 6, padding: '10px 20px', height: 40, background: 'transparent', borderRadius: 6, color: '#000', border: '1px solid #A4A9AF', cursor: 'pointer', fontSize: 14, fontWeight: 500, fontFamily: FONT }
-const TH = { border: '1px solid #000', padding: '8px 10px', background: '#fff', fontWeight: 700, fontSize: 13, fontFamily: FONT, textAlign: 'left' }
-const THC = { ...TH, textAlign: 'center' }
-const TD = { border: '1px solid #000', padding: '8px 10px', fontSize: 13, fontFamily: FONT }
-const TDC = { ...TD, textAlign: 'center' }
 
 const PoPeoAlignment = () => {
   const [programCode, setProgramCode] = useState('')
@@ -83,77 +73,70 @@ const PoPeoAlignment = () => {
     <div style={{ display: 'flex', flexDirection: 'column', width: '100%', height: '100%', gap: 10, padding: '20px 30px', background: '#FFFFFF', boxSizing: 'border-box' }}>
       <div style={{ display: 'flex', width: '100%', flexDirection: 'row', height: 40, alignItems: 'center', gap: 15, marginBottom: 20 }}>
         <h2 style={{ margin: 0, fontSize: 22, fontWeight: 600, whiteSpace: 'nowrap' }}>PROGRAM OUTCOMES &amp; PEO ALIGNMENT</h2>
+        <select value={programCode} onChange={e => setProgramCode(e.target.value)}
+          style={{ padding: '6px 12px', fontSize: 14, borderRadius: 4, border: '1px solid #D1D5DB', background: '#FFF', cursor: 'pointer', marginLeft: 16 }}>
+          {programs.map(p => <option key={p} value={p}>{p} — {getProgramName(p)}</option>)}
+        </select>
         <div style={{ flexGrow: 1 }} />
         {!editing ? (
           <>
-            <button onClick={() => setEditing(true)} style={BTN_OUTLINE}>
+            <button onClick={() => setEditing(true)}
+              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 18px', height: 40, background: '#1F2937', borderRadius: 6, color: '#fff', border: 'none', cursor: 'pointer', fontSize: 14 }}>
               <Edit3 size={16} /> Edit Alignment
             </button>
-            <button onClick={handleView} style={BTN_DARK}>
+            <button onClick={handleView}
+              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 18px', height: 40, background: '#2563EB', borderRadius: 6, color: '#fff', border: 'none', cursor: 'pointer', fontSize: 14 }}>
               <ChevronRight size={16} /> View
             </button>
           </>
         ) : (
           <>
-            <button onClick={handleCancel} style={BTN_OUTLINE}>
-              <X size={16} /> Cancel
-            </button>
-            <button onClick={handleSave} style={BTN_DARK}>
+            <button onClick={handleSave}
+              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 18px', height: 40, background: '#059669', borderRadius: 6, color: '#fff', border: 'none', cursor: 'pointer', fontSize: 14 }}>
               <Check size={16} /> Save
+            </button>
+            <button onClick={handleCancel}
+              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 18px', height: 40, background: '#6B7280', borderRadius: 6, color: '#fff', border: 'none', cursor: 'pointer', fontSize: 14 }}>
+              <X size={16} /> Cancel
             </button>
           </>
         )}
       </div>
 
       <div style={{ overflow: 'auto', flex: 1 }}>
-        <table className={tbl.alignTable}>
-          <colgroup>
-            <col style={{ width: 40 }} />
-            <col style={{ width: 40 }} />
-            <col style={{ width: 40 }} />
-            <col style={{ width: 56 }} />
-            <col />
-            <col style={{ width: 48 }} />
-            <col style={{ width: 48 }} />
-            <col style={{ width: 48 }} />
-            <col style={{ width: 48 }} />
-          </colgroup>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
           <thead>
-            <tr>
-              <th colSpan={3} className={tbl.center}>PEOs</th>
-              <th colSpan={2}>PROGRAM OUTCOMES (POs)</th>
-              <th colSpan={4} className={tbl.center}>GRADUATE ATTRIBUTES</th>
+            <tr style={{ background: '#F3F4F6' }}>
+              <th rowSpan={2} style={{ border: '1px solid #D1D5DB', padding: 8, width: 40, textAlign: 'center' }}>#</th>
+              <th rowSpan={2} style={{ border: '1px solid #D1D5DB', padding: 8 }}>PROGRAM OUTCOMES (POs)</th>
+              <th colSpan={3} style={{ border: '1px solid #D1D5DB', padding: 8, textAlign: 'center' }}>PEOs</th>
+              <th colSpan={4} style={{ border: '1px solid #D1D5DB', padding: 8, textAlign: 'center' }}>GRADUATE ATTRIBUTES</th>
             </tr>
-            <tr>
-              <th className={tbl.center}>1</th>
-              <th className={tbl.center}>2</th>
-              <th className={tbl.center}>3</th>
-              <th colSpan={2} style={{ fontWeight: 400 }}>
-                By the time of graduation, the students of the <strong>{getProgramName(programCode) || programCode}</strong> program shall have the ability to:
-              </th>
-              <th className={tbl.center}>EC</th>
-              <th className={tbl.center}>CL</th>
-              <th className={tbl.center}>ERC</th>
-              <th className={tbl.center}>LL</th>
+            <tr style={{ background: '#F3F4F6' }}>
+              <td style={{ border: '1px solid #D1D5DB', padding: 6, textAlign: 'center', fontWeight: 600 }}>PEO1</td>
+              <td style={{ border: '1px solid #D1D5DB', padding: 6, textAlign: 'center', fontWeight: 600 }}>PEO2</td>
+              <td style={{ border: '1px solid #D1D5DB', padding: 6, textAlign: 'center', fontWeight: 600 }}>PEO3</td>
+              <td style={{ border: '1px solid #D1D5DB', padding: 6, textAlign: 'center', fontWeight: 600 }}>EC</td>
+              <td style={{ border: '1px solid #D1D5DB', padding: 6, textAlign: 'center', fontWeight: 600 }}>CL</td>
+              <td style={{ border: '1px solid #D1D5DB', padding: 6, textAlign: 'center', fontWeight: 600 }}>ERC</td>
+              <td style={{ border: '1px solid #D1D5DB', padding: 6, textAlign: 'center', fontWeight: 600 }}>LL</td>
             </tr>
           </thead>
           <tbody>
             {editRows.map((po, i) => (
               <tr key={i}>
+                <td style={{ border: '1px solid #D1D5DB', padding: 8, textAlign: 'center', fontWeight: 600 }}>PO{i + 1}</td>
+                <td style={{ border: '1px solid #D1D5DB', padding: 8 }}>{po.text}</td>
                 {[0,1,2].map(pi => (
-                  <td key={pi} className={`${tbl.center} ${editing ? tbl.clickable : ''}`}
-                    style={editing && po.peos.includes(pi + 1) ? { background: '#DCFCE7' } : undefined}
+                  <td key={pi} style={{ border: '1px solid #D1D5DB', padding: 8, textAlign: 'center', cursor: editing ? 'pointer' : 'default', background: editing && po.peos.includes(pi + 1) ? '#DCFCE7' : 'transparent' }}
                     onClick={() => editing && togglePeo(i, pi)}>
-                    {po.peos.includes(pi + 1) ? '✔' : (editing ? '☐' : '')}
+                    {po.peos.includes(pi + 1) ? (editing ? '✓' : '✔') : (editing ? '☐' : '')}
                   </td>
                 ))}
-                <td className={tbl.center} style={{ fontWeight: 700 }}>PO{i + 1}</td>
-                <td>{po.text}</td>
                 {[0,1,2,3].map(gi => (
-                  <td key={gi} className={`${tbl.center} ${editing ? tbl.clickable : ''}`}
-                    style={editing && po.gas.includes(gi + 1) ? { background: '#DCFCE7' } : undefined}
+                  <td key={gi} style={{ border: '1px solid #D1D5DB', padding: 8, textAlign: 'center', cursor: editing ? 'pointer' : 'default', background: editing && po.gas.includes(gi + 1) ? '#DCFCE7' : 'transparent' }}
                     onClick={() => editing && toggleGas(i, gi)}>
-                    {po.gas.includes(gi + 1) ? '✔' : (editing ? '☐' : '')}
+                    {po.gas.includes(gi + 1) ? (editing ? '✓' : '✔') : (editing ? '☐' : '')}
                   </td>
                 ))}
               </tr>

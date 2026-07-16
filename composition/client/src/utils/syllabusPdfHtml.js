@@ -9,16 +9,6 @@ const fmtDate = (d) => {
 
 const poLabels = ['PO1', 'PO2', 'PO3', 'PO4', 'PO5', 'PO6', 'PO7', 'PO8', 'PO9', 'PO10', 'PO11', 'PO12', 'PO13']
 
-const activePoColumns = (courseOutcomes) => {
-  const active = []
-  for (let i = 0; i < poLabels.length; i++) {
-    if (courseOutcomes.some(co => (co.poMappings || [])[i] && (co.poMappings || [])[i].trim())) {
-      active.push(i)
-    }
-  }
-  return active
-}
-
 // Available content height (px) between header and footer in a 216mm page
 const PAGE_BUDGET = 540
 
@@ -284,18 +274,15 @@ function page5(syllabus, logo, pageNum, total) {
     : [...new Map(iloCos.filter(i => i.courseOutcome).map(i => [i.courseOutcome, i])).entries()]
         .map(([, v], idx) => ({ id: `CO${idx + 1}`, description: v.courseOutcome, poMappings: [] }))
 
-  const activeCols = activePoColumns(courseOutcomes)
-  const poCount = activeCols.length
-
-  const poHeader = activeCols.map(i =>
-    `<td style="border:1px solid #000; padding:2px; text-align:center; font-weight:bold; font-size:8.5pt; background:#f2f2f2;">${poLabels[i]}</td>`
+  const poHeader = poLabels.map(p =>
+    `<td style="border:1px solid #000; padding:2px; text-align:center; font-weight:bold; width:4.77%; font-size:8.5pt; background:#f2f2f2;">${p}</td>`
   ).join('\n        ')
 
   const coRows = courseOutcomes.map(co => {
     const pm = co.poMappings || []
     return `<tr>
-      <td style="border:1px solid #000; padding:3px 5px; vertical-align:top; font-size:8pt;">${safe(co.description)}</td>
-      ${activeCols.map(i =>
+      <td style="border:1px solid #000; padding:3px 5px; vertical-align:top; font-size:8pt;"><strong>${co.id}:</strong> ${safe(co.description)}</td>
+      ${poLabels.map((_, i) =>
         `<td style="border:1px solid #000; text-align:center; vertical-align:middle; font-size:8.5pt; padding:2px 1px;">${pm[i] || ''}</td>`
       ).join('\n        ')}
     </tr>`
@@ -305,7 +292,7 @@ function page5(syllabus, logo, pageNum, total) {
     ${pageHeader(logo)}
     <table class="co-po-table" style="width:100%; border-collapse:collapse; border:1px solid #000; font-size:8.5pt; color:#000;">
       <tr>
-        <td colspan="${1 + poCount}" style="border:1px solid #000; padding:3px 6px; font-weight:bold; font-size:9pt; background:#f2f2f2;">
+        <td colspan="14" style="border:1px solid #000; padding:3px 6px; font-weight:bold; font-size:9pt; background:#f2f2f2;">
           COURSE OUTCOMES (COs) AND ITS RELATIONSHIP TO PROGRAM OUTCOMES (POs)
         </td>
       </tr>
@@ -330,86 +317,13 @@ function computeCoverageChunks(syllabus) {
   ;(syllabus.topics || []).forEach(t => { topMap[t.title] = t })
   const assMap = {}
   ;(syllabus.assessments || []).forEach(a => { assMap[a.tlaName] = a })
+  const validCoIds = new Set((syllabus.courseOutcomes || []).map(co => co.id))
 
   const weekNum = w => parseInt((w || 'Week 0').replace(/Week\s*/i, ''), 10) || 0
   const sorted = [...ilos].sort((a, b) => weekNum(a.deliveryWeek) - weekNum(b.deliveryWeek))
 
-  const PHASES = ['Pre-class', 'In-class', 'Post-class']
-  const PHASE_LABELS = { 'Pre-class': 'Pre-class', 'In-class': 'In-class', 'Post-class': 'Post-class' }
-
-  const getTlasByIlo = ilo => {
-    const ph = { 'Pre-class': [], 'In-class': [], 'Post-class': [] }
-    const phaseOrder = []
-    ;(ilo.topics || []).forEach(tn => {
-      const topic = topMap[tn]
-      if (!topic) return
-      ;(topic.tlas || []).forEach(t => {
-        const p = t.classPhase || 'In-class'
-        const norm = PHASES.includes(p) ? p : 'In-class'
-        if (!ph[norm].length) phaseOrder.push(norm)
-        ph[norm].push(t)
-      })
-    })
-    return { ph, phaseOrder }
-  }
-
-  const buildTlaHtml = (tlas) => {
-    if (!tlas.length) return '&mdash;'
-    return '<ul style="margin:0; padding-left:16px;">' + tlas.map(t => {
-      let label = safe(t.tlaName || '')
-      if (t.performedBy === 'Instructor') label += ' [I]'
-      if (t.performedBy === 'Student') label += ' [S]'
-      if (t.laboratory) label += ' <span style="font-size:8pt;color:#555;">(Lab)</span>'
-      if (t.tlaDescription) label += '<br><span style="font-size:8pt;color:#555;">' + safe(t.tlaDescription) + '</span>'
-      return '<li>' + label + '</li>'
-    }).join('') + '</ul>'
-  }
-
-  const buildTlaSection = (ilo) => {
-    const { ph, phaseOrder } = getTlasByIlo(ilo)
-    const parts = phaseOrder.filter(p => ph[p].length).map(p => {
-      const label = '<div style="font-weight:600;font-size:8pt;text-decoration:underline;margin:2px 0 1px;">' + PHASE_LABELS[p] + '</div>'
-      return label + buildTlaHtml(ph[p])
-    })
-    return parts.length ? parts.join('') : '&mdash;'
-  }
-
-  const buildAssessmentsHtml = (ilo) => {
-    const seen = {}
-    const items = []
-    ;(ilo.topics || []).forEach(tn => {
-      const topic = topMap[tn]
-      if (!topic) return
-      ;(topic.tlas || []).forEach(t => {
-        const a = assMap[t.tlaName]
-        if (!a) return
-        const key = a.id || a.assessmentMethod
-        if (seen[key]) return
-        seen[key] = true
-        let label = safe(a.assessmentMethod || '')
-        if (a.description) label += '<br><span style="font-size:8pt;color:#555;">' + safe(a.description) + '</span>'
-        items.push('<li>' + label + '</li>')
-      })
-    })
-    return items.length ? '<ul style="margin:0; padding-left:16px;">' + items.join('') + '</ul>' : '&mdash;'
-  }
-
-  const buildTopicsHtml = (ilo) => {
-    if (!ilo.topics || !ilo.topics.length) return '&mdash;'
-    const parts = []
-    ilo.topics.forEach(tn => {
-      const topic = topMap[tn]
-      if (!topic) return
-      let html = '<div style="font-weight:600;">' + safe(tn) + '</div>'
-      if (topic.subtopics && topic.subtopics.length) {
-        html += '<ul style="margin:0 0 4px 16px;padding:0;">' + topic.subtopics.map(s =>
-          '<li style="font-size:8.5pt;">' + safe(s.value || s.title || '') + '</li>'
-        ).join('') + '</ul>'
-      }
-      parts.push(html)
-    })
-    return parts.join('<br>')
-  }
+  const getTlas = ilo => (ilo.topics || []).flatMap(tn => (topMap[tn] ? (topMap[tn].tlas || []) : [])).map(t => t.tlaName).filter(Boolean)
+  const getAssessments = names => names.map(n => (assMap[n] ? assMap[n].assessmentMethod : n)).filter(Boolean)
 
   const PERIOD_NAMES = ['PRELIM', 'MIDTERM', 'SEMIFINAL', 'FINAL']
   const PERIOD_TOP_WEEKS = [4, 8, 12, 16]
@@ -425,10 +339,10 @@ function computeCoverageChunks(syllabus) {
     showCo: isFirst || !coId,
     coSpan,
     iloText: safe(ilo.intendedLearningOutcome || ilo.description),
-    topics: buildTopicsHtml(ilo),
+    topics: (ilo.topics || []).join('<br>') || '&mdash;',
     period: (ilo.deliveryWeek + ' (' + (ilo.allocatedTime || '') + ')').trim(),
-    tlaHtml: buildTlaSection(ilo),
-    assHtml: buildAssessmentsHtml(ilo),
+    tlaHtml: toBullets(getTlas(ilo)),
+    assHtml: toBullets(getAssessments(getTlas(ilo))),
     refHtml: toBullets(ilo.references || [])
   })
 
@@ -438,7 +352,8 @@ function computeCoverageChunks(syllabus) {
   let curPeriod = -1
 
   sorted.forEach(ilo => {
-    const coId = ilo.id ? ilo.id.split('-')[0] : ''
+    const raw = ilo.id ? ilo.id.split('-')[0] : ''
+    const coId = validCoIds.has(raw) ? raw : ''
     const wk = weekNum(ilo.deliveryWeek)
     const period = getPeriod(wk)
 
@@ -496,34 +411,27 @@ function computeCoverageChunks(syllabus) {
     const CPW = { ilo: 26, topic: 26, tla: 46, assess: 23, ref: 21 }
     const countLines = (html, col) => {
       if (!html) return 1
+      const text = html.replace(/<[^>]+>/g, ' ').replace(/&mdash;/g, '—').trim()
+      if (!text || text === '—') return 1
       const maxC = CPW[col] || 40
-      let t = html
-        .replace(/<br\s*\/?>/gi, '\n')
-        .replace(/<[^>]+>/g, ' ')
-        .replace(/&mdash;/g, '—')
-        .replace(/&nbsp;/g, ' ')
-        .replace(/\s+/g, ' ')
-        .trim()
-      if (!t || t === '—') return 1
-      const segments = t.split('\n')
+      if (!html.includes('<li>')) return Math.max(1, Math.ceil(text.length / maxC))
       let total = 0
-      for (const seg of segments) {
-        if (!seg.trim()) { total += 1; continue }
-        total += Math.max(1, Math.ceil(seg.trim().length / maxC))
+      for (const m of html.match(/<li>([^<]*)<\/li>/g) || []) {
+        const t = m.replace(/<[^>]+>/g, '').trim()
+        total += Math.max(1, Math.ceil(t.length / maxC))
       }
       return total
     }
-    const lines = [
-      countLines(row.iloText, 'ilo'),
-      countLines(row.topics, 'topic'),
-      countLines(row.tlaHtml, 'tla'),
-      countLines(row.assHtml, 'assess'),
-      countLines(row.refHtml, 'ref'),
-    ]
-    return Math.max(36, Math.max(...lines) * 22 + 30)
+    const iloL = countLines(row.iloText, 'ilo')
+    const topL = countLines(row.topics, 'topic')
+    const tlaL = countLines(row.tlaHtml, 'tla')
+    const assL = countLines(row.assHtml, 'assess')
+    const refL = countLines(row.refHtml, 'ref')
+    const maxLines = Math.max(iloL, topL, tlaL, assL, refL)
+    return Math.max(36, maxLines * 20 + 26)
   }
 
-  const MAX_TABLE_H = 490
+  const MAX_TABLE_H = 370
   const pageChunks = []
   let cur = []
   let curH = 0
@@ -563,10 +471,7 @@ function courseCoveragePages(syllabus, logo, startPageNum, total) {
     const firstInGroup = (arr, idx) => {
       if (idx === 0) return true
       const p = arr[idx - 1]
-      if (p.t === 'divider') return true
-      if (p.t === 'row' && p.coId !== arr[idx].coId) return true
-      if (p.t === 'row' && !p.coId && !arr[idx].coId) return true
-      return false
+      return p.t === 'divider' || (p.t === 'row' && p.coId !== arr[idx].coId)
     }
 
     const firstTopicInGroup = (arr, idx) => {
@@ -608,21 +513,10 @@ function courseCoveragePages(syllabus, logo, startPageNum, total) {
       '</tr>'
     }).join('\n')
 
-    const colgroup = '<colgroup>' +
-      '<col style="width:' + COLS_W.co + '">' +
-      '<col style="width:' + COLS_W.ilo + '">' +
-      '<col style="width:' + COLS_W.topic + '">' +
-      '<col style="width:' + COLS_W.period + '">' +
-      '<col style="width:' + COLS_W.tla + '">' +
-      '<col style="width:' + COLS_W.assess + '">' +
-      '<col style="width:' + COLS_W.ref + '">' +
-    '</colgroup>\n'
-
     return '<div class="page' + (ci < pageChunks.length - 1 ? ' page-break' : '') + '">\n' +
       pageHeader(logo) + '\n' +
       (ci === 0 ? '<h3>COURSE COVERAGE</h3>\n' : '') +
       '<table style="width:100%; border-collapse:collapse; border:1px solid #000; table-layout:fixed;">\n' +
-      colgroup +
       (ci === 0 ? '<thead><tr>\n' +
       '<th style="width:' + COLS_W.co + '; ' + TH_STYLE + '">CO</th>\n' +
       '<th style="width:' + COLS_W.ilo + '; ' + TH_STYLE + '">Intended Learning Outcomes (ILOs)</th>\n' +
@@ -641,32 +535,27 @@ function courseCoveragePages(syllabus, logo, startPageNum, total) {
 
 function computeResourceChunks(syllabus) {
   const refs = syllabus.references || []
-
-  const prefixMap = { TEXTBOOKS: 'TB', 'OPEN EDUCATIONAL RESOURCES': 'OE', 'ONLINE RESOURCES': 'OR' }
-  const rawBuckets = [
-    { name: 'TEXTBOOKS', items: refs.filter(r => (r.type || '').toLowerCase() === 'textbook'), isLink: false },
-    { name: 'OPEN EDUCATIONAL RESOURCES', items: refs.filter(r => { const t = (r.type || '').toLowerCase(); return t.includes('educational') || t === 'open educational resources' }), isLink: true },
-    { name: 'ONLINE RESOURCES', items: refs.filter(r => (r.type || '').toLowerCase().includes('online')), isLink: true },
+  const buckets = [
+    { name: 'TEXTBOOKS', items: refs.filter(r => (r.type || '').toLowerCase() === 'textbook'), ph: [{id:'TB1'},{id:'TB2'},{id:'TB3'},{id:'TB4'},{id:'TB5'}], isLink: false, spaceId: false },
+    { name: 'OPEN EDUCATIONAL RESOURCES', items: refs.filter(r => { const t = (r.type || '').toLowerCase(); return t.includes('educational') || t === 'open educational resources' }), ph: [{id:'OE1'},{id:'OE2'},{id:'OE3'},{id:'OE4'},{id:'OE5'},{id:'OE6'}], isLink: true, spaceId: true },
+    { name: 'ONLINE RESOURCES', items: refs.filter(r => (r.type || '').toLowerCase().includes('online')), ph: [{id:'OR2'},{id:'OR3'},{id:'OR4'},{id:'OR5'},{id:'OR6'},{id:'OR7'},{id:'OR8'},{id:'OR9'},{id:'OR10'}], isLink: true, spaceId: false },
   ]
 
-  const estItemH = 34
+  const estItemH = 26
   const TABLE_OVERHEAD = 72
   const BUDGET = 480
 
-  const buckets = rawBuckets
-    .filter(b => b.items.length > 0)
-    .map(b => {
-      const pref = prefixMap[b.name] || 'ID'
-      const labeled = b.items.map((r, i) => ({ ...r, _displayId: pref + (i + 1) }))
-      const tableH = TABLE_OVERHEAD + labeled.length * estItemH
-      return { ...b, items: labeled, tableH }
-    })
+  const allTables = buckets.map(b => {
+    const items = b.items.length > 0 ? b.items : b.ph
+    const tableH = TABLE_OVERHEAD + items.length * estItemH
+    return { ...b, items, tableH }
+  })
 
   const pages = []
   let cur = []
   let curH = 0
 
-  for (const tbl of buckets) {
+  for (const tbl of allTables) {
     if (cur.length > 0 && curH + tbl.tableH > BUDGET) {
       pages.push(cur)
       cur = []
@@ -687,19 +576,18 @@ function resourcesToHtml(chunks, logo, startPageNum, total) {
   const CELL_CODE = CELL + 'font-weight:bold; white-space:nowrap;'
   const CELL_HDR = CELL + 'font-weight:bold; text-align:center; vertical-align:middle;'
 
-  const section = (name, items, isLink) => {
+  const section = (name, items, isLink, spaceId) => {
     let h = '<table style="width:100%; border-collapse:collapse; border:1px solid black; font-family:Arial,Helvetica,sans-serif; font-size:10pt; margin-bottom:16px; table-layout:fixed;">'
     h += '<colgroup><col style="width:5%"><col style="width:30%"><col style="width:25%"><col style="width:25%"><col style="width:15%"></colgroup>'
     h += '<tr><td colspan="5" style="background:#d9d9d9; font-weight:bold; text-align:center; text-transform:uppercase; ' + CELL + '">' + name + '</td></tr>'
     h += '<tr>' +
-      '<td style="' + CELL_HDR + '">ID</td>' +
-      '<td style="' + CELL_HDR + '">TITLE</td>' +
+      '<td colspan="2" style="' + CELL_HDR + '">TITLE</td>' +
       '<td style="' + CELL_HDR + '">AUTHOR/S</td>' +
       '<td style="' + CELL_HDR + '">' + (isLink ? 'LINK' : 'ISBN') + '</td>' +
       '<td style="' + CELL_HDR + '">PUBLICATION YEAR</td>' +
     '</tr>'
     h += items.map(r => '<tr>' +
-      '<td style="' + CELL_CODE + '">' + v(r._displayId || r.id) + '</td>' +
+      '<td style="' + CELL_CODE + '">' + v(spaceId ? (r.id || '').replace(/^(OE)(\d+)$/i, '$1 $2') : r.id) + '</td>' +
       '<td style="' + CELL + '">' + v(r.title) + '</td>' +
       '<td style="' + CELL + '">' + v(r.authors) + '</td>' +
       '<td style="' + CELL + '">' + (isLink && r.link ? '<a href="' + r.link.replace(/"/g,'&quot;') + '" style="color:#0000EE; text-decoration:underline;">' + v(r.link) + '</a>' : v(r.isbn)) + '</td>' +
@@ -711,7 +599,7 @@ function resourcesToHtml(chunks, logo, startPageNum, total) {
 
   return chunks.map((pageTables, ci) => {
     const pageNum = startPageNum + ci
-    const tablesHtml = pageTables.map(t => section(t.name, t.items, t.isLink)).join('\n')
+    const tablesHtml = pageTables.map(t => section(t.name, t.items, t.isLink, t.spaceId)).join('\n')
     return '<div class="page' + (ci < chunks.length - 1 ? ' page-break' : '') + '">\n' +
       pageHeader(logo) + '\n' +
       '<h3>LIST OF RESOURCES</h3>\n' +
@@ -726,9 +614,8 @@ function page14(syllabus, workflow, logo, pageNum, total) {
 
   const gradeRows = grading.length > 0 ? grading.flatMap(g => {
     const co = g.co || ''
-    return (g.ilos || []).map((ilo, idx) => ({
+    return (g.ilos || []).map(ilo => ({
       co,
-      iloNum: idx + 1,
       iloId: ilo.id || '',
       assessment: (ilo.assessments || []).join(', '),
       weight: ilo.weight || {},
@@ -754,7 +641,6 @@ function page14(syllabus, workflow, logo, pageNum, total) {
     const w = r.weight
     return '<tr>\n' +
       '<td class="center">' + r.co + '</td>\n' +
-      '<td class="center">ILO ' + r.iloNum + '</td>\n' +
       '<td style="text-align:left;">' + (r.assessment || '—') + '</td>\n' +
       '<td class="center" style="' + bg(w.prelim) + '">' + (w.prelim || '') + '</td>\n' +
       '<td class="center" style="' + bg(w.midterm) + '">' + (w.midterm || '') + '</td>\n' +
@@ -762,7 +648,7 @@ function page14(syllabus, workflow, logo, pageNum, total) {
       '<td class="center" style="' + bg(w.final) + '">' + (w.final || '') + '</td>\n' +
       '<td class="center">' + (r.minPassing || '') + '</td>\n' +
     '</tr>'
-  }).join('\n      ') : '<tr><td colspan="8" style="text-align:center;color:#888;">No grading criteria available.</td></tr>'
+  }).join('\n      ') : '<tr><td colspan="7" style="text-align:center;color:#888;">No grading criteria available.</td></tr>'
 
   return [`<div class="page">
     ${pageHeader(logo)}
@@ -772,8 +658,7 @@ function page14(syllabus, workflow, logo, pageNum, total) {
         <table class="grading-table" style="font-size:7.5pt;">
           <tr>
             <th rowspan="2" style="width:6mm; background:#fff; color:#000;">COURSE<br>OUTCOME #</th>
-            <th rowspan="2" style="width:6mm; background:#fff; color:#000;">ILO #</th>
-            <th rowspan="2" style="width:30mm; background:#fff; color:#000;">ASSESSMENTS</th>
+            <th rowspan="2" style="width:34mm; background:#fff; color:#000;">ASSESSMENTS</th>
             <th colspan="4" style="background:#fff; color:#000;">WEIGHT</th>
             <th rowspan="2" style="width:8mm; background:#fff; color:#000;">MINIMUM PASSING %</th>
           </tr>
@@ -785,7 +670,7 @@ function page14(syllabus, workflow, logo, pageNum, total) {
           </tr>
           ${rows}
           <tr style="font-weight:bold;">
-            <td colspan="3" style="text-align:right; padding-right:4px; border:1px solid #000; padding:1mm 1.5mm;">TOTAL</td>
+            <td colspan="2" style="text-align:right; padding-right:4px; border:1px solid #000; padding:1mm 1.5mm;">TOTAL</td>
             <td class="center">100%</td>
             <td class="center">100%</td>
             <td class="center">100%</td>
@@ -847,9 +732,9 @@ export function buildSyllabusHtml(syllabus, courseCode, workflow, logoBase64) {
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body { overflow: hidden; }
-  body { font-family: Arial, Helvetica, sans-serif; font-size: 10pt; color: #000; line-height: 1.35; overflow-wrap: break-word; word-break: normal; }
+  body, table, td, th, div, p, span { font-family: Arial, Helvetica, sans-serif; font-size: 9.5pt; color: #000; line-height: 1.3; overflow-wrap: break-word; word-break: normal; min-height: 0; }
   .page { box-sizing: border-box; position: relative; display: flex; flex-direction: column; }
-  .page > * { min-height: 0; flex-shrink: 1; flex-basis: auto; }
+  .page > * { min-height: 0; }
   @media screen {
     .page { background: #fff; box-shadow: 0 2px 16px rgba(0,0,0,0.12); margin: 24px auto; width: 330mm; height: 216mm; overflow: visible; padding: 50px 75px 35px 75px; page-break-after: always; }
   }
@@ -859,13 +744,19 @@ export function buildSyllabusHtml(syllabus, courseCode, workflow, logoBase64) {
   }
   @page { size: 330mm 216mm; margin: 0; }
   .page-break { page-break-after: always; }
+
   h3 { font-size: 10pt; font-weight: 700; margin: 2mm 0 1mm; text-transform: uppercase; letter-spacing: 0.3pt; }
   h4 { font-size: 9.5pt; font-weight: 600; margin: 2mm 0 1mm; }
 
   table { width: 100%; border-collapse: collapse; font-size: 10pt; margin-bottom: 2mm; }
   th, td { border: 1px solid #000; padding: 1mm 1.5mm; text-align: left; vertical-align: top; }
   th { background: #404040; color: #fff; font-weight: 700; text-align: center; font-size: 9pt; }
+  td { text-align: justify; }
   td.center { text-align: center; }
+
+  td.syllabus-label { font-weight: bold; color: #000; font-size: 9pt; }
+  td.syllabus-value-blue { color: #1155CC; font-size: 9pt; }
+  td.syllabus-value-plain { color: #000; font-size: 9pt; }
 
   .course-details-table { width: 100%; border-collapse: collapse; border: 1px solid #000; font-size: 9pt; color: #000; }
   .course-details-table td { border: 1px solid #000; height: auto; min-height: 0; vertical-align: top; padding: 3px 5px; }
@@ -873,7 +764,7 @@ export function buildSyllabusHtml(syllabus, courseCode, workflow, logoBase64) {
 
   .co-po-table { margin-bottom: 0; }
   .co-po-table td:first-child { width: 38%; font-size: 8.5pt; vertical-align: top; padding: 3px 5px; }
-  .co-po-table td:not(:first-child) { text-align: center; vertical-align: middle; padding: 2px 1px; font-size: 8.5pt; white-space: nowrap; overflow: hidden; }
+  .co-po-table td:not(:first-child) { width: 4.77%; text-align: center; vertical-align: middle; padding: 2px 1px; font-size: 8.5pt; white-space: nowrap; overflow: hidden; }
 
   .grading-table th, .grading-table td { padding: 0.8mm 0.5mm; overflow-wrap:break-word; }
 </style>
@@ -909,9 +800,9 @@ const alignmentHead = `<!DOCTYPE html>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body { overflow: hidden; }
-  body { font-family: Arial, Helvetica, sans-serif; font-size: 10pt; color: #000; line-height: 1.35; overflow-wrap: break-word; word-break: normal; }
+  body, table, td, th, div, p, span { font-family: Arial, Helvetica, sans-serif; font-size: 9.5pt; color: #000; line-height: 1.3; overflow-wrap: break-word; word-break: normal; min-height: 0; }
   .page { box-sizing: border-box; position: relative; display: flex; flex-direction: column; }
-  .page > * { min-height: 0; flex-shrink: 1; flex-basis: auto; }
+  .page > * { min-height: 0; }
   @media screen {
     .page { background: #fff; box-shadow: 0 2px 16px rgba(0,0,0,0.12); margin: 24px auto; width: 330mm; height: 216mm; overflow: visible; padding: 50px 75px 35px 75px; page-break-after: always; }
   }
@@ -989,14 +880,11 @@ export function buildPoPeoHtml(logoBase64, programCode = 'BSIT', poData = null) 
 
 export function buildCoPoHtml(cos, courseCode, courseName, logoBase64) {
   const logo = logoBase64 || null
-  const activeCols = activePoColumns(cos)
-  const poCount = activeCols.length
-
   const coRows = cos.map(co => {
     const pm = co.poMappings || []
     return `<tr>
-      <td style="border:1px solid #000; padding:3px 5px; vertical-align:top; font-size:8pt;">${safe(co.description)}</td>
-      ${activeCols.map(i =>
+      <td style="border:1px solid #000; padding:3px 5px; vertical-align:top; font-size:8pt;"><strong>${safe(co.id)}:</strong> ${safe(co.description)}</td>
+      ${poLabels.map((_, i) =>
         `<td style="border:1px solid #000; text-align:center; vertical-align:middle; font-size:8.5pt; padding:2px 1px;">${pm[i] || ''}</td>`
       ).join('\n        ')}
     </tr>`
@@ -1006,7 +894,7 @@ export function buildCoPoHtml(cos, courseCode, courseName, logoBase64) {
     <div style="font-size:9pt; margin-bottom:4px;"><strong>Course:</strong> ${safe(courseCode)} — ${safe(courseName)}</div>
     <table style="width:100%; border-collapse:collapse; border:1px solid #000; font-size:8.5pt; color:#000;">
       <tr>
-        <td colspan="${1 + poCount}" style="border:1px solid #000; padding:3px 6px; font-weight:bold; font-size:9pt; background:#f2f2f2;">
+        <td colspan="14" style="border:1px solid #000; padding:3px 6px; font-weight:bold; font-size:9pt; background:#f2f2f2;">
           COURSE OUTCOMES (COs) AND ITS RELATIONSHIP TO PROGRAM OUTCOMES (POs)
         </td>
       </tr>
@@ -1014,8 +902,8 @@ export function buildCoPoHtml(cos, courseCode, courseName, logoBase64) {
         <td style="border:1px solid #000; padding:3px 5px; font-weight:bold; width:38%; vertical-align:middle; background:#f2f2f2;">
           After completion of the course, the student should be able to:
         </td>
-        ${activeCols.map(i =>
-          `<td style="border:1px solid #000; padding:2px; text-align:center; font-weight:bold; font-size:8.5pt; background:#f2f2f2;">${poLabels[i]}</td>`
+        ${poLabels.map(p =>
+          `<td style="border:1px solid #000; padding:2px; text-align:center; font-weight:bold; width:4.77%; font-size:8.5pt; background:#f2f2f2;">${p}</td>`
         ).join('\n        ')}
       </tr>
       ${coRows}
@@ -1028,120 +916,43 @@ export function buildCoPoHtml(cos, courseCode, courseName, logoBase64) {
 export function buildCoaepHtml(coaepData, logoBase64) {
   const logo = logoBase64 || null
   const h = coaepData.header || {}
-  const DEFAULT_TARGET = 'At least 90% of enrolled students with a rating of at least 60% of the total score'
-  const target = (ilo) => safe(ilo.performanceTarget || coaepData.performanceTarget || DEFAULT_TARGET, DEFAULT_TARGET)
 
-  // COAEP official form header (UNC-FM-VPAA-02) — distinct from the syllabus header
-  const coaepHeader = `<table style="width:100%; border-collapse:collapse; border:1px solid #000; margin-bottom:8px;">
-    <tr>
-      <td style="width:80px; min-width:80px; max-width:80px; padding:4px; border:1px solid #000; text-align:center; vertical-align:middle;">
-        ${logo ? `<img src="${logo}" style="width:68px; height:68px;">` : ''}
-      </td>
-      <td style="text-align:center; vertical-align:middle; padding:6px; border:1px solid #000;">
-        <div style="font-size:10.5pt; font-weight:bold; color:#000; line-height:1.35;">UNIVERSITY OF NUEVA CACERES</div>
-        <div style="font-size:13pt; font-weight:bold; color:#000; line-height:1.35;">COURSE ASSESSMENT &amp; EVALUATION PLAN</div>
-        <div style="font-size:10pt; font-weight:normal; color:#000; line-height:1.35;">Form</div>
-        <div style="font-size:10pt; font-weight:bold; color:#000; line-height:1.35;">Office of the Vice President for Academic Affairs</div>
-      </td>
-      <td style="width:120px; min-width:120px; max-width:120px; padding:5px 8px; vertical-align:middle; border:1px solid #000;">
-        <div style="font-size:9pt; font-weight:bold; color:#000;">Doc. Control No.:</div>
-        <div style="font-size:9pt; font-weight:bold; color:#000;">UNC-FM-VPAA-02</div>
-      </td>
-    </tr>
-  </table>`
-
-  // Bigger, more readable table cells (9.5pt) — content is split across pages
-  // (2 COs per page) so everything fits, including the Reminders block.
-  const coBlock = (co, idx) => {
-    const ilos = (co.ilos || []).length ? co.ilos : [{ outcome: '', assessmentTool: '' }]
-    const firstRow = ilos[0]
-    const rest = ilos.slice(1).map(ilo => `<tr>
-      <td style="border:1px solid #000; padding:6px 7px; vertical-align:top; font-size:9.5pt; line-height:1.35;">${safe(ilo.outcome)}</td>
-      <td style="border:1px solid #000; padding:6px 7px; vertical-align:top; font-size:9.5pt; line-height:1.35;">${safe(ilo.assessmentTool)}</td>
-      <td style="border:1px solid #000; padding:6px 7px; vertical-align:top; font-size:9pt; line-height:1.35;">${target(ilo)}</td>
+  const coRows = (coaepData.cos || []).map(co => {
+    const firstRow = (co.ilos || [])[0]
+    if (!firstRow) return ''
+    const rest = (co.ilos || []).slice(1).map(ilo => `<tr>
+      <td style="border:1px solid #000; padding:3px 5px; vertical-align:top; font-size:8.5pt;">${safe(ilo.outcome)}</td>
+      <td style="border:1px solid #000; padding:3px 5px; vertical-align:top; font-size:8.5pt;">${safe(ilo.assessmentTool)}</td>
     </tr>`).join('\n      ')
     return `<tr>
-      <td style="border:1px solid #000; padding:6px 4px; vertical-align:top; text-align:center; font-size:9.5pt; font-weight:bold;" rowspan="${ilos.length}">${idx + 1}</td>
-      <td style="border:1px solid #000; padding:6px 7px; vertical-align:top; font-size:9.5pt; line-height:1.35;" rowspan="${ilos.length}">${safe(co.statement)}</td>
-      <td style="border:1px solid #000; padding:6px 7px; vertical-align:top; font-size:9.5pt; line-height:1.35;">${safe(firstRow.outcome)}</td>
-      <td style="border:1px solid #000; padding:6px 7px; vertical-align:top; font-size:9.5pt; line-height:1.35;">${safe(firstRow.assessmentTool)}</td>
-      <td style="border:1px solid #000; padding:6px 7px; vertical-align:top; font-size:9pt; line-height:1.35;">${target(firstRow)}</td>
+      <td style="border:1px solid #000; padding:3px 5px; vertical-align:top; text-align:center; font-size:8.5pt; background:#f2f2f2; font-weight:bold;" rowspan="${(co.ilos || []).length}">CO ${co.number}<br><span style="font-weight:normal; font-size:7.5pt;">${safe(co.statement)}</span></td>
+      <td style="border:1px solid #000; padding:3px 5px; vertical-align:top; font-size:8.5pt;">${safe(firstRow.outcome)}</td>
+      <td style="border:1px solid #000; padding:3px 5px; vertical-align:top; font-size:8.5pt;">${safe(firstRow.assessmentTool)}</td>
     </tr>${rest}`
-  }
+  }).join('\n      ')
 
-  const tableHead = `<tr>
-        <th style="border:1px solid #000; padding:6px 3px; width:3%; font-size:9.5pt;"></th>
-        <th style="border:1px solid #000; padding:6px 7px; width:21%; font-size:9.5pt;">Course Outcome Statement</th>
-        <th style="border:1px solid #000; padding:6px 7px; width:29%; font-size:9.5pt;">Intended Learning Outcome</th>
-        <th style="border:1px solid #000; padding:6px 7px; width:22%; font-size:9.5pt;">Assessment Tool</th>
-        <th style="border:1px solid #000; padding:6px 7px; width:25%; font-size:9.5pt;">Performance Target</th>
-      </tr>`
-
-  const metaBlock = `<table style="width:100%; border-collapse:collapse; font-size:9.5pt; margin-bottom:8px;">
-      <tr>
-        <td style="white-space:nowrap; padding:2px 4px 2px 0; font-weight:bold;">Name of Faculty:</td>
-        <td style="border-bottom:1px solid #000; padding:2px 4px; width:44%;">${safe(h.facultyName, '')}</td>
-        <td style="width:14%;"></td>
-        <td style="white-space:nowrap; padding:2px 4px 2px 0; font-weight:bold; text-align:right;">School Year</td>
-        <td style="border-bottom:1px solid #000; padding:2px 4px; width:16%;">${safe(h.schoolYear, '')}</td>
-      </tr>
-      <tr>
-        <td style="white-space:nowrap; padding:2px 4px 2px 0; font-weight:bold;">Course:</td>
-        <td style="border-bottom:1px solid #000; padding:2px 4px;">${safe(h.course, '')}</td>
-        <td></td>
-        <td style="white-space:nowrap; padding:2px 4px 2px 0; font-weight:bold; text-align:right;">Semester</td>
-        <td style="border-bottom:1px solid #000; padding:2px 4px;">${safe(h.semester, '')}</td>
-      </tr>
-    </table>`
-
-  const reminders = safe(coaepData.reminders, 'This template should be accomplished for each course handled by the faculty.')
-  const notes = safe(coaepData.notes, 'Course Outcomes and ILOs must be SMART; Each CO should be granularized into an introductory, enabling and demonstrative ILO; ILOs should NOT be teaching learning activities; Sample Performance target:  At least 70% of students with 60% proficiency or score 12 out of 20.')
-
-  const signBlock = `<table style="width:100%; border-collapse:collapse; font-size:9.5pt; margin-top:14px;">
-      <tr>
-        <td style="white-space:nowrap; padding:2px 4px 2px 0; font-weight:bold; width:12%;">Prepared by:</td>
-        <td style="border-bottom:1px solid #000; padding:2px 4px; width:34%;">${safe(coaepData.preparedBy, '')}</td>
-        <td style="width:6%;"></td>
-        <td style="white-space:nowrap; padding:2px 4px 2px 0; font-weight:bold; width:13%;">Approved by:</td>
-        <td style="padding:2px 4px; width:35%; font-weight:bold;">${safe(coaepData.approvedBy, '')}</td>
-      </tr>
-      <tr>
-        <td style="white-space:nowrap; padding:2px 4px 2px 0; font-weight:bold;">Date Submitted:</td>
-        <td style="padding:2px 4px;">${safe(coaepData.dateSubmitted, '')}</td>
-        <td></td>
-        <td style="white-space:nowrap; padding:2px 4px 2px 0; font-weight:bold;">Date:</td>
-        <td style="padding:2px 4px;">${safe(coaepData.approvalDate, '')}</td>
-      </tr>
+  const body = `<div class="page">
+    ${pageHeader(logo)}
+    <div style="font-size:11pt; font-weight:bold; text-align:center; margin:4px 0 8px;">COURSE ASSESSMENT &amp; EVALUATION PLAN (COAEP)</div>
+    <table style="width:100%; border-collapse:collapse; font-size:8.5pt; margin-bottom:6px;">
+      <tr><td style="border:1px solid #000; padding:3px 5px; font-weight:bold; width:15%;">Faculty:</td><td style="border:1px solid #000; padding:3px 5px; width:35%;">${safe(h.facultyName)}</td><td style="border:1px solid #000; padding:3px 5px; font-weight:bold; width:15%;">School Year:</td><td style="border:1px solid #000; padding:3px 5px; width:35%;">${safe(h.schoolYear)}</td></tr>
+      <tr><td style="border:1px solid #000; padding:3px 5px; font-weight:bold;">Course:</td><td style="border:1px solid #000; padding:3px 5px;" colspan="3">${safe(h.course)}</td></tr>
+      <tr><td style="border:1px solid #000; padding:3px 5px; font-weight:bold;">Semester:</td><td style="border:1px solid #000; padding:3px 5px;" colspan="3">${safe(h.semester)}</td></tr>
     </table>
-    <div style="font-size:9pt; font-style:italic; margin-top:12px; line-height:1.45;">
-      <span style="font-weight:bold;">Reminders:</span>&nbsp; ${reminders}<br>
-      ${notes}
-    </div>`
-
-  // Split COs across pages: 2 per page keeps rows large and leaves room for
-  // the signature + reminders block on the last page.
-  const cos = coaepData.cos || []
-  const COS_PER_PAGE = 2
-  const chunks = []
-  for (let i = 0; i < cos.length; i += COS_PER_PAGE) chunks.push(cos.slice(i, i + COS_PER_PAGE))
-  if (chunks.length === 0) chunks.push([])
-  const totalPages = chunks.length
-
-  const body = chunks.map((chunk, pi) => {
-    const rows = chunk.map((co, ci) => coBlock(co, pi * COS_PER_PAGE + ci)).join('\n      ')
-    const isFirst = pi === 0
-    const isLast = pi === totalPages - 1
-    return `<div class="page">
-    ${coaepHeader}
-    ${isFirst ? metaBlock : ''}
-    <table style="width:100%; border-collapse:collapse; font-size:9.5pt;">
-      ${tableHead}
-      ${rows}
+    <table style="width:100%; border-collapse:collapse; font-size:8.5pt;">
+      <tr>
+        <th style="border:1px solid #000; padding:4px 6px; background:#f2f2f2; width:18%;">COURSE OUTCOME</th>
+        <th style="border:1px solid #000; padding:4px 6px; background:#f2f2f2; width:52%;">INTENDED LEARNING OUTCOME (ILO)</th>
+        <th style="border:1px solid #000; padding:4px 6px; background:#f2f2f2; width:30%;">ASSESSMENT TOOL</th>
+      </tr>
+      ${coRows}
     </table>
-    ${isLast ? signBlock : ''}
-    ${pageFooter(pi + 1, totalPages)}
+    <div style="margin-top:12px; display:flex; justify-content:space-between; font-size:8.5pt; border-top:1px solid #000; padding-top:8px;">
+      <div><strong>Prepared by:</strong> ${safe(coaepData.preparedBy)}</div>
+      <div><strong>Approved by:</strong> ${safe(coaepData.approvedBy)}</div>
+      <div><strong>Date Submitted:</strong> ${safe(coaepData.dateSubmitted)}</div>
+    </div>
+    ${pageFooter(1, 1)}
   </div>`
-  }).join('\n')
-
   return alignmentHead + body + alignmentFoot
 }

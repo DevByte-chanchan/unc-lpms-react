@@ -1,16 +1,16 @@
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 
-const PW = 936, PH = 612;
-const LM = 50, RM = 40, TM = 42, BM = 36;
+const PW = 936, PH = 1300;
+const LM = 50, RM = 40, TM = 36, BM = 36;
 const BODY_W = PW - LM - RM;
 
 /* ── column boundaries (pts from left) ── */
 const COL = {
-  num:   { x: LM,        w: 35 },
-  state: { x: LM + 35,   w: 185 },
-  ilo:   { x: LM + 220,  w: 225 },
-  tool:  { x: LM + 445,  w: 175 },
-  target:{ x: LM + 620,  w: BODY_W - 570 },
+  num:   { x: LM,        w: 40 },
+  state: { x: LM + 40,   w: 220 },
+  ilo:   { x: LM + 260,  w: 250 },
+  tool:  { x: LM + 510,  w: 190 },
+  target:{ x: LM + 700,  w: BODY_W - 700 },
 };
 
 /* ── helper: draw text with word-wrap (manual) ── */
@@ -111,7 +111,7 @@ export async function generateCoaepPdf(raw) {
     txt(label, x + 4, y + 4, 9, bold, { maxW: w - 8 });
   };
 
-  const TH = 22; // header height
+  const TH = 28; // header height
   drawCell(COL.num.x, COL.num.w, TH, 'CO #');
   drawCell(COL.state.x, COL.state.w, TH, 'Course Outcome Statement');
   drawCell(COL.ilo.x, COL.ilo.w, TH, 'Intended Learning Outcome');
@@ -121,7 +121,7 @@ export async function generateCoaepPdf(raw) {
 
   /* ════════ TABLE BODY ════════ */
   const COLS = [COL.num, COL.state, COL.ilo, COL.tool, COL.target];
-  const RH = 26; // row height
+  const RH = 32; // row height
 
   const cos = (data.cos && data.cos.length > 0) ? data.cos : [];
 
