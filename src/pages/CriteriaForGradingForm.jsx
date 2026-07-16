@@ -12,16 +12,13 @@ const CriteriaForGradingForm = ({ syllabusCode }) => {
         { id: "CO3" },
         { id: "CO4" },
     ];
-
     const ilosPerCO = 3;
-
     const weightEnabled = {
         CO1: "prelim",
         CO2: "midterm",
         CO3: "semi",
         CO4: "final",
     };
-
     const ILO_WEIGHTS = [20, 30, 50];
 
     const createRows = () => {
@@ -55,7 +52,7 @@ const CriteriaForGradingForm = ({ syllabusCode }) => {
             if (found) {
                 const ilo = syllabus.ilos.find(i => i.topics.includes(topic.title));
                 if (!ilo) return null;
-                return ilo.id.split("-")[0]; // "CO1"
+                return ilo.id.split("-")[0];
             }
         }
         return null;
@@ -113,7 +110,6 @@ const CriteriaForGradingForm = ({ syllabusCode }) => {
         setRows(prev => {
             const rowsByCO = {};
 
-            // group rows by CO
             prev.forEach(row => {
                 if (!rowsByCO[row.co]) rowsByCO[row.co] = [];
                 rowsByCO[row.co].push(row);
@@ -141,14 +137,14 @@ const CriteriaForGradingForm = ({ syllabusCode }) => {
     useEffect(() => {
         setRows(prev =>
             prev.map(row => {
-                const enabled = weightEnabled[row.co];       // prelim / midterm / semi / final
+                const enabled = weightEnabled[row.co];
                 if (!enabled) return row;
 
                 return {
                     ...row,
                     weight: {
                         ...row.weight,
-                        [enabled]: ILO_WEIGHTS[row.iloIndex]   // 20 / 30 / 50
+                        [enabled]: ILO_WEIGHTS[row.iloIndex]
                     }
                 };
             })
@@ -235,12 +231,7 @@ const CriteriaForGradingForm = ({ syllabusCode }) => {
 
     useEffect(() => {
         const gradingSystem = buildGradingSystem(rows);
-
         syllabus.gradingSystem = gradingSystem;
-
-        // if you have a global store or save method, call it here
-        // updateSyllabus(syllabusCode, syllabus)
-
     }, [rows]);
 
     return (

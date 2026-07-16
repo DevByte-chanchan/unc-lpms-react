@@ -1,12 +1,7 @@
 import styles from '../styles/SyllabusSections.module.sass'
-import {ChevronLeft, ChevronRight, Plus, Search} from 'react-feather';
-import { Info } from 'react-feather';
+import {ChevronLeft} from 'react-feather';
 import React, {useEffect, useState} from "react";
-import TextField from "./TextField.jsx";
-import TextArea from "./TextArea.jsx";
-import Duplicator from "../components/Duplicator.jsx";
-import {Link, useNavigate, useParams, useSearchParams} from "react-router-dom";
-import { getSyllabusByCode } from "../data/syllabiData.js";
+import {useNavigate, useSearchParams} from "react-router-dom";
 import layout from "../styles/TosSections.module.sass";
 import TOSPreview from "../pages/TosPreview.jsx";
 import TOSSummary from "../pages/TosSummary.jsx";
@@ -14,19 +9,12 @@ import QuestionCognitiveMapping from "../pages/QuestionCognitiveMapping.jsx";
 
 const tosSections = ({status}) => {
 
-    const [questions, setQuestions] = useState([]);  // Lifted state for questions; starts empty
-
+    const [questions, setQuestions] = useState([]);
     const [isPreviewOpen, setIsPreviewOpen] = useState(false);
-
-    const { code } = useParams();
-    const syllabus = getSyllabusByCode(code);
-
     const [assessmentMode, setAssessmentMode] = useState(null);
     const [isAssessmentLoading, setIsAssessmentLoading] = useState(false);
     const [rubricCategories, setRubricCategories] = useState([]);
-
     const navigate = useNavigate();
-
     const [searchParams, setSearchParams] = useSearchParams();
     const selectedSection = searchParams.get('section') || 'Outcome Overview';
 
@@ -57,7 +45,6 @@ const tosSections = ({status}) => {
     ];
 
     const [rows, setRows] = useState(courseOutlines);
-
     const [tosErrors, setTosErrors] = useState([]);
     const [showTosErrorModal, setShowTosErrorModal] = useState(false);
 
@@ -68,36 +55,32 @@ const tosSections = ({status}) => {
             setAssessmentMode(mode);
 
             if (mode === "question") {
-                setRubricCategories([]);   // 🔥 wipe rubric data
-                setQuestions([]);          // optional: start clean
+                setRubricCategories([]);
+                setQuestions([]);
             }
 
             if (mode === "rubric") {
-                setQuestions([]);          // rubric will regenerate rows
+                setQuestions([]);
             }
 
             setIsAssessmentLoading(false);
         }, 600);
     };
 
-    // ✨ NEW: Calculate distributed items based on percentage
     const getDistributedItems = (coIndex, totalItems) => {
         if (!totalItems || totalItems === "") return rows[coIndex].ilos.map(ilo => ilo.items);
 
         const total = Number(totalItems);
         const co = rows[coIndex];
 
-        // Calculate items for each ILO based on percentage
         const calculated = co.ilos.map(ilo => {
             return Math.round((ilo.percentage / 100) * total);
         });
 
-        // Adjust for rounding errors to match exact total
         const sum = calculated.reduce((acc, val) => acc + val, 0);
         const diff = total - sum;
 
         if (diff !== 0) {
-            // Add/subtract difference to the largest allocation (usually the last one with 50%)
             calculated[calculated.length - 1] += diff;
         }
 
@@ -117,7 +100,6 @@ const tosSections = ({status}) => {
             const updated = [...prev];
             updated[coIndex].totalItems = value === "" ? "" : Number(value);
 
-            // ✨ Auto-distribute to ILOs based on percentage
             if (value !== "") {
                 const distributedItems = getDistributedItems(coIndex, value);
                 updated[coIndex].ilos.forEach((ilo, idx) => {
@@ -132,7 +114,6 @@ const tosSections = ({status}) => {
     const validateTOS = () => {
         const errors = [];
 
-        /* 1️⃣ Check allocation correctness */
         const counts = {};
         rows.forEach(co => {
             counts[co.co] = { ilos: {} };
@@ -160,7 +141,6 @@ const tosSections = ({status}) => {
             });
         });
 
-        /* 2️⃣ Check row completeness */
         questions.forEach((q, i) => {
             const row = i + 1;
 
@@ -184,10 +164,8 @@ const tosSections = ({status}) => {
         setSearchParams({ section: e.target.value });
     };
 
-// NEW: Loading State
     const [isLoading, setIsLoading] = useState(false);
 
-// NEW: Effect to trigger loading whenever selectedSection changes
     useEffect(() => {
         setIsLoading(true);
 
@@ -348,7 +326,6 @@ const tosSections = ({status}) => {
                         {selectedSection === 'Assessment Item-Cognitive Level Alignment' && (
                             <section>
 
-                                {/* 1️⃣ Overlay */}
                                 {!assessmentMode && !isAssessmentLoading && (
                                     <div className={layout.modeOverlay}>
                                         <div className={layout.modeBox}>
@@ -366,14 +343,12 @@ const tosSections = ({status}) => {
                                     </div>
                                 )}
 
-                                {/* 2️⃣ Spinner */}
                                 {isAssessmentLoading && (
                                     <div className={styles.loadingContainer}>
                                         <div className={styles.spinner}></div>
                                     </div>
                                 )}
 
-                                {/* 3️⃣ Actual Mapping UI */}
                                 {assessmentMode && !isAssessmentLoading && (
                                     <QuestionCognitiveMapping
                                         outcomeData={rows}

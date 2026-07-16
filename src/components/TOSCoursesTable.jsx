@@ -1,4 +1,4 @@
-import React, {use, useState} from 'react';
+import React, {useState} from 'react';
 import {Link} from 'react-router-dom'
 import styles from '../styles/CoursesTable.module.sass';
 import { ChevronRight } from 'react-feather';
@@ -8,12 +8,10 @@ const TOSCoursesTable = ({}) => {
     const startYear = 2000;
     const semOptions = ['1st Sem', '2nd Sem'];
     const temp = ['Midterm', 'Finals'];
-
     const yearOptions = [];
     for (let i = currentYear; i >= startYear; i--) {
         yearOptions.push(<option key={i} value={i}>{i}</option>);
     }
-
     const Courses = [
         { code: 'BSCS313L', name: 'Human & Computer Interaction', update: 'Sept 01, 2025', status: 'DRAFT',    exported: '' },
         { code: 'BSCS212L', name: 'Web Development I',            update: 'Aug 15, 2025', status: 'DRAFT',    exported: '' },
@@ -27,10 +25,10 @@ const TOSCoursesTable = ({}) => {
         { code: 'BSCS351L', name: 'Cybersecurity Fundamentals',    update: 'Sept 10, 2025', status: 'EXPORTED', exported: 'Sept 30, 2025' },
     ];
 
-
     const [selectedStatus, setSelectedStatus] = useState('DRAFT');
-    const handleStatusChange = (e) => {setSelectedStatus(e.target.value)}
-
+    const handleStatusChange = (e) => {
+        setSelectedStatus(e.target.value)
+    }
 
     return (
         <div className={styles['courses-table']}>
@@ -106,8 +104,6 @@ const TOSCoursesTable = ({}) => {
                     </tbody>
                 </table>
             </div>
-
-
         </div>
     );
 };

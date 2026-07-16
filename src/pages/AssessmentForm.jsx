@@ -20,7 +20,6 @@ const AssessmentForm = () => {
     const [showConfirmModal, setShowConfirmModal] = useState(false);
     const [showErrorModal, setShowErrorModal] = useState(false);
     const [errors, setErrors] = useState({});
-
     const { code, assessmentId } = useParams();
     const syllabus = getSyllabusByCode(code);
     const assessmentData = syllabus?.assessments.find(a => a.id === assessmentId) || {};
@@ -93,9 +92,6 @@ const AssessmentForm = () => {
     const [showRubricPicker, setShowRubricPicker] = useState(false)
     const [selectedRubricMethod, setSelectedRubricMethod] = useState("")
 
-    // --- UPDATED LOGIC: FIND TLA DETAILS ---
-    // We need to find the original TLA object inside the 'topics' array
-    // to get the Description and the Parent Topic Title.
     let derivedTlaData = {
         topicTitle: null,
         tlaDescription: null
@@ -109,7 +105,6 @@ const AssessmentForm = () => {
                 const foundTLA = topic.tlas.find(t => t.tlaName === assessmentData.tlaName);
 
                 if (foundTLA) {
-                    // Found it! Capture the data
                     derivedTlaData = {
                         topicTitle: topic.title,
                         tlaDescription: foundTLA.tlaDescription
@@ -119,7 +114,6 @@ const AssessmentForm = () => {
             }
         }
     }
-    // -----------------------------------------
 
     const [method, setMethod] = useState(assessmentData.assessmentMethod || '');
     const [description, setDescription] = useState(assessmentData.assessmentDescription || '');
@@ -169,10 +163,7 @@ const AssessmentForm = () => {
     }
 
     const predefinedSet = getAssessmentSetForTla(syllabus, assessmentData.tlaName);
-
-// only the 3 options for this TLA's CO
     const assessmentOptions = predefinedSet.map(m => m.value);
-
     const dropdownRef = useRef(null);
     const [showOptions, setShowOptions] = useState(false);
 
@@ -194,7 +185,6 @@ const AssessmentForm = () => {
             setDescription(found.description);
         }
     }, [method]);
-
 
     const formatPercent = (num) => {
         if (!isFinite(num)) return ""
@@ -246,7 +236,6 @@ const AssessmentForm = () => {
                     <div className={styles['form-container']}>
 
                         <h2>Topic</h2>
-                        {/* 1. Use the derived Topic Title */}
                         <TextField
                             initialValue={derivedTlaData.topicTitle || 'No topic linked.'}
                             disabled={true}
@@ -260,7 +249,6 @@ const AssessmentForm = () => {
                             initialValue={assessmentData.tlaName || ''}
                             readOnly={true}
                         />
-                        {/* 2. Use the derived TLA Description from the topics array */}
                         <TextArea
                             label={'TLA Description'}
                             disabled={true}
@@ -289,7 +277,6 @@ const AssessmentForm = () => {
                                     />
 
                                     <ChevronDown className={styles.dropdownArrow} size={16} />
-
                                 </div>
 
                                 {showOptions && (
@@ -313,8 +300,6 @@ const AssessmentForm = () => {
                                     </div>
                                 )}
                             </div>
-
-
                             <TextArea
                                 label={'Assessment Description'}
                                 initialValue={description}
@@ -336,8 +321,6 @@ const AssessmentForm = () => {
                                     <h2>Rubric Criteria</h2>
 
                                     <div className={layout.rubricTools}>
-
-                                        {/* LEFT: Dropdown (only when open) */}
                                         {showRubricPicker && (
                                             <div className={layout.rubricDropdown}>
                                                 <div className={layout.rubricSelectWrap}>
@@ -370,7 +353,6 @@ const AssessmentForm = () => {
                                             </div>
                                         )}
 
-                                        {/* RIGHT: Button or X */}
                                         {!showRubricPicker ? (
                                             <button
                                                 className={layout.uploadButton}
@@ -390,7 +372,6 @@ const AssessmentForm = () => {
                                                 <X className={layout.clearRubricIcon}/>
                                             </button>
                                         )}
-
                                     </div>
                                 </div>
                                 <div className={styles['rubrics']}>
@@ -448,7 +429,6 @@ const AssessmentForm = () => {
                         )}
 
                     </div>
-                    {/* CONFIRMATION */}
                     {showConfirmModal && (
                         <div className={styles.modalOverlay}>
                             <div className={styles.modal}>
@@ -470,8 +450,6 @@ const AssessmentForm = () => {
                             </div>
                         </div>
                     )}
-
-                    {/* ERROR */}
                     {showErrorModal && (
                         <div className={styles.modalOverlay}>
                             <div className={styles.modal}>

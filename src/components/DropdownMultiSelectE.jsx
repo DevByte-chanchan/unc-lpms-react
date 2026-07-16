@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { ChevronDown, Search } from 'react-feather'; // Added Search icon for better UX
+import { ChevronDown, Search } from 'react-feather';
 import styles from "../styles/DropdownMultiSelectE.module.sass";
 
 const DropdownMultiSelectE = ({ options = [], initialValue = [], onChange }) => {
@@ -77,7 +77,7 @@ const DropdownMultiSelectE = ({ options = [], initialValue = [], onChange }) => 
                                 <label
                                     key={opt}
                                     className={styles.option}
-                                    onClick={(e) => e.stopPropagation()} // Prevent closing when clicking label
+                                    onClick={(e) => e.stopPropagation()}
                                 >
                                     <input
                                         type="checkbox"

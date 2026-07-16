@@ -1,5 +1,5 @@
-import { useState, useRef, useEffect } from "react";
-import { X, Upload, Trash2 } from "react-feather";  // Added Trash2 for the clear icon
+import {useRef, useEffect } from "react";
+import { X, Upload, Trash2 } from "react-feather";
 import layout from "../styles/QuestionCognitiveMapping.module.sass";
 import Duplicator from "../components/Duplicator.jsx";
 
@@ -18,7 +18,7 @@ const QuestionCognitiveMapping = ({   outcomeData, questions, setQuestions, asse
     const createEmptyQuestion = () => ({
         id: Date.now() + Math.random(),
         question: '',
-        rubricItem: '',   // 👈 for rubric mode
+        rubricItem: '',
         co: '',
         ilo: '',
         points: '',
@@ -27,18 +27,15 @@ const QuestionCognitiveMapping = ({   outcomeData, questions, setQuestions, asse
 
     const handleAddQuestion = () => {
         const max = getTotalRequiredItems();
-
         if (questions.length >= max) {
             alert("TOS is already full.");
             return;
         }
-
         setQuestions(prev => [...prev, createEmptyQuestion()]);
     };
 
     const getIloStatus = (coId, iloId, required) => {
         const current = currentCounts[coId]?.ilos[iloId] || 0;
-
         if (current === required) return "ok";
         if (current > required) return "over";
         return "under";
@@ -108,9 +105,8 @@ const QuestionCognitiveMapping = ({   outcomeData, questions, setQuestions, asse
     };
 
     const currentCounts = getCurrentItemCount();
-
-    const labelColPct = 18;   // width for first label column
-    const totalColPct = 10;   // width for Total column
+    const labelColPct = 18;
+    const totalColPct = 10;
     const remainingPct = 100 - labelColPct - totalColPct;
     const totalILOs = outcomeData.reduce((sum, co) => sum + co.ilos.length, 0) || 1;
     const perIloPct = remainingPct / totalILOs;
@@ -123,10 +119,9 @@ const QuestionCognitiveMapping = ({   outcomeData, questions, setQuestions, asse
 
     useEffect(() => {
         if (assessmentMode === "question") {
-            setRubricCategories([]);  // 🔥 force clear
+            setRubricCategories([]);
         }
     }, [assessmentMode]);
-
 
     const getAllowedCognitiveLevels = (iloId) => {
         if (!iloId) return [];
@@ -161,19 +156,17 @@ const QuestionCognitiveMapping = ({   outcomeData, questions, setQuestions, asse
                 const categories = lines.map(l => l.trim());
                 setRubricCategories(categories);
 
-                // 🔥 ALWAYS force rows = total TOS items
                 const total = getTotalRequiredItems();
 
                 const generated = Array.from({ length: total }, (_, i) => ({
                     ...createEmptyQuestion(),
-                    rubricItem: categories[i] || ""   // auto‑fill if available
+                    rubricItem: categories[i] || ""
                 }));
 
                 setQuestions(generated);
                 return;
             }
 
-            // 👉 QUESTION MODE
             const lines = content.split('\n').filter(l => l.trim());
             const newQuestions = lines.map(line => ({
                 id: Date.now() + Math.random(),
@@ -184,23 +177,17 @@ const QuestionCognitiveMapping = ({   outcomeData, questions, setQuestions, asse
                 cognitiveLevel: ''
             }));
 
-            // ✅ Calculate how many slots are available
             const currentCount = questions.filter(q => q.question || q.co || q.ilo).length;
             const available = max - currentCount;
-
             if (available <= 0) {
                 alert("TOS is already full. Cannot add more items.");
                 event.target.value = '';
                 return;
             }
-
-            // ✅ Only accept up to available slots
             const accepted = newQuestions.slice(0, available);
-
             if (accepted.length < newQuestions.length) {
                 alert(`Only ${accepted.length} out of ${newQuestions.length} questions were added due to TOS limit.`);
             }
-
             setQuestions(prev => {
                 const cleaned = prev.filter(q => q.co || q.ilo || q.question);
                 return [...cleaned, ...accepted];
@@ -213,7 +200,6 @@ const QuestionCognitiveMapping = ({   outcomeData, questions, setQuestions, asse
 
     return (
         <div className={layout.container}>
-            {/* Hidden file input */}
             <input
                 ref={fileInputRef}
                 type="file"
@@ -224,7 +210,6 @@ const QuestionCognitiveMapping = ({   outcomeData, questions, setQuestions, asse
 
             <div className={layout.section}>
                 <h2>Items Allocated</h2>
-
                 <table className={`${layout.qctable} ${layout.TOSTable}`}>
                     <thead>
                     <tr>
@@ -247,12 +232,9 @@ const QuestionCognitiveMapping = ({   outcomeData, questions, setQuestions, asse
                     </tr>
 
                     <tr>
-                        {/* Empty cell to align with the first label column */}
                         <th style={{ width: `${labelColPct}%` }}>
                             <div className={`${layout.cellBox} ${layout.mainHeader}`}></div>
                         </th>
-
-                        {/* ILO subheaders (each gets perIloPct) */}
                         {outcomeData.flatMap(co =>
                             co.ilos.map(ilo => (
                                 <th
@@ -263,8 +245,6 @@ const QuestionCognitiveMapping = ({   outcomeData, questions, setQuestions, asse
                                 </th>
                             ))
                         )}
-
-                        {/* Empty cell to align under the Total column */}
                         <th style={{ width: `${totalColPct}%` }}>
                             <div className={`${layout.cellBox} ${layout.mainHeader}`}></div>
                         </th>
@@ -357,7 +337,6 @@ const QuestionCognitiveMapping = ({   outcomeData, questions, setQuestions, asse
                         </button>
                     </div>
                 </div>
-
                 <div className={layout.tableHeader}>
                     <div className={layout.headerCell}>No.</div>
                     <div className={layout.headerCell}>Item</div>
@@ -367,13 +346,11 @@ const QuestionCognitiveMapping = ({   outcomeData, questions, setQuestions, asse
                     <div className={layout.headerCell}>Cognitive Level</div>
                     <div></div>
                 </div>
-
                 {questions.map((q, index) => (
                     <div key={q.id} className={layout.tableRow}>
                         <div className={layout.numberCell}>
                             {index + 1}
                         </div>
-
                         {assessmentMode === "rubric" && (
                             <div className={layout.rubricContainer}>
                                 <div className={layout.rubricDropdown}>
@@ -389,7 +366,6 @@ const QuestionCognitiveMapping = ({   outcomeData, questions, setQuestions, asse
                                 </div>
                             </div>
                         )}
-
                         {assessmentMode === "question" && (
                             <textarea
                                 value={q.question}
@@ -408,7 +384,6 @@ const QuestionCognitiveMapping = ({   outcomeData, questions, setQuestions, asse
                                 <option key={co.co} value={co.co}>{co.co}</option>
                             ))}
                         </select>
-
                         <select
                             value={q.ilo}
                             onChange={(e) => handleQuestionChange(q.id, 'ilo', e.target.value)}
@@ -437,7 +412,6 @@ const QuestionCognitiveMapping = ({   outcomeData, questions, setQuestions, asse
                             placeholder="0"
                             className={layout.numberInput}
                         />
-
                         <select
                             value={q.cognitiveLevel}
                             onChange={(e) => handleQuestionChange(q.id, 'cognitiveLevel', e.target.value)}
@@ -450,8 +424,6 @@ const QuestionCognitiveMapping = ({   outcomeData, questions, setQuestions, asse
                                 <option key={level} value={level}>{level}</option>
                             ))}
                         </select>
-
-
                         <div onClick={() => handleDeleteQuestion(q.id)} className={layout.deleteButton}>
                             <X size={20} color={'white'} />
                         </div>
