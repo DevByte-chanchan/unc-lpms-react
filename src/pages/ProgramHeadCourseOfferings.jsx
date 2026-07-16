@@ -1040,9 +1040,11 @@ const ProgramHeadCourseOfferings = () => {
             <div style={{ padding: '18px 20px 14px', borderBottom: '1px solid ' + SLATE2 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
                 <div style={{ minWidth: 0 }}>
-                  <div style={{ fontSize: 18, fontWeight: 700, color: SLATE9 }}>Set year levels</div>
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 18, fontWeight: 700, color: '#B91C1C' }}>
+                    <AlertTriangle size={18} /> Missing year level
+                  </div>
                   <div style={{ fontSize: 13, color: SLATE5, marginTop: 4, lineHeight: 1.5 }}>
-                    {resolveRows.length} course{resolveRows.length === 1 ? '' : 's'} had a year level we couldn’t recognize. Choose a year for each, or mark it <strong>Don’t import</strong>. Nothing is saved until you confirm.
+                    {resolveRows.length} course{resolveRows.length === 1 ? '' : 's'} {resolveRows.length === 1 ? 'has' : 'have'} no year level, and it couldn’t be inferred from the code. Year level is <strong>required</strong> — choose a year for each, or mark it <strong>Don’t import</strong>. Nothing is saved until you confirm.
                   </div>
                 </div>
                 <button onClick={() => { if (!uploading) closeUpload(); }} disabled={uploading} aria-label="Close" style={{ background: 'transparent', border: 'none', cursor: uploading ? 'not-allowed' : 'pointer', padding: 4, lineHeight: 0, color: SLATE5, flexShrink: 0 }}><X size={20} /></button>
@@ -1093,8 +1095,11 @@ const ProgramHeadCourseOfferings = () => {
 
             {/* Footer */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, padding: '14px 20px', borderTop: '1px solid ' + SLATE2 }}>
-              <div style={{ fontSize: 13, fontWeight: 600, color: unresolvedCount > 0 ? '#92400E' : '#047857' }}>
-                {unresolvedCount > 0 ? (unresolvedCount + ' still need' + (unresolvedCount === 1 ? 's' : '') + ' a choice') : 'All set'}
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 600, color: unresolvedCount > 0 ? '#B91C1C' : '#047857' }}>
+                {unresolvedCount > 0 && <AlertTriangle size={15} />}
+                {unresolvedCount > 0
+                  ? ('Error: ' + unresolvedCount + ' course' + (unresolvedCount === 1 ? '' : 's') + ' ' + (unresolvedCount === 1 ? 'has' : 'have') + ' no year level — set one for each before importing')
+                  : 'All set'}
               </div>
               {uploadError && <div style={{ color: '#B91C1C', fontSize: 13, flex: '1 1 auto', textAlign: 'center', minWidth: 0 }}>{uploadError}</div>}
               <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>

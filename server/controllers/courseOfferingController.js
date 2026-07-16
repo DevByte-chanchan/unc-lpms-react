@@ -3,7 +3,6 @@ import { parseSheet, safeUnlink, pick } from '../utils/excelParser.js';
 import { getPeriodId, safeWhereForPeriod } from '../utils/periodScope.js';
 import { filterOneToExistingColumns, safeDestroyByPeriod, safeWhere } from '../utils/dbHelpers.js';
 import { bulkUpsert, describeSequelizeError } from '../utils/uploadHelpers.js';
-import { cloneFromPriorPeriod } from '../utils/periodClone.js';
 import { enforceLatestPeriod } from '../utils/latestPeriod.js';
 import { courseSemesterOf, periodSemesterOf } from '../utils/courseSemester.js';
 
@@ -79,27 +78,10 @@ export async function listCourseOfferings(req, res, next) {
       include: [{ model: Faculty, as: 'instructor', attributes: ['id', 'name', 'role'] }],
     });
 
-    // Clone-on-first-use: when a brand-new term has no course offerings
-    // yet, copy the most recent prior term's offerings forward so the
-    // user starts with last term's roster (mirrors Departments / Programs
-    // / Faculty behavior). Status resets to 'Active' on copy; cancelled
-    // or unlisted rows come over as Active so the new term starts clean.
-    if (period_id && rows.length === 0) {
-      const cloned = await cloneFromPriorPeriod(CourseOffering, period_id, {
-        attributes: ['code', 'title', 'year_level', 'units', 'instructor_name', 'term'],
-        transform: (r) => ({
-          code: r.code, title: r.title,
-          year_level: r.year_level, units: r.units,
-          instructor_name: r.instructor_name, term: r.term,
-          status: 'Active',
-        }),
-        updateKeys: ['title', 'year_level', 'units', 'instructor_name', 'term', 'status'],
-      });
-      if (cloned) {
-        // eslint-disable-next-line no-console
-        console.log('[course_offerings] cloned ' + cloned.count + ' rows from period ' + cloned.source + ' → ' + period_id);
-      }
-    }
+    // Course Offerings do NOT carry over from the previous term. A new term
+    // starts with an empty offerings list; it is populated only from that
+    // term's own courses catalog (the sync below) and the Program Head's own
+    // uploads. (Departments / Faculty / Programs still clone-on-first-use.)
 
     // Catalog sync: upsert offerings from this period's courses catalog so the
     // picker reflects added / moved / renamed courses, then re-read.

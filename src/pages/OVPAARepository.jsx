@@ -15,10 +15,11 @@
  * See data/mockApprovedSubmissions.js for the exact mapping.
  *
  * Why one shell: the two modules have identical mechanics — list every
- * department as a card, drill down into a sortable/filterable table,
- * view-or-export each row. Only the data source and the document
- * "kind" string differ. The wrapper page (OVPAALearningPlan.jsx /
- * OVPAATOS.jsx) supplies those as props so the shell can stay generic.
+ * department as a card, drill down into a sortable/filterable table, and
+ * view each row in the in-app PDF modal (no export — the OVPAA has no TOS
+ * / Learning-Plan download). Only the data source and the document "kind"
+ * string differ. The wrapper page (OVPAALearningPlan.jsx / OVPAATOS.jsx)
+ * supplies those as props so the shell can stay generic.
  *
  * Architecture:
  *   - Departments come from the master DepartmentsAPI, scoped by the
@@ -42,7 +43,6 @@ import DepartmentRepositoryGrid from '../components/DepartmentRepositoryGrid.jsx
 import ApprovedFileTable from '../components/ApprovedFileTable.jsx';
 import PDFViewerModal from '../components/PDFViewerModal.jsx';
 import LogoUploadModal from '../components/LogoUploadModal.jsx';
-import { resolveDeptLogo } from '../services/deptLogos.js';
 import { DepartmentsAPI } from '../services/api.js';
 import { usePeriod } from '../services/period.jsx';
 import { prettifyLabel } from '../services/periodLabel.js';
@@ -58,50 +58,6 @@ const SLATE_400  = '#94A3B8';
 const SLATE_200  = '#E2E8F0';
 const SLATE_100  = '#F1F5F9';
 const SLATE_50   = '#F8FAFC';
-
-/**
- * Export a single approved file. Spec: per-row export only (no bulk).
- *
- * Real-world: hits a backend endpoint that streams the file as an
- * attachment. Mock: synthesises a tiny placeholder text file so the
- * browser download flow can be demoed end-to-end.
- */
-const exportSingleFile = (row, kind) => {
-  if (row.file_url && /^https?:\/\//i.test(row.file_url)) {
-    // Real URL path — let the browser pick up the Content-Disposition.
-    const a = document.createElement('a');
-    a.href = row.file_url;
-    a.download = row.file_name || (kind + '.pdf');
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    return;
-  }
-  // Mock path — placeholder text blob carrying the metadata so the
-  // download still produces a tangible file.
-  const lines = [
-    'UNC LPMS — ' + (kind || 'Document') + ' Export (mock)',
-    '----------------------------------------',
-    'Faculty:         ' + (row.instructor_name || ''),
-    'Course:          ' + (row.course_id || '') + ' — ' + (row.course_name || ''),
-    'Submission date: ' + (row.submission_date || ''),
-    'Academic period: ' + (row.period_label || ''),
-    'Department code: ' + (row.department_code || ''),
-    'File name:       ' + (row.file_name || ''),
-    '',
-    'This placeholder will be replaced by the actual approved PDF once',
-    'the instructor → approval submission pipeline is wired up.',
-  ].join('\n');
-  const blob = new Blob([lines], { type: 'text/plain;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = (row.file_name || (kind || 'document') + '.txt').replace(/\.pdf$/i, '.txt');
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-};
 
 const OVPAARepository = ({ kind, dataset }) => {
   const { currentPeriod } = usePeriod();
@@ -259,8 +215,7 @@ const OVPAARepository = ({ kind, dataset }) => {
           <ApprovedFileTable
             rows={deptRows}
             programs={PROGRAMS_BY_DEPT[selectedDept.code] || []}
-            onView={(r)   => setViewingFile(r)}
-            onExport={(r) => exportSingleFile(r, kind)}
+            onView={(r) => setViewingFile(r)}
           />
         )}
       </div>
@@ -280,7 +235,6 @@ const OVPAARepository = ({ kind, dataset }) => {
           file={viewingFile}
           kind={kind}
           onClose={() => setViewingFile(null)}
-          onExport={(r) => exportSingleFile(r, kind)}
         />
       )}
 

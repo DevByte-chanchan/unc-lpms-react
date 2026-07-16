@@ -7,16 +7,15 @@
  *   - Program dropdown above the table — picks one program of the
  *     current department to filter on. "All programs" shows everything.
  *   - Click any column header to toggle asc / desc / unsorted.
- *   - Row actions: View (in-app modal viewer) and Export (download
- *     just this row's file). Exports are per-row only — there is no
- *     bulk export by design (OVPAA spec).
+ *   - Row action: View (opens the in-app modal viewer). The OVPAA has no
+ *     TOS / Learning-Plan export, so there is no download action here.
  *
  * Layout: CSS Grid — every header cell and every row cell uses the
  * same `GRID_TEMPLATE`, so columns are guaranteed to line up. No more
  * fragile `<table tableLayout: fixed>` + `<colgroup>` juggling.
  */
 import React from 'react';
-import { Search, ArrowUp, ArrowDown, Eye, Download, FileText, Layers, ChevronDown, Check } from 'react-feather';
+import { Search, ArrowUp, ArrowDown, Eye, FileText, Layers, ChevronDown, Check } from 'react-feather';
 
 const ACCENT       = '#18191A';   // solid actions (Export) — black, not the error red
 const ACCENT_HOVER = '#33353A';   // lighter on hover: ACCENT is already near-black
@@ -124,7 +123,7 @@ const RowActionButton = ({ onClick, icon, label, variant = 'outline' }) => {
 };
 
 // ─────────────────────────────── data row ──────────────────────────────
-const DataRow = ({ row, onView, onExport }) => {
+const DataRow = ({ row, onView }) => {
   const [hover, setHover] = React.useState(false);
 
   const cell = (extra = {}) => ({
@@ -183,8 +182,7 @@ const DataRow = ({ row, onView, onExport }) => {
 
       {/* Actions — centered under the centered header */}
       <div style={cell({ justifyContent: 'center', gap: 6 })}>
-        <RowActionButton onClick={() => onView(row)}   icon={<Eye size={12} />}      label="View" />
-        <RowActionButton onClick={() => onExport(row)} icon={<Download size={12} />} label="Export" variant="solid" />
+        <RowActionButton onClick={() => onView(row)} icon={<Eye size={12} />} label="View" variant="solid" />
       </div>
     </div>
   );
@@ -281,7 +279,7 @@ const DropdownItem = ({ label, selected, onClick }) => {
 };
 
 // ──────────────────────────────── main ─────────────────────────────────
-const ApprovedFileTable = ({ rows, programs, onView, onExport }) => {
+const ApprovedFileTable = ({ rows, programs, onView }) => {
   const [query, setQuery]                     = React.useState('');
   const [sort, setSort]                       = React.useState({ key: 'approved_date', dir: 'desc' });
   const [selectedProgram, setSelectedProgram] = React.useState(null);
@@ -395,7 +393,7 @@ const ApprovedFileTable = ({ rows, programs, onView, onExport }) => {
               </div>
             ) : (
               filtered.map((r) => (
-                <DataRow key={r.id} row={r} onView={onView} onExport={onExport} />
+                <DataRow key={r.id} row={r} onView={onView} />
               ))
             )}
           </div>

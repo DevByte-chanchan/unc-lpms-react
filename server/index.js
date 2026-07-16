@@ -139,7 +139,10 @@ const PORT = Number(process.env.PORT || 4000);
     // and a guard already skipped these once.
     await ensureOfferingConstraints();
 
-    await seedCurriculumIfEmpty();
+    // Curriculum auto-seed intentionally disabled — the module starts fully
+    // empty (no terms, no courses). A Program Head uploads the curriculum.
+    // Re-enable by uncommenting if you want the 8 sample courses back.
+    // await seedCurriculumIfEmpty();
 
     // One-time (idempotent) backfill: resolve programs.program_head_id from
     // the existing program_head name + period faculty list.

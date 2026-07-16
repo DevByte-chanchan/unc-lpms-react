@@ -551,7 +551,24 @@ const ProgramHeadCourseAssignment = () => {
         />
       )}
 
-      {editingAssignment && (
+      {editingAssignment && (() => {
+        // Lead Faculty is designated ONLY from this row's contributors — the
+        // teaching-assignment upload brings faculty in as contributors with no
+        // lead, and the Program Head promotes one of them to Lead. The current
+        // lead (if already set) is kept as an option so it still displays and
+        // can be re-selected.
+        const editContribNames = Array.isArray(editingAssignment.contributors)
+          ? editingAssignment.contributors.map((c) => c.faculty_name).filter(Boolean)
+          : [];
+        const leadName = editingAssignment.faculty_name ? String(editingAssignment.faculty_name).trim() : '';
+        const optionNames = [...editContribNames];
+        if (leadName && !optionNames.some((n) => n.trim().toLowerCase() === leadName.toLowerCase())) {
+          optionNames.unshift(leadName);
+        }
+        const leadOptions = optionNames.map((n) => ({
+          value: n, label: n, sub: n.trim().toLowerCase() === leadName.toLowerCase() ? 'Lead' : 'Contributor',
+        }));
+        return (
         <EditEntityModal
           key={'ca-edit-' + editingAssignment.id}
           title="Edit assignment"
@@ -560,7 +577,7 @@ const ProgramHeadCourseAssignment = () => {
             courseOfferingField,
             {
               key: 'faculty_name', label: 'Lead Faculty', type: 'searchable-select',
-              options: facultyOptions, placeholder: 'Select faculty…', searchable: false,
+              options: leadOptions, placeholder: 'Choose lead from contributors…', searchable: true,
               highlight: editingAssignment.status === 'Unassigned' && !editingAssignment.faculty_id,
             },
             contributorsField,
@@ -578,7 +595,8 @@ const ProgramHeadCourseAssignment = () => {
           onRemove={onArchiveAssignment}
           removeLabel="Remove"
         />
-      )}
+        );
+      })()}
 
       <ConfirmModal
         open={confirmUpload}

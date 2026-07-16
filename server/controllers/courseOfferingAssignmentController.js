@@ -17,6 +17,12 @@
  */
 import db from '../models/index.js';
 import { parseSheet, safeUnlink, pick } from '../utils/excelParser.js';
+import {
+  looksLikeTeachingAssignment,
+  parseTeachingAssignment,
+  extractProgramAssignments,
+  programCoursePrefixes,
+} from '../utils/teachingAssignmentParser.js';
 import { getPeriodId, safeWhereForPeriod } from '../utils/periodScope.js';
 import { filterOneToExistingColumns, safeDestroyByPeriod, safeWhere } from '../utils/dbHelpers.js';
 import { describeSequelizeError } from '../utils/uploadHelpers.js';
@@ -26,7 +32,7 @@ import { beginImportBatch, beginManualBatch, completeImportBatch } from './impor
 import { courseSemesterOf, periodSemesterOf } from '../utils/courseSemester.js';
 import { offeringIndexForPeriod } from '../utils/offeringLink.js';
 
-const { CourseOfferingAssignment, Course, Faculty, AcademicPeriod } = db;
+const { CourseOfferingAssignment, Course, Faculty, AcademicPeriod, Program } = db;
 
 /**
  * Normalise a person's name for fuzzy matching: drop common honorifics
@@ -397,15 +403,38 @@ export async function uploadCourseOfferingAssignments(req, res) {
   }
 
   try {
-    const { rows, headers } = parseSheet(req.file.path);
-    const lists = await loadMasterLists(period_id);
-
     // The program these assignments are for. It comes from the Program Head
     // doing the upload (the page knows which program is selected), NOT from the
     // sheet — an offering is (course × program), so the course code alone can't
     // pick one out. Without it every row resolves to a course but to no
     // offering, and lands as unmatched for reconciliation.
     const program_id = req.body && req.body.program_id ? Number(req.body.program_id) : null;
+
+    let rows;
+    let headers;
+    if (looksLikeTeachingAssignment(req.file.path)) {
+      // Raw school "TEACHING ASSIGNMENT" export (grouped by faculty, no lead
+      // column). Flatten it, keep only THIS program's courses (BSIT → BIT …),
+      // and bring each course's faculty in as CONTRIBUTORS with the lead left
+      // empty — the Program Head designates the lead afterwards, in the system.
+      const program = program_id ? await Program.findByPk(program_id, { attributes: ['code'] }) : null;
+      const prefixes = programCoursePrefixes(program && program.code);
+      const parsed = parseTeachingAssignment(req.file.path);
+      const extracted = extractProgramAssignments(parsed, prefixes);
+      rows = extracted.map((e) => ({
+        // Canonical keys the row loop reads via pick(); omitting a leadfaculty
+        // key is what leaves Lead Faculty unset.
+        coursecode:   e.course_code,
+        coursename:   e.course_name,
+        contributors: e.contributor_names.join('; '),
+        yearlevel:    e.year_level,
+      }));
+      headers = ['Course Code', 'Course Name', 'Lead Faculty', 'Contributors', 'Year Level'];
+    } else {
+      ({ rows, headers } = parseSheet(req.file.path));
+    }
+
+    const lists = await loadMasterLists(period_id);
 
     const records  = [];
     const errors   = [];

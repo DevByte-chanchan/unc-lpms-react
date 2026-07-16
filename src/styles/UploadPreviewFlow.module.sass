@@ -437,7 +437,7 @@ $warn-bg: #FFFBEB
 // A 30-second escape hatch you cannot click is not an escape hatch.
 .toast
   position: fixed
-  left: 24px
+  right: 24px
   bottom: 24px
   z-index: 100
   display: flex
@@ -519,20 +519,24 @@ $warn-bg: #FFFBEB
   font-weight: 700
 
 .dismiss
+  position: absolute
+  top: 4px
+  left: 4px
   display: inline-flex
   align-items: center
   justify-content: center
-  width: 32px
-  height: 32px
-  border-radius: 6px
+  width: 16px
+  height: 16px
+  padding: 0
+  border-radius: 4px
   border: none
   background: transparent
-  color: #9CA3AF
+  color: #FFFFFF
   cursor: pointer
+  flex-shrink: 0
 
   &:hover
-    background: rgba(255, 255, 255, 0.12)
-    color: #FFFFFF
+    background: rgba(255, 255, 255, 0.18)
 
 // The undo confirm dialog has to clear ReconciliationModal too, and ConfirmModal
 // hardcodes z-index 60/61 — a shared component we don't get to renumber for one

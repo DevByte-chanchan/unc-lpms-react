@@ -126,7 +126,11 @@ export async function uploadDepartments(req, res) {
     const { rows, headers } = parseSheet(req.file.path);
     const records = [];
     const errors  = [];
-    const seenNames = new Set();
+    // Departments are identified by CODE (UNIQUE(code, period_id)) — the same
+    // key bulkUpsert upserts on — so reconciliation must compare by code too,
+    // not by name. Comparing by name flagged a renamed-but-same-code row as
+    // "missing" even though it was updated in place.
+    const seenCodes = new Set();
     // Every sheet row, valid or not, in sheet order — this is what the preview
     // table renders. Built in the SAME pass as `records` so the two can't drift.
     const preview = new PreviewRows();
@@ -155,7 +159,7 @@ export async function uploadDepartments(req, res) {
       }
 
       preview.ok(rowNum, cells);
-      seenNames.add(String(name).trim().toLowerCase());
+      seenCodes.add(String(code).trim().toLowerCase());
       records.push({
         name: String(name).trim(),
         code: String(code).trim(),
@@ -190,7 +194,13 @@ export async function uploadDepartments(req, res) {
     const batch = await beginImportBatch('departments', period_id, req.file.originalname);
 
     const created = await bulkUpsert(Department, records, ['name', 'dean', 'status']);
-    const missing = existing.filter((row) => !seenNames.has(String(row.name).trim().toLowerCase()));
+    // Only reconcile departments that are actually IN THE TABLE. Already-archived
+    // rows (Unlisted / Archived) aren't shown there, so flagging them again on
+    // every upload was inaccurate. Match by code (the identity), not name.
+    const ARCHIVED_DEPT_STATUSES = new Set(['Unlisted', 'Archived']);
+    const missing = existing.filter((row) =>
+      !ARCHIVED_DEPT_STATUSES.has(row.status)
+      && !seenCodes.has(String(row.code).trim().toLowerCase()));
 
     await completeImportBatch(batch, { inserted: created.length });
 

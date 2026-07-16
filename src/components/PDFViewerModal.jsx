@@ -9,14 +9,14 @@
  *      OVPAA pages demoable end-to-end before the upload pipeline is
  *      wired up.
  *
- * Export action lives in the modal header — same per-row export as the
- * table action, but accessible while the user is reading the document.
+ * A document can be several files (e.g. a TOS is an assessment paper plus its
+ * report) — `file.documents` is [{ label, url }, …] and the viewer shows one
+ * tab per entry. A single-file record just uses `file.file_url`.
  */
 import React from 'react';
-import { X, Download, FileText, User, Calendar, BookOpen } from 'react-feather';
+import { X, FileText, User, Calendar, BookOpen } from 'react-feather';
 
-const ACCENT       = '#18191A';   // solid actions (Export) — black, not the error red
-const ACCENT_HOVER = '#33353A';   // lighter on hover: ACCENT is already near-black
+const ACCENT       = '#18191A';   // header accent — near-black
 const SLATE_900  = '#0F172A';
 const SLATE_700  = '#334155';
 const SLATE_500  = '#64748B';
@@ -43,7 +43,9 @@ const MetaRow = ({ icon, label, value }) => (
   </div>
 );
 
-const PDFViewerModal = ({ file, kind, onClose, onExport }) => {
+const PDFViewerModal = ({ file, kind, onClose }) => {
+  const [activeTab, setActiveTab] = React.useState(0);
+
   // Close on Escape — keep the user in the keyboard flow.
   React.useEffect(() => {
     const onKey = (e) => { if (e.key === 'Escape') onClose(); };
@@ -51,9 +53,20 @@ const PDFViewerModal = ({ file, kind, onClose, onExport }) => {
     return () => document.removeEventListener('keydown', onKey);
   }, [onClose]);
 
+  // Reset to the first tab whenever a different record opens.
+  React.useEffect(() => { setActiveTab(0); }, [file]);
+
   if (!file) return null;
 
-  const hasRealUrl = file.file_url && /^https?:\/\//i.test(file.file_url);
+  // One tab per document; fall back to the single file_url record.
+  const docs = Array.isArray(file.documents) && file.documents.length
+    ? file.documents
+    : [{ label: file.file_name || 'Document', url: file.file_url }];
+  const active = docs[Math.min(activeTab, docs.length - 1)] || docs[0];
+  const activeUrl = active && active.url;
+  // Any non-empty URL is viewable inline — absolute (https://…) or a path
+  // served from /public (/tos-report-sample.pdf).
+  const hasRealUrl = !!activeUrl;
   const title = file.file_name || (kind || 'File') + ' Preview';
 
   return (
@@ -95,22 +108,6 @@ const PDFViewerModal = ({ file, kind, onClose, onExport }) => {
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0 }}>
             <button
               type="button"
-              onClick={() => onExport(file)}
-              style={{
-                height: 36, padding: '0 14px', borderRadius: 8,
-                background: ACCENT, color: '#FFFFFF', border: 'none', cursor: 'pointer',
-                fontSize: 13, fontWeight: 600,
-                display: 'inline-flex', alignItems: 'center', gap: 6,
-                boxShadow: '0 2px 8px rgba(24,25,26,0.20)',
-                transition: 'background 0.15s ease',
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = ACCENT_HOVER; }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = ACCENT; }}
-            >
-              <Download size={13} /> Export
-            </button>
-            <button
-              type="button"
               onClick={onClose}
               style={{
                 width: 36, height: 36, borderRadius: 8,
@@ -146,10 +143,37 @@ const PDFViewerModal = ({ file, kind, onClose, onExport }) => {
 
           {/* Preview pane */}
           <div style={{ background: SLATE_100, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+            {/* Tabs — one per document (e.g. TOS Assessment / TOS Report). */}
+            {docs.length > 1 && (
+              <div style={{
+                display: 'flex', gap: 4, padding: '8px 10px 0',
+                borderBottom: '1px solid ' + SLATE_200, background: '#FFFFFF', flexShrink: 0,
+              }}>
+                {docs.map((d, i) => {
+                  const on = i === Math.min(activeTab, docs.length - 1);
+                  return (
+                    <button
+                      key={d.label + i}
+                      type="button"
+                      onClick={() => setActiveTab(i)}
+                      style={{
+                        border: 'none', cursor: 'pointer', background: 'transparent',
+                        padding: '8px 14px', fontSize: 13, fontWeight: 600,
+                        color: on ? ACCENT : SLATE_500,
+                        borderBottom: '2px solid ' + (on ? ACCENT : 'transparent'),
+                        display: 'inline-flex', alignItems: 'center', gap: 6,
+                      }}
+                    >
+                      <FileText size={13} /> {d.label}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
             {hasRealUrl ? (
               <iframe
-                title={title}
-                src={file.file_url}
+                title={title + ' — ' + (active ? active.label : '')}
+                src={activeUrl}
                 style={{ flex: 1, width: '100%', border: 'none', background: '#FFFFFF' }}
               />
             ) : (

@@ -11,7 +11,7 @@ const DepartmentsTable = ({ departments = [], onView, onEdit }) => {
             <th width={420}>NAME</th>
             <th width={180} style={{ paddingLeft: 28 }}>CODE</th>
             <th width={220}>DEAN</th>
-            <th width={120}>STATUS</th>
+            <th width={120} style={{ paddingLeft: 28 }}>STATUS</th>
             <th className={styles.fill}></th>
 
 
@@ -44,7 +44,7 @@ const DepartmentsTable = ({ departments = [], onView, onEdit }) => {
                 <td width={420}>{d.name}</td>
                 <td width={180} style={{ paddingLeft: 28 }}>{d.code}</td>
                 <td width={220}>{d.dean || ''}</td>
-                <td width={120}>
+                <td width={120} style={{ paddingLeft: 28 }}>
                   <span style={{ ...statusPillStyle('department', status), padding: '4px 10px', borderRadius: 4, fontSize: 12, fontWeight: 600 }}>
                     {status}
                   </span>

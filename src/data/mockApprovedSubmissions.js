@@ -54,6 +54,15 @@ const P_LABEL = '—';
 const P_TYPE  = '1st-2526';   // ≤10 chars per §11.1.15 / §12.1.10
 const SAMPLE_PDF = 'https://mozilla.github.io/pdf.js/web/compressed.tracemonkey-pldi-09.pdf';
 
+// A submitted TOS is two documents — the assessment paper and its report.
+// Served from /public so the in-app viewer loads them inline. Every TOS row
+// carries both (see tosRow), shown as the viewer's two tabs.
+const TOS_ASSESSMENT_PDF = '/tos-assessment-sample.pdf';
+const TOS_REPORT_PDF     = '/tos-report-sample.pdf';
+
+// Every submitted Learning Plan shows this same sample document.
+const LEARNING_PLAN_PDF  = '/learning-plan-sample.pdf';
+
 // ─────────────────────────────── Programs ───────────────────────────────
 // Dummy program master list per department. The OVPAA dropdown above
 // the drill-down table pulls from this so users can filter by program.
@@ -144,7 +153,8 @@ const lpRow = (
     course_id:        courseId,
     course_name:      courseName,
     file_name:        fileName,
-    file_url:         opts.file_url,
+    // Every submitted Learning Plan opens the same sample syllabus template.
+    file_url:         LEARNING_PLAN_PDF,
 
     // ─── aliases consumed by ApprovedFileTable ──────────────────────
     submission_date:  dateSubmitted,
@@ -189,7 +199,13 @@ const tosRow = (
     course_id:         courseId,
     course_name:       courseName,
     file_name:         fileName,
-    file_url:          opts.file_url,
+    // Every submitted TOS shows the same two sample documents, as two tabs.
+    // Report first (the default tab), then the assessment paper.
+    file_url:          TOS_REPORT_PDF,
+    documents:         [
+      { label: 'TOS Report',     url: TOS_REPORT_PDF },
+      { label: 'TOS Assessment', url: TOS_ASSESSMENT_PDF },
+    ],
 
     // ─── aliases consumed by ApprovedFileTable ──────────────────────
     submission_date:   dateSubmitted,

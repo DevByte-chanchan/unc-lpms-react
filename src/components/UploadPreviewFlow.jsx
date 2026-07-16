@@ -586,7 +586,7 @@ const UploadPreviewFlow = ({
               onClick={() => setUndoDone(null)}
               aria-label="Dismiss"
             >
-              <X size={18} />
+              <X size={11} color="#FFFFFF" />
             </button>
           </div>
         </div>
@@ -631,7 +631,7 @@ const UploadPreviewFlow = ({
               onClick={() => { setToast(null); setAsking(false); }}
               aria-label="Dismiss"
             >
-              <X size={18} />
+              <X size={11} color="#FFFFFF" />
             </button>
           </div>
         </div>

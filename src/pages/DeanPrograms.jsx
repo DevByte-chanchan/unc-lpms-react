@@ -75,11 +75,14 @@ const DeanPrograms = () => {
     return s;
   }, [faculty]);
 
-  // Dropdown options for the searchable Faculty selector in Add/Edit — role
-  // shown as muted secondary text (same UI as Course Assignment / Consultant).
+  // Dropdown options for the searchable Faculty selector in Add/Edit. Only
+  // faculty whose ROLE is "Program Head" can chair a program, so the picker
+  // lists just those (active ones) — role shown as muted secondary text.
   const facultyOptions = React.useMemo(() => (
     faculty
-      .filter((f) => f && f.name && (f.status === 'Active' || !f.status))
+      .filter((f) => f && f.name
+        && (f.status === 'Active' || !f.status)
+        && String(f.role || '').trim().toLowerCase() === 'program head')
       .map((f) => ({ value: f.name, label: f.name, sub: f.role || '' }))
   ), [faculty]);
 
