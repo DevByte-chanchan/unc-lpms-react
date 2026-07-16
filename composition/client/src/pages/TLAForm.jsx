@@ -15,6 +15,7 @@ import SideNavigation from "../components/SideNavigation.jsx";
 
 // Imported universal API client utility
 import { fetchJson } from "../utils/api.js";
+import CommentMessage from "../components/CommentMessage.jsx";
 
 /* Inline modal component */
 function InlineModal({ isOpen, title, onClose, children, actions }) {
@@ -495,7 +496,7 @@ const TLAForm = () => {
                                                             <span className={styles.targetText}>{getCommentTargetLabel(comment)}</span>
                                                         </div>
 
-                                                        <p className={styles.commentMessage}>{comment.message}</p>
+                                                        <CommentMessage className={styles.commentMessage} message={comment.message} />
 
                                                         <div className={styles.commentMetadata}>
                                                             <span className={styles.metaRole}>{comment.commenter_role.replace(/_/g, ' ')}</span>

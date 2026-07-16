@@ -18,4 +18,7 @@ router.get('/course/:pcId/:revNum', commentController.getCourseComments);
 // enriched with CO/ILO labels + target titles for the approver sidebar
 router.get('/by-course/:code', commentController.getCourseCommentsByCode);
 
+// CREATE an approver comment by course code — resolves CO/ILO labels + target titles
+router.post('/by-course', commentController.createCourseComment);
+
 module.exports = router;

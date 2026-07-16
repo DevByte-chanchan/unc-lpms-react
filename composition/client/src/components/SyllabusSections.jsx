@@ -261,6 +261,8 @@ const SyllabusSections = () => {
                 {
                     status === 'approved' &&
                     <>
+                        {/* push Export to the right, matching the dean/VPAA layout */}
+                        <div style={{ flexGrow: 1 }} />
                         <div className={styles.submit} onClick={handleExport}>
                             <Download size={16} /> Export
                         </div>

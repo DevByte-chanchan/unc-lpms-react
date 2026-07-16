@@ -189,10 +189,21 @@ const ApprovalCoursesTable = ({ role = 'approver' }) => {
         }
     }
 
-    const filteredRows = assignments.filter(row => {
-        const status = computeOverallStatus(row);
-        return status.toUpperCase() === selectedStatus;
-    });
+    const filteredRows = (() => {
+        const rows = assignments.filter(row => computeOverallStatus(row).toUpperCase() === selectedStatus);
+        if (selectedStatus !== 'APPROVED') return rows;
+        // Approved tab: show only the LATEST revision per course (older approved
+        // revisions live in the Revisions page) — matches the instructor's table.
+        const byCourse = new Map();
+        rows.forEach(r => {
+            const key = getCode(r);
+            const rev = (r.ProgramCourseOffering || {}).revision_number || 1;
+            const prev = byCourse.get(key);
+            const prevRev = prev ? ((prev.ProgramCourseOffering || {}).revision_number || 1) : -1;
+            if (rev > prevRev) byCourse.set(key, r);
+        });
+        return [...byCourse.values()];
+    })();
 
     const getStatusCount = (statusName) => assignments.filter(row => computeOverallStatus(row).toUpperCase() === statusName).length;
 
@@ -336,7 +347,7 @@ const ApprovalCoursesTable = ({ role = 'approver' }) => {
                         <tr>
                             <th width={200} style={{textAlign:'center'}}>DATE ASSIGNED</th>
                             <th width={150} style={{textAlign:'center'}}>CODE</th>
-                            <th width={300} style={{textAlign:'center'}}>COURSE NAME</th>
+                            <th width={350} style={{textAlign:'center'}}>COURSE NAME</th>
                             {selectedStatus === 'APPROVED' && <th width={200} style={{textAlign:'center'}}>DATE APPROVED</th>}
                             {selectedStatus === 'APPROVED' && EXPORT_ROLES.includes(role) && <th style={{ width: 80, textAlign: 'center' }}></th>}
                             <th className={styles.fill}></th>
@@ -347,7 +358,7 @@ const ApprovalCoursesTable = ({ role = 'approver' }) => {
                             <tr key={index}>
                                 <td width={200}>{formatDate(row.date_assigned)}</td>
                                 <td width={150}>{getCode(row)}</td>
-                                <td width={300}>{getName(row)}</td>
+                                <td width={350}>{getName(row)}</td>
                                 {selectedStatus === 'APPROVED' && <td width={200}>{formatDate(row.date_approved)}</td>}
                                 {selectedStatus === 'APPROVED' && EXPORT_ROLES.includes(role) && <td style={{ width: 80, textAlign: 'center', fontWeight: 500 }}>
                                     <span className="actionLink" style={{ minWidth: 90, display: 'inline-flex', alignItems: 'center', gap: 5, cursor: exporting ? 'wait' : 'pointer', justifyContent: 'center', color: '#6b7280' }} onClick={() => !exporting && handleExport(row)}>

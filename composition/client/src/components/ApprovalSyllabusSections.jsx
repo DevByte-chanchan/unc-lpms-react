@@ -8,7 +8,7 @@ import stylesC from '../styles/SyllabusSections.module.sass'
 import ApprovalCommentBox from './ApprovalCommentBox.jsx'
 import { getWorkflow, setWorkflow, advanceWorkflow } from '../utils/workflowHelpers'
 import { getSuggestions, addSuggestion, acceptSuggestion, rejectSuggestion, getSyllabus } from '../utils/dataStore'
-import { getReferences } from '../utils/referenceLibrary'
+import { getReferences, getReferenceById } from '../utils/referenceLibrary'
 import { normalizeRoleKey, getRoleColor, getComponentTags, isRecent, reviewerSeeds } from '../utils/approvalHelpers.js'
 import { fetchJson } from "../utils/api.js"
 import { seedDummyComments } from "../utils/seedDummyComments.js"
@@ -115,33 +115,21 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
     setSelectedSection(e.target.value)
   }
 
+  // Normalize the workflow stage on load (e.g. returned → dean once all
+  // parallel reviewers have re-accepted) so button gating reflects reality
+  // without waiting for someone to perform another action.
+  useEffect(() => {
+    if (!codeToUse) return
+    try {
+      const wf = advanceWorkflow(codeToUse)
+      if (wf) setWorkflowState(wf)
+    } catch (e) { /* non-fatal */ }
+  }, [codeToUse, refreshKey])
+
   useEffect(() => {
     try {
-      const raw = localStorage.getItem('approval_comments_v1')
-      const all = raw ? JSON.parse(raw) : []
-      const list = Array.isArray(all) ? all : []
-
-      // Brute-force sweep: remove stale seed comments for this course
-      // Old HCI/SE seed comments have wrong ID prefixes for a different course.
-      // We only keep manual (non-seed) comments and correctly-prefixed seed comments.
-      const expectedPrefix = codeToUse === 'BSCS511' ? 'seed-mg'
-        : codeToUse === 'BIT311L' || codeToUse === 'BIT311' ? 'seed-pt'
-        : codeToUse === 'BIT313L' || codeToUse === 'BIT313' ? 'seed-hci'
-        : codeToUse === 'BSCS322L' || codeToUse === 'BSCS322' ? 'seed-se'
-        : null
-
-      const cleaned = list.filter(c => {
-        if (c.courseCode !== codeToUse) return true // keep other courses' comments
-        if (!c.id || !c.id.startsWith('seed-')) return true // keep manual comments
-        // seed comment: keep only if prefix matches expected
-        return expectedPrefix && c.id.startsWith(expectedPrefix + '-')
-      })
-
-      if (cleaned.length !== list.length) {
-        localStorage.setItem('approval_comments_v1', JSON.stringify(cleaned))
-      }
-
-      seedDummyComments(codeToUse)
+      // Sweep any leftover demo seed comments (all courses), then load real ones
+      seedDummyComments()
 
       const refreshed = JSON.parse(localStorage.getItem('approval_comments_v1') || '[]')
       const courseComments = (Array.isArray(refreshed) ? refreshed : []).filter(c => c.courseCode === codeToUse)
@@ -167,7 +155,8 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
     }
     const roleToName = {
       'INDUSTRY_CONSULTANT': 'CRUZ, ROBERTO',
-      'DIRECTOR_OF_LIBRARIES': 'GARCIA, CARLOS',
+      'DIRECTOR_OF_LIBRARIES': 'SANTOS, MARIA',
+      'LIBRARY_DIRECTOR': 'SANTOS, MARIA',
       'PROGRAM_HEAD': 'DANILA, JUNAR',
       'DEAN': 'REYES, AGNES',
       'INSTRUCTOR': 'CASIMERO, DANNY',
@@ -192,7 +181,13 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
         )
 
         const converted = rows
-          .filter(r => !existingTexts.has((r.message || '').trim().toLowerCase()))
+          .filter(r => {
+            const full = (r.message || '').trim().toLowerCase()
+            // server copies of DOL comments carry an appended suggestion line —
+            // compare the base text too so they don't duplicate in the sidebar
+            const base = (r.message || '').split('\n\nSuggested reference')[0].trim().toLowerCase()
+            return !existingTexts.has(full) && !existingTexts.has(base)
+          })
           .map(r => {
             const co = r.co_no ? `CO${r.co_no}` : null
             const ilo = r.co_no && r.ilo_no ? `CO${r.co_no}-ILO${r.ilo_no}` : null
@@ -708,7 +703,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
       const submittedAt = payload.createdAt || now.toISOString()
       const submissionLabel = 'Submission'
 
-      const reviewerNames = { 'instructor': 'CASIMERO, DANNY', 'program-head': 'DANILA, JUNAR', 'dean': 'REYES, AGNES', 'director-of-libraries': 'GARCIA, CARLOS', 'industry-consultant': 'CRUZ, ROBERTO' }
+      const reviewerNames = { 'instructor': 'CASIMERO, DANNY', 'program-head': 'DANILA, JUNAR', 'dean': 'REYES, AGNES', 'director-of-libraries': 'SANTOS, MARIA', 'industry-consultant': 'CRUZ, ROBERTO' }
       const storedUser = JSON.parse(localStorage.getItem('user') || 'null')
       const reviewer = reviewerNames[roleKey] || storedUser?.name || 'Approver'
       const roleLabel = roleKey === 'program-head' ? 'Program Head'
@@ -748,8 +743,79 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
         }))
       }))
 
+      // DOL comments target references directly — attach the reference titles
+      // so the sidebar shows [REFERENCES: ...] chips like other roles' comments.
+      const dolRefTitles = roleKey === 'director-of-libraries'
+        ? (payload.commentedReferences || []).map(id => getReferenceById(id)?.title).filter(Boolean)
+        : []
+      if (dolRefTitles.length > 0) {
+        prepared.forEach(p => {
+          if (!p.coverageType) p.coverageType = 'References'
+          if (!p.coverageDetail || (Array.isArray(p.coverageDetail) && p.coverageDetail.length === 0)) p.coverageDetail = dolRefTitles
+        })
+      }
+
       const newComments = [...allArray, ...prepared]
       localStorage.setItem(storageKey, JSON.stringify(newComments))
+
+      // Persist each comment to the SERVER too, so the instructor sees it in
+      // Review Corrections and the notif badges count it. CO/ILO labels are
+      // resolved to real ids server-side.
+      const forMap = { 'Topic': 'topics', 'References': 'references', 'TLA': 'tlas' }
+      prepared.forEach(c => {
+        const coIndex = c.courseOutcome ? parseInt(String(c.courseOutcome).replace(/\D/g, ''), 10) : null
+        const iloIndex = c.ilo && String(c.ilo).includes('ILO') ? parseInt(String(c.ilo).split('ILO')[1], 10) : null
+        if (!coIndex || !iloIndex) return // untargeted comments stay local-only
+        const targetTitles = Array.isArray(c.coverageDetail) ? c.coverageDetail : (c.coverageDetail ? [c.coverageDetail] : [])
+        fetchJson('/api/comments/by-course', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            code,
+            commenter_role: ACTOR_ROLE_MAP[roleKey] || roleKey.toUpperCase(),
+            message: c.comment,
+            co_index: coIndex,
+            ilo_index: iloIndex,
+            comment_for: forMap[c.coverageType] || null,
+            target_titles: targetTitles,
+          })
+        }).catch(e => { if (import.meta.env.DEV) console.warn('Comment not persisted to server:', e?.message) })
+      })
+
+      // Director of Libraries flow: no CO/ILO pickers — the comment targets a
+      // reference directly, and the server resolves the ILO from that reference.
+      // Suggested references are appended to the message so the instructor
+      // sees them in Review Corrections too.
+      const commentedRefIds = (payload.commentedReferences || []).filter(Boolean)
+      const suggested = payload.suggestedReferences || []
+      if (roleKey === 'director-of-libraries' && (commentedRefIds.length > 0 || suggested.length > 0)) {
+        const text = (payload.comments || []).map(c => c.text).filter(t => t && t.trim()).join('\n')
+        const suggestionLine = suggested.length > 0
+          ? `Suggested reference${suggested.length > 1 ? 's' : ''}: ` +
+            suggested.map(r => `${r.title}${r.authors ? ' — ' + r.authors : ''}`).join('; ')
+          : ''
+        // Message = comment text (+ suggestions), or the suggestions alone
+        const message = text
+          ? (suggestionLine ? `${text}\n\n${suggestionLine}` : text)
+          : suggestionLine
+        if (message) {
+          const postToServer = (targetTitles) => fetchJson('/api/comments/by-course', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              code,
+              commenter_role: 'LIBRARY_DIRECTOR',
+              message,
+              comment_for: 'references',
+              target_titles: targetTitles,
+            })
+          }).catch(e => { if (import.meta.env.DEV) console.warn('DOL comment not persisted to server:', e?.message) })
+
+          const targetTitles = commentedRefIds.map(id => getReferenceById(id)?.title).filter(Boolean)
+          if (targetTitles.length > 0) targetTitles.forEach(t => postToServer([t]))
+          else postToServer([]) // suggestion-only — server attaches to the course's first reference ILO
+        }
+      }
 
       console.debug('Saved approver comments', { code, section: selectedSection, count: prepared.length })
 
@@ -871,12 +937,13 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
             }
             if (effectiveStatus !== 'approved' && roleKey !== 'instructor') {
               return (<>
-                <div className={`${styles.draft} ${!isRoleActive() ? styles['disabled-btn'] : ''}`} onClick={() => {
-                  if (hasRoleApproved()) { setReadOnlyCommentModal(true); openComment() }
-                  else if (isRoleActive()) { setReadOnlyCommentModal(false); openComment() }
+                <div className={`${styles.draft} ${!(isRoleActive() || hasRoleApproved()) ? styles['disabled-btn'] : ''}`} onClick={() => {
+                  // Approvers can always ADD comments while the plan is in review —
+                  // including in the returned stage or after their own approval.
+                  if (isRoleActive() || hasRoleApproved()) { setReadOnlyCommentModal(false); openComment() }
                   else if (roleKey === 'dean') showToastMsg('Waiting for previous approvers to complete their review.', 'warning')
                   else showToastMsg('Commenting is not available until the workflow reaches your review stage.', 'warning')
-                }}><MessageSquare size={16} /> {hasRoleApproved() ? 'View Comments' : 'Add Comment'}</div>
+                }}><MessageSquare size={16} /> Add Comment</div>
                 <div className={`${styles.submit} ${(!isRoleActive() || hasRoleApproved()) ? styles['disabled-btn'] : ''}`} onClick={() => {
                   if (hasRoleApproved()) showToastMsg('You have already approved this learning plan.', 'warning')
                   else if (isRoleActive()) setApprovePhase('CONFIRM')

@@ -1,8 +1,11 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import styles from '../styles/CoursesTable.module.sass';
-import { ChevronRight, Edit, XCircle, HelpCircle } from 'react-feather';
+import { ChevronRight, Edit, XCircle, HelpCircle, Download } from 'react-feather';
 import { fetchJson } from "../utils/api.js";
+import { buildSyllabusExportFile } from "../utils/exportSyllabus.js";
+import PDFViewerModal from "./PDFViewerModal.jsx";
+import unclogo from '../assets/unclogo.png';
 
 // --- Custom Date Formatters to Ensure Global Consistency ---
 const formatDate = (dateString) => {
@@ -119,6 +122,37 @@ const CoursesTable = () => {
         const pco = assignment.ProgramCourseOffering || {};
         const course = pco.Course || {};
         return course.course_title || course.title || course.name || pco.course_description || '-';
+    };
+
+    // ── Row Export (same output as the Export inside the Learning Plan page) ──
+    const [exportFile, setExportFile] = useState(null);
+    const [exporting, setExporting] = useState(false);
+    const closeExportModal = () => {
+        if (exportFile) URL.revokeObjectURL(exportFile.file_url);
+        setExportFile(null);
+    };
+    const handleExport = async (row) => {
+        try {
+            setExporting(true);
+            const logoUrl = new URL(unclogo, window.location.origin).href;
+            const file = await buildSyllabusExportFile({
+                pcId: getOfferingID(row),
+                revNum: getRevNum(row),
+                code: getCode(row),
+                workflow: null,
+                logoUrl,
+            });
+            setExportFile({
+                ...file,
+                course_name: file.course_name || getName(row),
+                submission_date: file.submission_date || row.date_submitted || null,
+            });
+        } catch (err) {
+            console.warn('Export failed:', err);
+            alert('Export error: ' + (err?.message || err || 'unknown'));
+        } finally {
+            setExporting(false);
+        }
     };
 
     const computeOverallStatus = (row) => {
@@ -311,6 +345,7 @@ const CoursesTable = () => {
                             <th width={150}>CODE</th>
                             <th width={350}>COURSE NAME</th>
                             {selectedStatus === 'APPROVED' && <th width={200}>DATE APPROVED</th>}
+                            {selectedStatus === 'APPROVED' && <th style={{ width: 80, textAlign: 'center' }}></th>}
                             <th className={styles.fill}></th>
                         </tr>
                         </thead>
@@ -321,6 +356,11 @@ const CoursesTable = () => {
                                 <td width={150}>{getCode(row)}</td>
                                 <td width={350}>{getName(row)}</td>
                                 {selectedStatus === 'APPROVED' && <td width={200}>{formatDate(row.date_approved)}</td>}
+                                {selectedStatus === 'APPROVED' && <td style={{ width: 80, textAlign: 'center', fontWeight: 500 }}>
+                                    <span className="actionLink" style={{ minWidth: 90, display: 'inline-flex', alignItems: 'center', gap: 5, cursor: exporting ? 'wait' : 'pointer', justifyContent: 'center', color: '#6b7280' }} onClick={() => !exporting && handleExport(row)}>
+                                        {exporting ? '...' : 'Export'} <Download size={16} />
+                                    </span>
+                                </td>}
                                 <td className={styles.fill}>
                                     <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                                         <Link
@@ -397,6 +437,22 @@ const CoursesTable = () => {
             </div>
 
             {popup.open && <DetailsPopup data={popup.data} onClose={closePopup} />}
+
+            {exportFile && (
+                <PDFViewerModal
+                    file={exportFile}
+                    kind="Syllabus Export"
+                    onClose={closeExportModal}
+                    onExport={(f) => {
+                        if (f.file_url) {
+                            const a = document.createElement('a');
+                            a.href = f.file_url;
+                            a.download = f.file_name || 'syllabus.html';
+                            a.click();
+                        }
+                    }}
+                />
+            )}
         </div>
     );
 };

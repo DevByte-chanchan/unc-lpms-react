@@ -1,5 +1,5 @@
 export const reviewerSeeds = [
-  { name: 'GARCIA, CARLOS', role: 'Director of Libraries' },
+  { name: 'SANTOS, MARIA', role: 'Director of Libraries' },
   { name: 'REYES, AGNES', role: 'Dean' },
   { name: 'DANILA, JUNAR', role: 'Program Head' },
   { name: 'CRUZ, ROBERTO', role: 'Industry Consultant' },

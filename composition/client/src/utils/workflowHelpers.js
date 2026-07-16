@@ -47,7 +47,13 @@ export const advanceWorkflow = (courseCode = '') => {
   const all = _readAll()
   const wf = all[courseCode] || defaultWorkflow(courseCode)
 
-  if (wf.currentStage === 'returned') return wf;
+  const allParallelDone = (wf.parallelReview && wf.parallelReview.library_director?.status === 'done' && wf.parallelReview.industry_consultant?.status === 'done' && wf.parallelReview.program_head?.status === 'done')
+
+  // Returned plans stay in 'returned' until reviewers act again — but once ALL
+  // parallel reviewers have (re-)accepted, the workflow must proceed to the
+  // dean instead of staying stuck (previously this early-returned forever,
+  // locking the dean out after a return → re-approve cycle).
+  if (wf.currentStage === 'returned' && !allParallelDone) return wf;
 
   // 1. Submitted → parallel_review when any parallel reviewer acts
   const anyParallelStarted = (wf.parallelReview && (wf.parallelReview.library_director?.status === 'done' || wf.parallelReview.industry_consultant?.status === 'done'))
@@ -56,8 +62,7 @@ export const advanceWorkflow = (courseCode = '') => {
   }
 
   // 2. All parallel review done → dean
-  const allParallelDone = (wf.parallelReview && wf.parallelReview.library_director?.status === 'done' && wf.parallelReview.industry_consultant?.status === 'done' && wf.parallelReview.program_head?.status === 'done')
-  if (allParallelDone && wf.currentStage !== 'dean') {
+  if (allParallelDone && wf.currentStage !== 'dean' && wf.dean?.status !== 'done') {
     wf.currentStage = 'dean'
   }
 

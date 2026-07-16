@@ -54,6 +54,15 @@ module.exports = {
             `DELETE FROM AssignmentWorkflowLogs WHERE co_assign_id = ${assignId};`
         );
 
+        // Keep the ASSIGNED event so the Revisions timeline still opens with
+        // "Program Head initialized and routed the learning plan..."
+        // (ASSIGNED alone does not change the Draft status computation.)
+        await queryInterface.sequelize.query(
+            `INSERT INTO AssignmentWorkflowLogs (co_assign_id, actor_role, action_type, createdAt, updatedAt)
+             SELECT co_assign_id, 'PROGRAM_HEAD', 'ASSIGNED', COALESCE(date_assigned, CURRENT_TIMESTAMP), COALESCE(date_assigned, CURRENT_TIMESTAMP)
+             FROM CourseOfferingAssignments WHERE co_assign_id = ${assignId};`
+        );
+
         // ============================================================================
         // 4. REMOVE THE ADDED SUBTOPIC
         // ============================================================================
