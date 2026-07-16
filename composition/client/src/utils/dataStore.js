@@ -1,0 +1,134 @@
+import { syllabiData as staticSyllabi } from '../data/syllabiData.js'
+import { enrichSyllabi } from '../data/syllabiDataEnricher.js'
+import { getWorkflow } from './workflowHelpers.js'
+
+const SYLLABI_KEY = 'lpms_syllabi_v2'
+const SUGGESTIONS_KEY = 'lpms_suggestions_v1'
+
+function safeStorage() {
+  if (typeof window !== 'undefined' && window.localStorage) {
+    return window.localStorage
+  }
+  return null
+}
+
+function initSyllabi() {
+  const storage = safeStorage()
+  try {
+    const raw = storage ? storage.getItem(SYLLABI_KEY) : null
+    if (raw) {
+      const data = JSON.parse(raw)
+      enrichSyllabi(data)
+      if (storage) storage.setItem(SYLLABI_KEY, JSON.stringify(data))
+      return data
+    }
+  } catch (e) { console.warn('Failed to parse stored syllabi, reinitializing:', e) }
+  const enriched = [...staticSyllabi]
+  enrichSyllabi(enriched)
+  if (storage) storage.setItem(SYLLABI_KEY, JSON.stringify(enriched))
+  return enriched
+}
+
+const normalizeInstructor = (s) => {
+  if (!s.instructor || s.instructor.toLowerCase().includes('norton') || s.instructor.toLowerCase().includes('monica')) {
+    return { ...s, instructor: 'CASIMERO, DANNY' }
+  }
+  return s
+}
+
+export function getSyllabi() {
+  return initSyllabi().map(normalizeInstructor)
+}
+
+export function getUnifiedSyllabi() {
+  return initSyllabi().map(s => {
+    const wf = getWorkflow(s.code)
+    return { ...s, workflow: wf, currentStage: wf.currentStage }
+  })
+}
+
+export function getSyllabus(code) {
+  const all = initSyllabi()
+  const found = all.find(s => s.code === code) || null
+  return found ? normalizeInstructor(found) : null
+}
+
+export function updateSyllabus(code, updates) {
+  const all = initSyllabi()
+  const idx = all.findIndex(s => s.code === code)
+  if (idx === -1) return null
+  all[idx] = { ...all[idx], ...updates }
+  localStorage.setItem(SYLLABI_KEY, JSON.stringify(all))
+  return all[idx]
+}
+
+export function addReference(code, ref) {
+  const syllabus = getSyllabus(code)
+  if (!syllabus) return null
+  const refs = [...(syllabus.references || [])]
+  const newRef = { ...ref, id: ref.id || `REF-${Date.now()}` }
+  refs.push(newRef)
+  updateSyllabus(code, { references: refs })
+  return newRef
+}
+
+export function getSuggestions(courseCode) {
+  const storage = safeStorage()
+  try {
+    const raw = storage ? storage.getItem(SUGGESTIONS_KEY) : null
+    const all = raw ? JSON.parse(raw) : []
+    if (!Array.isArray(all)) return []
+    return courseCode ? all.filter(s => s.courseCode === courseCode) : all
+  } catch (e) { return [] }
+}
+
+export function addSuggestion(courseCode, reference, suggestedBy) {
+  const storage = safeStorage()
+  const all = getSuggestions(null)
+  const suggestion = {
+    id: `SUG-${Date.now()}`,
+    courseCode,
+    reference: { ...reference },
+    suggestedBy,
+    suggestedAt: new Date().toISOString(),
+    status: 'pending'
+  }
+  all.push(suggestion)
+  if (storage) storage.setItem(SUGGESTIONS_KEY, JSON.stringify(all))
+  return suggestion
+}
+
+export function acceptSuggestion(suggestionId) {
+  const storage = safeStorage()
+  const all = getSuggestions(null)
+  const idx = all.findIndex(s => s.id === suggestionId)
+  if (idx === -1) return null
+  all[idx].status = 'accepted'
+  all[idx].acceptedAt = new Date().toISOString()
+  if (storage) storage.setItem(SUGGESTIONS_KEY, JSON.stringify(all))
+  const rawType = (all[idx].reference.type || '').toLowerCase()
+  const mappedType = rawType === 'book' ? 'Textbook'
+    : rawType.includes('online') ? 'Online Resources'
+    : rawType.includes('educational') || rawType === 'oer' ? 'Open Educational Resources'
+    : 'Textbook'
+  addReference(all[idx].courseCode, {
+    title: all[idx].reference.title,
+    authors: all[idx].reference.authors,
+    type: mappedType,
+    year: all[idx].reference.year,
+    isbn: all[idx].reference.isbn || '',
+    link: all[idx].reference.link || ''
+  })
+  return all[idx]
+}
+
+export function rejectSuggestion(suggestionId) {
+  const storage = safeStorage()
+  const all = getSuggestions(null)
+  const idx = all.findIndex(s => s.id === suggestionId)
+  if (idx === -1) return null
+  all[idx].status = 'rejected'
+  all[idx].rejectedAt = new Date().toISOString()
+  if (storage) storage.setItem(SUGGESTIONS_KEY, JSON.stringify(all))
+  return all[idx]
+}

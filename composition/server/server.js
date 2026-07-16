@@ -4,7 +4,9 @@ const port = process.env.PORT || 5000;
 const cors = require('cors');
 
 app.use(cors({
-    origin: ['http://localhost:5173', 'http://192.168.1.255:5173']
+    // Reflect any origin (local dev app) — avoids CORS breakage when Vite
+    // auto-picks a different port (5173/5174/5180/etc.)
+    origin: true
 }));
 
 app.use(express.json());
@@ -33,6 +35,7 @@ const commentRoutes = require('./routes/comments');
 const courseCoverageRoutes = require('./routes/courseCoverage');
 const courseReferenceRoutes = require('./routes/courseReferenceRoutes');
 const revisionRoutes = require('./routes/revisionRoutes');
+const submissionRoutes = require('./routes/submissionRoutes');
 
 app.use('/api/revisions', revisionRoutes);
 app.use('/api/references', referencesRoutes);
@@ -42,6 +45,8 @@ app.use('/api/tlas', tlaRoutes);
 app.use('/api/comments', commentRoutes);
 app.use('/api/course-coverage', courseCoverageRoutes);
 app.use('/api', courseReferenceRoutes);
+app.use('/api/submit-learning-plan', submissionRoutes);
+app.use('/api/coaep', require('./routes/coaepRoutes'));
 
 // global error handler
 app.use((err, req, res, next) => {

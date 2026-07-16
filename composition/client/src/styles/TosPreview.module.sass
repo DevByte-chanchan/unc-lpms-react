@@ -1,0 +1,217 @@
+.container
+  width: 100%
+  display: flex
+  flex-direction: column
+  gap: 16px
+  background: white
+
+.section
+  flex-grow: 1
+  display: flex
+  flex-direction: column
+  height: max-content
+  padding: 20px
+  border-radius: 5px
+  border: 1px solid #DDDFDF
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.25)
+  margin-bottom: 20px
+
+.qctable
+  width: 100%
+  table-layout: fixed
+  border-collapse: collapse
+  margin-top: 20px
+  border-spacing: 0
+
+  tr
+    border-top: none
+
+  th
+    text-align: center
+    justify-content: center
+    font-weight: 500
+    color: #333
+    font-size: 16px
+    padding: 10px
+    gap: 10px
+
+  td
+    vertical-align: middle
+    padding: 10px
+
+  &.TOSTable
+    th, td
+      padding: 10px
+      border-bottom: 1px solid #DDDFDF
+      border-left: none
+      border-right: none
+
+    th:nth-child(1), td:nth-child(1)
+      width: 10%  // COs & ILOs
+
+    th:nth-child(2), td:nth-child(2)
+      width: 10%  // No. of Hours
+
+    th:nth-child(3), td:nth-child(3)
+      width: 10%  // %
+
+    th:nth-child(4), td:nth-child(4)
+      width: 10%  // No. of Points
+
+    th:nth-child(5), td:nth-child(5)
+      width: 10%  // Remembering
+
+    th:nth-child(6), td:nth-child(6)
+      width: 10%  // Understanding
+
+    th:nth-child(7), td:nth-child(7)
+      width: 10%  // Applying
+
+    th:nth-child(8), td:nth-child(8)
+      width: 10%  // Analyzing
+
+    th:nth-child(9), td:nth-child(9)
+      width: 10%  // Evaluating
+
+    th:nth-child(10), td:nth-child(10)
+      width: 10%  // Creating
+
+    .sub-column th
+      font-weight: 300
+      font-size: 14px
+      background: #F1F3F5
+
+    .lighten
+      background: #F1F3F5
+
+.cellBox
+  width: 100%
+  min-height: 45px
+  padding: 10px
+  border-radius: 5px
+  background-color: transparent
+  display: flex
+  justify-content: center
+  align-items: center
+  text-align: center
+  font-size: 14px
+
+  &.muted
+    background: #F1F3F5
+
+  &.mutedBold
+    font-weight: 600
+    background: #F1F3F5
+
+  &.readable
+    justify-content: left
+    background: #F9FAFB
+    padding-left: 20px
+
+.numberInput
+  width: 100%
+  padding: 10px
+  border: 1px solid #DDDFDF
+  border-radius: 5px
+  font-size: 14px
+  text-align: left
+  background: white
+  color: black
+  resize: none
+
+.uploadButton
+  padding: 10px 20px 10px 15px
+  background: #EA1212
+  color: white
+  border: none
+  border-radius: 20px
+  cursor: pointer
+  height: 40px
+  width: max-content
+  font-size: 14px
+  font-weight: 500
+  display: flex
+  align-items: center
+  flex-wrap: wrap
+
+.export
+  padding: 10px 20px 10px 15px
+  background: #EA1212
+  color: white
+  border: none
+  border-radius: 20px
+  cursor: pointer
+  height: 40px
+  width: max-content
+  font-size: 14px
+  font-weight: 500
+  display: inline-flex
+  align-items: center
+
+  &:hover
+    background: black
+
+.modalOverlay
+  position: fixed
+  top: 0
+  left: 0
+  width: 100%
+  height: 100%
+  background: rgba(0, 0, 0, 0.7)
+  z-index: 1000
+  display: flex
+  justify-content: center
+  align-items: center
+
+.modalContent
+  background: #FFFFFF
+  padding: 20px 60px
+  border-radius: 8px
+  max-width: 95%
+  max-height: 90%
+  overflow-y: auto
+  position: relative
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3)
+  width: 100%
+  display: flex
+  flex-direction: column
+
+.closeButton
+  position: absolute
+  top: 10px
+  right: 10px
+  background: none
+  border: none
+  font-size: 20px
+  cursor: pointer
+
+.previewTitle
+  text-align: left
+  margin-bottom: 40px
+
+.headerFields
+  display: flex
+  flex-direction: column
+  gap: 10px
+  margin-bottom: 20px
+
+.topRow, .bottomRow
+  display: grid
+  grid-template-columns: 80px 2fr 100px 1fr
+  align-items: center
+  column-gap: 40px
+
+.topRow label, .bottomRow label
+  text-align: left
+
+.exportButtonContainer
+  position: sticky
+  bottom: 0
+  width: 100%
+  display: flex
+  justify-content: flex-end
+  align-items: center
+  background: #FFFFFF
+  padding: 10px 0
+  border-top: 1px solid #DDDFDF
+  margin-top: auto

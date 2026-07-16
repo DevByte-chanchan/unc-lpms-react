@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 
 const ReferenceSummary = ({ offeringID, revisionNum, status, selectedSection, styles, stylesB, fetchJson }) => {
-    const [viewType, setViewType] = useState('Textbook');
+    const [viewType, setViewType] = useState('All');
     const [referenceData, setReferenceData] = useState(null);
     const [isReferencesLoading, setIsReferencesLoading] = useState(false);
     const [referenceCommentCounts, setReferenceCommentCounts] = useState({});
@@ -112,6 +112,7 @@ const ReferenceSummary = ({ offeringID, revisionNum, status, selectedSection, st
                     onChange={(e) => setViewType(e.target.value)}
                     className={stylesB.refSelect}
                 >
+                    <option value="All">ALL REFERENCES</option>
                     <option value="Textbook">TEXTBOOKS</option>
                     <option value="Open Educational Resources">OPEN EDUCATIONAL RESOURCES</option>
                     <option value="Online Resources">ONLINE RESOURCES</option>
@@ -119,6 +120,42 @@ const ReferenceSummary = ({ offeringID, revisionNum, status, selectedSection, st
             </div>
 
             <div className={stylesB.refScrollWrapper}>
+                {/* --- ALL REFERENCES --- */}
+                {viewType === 'All' && (
+                    <>
+                        <table className={stylesB.refTable}>
+                            <thead>
+                            <tr>
+                                <th>ID</th><th>TITLE</th><th>AUTHOR/S</th><th>ISBN / LINK</th><th>YEAR</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            {(() => {
+                                const all = [
+                                    ...getDataByType('Textbook').map((r, i) => ({ ...r, _prefix: 'TB', _idx: i + 1 })),
+                                    ...getDataByType('Open Educational Resources').map((r, i) => ({ ...r, _prefix: 'OE', _idx: i + 1 })),
+                                    ...getDataByType('Online Resources').map((r, i) => ({ ...r, _prefix: 'OR', _idx: i + 1 })),
+                                ]
+                                if (all.length === 0) return <tr><td colSpan={5} className={stylesB.refEmpty}>No references found.</td></tr>
+                                return all.map((ref) => (
+                                    <tr key={ref.id || `${ref._prefix}${ref._idx}`}>
+                                        <td>{ref._prefix}{ref._idx}</td>
+                                        <td>{ref.title}</td>
+                                        <td>{ref.authors}</td>
+                                        <td>{ref._prefix === 'TB'
+                                            ? (ref.isbn || '-') /* ISBN is plain text — never a link */
+                                            : (ref.link
+                                                ? <a href={ref.link} target="_blank" rel="noreferrer">Open Resource</a>
+                                                : (ref.isbn || '-'))}</td>
+                                        <td>{ref.year || '-'}</td>
+                                    </tr>
+                                ))
+                            })()}
+                            </tbody>
+                        </table>
+                    </>
+                )}
+
                 {/* --- TABLE 1: TEXTBOOKS --- */}
                 {viewType === 'Textbook' && (
                     <table className={stylesB.refTable}>
@@ -206,7 +243,7 @@ const ReferenceSummary = ({ offeringID, revisionNum, status, selectedSection, st
                                         </div>
                                     </td>
                                     <td>{ref.authors}</td>
-                                    <td><a href={ref.link} target="_blank" rel="noreferrer">Visit</a></td>
+                                    <td><a href={ref.link} target="_blank" rel="noreferrer">Open Resource</a></td>
                                     <td>{ref.year || '-'}</td>
                                 </tr>
                             );

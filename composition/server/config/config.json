@@ -1,9 +1,7 @@
 {
   "development": {
-    "username": "root",
-    "password": "rootdevpass",
-    "database": "lpms_composition",
-    "host": "127.0.0.1",
-    "dialect": "mysql"
+    "dialect": "sqlite",
+    "storage": "data/lpms_composition.sqlite",
+    "logging": false
   }
 }

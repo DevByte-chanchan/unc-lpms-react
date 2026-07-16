@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import styles from '../styles/DropdownMultiSelect.module.sass';
 import { ChevronDown, X } from 'react-feather';
 
-const DropdownMultiSelect = ({ label, disabled, value = [], onChange, options = [], inline = false, error }) => {
+const DropdownMultiSelect = ({ label, disabled, value = [], onChange, options = [], inline = false, error, style }) => {
     const [isOpen, setIsOpen] = useState(false);
     const dropdownRef = useRef(null);
 
@@ -96,7 +96,7 @@ const DropdownMultiSelect = ({ label, disabled, value = [], onChange, options = 
     }
 
     return (
-        <div ref={dropdownRef} className={styles.container}>
+        <div ref={dropdownRef} className={styles.container} style={style}>
             <div className={styles.label}>{label}</div>
             <div className={`${styles.dropdownContainer} ${error ? styles.error : ''} ${disabled ? styles['disabled-style'] : ''}`}>
                 <RenderDisplayArea />

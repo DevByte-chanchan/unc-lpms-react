@@ -1,5 +1,5 @@
 // controllers/referenceController.js
-const { Reference } = require('../models');
+const { Reference, sequelize, Sequelize } = require('../models');
 
 async function getAllReferences(req, res) {
     try {
@@ -35,4 +35,39 @@ async function createReference(req, res) {
     }
 }
 
-module.exports = { getAllReferences, createReference };
+/**
+ * GET /api/references/library
+ * Reference Library source of truth: every reference in the database plus the
+ * list of courses that actually use it (via ILOReferences → ILO → CO → Offering).
+ */
+async function getReferenceLibrary(req, res) {
+    try {
+        const rows = await sequelize.query(
+            `SELECT
+                 r.reference_id,
+                 r.title,
+                 r.type,
+                 r.author,
+                 r.isbn,
+                 r.link,
+                 r.publication_year,
+                 r.createdAt,
+                 GROUP_CONCAT(DISTINCT crs.course_no) AS used_in_courses
+             FROM \`References\` r
+                 LEFT JOIN ILOReferences ir ON ir.reference_id = r.reference_id
+                 LEFT JOIN IntendedLearningOutcomes ilo ON ilo.ilo_id = ir.ilo_id
+                 LEFT JOIN CourseOutcomes co ON co.co_id = ilo.co_id
+                 LEFT JOIN ProgramCourseOfferings pco ON pco.pc_offering_id = co.pc_offering_id
+                 LEFT JOIN Courses crs ON crs.course_id = pco.course_id
+             GROUP BY r.reference_id
+             ORDER BY r.title ASC;`,
+            { type: Sequelize.QueryTypes.SELECT }
+        );
+        return res.json(rows);
+    } catch (err) {
+        console.error('getReferenceLibrary error', err);
+        return res.status(500).json({ message: 'Internal server error' });
+    }
+}
+
+module.exports = { getAllReferences, createReference, getReferenceLibrary };

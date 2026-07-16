@@ -1,12 +1,37 @@
 const { CourseOfferingAssignment, ProgramCourseOffering, Course, Program, Department, AssignmentWorkflowLog } = require('../models');
+const { Op } = require('sequelize');
 
 const listAssignments = async (req, res, next) => {
     try {
-        const { page = 1, limit = 25, programId, courseId, stakeholder } = req.query;
+        const { page = 1, limit = 25, programId, courseId, stakeholder, year, semester } = req.query;
         const offset = (page - 1) * limit;
 
         const whereAssignment = {};
         if (stakeholder) whereAssignment.stakeholder_id = stakeholder;
+
+        // --- Academic Term Filtering Logic ---
+        if (year && semester) {
+            const startYear = parseInt(year, 10);
+            let startDate, endDate;
+
+            if (semester === '1st Sem') {
+                // First Semester: July 20 to Nov 25 of the given year
+                startDate = new Date(`${startYear}-06-01T00:00:00.000Z`);
+                endDate = new Date(`${startYear}-11-25T23:59:59.999Z`);
+            } else if (semester === '2nd Sem') {
+                // Second Semester: Dec 9 of the given year to April 27 of the NEXT calendar year
+                startDate = new Date(`${startYear}-12-09T00:00:00.000Z`);
+                endDate = new Date(`${startYear + 1}-04-27T23:59:59.999Z`);
+            }
+
+            if (startDate && endDate) {
+                // Filter by date_assigned falling within the academic term
+                whereAssignment.date_assigned = {
+                    [Op.between]: [startDate, endDate]
+                };
+            }
+        }
+        // ------------------------------------
 
         const whereOffering = {};
         if (programId) whereOffering.program_id = programId;
@@ -110,4 +135,64 @@ const getAssignmentById = async (req, res, next) => {
     }
 };
 
-module.exports = { listAssignments, getAssignmentById };
+/**
+ * POST /api/assignments/action
+ * Module 2 integration: records a workflow action (submit / return / approve)
+ * as an AssignmentWorkflowLog row so course-table statuses reflect real state.
+ * Body: { actor_role, action_type, pcId?, code? } — resolves the assignment
+ * from pc_offering_id when given, otherwise from the course code.
+ */
+const recordWorkflowAction = async (req, res, next) => {
+    try {
+        const { actor_role, action_type, pcId, code } = req.body || {};
+        const VALID_ACTIONS = ['SUBMITTED', 'RETURNED', 'ACCEPTED'];
+        const VALID_ROLES = ['INSTRUCTOR', 'INDUSTRY_CONSULTANT', 'LIBRARY_DIRECTOR', 'PROGRAM_HEAD', 'DEAN'];
+
+        if (!VALID_ACTIONS.includes(action_type)) {
+            return res.status(400).json({ error: `action_type must be one of: ${VALID_ACTIONS.join(', ')}` });
+        }
+        if (!VALID_ROLES.includes(actor_role)) {
+            return res.status(400).json({ error: `actor_role must be one of: ${VALID_ROLES.join(', ')}` });
+        }
+        if (!pcId && !code) {
+            return res.status(400).json({ error: 'Provide pcId or code to identify the course assignment.' });
+        }
+
+        let assignment = null;
+        if (pcId && !Number.isNaN(Number(pcId))) {
+            assignment = await CourseOfferingAssignment.findOne({ where: { pc_offering_id: Number(pcId) } });
+        }
+        if (!assignment && code) {
+            assignment = await CourseOfferingAssignment.findOne({
+                include: [{
+                    model: ProgramCourseOffering,
+                    required: true,
+                    include: [{ model: Course, required: true, where: { course_no: code } }]
+                }]
+            });
+        }
+        if (!assignment) {
+            return res.status(404).json({ error: 'No course assignment found for this course.' });
+        }
+
+        const log = await AssignmentWorkflowLog.create({
+            co_assign_id: assignment.co_assign_id,
+            actor_role,
+            action_type
+        });
+
+        return res.status(201).json({
+            log: {
+                log_id: log.log_id,
+                co_assign_id: log.co_assign_id,
+                actor_role: log.actor_role,
+                action_type: log.action_type,
+                createdAt: log.createdAt
+            }
+        });
+    } catch (err) {
+        next(err);
+    }
+};
+
+module.exports = { listAssignments, getAssignmentById, recordWorkflowAction };

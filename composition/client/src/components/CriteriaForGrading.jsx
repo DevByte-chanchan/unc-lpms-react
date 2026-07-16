@@ -121,7 +121,7 @@ const CriteriaForGrading = ({ offeringID, revisionNum, status, styles, stylesB, 
                 <table className={stylesB.criteriaTable}>
                     <thead>
                     <tr>
-                        <th rowSpan="2" className={stylesB.headerCell} style={{ width: '100px' }}>COURSE OUTCOME</th>
+                        <th rowSpan="2" className={stylesB.headerCell} style={{ width: '100px' }}><div>COURSE</div><div>OUTCOME</div></th>
                         <th rowSpan="2" className={stylesB.headerCell} style={{ width: '80px' }}>ILO #</th>
                         <th rowSpan="2" className={stylesB.headerCell}>ASSESSMENTS</th>
                         <th colSpan="4" className={stylesB.headerCell}>WEIGHT %</th>
@@ -161,7 +161,7 @@ const CriteriaForGrading = ({ offeringID, revisionNum, status, styles, stylesB, 
                                             {/* COURSE OUTCOME CELL (Spans all ILOs) */}
                                             {index === 0 && (
                                                 <td rowSpan={group.ilos.length} className={styles.coCell}>
-                                                    <strong>{group.co}</strong>
+                                                    {group.co}
                                                 </td>
                                             )}
 
@@ -177,7 +177,7 @@ const CriteriaForGrading = ({ offeringID, revisionNum, status, styles, stylesB, 
                                             </td>
 
                                             {/* Assessments */}
-                                            <td className={styles.dataCellCenter}>
+                                            <td className={stylesB.dataCellLeft}>
                                                 {Array.isArray(ilo.assessments)
                                                     ? ilo.assessments.join(', ')
                                                     : ilo.assessments}

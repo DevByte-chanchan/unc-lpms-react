@@ -127,10 +127,18 @@ const ReferenceForm = () => {
         return () => { mounted = false; };
     }, [iloId, status]);
 
+    // Persists immediately so approvers see the check without waiting for Save
     const handleToggleCommentResolution = (commentId) => {
+        const current = reviewComments.find(c => c.comment_id === commentId);
+        const nextStatus = !(current?.resolved_status);
         setReviewComments(prev => prev.map(c =>
-            c.comment_id === commentId ? { ...c, resolved_status: !c.resolved_status } : c
+            c.comment_id === commentId ? { ...c, resolved_status: nextStatus } : c
         ));
+        fetchJson(`/api/comments/update-resolution`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ updates: [{ comment_id: commentId, resolved_status: nextStatus ? 1 : 0 }] })
+        }).catch(err => console.warn('Failed to persist comment resolution:', err?.message));
     };
 
     const handleOpenAdd = () => {

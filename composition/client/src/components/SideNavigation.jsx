@@ -1,6 +1,6 @@
 import styles from '../styles/SideNavigation.module.sass'
 import unclogo from '../assets/unclogo.png'
-import { FileText, LogOut, Users, BookOpen } from 'react-feather'
+import { FileText, LogOut, BookOpen, Upload } from 'react-feather'
 import { useSearchParams, useNavigate, useLocation } from 'react-router-dom'
 import { useEffect, useRef, useState } from 'react'
 
@@ -16,6 +16,33 @@ const SideNavigation = ({ mode = 'instructor' }) => {
         selected = 'TOS';
     }
 
+    // LPSM Instructor pages
+    if (location.pathname.startsWith('/lpsm/instructor')) {
+        selected = 'Syllabus';
+    }
+
+    // LPSM Program Head upload pages
+    if (location.pathname.startsWith('/role/program-head/upload-documents')) {
+        selected = 'COAEP';
+    }
+    if (location.pathname.startsWith('/role/program-head/co-po-alignment')) {
+        selected = 'CO & PO Alignment';
+    }
+    if (location.pathname.startsWith('/role/program-head/po-peo-alignment')) {
+        selected = 'PO & PEO Alignment';
+    }
+
+    // LPSM Director of Libraries pages
+    if (location.pathname.startsWith('/role/director-of-libraries/reference-library') ||
+        location.pathname.startsWith('/role/director-of-libraries/add-reference') ||
+        location.pathname.startsWith('/role/director-of-libraries/view-reference') ||
+        location.pathname.startsWith('/role/director-of-libraries/edit-reference')) {
+        selected = 'Reference Library';
+    }
+    if (location.pathname.startsWith('/role/director-of-libraries/upload-documents')) {
+        selected = 'Upload Documents';
+    }
+
     const [showPopup, setShowPopup] = useState(false)
     const [isExpanded, setIsExpanded] = useState(false)
     const logoutRef = useRef(null)
@@ -26,6 +53,8 @@ const SideNavigation = ({ mode = 'instructor' }) => {
         if (page === 'Syllabus') {
             if (mode === 'program-head') navigate('/role/program-head/approval-course-table?page=Syllabus');
             else if (mode === 'dean') navigate('/role/dean?page=Syllabus');
+            else if (mode === 'director-of-libraries') navigate('/role/director-of-libraries/approval-course-table?page=Syllabus');
+            else if (mode === 'industry-consultant') navigate('/role/industry-consultant/approval-course-table?page=Syllabus');
             else navigate('/');
         }
         else if (page === 'TOS') {
@@ -71,7 +100,7 @@ const SideNavigation = ({ mode = 'instructor' }) => {
                 }
             })
             ro.observe(navRef.current)
-        } catch (e) {}
+        } catch (e) { console.warn('ResizeObserver failed', e) }
         return () => { if (ro && navRef.current) ro.disconnect() }
     }, [showPopup])
 
@@ -85,20 +114,21 @@ const SideNavigation = ({ mode = 'instructor' }) => {
                     const w = window.getComputedStyle(n).width
                     const num = parseFloat(w)
                     if (!isNaN(num) && num <= 110) return n
-                } catch (e) {}
+                } catch (e) { console.warn('Failed to parse width', e) }
                 n = n.parentElement
             }
             return null
         }
         const target = findSidebarAncestor(el) || el.parentElement
-        const enter = () => { if (target && !pinned) { target.classList.add('expanded'); target.classList.add('expanded-left') } }
-        const leave = () => { if (target && !pinned) { target.classList.remove('expanded'); target.classList.remove('expanded-left') } }
+        const toggle = (add) => { if (target) { target.classList.toggle('expanded', add); target.classList.toggle('expanded-left', add) }; document.body.classList.toggle('sidebar-expanded', add) }
+        const enter = () => { if (!pinned) toggle(true) }
+        const leave = () => { if (!pinned) toggle(false) }
         el.addEventListener('mouseenter', enter)
         el.addEventListener('mouseleave', leave)
         return () => {
             el.removeEventListener('mouseenter', enter)
             el.removeEventListener('mouseleave', leave)
-            if (target) { target.classList.remove('expanded'); target.classList.remove('expanded-left') }
+            toggle(false)
         }
     }, [pinned])
 
@@ -109,6 +139,7 @@ const SideNavigation = ({ mode = 'instructor' }) => {
                     setPinned(p => !p)
                     const target = navRef.current ? navRef.current.parentElement : null
                     if (target) { target.classList.toggle('expanded'); target.classList.toggle('expanded-left') }
+                    document.body.classList.toggle('sidebar-expanded')
                 }} style={{ cursor: 'pointer' }} />
             </div>
 
@@ -125,54 +156,46 @@ const SideNavigation = ({ mode = 'instructor' }) => {
             </div>
 
             <div className={styles['nav-list']}>
-                {mode !== 'hr-staff' && (
+                {mode !== 'vpaa' && (
                     <div
                         onClick={() => handlePageChange('Syllabus')}
                         className={`${styles.list} ${selected === 'Syllabus' ? styles.selected : ''}`}
                     >
                         <FileText size={24} />
-                        <span className={styles.listText}>Syllabus</span>
+                        <span className={styles.listText}>Learning Plan</span>
                     </div>
                 )}
 
-                {mode === 'instructor' && (
-                    <div
-                        onClick={() => handlePageChange('TOS')}
-                        className={`${styles.list} ${selected === 'TOS' ? styles.selected : ''}`}
-                    >
-                        <FileText size={24} />
-                        <span className={styles.listText}>TOS</span>
-                    </div>
-                )}
+
 
                 {mode === 'program-head' && (
                     <>
-                        <div onClick={() => { navigate('/role/program-head/industry-consultant?page=Industry%20Consultant') }} className={`${styles.list} ${selected === 'Industry Consultant' ? styles.selected : ''}`}>
-                            <Users size={24} /> <span className={styles.listText}>Industry Consultant</span>
+                        <div onClick={() => { navigate('/role/program-head/co-po-alignment') }} className={`${styles.list} ${selected === 'CO & PO Alignment' ? styles.selected : ''}`}>
+                            <FileText size={24} /> <span className={styles.listText}>CO & PO Alignment</span>
                         </div>
 
-                        <div onClick={() => { navigate('/role/program-head/course-offerings?page=Course%20Offerings') }} className={`${styles.list} ${selected === 'Course Offerings' ? styles.selected : ''}`}>
-                            <BookOpen size={24} /> <span className={styles.listText}>Course Offerings</span>
-                        </div>
-                    </>
-                )}
-
-                {mode === 'dean' && (
-                    <>
-                        <div onClick={() => { navigate('/role/dean?page=Faculty') }} className={`${styles.list} ${selected === 'Faculty' ? styles.selected : ''}`}>
-                            <Users size={24} /> <span className={styles.listText}>Faculty</span>
+                        <div onClick={() => { navigate('/role/program-head/po-peo-alignment') }} className={`${styles.list} ${selected === 'PO & PEO Alignment' ? styles.selected : ''}`}>
+                            <FileText size={24} /> <span className={styles.listText}>PO & PEO Alignment</span>
                         </div>
 
-                        <div onClick={() => { navigate('/role/dean?page=Programs') }} className={`${styles.list} ${selected === 'Programs' ? styles.selected : ''}`}>
-                            <BookOpen size={24} /> <span className={styles.listText}>Programs</span>
+                        <div onClick={() => { navigate('/role/program-head/upload-documents') }} className={`${styles.list} ${selected === 'COAEP' ? styles.selected : ''}`}>
+                            <FileText size={24} /> <span className={styles.listText}>COAEP</span>
                         </div>
                     </>
                 )}
 
-                {mode === 'hr-staff' && (
+                {mode === 'director-of-libraries' && (
+                    <div onClick={() => { navigate('/role/director-of-libraries/reference-library') }} className={`${styles.list} ${selected === 'Reference Library' ? styles.selected : ''}`}>
+                        <BookOpen size={24} /> <span className={styles.listText}>Reference Library</span>
+                    </div>
+                )}
+
+                
+
+                {mode === 'vpaa' && (
                     <>
-                        <div onClick={() => { navigate('/role/hr-staff?page=Departments') }} className={`${styles.list} ${selected === 'Departments' ? styles.selected : ''}`}>
-                            <Users size={24} /> <span className={styles.listText}>Departments</span>
+                        <div onClick={() => { navigate('/role/vpaa?page=Approved%20Plans') }} className={`${styles.list} ${selected === 'Approved Plans' ? styles.selected : ''}`}>
+                            <FileText size={24} /> <span className={styles.listText}>Approved Plans</span>
                         </div>
                     </>
                 )}
@@ -186,11 +209,11 @@ const SideNavigation = ({ mode = 'instructor' }) => {
                         <div className={styles.rolePopup}>
                             <div className={styles.popupTitle}>Select role</div>
                             <button className={styles.popupItem} onClick={() => { setShowPopup(false); navigate('/') }}>Instructor</button>
-                            <button className={styles.popupItem} onClick={() => gotoRole('/role/program-head/approval-course-table')}>Program head</button>
+                            <button className={styles.popupItem} onClick={() => gotoRole('/role/program-head/approval-course-table')}>Program Head</button>
                             <button className={styles.popupItem} onClick={() => gotoRole('/role/director-of-libraries/approval-course-table')}>Director of Libraries</button>
                             <button className={styles.popupItem} onClick={() => gotoRole('/role/industry-consultant/approval-course-table')}>Industry Consultant</button>
                             <button className={styles.popupItem} onClick={() => gotoRole('/role/dean')}>Dean</button>
-                            <button className={styles.popupItem} onClick={() => gotoRole('/role/hr-staff')}>HR staff</button>
+                            <button className={styles.popupItem} onClick={() => gotoRole('/role/vpaa')}>VPAA</button>
                         </div>
                     )}
                 </div>

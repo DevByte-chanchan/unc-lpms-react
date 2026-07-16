@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useEffect, useState, useCallback } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import styles from '../styles/CoursesTable.module.sass';
 import { ChevronRight, Edit, XCircle, HelpCircle } from 'react-feather';
 import { fetchJson } from "../utils/api.js";
@@ -31,6 +31,7 @@ const formatDateTime = (dateString) => {
 };
 
 const CoursesTable = () => {
+    const [searchParams, setSearchParams] = useSearchParams();
     const currentYear = new Date().getFullYear();
     const startYear = 2000;
     const semOptions = ['1st Sem', '2nd Sem'];
@@ -45,36 +46,51 @@ const CoursesTable = () => {
     }
 
     const [selectedYear, setSelectedYear] = useState(currentYear);
-    const [selectedSem, setSelectedSem] = useState(semOptions[0] || "");
+    const [selectedSem, setSelectedSem] = useState(semOptions[0]);
 
     const statusesOptions = ["DRAFT", "PENDING", "RETURNED", "APPROVED"];
     const [statuses, setStatuses] = useState(statusesOptions);
-    const [selectedStatus, setSelectedStatus] = useState('DRAFT');
+    const urlStatus = searchParams.get('status');
+    const [selectedStatus, setSelectedStatus] = useState(() => {
+        if (urlStatus) {
+            const found = statusesOptions.find(s => s.toLowerCase() === urlStatus.toLowerCase());
+            if (found) return found;
+        }
+        return 'DRAFT';
+    });
 
+    const [assignments, setAssignments] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const [popup, setPopup] = useState({ open: false, data: null });
+
+    // Handle Status Constraints based on Year Selection
     useEffect(() => {
         if (String(selectedYear) !== String(currentYear)) {
             setStatuses(["APPROVED"]);
             setSelectedStatus("APPROVED");
         } else {
             setStatuses(statusesOptions);
-            setSelectedStatus("DRAFT");
+            if (!searchParams.get('status')) setSelectedStatus("DRAFT");
         }
     }, [selectedYear, currentYear]);
 
-    const [assignments, setAssignments] = useState([]);
-    const [loading, setLoading] = useState(false);
-    const [popup, setPopup] = useState({ open: false, data: null });
-
+    // Fetch data whenever Year or Semester changes
     useEffect(() => {
         loadAssignments();
-    }, []);
+    }, [selectedYear, selectedSem]);
 
-    const handleStatusChange = (e) => setSelectedStatus(e.target.value);
+    const handleStatusChange = (e) => {
+        const val = e.target.value;
+        setSelectedStatus(val);
+        setSearchParams({ status: val.toLowerCase() }, { replace: true });
+    };
 
     async function loadAssignments() {
         setLoading(true);
         try {
-            const data = await fetchJson('/api/assignments');
+            // Append the filter query parameters to the URL
+            const url = `/api/assignments?year=${selectedYear}&semester=${encodeURIComponent(selectedSem)}`;
+            const data = await fetchJson(url);
             const rows = Array.isArray(data) ? data : (data.data || data.rows || []);
             setAssignments(rows);
         } catch (err) {
@@ -138,7 +154,6 @@ const CoursesTable = () => {
             return roleLogs.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0];
         };
 
-        // FIXED: Swapped LEARNING_DESIGNER for LIBRARY_DIRECTOR to match your workflow requirements
         const rolesToTrack = [
             { label: 'Industry Consultant', roleKey: 'INDUSTRY_CONSULTANT' },
             { label: 'Library Director', roleKey: 'LIBRARY_DIRECTOR' },
@@ -179,7 +194,6 @@ const CoursesTable = () => {
         const submissionLogs = logs.filter(l => l.action_type === 'SUBMITTED')
             .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
 
-        // FIXED: Now falls back to the native row.date_submitted if there are no 'SUBMITTED' logs yet.
         const submittedAt = submissionLogs.length > 0 ? submissionLogs[0].createdAt : row.date_submitted;
         const approverStatuses = buildApproverStatus(row);
 
@@ -312,6 +326,7 @@ const CoursesTable = () => {
                                         <Link
                                             className={'actionLink'}
                                             to={`/courses/${getOfferingID(row)}/${getRevNum(row)}/${selectedStatus.toLowerCase()}`}
+                                            state={{ fromStatus: selectedStatus.toLowerCase() }}
                                         >
                                             {selectedStatus === 'DRAFT' ? 'Compose' : 'View'}
                                             <ChevronRight size={18} />
@@ -356,12 +371,14 @@ const CoursesTable = () => {
                                             {overallStatus === 'Returned' ? (
                                                 <Link className={'actionLink'}
                                                       to={`/courses/${getOfferingID(row)}/${getRevNum(row)}/${selectedStatus.toLowerCase()}`}
+                                                      state={{ fromStatus: selectedStatus.toLowerCase() }}
                                                 >
                                                     Update<Edit size={16} />
                                                 </Link>
                                             ) : (
                                                 <Link className={'actionLink'}
                                                       to={`/courses/${getOfferingID(row)}/${getRevNum(row)}/${selectedStatus.toLowerCase()}`}
+                                                      state={{ fromStatus: selectedStatus.toLowerCase() }}
                                                 >
                                                     View <ChevronRight size={16} />
                                                 </Link>
