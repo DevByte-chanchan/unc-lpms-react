@@ -1,12 +1,37 @@
 const { CourseOfferingAssignment, ProgramCourseOffering, Course, Program, Department, AssignmentWorkflowLog } = require('../models');
+const { Op } = require('sequelize');
 
 const listAssignments = async (req, res, next) => {
     try {
-        const { page = 1, limit = 25, programId, courseId, stakeholder } = req.query;
+        const { page = 1, limit = 25, programId, courseId, stakeholder, year, semester } = req.query;
         const offset = (page - 1) * limit;
 
         const whereAssignment = {};
         if (stakeholder) whereAssignment.stakeholder_id = stakeholder;
+
+        // --- Academic Term Filtering Logic ---
+        if (year && semester) {
+            const startYear = parseInt(year, 10);
+            let startDate, endDate;
+
+            if (semester === '1st Sem') {
+                // First Semester: July 20 to Nov 25 of the given year
+                startDate = new Date(`${startYear}-06-01T00:00:00.000Z`);
+                endDate = new Date(`${startYear}-11-25T23:59:59.999Z`);
+            } else if (semester === '2nd Sem') {
+                // Second Semester: Dec 9 of the given year to April 27 of the NEXT calendar year
+                startDate = new Date(`${startYear}-12-09T00:00:00.000Z`);
+                endDate = new Date(`${startYear + 1}-04-27T23:59:59.999Z`);
+            }
+
+            if (startDate && endDate) {
+                // Filter by date_assigned falling within the academic term
+                whereAssignment.date_assigned = {
+                    [Op.between]: [startDate, endDate]
+                };
+            }
+        }
+        // ------------------------------------
 
         const whereOffering = {};
         if (programId) whereOffering.program_id = programId;

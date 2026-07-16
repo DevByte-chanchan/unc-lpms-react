@@ -12,23 +12,23 @@ module.exports = {
         const now = new Date();
 
         // ============================================================================
-// 1. FETCH EXISTING COURSE (No creation, just linking)
-// ============================================================================
+        // 1. FETCH EXISTING COURSE (No creation, just linking)
+        // ============================================================================
         const existingCourse = await queryInterface.sequelize.query(
             `SELECT course_id FROM Courses WHERE course_no = 'BIT213L' LIMIT 1;`,
             { type: queryInterface.sequelize.QueryTypes.SELECT }
         );
 
-// Safety check: Ensure the course exists before trying to attach a revision
+        // Safety check: Ensure the course exists before trying to attach a revision
         if (existingCourse.length === 0) {
             throw new Error("Course BIT213L not found. Please ensure Revision 1 seeder has run successfully.");
         }
 
         const courseId = existingCourse[0].course_id;
 
-// ============================================================================
-// 2. PROGRAM COURSE OFFERING (REVISION 2)
-// ============================================================================
+        // ============================================================================
+        // 2. PROGRAM COURSE OFFERING (REVISION 2)
+        // ============================================================================
         await queryInterface.bulkInsert('ProgramCourseOfferings', [{
             revision_number: 2,
             course_id: courseId, // Using the ID fetched from the database
@@ -39,7 +39,7 @@ module.exports = {
             updatedAt: new Date()
         }], {});
 
-// Optional: If you need the ID of this new offering for further seeding (like assignments)
+        // Optional: If you need the ID of this new offering for further seeding (like assignments)
         const offering = await queryInterface.sequelize.query(
             `SELECT pc_offering_id FROM ProgramCourseOfferings
              WHERE course_id = ${courseId} AND revision_number = 2
@@ -345,7 +345,7 @@ module.exports = {
             {
                 co_assign_id: assignId,
                 commenter_role: 'INDUSTRY_CONSULTANT',
-                message: "Functional interfaces are great, but please emphasize avoiding side-effects within lambda bodies. Junior devs often mutate external state here, causing huge concurrency bugs.",
+                message: "The topic outline for Lambda Expressions is missing critical coverage of side-effects and immutability. You must add a specific subtopic addressing state mutation and concurrency risks before this can be approved.",
                 resolved_status: true,
                 resolved_date: resolutionDate,
                 ilo_id: ilos[6].ilo_id,         // ilos[6] owns topics 12 and 13
@@ -357,7 +357,7 @@ module.exports = {
             {
                 co_assign_id: assignId,
                 commenter_role: 'INDUSTRY_CONSULTANT',
-                message: "Ensure the Singleton pattern topic explicitly covers thread-safety mechanisms (e.g., double-checked locking). Naïve implementations fail immediately in enterprise web applications.",
+                message: "Your current topic breakdown for the Singleton pattern is too basic for an advanced course. Please revise the syllabus topics to explicitly include thread-safety mechanisms, specifically double-checked locking, as required subtopics.",
                 resolved_status: true,
                 resolved_date: resolutionDate,
                 ilo_id: ilos[8].ilo_id,         // ilos[8] owns topics 16 and 17
@@ -372,7 +372,7 @@ module.exports = {
             {
                 co_assign_id: assignId,
                 commenter_role: 'PROGRAM_HEAD',
-                message: "For the 'Factory Method Sandbox' lab, do not let them just use a massive Switch statement inside the creator. Force them to use a registry pattern or reflection to earn full points.",
+                message: "The description for the 'Factory Method Sandbox' TLA is currently too vague. Revise the TLA description in the learning plan to explicitly require the use of reflection or a registry pattern, rather than basic switch statements.",
                 resolved_status: true,
                 resolved_date: resolutionDate,
                 ilo_id: ilos[8].ilo_id,         // ilos[8] owns TLAs 16 and 17
@@ -384,7 +384,7 @@ module.exports = {
             {
                 co_assign_id: assignId,
                 commenter_role: 'PROGRAM_HEAD',
-                message: "In the 'Observer Pattern Event Wiring Lab', students must demonstrate how to properly unregister listeners to prevent memory leaks (Lapsed Listener Problem). Update the rubric.",
+                message: "The 'Observer Pattern Event Wiring Lab' TLA must address the Lapsed Listener Problem. Update the TLA description and assessment criteria in the syllabus to explicitly require students to implement unregistering mechanisms.",
                 resolved_status: true,
                 resolved_date: resolutionDate,
                 ilo_id: ilos[10].ilo_id,        // ilos[10] owns TLAs 20 and 21

@@ -287,7 +287,17 @@ const ILOs = ({ offeringID, revisionNum, status, styles, fetchJson }) => {
                                     <td width={600}>{ilo.description}</td>
                                     <td className={styles.fill} width={250} style={{ display: "flex", flexDirection: "column", alignItems: "end", gap: 5 }}>
 
-
+                                        {/* Assign Week and Time Button (Trigger) */}
+                                        <button
+                                            className={`${styles.actionLink} ${styles.schedSetter}`}
+                                            onClick={() => setActiveScheduleIloId(ilo.id)}
+                                        >
+                                            <span className={styles['link-text-wrapper']}>
+                                                Set Weeks & Hours
+                                                <ChevronRight size={18} />
+                                                <div className={styles.fixedWidth}></div>
+                                            </span>
+                                        </button>
 
                                         {/* Assign Topics */}
                                         <Link className="actionLink" to={`/topics/form/${ilo.id}/${status}`}>
@@ -302,17 +312,7 @@ const ILOs = ({ offeringID, revisionNum, status, styles, fetchJson }) => {
                                                 </span>
                                         </Link>
 
-                                        {/* Assign Week and Time Button (Trigger) */}
-                                        <button
-                                            className={`${styles.actionLink} ${styles.schedSetter}`}
-                                            onClick={() => setActiveScheduleIloId(ilo.id)}
-                                        >
-                                            <span className={styles['link-text-wrapper']}>
-                                                Set Weeks & Hours
-                                                <ChevronRight size={18} />
-                                                <div className={styles.fixedWidth}></div>
-                                            </span>
-                                        </button>
+
 
                                         {/* Assign TLAs */}
                                         <Link className="actionLink" to={`/tlas/form/${ilo.id}/${status}`}>

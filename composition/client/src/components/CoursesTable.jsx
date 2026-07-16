@@ -45,12 +45,17 @@ const CoursesTable = () => {
     }
 
     const [selectedYear, setSelectedYear] = useState(currentYear);
-    const [selectedSem, setSelectedSem] = useState(semOptions[0] || "");
+    const [selectedSem, setSelectedSem] = useState(semOptions[0]);
 
     const statusesOptions = ["DRAFT", "PENDING", "RETURNED", "APPROVED"];
     const [statuses, setStatuses] = useState(statusesOptions);
     const [selectedStatus, setSelectedStatus] = useState('DRAFT');
 
+    const [assignments, setAssignments] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const [popup, setPopup] = useState({ open: false, data: null });
+
+    // Handle Status Constraints based on Year Selection
     useEffect(() => {
         if (String(selectedYear) !== String(currentYear)) {
             setStatuses(["APPROVED"]);
@@ -61,20 +66,19 @@ const CoursesTable = () => {
         }
     }, [selectedYear, currentYear]);
 
-    const [assignments, setAssignments] = useState([]);
-    const [loading, setLoading] = useState(false);
-    const [popup, setPopup] = useState({ open: false, data: null });
-
+    // Fetch data whenever Year or Semester changes
     useEffect(() => {
         loadAssignments();
-    }, []);
+    }, [selectedYear, selectedSem]);
 
     const handleStatusChange = (e) => setSelectedStatus(e.target.value);
 
     async function loadAssignments() {
         setLoading(true);
         try {
-            const data = await fetchJson('/api/assignments');
+            // Append the filter query parameters to the URL
+            const url = `/api/assignments?year=${selectedYear}&semester=${encodeURIComponent(selectedSem)}`;
+            const data = await fetchJson(url);
             const rows = Array.isArray(data) ? data : (data.data || data.rows || []);
             setAssignments(rows);
         } catch (err) {
@@ -138,7 +142,6 @@ const CoursesTable = () => {
             return roleLogs.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0];
         };
 
-        // FIXED: Swapped LEARNING_DESIGNER for LIBRARY_DIRECTOR to match your workflow requirements
         const rolesToTrack = [
             { label: 'Industry Consultant', roleKey: 'INDUSTRY_CONSULTANT' },
             { label: 'Library Director', roleKey: 'LIBRARY_DIRECTOR' },
@@ -179,7 +182,6 @@ const CoursesTable = () => {
         const submissionLogs = logs.filter(l => l.action_type === 'SUBMITTED')
             .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
 
-        // FIXED: Now falls back to the native row.date_submitted if there are no 'SUBMITTED' logs yet.
         const submittedAt = submissionLogs.length > 0 ? submissionLogs[0].createdAt : row.date_submitted;
         const approverStatuses = buildApproverStatus(row);
 
