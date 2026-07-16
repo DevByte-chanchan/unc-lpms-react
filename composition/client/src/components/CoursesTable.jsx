@@ -114,14 +114,19 @@ const CoursesTable = () => {
         const sortedLogs = [...logs].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
         const latestLog = sortedLogs.length > 0 ? sortedLogs[0] : null;
 
+        // 1. Is it Approved? Check if the Dean has EVER accepted it.
+        // This is the strongest state and overrides previous submissions/returns.
+        const deanApproval = logs.find(log => log.action_type === 'ACCEPTED' && log.actor_role === 'DEAN');
+        if (deanApproval) {
+            return 'Approved';
+        }
+
+        // 2. If not approved, is it currently Returned?
         if (latestLog && latestLog.action_type === 'RETURNED') {
             return 'Returned';
         }
 
-        if (latestLog && latestLog.action_type === 'ACCEPTED' && latestLog.actor_role === 'DEAN') {
-            return 'Approved';
-        }
-
+        // 3. If neither Approved nor Returned, is it currently Pending?
         const hasBeenSubmitted =
             row.date_submitted !== null ||
             logs.some(log => log.action_type === 'SUBMITTED' || log.action_type === 'ACCEPTED');
@@ -130,6 +135,7 @@ const CoursesTable = () => {
             return 'Pending';
         }
 
+        // 4. Default state
         return 'Draft';
     };
 

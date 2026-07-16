@@ -32,9 +32,18 @@ module.exports = {
         const assignId = assignmentQuery[0].co_assign_id;
 
         // ============================================================================
+        // 1.5 CLEANUP MANUAL TESTING
+        // Delete any real-time logs/comments you made manually via the UI so they
+        // don't conflict with the hardcoded chronological dates in this seeder.
+        // ============================================================================
+        await queryInterface.sequelize.query(
+            `DELETE FROM CommentTargets WHERE comment_id IN (SELECT comment_id FROM Comments WHERE co_assign_id = ${assignId});`
+        );
+        await queryInterface.sequelize.query(`DELETE FROM Comments WHERE co_assign_id = ${assignId};`);
+        await queryInterface.sequelize.query(`DELETE FROM AssignmentWorkflowLogs WHERE co_assign_id = ${assignId};`);
+
+        // ============================================================================
         // 2. UPDATE ASSIGNMENT RECORD
-        // Set date_submitted to simulate the instructor passing it forward.
-        // Using Sequelize bulkUpdate to natively handle dialect Date formatting.
         // ============================================================================
         await queryInterface.bulkUpdate(
             'CourseOfferingAssignments',
@@ -47,7 +56,6 @@ module.exports = {
 
         // ============================================================================
         // 3. ASSIGNMENT WORKFLOW LOGS (The Return Trail)
-        // Stops at "RETURNED", leaving the learning plan blocked.
         // ============================================================================
         await queryInterface.bulkInsert('AssignmentWorkflowLogs', [
             { co_assign_id: assignId, actor_role: 'PROGRAM_HEAD', action_type: 'ASSIGNED', createdAt: new Date('2026-06-01 09:00:00'), updatedAt: new Date('2026-06-01 09:00:00') },
@@ -60,8 +68,6 @@ module.exports = {
         // ============================================================================
         // 4. FETCH TARGETS FOR COMMENTS (Dynamic linking to foundational data)
         // ============================================================================
-
-        // Target 1: Topic - "Cognitive Models in HCI"
         const topic1Query = await queryInterface.sequelize.query(
             `SELECT topic_id FROM Topics WHERE title = 'Cognitive Models in HCI' LIMIT 1;`,
             { type: queryInterface.sequelize.QueryTypes.SELECT }
@@ -74,7 +80,6 @@ module.exports = {
         );
         const ilo1Id = iloTopic1Query[0].ilo_id;
 
-        // Target 2: TLA - Post-class lab for Usability Testing
         const tlaQuery = await queryInterface.sequelize.query(
             `SELECT tla_id FROM TeachingAndLearningActivities
              WHERE tla_name LIKE '%Moderated Usability Testing%' AND class_phase = 'postclass' LIMIT 1;`,
@@ -100,12 +105,11 @@ module.exports = {
         const phReturnDate = new Date('2026-06-19 11:35:00');
 
         const rawCommentsData = [
-            // Industry Consultant explicitly demanding a subtopic change
             {
                 co_assign_id: assignId,
                 commenter_role: 'PROGRAM_HEAD',
                 message: "The 'Cognitive Models in HCI' topic outline is missing modern contextual theories. You must explicitly add 'Distributed Cognition and Activity Theory' as a core subtopic, as this is a strict requirement for evaluating collaborative enterprise interfaces in today's industry.",
-                resolved_status: false, // Remains false because it is RETURNED and pending action
+                resolved_status: false,
                 resolved_date: null,
                 ilo_id: ilo1Id,
                 comment_for: 'topics',
@@ -113,12 +117,11 @@ module.exports = {
                 createdAt: icReturnDate,
                 updatedAt: icReturnDate
             },
-            // Program Head explicitly demanding a TLA rubric/description update
             {
                 co_assign_id: assignId,
                 commenter_role: 'PROGRAM_HEAD',
                 message: "Your 'Design Review & Implementation' post-class lab for 'Moderated Usability Testing' lacks strict ethical compliance checks. Update the TLA description to explicitly mandate that students secure and submit signed Informed Consent and NDA forms before conducting any live user tests.",
-                resolved_status: false, // Remains false because it is RETURNED and pending action
+                resolved_status: false,
                 resolved_date: null,
                 ilo_id: ilo2Id,
                 comment_for: 'tlas',
@@ -163,7 +166,7 @@ module.exports = {
     },
 
     async down(queryInterface, Sequelize) {
-        // Fetch assignment ID first for targeted teardown
+        // [Unchanged down block...]
         const assignmentQuery = await queryInterface.sequelize.query(
             `SELECT coa.co_assign_id
              FROM CourseOfferingAssignments coa
@@ -177,12 +180,10 @@ module.exports = {
         if (assignmentQuery.length > 0) {
             const assignId = assignmentQuery[0].co_assign_id;
 
-            // Delete dependent records
             await queryInterface.sequelize.query(`DELETE FROM CommentTargets WHERE comment_id IN (SELECT comment_id FROM Comments WHERE co_assign_id = ${assignId});`);
             await queryInterface.sequelize.query(`DELETE FROM Comments WHERE co_assign_id = ${assignId};`);
             await queryInterface.sequelize.query(`DELETE FROM AssignmentWorkflowLogs WHERE co_assign_id = ${assignId};`);
 
-            // Revert assignment back to DRAFT state natively
             await queryInterface.bulkUpdate(
                 'CourseOfferingAssignments',
                 {
