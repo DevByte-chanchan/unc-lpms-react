@@ -152,6 +152,49 @@ section
   opacity: 1
   visibility: visible
 
+.historyBtn
+  display: inline-flex
+  align-items: center
+  gap: 6px
+  padding: 10px 15px
+  border-radius: 5px
+  border: 1.5px solid #1A1A1A
+  background: white
+  font-size: 14px
+  font-weight: 500
+  color: #1A1A1A
+  cursor: pointer
+  font-family: inherit
+  transition: all 0.15s ease
+
+  &:hover
+    background: #4B5563
+    color: white
+    border-color: #4B5563
+
+.exportBtn
+  display: inline-flex
+  align-items: center
+  gap: 6px
+  padding: 10px 15px
+  border-radius: 5px
+  border: 1px solid #8B999D
+  background: #19282C
+  font-size: 14px
+  font-weight: 500
+  color: white
+  cursor: pointer
+  font-family: inherit
+  transition: all 0.12s ease
+
+  &:hover
+    background: #EA1212
+    border-color: #EA1212
+    color: white
+
+  svg
+    flex-shrink: 0
+
 @keyframes tooltipIn
   from
     opacity: 0

@@ -76,6 +76,10 @@
     background: #F1F3F5
     padding-left: 20px
 
+  &.outcomeIloCell
+    border: none
+    background: transparent
+
 .blankCell
   border: none
   font-weight: 500
@@ -428,6 +432,14 @@
         background: white
         color: #EA1212
 
+    .fixBtn
+      background: #1A1A1A
+      color: white
+      border: 1.5px solid #1A1A1A
+      &:hover
+        background: #F3F4F6
+        color: #1A1A1A
+
 .errorBlock
   margin-bottom: 12px
   padding: 8px 12px
@@ -437,6 +449,14 @@
 
 .spinner
   animation: btnSpin 0.8s linear infinite
+
+@keyframes fadeIn
+  from
+    opacity: 0
+    transform: translateY(-4px)
+  to
+    opacity: 1
+    transform: translateY(0)
 
 @keyframes btnSpin
   to
@@ -490,9 +510,30 @@
 .commentPanelTitle
   font-size: 16px
   font-weight: 700
-  letter-spacing: 0.07em
-  text-transform: uppercase
   color: #374151
+
+.commentResolvedToggleBtn
+  font-size: 12px
+  font-weight: 500
+  color: #6B7280
+  background: none
+  border: 1px solid #D1D5DB
+  border-radius: 4px
+  padding: 3px 8px
+  cursor: pointer
+  white-space: nowrap
+  transition: all 0.12s
+
+  &:hover
+    background: #F3F4F6
+
+  &.active
+    background: #1A1A1A
+    color: white
+    border-color: #1A1A1A
+    &:hover
+      background: #333
+      border-color: #333
 
 .commentPanelBody
   flex: 1
@@ -695,10 +736,22 @@
   outline: none
   transition: all 0.12s
 
-  &:hover
-    background: #4B5563
-    color: white
-    border-color: #4B5563
+.commentFilterDropdown
+  padding: 8px 28px 8px 12px
+  font-size: 14px
+  font-weight: 500
+  border: 1px solid #DDDFDF
+  border-radius: 5px
+  background: #fff
+  color: #333
+  outline: none
+  cursor: pointer
+  flex: 1
+  appearance: none
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")
+  background-repeat: no-repeat
+  background-position: right 10px center
+  background-size: 14px
 
 .selectionCard
   border: 1.5px solid #EA1212
@@ -735,10 +788,11 @@
   border: 1px solid #E5E7EB
   border-radius: 4px
   padding: 12px
-  margin-bottom: 10px
+  margin-bottom: 16px
   background: white
   cursor: pointer
   transition: background 0.15s ease
+  animation: fadeIn 0.25s ease-out
 
   &:hover
     background: #F9FAFB
@@ -747,20 +801,30 @@
   display: flex
   justify-content: space-between
   align-items: center
-  margin-bottom: 4px
+  margin-bottom: 8px
 
 .commentCardScope
   font-size: 14px
   font-weight: 600
   color: #374151
 
-.commentDeleteBtn
+.commentDeleteBtnWrap
   cursor: pointer
-  color: #9CA3AF
   flex-shrink: 0
+  width: 24px
+  height: 24px
+  display: flex
+  align-items: center
+  justify-content: center
+  border-radius: 4px
+  border: 1px solid #D1D5DB
+  transition: all 0.15s
+  color: #1A1A1A
 
   &:hover
+    background: #FEF2F2
     color: #EA1212
+    border: 2px solid #1A1A1A
 
 .commentCardType
   display: inline-block
@@ -780,6 +844,128 @@
   font-size: 14px
   color: #9CA3AF
   margin-top: 8px
+
+.commentResolveBtnWrap
+  cursor: pointer
+  flex-shrink: 0
+  width: 24px
+  height: 24px
+  display: flex
+  align-items: center
+  justify-content: center
+  border-radius: 4px
+  border: 1px solid #D1D5DB
+  transition: all 0.15s
+  color: #1A1A1A
+
+  &:hover
+    background: #F3F4F6
+    color: #059669
+    border: 2px solid #1A1A1A
+
+.commentUndoBtnWrap
+  cursor: pointer
+  flex-shrink: 0
+  width: 24px
+  height: 24px
+  display: flex
+  align-items: center
+  justify-content: center
+  border-radius: 4px
+  border: 1px solid #D1D5DB
+  transition: all 0.15s
+  color: #1A1A1A
+
+  &:hover
+    color: #059669
+    border: 2px solid #1A1A1A
+
+.undoBar
+  width: 100%
+  padding: 10px 12px
+  margin-bottom: 10px
+  background: #ECFDF5
+  border: 1px solid #A7F3D0
+  border-radius: 4px
+  display: flex
+  align-items: center
+  justify-content: space-between
+  gap: 8px
+  font-size: 13px
+  color: #065F46
+  animation: fadeIn 0.2s ease-out
+
+.undoBarFixed
+  @extend .undoBar
+  position: sticky
+  bottom: 0
+  z-index: 10
+  margin-bottom: 0
+
+.undoBtn
+  display: flex
+  align-items: center
+  gap: 4px
+  padding: 4px 10px
+  background: white
+  color: #374151
+  border: 1px solid #D1D5DB
+  border-radius: 4px
+  font-size: 12px
+  font-weight: 500
+  cursor: pointer
+  transition: all 0.12s
+  outline: none
+
+  &:hover
+    background: #F9FAFB
+    border-color: #9CA3AF
+
+.resolvedSection
+  margin-top: 8px
+
+.resolvedHeader
+  display: flex
+  align-items: center
+  justify-content: space-between
+  padding: 8px 12px
+  border-radius: 4px
+  background: #F9FAFB
+  cursor: pointer
+  font-size: 13px
+  font-weight: 600
+  color: #6B7280
+  text-transform: uppercase
+  letter-spacing: 0.05em
+  margin-bottom: 8px
+  transition: background 0.12s
+
+  &:hover
+    background: #F3F4F6
+
+.resolvedToggle
+  font-size: 16px
+  font-weight: 700
+  color: #9CA3AF
+  line-height: 1
+
+.resolvedCards
+  max-height: 0
+  opacity: 0
+  overflow: hidden
+  transition: all 0.3s ease
+
+.resolvedCardsOpen
+  max-height: 2000px
+  opacity: 1
+  overflow: visible
+
+.commentCardResolved
+  opacity: 0.6
+  transition: opacity 0.2s ease
+
+  &:hover
+    opacity: 1
 
 .assessmentCard
   border: 1px solid transparent
@@ -917,41 +1103,52 @@
   color: #1F2937
 
 .viewToggleGroup
-  display: flex
+  position: relative
+  display: inline-flex
+  background: #F3F4F6
+  border-radius: 8px
+  padding: 3px
+  gap: 2px
+
+.viewToggleSlider
+  position: absolute
+  top: 3px
+  left: 3px
+  width: calc(50% - 4px)
+  height: calc(100% - 6px)
+  background: white
+  border-radius: 6px
+  box-shadow: 0 1px 2px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.1)
+  transition: transform 0.2s ease
+  z-index: 0
+  pointer-events: none
 
 .viewToggleBtn
-  height: 100%
-  padding: 8px 12px
-  border: 1px solid #D1D5DB
-  border-left: none
-  background: white
-  cursor: pointer
+  position: relative
+  z-index: 1
+  padding: 7px 0
+  width: 80px
+  border: none
+  border-radius: 6px
+  outline: none
   font-size: 14px
   font-weight: 500
-  border: 1px solid #D1D5DB
-  background: white
-  color: #6B7280
+  color: #9CA3AF
+  background: transparent
   cursor: pointer
-  transition: all 0.15s ease
+  text-align: center
+  transition: color 0.15s
 
-  &:first-child
-    border-radius: 6px 0 0 6px
-
-  &:last-child
-    border-radius: 0 6px 6px 0
+  &:focus,
+  &:focus-visible
+    outline: none
 
   &:hover
-    background: #F3F4F6
+    color: #6B7280
 
 .viewToggleActive
-  background: #1A1A1A
-  color: white
-  border-color: #1A1A1A
-
-  &:hover
-    background: #F3F4F6
-    color: #1A1A1A
-    border-color: #1A1A1A
+  color: #111827
+  font-weight: 600
 
 .infoBadge
   position: relative
@@ -1041,5 +1238,149 @@
   &:hover
     background: #F3F4F6
     color: #1A1A1A
+
+  &:disabled
+    opacity: 0.4
+    cursor: not-allowed
+    &:hover
+      background: #1A1A1A
+      color: white
+
+.historyModal
+  max-width: 95vw
+  width: 95vw
+  max-height: 90vh
+  display: flex
+  flex-direction: column
+  padding: 24px 30px
+
+.historyContent
+  display: flex
+  gap: 40px
+  margin-top: 20px
+  flex: 1
+  overflow: hidden
+  min-height: 0
+
+.historyLeft
+  flex: 2
+  min-width: 0
+  overflow-y: auto
+  padding-right: 20px
+
+.historyRight
+  flex: 1
+  min-width: 300px
+  max-width: 400px
+  overflow-y: auto
+  border-left: 1px solid #E5E7EB
+  padding-left: 40px
+
+.historyPageSelect
+  width: 100%
+  padding: 8px 28px 8px 12px
+  border-radius: 5px
+  border: 1px solid #DDDFDF
+  font-size: 14px
+  font-weight: 500
+  color: #333
+  background: #fff
+  outline: none
+  cursor: pointer
+  appearance: none
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")
+  background-repeat: no-repeat
+  background-position: right 10px center
+  background-size: 14px
+  margin-bottom: 16px
+
+.historyVersionTabs
+  display: flex
+  gap: 8px
+  margin-bottom: 20px
+
+.historyVersionTab
+  padding: 6px 16px
+  border-radius: 20px
+  border: 1.5px solid #E5E7EB
+  background: white
+  font-size: 13px
+  font-weight: 500
+  color: #6B7280
+  cursor: pointer
+  transition: all 0.15s
+
+  &:hover
+    border-color: #1A1A1A
+    color: #1A1A1A
+
+.historyVersionActive
+  background: #1A1A1A
+  color: white
+  border-color: #1A1A1A
+
+.historyTimeline
+  position: relative
+  padding-left: 24px
+
+.historyTimeline::before
+  content: ''
+  position: absolute
+  left: 6px
+  top: 0
+  bottom: 0
+  width: 2px
+  background: #E5E7EB
+
+.historyAction
+  position: relative
+  margin-bottom: 24px
+
+.historyDot
+  position: absolute
+  left: -24px
+  top: 4px
+  width: 14px
+  height: 14px
+  border-radius: 50%
+  background: #3B82F6
+  border: 3px solid white
+  box-shadow: 0 0 0 1px #E5E7EB
+
+.historyActionReturn .historyDot
+  background: #EF4444
+
+.historyActionContent
+  font-size: 13px
+  color: #555
+  line-height: 1.6
+
+  p
+    margin: 0
+
+  strong
+    color: #1A1A1A
+
+.historyComment
+  margin-top: 10px
+  padding: 10px 12px
+  background: #F9FAFB
+  border-radius: 6px
+  border-left: 3px solid #DDD
+
+.historyCommentLabel
+  font-size: 12px
+  font-weight: 600
+  color: #374151
+  margin-bottom: 4px
+
+  strong
+    font-weight: 700
+
+.historyComment p
+  font-size: 12px
+  color: #666
+  font-style: italic
+  margin: 0
 
 

@@ -1,5 +1,5 @@
 import styles from '../styles/SyllabusSections.module.sass'
-import {ChevronLeft, ChevronUp, Loader, Trash2} from 'react-feather';
+import {ChevronLeft, ChevronUp, Loader, Trash2, CheckCircle, RotateCcw, Download, Clock} from 'react-feather';
 import React, {useCallback, useEffect, useRef, useState} from "react";
 import {useNavigate, useSearchParams, useLocation, useParams} from "react-router-dom";
 import layout from "../styles/TosSections.module.sass";
@@ -8,7 +8,7 @@ import TOSPreview from "../pages/TosPreview.jsx";
 import TOSSummary from "../pages/TosSummary.jsx";
 import QuestionCognitiveMapping, { AutoResizeTextarea } from "../pages/QuestionCognitiveMapping.jsx";
 import BuilderNavigation from "../components/BuilderNavigation.jsx";
-import { fetchOutcomes, fetchItems, saveOutcomes, saveItems, fetchCourse, updateCourse, updateStatus, fetchComments, createComment, deleteComment } from '../services/api.js';
+import { fetchOutcomes, fetchItems, saveOutcomes, saveItems, fetchCourse, updateCourse, updateStatus, fetchStatus, fetchComments, createComment, deleteComment, resolveComment } from '../services/api.js';
 
 const TosSections = ({status, role = 'instructor'}) => {
 
@@ -25,40 +25,40 @@ const TosSections = ({status, role = 'instructor'}) => {
     const [searchParams, setSearchParams] = useSearchParams();
     const isProgramHead = role === 'program-head';
     const [phSection, setPhSection] = useState('Table of Specifications Report');
-    const defaultSection = isProgramHead ? 'Table of Specifications Report' : 'Outcome Overview';
-    const selectedSection = isProgramHead ? phSection : (searchParams.get('section') || defaultSection);
-    const getDefaultOutlines = () => [
-        {
-            co: "CO1",
-            description: "Apply core concepts, theories, and principles of Human-Computer Interface (HCI) in proposing a User Interface (UI) design using Figma to translate a design brief into interactive screen layouts and UI components with a high-fidelity prototype demonstrating clarity, consistency, and appropriate use of visual hierarchy.",
-            totalHours: 12,
-            totalPercentage: 100,
-            totalItems: 20,
-            ilos: [
-                { id: "ILO1", description: "Analyze the relationship between cognitive psychology and human-computer interaction.", hours: 3, percentage: 20, items: 4 },
-                { id: "ILO2", description: "Synthesize user research data into actionable user personas and empathy maps.", hours: 3, percentage: 30, items: 6 },
-                { id: "ILO3", description: "Structure information architecture effectively using card sorting techniques.", hours: 6, percentage: 50, items: 10 }
-            ]
-        },
-        {
-            co: "CO2",
-            description: "User-Centered Design (UCD) principles and ISO 9241-210 standards with given user personas, contextual task flows, and feedback artifacts to develop a User Experience (UX) design that demonstrates user involvement, iterative refinement, and contextual understanding, as evaluated against established UX design criteria.",
-            totalHours: 12,
-            totalPercentage: 100,
-            totalItems: 30,
-            ilos: [
-                { id: "ILO1", description: "Apply Nielsen's 10 Usability Heuristics to critique existing interface designs.", hours: 3, percentage: 20, items: 6 },
-                { id: "ILO2", description: "Create low-fidelity wireframes that solve specific user pain points.", hours: 3, percentage: 30, items: 9 },
-                { id: "ILO3", description: "Apply Gestalt principles and color theory to enhance UI readability.", hours: 6, percentage: 50, items: 15 }
-            ]
-        }
-    ];
     const location = useLocation();
     const { code: courseCode } = useParams();
     const [effectiveStatus, setEffectiveStatus] = useState(location.state?.tosStatus || 'draft');
     const readOnly = !isProgramHead && (effectiveStatus === 'pending' || effectiveStatus === 'approved');
     const isReturnedView = isProgramHead && effectiveStatus === 'returned';
     const isInstructorReturned = !isProgramHead && effectiveStatus === 'returned';
+    const defaultSection = isProgramHead || effectiveStatus === 'pending' || effectiveStatus === 'approved' ? 'Table of Specifications Report' : 'Outcome Overview';
+    const selectedSection = isProgramHead ? phSection : (searchParams.get('section') || defaultSection);
+    const getDefaultOutlines = () => [
+        {
+            co: "CO1",
+            description: "Course Outcome 1",
+            totalHours: 10.5,
+            totalPercentage: 100,
+            totalItems: 20,
+            ilos: [
+                { id: "ILO1", description: "ILO1", hours: 1.5, percentage: 20, items: 4 },
+                { id: "ILO2", description: "ILO2", hours: 3, percentage: 30, items: 6 },
+                { id: "ILO3", description: "ILO3", hours: 6, percentage: 50, items: 10 }
+            ]
+        },
+        {
+            co: "CO2",
+            description: "Course Outcome 2",
+            totalHours: 12,
+            totalPercentage: 100,
+            totalItems: 30,
+            ilos: [
+                { id: "ILO1", description: "ILO1", hours: 2, percentage: 20, items: 6 },
+                { id: "ILO2", description: "ILO2", hours: 4, percentage: 30, items: 9 },
+                { id: "ILO3", description: "ILO3", hours: 6, percentage: 50, items: 15 }
+            ]
+        }
+    ];
     const courseName = location.state?.courseName || '';
     const fromExamType = location.state?.examType || 'Midterm';
     const fromSchoolYear = location.state?.schoolYear || String(new Date().getFullYear());
@@ -69,15 +69,47 @@ const TosSections = ({status, role = 'instructor'}) => {
 
     const [rows, setRows] = useState(defaultRows);
     const [dataLoaded, setDataLoaded] = useState(false);
-    const [tosErrors, setTosErrors] = useState([]);
-    const [showTosErrorModal, setShowTosErrorModal] = useState(false);
     const [errorFields, setErrorFields] = useState({});
     const [exportErrors, setExportErrors] = useState({ outcomeOverview: [], assessmentMapping: [], tosSummary: [] });
     const [showExportErrorModal, setShowExportErrorModal] = useState(false);
+    const [showHistoryLog, setShowHistoryLog] = useState(false);
+    const [selectedVersion, setSelectedVersion] = useState(1);
+    const [historyPage, setHistoryPage] = useState('tosReport');
+    const [historyViewMode, setHistoryViewMode] = useState('normal');
     const [submitLoading, setSubmitLoading] = useState(false);
     const [approveLoading, setApproveLoading] = useState(false);
     const [returnLoading, setReturnLoading] = useState(false);
     const submitGuardRef = useRef(false);
+
+    // Sample history data for Norton Monica's 2 approved courses
+    const historyData = {
+        'BSCS223L': {
+            versions: [
+                { version: 1, status: 'Approved', date: '2026-06-16', actions: [
+                    { role: 'Instructor', action: 'submitted the Table of Specifications', date: '2026-06-12' },
+                    { role: 'Program Head', action: 'approved the Table of Specifications', date: '2026-06-16' }
+                ]}
+            ]
+        },
+        'BSCS314L': {
+            versions: [
+                { version: 1, status: 'Returned', date: '2026-06-15', actions: [
+                    { role: 'Instructor', action: 'submitted the Table of Specifications', date: '2026-06-10' },
+                    { role: 'Program Head', action: 'returned the Table of Specifications for revision', date: '2026-06-15', comments: [
+                        { scope: { co: 'CO1', ilo: 'ILO1', cognitiveLevel: 'Applying' }, body: 'The modulation items cover amplitude and frequency but lack phase modulation examples. Add at least two items on PSK and QAM techniques.' },
+                        { scope: { co: 'CO1', ilo: 'ILO2', cognitiveLevel: 'Analyzing' }, body: 'Clarify the comparison between OSPF and BGP routing protocols. Include a practical network topology scenario.' },
+                        { scope: { co: 'CO1', ilo: 'ILO3', cognitiveLevel: 'Evaluating' }, body: 'The CRC section needs more depth. Add items on polynomial division and syndrome calculation.' },
+                        { scope: { co: 'CO2', ilo: 'ILO1', cognitiveLevel: 'Applying' }, body: 'IP addressing items should include VLSM subnetting problems. Currently only basic subnet masks are covered.' },
+                        { scope: { co: 'CO2', ilo: 'ILO2', cognitiveLevel: 'Creating' }, body: 'Network troubleshooting items lack practical scenarios. Add a lab-based item diagnosing connectivity from Wireshark captures.' }
+                    ]}
+                ]},
+                { version: 2, status: 'Approved', date: '2026-06-20', actions: [
+                    { role: 'Instructor', action: 'resubmitted the Table of Specifications', date: '2026-06-18' },
+                    { role: 'Program Head', action: 'approved the Table of Specifications', date: '2026-06-20' }
+                ]}
+            ]
+        }
+    };
 
     useEffect(() => {
         if (!courseCode || dataLoaded) return;
@@ -107,7 +139,14 @@ const TosSections = ({status, role = 'instructor'}) => {
                     items: ilo.items || 0
                 }))
             }));
-            setRows(mapped.length ? mapped : getDefaultOutlines());
+            // sync both COs to same totalItems (50/50) and redistribute ILOs by (hours × percentage)
+            const syncedTotal = Math.max(...mapped.map(co => co.totalItems), 0);
+            const synced = mapped.map(co => ({
+                ...co,
+                totalItems: syncedTotal,
+                ilos: redistIloItems(co.ilos, syncedTotal)
+            }));
+            setRows(synced.length ? synced : getDefaultOutlines());
             // build iloLookup: iloDbId → { co, iloLabel }
             const lookup = {};
             data.forEach(o => {
@@ -133,11 +172,18 @@ const TosSections = ({status, role = 'instructor'}) => {
             if (data && data.length) {
                 setComments(data.map(c => ({
                     id: c.id,
-                    scope: { co: c.co, ilo: c.ilo, cognitiveLevel: c.cognitiveLevel, itemNumber: c.itemNumber, courseOutcomeId: c.courseOutcomeId, assessmentItemId: c.assessmentItemId },
+                    scope: { co: c.co, ilo: c.ilo, cognitiveLevel: c.cognitiveLevel, itemNumber: c.itemNumber, courseOutcomeId: c.courseOutcomeId, assessmentItemId: c.assessmentItemId, returnNumber: c.returnNumber || 0 },
                     type: c.type,
                     body: c.body,
+                    resolved: c.resolved || false,
                     timestamp: new Date(c.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) + ' ' + new Date(c.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
                 })));
+            }
+        }).catch(() => {});
+        fetchStatus(courseCode).then(s => {
+            if (s) {
+                setReturnCount(s.returnCount || 0);
+                try { setReturnDates(JSON.parse(s.returnDates || '[]')); } catch {}
             }
         }).catch(() => {});
     }, [courseCode, dataLoaded]);
@@ -163,50 +209,57 @@ const TosSections = ({status, role = 'instructor'}) => {
 
     // ── Outcome Overview helpers ──────────────────────────────────────────────
 
-    // When total CO items changes → redistribute to ILOs by percentage
-    const handleTotalItemsChange = (coIndex, value) => {
-        clearFieldError(`oo-totalItems-${coIndex}`);
-        setRows(prev => {
-            const updated = prev.map((co, i) => {
-                if (i !== coIndex) return co;
-                const cleaned = value.replace(/[^0-9]/g, '');
-                const total = cleaned === "" ? 0 : Math.min(Number(cleaned), 100);
-                const newIlos = co.ilos.map(ilo => ({ ...ilo }));
-
-                if (total !== "") {
-                    let runningSum = 0;
-                    newIlos.forEach((ilo, idx) => {
-                        if (idx < newIlos.length - 1) {
-                            const allocated = Math.round((ilo.percentage / 100) * total);
-                            ilo.items = allocated;
-                            runningSum += allocated;
-                        } else {
-                            ilo.items = total - runningSum;
-                        }
-                    });
-                }
-
-                return { ...co, totalItems: total, ilos: newIlos };
-            });
-            return updated;
-        });
+    // Helpers: redistribute ILO items within a CO using (hours × percentage) ratio
+    const redistIloItems = (ilos, total) => {
+        const newIlos = ilos.map(ilo => ({ ...ilo }));
+        if (total > 0) {
+            const weights = newIlos.map(ilo => (ilo.hours || 0) * (ilo.percentage || 0));
+            const weightSum = weights.reduce((s, w) => s + w, 0);
+            if (weightSum > 0) {
+                let runningSum = 0;
+                newIlos.forEach((ilo, idx) => {
+                    if (idx < newIlos.length - 1) {
+                        const allocated = Math.round((weights[idx] / weightSum) * total);
+                        ilo.items = allocated;
+                        runningSum += allocated;
+                    } else {
+                        ilo.items = total - runningSum;
+                    }
+                });
+            } else {
+                const even = Math.floor(total / newIlos.length);
+                let runningSum = 0;
+                newIlos.forEach((ilo, idx) => {
+                    if (idx < newIlos.length - 1) {
+                        ilo.items = even;
+                        runningSum += even;
+                    } else {
+                        ilo.items = total - runningSum;
+                    }
+                });
+            }
+        } else {
+            newIlos.forEach(ilo => { ilo.items = 0; });
+        }
+        return newIlos;
     };
 
-    // When an individual ILO item count changes → recalculate CO total as sum of ILOs
-    const handleItemsChange = (coIndex, iloIndex, value) => {
-        clearFieldError(`oo-items-${coIndex}-${iloIndex}`);
+    // When total CO items changes → sync both COs (50/50), redistribute to ILOs by (hours × percentage)
+    const handleTotalItemsChange = (coIndex, value) => {
+        // Clear errors for all COs since both get updated
+        setErrorFields(prev => {
+            const n = { ...prev };
+            Object.keys(n).forEach(k => { if (k.startsWith('oo-totalItems-')) delete n[k]; });
+            return n;
+        });
         setRows(prev => {
-            const updated = prev.map((co, i) => {
-                if (i !== coIndex) return co;
-                const cleaned = value.replace(/[^0-9]/g, '');
-                const newIlos = co.ilos.map((ilo, j) => {
-                    if (j !== iloIndex) return { ...ilo };
-                    return { ...ilo, items: cleaned === "" ? 0 : Math.min(Number(cleaned), 100) };
-                });
-                const newTotal = newIlos.reduce((sum, ilo) => sum + Number(ilo.items || 0), 0);
-                return { ...co, ilos: newIlos, totalItems: newTotal };
-            });
-            return updated;
+            const cleaned = value.replace(/[^0-9]/g, '');
+            const total = cleaned === "" ? 0 : Math.min(Number(cleaned), 100);
+            return prev.map(co => ({
+                ...co,
+                totalItems: total,
+                ilos: redistIloItems(co.ilos, total)
+            }));
         });
     };
 
@@ -341,6 +394,7 @@ const TosSections = ({status, role = 'instructor'}) => {
         setActiveScope(null);
         setCommentBody('');
         setShowComment(false);
+        setShowResolvedPH(false);
     };
 
     const toggleCommentPanel = () => {
@@ -350,7 +404,9 @@ const TosSections = ({status, role = 'instructor'}) => {
     const [comments, setComments] = useState([]);
     const [addingComment, setAddingComment] = useState(false);
     const [activeScope, setActiveScope] = useState(null);
-    const [commentType, setCommentType] = useState('Item count');
+    const [returnCount, setReturnCount] = useState(0);
+    const [returnDates, setReturnDates] = useState([]);
+    const [commentType, setCommentType] = useState('Question');
     const [commentBody, setCommentBody] = useState('');
     const [scrolledPastForm, setScrolledPastForm] = useState(false);
     const assessmentBodyRef = useRef(null);
@@ -367,12 +423,49 @@ const TosSections = ({status, role = 'instructor'}) => {
     const preReturnTimerRef = useRef(null);
 
     const [commentCategory, setCommentCategory] = useState('outcomeOverview');
+    const [recentlyResolved, setRecentlyResolved] = useState(null);
+    const [showResolved, setShowResolved] = useState(false);
+    const [showResolvedPH, setShowResolvedPH] = useState(false);
+    const [returnFilter, setReturnFilter] = useState('all');
+    const resolveTimerRef = useRef(null);
+    const isInstructorPendingWithComments = effectiveStatus === 'pending' && returnCount > 0;
+    const pastReturnMax = (isReturnedView || isInstructorReturned) ? returnCount - 1 : returnCount;
+    const resolvedReturnNumbers = [...new Set(comments.filter(c => c.resolved && c.scope.returnNumber > 0 && c.scope.returnNumber <= pastReturnMax).map(c => c.scope.returnNumber))];
+    const defaultResolvedReturn = resolvedReturnNumbers.length > 0 ? String(Math.max(...resolvedReturnNumbers)) : 'all';
+    const resolvedCurrentReturn = comments.filter(c => c.resolved && c.scope.returnNumber === returnCount);
 
     useEffect(() => {
         if (selectedSection === 'Outcome Overview') setCommentCategory('outcomeOverview');
         else if (selectedSection === 'Assessment Item-Cognitive Level Alignment') setCommentCategory('alignment');
         else if (selectedSection === 'TOS Summary') setCommentCategory('alignment');
+        setShowResolved(false);
+        setShowResolvedPH(false);
     }, [selectedSection]);
+
+    const handleResolveComment = async (id) => {
+        try {
+            await resolveComment(courseCode, id, true);
+            setComments(prev => prev.map(c => c.id === id ? { ...c, resolved: true } : c));
+            setRecentlyResolved(id);
+            if (resolveTimerRef.current) clearTimeout(resolveTimerRef.current);
+            resolveTimerRef.current = setTimeout(() => {
+                setRecentlyResolved(null);
+            }, 3000);
+        } catch (err) {
+            console.error('Failed to resolve comment:', err);
+        }
+    };
+
+    const handleUnresolveComment = async (id) => {
+        try {
+            await resolveComment(courseCode, id, false);
+            setComments(prev => prev.map(c => c.id === id ? { ...c, resolved: false } : c));
+            setRecentlyResolved(null);
+            if (resolveTimerRef.current) clearTimeout(resolveTimerRef.current);
+        } catch (err) {
+            console.error('Failed to unresolve comment:', err);
+        }
+    };
 
     const filteredComments = comments.filter(c => {
         const isNumberItems = c.scope.cognitiveLevel === 'Number of Items';
@@ -393,7 +486,7 @@ const TosSections = ({status, role = 'instructor'}) => {
         if (!el) return;
         el.addEventListener('scroll', handleCommentScroll);
         return () => el.removeEventListener('scroll', handleCommentScroll);
-    }, [handleCommentScroll, showComment]);
+    }, [handleCommentScroll, showComment, isInstructorPendingWithComments]);
 
     const scrollToForm = () => {
         if (commentBodyRef.current) {
@@ -409,10 +502,10 @@ const TosSections = ({status, role = 'instructor'}) => {
 
     useEffect(() => {
         const el = assessmentBodyRef.current;
-        if (!el || !isProgramHead || selectedSection !== 'Assessment Items') return;
+        if (!el || selectedSection !== 'Assessment Items') return;
         el.addEventListener('scroll', handleAssessmentScroll);
         return () => el.removeEventListener('scroll', handleAssessmentScroll);
-    }, [handleAssessmentScroll, selectedSection, isProgramHead]);
+    }, [handleAssessmentScroll, selectedSection]);
 
     const isActiveCell = useCallback((co, ilo, cognitiveLevel, itemNumber) => {
         if (!activeScope) return false;
@@ -450,27 +543,29 @@ const TosSections = ({status, role = 'instructor'}) => {
         const currentKey = activeScope ? `${activeScope.co}|${activeScope.ilo}|${activeScope.cognitiveLevel}|${activeScope.itemNumber || ''}` : '';
         if (scopeKey === currentKey) return;
         setActiveScope({ co: co || '\u2014', ilo: ilo || '\u2014', cognitiveLevel: cognitiveLevel || '\u2014', itemNumber, courseOutcomeId: fks.courseOutcomeId || null, assessmentItemId: fks.assessmentItemId || null });
-        setCommentType(itemNumber ? 'Question' : 'Item count');
+        setCommentType(itemNumber ? 'Question' : '');
         setCommentBody('');
     };
 
     const handleAddComment = async () => {
         if (!activeScope || !commentBody.trim()) return;
+        const payload = {
+            co: activeScope.co === '\u2014' ? '' : activeScope.co,
+            ilo: activeScope.ilo === '\u2014' ? '' : activeScope.ilo,
+            cognitiveLevel: activeScope.cognitiveLevel === '\u2014' ? '' : activeScope.cognitiveLevel,
+            itemNumber: activeScope.itemNumber || '',
+            body: commentBody.trim(),
+            courseOutcomeId: activeScope.courseOutcomeId || null,
+            assessmentItemId: activeScope.assessmentItemId || null,
+        };
+        if (activeScope.itemNumber) payload.type = commentType;
+        payload.returnNumber = isProgramHead ? returnCount + 1 : returnCount;
         try {
-            const saved = await createComment(courseCode, {
-                co: activeScope.co === '\u2014' ? '' : activeScope.co,
-                ilo: activeScope.ilo === '\u2014' ? '' : activeScope.ilo,
-                cognitiveLevel: activeScope.cognitiveLevel === '\u2014' ? '' : activeScope.cognitiveLevel,
-                itemNumber: activeScope.itemNumber || '',
-                type: commentType,
-                body: commentBody.trim(),
-                courseOutcomeId: activeScope.courseOutcomeId || null,
-                assessmentItemId: activeScope.assessmentItemId || null,
-            });
+            const saved = await createComment(courseCode, payload);
             setComments(prev => [...prev, {
                 id: saved.id,
-                scope: { ...activeScope },
-                type: commentType,
+                scope: { ...activeScope, returnNumber: payload.returnNumber },
+                type: activeScope.itemNumber ? commentType : '',
                 body: commentBody.trim(),
                 timestamp: `${new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })} ${new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}`
             }]);
@@ -552,7 +647,7 @@ const TosSections = ({status, role = 'instructor'}) => {
     }, 0);
     const allFilled = filledCount === totalRequired;
     const allItemsHavePoints = questions.every(q => q.points && Number(q.points) > 0);
-    const canSubmit = allFilled && allItemsHavePoints && questions.length > 0;
+    const canSubmit = allFilled && allItemsHavePoints && questions.length > 0 && comments.every(c => c.resolved);
 
     useEffect(() => {
         setIsLoading(true);
@@ -563,7 +658,15 @@ const TosSections = ({status, role = 'instructor'}) => {
     const prevShowBuilder = useRef(showBuilder);
     useEffect(() => {
         const entering = !prevShowBuilder.current && showBuilder;
+        const exiting = prevShowBuilder.current && !showBuilder;
         prevShowBuilder.current = showBuilder;
+        if (entering) {
+            setCommentCategory('assessmentItems');
+            setShowResolved(false);
+        }
+        if (exiting && selectedSection === 'Assessment Item-Cognitive Level Alignment') {
+            setCommentCategory('alignment');
+        }
         if (!entering) return;
         setBuilderLoading(true);
         const timer = setTimeout(() => setBuilderLoading(false), 400);
@@ -596,10 +699,12 @@ const TosSections = ({status, role = 'instructor'}) => {
         setNavigating(true);
         if (courseCode) {
             const outcomesPayload = rows.map(r => ({
+                id: r.dbId,
                 co: r.co,
                 description: r.description || '',
                 totalItems: r.totalItems || 0,
                 ilos: (r.ilos || []).map(ilo => ({
+                    iloDbId: ilo.iloDbId,
                     description: ilo.description || '',
                     hours: ilo.hours || 0,
                     percentage: ilo.percentage || 0,
@@ -687,6 +792,9 @@ const TosSections = ({status, role = 'instructor'}) => {
         return () => {
             if (preApproveTimerRef.current) clearTimeout(preApproveTimerRef.current);
             if (preReturnTimerRef.current) clearTimeout(preReturnTimerRef.current);
+            if (resolveTimerRef.current) clearTimeout(resolveTimerRef.current);
+            if (approveTimerRef.current) clearTimeout(approveTimerRef.current);
+            if (returnTimerRef.current) clearTimeout(returnTimerRef.current);
         };
     }, []);
 
@@ -759,7 +867,7 @@ const TosSections = ({status, role = 'instructor'}) => {
 
                         <div className={styles['section-select']}>
                             <select value={selectedSection} onChange={handleSectionChange}>
-                                {isReturnedView || isProgramHead ? (
+                                {isReturnedView || isProgramHead || effectiveStatus === 'pending' || effectiveStatus === 'approved' ? (
                                     <>
                                         <option value="Table of Specifications Report">Table of Specifications Report</option>
                                         <option value="Assessment Items">Assessment Items</option>
@@ -774,20 +882,54 @@ const TosSections = ({status, role = 'instructor'}) => {
                             </select>
                         </div>
 
-                        {isReturnedView || isInstructorReturned ? (
+                        {isReturnedView ? (
                             <span className={styles.draft} style={{ color: '#999', cursor: 'default' }}>View Only</span>
                         ) : isProgramHead ? (
-                            <>
-                                <div ref={commentBtnRef} className={`${styles.draft} ${layout.commentBtn} ${showComment ? layout.commentBtnActive : ''}`} onClick={toggleCommentPanel}>
-                                    Add Comment
-                                </div>
-                                <button className={styles.submit} onClick={handleStartApprove} disabled={approveLoading}>
-                                    {approveLoading ? <Loader size={16} className={layout.spinner} /> : null}
-                                    {approveLoading ? 'Approving…' : 'Approve'}
-                                </button>
-                            </>
+                            effectiveStatus === 'approved' && historyData[courseCode] ? (
+                                <>
+                                    <button className={styles.historyBtn} onClick={() => { setShowHistoryLog(true); setSelectedVersion(1); }}>
+                                        <Clock size={16} /> History Log
+                                    </button>
+                                    <button className={styles.exportBtn} onClick={() => console.log('Export')}>
+                                        <Download size={16} /> Export
+                                    </button>
+                                </>
+                            ) : effectiveStatus === 'approved' ? (
+                                <>
+                                    <button className={styles.exportBtn} onClick={() => console.log('Export')}>
+                                        <Download size={16} /> Export
+                                    </button>
+                                </>
+                            ) : (
+                                <>
+                                    <div ref={commentBtnRef} className={`${styles.draft} ${layout.commentBtn} ${showComment ? layout.commentBtnActive : ''}`} onClick={toggleCommentPanel}>
+                                        Add Comment
+                                    </div>
+                                    <button className={styles.submit} onClick={handleStartApprove} disabled={approveLoading}>
+                                        {approveLoading ? <Loader size={16} className={layout.spinner} /> : null}
+                                        {approveLoading ? 'Approving…' : 'Approve'}
+                                    </button>
+                                </>
+                            )
                         ) : readOnly ? (
-                            <span className={styles.draft} style={{ color: '#999', cursor: 'default' }}>View Only</span>
+                            effectiveStatus === 'approved' && historyData[courseCode] ? (
+                                <>
+                                    <button className={styles.historyBtn} onClick={() => { setShowHistoryLog(true); setSelectedVersion(1); }}>
+                                        <Clock size={16} /> History Log
+                                    </button>
+                                    <button className={styles.exportBtn} onClick={() => console.log('Export')}>
+                                        <Download size={16} /> Export
+                                    </button>
+                                </>
+                            ) : effectiveStatus === 'approved' ? (
+                                <>
+                                    <button className={styles.exportBtn} onClick={() => console.log('Export')}>
+                                        <Download size={16} /> Export
+                                    </button>
+                                </>
+                            ) : (
+                                <span className={styles.draft} style={{ color: '#999', cursor: 'default' }}>View Only</span>
+                            )
                         ) : (
                         <>
                         <div className={styles.draft} onClick={handleNavigateBack}>
@@ -811,10 +953,12 @@ const TosSections = ({status, role = 'instructor'}) => {
                                         } else if (courseCode) {
                                             setSubmitLoading(true);
                                             const outcomesPayload = rows.map(r => ({
+                                                id: r.dbId,
                                                 co: r.co,
                                                 description: r.description || '',
                                                 totalItems: r.totalItems || 0,
                                                 ilos: (r.ilos || []).map(ilo => ({
+                                                    iloDbId: ilo.iloDbId,
                                                     description: ilo.description || '',
                                                     hours: ilo.hours || 0,
                                                     percentage: ilo.percentage || 0,
@@ -835,7 +979,7 @@ const TosSections = ({status, role = 'instructor'}) => {
                                 {submitLoading ? <Loader size={16} className={layout.spinner} /> : null}
                                 {submitLoading ? 'Submitting…' : 'Submit'}
                             </button>
-                            <span className={styles.submitTooltip}>Disabled due to incomplete assessment items</span>
+                            <span className={styles.submitTooltip}>{!allFilled ? 'Disabled due to incomplete assessment items' : !allItemsHavePoints ? 'Disabled due to items missing points' : 'Disabled due to unresolved comments'}</span>
                         </div>
                         </>
                         )}
@@ -866,7 +1010,7 @@ const TosSections = ({status, role = 'instructor'}) => {
                                             return rows.reduce((sum, co) => {
                                                 return sum + co.ilos.reduce((iloSum, ilo) => {
                                                     const items = aggregatedData[co.co][ilo.id][level];
-                                                    return iloSum + items.reduce((s, item) => s + item.points, 0);
+                                                    return iloSum + items.reduce((s, item) => s + (item.span || 1) * item.points, 0);
                                                 }, 0);
                                             }, 0);
                                         });
@@ -920,11 +1064,10 @@ const TosSections = ({status, role = 'instructor'}) => {
                                                                      <td><div className={previewLayout.cellBox}>{ilo.percentage || 0}</div></td>
                                                                         <td className={`${addingComment ? `${layout.cellSelectableTable}${isActiveCell(co.co, ilo.id, 'Number of Items') ? ` ${layout.cellActiveTable}` : ''}` : `${layout.cellClickable}${isTargetCell(co.co, ilo.id, 'Number of Items') ? ` ${layout.cellTargeted}` : ''}`}`} onClick={e => addingComment ? handleCellClick(co.co, ilo.id, 'Number of Items', undefined, { courseOutcomeId: co.dbId }) : (() => { const r = e.currentTarget.getBoundingClientRect(); setViewItemsTarget({ co: co.co, ilo: ilo.id, cognitiveLevel: 'Number of Items', top: r.bottom, left: r.left, width: r.width }); })()}><div className={previewLayout.cellBox}>{ilo.items || 0}</div></td>
                                                                      {cognitiveLevels.map(level => {
-                                                                         const items = aggregatedData[co.co][ilo.id][level];
-                                                                         return (
-                                                                                <td key={level} className={`${addingComment ? `${layout.cellSelectableTable}${isActiveCell(co.co, ilo.id, level) ? ` ${layout.cellActiveTable}` : ''}` : `${layout.cellClickable}${isTargetCell(co.co, ilo.id, level) ? ` ${layout.cellTargeted}` : ''}`}`} onClick={e => addingComment ? handleCellClick(co.co, ilo.id, level, undefined, { courseOutcomeId: co.dbId }) : (() => { const r = e.currentTarget.getBoundingClientRect(); setViewItemsTarget({ co: co.co, ilo: ilo.id, cognitiveLevel: level, top: r.bottom, left: r.left, width: r.width }); })()}>
-                                                                                 <div className={previewLayout.cellBox} style={{ flexDirection: 'column', gap: 2 }}>
-                                                                                     {items.length === 0 ? '\u2014' : items.map((item, i) => (
+const items = aggregatedData[co.co][ilo.id][level];
+                                                                          return (
+                                                                                 <td key={level} className={`${addingComment ? `${layout.cellSelectableTable}${isActiveCell(co.co, ilo.id, level) ? ` ${layout.cellActiveTable}` : ''}` : `${layout.cellClickable}${isTargetCell(co.co, ilo.id, level) ? ` ${layout.cellTargeted}` : ''}`}`} onClick={e => addingComment ? handleCellClick(co.co, ilo.id, level, undefined, { courseOutcomeId: co.dbId }) : (() => { const r = e.currentTarget.getBoundingClientRect(); setViewItemsTarget({ co: co.co, ilo: ilo.id, cognitiveLevel: level, top: r.bottom, left: r.left, width: r.width, isEmpty: items.length === 0 }); })()}>                                                                                  <div className={previewLayout.cellBox} style={{ flexDirection: 'column', gap: 2 }}>
+                                                                                      {items.length === 0 ? '\u2014' : items.map((item, i) => (
                                                                                          <span key={i}>{item.span} x {item.points}</span>
                                                                                      ))}
                                                                                  </div>
@@ -935,14 +1078,14 @@ const TosSections = ({status, role = 'instructor'}) => {
                                                              ))}
                                                          </React.Fragment>
                                                      ))}
-                                                     <tr data-tos-row="Total" style={{ background: '#F9FAFB', height: '50px', fontWeight: '500' }}>
-                                                         <td><div className={previewLayout.cellBox}>Total</div></td>
-                                                         <td><div className={previewLayout.cellBox}>{totalHours}</div></td>
-                                                         <td><div className={previewLayout.cellBox}>{totalPercentage}</div></td>
-                                                          <td className={`${addingComment ? `${layout.cellSelectableTable}${isActiveCell('Total', '\u2014', 'Number of Items') ? ` ${layout.cellActiveTable}` : ''}` : ''}`} onClick={addingComment ? () => handleCellClick('Total', '\u2014', 'Number of Items') : undefined}><div className={previewLayout.cellBox}>{totalItems}</div></td>
-                                                         {totalCognitive.map((total, index) => (
-                                                              <td key={index} className={`${addingComment ? `${layout.cellSelectableTable}${isActiveCell('Total', '\u2014', cognitiveLevels[index]) ? ` ${layout.cellActiveTable}` : ''}` : ''}`} onClick={addingComment ? () => handleCellClick('Total', '\u2014', cognitiveLevels[index]) : undefined}><div className={previewLayout.cellBox}>{total}</div></td>
-                                                         ))}
+                                                      <tr data-tos-row="Total" style={{ background: '#F9FAFB', height: '50px', fontWeight: '500' }}>
+                                                          <td><div className={previewLayout.cellBox}>Total</div></td>
+                                                          <td><div className={previewLayout.cellBox}>{totalHours}</div></td>
+                                                          <td><div className={previewLayout.cellBox}>{totalPercentage}</div></td>
+                                                           <td><div className={previewLayout.cellBox}>{totalItems}</div></td>
+                                                          {totalCognitive.map((total, index) => (
+                                                               <td key={index}><div className={previewLayout.cellBox}>{total}</div></td>
+                                                          ))}
                                                      </tr>
                                                     </tbody>
                                                 </table>
@@ -962,6 +1105,7 @@ const TosSections = ({status, role = 'instructor'}) => {
                                         <div className={layout.viewToggleRow}>
                                             <span className={layout.assessmentLabel}>Assessment: {assessmentName || 'Midterm'}</span>
                                             <div className={layout.viewToggleGroup}>
+                                                <div className={layout.viewToggleSlider} style={{ transform: `translateX(${viewMode === 'normal' ? '0' : 'calc(100% + 2px)'})` }} />
                                                 <button className={`${layout.viewToggleBtn} ${viewMode === 'normal' ? layout.viewToggleActive : ''}`} onClick={() => setViewMode('normal')}>List</button>
                                                 <button className={`${layout.viewToggleBtn} ${viewMode === 'group' ? layout.viewToggleActive : ''}`} onClick={() => setViewMode('group')}>Grouped</button>
                                             </div>
@@ -1111,9 +1255,10 @@ const TosSections = ({status, role = 'instructor'}) => {
                             )}
                             {displayTarget && (
                                 <div className={`${layout.viewItemsPopup}${!viewItemsTarget ? ` ${layout.viewItemsHidden}` : ''}`} style={{ top: displayTarget.top + 4, left: displayTarget.left + displayTarget.width / 2 }}>
-                                       <button className={layout.viewItemsBtn} onClick={() => {
+                                        <button className={layout.viewItemsBtn} disabled={viewItemsTarget?.isEmpty} onClick={() => {
                                             const t = viewItemsTarget;
                                             setViewItemsTarget(null);
+                                            if (!t) return;
                                             if (isProgramHead) setPhSection('Assessment Items');
                                             else setSearchParams({ section: 'Assessment Items' });
                                             viewItemsNavRef.current = true;
@@ -1131,7 +1276,12 @@ const TosSections = ({status, role = 'instructor'}) => {
                             )}
                             {(showComment || isReturnedView) && <div ref={commentRef} className={layout.commentPanel}>
                                 <div className={layout.commentPanelHeader}>
-                                    <span className={layout.commentPanelTitle}>Comments</span>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                                        <span className={layout.commentPanelTitle}>{showResolvedPH ? 'Past returns' : 'Comments'}</span>
+                                        {returnCount >= (isReturnedView ? 2 : 1) && resolvedReturnNumbers.length > 0 && <button className={`${layout.commentResolvedToggleBtn} ${showResolvedPH ? layout.active : ''}`} onClick={() => { setShowResolvedPH(p => !p); if (!showResolvedPH) { setReturnFilter(defaultResolvedReturn); setAddingComment(false); setActiveScope(null); } }}>
+                                            {showResolvedPH ? 'See active comments' : 'See past returns'}
+                                        </button>}
+                                    </div>
                                     {!isReturnedView && <span style={{ cursor: 'pointer', fontSize: 18, lineHeight: 1, color: '#888', userSelect: 'none' }} onClick={closeCommentPanel}>&times;</span>}
                                 </div>
                                 <div ref={commentBodyRef} className={layout.commentPanelBody}>
@@ -1140,16 +1290,9 @@ const TosSections = ({status, role = 'instructor'}) => {
                                             <ChevronUp size={22} strokeWidth={2.5} />
                                         </div>
                                     )}
-                                    {addingComment && activeScope ? (
+                                    {addingComment && activeScope && !showResolvedPH ? (
                                         <div className={layout.commentFormCard}>
                                             <div className={layout.commentScope}>Commenting on {activeScope.co}{activeScope.ilo !== '—' ? ` → ${activeScope.ilo}` : ''} → {activeScope.cognitiveLevel}{activeScope.itemNumber ? ` → Item ${activeScope.itemNumber}` : ''}</div>
-                                            {activeScope.ilo !== '—' && !activeScope.itemNumber && (
-                                            <select className={layout.commentTypeSelect} value={commentType} onChange={e => setCommentType(e.target.value)}>
-                                                <option value="Item count">Item count</option>
-                                                <option value="Cognitive level">Cognitive level</option>
-                                                <option value="Other">Other</option>
-                                            </select>
-                                            )}
                                             {activeScope.itemNumber && (
                                             <select className={layout.commentTypeSelect} value={commentType} onChange={e => setCommentType(e.target.value)}>
                                                 <option value="Question">Question</option>
@@ -1163,37 +1306,95 @@ const TosSections = ({status, role = 'instructor'}) => {
                                                 <button className={layout.commentAddBtn} disabled={!commentBody.trim()} onClick={handleAddComment}>Add Comment</button>
                                             </div>
                                         </div>
-                                    ) : addingComment ? (
+                                    ) : addingComment && !showResolvedPH ? (
                                         <div className={layout.commentFormCard}>
                                             <div className={layout.selectionCard} style={{ marginBottom: 0 }}>
                                                 <div className={layout.selectionPrompt}>Select a cell to comment on...</div>
                                                 <button className={layout.selectionCancel} onClick={handleCancelComment}>Cancel</button>
                                             </div>
                                         </div>
-                                    ) : isReturnedView ? null : (
+                                    ) : isReturnedView || showResolvedPH ? null : (
                                         <button className={layout.addCommentBtn} onClick={() => setAddingComment(true)}>
                                             + New Comment
                                         </button>
                                     )}
-                                    {addingComment && comments.length > 0 && (
-                                        <div className={layout.commentSectionLabel}>Other open comments ({comments.length})</div>
+                                    {showResolvedPH ? (
+                                        <>
+                                            {returnCount > 0 && (
+                                                <div style={{ marginBottom: 4 }}>
+                                                    <div style={{ display: 'flex', alignItems: 'center', fontSize: 14, color: '#6B7280', marginBottom: 12 }}>
+                                                        <select className={layout.commentFilterDropdown} value={returnFilter} onChange={e => setReturnFilter(e.target.value)} style={{ flex: 1 }}>
+                                                            <option value="all">All returns</option>
+                                                            {Array.from({ length: Math.max(0, pastReturnMax) }, (_, i) => i + 1).filter(n => resolvedReturnNumbers.includes(n)).map(n => (
+                                                                <option key={n} value={n}>Return {n}</option>
+                                                            ))}
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                            )}
+                                            <div style={{ borderTop: '1px solid #E5E7EB', marginBottom: 20 }} />
+                                            {returnFilter !== 'all' && returnDates[Number(returnFilter) - 1] && (
+                                                <div style={{ fontSize: 13, color: '#000000', textAlign: 'center', marginBottom: 12 }}>
+                                                    Returned {new Date(returnDates[Number(returnFilter) - 1]).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                                                </div>
+                                            )}
+                                            {(() => {
+                                                const filtered = comments.filter(c => c.scope.returnNumber > 0 && c.scope.returnNumber <= pastReturnMax && (returnFilter === 'all' || c.scope.returnNumber === Number(returnFilter)));
+                                                if (filtered.length === 0) return <div style={{ textAlign: 'center', color: '#9CA3AF', fontSize: 13, padding: '40px 0' }}>No comments from past returns</div>;
+                                                if (returnFilter !== 'all') return filtered.map(c => (
+                                                    <div key={c.id} className={layout.commentCard}>
+                                                        <div className={layout.commentCardHeader}>
+                                                            <div className={layout.commentCardScope}>{c.scope.co}{c.scope.ilo !== '—' ? ` → ${c.scope.ilo}` : ''} → {c.scope.cognitiveLevel}{c.scope.itemNumber ? ` → Item ${c.scope.itemNumber}` : ''}</div>
+                                                        </div>
+                                                        {c.scope.itemNumber && c.type && <div className={layout.commentCardType}>{c.type}</div>}
+                                                        <div className={layout.commentCardBody}>{c.body}</div>
+                                                        <div className={layout.commentCardTime}>{c.timestamp}</div>
+                                                    </div>
+                                                ));
+                                                const groups = {};
+                                                filtered.forEach(c => { const r = c.scope.returnNumber || 0; if (!groups[r]) groups[r] = []; groups[r].push(c); });
+                                                return Object.keys(groups).sort((a, b) => a - b).map(r => (
+                                                    <div key={r}>
+                                                        <div style={{ fontSize: 13, color: '#000000', textAlign: 'center', marginBottom: 8, paddingTop: r > 0 ? 4 : 0 }}>
+                                                            Return {r}{returnDates[r - 1] ? ` — ${new Date(returnDates[r - 1]).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}` : ''}
+                                                        </div>
+                                                        {groups[r].map(c => (
+                                                            <div key={c.id} className={layout.commentCard}>
+                                                                <div className={layout.commentCardHeader}>
+                                                                    <div className={layout.commentCardScope}>{c.scope.co}{c.scope.ilo !== '—' ? ` → ${c.scope.ilo}` : ''} → {c.scope.cognitiveLevel}{c.scope.itemNumber ? ` → Item ${c.scope.itemNumber}` : ''}</div>
+                                                                </div>
+                                                                {c.scope.itemNumber && c.type && <div className={layout.commentCardType}>{c.type}</div>}
+                                                                <div className={layout.commentCardBody}>{c.body}</div>
+                                                                <div className={layout.commentCardTime}>{c.timestamp}</div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                ));
+                                            })()}
+                                        </>
+                                    ) : (
+                                        <>
+                                    {addingComment && comments.filter(c => !c.resolved).length > 0 && (
+                                        <div className={layout.commentSectionLabel}>Other open comments ({comments.filter(c => !c.resolved).length})</div>
                                     )}
-                                    {comments.length === 0 && !addingComment && (
+                                    {comments.filter(c => !c.resolved).length === 0 && !addingComment && (
                                         <div style={{ textAlign: 'center', color: '#9CA3AF', fontSize: 13, padding: '40px 0' }}>No comments yet</div>
                                     )}
-                                    {comments.map(c => (
+                                    {comments.filter(c => !c.resolved).map(c => (
                                         <div key={c.id} className={`${layout.commentCard}${addingComment ? ` ${layout.commentCardDimmed}` : ''}`} onClick={() => handleCommentNavigation(c)} style={{ cursor: 'pointer' }}>
                                             <div className={layout.commentCardHeader}>
                                                 <div className={layout.commentCardScope}>{c.scope.co}{c.scope.ilo !== '—' ? ` → ${c.scope.ilo}` : ''} → {c.scope.cognitiveLevel}{c.scope.itemNumber ? ` → Item ${c.scope.itemNumber}` : ''}</div>
-                                                {!isReturnedView && <Trash2 size={14} className={layout.commentDeleteBtn} onClick={() => handleDeleteComment(c.id)} />}
+                                                {!isReturnedView && <span className={layout.commentDeleteBtnWrap} onClick={e => { e.stopPropagation(); handleDeleteComment(c.id); }}><Trash2 size={16} /></span>}
                                             </div>
-                                            {c.scope.ilo !== '—' && <div className={layout.commentCardType}>{c.type}</div>}
+                                            {c.scope.itemNumber && c.type && <div className={layout.commentCardType}>{c.type}</div>}
                                             <div className={layout.commentCardBody}>{c.body}</div>
                                             <div className={layout.commentCardTime}>{c.timestamp}</div>
                                         </div>
                                     ))}
+                                        </>
+                                    )}
                                 </div>
-                                {!isReturnedView && <div className={layout.commentPanelFooter}>
+                                {!isReturnedView && !showResolvedPH && <div className={layout.commentPanelFooter}>
                                     <button className={layout.commentReturnBtn} disabled={comments.length === 0 || returnLoading} onClick={handleStartReturn}>
                                         {returnLoading ? <Loader size={16} className={layout.spinner} /> : null}
                                         {returnLoading ? 'Returning…' : 'Return'}
@@ -1289,9 +1490,8 @@ const TosSections = ({status, role = 'instructor'}) => {
                                                                      className={`${layout.point} ${layout.input} ${errorFields[`oo-items-${coIndex}-${iloIndex}`] ? layout.inputError : ''}`}
                                                                      type="text"
                                                                      inputMode="numeric"
-                                                                     readOnly={readOnly}
+                                                                     readOnly
                                                                      value={ilo.items}
-                                                                     onChange={(e) => handleItemsChange(coIndex, iloIndex, e.target.value)}
                                                                 />
                                                             </div>
                                                         </td>
@@ -1339,9 +1539,15 @@ const TosSections = ({status, role = 'instructor'}) => {
                                     </section>
                                 }
                             </div>
+                            {selectedSection !== 'TOS Summary' && (
                             <div ref={commentRef} className={layout.commentPanel}>
                                 <div className={layout.commentPanelHeader}>
-                                    <span className={layout.commentPanelTitle}>Comments</span>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                                        <span className={layout.commentPanelTitle}>{showResolvedPH ? 'Past returns' : 'Comments'}</span>
+                                        {returnCount >= 2 && resolvedReturnNumbers.length > 0 && <button className={`${layout.commentResolvedToggleBtn} ${showResolvedPH ? layout.active : ''}`} onClick={() => { setShowResolvedPH(p => !p); if (!showResolvedPH) { setReturnFilter(defaultResolvedReturn); setAddingComment(false); setActiveScope(null); } }}>
+                                            {showResolvedPH ? 'See active comments' : 'See past returns'}
+                                        </button>}
+                                    </div>
                                 </div>
                                 <div ref={commentBodyRef} className={layout.commentPanelBody}>
                                     {scrolledPastForm && (
@@ -1349,30 +1555,510 @@ const TosSections = ({status, role = 'instructor'}) => {
                                             <ChevronUp size={22} strokeWidth={2.5} />
                                         </div>
                                     )}
-                                    <select
-                                        value={commentCategory}
-                                        onChange={e => setCommentCategory(e.target.value)}
-                                        style={{ width: '100%', padding: '8px 28px 8px 12px', borderRadius: 5, border: '1px solid #DDDFDF', fontSize: 14, fontWeight: 500, color: '#333', background: '#fff', outline: 'none', cursor: 'pointer', appearance: 'none', backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'12\' height=\'12\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%23666\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3E%3Cpolyline points=\'6 9 12 15 18 9\'%3E%3C/polyline%3E%3C/svg%3E")', backgroundRepeat: 'no-repeat', backgroundPosition: 'right 10px center', backgroundSize: 14, marginBottom: 12 }}
-                                    >
-                                        <option value="outcomeOverview" style={{ fontSize: 14 }}>Outcome Overview</option>
-                                        <option value="alignment" style={{ fontSize: 14 }}>Alignment</option>
-                                        <option value="assessmentItems" style={{ fontSize: 14 }}>Assessment Items</option>
-                                    </select>
-                                    {filteredComments.length === 0 && (
-                                        <div style={{ textAlign: 'center', color: '#9CA3AF', fontSize: 13, padding: '40px 0' }}>No comments yet</div>
-                                    )}
-                                    {filteredComments.map(c => (
-                                        <div key={c.id} className={layout.commentCard}>
-                                            <div className={layout.commentCardHeader}>
-                                                <div className={layout.commentCardScope}>{c.scope.co}{c.scope.ilo !== '—' ? ` → ${c.scope.ilo}` : ''} → {c.scope.cognitiveLevel}{c.scope.itemNumber ? ` → Item ${c.scope.itemNumber}` : ''}</div>
+                                    {showResolvedPH ? (
+                                        <>
+                                            {returnCount > 0 && (
+                                                <div style={{ marginBottom: 4 }}>
+                                                    <div style={{ display: 'flex', alignItems: 'center', fontSize: 14, color: '#6B7280', marginBottom: 12 }}>
+                                                        <select className={layout.commentFilterDropdown} value={returnFilter} onChange={e => setReturnFilter(e.target.value)} style={{ flex: 1 }}>
+                                                            <option value="all">All returns</option>
+                                                            {Array.from({ length: Math.max(0, pastReturnMax) }, (_, i) => i + 1).filter(n => resolvedReturnNumbers.includes(n)).map(n => (
+                                                                <option key={n} value={n}>Return {n}</option>
+                                                            ))}
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                            )}
+                                            <div style={{ borderTop: '1px solid #E5E7EB', marginBottom: 20 }} />
+                                            {returnFilter !== 'all' && returnDates[Number(returnFilter) - 1] && (
+                                                <div style={{ fontSize: 13, color: '#000000', textAlign: 'center', marginBottom: 12 }}>
+                                                    Returned {new Date(returnDates[Number(returnFilter) - 1]).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                                                </div>
+                                            )}
+                                            {(() => {
+                                                const filtered = comments.filter(c => c.scope.returnNumber > 0 && c.scope.returnNumber <= pastReturnMax && (returnFilter === 'all' || c.scope.returnNumber === Number(returnFilter)));
+                                                if (filtered.length === 0) return <div style={{ textAlign: 'center', color: '#9CA3AF', fontSize: 13, padding: '40px 0' }}>No comments from past returns</div>;
+                                                if (returnFilter !== 'all') return filtered.map(c => (
+                                                    <div key={c.id} className={layout.commentCard}>
+                                                        <div className={layout.commentCardHeader}>
+                                                            <div className={layout.commentCardScope}>{c.scope.co}{c.scope.ilo !== '—' ? ` → ${c.scope.ilo}` : ''} → {c.scope.cognitiveLevel}{c.scope.itemNumber ? ` → Item ${c.scope.itemNumber}` : ''}</div>
+                                                        </div>
+                                                        {c.scope.itemNumber && c.type && <div className={layout.commentCardType}>{c.type}</div>}
+                                                        <div className={layout.commentCardBody}>{c.body}</div>
+                                                        <div className={layout.commentCardTime}>{c.timestamp}</div>
+                                                    </div>
+                                                ));
+                                                const groups = {};
+                                                filtered.forEach(c => { const r = c.scope.returnNumber || 0; if (!groups[r]) groups[r] = []; groups[r].push(c); });
+                                                return Object.keys(groups).sort((a, b) => a - b).map(r => (
+                                                    <div key={r}>
+                                                        <div style={{ fontSize: 13, color: '#000000', textAlign: 'center', marginBottom: 8, paddingTop: r > 0 ? 4 : 0 }}>
+                                                            Return {r}{returnDates[r - 1] ? ` — ${new Date(returnDates[r - 1]).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}` : ''}
+                                                        </div>
+                                                        {groups[r].map(c => (
+                                                            <div key={c.id} className={layout.commentCard}>
+                                                                <div className={layout.commentCardHeader}>
+                                                                    <div className={layout.commentCardScope}>{c.scope.co}{c.scope.ilo !== '—' ? ` → ${c.scope.ilo}` : ''} → {c.scope.cognitiveLevel}{c.scope.itemNumber ? ` → Item ${c.scope.itemNumber}` : ''}</div>
+                                                                </div>
+                                                                {c.scope.itemNumber && c.type && <div className={layout.commentCardType}>{c.type}</div>}
+                                                                <div className={layout.commentCardBody}>{c.body}</div>
+                                                                <div className={layout.commentCardTime}>{c.timestamp}</div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                ));
+                                            })()}
+                                        </>
+                                    ) : (
+                                        <>
+                                        <select
+                                            value={commentCategory}
+                                            onChange={e => { setCommentCategory(e.target.value); setShowResolved(false); }}
+                                            style={{ width: '100%', padding: '8px 28px 8px 12px', borderRadius: 5, border: '1px solid #DDDFDF', fontSize: 14, fontWeight: 500, color: '#333', background: '#fff', outline: 'none', cursor: 'pointer', appearance: 'none', backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'12\' height=\'12\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%23666\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3E%3Cpolyline points=\'6 9 12 15 18 9\'%3E%3C/polyline%3E%3C/svg%3E")', backgroundRepeat: 'no-repeat', backgroundPosition: 'right 10px center', backgroundSize: 14, marginBottom: 12 }}
+                                        >
+                                            <option value="outcomeOverview" style={{ fontSize: 14 }}>Outcome Overview</option>
+                                            <option value="alignment" style={{ fontSize: 14 }}>Alignment</option>
+                                            <option value="assessmentItems" style={{ fontSize: 14 }}>Assessment Items</option>
+                                        </select>
+                                        <div style={{ borderTop: '1px solid #E5E7EB', marginBottom: 12 }} />
+                                    {(() => {
+                                        const unresolved = filteredComments.filter(c => !c.resolved);
+                                        return (
+                                            <>
+                                                {unresolved.length === 0 && filteredComments.length === 0 && (
+                                                    <div style={{ textAlign: 'center', color: '#9CA3AF', fontSize: 13, padding: '40px 0' }}>No comments yet</div>
+                                                )}
+                                                {unresolved.length === 0 && filteredComments.length > 0 && (
+                                                    <div style={{ textAlign: 'center', color: '#9CA3AF', fontSize: 13, padding: '16px 0' }}>All comments resolved</div>
+                                                )}
+                                                {unresolved.map(c => (
+                                                    <div key={c.id} className={layout.commentCard}>
+                                                        <div className={layout.commentCardHeader}>
+                                                            <div className={layout.commentCardScope}>{c.scope.co}{c.scope.ilo !== '—' ? ` → ${c.scope.ilo}` : ''} → {c.scope.cognitiveLevel}{c.scope.itemNumber ? ` → Item ${c.scope.itemNumber}` : ''}</div>
+                                                            <span className={layout.commentResolveBtnWrap} onClick={() => handleResolveComment(c.id)}><CheckCircle size={16} /></span>
+                                                        </div>
+                                                        {c.scope.itemNumber && c.type && <div className={layout.commentCardType}>{c.type}</div>}
+                                                        <div className={layout.commentCardBody}>{c.body}</div>
+                                                        <div className={layout.commentCardTime}>{c.timestamp}</div>
+                                                    </div>
+                                                ))}
+                                            </>
+                                        );
+                                    })()}
+                                    {resolvedCurrentReturn.length > 0 && (
+                                        <div className={layout.resolvedSection}>
+                                            <div className={layout.resolvedHeader} onClick={() => { setShowResolved(p => !p); if (!showResolved && commentBodyRef.current) { setTimeout(() => commentBodyRef.current.scrollBy({ top: 100, behavior: 'smooth' }), 100); } }}>
+                                                <span>Recently resolved ({resolvedCurrentReturn.length})</span>
+                                                <span className={layout.resolvedToggle}>{showResolved ? '−' : '+'}</span>
                                             </div>
-                                            {c.scope.ilo !== '—' && <div className={layout.commentCardType}>{c.type}</div>}
-                                            <div className={layout.commentCardBody}>{c.body}</div>
-                                            <div className={layout.commentCardTime}>{c.timestamp}</div>
+                                            <div className={`${layout.resolvedCards}${showResolved ? ` ${layout.resolvedCardsOpen}` : ''}`}>
+                                                {resolvedCurrentReturn.map(c => (
+                                                    <div key={c.id} className={`${layout.commentCard} ${layout.commentCardResolved}`}>
+                                                        <div className={layout.commentCardHeader}>
+                                                            <div className={layout.commentCardScope}>{c.scope.co}{c.scope.ilo !== '—' ? ` → ${c.scope.ilo}` : ''} → {c.scope.cognitiveLevel}{c.scope.itemNumber ? ` → Item ${c.scope.itemNumber}` : ''}</div>
+                                                            <span className={layout.commentUndoBtnWrap} onClick={() => handleUnresolveComment(c.id)}><RotateCcw size={16} /></span>
+                                                        </div>
+                                                        {c.scope.itemNumber && c.type && <div className={layout.commentCardType}>{c.type}</div>}
+                                                        <div className={layout.commentCardBody}>{c.body}</div>
+                                                        <div className={layout.commentCardTime}>{c.timestamp}</div>
+                                                    </div>
+                                                ))}
+                                            </div>
                                         </div>
-                                    ))}
+                                    )}
+                                        </>
+                                    )}
+                                    {recentlyResolved && (
+                                        <div className={layout.undoBarFixed}>
+                                            <span>Comment marked as resolved</span>
+                                            <button className={layout.undoBtn} onClick={() => handleUnresolveComment(recentlyResolved)}>
+                                                <RotateCcw size={14} /> Undo
+                                            </button>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
+                            )}
+                        </div>
+                    )
+                    : effectiveStatus === 'pending' || effectiveStatus === 'approved' ? (
+                        <div className={layout.panelLayout}>
+                            <div className={layout.panelMain}>
+                                {selectedSection === 'Table of Specifications Report' && (
+                                <section>
+                                    {(() => {
+                                        const aggregatedData = getAggregatedData();
+                                        const totalHours = rows.reduce((sum, co) => sum + (co.totalHours || 0), 0);
+                                        const totalPercentage = Math.min(rows.reduce((sum, co) => sum + (co.totalPercentage || 0), 0), 100);
+                                        const totalItems = rows.reduce((sum, co) => sum + (co.totalItems || 0), 0);
+                                        const totalCognitive = cognitiveLevels.map(level => {
+                                            return rows.reduce((sum, co) => {
+                                                return sum + co.ilos.reduce((iloSum, ilo) => {
+                                                    const items = aggregatedData[co.co][ilo.id][level];
+                                                    return iloSum + items.reduce((s, item) => s + (item.span || 1) * item.points, 0);
+                                                }, 0);
+                                            }, 0);
+                                        });
+                                        return (
+                                            <div className={previewLayout.tableWrapper}>
+                                                <div className={previewLayout.headerFields} style={{ marginBottom: 30 }}>
+                                                    <div className={previewLayout.topRow}>
+                                                        <label>Course:</label>
+                                                        <input type="text" disabled className={previewLayout.numberInput} value={courseCode && courseName ? `${courseCode} - ${courseName}` : (courseCode || courseName)} />
+                                                        <label>Type:</label>
+                                                        <input type="text" disabled className={previewLayout.numberInput} value={fromExamType || assessmentName || 'Midterm'} />
+                                                    </div>
+                                                    <div className={previewLayout.bottomRow}>
+                                                        <label>Semester:</label>
+                                                        <input type="text" disabled className={previewLayout.numberInput} value={fromSemester} />
+                                                        <label>School Year:</label>
+                                                        <input type="text" disabled className={previewLayout.numberInput} value={`${fromSchoolYear} - ${Number(fromSchoolYear) + 1}`} />
+                                                    </div>
+                                                </div>
+                                                <table className={`${previewLayout.qctable} ${previewLayout.TOSTable}`}>
+                                                    <thead>
+                                                    <tr>
+                                                        <th rowSpan={2} className={previewLayout.headerCell}>COs & ILOs</th>
+                                                        <th rowSpan={2} className={previewLayout.headerCell}>No. of Hours</th>
+                                                        <th rowSpan={2} className={previewLayout.headerCell}>%</th>
+                                                        <th rowSpan={2} className={previewLayout.headerCell}>No. of Items</th>
+                                                        <th colSpan={6} className={previewLayout.headerCell}>Cognitive Levels</th>
+                                                    </tr>
+                                                    <tr className={previewLayout['sub-column']}>
+                                                        {cognitiveLevels.map(level => (
+                                                            <th key={level} className={previewLayout.lighten}>{level}</th>
+                                                        ))}
+                                                    </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                    {rows.map(co => (
+                                                        <React.Fragment key={co.co}>
+                                                            <tr data-tos-row={co.co} style={{ background: '#F9FAFB', height: '50px' }}>
+                                                                 <td><div className={previewLayout.cellBox} style={{ fontWeight: 'bold' }}>{co.co}<InfoBadge text={co.description} /></div></td>
+                                                                <td><div className={previewLayout.cellBox}>{co.totalHours || 0}</div></td>
+                                                                <td><div className={previewLayout.cellBox}>{co.totalPercentage || 0}</div></td>
+                                                                  <td className={`${addingComment ? `${layout.cellSelectableTable}${isActiveCell(co.co, '\u2014', 'Number of Items') ? ` ${layout.cellActiveTable}` : ''}` : `${layout.cellClickable}${isTargetCell(co.co, '\u2014', 'Number of Items') ? ` ${layout.cellTargeted}` : ''}`}`} onClick={e => addingComment ? handleCellClick(co.co, '\u2014', 'Number of Items', undefined, { courseOutcomeId: co.dbId }) : (() => { const r = e.currentTarget.getBoundingClientRect(); setViewItemsTarget({ co: co.co, ilo: '\u2014', cognitiveLevel: 'Number of Items', top: r.bottom, left: r.left, width: r.width }); })()}><div className={previewLayout.cellBox}>{co.totalItems || 0}</div></td>
+                                                                  {cognitiveLevels.map(level => (
+                                                                     <td key={level} style={{ background: 'white' }}></td>
+                                                                 ))}
+                                                             </tr>
+                                                              {co.ilos.map(ilo => (
+                                                                  <tr key={ilo.id} data-tos-row={`${co.co}|${ilo.id}`}>
+                                                                      <td><div className={previewLayout.cellBox}>{ilo.id}<InfoBadge text={ilo.description} /></div></td>
+                                                                     <td><div className={previewLayout.cellBox}>{ilo.hours || 0}</div></td>
+                                                                     <td><div className={previewLayout.cellBox}>{ilo.percentage || 0}</div></td>
+                                                                        <td className={`${addingComment ? `${layout.cellSelectableTable}${isActiveCell(co.co, ilo.id, 'Number of Items') ? ` ${layout.cellActiveTable}` : ''}` : `${layout.cellClickable}${isTargetCell(co.co, ilo.id, 'Number of Items') ? ` ${layout.cellTargeted}` : ''}`}`} onClick={e => addingComment ? handleCellClick(co.co, ilo.id, 'Number of Items', undefined, { courseOutcomeId: co.dbId }) : (() => { const r = e.currentTarget.getBoundingClientRect(); setViewItemsTarget({ co: co.co, ilo: ilo.id, cognitiveLevel: 'Number of Items', top: r.bottom, left: r.left, width: r.width }); })()}><div className={previewLayout.cellBox}>{ilo.items || 0}</div></td>
+                                                                     {cognitiveLevels.map(level => {
+                                                                         const items = aggregatedData[co.co][ilo.id][level];
+                                                                         return (
+                                                                             <td key={level} className={`${addingComment ? `${layout.cellSelectableTable}${isActiveCell(co.co, ilo.id, level) ? ` ${layout.cellActiveTable}` : ''}` : `${layout.cellClickable}${isTargetCell(co.co, ilo.id, level) ? ` ${layout.cellTargeted}` : ''}`}`} onClick={e => addingComment ? handleCellClick(co.co, ilo.id, level, undefined, { courseOutcomeId: co.dbId }) : (() => { const r = e.currentTarget.getBoundingClientRect(); setViewItemsTarget({ co: co.co, ilo: ilo.id, cognitiveLevel: level, top: r.bottom, left: r.left, width: r.width, isEmpty: items.length === 0 }); })()}>                                                                                  <div className={previewLayout.cellBox} style={{ flexDirection: 'column', gap: 2 }}>
+                                                                                      {items.length === 0 ? '\u2014' : items.map((item, i) => (
+                                                                                         <span key={i}>{item.span} x {item.points}</span>
+                                                                                     ))}
+                                                                                 </div>
+                                                                             </td>
+                                                                         );
+                                                                     })}
+                                                                 </tr>
+                                                             ))}
+                                                         </React.Fragment>
+                                                     ))}
+                                                      <tr data-tos-row="Total" style={{ background: '#F9FAFB', height: '50px', fontWeight: '500' }}>
+                                                          <td><div className={previewLayout.cellBox}>Total</div></td>
+                                                          <td><div className={previewLayout.cellBox}>{totalHours}</div></td>
+                                                          <td><div className={previewLayout.cellBox}>{totalPercentage}</div></td>
+                                                           <td><div className={previewLayout.cellBox}>{totalItems}</div></td>
+                                                          {totalCognitive.map((total, index) => (
+                                                               <td key={index}><div className={previewLayout.cellBox}>{total}</div></td>
+                                                          ))}
+                                                     </tr>
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        );
+                                    })()}
+                                </section>
+                            )}
+                                {selectedSection === 'Assessment Items' && (
+                                    <section>
+                                        <div ref={assessmentBodyRef} className={`${previewLayout.assessmentBody} ${previewLayout.tabContent}`}>
+                                            {scrolledPastAssessmentTop && (
+                                                <div className={layout.scrollToFormBtn} onClick={() => assessmentBodyRef.current?.scrollTo({ top: 0, behavior: 'smooth' })}>
+                                                    <ChevronUp size={22} strokeWidth={2.5} />
+                                                </div>
+                                            )}
+                                            <div className={layout.viewToggleRow}>
+                                                <span className={layout.assessmentLabel}>Assessment: {assessmentName || 'Midterm'}</span>
+                                                <div className={layout.viewToggleGroup}>
+                                                    <div className={layout.viewToggleSlider} style={{ transform: `translateX(${viewMode === 'normal' ? '0' : 'calc(100% + 2px)'})` }} />
+                                                    <button className={`${layout.viewToggleBtn} ${viewMode === 'normal' ? layout.viewToggleActive : ''}`} onClick={() => setViewMode('normal')}>List</button>
+                                                    <button className={`${layout.viewToggleBtn} ${viewMode === 'group' ? layout.viewToggleActive : ''}`} onClick={() => setViewMode('group')}>Grouped</button>
+                                                </div>
+                                            </div>
+                                            <div className={previewLayout.assessmentList}>
+                                                {(() => {
+                                                    if (questions.length === 0) return (
+                                                        <div className={previewLayout.emptyState}>
+                                                            <div className={previewLayout.emptyIcon}>
+                                                                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                                                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                                                    <polyline points="14 2 14 8 20 8"/>
+                                                                    <line x1="16" y1="13" x2="8" y2="13"/>
+                                                                    <line x1="16" y1="17" x2="8" y2="17"/>
+                                                                    <polyline points="10 9 9 9 8 9"/>
+                                                                </svg>
+                                                            </div>
+                                                            <p className={previewLayout.emptyText}>No assessment items yet</p>
+                                                        </div>
+                                                    );
+                                                    const grouped = {};
+                                                    questions.forEach(q => {
+                                                        const co = q.co || 'Uncategorized';
+                                                        const ilo = q.ilo || 'Uncategorized';
+                                                        const cog = q.cognitiveLevel || 'Uncategorized';
+                                                        if (!grouped[co]) grouped[co] = {};
+                                                        if (!grouped[co][ilo]) grouped[co][ilo] = {};
+                                                        if (!grouped[co][ilo][cog]) grouped[co][ilo][cog] = [];
+                                                        grouped[co][ilo][cog].push(q);
+                                                    });
+                                                    let numCounter = 0;
+                                                    const numMap = {};
+                                                    questions.forEach(q => {
+                                                        numMap[q.id] = numCounter + 1;
+                                                        numCounter += (q.span || 1);
+                                                    });
+                                                    const renderItem = (q) => {
+                                                        const start = numMap[q.id];
+                                                        const end = start + (q.span || 1) - 1;
+                                                        const label = start === end ? String(start) : `${start}\u2013${end}`;
+                                                        const hasRubric = q.rubricRows && q.rubricRows.length > 0;
+                                                        return (
+                                                            <div key={q.id} data-item-id={q.id} className={`${previewLayout.assessmentItem} ${layout.assessmentCard}${addingComment ? ` ${layout.cellSelectable}${isActiveCell(q.co, q.ilo, q.cognitiveLevel, label) ? ` ${layout.cellActive}` : ''}` : ''}`} onClick={addingComment ? () => { setLastClickedItemId(q.id); handleCellClick(q.co, q.ilo, q.cognitiveLevel, label, { assessmentItemId: q.id }); } : undefined}>
+                                                                <div className={previewLayout.assessmentQuestion}>
+                                                                    <span className={previewLayout.questionNumber}>{label}.</span>
+                                                                    <span className={previewLayout.questionText}>{q.question || '(no question)'}</span>
+                                                                </div>
+                                                                {q.choices && q.choices.length > 0 && (
+                                                                    <div className={`${previewLayout.assessmentChoices} ${q.choices.length % 2 === 0 && q.choices.every(c => (c.text || '').length < 30) ? previewLayout.choicesGrid : ''}`}>
+                                                                        {q.choices.map((choice, ci) => (
+                                                                            <div key={choice.id || ci} className={previewLayout.choiceRow}>
+                                                                                <span className={previewLayout.choiceLetter}>{String.fromCharCode(65 + ci)}.</span>
+                                                                                <span className={previewLayout.choiceText}>{choice.text || ''}</span>
+                                                                            </div>
+                                                                        ))}
+                                                                    </div>
+                                                                )}
+                                                                {hasRubric && (
+                                                                    <div className={previewLayout.rubricBox}>
+                                                                        <div className={previewLayout.rubricHeader}>
+                                                                            <span className={previewLayout.rubricLabel}>Rubrics</span>
+                                                                        </div>
+                                                                        <div className={previewLayout.rubricTable}>
+                                                                            <div className={`${previewLayout.rubricRow} ${previewLayout.rubricHeaderRow}`}>
+                                                                                <span className={previewLayout.rubricName}>Criteria</span>
+                                                                                <span className={previewLayout.rubricDesc}>Description</span>
+                                                                                <span className={previewLayout.rubricWeight}>Weight</span>
+                                                                                <span className={previewLayout.rubricPts}>Pts</span>
+                                                                            </div>
+                                                                            {(() => {
+                                                                                const totalPts = Number(q.points) || 0;
+                                                                                const rawPts = q.rubricRows.map((r) => Math.round((totalPts * Number(r.weight || 0)) / 100));
+                                                                                const sumOthers = rawPts.slice(0, -1).reduce((s, v) => s + v, 0);
+                                                                                const rowPts = [...rawPts.slice(0, -1), Math.max(0, totalPts - sumOthers)];
+                                                                                const totalW = q.rubricRows.reduce((s, r) => s + Number(r.weight || 0), 0);
+                                                                                return (
+                                                                                    <>
+                                                                                        {q.rubricRows.map((row, ri) => (
+                                                                                            <div key={row.id || ri} className={previewLayout.rubricRow}>
+                                                                                                <span className={previewLayout.rubricName}>{row.name || ''}</span>
+                                                                                                <span className={previewLayout.rubricDesc}>{row.description || ''}</span>
+                                                                                                <span className={previewLayout.rubricWeight}>{Math.round(Number(row.weight) || 0)}%</span>
+                                                                                                <span className={previewLayout.rubricPts}>{rowPts[ri]}</span>
+                                                                                            </div>
+                                                                                        ))}
+                                                                                        <div className={`${previewLayout.rubricRow} ${previewLayout.rubricTotalRow}`}>
+                                                                                            <span className={previewLayout.rubricName}><strong>Total</strong></span>
+                                                                                            <span className={previewLayout.rubricDesc}></span>
+                                                                                            <span className={previewLayout.rubricWeight}>{Math.round(totalW)}%</span>
+                                                                                            <span className={previewLayout.rubricPts}><strong>{totalPts}</strong></span>
+                                                                                        </div>
+                                                                                    </>
+                                                                                );
+                                                                            })()}
+                                                                        </div>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        );
+                                                    };
+                                                    const coDesc = {};
+                                                    const iloDesc = {};
+                                                    rows.forEach(c => {
+                                                        coDesc[c.co] = c.description;
+                                                        c.ilos.forEach(il => { iloDesc[`${c.co}|${il.id}`] = il.description; });
+                                                    });
+                                                    return viewMode === 'normal' ? (
+                                                        questions.map(q => renderItem(q))
+                                                    ) : (
+                                                        Object.entries(grouped).map(([co, ilos]) => (
+                                                            <div key={co} className={layout.coGroup}>
+                                                                 <div className={layout.coHeader} id={`co-header-${co}`} onClick={() => toggleCO(co)}>
+                                                                     <span className={layout.accordionArrow}>{expandedCOs.has(co) ? '\u25BE' : '\u25B8'}</span>
+                                                                     <div>
+                                                                         <span className={layout.coTitle}>{co}</span>
+                                                                         {coDesc[co] && <div className={layout.coDesc}>{coDesc[co]}</div>}
+                                                                     </div>
+                                                                 </div>
+                                                                {expandedCOs.has(co) && Object.entries(ilos).map(([ilo, cogs]) => (
+                                                                    <div key={ilo} className={layout.iloGroup}>
+                                                                          <div className={layout.iloHeader} data-ilo-header={`${co}|${ilo}`} onClick={() => toggleILO(`${co}|${ilo}`)}>
+                                                                             <span className={layout.accordionArrow}>{expandedILOs.has(`${co}|${ilo}`) ? '\u25BE' : '\u25B8'}</span>
+                                                                             <div>
+                                                                                 <span className={layout.iloTitle}>{ilo}</span>
+                                                                                 {iloDesc[`${co}|${ilo}`] && <div className={layout.iloDesc}>{iloDesc[`${co}|${ilo}`]}</div>}
+                                                                             </div>
+                                                                         </div>
+                                                                        {expandedILOs.has(`${co}|${ilo}`) && Object.entries(cogs).map(([cog, items]) => (
+                                                                             <div key={cog} className={layout.cogGroup}>
+                                                                                 <div className={layout.cogHeader} data-co={co} data-ilo={ilo} data-cog={cog}>{cog}</div>
+                                                                                {items.map(renderItem)}
+                                                                            </div>
+                                                                        ))}
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        ))
+                                                    );
+                                                })()}
+                                            </div>
+                                        </div>
+                                    </section>
+                                )}
+                                {displayTarget && (
+                                    <div className={`${layout.viewItemsOverlay}${!viewItemsTarget ? ` ${layout.viewItemsHidden}` : ''}`} onClick={() => setViewItemsTarget(null)} />
+                                )}
+                                {displayTarget && (
+                                    <div className={`${layout.viewItemsPopup}${!viewItemsTarget ? ` ${layout.viewItemsHidden}` : ''}`} style={{ top: displayTarget.top + 4, left: displayTarget.left + displayTarget.width / 2 }}>
+                                            <button className={layout.viewItemsBtn} disabled={viewItemsTarget?.isEmpty} onClick={() => {
+                                                const t = viewItemsTarget;
+                                                if (!t) return;
+                                                setViewItemsTarget(null);
+                                                setSearchParams({ section: 'Assessment Items' });
+                                                viewItemsNavRef.current = true;
+                                                setViewMode('group');
+                                               const coSet = new Set(t.ilo && t.ilo !== '\u2014' ? questions.map(q => q.co).filter(Boolean) : [t.co]);
+                                               const iloSet = t.ilo && t.ilo !== '\u2014' ? new Set([`${t.co}|${t.ilo}`]) : new Set();
+                                               setExpandedCOs(coSet);
+                                               setExpandedILOs(iloSet);
+                                               setTimeout(() => {
+                                                   const el = document.querySelector(`[data-co="${t.co}"][data-ilo="${t.ilo}"][data-cog="${t.cognitiveLevel}"]`) || document.querySelector(`[data-ilo-header="${t.co}|${t.ilo}"]`) || document.getElementById(`co-header-${t.co}`);
+                                                   if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                               }, 600);
+                                            }}>View Assessment Items</button>
+                                    </div>
+                                )}
+                            </div>
+                            {isInstructorPendingWithComments && (
+                            <div ref={commentRef} className={layout.commentPanel}>
+                                <div className={layout.commentPanelHeader}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                                        <span className={layout.commentPanelTitle}>{showResolvedPH ? 'Past returns' : 'Comments'}</span>
+                                        {returnCount >= 2 && resolvedReturnNumbers.length > 0 && <button className={`${layout.commentResolvedToggleBtn} ${showResolvedPH ? layout.active : ''}`} onClick={() => { setShowResolvedPH(p => !p); if (!showResolvedPH) { setReturnFilter(defaultResolvedReturn); setAddingComment(false); setActiveScope(null); } }}>
+                                            {showResolvedPH ? 'See active comments' : 'See past returns'}
+                                        </button>}
+                                    </div>
+                                </div>
+                                <div ref={commentBodyRef} className={layout.commentPanelBody}>
+                                    {scrolledPastForm && (
+                                        <div className={layout.scrollToFormBtn} onClick={scrollToForm}>
+                                            <ChevronUp size={22} strokeWidth={2.5} />
+                                        </div>
+                                    )}
+                                    {showResolvedPH ? (
+                                        <>
+                                            {returnCount > 0 && (
+                                                <div style={{ marginBottom: 4 }}>
+                                                    <div style={{ display: 'flex', alignItems: 'center', fontSize: 14, color: '#6B7280', marginBottom: 12 }}>
+                                                        <select className={layout.commentFilterDropdown} value={returnFilter} onChange={e => setReturnFilter(e.target.value)} style={{ flex: 1 }}>
+                                                            <option value="all">All returns</option>
+                                                            {Array.from({ length: Math.max(0, pastReturnMax) }, (_, i) => i + 1).filter(n => resolvedReturnNumbers.includes(n)).map(n => (
+                                                                <option key={n} value={n}>Return {n}</option>
+                                                            ))}
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                            )}
+                                            <div style={{ borderTop: '1px solid #E5E7EB', marginBottom: 20 }} />
+                                            {returnFilter !== 'all' && returnDates[Number(returnFilter) - 1] && (
+                                                <div style={{ fontSize: 13, color: '#000000', textAlign: 'center', marginBottom: 12 }}>
+                                                    Returned {new Date(returnDates[Number(returnFilter) - 1]).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                                                </div>
+                                            )}
+                                            {(() => {
+                                                const filtered = comments.filter(c => c.scope.returnNumber > 0 && c.scope.returnNumber <= pastReturnMax && (returnFilter === 'all' || c.scope.returnNumber === Number(returnFilter)));
+                                                if (filtered.length === 0) return <div style={{ textAlign: 'center', color: '#9CA3AF', fontSize: 13, padding: '40px 0' }}>No comments from past returns</div>;
+                                                if (returnFilter !== 'all') return filtered.map(c => (
+                                                    <div key={c.id} className={layout.commentCard}>
+                                                        <div className={layout.commentCardHeader}>
+                                                            <div className={layout.commentCardScope}>{c.scope.co}{c.scope.ilo !== '—' ? ` → ${c.scope.ilo}` : ''} → {c.scope.cognitiveLevel}{c.scope.itemNumber ? ` → Item ${c.scope.itemNumber}` : ''}</div>
+                                                        </div>
+                                                        {c.scope.itemNumber && c.type && <div className={layout.commentCardType}>{c.type}</div>}
+                                                        <div className={layout.commentCardBody}>{c.body}</div>
+                                                        <div className={layout.commentCardTime}>{c.timestamp}</div>
+                                                    </div>
+                                                ));
+                                                const groups = {};
+                                                filtered.forEach(c => { const r = c.scope.returnNumber || 0; if (!groups[r]) groups[r] = []; groups[r].push(c); });
+                                                return Object.keys(groups).sort((a, b) => a - b).map(r => (
+                                                    <div key={r}>
+                                                        <div style={{ fontSize: 13, color: '#000000', textAlign: 'center', marginBottom: 8, paddingTop: r > 0 ? 4 : 0 }}>
+                                                            Return {r}{returnDates[r - 1] ? ` — ${new Date(returnDates[r - 1]).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}` : ''}
+                                                        </div>
+                                                        {groups[r].map(c => (
+                                                            <div key={c.id} className={layout.commentCard}>
+                                                                <div className={layout.commentCardHeader}>
+                                                                    <div className={layout.commentCardScope}>{c.scope.co}{c.scope.ilo !== '—' ? ` → ${c.scope.ilo}` : ''} → {c.scope.cognitiveLevel}{c.scope.itemNumber ? ` → Item ${c.scope.itemNumber}` : ''}</div>
+                                                                </div>
+                                                                {c.scope.itemNumber && c.type && <div className={layout.commentCardType}>{c.type}</div>}
+                                                                <div className={layout.commentCardBody}>{c.body}</div>
+                                                                <div className={layout.commentCardTime}>{c.timestamp}</div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                ));
+                                            })()}
+                                        </>
+                                    ) : (
+                                        <>
+                                        <select
+                                            value={commentCategory}
+                                            onChange={e => { setCommentCategory(e.target.value); setShowResolved(false); }}
+                                            style={{ width: '100%', padding: '8px 28px 8px 12px', borderRadius: 5, border: '1px solid #DDDFDF', fontSize: 14, fontWeight: 500, color: '#333', background: '#fff', outline: 'none', cursor: 'pointer', appearance: 'none', backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'12\' height=\'12\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%23666\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3E%3Cpolyline points=\'6 9 12 15 18 9\'%3E%3C/polyline%3E%3C/svg%3E")', backgroundRepeat: 'no-repeat', backgroundPosition: 'right 10px center', backgroundSize: 14, marginBottom: 12 }}
+                                        >
+                                            <option value="outcomeOverview" style={{ fontSize: 14 }}>Outcome Overview</option>
+                                            <option value="alignment" style={{ fontSize: 14 }}>Alignment</option>
+                                            <option value="assessmentItems" style={{ fontSize: 14 }}>Assessment Items</option>
+                                        </select>
+                                        <div style={{ borderTop: '1px solid #E5E7EB', marginBottom: 12 }} />
+                                        {filteredComments.length === 0 ? (
+                                            <div style={{ textAlign: 'center', color: '#9CA3AF', fontSize: 13, padding: '40px 0' }}>No comments</div>
+                                        ) : (
+                                            filteredComments.map(c => (
+                                                <div key={c.id} className={layout.commentCard}>
+                                                    <div className={layout.commentCardHeader}>
+                                                        <div className={layout.commentCardScope}>{c.scope.co}{c.scope.ilo !== '—' ? ` → ${c.scope.ilo}` : ''} → {c.scope.cognitiveLevel}{c.scope.itemNumber ? ` → Item ${c.scope.itemNumber}` : ''}</div>
+                                                    </div>
+                                                    {c.scope.itemNumber && c.type && <div className={layout.commentCardType}>{c.type}</div>}
+                                                    <div className={layout.commentCardBody}>{c.body}</div>
+                                                    <div className={layout.commentCardTime}>{c.timestamp}</div>
+                                                </div>
+                                            ))
+                                        )}
+                                        </>
+                                    )}
+                                </div>
+                            </div>
+                            )}
                         </div>
                     )
                     : (
@@ -1436,35 +2122,34 @@ const TosSections = ({status, role = 'instructor'}) => {
                                                 {co.ilos.map((ilo, iloIndex) => (
                                                     <tr key={`${co.co}-${ilo.id}`}>
                                                         <td>
-                                                            <div className={`${layout.cellBox} ${layout.mutedBold}`}>
+                                                            <div className={`${layout.cellBox} ${layout.mutedBold} ${layout.outcomeIloCell}`}>
                                                                 {ilo.id}
                                                             </div>
                                                         </td>
                                                         <td>
-                                                            <div className={`${layout.cellBox} ${layout.readable}`}>
+                                                            <div className={`${layout.cellBox} ${layout.readable} ${layout.outcomeIloCell}`}>
                                                                 {ilo.description}
                                                             </div>
                                                         </td>
                                                         <td>
-                                                            <div className={`${layout.cellBox} ${layout.muted}`}>
+                                                            <div className={`${layout.cellBox} ${layout.muted} ${layout.outcomeIloCell}`}>
                                                                 {ilo.hours}
                                                             </div>
                                                         </td>
                                                         <td>
-                                                            <div className={`${layout.cellBox} ${layout.muted}`}>
+                                                            <div className={`${layout.cellBox} ${layout.muted} ${layout.outcomeIloCell}`}>
                                                                 {ilo.percentage}
                                                             </div>
                                                         </td>
                                                     <td>
-                                                        <div className={layout.cellBox}>
+                                                        <div className={`${layout.cellBox} ${layout.outcomeIloCell}`}>
                                                             <input
                                                                  className={`${layout.point} ${layout.input} ${errorFields[`oo-items-${coIndex}-${iloIndex}`] ? layout.inputError : ''}`}
                                                                  type="text"
                                                                  inputMode="numeric"
-                                                                 readOnly={readOnly}
+                                                                 readOnly
                                                                  value={ilo.items}
-                                                                 onChange={(e) => handleItemsChange(coIndex, iloIndex, e.target.value)}
-                                                            />
+                                                             />
                                                         </div>
                                                     </td>
                                                     </tr>
@@ -1557,10 +2242,7 @@ const TosSections = ({status, role = 'instructor'}) => {
                         </div>
                         <div className={layout.modalActions}>
                             <button
-                                className={layout.confirmBtn}
-                                style={{ backgroundColor: "#1A1A1A" }}
-                                onMouseEnter={e => e.target.style.backgroundColor = '#444'}
-                                onMouseLeave={e => e.target.style.backgroundColor = '#1A1A1A'}
+                                className={layout.fixBtn}
                                 onClick={() => setShowExportErrorModal(false)}
                             >
                                 Okay, I'll fix it
@@ -1582,7 +2264,7 @@ const TosSections = ({status, role = 'instructor'}) => {
                         </div>
                         <div className={layout.modalActions}>
                             <button className={layout.cancelBtn} style={{ background: "#f9f9f9", color: "#374151" }} onClick={() => setShowClearConfirm(false)}>Cancel</button>
-                            <button className={layout.confirmBtn} style={{ background: "#1A1A1A" }} onMouseEnter={e => e.target.style.backgroundColor = '#444'} onMouseLeave={e => e.target.style.backgroundColor = '#1A1A1A'} onClick={handleClearAll}>
+                            <button className={layout.fixBtn} onClick={handleClearAll}>
                                 Yes, clear all
                             </button>
                         </div>
@@ -1661,6 +2343,297 @@ const TosSections = ({status, role = 'instructor'}) => {
                     </div>
                 </div>
             )}
+
+            {showHistoryLog && (() => {
+                const data = historyData[courseCode];
+                const version = data?.versions?.find(v => v.version === selectedVersion);
+                return (
+                    <div className={layout.modalOverlay} onClick={() => setShowHistoryLog(false)}>
+                        <div className={`${layout.modal} ${layout.historyModal}`} onClick={e => e.stopPropagation()}>
+                            <div className={layout.modalHeader}>
+                                <h3 style={{ color: "#1A1A1A", margin: 0 }}>History Log</h3>
+                                <span style={{ cursor: "pointer", fontSize: "20px", color: "#999" }} onClick={() => setShowHistoryLog(false)}>×</span>
+                            </div>
+                            <div className={layout.historyContent}>
+                                <div className={layout.historyLeft}>
+                                    <select className={layout.historyPageSelect} value={historyPage} onChange={e => setHistoryPage(e.target.value)}>
+                                        <option value="tosReport">Table of Specifications Report</option>
+                                        <option value="assessmentItems">Assessment Items</option>
+                                    </select>
+                                    {historyPage === 'tosReport' && (() => {
+                                        const totalHours = rows.reduce((s, r) => s + (r.totalHours || 0), 0);
+                                        const totalPercentage = Math.min(rows.reduce((s, r) => s + (r.totalPercentage || 0), 0), 100);
+                                        const totalItems = rows.reduce((s, r) => s + (r.totalItems || 0), 0);
+                                        const totalCognitive = cognitiveLevels.map(level =>
+                                            rows.reduce((sum, r) => sum + r.ilos.reduce((s, ilo) => {
+                                                const items = (questions || []).filter(q => q.co === r.co && q.ilo === ilo.id && q.cognitiveLevel === level);
+                                                return s + items.reduce((p, it) => p + (it.span || 1) * (it.points || 0), 0);
+                                            }, 0), 0)
+                                        );
+                                        return (
+                                        <div className={previewLayout.tableWrapper}>
+                                            <div className={previewLayout.headerFields} style={{ marginBottom: 20 }}>
+                                                <div className={previewLayout.topRow}>
+                                                    <label>Course:</label>
+                                                    <input type="text" disabled className={previewLayout.numberInput} value={courseCode && courseName ? `${courseCode} - ${courseName}` : (courseCode || courseName)} />
+                                                    <label>Type:</label>
+                                                    <input type="text" disabled className={previewLayout.numberInput} value={fromExamType || assessmentName || 'Midterm'} />
+                                                </div>
+                                                <div className={previewLayout.bottomRow}>
+                                                    <label>Semester:</label>
+                                                    <input type="text" disabled className={previewLayout.numberInput} value={fromSemester} />
+                                                    <label>School Year:</label>
+                                                    <input type="text" disabled className={previewLayout.numberInput} value={`${fromSchoolYear} - ${Number(fromSchoolYear) + 1}`} />
+                                                </div>
+                                            </div>
+                                            <table className={`${previewLayout.qctable} ${previewLayout.TOSTable}`}>
+                                                <thead>
+                                                    <tr>
+                                                        <th rowSpan={2} className={previewLayout.headerCell}>COs & ILOs</th>
+                                                        <th rowSpan={2} className={previewLayout.headerCell}>No. of Hours</th>
+                                                        <th rowSpan={2} className={previewLayout.headerCell}>%</th>
+                                                        <th rowSpan={2} className={previewLayout.headerCell}>No. of Items</th>
+                                                        <th colSpan={6} className={previewLayout.headerCell}>Cognitive Levels</th>
+                                                    </tr>
+                                                    <tr className={previewLayout['sub-column']}>
+                                                        {cognitiveLevels.map(level => (
+                                                            <th key={level} className={previewLayout.lighten}>{level}</th>
+                                                        ))}
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {rows.map(co => {
+                                                        const agg = (() => {
+                                                            const d = { items: {} };
+                                                            co.ilos.forEach(ilo => { d.items[ilo.id] = {}; });
+                                                            questions.forEach(q => {
+                                                                if (q.co === co.co && d.items[q.ilo]) {
+                                                                    const lv = q.cognitiveLevel || '';
+                                                                    if (!d.items[q.ilo][lv]) d.items[q.ilo][lv] = [];
+                                                                    d.items[q.ilo][lv].push(q);
+                                                                }
+                                                            });
+                                                            return d;
+                                                        })();
+                                                        return (
+                                                        <React.Fragment key={co.co}>
+                                                            <tr data-tos-row={co.co}>
+                                                                 <td><div className={previewLayout.cellBox} style={{ fontWeight: 'bold' }}>{co.co}<InfoBadge text={co.description} /></div></td>
+                                                                <td><div className={previewLayout.cellBox}>{co.totalHours || 0}</div></td>
+                                                                <td><div className={previewLayout.cellBox}>{co.totalPercentage || 0}</div></td>
+                                                                  <td><div className={previewLayout.cellBox}>{co.totalItems || 0}</div></td>
+                                                                  {cognitiveLevels.map(level => (
+                                                                     <td key={level}></td>
+                                                                 ))}
+                                                             </tr>
+                                                            {co.ilos.map(ilo => {
+                                                                return (
+                                                                <tr data-tos-row={`${co.co}-${ilo.id}`} key={`${co.co}-${ilo.id}`}>
+                                                                    <td><div className={`${previewLayout.cellBox} ${previewLayout.mutedBold}`}>{ilo.id}<InfoBadge text={ilo.description} /></div></td>
+                                                                    <td><div className={`${previewLayout.cellBox} ${previewLayout.muted}`}>{ilo.hours || 0}</div></td>
+                                                                    <td><div className={`${previewLayout.cellBox} ${previewLayout.muted}`}>{ilo.percentage || 0}</div></td>
+                                                                    <td><div className={`${previewLayout.cellBox} ${previewLayout.muted}`}>{ilo.items || 0}</div></td>
+                                                                    {cognitiveLevels.map(level => {
+                                                                        const items = (agg?.items?.[ilo.id]?.[level] || []);
+                                                                        return (
+                                                                            <td key={level}>
+                                                                                <div className={previewLayout.cellBox} style={{ flexDirection: 'column', gap: 2 }}>
+                                                                                    {items.length === 0 ? '\u2014' : items.map((item, i) => (
+                                                                                        <span key={i}>{item.span || 1} x {item.points || 0}</span>
+                                                                                    ))}
+                                                                                </div>
+                                                                            </td>
+                                                                        );
+                                                                    })}
+                                                                </tr>
+                                                            )})}
+                                                            <tr key={`${co.co}-spacer`} style={{ height: '16px' }} />
+                                                        </React.Fragment>
+                                                    )})}
+                                                    <tr data-tos-row="Total" style={{ fontWeight: '500' }}>
+                                                        <td><div className={previewLayout.cellBox}>Total</div></td>
+                                                        <td><div className={previewLayout.cellBox}>{totalHours}</div></td>
+                                                        <td><div className={previewLayout.cellBox}>{totalPercentage}</div></td>
+                                                        <td><div className={previewLayout.cellBox}>{totalItems}</div></td>
+                                                        {totalCognitive.map((total, index) => (
+                                                            <td key={index}><div className={previewLayout.cellBox}>{total}</div></td>
+                                                        ))}
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                        );
+                                    })()}
+                                    ) : (
+                                        <div className={previewLayout.tableWrapper}>
+                                            <div className={layout.viewToggleRow}>
+                                                <span className={layout.assessmentLabel}>Assessment: {assessmentName || 'Written Exam'}</span>
+                                                <div className={layout.viewToggleGroup}>
+                                                    <div className={layout.viewToggleSlider} style={{ transform: `translateX(${historyViewMode === 'normal' ? '0' : 'calc(100% + 2px)'})` }} />
+                                                    <button className={`${layout.viewToggleBtn} ${historyViewMode === 'normal' ? layout.viewToggleActive : ''}`} onClick={() => setHistoryViewMode('normal')}>List</button>
+                                                    <button className={`${layout.viewToggleBtn} ${historyViewMode === 'group' ? layout.viewToggleActive : ''}`} onClick={() => setHistoryViewMode('group')}>Grouped</button>
+                                                </div>
+                                            </div>
+                                            <div className={previewLayout.assessmentList}>
+                                                {questions.length === 0 ? (
+                                                    <div style={{ textAlign: 'center', color: '#9CA3AF', padding: '40px 0' }}>No assessment items yet</div>
+                                                ) : historyViewMode === 'normal' ? (
+                                                    (() => {
+                                                        let numCounter = 0;
+                                                        const numMap = {};
+                                                        questions.forEach(q => {
+                                                            numMap[q.id] = numCounter + 1;
+                                                            numCounter += (q.span || 1);
+                                                        });
+                                                        return questions.map(q => {
+                                                            const start = numMap[q.id];
+                                                            const end = start + (q.span || 1) - 1;
+                                                            const label = start === end ? String(start) : `${start}\u2013${end}`;
+                                                            return (
+                                                                <div key={q.id} className={`${previewLayout.assessmentItem} ${layout.assessmentCard}`}>
+                                                                    <div className={previewLayout.assessmentQuestion}>
+                                                                        <span className={previewLayout.questionNumber}>{label}.</span>
+                                                                        <span className={previewLayout.questionText}>{q.question || q.instruction || '(no question)'}</span>
+                                                                    </div>
+                                                                    {q.choices?.length > 0 && (
+                                                                        <div className={`${previewLayout.assessmentChoices}${q.choices.every(c => (c.text || '').length < 30) ? ` ${previewLayout.choicesGrid}` : ''}`}>
+                                                                            {q.choices.map((choice, ci) => (
+                                                                                <div key={choice.id || ci} className={previewLayout.choiceRow}>
+                                                                                    <span className={previewLayout.choiceLetter}>{String.fromCharCode(65 + ci)}.</span>
+                                                                                    <span className={previewLayout.choiceText}>{choice.text || ''}</span>
+                                                                                </div>
+                                                                            ))}
+                                                                        </div>
+                                                                    )}
+                                                                    {q.rubricRows?.length > 0 && (
+                                                                        <div className={previewLayout.rubricBox}>
+                                                                            <div className={previewLayout.rubricHeader}><span className={previewLayout.rubricLabel}>Rubrics</span></div>
+                                                                            <div className={previewLayout.rubricTable}>
+                                                                                <div className={`${previewLayout.rubricRow} ${previewLayout.rubricHeaderRow}`}>
+                                                                                    <span className={previewLayout.rubricName}>Criteria</span>
+                                                                                    <span className={previewLayout.rubricDesc}>Description</span>
+                                                                                    <span className={previewLayout.rubricWeight}>Weight</span>
+                                                                                    <span className={previewLayout.rubricPts}>Pts</span>
+                                                                                </div>
+                                                                                {(() => {
+                                                                                    const tp = Number(q.points) || 0;
+                                                                                    const raw = q.rubricRows.map(r => Math.round(tp * Number(r.weight || 0) / 100));
+                                                                                    const sum = raw.slice(0, -1).reduce((s, v) => s + v, 0);
+                                                                                    const rp = [...raw.slice(0, -1), Math.max(0, tp - sum)];
+                                                                                    const tw = q.rubricRows.reduce((s, r) => s + Number(r.weight || 0), 0);
+                                                                                    return (
+                                                                                        <>
+                                                                                            {q.rubricRows.map((row, ri) => (
+                                                                                                <div key={row.id || ri} className={previewLayout.rubricRow}>
+                                                                                                    <span className={previewLayout.rubricName}>{row.name || row.criteria || ''}</span>
+                                                                                                    <span className={previewLayout.rubricDesc}>{row.description || ''}</span>
+                                                                                                    <span className={previewLayout.rubricWeight}>{Math.round(Number(row.weight) || 0)}%</span>
+                                                                                                    <span className={previewLayout.rubricPts}>{rp[ri]}</span>
+                                                                                                </div>
+                                                                                            ))}
+                                                                                            <div className={`${previewLayout.rubricRow} ${previewLayout.rubricTotalRow}`}>
+                                                                                                <span className={previewLayout.rubricName}><strong>Total</strong></span>
+                                                                                                <span className={previewLayout.rubricDesc}></span>
+                                                                                                <span className={previewLayout.rubricWeight}>{Math.round(tw)}%</span>
+                                                                                                <span className={previewLayout.rubricPts}><strong>{tp}</strong></span>
+                                                                                            </div>
+                                                                                        </>
+                                                                                    );
+                                                                                })()}
+                                                                            </div>
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            );
+                                                        });
+                                                    })()
+                                                ) : (
+                                                    (() => {
+                                                        const g = {};
+                                                        questions.forEach(q => {
+                                                            const c = q.co || '?'; const l = q.ilo || '?'; const v = q.cognitiveLevel || '?';
+                                                            if (!g[c]) g[c] = {};
+                                                            if (!g[c][l]) g[c][l] = {};
+                                                            if (!g[c][l][v]) g[c][l][v] = [];
+                                                            g[c][l][v].push(q);
+                                                        });
+                                                        let num = 0;
+                                                        const nm = {};
+                                                        questions.forEach(q => { nm[q.id] = num + 1; num += (q.span || 1); });
+                                                        return Object.keys(g).map(coKey => (
+                                                            <div key={coKey} className={layout.coGroup}>
+                                                                <div className={layout.coHeader}><span className={layout.coTitle}>{coKey}</span></div>
+                                                                {Object.keys(g[coKey]).map(iloKey => (
+                                                                    <div key={iloKey} className={layout.iloGroup}>
+                                                                        <div className={layout.iloHeader}><span className={layout.iloTitle}>{iloKey}</span></div>
+                                                                        {Object.keys(g[coKey][iloKey]).map(cog => (
+                                                                            <div key={cog} className={layout.cogGroup}>
+                                                                                <div className={layout.cogHeader}><span>{cog}</span></div>
+                                                                                {g[coKey][iloKey][cog].map(q => {
+                                                                                    const s = nm[q.id];
+                                                                                    const e = s + (q.span || 1) - 1;
+                                                                                    const lb = s === e ? String(s) : `${s}\u2013${e}`;
+                                                                                    return (
+                                                                                        <div key={q.id} className={`${previewLayout.assessmentItem} ${layout.assessmentCard}`}>
+                                                                                            <div className={previewLayout.assessmentQuestion}>
+                                                                                                <span className={previewLayout.questionNumber}>{lb}.</span>
+                                                                                                <span className={previewLayout.questionText}>{q.question || q.instruction || '(no question)'}</span>
+                                                                                            </div>
+                                                                                            {q.choices?.length > 0 && (
+                                                                                                <div className={`${previewLayout.assessmentChoices}${q.choices.every(c => (c.text || '').length < 30) ? ` ${previewLayout.choicesGrid}` : ''}`}>
+                                                                                                    {q.choices.map((choice, ci) => (
+                                                                                                        <div key={choice.id || ci} className={previewLayout.choiceRow}>
+                                                                                                            <span className={previewLayout.choiceLetter}>{String.fromCharCode(65 + ci)}.</span>
+                                                                                                            <span className={previewLayout.choiceText}>{choice.text || ''}</span>
+                                                                                                        </div>
+                                                                                                    ))}
+                                                                                                </div>
+                                                                                            )}
+                                                                                        </div>
+                                                                                    );
+                                                                                })}
+                                                                            </div>
+                                                                        ))}
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        ));
+                                                    })()
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                                <div className={layout.historyRight}>
+                                    <div className={layout.historyVersionTabs}>
+                                        {data?.versions?.map(v => (
+                                            <button key={v.version} className={`${layout.historyVersionTab} ${selectedVersion === v.version ? layout.historyVersionActive : ''}`} onClick={() => setSelectedVersion(v.version)}>
+                                                Version {v.version}
+                                            </button>
+                                        ))}
+                                    </div>
+                                    <div className={layout.historyTimeline}>
+                                        {version?.actions?.map((a, i) => (
+                                            <div key={i} className={`${layout.historyAction} ${a.action?.includes('returned') ? layout.historyActionReturn : ''}`}>
+                                                <div className={layout.historyDot} />
+                                                <div className={layout.historyActionContent}>
+                                                    <p><strong>{a.role}</strong> {a.action} on <strong>{a.date}</strong></p>
+                                                    {a.comments?.map((c, ci) => (
+                                                        <div key={ci} className={layout.historyComment}>
+                                                            <div className={layout.historyCommentLabel}>{c.scope?.co} → {c.scope?.ilo} → {c.scope?.cognitiveLevel}</div>
+                                                            <p>{c.body}</p>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                );
+            })()}
         </>
     );
 };

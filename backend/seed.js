@@ -19,12 +19,12 @@ const statuses = [
     { courseCode: 'BSCS313L', status: 'draft' },
     { courseCode: 'BSCS212L', status: 'draft' },
     { courseCode: 'BSCS111L', status: 'draft' },
-    { courseCode: 'BSCS214L', status: 'returned', submittedAt: new Date('2026-06-09'), returnedAt: new Date('2026-06-18') },
+    { courseCode: 'BSCS214L', status: 'returned', returnCount: 1, returnDates: JSON.stringify([new Date('2026-06-18').toISOString()]), submittedAt: new Date('2026-06-09'), returnedAt: new Date('2026-06-18') },
     { courseCode: 'BSCS315L', status: 'approved', submittedAt: new Date('2026-06-09'), approvedAt: new Date('2026-06-16') },
     { courseCode: 'BSCS321L', status: 'draft' },
     { courseCode: 'BSCS322L', status: 'draft' },
     { courseCode: 'BSCS331L', status: 'pending', submittedAt: new Date('2026-06-10') },
-    { courseCode: 'BSCS341L', status: 'pending', submittedAt: new Date('2026-06-11') },
+    { courseCode: 'BSCS341L', status: 'pending', returnCount: 1, returnDates: JSON.stringify([new Date('2026-06-20').toISOString()]), submittedAt: new Date('2026-06-11'), returnedAt: new Date('2026-06-20') },
     { courseCode: 'BSCS351L', status: 'draft' }
 ];
 
@@ -33,19 +33,19 @@ const courseData = [
         courseCode: 'BSCS313L',
         outcomes: [
             {
-                co: 'CO1', description: 'Apply core concepts, theories, and principles of Human-Computer Interaction (HCI) in proposing a User Interface (UI) design using Figma.', totalItems: 18,
+                co: 'CO1', description: 'Apply core concepts, theories, and principles of Human-Computer Interaction (HCI) in proposing a User Interface (UI) design using Figma.', totalItems: 22,
                 ilos: [
-                    { description: 'Analyze the relationship between cognitive psychology and human-computer interaction.', hours: 3, percentage: 20, items: 4 },
+                    { description: 'Analyze the relationship between cognitive psychology and human-computer interaction.', hours: 1.5, percentage: 20, items: 2 },
                     { description: 'Synthesize user research data into actionable user personas and empathy maps.', hours: 3, percentage: 30, items: 5 },
-                    { description: 'Structure information architecture effectively using card sorting techniques.', hours: 6, percentage: 50, items: 9 }
+                    { description: 'Structure information architecture effectively using card sorting techniques.', hours: 6, percentage: 50, items: 15 }
                 ]
             },
             {
                 co: 'CO2', description: 'Apply User-Centered Design (UCD) principles and ISO 9241-210 standards to develop a User Experience (UX) design.', totalItems: 22,
                 ilos: [
-                    { description: 'Apply Nielsen\'s 10 Usability Heuristics to critique existing interface designs.', hours: 3, percentage: 20, items: 4 },
-                    { description: 'Create low-fidelity wireframes that solve specific user pain points.', hours: 3, percentage: 30, items: 7 },
-                    { description: 'Apply Gestalt principles and color theory to enhance UI readability.', hours: 6, percentage: 50, items: 11 }
+                    { description: 'Apply Nielsen\'s 10 Usability Heuristics to critique existing interface designs.', hours: 2, percentage: 20, items: 2 },
+                    { description: 'Create low-fidelity wireframes that solve specific user pain points.', hours: 4, percentage: 30, items: 6 },
+                    { description: 'Apply Gestalt principles and color theory to enhance UI readability.', hours: 6, percentage: 50, items: 14 }
                 ]
             }
         ]
@@ -56,17 +56,17 @@ const courseData = [
             {
                 co: 'CO1', description: 'Build responsive web pages using HTML5, CSS3, and JavaScript.', totalItems: 23,
                 ilos: [
-                    { description: 'Construct semantic HTML5 documents that properly structure content using meaningful elements for accessibility.', hours: 4, percentage: 20, items: 6 },
-                    { description: 'Implement responsive layouts using CSS Flexbox and Grid that adapt seamlessly across desktop, tablet, and mobile viewports.', hours: 4, percentage: 30, items: 7 },
-                    { description: 'Add interactivity to web pages using DOM manipulation and event handling in JavaScript.', hours: 4, percentage: 50, items: 10 }
+                    { description: 'Construct semantic HTML5 documents that properly structure content using meaningful elements for accessibility.', hours: 1.5, percentage: 20, items: 2 },
+                    { description: 'Implement responsive layouts using CSS Flexbox and Grid that adapt seamlessly across desktop, tablet, and mobile viewports.', hours: 3, percentage: 30, items: 5 },
+                    { description: 'Add interactivity to web pages using DOM manipulation and event handling in JavaScript.', hours: 6, percentage: 50, items: 16 }
                 ]
             },
             {
-                co: 'CO2', description: 'Develop client-side applications using modern JavaScript frameworks.', totalItems: 19,
+                co: 'CO2', description: 'Develop client-side applications using modern JavaScript frameworks.', totalItems: 23,
                 ilos: [
-                    { description: 'Manage application state using component-based architecture to build maintainable and reusable UI components.', hours: 5, percentage: 20, items: 6 },
-                    { description: 'Implement client-side routing and data fetching to create single-page applications with multiple views.', hours: 5, percentage: 30, items: 8 },
-                    { description: 'Debug and optimize front-end performance using browser developer tools and performance profiling.', hours: 2, percentage: 50, items: 5 }
+                    { description: 'Manage application state using component-based architecture to build maintainable and reusable UI components.', hours: 2, percentage: 20, items: 2 },
+                    { description: 'Implement client-side routing and data fetching to create single-page applications with multiple views.', hours: 4, percentage: 30, items: 6 },
+                    { description: 'Debug and optimize front-end performance using browser developer tools and performance profiling.', hours: 6, percentage: 50, items: 15 }
                 ]
             }
         ]
@@ -75,19 +75,19 @@ const courseData = [
         courseCode: 'BSCS111L',
         outcomes: [
             {
-                co: 'CO1', description: 'Apply core programming concepts using Python to solve computational problems.', totalItems: 22,
+                co: 'CO1', description: 'Apply core programming concepts using Python to solve computational problems.', totalItems: 26,
                 ilos: [
-                    { description: 'Design algorithms using sequence, selection, and iteration to break down computational problems into logical steps.', hours: 6, percentage: 20, items: 4 },
-                    { description: 'Implement functions and modular code with well-defined parameters and return values to promote code reuse.', hours: 4, percentage: 30, items: 7 },
-                    { description: 'Manipulate built-in data structures such as lists, dictionaries, and tuples to store and organize data efficiently.', hours: 6, percentage: 50, items: 11 }
+                    { description: 'Design algorithms using sequence, selection, and iteration to break down computational problems into logical steps.', hours: 1.5, percentage: 20, items: 2 },
+                    { description: 'Implement functions and modular code with well-defined parameters and return values to promote code reuse.', hours: 3, percentage: 30, items: 6 },
+                    { description: 'Manipulate built-in data structures such as lists, dictionaries, and tuples to store and organize data efficiently.', hours: 6, percentage: 50, items: 18 }
                 ]
             },
             {
                 co: 'CO2', description: 'Develop small-scale programs following test-driven development.', totalItems: 26,
                 ilos: [
-                    { description: 'Write unit tests to verify program correctness before implementing features, following the red-green-refactor cycle.', hours: 4, percentage: 20, items: 5 },
-                    { description: 'Read from and write to files for persistent data storage between program executions.', hours: 4, percentage: 30, items: 8 },
-                    { description: 'Handle exceptions and validate user input to build robust programs that fail gracefully.', hours: 4, percentage: 50, items: 13 }
+                    { description: 'Write unit tests to verify program correctness before implementing features, following the red-green-refactor cycle.', hours: 2, percentage: 20, items: 2 },
+                    { description: 'Read from and write to files for persistent data storage between program executions.', hours: 4, percentage: 30, items: 7 },
+                    { description: 'Handle exceptions and validate user input to build robust programs that fail gracefully.', hours: 6, percentage: 50, items: 17 }
                 ]
             }
         ]
@@ -96,19 +96,19 @@ const courseData = [
         courseCode: 'BSCS214L',
         outcomes: [
             {
-                co: 'CO1', description: 'Analyze time and space complexity of algorithms.', totalItems: 20,
+                co: 'CO1', description: 'Analyze time and space complexity of algorithms.', totalItems: 25,
                 ilos: [
-                    { description: 'Apply Big-O notation to analyze and classify the time efficiency of algorithms in terms of worst-case and average-case performance.', hours: 4, percentage: 20, items: 7 },
-                    { description: 'Implement common sorting and searching algorithms including quicksort, mergesort, and binary search.', hours: 5, percentage: 30, items: 6 },
-                    { description: 'Compare recursive and iterative approaches to problem solving, identifying when each strategy is more appropriate.', hours: 3, percentage: 50, items: 7 }
+                    { description: 'Apply Big-O notation to analyze and classify the time efficiency of algorithms in terms of worst-case and average-case performance.', hours: 1.5, percentage: 20, items: 2 },
+                    { description: 'Implement common sorting and searching algorithms including quicksort, mergesort, and binary search.', hours: 3, percentage: 30, items: 5 },
+                    { description: 'Compare recursive and iterative approaches to problem solving, identifying when each strategy is more appropriate.', hours: 6, percentage: 50, items: 18 }
                 ]
             },
             {
                 co: 'CO2', description: 'Implement fundamental data structures and their operations.', totalItems: 25,
                 ilos: [
-                    { description: 'Build and traverse linked lists, stacks, and queues to understand pointer-based data structures.', hours: 5, percentage: 20, items: 8 },
-                    { description: 'Construct hash tables and balanced trees to enable efficient data retrieval and storage.', hours: 5, percentage: 30, items: 9 },
-                    { description: 'Apply graph algorithms including breadth-first search, depth-first search, and shortest path algorithms to solve real-world problems.', hours: 4, percentage: 50, items: 8 }
+                    { description: 'Build and traverse linked lists, stacks, and queues to understand pointer-based data structures.', hours: 2, percentage: 20, items: 2 },
+                    { description: 'Construct hash tables and balanced trees to enable efficient data retrieval and storage.', hours: 4, percentage: 30, items: 7 },
+                    { description: 'Apply graph algorithms including breadth-first search, depth-first search, and shortest path algorithms to solve real-world problems.', hours: 6, percentage: 50, items: 16 }
                 ]
             }
         ]
@@ -119,17 +119,17 @@ const courseData = [
             {
                 co: 'CO1', description: 'Explain OS concepts including process management and memory hierarchy.', totalItems: 16,
                 ilos: [
-                    { description: 'Describe process states, scheduling algorithms, and context switching mechanisms used by modern operating systems.', hours: 5, percentage: 20, items: 6 },
-                    { description: 'Compare paging, segmentation, and virtual memory techniques for managing memory allocation.', hours: 4, percentage: 30, items: 5 },
-                    { description: 'Analyze deadlock detection, prevention, and avoidance strategies in concurrent systems.', hours: 3, percentage: 50, items: 5 }
+                    { description: 'Describe process states, scheduling algorithms, and context switching mechanisms used by modern operating systems.', hours: 1.5, percentage: 20, items: 1 },
+                    { description: 'Compare paging, segmentation, and virtual memory techniques for managing memory allocation.', hours: 3, percentage: 30, items: 3 },
+                    { description: 'Analyze deadlock detection, prevention, and avoidance strategies in concurrent systems.', hours: 6, percentage: 50, items: 12 }
                 ]
             },
             {
                 co: 'CO2', description: 'Implement concurrency and IPC mechanisms.', totalItems: 16,
                 ilos: [
-                    { description: 'Create multi-threaded programs using synchronization primitives such as mutexes, semaphores, and condition variables.', hours: 5, percentage: 20, items: 5 },
-                    { description: 'Implement inter-process communication using pipes, message queues, and shared memory.', hours: 5, percentage: 30, items: 5 },
-                    { description: 'Simulate CPU scheduling algorithms including FCFS, SJF, and Round Robin to compute average waiting and turnaround times.', hours: 4, percentage: 50, items: 6 }
+                    { description: 'Create multi-threaded programs using synchronization primitives such as mutexes, semaphores, and condition variables.', hours: 2, percentage: 20, items: 1 },
+                    { description: 'Implement inter-process communication using pipes, message queues, and shared memory.', hours: 4, percentage: 30, items: 4 },
+                    { description: 'Simulate CPU scheduling algorithms including FCFS, SJF, and Round Robin to compute average waiting and turnaround times.', hours: 6, percentage: 50, items: 11 }
                 ]
             }
         ]
@@ -140,17 +140,17 @@ const courseData = [
             {
                 co: 'CO1', description: 'Design relational database schemas using normalization and ER modeling.', totalItems: 0,
                 ilos: [
-                    { description: 'Create entity-relationship diagrams that accurately capture entities, attributes, and relationships for a given domain.', hours: 4, percentage: 20, items: 0 },
-                    { description: 'Normalize tables up to Third Normal Form and Boyce-Codd Normal Form to eliminate data redundancy.', hours: 4, percentage: 30, items: 0 },
+                    { description: 'Create entity-relationship diagrams that accurately capture entities, attributes, and relationships for a given domain.', hours: 1.5, percentage: 20, items: 0 },
+                    { description: 'Normalize tables up to Third Normal Form and Boyce-Codd Normal Form to eliminate data redundancy.', hours: 3, percentage: 30, items: 0 },
                     { description: 'Write complex SQL queries involving joins, subqueries, and aggregate functions to retrieve and analyze data.', hours: 6, percentage: 50, items: 0 }
                 ]
             },
             {
                 co: 'CO2', description: 'Implement database transactions, indexing, and security.', totalItems: 0,
                 ilos: [
-                    { description: 'Manage transactions with ACID properties and appropriate isolation levels to ensure data consistency.', hours: 3, percentage: 20, items: 0 },
+                    { description: 'Manage transactions with ACID properties and appropriate isolation levels to ensure data consistency.', hours: 2, percentage: 20, items: 0 },
                     { description: 'Optimize query performance using indexes, execution plan analysis, and query restructuring.', hours: 4, percentage: 30, items: 0 },
-                    { description: 'Configure user roles, permissions, and backup strategies to protect database security and availability.', hours: 3, percentage: 50, items: 0 }
+                    { description: 'Configure user roles, permissions, and backup strategies to protect database security and availability.', hours: 6, percentage: 50, items: 0 }
                 ]
             }
         ]
@@ -159,19 +159,19 @@ const courseData = [
         courseCode: 'BSCS322L',
         outcomes: [
             {
-                co: 'CO1', description: 'Apply SDLC methodologies to plan and document software projects.', totalItems: 18,
+                co: 'CO1', description: 'Apply SDLC methodologies to plan and document software projects.', totalItems: 22,
                 ilos: [
-                    { description: 'Gather and document functional and non-functional requirements using interviews, surveys, and use case analysis.', hours: 4, percentage: 20, items: 4 },
-                    { description: 'Model system behavior using UML diagrams including use case, sequence, and class diagrams.', hours: 5, percentage: 30, items: 5 },
-                    { description: 'Estimate project effort using COCOMO and planning poker techniques to produce realistic timelines.', hours: 3, percentage: 50, items: 9 }
+                    { description: 'Gather and document functional and non-functional requirements using interviews, surveys, and use case analysis.', hours: 1.5, percentage: 20, items: 2 },
+                    { description: 'Model system behavior using UML diagrams including use case, sequence, and class diagrams.', hours: 3, percentage: 30, items: 5 },
+                    { description: 'Estimate project effort using COCOMO and planning poker techniques to produce realistic timelines.', hours: 6, percentage: 50, items: 15 }
                 ]
             },
             {
                 co: 'CO2', description: 'Implement and test software following agile practices.', totalItems: 22,
                 ilos: [
-                    { description: 'Write user stories and manage a product backlog using Agile prioritization techniques such as MoSCoW.', hours: 3, percentage: 20, items: 4 },
-                    { description: 'Apply continuous integration and version control workflows using feature branches and pull requests.', hours: 5, percentage: 30, items: 7 },
-                    { description: 'Design and execute unit, integration, and system tests to validate software quality at multiple levels.', hours: 4, percentage: 50, items: 11 }
+                    { description: 'Write user stories and manage a product backlog using Agile prioritization techniques such as MoSCoW.', hours: 2, percentage: 20, items: 2 },
+                    { description: 'Apply continuous integration and version control workflows using feature branches and pull requests.', hours: 4, percentage: 30, items: 6 },
+                    { description: 'Design and execute unit, integration, and system tests to validate software quality at multiple levels.', hours: 6, percentage: 50, items: 14 }
                 ]
             }
         ]
@@ -182,17 +182,17 @@ const courseData = [
             {
                 co: 'CO1', description: 'Explain network architectures, protocols, and the OSI model.', totalItems: 16,
                 ilos: [
-                    { description: 'Describe encapsulation, addressing, and packet switching principles that enable data transmission across networks.', hours: 4, percentage: 20, items: 5 },
-                    { description: 'Configure IP subnets and routing tables to segment networks and control traffic flow.', hours: 5, percentage: 30, items: 6 },
-                    { description: 'Analyze TCP and UDP behavior using Wireshark captures to understand connection establishment and flow control.', hours: 3, percentage: 50, items: 5 }
+                    { description: 'Describe encapsulation, addressing, and packet switching principles that enable data transmission across networks.', hours: 1.5, percentage: 20, items: 1 },
+                    { description: 'Configure IP subnets and routing tables to segment networks and control traffic flow.', hours: 3, percentage: 30, items: 3 },
+                    { description: 'Analyze TCP and UDP behavior using Wireshark captures to understand connection establishment and flow control.', hours: 6, percentage: 50, items: 12 }
                 ]
             },
             {
                 co: 'CO2', description: 'Design and secure small-to-medium enterprise networks.', totalItems: 16,
                 ilos: [
-                    { description: 'Set up VLANs, STP, and link aggregation to segment broadcast domains and improve network redundancy.', hours: 5, percentage: 20, items: 5 },
-                    { description: 'Configure firewall rules and access control lists to enforce network security policies.', hours: 5, percentage: 30, items: 6 },
-                    { description: 'Troubleshoot connectivity issues using ping, traceroute, and DNS lookup tools to isolate network problems.', hours: 4, percentage: 50, items: 5 }
+                    { description: 'Set up VLANs, STP, and link aggregation to segment broadcast domains and improve network redundancy.', hours: 2, percentage: 20, items: 1 },
+                    { description: 'Configure firewall rules and access control lists to enforce network security policies.', hours: 4, percentage: 30, items: 4 },
+                    { description: 'Troubleshoot connectivity issues using ping, traceroute, and DNS lookup tools to isolate network problems.', hours: 6, percentage: 50, items: 11 }
                 ]
             }
         ]
@@ -201,19 +201,19 @@ const courseData = [
         courseCode: 'BSCS341L',
         outcomes: [
             {
-                co: 'CO1', description: 'Explain foundational AI concepts including search and knowledge representation.', totalItems: 15,
+                co: 'CO1', description: 'Explain foundational AI concepts including search and knowledge representation.', totalItems: 20,
                 ilos: [
-                    { description: 'Compare uninformed and informed search strategies such as BFS, DFS, and A* in terms of completeness and optimality.', hours: 4, percentage: 20, items: 5 },
-                    { description: 'Represent knowledge using propositional and first-order logic to encode facts and infer new conclusions.', hours: 4, percentage: 30, items: 5 },
-                    { description: 'Implement constraint satisfaction problem solvers using backtracking and forward checking techniques.', hours: 4, percentage: 50, items: 5 }
+                    { description: 'Compare uninformed and informed search strategies such as BFS, DFS, and A* in terms of completeness and optimality.', hours: 1.5, percentage: 20, items: 1 },
+                    { description: 'Represent knowledge using propositional and first-order logic to encode facts and infer new conclusions.', hours: 3, percentage: 30, items: 4 },
+                    { description: 'Implement constraint satisfaction problem solvers using backtracking and forward checking techniques.', hours: 6, percentage: 50, items: 15 }
                 ]
             },
             {
                 co: 'CO2', description: 'Apply machine learning algorithms to structured datasets.', totalItems: 20,
                 ilos: [
-                    { description: 'Train and evaluate supervised learning models including linear regression, decision trees, and support vector machines.', hours: 6, percentage: 20, items: 7 },
-                    { description: 'Cluster unlabeled data using K-means and hierarchical clustering to discover natural groupings.', hours: 4, percentage: 30, items: 7 },
-                    { description: 'Preprocess features through scaling, encoding, and dimensionality reduction to improve model performance.', hours: 4, percentage: 50, items: 6 }
+                    { description: 'Train and evaluate supervised learning models including linear regression, decision trees, and support vector machines.', hours: 2, percentage: 20, items: 2 },
+                    { description: 'Cluster unlabeled data using K-means and hierarchical clustering to discover natural groupings.', hours: 4, percentage: 30, items: 5 },
+                    { description: 'Preprocess features through scaling, encoding, and dimensionality reduction to improve model performance.', hours: 6, percentage: 50, items: 13 }
                 ]
             }
         ]
@@ -222,19 +222,19 @@ const courseData = [
         courseCode: 'BSCS351L',
         outcomes: [
             {
-                co: 'CO1', description: 'Identify cybersecurity threats, vulnerabilities, and risk management frameworks.', totalItems: 16,
+                co: 'CO1', description: 'Identify cybersecurity threats, vulnerabilities, and risk management frameworks.', totalItems: 24,
                 ilos: [
-                    { description: 'Classify common attack vectors including phishing, malware, DDoS, and man-in-the-middle attacks based on their impact.', hours: 4, percentage: 20, items: 5 },
-                    { description: 'Perform risk assessments using NIST and ISO 27001 standards to identify and prioritize security risks.', hours: 4, percentage: 30, items: 5 },
-                    { description: 'Apply cryptographic primitives including symmetric encryption, asymmetric encryption, and hashing to protect data.', hours: 4, percentage: 50, items: 6 }
+                    { description: 'Classify common attack vectors including phishing, malware, DDoS, and man-in-the-middle attacks based on their impact.', hours: 1.5, percentage: 20, items: 2 },
+                    { description: 'Perform risk assessments using NIST and ISO 27001 standards to identify and prioritize security risks.', hours: 3, percentage: 30, items: 5 },
+                    { description: 'Apply cryptographic primitives including symmetric encryption, asymmetric encryption, and hashing to protect data.', hours: 6, percentage: 50, items: 17 }
                 ]
             },
             {
                 co: 'CO2', description: 'Implement security controls for network and application defence.', totalItems: 24,
                 ilos: [
-                    { description: 'Configure intrusion detection systems and SIEM tools to monitor network traffic and detect suspicious activity.', hours: 5, percentage: 20, items: 8 },
-                    { description: 'Conduct vulnerability scans and interpret penetration test results to identify weaknesses in systems.', hours: 5, percentage: 30, items: 8 },
-                    { description: 'Develop incident response playbooks and recovery procedures to guide teams through security incidents.', hours: 4, percentage: 50, items: 8 }
+                    { description: 'Configure intrusion detection systems and SIEM tools to monitor network traffic and detect suspicious activity.', hours: 2, percentage: 20, items: 2 },
+                    { description: 'Conduct vulnerability scans and interpret penetration test results to identify weaknesses in systems.', hours: 4, percentage: 30, items: 6 },
+                    { description: 'Develop incident response playbooks and recovery procedures to guide teams through security incidents.', hours: 6, percentage: 50, items: 16 }
                 ]
             }
         ]

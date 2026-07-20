@@ -28,6 +28,17 @@ const TosStatus = sequelize.define('TosStatus', {
     approvedAt: {
         type: DataTypes.DATE,
         field: 'approved_at'
+    },
+    returnCount: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        defaultValue: 0,
+        field: 'return_count'
+    },
+    returnDates: {
+        type: DataTypes.TEXT,
+        defaultValue: '[]',
+        field: 'return_dates'
     }
 }, {
     tableName: 'tos_statuses',

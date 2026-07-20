@@ -1,7 +1,7 @@
 import React, {useState, useEffect} from 'react';
 import {Link, useLocation} from 'react-router-dom'
 import styles from '../styles/CoursesTable.module.sass';
-import { ChevronRight } from 'react-feather';
+import { ChevronRight, Download } from 'react-feather';
 import { fetchCourses } from '../services/api.js';
 
 const ProgramHeadTOSCoursesTable = () => {
@@ -10,7 +10,7 @@ const ProgramHeadTOSCoursesTable = () => {
     const semOptions = ['1st Semester', '2nd Semester'];
     const yearOptions = [];
     for (let i = currentYear; i >= startYear; i--) {
-        yearOptions.push(<option key={i} value={i}>{i}</option>);
+        yearOptions.push(<option key={i} value={i}>{i}–{i + 1}</option>);
     }
     const fallbackCourses = [
         // Pending — Norton
@@ -102,7 +102,7 @@ const ProgramHeadTOSCoursesTable = () => {
         <div className={styles['courses-table']}>
 
             <div className={styles.header}>
-                <h2>SUBMITTED TABLE OF SPECIFICATIONS</h2>
+                <h2>ASSIGNED TABLE OF SPECIFICATIONS</h2>
                 <div className={styles.filterA}>
                     <select className={styles['header-select']} value={schoolYear} onChange={e => setSchoolYear(e.target.value)}>
                         {yearOptions}
@@ -154,6 +154,11 @@ const ProgramHeadTOSCoursesTable = () => {
                                 <td width={300}>{row.name}</td>
                                 <td width={200}>{row.instructor}</td>
                                 <td className={styles.fill}>
+                                    {selectedStatus === 'approved' && (
+                                        <button className={styles.exportBtn} onClick={() => console.log('Export', row.code)}>
+                                            Export <Download size={16} />
+                                        </button>
+                                    )}
                                     {row.status === 'pending' ? (
                                         <Link className="actionLink" to={`/tos/${row.code}`} state={{ tosStatus: row.status, courseName: row.name, examType, schoolYear, semester, role: 'program-head' }}>
                                             Review

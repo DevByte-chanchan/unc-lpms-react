@@ -192,3 +192,12 @@ export async function deleteComment(courseCode, id) {
         method: 'DELETE'
     });
 }
+
+export async function resolveComment(courseCode, id, resolved) {
+    const res = await fetch(`${BASE}/${courseCode}/comments/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ resolved })
+    });
+    return await res.json();
+}

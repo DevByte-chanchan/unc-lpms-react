@@ -25,6 +25,7 @@ router.put('/:code/items', async (req, res) => {
     const created = [];
     for (const item of items) {
         const { choices, rubrics, co, ilo, ...itemData } = item;
+        if (typeof itemData.id === 'string') delete itemData.id;
         const createdItem = await AssessmentItem.create({
             ...itemData,
             courseCode: code

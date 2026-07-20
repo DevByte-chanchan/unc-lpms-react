@@ -12,7 +12,7 @@ router.get('/:code/comments', async (req, res) => {
 });
 
 router.post('/:code/comments', async (req, res) => {
-    const { co, ilo, cognitiveLevel, itemNumber, type, body, courseOutcomeId, assessmentItemId } = req.body;
+    const { co, ilo, cognitiveLevel, itemNumber, type, body, courseOutcomeId, assessmentItemId, returnNumber } = req.body;
     const comment = await Comment.create({
         courseCode: req.params.code,
         co: co || '',
@@ -23,7 +23,17 @@ router.post('/:code/comments', async (req, res) => {
         body,
         courseOutcomeId: courseOutcomeId || null,
         assessmentItemId: assessmentItemId || null,
+        returnNumber: typeof returnNumber === 'number' ? returnNumber : 0,
     });
+    res.json(comment);
+});
+
+router.patch('/:code/comments/:id', async (req, res) => {
+    const { resolved } = req.body;
+    const comment = await Comment.findOne({ where: { id: req.params.id, courseCode: req.params.code } });
+    if (!comment) return res.status(404).json({ error: 'Comment not found' });
+    if (typeof resolved === 'boolean') comment.resolved = resolved;
+    await comment.save();
     res.json(comment);
 });
 

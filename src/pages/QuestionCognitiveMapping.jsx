@@ -143,7 +143,7 @@ const RubricRow = ({ row, itemPoints, totalWeight, rowPoints, nameError, onChang
 };
 
 // ─── AssessmentBuilder ────────────────────────────────────────────────────────
-const AssessmentBuilder = ({ totalSlots, initialItems, onSaveReturn, builderSaveRef, onProgressUpdate, highlightKey, assessmentName, onAssessmentNameChange, assessmentNames = ['Midterm Exam', 'Final Exam', 'Written Exam', 'Practical Exam', 'Oral Exam', 'Quiz', 'Project', 'Assignment', 'Periodic Exam'], showDuplicateWarning, duplicateIds, onDismissDuplicateWarning, readOnly = false, showComments }) => {
+const AssessmentBuilder = ({ totalSlots, initialItems, onSaveReturn, builderSaveRef, onProgressUpdate, highlightKey, assessmentName, onAssessmentNameChange, assessmentNames = ['Midterm Exam', 'Final Exam', 'Written Exam', 'Practical Exam', 'Oral Exam', 'Quiz', 'Project', 'Assignment', 'Periodic Exam'], showDuplicateWarning, duplicateIds, onDismissDuplicateWarning, showRubricWarning, rubricWarningItems, onDismissRubricWarning, readOnly = false, showComments }) => {
     const [selectedAssessment, setSelectedAssessment] = useState(assessmentName || '');
     const [spanEdit, setSpanEdit] = useState(null);
     const [warnData, setWarnData] = useState(null);
@@ -532,7 +532,7 @@ const AssessmentBuilder = ({ totalSlots, initialItems, onSaveReturn, builderSave
                         </div>
                         <div className={tosLayout.modalActions}>
                             <button className={tosLayout.cancelBtn} style={{ background: "#f9f9f9", color: "#374151" }} onClick={() => { setWarnData(null); setSpanEdit(null); }}>Cancel</button>
-                            <button className={tosLayout.confirmBtn} style={{ background: "#1A1A1A" }} onMouseEnter={e => e.target.style.backgroundColor = '#444'} onMouseLeave={e => e.target.style.backgroundColor = '#1A1A1A'} onClick={() => applySpan(warnData.id, warnData.newSpan, warnData.toRemove, warnData.splits || [])}>
+                            <button className={tosLayout.fixBtn} onClick={() => applySpan(warnData.id, warnData.newSpan, warnData.toRemove, warnData.splits || [])}>
                                 Yes, proceed
                             </button>
                         </div>
@@ -551,7 +551,29 @@ const AssessmentBuilder = ({ totalSlots, initialItems, onSaveReturn, builderSave
                             <p style={{ color: "#555" }}>Some items have the exact same content. Please review and fix them before saving.</p>
                         </div>
                         <div className={tosLayout.modalActions}>
-                            <button className={tosLayout.confirmBtn} style={{ background: "#1A1A1A" }} onMouseEnter={e => e.target.style.backgroundColor = '#444'} onMouseLeave={e => e.target.style.backgroundColor = '#1A1A1A'} onClick={() => { setDuplicateHighlightKey(k => k + 1); onDismissDuplicateWarning?.(); }}>
+                            <button className={tosLayout.fixBtn} onClick={() => { setDuplicateHighlightKey(k => k + 1); onDismissDuplicateWarning?.(); }}>
+                                Fix
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ── Rubric Warning Dialog ── */}
+            {showRubricWarning && rubricWarningItems?.length > 0 && (
+                <div className={tosLayout.modalOverlay}>
+                    <div className={tosLayout.modal}>
+                        <div className={tosLayout.modalHeader}>
+                            <h3 style={{ color: "#1A1A1A" }}>Incomplete Rubric Entries</h3>
+                        </div>
+                        <div className={tosLayout.modalBody}>
+                            <p style={{ color: "#555", marginBottom: 16 }}>Some rubric rows are missing required fields:</p>
+                            {rubricWarningItems.map((msg, i) => (
+                                <div key={i} style={{ textAlign: 'left', padding: '4px 0', color: '#DC2626', fontSize: 13, borderBottom: i < rubricWarningItems.length - 1 ? '1px solid #F3F4F6' : 'none' }}>{msg}</div>
+                            ))}
+                        </div>
+                        <div className={tosLayout.modalActions}>
+                            <button className={tosLayout.fixBtn} onClick={() => onDismissRubricWarning?.()}>
                                 Fix
                             </button>
                         </div>
@@ -920,6 +942,8 @@ const QuestionCognitiveMapping = ({
     const [highlightKey, setHighlightKey] = useState(0);
     const [showDuplicateWarning, setShowDuplicateWarning] = useState(false);
     const [duplicateIds, setDuplicateIds] = useState([]);
+    const [showRubricWarning, setShowRubricWarning] = useState(false);
+    const [rubricWarningItems, setRubricWarningItems] = useState([]);
 
     const cognitiveLevels = ['Remembering','Understanding','Applying','Analyzing','Evaluating','Creating'];
 
@@ -1025,6 +1049,30 @@ const QuestionCognitiveMapping = ({
             return;
         }
 
+        // Validate rubric completeness (only rows that would survive the clean filter)
+        const rubricIssues = [];
+        savedItems.forEach((si, idx) => {
+            if (!si.rubricRows || si.rubricRows.length === 0) return;
+            si.rubricRows.forEach((row, rIdx) => {
+                const hasName = !!(row.name || '').trim();
+                const hasDesc = !!(row.description || '').trim();
+                if (!hasName && !hasDesc) return;
+                const missing = [];
+                if (!hasName) missing.push('category name');
+                if (!hasDesc) missing.push('description');
+                if (!(row.weight && Number(row.weight) > 0)) missing.push('weight');
+                if (!(row.pts && Number(row.pts) > 0)) missing.push('points');
+                if (missing.length > 0) {
+                    rubricIssues.push(`Item ${idx + 1} (Row ${rIdx + 1}): missing ${missing.join(', ')}`);
+                }
+            });
+        });
+        if (rubricIssues.length > 0) {
+            setRubricWarningItems(rubricIssues);
+            setShowRubricWarning(true);
+            return;
+        }
+
         const exMap = new Map(questions.map(q => [q.id, q]));
         const merged = savedItems.map(si => {
             const ex = exMap.get(si.id) || {};
@@ -1101,6 +1149,11 @@ const QuestionCognitiveMapping = ({
                 duplicateIds={duplicateIds}
                 onDismissDuplicateWarning={() => {
                     setShowDuplicateWarning(false);
+                }}
+                showRubricWarning={showRubricWarning}
+                rubricWarningItems={rubricWarningItems}
+                onDismissRubricWarning={() => {
+                    setShowRubricWarning(false);
                 }}
                 readOnly={readOnly}
                 showComments={showComments}

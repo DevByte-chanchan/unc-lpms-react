@@ -25,7 +25,7 @@ router.put('/:code/status', async (req, res) => {
     if (status) {
         status.status = newStatus || 'draft';
         if (newStatus === 'pending') status.submittedAt = now;
-        else if (newStatus === 'returned') status.returnedAt = now;
+        else if (newStatus === 'returned') { status.returnedAt = now; status.returnCount = (status.returnCount || 0) + 1; const dates = JSON.parse(status.returnDates || '[]'); dates.push(now.toISOString()); status.returnDates = JSON.stringify(dates); }
         else if (newStatus === 'approved') status.approvedAt = now;
         await status.save();
     } else {

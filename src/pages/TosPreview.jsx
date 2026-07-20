@@ -20,10 +20,12 @@ const TOSPreview = ({ isOpen, onClose, outcomeData, questions, courseName = "Hum
         const goToTable = () => navigate("/assignedtos", { state: { tosStatusUpdate: { courseName, newStatus: 'pending' }, initialStatus: 'pending' } });
         if (!courseCode) { goToTable(); return; }
         const outcomesPayload = outcomeData.map(r => ({
+            id: r.dbId,
             co: r.co,
             description: r.description || '',
             totalItems: r.totalItems || 0,
             ilos: (r.ilos || []).map(ilo => ({
+                iloDbId: ilo.iloDbId,
                 description: ilo.description || '',
                 hours: ilo.hours || 0,
                 percentage: ilo.percentage || 0,
@@ -107,7 +109,7 @@ const TOSPreview = ({ isOpen, onClose, outcomeData, questions, courseName = "Hum
                         <span className={layout.assessmentName}>Assessment: <span>{assessmentName || ''}</span></span>
                     </div>
                     <div className={layout.pillToggle}>
-                        <div className={layout.pillSlider} style={{ transform: `translateX(${activeTab === 'tosReport' ? '0' : '100'}%)` }} />
+                        <div className={layout.pillSlider} style={{ transform: `translateX(${activeTab === 'tosReport' ? '0' : 'calc(100% + 2px)'})` }} />
                         <button className={`${layout.pillOption} ${activeTab === 'tosReport' ? layout.pillActive : ''}`} onClick={() => setActiveTab('tosReport')}>
                             TOS Report
                         </button>

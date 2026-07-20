@@ -1,7 +1,7 @@
 import React, {useState, useEffect} from 'react';
 import {Link, useLocation} from 'react-router-dom'
 import styles from '../styles/CoursesTable.module.sass';
-import { ChevronRight } from 'react-feather';
+import { ChevronRight, Download } from 'react-feather';
 import { fetchCourses } from '../services/api.js';
 const TOSCoursesTable = ({}) => {
 
@@ -11,7 +11,7 @@ const TOSCoursesTable = ({}) => {
     const temp = ['Midterm', 'Finals'];
     const yearOptions = [];
     for (let i = currentYear; i >= startYear; i--) {
-        yearOptions.push(<option key={i} value={i}>{i}</option>);
+        yearOptions.push(<option key={i} value={i}>{i}–{i + 1}</option>);
     }
     const nortonCourses = new Set(['BSCS111L','BSCS212L','BSCS313L','BSCS321L','BSCS221L','BSCS341L','BSCS342L','BSCS214L','BSCS222L','BSCS223L','BSCS314L','BSCS323L']);
 
@@ -136,6 +136,11 @@ const TOSCoursesTable = ({}) => {
                                 {nonDraft && selectedStatus !== 'pending' && <td width={200}>{row.dateStatus || row.dateSubmitted}</td>}
                                 {!nonDraft && <td width={200}>{row.update}</td>}
                                 <td className={styles.fill}>
+                                    {selectedStatus === 'approved' && (
+                                        <button className={styles.exportBtn} onClick={() => console.log('Export', row.code)}>
+                                            Export <Download size={16} />
+                                        </button>
+                                    )}
                                     {row.status === 'draft' ? (
                                         <Link className="actionLink" to={`/tos/${row.code}`} state={{ tosStatus: row.status, courseName: row.name, examType, schoolYear, semester }}>
                                             Compose

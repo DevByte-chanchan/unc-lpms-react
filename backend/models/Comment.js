@@ -47,6 +47,16 @@ const Comment = sequelize.define('Comment', {
     body: {
         type: DataTypes.TEXT,
         allowNull: false
+    },
+    resolved: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false
+    },
+    returnNumber: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        defaultValue: 0,
+        field: 'return_number'
     }
 }, {
     tableName: 'comments',

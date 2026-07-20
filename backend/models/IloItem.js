@@ -16,7 +16,7 @@ const IloItem = sequelize.define('IloItem', {
         type: DataTypes.TEXT
     },
     hours: {
-        type: DataTypes.INTEGER,
+        type: DataTypes.FLOAT,
         defaultValue: 0
     },
     percentage: {
