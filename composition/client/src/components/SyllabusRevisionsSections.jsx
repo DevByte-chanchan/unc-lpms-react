@@ -4,7 +4,7 @@ import { Info } from 'react-feather';
 import React, {useEffect, useState} from "react";
 import TextField from "./TextField.jsx";
 import TextArea from "./TextArea.jsx";
-import {Link, useNavigate, useParams, useSearchParams} from "react-router-dom";
+import {Link, useParams, useSearchParams} from "react-router-dom";
 import {getSyllabusByCode, syllabiData} from "../data/syllabiData.js";
 import SyllabusPreview from "./SyllabusPreview.jsx";
 

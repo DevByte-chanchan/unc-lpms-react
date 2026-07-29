@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ChevronLeft } from 'react-feather';
+import { ChevronLeft, CheckCircle } from 'react-feather';
 import SkeletonA from '../../../layouts/SkeletonA.jsx';
 import HeaderA from '../../../components/HeaderA.jsx';
 import SideNavigation from '../../../components/SideNavigation.jsx';
@@ -8,7 +8,7 @@ import TextField from '../../../components/TextField.jsx';
 import DropdownA from '../../../components/DropdownA.jsx';
 import styles from '../../../styles/Form.module.sass';
 import navStyles from '../../../styles/FormNavigation.module.sass';
-import { addReference, updateReference, getReferenceById, getReferences, setReferences } from '../../../utils/referenceLibrary.js';
+import { addReference, updateReference, getReferenceById } from '../../../utils/referenceLibrary.js';
 
 const ReferenceTypes = ['Textbook', 'Online Resources', 'Open Educational Resources'];
 
@@ -42,6 +42,9 @@ const AddReference = () => {
 
   const [courseInput, setCourseInput] = useState('');
   const [errors, setErrors] = useState({});
+  const [toast, setToast] = useState(null);
+
+  const showToast = (msg, type = 'success') => { setToast({ msg, type }); setTimeout(() => setToast(null), 3000); }
   const handleChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     if (errors[field]) {
@@ -98,7 +101,7 @@ const AddReference = () => {
       if (!formData.link.trim()) {
         newErrors.link = 'Link URL is required.';
       } else {
-        const urlPattern = /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/;
+        const urlPattern = /^(https?:\/\/)?([\da-z.-]+)\.([a-z.]{2,6})([/\w .-]*)*\/?$/;
         if (!urlPattern.test(formData.link)) {
           newErrors.link = 'Please enter a valid URL (e.g., https://example.com).';
         }
@@ -112,16 +115,15 @@ const AddReference = () => {
   const handleSaveClick = () => {
     if (validateForm()) {
       const refData = {
-        id: isEditMode ? id : `${formData.type === 'Textbook' ? 'TB' : formData.type === 'Online Resources' ? 'OR' : 'OE'}${Date.now()}`,
         title: formData.title,
         authors: formData.authors,
         type: formData.type,
         year: formData.year ? parseInt(formData.year) : '',
         isbn: formData.isbn || '',
         link: formData.link || '',
-        publisher: '',
-        filename: '',
-        uploadDate: new Date().toISOString().split('T')[0],
+        publisher: existingRef?.publisher || '',
+        filename: existingRef?.filename || '',
+        uploadDate: existingRef?.uploadDate || new Date().toISOString().split('T')[0],
         hasIssue: existingRef?.hasIssue || false,
         archived: existingRef?.archived || false,
         departments: formData.departments,
@@ -134,8 +136,8 @@ const AddReference = () => {
         addReference(refData);
       }
 
-      alert(isEditMode ? 'Reference updated successfully!' : 'Reference added successfully!');
-      navigate('/role/director-of-libraries/reference-library');
+      showToast(isEditMode ? 'Reference updated successfully!' : 'Reference added successfully!');
+      setTimeout(() => navigate('/role/director-of-libraries/reference-library'), 1200);
     }
   };
 
@@ -230,6 +232,19 @@ const AddReference = () => {
 
 
       </div>
+
+      {toast && (
+        <div style={{
+          position: 'fixed', bottom: 24, right: 24, zIndex: 9999,
+          display: 'flex', alignItems: 'center', gap: 10,
+          background: '#047857', color: '#fff',
+          padding: '14px 22px', borderRadius: 8, fontSize: 14, fontWeight: 500,
+          boxShadow: '0 6px 20px rgba(0,0,0,0.15)', fontFamily: "'Poppins', sans-serif",
+        }}>
+          <CheckCircle size={20} />
+          {toast.msg}
+        </div>
+      )}
     </div>
   );
 

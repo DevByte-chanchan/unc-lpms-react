@@ -186,26 +186,39 @@
   border-radius: 6px
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)
   z-index: 50
-  min-width: 140px
-  padding: 4px 0
+  min-width: 200px
+  padding: 8px
+  gap: 4px
   flex-direction: column
 
 .more .dropdownMenu button
   outline: none
   background: none
   border: none
+  display: flex
+  align-items: center
+  gap: 10px
   text-align: left
-  padding: 8px 12px
-  font-size: 13px
+  padding: 12px 14px
+  border-radius: 6px
+  font-size: 14px
+  font-weight: 500
   color: #334155
   cursor: pointer
   width: 100%
+  white-space: nowrap
   transition: background-color 0.15s ease, color 0.15s ease
 
+.more .dropdownMenu button svg
+  flex-shrink: 0
+
 .more .dropdownMenu button:hover
-  background-color: #f8fafc
+  background-color: #e8ecef
   color: #0f172a
-  cursor: not-allowed
+
+.more .dropdownMenu button:disabled
+  opacity: 0.55
+  cursor: default
 
 /* =========================
    COURSE DETAILS TABLE

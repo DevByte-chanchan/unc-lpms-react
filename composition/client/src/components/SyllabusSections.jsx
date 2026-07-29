@@ -1,6 +1,6 @@
 import styles from '../styles/SyllabusSections.module.sass'
 import stylesB from '../styles/SyllabusPreview.module.sass'; // Ensure this has the new modal CSS classes
-import {ChevronLeft, ChevronRight, Plus, Search, Inbox, Play, Send, MoreVertical, Download} from 'react-feather';
+import {ChevronLeft, ChevronRight, Plus, Search, Inbox, Play, Send, MoreVertical, Download, Clock} from 'react-feather';
 import React, {useEffect, useRef, useState} from "react";
 import {Link, useNavigate, useParams, useSearchParams, useLocation} from "react-router-dom";
 import SyllabusPreview from "./SyllabusPreview.jsx";
@@ -261,14 +261,7 @@ const SyllabusSections = () => {
                 {
                     status === 'approved' &&
                     <>
-                        {/* push Export to the right, matching the dean/VPAA layout */}
-                        <div style={{ flexGrow: 1 }} />
-                        <div className={styles.submit} onClick={handleExport}>
-                            <Download size={16} /> Export
-                        </div>
-                        <div className={styles.divider}>
-                            <div className={styles.line}></div>
-                        </div>
+                        <div className={styles.divider}><div className={styles.line}></div></div>
 
                         <div onClick={toggleMenu} ref={dropdownRef} className={`${styles.more} ${isOpen ? styles.active : ''}`}>
                             <div className={styles.moreIcon} >
@@ -279,7 +272,13 @@ const SyllabusSections = () => {
                                 {
                                     status === 'approved' &&
                                     <button type="button" onClick={(e) => { e.stopPropagation(); setIsRevisionsOpen(true); setIsOpen(false); }}>
-                                        Revisions
+                                        <Clock strokeWidth={2} size={14} /> Revisions
+                                    </button>
+                                }
+                                {
+                                    status === 'approved' &&
+                                    <button type="button" disabled={exportingPdf} onClick={(e) => { e.stopPropagation(); setIsOpen(false); handleExport(); }}>
+                                        <Download strokeWidth={2} size={14} /> {exportingPdf ? 'Exporting...' : 'Export'}
                                     </button>
                                 }
 

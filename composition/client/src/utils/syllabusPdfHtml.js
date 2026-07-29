@@ -40,10 +40,10 @@ const pageHeader = (logo) => `<table style="width:100%; border-collapse:collapse
   </tr>
 </table>`
 
-const pageFooter = (pageNum, total) => `<div style="display:flex; justify-content:space-between; padding-top:4px; font-size:8.5pt; font-family:Arial,Helvetica,sans-serif; margin-top:auto;">
+const pageFooter = (pageNum, total) => `<div style="position:absolute; left:85px; right:85px; bottom:26px; display:flex; justify-content:space-between; padding-top:4px; font-size:8.5pt; font-family:Arial,Helvetica,sans-serif;">
   <span>Effectivity: 06/01/2024</span>
   <span>Revision No.: 0</span>
-  <span>Page No.: ${pageNum} of ${total}</span>
+  <span>Page No.: <span class="pgno">${pageNum}</span> of <span class="pgtot">${total}</span></span>
 </div>`
 
 function page1(logo, total) {
@@ -353,25 +353,31 @@ function computeCoverageChunks(syllabus) {
     return { ph, phaseOrder }
   }
 
-  const buildTlaHtml = (tlas) => {
-    if (!tlas.length) return '&mdash;'
-    return '<ul style="margin:0; padding-left:16px;">' + tlas.map(t => {
-      let label = safe(t.tlaName || '')
-      if (t.performedBy === 'Instructor') label += ' [I]'
-      if (t.performedBy === 'Student') label += ' [S]'
-      if (t.laboratory) label += ' <span style="font-size:8pt;color:#555;">(Lab)</span>'
-      if (t.tlaDescription) label += '<br><span style="font-size:8pt;color:#555;">' + safe(t.tlaDescription) + '</span>'
-      return '<li>' + label + '</li>'
-    }).join('') + '</ul>'
+  const oneTlaLi = (t) => {
+    let label = safe(t.tlaName || '')
+    if (t.performedBy === 'Instructor') label += ' [I]'
+    if (t.performedBy === 'Student') label += ' [S]'
+    if (t.laboratory) label += ' <span style="font-size:8pt;color:#555;">(Lab)</span>'
+    if (t.tlaDescription) label += '<br><span style="font-size:8pt;color:#555;">' + safe(t.tlaDescription) + '</span>'
+    return '<li>' + label + '</li>'
   }
 
-  const buildTlaSection = (ilo) => {
+  // Fine-grained splittable units: a phase label, then each activity as its own
+  // <ul><li>. These are the boundaries at which a too-tall row is split across
+  // pages, so even a single phase with many activities can paginate cleanly.
+  const buildTlaParts = (ilo) => {
     const { ph, phaseOrder } = getTlasByIlo(ilo)
-    const parts = phaseOrder.filter(p => ph[p].length).map(p => {
+    const units = []
+    phaseOrder.filter(p => ph[p].length).forEach(p => {
+      // Keep each phase label attached to its FIRST activity so the label and its
+      // bullets are always in the same row (never split into separate pieces, which
+      // would let a tall neighbouring column push the bullets far below the label).
       const label = '<div style="font-weight:600;font-size:8pt;text-decoration:underline;margin:2px 0 1px;">' + PHASE_LABELS[p] + '</div>'
-      return label + buildTlaHtml(ph[p])
+      ph[p].forEach((t, idx) => {
+        units.push((idx === 0 ? label : '') + '<ul style="margin:0; padding-left:16px;">' + oneTlaLi(t) + '</ul>')
+      })
     })
-    return parts.length ? parts.join('') : '&mdash;'
+    return units.length ? units : ['&mdash;']
   }
 
   const buildAssessmentsHtml = (ilo) => {
@@ -419,18 +425,22 @@ function computeCoverageChunks(syllabus) {
     ? '<ul style="margin:0; padding-left:16px;">' + arr.map(n => '<li>' + safe(n) + '</li>').join('') + '</ul>'
     : '<span style="display:inline-block; min-height:1.2em;">&mdash;</span>'
 
-  const buildRow = (ilo, coId, coSpan, isFirst) => ({
-    t: 'row',
-    coId,
-    showCo: isFirst || !coId,
-    coSpan,
-    iloText: safe(ilo.intendedLearningOutcome || ilo.description),
-    topics: buildTopicsHtml(ilo),
-    period: (ilo.deliveryWeek + ' (' + (ilo.allocatedTime || '') + ')').trim(),
-    tlaHtml: buildTlaSection(ilo),
-    assHtml: buildAssessmentsHtml(ilo),
-    refHtml: toBullets(ilo.references || [])
-  })
+  const buildRow = (ilo, coId, coSpan, isFirst) => {
+    const tlaParts = buildTlaParts(ilo)
+    return {
+      t: 'row',
+      coId,
+      showCo: isFirst || !coId,
+      coSpan,
+      iloText: safe(ilo.intendedLearningOutcome || ilo.description),
+      topics: buildTopicsHtml(ilo),
+      period: (ilo.deliveryWeek + ' (' + (ilo.allocatedTime || '') + ')').trim(),
+      tlaHtml: tlaParts.join(''),
+      tlaParts,
+      assHtml: buildAssessmentsHtml(ilo),
+      refHtml: toBullets(ilo.references || [])
+    }
+  }
 
   // Phase 1: group sorted ILOs into sections bounded by grading-period shifts
   const sections = []
@@ -490,51 +500,151 @@ function computeCoverageChunks(syllabus) {
     }
   })
 
-  // Estimate row height in pixels based on content wrapping per column width
-  const estRowH = (row) => {
-    if (row.t === 'divider') return 28
-    const CPW = { ilo: 26, topic: 26, tla: 46, assess: 23, ref: 21 }
-    const countLines = (html, col) => {
-      if (!html) return 1
-      const maxC = CPW[col] || 40
-      let t = html
-        .replace(/<br\s*\/?>/gi, '\n')
-        .replace(/<[^>]+>/g, ' ')
-        .replace(/&mdash;/g, '—')
-        .replace(/&nbsp;/g, ' ')
-        .replace(/\s+/g, ' ')
-        .trim()
-      if (!t || t === '—') return 1
-      const segments = t.split('\n')
-      let total = 0
-      for (const seg of segments) {
-        if (!seg.trim()) { total += 1; continue }
-        total += Math.max(1, Math.ceil(seg.trim().length / maxC))
-      }
-      return total
-    }
-    const lines = [
-      countLines(row.iloText, 'ilo'),
-      countLines(row.topics, 'topic'),
-      countLines(row.tlaHtml, 'tla'),
-      countLines(row.assHtml, 'assess'),
-      countLines(row.refHtml, 'ref'),
-    ]
-    return Math.max(36, Math.max(...lines) * 22 + 30)
+  // Stamp a stable CO-group id (_cg) and topic-group id (_tk) on each row. The
+  // client's measured re-pagination uses these to rebuild the CO/Topic rowspans
+  // after it re-packs rows by their real (measured) heights. A new group starts
+  // whenever the CO changes, the topic text changes, or a period divider appears.
+  {
+    let cg = 0, tk = 0, ig = 0
+    let prevCo = ' ', prevTopic = ' ', brk = true
+    rows.forEach((r) => {
+      if (r.t === 'divider') { brk = true; return }
+      const co = r.coId || ''
+      const coChanged = brk || co !== prevCo || !co
+      if (coChanged) cg++
+      if (coChanged || r.topics !== prevTopic) tk++
+      r._cg = cg
+      r._tk = tk
+      r._ig = ++ig
+      prevCo = co; prevTopic = r.topics; brk = false
+    })
   }
 
-  const MAX_TABLE_H = 490
+  // Estimate a cell's rendered pixel height. Accounts for the fact that description
+  // text is 8pt (fits more characters per line and is shorter per line) while names,
+  // ILO/topic text, etc. are 10pt — so dense TLA cells are no longer ~1.7× over-counted.
+  const cellHeight = (html, cpw10, cpw8) => {
+    if (!html || html === '&mdash;') return 20
+    let h = 8 // cell vertical padding
+    // phase labels (8pt bold underline divs) ~16px each
+    h += ((html.match(/text-decoration:underline/g) || []).length) * 16
+    // 8pt description / detail spans: ~14px per line, ~cpw8 chars per line
+    const descRe = /font-size:8pt[^>]*>([\s\S]*?)<\/span>/g
+    let m
+    while ((m = descRe.exec(html))) {
+      const t = m[1].replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
+      if (t) h += Math.max(1, Math.ceil(t.length / cpw8)) * 14
+    }
+    // remaining 10pt text (names, ilo/topic text, plain bullets): ~18px per line
+    const rest = html
+      .replace(descRe, ' ')
+      .replace(/<div[^>]*text-decoration:underline[\s\S]*?<\/div>/g, ' ')
+      .replace(/<br\s*\/?>/gi, '\n')
+      .replace(/<\/li>|<li>|<\/div>|<div[^>]*>/gi, '\n')
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/&mdash;/g, '—').replace(/&nbsp;/g, ' ')
+    rest.split('\n').forEach((s) => {
+      const t = s.replace(/\s+/g, ' ').trim()
+      if (t && t !== '—') h += Math.max(1, Math.ceil(t.length / cpw10)) * 18
+    })
+    return h
+  }
+
+  const estRowH = (row) => {
+    if (row.t === 'divider') return 28
+    const heights = [
+      cellHeight(row.iloText, 30, 30),
+      cellHeight(row.topics, 30, 30),
+      cellHeight(row.tlaHtml, 46, 62),
+      cellHeight(row.assHtml, 30, 46),
+      cellHeight(row.refHtml, 26, 26),
+    ]
+    return Math.max(40, Math.max(...heights))
+  }
+
+  // Per-page budget for the coverage table body, set close to the true usable
+  // height so pages fill efficiently. Continuation pages have the full height;
+  // the first coverage page is shorter because it also carries the section title,
+  // so it gets FIRST_H3 less. A split piece must fit even that shorter first page.
+  const MAX_TABLE_H = 525
+  const FIRST_H3 = 26
+
+  // ── Split only over-tall ILOs ────────────────────────────────────────────────
+  // Keep each ILO as ONE row so its TLA activities flow naturally in a single cell
+  // (no internal gaps even when a neighbouring column like Topic is tall). Split an
+  // ILO into page-sized pieces ONLY when the whole ILO is taller than a page, so
+  // nothing is ever un-paginatable. Split pieces share _ig/_cg/_tk and merge by
+  // border; the ILO/period/assessment/reference cells appear on the first piece only.
+  const MAX_ROW_H = MAX_TABLE_H - FIRST_H3
+  const partH = (p) => cellHeight(p, 46, 62)
+  const atoms = []
+  for (const row of rows) {
+    if (row.t !== 'row' || !row.tlaParts || row.tlaParts.length <= 1 || estRowH(row) <= MAX_ROW_H) {
+      atoms.push(row); continue
+    }
+    // group the ILO's TLA parts into page-sized pieces
+    const groups = []
+    let g = [], gh = 0
+    for (const p of row.tlaParts) {
+      const h = partH(p)
+      if (g.length && gh + h > MAX_ROW_H) { groups.push(g); g = []; gh = 0 }
+      g.push(p); gh += h
+    }
+    if (g.length) groups.push(g)
+    groups.forEach((gp, gi) => {
+      const first = gi === 0
+      const last = gi === groups.length - 1
+      atoms.push({
+        ...row,
+        tlaHtml: gp.join(''),
+        tlaParts: gp,
+        iloText: first ? row.iloText : '',
+        period: first ? row.period : '',
+        assHtml: first ? row.assHtml : '',
+        refHtml: first ? row.refHtml : '',
+        mergeUp: !first || !!row.mergeUp,
+        mergeDown: !last || !!row.mergeDown,
+      })
+    })
+  }
+
+  // Per-column merge flags (GLOBAL, pagination-independent). Instead of rowspan,
+  // each column hides the internal border between two consecutive atoms that belong
+  // to the same group (CO / topic / ILO), which reads exactly like a merged cell.
+  // The CO and topic LABEL is shown only on the first atom of its group; the rest
+  // are blank. Because the table's own outer border is drawn at page edges, this
+  // stays correct no matter where the page break lands — so the client only has to
+  // distribute atoms into pages, never re-touch borders or rowspans.
+  atoms.forEach((a, i) => {
+    if (a.t === 'divider') return
+    const pv = i > 0 && atoms[i - 1].t !== 'divider' ? atoms[i - 1] : null
+    const nx = i < atoms.length - 1 && atoms[i + 1].t !== 'divider' ? atoms[i + 1] : null
+    a._showCo = !pv || pv._cg !== a._cg
+    a._showTk = !pv || pv._tk !== a._tk
+    a._mCoTop = !!(pv && pv._cg === a._cg); a._mCoBot = !!(nx && nx._cg === a._cg)
+    a._mTkTop = !!(pv && pv._tk === a._tk); a._mTkBot = !!(nx && nx._tk === a._tk)
+    a._mIgTop = !!(pv && pv._ig === a._ig); a._mIgBot = !!(nx && nx._ig === a._ig)
+  })
+
+  // Estimate-based packing of the atoms — this is only the FALLBACK layout used if
+  // the client's measured re-pagination script does not run. The measured script
+  // re-packs these same atoms using their real heights to fill each page exactly.
   const pageChunks = []
   let cur = []
   let curH = 0
-  for (const row of rows) {
-    const rh = estRowH(row)
-    if (cur.length > 0 && curH + rh > MAX_TABLE_H) {
-      pageChunks.push(cur)
-      cur = []
-      curH = 0
+  for (const a of atoms) {
+    const rh = estRowH(a)
+    const budget = MAX_TABLE_H - (pageChunks.length === 0 ? FIRST_H3 : 0)
+    if (cur.length > 0 && curH + rh > budget) {
+      const carried = []
+      while (cur.length && cur[cur.length - 1].t === 'divider') carried.unshift(cur.pop())
+      if (cur.length > 0) {
+        pageChunks.push(cur)
+        cur = carried
+        curH = carried.reduce((s, r) => s + estRowH(r), 0)
+      }
     }
-    cur.push(row)
+    cur.push(a)
     curH += rh
   }
   if (cur.length > 0) pageChunks.push(cur)
@@ -560,51 +670,32 @@ function courseCoveragePages(syllabus, logo, startPageNum, total) {
   return pageChunks.map((chunk, ci) => {
     const pageNum = startPageNum + ci
 
-    const firstInGroup = (arr, idx) => {
-      if (idx === 0) return true
-      const p = arr[idx - 1]
-      if (p.t === 'divider') return true
-      if (p.t === 'row' && p.coId !== arr[idx].coId) return true
-      if (p.t === 'row' && !p.coId && !arr[idx].coId) return true
-      return false
-    }
+    // Per-column border-merge: hide the internal border between two atoms of the
+    // same group so each column reads like one merged (rowspan) cell — but with no
+    // rowspan, so the client can freely move atoms between pages. The table's own
+    // outer border draws the edge wherever a page break lands.
+    const mb = (top, bot) => (top ? 'border-top:none;' : '') + (bot ? 'border-bottom:none;' : '')
 
-    const firstTopicInGroup = (arr, idx) => {
-      if (idx === 0) return true
-      const p = arr[idx - 1]
-      return p.t === 'divider' || (p.t === 'row' && (p.coId !== arr[idx].coId || p.topics !== arr[idx].topics))
-    }
-
-    const countForward = (arr, idx, matchField) => {
-      const r = arr[idx]
-      if (r.t !== 'row' || !r[matchField]) return 1
-      let n = 1
-      for (let j = idx + 1; j < arr.length; j++) {
-        if (arr[j].t === 'divider') break
-        if (arr[j].t === 'row' && arr[j][matchField] === r[matchField] && arr[j].coId === r.coId) n++
-        else break
-      }
-      return n
-    }
-
-    const tbodyRows = chunk.map((row, idx) => {
+    const tbodyRows = chunk.map((row) => {
       if (row.t === 'divider') {
-        return '<tr><td colspan="7" style="background:#f2f2f2; font-weight:bold; border:1px solid black; padding:4px 6px; font-size:10pt; font-family:Arial,Helvetica,sans-serif;">' + row.label + '</td></tr>'
+        return '<tr data-div="1"><td data-c="div" colspan="7" style="background:#f2f2f2; font-weight:bold; border:1px solid black; padding:4px 6px; font-size:10pt; font-family:Arial,Helvetica,sans-serif;">' + row.label + '</td></tr>'
       }
-
-      const fCo = firstInGroup(chunk, idx)
-      const fTop = firstTopicInGroup(chunk, idx) || !row.coId
-      const coSpan = fCo && row.coId ? ' rowspan="' + countForward(chunk, idx, 'coId') + '"' : ''
-      const topSpan = fTop && row.coId && row.topics !== '&mdash;' ? ' rowspan="' + countForward(chunk, idx, 'topics') + '"' : ''
-
-      return '<tr>' +
-        (fCo ? '<td' + coSpan + ' style="width:' + COLS_W.co + '; ' + CELL + 'font-weight:bold; text-align:center;">' + (row.coId || '') + '</td>' : '') +
-        '<td style="width:' + COLS_W.ilo + '; ' + CELL + '">' + row.iloText + '</td>' +
-        (fTop ? '<td' + topSpan + ' style="width:' + COLS_W.topic + '; ' + CELL + '">' + row.topics + '</td>' : '') +
-        '<td style="width:' + COLS_W.period + '; ' + CELL + '">' + row.period + '</td>' +
-        '<td style="width:' + COLS_W.tla + '; ' + CELL + '">' + row.tlaHtml + '</td>' +
-        '<td style="width:' + COLS_W.assess + '; ' + CELL + '">' + row.assHtml + '</td>' +
-        '<td style="width:' + COLS_W.ref + '; ' + CELL + '">' + row.refHtml + '</td>' +
+      const coBm = mb(row._mCoTop, row._mCoBot)
+      const tkBm = mb(row._mTkTop, row._mTkBot)
+      const igBm = mb(row._mIgTop, row._mIgBot)
+      // collapse inter-atom vertical padding so a split ILO's pieces (e.g. a phase
+      // label and its bullets) sit tight together, like one continuous cell.
+      const igPad = (row._mIgTop ? 'padding-top:0;' : '') + (row._mIgBot ? 'padding-bottom:0;' : '')
+      const igStyle = igBm + igPad
+      const attrs = ' data-cg="' + (row._cg || '') + '" data-tk="' + (row._tk || '') + '" data-ig="' + (row._ig || '') + '"'
+      return '<tr' + attrs + '>' +
+        '<td data-c="co" style="width:' + COLS_W.co + '; ' + CELL + coBm + 'font-weight:bold; text-align:center;">' + (row._showCo ? (row.coId || '') : '') + '</td>' +
+        '<td data-c="ilo" style="width:' + COLS_W.ilo + '; ' + CELL + igStyle + '">' + row.iloText + '</td>' +
+        '<td data-c="topic" style="width:' + COLS_W.topic + '; ' + CELL + tkBm + '">' + (row._showTk ? row.topics : '') + '</td>' +
+        '<td data-c="period" style="width:' + COLS_W.period + '; ' + CELL + igStyle + '">' + row.period + '</td>' +
+        '<td data-c="tla" style="width:' + COLS_W.tla + '; ' + CELL + igStyle + '">' + row.tlaHtml + '</td>' +
+        '<td data-c="assess" style="width:' + COLS_W.assess + '; ' + CELL + igStyle + '">' + row.assHtml + '</td>' +
+        '<td data-c="ref" style="width:' + COLS_W.ref + '; ' + CELL + igStyle + '">' + row.refHtml + '</td>' +
       '</tr>'
     }).join('\n')
 
@@ -618,10 +709,10 @@ function courseCoveragePages(syllabus, logo, startPageNum, total) {
       '<col style="width:' + COLS_W.ref + '">' +
     '</colgroup>\n'
 
-    return '<div class="page' + (ci < pageChunks.length - 1 ? ' page-break' : '') + '">\n' +
+    return '<div class="page cov-pg' + (ci < pageChunks.length - 1 ? ' page-break' : '') + '">\n' +
       pageHeader(logo) + '\n' +
-      (ci === 0 ? '<h3>COURSE COVERAGE</h3>\n' : '') +
-      '<table style="width:100%; border-collapse:collapse; border:1px solid #000; table-layout:fixed;">\n' +
+      (ci === 0 ? '<h3 class="cov-h3">COURSE COVERAGE</h3>\n' : '') +
+      '<table class="cov-table" style="width:100%; border-collapse:collapse; border:1px solid #000; table-layout:fixed;">\n' +
       colgroup +
       (ci === 0 ? '<thead><tr>\n' +
       '<th style="width:' + COLS_W.co + '; ' + TH_STYLE + '">CO</th>\n' +
@@ -651,7 +742,7 @@ function computeResourceChunks(syllabus) {
 
   const estItemH = 34
   const TABLE_OVERHEAD = 72
-  const BUDGET = 480
+  const BUDGET = 470
 
   const buckets = rawBuckets
     .filter(b => b.items.length > 0)
@@ -851,11 +942,15 @@ export function buildSyllabusHtml(syllabus, courseCode, workflow, logoBase64) {
   .page { box-sizing: border-box; position: relative; display: flex; flex-direction: column; }
   .page > * { min-height: 0; flex-shrink: 1; flex-basis: auto; }
   @media screen {
-    .page { background: #fff; box-shadow: 0 2px 16px rgba(0,0,0,0.12); margin: 24px auto; width: 330mm; height: 216mm; overflow: visible; padding: 50px 75px 35px 75px; page-break-after: always; }
+    .page { background: #fff; box-shadow: 0 2px 16px rgba(0,0,0,0.12); margin: 24px auto; width: 330mm; height: 216mm; overflow: hidden; padding: 42px 85px 32px 85px; page-break-after: always; }
   }
   @media print {
     html, body { overflow: visible; }
-    .page { box-shadow: none; margin: 0; width: 330mm; height: 216mm; overflow: hidden; padding: 50px 75px 35px 75px; page-break-after: always; }
+    .page { box-shadow: none; margin: 0; width: 330mm; height: 216mm; overflow: hidden; padding: 42px 85px 32px 85px; page-break-after: always; }
+    table { page-break-inside: auto; }
+    tr, td, th { page-break-inside: avoid; break-inside: avoid; }
+    thead { display: table-header-group; }
+    img { page-break-inside: avoid; }
   }
   @page { size: 330mm 216mm; margin: 0; }
   .page-break { page-break-after: always; }
@@ -876,11 +971,175 @@ export function buildSyllabusHtml(syllabus, courseCode, workflow, logoBase64) {
   .co-po-table td:not(:first-child) { text-align: center; vertical-align: middle; padding: 2px 1px; font-size: 8.5pt; white-space: nowrap; overflow: hidden; }
 
   .grading-table th, .grading-table td { padding: 0.8mm 0.5mm; overflow-wrap:break-word; }
+  /* Coverage pages: keep natural heights so the fill-to-footer script measures rows reliably. */
+  .cov-pg > * { flex-shrink: 0; }
 </style>
 </head>
 <body>`
 
-  const FOOT = `</body></html>`
+  // Measured re-pagination: after the browser lays out the estimate-based coverage
+  // pages, this script measures the REAL height of every coverage row and re-packs
+  // them so each page fills right up near the footer — consistently on every page,
+  // never overflowing. It rebuilds the CO/Topic rowspans per page (so tables stay
+  // continuous, not "putol-putol") and renumbers all footers. Runs in both the
+  // preview iframe and the Puppeteer export. Any error falls back to the estimate
+  // layout untouched. Only cell CONTENT moves between pages — nothing is restyled.
+  const REPAG_SCRIPT = `<script>
+(function(){
+  function renumber(){
+    var all=document.querySelectorAll('.page');var tot=all.length;
+    for(var i=0;i<all.length;i++){
+      var n=all[i].querySelector('.pgno');if(n)n.textContent=(i+1);
+      var t=all[i].querySelector('.pgtot');if(t)t.textContent=tot;
+    }
+  }
+  function footLimit(pg){
+    // viewport Y of the "designated line" — just above the fixed footer
+    var pn=pg.querySelector('.pgno');var foot=pn?pn.parentNode:null;
+    while(foot&&foot.tagName!=='DIV')foot=foot.parentNode;
+    return foot?foot.getBoundingClientRect().top-4:1e9;
+  }
+  // Extend a finished page's table down to the SAME line on every page, so all
+  // pages look identical in height. A seamless empty filler row (no top border,
+  // merges with the last row) carries the table's bottom border to the line.
+  function addFiller(pg){
+    var tbl=pg.querySelector('table.cov-table');if(!tbl)return;
+    var tb=tbl.querySelector('tbody');if(!tb||!tb.children.length)return;
+    var gap=footLimit(pg)-tbl.getBoundingClientRect().bottom;
+    if(gap<=3)return;
+    var lastRow=tb.lastElementChild;
+    if(lastRow)for(var c=0;c<lastRow.children.length;c++)lastRow.children[c].style.borderBottom='none';
+    var tr=document.createElement('tr');
+    for(var k=0;k<7;k++){var td=document.createElement('td');td.style.cssText='border:1px solid black;border-top:none;padding:0;';tr.appendChild(td);}
+    tr.style.height=gap+'px';
+    tb.appendChild(tr);
+  }
+  // A "unit" is one bullet (<li>) or a top-level block (e.g. a topic name / phase
+  // label <div>). These are the smallest chunks we move between pages.
+  function unitCount(cell){
+    var n=0,ch=cell.children;
+    for(var i=0;i<ch.length;i++){ if(ch[i].tagName==='UL') n+=ch[i].querySelectorAll(':scope>li').length; else n++; }
+    return n;
+  }
+  function popLastUnit(cell){
+    var last=cell.lastElementChild;
+    while(last){
+      if(last.tagName==='UL'){
+        var li=last.lastElementChild;
+        if(li){ last.removeChild(li); if(!last.lastElementChild)cell.removeChild(last); return true; }
+        cell.removeChild(last); last=cell.lastElementChild; continue;
+      }
+      cell.removeChild(last); return true;
+    }
+    return false;
+  }
+  function removeFirstUnit(cell){
+    var first=cell.firstElementChild;
+    while(first){
+      if(first.tagName==='UL'){
+        var li=first.firstElementChild;
+        if(li){ first.removeChild(li); if(!first.firstElementChild)cell.removeChild(first); return true; }
+        cell.removeChild(first); first=cell.firstElementChild; continue;
+      }
+      cell.removeChild(first); return true;
+    }
+    return false;
+  }
+  // Split a too-tall row at the footer line by trimming ONLY the TLA column (the
+  // list of activities, which naturally continues across pages). The ILO's context
+  // — Topic, ILO text, Assessment, References — always stays WHOLE on the head, so
+  // a topic never gets stranded on the continuation page. If the row still doesn't
+  // fit after trimming TLA down to its first item (e.g. the Topic alone is too tall
+  // for the space left), we give up and move the WHOLE ILO to the next page. Returns
+  // the continuation row, or null to move the whole row down.
+  function splitRowToFit(tr,limit){
+    var tla=tr.querySelector('td[data-c="tla"]');
+    if(!tla)return null;
+    var orig=tr.cloneNode(true);
+    var removed=0,g=0;
+    while(tr.getBoundingClientRect().bottom>limit && unitCount(tla)>1 && g++<1500){
+      if(popLastUnit(tla))removed++; else break;
+    }
+    if(removed===0 || tr.getBoundingClientRect().bottom>limit){
+      // couldn't fit even with TLA trimmed — restore and move the whole row down
+      while(tr.firstChild)tr.removeChild(tr.firstChild);
+      while(orig.firstChild)tr.appendChild(orig.firstChild);
+      return null;
+    }
+    // continuation carries only the leftover TLA items; all context stays on head
+    var cont=orig.cloneNode(true);
+    ['co','ilo','period','topic','assess','ref'].forEach(function(c){
+      var cell=cont.querySelector('td[data-c="'+c+'"]'); if(cell)cell.innerHTML='';
+    });
+    var ctla=cont.querySelector('td[data-c="tla"]');
+    if(ctla){ var g2=0; while(unitCount(ctla)>removed && g2++<3000){ if(!removeFirstUnit(ctla))break; } }
+    return cont;
+  }
+  function repaginate(){
+    try{
+      var pages=Array.prototype.slice.call(document.querySelectorAll('.cov-pg'));
+      if(pages.length<2){renumber();return;}
+      // guard: only run when a REAL layout is available (skip in headless/no-layout)
+      var probeTbl=pages[0].querySelector('table.cov-table');
+      if(!probeTbl){renumber();return;}
+      var avail=footLimit(pages[0])-probeTbl.getBoundingClientRect().top;
+      if(!(avail>200)){renumber();return;}
+      var firstTpl=pages[0];var contTpl=pages[1];
+      var parent=firstTpl.parentNode;var anchor=pages[pages.length-1].nextSibling;
+      // collect every atom row, in order
+      var atomTrs=[];
+      pages.forEach(function(pg){
+        var tb=pg.querySelector('table.cov-table tbody');if(!tb)return;
+        Array.prototype.slice.call(tb.children).forEach(function(tr){atomTrs.push(tr);});
+      });
+      if(!atomTrs.length){renumber();return;}
+      function makePage(isFirst){
+        var pg=(isFirst?firstTpl:contTpl).cloneNode(true);
+        pg.className='page cov-pg page-break';
+        var tb=pg.querySelector('table.cov-table tbody');
+        while(tb.firstChild)tb.removeChild(tb.firstChild);
+        return pg;
+      }
+      // remove originals; build fresh pages and fill each to the REAL footer line
+      pages.forEach(function(p){if(p.parentNode)p.parentNode.removeChild(p);});
+      var built=[];
+      function newPageForRow(tr){
+        addFiller(cur);            // top the finished page off to the shared line
+        built.push(cur);
+        cur=makePage(false);parent.insertBefore(cur,anchor);
+        tb=cur.querySelector('table.cov-table tbody');limit=footLimit(cur);
+        if(tr)tb.appendChild(tr);
+      }
+      var cur=makePage(true);parent.insertBefore(cur,anchor);
+      var tb=cur.querySelector('table.cov-table tbody');
+      var limit=footLimit(cur); // fixed designated line for this page
+      var i=0,guard=0;
+      while(i<atomTrs.length&&guard++<100000){
+        var tr=atomTrs[i];
+        tb.appendChild(tr);
+        // measure the ACTUAL rendered bottom of this row (survives flex/clip)
+        if(tb.children.length>1 && tr.getBoundingClientRect().bottom>limit){
+          var cont=splitRowToFit(tr,limit);
+          if(cont){
+            atomTrs.splice(i+1,0,cont); // leftover continues on the next page
+            newPageForRow(null);        // head fills this page
+          }else{
+            tb.removeChild(tr);
+            newPageForRow(tr);          // whole row moves to a fresh page
+          }
+        }
+        i++;
+      }
+      built.push(cur);
+      renumber();
+    }catch(e){try{renumber();}catch(_){ }}
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',function(){setTimeout(repaginate,0);});
+  else setTimeout(repaginate,0);
+})();
+</script>`
+
+  const FOOT = REPAG_SCRIPT + `</body></html>`
 
   const logo = logoBase64 || null
 
@@ -913,11 +1172,15 @@ const alignmentHead = `<!DOCTYPE html>
   .page { box-sizing: border-box; position: relative; display: flex; flex-direction: column; }
   .page > * { min-height: 0; flex-shrink: 1; flex-basis: auto; }
   @media screen {
-    .page { background: #fff; box-shadow: 0 2px 16px rgba(0,0,0,0.12); margin: 24px auto; width: 330mm; height: 216mm; overflow: visible; padding: 50px 75px 35px 75px; page-break-after: always; }
+    .page { background: #fff; box-shadow: 0 2px 16px rgba(0,0,0,0.12); margin: 24px auto; width: 330mm; height: 216mm; overflow: hidden; padding: 42px 85px 32px 85px; page-break-after: always; }
   }
   @media print {
     html, body { overflow: visible; }
-    .page { box-shadow: none; margin: 0; width: 330mm; height: 216mm; overflow: hidden; padding: 50px 75px 35px 75px; page-break-after: always; }
+    .page { box-shadow: none; margin: 0; width: 330mm; height: 216mm; overflow: hidden; padding: 42px 85px 32px 85px; page-break-after: always; }
+    table { page-break-inside: auto; }
+    tr, td, th { page-break-inside: avoid; break-inside: avoid; }
+    thead { display: table-header-group; }
+    img { page-break-inside: avoid; }
   }
   @page { size: 330mm 216mm; margin: 0; }
   .page-break { page-break-after: always; }

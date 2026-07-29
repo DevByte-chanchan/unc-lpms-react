@@ -4,7 +4,7 @@ import styles from '../styles/CoursesTable.module.sass';
 import { ChevronRight } from 'react-feather';
 import { syllabiData } from '../data/syllabiData';
 
-const TOSCoursesTable = ({}) => {
+const TOSCoursesTable = () => {
 
     const currentYear = new Date().getFullYear();
     const startYear = 2000;

@@ -80,7 +80,7 @@ export const exportSyllabusToPDF = (syllabus, courseCode, workflow) => {
     doc.text(`${syllabus.course || syllabus.courseName || '—'} (${courseCode})`, PAGE_WIDTH / 2, y, { align: 'center' })
     y += 12
 
-    addSectionTitle(doc, 'COURSE DETAILS')
+    y = addSectionTitle(doc, 'COURSE DETAILS', y)
     y = addField(doc, 'Course Code:', courseCode, y)
     y = addField(doc, 'Course Title:', syllabus.courseName || syllabus.course || '—', y)
     y = addField(doc, 'Semester:', syllabus.semester || syllabus.sem || '—', y)
@@ -93,7 +93,7 @@ export const exportSyllabusToPDF = (syllabus, courseCode, workflow) => {
     y += 6
 
     if (syllabus.description) {
-      addSectionTitle(doc, 'COURSE DESCRIPTION')
+      y = addSectionTitle(doc, 'COURSE DESCRIPTION', y)
       checkPage(40)
       doc.setFontSize(9)
       doc.setFont(FONT_NORMAL, 'normal')
@@ -104,7 +104,7 @@ export const exportSyllabusToPDF = (syllabus, courseCode, workflow) => {
     }
 
     if (syllabus.courseOutcomes && syllabus.courseOutcomes.length > 0) {
-      addSectionTitle(doc, 'COURSE & PROGRAM OUTCOME ALIGNMENT')
+      y = addSectionTitle(doc, 'COURSE & PROGRAM OUTCOME ALIGNMENT', y)
       checkPage(30)
       const coData = syllabus.courseOutcomes.map((co, i) => [
         i + 1,
@@ -130,7 +130,7 @@ export const exportSyllabusToPDF = (syllabus, courseCode, workflow) => {
     }
 
     if (syllabus.topics && syllabus.topics.length > 0) {
-      addSectionTitle(doc, 'INTENDED LEARNING OUTCOME')
+      y = addSectionTitle(doc, 'INTENDED LEARNING OUTCOME', y)
       for (const topic of syllabus.topics) {
         checkPage(40)
         doc.setFontSize(10)
@@ -163,7 +163,7 @@ export const exportSyllabusToPDF = (syllabus, courseCode, workflow) => {
     }
 
     if (syllabus.ilos && syllabus.ilos.length > 0) {
-      addSectionTitle(doc, 'INTENDED LEARNING OUTCOMES')
+      y = addSectionTitle(doc, 'INTENDED LEARNING OUTCOMES', y)
       checkPage(30)
       const iloData = syllabus.ilos.map((ilo, i) => [
         i + 1,
@@ -185,7 +185,7 @@ export const exportSyllabusToPDF = (syllabus, courseCode, workflow) => {
     }
 
     if (syllabus.references && syllabus.references.length > 0) {
-      addSectionTitle(doc, 'REFERENCES')
+      y = addSectionTitle(doc, 'REFERENCES', y)
       checkPage(30)
       const refData = syllabus.references.map((r, i) => [
         i + 1,
@@ -208,7 +208,7 @@ export const exportSyllabusToPDF = (syllabus, courseCode, workflow) => {
     }
 
     if (syllabus.criteriaForGrading && syllabus.criteriaForGrading.length > 0) {
-      addSectionTitle(doc, 'CRITERIA FOR GRADING')
+      y = addSectionTitle(doc, 'CRITERIA FOR GRADING', y)
       checkPage(30)
       const gradeData = syllabus.criteriaForGrading.map((c, i) => [
         i + 1,
@@ -231,7 +231,7 @@ export const exportSyllabusToPDF = (syllabus, courseCode, workflow) => {
     }
 
     if (workflow) {
-      addSectionTitle(doc, 'APPROVAL HISTORY')
+      y = addSectionTitle(doc, 'APPROVAL HISTORY', y)
       checkPage(40)
 
       const approvalData = []
@@ -270,7 +270,7 @@ export const exportSyllabusToPDF = (syllabus, courseCode, workflow) => {
       })
       y = doc.lastAutoTable.finalY + 12
 
-      addSectionTitle(doc, 'SIGNATORIES')
+      y = addSectionTitle(doc, 'SIGNATORIES', y)
       checkPage(50)
       y = addSignatureBlock(doc, 'Prepared by:', syllabus.instructor || '_____________', 'Instructor', y)
       y = addSignatureBlock(doc, 'Reviewed by:', '_____________', 'Program Head', y)
@@ -314,23 +314,18 @@ function addFooter(doc, pageNum) {
   doc.text(`${pageNum}`, PAGE_WIDTH / 2, FOOTER_Y - 1, { align: 'center' })
 }
 
-function addSectionTitle(doc, title) {
-  const yPos = doc.internal.pageSize.getHeight() - doc.internal.pageSize.getMargins().bottom
-  if (doc.lastAutoTable && doc.lastAutoTable.finalY) {
-    if (doc.lastAutoTable.finalY > PAGE_HEIGHT - 50) {
-      doc.addPage()
-      addPageHeader(doc)
-    }
-  }
-  const currentY = doc.lastAutoTable?.finalY || 20
-  if (currentY > PAGE_HEIGHT - 40) {
+function addSectionTitle(doc, title, y) {
+  // Page-break if the title (plus a little breathing room) won't fit.
+  if (y > PAGE_HEIGHT - 40) {
     doc.addPage()
     addPageHeader(doc)
+    y = 20
   }
   doc.setFontSize(12)
   doc.setFont(FONT_BOLD, 'bold')
   doc.setTextColor(...COLORS.primary)
-  doc.text(title, MARGIN, currentY + (currentY > 20 ? 0 : 0))
+  doc.text(title, MARGIN, y)
+  return y + 8
 }
 
 function addField(doc, label, value, y) {

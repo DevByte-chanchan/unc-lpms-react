@@ -1,9 +1,32 @@
 const REF_KEY = 'lpsm_reference_library_v1'
+const ID_MIGRATION_KEY = 'lpsm_ref_id_migrated_v1'
+
+const typePrefix = (type) => {
+  if (type === 'Textbook') return 'TB'
+  if (type === 'Online Resources') return 'OR'
+  if (type === 'Open Educational Resources') return 'OER'
+  return 'REF'
+}
 
 const _readAll = () => {
   try {
     const raw = localStorage.getItem(REF_KEY)
-    return raw ? JSON.parse(raw) : []
+    const refs = raw ? JSON.parse(raw) : []
+    if (!localStorage.getItem(ID_MIGRATION_KEY) && raw) {
+      const counts = {}
+      const migrated = refs.map(r => {
+        if (!r.id || /^\d{13,}$/.test(String(r.id))) {
+          const prefix = typePrefix(r.type)
+          counts[prefix] = (counts[prefix] || 0) + 1
+          return { ...r, id: `${prefix}${counts[prefix]}` }
+        }
+        return r
+      })
+      localStorage.setItem(REF_KEY, JSON.stringify(migrated))
+      localStorage.setItem(ID_MIGRATION_KEY, '1')
+      return migrated
+    }
+    return refs
   } catch (e) {
     return []
   }
@@ -28,7 +51,8 @@ export const setReferences = (refs) => _writeAll(refs)
 export const addReference = (ref) => {
   const refs = _readAll()
   const maxId = refs.reduce((max, r) => Math.max(max, r.numericId || 0), 0)
-  const newRef = { ...ref, numericId: maxId + 1 }
+  const count = refs.filter(r => r.type === ref.type).length + 1
+  const newRef = { ...ref, numericId: maxId + 1, id: `${typePrefix(ref.type)}${count}` }
   refs.push(newRef)
   _writeAll(refs)
   return newRef

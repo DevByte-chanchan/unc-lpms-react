@@ -33,7 +33,7 @@ const _read = () => {
 
 const _write = (data) => {
   _cache = data
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)) } catch {}
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)) } catch { /* ignore storage errors */ }
 }
 
 export const extractProgramPrefix = (code) => {

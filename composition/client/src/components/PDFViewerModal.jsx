@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { X, Download, FileText, User, Calendar, BookOpen, ZoomIn, ZoomOut, Maximize, Minimize2, Printer, ChevronLeft, ChevronRight } from 'react-feather';
-import axios from 'axios';
+import { jsPDF } from 'jspdf';
+import html2canvas from 'html2canvas';
 
 const ACCENT     = '#19282C';
 const SLATE_900  = '#0F172A';
@@ -100,12 +101,18 @@ const PDFViewerModal = ({ file, kind, onClose, onExport, children }) => {
   }, [calcZoom]);
 
   const handleIframeLoad = () => {
-    const iframe = iframeRef.current;
-    if (!iframe || !iframe.contentDocument) return;
-    const pages = iframe.contentDocument.querySelectorAll('.page');
-    setPageCount(pages.length);
-    const body = iframe.contentDocument.body;
-    if (body) setIframeHeight(body.scrollHeight);
+    const measure = () => {
+      const iframe = iframeRef.current;
+      if (!iframe || !iframe.contentDocument) return;
+      const pages = iframe.contentDocument.querySelectorAll('.page');
+      setPageCount(pages.length);
+      const body = iframe.contentDocument.body;
+      if (body) setIframeHeight(body.scrollHeight);
+    };
+    measure();
+    // The document's measured re-pagination script runs just after load and can
+    // change the page count — re-measure once it has settled.
+    setTimeout(measure, 250);
   };
 
   const goToPage = (n) => {
@@ -132,37 +139,75 @@ const PDFViewerModal = ({ file, kind, onClose, onExport, children }) => {
     }
   };
 
+  // Generate a real, downloadable PDF entirely in the browser — no backend, no print
+  // dialog. Each `.page` in the preview iframe becomes exactly one PDF page (330×216mm),
+  // which also guarantees no extra/blank pages from print reflow.
+  const downloadName = () => (file?.file_name ? file.file_name.replace(/\.html?$/i, '') + '.pdf' : 'syllabus.pdf');
+  const triggerDownload = (blob) => {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = downloadName();
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  };
+
   const handleExportPDF = async () => {
     if (exporting) return;
     setExporting(true);
     try {
+      // 1) Preferred: server-side vector render (crisp, small file, matches the
+      //    official template). Silently skipped if the backend/puppeteer isn't up.
       const src = pdfSrc || file?.file_url;
-      if (!src) { alert('No content to export.'); setExporting(false); return; }
-
-      const resp = await fetch(src);
-      const html = await resp.text();
-
-      const pdfResp = await axios.post('/api/export-pdf', { html }, {
-        responseType: 'blob',
-        timeout: 10000,
-      });
-
-      const url = URL.createObjectURL(new Blob([pdfResp.data], { type: 'application/pdf' }));
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = file?.file_name ? file.file_name.replace(/\.html?$/i, '') + '.pdf' : 'syllabus.pdf';
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
-    } catch (err) {
-      console.error('Export PDF error:', err);
-      const msg = err?.response?.data?.error || err.message || err;
-      if (msg.includes('timeout') || msg.includes('Network Error') || msg.includes('500') || msg.includes('connect') || msg.includes('ERR_CONNECTION')) {
-        alert('PDF export failed. Make sure the backend server is running:\n  cd server && node server.js\n\n' + msg);
-      } else {
-        alert('PDF export failed: ' + msg);
+      if (src) {
+        try {
+          const html = await (await fetch(src)).text();
+          const resp = await fetch('/api/export-pdf', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ html }),
+          });
+          const ct = resp.headers.get('content-type') || '';
+          if (resp.ok && ct.includes('application/pdf')) {
+            triggerDownload(await resp.blob());
+            return;
+          }
+        } catch {
+          // backend unavailable — fall through to the in-browser generator
+        }
       }
+
+      // 2) Fallback: generate the PDF entirely in the browser (no backend needed).
+      //    Each `.page` becomes exactly one fixed-size sheet — no scaling, no blanks.
+      const idoc = iframeRef.current?.contentDocument;
+      const pageEls = idoc ? Array.from(idoc.querySelectorAll('.page')) : [];
+      if (!pageEls.length) { handlePrint(); return; }
+
+      const PW = 330, PH = 216; // mm — long-bond landscape, matches @page size
+      const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: [PW, PH] });
+      for (let i = 0; i < pageEls.length; i++) {
+        const el = pageEls[i];
+        const canvas = await html2canvas(el, {
+          scale: 3, // higher DPI so the small table text stays legible
+          useCORS: true,
+          backgroundColor: '#ffffff',
+          windowWidth: el.scrollWidth,
+          windowHeight: el.scrollHeight,
+        });
+        // PNG is lossless — avoids the JPEG fuzz that made text look blurry.
+        const imgData = canvas.toDataURL('image/png');
+        if (i > 0) pdf.addPage([PW, PH], 'landscape');
+        // Each .page is already a fixed sheet-height box; render it 1:1 at the fixed
+        // paper size (no scaling/shrinking). The paginator splits content so a page
+        // never exceeds one sheet.
+        pdf.addImage(imgData, 'PNG', 0, 0, PW, PH);
+      }
+      pdf.save(downloadName());
+    } catch (err) {
+      console.warn('PDF export failed, falling back to browser print:', err?.message || err);
+      handlePrint();
     } finally {
       setExporting(false);
     }

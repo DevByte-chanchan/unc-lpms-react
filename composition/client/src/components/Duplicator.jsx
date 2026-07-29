@@ -1,6 +1,5 @@
 import styles from '../styles/Duplicator.module.sass';
 import {Plus} from "react-feather";
-import {useState} from "react";
 
 const Duplicator = ({name, onAdd}) => {
 

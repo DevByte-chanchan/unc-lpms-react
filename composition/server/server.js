@@ -47,6 +47,7 @@ app.use('/api/course-coverage', courseCoverageRoutes);
 app.use('/api', courseReferenceRoutes);
 app.use('/api/submit-learning-plan', submissionRoutes);
 app.use('/api/coaep', require('./routes/coaepRoutes'));
+app.use('/api', require('./routes/exportPdf'));
 
 // global error handler
 app.use((err, req, res, next) => {

@@ -6,9 +6,8 @@ import SideNavigation from '../../../components/SideNavigation.jsx';
 import AddReferenceModal from '../../../components/AddReferenceModal.jsx';
 import styles from '../../../styles/ReferenceLibrary.module.scss';
 
-import { getReferences, setReferences, addReference, deleteReference, archiveReference, unarchiveReference } from '../../../utils/referenceLibrary.js';
+import { getReferences, setReferences, addReference, archiveReference, unarchiveReference } from '../../../utils/referenceLibrary.js';
 import { fetchJson } from '../../../utils/api.js';
-import { syllabiData } from '../../../data/syllabiData.js';
 import * as XLSX from 'xlsx';
 
 const PROGRAM_MAP = {
@@ -279,6 +278,8 @@ const ReferenceLibrary = () => {
   const [showBulkModal, setShowBulkModal] = useState(false);
   const [bulkResult, setBulkResult] = useState(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [toast, setToast] = useState(null);
+  const toastTimerRef = useRef(null);
   const fileInputRef = useRef(null);
 
   /* ── Stats ─────────────────────────────────────────────────────────── */
@@ -327,6 +328,12 @@ const ReferenceLibrary = () => {
 
   const handleClose = () => {
     setViewRef(null);
+  };
+
+  const showPageToast = (message, type = 'success') => {
+    setToast({ message, type });
+    if (toastTimerRef.current) window.clearTimeout(toastTimerRef.current);
+    toastTimerRef.current = window.setTimeout(() => setToast(null), 2500);
   };
 
   /* ── Content ───────────────────────────────────────────────────────── */
@@ -568,7 +575,7 @@ const ReferenceLibrary = () => {
               </div>
             </div>
             <div className={styles.modalActions}>
-              <button className={styles.modalBtnEdit} onClick={() => { setViewRef(null); navigate(`/role/director-of-libraries/edit-reference/${viewRef.id}`); }}>Edit Reference</button>
+              <button className={styles.modalBtnEdit} onClick={() => { setViewRef(null); setEditRef(viewRef); setAddRefOpen(true); }}>Edit Reference</button>
               <button className={styles.modalBtnClose} onClick={() => setViewRef(null)}>Close</button>
             </div>
           </div>
@@ -636,7 +643,14 @@ const ReferenceLibrary = () => {
     </div>
   );
 
-  const handleModalSaved = () => setReferencesState(getReferences(true));
+  const handleModalSaved = (result) => {
+    setReferencesState(getReferences(true));
+    if (result?.message) showPageToast(result.message, result.type);
+  };
+
+  const handleModalError = (result) => {
+    if (result?.message) showPageToast(result.message, result.type || 'error');
+  };
 
   return (
     <>
@@ -645,11 +659,25 @@ const ReferenceLibrary = () => {
         nav={<SideNavigation mode="director-of-libraries" />}
         content={content}
       />
+      {toast && (
+        <div style={{
+          position: 'fixed', bottom: 24, right: 24, zIndex: 9999,
+          display: 'flex', alignItems: 'center', gap: 10,
+          background: toast.type === 'error' ? '#b91c1c' : '#047857',
+          color: '#fff', padding: '14px 22px', borderRadius: 8,
+          fontSize: 14, fontWeight: 500,
+          boxShadow: '0 6px 20px rgba(0,0,0,0.15)',
+          fontFamily: "'Poppins', sans-serif",
+        }}>
+          {toast.message}
+        </div>
+      )}
       <AddReferenceModal
         show={addRefOpen}
         onClose={() => setAddRefOpen(false)}
         refToEdit={editRef}
         onSaved={handleModalSaved}
+        onError={handleModalError}
       />
     </>
   );

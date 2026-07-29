@@ -1,5 +1,4 @@
 import styles from '../styles/SkeletonA.module.sass'
-import {useState} from "react";
 
 const SkeletonA = ({ nav, header, content }) => {
     // const [formVisibility, setFormVisibility] = useState(false)

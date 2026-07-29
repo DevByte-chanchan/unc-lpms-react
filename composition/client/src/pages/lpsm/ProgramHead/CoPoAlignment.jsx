@@ -5,7 +5,7 @@ import HeaderA from '../../../components/HeaderA.jsx';
 import SideNavigation from '../../../components/SideNavigation.jsx';
 import PDFViewerModal from '../../../components/PDFViewerModal.jsx';
 import { buildCoPoHtml } from '../../../utils/syllabusPdfHtml.js';
-import { getAllPrograms, getProgramName, getProgramCourses, getCoPoData, saveCoPoData } from '../../../utils/programCurriculumData.js';
+import { getAllPrograms, getProgramCourses, getCoPoData, saveCoPoData } from '../../../utils/programCurriculumData.js';
 import unclogo from '../../../assets/unclogo.png';
 import { FONT, BTN_DARK, BTN_OUTLINE, BTN_DANGER, TH, THC, TD, TDC } from './uiTokens.js';
 import tbl from '../../../styles/AlignmentTables.module.sass';

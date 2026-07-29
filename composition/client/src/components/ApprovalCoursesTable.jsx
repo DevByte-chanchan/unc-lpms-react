@@ -349,7 +349,6 @@ const ApprovalCoursesTable = ({ role = 'approver' }) => {
                             <th width={150} style={{textAlign:'center'}}>CODE</th>
                             <th width={350} style={{textAlign:'center'}}>COURSE NAME</th>
                             {selectedStatus === 'APPROVED' && <th width={200} style={{textAlign:'center'}}>DATE APPROVED</th>}
-                            {selectedStatus === 'APPROVED' && EXPORT_ROLES.includes(role) && <th style={{ width: 80, textAlign: 'center' }}></th>}
                             <th className={styles.fill}></th>
                         </tr>
                         </thead>
@@ -360,11 +359,6 @@ const ApprovalCoursesTable = ({ role = 'approver' }) => {
                                 <td width={150}>{getCode(row)}</td>
                                 <td width={350}>{getName(row)}</td>
                                 {selectedStatus === 'APPROVED' && <td width={200}>{formatDate(row.date_approved)}</td>}
-                                {selectedStatus === 'APPROVED' && EXPORT_ROLES.includes(role) && <td style={{ width: 80, textAlign: 'center', fontWeight: 500 }}>
-                                    <span className="actionLink" style={{ minWidth: 90, display: 'inline-flex', alignItems: 'center', gap: 5, cursor: exporting ? 'wait' : 'pointer', justifyContent: 'center', color: '#6b7280' }} onClick={() => !exporting && handleExport(row)}>
-                                        {exporting ? '...' : 'Export'} <Download size={16} />
-                                    </span>
-                                </td>}
                                 <td className={styles.fill}>
                                     <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                                         <Link
@@ -375,6 +369,12 @@ const ApprovalCoursesTable = ({ role = 'approver' }) => {
                                             View
                                             <ChevronRight size={16} />
                                         </Link>
+
+                                        {selectedStatus === 'APPROVED' && EXPORT_ROLES.includes(role) &&
+                                            <span className="actionLink" style={{ minWidth: 90, display: 'inline-flex', alignItems: 'center', gap: 5, cursor: exporting ? 'wait' : 'pointer', color: '#6b7280' }} onClick={() => !exporting && handleExport(row)}>
+                                                {exporting ? '...' : 'Export'} <Download size={16} />
+                                            </span>
+                                        }
 
                                         {selectedStatus ==='APPROVED' &&
                                             <button onClick={(e) => openPopup(row, e)} className={styles.info}>

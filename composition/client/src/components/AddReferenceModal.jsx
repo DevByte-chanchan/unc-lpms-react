@@ -16,7 +16,7 @@ const ALL_DEPARTMENTS = [
   'General Education Department',
 ];
 
-const AddReferenceModal = ({ show, onClose, refToEdit = null, onSaved }) => {
+const AddReferenceModal = ({ show, onClose, refToEdit = null, onSaved, onError }) => {
   const isEditMode = !!refToEdit;
   const [isFullscreen, setIsFullscreen] = useState(false);
 
@@ -88,7 +88,7 @@ const AddReferenceModal = ({ show, onClose, refToEdit = null, onSaved }) => {
     if (['Online Resources', 'Open Educational Resources'].includes(formData.type)) {
       if (!formData.link.trim()) newErrors.link = 'Link URL is required.';
       else {
-        const urlPattern = /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/;
+        const urlPattern = /^(https?:\/\/)?([\da-z.-]+)\.([a-z.]{2,6})([/\w .-]*)*\/?$/;
         if (!urlPattern.test(formData.link)) newErrors.link = 'Please enter a valid URL (e.g., https://example.com).';
       }
     }
@@ -98,18 +98,22 @@ const AddReferenceModal = ({ show, onClose, refToEdit = null, onSaved }) => {
   };
 
   const handleSave = () => {
-    if (!validateForm()) return;
+    const valid = validateForm();
+    if (!valid) {
+      onError?.({ message: 'Please fix the errors in the form before saving.', type: 'error' });
+      return;
+    }
+
     const refData = {
-      id: isEditMode ? refToEdit.id : `${formData.type === 'Textbook' ? 'TB' : formData.type === 'Online Resources' ? 'OR' : 'OE'}${Date.now()}`,
       title: formData.title,
       authors: formData.authors,
       type: formData.type,
       year: formData.year ? parseInt(formData.year) : '',
       isbn: formData.isbn || '',
       link: formData.link || '',
-      publisher: '',
-      filename: '',
-      uploadDate: new Date().toISOString().split('T')[0],
+      publisher: refToEdit?.publisher || '',
+      filename: refToEdit?.filename || '',
+      uploadDate: refToEdit?.uploadDate || new Date().toISOString().split('T')[0],
       hasIssue: refToEdit?.hasIssue || false,
       archived: refToEdit?.archived || false,
       departments: formData.departments,
@@ -119,7 +123,7 @@ const AddReferenceModal = ({ show, onClose, refToEdit = null, onSaved }) => {
     if (isEditMode) updateReference(refToEdit.id, refData);
     else addReference(refData);
 
-    onSaved?.();
+    onSaved?.({ message: isEditMode ? 'Reference updated successfully!' : 'Reference added successfully!', type: 'success' });
     onClose();
   };
 
@@ -166,10 +170,8 @@ const AddReferenceModal = ({ show, onClose, refToEdit = null, onSaved }) => {
               {isFullscreen ? <Minimize2 size={16} color="#6b7280" /> : <Maximize size={16} color="#6b7280" />}
             </button>
             <button type="button" onClick={onClose} aria-label="Close"
-              style={{
-                ...headerBtn, background: '#E81123', color: '#fff', border: '1px solid #E81123',
-                transition: 'background 0.15s ease, border-color 0.15s ease',
-              }}
+              style={{ ...headerBtn, background: '#E81123', color: '#fff', border: '1px solid #E81123',
+                transition: 'background 0.15s ease, border-color 0.15s ease' }}
               onMouseEnter={e => { e.currentTarget.style.background = '#B91C1C'; e.currentTarget.style.borderColor = '#B91C1C'; }}
               onMouseLeave={e => { e.currentTarget.style.background = '#E81123'; e.currentTarget.style.borderColor = '#E81123'; }}>
               <X size={16} strokeWidth={2.5} color="currentColor" />
@@ -178,72 +180,23 @@ const AddReferenceModal = ({ show, onClose, refToEdit = null, onSaved }) => {
         </div>
 
         <div style={{ padding: '20px 24px', overflow: 'auto', flex: 1 }}>
-          <DropdownA
-            options={ReferenceTypes}
-            label="Reference Type"
-            value={formData.type}
-            initialValue={formData.type}
-            onChange={val => handleChange('type', val)}
-            error={errors.type}
-            style={{ padding: 0 }}
-          />
-
+          <DropdownA options={ReferenceTypes} label="Reference Type" value={formData.type}
+            initialValue={formData.type} onChange={val => handleChange('type', val)} error={errors.type} style={{ padding: 0 }} />
           <div style={{ height: 16 }} />
-
           <TextField label="Reference Title" value={formData.title} onChange={val => handleChange('title', val)} error={errors.title} style={{ padding: 0 }} />
           <div style={{ height: 16 }} />
-
           <TextField label="Author(s)" value={formData.authors} onChange={val => handleChange('authors', val)} error={errors.authors} style={{ padding: 0 }} />
           <div style={{ height: 16 }} />
-
-          {formData.type === 'Textbook' && (
-            <>
-              <TextField label="ISBN" value={formData.isbn} onChange={val => handleChange('isbn', val)} error={errors.isbn} style={{ padding: 0 }} />
-              <div style={{ height: 16 }} />
-            </>
-          )}
-
-          {(formData.type === 'Textbook' || formData.type === 'Open Educational Resources') && (
-            <>
-              <TextField label="Publication Year" value={formData.year} onChange={val => handleChange('year', val)} error={errors.year} placeholder="YYYY" style={{ padding: 0 }} />
-              <div style={{ height: 16 }} />
-            </>
-          )}
-
-          {(formData.type === 'Online Resources' || formData.type === 'Open Educational Resources') && (
-            <>
-              <TextField label="Link" value={formData.link} onChange={val => handleChange('link', val)} error={errors.link} placeholder="https://..." style={{ padding: 0 }} />
-              <div style={{ height: 16 }} />
-            </>
-          )}
-
-          <DropdownMultiSelect
-            label="Department"
-            options={ALL_DEPARTMENTS}
-            value={formData.departments}
-            onChange={val => handleChange('departments', val)}
-            style={{ padding: 0 }}
-          />
+          {formData.type === 'Textbook' && (<><TextField label="ISBN" value={formData.isbn} onChange={val => handleChange('isbn', val)} error={errors.isbn} style={{ padding: 0 }} /><div style={{ height: 16 }} /></>)}
+          {(formData.type === 'Textbook' || formData.type === 'Open Educational Resources') && (<><TextField label="Publication Year" value={formData.year} onChange={val => handleChange('year', val)} error={errors.year} placeholder="YYYY" style={{ padding: 0 }} /><div style={{ height: 16 }} /></>)}
+          {(formData.type === 'Online Resources' || formData.type === 'Open Educational Resources') && (<><TextField label="Link" value={formData.link} onChange={val => handleChange('link', val)} error={errors.link} placeholder="https://..." style={{ padding: 0 }} /><div style={{ height: 16 }} /></>)}
+          <DropdownMultiSelect label="Department" options={ALL_DEPARTMENTS} value={formData.departments}
+            onChange={val => handleChange('departments', val)} style={{ padding: 0 }} />
         </div>
 
-        <div style={{
-          padding: '14px 24px', borderTop: '1px solid #e5e7eb',
-          display: 'flex', gap: 12, justifyContent: 'flex-end', flexShrink: 0,
-        }}>
-          <button onClick={onClose} style={{
-            padding: '10px 24px', border: '1px solid #d1d5db', borderRadius: 10,
-            background: '#fff', color: '#374151', fontSize: 14, fontWeight: 600,
-            cursor: 'pointer', fontFamily: "'Poppins', sans-serif",
-          }}>
-            Cancel
-          </button>
-          <button onClick={handleSave} style={{
-            padding: '10px 24px', border: 'none', borderRadius: 10,
-            background: '#1f2937', color: '#fff', fontSize: 14, fontWeight: 600,
-            cursor: 'pointer', fontFamily: "'Poppins', sans-serif",
-          }}>
-            {isEditMode ? 'Update' : 'Save'}
-          </button>
+        <div style={{ padding: '14px 24px', borderTop: '1px solid #e5e7eb', display: 'flex', gap: 12, justifyContent: 'flex-end', flexShrink: 0 }}>
+          <button onClick={onClose} style={{ padding: '10px 24px', border: '1px solid #d1d5db', borderRadius: 10, background: '#fff', color: '#374151', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: "'Poppins', sans-serif" }}>Cancel</button>
+          <button onClick={handleSave} style={{ padding: '10px 24px', border: 'none', borderRadius: 10, background: '#1f2937', color: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: "'Poppins', sans-serif" }}>{isEditMode ? 'Update' : 'Save'}</button>
         </div>
       </div>
     </>

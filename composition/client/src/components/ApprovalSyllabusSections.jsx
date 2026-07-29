@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef, useMemo } from 'react'
 import { Link, useSearchParams, useParams, useNavigate, useLocation } from 'react-router-dom'
-import { ChevronLeft, MessageSquare, Inbox, Download, MoreVertical, Check } from 'react-feather'
+import { ChevronLeft, MessageSquare, Inbox, Download, MoreVertical, Check, Clock } from 'react-feather'
 import styles from '../styles/ApprovalSyllabusSections.module.sass'
 import subStyles from '../styles/SyllabusSections.module.sass'
 import stylesB from '../styles/SyllabusPreview.module.sass'
@@ -9,7 +9,7 @@ import ApprovalCommentBox from './ApprovalCommentBox.jsx'
 import { getWorkflow, setWorkflow, advanceWorkflow } from '../utils/workflowHelpers'
 import { getSuggestions, addSuggestion, acceptSuggestion, rejectSuggestion, getSyllabus } from '../utils/dataStore'
 import { getReferences, getReferenceById } from '../utils/referenceLibrary'
-import { normalizeRoleKey, getRoleColor, getComponentTags, isRecent, reviewerSeeds } from '../utils/approvalHelpers.js'
+import { normalizeRoleKey } from '../utils/approvalHelpers.js'
 import { fetchJson } from "../utils/api.js"
 import { seedDummyComments } from "../utils/seedDummyComments.js"
 
@@ -65,6 +65,34 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [previewFile, setPreviewFile] = useState(null)
   const [exportingPdf, setExportingPdf] = useState(false)
+
+  // Shared export routine so the Export action can live both as a standalone
+  // button and inside the "more" dropdown stack (next to Revisions).
+  const runExport = async () => {
+    setExportingPdf(true)
+    try {
+      const logoUrl = new URL(unclogo, window.location.origin).href
+      const wf = getWorkflow(codeToUse)
+      const html = buildSyllabusHtml(syllabus, codeToUse, wf, logoUrl)
+      const blob = new Blob([html], { type: 'text/html' })
+      const url = URL.createObjectURL(blob)
+      setPreviewFile({
+        file_url: url,
+        file_name: `Syllabus_${codeToUse}.html`,
+        instructor_name: syllabus?.instructor || '—',
+        course_id: codeToUse,
+        course_name: syllabus?.name || '',
+        submission_date: syllabus?.update || '',
+        period_label: (syllabus?.year || '') + ' — ' + (syllabus?.sem || ''),
+      })
+    } catch (err) {
+      console.warn('Export generation failed:', err)
+      alert('Failed to generate export: ' + (err?.message || err))
+    } finally {
+      setExportingPdf(false)
+    }
+  }
+
   const [cpaData, setCpaData] = useState({ course: { code: '', title: '' }, programOutcomes: [], courseOutcomes: [] })
   const [cpaLoading, setCpaLoading] = useState(false)
   const [cpaError, setCpaError] = useState(null)
@@ -992,35 +1020,12 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
                   </div>
                   <div className={styles.dropdownMenu}>
                     <button type="button" onClick={(e) => { e.stopPropagation(); setIsRevisionsOpen(true); setIsOpen(false); }}>
-                      Revisions
+                      <Clock strokeWidth={2} size={14} /> Revisions
+                    </button>
+                    <button type="button" disabled={exportingPdf} onClick={(e) => { e.stopPropagation(); setIsOpen(false); runExport(); }}>
+                      <Download strokeWidth={2} size={14} /> {exportingPdf ? 'Exporting...' : 'Export'}
                     </button>
                   </div>
-                </div>
-                <div className={styles.submit} style={{ marginLeft: 'auto' }} onClick={async () => {
-                  setExportingPdf(true)
-                  try {
-                    const logoUrl = new URL(unclogo, window.location.origin).href
-                    const wf = getWorkflow(codeToUse)
-                    const html = buildSyllabusHtml(syllabus, codeToUse, wf, logoUrl)
-                    const blob = new Blob([html], { type: 'text/html' })
-                    const url = URL.createObjectURL(blob)
-                    setPreviewFile({
-                      file_url: url,
-                      file_name: `Syllabus_${codeToUse}.html`,
-                      instructor_name: syllabus?.instructor || '—',
-                      course_id: codeToUse,
-                      course_name: syllabus?.name || '',
-                      submission_date: syllabus?.update || '',
-                      period_label: (syllabus?.year || '') + ' — ' + (syllabus?.sem || ''),
-                    })
-                  } catch (err) {
-                    console.warn('Export generation failed:', err)
-                    alert('Failed to generate export: ' + (err?.message || err))
-                  } finally {
-                    setExportingPdf(false)
-                  }
-                }}>
-                  <Download size={16} /> Export
                 </div>
               </>)
             }
@@ -1035,7 +1040,10 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
                   </div>
                   <div className={styles.dropdownMenu}>
                     <button type="button" onClick={(e) => { e.stopPropagation(); setIsRevisionsOpen(true); setIsOpen(false); }}>
-                      Revisions
+                      <Clock strokeWidth={2} size={14} /> Revisions
+                    </button>
+                    <button type="button" disabled={exportingPdf} onClick={(e) => { e.stopPropagation(); setIsOpen(false); runExport(); }}>
+                      <Download strokeWidth={2} size={14} /> {exportingPdf ? 'Exporting...' : 'Export'}
                     </button>
                   </div>
                 </div>

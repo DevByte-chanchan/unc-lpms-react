@@ -39,7 +39,9 @@
   position: absolute
   top: 100% // Snaps cleanly right against the bottom edge of the input box
   left: 0
-  width: 100%
+  min-width: 100%
+  width: max-content
+  max-width: 480px
   max-height: 220px
   overflow-y: auto
   background: #FFFFFF
@@ -127,7 +129,9 @@
   position: absolute
   top: 105%
   left: 0
-  width: 100%
+  min-width: 100%
+  width: max-content
+  max-width: 480px
   max-height: 220px
   overflow-y: auto
   background: #FFFFFF
@@ -146,6 +150,7 @@
   color: #333333
   cursor: pointer
   user-select: none
+  white-space: nowrap
   transition: background-color 0.15s ease
 
   &:hover
