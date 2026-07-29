@@ -11,3 +11,10 @@ build/
 
 # Only track your source folder
 !composition/
+# live database and its write-ahead log — never in git
+composition/server/data/*.sqlite
+composition/server/data/*.sqlite-shm
+composition/server/data/*.sqlite-wal
+composition/server/data/*.bak_*
+# FUSE artifacts from files deleted while still open
+.fuse_hidden*
