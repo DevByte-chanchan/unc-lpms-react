@@ -161,3 +161,13 @@ Never fork their logic.
 ---
 
 *New findings from the survey go below this line.*
+
+- [ ] **COAEP records are stored under a different program key than every other alignment page.**
+      `client/src/pages/lpsm/ProgramHead/COAEPUpload.jsx:58` vs `:28`, `CoPoAlignment.jsx`,
+      `PoPeoAlignment.jsx`. COAEP sets `programCode` to the server `Program.name`; the other
+      pages use the short prefix from `getAllPrograms()`. Both key the same store, so one
+      program gets two entries and a COAEP saved online vanishes on the offline fallback.
+      *Fix:* derive `programCode` via `extractProgramPrefix(courseCode)`; use the long name
+      for display only.
+      **RISK: RISKY** — changes the storage key; records already saved under the long name are
+      orphaned unless migrated.
