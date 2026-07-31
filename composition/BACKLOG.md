@@ -1,120 +1,163 @@
-# BACKLOG
+# BACKLOG — Edrian's module
 
-Survey of `composition/` on `feature/learning-plan-submissions-management-v2`. No code was
-changed (`git diff` is empty). Findings were checked against the running server on port 5000
-and a clean `cd client && npm run build`.
+Source: pre-oral panel, verdict **accepted with minor revision**. Timestamps
+in `[mm:ss]` point at the transcript line that triggered the item.
 
-- [ ] **The CO & PO Alignment page can never show a real course — its dropdown is built only from static demo data, and none of those course codes exist in the database.**
-      `client/src/pages/lpsm/ProgramHead/CoPoAlignment.jsx:26-38` (course list), `:95` (dropdown).
-      `programs[0]` is always `BIT` and `getProgramCourses('BIT')` yields
-      `BIT201, BIT301, BIT202, BIT304, BIT203` from `data/syllabiData.js`, while live
-      `/api/assignments` returns `BIT313L, BIT213L, BIT321L, BIT312L, BIT311L, MATH311L`.
-      The two sets are disjoint, so the Program Head cannot open CO-PO alignment for any
-      course they actually approve. There is also no program selector, so BSCS/IT courses
-      are unreachable. Sibling page `COAEPUpload.jsx:36-73` already sources its list from
-      `/api/assignments`.
-      *Fix:* load the course list from `/api/assignments` the way `COAEPUpload.jsx` does, and
-      read the outcomes from `/api/course-outcome-alignment/${pcId}/${revNum}` (live
-      `/1/1` → 200 with `courseOutcomes` + `programOutcomes`), keeping `getCoPoData` as the
-      offline fallback.
-      **RISK: RISKY** — changes which courses the page lists; CO-PO edits already saved under the demo codes become unreachable.
+**These items were written by a human, not found by a survey.** Do not delete,
+reword or reorder them. Tick them as they are done and add new findings below
+the line at the bottom.
 
-- [x] **The School Year and Semester filters on every approver/VPAA course table do nothing — the request never passes them and never refetches.**
-      `client/src/components/ApprovalCoursesTable.jsx:302`/`:309` (the two selects),
-      `:91-93` (`useEffect(..., [])`), `:181` (`fetchJson('/api/assignments')`, no query).
-      The server already implements the filter (`server/controllers/assignmentController.js:6`,
-      `:13-33`) and the option values match its expected format: live
-      `/api/assignments` → 7 rows, `?year=2026&semester=1st%20Sem` → 6,
-      `?year=2015&semester=1st%20Sem` → 0. The instructor's table does it correctly
-      (`client/src/components/CoursesTable.jsx:95`, deps `[selectedYear, selectedSem]`), so the
-      same two controls behave differently depending on which role you are logged in as.
-      *Fix:* mirror `CoursesTable.jsx` — build the URL with `?year=&semester=` and add
-      `[selectedYear, selectedSem]` to the effect's dependency array.
-      **RISK: MEDIUM** — shared table used by Program Head, Dean, Director of Libraries, Industry Consultant and VPAA; it changes which rows they see.
-      *Done:* `ApprovalCoursesTable.jsx:183` now builds `/api/assignments?year=&semester=` and the
-      effect at `:91-94` depends on `[selectedYear, selectedSem]`, matching `CoursesTable.jsx:81-83,95`.
-      Not verified by build or live request: in this environment `npm`/`node`/`curl` are not
-      permitted, so `cd client && npm run build` and the port-5000 curl could not be run.
+Scope: Reference Library · Review & Approval Workflow · Status Tracking ·
+Notifications · Comments.
 
-- [ ] **"Download PDF" never reaches the server's PDF renderer, so every export silently falls back to the raster (screenshot) path.**
-      `client/src/components/PDFViewerModal.jsx:167`.
-      The call is `fetch('/api/export-pdf', ...)` — an origin-relative URL — while every other
-      request in the app goes through `fetchJson`/`API_BASE` (`client/src/utils/api.js`) and
-      `client/vite.config.js` defines no dev proxy, so the request resolves against the Vite
-      origin instead of port 5000. The backend route works today: live
-      `POST http://127.0.0.1:5000/api/export-pdf` → `200 application/pdf`. Because the failure
-      is swallowed by the `catch` at `:177`, the user just gets the html2canvas bitmap PDF.
-      *Fix:* route the call through `fetchJson`/`API_BASE` like the rest of the client, keeping
-      the existing in-browser fallback for when puppeteer is unavailable (501).
-      **RISK: MEDIUM** — one fetch in a modal shared by seven pages; changes the bytes every export produces.
+---
 
-- [x] **An approver's comment can be saved against the wrong ILO — the CO → ILO dropdown never filters, because the two sides use different key formats.**
-      `client/src/components/ApprovalCommentBox.jsx:563` (option value) and `:146`, `:574`
-      (lookups); map built in `client/src/components/ApprovalSyllabusSections.jsx:683-693`.
-      CO options carry `co.id` — live `/api/course-outcome-alignment/1/1` returns the numbers
-      `1..4` — but the map is keyed `"CO1".."CO4"` from `ilo.id.split('-')[0]`, so every lookup
-      misses and falls back to `resolvedIlos` (all ILOs in the course). Picking CO1 then an ILO
-      owned by CO4 persists wrong, since `commentController.js:160-172` resolves CO/ILO
-      positionally and lands the comment on CO1's second ILO.
-      *Fix:* give the CO options the positional index so the option value, the map key and
-      `co_index` all come from one numbering.
-      **RISK: MEDIUM** — shared comment modal for every approver role; changes which ILO a comment attaches to.
+## Reference Library
 
-- [x] **Comment Recorder can neither load ILOs nor save a comment — it calls two endpoints the server does not define.**
-      `client/src/pages/CommentRecorder.jsx:73` and `:128`; routes in `server/routes/ilos.js:9`
-      and `server/routes/comments.js:22`. Verified live: `GET /api/ilos/BIT213L` → 404 (the route
-      is `/:pcId/:revNum`; `/api/ilos/1/1` → 200) and `POST /api/comments` → 404 (only
-      `POST /by-course` exists). The ILO dropdown stays empty, `canSubmit` requires `iloId`, and
-      both failures are swallowed into toasts.
-      *Fix:* call `/api/ilos/${pc_offering_id}/${revision_number}` and POST to
-      `/api/comments/by-course` with its real contract (`code`, `commenter_role`, `message`,
-      `comment_for`, `target_titles`).
-      **RISK: MEDIUM** — one file, but the page starts writing real comment rows.
+- [ ] **The "All" reference filter mixes types and confuses the user.**
+      Reference type filter in the reference picker.
+      *Fix:* remove "All"; Textbook shows only textbooks, OER only OER, OR only OR. [15:02]–[16:04]
+      **RISK: SAFE** — one filter control.
 
-- [x] **The COAEP page renders the plan but hides the button that opens it.**
-      `client/src/pages/lpsm/ProgramHead/COAEPUpload.jsx:182`.
-      *View COAEP* / *Delete* are gated on `coaepRecord` (set only by a manual in-app upload)
-      while the table at `:202` renders `effectiveRecord`, which also covers the server COAEP.
-      Live `/api/coaep/BIT213L` → 200 with 4 COs, so in the normal case the full table is on
-      screen with no way to view, print or export it.
-      *Fix:* gate *View COAEP* on `effectiveRecord` (`handleView:115` already keys off it); leave
-      *Delete* on `coaepRecord`, since only a saved record can be deleted.
-      **RISK: SAFE** — one render branch in one file.
+- [ ] **Reference results are not sorted.**
+      *Fix:* sort A–Z by title by default. [11:12]
+      **RISK: SAFE** — display order only.
 
-- [ ] **COAEP records are stored under a different program key than every other alignment page, so a saved COAEP goes missing when the offline fallback runs.**
-      `client/src/pages/lpsm/ProgramHead/COAEPUpload.jsx:58` vs `:28`,
-      `CoPoAlignment.jsx:26`, `PoPeoAlignment.jsx:30`.
-      COAEP sets `programCode` to the server `Program.name` ("Bachelor of Science in Information
-      Technology"); the other pages use the short prefix from `getAllPrograms()` (`BIT`, `BSCS`,
-      `IT`). Both key the same `lpms_curriculum_alignment_v1` store
-      (`utils/programCurriculumData.js:152-163`), so one program gets two entries.
-      *Fix:* derive `programCode` from the selected course code via
-      `extractProgramPrefix(courseCode)` and use the long name for display only.
-      **RISK: RISKY** — changes the storage key; records already saved under the long name are orphaned unless migrated.
+- [ ] **No recency window on references; outdated titles appear.**
+      *Fix:* exclude or flag titles outside the last 5 years. Read the window
+      from configuration (default 2021–2025); do not hard-code the years. [10:55]
+      **RISK: SAFE** — a filter plus one setting.
 
-- [x] **The VPAA dashboard re-renders every 2 seconds to compute two values it never displays.**
-      `client/src/pages/VPAA.jsx:12-26`.
-      `tick` drives a `setInterval` whose only consumers are `approvedCourses` and `stats`,
-      neither of which appears in the JSX (`:28-38` renders only
-      `<ApprovalCoursesTable role="vpaa" />`). Net effect is a permanent 2-second re-render of the
-      page and the whole approvals table, plus a `syllabiData` scan per tick, for no visible
-      output. `Package`, `Layers`, `Calendar` are unused for the same reason.
-      *Fix:* delete `tick`, the interval, `approvedCourses`, `stats` and the three dead imports.
-      **RISK: SAFE** — single page, dead code only.
+- [ ] **References are not scoped to the course, so a programming course can list "Understanding the Self".**
+      *Fix:* filter results by the current course before display. [13:25] [16:13]
+      **RISK: MEDIUM** — touches the query the picker depends on.
 
-- [ ] **The document viewer's "Course" field literally reads `undefined — undefined` on the three alignment pages.**
-      `client/src/components/PDFViewerModal.jsx:354` concatenates
-      `file.course_id + ' — ' + file.course_name`, so when both are missing the result is the
-      truthy string `"undefined — undefined"` and `MetaRow`'s `value || '—'` guard never fires.
-      `CoPoAlignment.jsx:58` and `PoPeoAlignment.jsx:50` pass only `{ name, file_url }`, and
-      `COAEPUpload.jsx:122` passes no course fields either — all three show it.
-      *Fix:* build the value conditionally (join the parts that exist, else pass `undefined` so
-      the em-dash fallback applies).
-      **RISK: SAFE** — one display expression.
+- [ ] **Faculty must type references by hand; nothing is suggested.**
+      *Fix:* given a subject and topic, return matched references automatically. [10:28] [13:07]
+      **RISK: MEDIUM** — new retrieval path.
 
-- [ ] **`getProgram` in the approver table is dead code, and it hard-codes a program guess the app no longer uses.**
-      `client/src/components/ApprovalCoursesTable.jsx:10-13`. `git grep getProgram` inside that
-      file returns only the declaration — nothing calls it. It also maps any code not starting
-      with `IT ` to "Computer Science", which is wrong for the live `BIT*`/`MATH*` codes.
-      *Fix:* delete the function.
-      **RISK: SAFE** — dead code in one file.
+- [ ] **A chapter can be listed as if it were a book — "UX Design Principles is not a book, it's only a chapter".**
+      *Fix:* resolve a chapter-level match to its parent book; never show a
+      chapter as a standalone title. [13:43] [14:18]
+      **RISK: MEDIUM** — changes what a match means.
+
+- [ ] **There is no per-course reference catalog, and no way to search outside it.**
+      *Fix:* each course has an assigned catalog; when a needed reference is
+      absent, allow an external search and add. [11:21] [11:39]–[11:48]
+      **RISK: MEDIUM** — new data shape.
+
+- [ ] **The library director cannot upload suggested books, and the set never updates per semester.**
+      *Fix:* director uploads suggested books per subject; the list versions
+      each term after faculty finalise. [10:19] [16:22] [16:57]
+      **RISK: MEDIUM** — new role-scoped write path.
+
+- [ ] **Any reference can be attached, whether or not the library holds it.**
+      *Fix:* only library-available or approved-external references may be
+      attached. [49:06]
+      **RISK: MEDIUM** — adds a constraint to an existing action.
+
+- [ ] **O'Reilly is not a reference source, though the library has a subscription.**
+      *Fix:* make O'Reilly content searchable and citable. Ship search-by-subject
+      first; the live API connection can follow. [12:05] [12:32] [12:41]
+      **RISK: RISKY** — external service and credentials; needs a human.
+
+## Review & Approval Workflow
+
+- [ ] **An approver can return an item without saying why.**
+      *Fix:* require a comment before disapprove / return-to-sender; the
+      returned item goes back to the instructor as actionable. [1:23:33] [1:23:40]
+      **RISK: SAFE** — one validation on one action.
+
+- [ ] **Program-head comments do not reliably reach the instructor.**
+      *Fix:* comments attach to the specific item (e.g. CO1) and render on the
+      instructor's side. [46:22]
+      **RISK: MEDIUM** — shared comment component.
+
+- [ ] **There is no consolidated view of who has and has not approved.**
+      *Fix:* one view showing each item's stage and each approver's state. [53:22]
+      **RISK: MEDIUM** — reads across the workflow.
+
+- [ ] **Approval records no signature.**
+      *Fix:* approving records the approver's digital signature and timestamp
+      on the artifact. [53:41]
+      **RISK: MEDIUM** — writes to the approval record.
+
+- [ ] **The approver chain is incomplete.**
+      Program Head → Director of Libraries → Industry Consultant → Dean (final,
+      with date approved) → VPAA (read-only view of approved items).
+      *Fix:* one review/approve/status component, scoped per role and stage.
+      **RISK: MEDIUM** — shared across five roles.
+
+- [ ] **Submitting does not reliably route into the correct approver's queue.**
+      *Fix:* submission sets pending and places the item in the right queue. [44:50] [45:09]
+      **RISK: MEDIUM** — the spine of the workflow.
+
+## Status Tracking & Notifications
+
+- [ ] **Learning-plan status is not exposed as a single source of truth.**
+      *Fix:* each learning plan reports its current stage; the tracker is
+      authoritative. [08:33]
+      **RISK: MEDIUM** — read model other modules will depend on.
+
+- [ ] **Nobody is told who has not submitted; the program head chases folders by hand.**
+      *Fix:* list non-submitters and notify them; send the program head a
+      summary. [08:16] [08:51]
+      **RISK: MEDIUM** — new outbound notifications.
+
+- [ ] **Deadlines are not derived from the academic calendar.**
+      *Fix:* upload the calendar, derive start of classes and grade-submission
+      dates, apply the rule that a syllabus is due about one week before
+      classes start, and auto-notify late faculty and the program head. [08:51]
+      **RISK: MEDIUM** — date arithmetic driving real notifications.
+
+## Comments & Review Automation
+
+- [ ] **Program-head comments are free text only.**
+      *Fix:* offer structured types — suggest TLAs, suggest topics, suggest AI
+      tools — and render them to the instructor as distinct, actionable
+      suggestions. [48:30]
+      **RISK: SAFE** — additive to the comment UI.
+
+- [ ] **Spelling and grammar errors reach the program head.**
+      *Fix:* run a spell/grammar check on comment text at save and surface
+      flags before submission. [46:58] [49:25] [49:43]
+      **RISK: MEDIUM** — external API in a save path.
+
+- [ ] **Login does not hold identity across the approval flow — the panel saw the account switch mid-demo.**
+      *Fix:* a user stays that user across the whole flow; signup creates a
+      valid account with the correct role; roles map to their approver view. [45:27] [45:45]
+      **RISK: RISKY** — authentication and sessions; a human must review this.
+
+- [ ] **Syllabi can be submitted while hours and ILO allocation do not align.**
+      *Fix:* block submission until alignment checks pass, so the program head
+      confirms rather than hand-checks. The alignment computation lives in the
+      learning-plan and TOS modules — integrate with their interfaces, do not
+      reimplement. [47:53] [48:30] [48:48] [49:06]
+      **RISK: RISKY** — crosses module boundaries; confirm ownership first.
+
+## Cross-cutting UI
+
+- [ ] **Multi-step actions require clicking back and forth instead of moving forward.**
+      *Fix:* a stepper with persistent Next/Back; a later step stays disabled
+      until the current one is valid. [17:23] [51:51] [52:09]
+      **RISK: MEDIUM** — restructures existing screens.
+
+- [ ] **Screens show everything at once and take too many clicks.**
+      *Fix:* mobile-first, one focused task per screen; remove redundant
+      confirmations and collapse repeated selections. [17:15] [50:56] [51:14]
+      **RISK: MEDIUM** — layout change across several screens.
+
+---
+
+## Do not modify — other people's modules
+
+- COAEP outcomes generation and parsing (Junar, Sir Danny) — consume its output only.
+- Learning-plan composition: topics, TLAs, ILO editor (Christian).
+- TOS, assessment items, points computation (Arra).
+
+Where this module depends on those, integrate through their interfaces.
+Never fork their logic.
+
+---
+
+*New findings from the survey go below this line.*
