@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { X, Download, FileText, User, Calendar, BookOpen, ZoomIn, ZoomOut, Maximize, Minimize2, Printer, ChevronLeft, ChevronRight } from 'react-feather';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
+import { API_BASE } from '../utils/api.js';
 
 const ACCENT     = '#19282C';
 const SLATE_900  = '#0F172A';
@@ -164,7 +165,7 @@ const PDFViewerModal = ({ file, kind, onClose, onExport, children }) => {
       if (src) {
         try {
           const html = await (await fetch(src)).text();
-          const resp = await fetch('/api/export-pdf', {
+          const resp = await fetch(`${API_BASE}/api/export-pdf`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ html }),
