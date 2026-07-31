@@ -682,15 +682,16 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
 
   const realCoToIlos = React.useMemo(() => {
     const map = {}
-    if (!coverage?.ilos) return map
-    coverage.ilos.forEach(ilo => {
-      if (!ilo.id) return
-      const coPrefix = ilo.id.split('-')[0]
-      if (!map[coPrefix]) map[coPrefix] = []
-      if (!map[coPrefix].includes(ilo.id)) map[coPrefix].push(ilo.id)
+    if (!coverage?.ilos || cpaData.courseOutcomes.length === 0) return map
+    // Key by the same 1-based position used for the CO dropdown's option value
+    // and the persisted co_index, not by the ILO id's embedded CO prefix.
+    cpaData.courseOutcomes.forEach((co, idx) => {
+      const coLabel = `CO${idx + 1}`
+      const matches = coverage.ilos.map(ilo => ilo.id).filter(id => id && id.split('-')[0] === coLabel)
+      if (matches.length) map[coLabel] = matches
     })
     return map
-  }, [coverage])
+  }, [coverage, cpaData.courseOutcomes])
 
   const handleSubmitComment = (payload) => {
     if (import.meta.env.DEV) console.log('Submitted approval comment', { ...payload, role: roleKey })

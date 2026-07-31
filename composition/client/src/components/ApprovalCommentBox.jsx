@@ -559,8 +559,8 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
                             <label className={styles.label}>Course Outcome</label>
                             <select className={styles.select} value={c.courseOutcome} onChange={(e) => updateCommentCourseOutcome(c.id, e.target.value)}>
                               <option value="">-- select course outcome --</option>
-                              {resolvedCourseOutcomes.map((co) => (
-                                <option key={co.id || co} value={co.id || co}>
+                              {resolvedCourseOutcomes.map((co, idx) => (
+                                <option key={co.id || co} value={co.id ? `CO${idx + 1}` : co}>
                                   {co.id ? `${co.id} — ${String(co.description || '').slice(0, 60)}` : co}
                                 </option>
                               ))}
