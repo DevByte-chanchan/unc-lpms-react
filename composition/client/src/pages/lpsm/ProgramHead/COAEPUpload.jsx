@@ -55,6 +55,7 @@ const COAEPUpload = () => {
         if (cs.length > 0) {
           setCourses(cs)
           setServerPrograms(ps)
+          // NOTE: this stores Program.name, while CoPoAlignment.jsx/PoPeoAlignment.jsx use the short program prefix; changing the storage key needs a migration (BACKLOG.md item 4).
           if (ps.length > 0) setProgramCode(ps[0])
           if (!cs.find(c => c.code === courseCode)) setCourseCode(cs[0].code)
         } else {
