@@ -88,9 +88,10 @@ const ApprovalCoursesTable = ({ role = 'approver' }) => {
       }
     }
 
+    // Fetch data whenever Year or Semester changes
     useEffect(() => {
         loadAssignments();
-    }, []);
+    }, [selectedYear, selectedSem]);
 
     const computeOverallStatus = (row) => {
         const logs = row.logs || [];
@@ -178,7 +179,9 @@ const ApprovalCoursesTable = ({ role = 'approver' }) => {
     async function loadAssignments() {
         setLoading(true);
         try {
-            const data = await fetchJson('/api/assignments');
+            // Append the filter query parameters to the URL
+            const url = `/api/assignments?year=${selectedYear}&semester=${encodeURIComponent(selectedSem)}`;
+            const data = await fetchJson(url);
             const rows = Array.isArray(data) ? data : (data.data || data.rows || []);
             setAssignments(rows);
         } catch (err) {
