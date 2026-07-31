@@ -67,10 +67,10 @@ export default function CommentRecorder() {
         setIloId(''); setIlos([]); setCommentFor(''); setTargets([]); setSelectedLabels([]);
         if (!coAssignId) return;
         const row = assignments.find(a => String(a.co_assign_id) === String(coAssignId));
-        const code = getCode(row);
-        if (!code) return;
+        const offering = row?.ProgramCourseOffering;
+        if (!offering?.pc_offering_id || !offering?.revision_number) return;
         try {
-            const data = await fetchJson(`/api/ilos/${encodeURIComponent(code)}`);
+            const data = await fetchJson(`/api/ilos/${offering.pc_offering_id}/${offering.revision_number}`);
             const cos = data?.courseOutcomes || [];
             const flat = [];
             cos.forEach(co => (co.ilos || []).forEach(ilo => {
@@ -122,19 +122,18 @@ export default function CommentRecorder() {
         if (!canSubmit) return;
         setBusy(true);
         setToast(null);
-        const labelToId = Object.fromEntries(targets.map(t => [t.label, t.id]));
-        const target_ids = selectedLabels.map(l => labelToId[l]).filter(v => v != null);
+        const row = assignments.find(a => String(a.co_assign_id) === String(assignId));
+        const code = getCode(row);
         try {
-            await fetchJson('/api/comments', {
+            await fetchJson('/api/comments/by-course', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    co_assign_id: Number(assignId),
+                    code,
                     commenter_role: role,
                     message: message.trim(),
-                    ilo_id: Number(iloId),
                     comment_for: commentFor,
-                    target_ids,
+                    target_titles: selectedLabels,
                 }),
             });
             setToast({ type: 'success', msg: 'Comment saved to your database.' });
