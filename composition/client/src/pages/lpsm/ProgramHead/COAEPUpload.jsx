@@ -179,17 +179,17 @@ const COAEPUpload = () => {
           {courses.map(c => <option key={c.code} value={c.code}>{c.name}</option>)}
         </select>
         <div style={{ flexGrow: 1 }} />
+        {effectiveRecord && (
+          <button onClick={handleView}
+            style={BTN_DARK}>
+            <ChevronRight size={16} /> View COAEP
+          </button>
+        )}
         {coaepRecord && (
-          <>
-            <button onClick={handleView}
-              style={BTN_DARK}>
-              <ChevronRight size={16} /> View COAEP
-            </button>
-            <button onClick={handleDelete}
-              style={BTN_DANGER}>
-              <Trash2 size={16} /> Delete
-            </button>
-          </>
+          <button onClick={handleDelete}
+            style={BTN_DANGER}>
+            <Trash2 size={16} /> Delete
+          </button>
         )}
         <button onClick={() => setShowUpload(true)}
           style={BTN_DARK}>
