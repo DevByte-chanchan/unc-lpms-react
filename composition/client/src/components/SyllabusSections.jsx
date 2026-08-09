@@ -7,6 +7,7 @@ import SyllabusPreview from "./SyllabusPreview.jsx";
 import Revisions from "./Revisions.jsx";
 import {fetchJson} from "../utils/api";
 import { getWorkflow, setWorkflow } from '../utils/workflowHelpers'
+import { validateSubmission } from '../utils/submissionGate'
 import PDFViewerModal from './PDFViewerModal'
 import { buildSyllabusHtml } from '../utils/syllabusPdfHtml.js'
 import unclogo from '../assets/unclogo.png'
@@ -35,6 +36,20 @@ const SyllabusSections = () => {
             ? `/?status=${location.state?.fromStatus || status}`
             : '/'
 
+    // The instructor route is /courses/:pcId/:revNum/:status, which carries no
+    // course code — without this the workflow was written under '' and
+    // setWorkflow dropped it, so a submitted plan never reached the approvers.
+    const [resolvedCode, setResolvedCode] = useState(courseCode)
+    useEffect(() => {
+        if (courseCode) { setResolvedCode(courseCode); return }
+        if (!offeringID || !revisionNum) return
+        let cancelled = false
+        fetchJson(`/api/course-details/${offeringID}/${revisionNum}`)
+            .then(d => { if (!cancelled && d?.code) setResolvedCode(d.code) })
+            .catch(err => console.warn('Could not resolve the course code for this offering:', err))
+        return () => { cancelled = true }
+    }, [courseCode, offeringID, revisionNum])
+
     const [isLoading, setIsLoading] = useState(false);
     const [isPreviewOpen, setIsPreviewOpen] = useState(false);
     const [isRevisionsOpen, setIsRevisionsOpen] = useState(false);
@@ -62,7 +77,7 @@ const SyllabusSections = () => {
                 }
                 return refRes.references || []
             })()
-            const wf = getWorkflow(courseCode)
+            const wf = getWorkflow(resolvedCode)
             const syllabus = {
                 ...(courseRes || {}),
                 courseOutcomes: coaRes?.courseOutcomes || [],
@@ -71,19 +86,19 @@ const SyllabusSections = () => {
                 assessments: covRes?.assessments || [],
                 gradingSystem: critRes?.gradingSystem || [],
                 references: refs,
-                code: courseCode,
+                code: resolvedCode,
                 course_no: courseRes?.code || '',
                 course_title: courseRes?.name || '',
             }
             const logoUrl = new URL(unclogo, window.location.origin).href
-            const html = buildSyllabusHtml(syllabus, courseCode, wf, logoUrl)
+            const html = buildSyllabusHtml(syllabus, resolvedCode, wf, logoUrl)
             const blob = new Blob([html], { type: 'text/html' })
             const url = URL.createObjectURL(blob)
             setPreviewFile({
                 file_url: url,
-                file_name: `Syllabus_${courseCode}.html`,
+                file_name: `Syllabus_${resolvedCode}.html`,
                 instructor_name: syllabus?.instructor || '—',
-                course_id: courseCode,
+                course_id: resolvedCode,
                 course_name: syllabus?.name || '',
                 submission_date: syllabus?.update || '',
                 period_label: (syllabus?.year || '') + ' — ' + (syllabus?.sem || ''),
@@ -99,7 +114,11 @@ const SyllabusSections = () => {
     // Keeps the localStorage workflow in sync once the server submission succeeds
     const applyLocalWorkflowOnSubmit = () => {
         try {
-            const existing = getWorkflow(courseCode)
+            if (!resolvedCode) {
+                console.warn('No course code resolved for this offering — workflow not updated')
+                return
+            }
+            const existing = getWorkflow(resolvedCode)
             const wf = existing
                 ? { ...existing, currentStage: 'parallel_review', submittedAt: new Date().toISOString(),
                     parallelReview: {
@@ -110,7 +129,7 @@ const SyllabusSections = () => {
                     programHead: existing.programHead?.status === 'done' ? existing.programHead : { status: 'pending', completedAt: null },
                     dean: existing.dean?.status === 'done' ? existing.dean : { status: 'pending', completedAt: null }
                 }
-                : { courseCode: courseCode || '', currentStage: 'parallel_review', submittedAt: new Date().toISOString(),
+                : { courseCode: resolvedCode, currentStage: 'parallel_review', submittedAt: new Date().toISOString(),
                     parallelReview: {
                         library_director: { status: 'pending', completedAt: null },
                         industry_consultant: { status: 'pending', completedAt: null },
@@ -119,7 +138,7 @@ const SyllabusSections = () => {
                     programHead: { status: 'pending', completedAt: null },
                     dean: { status: 'pending', completedAt: null }
                 }
-            setWorkflow(courseCode, wf)
+            setWorkflow(resolvedCode, wf)
         } catch (e) {
             console.error('Failed to update local workflow', e)
         }
@@ -127,6 +146,7 @@ const SyllabusSections = () => {
 
     // Submission Modal States (undo-window submit flow)
     const [submitPhase, setSubmitPhase] = useState('IDLE');
+    const [gateResult, setGateResult] = useState(null);
     const [timeLeft, setTimeLeft] = useState(5);
     const timerRef = useRef(null);
 
@@ -168,8 +188,25 @@ const SyllabusSections = () => {
     }, [isOpen]);
 
     // --- Corrected Submission Logic ---
-    const handleInitialSubmitClick = () => {
-        setSubmitPhase('CONFIRM');
+    // Alignment gate: the plan cannot be submitted while its hours and ILO
+    // allocation do not line up, so the program head confirms instead of
+    // hand-checking. The checks read the learning-plan / TOS endpoints; they
+    // do not recompute anything those modules own.
+    const handleInitialSubmitClick = async () => {
+        setSubmitPhase('CHECKING');
+        try {
+            const [details, coverage] = await Promise.all([
+                fetchJson(`/api/course-details/${offeringID}/${revisionNum}`),
+                fetchJson(`/api/course-coverage/${offeringID}/${revisionNum}`)
+            ]);
+            const result = validateSubmission({ courseDetails: details, coverage });
+            setGateResult(result);
+            setSubmitPhase(result.ok ? 'CONFIRM' : 'BLOCKED');
+        } catch (error) {
+            console.error('Alignment check failed:', error);
+            setGateResult({ ok: false, blockers: [`The alignment check could not run: ${error.message}`], warnings: [] });
+            setSubmitPhase('BLOCKED');
+        }
     };
 
     const confirmSubmission = () => {
@@ -347,6 +384,34 @@ const SyllabusSections = () => {
             {submitPhase !== 'IDLE' && (
                 <div className={styles.submitOverlay}>
 
+                    {/* Alignment check Phase */}
+                    {submitPhase === 'CHECKING' && (
+                        <div className={styles.submitModal}>
+                            <div className={styles.waitingBodyCenter}>
+                                <div className={styles.spinnerDark}></div>
+                                <div className={styles.waitingTextSmall}>Checking hours and ILO alignment...</div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Blocked Phase — alignment must pass before submission */}
+                    {submitPhase === 'BLOCKED' && (
+                        <div className={styles.submitModal}>
+                            <div className={styles.submitModalHeader}>
+                                Alignment check failed
+                            </div>
+                            <div className={styles.submitModalBody}>
+                                This learning plan cannot be submitted yet. Fix the following, then submit again:
+                                <ul style={{ margin: '10px 0 0', paddingLeft: 20 }}>
+                                    {(gateResult?.blockers || []).map((b, i) => <li key={i} style={{ marginBottom: 4 }}>{b}</li>)}
+                                </ul>
+                            </div>
+                            <div className={styles.submitModalActions}>
+                                <button className={styles.btnConfirmDark} onClick={() => setSubmitPhase('IDLE')}>Close</button>
+                            </div>
+                        </div>
+                    )}
+
                     {/* Confirmation Phase */}
                     {submitPhase === 'CONFIRM' && (
                         <div className={styles.submitModal}>
@@ -355,6 +420,11 @@ const SyllabusSections = () => {
                             </div>
                             <div className={styles.submitModalBody}>
                                 Are you sure you want to finalize and submit this learning plan for review? You will no longer be able to edit it unless it is returned.
+                                {(gateResult?.warnings || []).length > 0 &&
+                                    <ul style={{ margin: '10px 0 0', paddingLeft: 20, color: '#b45309' }}>
+                                        {gateResult.warnings.map((w, i) => <li key={i} style={{ marginBottom: 4 }}>{w}</li>)}
+                                    </ul>
+                                }
                             </div>
                             <div className={styles.submitModalActions}>
                                 <button className={styles.btnCancelPlain} onClick={() => setSubmitPhase('IDLE')}>Cancel</button>

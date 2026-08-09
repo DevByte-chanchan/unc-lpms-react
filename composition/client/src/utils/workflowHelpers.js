@@ -35,6 +35,14 @@ export const getWorkflow = (courseCode = '') => {
   return all[courseCode] || defaultWorkflow(courseCode)
 }
 
+// Whether a course already has a stored workflow. Seeders use this so demo data
+// is only ever added where the user has none — never written over an approval
+// somebody actually made.
+export const hasWorkflow = (courseCode = '') => {
+  if (!courseCode) return false
+  return Object.prototype.hasOwnProperty.call(_readAll(), courseCode)
+}
+
 export const setWorkflow = (courseCode = '', wf = null) => {
   if (!courseCode || !wf) return
   const all = _readAll()
@@ -89,6 +97,7 @@ export const resetWorkflowStage = (courseCode, newStage) => {
 export default {
   WORKFLOW_KEY,
   getWorkflow,
+  hasWorkflow,
   setWorkflow,
   advanceWorkflow,
   resetWorkflowStage,

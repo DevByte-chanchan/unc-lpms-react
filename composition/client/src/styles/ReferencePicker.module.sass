@@ -36,9 +36,17 @@
     width: 100%
     font-size: 14px
 
+.headerRow
+  display: flex
+  align-items: center
+  gap: 12px
+  width: 100%
+  flex-wrap: wrap
+
 .filterTabs
   display: flex
   gap: 5px
+  flex-wrap: wrap
   button
     background: #EDF2F7
     border: none
@@ -155,3 +163,146 @@ a
   &.selectedRow
     background: #EBF8FF
     animation: selectionPulse 0.6s ease-out forwards /* Triggers when class is applied */
+
+/* --- Course-scoped catalog, selection chips and suggestions ---------------- */
+
+.scopeRow
+  display: flex
+  align-items: center
+  gap: 6px
+  margin-top: 8px
+  flex-wrap: wrap
+
+.scopeTab
+  background: #EDF2F7
+  border: none
+  padding: 4px 10px
+  border-radius: 4px
+  font-size: 12px
+  cursor: pointer
+  color: #4A5568
+  &.activeTab
+    background: #2C5282
+    color: #fff
+
+.scopeNote
+  font-size: 11px
+  color: #718096
+  margin-left: auto
+
+.chipRow
+  display: flex
+  align-items: center
+  gap: 6px
+  flex-wrap: wrap
+  margin-top: 8px
+  padding-top: 8px
+  border-top: 1px dashed #DCE2F0
+
+.chipCount
+  font-size: 11px
+  font-weight: 700
+  color: #2C5282
+  text-transform: uppercase
+
+.chip
+  display: inline-flex
+  align-items: center
+  gap: 4px
+  max-width: 240px
+  background: #EBF8FF
+  border: 1px solid #BEE3F8
+  color: #2A4365
+  border-radius: 999px
+  padding: 2px 6px 2px 10px
+  font-size: 11px
+  white-space: nowrap
+  overflow: hidden
+  text-overflow: ellipsis
+  button
+    display: inline-flex
+    align-items: center
+    background: transparent
+    border: none
+    cursor: pointer
+    color: #2A4365
+    padding: 0
+
+.suggestBlock
+  background: #FFFCF2
+  border-bottom: 1px solid #F0E6CC
+
+.suggestHeader
+  display: flex
+  align-items: center
+  gap: 6px
+  padding: 8px 12px
+  font-size: 11px
+  font-weight: 700
+  text-transform: uppercase
+  color: #975A16
+
+.hintTag
+  margin-left: 8px
+  font-size: 10px
+  font-weight: 500
+  color: #718096
+
+.outdatedTag
+  display: inline-flex
+  align-items: center
+  gap: 3px
+  margin-left: 6px
+  color: #B7791F
+
+.blockedRow
+  opacity: 0.55
+  cursor: not-allowed
+  &:hover
+    background: transparent
+
+.linkBtn
+  background: none
+  border: none
+  color: #3182CE
+  cursor: pointer
+  font-size: 12px
+  text-decoration: underline
+  margin-top: 6px
+
+.externalBar
+  display: flex
+  align-items: center
+  gap: 10px
+  flex-wrap: wrap
+  padding: 8px 12px
+  border-top: 1px solid #DCE2F0
+  background: #F8FAFC
+  font-size: 11px
+  color: #718096
+  a
+    display: inline-flex
+    align-items: center
+    gap: 3px
+    font-size: 11px
+    color: #3182CE
+    text-decoration: none
+
+/* One focused task per screen on a narrow viewport [51:14] */
+@media (max-width: 720px)
+  .headerRow
+    flex-direction: column
+    align-items: stretch
+  .filterTabs
+    justify-content: flex-start
+  .selfAdder
+    margin-left: 0
+  .scopeNote
+    margin-left: 0
+  .row
+    flex-direction: column
+    align-items: stretch
+    gap: 8px
+  .typeTag
+    width: auto
+    align-self: flex-start

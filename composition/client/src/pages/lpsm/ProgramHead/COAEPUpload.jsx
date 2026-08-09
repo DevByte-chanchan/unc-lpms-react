@@ -5,7 +5,7 @@ import HeaderA from '../../../components/HeaderA.jsx';
 import SideNavigation from '../../../components/SideNavigation.jsx';
 import PDFViewerModal from '../../../components/PDFViewerModal.jsx';
 import { buildCoaepHtml } from '../../../utils/syllabusPdfHtml.js';
-import { getAllPrograms, getProgramCourses, getCoaepData, saveCoaepData } from '../../../utils/programCurriculumData.js';
+import { getAllPrograms, getProgramCourses, getCoaepData, saveCoaepData, extractProgramPrefix, getProgramName } from '../../../utils/programCurriculumData.js';
 import unclogo from '../../../assets/unclogo.png';
 import { FONT, BTN_DARK, BTN_OUTLINE, BTN_DANGER, TH, THC, TD, TDC } from './uiTokens.js';
 import { fetchJson } from '../../../utils/api.js';
@@ -14,7 +14,6 @@ import tbl from '../../../styles/AlignmentTables.module.sass';
 const CURRENT_YEAR = new Date().getFullYear()
 
 const COAEPUpload = () => {
-  const [programCode, setProgramCode] = useState('')
   const [courseCode, setCourseCode] = useState('')
   const [courses, setCourses] = useState([])
   const [coaepRecord, setCoaepRecord] = useState(null)
@@ -27,9 +26,11 @@ const COAEPUpload = () => {
 
   const programs = getAllPrograms()
 
-  useEffect(() => {
-    if (!programCode && programs.length > 0) setProgramCode(programs[0])
-  }, [programs])
+  // The record is keyed by the short program prefix of the course — the same key
+  // CoPoAlignment and PoPeoAlignment use. Keying by the server's Program.name
+  // split one program into two entries in the store, so a COAEP saved while the
+  // server was reachable vanished on the offline fallback.
+  const programCode = extractProgramPrefix(courseCode) || programs[0] || ''
 
   // Programs + courses come from the DATABASE (assignments carry both);
   // static lists are only a fallback when the server is unreachable.
@@ -54,9 +55,9 @@ const COAEPUpload = () => {
         cs.sort((a, b) => a.code.localeCompare(b.code))
         if (cs.length > 0) {
           setCourses(cs)
+          // Program.name is a display label only — the storage key comes from
+          // the course code, so online and offline reads land on one entry.
           setServerPrograms(ps)
-          // NOTE: this stores Program.name, while CoPoAlignment.jsx/PoPeoAlignment.jsx use the short program prefix; changing the storage key needs a migration (BACKLOG.md item 4).
-          if (ps.length > 0) setProgramCode(ps[0])
           if (!cs.find(c => c.code === courseCode)) setCourseCode(cs[0].code)
         } else {
           const fallback = getProgramCourses(programCode)
@@ -179,6 +180,9 @@ const COAEPUpload = () => {
           style={{ padding: '6px 12px', fontSize: 14, borderRadius: 4, border: '1px solid #D1D5DB', background: '#FFF', cursor: 'pointer', marginLeft: 16, fontFamily: FONT }}>
           {courses.map(c => <option key={c.code} value={c.code}>{c.name}</option>)}
         </select>
+        <span style={{ fontSize: 13, color: '#6B7280', whiteSpace: 'nowrap', fontFamily: FONT }}>
+          {serverPrograms[0] || getProgramName(programCode)}
+        </span>
         <div style={{ flexGrow: 1 }} />
         {effectiveRecord && (
           <button onClick={handleView}

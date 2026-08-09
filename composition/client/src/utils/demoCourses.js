@@ -11,7 +11,7 @@
 // this module only decides the list + which tab each course lives in.
 // ============================================================================
 import { getSyllabi } from './dataStore.js';
-import { setWorkflow } from './workflowHelpers.js';
+import { setWorkflow, hasWorkflow } from './workflowHelpers.js';
 
 // 4 courses per status tab (16 total). All exist in syllabiData (enriched) and
 // are seeded in the DB by seeders/populate_full_syllabi.js.
@@ -93,11 +93,17 @@ export function statusLabelForCode(code) {
 
 // Seed the workflow store so the approver-chain popup and the syllabus detail
 // page reflect the same fixed statuses as the tables.
+//
+// Missing entries only. This runs at module load on every page load, so writing
+// unconditionally reset an approve / return / submit the moment the app was
+// reopened — the same "add missing entries only, never overwrite existing user
+// data" rule seedDemoWorkflows already follows.
 export function seedDemoWorkflowsCanonical() {
   const done = (n) => ({ status: 'done', completedAt: daysAgo(n) });
   const pend = () => ({ status: 'pending', completedAt: null });
 
   for (const [code, status] of Object.entries(STATUS_BY_CODE)) {
+    if (hasWorkflow(code)) continue;
     let wf;
     if (status === 'draft') {
       wf = { courseCode: code, currentStage: 'submitted',

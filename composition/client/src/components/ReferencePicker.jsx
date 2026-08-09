@@ -1,7 +1,15 @@
 // src/components/ReferencePicker.jsx
 import React, { useState, useMemo, useCallback } from 'react';
 import styles from '../styles/ReferencePicker.module.sass';
-import { Search, Book, Globe, Unlock, ExternalLink, Plus } from 'react-feather';
+import { Search, Book, Globe, Unlock, ExternalLink, Plus, X, AlertTriangle, Star, Lock, FileText } from 'react-feather';
+import {
+    buildCatalogView,
+    getCatalogSettings,
+    countUnclassified,
+    externalSearchLinks,
+    typeLabel,
+    UNCLASSIFIED_TYPE
+} from '../utils/referenceCatalog.js';
 
 /**
  * ReferencePicker
@@ -12,99 +20,73 @@ import { Search, Book, Globe, Unlock, ExternalLink, Plus } from 'react-feather';
  * - error: string
  * - disabled: boolean
  * - onAddReference: () => void
+ * - courseCode / courseTitle / topics: the course context the results are scoped
+ *   to. Without them the picker falls back to the whole library, which is what
+ *   the panel objected to [13:25] [16:13] — every caller should pass them.
  */
-const ReferencePicker = ({ options = [], value = [], onChange, error, disabled, onAddReference }) => {
+const ReferencePicker = ({
+    options = [],
+    value = [],
+    onChange,
+    error,
+    disabled,
+    onAddReference,
+    courseCode = '',
+    courseTitle = '',
+    topics = [],
+    assignedIds = []
+}) => {
     const [searchTerm, setSearchTerm] = useState('');
-    const [activeFilter, setActiveFilter] = useState('All');
+    const [activeFilter, setActiveFilter] = useState('Textbook');
+    // Default scope is the course's own catalog; widening it is the deliberate
+    // "kung wala dun yung libro, san ako mag-search?" step [11:39].
+    const [scope, setScope] = useState('catalog');
 
-    const types = ['All', 'Textbook', 'Open Educational Resources', 'Online Resources'];
+    const settings = useMemo(() => getCatalogSettings(), []);
+    const unclassifiedCount = useMemo(() => countUnclassified(options), [options]);
 
-    // Helper to normalize type strings into a canonical key
-    const normalizeTypeKey = (type) => {
-        if (!type) return '';
-        const t = String(type).toLowerCase().trim();
-        if (t.includes('textbook')) return 'textbook';
-        if (t.includes('open') || t.includes('oer')) return 'open educational resources';
-        if (t.includes('online')) return 'online resources';
-        return t;
-    };
+    const types = useMemo(() => {
+        const base = ['Textbook', 'Open Educational Resources', 'Online Resources'];
+        return unclassifiedCount > 0 ? [...base, UNCLASSIFIED_TYPE] : base;
+    }, [unclassifiedCount]);
 
-    // Normalize incoming options so fields are predictable and include a normalized type key
-    const normalizedOptions = useMemo(() => {
-        return (options || []).map(r => {
-            const rawType = r.type || r.Type || '';
-            const typeKey = normalizeTypeKey(rawType);
-            return {
-                reference_id: r.reference_id != null ? Number(r.reference_id) : null,
-                title: r.title || '',
-                type: rawType || '',
-                typeKey,
-                author: r.author || r.authors || '',
-                isbn: r.isbn || '',
-                link: r.link || '',
-                publication_year: r.publication_year || r.year || null,
-                _temp_id: r._temp_id || null,
-                ...r
-            };
-        });
-    }, [options]);
+    const { rows, suggested, outdated, hiddenByCourse, window: recency } = useMemo(
+        () => buildCatalogView(options, {
+            courseCode,
+            courseTitle,
+            topics,
+            type: activeFilter,
+            search: searchTerm,
+            scope,
+            assignedIds,
+            settings
+        }),
+        [options, courseCode, courseTitle, topics, activeFilter, searchTerm, scope, assignedIds, settings]
+    );
 
-    // Extracted selection logic to a useCallback so it can be used for sorting
     const isRefSelected = useCallback((ref) => {
         return (value || []).some(item => {
             if (!item) return false;
             if (item.reference_id != null && ref.reference_id != null) {
                 return Number(item.reference_id) === Number(ref.reference_id);
             }
-            // fallback to title match for temp items
             return String(item.title || '').trim() === String(ref.title || '').trim();
         });
     }, [value]);
 
-    // Filter AND Sort by search term, active type, and selection status
-    const filteredOptions = useMemo(() => {
-        const term = String(searchTerm || '').trim().toLowerCase();
-        const activeKey = activeFilter === 'All' ? null : normalizeTypeKey(activeFilter);
-
-        // 1. Filter out items based on search and tabs
-        let results = normalizedOptions.filter(ref => {
-            // Type filter using normalized key
-            if (activeKey && String(ref.typeKey || '') !== activeKey) {
-                return false;
-            }
-
-            if (!term) return true;
-
-            const inTitle = String(ref.title || '').toLowerCase().includes(term);
-            const inAuthor = String(ref.author || '').toLowerCase().includes(term);
-            const inIsbn = String(ref.isbn || '').toLowerCase().includes(term);
-            return inTitle || inAuthor || inIsbn;
-        });
-
-        // 2. Sort results so that Selected items ALWAYS bubble to the top
-        results.sort((a, b) => {
-            const aSelected = isRefSelected(a);
-            const bSelected = isRefSelected(b);
-
-            if (aSelected && !bSelected) return -1; // 'a' moves up
-            if (!aSelected && bSelected) return 1;  // 'b' moves up
-            return 0; // maintain relative order if both are same state
-        });
-
-        return results;
-    }, [normalizedOptions, searchTerm, activeFilter, isRefSelected]);
-
     const getIcon = (type) => {
-        if (!type) return <Globe size={16} />;
-        const t = String(type).toLowerCase();
-        if (t.includes('textbook')) return <Book size={16} />;
-        if (t.includes('open') || t.includes('oer')) return <Unlock size={16} />;
-        return <Globe size={16} />;
+        const label = typeLabel(type);
+        if (label === 'Textbook') return <Book size={16} />;
+        if (label === 'Open Educational Resources') return <Unlock size={16} />;
+        if (label === 'Online Resources') return <Globe size={16} />;
+        return <FileText size={16} />;
     };
 
     const handleToggle = (reference) => {
         if (disabled) return;
         const selected = isRefSelected(reference);
+        // "kung hindi [available sa library], di pwede mag-lagay references" [49:06]
+        if (!selected && reference.attachable === false) return;
         let newValue;
         if (selected) {
             newValue = (value || []).filter(item => {
@@ -120,26 +102,92 @@ const ReferencePicker = ({ options = [], value = [], onChange, error, disabled, 
         onChange && onChange(newValue);
     };
 
+    // The selection spans every tab, so it has to be visible from every tab.
+    const selectionChips = (value || []).filter(Boolean);
+    const externalLinks = externalSearchLinks(searchTerm || courseTitle || courseCode);
+
+    const renderRow = (ref, index, compact = false) => {
+        const selected = isRefSelected(ref);
+        const blocked = ref.attachable === false && !selected;
+
+        return (
+            <div
+                key={ref.reference_id != null ? `ref-${ref.reference_id}` : `ref-temp-${index}`}
+                className={`${styles.row} ${selected ? styles.selectedRow : ''} ${blocked ? styles.blockedRow : ''}`}
+                title={blocked ? 'Not confirmed available in the library — it cannot be attached.' : undefined}
+            >
+                <div
+                    style={{ display: 'flex', alignItems: 'flex-start', gap: 12, flex: 1 }}
+                    onClick={() => handleToggle(ref)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleToggle(ref); } }}
+                >
+                    <input type="checkbox" checked={selected} readOnly disabled={blocked} />
+                    <div className={styles.icon}>{blocked ? <Lock size={16} /> : getIcon(ref.type)}</div>
+
+                    <div className={styles.details}>
+                        <div className={styles.title}>
+                            {ref.title}
+                            {!compact && ref.promotedFromChapter && (
+                                <span className={styles.hintTag}>book containing “{ref.chapters?.[0]}”</span>
+                            )}
+                        </div>
+                        <div className={styles.meta}>
+                            <span>{ref.author || 'N/A'}</span> • <span>{ref.year || 'N/A'}</span>
+                            {ref.isbn && <span className={styles.isbn}> • ISBN: {ref.isbn}</span>}
+                            {ref.outdated && (
+                                <span className={styles.outdatedTag}>
+                                    <AlertTriangle size={11} /> outside {recency.from}–{recency.to}
+                                </span>
+                            )}
+                            {blocked && <span className={styles.outdatedTag}>not in library</span>}
+                        </div>
+                    </div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    {ref.link && (
+                        <a
+                            href={ref.link}
+                            target="_blank"
+                            rel="noreferrer"
+                            className={styles.link}
+                            onClick={(e) => e.stopPropagation()}
+                            title="View resource"
+                        >
+                            View <ExternalLink size={14} />
+                        </a>
+                    )}
+                    <div className={styles.typeTag}>{ref.typeLabel || typeLabel(ref.type)}</div>
+                </div>
+            </div>
+        );
+    };
+
     return (
         <div className={styles.container}>
             <div className={styles.pickerWrapper + (error ? ` ${styles.error}` : '')}>
                 {/* Header: search + filters */}
                 <div className={styles.header}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%' }}>
+                    <div className={styles.headerRow}>
                         <div className={styles.searchBar} style={{ flex: 1 }}>
                             <Search size={16} />
                             <input
                                 type="text"
-                                placeholder="Search"
+                                placeholder={scope === 'catalog' ? `Search ${courseCode || 'this course'}’s catalog` : 'Search the whole library'}
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                                 disabled={disabled}
                             />
                         </div>
 
-                        <div className={styles.filterTabs} style={{ marginLeft: 12 }}>
+                        <div className={styles.filterTabs}>
                             {types.map(type => {
                                 const isActive = activeFilter === type;
+                                const short = type === 'Open Educational Resources'
+                                    ? 'OER'
+                                    : (type === 'Online Resources' ? 'Online' : type);
                                 return (
                                     <button
                                         key={type}
@@ -147,7 +195,7 @@ const ReferencePicker = ({ options = [], value = [], onChange, error, disabled, 
                                         className={`${styles.tab} ${isActive ? styles.activeTab : ''}`}
                                         onClick={() => setActiveFilter(type)}
                                     >
-                                        {type === 'Open Educational Resources' ? 'OER' : (type === 'Online Resources' ? 'Online' : type)}
+                                        {short}
                                     </button>
                                 );
                             })}
@@ -163,62 +211,85 @@ const ReferencePicker = ({ options = [], value = [], onChange, error, disabled, 
                             </button>
                         </div>
                     </div>
+
+                    <div className={styles.scopeRow}>
+                        <button
+                            type="button"
+                            className={`${styles.scopeTab} ${scope === 'catalog' ? styles.activeTab : ''}`}
+                            onClick={() => setScope('catalog')}
+                        >
+                            {courseCode ? `${courseCode} catalog` : 'Course catalog'}
+                        </button>
+                        <button
+                            type="button"
+                            className={`${styles.scopeTab} ${scope === 'library' ? styles.activeTab : ''}`}
+                            onClick={() => setScope('library')}
+                        >
+                            Search outside the catalog
+                        </button>
+                        <span className={styles.scopeNote}>
+                            {scope === 'catalog' && hiddenByCourse > 0
+                                ? `${hiddenByCourse} title${hiddenByCourse === 1 ? '' : 's'} hidden — not assigned to this course`
+                                : `Showing ${recency.from}–${recency.to}${outdated.length ? ` · ${outdated.length} older title${outdated.length === 1 ? '' : 's'} withheld` : ''}`}
+                        </span>
+                    </div>
+
+                    {selectionChips.length > 0 && (
+                        <div className={styles.chipRow}>
+                            <span className={styles.chipCount}>{selectionChips.length} selected</span>
+                            {selectionChips.map((ref, i) => (
+                                <span key={ref.reference_id ?? ref._temp_id ?? `chip-${i}`} className={styles.chip}>
+                                    {ref.title}
+                                    <button
+                                        type="button"
+                                        aria-label={`Remove ${ref.title}`}
+                                        onClick={() => handleToggle(ref)}
+                                        disabled={disabled}
+                                    >
+                                        <X size={11} />
+                                    </button>
+                                </span>
+                            ))}
+                        </div>
+                    )}
                 </div>
+
+                {/* Suggested from the subject + topic, so nothing has to be typed [10:28] */}
+                {suggested.length > 0 && (
+                    <div className={styles.suggestBlock}>
+                        <div className={styles.suggestHeader}>
+                            <Star size={13} /> Suggested for {courseTitle || courseCode || 'this course'}
+                        </div>
+                        {suggested.map((ref, i) => renderRow(ref, `s${i}`, true))}
+                    </div>
+                )}
 
                 {/* List */}
                 <div className={styles.list}>
-                    {filteredOptions.length > 0 ? (
-                        filteredOptions.map((ref, index) => {
-                            const selected = isRefSelected(ref);
-
-                            return (
-                                <div
-                                    key={ref.reference_id != null ? `ref-${ref.reference_id}` : `ref-temp-${index}`}
-                                    className={`${styles.row} ${selected ? styles.selectedRow : ''}`}
-                                >
-                                    {/* Left: checkbox + icon + details (click toggles) */}
-                                    <div
-                                        style={{ display: 'flex', alignItems: 'flex-start', gap: 12, flex: 1 }}
-                                        onClick={() => handleToggle(ref)}
-                                        role="button"
-                                        tabIndex={0}
-                                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleToggle(ref); } }}
-                                    >
-                                        <input type="checkbox" checked={selected} readOnly />
-                                        <div className={styles.icon}>{getIcon(ref.type)}</div>
-
-                                        <div className={styles.details}>
-                                            <div className={styles.title}>{ref.title}</div>
-                                            <div className={styles.meta}>
-                                                <span>{ref.author || 'N/A'}</span> • <span>{ref.publication_year || 'N/A'}</span>
-                                                {ref.isbn && <span className={styles.isbn}> • ISBN: {ref.isbn}</span>}
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Right: view link and type tag (stopPropagation so clicking view doesn't toggle) */}
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                                        {ref.link && (
-                                            <a
-                                                href={ref.link}
-                                                target="_blank"
-                                                rel="noreferrer"
-                                                className={styles.link}
-                                                onClick={(e) => e.stopPropagation()}
-                                                title="View resource"
-                                            >
-                                                View <ExternalLink size={14} />
-                                            </a>
-                                        )}
-                                        <div className={styles.typeTag}>{ref.type}</div>
-                                    </div>
-                                </div>
-                            );
-                        })
+                    {rows.length > 0 ? (
+                        rows.map((ref, index) => renderRow(ref, index))
                     ) : (
-                        <div className={styles.empty}>No references found matching your criteria.</div>
+                        <div className={styles.empty}>
+                            <div>No references found matching your criteria.</div>
+                            {scope === 'catalog' && (
+                                <button type="button" className={styles.linkBtn} onClick={() => setScope('library')}>
+                                    Search outside {courseCode || 'this course'}’s catalog
+                                </button>
+                            )}
+                        </div>
                     )}
                 </div>
+
+                {scope === 'library' && externalLinks.length > 0 && (
+                    <div className={styles.externalBar}>
+                        <span>Still nothing? Search outside UNC:</span>
+                        {externalLinks.map(link => (
+                            <a key={link.key} href={link.url} target="_blank" rel="noreferrer" title={link.note || ''}>
+                                {link.label}{link.subscription ? ' ★' : ''} <ExternalLink size={11} />
+                            </a>
+                        ))}
+                    </div>
+                )}
             </div>
 
             {error && <span className={styles.errorText}>{error}</span>}

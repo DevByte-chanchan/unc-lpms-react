@@ -3,6 +3,7 @@ import unclogo from '../assets/unclogo.png'
 import { FileText, LogOut, BookOpen, Upload } from 'react-feather'
 import { useSearchParams, useNavigate, useLocation } from 'react-router-dom'
 import { useEffect, useRef, useState } from 'react'
+import { logout } from '../utils/session'
 
 const SideNavigation = ({ mode = 'instructor' }) => {
     const navigate = useNavigate()
@@ -42,6 +43,9 @@ const SideNavigation = ({ mode = 'instructor' }) => {
     if (location.pathname.startsWith('/role/director-of-libraries/upload-documents')) {
         selected = 'Upload Documents';
     }
+    if (location.pathname.startsWith('/role/director-of-libraries/course-catalog')) {
+        selected = 'Course Catalog';
+    }
 
     const [showPopup, setShowPopup] = useState(false)
     const [isExpanded, setIsExpanded] = useState(false)
@@ -67,9 +71,14 @@ const SideNavigation = ({ mode = 'instructor' }) => {
 
     const onLogoutClick = () => setShowPopup((prev) => !prev)
 
-    const gotoRole = (path) => {
+    // Log Out used to open a "Select role" list that jumped straight into
+    // another role's view — that is the mid-flow account switch the panel saw
+    // [45:27] [45:45]. It now ends the session; changing role means signing in
+    // as that person.
+    const confirmLogout = () => {
         setShowPopup(false)
-        navigate(path)
+        logout()
+        navigate('/', { replace: true })
     }
 
     // --- POPUP & RESIZE LOGIC ---
@@ -185,9 +194,14 @@ const SideNavigation = ({ mode = 'instructor' }) => {
                 )}
 
                 {mode === 'director-of-libraries' && (
-                    <div onClick={() => { navigate('/role/director-of-libraries/reference-library') }} className={`${styles.list} ${selected === 'Reference Library' ? styles.selected : ''}`}>
-                        <BookOpen size={24} /> <span className={styles.listText}>Reference Library</span>
-                    </div>
+                    <>
+                        <div onClick={() => { navigate('/role/director-of-libraries/reference-library') }} className={`${styles.list} ${selected === 'Reference Library' ? styles.selected : ''}`}>
+                            <BookOpen size={24} /> <span className={styles.listText}>Reference Library</span>
+                        </div>
+                        <div onClick={() => { navigate('/role/director-of-libraries/course-catalog') }} className={`${styles.list} ${selected === 'Course Catalog' ? styles.selected : ''}`}>
+                            <Upload size={24} /> <span className={styles.listText}>Course Catalog</span>
+                        </div>
+                    </>
                 )}
 
                 
@@ -207,13 +221,9 @@ const SideNavigation = ({ mode = 'instructor' }) => {
 
                     {showPopup && (
                         <div className={styles.rolePopup}>
-                            <div className={styles.popupTitle}>Select role</div>
-                            <button className={styles.popupItem} onClick={() => { setShowPopup(false); navigate('/') }}>Instructor</button>
-                            <button className={styles.popupItem} onClick={() => gotoRole('/role/program-head/approval-course-table')}>Program Head</button>
-                            <button className={styles.popupItem} onClick={() => gotoRole('/role/director-of-libraries/approval-course-table')}>Director of Libraries</button>
-                            <button className={styles.popupItem} onClick={() => gotoRole('/role/industry-consultant/approval-course-table')}>Industry Consultant</button>
-                            <button className={styles.popupItem} onClick={() => gotoRole('/role/dean')}>Dean</button>
-                            <button className={styles.popupItem} onClick={() => gotoRole('/role/vpaa')}>VPAA</button>
+                            <div className={styles.popupTitle}>Sign out?</div>
+                            <button className={styles.popupItem} onClick={confirmLogout}>Yes, sign out</button>
+                            <button className={styles.popupItem} onClick={() => setShowPopup(false)}>Cancel</button>
                         </div>
                     )}
                 </div>

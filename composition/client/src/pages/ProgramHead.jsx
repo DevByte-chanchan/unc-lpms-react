@@ -20,15 +20,8 @@ const ProgramHead = () => {
   const allUploaded = completedCount === totalCount
 
   useEffect(() => {
-    try {
-      const user = JSON.parse(localStorage.getItem('user') || '{}')
-      if (!user.role) {
-        localStorage.setItem('user', JSON.stringify({ ...user, role: 'program-head', name: 'DANILA, JUNAR' }))
-      }
-    } catch (e) {
-      localStorage.setItem('user', JSON.stringify({ role: 'program-head', name: 'DANILA, JUNAR' }))
-    }
-
+    // Identity comes from the sign-in session (utils/session.js) — a page must
+    // never stamp its own user over it.
     const all = DocumentService.getAllDocuments()
     setUploads(all['program-head'] || {})
   }, [])

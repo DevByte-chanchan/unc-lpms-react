@@ -327,8 +327,9 @@ const ILOs = ({ offeringID, revisionNum, status, styles, fetchJson }) => {
                                                 </span>
                                         </Link>
 
-                                        {/* Assign References */}
-                                        <Link className="actionLink" to={`/references/form/${ilo.id}/${status}`}>
+                                        {/* Assign References — the offering rides along so the
+                                            picker can scope results to this course [13:25] [16:13] */}
+                                        <Link className="actionLink" to={`/references/form/${ilo.id}/${status}?pcId=${offeringID}&rev=${revisionNum}`}>
                                                 <span className={styles['link-text-wrapper']}>
                                                     Assign References
                                                     <ChevronRight size={18} />

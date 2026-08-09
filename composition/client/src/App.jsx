@@ -1,5 +1,6 @@
 import './App.css'
-import {BrowserRouter as Router, Routes, Route, Navigate} from 'react-router-dom'
+import {useEffect, useState} from 'react'
+import {BrowserRouter as Router, Routes, Route, Navigate, useLocation} from 'react-router-dom'
 import AssignedCourses from "./pages/AssignedCourses.jsx";
 import Syllabus from "./pages/Syllabus.jsx";
 import ReferenceForm from "./pages/ReferenceForm.jsx";
@@ -23,13 +24,34 @@ import PoPeoAlignment from "./pages/lpsm/ProgramHead/PoPeoAlignment.jsx";
 import DirectorReferenceLibrary from "./pages/lpsm/DirectorOfLibraries/ReferenceLibrary.jsx";
 import DirectorAddReference from "./pages/lpsm/DirectorOfLibraries/AddReference.jsx";
 import DirectorViewReference from "./pages/lpsm/DirectorOfLibraries/ViewReference.jsx";
+import DirectorCourseCatalog from "./pages/lpsm/DirectorOfLibraries/CourseCatalog.jsx";
 import ApprovalSyllabus from "./pages/ApprovalSyllabus.jsx";
 import Dean from "./pages/Dean.jsx";
 import VPAA from "./pages/VPAA.jsx";
 import ErrorBoundary from "./components/ErrorBoundary.jsx";
+import Login from "./pages/Login.jsx";
 
 import { seedDemoWorkflowsCanonical } from './utils/demoCourses';
+import { getSession, onSessionChange, routeGuardRedirect } from './utils/session';
 seedDemoWorkflowsCanonical()
+
+// Nothing renders until somebody is signed in, so every page below reads one
+// identity for the whole flow instead of assuming a demo user. The /role/:role
+// pages take the acting role from the URL, so they are also held to the role
+// that signed in — otherwise one link is enough to switch accounts mid-flow.
+function SessionGate({ children }) {
+    const [session, setSession] = useState(() => getSession())
+    const location = useLocation()
+
+    useEffect(() => onSessionChange(() => setSession(getSession())), [])
+
+    if (!session) return <Login />
+
+    const redirect = routeGuardRedirect(session, location.pathname)
+    if (redirect) return <Navigate to={redirect} replace />
+
+    return children
+}
 
 function App() {
 
@@ -37,6 +59,7 @@ function App() {
         <Router>
             <div className="appPage">
                 <ErrorBoundary>
+                    <SessionGate>
                     <Routes>
                         {/* --- INSTRUCTOR / DEFAULT ROUTES --- */}
                         <Route path={'/'} element={<ErrorBoundary><AssignedCourses /></ErrorBoundary>} />
@@ -73,6 +96,7 @@ function App() {
                         <Route path={'/role/director-of-libraries'} element={<ErrorBoundary><DirectorOfLibraries /></ErrorBoundary>} />
                         <Route path={'/role/director-of-libraries/upload-documents'} element={<ErrorBoundary><DirectorReferenceLibrary /></ErrorBoundary>} />
                         <Route path={'/role/director-of-libraries/reference-library'} element={<ErrorBoundary><DirectorReferenceLibrary /></ErrorBoundary>} />
+                        <Route path={'/role/director-of-libraries/course-catalog'} element={<ErrorBoundary><DirectorCourseCatalog /></ErrorBoundary>} />
                         <Route path={'/role/director-of-libraries/add-reference'} element={<ErrorBoundary><DirectorAddReference /></ErrorBoundary>} />
                         <Route path={'/role/director-of-libraries/view-reference/:id'} element={<ErrorBoundary><DirectorViewReference /></ErrorBoundary>} />
                         <Route path={'/role/director-of-libraries/edit-reference/:id'} element={<ErrorBoundary><DirectorAddReference /></ErrorBoundary>} />
@@ -90,6 +114,7 @@ function App() {
                         {/* Instructor role should use instructor course UI when browsing courses */}
                         <Route path="/role/instructor/courses/:courseName" element={<ErrorBoundary><Syllabus /></ErrorBoundary>} />
                     </Routes>
+                    </SessionGate>
                 </ErrorBoundary>
             </div>
         </Router>

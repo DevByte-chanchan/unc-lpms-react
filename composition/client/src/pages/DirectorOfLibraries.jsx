@@ -30,15 +30,8 @@ const DirectorOfLibraries = () => {
   const courses = syllabiData.map(s => ({ code: s.code, name: s.name }))
 
   useEffect(() => {
-    try {
-      const user = JSON.parse(localStorage.getItem('user') || '{}')
-      if (!user.role) {
-        localStorage.setItem('user', JSON.stringify({ ...user, role: 'director-of-libraries', name: 'SANTOS, MARIA' }))
-      }
-    } catch (e) {
-      localStorage.setItem('user', JSON.stringify({ role: 'director-of-libraries', name: 'SANTOS, MARIA' }))
-    }
-
+    // Identity comes from the sign-in session (utils/session.js) — a page must
+    // never stamp its own user over it.
     const all = DocumentService.getAllDocuments()
     setUploads(all[storedKey] || {})
   }, [])

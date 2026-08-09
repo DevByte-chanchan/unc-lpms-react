@@ -1,10 +1,10 @@
 // src/pages/ReferenceForm.jsx
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import Skeleton from '../layouts/Skeleton.jsx';
 import Header from '../components/Header.jsx';
 import FormNavigation from '../components/FormNavigation.jsx';
 import styles from '../styles/Form.module.sass';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import SideNavigation from '../components/SideNavigation.jsx';
 import ReferencePicker from '../components/ReferencePicker.jsx';
 import TextField from '../components/TextField.jsx';
@@ -14,6 +14,8 @@ import { X, CheckCircle, MessageSquare } from 'react-feather';
 // Imported universal API client utility
 import { fetchJson } from "../utils/api.js";
 import CommentMessage from "../components/CommentMessage.jsx";
+import { getSession } from "../utils/session.js";
+import { getCourseCatalog, normalizeReference } from "../utils/referenceCatalog.js";
 
 function InlineModal({ isOpen, title, onClose, children, actions }) {
     if (!isOpen) return null;
@@ -36,7 +38,16 @@ function InlineModal({ isOpen, title, onClose, children, actions }) {
 const ReferenceForm = () => {
     const navigate = useNavigate();
     const { courseCode, iloId, status } = useParams();
+    const [searchParams] = useSearchParams();
     const goBackHandler = () => navigate(-1);
+    const session = getSession();
+
+    // The picker has to know which course it is picking for, otherwise it can
+    // only offer the whole library — the "Understanding the Self on a
+    // programming course" complaint [13:25] [16:13]. ILOs.jsx puts the offering
+    // on the link; query params rather than router state so a reload keeps it.
+    const offeringID = searchParams.get('pcId') || '';
+    const revisionNum = searchParams.get('rev') || '';
 
     const [allReferences, setAllReferences] = useState([]);
     const [assignedReferences, setAssignedReferences] = useState([]);
@@ -44,16 +55,40 @@ const ReferenceForm = () => {
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
     const [validationError, setValidationError] = useState(null);
+    const [course, setCourse] = useState({ code: courseCode || '', name: '' });
+    const [iloTopics, setIloTopics] = useState([]);
 
     // Context-Targeted Comments Checklist Tracking States
     const [reviewComments, setReviewComments] = useState([]);
 
     const [isAddOpen, setIsAddOpen] = useState(false);
     const [newRefDraft, setNewRefDraft] = useState({
-        title: '', type: 'Textbook', author: '', isbn: '', link: '', publication_year: ''
+        title: '', type: 'Textbook', author: '', isbn: '', link: '', publication_year: '', external_approved: false
     });
 
     const [showConfirm, setShowConfirm] = useState(false);
+
+    // Course + topic context for the picker's scoping and its suggestions.
+    useEffect(() => {
+        let mounted = true;
+        if (offeringID && revisionNum) {
+            fetchJson(`/api/course-details/${offeringID}/${revisionNum}`)
+                .then(d => { if (mounted && d) setCourse({ code: d.code || '', name: d.name || '' }); })
+                .catch(err => console.warn('Could not resolve the course for this ILO:', err?.message));
+        }
+        if (iloId) {
+            fetchJson(`/api/topics/assigned/${encodeURIComponent(iloId)}`)
+                .then(t => { if (mounted) setIloTopics(Array.isArray(t) ? t.map(x => x.title) : []); })
+                .catch(err => console.warn('Could not resolve the topics for this ILO:', err?.message));
+        }
+        return () => { mounted = false; };
+    }, [offeringID, revisionNum, iloId]);
+
+    // References the Director of Libraries assigned to this course this term.
+    const catalogIds = useMemo(
+        () => (course.code ? getCourseCatalog(course.code).referenceIds : []),
+        [course.code]
+    );
 
     useEffect(() => {
         if (!iloId) return;
@@ -62,7 +97,9 @@ const ReferenceForm = () => {
 
         async function load() {
             try {
-                const refsUrl = `/api/references`;
+                // /library is the same rows plus `used_in_courses`, which is what
+                // scopes the picker to this course rather than the whole shelf.
+                const refsUrl = `/api/references/library`;
                 const assignedUrl = `/api/ilo-references/${encodeURIComponent(iloId)}`;
                 const commentsUrl = `/api/comments/filter/${encodeURIComponent(iloId)}/references`;
 
@@ -89,16 +126,10 @@ const ReferenceForm = () => {
                     resolved_status: c.resolved_status === 1 || c.resolved_status === true
                 })));
 
-                const normalizedRefs = (Array.isArray(refs) ? refs : []).map(r => ({
-                    reference_id: r.reference_id != null ? Number(r.reference_id) : null,
-                    title: r.title || '',
-                    type: r.type || '',
-                    author: r.author || r.authors || '',
-                    isbn: r.isbn || '',
-                    link: r.link || '',
-                    publication_year: r.publication_year ? (typeof r.publication_year === 'string' ? r.publication_year.split('T')[0] : r.publication_year) : null,
-                    ...r
-                }));
+                // normalizeReference spreads the raw row FIRST so the parsed
+                // fields win; the old shape spread `...r` last, which put the
+                // raw "2024-01-01 00:00:00.000 +00:00" straight back on top.
+                const normalizedRefs = (Array.isArray(refs) ? refs : []).map(normalizeReference);
 
                 setAllReferences(normalizedRefs);
                 setAssignedReferences(Array.isArray(assigned) ? assigned : []);
@@ -143,7 +174,7 @@ const ReferenceForm = () => {
     };
 
     const handleOpenAdd = () => {
-        setNewRefDraft({ title: '', type: 'Textbook', author: '', isbn: '', link: '', publication_year: '' });
+        setNewRefDraft({ title: '', type: 'Textbook', author: '', isbn: '', link: '', publication_year: '', external_approved: false });
         setValidationError(null);
         setIsAddOpen(true);
     };
@@ -151,6 +182,13 @@ const ReferenceForm = () => {
     const handleSaveNewRefLocal = () => {
         if (!newRefDraft.title || !newRefDraft.type) {
             setValidationError('Title and Type are required for the new reference.');
+            return;
+        }
+        // "itong books ba na to available sa library? kung hindi, di pwede
+        // mag-lagay references" [49:06] — a hand-typed title has to be declared
+        // available before the picker will let it be attached.
+        if (!newRefDraft.external_approved) {
+            setValidationError('Confirm this reference is held by the library or is an approved external resource before adding it.');
             return;
         }
 
@@ -163,7 +201,8 @@ const ReferenceForm = () => {
             author: newRefDraft.author,
             isbn: newRefDraft.isbn,
             link: newRefDraft.link,
-            publication_year: newRefDraft.publication_year || null
+            publication_year: newRefDraft.publication_year || null,
+            external_approved: true
         };
 
         setAllReferences(prev => [newOption, ...prev]);
@@ -272,7 +311,7 @@ const ReferenceForm = () => {
 
     return (
         <Skeleton
-            header={<Header role={'Instructor'} name={'NORTON, MONICA'} />}
+            header={<Header role={session?.roleLabel || 'Instructor'} name={session?.name || ''} />}
             nav={<SideNavigation />}
             content={
                 <div className={styles.container}>
@@ -290,6 +329,10 @@ const ReferenceForm = () => {
                                     error={validationError}
                                     disabled={loading || saving}
                                     onAddReference={handleOpenAdd}
+                                    courseCode={course.code}
+                                    courseTitle={course.name}
+                                    topics={iloTopics}
+                                    assignedIds={catalogIds}
                                 />
 
                                 <InlineModal
@@ -306,6 +349,14 @@ const ReferenceForm = () => {
                                             onChange={(v) => setNewRefDraft(prev => ({ ...prev, type: v }))}
                                         />
                                         {renderDynamicFields()}
+                                        <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 13 }}>
+                                            <input
+                                                type="checkbox"
+                                                checked={!!newRefDraft.external_approved}
+                                                onChange={(e) => setNewRefDraft(prev => ({ ...prev, external_approved: e.target.checked }))}
+                                            />
+                                            <span>This title is held by the UNC library, or is an approved external resource.</span>
+                                        </label>
                                         {validationError && <div style={{ color: '#b00020' }}>{validationError}</div>}
                                     </div>
                                 </InlineModal>

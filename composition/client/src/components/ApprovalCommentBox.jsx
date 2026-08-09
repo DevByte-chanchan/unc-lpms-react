@@ -3,6 +3,7 @@ import { Search, X, Maximize, Minimize2, CheckCircle, AlertCircle } from 'react-
 import styles from '../styles/ApprovalCommentBox.module.sass'
 import { getReferences } from '../utils/referenceLibrary.js'
 import { getReviewerByRole, getReviewerSeedData, normalizeRoleKey, isDeprecated } from '../utils/approvalHelpers.js'
+import { COMMENT_TYPES, commentTypeMeta, checkText } from '../utils/reviewGate.js'
 import DropdownMultiSelect from './DropdownMultiSelect.jsx'
 
 // coverageDetail may be an array (multi-select) or a legacy string — this reports whether anything is selected
@@ -24,7 +25,10 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
     courseOutcome: '',
     ilo: '',
     coverageDetail: [],
-    commentedRefId: ''
+    commentedRefId: '',
+    // "pwede syang mag-suggest ng TLA... ng topic... ng AI tools" [48:30] — the
+    // instructor gets a labelled, actionable suggestion, not free text only.
+    commentType: COMMENT_TYPES[0].key
   })
 
   const [comments, setComments] = useState([defaultComment()])
@@ -243,6 +247,25 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
       case 'Online Resources': return { background: '#f3e8ff', color: '#7c3aed' }
       default: return { background: '#f3f4f6', color: '#374151' }
     }
+  }
+
+  // Spelling / grammar caught at entry, so a typo never reaches the instructor
+  // or the program head [46:58] [49:25]. Advisory: it flags, it does not block.
+  const renderTextIssues = (c) => {
+    const issues = checkText(c.text || '')
+    if (issues.length === 0) return null
+    return (
+      <div style={{ marginTop: 6, padding: '8px 10px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 6, fontSize: 12, color: '#92400e' }}>
+        <div style={{ fontWeight: 600, marginBottom: 2, display: 'flex', alignItems: 'center', gap: 6 }}>
+          <AlertCircle size={13} /> {issues.length} spelling / grammar {issues.length === 1 ? 'flag' : 'flags'}
+        </div>
+        {issues.map((issue, i) => (
+          <div key={i} style={{ color: '#78350f' }}>
+            {issue.message}{issue.suggestion ? ` → “${issue.suggestion}”` : ''}
+          </div>
+        ))}
+      </div>
+    )
   }
 
   const renderRefBrowser = () => (
@@ -479,6 +502,7 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
                         placeholder={'Describe the issue or suggestion...'}
                         style={{ width: '100%', boxSizing: 'border-box', minHeight: 140, resize: 'vertical' }}
                       />
+                      {renderTextIssues(c)}
                     </div>
                   ))}
                   </div>
@@ -607,9 +631,20 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
                           </div>
                         </div>
 
+                        <div className={styles.field} style={{ marginBottom: 14 }}>
+                          <label className={styles.label}>Comment Type</label>
+                          <select className={styles.select} value={c.commentType || COMMENT_TYPES[0].key} onChange={(e) => updateComment(c.id, { commentType: e.target.value })}>
+                            {COMMENT_TYPES.map(t => (
+                              <option key={t.key} value={t.key}>{t.label}</option>
+                            ))}
+                          </select>
+                          <span style={{ fontSize: 11, color: '#94a3b8' }}>{commentTypeMeta(c.commentType).hint}</span>
+                        </div>
+
                         <div className={styles.field}>
                           <label className={styles.label}>Comment</label>
                           <textarea className={styles.textarea} value={c.text} onChange={(e) => updateCommentText(c.id, e.target.value)} placeholder={'Describe the issue or suggestion...'} rows={4} />
+                          {renderTextIssues(c)}
                         </div>
 
                       </div>

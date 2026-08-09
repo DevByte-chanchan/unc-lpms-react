@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { unresolvedCountsByReference, iloIdsFromCourse } from '../utils/referenceComments.js';
 
 const ReferenceSummary = ({ offeringID, revisionNum, status, selectedSection, styles, stylesB, fetchJson }) => {
     const [viewType, setViewType] = useState('All');
@@ -30,48 +31,33 @@ const ReferenceSummary = ({ offeringID, revisionNum, status, selectedSection, st
     }, [offeringID, revisionNum, selectedSection, fetchJson]);
 
     // 2. Fetch workflow review feedback comment numbers for each material entry
+    //
+    // The comment endpoint filters on ilo_id, so it is queried per ILO — passing
+    // it a reference_id returned the comments of the ILO with the same number
+    // and badged the wrong rows. Which reference a comment is about is its
+    // target_id, and one comment yields one row per target, so the count is over
+    // distinct comment_ids.
     useEffect(() => {
         if (status !== 'returned' || selectedSection !== 'References Summary' || !referenceData) return;
+        if (!offeringID || !revisionNum) return;
         let mounted = true;
 
         async function gatherReferenceCommentCounts() {
-            const localCountsMap = {};
-            const allTypes = ['Textbook', 'Open Educational Resources', 'Online Resources'];
-
-            // Extract a flat map collection containing every reference entity entry
-            const flatReferencesList = [];
-            allTypes.forEach(type => {
-                flatReferencesList.push(...getDataByType(type));
-            });
-
-            if (flatReferencesList.length === 0) return;
-
             try {
-                const fetchPromises = [];
+                const course = await fetchJson(`/api/ilos/${offeringID}/${revisionNum}`);
+                const iloIds = iloIdsFromCourse(course);
+                if (iloIds.length === 0) return;
 
-                flatReferencesList.forEach(ref => {
-                    const targetRefId = ref.id;
-                    if (!targetRefId) return;
-
-                    const promise = fetchJson(`/api/comments/filter/${targetRefId}/references`)
-                        .then(comments => {
-                            if (!mounted) return;
-
-                            const unresolvedCount = comments.filter(c => {
-                                return c.resolved_status === false || c.resolved_status === 0 || String(c.resolved_status).toLowerCase() === 'false';
-                            }).length;
-
-                            if (unresolvedCount > 0) {
-                                localCountsMap[targetRefId] = unresolvedCount;
-                            }
+                const rows = await Promise.all(iloIds.map(iloId =>
+                    fetchJson(`/api/comments/filter/${iloId}/references`)
+                        .catch(err => {
+                            console.error(`Failed to gather reference feedback metrics for ILO ${iloId}:`, err);
+                            return [];
                         })
-                        .catch(err => console.error(`Failed to gather reference feedback metrics for item ${targetRefId}:`, err));
+                ));
 
-                    fetchPromises.push(promise);
-                });
-
-                await Promise.all(fetchPromises);
-                if (mounted) setReferenceCommentCounts(localCountsMap);
+                if (!mounted) return;
+                setReferenceCommentCounts(unresolvedCountsByReference(rows.flat()));
             } catch (error) {
                 console.error("Error tracking runtime item feedback counts:", error);
             }
@@ -79,7 +65,7 @@ const ReferenceSummary = ({ offeringID, revisionNum, status, selectedSection, st
 
         gatherReferenceCommentCounts();
         return () => { mounted = false; };
-    }, [referenceData, status, selectedSection, fetchJson]);
+    }, [referenceData, status, selectedSection, fetchJson, offeringID, revisionNum]);
 
     // Data parsing structure assistant matching structural schemas
     const getDataByType = (type) => {

@@ -117,22 +117,89 @@ export const getProgramCourses = (programPrefix) => {
     .map(s => ({ code: s.code, name: s.name }))
 }
 
+// ---------------------------------------------------------------------------
+// One program, one key.
+//
+// COAEPUpload used to key records by the server's `Program.name` ("BS
+// Information Technology") while every other alignment page keys by the short
+// prefix `extractProgramPrefix` returns ("BIT"). The same program then had two
+// entries in this store, and a COAEP saved while the server was reachable
+// disappeared on the offline fallback. The prefix is the key; anything already
+// saved under a long name is folded into it here rather than orphaned.
+// ---------------------------------------------------------------------------
+
+const PROGRAM_KEY_ALIASES = (() => {
+  const aliases = {}
+  getAllPrograms().forEach(prefix => {
+    const name = getProgramName(prefix)
+    if (name && name !== prefix) aliases[name.toLowerCase()] = prefix
+  })
+  return aliases
+})()
+
+// The canonical key for a program entry: the prefix itself, the prefix a long
+// program name maps to, or the prefix of a course filed under it.
+export const canonicalProgramKey = (key, courseCodes = []) => {
+  if (!key) return key
+  const known = getAllPrograms()
+  if (known.includes(key)) return key
+  const byName = PROGRAM_KEY_ALIASES[String(key).toLowerCase()]
+  if (byName) return byName
+  const fromCourse = courseCodes.map(extractProgramPrefix).find(Boolean)
+  return fromCourse || key
+}
+
+export const migrateLegacyProgramKeys = (store) => {
+  const programs = store?.programs || {}
+  let moved = 0
+
+  Object.keys(programs).forEach(key => {
+    const entry = programs[key] || {}
+    const target = canonicalProgramKey(key, Object.keys(entry.courses || {}))
+    if (target === key) return
+
+    const dest = programs[target] || { courses: {} }
+    dest.courses = dest.courses || {}
+    // Never overwrite: a record already saved under the canonical key wins.
+    Object.entries(entry.courses || {}).forEach(([courseCode, data]) => {
+      dest.courses[courseCode] = { ...data, ...(dest.courses[courseCode] || {}) }
+    })
+    if (entry.poPeoAlignment && !dest.poPeoAlignment) dest.poPeoAlignment = entry.poPeoAlignment
+
+    programs[target] = dest
+    delete programs[key]
+    moved += 1
+  })
+
+  return { store, moved }
+}
+
+let _migrated = false
+const _readMigrated = () => {
+  const current = _read()
+  if (_migrated) return current
+  _migrated = true
+  const { moved } = migrateLegacyProgramKeys(current)
+  if (moved > 0) _write(current)
+  return current
+}
+
 export const getPoPeoData = (programCode) => {
-  const store = _read()
+  const store = _readMigrated()
   const prog = store.programs[programCode]
   if (prog?.poPeoAlignment) return prog.poPeoAlignment
   return { programOutcomes: JSON.parse(JSON.stringify(defaultPoData)), gasLabels: [...defaultGasLabels] }
 }
 
 export const savePoPeoData = (programCode, data) => {
-  const store = _read()
+  const store = _readMigrated()
   if (!store.programs[programCode]) store.programs[programCode] = { courses: {} }
   store.programs[programCode].poPeoAlignment = JSON.parse(JSON.stringify(data))
   _write(store)
 }
 
 export const getCoPoData = (programCode, courseCode) => {
-  const store = _read()
+  const store = _readMigrated()
   const prog = store.programs[programCode]
   const saved = prog?.courses?.[courseCode]?.coPoAlignment
   if (saved) return saved
@@ -142,7 +209,7 @@ export const getCoPoData = (programCode, courseCode) => {
 }
 
 export const saveCoPoData = (programCode, courseCode, data) => {
-  const store = _read()
+  const store = _readMigrated()
   if (!store.programs[programCode]) store.programs[programCode] = { courses: {} }
   if (!store.programs[programCode].courses[courseCode]) store.programs[programCode].courses[courseCode] = {}
   store.programs[programCode].courses[courseCode].coPoAlignment = JSON.parse(JSON.stringify(data))
@@ -150,13 +217,13 @@ export const saveCoPoData = (programCode, courseCode, data) => {
 }
 
 export const getCoaepData = (programCode, courseCode) => {
-  const store = _read()
+  const store = _readMigrated()
   const prog = store.programs[programCode]
   return prog?.courses?.[courseCode]?.coaep || null
 }
 
 export const saveCoaepData = (programCode, courseCode, data) => {
-  const store = _read()
+  const store = _readMigrated()
   if (!store.programs[programCode]) store.programs[programCode] = { courses: {} }
   if (!store.programs[programCode].courses[courseCode]) store.programs[programCode].courses[courseCode] = {}
   store.programs[programCode].courses[courseCode].coaep = JSON.parse(JSON.stringify(data))

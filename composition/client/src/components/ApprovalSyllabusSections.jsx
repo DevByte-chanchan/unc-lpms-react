@@ -10,6 +10,9 @@ import { getWorkflow, setWorkflow, advanceWorkflow } from '../utils/workflowHelp
 import { getSuggestions, addSuggestion, acceptSuggestion, rejectSuggestion, getSyllabus } from '../utils/dataStore'
 import { getReferences, getReferenceById } from '../utils/referenceLibrary'
 import { normalizeRoleKey } from '../utils/approvalHelpers.js'
+import { getSession, nameForRoleWithSession } from '../utils/session'
+import ApprovalChainStatus from './ApprovalChainStatus.jsx'
+import { validateReturn, buildSignature, addSignature, canActOnStage, encodeCommentType } from '../utils/reviewGate.js'
 import { fetchJson } from "../utils/api.js"
 import { seedDummyComments } from "../utils/seedDummyComments.js"
 
@@ -191,6 +194,12 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
     }
     const coverageMap = { 'references': 'References', 'topics': 'Topic', 'tlas': 'TLA' }
 
+    // A row written by whoever is signed in must keep showing their name, not the
+    // demo name for that role — re-labelling it on reload is the account switch
+    // the panel flagged [45:27].
+    const nameForRole = (rawRole) =>
+      nameForRoleWithSession(getSession(), rawRole, roleToName[rawRole] || rawRole)
+
     async function syncServerComments() {
       try {
         const qs = validPcId ? `?pcId=${validPcId}` : ''
@@ -227,7 +236,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
               submissionLabel: 'Review Corrections',
               submittedAt: r.createdAt,
               createdAt: r.createdAt,
-              reviewer: roleToName[r.commenter_role] || r.commenter_role,
+              reviewer: nameForRole(r.commenter_role),
               role: roleToLabel[r.commenter_role] || r.commenter_role,
               recipientRole: r.commenter_role === 'INSTRUCTOR' ? 'industry-consultant' : 'instructor',
               components: {},
@@ -567,7 +576,10 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
       if (roleKey === 'dean') {
         wf.dean = { status: 'done', completedAt: nowIso }
       }
-      setWorkflow(codeToUse, wf)
+      // "pwede ba naka-attach na digital signature?" [53:41] — the approval
+      // carries who signed it, in what role and when.
+      const signature = buildSignature(getSession(), roleKey, codeToUse, new Date(nowIso))
+      setWorkflow(codeToUse, signature ? addSignature(wf, signature) : wf)
       advanceWorkflow(codeToUse)
       setWorkflowState(getWorkflow(codeToUse))
       setRefreshKey(k => k + 1)
@@ -638,21 +650,12 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
     navigate(backPath)
   }
 
-  // determine whether actions are allowed for this role per workflow
-  const isRoleActive = () => {
-    const wf = getWorkflow(codeToUse || '')
-    const stage = wf?.currentStage || 'submitted'
-    if (roleKey === 'program-head') return true
-    if (stage === 'returned') return roleKey === 'instructor' || roleKey === 'director-of-libraries' || roleKey === 'industry-consultant'
-    if (stage === 'submitted') return roleKey === 'instructor' || roleKey === 'director-of-libraries' || roleKey === 'industry-consultant'
-    if (stage === 'parallel_review') return roleKey === 'director-of-libraries' || roleKey === 'industry-consultant'
-    if (stage === 'dean') {
-      if (roleKey !== 'dean') return false
-      const pr = wf?.parallelReview || {}
-      return pr.library_director?.status === 'done' && pr.industry_consultant?.status === 'done' && pr.program_head?.status === 'done'
-    }
-    return false
-  }
+  // Whether this role may act on the plan at its current stage. One rule for the
+  // whole chain — Program Head → Director of Libraries → Industry Consultant →
+  // Dean (final) → VPAA (read-only) — so this component is reused per role
+  // without any role acting out of turn. `canActOnStage` in reviewGate.js owns
+  // it; this component only asks.
+  const isRoleActive = () => canActOnStage(roleKey, getWorkflow(codeToUse || ''))
 
   const hasRoleApproved = () => {
     const wf = getWorkflow(codeToUse || '')
@@ -695,6 +698,15 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
 
   const handleSubmitComment = (payload) => {
     if (import.meta.env.DEV) console.log('Submitted approval comment', { ...payload, role: roleKey })
+
+    // Returning to sender is a disapproval, and a disapproval has to say why
+    // [1:23:33] [1:23:40]. Suggested references on their own are not a reason.
+    const gate = validateReturn(payload)
+    if (!gate.ok) {
+      showToastMsg(gate.error, 'warning')
+      return
+    }
+
     setSidebarCollapsed(false)
 
     try {
@@ -733,8 +745,9 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
       const submissionLabel = 'Submission'
 
       const reviewerNames = { 'instructor': 'CASIMERO, DANNY', 'program-head': 'DANILA, JUNAR', 'dean': 'REYES, AGNES', 'director-of-libraries': 'SANTOS, MARIA', 'industry-consultant': 'CRUZ, ROBERTO' }
-      const storedUser = JSON.parse(localStorage.getItem('user') || 'null')
-      const reviewer = reviewerNames[roleKey] || storedUser?.name || 'Approver'
+      // The signed-in user is the one acting, so their name wins; the demo names
+      // are only a fallback for a build with no session.
+      const reviewer = nameForRoleWithSession(getSession(), roleKey, reviewerNames[roleKey] || 'Approver')
       const roleLabel = roleKey === 'program-head' ? 'Program Head'
         : roleKey === 'dean' ? 'Dean'
         : roleKey === 'industry-consultant' ? 'Industry Consultant'
@@ -756,6 +769,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
         recipientRole: roleKey === 'dean' ? 'program_head' : 'instructor',
         components: c.components || {},
         comment: c.text || '',
+        commentType: c.commentType || null,
         courseOutcome: c.courseOutcome || null,
         ilo: c.ilo || null,
         coverageType: c.coverageType || null,
@@ -802,7 +816,10 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
           body: JSON.stringify({
             code,
             commenter_role: ACTOR_ROLE_MAP[roleKey] || roleKey.toUpperCase(),
-            message: c.comment,
+            // The type rides along in the message — the server stores one
+            // string, and the instructor's forms parse the tag back into a
+            // labelled, actionable suggestion [48:30].
+            message: encodeCommentType(c.commentType, c.comment),
             co_index: coIndex,
             ilo_index: iloIndex,
             comment_for: forMap[c.coverageType] || null,
@@ -1052,6 +1069,14 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
             }
             return null
           })()}
+        </div>
+      )}
+
+      {/* One consolidated view of the chain — who has approved, who has not,
+          and the Dean's date approved [53:22]. */}
+      {!embedded && (
+        <div style={{ padding: '0 20px 10px' }}>
+          <ApprovalChainStatus workflow={workflowState || getWorkflow(codeToUse || '')} />
         </div>
       )}
 
