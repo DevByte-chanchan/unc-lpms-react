@@ -78,7 +78,7 @@ const MISSPELLINGS = {
     acheive: 'achieve', begining: 'beginning', consistant: 'consistent', enviroment: 'environment',
     knowlege: 'knowledge', learnig: 'learning', outcomess: 'outcomes', priciples: 'principles',
     studnets: 'students', succesful: 'successful', therefor: 'therefore', untill: 'until',
-    whcih: 'which', wich: 'which', writting: 'writing'
+    whcih: 'which', wich: 'which', writting: 'writing', calander: 'calendar'
 }
 
 export const checkText = (text = '') => {

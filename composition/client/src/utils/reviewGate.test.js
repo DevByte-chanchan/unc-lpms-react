@@ -89,6 +89,12 @@ test('spelling and grammar are caught at entry, before the program head sees the
   eq(checkText('This comment is clean and correct.').length, 0, 'clean text is not flagged');
   if (!hasBlockingTextIssues('a refrence is missing')) throw new Error('a misspelling blocks');
   if (hasBlockingTextIssues('This one is fine.')) throw new Error('clean text does not block');
+  
+  // Test for the new calander misspelling
+  const calanderIssues = checkText('This calander is wrong');
+  const calanderSpelling = calanderIssues.filter(i => i.kind === 'spelling');
+  if (calanderSpelling.length < 1) throw new Error('expected one misspelling for "calander", got none');
+  if (calanderSpelling[0].suggestion !== 'calendar') throw new Error('calander should be corrected to calendar');
 });
 
 test('approving records a signature that can be verified and not silently edited', () => {
