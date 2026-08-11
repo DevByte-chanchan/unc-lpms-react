@@ -15,7 +15,7 @@ import SyllabusRevisions from "./pages/SyllabusRevisions.jsx";
 import ApprovalCourses from "./pages/ApprovalCourses.jsx";
 import ProgramHead from "./pages/ProgramHead.jsx";
 import DirectorOfLibraries from "./pages/DirectorOfLibraries.jsx";
-import ProgramHeadConsultant from "./pages/ProgramHeadConsultant.jsx";
+import IndustryConsultant from "./pages/IndustryConsultant.jsx";
 import ProgramHeadIndustryConsultant from "./pages/ProgramHeadIndustryConsultant.jsx";
 import ProgramHeadCourseOfferings from "./pages/ProgramHeadCourseOfferings.jsx";
 import COAEPUpload from "./pages/lpsm/ProgramHead/COAEPUpload.jsx";
@@ -89,7 +89,7 @@ function App() {
                         <Route path={'/assessments/form/:code/:assessmentId'} element={<ErrorBoundary><AssessmentForm /></ErrorBoundary>} />
 
                         {/* --- ROLE-BASED APPROVER ROUTES --- */}
-                        <Route path={'/role/industry-consultant'} element={<ErrorBoundary><ProgramHeadConsultant /></ErrorBoundary>} />
+                        <Route path={'/role/industry-consultant'} element={<ErrorBoundary><IndustryConsultant /></ErrorBoundary>} />
                         <Route path={'/role/program-head'} element={<ErrorBoundary><ProgramHead /></ErrorBoundary>} />
                         <Route path={'/role/program-head/upload-documents'} element={<ErrorBoundary><COAEPUpload /></ErrorBoundary>} />
                         <Route path={'/role/program-head/co-po-alignment'} element={<ErrorBoundary><CoPoAlignment /></ErrorBoundary>} />

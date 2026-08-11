@@ -1073,8 +1073,10 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
       )}
 
       {/* One consolidated view of the chain — who has approved, who has not,
-          and the Dean's date approved [53:22]. */}
-      {!embedded && (
+          and the Dean's date approved [53:22]. VPAA is view-only on the final
+          product, so the chain is hidden there and shown for the approving
+          roles. */}
+      {!embedded && roleKey !== 'vpaa' && (
         <div style={{ padding: '0 20px 10px' }}>
           <ApprovalChainStatus workflow={workflowState || getWorkflow(codeToUse || '')} />
         </div>

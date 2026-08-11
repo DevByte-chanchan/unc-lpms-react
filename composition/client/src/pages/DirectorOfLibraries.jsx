@@ -9,7 +9,14 @@ const DirectorOfLibraries = () => {
       header={<Header role="Director Of Libraries" name="SANTOS, MARIA" />}
       nav={<SideNavigation mode="director-of-libraries" />}
       content={
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            width: '100%',
+            height: '100%'
+          }}
+        >
           <ApprovalCoursesTable role="director-of-libraries" />
         </div>
       }

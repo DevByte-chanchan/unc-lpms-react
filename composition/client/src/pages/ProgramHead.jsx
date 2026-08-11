@@ -9,7 +9,14 @@ const ProgramHead = () => {
       header={<HeaderA role="Program Head" name="DANILA, JUNAR" />}
       nav={<SideNavigation mode="program-head" />}
       content={
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            width: '100%',
+            height: '100%'
+          }}
+        >
           <ApprovalCoursesTable role="program-head" />
         </div>
       }
