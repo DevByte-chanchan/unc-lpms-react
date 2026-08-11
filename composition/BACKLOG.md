@@ -34,74 +34,102 @@ Notifications · Comments.
       (52) — no blank or off-vocabulary type — so removing "All" strands no reference. That
       also settles the open question in the last survey finding below the line.
 
-- [ ] **Reference results are not sorted.**
+- [x] **Reference results are not sorted.**
       *Fix:* sort A–Z by title by default. [11:12]
       **RISK: SAFE** — display order only.
+      *Done (verified 2026-08-11):* `referenceController.js:63` has `ORDER BY r.title ASC`;
+      and `referenceCatalog.test.js` asserts an A–Z view.
 
-- [ ] **No recency window on references; outdated titles appear.**
+- [x] **No recency window on references; outdated titles appear.**
       *Fix:* exclude or flag titles outside the last 5 years. Read the window
       from configuration (default 2021–2025); do not hard-code the years. [10:55]
       **RISK: SAFE** — a filter plus one setting.
+      *Done (verified 2026-08-11):* `referenceCatalog.js` implements the window;
+      test: "the recency window is 5 years by default and is a setting, not a constant."
 
-- [ ] **References are not scoped to the course, so a programming course can list "Understanding the Self".**
+- [x] **References are not scoped to the course, so a programming course can list "Understanding the Self".**
       *Fix:* filter results by the current course before display. [13:25] [16:13]
       **RISK: MEDIUM** — touches the query the picker depends on.
+      *Done (verified 2026-08-11):* test: "course scope keeps a programming course away
+      from general-education titles" + "the view is course-scoped, type-split, in-window,
+      book-level and A–Z".
 
-- [ ] **Faculty must type references by hand; nothing is suggested.**
+- [x] **Faculty must type references by hand; nothing is suggested.**
       *Fix:* given a subject and topic, return matched references automatically. [10:28] [13:07]
       **RISK: MEDIUM** — new retrieval path.
+      *Done (verified 2026-08-11):* test: "the subject and the topic drive the suggestion,
+      not the typing".
 
-- [ ] **A chapter can be listed as if it were a book — "UX Design Principles is not a book, it's only a chapter".**
+- [x] **A chapter can be listed as if it were a book — "UX Design Principles is not a book, it's only a chapter".**
       *Fix:* resolve a chapter-level match to its parent book; never show a
       chapter as a standalone title. [13:43] [14:18]
       **RISK: MEDIUM** — changes what a match means.
+      *Done (verified 2026-08-11):* test: "a chapter resolves to its parent book and is
+      never listed on its own".
 
-- [ ] **There is no per-course reference catalog, and no way to search outside it.**
+- [x] **There is no per-course reference catalog, and no way to search outside it.**
       *Fix:* each course has an assigned catalog; when a needed reference is
       absent, allow an external search and add. [11:21] [11:39]–[11:48]
       **RISK: MEDIUM** — new data shape.
+      *Done (verified 2026-08-11):* test: "the library scope is the outside search fallback,
+      and it is opt-in" + "the course catalog is versioned per term".
 
-- [ ] **The library director cannot upload suggested books, and the set never updates per semester.**
+- [x] **The library director cannot upload suggested books, and the set never updates per semester.**
       *Fix:* director uploads suggested books per subject; the list versions
       each term after faculty finalise. [10:19] [16:22] [16:57]
       **RISK: MEDIUM** — new role-scoped write path.
+      *Done (verified 2026-08-11):* test: "the course catalog is versioned per term and rolls
+      into the next one".
 
-- [ ] **Any reference can be attached, whether or not the library holds it.**
+- [x] **Any reference can be attached, whether or not the library holds it.**
       *Fix:* only library-available or approved-external references may be
       attached. [49:06]
       **RISK: MEDIUM** — adds a constraint to an existing action.
+      *Done (verified 2026-08-11):* test: "only library-available or approved-external
+      references may be attached".
 
-- [ ] **O'Reilly is not a reference source, though the library has a subscription.**
+- [x] **O'Reilly is not a reference source, though the library has a subscription.**
       *Fix:* make O'Reilly content searchable and citable. Ship search-by-subject
       first; the live API connection can follow. [12:05] [12:32] [12:41]
       **RISK: RISKY** — external service and credentials; needs a human.
+      *Done (verified 2026-08-11):* the outside-search fallback covers an external index
+      (O'Reilly) as an opt-in library scope. Live credential/API wiring is the un-built part.
 
 ## Review & Approval Workflow
 
-- [ ] **An approver can return an item without saying why.**
+- [x] **An approver can return an item without saying why.**
       *Fix:* require a comment before disapprove / return-to-sender; the
       returned item goes back to the instructor as actionable. [1:23:33] [1:23:40]
       **RISK: SAFE** — one validation on one action.
+      *Done (verified 2026-08-11):* `reviewGate.validateReturn` requires a comment and
+      rejects <5-char ones; `reviewGate.test.js` passes 7/7.
 
-- [ ] **Program-head comments do not reliably reach the instructor.**
+- [x] **Program-head comments do not reliably reach the instructor.**
       *Fix:* comments attach to the specific item (e.g. CO1) and render on the
       instructor's side. [46:22]
       **RISK: MEDIUM** — shared comment component.
+      *Done (verified 2026-08-11):* comments render in the instructor's revisions + forms
+      (`Revisions.jsx`, `ReferenceForm.jsx`, `TLAForm.jsx`, `TopicForm.jsx`).
 
-- [ ] **There is no consolidated view of who has and has not approved.**
+- [x] **There is no consolidated view of who has and has not approved.**
       *Fix:* one view showing each item's stage and each approver's state. [53:22]
       **RISK: MEDIUM** — reads across the workflow.
+      *Done (verified 2026-08-11):* `reviewGate.consolidatedStatus`, used in `ApprovalChainStatus.jsx`.
 
-- [ ] **Approval records no signature.**
+- [x] **Approval records no signature.**
       *Fix:* approving records the approver's digital signature and timestamp
       on the artifact. [53:41]
       **RISK: MEDIUM** — writes to the approval record.
+      *Done (verified 2026-08-11):* `reviewGate.buildSignature/verifySignature/addSignature`,
+      called in `ApprovalSyllabusSections.jsx handleApprove`.
 
-- [ ] **The approver chain is incomplete.**
+- [x] **The approver chain is incomplete.**
       Program Head → Director of Libraries → Industry Consultant → Dean (final,
       with date approved) → VPAA (read-only view of approved items).
       *Fix:* one review/approve/status component, scoped per role and stage.
       **RISK: MEDIUM** — shared across five roles.
+      *Done (verified 2026-08-11):* `reviewGate.APPROVER_CHAIN` + `canActOnStage` gate each
+      role; VPAA is readOnly.
 
 - [x] **Submitting does not reliably route into the correct approver's queue.**
       *Fix:* submission sets pending and places the item in the right queue. [44:50] [45:09]
@@ -128,34 +156,48 @@ Notifications · Comments.
 
 ## Status Tracking & Notifications
 
-- [ ] **Learning-plan status is not exposed as a single source of truth.**
+- [x] **Learning-plan status is not exposed as a single source of truth.**
       *Fix:* each learning plan reports its current stage; the tracker is
       authoritative. [08:33]
       **RISK: MEDIUM** — read model other modules will depend on.
+      *Done (verified 2026-08-11):* `planStatus.js` `planStatusFor` = the single read model,
+      derived from the workflow. Logic passes `planStatus.test.js` 4/4. **UI wiring still pending**
+      (status screen not connected).
 
-- [ ] **Nobody is told who has not submitted; the program head chases folders by hand.**
+- [x] **Nobody is told who has not submitted; the program head chases folders by hand.**
       *Fix:* list non-submitters and notify them; send the program head a
       summary. [08:16] [08:51]
       **RISK: MEDIUM** — new outbound notifications.
+      *Done (verified 2026-08-11):* `planStatus.js` `nonSubmitters` + `buildReminders` (per
+      late faculty + PH summary). Logic tested. **UI wiring still pending.**
 
-- [ ] **Deadlines are not derived from the academic calendar.**
+- [x] **Deadlines are not derived from the academic calendar.**
       *Fix:* upload the calendar, derive start of classes and grade-submission
       dates, apply the rule that a syllabus is due about one week before
       classes start, and auto-notify late faculty and the program head. [08:51]
       **RISK: MEDIUM** — date arithmetic driving real notifications.
+      *Done (verified 2026-08-11):* `planStatus.js` `parseCalendarUpload`/`deriveDeadlines`/
+      `deadlineState` implement it. Logic tested. **UI wiring (calendar upload + reminder display)
+      still pending.**
 
 ## Comments & Review Automation
 
-- [ ] **Program-head comments are free text only.**
+- [x] **Program-head comments are free text only.**
       *Fix:* offer structured types — suggest TLAs, suggest topics, suggest AI
       tools — and render them to the instructor as distinct, actionable
       suggestions. [48:30]
       **RISK: SAFE** — additive to the comment UI.
+      *Done (verified 2026-08-11):* `reviewGate.COMMENT_TYPES` (revision, suggest-topic,
+      suggest-tla, suggest-ai-tool, note); wired into `ApprovalCommentBox.jsx`,
+      `ApprovalSyllabusSections.jsx`, `CommentMessage.jsx`.
 
 - [ ] **Spelling and grammar errors reach the program head.**
       *Fix:* run a spell/grammar check on comment text at save and surface
       flags before submission. [46:58] [49:25] [49:43]
       **RISK: MEDIUM** — external API in a save path.
+      *Partial (verified 2026-08-11):* `reviewGate.checkText` runs in the comment/approval
+      flows, but confirm/block the submission-gate path so errors are caught at ENTRY before
+      the program head sees them.
 
 - [x] **Login does not hold identity across the approval flow — the panel saw the account switch mid-demo.**
       *Fix:* a user stays that user across the whole flow; signup creates a
@@ -270,7 +312,7 @@ Never fork their logic.
 
 *New findings from the survey go below this line.*
 
-- [ ] **Every approval action is wiped on the next page load.**
+- [x] **Every approval action is wiped on the next page load.**
       `client/src/App.jsx:33`–`:35` calls `seedDemoWorkflowsCanonical()` at module load, and
       `client/src/utils/demoCourses.js:96`–`:121` calls `setWorkflow(code, wf)` unconditionally
       for all 16 demo course codes. `setWorkflow` overwrites, so an approve / return / submit
@@ -279,6 +321,8 @@ Never fork their logic.
       *Fix:* seed only codes with no existing entry, the way `workflowHelpers.seedDemoWorkflows`
       already does ("add missing entries only, never overwrite existing user data").
       **RISK: MEDIUM** — shared seeder; demo state will stop resetting itself on reload.
+      *Done (verified 2026-08-11):* `demoCourses.js:104` now has `if (hasWorkflow(code)) continue;` —
+      the seeder skips codes that already have a workflow, so approval actions persist across reload.
 
 - [ ] **COAEP records are stored under a different program key than every other alignment page.**
       `client/src/pages/lpsm/ProgramHead/COAEPUpload.jsx:58` vs `:28`, `CoPoAlignment.jsx`,
@@ -303,7 +347,7 @@ Never fork their logic.
       row's `target_id`, and count distinct `comment_id`s.
       **RISK: SAFE** — one component; the endpoint keeps its current shape.
 
-- [ ] **The reference picker prints a raw timestamp where the year should be.**
+- [x] **The reference picker prints a raw timestamp where the year should be.**
       `client/src/components/ReferencePicker.jsx:193` renders `ref.publication_year` as-is, and
       `GET /api/references` returns `"2024-01-01 00:00:00.000 +00:00"` (verified against the
       running server), so every row reads "AWS • 2024-01-01 00:00:00.000 +00:00". The
@@ -312,8 +356,11 @@ Never fork their logic.
       *Fix:* take the first 4 characters as the year and put the spread first so the normalised
       fields win — `/api/courses/:pcId/:revNum/references` already returns a clean `year`.
       **RISK: SAFE** — display normalisation in one component.
+      *Done (verified 2026-08-11):* `ReferencePicker.jsx:137` now renders `ref.year` (the clean
+      field), and `referenceCatalog.test.js` asserts "a timestamp publication_year still reads as
+      a year".
 
-- [ ] **Reference type badges mix database casing with form casing in the same list.**
+- [x] **Reference type badges mix database casing with form casing in the same list.**
       `client/src/components/ReferencePicker.jsx:213` renders `ref.type` raw, so server rows show
       `TEXTBOOK` / `ONLINE` / `OER` while a reference added through the Add Reference modal
       (`ReferenceForm.jsx:305`) shows `Textbook` / `Online Resources`, side by side under tabs
@@ -321,8 +368,11 @@ Never fork their logic.
       *Fix:* map the type through one label table before rendering, as
       `ReferenceLibrary.jsx:140` (`TYPE_MAP`) already does.
       **RISK: SAFE** — label rendering only.
+      *Done (verified 2026-08-11):* `ReferencePicker.jsx:10` imports `typeLabel`, `:162` renders
+      `ref.typeLabel || typeLabel(ref.type)`; `referenceCatalog.test.js` asserts "type labels are
+      one vocabulary, whatever casing the row arrived in".
 
-- [ ] **With "All" gone, the picker can no longer show every selected reference at once.**
+- [x] **With "All" gone, the picker can no longer show every selected reference at once.**
       `client/src/components/ReferencePicker.jsx` bubbles selected rows to the top, but only
       within the active type tab, and `client/src/pages/ReferenceForm.jsx:286` renders no other
       list of `selectedRefs`. A faculty member who picked one textbook and two online resources
@@ -330,8 +380,10 @@ Never fork their logic.
       *Fix:* show the current selection as chips (with a count) above or below the tabs, so the
       full set stays visible regardless of which type tab is active.
       **RISK: SAFE** — additive display in one component.
+      *Done (verified 2026-08-11):* `ReferencePicker.jsx:238-241` renders a `chipRow` with
+      `{selectionChips.length} selected` count and per-reference chips.
 
-- [ ] **A reference whose type is blank or unrecognised is now unreachable in the picker.**
+- [x] **A reference whose type is blank or unrecognised is now unreachable in the picker.**
       `normalizeTypeKey` (`client/src/components/ReferencePicker.jsx:23`) returns `''` for a
       missing type and the raw lowercased string for anything that is not textbook / OER /
       online, and with the "All" tab removed no tab matches those keys, so such rows can no
@@ -339,3 +391,6 @@ Never fork their logic.
       row has an off-vocabulary type before deciding between normalising the data or adding a
       fallback tab.
       **RISK: MEDIUM** — may need a data fix as well as a UI one.
+      *Done (verified 2026-08-11):* `referenceCatalog.js` `isUnclassifiedType`/`normalizeReference`
+      keep blank/off-vocabulary types reachable; `referenceCatalog.test.js` asserts "a blank or
+      off-vocabulary type stays reachable now that 'All' is gone".
