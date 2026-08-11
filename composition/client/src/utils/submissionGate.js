@@ -10,6 +10,10 @@
 // and decides whether the submit button may fire. No computation is forked
 // from those modules.
 
+// The spelling/grammar entry gate reuses the same dictionary the approval
+// flow uses, so both agree on what a misspelling is.
+import { hasBlockingTextIssues } from './reviewGate.js'
+
 export const DEFAULT_GATE_CONFIG = {
   // Contact hours in `course-details.contact` are per week; a term is this long.
   weeksPerTerm: 18,
@@ -33,7 +37,7 @@ export const expectedTermHours = (contact, config = DEFAULT_GATE_CONFIG) => {
   return weekly * (config.weeksPerTerm || DEFAULT_GATE_CONFIG.weeksPerTerm)
 }
 
-export const validateSubmission = ({ courseDetails = null, coverage = null, config = DEFAULT_GATE_CONFIG } = {}) => {
+export const validateSubmission = ({ courseDetails = null, coverage = null, textFields = null, config = DEFAULT_GATE_CONFIG } = {}) => {
   const cfg = { ...DEFAULT_GATE_CONFIG, ...(config || {}) }
   const blockers = []
   const warnings = []
@@ -71,6 +75,27 @@ export const validateSubmission = ({ courseDetails = null, coverage = null, conf
     blockers.push(`Allocated hours (${totalAllocatedHours}) exceed the ${expectedHours} contact hours for the term.`)
   } else if (totalAllocatedHours < expectedHours * cfg.minHoursCoverageRatio) {
     blockers.push(`Allocated hours (${totalAllocatedHours}) do not cover the ${expectedHours} contact hours for the term.`)
+  }
+
+  // Spelling / grammar gate at ENTRY [46:58] [49:25]: a plan with misspellings
+  // in its free-text fields must not reach the program head. The caller passes
+  // the text fields to check (topics, course description, objectives, ...).
+  // It reuses reviewGate.checkText so the entry gate and the approval flow
+  // share one dictionary. Optional — without textFields the gate is skipped so
+  // the alignment-only behaviour (and its tests) is unchanged.
+  const spellingTexts = Array.isArray(textFields)
+    ? textFields.map(t => String(t ?? '').trim()).filter(Boolean)
+    : []
+  if (spellingTexts.length) {
+    const misspelled = spellingTexts.filter(t => hasBlockingTextIssues(t))
+    if (misspelled.length) {
+      blockers.push(
+        'Spelling mistakes were found: "' +
+        misspelled[0].split(/\s+/).slice(0, 6).join(' ') +
+        (misspelled[0].split(/\s+/).length > 6 ? ' …' : '') +
+        '". Fix the spelling before submitting.'
+      )
+    }
   }
 
   return { ok: blockers.length === 0, blockers, warnings, totalAllocatedHours, expectedHours }

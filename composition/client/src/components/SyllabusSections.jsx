@@ -199,7 +199,22 @@ const SyllabusSections = () => {
                 fetchJson(`/api/course-details/${offeringID}/${revisionNum}`),
                 fetchJson(`/api/course-coverage/${offeringID}/${revisionNum}`)
             ]);
-            const result = validateSubmission({ courseDetails: details, coverage });
+            const result = await validateSubmission({
+                courseDetails: details,
+                coverage,
+                textFields: [
+                    // Free-text the program head actually reads; feed the
+                    // entry spelling gate [46:58] [49:25]. Shapes vary, so
+                    // pull whichever key each entry carries.
+                    ...(details?.name ? [details.name] : []),
+                    ...(coverage?.topics || []).map(t =>
+                        t?.text || t?.title || t?.name || t?.topic || ''),
+                    ...(coverage?.ilos || []).map(i =>
+                        (i?.description || i?.text || i?.title || i?.name || '') +
+                        ((i?.topics || []).map(tp => tp?.text || tp?.title || tp?.name || '').join(' '))
+                    ),
+                ].filter(Boolean)
+            });
             setGateResult(result);
             setSubmitPhase(result.ok ? 'CONFIRM' : 'BLOCKED');
         } catch (error) {

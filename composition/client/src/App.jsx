@@ -21,6 +21,7 @@ import ProgramHeadCourseOfferings from "./pages/ProgramHeadCourseOfferings.jsx";
 import COAEPUpload from "./pages/lpsm/ProgramHead/COAEPUpload.jsx";
 import CoPoAlignment from "./pages/lpsm/ProgramHead/CoPoAlignment.jsx";
 import PoPeoAlignment from "./pages/lpsm/ProgramHead/PoPeoAlignment.jsx";
+import StatusDashboard from "./pages/lpsm/ProgramHead/StatusDashboard.jsx";
 import DirectorReferenceLibrary from "./pages/lpsm/DirectorOfLibraries/ReferenceLibrary.jsx";
 import DirectorAddReference from "./pages/lpsm/DirectorOfLibraries/AddReference.jsx";
 import DirectorViewReference from "./pages/lpsm/DirectorOfLibraries/ViewReference.jsx";
@@ -93,6 +94,7 @@ function App() {
                         <Route path={'/role/program-head/upload-documents'} element={<ErrorBoundary><COAEPUpload /></ErrorBoundary>} />
                         <Route path={'/role/program-head/co-po-alignment'} element={<ErrorBoundary><CoPoAlignment /></ErrorBoundary>} />
                         <Route path={'/role/program-head/po-peo-alignment'} element={<ErrorBoundary><PoPeoAlignment /></ErrorBoundary>} />
+                        <Route path={'/role/program-head/status'} element={<ErrorBoundary><StatusDashboard /></ErrorBoundary>} />
                         <Route path={'/role/director-of-libraries'} element={<ErrorBoundary><DirectorOfLibraries /></ErrorBoundary>} />
                         <Route path={'/role/director-of-libraries/upload-documents'} element={<ErrorBoundary><DirectorReferenceLibrary /></ErrorBoundary>} />
                         <Route path={'/role/director-of-libraries/reference-library'} element={<ErrorBoundary><DirectorReferenceLibrary /></ErrorBoundary>} />
