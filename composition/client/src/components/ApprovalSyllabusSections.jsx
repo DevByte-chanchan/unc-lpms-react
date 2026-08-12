@@ -1235,6 +1235,47 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
           </div>
         </div>
 
+        {/* Linear reading-order navigation. The dropdown (top) stays as the
+            jump-anywhere control; these let an approver go start-to-finish
+            without reaching for the mouse each time [panel: "meron ka nalang
+            nung parang Next"]. */}
+        {!embedded && (
+          (() => {
+            const idx = defaultSections.indexOf(activeSelectedSection)
+            const prev = idx > 0 ? defaultSections[idx - 1] : null
+            const next = idx >= 0 && idx < defaultSections.length - 1 ? defaultSections[idx + 1] : null
+            const goTo = (target) => setSelectedSection(target)
+            return (
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, padding: '12px 20px 0' }}>
+                <button
+                  disabled={!prev}
+                  onClick={() => prev && goTo(prev)}
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 14px',
+                    borderRadius: 6, fontSize: 13, fontWeight: 500, cursor: prev ? 'pointer' : 'not-allowed',
+                    background: prev ? '#fff' : '#f1f5f9', color: prev ? '#1f2937' : '#9ca3af',
+                    border: `1px solid ${prev ? '#e2e8f0' : '#f1f5f9'}`, fontFamily: "'Poppins', sans-serif"
+                  }}
+                >
+                  &#8592; {prev ? sectionLabels[prev] : 'Previous section'}
+                </button>
+                <button
+                  disabled={!next}
+                  onClick={() => next && goTo(next)}
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 14px',
+                    borderRadius: 6, fontSize: 13, fontWeight: 500, cursor: next ? 'pointer' : 'not-allowed',
+                    background: next ? '#19282C' : '#f1f5f9', color: next ? '#fff' : '#9ca3af',
+                    border: `1px solid ${next ? '#19282C' : '#f1f5f9'}`, fontFamily: "'Poppins', sans-serif"
+                  }}
+                >
+                  {next ? `Next section: ${sectionLabels[next]}` : 'Next section'} &#8594;
+                </button>
+              </div>
+            )
+          })()
+        )}
+
         {!embedded && roleKey !== 'vpaa' && activeSelectedSection === 'Course Coverage' && (
           <div style={{ display: 'flex', alignItems: 'stretch', height: '100%', flexShrink: 0 }}>
             <button onClick={() => setSidebarCollapsed(c => !c)} style={{
