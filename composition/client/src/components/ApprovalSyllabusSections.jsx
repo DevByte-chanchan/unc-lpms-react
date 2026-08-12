@@ -757,7 +757,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
         : roleKey === 'instructor' ? 'Instructor'
         : 'Department Head'
 
-      const sectionToSave = externalSelectedSection || lastSectionKey.current
+      const sectionToSave = externalSelectedSection || selectedSection
       const prepared = (payload.comments || []).map((c, i) => ({
         id: `${submissionId}-${c.id}`,
         courseCode: code,
