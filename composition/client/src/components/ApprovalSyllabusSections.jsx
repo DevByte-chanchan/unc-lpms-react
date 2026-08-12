@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef, useMemo } from 'react'
 import { Link, useSearchParams, useParams, useNavigate, useLocation } from 'react-router-dom'
-import { ChevronLeft, MessageSquare, Inbox, Download, MoreVertical, Check, Clock } from 'react-feather'
+import { ChevronLeft, MessageSquare, Download, MoreVertical, Check, Clock, FileText } from 'react-feather'
+import EmptyState from './EmptyState.jsx'
 import styles from '../styles/ApprovalSyllabusSections.module.sass'
 import subStyles from '../styles/SyllabusSections.module.sass'
 import stylesB from '../styles/SyllabusPreview.module.sass'
@@ -35,6 +36,7 @@ const sectionLabels = {
   'Criteria for Grading': 'Criteria for Grading',
 }
 const defaultSections = Object.keys(sectionLabels)
+
 
 const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', courseCode = '', embedded = false, externalSelectedSection = null, workflow: workflowProp = null, pcId = null, revNum = null }) => {
   const [searchParams] = useSearchParams()
@@ -123,6 +125,10 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
 
   const initialLoading = !codeToUse || (validPcId && validRevNum && courseDetailsLoading && courseDetails === null)
 
+  const handleSectionChange = (e) => {
+    setSelectedSection(e.target.value)
+  }
+
   const toggleMenu = (event) => {
     event.stopPropagation()
     setIsOpen(prev => !prev)
@@ -141,10 +147,6 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
       document.removeEventListener('click', handleClickOutside)
     }
   }, [isOpen])
-
-  const handleSectionChange = (e) => {
-    setSelectedSection(e.target.value)
-  }
 
   // Normalize the workflow stage on load (e.g. returned → dean once all
   // parallel reviewers have re-accepted) so button gating reflects reality
@@ -478,6 +480,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
   })()
   const backPath = defaultBack
 
+
   const visibleComments = React.useMemo(() => {
     if (roleKey === 'instructor') {
       return globalComments.filter(c => !(c.recipientRole === 'program_head' && !c.resolved))
@@ -601,7 +604,6 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
     return () => clearTimeout(approveTimerRef.current)
   }, [approvePhase, approveTimeLeft])
 
-  const confirmApprove = () => { setApprovePhase('WAITING'); setApproveTimeLeft(5) }
   const cancelApprove = () => { setApprovePhase('IDLE'); setApproveTimeLeft(5) }
 
   const handleSubmitForReview = () => {
@@ -755,7 +757,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
         : roleKey === 'instructor' ? 'Instructor'
         : 'Department Head'
 
-      const sectionToSave = externalSelectedSection || selectedSection
+      const sectionToSave = externalSelectedSection || lastSectionKey.current
       const prepared = (payload.comments || []).map((c, i) => ({
         id: `${submissionId}-${c.id}`,
         courseCode: code,
@@ -906,6 +908,11 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
 
   const activeSelectedSection = (externalSelectedSection || selectedSection) === 'References' ? 'References Summary' : (externalSelectedSection || selectedSection)
 
+  // Approving used to be a confirm modal AND a countdown — two confirmations
+  // for one decision [17:15] [50:56]. The countdown alone is enough: it is
+  // still undoable, and it costs one click instead of two.
+  const startApprove = () => { setApprovePhase('WAITING'); setApproveTimeLeft(5) }
+
   // getRoleColor, getComponentTags, isRecent imported from approvalHelpers
 
   const saveGlobalCommentsToStorage = (updatedGlobalComments) => {
@@ -992,7 +999,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
                 }}><MessageSquare size={16} /> Add Comment</div>
                 <div className={`${styles.submit} ${(!isRoleActive() || hasRoleApproved()) ? styles['disabled-btn'] : ''}`} onClick={() => {
                   if (hasRoleApproved()) showToastMsg('You have already approved this learning plan.', 'warning')
-                  else if (isRoleActive()) setApprovePhase('CONFIRM')
+                  else if (isRoleActive()) startApprove()
                   else if (roleKey === 'dean') showToastMsg('Waiting for previous approvers to complete their review.', 'warning')
                 }}><Check size={16} /> Approve</div>
               </>)
@@ -1073,12 +1080,24 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
       )}
 
       {/* One consolidated view of the chain — who has approved, who has not,
-          and the Dean's date approved [53:22]. VPAA is view-only on the final
-          product, so the chain is hidden there and shown for the approving
-          roles. */}
+          and the Dean's date approved [53:22]. It stays compact at the top of
+          the screen so the step in front of the approver keeps the space; the
+          full version, with the live chip, is on the Decision step. */}
       {!embedded && roleKey !== 'vpaa' && (
-        <div style={{ padding: '0 20px 10px' }}>
-          <ApprovalChainStatus workflow={workflowState || getWorkflow(codeToUse || '')} />
+        <div className={styles['chain-strip']}>
+          <ApprovalChainStatus
+            workflow={workflowState || getWorkflow(codeToUse || '')}
+            activeRole={roleKey}
+            onActivate={() => {
+              if (hasRoleApproved()) {
+                showToastMsg('You have already approved this learning plan.', 'warning')
+              } else if (isRoleActive()) {
+                startApprove()
+              } else {
+                showToastMsg('Waiting for previous approvers to complete their review.', 'warning')
+              }
+            }}
+          />
         </div>
       )}
 
@@ -1091,7 +1110,20 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
               </div>
             ) : (
             <>
-            {activeSelectedSection === 'Course Details' && (
+            {/* A table of blank rows is the worst of both worlds — it looks
+                like the screen loaded but lost the data. Say plainly that
+                there is nothing recorded instead. */}
+            {activeSelectedSection === 'Course Details' && !resolvedCourse?.code && !resolvedCourse?.name && (
+              <section>
+                <EmptyState
+                  icon={<FileText size={22} strokeWidth={1.6} />}
+                  title="No course details recorded"
+                  hint={`Nothing has been entered for ${codeToUse || 'this course'} yet, or the details could not be loaded from the server.`}
+                />
+              </section>
+            )}
+
+            {activeSelectedSection === 'Course Details' && (resolvedCourse?.code || resolvedCourse?.name) && (
               <section ref={courseDetailsRef}>
                 <div className={stylesB.courseDetailsContainer}>
                   <table className={stylesB.documentTable}>
@@ -1256,10 +1288,13 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
 
               <div style={{ flex: 1, overflow: 'auto', padding: '10px 0' }}>
                 {visibleComments.length === 0 ? (
-                  <div style={{ padding: '40px 20px', textAlign: 'center', color: '#94a3b8', fontSize: '0.95rem' }}>
-                    <Inbox size={40} strokeWidth={1.5} style={{ margin: '0 auto 10px', display: 'block' }} />
-                    <p style={{ margin: 0 }}>No comments yet</p>
-                  </div>
+                  <EmptyState
+                    icon={<MessageSquare size={22} strokeWidth={1.6} />}
+                    title="No comments yet"
+                    hint={roleKey === 'instructor'
+                      ? 'Comments from your reviewers will appear here once they have looked at this section.'
+                      : 'Use Add Comment above to raise a revision, suggest a topic, a TLA or an AI tool.'}
+                  />
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column' }}>
                     {visibleComments.map((comment) => {
@@ -1417,26 +1452,15 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
       {/* ── APPROVE CONFIRMATION (matches instructor submit modal, with undo countdown) ── */}
       {approvePhase !== 'IDLE' && (
         <div className={subStyles.submitOverlay}>
-          {approvePhase === 'CONFIRM' && (
-            <div className={subStyles.submitModal}>
-              <div className={subStyles.submitModalHeader}>
-                Approve Learning Plan
-              </div>
-              <div className={subStyles.submitModalBody}>
-                Are you sure you want to approve this learning plan for <strong>{codeToUse}</strong>? This will advance the workflow to the next stage.
-              </div>
-              <div className={subStyles.submitModalActions}>
-                <button className={subStyles.btnCancelPlain} onClick={cancelApprove}>Cancel</button>
-                <button className={subStyles.btnConfirmDark} onClick={confirmApprove}>Yes, Approve</button>
-              </div>
-            </div>
-          )}
-
+          {/* No separate "are you sure?" step — the countdown below IS the
+              confirmation, and it can be cancelled for the whole 5 seconds.
+              Two confirmations for one decision was the click count the panel
+              objected to [17:15] [50:56]. */}
           {approvePhase === 'WAITING' && (
             <div className={subStyles.submitModal}>
               <div className={subStyles.waitingBody}>
                 <div className={subStyles.waitingText}>
-                  Approving in <strong>{approveTimeLeft}</strong> seconds...
+                  Approving <strong>{codeToUse}</strong> in <strong>{approveTimeLeft}</strong> seconds...
                 </div>
                 <div className={subStyles.progressContainer}>
                   <div className={subStyles.progressBar} style={{ animationDuration: '5s' }}></div>
