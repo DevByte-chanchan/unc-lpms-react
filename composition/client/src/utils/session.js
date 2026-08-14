@@ -1,8 +1,7 @@
 // Client-side session for the LPSM demo build.
 //
-// The identity lives under the same localStorage key the rest of the app
-// already reads ('user' + 'userId', see utils/roleGuard.js), so signing in
-// here is what every page, audit log and approval action sees. Nothing else
+// This module is the canonical owner of the `user` and `userId` session keys.
+// Signing in here is what every page, audit log and approval action sees. Nothing else
 // may write that key: a page that stamps its own name over it is exactly the
 // mid-demo account switch the panel flagged [45:27] [45:45].
 

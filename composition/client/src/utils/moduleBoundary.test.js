@@ -30,6 +30,47 @@ const arraFiles = [
   'styles/CriteriaForGradingForm.module.sass'
 ]
 
+const strayFiles = [
+  'Composition_Notes.txt',
+  'assets/coaep-logo.png',
+  'assets/react.svg',
+  'components/ApprovalFormNavigation.jsx',
+  'components/RoleUploadPanel/RoleUploadPanel.jsx',
+  'components/RowActionsMenu.jsx',
+  'components/Stepper.jsx',
+  'components/Toast.jsx',
+  'components/UploadPanel/UploadPanel.jsx',
+  'pages/ProgramHeadConsultant.jsx',
+  'pages/lpsm/Instructor/TemplateSelector.jsx',
+  'pages/lpsm/Instructor/VersionHistoryPanel.jsx',
+  'pages/lpsm/ProgramHead/StatusDashboard.jsx',
+  'pages/lpsm/Shared/StatusTracker.jsx',
+  'pages/lpsm/VPAA/dashboardHelpers.jsx',
+  'services/documentService.js',
+  'services/learningPlanService.js',
+  'services/syllabusService.js',
+  'styles/RoleUploadPanel.module.sass',
+  'styles/StatusTracker.module.scss',
+  'styles/Stepper.module.sass',
+  'styles/TemplateSelector.module.scss',
+  'styles/UploadPages.module.sass',
+  'styles/UploadPanel.module.scss',
+  'styles/VersionHistoryPanel.module.scss',
+  'utils/generateCoaepPdf.js',
+  'utils/gradingCriteria.js',
+  'utils/gradingCriteria.test.js',
+  'utils/pdfExport.js',
+  'utils/planStatus.js',
+  'utils/planStatus.test.js',
+  'utils/reviewSteps.js',
+  'utils/reviewSteps.test.js',
+  'utils/roleGuard.js'
+]
+
+for (const relative of strayFiles) {
+  check(!fs.existsSync(path.join(srcRoot, relative)), `Unreachable stray file removed: ${relative}`)
+}
+
 for (const relative of arraFiles) {
   check(!fs.existsSync(path.join(srcRoot, relative)), `Arra file removed: ${relative}`)
 }
