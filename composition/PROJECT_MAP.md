@@ -47,11 +47,15 @@ One-page orientation for the `composition/` worktree (branch `feature/learning-p
 
 - **client/src/main.jsx** — mounts `<App />` into `#root` inside
   `<StrictMode>`; the SPA bootstrap file.
-- **client/src/App.jsx** — defines the entire client route table
+- **client/src/App.jsx** — defines the retained client route table
   (`react-router-dom`), wrapping every page in an `ErrorBoundary`, grouped
-  by role (instructor/default, course editing, TOS, forms, role-based
-  approver routes). Also runs `seedDemoWorkflowsCanonical()` on load to
-  seed client-side demo data, independent of the server.
+  by role (instructor/default, course editing, and role-based approver
+  routes). Also runs `seedDemoWorkflowsCanonical()` on load to seed
+  client-side demo data, independent of the server.
 - **server/server.js** — Express entry point: CORS + JSON body parsing,
   mounts all `/api/*` routers, adds a global error handler, listens on
   `process.env.PORT || 5000`.
+
+## Branch ownership boundary
+
+This branch runs Edrian's LPSM module plus the Christian composition surface required for server-backed comment display and resolution. Arra's standalone TOS/assessment/points UI and client source unreachable from `src/main.jsx` were removed on 2026-08-15. Christian's TLA-assessment backend records remain because retained course coverage consumes them.
