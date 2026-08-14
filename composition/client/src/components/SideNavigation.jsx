@@ -13,10 +13,6 @@ const SideNavigation = ({ mode = 'instructor' }) => {
     // --- MERGED SELECTION LOGIC ---
     let selected = searchParams.get('page') || 'Syllabus';
 
-    if (location.pathname.startsWith('/assignedtos') || location.pathname.startsWith('/tos')) {
-        selected = 'TOS';
-    }
-
     // LPSM Instructor pages
     if (location.pathname.startsWith('/lpsm/instructor')) {
         selected = 'Syllabus';
@@ -60,9 +56,6 @@ const SideNavigation = ({ mode = 'instructor' }) => {
             else if (mode === 'director-of-libraries') navigate('/role/director-of-libraries/approval-course-table?page=Syllabus');
             else if (mode === 'industry-consultant') navigate('/role/industry-consultant/approval-course-table?page=Syllabus');
             else navigate('/');
-        }
-        else if (page === 'TOS') {
-            navigate('/assignedtos');
         }
         else {
             setSearchParams({ page });

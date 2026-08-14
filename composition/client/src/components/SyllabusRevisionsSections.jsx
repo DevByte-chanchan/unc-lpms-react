@@ -89,8 +89,6 @@ const SyllabusRevisionsSections = ({status}) => {
 
     const programOutcomes = ['PO1', 'PO2', 'PO3', 'PO4', 'PO5', 'PO6', 'PO7', 'PO8', 'PO9'];
 
-    const CriteriaForm = React.lazy(() => import('../pages/CriteriaForGradingForm.jsx'));
-
     // Use the canonical syllabi data source. If the route `code` doesn't match any
     // syllabus, fall back to the first syllabus in `syllabiData` so the revisions
     // page always displays data from `src/data/syllabiData.js` (e.g. BSCS313L).
@@ -111,15 +109,6 @@ const SyllabusRevisionsSections = ({status}) => {
         const newSubs = subInput.split(',').map((s, idx) => ({ id: `${topicId}-sub-${idx}`, value: s.trim() })).filter(s => s.value)
         const updatedTopics = (editableSyllabus?.topics || []).map(t => t.id === topicId ? { ...t, title: newTitle, subtopics: newSubs } : t)
         setEditableSyllabus({ ...editableSyllabus, topics: updatedTopics })
-    }
-
-    const editAssessment = (assessmentId) => {
-        const assess = (editableSyllabus?.assessments || []).find(a => a.id === assessmentId)
-        if (!assess) return
-        const newMethod = window.prompt('Edit assessment method for ' + (assess.tlaName || assessmentId), assess.assessmentMethod || '')
-        if (newMethod === null) return
-        const updated = (editableSyllabus?.assessments || []).map(a => a.id === assessmentId ? { ...a, assessmentMethod: newMethod } : a)
-        setEditableSyllabus({ ...editableSyllabus, assessments: updated })
     }
 
     const [isPreviewOpen, setIsPreviewOpen] = useState(false);
@@ -200,8 +189,6 @@ const SyllabusRevisionsSections = ({status}) => {
                                 <option value="References">References</option>
                                 <option value="Topics">Topics & Teaching and Learning Activities</option>
                                 <option value="Intended Learning Outcomes">Intended Learning Outcomes</option>
-                                <option value="Assessments">Assessments</option>
-                                <option value="Criteria for Grading">Criteria for Grading</option>
                             </select>
                         </div>
 
@@ -507,75 +494,6 @@ const SyllabusRevisionsSections = ({status}) => {
                                         </div>
                                     </section>
                                 }
-
-                                {selectedSection === 'Assessments' &&
-                                    <section>
-                                        <div className={styles['assessments-container']}>
-                                            <div className={styles['assessments-header']}>
-                                                <div className={'search-container'}>
-                                                    <div className={'search-bar'}>
-                                                        <Search size={18}/>
-                                                        <input placeholder={"Search TLA name"} type="text"/>
-                                                    </div>
-                                                </div>
-
-                                                <div className={'filter-container'}>
-                                                    <p>Filter by <strong>Class Phase</strong>:</p>
-                                                    <select name="phase">
-                                                        <option value="">All</option>
-                                                        <option value="Pre-Class">Pre-Class</option>
-                                                        <option value="In-Class">In-Class</option>
-                                                        <option value="Post-Class">Post-Class</option>
-                                                    </select>
-                                                </div>
-                                            </div>
-
-                                            <table>
-                                                <thead>
-                                                <tr>
-                                                    <th width={400}>TLA NAME</th>
-                                                    <th width={400}>TOPIC</th>
-                                                    <th width={350}>CLASS PHASE</th>
-                                                    <th className={styles.fill}></th>
-                                                </tr>
-                                                </thead>
-
-                                                <tbody>
-                                                {syllabus?.assessments && syllabus.assessments.length > 0 ? (
-                                                    syllabus.assessments.map((assessment) => (
-                                                        <tr key={assessment.id}>
-                                                            <td width={400}>{assessment.tlaName}</td>
-                                                            <td width={400}>{assessment.topic}</td>
-                                                            <td width={350}>{assessment.phase}</td>
-                                                            <td className={styles.fill}>
-                                                                <Link className={'actionLink'} to={`/assessments/form/${code}/${assessment.id}`}>
-                                                                    Open <ChevronRight size={18}/>
-                                                                </Link>
-                                                            </td>
-                                                        </tr>
-                                                    ))
-                                                ) : (
-                                                    <tr className={styles.emptyRow}>
-                                                        <td colSpan={4}>
-                                                            <div className={styles.emptyStateContainer}>
-                                                                <Inbox size={40} strokeWidth={1} />
-                                                                <span>No Teaching & Learning Activities added yet.</span>
-                                                            </div>
-                                                        </td>
-                                                    </tr>
-                                                )}
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    </section>
-                                }
-                                {selectedSection === 'Criteria for Grading' && (
-                                    <section>
-                                        <React.Suspense fallback={<div>Loading...</div>}>
-                                            <CriteriaForm syllabusCode={code} assessmentOptions={(editableSyllabus?.assessments || []).map(a => a.tlaName)} />
-                                        </React.Suspense>
-                                    </section>
-                                )}
 
                                 <SyllabusPreview
                                     isOpen={isPreviewOpen}

@@ -4,7 +4,7 @@
 // its hours and ILO allocation do not line up [47:53] [48:48], so the program
 // head confirms instead of hand-checking.
 //
-// The alignment data itself is owned by the learning-plan / TOS modules; this
+// The alignment data itself is owned by the Christian learning-plan composition module; this
 // file only reads what their endpoints already return
 // (`/api/course-details/:pcId/:revNum` and `/api/course-coverage/:pcId/:revNum`)
 // and decides whether the submit button may fire. No computation is forked

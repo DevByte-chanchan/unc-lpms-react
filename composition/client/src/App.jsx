@@ -6,11 +6,8 @@ import Syllabus from "./pages/Syllabus.jsx";
 import ReferenceForm from "./pages/ReferenceForm.jsx";
 import TopicForm from "./pages/TopicForm.jsx";
 import TLAForm from "./pages/TLAForm.jsx";
-import AssessmentForm from "./pages/AssessmentForm.jsx";
 import CommentRecorder from "./pages/CommentRecorder.jsx";
 import ILOForm from "./pages/ILOForm.jsx";
-import TOS from "./pages/TOS.jsx";
-import AssignedTOS from "./pages/AssignedTOS.jsx";
 import SyllabusRevisions from "./pages/SyllabusRevisions.jsx";
 import ApprovalCourses from "./pages/ApprovalCourses.jsx";
 import ProgramHead from "./pages/ProgramHead.jsx";
@@ -72,10 +69,6 @@ function App() {
                         <Route path={'/courses/:code/:status'} element={<ErrorBoundary><Syllabus /></ErrorBoundary>} />
                         <Route path={'/revisions/:code'} element={<ErrorBoundary><SyllabusRevisions /></ErrorBoundary>} />
 
-                        {/* --- TOS --- */}
-                        <Route path={'/assignedtos'} element={<ErrorBoundary><AssignedTOS /></ErrorBoundary>} />
-                        <Route path={'/tos/:code'} element={<ErrorBoundary><TOS /></ErrorBoundary>} />
-
                         {/* --- FORMS --- */}
                         <Route path={'/references/form/:iloId/:status'} element={<ErrorBoundary><ReferenceForm /></ErrorBoundary>} />
                         <Route path={'/references/form/:id'} element={<ErrorBoundary><ReferenceForm /></ErrorBoundary>} />
@@ -86,7 +79,6 @@ function App() {
                         <Route path={'/tlas/form/:iloId/:status'} element={<ErrorBoundary><TLAForm /></ErrorBoundary>} />
                         <Route path={'/tlas/form/:code/:iloId/:status'} element={<ErrorBoundary><TLAForm /></ErrorBoundary>} />
                         <Route path={'/ilos/form/:code/:iloId'} element={<ErrorBoundary><ILOForm /></ErrorBoundary>} />
-                        <Route path={'/assessments/form/:code/:assessmentId'} element={<ErrorBoundary><AssessmentForm /></ErrorBoundary>} />
 
                         {/* --- ROLE-BASED APPROVER ROUTES --- */}
                         <Route path={'/role/industry-consultant'} element={<ErrorBoundary><IndustryConsultant /></ErrorBoundary>} />
@@ -115,6 +107,7 @@ function App() {
                         </Route>
                         {/* Instructor role should use instructor course UI when browsing courses */}
                         <Route path="/role/instructor/courses/:courseName" element={<ErrorBoundary><Syllabus /></ErrorBoundary>} />
+                        <Route path="*" element={<Navigate to="/" replace />} />
                     </Routes>
                     </SessionGate>
                 </ErrorBoundary>
