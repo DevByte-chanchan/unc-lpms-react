@@ -35,5 +35,6 @@ test('headers use a classed sign-out action and wrap at mobile width', () => {
   for (const file of ['styles/Header.module.sass', 'styles/HeaderA.module.sass']) {
     assert.match(read(file), /flex-wrap:\s*wrap/)
     assert.match(read(file), /overflow-wrap:\s*anywhere/)
+    assert.match(read(file), /box-sizing:\s*border-box/)
   }
 })

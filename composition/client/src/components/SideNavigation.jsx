@@ -192,7 +192,7 @@ const SideNavigation = ({ mode = 'instructor' }) => {
                             <FileText size={24} /> <span className={styles.listText}>PO & PEO Alignment</span>
                         </div>
 
-                        <div onClick={() => { navigate(routes.coaepUpload()) }} className={`${styles.list} ${selected === 'COAEP' ? styles.selected : ''}`} role="link" tabIndex={0} title="COAEP" aria-label="COAEP" onKeyDown={(event) => activateWithKeyboard(event, () => navigate(routes.coaepUpload()))}>
+                        <div onClick={() => { navigate('/role/program-head/upload-documents') }} className={`${styles.list} ${selected === 'COAEP' ? styles.selected : ''}`} role="link" tabIndex={0} title="COAEP" aria-label="COAEP" onKeyDown={(event) => activateWithKeyboard(event, () => navigate('/role/program-head/upload-documents'))}>
                             <FileText size={24} /> <span className={styles.listText}>COAEP</span>
                         </div>
                     </>
