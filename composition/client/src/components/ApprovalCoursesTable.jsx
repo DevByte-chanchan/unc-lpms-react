@@ -22,7 +22,7 @@ const formatDate = (dateString) => {
     return d.toISOString().split('T')[0];
 };
 
-const ApprovalCoursesTable = ({ role = 'approver' }) => {
+const ApprovalCoursesTable = ({ role = 'approver', styleHooks = {} }) => {
     const currentYear = new Date().getFullYear();
     const startYear = 2000;
     const semOptions = ['1st Sem', '2nd Sem'];
@@ -293,11 +293,11 @@ const ApprovalCoursesTable = ({ role = 'approver' }) => {
     };
 
     return (
-        <div className={styles['courses-table']}>
-            <div className={styles.header}>
+        <div className={`${styles['courses-table']} ${styleHooks.root || ''}`.trim()}>
+            <div className={`${styles.header} ${styleHooks.header || ''}`.trim()}>
                 <h2>ASSIGNED COURSE OFFERINGS</h2>
 
-                <div className={styles.filterA}>
+                <div className={`${styles.filterA} ${styleHooks.filters || ''}`.trim()}>
                     <select
                         className={styles['header-select']}
                         value={selectedYear}

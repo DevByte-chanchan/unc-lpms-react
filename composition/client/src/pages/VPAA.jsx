@@ -13,7 +13,14 @@ const VPAA = () => {
         nav={<SideNavigation mode="vpaa" />}
         content={
           <div className={vpaaStyles.container}>
-            <ApprovalCoursesTable role="vpaa" />
+            <ApprovalCoursesTable
+              role="vpaa"
+              styleHooks={{
+                root: vpaaStyles.courseList,
+                header: vpaaStyles.courseHeader,
+                filters: vpaaStyles.courseFilters,
+              }}
+            />
           </div>
         }
       />

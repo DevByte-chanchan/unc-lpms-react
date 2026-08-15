@@ -385,14 +385,14 @@ const ReferenceLibrary = () => {
 
       {/* Controls */}
       <div className={styles.controlsBar}>
-        <div className={'filter-container'}>
+        <div className={`filter-container ${styles.filterControl}`}>
           <p>Filter by <strong>Department</strong>:</p>
           <select value={filterDepartment} onChange={(e) => { setFilterDepartment(e.target.value); }}>
             <option value="">All Departments</option>
             {allDepartments.map(d => <option key={d} value={d}>{d}</option>)}
           </select>
         </div>
-        <div className={'filter-container'}>
+        <div className={`filter-container ${styles.filterControl}`}>
           <p>Filter by <strong>Type</strong>:</p>
           <select value={filterType} onChange={(e) => setFilterType(e.target.value)}>
             <option value="">All Types</option>
