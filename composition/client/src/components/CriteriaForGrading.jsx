@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import TableScrollRegion from './TableScrollRegion.jsx';
 
 // --- 1. MAIN COMPONENT DEFINITION ---
 const CriteriaForGrading = ({ offeringID, revisionNum, status, styles, stylesB, fetchJson }) => {
@@ -117,7 +118,7 @@ const CriteriaForGrading = ({ offeringID, revisionNum, status, styles, stylesB, 
     // --- 5. RENDER TABLE PREVIEW ---
     return (
         <div className={stylesB.criteriaContainer}>
-            <div className={stylesB.tableScrollWrapper}>
+            <TableScrollRegion label="Criteria for grading" minWidth={900} className={stylesB.tableScrollWrapper}>
                 <table className={stylesB.criteriaTable}>
                     <thead>
                     <tr>
@@ -215,7 +216,7 @@ const CriteriaForGrading = ({ offeringID, revisionNum, status, styles, stylesB, 
                     </tr>
                     </tbody>
                 </table>
-            </div>
+            </TableScrollRegion>
         </div>
     );
 };

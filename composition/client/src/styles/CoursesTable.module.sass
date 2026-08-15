@@ -3,6 +3,8 @@
   display: flex
   flex-direction: column
   width: 100%
+  min-width: 0
+  overflow: hidden
   height: 100%
   min-height: 200px
   gap: 10px
@@ -13,7 +15,9 @@
   display: flex
   width: 100%
   flex-direction: row
-  height: 40px
+  height: auto
+  min-height: 40px
+  flex-wrap: wrap
   align-items: center
   gap: 15px
   margin-bottom: 20px
@@ -24,6 +28,8 @@
 
 .filterA
   display: flex
+  min-width: 0
+  flex-wrap: wrap
   padding: 6px 10px
   gap: 20px
   background: #FFF
@@ -31,6 +37,8 @@
 
 .filter-container
   display: flex
+  min-width: 0
+  flex-wrap: wrap
   align-items: center
   gap: 16px
   font-family: 'Inter', sans-serif
@@ -127,6 +135,38 @@ select option
 .lighten
   //background: #e0e0f1
 
+.detailsPopup
+  position: fixed
+  right: 20px
+  right: var(--details-popup-right, 20px)
+  top: 80px
+  top: var(--details-popup-top, 80px)
+  width: min(340px, calc(100vw - 24px))
+  max-height: calc(100dvh - 100px)
+  overflow: auto
+  z-index: 1200
 
+@media (max-width: 720px)
+  .courses-table
+    padding: 14px 12px
+  .header
+    gap: 10px
+    margin-bottom: 10px
+  .header h2
+    width: 100%
+    font-size: 20px
+    white-space: normal
+  .filterA, .filter-container
+    width: 100%
+  .segmented-control
+    max-width: 100%
+    overflow-x: auto
+  .detailsPopup
+    left: 12px
+    right: 12px
+    top: auto
+    bottom: 12px
+    width: auto
+    max-height: calc(100dvh - 24px)
 
 

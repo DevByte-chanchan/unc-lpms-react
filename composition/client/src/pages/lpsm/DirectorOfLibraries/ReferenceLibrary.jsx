@@ -4,6 +4,7 @@ import SkeletonA from '../../../layouts/SkeletonA.jsx';
 import HeaderA from '../../../components/HeaderA.jsx';
 import SideNavigation from '../../../components/SideNavigation.jsx';
 import AddReferenceModal from '../../../components/AddReferenceModal.jsx';
+import TableScrollRegion from '../../../components/TableScrollRegion.jsx';
 import styles from '../../../styles/ReferenceLibrary.module.scss';
 
 import { getReferences, setReferences, addReference, archiveReference, unarchiveReference } from '../../../utils/referenceLibrary.js';
@@ -428,7 +429,7 @@ const ReferenceLibrary = () => {
       </div>
 
       {/* Table */}
-      <div className={styles.tableWrapper}>
+      <TableScrollRegion label="Reference library" minWidth={980} className={styles.tableWrapper}>
         <table>
           <thead>
             <tr>
@@ -479,7 +480,7 @@ const ReferenceLibrary = () => {
             )}
           </tbody>
         </table>
-      </div>
+      </TableScrollRegion>
 
       {/* ── VIEW MODAL ──────────────────────────────────────────────────── */}
       {viewRef && (

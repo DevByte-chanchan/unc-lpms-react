@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronRight, Inbox } from "react-feather";
+import TableScrollRegion from './TableScrollRegion.jsx';
 
 
 const AssignScheduleModal = ({ isOpen, onClose, onSave, iloId, currentWeeks, currentHours, styles }) => {
@@ -224,7 +225,7 @@ const ILOs = ({ offeringID, revisionNum, status, styles, fetchJson }) => {
 
     return (
         <section>
-            <div className={styles['ilo-container']}>
+            <TableScrollRegion label="Intended learning outcomes" minWidth={840} className={styles['ilo-container']}>
                 <table>
                     <thead>
                     <tr>
@@ -361,7 +362,7 @@ const ILOs = ({ offeringID, revisionNum, status, styles, fetchJson }) => {
                     )}
                     </tbody>
                 </table>
-            </div>
+            </TableScrollRegion>
 
             {/* Mount the modal when activeScheduleIloId is set */}
             {activeScheduleIloId && (

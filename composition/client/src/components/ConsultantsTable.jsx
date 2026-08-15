@@ -1,6 +1,7 @@
 import React from 'react'
 import styles from '../styles/CoursesTable.module.sass'
 import { UserPlus } from 'react-feather'
+import TableScrollRegion from './TableScrollRegion.jsx'
 
 const mockConsultants = [
   { name: 'Dennis Ignacio', department: 'School of Computer and Information Sciences' },
@@ -9,7 +10,7 @@ const mockConsultants = [
 
 const ConsultantsTable = ({ consultants = mockConsultants, onAssign, hideDepartment = false }) => {
   return (
-    <div className={styles['table-container']}>
+    <TableScrollRegion label="Industry Consultant" minWidth={760} className={styles['table-container']}>
       <table>
         <thead style={{ position: 'sticky', top: 0, background: '#FFFFFF', zIndex: 1 }}>
           <tr>
@@ -50,7 +51,7 @@ const ConsultantsTable = ({ consultants = mockConsultants, onAssign, hideDepartm
           ))}
         </tbody>
       </table>
-    </div>
+    </TableScrollRegion>
   )
 }
 

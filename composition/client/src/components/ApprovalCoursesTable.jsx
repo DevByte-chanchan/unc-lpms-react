@@ -6,6 +6,7 @@ import { fetchJson } from "../utils/api.js";
 import { buildSyllabusExportFile } from "../utils/exportSyllabus.js";
 import PDFViewerModal from "./PDFViewerModal.jsx";
 import unclogo from '../assets/unclogo.png';
+import TableScrollRegion from './TableScrollRegion.jsx';
 
 const getProgram = (code) => {
   if (code && code.startsWith('IT ')) return 'Information Technology';
@@ -239,16 +240,13 @@ const ApprovalCoursesTable = ({ role = 'approver' }) => {
         return (
             <>
                 <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 1199 }} />
-                <div style={{
-                    position: 'fixed',
-                    right: pos?.right ?? 20,
-                    top: pos?.top ?? 80,
-                    width: 340,
+                <div className={styles.detailsPopup} style={{
+                    '--details-popup-right': pos ? `${pos.right}px` : undefined,
+                    '--details-popup-top': pos ? `${pos.top}px` : undefined,
                     background: '#fff',
                     border: '1px solid #ddd',
                     borderRadius: 6,
                     boxShadow: '0 6px 18px rgba(0,0,0,0.12)',
-                    zIndex: 1200,
                     padding: 12
                 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
@@ -341,7 +339,11 @@ const ApprovalCoursesTable = ({ role = 'approver' }) => {
                 )}
             </div>
 
-            <div className={styles['table-container']}>
+            <TableScrollRegion
+                label="Assigned course offerings"
+                minWidth={900}
+                className={styles['table-container']}
+            >
                 {loading && <div>Loading...</div>}
 
                 {selectedStatus === 'APPROVED' &&
@@ -431,7 +433,7 @@ const ApprovalCoursesTable = ({ role = 'approver' }) => {
                         </tbody>
                     </table>
                 }
-            </div>
+            </TableScrollRegion>
 
             {popup.open && popup.data && <DetailsPopup data={popup.data} onClose={closePopup} pos={popup.pos} />}
 

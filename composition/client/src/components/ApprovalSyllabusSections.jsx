@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef, useMemo } from 'react'
 import { Link, useSearchParams, useParams, useNavigate, useLocation } from 'react-router-dom'
 import { ChevronLeft, MessageSquare, Download, MoreVertical, Check, Clock, FileText } from 'react-feather'
 import EmptyState from './EmptyState.jsx'
+import TableScrollRegion from './TableScrollRegion.jsx'
 import styles from '../styles/ApprovalSyllabusSections.module.sass'
 import subStyles from '../styles/SyllabusSections.module.sass'
 import stylesB from '../styles/SyllabusPreview.module.sass'
@@ -1125,7 +1126,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
 
             {activeSelectedSection === 'Course Details' && (resolvedCourse?.code || resolvedCourse?.name) && (
               <section ref={courseDetailsRef}>
-                <div className={stylesB.courseDetailsContainer}>
+                <TableScrollRegion label="Course details" minWidth={720} className={stylesB.courseDetailsContainer}>
                   <table className={stylesB.documentTable}>
                     <tbody>
                     <tr>
@@ -1148,7 +1149,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
                     <tr><th className={stylesB.labelCell}>Term</th><td className={stylesB.valueCell}>{resolvedCourse?.sem || ''}</td></tr>
                     </tbody>
                   </table>
-                </div>
+                </TableScrollRegion>
               </section>
             )}
 

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import TableScrollRegion from './TableScrollRegion.jsx';
 import {Inbox} from "react-feather";
 
 const OutcomeAlignment = ({ offeringID, revisionNum, styles, stylesB, fetchJson }) => {
@@ -58,7 +59,11 @@ const OutcomeAlignment = ({ offeringID, revisionNum, styles, stylesB, fetchJson 
                     </div>
                 </div>
 
-                <div style={{ border: "none" }} className={stylesB.tableScrollWrapper}>
+                <TableScrollRegion
+                    label="Course and program outcome alignment"
+                    minWidth={1000}
+                    className={stylesB.tableScrollWrapper}
+                >
                     <table className={stylesB.alignmentTable}>
                         <thead>
                         <tr>
@@ -107,7 +112,7 @@ const OutcomeAlignment = ({ offeringID, revisionNum, styles, stylesB, fetchJson 
                         )}
                         </tbody>
                     </table>
-                </div>
+                </TableScrollRegion>
             </div>
         </section>
     );

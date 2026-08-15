@@ -9,6 +9,7 @@ import { getAllPrograms, getProgramCourses, getCoPoData, saveCoPoData } from '..
 import unclogo from '../../../assets/unclogo.png';
 import { FONT, BTN_DARK, BTN_OUTLINE, BTN_DANGER, TH, THC, TD, TDC } from './uiTokens.js';
 import tbl from '../../../styles/AlignmentTables.module.sass';
+import TableScrollRegion from '../../../components/TableScrollRegion.jsx';
 
 const poLabels = ['PO1', 'PO2', 'PO3', 'PO4', 'PO5', 'PO6', 'PO7', 'PO8', 'PO9', 'PO10', 'PO11', 'PO12', 'PO13']
 
@@ -130,7 +131,7 @@ const CoPoAlignment = () => {
         {editing && <span style={{ marginLeft: 'auto', color: '#64748b' }}>Click a cell to cycle: blank → I → E → D</span>}
       </div>
 
-      <div style={{ overflow: 'auto', flex: 1 }}>
+      <TableScrollRegion label="COURSE OUTCOMES & PO ALIGNMENT" minWidth={960}>
         <table className={tbl.alignTable}>
           <colgroup>
             <col />
@@ -165,7 +166,7 @@ const CoPoAlignment = () => {
             )}
           </tbody>
         </table>
-      </div>
+      </TableScrollRegion>
 
       {selectedFile && (
         <PDFViewerModal

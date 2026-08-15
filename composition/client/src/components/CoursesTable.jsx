@@ -6,6 +6,7 @@ import { fetchJson } from "../utils/api.js";
 import { buildSyllabusExportFile } from "../utils/exportSyllabus.js";
 import PDFViewerModal from "./PDFViewerModal.jsx";
 import unclogo from '../assets/unclogo.png';
+import TableScrollRegion from './TableScrollRegion.jsx';
 
 // --- Custom Date Formatters to Ensure Global Consistency ---
 const formatDate = (dateString) => {
@@ -245,16 +246,11 @@ const CoursesTable = () => {
         if (!data) return null;
         const { submittedAt, approverStatuses } = data;
         return (
-            <div style={{
-                position: 'fixed',
-                right: 20,
-                top: 80,
-                width: 340,
+            <div className={styles.detailsPopup} style={{
                 background: '#fff',
                 border: '1px solid #ddd',
                 borderRadius: 6,
                 boxShadow: '0 6px 18px rgba(0,0,0,0.12)',
-                zIndex: 1200,
                 padding: 12
             }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
@@ -333,7 +329,11 @@ const CoursesTable = () => {
                 </div>
             </div>
 
-            <div className={styles['table-container']}>
+            <TableScrollRegion
+                label="Assigned course offerings"
+                minWidth={900}
+                className={styles['table-container']}
+            >
                 {loading && <div>Loading...</div>}
 
                 {/* DRAFT and APPROVED TABLE */}
@@ -438,7 +438,7 @@ const CoursesTable = () => {
                         </tbody>
                     </table>
                 }
-            </div>
+            </TableScrollRegion>
 
             {popup.open && <DetailsPopup data={popup.data} onClose={closePopup} />}
 

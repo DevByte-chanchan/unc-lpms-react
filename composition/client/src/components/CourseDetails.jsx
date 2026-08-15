@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import TableScrollRegion from './TableScrollRegion.jsx';
 
 
 const CourseDetails = ({ offeringID, revisionNum, stylesB, fetchJson }) => {
@@ -57,7 +58,7 @@ const CourseDetails = ({ offeringID, revisionNum, stylesB, fetchJson }) => {
 
     return (
         <section>
-            <div className={stylesB.courseDetailsContainer}>
+            <TableScrollRegion label="Course details" minWidth={720} className={stylesB.courseDetailsContainer}>
                 <table className={stylesB.documentTable}>
                     <tbody>
                     <tr>
@@ -115,7 +116,7 @@ const CourseDetails = ({ offeringID, revisionNum, stylesB, fetchJson }) => {
                     </tr>
                     </tbody>
                 </table>
-            </div>
+            </TableScrollRegion>
         </section>
     );
 };

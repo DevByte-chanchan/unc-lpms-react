@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import styles from '../styles/CoursesTable.module.sass'
 import { ChevronRight } from 'react-feather'
 import { UserPlus } from 'react-feather'
+import TableScrollRegion from './TableScrollRegion.jsx'
 
 const mockPrograms = [
   { code: 'BSIT', name: 'Bachelor of Science in Information Technology', head: '' },
@@ -11,7 +12,7 @@ const mockPrograms = [
 
 const ProgramsTable = ({ programs = mockPrograms, onAssign }) => {
   return (
-    <div className={styles['table-container']}>
+    <TableScrollRegion label="Programs" minWidth={760} className={styles['table-container']}>
       <table>
         <thead>
           <tr>
@@ -42,7 +43,7 @@ const ProgramsTable = ({ programs = mockPrograms, onAssign }) => {
           ))}
         </tbody>
       </table>
-    </div>
+    </TableScrollRegion>
   )
 }
 

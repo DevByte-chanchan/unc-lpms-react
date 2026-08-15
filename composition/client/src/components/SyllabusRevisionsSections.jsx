@@ -7,6 +7,7 @@ import TextArea from "./TextArea.jsx";
 import {Link, useParams, useSearchParams} from "react-router-dom";
 import {getSyllabusByCode, syllabiData} from "../data/syllabiData.js";
 import SyllabusPreview from "./SyllabusPreview.jsx";
+import TableScrollRegion from './TableScrollRegion.jsx';
 
 const SyllabusRevisionsSections = ({status}) => {
 
@@ -292,6 +293,7 @@ const SyllabusRevisionsSections = ({status}) => {
                                                 </div>
                                             </div>
 
+                                            <TableScrollRegion label="Course and Program Outcome Alignment" minWidth={760}>
                                             <table>
                                                 <thead>
                                                 <tr>
@@ -334,6 +336,7 @@ const SyllabusRevisionsSections = ({status}) => {
                                                 ))}
                                                 </tbody>
                                             </table>
+                                            </TableScrollRegion>
 
                                         </div>
                                     </section>
@@ -367,6 +370,7 @@ const SyllabusRevisionsSections = ({status}) => {
                                                 </Link>
                                             </div>
 
+                                            <TableScrollRegion label="References" minWidth={760}>
                                             <table>
                                                 <thead>
                                                 <tr>
@@ -400,6 +404,7 @@ const SyllabusRevisionsSections = ({status}) => {
                                                 )}
                                                 </tbody>
                                             </table>
+                                            </TableScrollRegion>
                                         </div>
                                     </section>
                                 }
@@ -422,6 +427,7 @@ const SyllabusRevisionsSections = ({status}) => {
                                                 </Link>
                                             </div>
 
+                                            <TableScrollRegion label="Topics" minWidth={760}>
                                             <table>
                                                 <thead>
                                                 <tr>
@@ -453,6 +459,7 @@ const SyllabusRevisionsSections = ({status}) => {
                                                 )}
                                                 </tbody>
                                             </table>
+                                            </TableScrollRegion>
                                         </div>
                                     </section>
                                 }
@@ -460,6 +467,7 @@ const SyllabusRevisionsSections = ({status}) => {
                                 {selectedSection === 'Intended Learning Outcomes' &&
                                     <section>
                                         <div className={styles['ilo-container']}>
+                                            <TableScrollRegion label="Intended Learning Outcomes" minWidth={760}>
                                             <table>
                                                 <thead>
                                                 <tr>
@@ -491,6 +499,7 @@ const SyllabusRevisionsSections = ({status}) => {
                                                 )}
                                                 </tbody>
                                             </table>
+                                            </TableScrollRegion>
                                         </div>
                                     </section>
                                 }

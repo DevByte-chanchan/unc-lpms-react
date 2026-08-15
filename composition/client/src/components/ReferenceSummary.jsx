@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { BookOpen } from 'react-feather';
 import { unresolvedCountsByReference, iloIdsFromCourse } from '../utils/referenceComments.js';
 import EmptyState from './EmptyState.jsx';
+import TableScrollRegion from './TableScrollRegion.jsx';
 
 const REFERENCE_VIEWS = [
     { value: 'Textbook', label: 'TEXTBOOKS', prefix: 'TB', identifier: 'ISBN', empty: 'No textbooks attached to this plan' },
@@ -124,7 +125,7 @@ const ReferenceSummary = ({ offeringID, revisionNum, status, selectedSection, st
                 </select>
             </div>
 
-            <div className={stylesB.refScrollWrapper} role="region" aria-label={`${activeView.label} table`} tabIndex={0}>
+            <TableScrollRegion label={`${activeView.label} table`} minWidth={760} className={stylesB.refScrollWrapper}>
                 <table className={stylesB.refTable}>
                     <thead>
                         <tr><th>ID</th><th>TITLE</th><th>AUTHOR/S</th><th>{activeView.identifier}</th><th>YEAR</th></tr>
@@ -162,7 +163,7 @@ const ReferenceSummary = ({ offeringID, revisionNum, status, selectedSection, st
                         })}
                     </tbody>
                 </table>
-            </div>
+            </TableScrollRegion>
         </div>
     );
 };

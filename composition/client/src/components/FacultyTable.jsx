@@ -2,6 +2,7 @@
 import styles from '../styles/CoursesTable.module.sass';
 import { ChevronRight } from 'react-feather';
 import { Link } from 'react-router-dom';
+import TableScrollRegion from './TableScrollRegion.jsx';
 
 const mockFaculty = [
   { name: 'Agnes R. Trillanes', department: 'SCIS', role: 'Dean' },
@@ -12,7 +13,7 @@ const mockFaculty = [
 
 const FacultyTable = ({ faculty = mockFaculty, onView, hideDepartment = false }) => {
   return (
-    <div className={styles['table-container']}>
+    <TableScrollRegion label="Faculty" minWidth={760} className={styles['table-container']}>
       <table>
         <thead>
           <tr>
@@ -43,7 +44,7 @@ const FacultyTable = ({ faculty = mockFaculty, onView, hideDepartment = false })
           ))}
         </tbody>
       </table>
-    </div>
+    </TableScrollRegion>
   )
 }
 

@@ -5,6 +5,7 @@ import SideNavigation from "../components/SideNavigation.jsx";
 import { Clock, Search, ArrowUp, ArrowDown, Upload, Sliders, Clipboard, Briefcase, ChevronRight, X } from "react-feather";
 import ConsultantsTable from '../components/ConsultantsTable.jsx'
 import styles from '../styles/CoursesTable.module.sass'
+import TableScrollRegion from '../components/TableScrollRegion.jsx'
 
 import syllabusStyles from '../styles/SyllabusSections.module.sass'
 
@@ -161,7 +162,11 @@ const ProgramHeadCourseOfferings = () => {
             )}
 
             {showTable && coursesList.length > 0 && (
-                <div className={styles['table-container']} style={{ maxHeight: 700, overflowY: 'auto', paddingBottom: 16 }}>
+                <TableScrollRegion
+                    label="Course Offerings"
+                    minWidth={760}
+                    className={styles['table-container']}
+                >
                     <table style={{ width: '100%' }}>
                         <thead style={{ position: 'sticky', top: 0, background: '#FFFFFF', zIndex: 1 }}>
                             <tr>
@@ -192,7 +197,7 @@ const ProgramHeadCourseOfferings = () => {
                             ))}
                         </tbody>
                     </table>
-                </div>
+                </TableScrollRegion>
             )}
 
             {/* Empty state when no courses */}

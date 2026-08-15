@@ -10,6 +10,7 @@ import unclogo from '../../../assets/unclogo.png';
 import { FONT, BTN_DARK, BTN_OUTLINE, BTN_DANGER, TH, THC, TD, TDC } from './uiTokens.js';
 import { fetchJson } from '../../../utils/api.js';
 import tbl from '../../../styles/AlignmentTables.module.sass';
+import TableScrollRegion from '../../../components/TableScrollRegion.jsx';
 
 const CURRENT_YEAR = new Date().getFullYear()
 
@@ -206,7 +207,7 @@ const COAEPUpload = () => {
 
       {effectiveRecord ? (
         // Table view — same design as CO-PO / PO-PEO alignment pages
-        <div style={{ overflow: 'auto', flex: 1 }}>
+        <TableScrollRegion label="COURSE ASSESSMENT & EVALUATION PLAN (COAEP)" minWidth={960}>
           <table className={tbl.alignTable}>
             <colgroup>
               <col style={{ width: 40 }} />
@@ -239,7 +240,7 @@ const COAEPUpload = () => {
               })}
             </tbody>
           </table>
-        </div>
+        </TableScrollRegion>
       ) : (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1, color: '#9CA3AF', fontSize: 16 }}>
           This course has no composed learning plan yet — COAEP content will appear once its COs and ILOs exist.

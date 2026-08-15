@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import TableScrollRegion from './TableScrollRegion.jsx';
 
 const TlaGroup = ({ title, tlas, stylesB }) => {
     if (!tlas || tlas.length === 0) return null;
@@ -145,7 +146,7 @@ const CourseCoverage = ({ offeringID, revisionNum, status, selectedSection, styl
 
     return (
         <div className={stylesB.ccContainer}>
-            <div className={stylesB.ccScrollWrapper}>
+            <TableScrollRegion label="Course coverage" minWidth={1100} className={stylesB.ccScrollWrapper}>
                 <table className={stylesB.ccTable}>
                     <thead>
                     <tr>
@@ -305,7 +306,7 @@ const CourseCoverage = ({ offeringID, revisionNum, status, selectedSection, styl
                     })()} {/* <-- Add this closing signature right before </tbody> */}
                     </tbody>
                 </table>
-            </div>
+            </TableScrollRegion>
         </div>
     );
 };

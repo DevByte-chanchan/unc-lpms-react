@@ -8,6 +8,7 @@ import { buildPoPeoHtml } from '../../../utils/syllabusPdfHtml.js';
 import { getAllPrograms, getProgramName, getPoPeoData, savePoPeoData } from '../../../utils/programCurriculumData.js';
 import unclogo from '../../../assets/unclogo.png';
 import tbl from '../../../styles/AlignmentTables.module.sass';
+import TableScrollRegion from '../../../components/TableScrollRegion.jsx';
 
 const GAS_LABELS = ['EC', 'CL', 'ERC', 'LL']
 
@@ -105,7 +106,7 @@ const PoPeoAlignment = () => {
         )}
       </div>
 
-      <div style={{ overflow: 'auto', flex: 1 }}>
+      <TableScrollRegion label="PROGRAM OUTCOMES & PEO ALIGNMENT" minWidth={960}>
         <table className={tbl.alignTable}>
           <colgroup>
             <col style={{ width: 40 }} />
@@ -160,7 +161,7 @@ const PoPeoAlignment = () => {
             ))}
           </tbody>
         </table>
-      </div>
+      </TableScrollRegion>
 
       {selectedFile && (
         <PDFViewerModal
