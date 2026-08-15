@@ -17,8 +17,7 @@ const Header = ({name, role}) => {
                 <div className={styles.role}> {session?.roleLabel || role} </div>
             </div>
             {session &&
-                <button type="button" onClick={logout} title="Sign out"
-                        style={{ marginLeft: 12, padding: '4px 10px', fontSize: 12, border: '1px solid #d5d9dd', background: 'transparent', borderRadius: 6, cursor: 'pointer', color: 'inherit' }}>
+                <button type="button" onClick={logout} title="Sign out" className={styles.signOut}>
                     Sign out
                 </button>
             }

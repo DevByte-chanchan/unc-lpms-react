@@ -3,57 +3,58 @@
 
 .main-layout
   width: 100%
-  height: 100%
+  height: 100dvh
+  min-height: 100dvh
   background: #F3F4F6
   display: flex
-  flex-direction: row
   gap: 10px
+  overflow: hidden
 
 .left
+  flex: 0 0 90px
   background: white
   width: 90px
   min-width: 90px
-  height: 100%
+  height: 100dvh
 
 .left:hover
+  flex-basis: 280px
   min-width: 280px
-  transition: ease 0.4s
+  transition: flex-basis .4s ease, min-width .4s ease
 
 .right
   background: #F3F4F6
-  flex-grow: 1
-  min-width: 300px
+  flex: 1 1 auto
+  min-width: 0
+  min-height: 0
   height: 100%
   display: flex
   flex-direction: column
   gap: 6px
+  overflow: hidden
 
 .up
+  flex: 0 0 auto
   min-height: 70px
-  height: 70px
-  width: 100%
+  height: auto
   background: white
-  //overflow: hidden
 
 .down
-  flex-grow: 1
+  flex: 1 1 auto
   width: 100%
+  min-width: 0
+  min-height: 0
+  overflow-x: hidden
   overflow-y: auto
-  //background: white
 
-//.popup
-//  display: flex
-//  width: 100%
-//  height: 100%
-//  position: absolute
-//  justify-content: center
-//  align-items: center
-//
-//.form
-//  display: flex
-//  width: 500px
-//  height: 500px
-//  background: green
+@media (max-width: 1024px)
+  .main-layout
+    gap: 6px
 
+  .left, .left:hover
+    flex: 0 0 72px
+    width: 72px
+    min-width: 72px
+    max-width: 72px
 
 

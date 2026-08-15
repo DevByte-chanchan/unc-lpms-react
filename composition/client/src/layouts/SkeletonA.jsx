@@ -1,32 +1,18 @@
 import styles from '../styles/SkeletonA.module.sass'
 
 const SkeletonA = ({ nav, header, content }) => {
-    // const [formVisibility, setFormVisibility] = useState(false)
-    //
-    // const handleFormVisibilityChange = (event) => {
-    //
-    // }
-
     return(
-        <div className={styles['main-layout']}>
-            <div  className={styles.left}>
+        <div className={styles['main-layout']} data-layout-shell>
+            <div className={styles.left} data-layout-nav>
                 {nav}
             </div>
             <div className={styles.right}>
                 <div className={styles.up}>
                     {header}
                 </div>
-                <div className={styles.down}>
+                <div className={styles.down} data-layout-content>
                     {content}
                 </div>
-                {/*{formVisibility === true &&*/}
-                {/*    <div className={styles.popup}>*/}
-                {/*        <div className={styles.form}>*/}
-                {/*            {form}*/}
-                {/*        </div>*/}
-                {/*    </div>*/}
-                {/*}*/}
-
             </div>
         </div>
     )

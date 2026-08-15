@@ -4,6 +4,7 @@ import { FileText, LogOut, BookOpen, Upload } from 'react-feather'
 import { useSearchParams, useNavigate, useLocation } from 'react-router-dom'
 import { useEffect, useRef, useState } from 'react'
 import { logout } from '../utils/session'
+import { routes } from '../utils/routes.js';
 
 const SideNavigation = ({ mode = 'instructor' }) => {
     const navigate = useNavigate()
@@ -63,6 +64,12 @@ const SideNavigation = ({ mode = 'instructor' }) => {
     }
 
     const onLogoutClick = () => setShowPopup((prev) => !prev)
+    const activateWithKeyboard = (event, action) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault()
+            action()
+        }
+    }
 
     // Log Out used to open a "Select role" list that jumped straight into
     // another role's view — that is the mid-flow account switch the panel saw
@@ -162,6 +169,11 @@ const SideNavigation = ({ mode = 'instructor' }) => {
                     <div
                         onClick={() => handlePageChange('Syllabus')}
                         className={`${styles.list} ${selected === 'Syllabus' ? styles.selected : ''}`}
+                        role="link"
+                        tabIndex={0}
+                        title="Learning Plan"
+                        aria-label="Learning Plan"
+                        onKeyDown={(event) => activateWithKeyboard(event, () => handlePageChange('Syllabus'))}
                     >
                         <FileText size={24} />
                         <span className={styles.listText}>Learning Plan</span>
@@ -172,15 +184,15 @@ const SideNavigation = ({ mode = 'instructor' }) => {
 
                 {mode === 'program-head' && (
                     <>
-                        <div onClick={() => { navigate('/role/program-head/co-po-alignment') }} className={`${styles.list} ${selected === 'CO & PO Alignment' ? styles.selected : ''}`}>
+                        <div onClick={() => { navigate('/role/program-head/co-po-alignment') }} className={`${styles.list} ${selected === 'CO & PO Alignment' ? styles.selected : ''}`} role="link" tabIndex={0} title="CO & PO Alignment" aria-label="CO & PO Alignment" onKeyDown={(event) => activateWithKeyboard(event, () => navigate('/role/program-head/co-po-alignment'))}>
                             <FileText size={24} /> <span className={styles.listText}>CO & PO Alignment</span>
                         </div>
 
-                        <div onClick={() => { navigate('/role/program-head/po-peo-alignment') }} className={`${styles.list} ${selected === 'PO & PEO Alignment' ? styles.selected : ''}`}>
+                        <div onClick={() => { navigate('/role/program-head/po-peo-alignment') }} className={`${styles.list} ${selected === 'PO & PEO Alignment' ? styles.selected : ''}`} role="link" tabIndex={0} title="PO & PEO Alignment" aria-label="PO & PEO Alignment" onKeyDown={(event) => activateWithKeyboard(event, () => navigate('/role/program-head/po-peo-alignment'))}>
                             <FileText size={24} /> <span className={styles.listText}>PO & PEO Alignment</span>
                         </div>
 
-                        <div onClick={() => { navigate('/role/program-head/upload-documents') }} className={`${styles.list} ${selected === 'COAEP' ? styles.selected : ''}`}>
+                        <div onClick={() => { navigate(routes.coaepUpload()) }} className={`${styles.list} ${selected === 'COAEP' ? styles.selected : ''}`} role="link" tabIndex={0} title="COAEP" aria-label="COAEP" onKeyDown={(event) => activateWithKeyboard(event, () => navigate(routes.coaepUpload()))}>
                             <FileText size={24} /> <span className={styles.listText}>COAEP</span>
                         </div>
                     </>
@@ -188,10 +200,10 @@ const SideNavigation = ({ mode = 'instructor' }) => {
 
                 {mode === 'director-of-libraries' && (
                     <>
-                        <div onClick={() => { navigate('/role/director-of-libraries/reference-library') }} className={`${styles.list} ${selected === 'Reference Library' ? styles.selected : ''}`}>
+                        <div onClick={() => { navigate('/role/director-of-libraries/reference-library') }} className={`${styles.list} ${selected === 'Reference Library' ? styles.selected : ''}`} role="link" tabIndex={0} title="Reference Library" aria-label="Reference Library" onKeyDown={(event) => activateWithKeyboard(event, () => navigate('/role/director-of-libraries/reference-library'))}>
                             <BookOpen size={24} /> <span className={styles.listText}>Reference Library</span>
                         </div>
-                        <div onClick={() => { navigate('/role/director-of-libraries/course-catalog') }} className={`${styles.list} ${selected === 'Course Catalog' ? styles.selected : ''}`}>
+                        <div onClick={() => { navigate('/role/director-of-libraries/course-catalog') }} className={`${styles.list} ${selected === 'Course Catalog' ? styles.selected : ''}`} role="link" tabIndex={0} title="Course Catalog" aria-label="Course Catalog" onKeyDown={(event) => activateWithKeyboard(event, () => navigate('/role/director-of-libraries/course-catalog'))}>
                             <Upload size={24} /> <span className={styles.listText}>Course Catalog</span>
                         </div>
                     </>
@@ -201,14 +213,14 @@ const SideNavigation = ({ mode = 'instructor' }) => {
 
                 {mode === 'vpaa' && (
                     <>
-                        <div onClick={() => { navigate('/role/vpaa?page=Approved%20Plans') }} className={`${styles.list} ${selected === 'Approved Plans' ? styles.selected : ''}`}>
+                        <div onClick={() => { navigate('/role/vpaa?page=Approved%20Plans') }} className={`${styles.list} ${selected === 'Approved Plans' ? styles.selected : ''}`} role="link" tabIndex={0} title="Approved Plans" aria-label="Approved Plans" onKeyDown={(event) => activateWithKeyboard(event, () => navigate('/role/vpaa?page=Approved%20Plans'))}>
                             <FileText size={24} /> <span className={styles.listText}>Approved Plans</span>
                         </div>
                     </>
                 )}
 
                 <div className={styles.logoutWrapper} ref={logoutRef}>
-                    <div className={styles.listB} onClick={onLogoutClick}>
+                    <div className={styles.listB} onClick={onLogoutClick} role="button" tabIndex={0} title="Log out" aria-label="Log out" onKeyDown={(event) => activateWithKeyboard(event, onLogoutClick)}>
                         <LogOut size={24} color={'#F94545'} /> <span className={styles.listText}>Log Out</span>
                     </div>
 

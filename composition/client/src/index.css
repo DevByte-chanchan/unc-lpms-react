@@ -19,6 +19,7 @@ h2{
 }
 
 :root {
+    min-width: 0;
     height: 100vh;
     height: 100dvh;
     overflow: hidden;
@@ -38,6 +39,7 @@ body {
 
 #root {
     width: 100%;
+    min-width: 0;
     height: 100%;
     display: flex;
     flex-direction: column;
@@ -132,6 +134,7 @@ th, td {
     justify-content: flex-end;
     align-items: center;
     color: black;
+    min-width: 0;
 
 }
 .filter-container p{
@@ -153,6 +156,25 @@ th, td {
     display: flex;
     flex-grow: 1;
     align-items: center;
+    min-width: 0;
+}
+
+@media (max-width: 720px) {
+    .filter-container {
+        height: auto;
+        flex-wrap: wrap;
+        justify-content: flex-start;
+        gap: 8px;
+    }
+
+    .filter-container select {
+        margin-left: 0;
+    }
+
+    .search-container {
+        flex: 1 1 100%;
+        width: 100%;
+    }
 }
 
 .search-container .search-bar{
@@ -236,4 +258,3 @@ th, td {
     width: 20px;
     height: 20px;
 }
-

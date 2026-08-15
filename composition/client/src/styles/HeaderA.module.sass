@@ -2,31 +2,62 @@
 
 .header
   width: 100%
-  height: 100%
+  min-height: 70px
+  height: auto
   display: flex
-  flex-direction: row
-  padding: 10px 30px 10px 10px
+  align-items: center
+  flex-wrap: wrap
+  gap: 12px
+  padding: 10px 30px
 
 .department
-  flex-grow: 1
-  height: 100%
-  display: flex
+  flex: 1 1 40px
+  min-width: 0
 
 .info
-  height: 100%
-  width: max-content
+  flex: 0 1 auto
+  min-width: 0
+  height: auto
   display: flex
   flex-direction: column
-  align-items: end
+  align-items: flex-end
   justify-content: center
   gap: 0
 
 .name
   font-weight: 500
   font-size: 16px
+  max-width: 100%
+  text-align: right
+  overflow-wrap: anywhere
 
 .role
   font-weight: 400
   font-size: 16px
   color: #DC2626
+  max-width: 100%
+  text-align: right
+  overflow-wrap: anywhere
 
+.signOut
+  flex: 0 0 auto
+  padding: 4px 10px
+  font-size: 12px
+  border: 1px solid #d5d9dd
+  background: transparent
+  color: inherit
+
+@media (max-width: 720px)
+  .header
+    padding: 8px 12px
+
+  .department
+    display: none
+
+  .info
+    flex: 1 1 160px
+    align-items: flex-start
+
+  .name, .role
+    text-align: left
+    font-size: 14px
