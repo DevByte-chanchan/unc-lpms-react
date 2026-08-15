@@ -1,7 +1,7 @@
 const path = require('path');
 const config = require('./config/config.json').development;
 const Sequelize = require('sequelize');
-const { convertNumberedPlaceholders } = require('./utils/sqlPlaceholders');
+const { prepareNumberedStatement } = require('./utils/sqlPlaceholders');
 
 const compat = require('./sqlite3-compat');
 const B = require('better-sqlite3');
@@ -12,20 +12,15 @@ const raw = new B(config.storage);
 raw.pragma('journal_mode=WAL');
 raw.pragma('foreign_keys=ON');
 
-const _pos = [];
-const toArgs = (params) => {
+const toArgs = (params, positions = []) => {
   if (!params || params.length === 0 || Array.isArray(params[0])) return params;
   if (params.length === 1 && typeof params[0] === 'object' && params[0] !== null) {
     const obj = params[0];
-    return _pos.length ? _pos.slice(0, _pos.length).map(n => obj[`$${n}`] ?? obj[n] ?? null) : Object.values(obj);
+    return positions.length ? positions.map(n => obj[`$${n}`] ?? obj[n] ?? null) : Object.values(obj);
   }
   return params;
 };
-const prep = (sql) => {
-  const converted = convertNumberedPlaceholders(sql);
-  _pos.splice(0, _pos.length, ...converted.positions);
-  return raw.prepare(converted.sql);
-};
+const prep = (sql) => prepareNumberedStatement(raw, sql);
 const makeStatement = (stmt) => Object.defineProperty(
   { lastID: stmt?.lastInsertRowid, changes: stmt?.changes },
   'constructor',
@@ -35,22 +30,25 @@ const makeStatement = (stmt) => Object.defineProperty(
 const wrapConnection = {
   run(sql, ...args) {
     const cb = typeof args[args.length - 1] === 'function' ? args.pop() : null;
-    const stmt = prep(sql);
-    const p = toArgs(args);
+    const prepared = prep(sql);
+    const stmt = prepared.statement;
+    const p = toArgs(args, prepared.positions);
     try { const r = stmt.run(...p); const s = makeStatement(r); cb?.call(s, null); return s; }
     catch (e) { cb?.call({}, e); throw e; }
   },
   get(sql, ...args) {
     const cb = typeof args[args.length - 1] === 'function' ? args.pop() : null;
-    const stmt = prep(sql);
-    const p = toArgs(args);
+    const prepared = prep(sql);
+    const stmt = prepared.statement;
+    const p = toArgs(args, prepared.positions);
     try { const r = stmt.get(...p); cb?.call(makeStatement(), null, r ?? undefined); return r ?? undefined; }
     catch (e) { cb?.call({}, e); throw e; }
   },
   all(sql, ...args) {
     const cb = typeof args[args.length - 1] === 'function' ? args.pop() : null;
-    const stmt = prep(sql);
-    const p = toArgs(args);
+    const prepared = prep(sql);
+    const stmt = prepared.statement;
+    const p = toArgs(args, prepared.positions);
     try {
       const r = stmt.all(...p);
       cb?.call(makeStatement(), null, r);
@@ -66,12 +64,14 @@ const wrapConnection = {
     }
   },
   prepare(sql) {
-    const stmt = prep(sql);
+    const prepared = prep(sql);
+    const stmt = prepared.statement;
+    const positions = prepared.positions;
     return {
-      run: (...args) => { const r = stmt.run(...toArgs(args)); return makeStatement(r); },
-      get: (...args) => stmt.get(...toArgs(args)) ?? undefined,
+      run: (...args) => { const r = stmt.run(...toArgs(args, positions)); return makeStatement(r); },
+      get: (...args) => stmt.get(...toArgs(args, positions)) ?? undefined,
       all: (...args) => {
-        const p = toArgs(args);
+        const p = toArgs(args, positions);
         try { return stmt.all(...p); } catch (e) { if (e.message?.includes('does not return data')) { stmt.run(...p); return []; } throw e; }
       },
       bind: () => ({ run: () => ({}), get: () => undefined, all: () => [] }),

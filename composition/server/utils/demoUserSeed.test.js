@@ -110,7 +110,69 @@ const verifyPassword = async (password, stored) => stored === await hashPassword
         );
     }
 
-    console.log('1 demo-user seed orchestration check passed.');
+    const validPayload = await hashPassword('not-the-demo-password');
+    const [, , r, p, saltHex, hashHex] = validPayload.split('$');
+    const invalidParameterRows = [
+        {
+            name: DEMO_USERS[0].name,
+            email: DEMO_USERS[0].email,
+            role: DEMO_USERS[0].role,
+            password_hash: `scrypt$3$${r}$${p}$${saltHex}$${hashHex}`
+        },
+        {
+            name: DEMO_USERS[1].name,
+            email: DEMO_USERS[1].email,
+            role: DEMO_USERS[1].role,
+            password_hash: `scrypt$9007199254740992$${r}$${p}$${saltHex}$${hashHex}`
+        },
+        {
+            name: DEMO_USERS[2].name,
+            email: DEMO_USERS[2].email,
+            role: DEMO_USERS[2].role,
+            password_hash: `scrypt$16384$9007199254740992$${p}$${saltHex}$${hashHex}`
+        },
+        {
+            name: DEMO_USERS[3].name,
+            email: DEMO_USERS[3].email,
+            role: DEMO_USERS[3].role,
+            password_hash: `scrypt$16384$${r}$9007199254740992$${saltHex}$${hashHex}`
+        }
+    ];
+    const invalidParameterQueryInterface = {
+        sequelize: {
+            async query() {
+                return [invalidParameterRows.map(({ email, password_hash }) => ({ email, password_hash }))];
+            }
+        },
+        async bulkInsert(table, inserted) {
+            assert.strictEqual(table, 'Users');
+            invalidParameterRows.push(...inserted.map(row => ({ ...row })));
+        },
+        async bulkUpdate(table, values, where) {
+            assert.strictEqual(table, 'Users');
+            const row = invalidParameterRows.find(candidate => candidate.email === where.email);
+            assert(row, `repair target should exist: ${where.email}`);
+            Object.assign(row, values);
+        }
+    };
+
+    await seedDemoUsers({
+        queryInterface: invalidParameterQueryInterface,
+        demoUsers: DEMO_USERS,
+        demoPassword: DEMO_PASSWORD,
+        hashPassword
+    });
+
+    for (const demo of DEMO_USERS) {
+        const repaired = invalidParameterRows.find(row => row.email === demo.email);
+        assert.strictEqual(
+            await verifyPassword(DEMO_PASSWORD, repaired.password_hash),
+            true,
+            `unsafe scrypt parameters should be repaired: ${demo.email}`
+        );
+    }
+
+    console.log('2 demo-user seed orchestration checks passed.');
 })().catch(error => {
     console.error(error);
     process.exit(1);

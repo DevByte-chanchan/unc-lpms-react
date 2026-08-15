@@ -5,7 +5,7 @@ const Sequelize = require('sequelize');
 const basename = path.basename(__filename);
 const env = process.env.NODE_ENV || 'development';
 const config = require(__dirname + '/../config/config.json')[env];
-const { convertNumberedPlaceholders } = require('../utils/sqlPlaceholders');
+const { prepareNumberedStatement } = require('../utils/sqlPlaceholders');
 const db = {};
 
 let compatModule, wrapConnection;
@@ -30,7 +30,6 @@ if (config.dialect === 'sqlite') {
   raw.pragma('journal_mode=WAL');
   raw.pragma('foreign_keys=ON');
 
-  const pos = [];
   // SQLite drivers can only bind numbers/strings/null — convert JS values
   // (Date objects from seeders/bulk ops, booleans) into storable forms.
   const bindable = (v) => {
@@ -42,21 +41,17 @@ if (config.dialect === 'sqlite') {
     if (v === undefined) return null;
     return v;
   };
-  const toArgs = (params) => {
+  const toArgs = (params, positions = []) => {
     if (!params || params.length === 0) return params;
     if (Array.isArray(params[0])) return [params[0].map(bindable)];
     if (params.length === 1 && typeof params[0] === 'object' && params[0] !== null) {
       // Named $N params → positional matching $N -> ? order
       const obj = params[0];
-      return (pos.length ? pos.slice(0, pos.length).map(n => obj[`$${n}`] ?? obj[n] ?? null) : Object.values(obj)).map(bindable);
+      return (positions.length ? positions.map(n => obj[`$${n}`] ?? obj[n] ?? null) : Object.values(obj)).map(bindable);
     }
     return params.map(bindable);
   };
-  const prep = (sql) => {
-    const converted = convertNumberedPlaceholders(sql);
-    pos.splice(0, pos.length, ...converted.positions);
-    return raw.prepare(converted.sql);
-  };
+  const prep = (sql) => prepareNumberedStatement(raw, sql);
   const makeStatement = (stmt) => Object.defineProperty(
     { lastID: stmt?.lastInsertRowid, changes: stmt?.changes },
     'constructor',
@@ -67,24 +62,27 @@ if (config.dialect === 'sqlite') {
     run(sql, ...args) {
       if (args.length > 0 && args[args.length - 1] == null) args.pop();
       const cb = typeof args[args.length - 1] === 'function' ? args.pop() : null;
-      const stmt = prep(sql);
-      const p = toArgs(args);
+      const prepared = prep(sql);
+      const stmt = prepared.statement;
+      const p = toArgs(args, prepared.positions);
       try { const r = stmt.run(...p); const s = makeStatement(r); cb?.call(s, null); return s; }
       catch (e) { cb?.call({}, e); throw e; }
     },
     get(sql, ...args) {
       if (args.length > 0 && args[args.length - 1] == null) args.pop();
       const cb = typeof args[args.length - 1] === 'function' ? args.pop() : null;
-      const stmt = prep(sql);
-      const p = toArgs(args);
+      const prepared = prep(sql);
+      const stmt = prepared.statement;
+      const p = toArgs(args, prepared.positions);
       try { const r = stmt.get(...p); cb?.call(makeStatement(), null, r ?? undefined); return r ?? undefined; }
       catch (e) { cb?.call({}, e); throw e; }
     },
     all(sql, ...args) {
       if (args.length > 0 && args[args.length - 1] == null) args.pop();
       const cb = typeof args[args.length - 1] === 'function' ? args.pop() : null;
-      const stmt = prep(sql);
-      const p = toArgs(args);
+      const prepared = prep(sql);
+      const stmt = prepared.statement;
+      const p = toArgs(args, prepared.positions);
       try {
         const r = stmt.all(...p);
         cb?.call(makeStatement(), null, r);
@@ -100,12 +98,14 @@ if (config.dialect === 'sqlite') {
       }
     },
     prepare(sql) {
-      const stmt = prep(sql);
+      const prepared = prep(sql);
+      const stmt = prepared.statement;
+      const positions = prepared.positions;
       return {
-        run: (...args) => { const r = stmt.run(...toArgs(args)); return makeStatement(r); },
-        get: (...args) => stmt.get(...toArgs(args)) ?? undefined,
+        run: (...args) => { const r = stmt.run(...toArgs(args, positions)); return makeStatement(r); },
+        get: (...args) => stmt.get(...toArgs(args, positions)) ?? undefined,
         all: (...args) => {
-          const p = toArgs(args);
+          const p = toArgs(args, positions);
           try { return stmt.all(...p); } catch (e) { if (e.message?.includes('does not return data')) { stmt.run(...p); return []; } throw e; }
         },
         bind: () => ({ run: () => ({}), get: () => undefined, all: () => [] }),

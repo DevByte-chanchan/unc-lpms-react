@@ -35,4 +35,12 @@ function convertNumberedPlaceholders(sql) {
     return { sql: converted, positions };
 }
 
-module.exports = { convertNumberedPlaceholders };
+function prepareNumberedStatement(raw, sql) {
+    const converted = convertNumberedPlaceholders(sql);
+    return {
+        statement: raw.prepare(converted.sql),
+        positions: Object.freeze(converted.positions.slice())
+    };
+}
+
+module.exports = { convertNumberedPlaceholders, prepareNumberedStatement };

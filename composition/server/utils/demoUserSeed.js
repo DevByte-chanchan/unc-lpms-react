@@ -7,15 +7,33 @@ const isEvenHex = (value) => (
     && /^[0-9a-f]+$/i.test(value)
 );
 
+const MAX_SCRYPT_MEMORY_BYTES = 256 * 1024 * 1024;
+
+const positiveSafeInteger = (value) => {
+    if (!/^\d+$/.test(value)) return null;
+    const parsed = Number(value);
+    return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
+};
+
 function isStructurallyValidScryptHash(stored) {
     if (typeof stored !== 'string') return false;
     const parts = stored.split('$');
     if (parts.length !== 6 || parts[0] !== 'scrypt') return false;
 
-    const [, N, r, p, saltHex, hashHex] = parts;
-    if (!/^\d+$/.test(N) || Number(N) < 2) return false;
-    if (!/^\d+$/.test(r) || Number(r) < 1) return false;
-    if (!/^\d+$/.test(p) || Number(p) < 1) return false;
+    const [, storedN, storedR, storedP, saltHex, hashHex] = parts;
+    const N = positiveSafeInteger(storedN);
+    const r = positiveSafeInteger(storedR);
+    const p = positiveSafeInteger(storedP);
+    if (N === null || r === null || p === null || N < 2) return false;
+    if (!Number.isInteger(Math.log2(N))) return false;
+
+    // Match the verifier's memory ceiling and reject parameter combinations
+    // that Node's scrypt cannot safely execute. The second term accounts for
+    // the parallelization workspace as documented by OpenSSL's scrypt model.
+    const estimatedMemory = (128 * N * r) + (128 * r * p);
+    if (!Number.isSafeInteger(estimatedMemory) || estimatedMemory > MAX_SCRYPT_MEMORY_BYTES) {
+        return false;
+    }
     return isEvenHex(saltHex) && isEvenHex(hashHex);
 }
 
