@@ -109,6 +109,30 @@ test('approval workspace stacks comments at the compact breakpoint', () => {
   assert.match(compactPanel, /height:\s*100%/)
 })
 
+test('compact comments disclosure follows the learning plan instead of being covered by it', () => {
+  const component = read('components/ApprovalSyllabusSections.jsx')
+  const css = read('styles/ApprovalSyllabusSections.module.sass')
+  const compactWorkspace = sassBlock(css, '.review-workspace', '@media (max-width: 1024px)')
+  assert.match(component, /onClick=\{\(\) => setSidebarCollapsed\(value => !value\)\}/)
+  assert.match(component, /onKeyDown=\{\(event\) => \{[\s\S]*event\.key === 'Enter'[\s\S]*event\.key === ' '[\s\S]*event\.preventDefault\(\)[\s\S]*setSidebarCollapsed\(value => !value\)/)
+  assert.match(compactWorkspace, /flex:\s*0 0 auto/)
+})
+
+test('expanded compact comments flow after the complete plan pane', () => {
+  const css = read('styles/ApprovalSyllabusSections.module.sass')
+  const compactPlan = sassBlock(css, '.plan-pane', '@media (max-width: 1024px)')
+  const compactSections = sassBlock(css, '.dynamic-sections', '@media (max-width: 1024px)')
+  assert.match(compactPlan, /flex:\s*0 0 auto/)
+  assert.match(compactSections, /flex:\s*0 0 auto/)
+})
+
+test('compact reference-library controls reserve a separate action row', () => {
+  const css = read('styles/ReferenceLibrary.module.scss')
+  assert.match(css, /@media \(max-width:\s*1024px\)\s*\{[\s\S]*\.controlsBar\s*\{[^}]*display:\s*grid[^}]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/)
+  assert.match(css, /@media \(max-width:\s*1024px\)\s*\{[\s\S]*\.actionsGroup\s*\{[^}]*grid-column:\s*1\s*\/\s*-1/)
+  assert.match(css, /@media \(max-width:\s*720px\)\s*\{[\s\S]*\.controlsBar\s*\{[^}]*grid-template-columns:\s*1fr/)
+})
+
 test('role-specific workspaces declare compact and mobile contracts', () => {
   const styleFiles = [
     'styles/ProgramHeadWorkspace.module.sass',

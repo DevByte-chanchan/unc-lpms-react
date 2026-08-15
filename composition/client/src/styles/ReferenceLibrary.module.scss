@@ -720,8 +720,14 @@
 }
 
 @media (max-width: 1024px) {
+  .controlsBar {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: end;
+  }
+
   .actionsGroup {
-    flex: 1 0 100%;
+    grid-column: 1 / -1;
     margin-left: 0;
     flex-wrap: wrap;
   }
@@ -741,6 +747,10 @@
       width: 100%;
       min-width: 0;
     }
+  }
+
+  .controlsBar {
+    grid-template-columns: 1fr;
   }
 
   .statsGrid {

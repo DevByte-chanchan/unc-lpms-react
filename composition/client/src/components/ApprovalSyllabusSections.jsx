@@ -1288,6 +1288,12 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
               type="button"
               className={styles['comments-toggle']}
               onClick={() => setSidebarCollapsed(value => !value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault()
+                  setSidebarCollapsed(value => !value)
+                }
+              }}
               aria-expanded={!sidebarCollapsed}
               aria-controls="approval-comments-panel"
             >
