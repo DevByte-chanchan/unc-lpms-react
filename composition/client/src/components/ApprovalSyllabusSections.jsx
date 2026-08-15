@@ -1296,7 +1296,11 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
                 {sidebarCollapsed ? `Show comments (${visibleComments.length})` : 'Hide comments'}
               </span>
             </button>
-            <div className={styles['comments-viewport']}>
+            <div
+              className={styles['comments-viewport']}
+              inert={sidebarCollapsed}
+              aria-hidden={sidebarCollapsed}
+            >
             <aside id="approval-comments-panel" className={styles['comments-panel']}>
               <div style={{
                 display: 'flex', alignItems: 'center', gap: 10,
