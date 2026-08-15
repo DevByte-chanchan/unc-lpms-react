@@ -7,6 +7,28 @@ import { fileURLToPath } from 'node:url'
 const here = path.dirname(fileURLToPath(import.meta.url))
 const src = path.resolve(here, '..')
 const read = relative => fs.readFileSync(path.join(src, relative), 'utf8')
+const indentOf = line => line.match(/^\s*/)[0].length
+const sassBlock = (css, selector, after = null) => {
+  const lines = css.split(/\r?\n/)
+  const parentIndex = after ? lines.findIndex(line => line.trim() === after) : -1
+  assert.ok(!after || parentIndex >= 0, `Missing Sass parent block: ${after}`)
+
+  const parentIndent = parentIndex >= 0 ? indentOf(lines[parentIndex]) : -1
+  const scopeEnd = parentIndex >= 0
+    ? lines.findIndex((line, index) => index > parentIndex && line.trim() && indentOf(line) <= parentIndent)
+    : lines.length
+  const end = scopeEnd >= 0 ? scopeEnd : lines.length
+  const selectorIndex = lines.findIndex((line, index) => (
+    index > parentIndex && index < end && line.trim() === selector
+  ))
+  assert.ok(selectorIndex >= 0, `Missing Sass selector ${selector}${after ? ` under ${after}` : ''}`)
+
+  const selectorIndent = indentOf(lines[selectorIndex])
+  const blockEnd = lines.findIndex((line, index) => (
+    index > selectorIndex && line.trim() && indentOf(line) <= selectorIndent
+  ))
+  return lines.slice(selectorIndex, blockEnd >= 0 ? blockEnd : lines.length).join('\n')
+}
 
 test('shared forms stack side panels and field grids', () => {
   const css = read('styles/Form.module.sass')
@@ -34,6 +56,25 @@ test('shared dialogs are bounded by the dynamic viewport', () => {
     assert.match(css, /100dvh/)
     assert.match(css, /overflow/)
   }
+})
+
+test('syllabus preview modal keeps its exact 720px viewport gutters in border-box sizing', () => {
+  const css = read('styles/SyllabusPreview.module.sass')
+  const modal = sassBlock(css, '.modalContent', '@media (max-width: 720px)')
+  assert.match(modal, /width:\s*calc\(100vw - 24px\)/)
+  assert.match(modal, /height:\s*calc\(100dvh - 24px\)/)
+  assert.match(modal, /padding:\s*16px 12px/)
+  assert.match(modal, /box-sizing:\s*border-box/)
+})
+
+test('approval comment modal includes its compact and fullscreen padding inside viewport bounds', () => {
+  const css = read('styles/ApprovalCommentBox.module.sass')
+  const modal = sassBlock(css, '.modal')
+  const compactModal = sassBlock(css, '.modal', '@media (max-width: 1024px)')
+  assert.match(modal, /padding:\s*12px/)
+  assert.match(modal, /box-sizing:\s*border-box/)
+  assert.match(compactModal, /width:\s*calc\(100vw - 24px\)/)
+  assert.match(compactModal, /max-height:\s*calc\(100dvh - 24px\)/)
 })
 
 test('standalone comment recorder owns a responsive page class', () => {
