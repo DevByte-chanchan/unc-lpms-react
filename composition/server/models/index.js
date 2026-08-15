@@ -5,6 +5,7 @@ const Sequelize = require('sequelize');
 const basename = path.basename(__filename);
 const env = process.env.NODE_ENV || 'development';
 const config = require(__dirname + '/../config/config.json')[env];
+const { convertNumberedPlaceholders } = require('../utils/sqlPlaceholders');
 const db = {};
 
 let compatModule, wrapConnection;
@@ -29,7 +30,6 @@ if (config.dialect === 'sqlite') {
   raw.pragma('journal_mode=WAL');
   raw.pragma('foreign_keys=ON');
 
-  const toQ = (sql) => sql.replace(/\$(\d+)/g, (_, n) => { pos.push(+n); return '?'; });
   const pos = [];
   // SQLite drivers can only bind numbers/strings/null — convert JS values
   // (Date objects from seeders/bulk ops, booleans) into storable forms.
@@ -52,7 +52,11 @@ if (config.dialect === 'sqlite') {
     }
     return params.map(bindable);
   };
-  const prep = (sql) => { pos.length = 0; const r = toQ(sql); return raw.prepare(r); };
+  const prep = (sql) => {
+    const converted = convertNumberedPlaceholders(sql);
+    pos.splice(0, pos.length, ...converted.positions);
+    return raw.prepare(converted.sql);
+  };
   const makeStatement = (stmt) => Object.defineProperty(
     { lastID: stmt?.lastInsertRowid, changes: stmt?.changes },
     'constructor',
@@ -96,8 +100,7 @@ if (config.dialect === 'sqlite') {
       }
     },
     prepare(sql) {
-      pos.length = 0; toQ(sql);
-      const stmt = raw.prepare(sql.replace(/\$(\d+)/g, '?'));
+      const stmt = prep(sql);
       return {
         run: (...args) => { const r = stmt.run(...toArgs(args)); return makeStatement(r); },
         get: (...args) => stmt.get(...toArgs(args)) ?? undefined,

@@ -1,6 +1,7 @@
 const path = require('path');
 const config = require('./config/config.json').development;
 const Sequelize = require('sequelize');
+const { convertNumberedPlaceholders } = require('./utils/sqlPlaceholders');
 
 const compat = require('./sqlite3-compat');
 const B = require('better-sqlite3');
@@ -12,7 +13,6 @@ raw.pragma('journal_mode=WAL');
 raw.pragma('foreign_keys=ON');
 
 const _pos = [];
-const toQ = (sql) => sql.replace(/\$(\d+)/g, (_, n) => { _pos.push(+n); return '?'; });
 const toArgs = (params) => {
   if (!params || params.length === 0 || Array.isArray(params[0])) return params;
   if (params.length === 1 && typeof params[0] === 'object' && params[0] !== null) {
@@ -21,7 +21,11 @@ const toArgs = (params) => {
   }
   return params;
 };
-const prep = (sql) => { _pos.length = 0; const r = toQ(sql); return raw.prepare(r); };
+const prep = (sql) => {
+  const converted = convertNumberedPlaceholders(sql);
+  _pos.splice(0, _pos.length, ...converted.positions);
+  return raw.prepare(converted.sql);
+};
 const makeStatement = (stmt) => Object.defineProperty(
   { lastID: stmt?.lastInsertRowid, changes: stmt?.changes },
   'constructor',
@@ -31,26 +35,29 @@ const makeStatement = (stmt) => Object.defineProperty(
 const wrapConnection = {
   run(sql, ...args) {
     const cb = typeof args[args.length - 1] === 'function' ? args.pop() : null;
+    const stmt = prep(sql);
     const p = toArgs(args);
-    try { const r = prep(sql).run(...p); const s = makeStatement(r); cb?.call(s, null); return s; }
+    try { const r = stmt.run(...p); const s = makeStatement(r); cb?.call(s, null); return s; }
     catch (e) { cb?.call({}, e); throw e; }
   },
   get(sql, ...args) {
     const cb = typeof args[args.length - 1] === 'function' ? args.pop() : null;
+    const stmt = prep(sql);
     const p = toArgs(args);
-    try { const r = prep(sql).get(...p); cb?.call(makeStatement(), null, r ?? undefined); return r ?? undefined; }
+    try { const r = stmt.get(...p); cb?.call(makeStatement(), null, r ?? undefined); return r ?? undefined; }
     catch (e) { cb?.call({}, e); throw e; }
   },
   all(sql, ...args) {
     const cb = typeof args[args.length - 1] === 'function' ? args.pop() : null;
+    const stmt = prep(sql);
     const p = toArgs(args);
     try {
-      const r = prep(sql).all(...p);
+      const r = stmt.all(...p);
       cb?.call(makeStatement(), null, r);
       return r;
     } catch (e) {
       if (e.message?.includes('does not return data')) {
-        prep(sql).run(...p);
+        stmt.run(...p);
         cb?.call(makeStatement(), null, []);
         return [];
       }
@@ -59,8 +66,7 @@ const wrapConnection = {
     }
   },
   prepare(sql) {
-    _pos.length = 0; toQ(sql);
-    const stmt = raw.prepare(sql.replace(/\$(\d+)/g, '?'));
+    const stmt = prep(sql);
     return {
       run: (...args) => { const r = stmt.run(...toArgs(args)); return makeStatement(r); },
       get: (...args) => stmt.get(...toArgs(args)) ?? undefined,
