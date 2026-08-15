@@ -6,6 +6,7 @@ import SideNavigation from "../components/SideNavigation.jsx";
 import ApprovalSyllabusSections from "../components/ApprovalSyllabusSections.jsx";
 import Syllabus from "./Syllabus.jsx";
 import { getWorkflow } from '../utils/workflowHelpers'
+import pageStyles from '../styles/ApprovalSyllabus.module.sass'
 
 const roleNames = {
   'program-head': 'Program Head',
@@ -60,7 +61,16 @@ const ApprovalSyllabus = () => {
   return (
     <Skeleton
       header={<Header role={formattedRole} name={approverName} />}
-      content={<div style={{display:'flex',flexDirection:'column',height:'100%',minHeight:0}}><div style={{flex:1,minHeight:0}}><ApprovalSyllabusSections currentRole={roleKey} courseCode={decodedCourse} pcId={pcId} revNum={revNum} /></div></div>}
+      content={(
+        <div className={pageStyles.page}>
+          <ApprovalSyllabusSections
+            currentRole={roleKey}
+            courseCode={decodedCourse}
+            pcId={pcId}
+            revNum={revNum}
+          />
+        </div>
+      )}
       nav={<SideNavigation mode={roleKey} />}
     />
   );

@@ -91,3 +91,14 @@ test('custom dropdown menus cannot exceed their mobile field width', () => {
     assert.match(css, /\.menuOptionItem[\s\S]*white-space:\s*normal/)
   }
 })
+
+test('approval workspace stacks comments at the compact breakpoint', () => {
+  const component = read('components/ApprovalSyllabusSections.jsx')
+  const css = read('styles/ApprovalSyllabusSections.module.sass')
+  assert.doesNotMatch(component, /width:\s*sidebarCollapsed\s*\?\s*0\s*:\s*380/)
+  assert.match(component, /styles\['review-workspace'\]/)
+  assert.match(component, /aria-expanded=\{!sidebarCollapsed\}/)
+  assert.match(component, /aria-controls="approval-comments-panel"/)
+  assert.match(css, /@media \(max-width:\s*1024px\)[\s\S]*\.review-workspace[\s\S]*flex-direction:\s*column/)
+  assert.match(css, /@media \(max-width:\s*1024px\)[\s\S]*\.comments-toggle[\s\S]*width:\s*100%/)
+})

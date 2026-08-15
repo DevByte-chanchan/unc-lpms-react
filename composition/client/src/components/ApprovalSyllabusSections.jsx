@@ -68,7 +68,12 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
   const [suggestions, setSuggestions] = useState([])
   const [refreshKey, setRefreshKey] = useState(0)
   const [toast, setToast] = useState(null)
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  // The panel is 380px wide. Open by default it would swallow a phone screen
+  // whole, so on a narrow viewport it starts collapsed and the approver opens
+  // it deliberately.
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(
+    () => typeof window !== 'undefined' && window.innerWidth <= 1024
+  )
   const [previewFile, setPreviewFile] = useState(null)
   const [exportingPdf, setExportingPdf] = useState(false)
 
@@ -1102,8 +1107,8 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
         </div>
       )}
 
-      <div style={{ display: 'flex', flex: 1, overflow: 'hidden', minHeight: 0 }}>
-        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+      <div className={styles['review-workspace']}>
+        <div className={styles['plan-pane']}>
           <div className={styles['dynamic-sections']} ref={containerRef}>
             {initialLoading ? (
               <div className={styles.loadingContainer}>
@@ -1278,41 +1283,21 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
         )}
 
         {!embedded && roleKey !== 'vpaa' && activeSelectedSection === 'Course Coverage' && (
-          <div style={{ display: 'flex', alignItems: 'stretch', height: '100%', flexShrink: 0 }}>
-            <button onClick={() => setSidebarCollapsed(c => !c)} style={{
-              width: 26, border: 'none', borderLeft: '1px solid #e2e8f0', background: '#fafafa',
-              cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-              color: sidebarCollapsed ? '#2563eb' : '#94a3b8', padding: 0, fontSize: 13, borderRadius: 0,
-              transition: 'color 0.2s', position: 'relative', flexShrink: 0
-            }}>
-              {sidebarCollapsed ? (
-                <>
-                  {'<'}
-                  {visibleComments.length > 0 && (
-                    <span style={{
-                      position: 'absolute', top: 4, right: 3, width: 8, height: 8, borderRadius: '50%',
-                      background: '#2563eb'
-                    }} />
-                  )}
-                </>
-              ) : '>'}
+          <div className={styles['comments-shell']} data-collapsed={sidebarCollapsed}>
+            <button
+              type="button"
+              className={styles['comments-toggle']}
+              onClick={() => setSidebarCollapsed(value => !value)}
+              aria-expanded={!sidebarCollapsed}
+              aria-controls="approval-comments-panel"
+            >
+              <span aria-hidden="true">{sidebarCollapsed ? '<' : '>'}</span>
+              <span className={styles['comments-toggle-label']}>
+                {sidebarCollapsed ? `Show comments (${visibleComments.length})` : 'Hide comments'}
+              </span>
             </button>
-            <div style={{
-              overflow: 'hidden',
-              width: sidebarCollapsed ? 0 : 380,
-              transition: 'width 0.2s ease',
-              flexShrink: 0
-            }}>
-            <aside style={{
-              width: 380,
-              flexShrink: 0,
-              background: '#fff',
-              display: 'flex',
-              flexDirection: 'column',
-              overflow: 'hidden',
-              height: '100%',
-              borderLeft: '1px solid #e2e8f0'
-            }}>
+            <div className={styles['comments-viewport']}>
+            <aside id="approval-comments-panel" className={styles['comments-panel']}>
               <div style={{
                 display: 'flex', alignItems: 'center', gap: 10,
                 padding: '16px 20px',
