@@ -322,7 +322,69 @@ Expected: no whitespace errors and no staged files. The duplicate-root cleanup c
 
 ---
 
-### Task 3: Complete the live server-backed comment round trip
+### Task 3: Repair corrupted demo-account password seeding
+
+**Files:**
+- Create: `composition/server/utils/sqlPlaceholders.js`
+- Create: `composition/server/utils/sqlPlaceholders.test.js`
+- Create: `composition/server/utils/demoUserSeed.js`
+- Create: `composition/server/utils/demoUserSeed.test.js`
+- Modify: `composition/server/models/index.js`
+- Modify: `composition/server/migrate.js`
+- Modify: `composition/server/seed.js`
+- Modify: `composition/server/seeders/20260812000000-demo-users.js`
+
+**Interfaces:**
+- Consumes: PostgreSQL-style `$N` placeholders and the six known demo-user definitions.
+- Produces: SQLite `?` placeholders without changing dollar-prefixed text inside SQL string literals; missing demo accounts are inserted, malformed demo hashes are repaired, and valid/custom hashes are preserved.
+
+- [ ] **Step 1: Add a failing placeholder-conversion regression test**
+
+Test that numbered placeholders outside single-quoted SQL values are converted in parameter order, while a complete self-describing scrypt hash such as `scrypt$16384$8$1$salt$hash` remains byte-for-byte unchanged inside a quoted value. Include a doubled-single-quote SQL escape case.
+
+Run:
+
+```powershell
+node composition/server/utils/sqlPlaceholders.test.js
+```
+
+Expected RED: the new behavior is absent.
+
+- [ ] **Step 2: Implement and integrate quote-aware placeholder conversion**
+
+Implement the smallest stateful converter needed for single-quoted SQL literals and doubled-single-quote escapes. Replace the broad `/\$(\d+)/g` conversions in `models/index.js`, `migrate.js`, and `seed.js` with the shared utility. Ensure each adapter prepares the converted SQL returned by the utility and binds values in the collected placeholder order.
+
+Run the placeholder test again. Expected: PASS.
+
+- [ ] **Step 3: Add a failing demo-seeder behavior test**
+
+Exercise the real seed orchestration against an in-memory stateful query-interface fixture containing one malformed demo hash, one valid custom hash, and four absent demo accounts. Assert final behavior, not call counts: malformed becomes a valid `demo1234` hash, valid custom remains unchanged, and missing rows are inserted with working demo hashes.
+
+Run:
+
+```powershell
+node composition/server/utils/demoUserSeed.test.js
+```
+
+Expected RED: the existing skip-by-email logic leaves the malformed hash untouched.
+
+- [ ] **Step 4: Repair only malformed demo hashes**
+
+Put the testable orchestration in `demoUserSeed.js` and keep the existing seeder as the thin runtime entry point. Select `email` and `password_hash`; insert absent known demo users; repair only missing or structurally malformed self-describing scrypt hashes; leave every structurally valid hash unchanged so a customized password is never reset.
+
+Run both new tests and `composition/server/utils/password.test.js`. Expected: PASS.
+
+- [ ] **Step 5: Repair the six existing local demo rows and verify authentication**
+
+Run only `20260812000000-demo-users.js` through the existing targeted seeder runner. Do not run migrations and do not alter courses, comments, or other users. Verify all six known rows now have valid scrypt structure and `verifyPassword('demo1234', hash)` returns true. Then submit one direct login request for Instructor and one for Program Head to the local server and confirm both succeed.
+
+- [ ] **Step 6: Run relevant regression checks and record scope**
+
+Run all retained server utility tests, server JavaScript syntax checks, `git diff --check`, `git diff --cached --name-only`, and `git status --short`. Commit only new/modified tracked repair files; leave pre-existing unrelated dirty and untracked auth work untouched. Record any necessary working-tree-only seeder change explicitly if it cannot be isolated from a pre-existing untracked file.
+
+---
+
+### Task 4: Complete the live server-backed comment round trip
 
 **Files:**
 - Runtime: `composition/server/server.js`
