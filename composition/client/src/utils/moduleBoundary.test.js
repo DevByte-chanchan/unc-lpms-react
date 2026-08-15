@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url'
 
 const here = path.dirname(fileURLToPath(import.meta.url))
 const srcRoot = path.resolve(here, '..')
+const worktreeRoot = path.resolve(srcRoot, '..', '..', '..')
 let checks = 0
 
 const check = (condition, message) => {
@@ -66,6 +67,27 @@ const strayFiles = [
   'utils/reviewSteps.test.js',
   'utils/roleGuard.js'
 ]
+
+const rootDuplicatePaths = [
+  'client',
+  'config',
+  'eslint.config.js',
+  'index.html',
+  'infra',
+  'migrations',
+  'models',
+  'package-lock.json',
+  'package.json',
+  'public',
+  'seeders',
+  'server',
+  'src',
+  'vite.config.js'
+]
+
+for (const relative of rootDuplicatePaths) {
+  check(!fs.existsSync(path.join(worktreeRoot, relative)), `Obsolete root path removed: ${relative}`)
+}
 
 for (const relative of strayFiles) {
   check(!fs.existsSync(path.join(srcRoot, relative)), `Unreachable stray file removed: ${relative}`)
