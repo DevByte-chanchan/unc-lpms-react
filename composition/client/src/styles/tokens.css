@@ -1,0 +1,118 @@
+/* =============================================================================
+   LPMS design tokens — one place where sizes, colours and radii are decided.
+   =============================================================================
+
+   WHY THIS FILE EXISTS
+   Before it, the module's stylesheets between them used 12 different font sizes
+   and 8 different corner radii, and several components (notably
+   ApprovalChainStatus) were styled with inline values that no stylesheet could
+   reach. The same "chip" was 11px in one place and 13px in another, and buttons
+   that sat side by side had 4px, 5px and 6px corners. Nothing was wrong
+   individually; together it read as several apps stitched into one.
+
+   HOW TO USE IT
+   These are plain CSS custom properties on :root, so they work everywhere with
+   no build step and no import in each file:
+
+     .thing                      // in any .sass / .scss / .module.* file
+       font-size: var(--fs-sm)
+       border-radius: var(--radius-md)
+
+     <div style={{ color: 'var(--ink-muted)' }} />   // even in inline styles
+
+   ADDING TO THEM
+   Reach for an existing token first. Add a new one only when a value is a real
+   decision that will be reused — not for a one-off nudge. A token nobody reuses
+   is just a longer way to write a number.
+
+   SCOPE NOTE
+   Adopted so far by the Review & Approval / Reference Library / Comments
+   screens. The learning-plan (Christian) and TOS (Arra) screens are untouched
+   on purpose — this file is available to them, but converting their components
+   is their call, not something to do behind them.
+   ========================================================================== */
+
+:root {
+  /* --- type scale -----------------------------------------------------
+     Derived from what the codebase already leant on: 14px was by far the
+     most common size, so it is the base rather than an arbitrary 16px. */
+  --fs-2xs: 11px;   /* eyebrow labels, timestamps                        */
+  --fs-xs:  12px;   /* secondary/meta text                               */
+  --fs-sm:  13px;   /* dense controls: chips, small buttons              */
+  --fs-md:  14px;   /* base — body text, standard buttons, table cells   */
+  --fs-lg:  16px;   /* panel and card headings                           */
+  --fs-xl:  20px;   /* screen headings                                   */
+
+  --fw-normal: 400;
+  --fw-medium: 500;
+  --fw-semibold: 600;
+  --fw-bold: 700;
+
+  --font-ui: 'Poppins', sans-serif;
+
+  /* --- spacing --------------------------------------------------------- */
+  --sp-1: 4px;
+  --sp-2: 6px;
+  --sp-3: 8px;
+  --sp-4: 10px;
+  --sp-5: 14px;
+  --sp-6: 20px;
+  --sp-7: 30px;
+
+  /* --- radii ----------------------------------------------------------
+     3/4/5/6px were all in use and visually indistinguishable. One small
+     radius replaces all four. */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-pill: 999px;
+
+  /* --- control sizing -------------------------------------------------
+     40px matches the existing .draft / .submit buttons, so anything using
+     --control-h lines up with them on the same row. */
+  --control-h: 40px;
+  --control-h-sm: 30px;
+
+  /* --- surfaces and lines ---------------------------------------------- */
+  --surface: #ffffff;
+  --surface-muted: #f8fafc;
+  --surface-sunken: #f1f5f9;
+  --line: #e2e8f0;
+  --line-soft: #eef2f6;
+
+  /* --- text ------------------------------------------------------------ */
+  --ink: #0f172a;
+  --ink-soft: #1f2937;
+  --ink-muted: #64748b;
+  --ink-faint: #94a3b8;
+
+  /* --- brand / intent -------------------------------------------------
+     --primary is the dark the Approve and Submit buttons already use; it
+     is the colour of "the forward action". */
+  --primary: #19282C;
+  --primary-hover: #24363b;
+  --primary-ink: #ffffff;
+
+  --accent: #2563eb;
+  --accent-soft: #eff6ff;
+  --accent-line: #bfdbfe;
+
+  --good: #047857;
+  --good-soft: #f0fdf4;
+  --good-line: #86efac;
+
+  --warn: #92400e;
+  --warn-soft: #fffbeb;
+  --warn-line: #fde68a;
+
+  --danger: #b91c1c;
+  --danger-soft: #fef2f2;
+  --danger-line: #fca5a5;
+
+  /* --- elevation ------------------------------------------------------- */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, .12);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, .10);
+
+  /* --- motion ---------------------------------------------------------- */
+  --t-fast: .15s ease;
+  --t-med: .25s ease;
+}

@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { BookOpen } from 'react-feather';
 import { unresolvedCountsByReference, iloIdsFromCourse } from '../utils/referenceComments.js';
+import EmptyState from './EmptyState.jsx';
 
 const REFERENCE_VIEWS = [
     { value: 'Textbook', label: 'TEXTBOOKS', prefix: 'TB', identifier: 'ISBN', empty: 'No textbooks attached to this plan' },
@@ -11,6 +13,11 @@ const ReferenceSummary = ({ offeringID, revisionNum, status, selectedSection, st
     const [viewType, setViewType] = useState('Textbook');
     const [referenceData, setReferenceData] = useState(null);
     const [isReferencesLoading, setIsReferencesLoading] = useState(false);
+    // The catch below logged to the console and stopped there, so the screen
+    // said "No references attached to this plan" whether the plan had none or
+    // the server had never answered. Those need different words, and the
+    // second one needs to name the reason.
+    const [referencesError, setReferencesError] = useState('');
     const [referenceCommentCounts, setReferenceCommentCounts] = useState({});
 
     // 1. Fetch live syllabus materials configuration datasets
@@ -25,8 +32,10 @@ const ReferenceSummary = ({ offeringID, revisionNum, status, selectedSection, st
 
                 if (!mounted) return;
                 setReferenceData(data);
+                setReferencesError('');
             } catch (err) {
                 console.error("Error fetching reference summary data:", err);
+                if (mounted) setReferencesError(err?.message || 'the request failed');
             } finally {
                 if (mounted) setIsReferencesLoading(false);
             }

@@ -1,0 +1,107 @@
+// Centred "nothing here" block. Mobile-first: the base rules already fit a
+// narrow screen, and the one media query only gives it more room to breathe.
+
+.empty
+  display: flex
+  flex-direction: column
+  align-items: center
+  justify-content: center
+  text-align: center
+  gap: var(--sp-3)
+  width: 100%
+  flex: 1
+  min-height: 180px
+  padding: 28px var(--sp-6)
+  font-family: var(--font-ui)
+
+.inline
+  min-height: 0
+  padding: var(--sp-6) var(--sp-5)
+  gap: var(--sp-2)
+
+.icon
+  display: flex
+  align-items: center
+  justify-content: center
+  width: 46px
+  height: 46px
+  border-radius: 50%
+  background: var(--surface-sunken)
+  color: var(--ink-faint)
+  flex-shrink: 0
+
+.inline .icon
+  width: 38px
+  height: 38px
+
+.title
+  font-size: var(--fs-md)
+  font-weight: var(--fw-semibold)
+  color: var(--ink-soft)
+
+.inline .title
+  font-size: var(--fs-sm)
+
+.hint
+  font-size: var(--fs-sm)
+  line-height: 1.5
+  max-width: 340px
+  color: var(--ink-faint)
+
+.action
+  margin-top: 4px
+
+// ── inside a table ───────────────────────────────────────────────────────
+//
+// `index.css` turns every table into flexbox — `table`, `tbody`, `tbody tr`
+// and `td` are all `display: flex`. Two consequences the empty state has to
+// undo:
+//
+//   1. `colSpan` does nothing under flex layout, so the cell only takes its
+//      content's width and the block sits left-aligned instead of centred.
+//      The row and the cell both have to be told to fill the table.
+//   2. `tbody tr` carries `box-shadow: 0 1px 3px rgba(0,0,0,.25)` to make each
+//      data row a card. On a row that holds no data that reads as a stray
+//      line under the message, so it is cleared here.
+//
+// `!important` is deliberate: these override global element selectors that
+// this module cannot otherwise outrank.
+
+// The row also has to claim the height the table is not using. `tbody` sizes to
+// its content, so without this the block sits just under the header instead of
+// in the middle of the empty area. A viewport-relative min-height centres it in
+// the space the table actually occupies without forcing the container to
+// scroll.
+.row
+  display: flex !important
+  width: 100% !important
+  flex: 1 1 auto !important
+  // Height of the viewport minus the page header, the table's own header and
+  // its bottom padding — i.e. the space the empty table actually leaves — so
+  // the block lands in the middle of it rather than tucked under the header.
+  min-height: calc(100vh - 240px)
+  align-items: center !important
+  background: transparent !important
+  box-shadow: none !important
+  border: none !important
+
+.cell
+  display: flex !important
+  flex: 1 1 auto !important
+  align-self: stretch !important
+  align-items: center !important
+  justify-content: center !important
+  width: 100% !important
+  min-width: 0
+  padding: 0 !important
+  border: none !important
+  background: transparent !important
+  box-shadow: none !important
+
+@media (min-width: 768px)
+  .empty
+    min-height: 220px
+    padding: 40px 24px
+
+  .hint
+    max-width: 420px
