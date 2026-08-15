@@ -1,8 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { unresolvedCountsByReference, iloIdsFromCourse } from '../utils/referenceComments.js';
 
+const REFERENCE_VIEWS = [
+    { value: 'Textbook', label: 'TEXTBOOKS', prefix: 'TB', identifier: 'ISBN', empty: 'No textbooks attached to this plan' },
+    { value: 'Open Educational Resources', label: 'OPEN EDUCATIONAL RESOURCES', prefix: 'OE', identifier: 'LINK', empty: 'No open educational resources attached to this plan' },
+    { value: 'Online Resources', label: 'ONLINE RESOURCES', prefix: 'OR', identifier: 'LINK', empty: 'No online resources attached to this plan' },
+];
+
 const ReferenceSummary = ({ offeringID, revisionNum, status, selectedSection, styles, stylesB, fetchJson }) => {
-    const [viewType, setViewType] = useState('All');
+    const [viewType, setViewType] = useState('Textbook');
     const [referenceData, setReferenceData] = useState(null);
     const [isReferencesLoading, setIsReferencesLoading] = useState(false);
     const [referenceCommentCounts, setReferenceCommentCounts] = useState({});
@@ -80,6 +86,10 @@ const ReferenceSummary = ({ offeringID, revisionNum, status, selectedSection, st
         return [];
     };
 
+    const activeView = REFERENCE_VIEWS.find(view => view.value === viewType) || REFERENCE_VIEWS[0];
+    const activeReferences = getDataByType(activeView.value);
+    const isTextbook = activeView.value === 'Textbook';
+
     if (isReferencesLoading) {
         return (
             <div className={stylesB.refContainer}>
@@ -94,149 +104,55 @@ const ReferenceSummary = ({ offeringID, revisionNum, status, selectedSection, st
         <div className={stylesB.refContainer}>
             <div className={stylesB.refHeaderBar}>
                 <select
+                    aria-label="Reference category"
                     value={viewType}
-                    onChange={(e) => setViewType(e.target.value)}
+                    onChange={(event) => setViewType(event.target.value)}
                     className={stylesB.refSelect}
                 >
-                    <option value="All">ALL REFERENCES</option>
-                    <option value="Textbook">TEXTBOOKS</option>
-                    <option value="Open Educational Resources">OPEN EDUCATIONAL RESOURCES</option>
-                    <option value="Online Resources">ONLINE RESOURCES</option>
+                    {REFERENCE_VIEWS.map(view => (
+                        <option key={view.value} value={view.value}>{view.label}</option>
+                    ))}
                 </select>
             </div>
 
-            <div className={stylesB.refScrollWrapper}>
-                {/* --- ALL REFERENCES --- */}
-                {viewType === 'All' && (
-                    <>
-                        <table className={stylesB.refTable}>
-                            <thead>
-                            <tr>
-                                <th>ID</th><th>TITLE</th><th>AUTHOR/S</th><th>ISBN / LINK</th><th>YEAR</th>
-                            </tr>
-                            </thead>
-                            <tbody>
-                            {(() => {
-                                const all = [
-                                    ...getDataByType('Textbook').map((r, i) => ({ ...r, _prefix: 'TB', _idx: i + 1 })),
-                                    ...getDataByType('Open Educational Resources').map((r, i) => ({ ...r, _prefix: 'OE', _idx: i + 1 })),
-                                    ...getDataByType('Online Resources').map((r, i) => ({ ...r, _prefix: 'OR', _idx: i + 1 })),
-                                ]
-                                if (all.length === 0) return <tr><td colSpan={5} className={stylesB.refEmpty}>No references found.</td></tr>
-                                return all.map((ref) => (
-                                    <tr key={ref.id || `${ref._prefix}${ref._idx}`}>
-                                        <td>{ref._prefix}{ref._idx}</td>
-                                        <td>{ref.title}</td>
-                                        <td>{ref.authors}</td>
-                                        <td>{ref._prefix === 'TB'
-                                            ? (ref.isbn || '-') /* ISBN is plain text — never a link */
-                                            : (ref.link
-                                                ? <a href={ref.link} target="_blank" rel="noreferrer">Open Resource</a>
-                                                : (ref.isbn || '-'))}</td>
-                                        <td>{ref.year || '-'}</td>
-                                    </tr>
-                                ))
-                            })()}
-                            </tbody>
-                        </table>
-                    </>
-                )}
-
-                {/* --- TABLE 1: TEXTBOOKS --- */}
-                {viewType === 'Textbook' && (
-                    <table className={stylesB.refTable}>
-                        <thead>
-                        <tr>
-                            <th>ID</th><th>TITLE</th><th>AUTHOR/S</th><th>ISBN</th><th>YEAR</th>
-                        </tr>
-                        </thead>
-                        <tbody>
-                        {getDataByType('Textbook').map((ref, i) => {
+            <div className={stylesB.refScrollWrapper} role="region" aria-label={`${activeView.label} table`} tabIndex={0}>
+                <table className={stylesB.refTable}>
+                    <thead>
+                        <tr><th>ID</th><th>TITLE</th><th>AUTHOR/S</th><th>{activeView.identifier}</th><th>YEAR</th></tr>
+                    </thead>
+                    <tbody>
+                        {activeReferences.length === 0 ? (
+                            <EmptyState
+                                colSpan={5}
+                                icon={<BookOpen size={22} strokeWidth={1.6} />}
+                                title={referencesError ? 'Could not load the references' : activeView.empty}
+                                hint={referencesError
+                                    ? `The server did not answer — ${referencesError}. Check that the backend is running on port 5000, then reload.`
+                                    : `References in ${activeView.label.toLowerCase()} will appear here after they are attached to a course outcome.`}
+                            />
+                        ) : activeReferences.map((ref, index) => {
                             const unresolvedCount = referenceCommentCounts[ref.id] || 0;
                             return (
-                                <tr key={ref.id || i}>
-                                    <td>TB{i + 1}</td>
+                                <tr key={ref.id || `${activeView.prefix}${index + 1}`}>
+                                    <td>{activeView.prefix}{index + 1}</td>
                                     <td>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                            {ref.title}
+                                        <div className={stylesB.refTitleCell}>
+                                            <span>{ref.title}</span>
                                             {status === 'returned' && unresolvedCount > 0 && (
                                                 <span className={styles['comment-badge']}>{unresolvedCount}</span>
                                             )}
                                         </div>
                                     </td>
                                     <td>{ref.authors}</td>
-                                    <td>{ref.isbn || '-'}</td>
+                                    <td>{isTextbook
+                                        ? (ref.isbn || '-')
+                                        : (ref.link ? <a href={ref.link} target="_blank" rel="noreferrer">Open Resource</a> : '-')}</td>
                                     <td>{ref.year || '-'}</td>
                                 </tr>
                             );
                         })}
-                        </tbody>
-                    </table>
-                )}
-
-                {/* --- TABLE 2: OPEN EDUCATIONAL RESOURCES --- */}
-                {viewType === 'Open Educational Resources' && (
-                    <table className={stylesB.refTable}>
-                        <thead>
-                        <tr>
-                            <th>ID</th><th>TITLE</th><th>AUTHOR/S</th><th>LINK</th><th>YEAR</th>
-                        </tr>
-                        </thead>
-                        <tbody>
-                        {getDataByType('Open Educational Resources').map((ref, i) => {
-                            const unresolvedCount = referenceCommentCounts[ref.id] || 0;
-                            return (
-                                <tr key={ref.id || i}>
-                                    <td>OE{i + 1}</td>
-                                    <td>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                            {ref.title}
-                                            {status === 'returned' && unresolvedCount > 0 && (
-                                                <span className={styles['comment-badge']}>{unresolvedCount}</span>
-                                            )}
-                                        </div>
-                                    </td>
-                                    <td>{ref.authors}</td>
-                                    <td><a href={ref.link} target="_blank" rel="noreferrer">Open Resource</a></td>
-                                    <td>{ref.year || '-'}</td>
-                                </tr>
-                            );
-                        })}
-                        </tbody>
-                    </table>
-                )}
-
-                {/* --- TABLE 3: ONLINE RESOURCES --- */}
-                {viewType === 'Online Resources' && (
-                    <table className={stylesB.refTable}>
-                        <thead>
-                        <tr>
-                            <th>ID</th><th>TITLE</th><th>AUTHOR/S</th><th>LINK</th><th>YEAR</th>
-                        </tr>
-                        </thead>
-                        <tbody>
-                        {getDataByType('Online Resources').map((ref, i) => {
-                            const unresolvedCount = referenceCommentCounts[ref.id] || 0;
-                            return (
-                                <tr key={ref.id || i}>
-                                    <td>OR{i + 1}</td>
-                                    <td>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                            {ref.title}
-                                            {status === 'returned' && unresolvedCount > 0 && (
-                                                <span className={styles['comment-badge']}>{unresolvedCount}</span>
-                                            )}
-                                        </div>
-                                    </td>
-                                    <td>{ref.authors}</td>
-                                    <td><a href={ref.link} target="_blank" rel="noreferrer">Open Resource</a></td>
-                                    <td>{ref.year || '-'}</td>
-                                </tr>
-                            );
-                        })}
-                        </tbody>
-                    </table>
-                )}
+                    </tbody>
+                </table>
             </div>
         </div>
     );
