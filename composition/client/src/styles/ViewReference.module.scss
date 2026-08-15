@@ -156,3 +156,46 @@
     background: #1f2937;
   }
 }
+
+@media (max-width: 1024px) {
+  .container {
+    min-width: 0;
+    overflow-y: auto;
+  }
+
+  .header, .detailGrid, .actions {
+    width: 100%;
+    max-width: 900px;
+  }
+}
+
+@media (max-width: 720px) {
+  .container {
+    height: auto;
+    min-height: 100%;
+    padding: 14px;
+  }
+
+  .detailRow2col {
+    grid-template-columns: 1fr;
+  }
+
+  .fileCard, .actions {
+    flex-wrap: wrap;
+  }
+
+  .fileCard {
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  .fileName {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .downloadBtn, .actions > button {
+    flex: 1 1 180px;
+    justify-content: center;
+  }
+}

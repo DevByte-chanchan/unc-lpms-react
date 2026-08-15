@@ -108,3 +108,31 @@ test('approval workspace stacks comments at the compact breakpoint', () => {
   assert.match(compactViewport, /overflow-y:\s*auto/)
   assert.match(compactPanel, /height:\s*100%/)
 })
+
+test('role-specific workspaces declare compact and mobile contracts', () => {
+  const styleFiles = [
+    'styles/ProgramHeadWorkspace.module.sass',
+    'styles/CourseCatalog.module.sass',
+    'styles/ReferenceLibrary.module.scss',
+    'styles/ViewReference.module.scss',
+    'styles/VPAA.module.scss',
+    'styles/AlignmentTables.module.sass',
+  ]
+  for (const file of styleFiles) {
+    const css = read(file)
+    assert.match(css, /max-width:\s*1024px|max-width:\s*1024px\)/)
+    assert.match(css, /max-width:\s*720px|max-width:\s*720px\)/)
+  }
+
+  for (const file of [
+    'pages/lpsm/ProgramHead/COAEPUpload.jsx',
+    'pages/lpsm/ProgramHead/CoPoAlignment.jsx',
+    'pages/lpsm/ProgramHead/PoPeoAlignment.jsx',
+  ]) {
+    assert.match(read(file), /ProgramHeadWorkspace\.module\.sass/)
+  }
+
+  const libraryCss = read('styles/ReferenceLibrary.module.scss')
+  assert.doesNotMatch(libraryCss, /^table\s*\{/m)
+  assert.match(libraryCss, /\.tableWrapper\s+table\s*\{/)
+})

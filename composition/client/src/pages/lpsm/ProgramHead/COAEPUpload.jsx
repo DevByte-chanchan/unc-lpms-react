@@ -11,6 +11,7 @@ import { FONT, BTN_DARK, BTN_OUTLINE, BTN_DANGER, TH, THC, TD, TDC } from './uiT
 import { fetchJson } from '../../../utils/api.js';
 import tbl from '../../../styles/AlignmentTables.module.sass';
 import TableScrollRegion from '../../../components/TableScrollRegion.jsx';
+import pageStyles from '../../../styles/ProgramHeadWorkspace.module.sass';
 
 const CURRENT_YEAR = new Date().getFullYear()
 
@@ -174,33 +175,34 @@ const COAEPUpload = () => {
   const course = courses.find(c => c.code === courseCode)
 
   const content = (
-    <div style={{ display: 'flex', flexDirection: 'column', width: '100%', height: '100%', gap: 10, padding: '20px 30px', background: '#FFFFFF', boxSizing: 'border-box' }}>
-      <div style={{ display: 'flex', width: '100%', flexDirection: 'row', height: 40, alignItems: 'center', gap: 15, marginBottom: 20 }}>
-        <h2 style={{ margin: 0, fontSize: 22, fontWeight: 600, whiteSpace: 'nowrap' }}>COURSE ASSESSMENT &amp; EVALUATION PLAN (COAEP)</h2>
-        <select value={courseCode} onChange={e => setCourseCode(e.target.value)}
-          style={{ padding: '6px 12px', fontSize: 14, borderRadius: 4, border: '1px solid #D1D5DB', background: '#FFF', cursor: 'pointer', marginLeft: 16, fontFamily: FONT }}>
+    <div className={pageStyles.page}>
+      <div className={pageStyles.toolbar}>
+        <h2>COURSE ASSESSMENT &amp; EVALUATION PLAN (COAEP)</h2>
+        <select className={pageStyles.courseSelect} value={courseCode} onChange={e => setCourseCode(e.target.value)}
+          style={{ fontSize: 14, borderRadius: 4, border: '1px solid #D1D5DB', background: '#FFF', cursor: 'pointer', fontFamily: FONT }}>
           {courses.map(c => <option key={c.code} value={c.code}>{c.name}</option>)}
         </select>
         <span style={{ fontSize: 13, color: '#6B7280', whiteSpace: 'nowrap', fontFamily: FONT }}>
           {serverPrograms[0] || getProgramName(programCode)}
         </span>
-        <div style={{ flexGrow: 1 }} />
-        {effectiveRecord && (
-          <button onClick={handleView}
+        <div className={pageStyles.actions}>
+          {effectiveRecord && (
+            <button onClick={handleView}
+              style={BTN_DARK}>
+              <ChevronRight size={16} /> View COAEP
+            </button>
+          )}
+          {coaepRecord && (
+            <button onClick={handleDelete}
+              style={BTN_DANGER}>
+              <Trash2 size={16} /> Delete
+            </button>
+          )}
+          <button onClick={() => setShowUpload(true)}
             style={BTN_DARK}>
-            <ChevronRight size={16} /> View COAEP
+            <Upload size={16} /> {coaepRecord ? 'Replace' : 'Upload'} COAEP
           </button>
-        )}
-        {coaepRecord && (
-          <button onClick={handleDelete}
-            style={BTN_DANGER}>
-            <Trash2 size={16} /> Delete
-          </button>
-        )}
-        <button onClick={() => setShowUpload(true)}
-          style={BTN_DARK}>
-          <Upload size={16} /> {coaepRecord ? 'Replace' : 'Upload'} COAEP
-        </button>
+        </div>
       </div>
 
       {course && <div style={{ fontSize: 14, color: '#4B5563', marginBottom: 12, fontFamily: FONT }}><strong>Course:</strong> {course.name}</div>}
@@ -250,11 +252,7 @@ const COAEPUpload = () => {
       {showUpload && (
         <div>
           <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.35)', zIndex: 2 }} onClick={() => { setShowUpload(false) }} />
-          <div style={{
-            position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
-            width: 540, padding: 24, background: '#FFF', borderRadius: 10, zIndex: 3,
-            boxShadow: '0 10px 30px rgba(0,0,0,0.15)'
-          }}>
+          <div className={pageStyles.dialog}>
             <div style={{ fontSize: 18, fontWeight: 600, marginBottom: 20 }}>{coaepRecord ? 'Replace' : 'Upload'} COAEP</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <div>
@@ -263,7 +261,7 @@ const COAEPUpload = () => {
                   placeholder="e.g. SANTOS, MARIA C."
                   style={{ width: '100%', padding: '8px 12px', border: '1px solid #D1D5DB', borderRadius: 6, fontSize: 14, boxSizing: 'border-box' }} />
               </div>
-              <div style={{ display: 'flex', gap: 12 }}>
+              <div className={pageStyles.fieldRow}>
                 <div style={{ flex: 1 }}>
                   <label style={{ fontSize: 13, fontWeight: 500, display: 'block', marginBottom: 4 }}>School Year</label>
                   <input value={form.schoolYear} onChange={e => setForm(f => ({ ...f, schoolYear: e.target.value }))}
@@ -292,7 +290,7 @@ const COAEPUpload = () => {
                   style={{ width: '100%', padding: '8px 12px', border: '1px solid #D1D5DB', borderRadius: 6, fontSize: 14, boxSizing: 'border-box' }} />
               </div>
             </div>
-            <div style={{ display: 'flex', gap: 12, marginTop: 20 }}>
+            <div className={pageStyles.dialogActions}>
               <button onClick={() => setShowUpload(false)}
                 style={{ flex: 1, height: 40, background: '#FFF', border: '1px solid #111827', borderRadius: 6, color: '#111827', cursor: 'pointer', fontWeight: 500 }}>Cancel</button>
               <button onClick={handleUpload}

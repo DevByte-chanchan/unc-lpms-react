@@ -56,3 +56,20 @@
 
   strong
     font-weight: 700
+
+@media (max-width: 1024px)
+  .legend
+    flex-wrap: wrap
+    gap: 10px 14px
+
+@media (max-width: 720px)
+  .legend
+    flex-wrap: wrap
+    align-items: flex-start
+    gap: 8px 12px
+
+    > span
+      flex: 1 1 140px
+
+    > span:first-child
+      flex-basis: 100%

@@ -1,7 +1,12 @@
 .page
+  width: 100%
+  min-width: 0
+  height: 100%
   padding: 24px
   font-family: 'Manrope', sans-serif
   max-width: 1100px
+  box-sizing: border-box
+  overflow-y: auto
 
 .head
   h2
@@ -156,12 +161,27 @@
   color: #A0AEC0
   font-size: 13px
 
+@media (max-width: 1024px)
+  .controls, .toolbar
+    width: 100%
+    flex-wrap: wrap
+
 @media (max-width: 720px)
   .page
     padding: 14px
+  .controls label, .search
+    flex: 1 0 100%
+    width: 100%
   .controls label select, .controls label input, .search input
     min-width: 0
     width: 100%
+  .count
+    margin-left: 0
+    flex: 1 0 100%
+  .primary, .secondary
+    flex: 1 1 160px
+    justify-content: center
+    white-space: normal
   .row
     grid-template-columns: 20px 1fr
     .sub, .tag

@@ -7,11 +7,13 @@
   flex-direction: column;
   width: 100%;
   height: 100%;
+  min-width: 0;
   min-height: 200px;
   gap: 10px;
   padding: 20px 30px;
   background: white;
   font-family: 'Poppins', sans-serif;
+  overflow-y: auto;
 }
 
 .header {
@@ -203,7 +205,7 @@
   overflow: auto;
 }
 
-table {
+.tableWrapper table {
   width: 100%;
   border-collapse: collapse;
   table-layout: fixed;
@@ -738,4 +740,92 @@ table {
   font-family: 'Poppins', sans-serif;
 
   &:hover { background: #b91c1c; }
+}
+
+@media (max-width: 1024px) {
+  .actionsGroup {
+    flex: 1 0 100%;
+    margin-left: 0;
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 720px) {
+  .container {
+    padding: 14px;
+  }
+
+  .searchWrapper {
+    width: 100%;
+    min-width: 0;
+    flex: 1 0 100%;
+  }
+
+  .statsGrid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .statCard {
+    padding: 14px;
+  }
+
+  .actionsGroup {
+    width: 100%;
+  }
+
+  .addBtn, .bulkBtn {
+    flex: 1 1 150px;
+    min-width: 0;
+  }
+
+  .pagination {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .paginationControls {
+    flex-wrap: wrap;
+  }
+
+  .modalOverlay {
+    padding: 12px;
+    box-sizing: border-box;
+  }
+
+  .viewModal, .modal, .deleteModal {
+    width: calc(100vw - 24px);
+    max-width: none;
+    max-height: calc(100dvh - 24px);
+    box-sizing: border-box;
+    overflow-y: auto;
+  }
+
+  .deleteModal {
+    padding: 24px 18px;
+  }
+
+  .modalHeader {
+    padding: 18px 16px 14px;
+  }
+
+  .modalBody {
+    padding: 16px;
+  }
+
+  .modalRow2col {
+    grid-template-columns: 1fr;
+  }
+
+  .modalActions, .deleteActions {
+    flex-wrap: wrap;
+  }
+
+  .modalActions {
+    padding: 14px 16px 18px;
+  }
+
+  .modalActions > button, .deleteActions > button {
+    flex: 1 1 140px;
+  }
 }

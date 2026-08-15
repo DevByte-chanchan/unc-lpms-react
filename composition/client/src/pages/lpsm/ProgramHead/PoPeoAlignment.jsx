@@ -9,6 +9,7 @@ import { getAllPrograms, getProgramName, getPoPeoData, savePoPeoData } from '../
 import unclogo from '../../../assets/unclogo.png';
 import tbl from '../../../styles/AlignmentTables.module.sass';
 import TableScrollRegion from '../../../components/TableScrollRegion.jsx';
+import pageStyles from '../../../styles/ProgramHeadWorkspace.module.sass';
 
 const GAS_LABELS = ['EC', 'CL', 'ERC', 'LL']
 
@@ -81,29 +82,30 @@ const PoPeoAlignment = () => {
   }
 
   const content = (
-    <div style={{ display: 'flex', flexDirection: 'column', width: '100%', height: '100%', gap: 10, padding: '20px 30px', background: '#FFFFFF', boxSizing: 'border-box' }}>
-      <div style={{ display: 'flex', width: '100%', flexDirection: 'row', height: 40, alignItems: 'center', gap: 15, marginBottom: 20 }}>
-        <h2 style={{ margin: 0, fontSize: 22, fontWeight: 600, whiteSpace: 'nowrap' }}>PROGRAM OUTCOMES &amp; PEO ALIGNMENT</h2>
-        <div style={{ flexGrow: 1 }} />
-        {!editing ? (
-          <>
-            <button onClick={() => setEditing(true)} style={BTN_OUTLINE}>
-              <Edit3 size={16} /> Edit Alignment
-            </button>
-            <button onClick={handleView} style={BTN_DARK}>
-              <ChevronRight size={16} /> View
-            </button>
-          </>
-        ) : (
-          <>
-            <button onClick={handleCancel} style={BTN_OUTLINE}>
-              <X size={16} /> Cancel
-            </button>
-            <button onClick={handleSave} style={BTN_DARK}>
-              <Check size={16} /> Save
-            </button>
-          </>
-        )}
+    <div className={pageStyles.page}>
+      <div className={pageStyles.toolbar}>
+        <h2>PROGRAM OUTCOMES &amp; PEO ALIGNMENT</h2>
+        <div className={pageStyles.actions}>
+          {!editing ? (
+            <>
+              <button onClick={() => setEditing(true)} style={BTN_OUTLINE}>
+                <Edit3 size={16} /> Edit Alignment
+              </button>
+              <button onClick={handleView} style={BTN_DARK}>
+                <ChevronRight size={16} /> View
+              </button>
+            </>
+          ) : (
+            <>
+              <button onClick={handleCancel} style={BTN_OUTLINE}>
+                <X size={16} /> Cancel
+              </button>
+              <button onClick={handleSave} style={BTN_DARK}>
+                <Check size={16} /> Save
+              </button>
+            </>
+          )}
+        </div>
       </div>
 
       <TableScrollRegion label="PROGRAM OUTCOMES & PEO ALIGNMENT" minWidth={960}>
