@@ -1,0 +1,44 @@
+.page
+  width: min(720px, calc(100% - 24px))
+  max-height: 100%
+  margin: 24px auto
+  padding: 20px
+  overflow-y: auto
+  box-sizing: border-box
+  border: 1px solid #e2e8f0
+  border-radius: 8px
+  background: #fff
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08)
+
+.field
+  display: flex
+  flex-direction: column
+  gap: 6px
+  margin-bottom: 16px
+  min-width: 0
+
+.label
+  font-size: 13px
+  font-weight: 600
+  color: #334155
+
+.select
+  width: 100%
+  min-width: 0
+  padding: 8px 10px
+  border: 1px solid #cbd5e1
+  border-radius: 6px
+  font-size: 14px
+  background: #fff
+  box-sizing: border-box
+
+.submit
+  max-width: 100%
+
+@media (max-width: 720px)
+  .page
+    margin: 12px auto
+    padding: 14px 12px
+
+  .submit
+    width: 100%

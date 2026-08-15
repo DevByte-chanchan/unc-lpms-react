@@ -4,6 +4,7 @@ import TextField from './TextField.jsx';
 import DropdownA from './DropdownA.jsx';
 import DropdownMultiSelect from './DropdownMultiSelect.jsx';
 import { addReference, updateReference } from '../utils/referenceLibrary.js';
+import styles from '../styles/AddReferenceModal.module.sass';
 
 const ReferenceTypes = ['Textbook', 'Online Resources', 'Open Educational Resources'];
 
@@ -129,20 +130,6 @@ const AddReferenceModal = ({ show, onClose, refToEdit = null, onSaved, onError }
 
   const toggleFullscreen = () => setIsFullscreen(f => !f);
 
-  const modalStyle = isFullscreen ? {
-    position: 'fixed', inset: 0, zIndex: 3000,
-    background: '#fff',
-    display: 'flex', flexDirection: 'column', overflow: 'hidden',
-  } : {
-    position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
-    zIndex: 3000, background: '#fff', borderRadius: 16,
-    width: 800, maxWidth: '95vw',
-    display: 'flex', flexDirection: 'column',
-    height: '50vh', maxHeight: '90vh',
-    boxShadow: '0 20px 60px rgba(0,0,0,0.15)',
-    fontFamily: "'Poppins', sans-serif",
-  };
-
   const headerBtn = {
     width: 32, height: 32, borderRadius: 7, cursor: 'pointer',
     display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
@@ -152,14 +139,17 @@ const AddReferenceModal = ({ show, onClose, refToEdit = null, onSaved, onError }
   return (
     <>
       {!isFullscreen && (
-        <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 2999 }} />
+        <div onClick={onClose} className={styles.backdrop} />
       )}
-      <div role="dialog" aria-modal="true" style={modalStyle} onClick={e => e.stopPropagation()}>
-        <div style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '14px 24px', borderBottom: '1px solid #e5e7eb', flexShrink: 0,
-        }}>
-          <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: '#1f2937' }}>
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="reference-dialog-title"
+        className={`${styles.modal} ${isFullscreen ? styles.fullscreen : ''}`}
+        onClick={event => event.stopPropagation()}
+      >
+        <div className={styles.header}>
+          <h2 id="reference-dialog-title" style={{ margin: 0, fontSize: 18, fontWeight: 700, color: '#1f2937' }}>
             {isEditMode ? 'Edit Reference' : 'Reference Details'}
           </h2>
           <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
@@ -179,7 +169,7 @@ const AddReferenceModal = ({ show, onClose, refToEdit = null, onSaved, onError }
           </div>
         </div>
 
-        <div style={{ padding: '20px 24px', overflow: 'auto', flex: 1 }}>
+        <div className={styles.body}>
           <DropdownA options={ReferenceTypes} label="Reference Type" value={formData.type}
             initialValue={formData.type} onChange={val => handleChange('type', val)} error={errors.type} style={{ padding: 0 }} />
           <div style={{ height: 16 }} />
@@ -194,7 +184,7 @@ const AddReferenceModal = ({ show, onClose, refToEdit = null, onSaved, onError }
             onChange={val => handleChange('departments', val)} style={{ padding: 0 }} />
         </div>
 
-        <div style={{ padding: '14px 24px', borderTop: '1px solid #e5e7eb', display: 'flex', gap: 12, justifyContent: 'flex-end', flexShrink: 0 }}>
+        <div className={styles.actions}>
           <button onClick={onClose} style={{ padding: '10px 24px', border: '1px solid #d1d5db', borderRadius: 10, background: '#fff', color: '#374151', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: "'Poppins', sans-serif" }}>Cancel</button>
           <button onClick={handleSave} style={{ padding: '10px 24px', border: 'none', borderRadius: 10, background: '#1f2937', color: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: "'Poppins', sans-serif" }}>{isEditMode ? 'Update' : 'Save'}</button>
         </div>

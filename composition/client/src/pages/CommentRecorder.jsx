@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { fetchJson } from '../utils/api.js';
 import DropdownMultiSelect from '../components/DropdownMultiSelect.jsx';
+import styles from '../styles/CommentRecorder.module.sass';
 
 // Standalone approver comment recorder, wired to YOUR backend (port 5000).
 // Chains: assignment -> ILO -> coverage type -> target(s) -> message, then POSTs to /api/comments.
@@ -26,11 +27,6 @@ const COVERAGE_OPTIONS = [
     { value: 'references', label: 'References' },
     { value: 'tlas', label: 'Teaching-Learning Activity (TLA)' },
 ];
-
-const box = { border: '1px solid #e2e8f0', borderRadius: 8, padding: 20, background: '#fff', maxWidth: 720, margin: '24px auto', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' };
-const field = { display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 16 };
-const label = { fontSize: 13, fontWeight: 600, color: '#334155' };
-const select = { padding: '8px 10px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: 14, background: '#fff' };
 
 export default function CommentRecorder() {
     const [assignments, setAssignments] = useState([]);
@@ -152,20 +148,20 @@ export default function CommentRecorder() {
     };
 
     return (
-        <div style={box}>
+        <div className={styles.page}>
             <h2 style={{ margin: '0 0 4px', fontSize: 20 }}>Record a Comment</h2>
             <p style={{ margin: '0 0 18px', fontSize: 13, color: '#64748b' }}>
                 Create a review comment against a learning plan and attach one or more targets (saved to your DB).
             </p>
 
-            <div style={field}>
-                <span style={label}>Reviewing as</span>
-                <div style={{ ...select, background: '#f8fafc', color: '#334155', fontWeight: 600 }}>{role}</div>
+            <div className={styles.field}>
+                <span className={styles.label}>Reviewing as</span>
+                <div className={styles.select} style={{ background: '#f8fafc', color: '#334155', fontWeight: 600 }}>{role}</div>
             </div>
 
-            <div style={field}>
-                <span style={label}>Learning plan</span>
-                <select style={select} value={assignId} onChange={(e) => onAssignChange(e.target.value)}>
+            <div className={styles.field}>
+                <span className={styles.label}>Learning plan</span>
+                <select className={styles.select} value={assignId} onChange={(e) => onAssignChange(e.target.value)}>
                     <option value="">-- select a plan --</option>
                     {assignments.map(a => (
                         <option key={a.co_assign_id} value={a.co_assign_id}>{assignLabel(a)}</option>
@@ -173,24 +169,24 @@ export default function CommentRecorder() {
                 </select>
             </div>
 
-            <div style={field}>
-                <span style={label}>Intended Learning Outcome (ILO)</span>
-                <select style={select} value={iloId} onChange={(e) => setIloId(e.target.value)} disabled={!assignId || ilos.length === 0}>
+            <div className={styles.field}>
+                <span className={styles.label}>Intended Learning Outcome (ILO)</span>
+                <select className={styles.select} value={iloId} onChange={(e) => setIloId(e.target.value)} disabled={!assignId || ilos.length === 0}>
                     <option value="">-- select ILO --</option>
                     {ilos.map(i => <option key={i.id} value={i.id}>{i.label}</option>)}
                 </select>
             </div>
 
-            <div style={field}>
-                <span style={label}>Coverage type</span>
-                <select style={select} value={commentFor} onChange={(e) => setCommentFor(e.target.value)} disabled={!iloId}>
+            <div className={styles.field}>
+                <span className={styles.label}>Coverage type</span>
+                <select className={styles.select} value={commentFor} onChange={(e) => setCommentFor(e.target.value)} disabled={!iloId}>
                     <option value="">-- select type --</option>
                     {COVERAGE_OPTIONS.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
                 </select>
             </div>
 
-            <div style={field}>
-                <span style={label}>Target</span>
+            <div className={styles.field}>
+                <span className={styles.label}>Target</span>
                 <DropdownMultiSelect
                     disabled={!commentFor || targets.length === 0}
                     value={selectedLabels}
@@ -199,10 +195,11 @@ export default function CommentRecorder() {
                 />
             </div>
 
-            <div style={field}>
-                <span style={label}>Comment</span>
+            <div className={styles.field}>
+                <span className={styles.label}>Comment</span>
                 <textarea
-                    style={{ ...select, minHeight: 90, resize: 'vertical' }}
+                    className={styles.select}
+                    style={{ minHeight: 90, resize: 'vertical' }}
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}
                     placeholder="Describe the issue or suggestion..."
@@ -221,6 +218,7 @@ export default function CommentRecorder() {
             )}
 
             <button
+                className={styles.submit}
                 onClick={submit}
                 disabled={!canSubmit}
                 style={{

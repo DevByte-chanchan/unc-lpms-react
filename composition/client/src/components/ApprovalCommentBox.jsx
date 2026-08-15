@@ -467,8 +467,8 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
           ) : isDirector ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12, height: '100%' }}>
               <div style={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
-                <div style={{ display: 'flex', gap: 16, alignItems: 'stretch', height: '100%' }}>
-              <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+                <div className={styles.directorWorkspace}>
+              <div className={styles.directorPlan}>
               {syllabusReferences.length > 0 && (
                 <div style={{ border: '1px solid #e5e7eb', borderRadius: 6, padding: 16, background: '#fafafa', display: 'flex', flexDirection: 'column', overflow: 'hidden', ...(isFullscreen ? { flex: 1 } : { height: 480 }) }}>
                   <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 12, color: '#111827' }}>Learning Plan References</div>
@@ -514,7 +514,7 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
                 </div>
               )}
               </div>
-              <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+              <div className={styles.directorLibrary}>
               {renderRefBrowser()}
               </div>
                 </div>

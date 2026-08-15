@@ -12,7 +12,9 @@
   top: 0
   left: 0
   width: 100%
-  height: 100%
+  height: 100dvh
+  padding: 12px
+  box-sizing: border-box
   background: rgba(0, 0, 0, 0.7)
   z-index: 1000
   display: flex
@@ -24,11 +26,13 @@
   padding: 30px
   border-radius: 8px
   width: 95vw
-  height: 90vh
+  height: min(90vh, calc(100dvh - 24px))
+  max-height: calc(100dvh - 24px)
   display: flex
   flex-direction: column
   position: relative
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2)
+  overflow: hidden
 
 .closeButton
   position: absolute
@@ -709,3 +713,20 @@ section
   border-radius: 3px
   margin-top: 2px
   border: 1px solid #ccc
+
+@media (max-width: 720px)
+  .modalContent
+    width: calc(100vw - 24px)
+    height: calc(100dvh - 24px)
+    padding: 16px 12px
+
+  .navi
+    flex-wrap: wrap
+    gap: 10px
+
+  .section-select
+    flex-basis: 100%
+    min-width: 0
+
+  .dynamic-sections
+    min-width: 0

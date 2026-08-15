@@ -1,0 +1,62 @@
+.backdrop
+  position: fixed
+  inset: 0
+  background: rgba(0, 0, 0, 0.45)
+  z-index: 2999
+
+.modal
+  position: fixed
+  top: 50%
+  left: 50%
+  transform: translate(-50%, -50%)
+  z-index: 3000
+  width: min(800px, calc(100vw - 24px))
+  height: min(640px, calc(100dvh - 24px))
+  background: #fff
+  border-radius: 16px
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15)
+  font-family: 'Poppins', sans-serif
+  display: flex
+  flex-direction: column
+  overflow: hidden
+
+.fullscreen
+  inset: 0
+  width: 100%
+  height: 100dvh
+  border-radius: 0
+  transform: none
+
+.header
+  display: flex
+  align-items: center
+  justify-content: space-between
+  gap: 12px
+  padding: 14px 24px
+  border-bottom: 1px solid #e5e7eb
+  flex-shrink: 0
+
+.body
+  flex: 1
+  min-height: 0
+  overflow: auto
+  padding: 20px 24px
+
+.actions
+  padding: 14px 24px
+  border-top: 1px solid #e5e7eb
+  display: flex
+  gap: 12px
+  justify-content: flex-end
+  flex-shrink: 0
+
+@media (max-width: 720px)
+  .header, .body, .actions
+    padding-left: 14px
+    padding-right: 14px
+
+  .actions
+    flex-wrap: wrap
+
+    button
+      flex: 1 1 140px

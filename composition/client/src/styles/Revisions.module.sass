@@ -3,7 +3,9 @@
   top: 0
   left: 0
   width: 100%
-  height: 100%
+  height: 100dvh
+  padding: 12px
+  box-sizing: border-box
   background: rgba(0, 0, 0, 0.7)
   z-index: 1000
   display: flex
@@ -15,7 +17,8 @@
   padding: 30px
   border-radius: 8px
   width: 95vw
-  height: 90vh
+  height: min(90vh, calc(100dvh - 24px))
+  max-height: calc(100dvh - 24px)
   display: flex
   flex-direction: column
   position: relative
@@ -365,3 +368,25 @@
   font-size: 12px
   font-weight: 600 // Diminished from overly bold 700
   color: #111
+
+@media (max-width: 1024px)
+  .splitContainer
+    flex-direction: column
+    height: auto
+    flex: 1
+    overflow-y: auto
+
+  .leftPreviewPane, .rightLedgerPane
+    width: 100%
+    height: auto
+    min-width: 0
+
+  .leftPreviewPane
+    min-height: min(520px, 55dvh)
+
+  .rightLedgerPane
+    border-left: 0
+    border-top: 1px solid #e2e8f0
+    padding-left: 0
+    padding-top: 20px
+    overflow: visible

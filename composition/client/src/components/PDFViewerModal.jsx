@@ -3,6 +3,7 @@ import { X, Download, FileText, User, Calendar, BookOpen, ZoomIn, ZoomOut, Maxim
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
 import { API_BASE } from '../utils/api.js';
+import styles from '../styles/PDFViewerModal.module.sass';
 
 const ACCENT     = '#19282C';
 const SLATE_900  = '#0F172A';
@@ -225,7 +226,7 @@ const PDFViewerModal = ({ file, kind, onClose, onExport, children }) => {
     display: 'flex', flexDirection: 'column', overflow: 'hidden',
   } : {
     position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
-    width: 'min(1360px, 96vw)', height: 'min(920px, 94vh)',
+    width: 'min(1360px, 96vw)', height: 'min(920px, calc(100dvh - 24px))',
     background: '#FFFFFF', borderRadius: 14, zIndex: 101,
     boxShadow: '0 24px 60px rgba(15,23,42,0.30)',
     display: 'flex', flexDirection: 'column', overflow: 'hidden',
@@ -236,9 +237,9 @@ const PDFViewerModal = ({ file, kind, onClose, onExport, children }) => {
       {!isFullscreen && (
         <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.55)', zIndex: 100, backdropFilter: 'blur(2px)' }} />
       )}
-      <div style={modalStyle}>
+      <div className={styles.modal} style={modalStyle}>
         {/* Header */}
-        <div style={{
+        <div className={styles.header} style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           padding: '10px 18px', borderBottom: '1px solid ' + SLATE_200, gap: 10, flexShrink: 0,
         }}>
@@ -261,7 +262,7 @@ const PDFViewerModal = ({ file, kind, onClose, onExport, children }) => {
           </div>
 
           {/* Zoom controls */}
-          <div style={{ display: 'flex', gap: 4, alignItems: 'center', flexShrink: 0, background: SLATE_50, borderRadius: 8, padding: '2px 4px', border: '1px solid ' + SLATE_200 }}>
+          <div className={styles.toolGroup} style={{ flexShrink: 0, background: SLATE_50, borderRadius: 8, padding: '2px 4px', border: '1px solid ' + SLATE_200 }}>
             <button type="button" onClick={zoomOut} title="Zoom out" style={btnBase}
               onMouseEnter={e => { e.currentTarget.style.background = SLATE_100; e.currentTarget.style.borderColor = SLATE_300; }}
               onMouseLeave={e => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.borderColor = SLATE_200; }}>
@@ -346,8 +347,8 @@ const PDFViewerModal = ({ file, kind, onClose, onExport, children }) => {
         </div>
 
         {/* Body: sidebar + preview */}
-        <div style={{ flex: 1, minHeight: 0, display: 'grid', gridTemplateColumns: '220px 1fr' }}>
-          <div style={{ borderRight: '1px solid ' + SLATE_200, background: SLATE_50, padding: '14px 16px', overflowY: 'auto' }}>
+        <div className={styles.body}>
+          <div className={styles.metadata} style={{ borderRight: '1px solid ' + SLATE_200, background: SLATE_50, padding: '14px 16px' }}>
             <div style={{ fontSize: 10, fontWeight: 700, color: SLATE_500, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 6 }}>
               File details
             </div>
@@ -358,7 +359,7 @@ const PDFViewerModal = ({ file, kind, onClose, onExport, children }) => {
             <MetaRow icon={<FileText size={12} />} label="File name"        value={file.file_name} />
           </div>
 
-          <div ref={paneRef} style={{ overflow: 'auto', background: SLATE_100, position: 'relative' }}>
+          <div ref={paneRef} className={styles.previewPane} style={{ background: SLATE_100, position: 'relative' }}>
             {hasRealUrl ? (
               <div style={{ minHeight: '100%', display: 'flex', justifyContent: 'center', alignItems: 'flex-start', padding: '16px 12px' }}>
                 <div style={{
