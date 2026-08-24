@@ -3,15 +3,12 @@ import FacultyTable from "../components/FacultyTable.jsx";
 import { Clock, Search, ArrowUp, ArrowDown, Upload, Clipboard, User, X } from "react-feather";
 import styles from '../styles/CoursesTable.module.sass';
 import syllabusStyles from '../styles/SyllabusSections.module.sass';
+import pageStyles from '../styles/ProgramHeadWorkspace.module.sass';
 
 const UploadButton = ({ onClick }) => (
   <button
     onClick={onClick}
-    style={{
-      display: 'flex', flexDirection: 'row', justifyContent: 'center', alignItems: 'center',
-      padding: '8px 18px', gap: 8, width: 240, height: 40,
-      background: '#EA1212', borderRadius: 6, color: '#fff', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap'
-    }}
+    className={pageStyles.uploadButton}
   >
     <span style={{ width: 22, height: 22, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
       <Upload size={18} color="#FFFFFF" />
@@ -240,17 +237,17 @@ const DeanFaculty = () => {
   };
 
   return (
-    <div style={{ padding: 20, background: '#FFFFFF', minHeight: 'calc(100vh - 100px)', display: 'flex', flexDirection: 'column' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-        <h2 style={{ margin: 0, fontSize: 22, fontWeight: 600 }}>Faculty</h2>
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 10 }}>
+    <div className={pageStyles.managementPage}>
+      <div className={pageStyles.pageHeader}>
+        <h2>Faculty</h2>
+        <div className={pageStyles.pageHeaderActions}>
           <UploadButton onClick={() => setShowModal(true)} />
         </div>
       </div>
 
       {showTable && faculty.length > 0 && (
-        <div className={syllabusStyles.header} style={{ marginBottom: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div className={`${syllabusStyles.header} ${pageStyles.dataToolbar}`}>
+          <div className={pageStyles.toolbarSort}>
             <div style={{ position: 'relative' }}>
               <button
                 style={{
@@ -286,7 +283,7 @@ const DeanFaculty = () => {
               )}
             </div>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div className={pageStyles.toolbarControls}>
             <div className={'filter-container'}>
               <p>Filter by <strong>Role</strong>:</p>
               <select value={roleFilter || ''} onChange={(e) => setRoleFilter(e.target.value || null)}>
@@ -296,9 +293,9 @@ const DeanFaculty = () => {
                 <option value="Instructor">Instructor</option>
               </select>
             </div>
-            <div className={syllabusStyles['section-select']} style={{ display: 'flex', alignItems: 'center', padding: '6px 12px', height: 40, borderRadius: 9999, background: 'transparent', border: '1px solid #D1D5DB' }}>
+            <div className={`${syllabusStyles['section-select']} ${pageStyles.searchShell}`}>
               <Search size={16} style={{ marginRight: 8, color: '#374151' }} />
-              <input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search faculty" style={{ border: 0, outline: 'none', background: 'transparent', width: 360, fontSize: 14 }} />
+              <input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search faculty" className={pageStyles.searchInput} />
             </div>
           </div>
         </div>
@@ -342,13 +339,9 @@ const DeanFaculty = () => {
         <div>
           <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.35)', zIndex: 2 }} onClick={() => setShowModal(false)} />
           <div
-            style={{
-              position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
-              width: 767, padding: 40, background: '#FFFFFF', borderRadius: 10,
-              display: 'flex', flexDirection: 'column', gap: 20, zIndex: 3, boxShadow: '0 10px 30px rgba(0,0,0,0.15)'
-            }}
+            className={`${pageStyles.managementDialog} ${pageStyles.dialogWide} ${pageStyles.dialogSpacious}`}
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div className={pageStyles.dialogHeader}>
               <div style={{ fontSize: 20, fontWeight: 600 }}>Upload Faculty List</div>
               <button onClick={() => setShowModal(false)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 0 }}>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -361,9 +354,7 @@ const DeanFaculty = () => {
               onClick={() => fileInputRef.current && fileInputRef.current.click()}
               onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; }}
               onDrop={(e) => { e.preventDefault(); const file = e.dataTransfer.files && e.dataTransfer.files[0]; if (file) { setSelectedFile(file); } }}
-              style={{
-                border: '2px dashed #D1D5DB', borderRadius: 8, padding: 28, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, cursor: 'pointer'
-              }}
+              className={pageStyles.dialogDropZone}
             >
               <div style={{ width: 64, height: 64, borderRadius: 12, background: '#F3F4F6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Upload size={36} color="#9CA3AF" />
@@ -373,7 +364,7 @@ const DeanFaculty = () => {
               <input id="faculty-file-input" type="file" ref={fileInputRef} accept=".csv,.xlsx,.xls" onChange={(e) => { const file = e.target.files && e.target.files[0]; setSelectedFile(file || null); }} style={{ display: 'none' }} />
             </div>
 
-            <div style={{ display: 'flex', gap: 12, marginTop: 8 }}>
+            <div className={pageStyles.managementDialogActions} style={{ marginTop: 8 }}>
               <button onClick={() => { setSelectedFile(null); if (fileInputRef.current) fileInputRef.current.value = ''; setShowModal(false); }} style={{ flex: 1, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#FFFFFF', border: '1px solid #111827', borderRadius: 8, color: '#111827', cursor: 'pointer', fontWeight: 500 }}>Cancel</button>
               <button onClick={() => {
                 if (!selectedFile) { alert('Please choose a file first'); return; }
@@ -391,14 +382,10 @@ const DeanFaculty = () => {
         <div>
           <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.35)', zIndex: 2 }} onClick={() => setShowDetailModal(false)} />
           <div
-            style={{
-              position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
-              width: 700, padding: 40, background: '#FFFFFF', borderRadius: 10,
-              display: 'flex', flexDirection: 'column', gap: 24, zIndex: 3, boxShadow: '0 10px 30px rgba(0,0,0,0.15)'
-            }}
+            className={`${pageStyles.managementDialog} ${pageStyles.dialogDetail} ${pageStyles.dialogSpacious}`}
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-              <div style={{ display: 'flex', gap: 20 }}>
+            <div className={pageStyles.dialogHeader}>
+              <div className={pageStyles.detailIdentity}>
                 <div style={{ width: 100, height: 100, borderRadius: 12, background: '#F3F4F6', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                   <User size={56} color="#9CA3AF" />
                 </div>
@@ -417,10 +404,10 @@ const DeanFaculty = () => {
               </button>
             </div>
 
-            <div style={{ borderTop: '1px solid #E5E7EB', paddingTop: 20 }}>
+            <div className={pageStyles.dialogContent} style={{ borderTop: '1px solid #E5E7EB', paddingTop: 20 }}>
               <div style={{ marginBottom: 24 }}>
                 <div style={{ fontSize: 13, fontWeight: 600, color: '#111827', marginBottom: 12, textTransform: 'uppercase' }}>Personal Information</div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                <div className={pageStyles.detailGrid}>
                   <div>
                     <div style={{ fontSize: 12, color: '#6B7280', marginBottom: 4 }}>Sex</div>
                     <div style={{ fontSize: 14, color: '#111827' }}>{selectedFaculty.sex}</div>
@@ -434,7 +421,7 @@ const DeanFaculty = () => {
 
               <div style={{ marginBottom: 24 }}>
                 <div style={{ fontSize: 13, fontWeight: 600, color: '#111827', marginBottom: 12, textTransform: 'uppercase' }}>Contact Information</div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                <div className={pageStyles.detailGrid}>
                   <div>
                     <div style={{ fontSize: 12, color: '#6B7280', marginBottom: 4 }}>Email Address</div>
                     <div style={{ fontSize: 14, color: '#111827' }}>{selectedFaculty.email}</div>
@@ -448,7 +435,7 @@ const DeanFaculty = () => {
 
               <div>
                 <div style={{ fontSize: 13, fontWeight: 600, color: '#111827', marginBottom: 12, textTransform: 'uppercase' }}>Professional Information</div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                <div className={pageStyles.detailGrid}>
                   <div>
                     <div style={{ fontSize: 12, color: '#6B7280', marginBottom: 4 }}>Role</div>
                     <div style={{ fontSize: 14, color: '#111827' }}>{selectedFaculty.role}</div>

@@ -64,6 +64,213 @@
   gap: 12px
   margin-top: 20px
 
+.managementPage
+  width: 100%
+  min-width: 0
+  min-height: calc(100dvh - 100px)
+  padding: 20px
+  background: #fff
+  box-sizing: border-box
+  display: flex
+  flex-direction: column
+  overflow-x: hidden
+
+.pageHeader
+  width: 100%
+  min-width: 0
+  margin-bottom: 20px
+  display: flex
+  align-items: center
+  justify-content: space-between
+  flex-wrap: wrap
+  gap: 12px
+
+  h2
+    min-width: 0
+    margin: 0
+    font-size: 22px
+    font-weight: 600
+    overflow-wrap: anywhere
+
+.pageHeaderActions
+  min-width: 0
+  display: flex
+  flex-wrap: wrap
+  gap: 10px
+
+.uploadButton
+  width: 240px
+  max-width: 100%
+  min-height: 40px
+  padding: 8px 18px
+  display: flex
+  align-items: center
+  justify-content: center
+  gap: 8px
+  background: #ea1212
+  border: 0
+  border-radius: 6px
+  color: #fff
+  cursor: pointer
+  white-space: nowrap
+
+.dataToolbar
+  width: 100%
+  min-width: 0
+  height: auto
+  min-height: 40px
+  margin-bottom: 12px
+  display: flex
+  align-items: center
+  justify-content: space-between
+  gap: 12px
+
+.toolbarSort
+  min-width: 0
+  display: flex
+  align-items: center
+  flex-wrap: wrap
+  gap: 12px
+
+.toolbarControls
+  min-width: 0
+  display: flex
+  align-items: center
+  justify-content: flex-end
+  flex-wrap: wrap
+  gap: 8px
+
+.searchShell
+  flex: 1 1 360px
+  width: min(420px, 100%)
+  min-width: 0
+  max-width: 420px
+  height: 40px
+  padding: 6px 12px
+  display: flex
+  align-items: center
+  box-sizing: border-box
+  border: 1px solid #d1d5db
+  border-radius: 9999px
+  background: transparent
+
+.searchInput
+  flex: 1 1 auto
+  width: 100%
+  min-width: 0
+  border: 0
+  outline: none
+  background: transparent
+  font-size: 14px
+
+.managementDialog
+  position: fixed
+  top: 50%
+  left: 50%
+  transform: translate(-50%, -50%)
+  width: min(540px, calc(100vw - 24px))
+  max-width: calc(100vw - 24px)
+  max-height: calc(100dvh - 24px)
+  padding: 20px
+  box-sizing: border-box
+  display: flex
+  flex-direction: column
+  gap: 20px
+  overflow-x: hidden
+  overflow-y: auto
+  background: #fff
+  border-radius: 10px
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15)
+  z-index: 3
+
+  h2
+    min-width: 0
+    overflow-wrap: anywhere
+
+.dialogWide
+  width: min(767px, calc(100vw - 24px))
+
+.dialogNarrow
+  width: min(431px, calc(100vw - 24px))
+
+.dialogMedium
+  width: min(500px, calc(100vw - 24px))
+  padding: 24px
+
+.dialogDetail
+  width: min(700px, calc(100vw - 24px))
+
+.dialogSpacious
+  padding: 40px
+
+.dialogElevated
+  z-index: 40
+  font-family: Poppins, sans-serif
+
+.dialogHeader
+  width: 100%
+  min-width: 0
+  display: flex
+  align-items: flex-start
+  justify-content: space-between
+  flex-wrap: wrap
+  gap: 12px
+
+  > *
+    min-width: 0
+    overflow-wrap: anywhere
+
+.dialogContent
+  width: 100%
+  min-width: 0
+  overflow-wrap: anywhere
+
+.dialogDropZone
+  width: 100%
+  min-width: 0
+  padding: 28px
+  box-sizing: border-box
+  display: flex
+  flex-direction: column
+  align-items: center
+  justify-content: center
+  gap: 8px
+  border: 2px dashed #d1d5db
+  border-radius: 8px
+  cursor: pointer
+  text-align: center
+  overflow-wrap: anywhere
+
+.managementDialogActions
+  width: 100%
+  min-width: 0
+  display: flex
+  flex-wrap: wrap
+  gap: 12px
+
+  > button
+    min-width: 0
+    flex: 1 1 140px
+
+.detailIdentity
+  min-width: 0
+  display: flex
+  flex-wrap: wrap
+  gap: 20px
+
+  > *
+    min-width: 0
+
+.detailGrid
+  min-width: 0
+  display: grid
+  grid-template-columns: repeat(2, minmax(0, 1fr))
+  gap: 16px
+
+  > *
+    min-width: 0
+    overflow-wrap: anywhere
+
 @media (max-width: 1024px)
   .page
     overflow-y: auto
@@ -71,6 +278,15 @@
     flex: 1 0 100%
   .actions
     margin-left: 0
+  .dataToolbar
+    flex-wrap: wrap
+    align-items: stretch
+  .toolbarControls
+    width: 100%
+    flex: 1 1 100%
+    justify-content: flex-start
+  .searchShell
+    max-width: none
 
 @media (max-width: 720px)
   .page
@@ -88,3 +304,30 @@
     flex-direction: column
   .dialogActions
     flex-wrap: wrap
+  .managementPage
+    min-height: 100%
+    padding: 14px 12px
+  .pageHeaderActions, .uploadButton
+    width: 100%
+  .dataToolbar, .toolbarSort, .toolbarControls
+    width: 100%
+  .toolbarControls
+    align-items: stretch
+    flex-direction: column
+  .searchShell
+    width: 100%
+    max-width: none
+    flex-basis: auto
+  .managementDialog
+    padding: 18px
+    gap: 16px
+  .dialogMedium, .dialogSpacious
+    padding: 18px
+  .dialogDropZone
+    padding: 20px 12px
+  .managementDialogActions
+    flex-wrap: wrap
+  .detailIdentity
+    flex-direction: column
+  .detailGrid
+    grid-template-columns: 1fr

@@ -100,7 +100,7 @@ const ReferenceSummary = ({ offeringID, revisionNum, status, selectedSection, st
     const activeReferences = getDataByType(activeView.value);
     const isTextbook = activeView.value === 'Textbook';
 
-    if (isReferencesLoading) {
+    if (isReferencesLoading && !referenceData) {
         return (
             <div className={stylesB.refContainer}>
                 <div style={{ padding: '40px', textAlign: 'center', color: '#64748b', fontSize: '0.95rem' }}>
@@ -125,6 +125,13 @@ const ReferenceSummary = ({ offeringID, revisionNum, status, selectedSection, st
                 </select>
             </div>
 
+            {referencesError && (
+                <div className={stylesB.refErrorBanner} role="alert">
+                    <strong>Could not load the references.</strong>
+                    <span>The server did not answer — {referencesError}. Check that the backend is running on port 5000, then reload.</span>
+                </div>
+            )}
+
             <TableScrollRegion label={`${activeView.label} table`} minWidth={760} className={stylesB.refScrollWrapper}>
                 <table className={stylesB.refTable}>
                     <thead>
@@ -135,10 +142,8 @@ const ReferenceSummary = ({ offeringID, revisionNum, status, selectedSection, st
                             <EmptyState
                                 colSpan={5}
                                 icon={<BookOpen size={22} strokeWidth={1.6} />}
-                                title={referencesError ? 'Could not load the references' : activeView.empty}
-                                hint={referencesError
-                                    ? `The server did not answer — ${referencesError}. Check that the backend is running on port 5000, then reload.`
-                                    : `References in ${activeView.label.toLowerCase()} will appear here after they are attached to a course outcome.`}
+                                title={activeView.empty}
+                                hint={`References in ${activeView.label.toLowerCase()} will appear here after they are attached to a course outcome.`}
                             />
                         ) : activeReferences.map((ref, index) => {
                             const unresolvedCount = referenceCommentCounts[ref.id] || 0;
