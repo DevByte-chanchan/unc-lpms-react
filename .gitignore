@@ -1,13 +1,33 @@
-# Ignore sensitive data and system files
-infra/mysql/data/
-.idea/
+# Ignore sensitive data, system files, and local build artifacts
 node_modules/
+dist/
+build/
+.idea/
+.vscode/
+.vite/
+.env
+*.local
+*.log
+
+# Ignore non-composition module root folders and files
+infra/
 assignment/
 submission/
 tos/
-dist/
-build/
-.env
+config/
+migrations/
+models/
+public/
+seeders/
+src/
+eslint.config.js
+index.html
+package.json
+package-lock.json
+vite.config.js
 
-# Only track your source folder
+# Only track composition module
 !composition/
+!composition/**
+!.gitignore
+!README.md

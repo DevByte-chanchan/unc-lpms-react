@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import styles from '../styles/CoursesTable.module.sass';
-import { ChevronRight, Edit, XCircle, HelpCircle } from 'react-feather';
+import { ChevronRight, Edit, XCircle, HelpCircle, List, Grid, ChevronDown, ChevronUp, Search } from 'react-feather';
 import { fetchJson } from "../utils/api.js";
 
 // --- Custom Date Formatters to Ensure Global Consistency ---
@@ -50,6 +50,8 @@ const CoursesTable = () => {
     const statusesOptions = ["DRAFT", "PENDING", "RETURNED", "APPROVED"];
     const [statuses, setStatuses] = useState(statusesOptions);
     const [selectedStatus, setSelectedStatus] = useState('DRAFT');
+    const [layoutMode, setLayoutMode] = useState('grid'); // Default view set to 'grid'
+    const [searchTerm, setSearchTerm] = useState(''); // New search term state
 
     const [assignments, setAssignments] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -196,9 +198,22 @@ const CoursesTable = () => {
 
     const closePopup = () => setPopup({ open: false, data: null });
 
+    const lowerSearch = searchTerm.toLowerCase();
+    
+    // Extracted robust filtering combining status constraints & active search string match
     const filteredRows = assignments.filter(row => {
         const overall = computeOverallStatus(row);
-        return overall.toUpperCase() === selectedStatus;
+        // Base verification layer (tab)
+        if (overall.toUpperCase() !== selectedStatus) return false;
+        
+        // Active Filter verification
+        if (searchTerm) {
+            const matchCode = getCode(row).toLowerCase().includes(lowerSearch);
+            const matchName = getName(row).toLowerCase().includes(lowerSearch);
+            return matchCode || matchName;
+        }
+        
+        return true;
     });
 
     const DetailsPopup = ({ data, onClose }) => {
@@ -249,143 +264,323 @@ const CoursesTable = () => {
         );
     };
 
+    const CourseCard = ({ row, overallStatus, selectedStatus }) => {
+        const [expanded, setExpanded] = useState(false);
+        const logs = row.logs || [];
+        const submissionLogs = logs.filter(l => l.action_type === 'SUBMITTED')
+            .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        const latestSubmissionAt = submissionLogs.length > 0 ? submissionLogs[0].createdAt : row.date_submitted;
+        const initialSubmissionLog = submissionLogs.length > 0 ? submissionLogs[submissionLogs.length - 1] : null;
+        const initialSubmissionAt = initialSubmissionLog ? initialSubmissionLog.createdAt : row.date_submitted;
+
+        const approverStatuses = buildApproverStatus(row);
+        
+        const isDraft = selectedStatus === 'DRAFT';
+        const isApproved = selectedStatus === 'APPROVED';
+        const hasDetails = !isDraft; // Expandable if not draft
+
+        let actionElement = null;
+        if (selectedStatus === 'DRAFT' || selectedStatus === 'APPROVED') {
+            actionElement = (
+                <Link
+                    className={styles.gridActionBtn}
+                    to={`/courses/${getOfferingID(row)}/${getRevNum(row)}/${selectedStatus.toLowerCase()}`}
+                >
+                    {selectedStatus === 'DRAFT' ? 'Compose' : 'View'}
+                    <ChevronRight size={16} />
+                </Link>
+            );
+        } else {
+            if (overallStatus === 'Returned') {
+                actionElement = (
+                    <Link className={styles.gridActionBtn}
+                          to={`/courses/${getOfferingID(row)}/${getRevNum(row)}/${selectedStatus.toLowerCase()}`}
+                    >
+                        Update <Edit size={16} />
+                    </Link>
+                );
+            } else {
+                actionElement = (
+                    <Link className={styles.gridActionBtn}
+                          to={`/courses/${getOfferingID(row)}/${getRevNum(row)}/${selectedStatus.toLowerCase()}`}
+                    >
+                        View <ChevronRight size={16} />
+                    </Link>
+                );
+            }
+        }
+
+        return (
+            <div className={styles.gridCard}>
+                <div className={styles.cardMain}>
+                    <div className={styles.cardHeader}>
+                        <span className={styles.cardCode}>{getCode(row)}</span>
+                        <span className={styles.cardDate}>{formatDate(row.date_assigned)}</span>
+                    </div>
+                    <div className={styles.cardTitle}>{getName(row)}</div>
+                    <div className={styles.cardFooter}>
+                        {actionElement}
+                        {hasDetails && (
+                            <button 
+                                className={styles.toggleDetailsBtn} 
+                                onClick={() => setExpanded(!expanded)}
+                                title={expanded ? "Hide Details" : "Show Details"}
+                            >
+                                {expanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                            </button>
+                        )}
+                    </div>
+                </div>
+
+                {hasDetails && expanded && (
+                    <div className={styles.cardDetails}>
+                        <div className={styles.detailsContent}>
+                            {!isApproved && (
+                                <div className={styles.detailRow}>
+                                    <span style={{fontWeight: 400}}>Initial Submission</span>
+                                    <span>{formatDate(initialSubmissionAt)}</span>
+                                </div>
+                            )}
+                            {approverStatuses.map((a, idx) => {
+                                let dateDisplay = null;
+                                if (isApproved) {
+                                    if(a.status === 'Accepted') {
+                                        dateDisplay = <div>Approved: {formatDate(a.acceptedAt)}</div>;
+                                    } else {
+                                        dateDisplay = <div>Approved</div>;
+                                    }
+                                } else {
+                                    if (a.status === 'Accepted') {
+                                        dateDisplay = <div>Approved: {formatDate(a.acceptedAt)}</div>;
+                                    } else if (a.status === 'Returned') {
+                                        dateDisplay = (
+                                            <>
+                                                <div>Returned: {formatDate(a.returnedAt)}</div>
+                                                {a.updatedAt && <div>Resubmitted: {formatDate(a.updatedAt)}</div>}
+                                            </>
+                                        );
+                                    } else {
+                                        dateDisplay = (
+                                            <div className={styles.pendingText}>
+                                                Submitted: {formatDate(latestSubmissionAt)}
+                                            </div>
+                                        );
+                                    }
+                                }
+
+                                return (
+                                    <div key={idx} className={styles.detailRowApprover}>
+                                        <div className={styles.approverTitle}>{a.title}</div>
+                                        <div className={styles.approverDates}>
+                                            {dateDisplay}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                )}
+            </div>
+        );
+    };
+
     return (
         <div className={styles['courses-table']}>
             <div className={styles.header}>
-                <h2>ASSIGNED COURSE OFFERINGS </h2>
-                <div className={styles.filterA}>
-                    <select
-                        className={styles['header-select']}
-                        value={selectedYear}
-                        onChange={(e) => setSelectedYear(e.target.value)}
-                    >
-                        {yearOptions}
-                    </select>
+                <div className={styles.headerLeft}>
+                    <h2>ASSIGNED COURSE OFFERINGS</h2>
+                    <div className={styles.filterA}>
+                        <select
+                            className={styles['header-select']}
+                            value={selectedYear}
+                            onChange={(e) => setSelectedYear(e.target.value)}
+                        >
+                            {yearOptions}
+                        </select>
 
-                    <select
-                        className={styles['header-select']}
-                        value={selectedSem}
-                        onChange={(e) => setSelectedSem(e.target.value)}
-                    >
-                        {semOptions.map(sem => (
-                            <option key={sem} value={sem}>{sem}</option>
-                        ))}
-                    </select>
+                        <select
+                            className={styles['header-select']}
+                            value={selectedSem}
+                            onChange={(e) => setSelectedSem(e.target.value)}
+                        >
+                            {semOptions.map(sem => (
+                                <option key={sem} value={sem}>{sem}</option>
+                            ))}
+                        </select>
+                    </div>
                 </div>
 
-                <div className={styles.fill}></div>
-
-                <div className={styles['filter-container']}>
-                    <div className={styles['segmented-control']}>
-                        {statuses.map((status) => {
-                            return (
-                                <button
-                                    key={status}
-                                    type="button"
-                                    className={`${styles['control-item']} ${selectedStatus === status ? styles['active'] : ''}`}
-                                    onClick={() => handleStatusChange({ target: { value: status } })}
-                                >
-                                    {status.charAt(0) + status.slice(1).toLowerCase()}
-                                </button>
-                            );
-                        })}
+                <div className={styles.headerRight}>
+                    <div className={styles['filter-container']}>
+                        <div className={styles['segmented-control']}>
+                            {statuses.map((status) => {
+                                return (
+                                    <button
+                                        key={status}
+                                        type="button"
+                                        className={`${styles['control-item']} ${selectedStatus === status ? styles['active'] : ''}`}
+                                        onClick={() => handleStatusChange({ target: { value: status } })}
+                                    >
+                                        {status.charAt(0) + status.slice(1).toLowerCase()}
+                                    </button>
+                                );
+                            })}
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <div className={styles['table-container']}>
-                {loading && <div>Loading...</div>}
+            {/* EXTRACTED SEARCH AND VIEW CHANGERS BLOCK */}
+            <div className={styles.tableControlsOuter}>
+                <div className={styles.searchContainer}>
+                    <Search color="#A4A9AF" size={18} />
+                    <input
+                        type="text"
+                        placeholder="Search course code or name..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                </div>
+                
+                <div className={styles.layoutToggles}>
+                    <button
+                        className={`${styles.toggleBtn} ${layoutMode === 'list' ? styles.active : ''}`}
+                        onClick={() => setLayoutMode('list')}
+                        title="List View"
+                    >
+                        <List size={18} />
+                    </button>
+                    <button
+                        className={`${styles.toggleBtn} ${layoutMode === 'grid' ? styles.active : ''}`}
+                        onClick={() => setLayoutMode('grid')}
+                        title="Grid View"
+                    >
+                        <Grid size={18} />
+                    </button>
+                </div>
+            </div>
 
-                {/* DRAFT and APPROVED TABLE */}
-                {(selectedStatus === 'DRAFT' || selectedStatus === 'APPROVED') &&
-                    <table>
-                        <thead>
-                        <tr>
-                            <th width={200}>DATE ASSIGNED</th>
-                            <th width={150}>CODE</th>
-                            <th width={350}>COURSE NAME</th>
-                            {selectedStatus === 'APPROVED' && <th width={200}>DATE APPROVED</th>}
-                            <th className={styles.fill}></th>
-                        </tr>
-                        </thead>
-                        <tbody>
-                        {filteredRows.map((row, index) => (
-                            <tr key={index}>
-                                <td width={200}>{formatDate(row.date_assigned)}</td>
-                                <td width={150}>{getCode(row)}</td>
-                                <td width={350}>{getName(row)}</td>
-                                {selectedStatus === 'APPROVED' && <td width={200}>{formatDate(row.date_approved)}</td>}
-                                <td className={styles.fill}>
-                                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                                        <Link
-                                            className={'actionLink'}
-                                            to={`/courses/${getOfferingID(row)}/${getRevNum(row)}/${selectedStatus.toLowerCase()}`}
-                                        >
-                                            {selectedStatus === 'DRAFT' ? 'Compose' : 'View'}
-                                            <ChevronRight size={18} />
-                                        </Link>
+            {loading && <div style={{ padding: '0 10px', color: '#666' }}>Loading...</div>}
 
-                                        {selectedStatus === 'APPROVED' &&
-                                            <button onClick={() => openPopup(row)} className={styles.info}>
-                                                <HelpCircle size={18} />
-                                            </button>
-                                        }
-                                    </div>
-                                </td>
-                                <td></td>
+            {!loading && layoutMode === 'list' && (
+                <div className={styles['table-container']}>
+                    {/* DRAFT and APPROVED TABLE */}
+                    {(selectedStatus === 'DRAFT' || selectedStatus === 'APPROVED') &&
+                        <table>
+                            <thead>
+                            <tr>
+                                <th width={200}>DATE ASSIGNED</th>
+                                <th width={150}>CODE</th>
+                                <th width={350}>COURSE NAME</th>
+                                {selectedStatus === 'APPROVED' && <th width={200}>DATE APPROVED</th>}
+                                <th className={styles.fill}></th>
                             </tr>
-                        ))}
-                        </tbody>
-                    </table>
-                }
-
-                {/* PENDING and RETURNED TABLE (Status column completely removed) */}
-                {(selectedStatus === 'PENDING' || selectedStatus === 'RETURNED') &&
-                    <table>
-                        <thead>
-                        <tr>
-                            <th width={200}>DATE ASSIGNED</th>
-                            <th width={150}>CODE</th>
-                            <th width={350}>COURSE NAME</th>
-                            <th className={styles.fill}></th>
-                        </tr>
-                        </thead>
-                        <tbody>
-                        {filteredRows.map((row, index) => {
-                            const overallStatus = computeOverallStatus(row);
-                            return (
+                            </thead>
+                            <tbody>
+                            {filteredRows.map((row, index) => (
                                 <tr key={index}>
                                     <td width={200}>{formatDate(row.date_assigned)}</td>
                                     <td width={150}>{getCode(row)}</td>
                                     <td width={350}>{getName(row)}</td>
-
+                                    {selectedStatus === 'APPROVED' && <td width={200}>{formatDate(row.date_approved)}</td>}
                                     <td className={styles.fill}>
                                         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                                            {overallStatus === 'Returned' ? (
-                                                <Link className={'actionLink'}
-                                                      to={`/courses/${getOfferingID(row)}/${getRevNum(row)}/${selectedStatus.toLowerCase()}`}
-                                                >
-                                                    Update<Edit size={16} />
-                                                </Link>
-                                            ) : (
-                                                <Link className={'actionLink'}
-                                                      to={`/courses/${getOfferingID(row)}/${getRevNum(row)}/${selectedStatus.toLowerCase()}`}
-                                                >
-                                                    View <ChevronRight size={16} />
-                                                </Link>
-                                            )}
-                                            <button onClick={() => openPopup(row)} className={styles.info}>
-                                                <HelpCircle opacity={.8} size={18} />
-                                            </button>
+                                            <Link
+                                                className={'actionLink'}
+                                                to={`/courses/${getOfferingID(row)}/${getRevNum(row)}/${selectedStatus.toLowerCase()}`}
+                                            >
+                                                {selectedStatus === 'DRAFT' ? 'Compose' : 'View'}
+                                                <ChevronRight size={18} />
+                                            </Link>
+
+                                            {selectedStatus === 'APPROVED' &&
+                                                <button onClick={() => openPopup(row)} className={styles.info}>
+                                                    <HelpCircle size={18} />
+                                                </button>
+                                            }
                                         </div>
                                     </td>
+                                    <td></td>
                                 </tr>
-                            );
-                        })}
-                        </tbody>
-                    </table>
-                }
-            </div>
+                            ))}
+                            {filteredRows.length === 0 && (
+                                <tr>
+                                    <td colSpan={5} style={{ padding: '20px', color: '#666', textAlign: 'center' }}>
+                                        No offerings found matching your search.
+                                    </td>
+                                </tr>
+                            )}
+                            </tbody>
+                        </table>
+                    }
+
+                    {/* PENDING and RETURNED TABLE (Status column completely removed) */}
+                    {(selectedStatus === 'PENDING' || selectedStatus === 'RETURNED') &&
+                        <table>
+                            <thead>
+                            <tr>
+                                <th width={200}>DATE ASSIGNED</th>
+                                <th width={150}>CODE</th>
+                                <th width={350}>COURSE NAME</th>
+                                <th className={styles.fill}></th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            {filteredRows.map((row, index) => {
+                                const overallStatus = computeOverallStatus(row);
+                                return (
+                                    <tr key={index}>
+                                        <td width={200}>{formatDate(row.date_assigned)}</td>
+                                        <td width={150}>{getCode(row)}</td>
+                                        <td width={350}>{getName(row)}</td>
+
+                                        <td className={styles.fill}>
+                                            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                                                {overallStatus === 'Returned' ? (
+                                                    <Link className={'actionLink'}
+                                                          to={`/courses/${getOfferingID(row)}/${getRevNum(row)}/${selectedStatus.toLowerCase()}`}
+                                                    >
+                                                        Update<Edit size={16} />
+                                                    </Link>
+                                                ) : (
+                                                    <Link className={'actionLink'}
+                                                          to={`/courses/${getOfferingID(row)}/${getRevNum(row)}/${selectedStatus.toLowerCase()}`}
+                                                    >
+                                                        View <ChevronRight size={16} />
+                                                    </Link>
+                                                )}
+                                                <button onClick={() => openPopup(row)} className={styles.info}>
+                                                    <HelpCircle opacity={.8} size={18} />
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                );
+                            })}
+                            {filteredRows.length === 0 && (
+                                <tr>
+                                    <td colSpan={4} style={{ padding: '20px', color: '#666', textAlign: 'center' }}>
+                                        No offerings found matching your search.
+                                    </td>
+                                </tr>
+                            )}
+                            </tbody>
+                        </table>
+                    }
+                </div>
+            )}
+
+            {!loading && layoutMode === 'grid' && (
+                <div className={styles.gridContainer}>
+                    {filteredRows.map((row, index) => {
+                        const overallStatus = computeOverallStatus(row);
+                        return <CourseCard key={index} row={row} overallStatus={overallStatus} selectedStatus={selectedStatus} />
+                    })}
+                    {filteredRows.length === 0 && (
+                        <div style={{ padding: '20px', color: '#666', gridColumn: '1 / -1' }}>No offerings found matching your search.</div>
+                    )}
+                </div>
+            )}
 
             {popup.open && <DetailsPopup data={popup.data} onClose={closePopup} />}
         </div>

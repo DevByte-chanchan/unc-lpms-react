@@ -1,4 +1,3 @@
-
 .container
   width: 100%
   height: 100%
@@ -14,16 +13,17 @@
   padding: 10px 10px 10px 10px
   gap: 8px
   height: max-content
-  align-items: center
+  align-items: stretch // Enforce same height across children
   z-index: 2
 
 .return
-  padding: 8px 14px
+  padding: 0 14px // Changed vertical padding to math other buttons
   border-radius: 5px
-  //border: 1px solid #8B999D
   display: flex
   background: #8B999D
   align-items: center
+  justify-content: center // centered icon
+  height: 40px // Consistent with other buttons
   font-size: 14px
   font-weight: 500
   gap: 5px
@@ -49,8 +49,7 @@
   background: #F2F3F4
   flex-grow: 1
   padding-right: 20px
-  //border: 1px solid #9D9696
-  height: 100%
+  height: 40px // Enforcing consistent height
 
 .navi select
   border: 0
@@ -73,9 +72,10 @@
   flex-grow: 1
   min-height: 200px
   background: white
-  padding: 20px 30px
   flex-direction: column
   position: relative
+  padding: 20px 30px // Parent padding applied uniformly for all sections in the main view!
+  overflow: auto // Ensure scrolling of large inner content
 
 // NEW: Loading Overlay
 .loadingContainer
@@ -108,7 +108,7 @@ section
   overflow: auto
 
 
-.draft, .submit, .more, .return
+.draft, .submit, .more
   padding: 0 14px
   border-radius: 5px
   font-size: 14px
@@ -125,18 +125,18 @@ section
   color: white
   background: #19282C
 
-.return
-  padding: 0 20px
-
 .draft,
 .submit,
-.more
-  transition: transform 0.3s ease
+.more,
+.return
+  transition: transform 0.3s ease, filter 0.3s ease
 
 .draft:hover,
 .submit:hover,
-.more:hover
-  transform: scale(1.05)
+.more:hover,
+.return:hover
+  transform: none // Remove scale effect
+  filter: brightness(0.9) // Adds subtle hover effect instead of scaling up
 
 .more
   position: relative
@@ -144,7 +144,7 @@ section
   align-items: center
   justify-content: center
   cursor: pointer
-  border-radius: 4px
+  border-radius: 5px // Match other borders
 
 
   &.active
@@ -209,7 +209,8 @@ section
   width: 100%
   height: 100%
   flex-direction: column
-  overflow: auto
+  overflow: visible // Reverted from auto since parent handles scroll
+  padding: 0 // Removed padding so it leverages parent's uniform padding
 
 .emptyStateContainer
   display: flex
@@ -242,6 +243,7 @@ section
 .link-text-wrapper
   display: inline-flex
   align-items: center
+  height: 100%
   gap: 6px
 
 .schedSetter
@@ -260,20 +262,195 @@ section
   justify-content: center
   background-color: #f63d50
   color: #ffffff
-  font-size: 0.72rem
-  font-weight: 500
+  font-size: 11px
+  font-weight: 600
   font-family: 'Inter', sans-serif
-  height: 20px
-  width: 20px
-  border-radius: 25px
+  margin-left: 6px
+  height: 18px
+  width: 18px
+  border-radius: 9px
   line-height: 1
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1)
 
-.fixedWidth
-  width: 25px
+// Search bar & Header updates
+.iloHeader
   display: flex
-  justify-content: center
+  justify-content: space-between
+  align-items: center
+  padding: 0 0 15px 0 // Removed side padding so it leverages parent's uniform padding
+  background: transparent // Keep clean background matching parent
+  margin-bottom: 0
 
+.iloSearchContainer
+  display: flex
+  flex-grow: 1
+  align-items: center
+  margin-right: 20px
+  border: 1px solid #A4A9AF
+  border-radius: 20px
+  height: 40px
+  padding: 0 15px
+  background: white
+
+.iloSearchContainer input
+  border: none
+  outline: none
+  width: 100%
+  height: 100%
+  font-size: 14px
+  margin-left: 10px
+  color: #1f2937
+
+.iloSearchContainer input::placeholder
+  color: #9ca3af
+
+.layoutToggles
+  display: flex
+  gap: 5px
+  background: #EDEFF2
+  padding: 4px
+  border-radius: 6px
+
+.toggleBtn
+  background: transparent
+  border: none
+  padding: 6px 10px
+  border-radius: 4px
+  cursor: pointer
+  color: #6c757d
+  display: flex
+  align-items: center
+  justify-content: center
+  transition: all 0.2s ease
+  outline: none !important
+
+  &:hover
+    color: #343a40
+    background: rgba(0, 0, 0, 0.05)
+
+  &.active
+    background: #ffffff
+    color: #19282C
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1)
+
+// Grid View specific styles
+.gridContainer
+  display: flex
+  flex-direction: column
+  padding: 0 // Padding is now handled by parent wrapper
+  gap: 16px
+  width: 100%
+  background: transparent // Leverages parent background
+
+.coBlock
+  display: flex
+  flex-direction: column
+  background: white
+  border: 1px solid #e5e7eb
+  border-radius: 8px
+  padding: 20px
+  gap: 16px
+  box-shadow: 0 1px 3px rgba(0,0,0,0.03)
+
+.coHeader
+  font-weight: 500
+  font-size: 15px
+  color: #111827
+  border-bottom: 1px solid #f3f4f6
+  padding-bottom: 10px
+
+.iloGridRow
+  display: flex
+  flex-direction: row
+  flex-wrap: wrap
+  gap: 16px
+  width: 100%
+  @media (max-width: 900px)
+    flex-direction: column
+
+.iloGridBox
+  display: flex
+  flex-direction: column
+  flex: 1
+  min-width: 250px /* Ensure they stack nicely if screen gets too small but still > 900px */
+  background: #ffffff
+  border: 1px solid #e5e7eb
+  border-radius: 6px
+  padding: 16px
+  box-shadow: 0 1px 2px rgba(0,0,0,0.02)
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease
+  &:hover
+    transform: translateY(-2px)
+    box-shadow: 0 6px 12px rgba(0,0,0,0.05)
+    border-color: #d1d5db
+
+.iloGridBox_Header
+  display: flex
+  justify-content: space-between
+  align-items: center
+  margin-bottom: 12px
+
+.iloGridBox_Title
+  font-weight: 600
+  font-size: 14px
+  color: #111827 // Changed matching standard black
+
+.iloGridBox_Meta
+  font-size: 12px
+  font-weight: 500
+  color: #4b5563
+  background: #f3f4f6
+  padding: 4px 18px // ADDED MORE PADDING LEFT AND RIGHT
+  border-radius: 12px
+  display: flex
+  gap: 6px
+
+.iloGridBox_Desc
+  flex-grow: 1
+  font-size: 13.5px
+  color: #334155
+  line-height: 1.6
+  margin-bottom: 16px
+
+.iloGridBox_Footer
+  display: flex
+  justify-content: flex-end
+  align-items: center
+  margin-top: auto
+
+.courseOrientationBox
+  background: #ffffff // Changed from light-blue tint to plain white for consistency
+  border: 1px solid #cbd5e1
+  border-radius: 8px
+  padding: 20px
+  margin-bottom: 0px
+  box-shadow: 0 2px 4px rgba(0,0,0,0.04)
+
+  .iloGridBox_Header
+    border-bottom: 1px solid #e2e8f0
+    padding-bottom: 12px
+    margin-bottom: 12px
+
+.mapContentsBtn
+  display: inline-flex
+  align-items: center
+  gap: 6px
+  background: #e9ecef // Changed to previous hover color as default
+  border: 1px solid #ced4da // Made border darker to be visible
+  padding: 6px 14px 6px 18px
+  border-radius: 20px // Fully pill-shaped matching Compose grid mode!
+  font-size: 13px
+  font-weight: 400
+  color: #444 !important
+  text-decoration: none
+  cursor: pointer
+  transition: all 0.2s ease
+  &:hover
+    background: #dee2e6 // Made slightly darker on hover
+    border-color: #adb5bd
+    color: #000 !important
+
+// Rest of original overlay logic
 .scheduleOverlay
   position: fixed
   top: 0
@@ -361,7 +538,7 @@ section
 
     /* Custom arrow icon inside the wrapper */
     &::after
-      content: "▼"
+      content: "\25bc"
       font-size: 8px
       color: #6b7280
       position: absolute

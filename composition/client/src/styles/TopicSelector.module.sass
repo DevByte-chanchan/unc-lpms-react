@@ -13,7 +13,8 @@
   border: 1px solid #DCE2F0
   border-radius: 8px
   background: #fff
-  height: 350px
+  height: 100%
+  flex-grow: 1
   display: flex
   flex-direction: column
   overflow: hidden
@@ -29,7 +30,13 @@
   top: 0
   z-index: 10
 
+.headerRow
+  display: flex
+  gap: 10px
+  align-items: stretch
+
 .searchBar
+  flex: 1
   display: flex
   align-items: center
   gap: 10px
@@ -43,15 +50,96 @@
     flex: 1
     font-size: 14px
 
-.addManualBtnInline
+.mainAddBtn
+  display: flex
+  align-items: center
+  justify-content: center
+  gap: 6px
   background: #3182CE
   color: white
   border: none
-  padding: 4px 10px
-  border-radius: 4px
-  font-size: 11px
+  padding: 8px 16px
+  border-radius: 6px
+  font-size: 13px
+  font-weight: 600
   cursor: pointer
   white-space: nowrap
+  transition: background 0.2s
+  &:hover
+    background: #2B6CB0
+
+.aiSuggestBtn
+  display: flex
+  align-items: center
+  justify-content: center
+  gap: 7px
+  background: linear-gradient(135deg, #2563EB 0%, #8B5CF6 50%, #EC4899 100%)
+  background-size: 200% 200%
+  color: white
+  border: none
+  padding: 8px 16px
+  border-radius: 6px
+  font-size: 13px
+  font-weight: 700
+  letter-spacing: 0.3px
+  cursor: pointer
+  white-space: nowrap
+  box-shadow: 0 2px 10px rgba(139, 92, 246, 0.35)
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1)
+  animation: magicalGlow 6s ease infinite alternate
+  &:hover
+    transform: translateY(-1px)
+    box-shadow: 0 4px 18px rgba(139, 92, 246, 0.55), 0 0 12px rgba(236, 72, 153, 0.35)
+    filter: brightness(1.06)
+  &:active
+    transform: translateY(0)
+    box-shadow: 0 2px 6px rgba(139, 92, 246, 0.4)
+
+@keyframes magicalGlow
+  0%
+    background-position: 0% 50%
+  100%
+    background-position: 100% 50%
+
+.geminiSparkleIcon
+  display: inline-flex
+  align-items: center
+  justify-content: center
+  color: #FFF
+  filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.9))
+  animation: sparkleTwinkle 2.5s ease-in-out infinite alternate
+
+@keyframes sparkleTwinkle
+  0%
+    transform: scale(0.9) rotate(-6deg)
+  100%
+    transform: scale(1.15) rotate(14deg)
+
+.aiBtnText
+  font-weight: 700
+  letter-spacing: 0.25px
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2)
+
+.addManualBtnInline
+  display: flex
+  align-items: center
+  justify-content: center
+  gap: 4px
+  background: #3182CE
+  color: white
+  border: none
+  padding: 5px 12px
+  border-radius: 4px
+  font-size: 12px
+  font-weight: 600
+  cursor: pointer
+  white-space: nowrap
+  transition: background 0.2s
+  &:hover
+    background: #2B6CB0
+
+.btnIcon
+  margin-bottom: 0px // Flex vertically centers it nicely
 
 .chevron
   color: #718096
@@ -72,7 +160,7 @@
   border-radius: 0 0 8px 8px
 
 .optionsList
-  max-height: 200px
+  max-height: 240px
   overflow-y: auto
 
 .optionItem
@@ -87,35 +175,11 @@
     background: #F7FAFC
   &.selectedOpt
     background: #EBF8FF
+    animation: selectionPulsePicker 0.6s ease-out forwards
   .subCount
     margin-left: auto
     font-size: 11px
     color: #A0AEC0
-
-.pickerFooter
-  padding: 10px
-  display: flex
-  justify-content: space-between
-  background: #F8FAFC
-  border-top: 1px solid #EDF2F7
-
-.footerAddBtn
-  background: #2D3748
-  color: white
-  border: none
-  padding: 6px 12px
-  border-radius: 4px
-  font-size: 12px
-  cursor: pointer
-  font-weight: 600
-
-.closeBtn
-  background: none
-  border: none
-  color: #3182CE
-  font-size: 12px
-  cursor: pointer
-  font-weight: 600
 
 // --- SCROLLING AREA ---
 
@@ -128,23 +192,13 @@
 
 .configArea
   padding: 15px
-  display: flex
-  flex-direction: column
+  display: grid
+  grid-template-columns: repeat(1, 1fr)
   gap: 15px
 
-.emptyState
-  flex: 1
-  display: flex
-  flex-direction: column
-  align-items: center
-  justify-content: center
-  text-align: center
-  padding: 40px
-  color: #A0AEC0
-  p
-    font-size: 14px
-    margin-top: 12px
-    max-width: 250px
+@media (min-width: 768px)
+  .configArea
+    grid-template-columns: repeat(2, 1fr)
 
 .topicCard
   border: 1px solid #E2E8F0
@@ -152,6 +206,9 @@
   background: white
   overflow: hidden
   transition: all 0.3s ease
+  display: flex
+  flex-direction: column
+  height: 315px
 
 .newEntry
   animation: slideInHighlight 0.6s ease-out
@@ -166,6 +223,8 @@
 
 .topicHeaderCard
   padding: 10px 15px
+  height: 47px
+  box-sizing: border-box
   background: #F8FAFC
   border-bottom: 1px solid #E2E8F0
   display: flex
@@ -180,16 +239,6 @@
   flex: 1
   min-width: 0
 
-.topicBadge
-  font-size: 10px
-  font-weight: 800
-  background: #2D3748
-  color: white
-  padding: 2px 6px
-  border-radius: 4px
-  text-transform: uppercase
-  flex-shrink: 0
-
 .inputWrapper
   display: flex
   align-items: center
@@ -199,7 +248,7 @@
 
 .topicTitleInput
   font-weight: 700
-  font-size: 15px
+  font-size: 14px
   border: none
   background: transparent
   color: #1A202C
@@ -226,13 +275,16 @@
   &:hover
     background: #E53E3E
 
-// --- SUBTOPIC STYLING (REVERTED & FIXED) ---
+// --- SUBTOPIC STYLING ---
 
 .subtopicsContainer
-  padding: 12px 15px
+  padding: 10px 15px 12px 15px
   display: flex
   flex-direction: column
   gap: 8px
+  flex: 1
+  overflow-y: auto
+  box-sizing: border-box
 
 .subtopicRow
   display: flex
@@ -242,10 +294,13 @@
   border: 1px solid #EDF2F7
   padding: 5px 10px
   border-radius: 6px
+  height: 38px
+  box-sizing: border-box
+  flex-shrink: 0
   input
     flex: 1
     border: none
-    font-size: 13px
+    font-size: 12px
     color: #4A5568
     outline: none
     background: transparent
@@ -287,7 +342,8 @@
   align-items: center
   justify-content: center
   gap: 5px
-  width: 100% // Button fills width but stays thin/dashed
+  width: 100%
+  flex-shrink: 0
   &:hover
     background: #F7FAFC
     border-color: #A0AEC0
@@ -306,30 +362,68 @@
   color: #A0AEC0
   font-style: italic
 
-/* ADD THIS ANIMATION BLOCK */
 @keyframes selectionPulsePicker
   0%
-    background-color: #90CDF4 /* Noticeable darker blue pulse */
+    background-color: #90CDF4
   100%
     background-color: #EBF8FF
 
-.optionItem
+// --- PLACEHOLDER / GHOST CARDS ---
+
+.placeholderCard
+  border: 2px dashed #E2E8F0
+  border-radius: 8px
+  background: transparent
+  height: 315px
+  display: flex
+  flex-direction: column
+  opacity: 0.6
+  animation: fadeIn 0.4s ease-in-out
+
+.placeholderHeader
+  height: 47px
+  box-sizing: border-box
+  border-bottom: 2px dashed #E2E8F0
+  background: #F8FAFC
+  border-radius: 8px 8px 0 0
+
+.placeholderBody
   padding: 12px 15px
   display: flex
-  align-items: center
-  gap: 12px
+  flex-direction: column
+  gap: 8px
+  flex: 1
+
+.placeholderLine
+  height: 38px
+  background: #EDF2F7
+  border-radius: 6px
+
+@keyframes fadeIn
+  from
+    opacity: 0
+  to
+    opacity: 0.6
+
+.topicControls
+  padding: 10px 15px 0 15px
+  background: white
+
+.addSubBtnSticky
+  background: #F8FAFC
+  border: 1px dashed #CBD5E0
+  color: #4A5568
+  padding: 6px
+  border-radius: 6px
+  font-size: 12px
   cursor: pointer
-  border-bottom: 1px solid #EDF2F7
-  font-size: 14px
+  display: flex
+  align-items: center
+  justify-content: center
+  gap: 5px
+  width: 100%
+  transition: all 0.2s
   &:hover
-    background: #F7FAFC
-
-  /* UPDATE THIS NESTED CLASS */
-  &.selectedOpt
-    background: #EBF8FF
-    animation: selectionPulsePicker 0.6s ease-out forwards /* Triggers instantly when class is applied */
-
-  .subCount
-    margin-left: auto
-    font-size: 11px
-    color: #A0AEC0
+    background: #EDF2F7
+    border-color: #3182CE
+    color: #3182CE

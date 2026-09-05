@@ -6,8 +6,8 @@ const TextField = ({ label, disabled, value, initialValue, onChange, error, plac
     const actualValue = value !== undefined ? value : initialValue;
 
     return (
-        <div className={styles.container}>
-            <div className={styles.label}>{label}</div>
+        <div className={`${styles.container} generic-field-container`}>
+            <div className={`${styles.label} generic-field-label`}>{label}</div>
 
             {/* Wrapper holds the border */}
             <div className={`${styles.textfield} ${error ? styles.error : ''}`}>

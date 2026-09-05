@@ -67,7 +67,7 @@ const DropdownMultiSelect = ({ label, disabled, value = [], onChange, options = 
     if (inline) {
         return (
             <div ref={dropdownRef} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <div className={styles.label} style={{ fontWeight: 600 }}>{label}</div>
+                <div className={`${styles.label} generic-field-label`} style={{ fontWeight: 600 }}>{label}</div>
                 <div
                     className={`${styles.dropdownContainer} ${error ? styles.error : ''} ${disabled ? styles['disabled-style'] : ''}`}
                     style={{ minWidth: 260, position: 'relative' }}
@@ -96,8 +96,8 @@ const DropdownMultiSelect = ({ label, disabled, value = [], onChange, options = 
     }
 
     return (
-        <div ref={dropdownRef} className={styles.container}>
-            <div className={styles.label}>{label}</div>
+        <div ref={dropdownRef} className={`${styles.container} generic-field-container`}>
+            <div className={`${styles.label} generic-field-label`}>{label}</div>
             <div className={`${styles.dropdownContainer} ${error ? styles.error : ''} ${disabled ? styles['disabled-style'] : ''}`}>
                 <RenderDisplayArea />
                 {isOpen && !disabled && (

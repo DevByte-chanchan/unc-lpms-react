@@ -121,8 +121,8 @@ const ReferencePicker = ({ options = [], value = [], onChange, error, disabled, 
     };
 
     return (
-        <div className={styles.container}>
-            <div className={styles.pickerWrapper + (error ? ` ${styles.error}` : '')}>
+        <div className={styles.container} style={{ display: "flex", flexDirection: "column", flex: 1, minHeight: 0 }}>
+            <div className={styles.pickerWrapper + (error ? ` ${styles.error}` : '')} style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
                 {/* Header: search + filters */}
                 <div className={styles.header}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%' }}>

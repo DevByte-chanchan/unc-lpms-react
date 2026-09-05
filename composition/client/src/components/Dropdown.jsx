@@ -56,7 +56,7 @@ const Dropdown = ({ label, disabled, value, initialValue, options, inline = fals
 
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
 
-                <div className={styles.label} style={{ fontWeight: 600 }}>{label}</div>
+                <div className={`${styles.label} generic-field-label`} style={{ fontWeight: 600 }}>{label}</div>
 
                 <div
 
@@ -80,9 +80,9 @@ const Dropdown = ({ label, disabled, value, initialValue, options, inline = fals
 
     return (
 
-        <div className={styles.container}>
+        <div className={`${styles.container} generic-field-container`}>
 
-            <div className={styles.label}>{label}</div>
+            <div className={`${styles.label} generic-field-label`}>{label}</div>
 
             <div className={`${styles.dropdown} ${error ? styles.error : ''}`}>
 

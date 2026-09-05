@@ -1,20 +1,12 @@
-// src/pages/ReferenceForm.jsx
-import React, { useEffect, useState } from 'react';
-import Skeleton from '../layouts/Skeleton.jsx';
-import Header from '../components/Header.jsx';
-import FormNavigation from '../components/FormNavigation.jsx';
-import styles from '../styles/Form.module.sass';
-import { useNavigate, useParams } from 'react-router-dom';
-import SideNavigation from '../components/SideNavigation.jsx';
+import React, { useEffect, useState, forwardRef, useImperativeHandle } from 'react';
 import ReferencePicker from '../components/ReferencePicker.jsx';
 import TextField from '../components/TextField.jsx';
 import Dropdown from '../components/Dropdown.jsx';
 import { X, CheckCircle, MessageSquare } from 'react-feather';
-
-// Imported universal API client utility
 import { fetchJson } from "../utils/api.js";
+import styles from '../styles/Form.module.sass';
 
-function InlineModal({ isOpen, title, onClose, children, actions }) {
+export function InlineModal({ isOpen, title, onClose, children, actions }) {
     if (!isOpen) return null;
     return (
         <div className={styles.modalOverlay} role="dialog" aria-modal="true" aria-labelledby="modal-title">
@@ -26,22 +18,16 @@ function InlineModal({ isOpen, title, onClose, children, actions }) {
                     </button>
                 </div>
                 <div className={styles.modalBody}>{children}</div>
-                <div className={styles.modalActions}>{actions}</div>
+                {actions && <div className={styles.modalActions}>{actions}</div>}
             </div>
         </div>
     );
 }
 
-const ReferenceForm = () => {
-    const navigate = useNavigate();
-    const { courseCode, iloId, status } = useParams();
-    const goBackHandler = () => navigate(-1);
-
+const ReferenceForm = forwardRef(({ iloId, status, setUnresolvedCount }, ref) => {
     const [allReferences, setAllReferences] = useState([]);
-    const [assignedReferences, setAssignedReferences] = useState([]);
     const [selectedRefs, setSelectedRefs] = useState([]);
     const [loading, setLoading] = useState(false);
-    const [saving, setSaving] = useState(false);
     const [validationError, setValidationError] = useState(null);
 
     // Context-Targeted Comments Checklist Tracking States
@@ -51,8 +37,6 @@ const ReferenceForm = () => {
     const [newRefDraft, setNewRefDraft] = useState({
         title: '', type: 'Textbook', author: '', isbn: '', link: '', publication_year: ''
     });
-
-    const [showConfirm, setShowConfirm] = useState(false);
 
     useEffect(() => {
         if (!iloId) return;
@@ -65,28 +49,19 @@ const ReferenceForm = () => {
                 const assignedUrl = `/api/ilo-references/${encodeURIComponent(iloId)}`;
                 const commentsUrl = `/api/comments/filter/${encodeURIComponent(iloId)}/references`;
 
-                // Leveraging the centralized utility setup to auto-parse promises
-                const fetchPromises = [fetchJson(refsUrl), fetchJson(assignedUrl)];
-                if (status === 'returned') {
-                    fetchPromises.push(fetchJson(commentsUrl));
-                }
+                const pRefs = fetchJson(refsUrl).catch(() => []);
+                const pAssigned = fetchJson(assignedUrl).catch(() => []);
+                const pComments = status === 'returned' ? fetchJson(commentsUrl).catch(() => []) : Promise.resolve([]);
 
-                const results = await Promise.all(fetchPromises);
-
-                const refs = results[0];
-                const assigned = results[1];
-                let targetedComments = [];
-
-                if (status === 'returned' && results[2]) {
-                    targetedComments = results[2];
-                }
+                const [refs, assigned, targetedComments] = await Promise.all([pRefs, pAssigned, pComments]);
 
                 if (!mounted) return;
 
-                setReviewComments(targetedComments.map(c => ({
+                const initialComments = (Array.isArray(targetedComments) ? targetedComments : []).map(c => ({
                     ...c,
                     resolved_status: c.resolved_status === 1 || c.resolved_status === true
-                })));
+                }));
+                setReviewComments(initialComments);
 
                 const normalizedRefs = (Array.isArray(refs) ? refs : []).map(r => ({
                     reference_id: r.reference_id != null ? Number(r.reference_id) : null,
@@ -100,7 +75,6 @@ const ReferenceForm = () => {
                 }));
 
                 setAllReferences(normalizedRefs);
-                setAssignedReferences(Array.isArray(assigned) ? assigned : []);
 
                 const assignedRefObjects = (Array.isArray(assigned) ? assigned : [])
                     .map(a => a.reference)
@@ -118,7 +92,6 @@ const ReferenceForm = () => {
                 console.error('Load initial targets failure: ', err);
                 if (mounted) setValidationError(err.message || 'Failed to initialize view data.');
             } finally {
-                // FIXED: Resolved syntax slip block from 'file' back to 'finally'
                 if (mounted) setLoading(false);
             }
         }
@@ -127,11 +100,13 @@ const ReferenceForm = () => {
         return () => { mounted = false; };
     }, [iloId, status]);
 
-    const handleToggleCommentResolution = (commentId) => {
-        setReviewComments(prev => prev.map(c =>
-            c.comment_id === commentId ? { ...c, resolved_status: !c.resolved_status } : c
-        ));
-    };
+    // Update unresolved count for Master layout
+    useEffect(() => {
+        if (setUnresolvedCount) {
+            setUnresolvedCount(reviewComments.filter(c => !c.resolved_status).length);
+        }
+    }, [reviewComments, setUnresolvedCount]);
+
 
     const handleOpenAdd = () => {
         setNewRefDraft({ title: '', type: 'Textbook', author: '', isbn: '', link: '', publication_year: '' });
@@ -163,15 +138,20 @@ const ReferenceForm = () => {
         setValidationError(null);
     };
 
-    const handleSave = async () => {
-        setValidationError(null);
-        if (!selectedRefs || selectedRefs.length === 0) {
-            setValidationError('Please select at least one reference before saving.');
-            return;
-        }
-
-        setSaving(true);
-        try {
+    useImperativeHandle(ref, () => ({
+        validate: () => {
+            if (!selectedRefs || selectedRefs.length === 0) {
+                return "Please select at least one reference assignment.";
+            }
+            return null;
+        },
+        getComments: () => reviewComments,
+        toggleComment: (commentId) => {
+            setReviewComments(prev => prev.map(c =>
+                c.comment_id === commentId ? { ...c, resolved_status: !c.resolved_status } : c
+            ));
+        },
+        save: async () => {
             if (status === 'returned' && reviewComments.length > 0) {
                 const commentPayload = reviewComments.map(c => ({
                     comment_id: c.comment_id,
@@ -216,15 +196,13 @@ const ReferenceForm = () => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ ilo_id: Number(iloId), reference_ids })
             });
-
-            setShowConfirm(true);
-        } catch (err) {
-            console.error('Comprehensive save operation failure:', err);
-            setValidationError(err.message || 'Failed to securely synchronize settings changes.');
-        } finally {
-            setSaving(false);
+        },
+        getCommentTargetLabel: (comment) => {
+            if (comment.target_title) return comment.target_title;
+            const match = allReferences.find(r => Number(r.reference_id) === Number(comment.target_id));
+            return match ? match.title : `Reference Element ID: ${comment.target_id}`;
         }
-    };
+    }));
 
     const renderDynamicFields = () => {
         const type = newRefDraft.type;
@@ -255,119 +233,38 @@ const ReferenceForm = () => {
         );
     };
 
-    const getCommentTargetLabel = (comment) => {
-        if (comment.target_title) return comment.target_title;
-        const match = allReferences.find(r => Number(r.reference_id) === Number(comment.target_id));
-        return match ? match.title : `Reference Element ID: ${comment.target_id}`;
-    };
+    if (loading) return <div className={styles.emptyChecklist} style={{padding: '20px'}}>Loading Target Environment...</div>;
 
     return (
-        <Skeleton
-            header={<Header role={'Instructor'} name={'NORTON, MONICA'} />}
-            nav={<SideNavigation />}
-            content={
-                <div className={styles.container}>
-                    <FormNavigation goBack={goBackHandler} onSave={handleSave} />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: 1, minHeight: 0 }}>
+            <ReferencePicker
+                options={allReferences}
+                value={selectedRefs}
+                onChange={(val) => setSelectedRefs(val)}
+                error={validationError}
+                disabled={loading}
+                onAddReference={handleOpenAdd}
+            />
 
-                    <div className={styles.mainCont}>
-                        <div className={styles.leftCont}>
-                            <div className={styles['form-container']}>
-                                <h2>References Assignment</h2>
-
-                                <ReferencePicker
-                                    options={allReferences}
-                                    value={selectedRefs}
-                                    onChange={(val) => setSelectedRefs(val)}
-                                    error={validationError}
-                                    disabled={loading || saving}
-                                    onAddReference={handleOpenAdd}
-                                />
-
-                                <InlineModal
-                                    isOpen={isAddOpen}
-                                    title="Add Reference"
-                                    onClose={() => setIsAddOpen(false)}
-                                    actions={<button style={{ color: "white", fontWeight: 400 }} className="confirmBtn" onClick={handleSaveNewRefLocal}>Add</button>}
-                                >
-                                    <div style={{ display: 'grid', gap: 12 }}>
-                                        <Dropdown
-                                            label="Type"
-                                            value={newRefDraft.type}
-                                            options={['Textbook', 'Open Educational Resources', 'Online Resources']}
-                                            onChange={(v) => setNewRefDraft(prev => ({ ...prev, type: v }))}
-                                        />
-                                        {renderDynamicFields()}
-                                        {validationError && <div style={{ color: '#b00020' }}>{validationError}</div>}
-                                    </div>
-                                </InlineModal>
-
-                                <InlineModal isOpen={showConfirm} title="Saved" onClose={() => setShowConfirm(false)}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                                        <CheckCircle size={20} color="#2e7d32" />
-                                        <div>Syllabus adjustments synchronized successfully.</div>
-                                    </div>
-                                </InlineModal>
-                            </div>
-                        </div>
-
-                        {status === 'returned' && (
-                            <div className={styles.rightCont}>
-                                <div className={styles.checklistCard}>
-                                    <div className={styles.checklistHeader}>
-                                        <MessageSquare size={18} className={styles.headerIcon} />
-                                        <h3>Review Corrections</h3>
-                                    </div>
-
-                                    {reviewComments.length === 0 ? (
-                                        <div className={styles.emptyChecklist}>
-                                            <p>No unresolved reference concerns found for this entry.</p>
-                                        </div>
-                                    ) : (
-                                        <div className={styles.checklistWrapper}>
-                                            {reviewComments.map((comment) => (
-                                                <label
-                                                    key={comment.comment_id}
-                                                    className={`${styles.checklistItem} ${comment.resolved_status ? styles.itemResolved : ''}`}
-                                                >
-                                                    <div className={styles.checkboxControl}>
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={comment.resolved_status}
-                                                            onChange={() => handleToggleCommentResolution(comment.comment_id)}
-                                                        />
-                                                        <span className={styles.customCheckmark}></span>
-                                                    </div>
-
-                                                    <div className={styles.commentContent}>
-                                                        <div className={styles.targetContextBadge}>
-                                                            {/*<span className={styles.targetPrefix}>Target:</span>*/}
-                                                            <span className={styles.targetText}>{getCommentTargetLabel(comment)}</span>
-                                                        </div>
-
-                                                        <p className={styles.commentMessage}>{comment.message}</p>
-
-                                                        <div className={styles.commentMetadata}>
-                                                            <span className={styles.metaRole}>{comment.commenter_role.replace(/_/g, ' ')}</span>
-                                                            <span className={styles.metaDivider}>•</span>
-                                                            <span className={styles.metaDate}>
-                                                                {new Date(comment.createdAt).toLocaleDateString(undefined, {
-                                                                    month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
-                                                                })}
-                                                            </span>
-                                                        </div>
-                                                    </div>
-                                                </label>
-                                            ))}
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        )}
-                    </div>
+            <InlineModal
+                isOpen={isAddOpen}
+                title="Add Reference"
+                onClose={() => setIsAddOpen(false)}
+                actions={<button style={{ color: "white", fontWeight: 400 }} className="confirmBtn" onClick={handleSaveNewRefLocal}>Add</button>}
+            >
+                <div style={{ display: 'grid', gap: 12 }}>
+                    <Dropdown
+                        label="Type"
+                        value={newRefDraft.type}
+                        options={['Textbook', 'Open Educational Resources', 'Online Resources']}
+                        onChange={(v) => setNewRefDraft(prev => ({ ...prev, type: v }))}
+                    />
+                    {renderDynamicFields()}
+                    {validationError && <div style={{ color: '#b00020' }}>{validationError}</div>}
                 </div>
-            }
-        />
+            </InlineModal>
+        </div>
     );
-};
+});
 
 export default ReferenceForm;

@@ -1,0 +1,554 @@
+.modalOverlay
+  position: fixed
+  top: 0
+  left: 0
+  right: 0
+  bottom: 0
+  background: rgba(15, 23, 42, 0.65)
+  backdrop-filter: blur(4px)
+  z-index: 1200
+  display: flex
+  align-items: center
+  justify-content: center
+  padding: 24px
+  animation: fadeIn 0.2s ease-out
+
+@keyframes fadeIn
+  from
+    opacity: 0
+  to
+    opacity: 1
+
+.modalContainer
+  background: #FFFFFF
+  width: 100%
+  max-width: 960px
+  max-height: 88vh
+  border-radius: 16px
+  box-shadow: 0 25px 50px -12px rgba(99, 102, 241, 0.25), 0 0 0 1px rgba(226, 232, 240, 0.8)
+  display: flex
+  flex-direction: column
+  overflow: hidden
+  animation: scaleUp 0.25s cubic-bezier(0.16, 1, 0.3, 1)
+
+@keyframes scaleUp
+  from
+    opacity: 0
+    transform: scale(0.96) translateY(10px)
+  to
+    opacity: 1
+    transform: scale(1) translateY(0)
+
+// Header
+.modalHeader
+  display: flex
+  align-items: center
+  justify-content: space-between
+  padding: 18px 24px
+  background: linear-gradient(135deg, #FAF5FF 0%, #EFF6FF 100%)
+  border-bottom: 1px solid #E2E8F0
+
+.headerTitleGroup
+  display: flex
+  align-items: center
+  gap: 12px
+
+.geminiBadge
+  width: 36px
+  height: 36px
+  border-radius: 10px
+  background: linear-gradient(135deg, #3B82F6 0%, #8B5CF6 50%, #EC4899 100%)
+  display: flex
+  align-items: center
+  justify-content: center
+  color: white
+  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.35)
+
+.modalTitle
+  margin: 0
+  font-size: 18px
+  font-weight: 700
+  color: #1E293B
+  display: flex
+  align-items: center
+  gap: 8px
+
+.sparkleText
+  background: linear-gradient(135deg, #3B82F6 0%, #8B5CF6 50%, #EC4899 100%)
+  -webkit-background-clip: text
+  -webkit-text-fill-color: transparent
+  font-family: inherit
+  font-weight: 800
+
+.modalSubtitle
+  margin: 2px 0 0 0
+  font-size: 12px
+  color: #64748B
+  max-width: 650px
+  white-space: nowrap
+  overflow: hidden
+  text-overflow: ellipsis
+
+.closeBtn
+  background: transparent
+  border: none
+  color: #64748B
+  cursor: pointer
+  padding: 6px
+  border-radius: 8px
+  display: flex
+  align-items: center
+  justify-content: center
+  transition: all 0.2s
+  &:hover
+    background: #E2E8F0
+    color: #1E293B
+
+// Body
+.modalBody
+  flex: 1
+  overflow-y: auto
+  padding: 24px
+  background: #F8FAFC
+  min-height: 380px
+  display: flex
+  flex-direction: column
+
+// Material Design 3 Expressive Curved Loading State
+.loadingContainer
+  flex: 1
+  display: flex
+  flex-direction: column
+  align-items: center
+  justify-content: center
+  padding: 48px 24px
+  text-align: center
+
+.m3LoaderWrapper
+  position: relative
+  width: 90px
+  height: 90px
+  display: flex
+  align-items: center
+  justify-content: center
+  margin-bottom: 24px
+
+.m3SvgLoader
+  width: 100%
+  height: 100%
+  animation: m3Spin 2s cubic-bezier(0.4, 0, 0.2, 1) infinite
+
+@keyframes m3Spin
+  0%
+    transform: rotate(0deg)
+  100%
+    transform: rotate(360deg)
+
+.m3Arc1
+  stroke-dasharray: 120, 200
+  stroke-dashoffset: 0
+  animation: m3ArcMorph1 1.8s ease-in-out infinite alternate
+
+@keyframes m3ArcMorph1
+  0%
+    stroke-dasharray: 40, 200
+    stroke-dashoffset: 0
+  100%
+    stroke-dasharray: 140, 200
+    stroke-dashoffset: -40
+
+.m3CenterIcon
+  position: absolute
+  display: flex
+  align-items: center
+  justify-content: center
+  color: #8B5CF6
+  animation: pulseGlow 1.5s ease-in-out infinite alternate
+
+@keyframes pulseGlow
+  0%
+    transform: scale(0.85)
+    filter: drop-shadow(0 0 4px rgba(139, 92, 246, 0.4))
+  100%
+    transform: scale(1.15)
+    filter: drop-shadow(0 0 10px rgba(236, 72, 153, 0.7))
+
+.loadingTitle
+  font-size: 16px
+  font-weight: 700
+  color: #1E293B
+  margin: 0 0 6px 0
+
+.loadingDescription
+  font-size: 13px
+  color: #64748B
+  max-width: 440px
+  margin: 0 0 16px 0
+  line-height: 1.5
+
+.loadingSteps
+  display: inline-flex
+  align-items: center
+  gap: 8px
+  padding: 6px 14px
+  background: #EDE9FE
+  color: #6D28D9
+  border-radius: 20px
+  font-size: 12px
+  font-weight: 600
+
+// Setup Banner when API key missing
+.setupCard
+  background: #FFFFFF
+  border: 1px solid #E2E8F0
+  border-radius: 12px
+  padding: 20px
+  margin-bottom: 20px
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04)
+
+.setupHeader
+  display: flex
+  align-items: center
+  gap: 10px
+  margin-bottom: 12px
+
+.setupTitle
+  font-size: 15px
+  font-weight: 700
+  color: #1E293B
+  margin: 0
+
+.setupStepsList
+  font-size: 13px
+  color: #475569
+  padding-left: 20px
+  margin: 8px 0 16px 0
+  line-height: 1.6
+  code
+    background: #F1F5F9
+    padding: 2px 6px
+    border-radius: 4px
+    font-size: 12px
+    color: #0F172A
+    font-weight: 600
+
+.setupActions
+  display: flex
+  gap: 10px
+  flex-wrap: wrap
+
+.trySampleBtn
+  display: inline-flex
+  align-items: center
+  gap: 6px
+  padding: 8px 16px
+  border-radius: 6px
+  font-size: 13px
+  font-weight: 600
+  background: #F8FAFC
+  border: 1px solid #CBD5E1
+  color: #334155
+  cursor: pointer
+  transition: all 0.2s
+  &:hover
+    background: #F1F5F9
+    border-color: #94A3B8
+
+.getApiKeyLink
+  display: inline-flex
+  align-items: center
+  gap: 6px
+  padding: 8px 16px
+  border-radius: 6px
+  font-size: 13px
+  font-weight: 600
+  background: #2563EB
+  color: white
+  text-decoration: none
+  cursor: pointer
+  transition: all 0.2s
+  &:hover
+    background: #1D4ED8
+
+// Topics Grid (3 rows, 2 per row)
+.topicsGrid
+  display: grid
+  grid-template-columns: repeat(2, 1fr)
+  gap: 16px
+  margin-bottom: 24px
+
+@media (max-width: 768px)
+  .topicsGrid
+    grid-template-columns: 1fr
+
+.topicCard
+  background: #FFFFFF
+  border: 1px solid #E2E8F0
+  border-radius: 10px
+  overflow: hidden
+  display: flex
+  flex-direction: column
+  transition: all 0.2s ease
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05)
+  &:hover
+    border-color: #CBD5E1
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06)
+
+.cardSelected
+  border-color: #A78BFA !important
+  box-shadow: 0 4px 14px rgba(139, 92, 246, 0.15) !important
+
+.topicCardHeader
+  display: flex
+  align-items: center
+  justify-content: space-between
+  padding: 12px 14px
+  background: #F8FAFC
+  border-bottom: 1px solid #E2E8F0
+  transition: background 0.2s
+  cursor: pointer
+  user-select: none
+
+.topicCardHeaderSelected
+  background: #F5F3FF !important
+  border-bottom-color: #DDD6FE !important
+
+.topicTitleLeft
+  display: flex
+  align-items: center
+  gap: 10px
+  flex: 1
+  min-width: 0
+
+.topicNumberBadge
+  width: 24px
+  height: 24px
+  border-radius: 6px
+  background: #E2E8F0
+  color: #475569
+  font-size: 12px
+  font-weight: 700
+  display: flex
+  align-items: center
+  justify-content: center
+  flex-shrink: 0
+  transition: all 0.2s
+
+.badgeSelected
+  background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%) !important
+  color: white !important
+
+.topicCardTitle
+  margin: 0
+  font-size: 14px
+  font-weight: 600
+  color: #1E293B
+  white-space: nowrap
+  overflow: hidden
+  text-overflow: ellipsis
+
+// Custom Checkbox
+.checkboxLabel
+  display: flex
+  align-items: center
+  cursor: pointer
+  position: relative
+  margin: 0
+  padding: 0
+
+.checkboxInput
+  appearance: none
+  -webkit-appearance: none
+  width: 18px
+  height: 18px
+  border: 1.5px solid #94A3B8
+  border-radius: 4px
+  outline: none
+  background: white
+  cursor: pointer
+  transition: all 0.15s ease
+  position: relative
+  display: flex
+  align-items: center
+  justify-content: center
+  flex-shrink: 0
+  margin: 0
+  &:checked
+    background: #7C3AED
+    border-color: #7C3AED
+    &::after
+      content: ''
+      display: block
+      width: 4px
+      height: 8px
+      border: solid white
+      border-width: 0 2px 2px 0
+      transform: rotate(45deg)
+      margin-bottom: 2px
+
+// Card Body (Subtopics)
+.topicCardBody
+  padding: 12px 14px
+  display: flex
+  flex-direction: column
+  gap: 8px
+  background: #FFFFFF
+  flex: 1
+
+.subtopicRow
+  display: flex
+  align-items: center
+  justify-content: space-between
+  padding: 6px 10px
+  border-radius: 6px
+  background: #F8FAFC
+  border: 1px solid #F1F5F9
+  transition: all 0.15s ease
+  cursor: pointer
+  user-select: none
+  &:hover
+    background: #F1F5F9
+    border-color: #E2E8F0
+
+.subtopicRowSelected
+  background: #FAF5FF !important
+  border-color: #EDE9FE !important
+
+.subtopicTitleLeft
+  display: flex
+  align-items: center
+  gap: 8px
+  flex: 1
+  min-width: 0
+
+.subtopicDot
+  width: 6px
+  height: 6px
+  border-radius: 50%
+  background: #CBD5E1
+  flex-shrink: 0
+  transition: background 0.15s
+
+.subtopicDotSelected
+  background: #8B5CF6 !important
+
+.subtopicText
+  font-size: 12.5px
+  color: #475569
+  line-height: 1.4
+  white-space: nowrap
+  overflow: hidden
+  text-overflow: ellipsis
+
+.subtopicTextSelected
+  color: #1E293B
+  font-weight: 500
+
+// Load More Section
+.loadMoreWrapper
+  display: flex
+  justify-content: center
+  padding: 12px 0 8px 0
+
+.loadMoreBtn
+  display: inline-flex
+  align-items: center
+  gap: 8px
+  padding: 10px 22px
+  border-radius: 30px
+  font-size: 13px
+  font-weight: 600
+  color: #6D28D9
+  background: #F5F3FF
+  border: 1px solid #DDD6FE
+  cursor: pointer
+  transition: all 0.2s ease
+  box-shadow: 0 2px 6px rgba(139, 92, 246, 0.08)
+  &:hover:not(:disabled)
+    background: #EDE9FE
+    border-color: #C4B5FD
+    transform: translateY(-1px)
+    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.18)
+  &:disabled
+    opacity: 0.6
+    cursor: not-allowed
+
+.loadMoreSpin
+  animation: m3Spin 1s linear infinite
+
+// Footer
+.modalFooter
+  display: flex
+  align-items: center
+  justify-content: space-between
+  padding: 16px 24px
+  background: #FFFFFF
+  border-top: 1px solid #E2E8F0
+
+.footerLeft
+  display: flex
+  align-items: center
+  gap: 16px
+
+.selectionBadge
+  font-size: 13px
+  color: #475569
+  font-weight: 600
+  span
+    color: #7C3AED
+    font-weight: 700
+
+.toggleAllBtn
+  background: transparent
+  border: none
+  color: #6D28D9
+  font-size: 12px
+  font-weight: 600
+  cursor: pointer
+  padding: 4px 8px
+  border-radius: 4px
+  transition: background 0.15s
+  &:hover
+    background: #F5F3FF
+
+.footerActions
+  display: flex
+  align-items: center
+  gap: 10px
+
+.cancelBtn
+  padding: 9px 18px
+  border-radius: 6px
+  border: 1px solid #CBD5E1
+  background: white
+  color: #475569
+  font-size: 13px
+  font-weight: 600
+  cursor: pointer
+  transition: all 0.2s
+  &:hover
+    background: #F1F5F9
+
+.applyBtn
+  display: inline-flex
+  align-items: center
+  gap: 8px
+  padding: 9px 20px
+  border-radius: 6px
+  border: none
+  background: linear-gradient(135deg, #3B82F6 0%, #8B5CF6 50%, #EC4899 100%)
+  color: white
+  font-size: 13px
+  font-weight: 700
+  cursor: pointer
+  transition: all 0.2s ease
+  box-shadow: 0 4px 14px rgba(139, 92, 246, 0.35)
+  &:hover:not(:disabled)
+    opacity: 0.95
+    transform: translateY(-1px)
+    box-shadow: 0 6px 18px rgba(139, 92, 246, 0.45)
+  &:disabled
+    opacity: 0.5
+    cursor: not-allowed
+    transform: none
+    box-shadow: none

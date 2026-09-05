@@ -121,10 +121,8 @@ const SyllabusSections = () => {
     return (
         <div className={styles.container}>
             <div className={styles.navi}>
-                <Link  to={`/`} className={'actionLink'} >
-                    <div className={styles.return}>
-                        <ChevronLeft size={22}/>
-                    </div>
+                <Link to={`/`} className={styles.return}>
+                    <ChevronLeft size={22}/>
                 </Link>
 
                 <div className={styles['section-select']}>
@@ -234,7 +232,7 @@ const SyllabusSections = () => {
                                 Submit Learning Plan
                             </div>
                             <div className={styles.submitModalBody}>
-                                Are you sure you want to finalize and submit this learning plan for review? You will no longer be able to edit it unless it is returned.
+                                Are you sure you want to finalize and submit this learning plan for review? You will no longer be edit it unless it is returned.
                             </div>
                             <div className={styles.submitModalActions}>
                                 <button className={styles.btnCancelPlain} onClick={() => setSubmitPhase('IDLE')}>Cancel</button>

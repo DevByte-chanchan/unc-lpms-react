@@ -1,95 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ChevronRight, Inbox } from "react-feather";
-
-
-const AssignScheduleModal = ({ isOpen, onClose, onSave, iloId, currentWeeks, currentHours, styles }) => {
-    // Use ?? instead of || so that if the value is 0, it doesn't default to ''
-    const [weeks, setWeeks] = useState(currentWeeks ?? '');
-    console.log("weeks:" + weeks)
-    const [hours, setHours] = useState(currentHours ?? '');
-    console.log("hours:" + hours)
-
-
-    // Re-initialize state whenever the modal opens or the props change
-    useEffect(() => {
-        if (isOpen) {
-            setWeeks(currentWeeks ?? '');
-            setHours(currentHours ?? '');
-        }
-    }, [isOpen, currentWeeks, currentHours]);
-
-    if (!isOpen) return null;
-
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        onSave(iloId, {
-            weeks: parseFloat(weeks) || null,
-            hours: parseInt(hours, 10) || null
-        });
-    };
-
-    return (
-        <div className={styles.scheduleOverlay}>
-            <div className={styles.scheduleModal}>
-                <div className={styles.modalHeader}>
-                    <h3 className={styles.modalTitle}>Time Allocation</h3>
-                    <button type="button" className={styles.closeBtn} onClick={onClose}>×</button>
-                </div>
-
-                <form onSubmit={handleSubmit} className={styles.formBody}>
-                    <div className={styles.inputGroup}>
-                        {/* Updated Formal Label */}
-                        <label>Allocated Weeks</label>
-                        <div className={styles.selectWrapper}>
-                            <select value={Math.trunc(weeks)} onChange={(e) => setWeeks(e.target.value)} required>
-                                <option value="" disabled>Select weeks</option>
-                                {[1, 2, 3].map(w => (
-                                    <option key={`week-${w}`} value={w}>
-                                        {w} week{w > 1 ? 's' : ''}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-                    </div>
-
-                    <div className={styles.inputGroup}>
-                        {/* Updated Formal Label */}
-                        <label>Contact Hours</label>
-                        <div className={styles.selectWrapper}>
-                            <select value={hours} onChange={(e) => setHours(e.target.value)} required>
-                                <option value="" disabled>Select hours</option>
-                                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(h => (
-                                    <option key={`hour-${h}`} value={h}>
-                                        {h} hour{h > 1 ? 's' : ''}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-                    </div>
-
-                    <div className={styles.actionRow}>
-                        <button type="submit" className={styles.saveBtn}>Apply</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    );
-};
-
-
+import { ChevronRight, Inbox, List, Grid, Search } from "react-feather";
 
 const ILOs = ({ offeringID, revisionNum, status, styles, fetchJson }) => {
     const [iloData, setIloData] = useState({ course: null, courseOutcomes: [], ilos: [] });
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const [commentCounts, setCommentCounts] = useState({});
-
-    // Modal state for Assign Schedule
-    const [activeScheduleIloId, setActiveScheduleIloId] = useState(null);
-    console.log(activeScheduleIloId)
-
-
+    
+    const [layoutMode, setLayoutMode] = useState('grid'); // Default view
+    const [searchTerm, setSearchTerm] = useState(''); // New search state
 
     // 1. Fetch main ILO Data layer
     useEffect(() => {
@@ -103,12 +23,38 @@ const ILOs = ({ offeringID, revisionNum, status, styles, fetchJson }) => {
                 const data = await fetchJson(`/api/ilos/${offeringID}/${revisionNum}`);
 
                 if (!mounted) return;
-                const flatILOs = [];
+                const processedILOs = [];
+                let coDisplayCounter = 1;
+                let globalWeek = 1;
+
+                // Process COs and ILOs directly during fetch to assign sequences predictably for searching
                 for (const co of data.courseOutcomes) {
                     co.ilos.sort((a, b) => a.id - b.id);
-                    co.ilos.forEach(ilo => flatILOs.push({ ...ilo, co_id: co.co_id }));
+                    let iloDisplaySequence = 1;
+                    const isCourseOrientationCO1 = (coDisplayCounter === 1 && co.ilos.length === 4);
+                    
+                    co.ilos.forEach((ilo, index) => {
+                        let isOrientation = (isCourseOrientationCO1 && index === 0);
+                        let iloNumber = isOrientation ? 0 : iloDisplaySequence;
+                        let label = isOrientation ? "Course Orientation" : `CO ${coDisplayCounter} - ILO ${iloNumber}`;
+                        
+                        processedILOs.push({ 
+                            ...ilo, 
+                            co_id: co.co_id,
+                            coNumber: coDisplayCounter,
+                            iloNumber: iloNumber,
+                            isOrientation: isOrientation,
+                            entryLabel: label,
+                            weekStatic: globalWeek
+                        });
+                        
+                        if (!isOrientation) iloDisplaySequence++;
+                        globalWeek++;
+                    });
+                    coDisplayCounter++;
                 }
-                setIloData({ course: data.course, courseOutcomes: data.courseOutcomes, ilos: flatILOs });
+
+                setIloData({ course: data.course, courseOutcomes: data.courseOutcomes, ilos: processedILOs });
             } catch (err) {
                 console.error(err);
                 if (!mounted) return;
@@ -167,48 +113,12 @@ const ILOs = ({ offeringID, revisionNum, status, styles, fetchJson }) => {
     const getBadgeCount = (iloId, type) => {
         return commentCounts[`${iloId}_${type}`] || 0;
     };
-
-    const handleSaveSchedule = async (iloId, scheduleData) => {
-        try {
-            const response = await fetchJson(`/api/ilos/${iloId}/schedule`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(scheduleData)
-            });
-
-            // 1. Update local state so the table data updates immediately without refreshing
-            setIloData(prevData => ({
-                ...prevData,
-                ilos: prevData.ilos.map(ilo =>
-                    ilo.id === iloId
-                        ? { ...ilo, weeks: scheduleData.weeks, hours: scheduleData.hours }
-                        : ilo
-                )
-            }));
-
-            // 2. Close the modal on success
-            setActiveScheduleIloId(null);
-            console.log("Schedule saved successfully!", response);
-
-        } catch (error) {
-            // 3. Catch the 400 Bad Request and alert the user if they exceed limits
-            let errorMsg = error.message;
-            try {
-                const jsonStart = error.message.indexOf('{');
-                if (jsonStart !== -1) {
-                    const parsed = JSON.parse(error.message.substring(jsonStart));
-                    errorMsg = parsed.message || errorMsg;
-                }
-            } catch (e) {
-                // Fallback to standard error
-            }
-
-            alert(`Cannot save schedule: ${errorMsg}`);
-            console.error("Save failed:", error);
-        }
+    
+    // Aggregates all topics, references, and tlas badges for the new unified Map Contents button
+    const getTotalBadgeCount = (iloId) => {
+        return getBadgeCount(iloId, 'references') + getBadgeCount(iloId, 'topics') + getBadgeCount(iloId, 'tlas');
     };
+
     if (loading) {
         return <div className={styles.loadingContainer}>Loading ILOs...</div>;
     }
@@ -217,163 +127,200 @@ const ILOs = ({ offeringID, revisionNum, status, styles, fetchJson }) => {
         return <div className={styles.errorContainer}>Error: {error}</div>;
     }
 
-    // Grab the active ILO object to pass its current weeks/hours down to the modal
-    const activeIlo = iloData.ilos.find(ilo => ilo.id === activeScheduleIloId);
-    console.log(activeIlo?.weeks)
-    console.log(activeIlo?.hours)
+    // Client-side Frontend filtering mechanics
+    const lowerSearch = searchTerm.toLowerCase();
+    const filteredIlos = iloData.ilos.filter(ilo => {
+        if (!searchTerm) return true;
+        const matchLabel = ilo.entryLabel.toLowerCase().includes(lowerSearch);
+        const matchDesc = (ilo.description || '').toLowerCase().includes(lowerSearch);
+        return matchLabel || matchDesc;
+    });
 
     return (
-        <section>
-            <div className={styles['ilo-container']}>
-                <table>
-                    <thead>
-                    <tr>
-                        <th width={150}>CO-ILO #</th>
-                        <th width={600}>Description</th>
-                        <th className={styles.fill} width={250}></th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    {iloData.ilos && iloData.ilos.length > 0 ? (() => {
-                        let coDisplaySequence = 0;
-                        let lastCoId = null;
-                        let iloDisplaySequence = 0;
-                        let coItemIndex = 0; // Tracks the element's position within its current CO group
-
-                        return iloData.ilos.map((ilo) => {
-                            // 1. Reset or increment the inner position index when crossing CO boundaries
-                            if (ilo.co_id !== lastCoId) {
-                                lastCoId = ilo.co_id;
-                                coDisplaySequence++;
-                                coItemIndex = 0;
-                            } else {
-                                coItemIndex++;
-                            }
-
-                            // 2. Count the total number of ILOs assigned to this specific CO
-                            const totalIlosInCo = iloData.ilos.filter(i => i.co_id === ilo.co_id).length;
-
-                            // 3. Condition: If there are exactly 4 ILOs in this CO, automatically flag the 1st one (index 0)
-                            const isCourseOrientation = (totalIlosInCo === 4 && coItemIndex === 0);
-
-                            // 4. Handle sequential numbering based on the flag
-                            if (coItemIndex === 0) {
-                                iloDisplaySequence = isCourseOrientation ? 0 : 1;
-                            } else {
-                                if (!isCourseOrientation) {
-                                    iloDisplaySequence++;
-                                }
-                            }
-
-                            // 5. Build standard label or clear it if it's the Course Orientation item
-                            const entryLabel = isCourseOrientation ? "" : `CO${coDisplaySequence}-ILO${iloDisplaySequence}`;
-
-                            const refBadges = getBadgeCount(ilo.id, 'references');
-                            const topicBadges = getBadgeCount(ilo.id, 'topics');
-                            const tlaBadges = getBadgeCount(ilo.id, 'tlas');
-
-                            return (
-                                <tr key={ilo.id}>
-                                    <td width={150} style={{ fontWeight: 500 }}>
-                                        {entryLabel}
-                                        {/* Optional: Show currently assigned weeks/hours under the label if they exist */}
-                                        {/*{(ilo.weeks || ilo.hours) && (*/}
-                                        {/*    <div style={{ fontSize: '11px', color: '#666', marginTop: '4px' }}>*/}
-                                        {/*        {ilo.weeks && `${ilo.weeks} Wk `}*/}
-                                        {/*        {ilo.hours && `${ilo.hours} Hr`}*/}
-                                        {/*    </div>*/}
-                                        {/*)}*/}
-                                    </td>
-                                    <td width={600}>{ilo.description}</td>
-                                    <td className={styles.fill} width={250} style={{ display: "flex", flexDirection: "column", alignItems: "end", gap: 5 }}>
-
-                                        {/* Assign Week and Time Button (Trigger) */}
-                                        <button
-                                            className={`${styles.actionLink} ${styles.schedSetter}`}
-                                            onClick={() => setActiveScheduleIloId(ilo.id)}
-                                        >
-                                            <span className={styles['link-text-wrapper']}>
-                                                Set Weeks & Hours
-                                                <ChevronRight size={18} />
-                                                <div className={styles.fixedWidth}></div>
-                                            </span>
-                                        </button>
-
-                                        {/* Assign Topics */}
-                                        <Link className="actionLink" to={`/topics/form/${ilo.id}/${status}`}>
-                                                <span className={styles['link-text-wrapper']}>
-                                                    Assign Topics
-                                                    <ChevronRight size={18} />
-                                                    <div className={styles.fixedWidth}>
-                                                        {status === 'returned' && topicBadges > 0 && (
-                                                            <span className={styles['comment-badge']}>{topicBadges}</span>
-                                                        )}
-                                                    </div>
-                                                </span>
-                                        </Link>
-
-
-
-                                        {/* Assign TLAs */}
-                                        <Link className="actionLink" to={`/tlas/form/${ilo.id}/${status}`}>
-                                                <span className={styles['link-text-wrapper']}>
-                                                    Assign TLAs
-                                                    <ChevronRight size={18} />
-                                                    <div className={styles.fixedWidth}>
-                                                        {status === 'returned' && tlaBadges > 0 && (
-                                                            <span className={styles['comment-badge']}>{tlaBadges}</span>
-                                                        )}
-                                                    </div>
-                                                </span>
-                                        </Link>
-
-                                        {/* Assign References */}
-                                        <Link className="actionLink" to={`/references/form/${ilo.id}/${status}`}>
-                                                <span className={styles['link-text-wrapper']}>
-                                                    Assign References
-                                                    <ChevronRight size={18} />
-                                                    <div className={styles.fixedWidth}>
-                                                        {status === 'returned' && refBadges > 0 && (
-                                                            <span className={styles['comment-badge']}>{refBadges}</span>
-                                                        )}
-                                                    </div>
-                                                </span>
-                                        </Link>
-
-
-
-
-
-                                    </td>
-                                </tr>
-                            );
-                        });
-                    })() : (
-                        <tr className={styles.emptyRow}>
-                            <td colSpan={3}>
-                                <div className={styles.emptyStateContainer}>
-                                    <Inbox size={40} strokeWidth={1} />
-                                    <span>No ILOs found.</span>
-                                </div>
-                            </td>
-                        </tr>
-                    )}
-                    </tbody>
-                </table>
+        <section style={{ display: 'flex', flexDirection: 'column' }}>
+            
+            <div className={styles.iloHeader}>
+                {/* Replaced 'Learning Outcomes Map' header with a dynamic Search Bar */}
+                <div className={styles.iloSearchContainer}>
+                    <Search color="#A4A9AF" size={18} />
+                    <input
+                        type="text"
+                        placeholder="Search ILO number, CO number, or description..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                </div>
+                
+                <div className={styles.layoutToggles}>
+                    <button
+                        className={`${styles.toggleBtn} ${layoutMode === 'list' ? styles.active : ''}`}
+                        onClick={() => setLayoutMode('list')}
+                        title="List View"
+                    >
+                        <List size={18} />
+                    </button>
+                    <button
+                        className={`${styles.toggleBtn} ${layoutMode === 'grid' ? styles.active : ''}`}
+                        onClick={() => setLayoutMode('grid')}
+                        title="Grid View"
+                    >
+                        <Grid size={18} />
+                    </button>
+                </div>
             </div>
 
-            {/* Mount the modal when activeScheduleIloId is set */}
-            {activeScheduleIloId && (
-                <AssignScheduleModal
-                    isOpen={!!activeScheduleIloId}
-                    onClose={() => setActiveScheduleIloId(null)}
-                    onSave={handleSaveSchedule}
-                    iloId={activeScheduleIloId}
-                    currentWeeks={activeIlo?.weeks}
-                    currentHours={activeIlo?.hours}
-                    styles={styles}
-                />
-            )}
+            <div className={styles['ilo-container']}>
+                {layoutMode === 'list' ? (
+                    <table style={{ minWidth: '100%', width: '100%' }}>
+                        <tbody>
+                        {filteredIlos.length > 0 ? (
+                            filteredIlos.map((ilo) => {
+                                const totalBadges = getTotalBadgeCount(ilo.id);
+                                return (
+                                    <tr key={ilo.id} style={{ flexWrap: 'nowrap' }}>
+                                        {/* REMOVED BLUE COLOR, NOW STANDARD BLACK #111827 */}
+                                        <td width={150} style={{ fontWeight: 600, color: '#111827', flexShrink: 0 }}>
+                                            {ilo.entryLabel}
+                                        </td>
+                                        {/* Let the description column dynamically stretch and wrap its content properly! */}
+                                        <td style={{ 
+                                            flex: 1, 
+                                            lineHeight: '1.5', 
+                                            whiteSpace: 'normal', 
+                                            wordBreak: 'break-word', 
+                                            paddingRight: '20px', 
+                                            minWidth: '200px' 
+                                        }}>
+                                            {ilo.description}
+                                        </td>
+                                        <td width={130} style={{ color: '#4b5563', fontSize: '13px', flexShrink: 0 }}>
+                                            Week {ilo.weekStatic} &bull; 3 Hr
+                                        </td>
+                                        <td className={styles.fill} style={{ width: 'auto', minWidth: '160px', flexShrink: 0, paddingRight: '15px' }}>
+                                            {/* Using standard outlined mapContentsBtn border */}
+                                            <Link className={styles.mapContentsBtn} to={`/topics/form/${ilo.id}/${status}`}>
+                                                Map Contents
+                                                {status === 'returned' && totalBadges > 0 && (
+                                                    <span className={styles['comment-badge']}>{totalBadges}</span>
+                                                )}
+                                                <ChevronRight size={16} />
+                                            </Link>
+                                        </td>
+                                    </tr>
+                                );
+                            })
+                        ) : (
+                            <tr className={styles.emptyRow}>
+                                <td colSpan={3}>
+                                    <div className={styles.emptyStateContainer} style={{ padding: '40px' }}>
+                                        <Inbox size={40} strokeWidth={1} />
+                                        <span>No matching results found.</span>
+                                    </div>
+                                </td>
+                            </tr>
+                        )}
+                        </tbody>
+                    </table>
+                ) : (
+                    <div className={styles.gridContainer}>
+                        {(() => {
+                            if (filteredIlos.length === 0) {
+                                return (
+                                    <div className={styles.emptyStateContainer} style={{ padding: '40px' }}>
+                                        <Inbox size={40} strokeWidth={1} />
+                                        <span>No matching results found.</span>
+                                    </div>
+                                );
+                            }
+
+                            // 1. Process COs and extract Course Orientation via mapped sequence cache
+                            let courseOrientation = filteredIlos.find(i => i.isOrientation);
+                            let coListForGrid = [];
+
+                            iloData.courseOutcomes.forEach((co) => {
+                                // Extract standard ILOs mapping to this CO that are currently rendered by search mask
+                                let currentIlos = filteredIlos.filter(i => i.co_id === co.co_id && !i.isOrientation);
+                                
+                                // Only render the CO Container Rectangles if it survives the search check
+                                if (currentIlos.length > 0) {
+                                    coListForGrid.push({ ...co, coNumber: currentIlos[0].coNumber, gridIlos: currentIlos });
+                                }
+                            });
+
+                            return (
+                                <>
+                                    {/* Render Course Orientation Block */}
+                                    {courseOrientation && (() => {
+                                        const totalBadges = getTotalBadgeCount(courseOrientation.id);
+                                        return (
+                                        <div className={`${styles.coBlock} ${styles.courseOrientationBox}`}>
+                                            <div className={styles.iloGridBox_Header}>
+                                                <span className={styles.iloGridBox_Title}>Course Orientation</span>
+                                                <span className={styles.iloGridBox_Meta}>
+                                                    Week {courseOrientation.weekStatic} &bull; 3 Hours
+                                                </span>
+                                            </div>
+                                            <div className={styles.iloGridBox_Desc}>
+                                                {courseOrientation.description}
+                                            </div>
+                                            <div className={styles.iloGridBox_Footer}>
+                                                <Link className={styles.mapContentsBtn} to={`/topics/form/${courseOrientation.id}/${status}`}>
+                                                    Map Contents
+                                                    {status === 'returned' && totalBadges > 0 && (
+                                                        <span className={styles['comment-badge']}>{totalBadges}</span>
+                                                    )}
+                                                    <ChevronRight size={16} />
+                                                </Link>
+                                            </div>
+                                        </div>
+                                    )})()}
+
+                                    {/* Render the surviving CO Blocks */}
+                                    {coListForGrid.map((co, coIndex) => {
+                                        return (
+                                            <div key={co.co_id} className={styles.coBlock}>
+                                                <div className={styles.coHeader}>
+                                                    Course Outcome {co.coNumber}
+                                                </div>
+                                                <div className={styles.iloGridRow}>
+                                                    {co.gridIlos.map((ilo, iloIndex) => {
+                                                        const totalBadges = getTotalBadgeCount(ilo.id);
+                                                        return (
+                                                            <div key={ilo.id} className={styles.iloGridBox}>
+                                                                <div className={styles.iloGridBox_Header}>
+                                                                    <span className={styles.iloGridBox_Title}>
+                                                                        ILO {ilo.iloNumber}
+                                                                    </span>
+                                                                    <span className={styles.iloGridBox_Meta}>
+                                                                        Week {ilo.weekStatic} &bull; 3 Hours
+                                                                    </span>
+                                                                </div>
+                                                                <div className={styles.iloGridBox_Desc}>
+                                                                    {ilo.description}
+                                                                </div>
+                                                                
+                                                                <div className={styles.iloGridBox_Footer}>
+                                                                    <Link className={styles.mapContentsBtn} to={`/topics/form/${ilo.id}/${status}`}>
+                                                                        Map Contents
+                                                                        {status === 'returned' && totalBadges > 0 && (
+                                                                            <span className={styles['comment-badge']}>{totalBadges}</span>
+                                                                        )}
+                                                                        <ChevronRight size={16} />
+                                                                    </Link>
+                                                                </div>
+                                                            </div>
+                                                        )
+                                                    })}
+                                                </div>
+                                            </div>
+                                        )
+                                    })}
+                                </>
+                            )
+                        })()}
+                    </div>
+                )}
+            </div>
         </section>
     );
 };

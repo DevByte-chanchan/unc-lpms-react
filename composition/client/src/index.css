@@ -7,7 +7,7 @@
 }
 
 h2{
-    font-weight: 600;
+    font-weight: 500;
     font-size: 24px;
 }
 
@@ -38,9 +38,10 @@ body {
 }
 
 a {
-    font-weight: 500;
+    font-weight: 400;
     color: #646cff;
     text-decoration: inherit;
+    transition: color 0.2s ease;
 }
 a:hover {
     color: #535bf2;
@@ -56,11 +57,11 @@ button {
     border: 1px solid transparent;
     padding: 0.6em 1.2em;
     font-size: 1em;
-    font-weight: 500;
+    font-weight: 400;
     font-family: inherit;
     background-color: #1a1a1a;
     cursor: pointer;
-    transition: border-color 0.25s;
+    transition: all 0.2s ease;
     outline: none !important;
 
 }
@@ -68,6 +69,7 @@ button:hover {
     border-color: #646cff;
     border: none !important;
     outline: none !important;
+    opacity: 0.9;
 }
 button:focus,
 button:focus-visible {
@@ -89,11 +91,11 @@ thead tr {
     background: #EDEFF2;
     display: flex;
     text-align: left;
-    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.25);
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
 }
 
 th {
-    font-weight: 500;
+    font-weight: 400;
 }
 
 tbody {
@@ -106,11 +108,16 @@ tbody {
 
 tbody tr {
     background: #FFF;
-    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.25);
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.08);
     display: flex;
     font-weight: 300;
+    transition: background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
 }
-
+tbody tr:hover {
+    background: #FAFAFA;
+    transform: translateY(-1px);
+    box-shadow: 0 3px 6px 0 rgba(0, 0, 0, 0.1);
+}
 
 th, td {
     padding: 8px 8px;
@@ -132,7 +139,7 @@ th, td {
     font-size: 14px;
 }
 .filter-container p strong{
-    font-weight: 500;
+    font-weight: 400;
 }
 .filter-container select{
     margin-left: 20px;
@@ -188,7 +195,7 @@ th, td {
     justify-content: end;
     align-items: center;
     min-width: 200px;
-    font-weight: 500 !important;
+    font-weight: 400 !important;
     /* The link element now inherits its color from the <td> */
     color: black; /* Set the desired text color for the <td> */
 }
@@ -198,12 +205,19 @@ th, td {
     display: flex;
     justify-content: center;
     align-items: center;
-    padding: 0;
+    padding: 4px 8px;
     height: fit-content;
     width: fit-content;
     color: inherit !important; /* Force color inheritance, overriding the blue */
     gap: 5px; /* Spacing between text and icon */
     cursor: pointer;
+    border-radius: 6px;
+    transition: background 0.2s ease, opacity 0.2s ease;
+}
+
+.actionLink:hover {
+    background: rgba(0,0,0,0.04);
+    opacity: 0.8;
 }
 
 .x{
@@ -229,4 +243,3 @@ th, td {
     width: 20px;
     height: 20px;
 }
-

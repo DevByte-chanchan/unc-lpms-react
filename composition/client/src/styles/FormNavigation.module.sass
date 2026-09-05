@@ -2,10 +2,9 @@
   width: 100%
   background: white
   display: flex
-  padding: 10px 10px 10px 10px
-  gap: 8px
+  padding: 10px 15px
+  justify-content: space-between
   align-items: center
-
 
 .return, .save
   padding: 10px 20px
@@ -17,7 +16,69 @@
   font-weight: 500
   gap: 5px
   cursor: pointer
+  transition: all 0.2s
+
+  &:hover
+    filter: brightness(0.95)
 
 .save
   background: #19282C
   color: white
+
+.progressCenter
+  display: flex
+  align-items: center
+  gap: 15px
+  
+.pNav
+  background: transparent
+  border: none
+  display: flex
+  align-items: center
+  justify-content: center
+  cursor: pointer
+  color: #6c757d
+  padding: 4px
+  border-radius: 50%
+  transition: all 0.2s
+  
+  &:disabled
+    opacity: 0.3
+    cursor: default
+    
+  &:not(:disabled):hover
+    background: #f0f0f0
+    color: #111827
+
+.progressTrack
+  display: flex
+  align-items: center
+  gap: 8px
+  background: #f8f9fa
+  padding: 6px 16px
+  border-radius: 20px
+  border: 1px solid #e9ecef
+
+.stepNode
+  font-size: 13px
+  font-weight: 600
+  color: #8B999D
+  cursor: pointer
+  transition: all 0.2s
+  padding: 4px 10px
+  border-radius: 12px
+  
+  &:hover
+    color: #4b5563
+    
+.activeNode
+  color: #19282C
+  background: #e2e8f0
+  
+.completedNode
+  color: #10b981
+  
+.stepConnector
+  width: 20px
+  height: 2px
+  background: #cbd5e1
