@@ -13,18 +13,9 @@ module.exports = (sequelize, DataTypes) => {
             type: DataTypes.STRING(500),
             allowNull: false
         },
-        hours: {
-            type: DataTypes.INTEGER,
-            allowNull: true // Changed to nullable
-        },
-        weeks: {
-            type: DataTypes.DECIMAL(4, 2),
-            allowNull: true // Added weeks
-        },
-        assessment_tool: {
-            type: DataTypes.STRING(200),
-            allowNull: true // Added assessment tool
-        },
+        
+        
+        
         is_orientation:{
             type: DataTypes.BOOLEAN,
             defaultValue: false,

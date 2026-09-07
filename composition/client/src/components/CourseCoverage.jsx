@@ -211,7 +211,8 @@ const CourseCoverage = ({ offeringID, revisionNum, status, selectedSection, styl
                             }
 
                             // 5. Build dynamic cleanILOId or leave blank if it matches Course Orientation
-                            const cleanILOId = isCourseOrientation ? "" : `ILO${iloDisplaySequence}`;
+                            const isExamRow = ['Prelim', 'Midterm', 'Semifinal', 'Final'].includes(ilo.intendedLearningOutcome);
+                            const cleanILOId = (isCourseOrientation || isExamRow) ? "" : `ILO${iloDisplaySequence}`;
 
                             const isFirstOfCO = index === ilos.findIndex(item => item.id.startsWith(currentCoPrefix + '-'));
                             const coRowCount = totalIlosInCo;
@@ -224,16 +225,14 @@ const CourseCoverage = ({ offeringID, revisionNum, status, selectedSection, styl
                             const totalRowUnresolved = refCount + topicCount + tlaCount;
 
                             return (
-                                <tr key={ilo.id}>
+                                <tr key={ilo.id} style={currentCoPrefix === 'Prelim' || currentCoPrefix === 'Midterm' || currentCoPrefix === 'Semifinal' || currentCoPrefix === 'Final' ? { backgroundColor: '#f9fafb' } : {}}>
                                 {/* CO COLUMN */}
                                 {isFirstOfCO && (
                                     <td
                                         rowSpan={coRowCount}
                                         className={`${stylesB.ccCell} ${stylesB.centerText} ${stylesB.boldText}`}
                                         style={{ width: colWidths.co }}
-                                    >
-                                        {currentCoPrefix}
-                                    </td>
+                                    >{['Prelim', 'Midterm', 'Semifinal', 'Final'].includes(currentCoPrefix) ? '' : currentCoPrefix}</td>
                                 )}
 
                                 {/* ILO COLUMN */}
@@ -275,7 +274,7 @@ const CourseCoverage = ({ offeringID, revisionNum, status, selectedSection, styl
                                     <TlaGroup title="IN-CLASS" tlas={inTLAs} stylesB={stylesB} />
                                     <TlaGroup title="POST-CLASS" tlas={postTLAs} stylesB={stylesB} />
 
-                                    {allRowTLAs.length === 0 && <span className={stylesB.descText}>No activities listed.</span>}
+                                    {(allRowTLAs.length === 0 && !isExamRow) && <span className={stylesB.descText}>No activities listed.</span>}
                                 </td>
 
                                 {/* ASSESSMENT COLUMN */}
@@ -288,7 +287,7 @@ const CourseCoverage = ({ offeringID, revisionNum, status, selectedSection, styl
                                             )}
                                         </div>
                                     ))}
-                                    {uniqueAssessments.length === 0 && <span className={stylesB.descText}>No assessments listed.</span>}
+                                    {(uniqueAssessments.length === 0 && !isExamRow) && <span className={stylesB.descText}>No assessments listed.</span>}
                                 </td>
 
                                 {/* RESOURCES COLUMN */}

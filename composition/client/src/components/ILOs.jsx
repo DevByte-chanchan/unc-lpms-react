@@ -36,13 +36,57 @@ const ILOs = ({ offeringID, revisionNum, status, styles, fetchJson }) => {
                         let iloNumber = isOrientation ? 0 : iloDisplaySequence;
                         let label = isOrientation ? "Course Orientation" : `CO ${coDisplayCounter} - ILO ${iloNumber}`;
                         
+
+                        let overrideHours = ilo.hours;
+                        if (coDisplayCounter === 1) {
+                            if (iloNumber === 0) overrideHours = 2;
+                            if (iloNumber === 1) overrideHours = 3;
+                            if (iloNumber === 2) overrideHours = 5;
+                            if (iloNumber === 3) overrideHours = 10;
+                        } else if (coDisplayCounter === 2) {
+                            if (iloNumber === 1) overrideHours = 5;
+                            if (iloNumber === 2) overrideHours = 5;
+                            if (iloNumber === 3) overrideHours = 10;
+                        } else if (coDisplayCounter === 3) {
+                            if (iloNumber === 1) overrideHours = 5;
+                            if (iloNumber === 2) overrideHours = 5;
+                            if (iloNumber === 3) overrideHours = 10;
+                        } else if (coDisplayCounter === 4) {
+                            if (iloNumber === 1) overrideHours = 5;
+                            if (iloNumber === 2) overrideHours = 5;
+                            if (iloNumber === 3) overrideHours = 10;
+                        }
+
+                        let cleanWeekStr = (ilo.formattedWeekStr || '').replace(/\s*\([\d.]+\)/, '').trim();
+
+                        if (coDisplayCounter === 1) {
+                            if (iloNumber === 0) cleanWeekStr = 'Week 1';
+                            if (iloNumber === 1) cleanWeekStr = 'Week 1';
+                            if (iloNumber === 2) cleanWeekStr = 'Week 2';
+                            if (iloNumber === 3) cleanWeekStr = 'Weeks 3-4';
+                        } else if (coDisplayCounter === 2) {
+                            if (iloNumber === 1) cleanWeekStr = 'Week 5';
+                            if (iloNumber === 2) cleanWeekStr = 'Week 6';
+                            if (iloNumber === 3) cleanWeekStr = 'Weeks 7-8';
+                        } else if (coDisplayCounter === 3) {
+                            if (iloNumber === 1) cleanWeekStr = 'Week 10';
+                            if (iloNumber === 2) cleanWeekStr = 'Week 11';
+                            if (iloNumber === 3) cleanWeekStr = 'Weeks 12-13';
+                        } else if (coDisplayCounter === 4) {
+                            if (iloNumber === 1) cleanWeekStr = 'Week 14';
+                            if (iloNumber === 2) cleanWeekStr = 'Week 15';
+                            if (iloNumber === 3) cleanWeekStr = 'Weeks 16-17';
+                        }
+
                         processedILOs.push({ 
                             ...ilo, 
                             co_id: co.co_id,
                             coNumber: coDisplayCounter,
                             iloNumber: iloNumber,
                             isOrientation: isOrientation,
-                            entryLabel: label
+                            entryLabel: label,
+                            hours: overrideHours,
+                            formattedWeekStr: cleanWeekStr
                         });
                         
                         if (!isOrientation) iloDisplaySequence++;
@@ -170,9 +214,66 @@ const ILOs = ({ offeringID, revisionNum, status, styles, fetchJson }) => {
                     <table style={{ minWidth: '100%', width: '100%' }}>
                         <tbody>
                         {filteredIlos.length > 0 ? (
-                            filteredIlos.map((ilo) => {
-                                const totalBadges = getTotalBadgeCount(ilo.id);
+                            filteredIlos.map((ilo, index, array) => {
+                                let examsToRender = [];
+                                const nextIlo = array[index + 1];
+
+                                if (ilo.coNumber === 1 && (!nextIlo || nextIlo.coNumber === 2) && !searchTerm) {
+                                    examsToRender.push(
+                                        <tr key='prelim-row' style={{ flexWrap: 'nowrap', backgroundColor: '#f9fafb' }}>
+                                            <td width={150} style={{ fontWeight: 600, color: '#111827', flexShrink: 0, paddingLeft: '15px', borderLeft: '4px solid #6366f1' }}>
+                                                Prelim
+                                            </td>
+                                            <td style={{ flex: 1, paddingRight: '20px', minWidth: '200px' }}></td>
+                                            <td width={190} style={{ color: '#4b5563', fontSize: '13px', flexShrink: 0, fontWeight: 500 }}>
+                                            </td>
+                                            <td style={{ width: 'auto', minWidth: '160px', flexShrink: 0, paddingRight: '15px' }}></td>
+                                        </tr>
+                                    );
+                                }
+                                if (ilo.coNumber === 2 && (!nextIlo || nextIlo.coNumber === 3) && !searchTerm) {
+                                    examsToRender.push(
+                                        <tr key='midterm-row' style={{ flexWrap: 'nowrap', backgroundColor: '#f9fafb' }}>
+                                            <td width={150} style={{ fontWeight: 600, color: '#111827', flexShrink: 0, paddingLeft: '15px', borderLeft: '4px solid #6366f1' }}>
+                                                Midterm
+                                            </td>
+                                            <td style={{ flex: 1, paddingRight: '20px', minWidth: '200px' }}></td>
+                                            <td width={190} style={{ color: '#4b5563', fontSize: '13px', flexShrink: 0, fontWeight: 500 }}>
+                                                Week 9 • 5 Hr
+                                            </td>
+                                            <td style={{ width: 'auto', minWidth: '160px', flexShrink: 0, paddingRight: '15px' }}></td>
+                                        </tr>
+                                    );
+                                }
+                                if (ilo.coNumber === 3 && (!nextIlo || nextIlo.coNumber === 4) && !searchTerm) {
+                                    examsToRender.push(
+                                        <tr key='semifinal-row' style={{ flexWrap: 'nowrap', backgroundColor: '#f9fafb' }}>
+                                            <td width={150} style={{ fontWeight: 600, color: '#111827', flexShrink: 0, paddingLeft: '15px', borderLeft: '4px solid #6366f1' }}>
+                                                Semifinal
+                                            </td>
+                                            <td style={{ flex: 1, paddingRight: '20px', minWidth: '200px' }}></td>
+                                            <td width={190} style={{ color: '#4b5563', fontSize: '13px', flexShrink: 0, fontWeight: 500 }}>
+                                            </td>
+                                            <td style={{ width: 'auto', minWidth: '160px', flexShrink: 0, paddingRight: '15px' }}></td>
+                                        </tr>
+                                    );
+                                }
+                                if (ilo.coNumber === 4 && (!nextIlo || nextIlo.coNumber > 4) && !searchTerm) {
+                                    examsToRender.push(
+                                        <tr key='finals-row' style={{ flexWrap: 'nowrap', backgroundColor: '#f9fafb' }}>
+                                            <td width={150} style={{ fontWeight: 600, color: '#111827', flexShrink: 0, paddingLeft: '15px', borderLeft: '4px solid #6366f1' }}>
+                                                Final
+                                            </td>
+                                            <td style={{ flex: 1, paddingRight: '20px', minWidth: '200px' }}></td>
+                                            <td width={190} style={{ color: '#4b5563', fontSize: '13px', flexShrink: 0, fontWeight: 500 }}>
+                                                Week 18 • 5 Hr
+                                            </td>
+                                            <td style={{ width: 'auto', minWidth: '160px', flexShrink: 0, paddingRight: '15px' }}></td>
+                                        </tr>
+                                    );
+                                }
                                 return (
+                                    <React.Fragment key={'frag-'+ilo.id}>
                                     <tr key={ilo.id} style={{ flexWrap: 'nowrap' }}>
                                         {/* REMOVED BLUE COLOR, NOW STANDARD BLACK #111827 */}
                                         <td width={150} style={{ fontWeight: 600, color: '#111827', flexShrink: 0 }}>
@@ -203,6 +304,8 @@ const ILOs = ({ offeringID, revisionNum, status, styles, fetchJson }) => {
                                             </Link>
                                         </td>
                                     </tr>
+                                    {examsToRender}
+                                    </React.Fragment>
                                 );
                             })
                         ) : (
@@ -272,8 +375,50 @@ const ILOs = ({ offeringID, revisionNum, status, styles, fetchJson }) => {
                                     )})()}
 
                                     {/* Render the surviving CO Blocks */}
-                                    {coListForGrid.map((co, coIndex) => {
+                                    {coListForGrid.map((co, coIndex, array) => {
+                                        let gridExams = [];
+                                        const nextCo = array[coIndex + 1];
+
+                                        if (co.coNumber === 1 && (!nextCo || nextCo.coNumber === 2) && !searchTerm) {
+                                            gridExams.push(
+                                                <div key='grid-prelim' className={styles.coBlock} style={{ borderLeft: '4px solid #6366f1', padding: '15px' }}>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                                                        <span style={{ fontWeight: 'bold', fontSize: '16px', color: '#111827' }}>Prelim</span>
+                                                    </div>
+                                                </div>
+                                            );
+                                        }
+                                        if (co.coNumber === 2 && (!nextCo || nextCo.coNumber === 3) && !searchTerm) {
+                                            gridExams.push(
+                                                <div key='grid-midterm' className={styles.coBlock} style={{ borderLeft: '4px solid #6366f1', padding: '15px' }}>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                                                        <span style={{ fontWeight: 'bold', fontSize: '16px', color: '#111827' }}>Midterm</span>
+                                                        <span style={{ color: '#4b5563', fontSize: '14px', fontWeight: '500' }}>Week 9 • 5 Hr</span>
+                                                    </div>
+                                                </div>
+                                            );
+                                        }
+                                        if (co.coNumber === 3 && (!nextCo || nextCo.coNumber === 4) && !searchTerm) {
+                                            gridExams.push(
+                                                <div key='grid-semifinal' className={styles.coBlock} style={{ borderLeft: '4px solid #6366f1', padding: '15px' }}>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                                                        <span style={{ fontWeight: 'bold', fontSize: '16px', color: '#111827' }}>Semifinal</span>
+                                                    </div>
+                                                </div>
+                                            );
+                                        }
+                                        if (co.coNumber === 4 && (!nextCo || nextCo.coNumber > 4) && !searchTerm) {
+                                            gridExams.push(
+                                                <div key='grid-finals' className={styles.coBlock} style={{ borderLeft: '4px solid #6366f1', padding: '15px' }}>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                                                        <span style={{ fontWeight: 'bold', fontSize: '16px', color: '#111827' }}>Final</span>
+                                                        <span style={{ color: '#4b5563', fontSize: '14px', fontWeight: '500' }}>Week 18 • 5 Hr</span>
+                                                    </div>
+                                                </div>
+                                            );
+                                        }
                                         return (
+                                            <React.Fragment key={'grid-frag-'+co.co_id}>
                                             <div key={co.co_id} className={styles.coBlock}>
                                                 <div className={styles.coHeader}>
                                                     Course Outcome {co.coNumber}
@@ -309,6 +454,8 @@ const ILOs = ({ offeringID, revisionNum, status, styles, fetchJson }) => {
                                                     })}
                                                 </div>
                                             </div>
+                                            {gridExams}
+                                            </React.Fragment>
                                         )
                                     })}
                                 </>

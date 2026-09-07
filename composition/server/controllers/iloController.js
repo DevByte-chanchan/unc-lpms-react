@@ -112,11 +112,11 @@ async function getILOsByPcOffering(req, res) {
             
             let formattedWeekStr = '';
             if (startWeek === endWeek) {
-                formattedWeekStr = `Week ${startWeek} (${duration.toFixed(1)})`;
+                formattedWeekStr = `Week ${startWeek}`;
             } else if (endWeek - startWeek === 1) {
-                formattedWeekStr = `Week ${startWeek} and ${endWeek} (${duration.toFixed(1)})`;
+                formattedWeekStr = `Week ${startWeek} and ${endWeek}`;
             } else {
-                formattedWeekStr = `Weeks ${startWeek} to ${endWeek} (${duration.toFixed(1)})`;
+                formattedWeekStr = `Weeks ${startWeek} to ${endWeek}`;
             }
             
             currentWeekFloat = endWeekFloat;

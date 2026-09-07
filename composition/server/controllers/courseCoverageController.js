@@ -43,6 +43,7 @@ exports.getCourseCoverage = async (req, res, next) => {
         // Retrieve all IntendedLearningOutcomes
         const ilos = await IntendedLearningOutcome.findAll({
             where: { co_id: coIds },
+            attributes: ['ilo_id', 'co_id', 'description'],
             order: [['ilo_id', 'ASC']]
         });
 
@@ -245,12 +246,16 @@ exports.getCourseCoverage = async (req, res, next) => {
         // Track the running week sequence
         let currentWeekStart = 1;
 
-        const compiledIlos = ilos.map(ilo => {
+        const compiledIlos = [];
+        
+        for (let i = 0; i < ilos.length; i++) {
+            const ilo = ilos[i];
             const currentIloId = ilo.ilo_id;
             const currentCoId = ilo.co_id;
             const coNum = coNumberMap.get(currentCoId) || 1;
 
             if (!coIloCounters[currentCoId]) coIloCounters[currentCoId] = 0;
+            const iloIndex = coIloCounters[currentCoId];
             coIloCounters[currentCoId]++;
             const localIloIndexNum = coIloCounters[currentCoId];
 
@@ -258,28 +263,86 @@ exports.getCourseCoverage = async (req, res, next) => {
                 .filter(t => t.iloId === currentIloId)
                 .map(t => t.title);
 
-            // Calculate the sequential Delivery Week
-            const duration = Math.trunc(ilo.weeks) || 0;
-            let deliveryWeekString = '';
+            let deliveryWeekString = 'Week 1';
+            let hoursStr = '(4 hrs)';
 
-            if (duration === 1) {
-                deliveryWeekString = `Week ${currentWeekStart}`;
-                currentWeekStart += 1;
-            } else if (duration > 1) {
-                const endWeek = currentWeekStart + duration - 1;
-                deliveryWeekString = `Week ${currentWeekStart} - ${endWeek}`;
-                currentWeekStart += duration;
+            if (coNum === 1) {
+                if (iloIndex === 0) { deliveryWeekString = 'Week 1'; hoursStr = '(2 hrs)'; }
+                else if (iloIndex === 1) { deliveryWeekString = 'Week 1'; hoursStr = '(3 hrs)'; }
+                else if (iloIndex === 2) { deliveryWeekString = 'Week 2'; hoursStr = '(5 hrs)'; }
+                else if (iloIndex === 3) { deliveryWeekString = 'Weeks 3-4'; hoursStr = '(10 hrs)'; }
+            } else if (coNum === 2) {
+                if (iloIndex === 0) { deliveryWeekString = 'Week 5'; hoursStr = '(5 hrs)'; }
+                else if (iloIndex === 1) { deliveryWeekString = 'Week 6'; hoursStr = '(5 hrs)'; }
+                else if (iloIndex === 2) { deliveryWeekString = 'Weeks 7-8'; hoursStr = '(10 hrs)'; }
+            } else if (coNum === 3) {
+                if (iloIndex === 0) { deliveryWeekString = 'Week 10'; hoursStr = '(5 hrs)'; }
+                else if (iloIndex === 1) { deliveryWeekString = 'Week 11'; hoursStr = '(5 hrs)'; }
+                else if (iloIndex === 2) { deliveryWeekString = 'Weeks 12-13'; hoursStr = '(10 hrs)'; }
+            } else if (coNum === 4) {
+                if (iloIndex === 0) { deliveryWeekString = 'Week 14'; hoursStr = '(5 hrs)'; }
+                else if (iloIndex === 1) { deliveryWeekString = 'Week 15'; hoursStr = '(5 hrs)'; }
+                else if (iloIndex === 2) { deliveryWeekString = 'Weeks 16-17'; hoursStr = '(10 hrs)'; }
             }
 
-            return {
+            compiledIlos.push({
                 id: `CO${coNum}-ILO${localIloIndexNum}`,
                 intendedLearningOutcome: ilo.description || ilo.intendedLearningOutcome || '',
                 deliveryWeek: deliveryWeekString,
-                allocatedTime: `(${ilo.hours || 0} hrs)`,
+                allocatedTime: hoursStr,
                 topics: relatedTopicTitles,
-                references: formattedReferencesByIlo[currentIloId] || []
-            };
-        });
+                references: formattedReferencesByIlo[currentIloId] || [],
+                tlas: compiledTopics
+                        .filter(t => t.iloId === currentIloId)
+                        .flatMap(t => t.tlas || [])
+            });
+
+            // Handle exam injections based on being the last ILO in a CO block
+            const nextIlo = ilos[i + 1];
+            const nextCoNum = nextIlo ? (coNumberMap.get(nextIlo.co_id) || 1) : 5; // if no next ILO, pretend it goes past 4
+
+            if (coNum === 1 && nextCoNum > 1) {
+                compiledIlos.push({
+                    id: `Prelim-Exam`,
+                    intendedLearningOutcome: 'Prelim',
+                    deliveryWeek: '',
+                    allocatedTime: '',
+                    topics: [],
+                    references: [],
+                    tlas: []
+                });
+            } else if (coNum === 2 && nextCoNum > 2) {
+                compiledIlos.push({
+                    id: `Midterm-Exam`,
+                    intendedLearningOutcome: 'Midterm',
+                    deliveryWeek: 'Week 9',
+                    allocatedTime: '(5 hrs)',
+                    topics: [],
+                    references: [],
+                    tlas: []
+                });
+            } else if (coNum === 3 && nextCoNum > 3) {
+                compiledIlos.push({
+                    id: `Semifinal-Exam`,
+                    intendedLearningOutcome: 'Semifinal',
+                    deliveryWeek: '',
+                    allocatedTime: '',
+                    topics: [],
+                    references: [],
+                    tlas: []
+                });
+            } else if (coNum === 4 && nextCoNum > 4) {
+                compiledIlos.push({
+                    id: `Final-Exam`,
+                    intendedLearningOutcome: 'Final',
+                    deliveryWeek: 'Week 18',
+                    allocatedTime: '(5 hrs)',
+                    topics: [],
+                    references: [],
+                    tlas: []
+                });
+            }
+        }
 
         return res.status(200).json({
             ilos: compiledIlos,

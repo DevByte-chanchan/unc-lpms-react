@@ -45,7 +45,7 @@ async function getCourseCriteriaByPcOffering(req, res) {
             const allIlosForCo = coRecord
                 ? await IntendedLearningOutcome.findAll({
                     where: { co_id: coRecord.co_id },
-                    attributes: ['ilo_id', 'description', 'hours'],
+                    attributes: ['ilo_id', 'description'],
                     order: [['ilo_id', 'ASC']]
                 })
                 : [];
