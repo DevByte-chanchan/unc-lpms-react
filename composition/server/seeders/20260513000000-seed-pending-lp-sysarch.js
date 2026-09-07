@@ -128,22 +128,22 @@ module.exports = {
         // ============================================================================
         const ilos = [
             // CO1
-            { co_id: cosRows[0].co_id, description: "Cite the value and relevance of the University's and the College's VMO as related to the course", weeks: 1.0, hours: 2, is_orientation: true, createdAt: now, updatedAt: now },
-            { co_id: cosRows[0].co_id, description: 'Differentiate between monolithic and microservice architectural patterns.', weeks: 1.0, hours: 5, assessment_tool: 'Objective Type Quiz', createdAt: now, updatedAt: now },
-            { co_id: cosRows[0].co_id, description: 'Design RESTful API specifications following strict Richardson Maturity Model levels.', weeks: 1.0, hours: 5, assessment_tool: 'Architecture Document', createdAt: now, updatedAt: now },
-            { co_id: cosRows[0].co_id, description: 'Construct GraphQL schemas to optimize client-server data fetching constraints.', weeks: 2.0, hours: 10, assessment_tool: 'API Design Proposal', createdAt: now, updatedAt: now },
+            { co_id: cosRows[0].co_id, description: "Cite the value and relevance of the University's and the College's VMO as related to the course", is_orientation: true, createdAt: now, updatedAt: now },
+            { co_id: cosRows[0].co_id, description: 'Differentiate between monolithic and microservice architectural patterns.', assessment_tool: 'Objective Type Quiz', createdAt: now, updatedAt: now },
+            { co_id: cosRows[0].co_id, description: 'Design RESTful API specifications following strict Richardson Maturity Model levels.', assessment_tool: 'Architecture Document', createdAt: now, updatedAt: now },
+            { co_id: cosRows[0].co_id, description: 'Construct GraphQL schemas to optimize client-server data fetching constraints.', assessment_tool: 'API Design Proposal', createdAt: now, updatedAt: now },
             // CO2
-            { co_id: cosRows[1].co_id, description: 'Serialize complex data structures using Protocol Buffers and gRPC.', weeks: 1.0, hours: 5, assessment_tool: 'Objective Type Quiz', createdAt: now, updatedAt: now },
-            { co_id: cosRows[1].co_id, description: 'Map legacy XML/SOAP payloads into modernized JSON data dictionaries.', weeks: 1.0, hours: 5, assessment_tool: 'Payload Mapping Document', createdAt: now, updatedAt: now },
-            { co_id: cosRows[1].co_id, description: 'Implement Extract, Transform, Load (ETL) pipelines for data warehousing.', weeks: 2.0, hours: 10, assessment_tool: 'Pipeline Presentation', createdAt: now, updatedAt: now },
+            { co_id: cosRows[1].co_id, description: 'Serialize complex data structures using Protocol Buffers and gRPC.', assessment_tool: 'Objective Type Quiz', createdAt: now, updatedAt: now },
+            { co_id: cosRows[1].co_id, description: 'Map legacy XML/SOAP payloads into modernized JSON data dictionaries.', assessment_tool: 'Payload Mapping Document', createdAt: now, updatedAt: now },
+            { co_id: cosRows[1].co_id, description: 'Implement Extract, Transform, Load (ETL) pipelines for data warehousing.', assessment_tool: 'Pipeline Presentation', createdAt: now, updatedAt: now },
             // CO3
-            { co_id: cosRows[2].co_id, description: 'Configure publish/subscribe architectures using Apache Kafka brokers.', weeks: 1.0, hours: 5, assessment_tool: 'Objective Type Quiz', createdAt: now, updatedAt: now },
-            { co_id: cosRows[2].co_id, description: 'Trace asynchronous event lifecycles within an Enterprise Service Bus (ESB).', weeks: 1.0, hours: 5, assessment_tool: 'Implementation Document', createdAt: now, updatedAt: now },
-            { co_id: cosRows[2].co_id, description: 'Resolve distributed transaction failures using the Saga Pattern.', weeks: 2.0, hours: 10, assessment_tool: 'Architecture Presentation', createdAt: now, updatedAt: now },
+            { co_id: cosRows[2].co_id, description: 'Configure publish/subscribe architectures using Apache Kafka brokers.', assessment_tool: 'Objective Type Quiz', createdAt: now, updatedAt: now },
+            { co_id: cosRows[2].co_id, description: 'Trace asynchronous event lifecycles within an Enterprise Service Bus (ESB).', assessment_tool: 'Implementation Document', createdAt: now, updatedAt: now },
+            { co_id: cosRows[2].co_id, description: 'Resolve distributed transaction failures using the Saga Pattern.', assessment_tool: 'Architecture Presentation', createdAt: now, updatedAt: now },
             // CO4
-            { co_id: cosRows[3].co_id, description: 'Implement OAuth 2.0 and OpenID Connect for secure cross-service delegation.', weeks: 1.0, hours: 5, assessment_tool: 'Objective Type Quiz', createdAt: now, updatedAt: now },
-            { co_id: cosRows[3].co_id, description: 'Enforce Zero Trust network policies utilizing API Gateways and Service Meshes.', weeks: 1.0, hours: 5, assessment_tool: 'Evaluation Document', createdAt: now, updatedAt: now },
-            { co_id: cosRows[3].co_id, description: 'Diagnose JSON Web Token (JWT) vulnerabilities in stateless authentication flows.', weeks: 2.0, hours: 10, assessment_tool: 'System Handoff Presentation', createdAt: now, updatedAt: now }
+            { co_id: cosRows[3].co_id, description: 'Implement OAuth 2.0 and OpenID Connect for secure cross-service delegation.', assessment_tool: 'Objective Type Quiz', createdAt: now, updatedAt: now },
+            { co_id: cosRows[3].co_id, description: 'Enforce Zero Trust network policies utilizing API Gateways and Service Meshes.', assessment_tool: 'Evaluation Document', createdAt: now, updatedAt: now },
+            { co_id: cosRows[3].co_id, description: 'Diagnose JSON Web Token (JWT) vulnerabilities in stateless authentication flows.', assessment_tool: 'System Handoff Presentation', createdAt: now, updatedAt: now }
         ];
 
         await queryInterface.bulkInsert('IntendedLearningOutcomes', ilos, {});
@@ -156,11 +156,11 @@ module.exports = {
         // ============================================================================
         // 8) ILOReferences Assignment
         // ============================================================================
-        const orientationIloResult = await queryInterface.sequelize.query(
+        let orientationIloResult = await queryInterface.sequelize.query(
             'SELECT ilo_id FROM IntendedLearningOutcomes WHERE is_orientation = true ORDER BY ilo_id DESC LIMIT 1;',
             { type: queryInterface.sequelize.QueryTypes.SELECT }
         );
-        const orientationIlo = orientationIloResult.length > 0 ? orientationIloResult[0] : null;
+        let orientationIlo = orientationIloResult.length > 0 ? orientationIloResult[0] : null;
 
         const textbooks = refsRows.filter(r => r.type === 'TEXTBOOK');
         const others = refsRows.filter(r => r.type !== 'TEXTBOOK');
@@ -189,9 +189,10 @@ module.exports = {
         await queryInterface.bulkInsert('ILOReferences', iloReferences, {});
 
         // ============================================================================
-        // 9) Topics
         // ============================================================================
-        const topicTitles = [
+        // 9) Topics (Original + 12 Added for 2 Topics/ILO logic)
+        // ============================================================================
+        const originalTopicTitles = [
             'Course Orientation and VMO Alignment',
             'Monolithic vs Distributed Systems',
             'RESTful API Standards and Richardson Maturity Model',
@@ -206,16 +207,42 @@ module.exports = {
             'API Gateways and Service Mesh (Istio/Envoy)',
             'JSON Web Tokens (JWT) and Zero Trust Architecture'
         ];
+        
+        const topicsToInsert = [];
+        
+        for (const title of originalTopicTitles) {
+            topicsToInsert.push({ title: title, createdAt: now, updatedAt: now });
+        }
+        
+        const addedTopicTitles = [
+            'Additional Orientation Activity (VMO Extension)',
+            'Microservices Trade-off Analysis Lab',
+            'Deep-dive into Monolithic Deconstruction',
+            'Evaluating JSON vs XML Payloads',
+            'Designing Avro Schemas',
+            'Building Producer-Consumer Pub/Sub',
+            'Kafka Partition Recovery Drills',
+            'Implementing Consumer Groups',
+            'JWT Token Security Sandbox',
+            'mTLS Proxy Configurations',
+            'Gateway Rate-Limiting Exercises',
+            'CI/CD Pipeline Troubleshooting',
+            'Zero Trust Architecture Mapping'
+        ];
+        
+        for (const title of addedTopicTitles) {
+            topicsToInsert.push({ title: title, createdAt: now, updatedAt: now });
+        }
 
-        await queryInterface.bulkInsert('Topics', topicTitles.map(t => ({ title: t, createdAt: now, updatedAt: now })), {});
+        await queryInterface.bulkInsert('Topics', topicsToInsert, {});
 
         const topicsRows = await queryInterface.sequelize.query(
-            `SELECT topic_id, title FROM Topics ORDER BY topic_id DESC LIMIT ${topicTitles.length};`,
+            `SELECT topic_id, title FROM \`Topics\` ORDER BY topic_id DESC LIMIT ${topicsToInsert.length};`,
             { type: queryInterface.sequelize.QueryTypes.SELECT }
         ).then(res => res.reverse());
 
         // ============================================================================
-        // 10) Subtopics
+        // 10) Subtopics Mapping
         // ============================================================================
         const subtopicsMap = {
             'Course Orientation and VMO Alignment': [
@@ -263,92 +290,118 @@ module.exports = {
 
         const subtopicsToInsert = [];
         for (const t of topicsRows) {
-            const subs = subtopicsMap[t.title] || [];
+            const subs = subtopicsMap[t.title] || ['Practical Component A', 'Practical Component B'];
             subs.forEach((subTitle, idx) => {
-                subtopicsToInsert.push({ topic_id: t.topic_id, title: subTitle, sequence_order: idx + 1, createdAt: now, updatedAt: now });
+                subtopicsToInsert.push({
+                    topic_id: t.topic_id,
+                    title: subTitle,
+                    sequence_order: idx + 1,
+                    createdAt: now,
+                    updatedAt: now
+                });
             });
         }
         await queryInterface.bulkInsert('Subtopics', subtopicsToInsert, {});
 
         // ============================================================================
-        // 11) ILOTopics (1-to-1 Mapping)
+        // 11) ILOTopics Join Entries (2 Topics per ILO)
         // ============================================================================
         const iloTopicInserts = [];
-        const orientationTopic = topicsRows.find(t => t.title === 'Course Orientation and VMO Alignment');
-
-        if (orientationIlo && orientationTopic) {
-            iloTopicInserts.push({
-                ilo_id: Number(orientationIlo.ilo_id),
-                topic_id: Number(orientationTopic.topic_id),
-                createdAt: now, updatedAt: now
-            });
+        orientationIloResult = await queryInterface.sequelize.query(
+            `SELECT ilo_id FROM IntendedLearningOutcomes WHERE is_orientation = true AND co_id IN (${cosRows.map(c => c.co_id).join(',')}) ORDER BY ilo_id LIMIT 1;`,
+            { type: queryInterface.sequelize.QueryTypes.SELECT }
+        );
+        orientationIlo = orientationIloResult.length > 0 ? orientationIloResult[0] : null;
+        
+        if (orientationIlo) {
+            const otopic1 = topicsRows.find(t => t.title === 'Course Orientation and VMO Alignment');
+            const otopic2 = topicsRows.find(t => t.title === 'Additional Orientation Activity (VMO Extension)');
+            if (otopic1) iloTopicInserts.push({ ilo_id: Number(orientationIlo.ilo_id), topic_id: Number(otopic1.topic_id), createdAt: now, updatedAt: now });
+            if (otopic2) iloTopicInserts.push({ ilo_id: Number(orientationIlo.ilo_id), topic_id: Number(otopic2.topic_id), createdAt: now, updatedAt: now });
         }
 
-        const technicalTopicsRows = topicsRows.filter(t => t.title !== 'Course Orientation and VMO Alignment');
         const technicalIlosRows = await queryInterface.sequelize.query(
             `SELECT ilo_id FROM IntendedLearningOutcomes WHERE (is_orientation = false OR is_orientation IS NULL) AND co_id IN (${cosRows.map(c => c.co_id).join(',')}) ORDER BY ilo_id ASC;`,
             { type: queryInterface.sequelize.QueryTypes.SELECT }
         );
 
-        for (let i = 0; i < technicalTopicsRows.length; i++) {
-            const currentTopic = technicalTopicsRows[i];
-            const matchingIlo = technicalIlosRows[i % technicalIlosRows.length];
+        const techTopics1 = topicsRows.slice(1, 13);
+        const techTopics2 = topicsRows.slice(14); 
+        
+        const combinedTechTopics = [...techTopics1, ...techTopics2];
+        for (let i = 0; i < combinedTechTopics.length; i++) {
+            const currentTopic = combinedTechTopics[i];
+            const currentIlo = technicalIlosRows[i % technicalIlosRows.length];
+            
             iloTopicInserts.push({
-                ilo_id: Number(matchingIlo.ilo_id),
+                ilo_id: Number(currentIlo.ilo_id),
                 topic_id: Number(currentTopic.topic_id),
-                createdAt: now, updatedAt: now
+                createdAt: now,
+                updatedAt: now
             });
         }
         await queryInterface.bulkInsert('ILOTopics', iloTopicInserts, {});
 
         const iloTopicsRows = await queryInterface.sequelize.query(
-            `SELECT ilo_topic_id FROM ILOTopics ORDER BY ilo_topic_id DESC LIMIT ${topicTitles.length};`,
+            `SELECT ilo_topic_id, ilo_id, topic_id FROM \`ILOTopics\` ORDER BY ilo_topic_id DESC LIMIT ${iloTopicInserts.length};`,
             { type: queryInterface.sequelize.QueryTypes.SELECT }
         ).then(res => res.reverse());
 
         // ============================================================================
-        // 12) Teaching and Learning Activities (3 per Topic)
+        // 12) Teaching and Learning Activities (3 TLAs per ILO)
         // ============================================================================
+        const allIlosRows = await queryInterface.sequelize.query(
+            `SELECT ilo_id, is_orientation FROM IntendedLearningOutcomes WHERE co_id IN (${cosRows.map(c => c.co_id).join(',')}) ORDER BY ilo_id ASC;`,
+            { type: queryInterface.sequelize.QueryTypes.SELECT }
+        );
+        
         const tlasToInsert = [];
-        topicsRows.forEach((topic) => {
-            if (topic.title === 'Course Orientation and VMO Alignment') {
-                tlasToInsert.push({ tla_name: 'VMO & Outcomes Reading Assignment', description: 'Read the materials on UNC VMO and CCS VMO, Program Educational Objectives (PEOs), and Program Outcomes (POs)', performed_by: 'S', class_phase: 'preclass', is_lab: true, createdAt: now, updatedAt: now });
-                tlasToInsert.push({ tla_name: 'Course Orientation Lecture & Collaborative Forum', description: 'The orientation will cover course outcomes and topic outline, assessment and evaluation activities, grading and class policies, and the flipped classroom approach. It will also introduce LinkedIn courses under MQUAP and explain the AI usage policy.', performed_by: 'T', class_phase: 'inclass', is_lab: false, createdAt: now, updatedAt: now });
-                tlasToInsert.push({ tla_name: 'VMO Visual Alignment Poster & Foundation AI Course', description: 'Self-paced completion of the Google Introduction to Generative AI', performed_by: 'S', class_phase: 'postclass', is_lab: true, createdAt: now, updatedAt: now });
+        
+        allIlosRows.forEach((ilo, idx) => {
+            if (ilo.is_orientation) {
+                tlasToInsert.push({ tla_name: 'VMO & Outcomes Reading Assignment', description: 'Read the materials on UNC VMO...', performed_by: 'S', class_phase: 'preclass', is_lab: true, createdAt: now, updatedAt: now });
+                tlasToInsert.push({ tla_name: 'Course Orientation Lecture', description: 'The orientation will cover course outcomes and topic outline...', performed_by: 'T', class_phase: 'inclass', is_lab: false, createdAt: now, updatedAt: now });
+                tlasToInsert.push({ tla_name: 'VMO Visual Alignment Poster', description: 'Self-paced completion of the Intro to AI...', performed_by: 'S', class_phase: 'postclass', is_lab: true, createdAt: now, updatedAt: now });
             } else {
-                tlasToInsert.push({ tla_name: `Core Materials Reading of ${topic.title}`, description: `Students execute self-paced prep learning by reading target chapters, lecture slides, and online course files. Students prepare personal reference summaries noting key conceptual distinctions.`, performed_by: 'S', class_phase: 'preclass', is_lab: true, createdAt: now, updatedAt: now });
-                tlasToInsert.push({ tla_name: `Structured Seminar ${topic.title}`, description: `An in-depth theoretical analysis and system discussion covering core criteria, system mechanics, and enterprise architectural guidelines. Includes live demonstrations and real-time interactive assessment quizzes.`, performed_by: 'T', class_phase: 'inclass', is_lab: false, createdAt: now, updatedAt: now });
-                tlasToInsert.push({ tla_name: `Integration Review & Implementation of ${topic.title}`, description: `A practical laboratory follow-up where the instructor reviews previous quizzes to identify pain points, coordinates tailored feedback, and executes independent integration code updates.`, performed_by: 'S', class_phase: 'postclass', is_lab: true, createdAt: now, updatedAt: now });
+                tlasToInsert.push({ tla_name: `Core Materials Reading (ILO ${idx})`, description: `Students execute self-paced prep learning mapping out core API definitions and middleware theories.`, performed_by: 'S', class_phase: 'preclass', is_lab: true, createdAt: now, updatedAt: now });
+                tlasToInsert.push({ tla_name: `Structured Seminar (ILO ${idx})`, description: `An in-depth theoretical analysis covering microservice orchestration and integration protocols.`, performed_by: 'T', class_phase: 'inclass', is_lab: false, createdAt: now, updatedAt: now });
+                tlasToInsert.push({ tla_name: `Integration Review & Lab (ILO ${idx})`, description: `A practical laboratory follow-up coordinating custom API adapters and container executions.`, performed_by: 'S', class_phase: 'postclass', is_lab: true, createdAt: now, updatedAt: now });
             }
         });
 
         await queryInterface.bulkInsert('TeachingAndLearningActivities', tlasToInsert, {});
-
+        
         const tlasRows = await queryInterface.sequelize.query(
             `SELECT tla_id, tla_name FROM TeachingAndLearningActivities ORDER BY tla_id DESC LIMIT ${tlasToInsert.length};`,
             { type: queryInterface.sequelize.QueryTypes.SELECT }
         ).then(res => res.reverse());
 
         // ============================================================================
-        // 13) TopicTLAs Assignment
+        // 13) TopicTLAs Assignment: Set 3 TLAs of an ILO to ALL its topics
         // ============================================================================
         const topicTlaInserts = [];
-        for (let i = 0; i < iloTopicsRows.length; i++) {
-            const jRow = iloTopicsRows[i];
+        const iloTopicGroups = {};
+        iloTopicsRows.forEach(row => {
+            if (!iloTopicGroups[row.ilo_id]) iloTopicGroups[row.ilo_id] = [];
+            iloTopicGroups[row.ilo_id].push(row);
+        });
+        
+        allIlosRows.forEach((ilo, i) => {
             const preTla = tlasRows[i * 3];
             const inTla = tlasRows[i * 3 + 1];
             const postTla = tlasRows[i * 3 + 2];
-
-            topicTlaInserts.push(
-                { ilo_topic_id: jRow.ilo_topic_id, tla_id: preTla.tla_id, createdAt: now, updatedAt: now },
-                { ilo_topic_id: jRow.ilo_topic_id, tla_id: inTla.tla_id, createdAt: now, updatedAt: now },
-                { ilo_topic_id: jRow.ilo_topic_id, tla_id: postTla.tla_id, createdAt: now, updatedAt: now }
-            );
-        }
+            const itRows = iloTopicGroups[ilo.ilo_id] || [];
+            
+            itRows.forEach(itRow => {
+                if (preTla) topicTlaInserts.push({ ilo_topic_id: itRow.ilo_topic_id, tla_id: preTla.tla_id, createdAt: now, updatedAt: now });
+                if (inTla) topicTlaInserts.push({ ilo_topic_id: itRow.ilo_topic_id, tla_id: inTla.tla_id, createdAt: now, updatedAt: now });
+                if (postTla) topicTlaInserts.push({ ilo_topic_id: itRow.ilo_topic_id, tla_id: postTla.tla_id, createdAt: now, updatedAt: now });
+            });
+        });
         await queryInterface.bulkInsert('TopicTLAs', topicTlaInserts, {});
 
         // ============================================================================
-        // 14) TLAAssessments (20/30/50 Rigorous Weight Mapping)
+        // 14) TLAAssessments: Map to exact assessment constraints (20, 30, 50)
         // ============================================================================
         const tlaAssessmentInserts = [];
         const periods = ['p', 'm', 's', 'f'];
@@ -358,7 +411,6 @@ module.exports = {
             const iloIndex = i % 3;
             const currentPeriod = periods[coIndex];
 
-            // Assigned TLA matches the IN-CLASS phase of the specific topic (i + 1 due to orientation index 0)
             const assignedTlaId = tlasRows[(i + 1) * 3 + 1].tla_id;
 
             let assessmentName = '';
@@ -397,13 +449,13 @@ module.exports = {
                     assessmentDescription = 'A comprehensive architectural proposal defending API data flow, RESTful constraints, and GraphQL fetch optimization.';
                 } else if (coIndex === 1) {
                     assessmentName = 'Pipeline Presentation';
-                    assessmentDescription = 'An interactive presentation demonstrating a fully functional ETL data pipeline moving data across systems.';
+                    assessmentDescription = 'An interactive presentation showcasing automated data transformation pipelines across heterogeneous endpoints.';
                 } else if (coIndex === 2) {
-                    assessmentName = 'Architecture Presentation';
-                    assessmentDescription = 'An interactive display showcasing the Saga transaction flow covering compensating transactions across services.';
+                    assessmentName = 'Workflow Presentation';
+                    assessmentDescription = 'An interactive demonstration resolving distributed transaction failures through compensating messaging state events.';
                 } else {
-                    assessmentName = 'System Handoff Presentation';
-                    assessmentDescription = 'The final capstone defense presenting a secured microservice architecture utilizing OIDC and resilient service meshes.';
+                    assessmentName = 'Security Report Defense';
+                    assessmentDescription = 'A final presentation utilizing API tracing spans to isolate, analyze, and diagnose microservice vulnerabilities.';
                 }
             }
 
@@ -420,7 +472,7 @@ module.exports = {
         }
 
         await queryInterface.bulkInsert('TLAAssessments', tlaAssessmentInserts, {});
-        console.log(`Successfully completed rigorous data mapping for pending course BIT321L using foundational flow.`);
+console.log(`Successfully completed rigorous data mapping for pending course BIT321L using foundational flow.`);
     },
 
     async down(queryInterface, Sequelize) {

@@ -125,21 +125,21 @@ module.exports = {
         // 5. INTENDED LEARNING OUTCOMES (12 records, 3 per CO - Rev 2 Focus)
         // ============================================================================
         const iloData = [
-            { co_id: cos[0].co_id, description: 'Define class blueprints and encapsulate state using advanced property methods.', hours: 6 },
-            { co_id: cos[0].co_id, description: 'Construct deep hierarchical relationships and analyze Liskov Substitution violations.', hours: 6 },
-            { co_id: cos[0].co_id, description: 'Apply the Single Responsibility and Open/Closed principles in class design.', hours: 6 },
+            { co_id: cos[0].co_id, description: 'Define class blueprints and encapsulate state using advanced property methods.' },
+            { co_id: cos[0].co_id, description: 'Construct deep hierarchical relationships and analyze Liskov Substitution violations.' },
+            { co_id: cos[0].co_id, description: 'Apply the Single Responsibility and Open/Closed principles in class design.' },
 
-            { co_id: cos[1].co_id, description: 'Design interfaces to enforce structural contracts and multiple inheritance.', hours: 6 },
-            { co_id: cos[1].co_id, description: 'Utilize generic collections with bounds and wildcards for type-safe data.', hours: 6 },
-            { co_id: cos[1].co_id, description: 'Implement lambda expressions and functional interfaces for declarative logic.', hours: 6 },
+            { co_id: cos[1].co_id, description: 'Design interfaces to enforce structural contracts and multiple inheritance.' },
+            { co_id: cos[1].co_id, description: 'Utilize generic collections with bounds and wildcards for type-safe data.' },
+            { co_id: cos[1].co_id, description: 'Implement lambda expressions and functional interfaces for declarative logic.' },
 
-            { co_id: cos[2].co_id, description: 'Construct objects securely using Creational patterns (Singleton, Factory).', hours: 6 },
-            { co_id: cos[2].co_id, description: 'Manage component communication using Behavioral patterns (Observer, Strategy).', hours: 6 },
-            { co_id: cos[2].co_id, description: 'Create declarative graphical user interface layouts and event listeners.', hours: 6 },
+            { co_id: cos[2].co_id, description: 'Construct objects securely using Creational patterns (Singleton, Factory).' },
+            { co_id: cos[2].co_id, description: 'Manage component communication using Behavioral patterns (Observer, Strategy).' },
+            { co_id: cos[2].co_id, description: 'Create declarative graphical user interface layouts and event listeners.' },
 
-            { co_id: cos[3].co_id, description: 'Read, write, and serialize complex objects to JSON/XML via Streams.', hours: 6 },
-            { co_id: cos[3].co_id, description: 'Establish secure relational database connectivity using connection pooling.', hours: 6 },
-            { co_id: cos[3].co_id, description: 'Write comprehensive unit tests and implement mocking for decoupled components.', hours: 6 }
+            { co_id: cos[3].co_id, description: 'Read, write, and serialize complex objects to JSON/XML via Streams.' },
+            { co_id: cos[3].co_id, description: 'Establish secure relational database connectivity using connection pooling.' },
+            { co_id: cos[3].co_id, description: 'Write comprehensive unit tests and implement mocking for decoupled components.' }
         ];
 
         await queryInterface.bulkInsert('IntendedLearningOutcomes', iloData.map(i => ({ ...i, createdAt: now, updatedAt: now })), {});
@@ -161,11 +161,11 @@ module.exports = {
             'Event-Driven Architecture', 'Exception Handling & Stack Traces', 'Custom Domain Exceptions', 'Object Serialization (JSON/XML)',
             'Advanced File I/O (NIO.2)', 'JDBC / ADO.NET Architecture', 'Connection Pooling & Data Sources', 'Prepared Statements & SQLi Prevention',
             'Unit Testing Fundamentals (JUnit/NUnit)', 'Mocking Dependencies (Mockito/Moq)', 'Test-Driven Development (TDD) Lifecycle'
-        ];
+        , 'Course Orientation and VMO Alignment'];
 
         await queryInterface.bulkInsert('Topics', topicTitles.map(t => ({ title: t, createdAt: now, updatedAt: now })), {});
         const topics = await queryInterface.sequelize.query(
-            `SELECT topic_id, title FROM Topics ORDER BY topic_id DESC LIMIT 35;`,
+            `SELECT topic_id, title FROM Topics ORDER BY topic_id DESC LIMIT 36;`,
             { type: queryInterface.sequelize.QueryTypes.SELECT }
         ).then(res => res.reverse());
 
@@ -233,7 +233,7 @@ module.exports = {
         await queryInterface.bulkInsert('References', referenceData, {});
 
         const references = await queryInterface.sequelize.query(
-            `SELECT reference_id FROM \`References\` ORDER BY reference_id DESC LIMIT 35;`,
+            `SELECT reference_id FROM \`References\` ORDER BY reference_id DESC LIMIT 36;`,
             { type: queryInterface.sequelize.QueryTypes.SELECT }
         ).then(res => res.reverse());
 
@@ -250,7 +250,7 @@ module.exports = {
             'Event Listener Routing Drill', 'Custom Exception Hierarchy', 'Exception Strategy Audit', 'JSON Serialization Exercise',
             'NIO.2 High-Speed File Parsing', 'Database DAO Implementation', 'HikariCP Pool Configuration Lab', 'SQL Injection Defense Lab',
             'JUnit Test Writing Challenge', 'Mockito Stubbing Workshop', 'TDD Red-Green-Refactor Lab'
-        ];
+        , 'Course Orientation Lecture'];
 
         await queryInterface.bulkInsert('TeachingAndLearningActivities', tlaTitles.map((t, idx) => ({
             tla_name: t, description: `Advanced practical engagement focusing on implementing ${t} in a modern enterprise context.`,
@@ -258,7 +258,7 @@ module.exports = {
         })), {});
 
         const tlas = await queryInterface.sequelize.query(
-            `SELECT tla_id FROM TeachingAndLearningActivities ORDER BY tla_id DESC LIMIT 35;`,
+            `SELECT tla_id FROM TeachingAndLearningActivities ORDER BY tla_id DESC LIMIT 36;`,
             { type: queryInterface.sequelize.QueryTypes.SELECT }
         ).then(res => res.reverse());
 
@@ -276,11 +276,19 @@ module.exports = {
             iloReferenceInserts.push({ ilo_id: iloId, reference_id: references[i * 2].reference_id, createdAt: now, updatedAt: now });
             iloReferenceInserts.push({ ilo_id: iloId, reference_id: references[(i * 2) + 1].reference_id, createdAt: now, updatedAt: now });
         }
+        
+        // Orientation Map
+        const oIlo = ilos.find(i => i.is_orientation) || ilos[12];
+        if (oIlo) {
+            iloTopicInserts.push({ ilo_id: oIlo.ilo_id, topic_id: topics[35].topic_id, createdAt: now, updatedAt: now });
+            iloReferenceInserts.push({ ilo_id: oIlo.ilo_id, reference_id: references[35].reference_id, createdAt: now, updatedAt: now });
+        }
         await queryInterface.bulkInsert('ILOTopics', iloTopicInserts, {});
         await queryInterface.bulkInsert('ILOReferences', iloReferenceInserts, {});
 
+
         const iloTopics = await queryInterface.sequelize.query(
-            `SELECT ilo_topic_id, ilo_id FROM ILOTopics ORDER BY ilo_topic_id DESC LIMIT 24;`,
+            `SELECT ilo_topic_id, ilo_id FROM ILOTopics ORDER BY ilo_topic_id DESC LIMIT 25;`,
             { type: queryInterface.sequelize.QueryTypes.SELECT }
         ).then(res => res.reverse());
 
@@ -288,7 +296,7 @@ module.exports = {
         // 10. TOPIC TLAs
         // ============================================================================
         const topicTlaInserts = [];
-        for (let i = 0; i < 24; i++) {
+        for (let i = 0; i < 25; i++) {
             topicTlaInserts.push({
                 ilo_topic_id: iloTopics[i].ilo_topic_id,
                 tla_id: tlas[i].tla_id,

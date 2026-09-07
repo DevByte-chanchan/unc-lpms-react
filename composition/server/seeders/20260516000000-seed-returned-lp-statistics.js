@@ -115,21 +115,21 @@ module.exports = {
 
         const iloData = [
             // CO1 (Prelim Period)
-            { co_id: cos[0].co_id, description: 'Compute probabilities using combinatorics, conditional probability, and Bayes theorem.', hours: 6 },
-            { co_id: cos[0].co_id, description: 'Differentiate and apply common discrete and continuous distributions (Binomial, Poisson, Normal, Exponential).', hours: 6 },
-            { co_id: cos[0].co_id, description: 'Model sampling distributions and apply the Central Limit Theorem to approximate sampling behavior.', hours: 6 },
+            { co_id: cos[0].co_id, description: 'Compute probabilities using combinatorics, conditional probability, and Bayes theorem.' },
+            { co_id: cos[0].co_id, description: 'Differentiate and apply common discrete and continuous distributions (Binomial, Poisson, Normal, Exponential).' },
+            { co_id: cos[0].co_id, description: 'Model sampling distributions and apply the Central Limit Theorem to approximate sampling behavior.' },
             // CO2 (Midterm Period)
-            { co_id: cos[1].co_id, description: 'Construct point and interval estimates for means and proportions and interpret confidence levels.', hours: 6 },
-            { co_id: cos[1].co_id, description: 'Perform hypothesis tests for means, proportions, and variances using t-tests, z-tests, and chi-square tests.', hours: 6 },
-            { co_id: cos[1].co_id, description: 'Apply ANOVA techniques to compare multiple group means and interpret post-hoc analyses.', hours: 6 },
+            { co_id: cos[1].co_id, description: 'Construct point and interval estimates for means and proportions and interpret confidence levels.' },
+            { co_id: cos[1].co_id, description: 'Perform hypothesis tests for means, proportions, and variances using t-tests, z-tests, and chi-square tests.' },
+            { co_id: cos[1].co_id, description: 'Apply ANOVA techniques to compare multiple group means and interpret post-hoc analyses.' },
             // CO3 (Semi-Final Period)
-            { co_id: cos[2].co_id, description: 'Fit simple and multiple linear regression models and interpret coefficients, residuals, and diagnostics.', hours: 6 },
-            { co_id: cos[2].co_id, description: 'Use logistic regression for binary outcomes and evaluate model performance using ROC and confusion matrices.', hours: 6 },
-            { co_id: cos[2].co_id, description: 'Apply model selection techniques (AIC, BIC, cross-validation) and address multicollinearity and interaction terms.', hours: 6 },
+            { co_id: cos[2].co_id, description: 'Fit simple and multiple linear regression models and interpret coefficients, residuals, and diagnostics.' },
+            { co_id: cos[2].co_id, description: 'Use logistic regression for binary outcomes and evaluate model performance using ROC and confusion matrices.' },
+            { co_id: cos[2].co_id, description: 'Apply model selection techniques (AIC, BIC, cross-validation) and address multicollinearity and interaction terms.' },
             // CO4 (Final Period)
-            { co_id: cos[3].co_id, description: 'Perform exploratory data analysis and create publication-quality visualizations using statistical software.', hours: 6 },
-            { co_id: cos[3].co_id, description: 'Implement reproducible analysis workflows using scripts and notebooks; document data cleaning and transformation steps.', hours: 6 },
-            { co_id: cos[3].co_id, description: 'Conduct a capstone data analysis project applying the full statistical pipeline from question to inference and reporting.', hours: 6 }
+            { co_id: cos[3].co_id, description: 'Perform exploratory data analysis and create publication-quality visualizations using statistical software.' },
+            { co_id: cos[3].co_id, description: 'Implement reproducible analysis workflows using scripts and notebooks; document data cleaning and transformation steps.' },
+            { co_id: cos[3].co_id, description: 'Conduct a capstone data analysis project applying the full statistical pipeline from question to inference and reporting.' }
         ];
 
         await queryInterface.bulkInsert('IntendedLearningOutcomes', iloData.map(i => ({ ...i, createdAt: now, updatedAt: now })), {});
@@ -155,11 +155,11 @@ module.exports = {
             'Categorical Data Analysis', 'Survival Analysis Introduction', 'Multivariate Techniques (PCA, Clustering)', 'Bayesian Inference Basics',
             'Statistical Software: R Essentials', 'Statistical Software: Python (pandas, statsmodels)', 'Reproducible Research with Notebooks',
             'Ethics in Data Analysis', 'Communicating Statistical Results', 'Capstone Project Planning', 'Advanced Topics in Regression'
-        ];
+        , 'Course Orientation and VMO Alignment'];
 
         await queryInterface.bulkInsert('Topics', topicTitles.map(t => ({ title: t, createdAt: now, updatedAt: now })), {});
         const topics = await queryInterface.sequelize.query(
-            `SELECT topic_id, title FROM Topics ORDER BY topic_id DESC LIMIT 35;`,
+            `SELECT topic_id, title FROM Topics ORDER BY topic_id DESC LIMIT 36;`,
             { type: queryInterface.sequelize.QueryTypes.SELECT }
         ).then(res => res.reverse());
 
@@ -186,7 +186,7 @@ module.exports = {
             'Collett', 'Kass & Raftery', 'Wickham', 'McKinney', 'Seabold & Perktold', 'Xie', 'Bokil', 'Tukey', 'Venables', 'Anderson'
         ];
 
-        for (let i = 0; i < 35; i++) {
+        for (let i = 0; i < 36; i++) {
             referencesData.push({
                 title: `Statistics Reference Vol ${i+1}`,
                 author: refAuthors[i] || `Author ${i+1}`,
@@ -200,7 +200,7 @@ module.exports = {
         await queryInterface.bulkInsert('References', referencesData, {});
 
         const references = await queryInterface.sequelize.query(
-            `SELECT reference_id FROM \`References\` ORDER BY reference_id DESC LIMIT 35;`,
+            `SELECT reference_id FROM \`References\` ORDER BY reference_id DESC LIMIT 36;`,
             { type: queryInterface.sequelize.QueryTypes.SELECT }
         ).then(res => res.reverse());
 
@@ -221,7 +221,7 @@ module.exports = {
             'ROC and Model Evaluation Lab', 'Cross-Validation Implementation', 'Regression Residuals Diagnostics',
             'Ethics Case Discussion', 'Statistical Communication Presentation', 'Capstone Data Analysis Project',
             'Advanced Regression Techniques Lab', 'Multivariate Time Series Exercise'
-        ];
+        , 'Course Orientation Lecture'];
 
         await queryInterface.bulkInsert('TeachingAndLearningActivities', tlaTitles.map((t, idx) => ({
             tla_name: t, description: `Hands-on activity focused on applied statistics: ${t}.`,
@@ -229,7 +229,7 @@ module.exports = {
         })), {});
 
         const tlas = await queryInterface.sequelize.query(
-            `SELECT tla_id FROM TeachingAndLearningActivities ORDER BY tla_id DESC LIMIT 35;`,
+            `SELECT tla_id FROM TeachingAndLearningActivities ORDER BY tla_id DESC LIMIT 36;`,
             { type: queryInterface.sequelize.QueryTypes.SELECT }
         ).then(res => res.reverse());
 
@@ -249,11 +249,19 @@ module.exports = {
             iloReferenceInserts.push({ ilo_id: iloId, reference_id: references[i * 2].reference_id, createdAt: now, updatedAt: now });
             iloReferenceInserts.push({ ilo_id: iloId, reference_id: references[(i * 2) + 1].reference_id, createdAt: now, updatedAt: now });
         }
+        
+        // Orientation Map
+        const oIlo = ilos.find(i => i.is_orientation) || ilos[12];
+        if (oIlo) {
+            iloTopicInserts.push({ ilo_id: oIlo.ilo_id, topic_id: topics[35].topic_id, createdAt: now, updatedAt: now });
+            iloReferenceInserts.push({ ilo_id: oIlo.ilo_id, reference_id: references[35].reference_id, createdAt: now, updatedAt: now });
+        }
         await queryInterface.bulkInsert('ILOTopics', iloTopicInserts, {});
         await queryInterface.bulkInsert('ILOReferences', iloReferenceInserts, {});
 
+
         const iloTopics = await queryInterface.sequelize.query(
-            `SELECT ilo_topic_id FROM ILOTopics ORDER BY ilo_topic_id DESC LIMIT 24;`,
+            `SELECT ilo_topic_id FROM ILOTopics ORDER BY ilo_topic_id DESC LIMIT 25;`,
             { type: queryInterface.sequelize.QueryTypes.SELECT }
         ).then(res => res.reverse());
 
@@ -262,7 +270,7 @@ module.exports = {
         // ============================================================================
 
         const topicTlaInserts = [];
-        for (let i = 0; i < 24; i++) {
+        for (let i = 0; i < 25; i++) {
             topicTlaInserts.push({
                 ilo_topic_id: iloTopics[i].ilo_topic_id,
                 tla_id: tlas[i].tla_id,

@@ -151,23 +151,23 @@ module.exports = {
         // ============================================================================
         const ilos = [
             // Orientation
-            { co_id: cosRows[0].co_id, description: "Cite the value and relevance of the University's and the College's VMO as related to the course", weeks: 1.0, hours: 2, is_orientation: true, createdAt: now, updatedAt: now },
+            { co_id: cosRows[0].co_id, description: "Cite the value and relevance of the University's and the College's VMO as related to the course", is_orientation: true, createdAt: now, updatedAt: now },
             // CO1
-            { co_id: cosRows[0].co_id, description: 'Define class blueprints and instantiate objects with appropriate state mapping.', weeks: 1.0, hours: 5, assessment_tool: 'Objective Type Quiz', createdAt: now, updatedAt: now },
-            { co_id: cosRows[0].co_id, description: 'Encapsulate class state using access modifiers and property methods.', weeks: 1.0, hours: 5, assessment_tool: 'Code Refactoring Exercise', createdAt: now, updatedAt: now },
-            { co_id: cosRows[0].co_id, description: 'Construct hierarchical relationships using inheritance and method overriding.', weeks: 2.0, hours: 10, assessment_tool: 'Class Diagram Implementation', createdAt: now, updatedAt: now },
+            { co_id: cosRows[0].co_id, description: 'Define class blueprints and instantiate objects with appropriate state mapping.', assessment_tool: 'Objective Type Quiz', createdAt: now, updatedAt: now },
+            { co_id: cosRows[0].co_id, description: 'Encapsulate class state using access modifiers and property methods.', assessment_tool: 'Code Refactoring Exercise', createdAt: now, updatedAt: now },
+            { co_id: cosRows[0].co_id, description: 'Construct hierarchical relationships using inheritance and method overriding.', assessment_tool: 'Class Diagram Implementation', createdAt: now, updatedAt: now },
             // CO2
-            { co_id: cosRows[1].co_id, description: 'Design abstract base classes to enforce structural contracts.', weeks: 1.0, hours: 5, assessment_tool: 'Objective Type Quiz', createdAt: now, updatedAt: now },
-            { co_id: cosRows[1].co_id, description: 'Implement multiple interfaces to achieve decoupling and polymorphism.', weeks: 1.0, hours: 5, assessment_tool: 'Interface Design Task', createdAt: now, updatedAt: now },
-            { co_id: cosRows[1].co_id, description: 'Utilize generic collections (Lists, Maps, Sets) for dynamic data storage.', weeks: 2.0, hours: 10, assessment_tool: 'Data Structure Project', createdAt: now, updatedAt: now },
+            { co_id: cosRows[1].co_id, description: 'Design abstract base classes to enforce structural contracts.', assessment_tool: 'Objective Type Quiz', createdAt: now, updatedAt: now },
+            { co_id: cosRows[1].co_id, description: 'Implement multiple interfaces to achieve decoupling and polymorphism.', assessment_tool: 'Interface Design Task', createdAt: now, updatedAt: now },
+            { co_id: cosRows[1].co_id, description: 'Utilize generic collections (Lists, Maps, Sets) for dynamic data storage.', assessment_tool: 'Data Structure Project', createdAt: now, updatedAt: now },
             // CO3
-            { co_id: cosRows[2].co_id, description: 'Catch and handle runtime exceptions using try-catch-finally blocks.', weeks: 1.0, hours: 5, assessment_tool: 'Objective Type Quiz', createdAt: now, updatedAt: now },
-            { co_id: cosRows[2].co_id, description: 'Create graphical user interface layouts using standard library components.', weeks: 1.0, hours: 5, assessment_tool: 'Wireframe to Code Activity', createdAt: now, updatedAt: now },
-            { co_id: cosRows[2].co_id, description: 'Bind action listeners to UI components to handle user-driven events.', weeks: 2.0, hours: 10, assessment_tool: 'Interactive App Prototype', createdAt: now, updatedAt: now },
+            { co_id: cosRows[2].co_id, description: 'Catch and handle runtime exceptions using try-catch-finally blocks.', assessment_tool: 'Objective Type Quiz', createdAt: now, updatedAt: now },
+            { co_id: cosRows[2].co_id, description: 'Create graphical user interface layouts using standard library components.', assessment_tool: 'Wireframe to Code Activity', createdAt: now, updatedAt: now },
+            { co_id: cosRows[2].co_id, description: 'Bind action listeners to UI components to handle user-driven events.', assessment_tool: 'Interactive App Prototype', createdAt: now, updatedAt: now },
             // CO4
-            { co_id: cosRows[3].co_id, description: 'Serialize and deserialize object states into binary format.', weeks: 1.0, hours: 5, assessment_tool: 'Objective Type Quiz', createdAt: now, updatedAt: now },
-            { co_id: cosRows[3].co_id, description: 'Read and write unstructured text data using file input/output streams.', weeks: 1.0, hours: 5, assessment_tool: 'File Parser Script', createdAt: now, updatedAt: now },
-            { co_id: cosRows[3].co_id, description: 'Establish basic database connectivity (JDBC/ADO.NET) for persistent records.', weeks: 2.0, hours: 10, assessment_tool: 'CRUD Application Integration', createdAt: now, updatedAt: now }
+            { co_id: cosRows[3].co_id, description: 'Serialize and deserialize object states into binary format.', assessment_tool: 'Objective Type Quiz', createdAt: now, updatedAt: now },
+            { co_id: cosRows[3].co_id, description: 'Read and write unstructured text data using file input/output streams.', assessment_tool: 'File Parser Script', createdAt: now, updatedAt: now },
+            { co_id: cosRows[3].co_id, description: 'Establish basic database connectivity (JDBC/ADO.NET) for persistent records.', assessment_tool: 'CRUD Application Integration', createdAt: now, updatedAt: now }
         ];
 
         await queryInterface.bulkInsert('IntendedLearningOutcomes', ilos, {});
@@ -180,7 +180,7 @@ module.exports = {
         // ============================================================================
         // 8) ILOReferences Assignment
         // ============================================================================
-        const orientationIlo = ilosRows.find(ilo => ilo.is_orientation);
+        let orientationIlo = ilosRows.find(ilo => ilo.is_orientation);
         const textbooks = refsRows.filter(r => r.type === 'TEXTBOOK');
         const others = refsRows.filter(r => r.type !== 'TEXTBOOK');
         const technicalIlos = ilosRows.filter(ilo => !ilo.is_orientation);
@@ -204,9 +204,10 @@ module.exports = {
         await queryInterface.bulkInsert('ILOReferences', iloReferences, {});
 
         // ============================================================================
-        // 9) Topics (13 mapped 1-to-1)
         // ============================================================================
-        const topicTitles = [
+        // 9) Topics (Original + 12 Added for 2 Topics/ILO logic)
+        // ============================================================================
+        const originalTopicTitles = [
             'Course Orientation and VMO Alignment',
             'Classes, Objects, and State Mapping',
             'Encapsulation and Access Modifiers',
@@ -221,16 +222,42 @@ module.exports = {
             'File I/O and Stream Operations',
             'Database Connectivity Fundamentals'
         ];
+        
+        const topicsToInsert = [];
+        
+        for (const title of originalTopicTitles) {
+            topicsToInsert.push({ title: title, createdAt: now, updatedAt: now });
+        }
+        
+        const addedTopicTitles = [
+            'Additional Orientation Activity (VMO Extension)',
+            'Advanced Debugging Analytics',
+            'Polymorphic Interface Testing',
+            'Abstract Factory Deep Dive',
+            'Generic Type Sandboxing',
+            'SOLID Principle Architecture',
+            'Concurrent Thread Safeties',
+            'Garbage Collection Algorithms',
+            'Secure Algorithm Testing',
+            'Stream API Optimization',
+            'Lambda Expression Coding',
+            'MVC Design Pattern Fundamentals',
+            'Automated Unit Testing'
+        ];
+        
+        for (const title of addedTopicTitles) {
+            topicsToInsert.push({ title: title, createdAt: now, updatedAt: now });
+        }
 
-        await queryInterface.bulkInsert('Topics', topicTitles.map(t => ({ title: t, createdAt: now, updatedAt: now })), {});
+        await queryInterface.bulkInsert('Topics', topicsToInsert, {});
 
         const topicsRows = await queryInterface.sequelize.query(
-            `SELECT topic_id, title FROM Topics ORDER BY topic_id DESC LIMIT ${topicTitles.length};`,
+            `SELECT topic_id, title FROM \`Topics\` ORDER BY topic_id DESC LIMIT ${topicsToInsert.length};`,
             { type: queryInterface.sequelize.QueryTypes.SELECT }
         ).then(res => res.reverse());
 
         // ============================================================================
-        // 10) Subtopics
+        // 10) Subtopics Mapping
         // ============================================================================
         const subtopicsMap = {
             'Course Orientation and VMO Alignment': ['University and College VMO, Core Values', 'Course Outline and Policies', 'AI Usage Policy'],
@@ -250,51 +277,89 @@ module.exports = {
 
         const subtopicsToInsert = [];
         for (const t of topicsRows) {
-            const subs = subtopicsMap[t.title] || [];
+            const subs = subtopicsMap[t.title] || ['Practical Algorithm Lab', 'Peer Code Review Activity'];
             subs.forEach((subTitle, idx) => {
-                subtopicsToInsert.push({ topic_id: t.topic_id, title: subTitle, sequence_order: idx + 1, createdAt: now, updatedAt: now });
+                subtopicsToInsert.push({
+                    topic_id: t.topic_id,
+                    title: subTitle,
+                    sequence_order: idx + 1,
+                    createdAt: now,
+                    updatedAt: now
+                });
             });
         }
         await queryInterface.bulkInsert('Subtopics', subtopicsToInsert, {});
 
         // ============================================================================
-        // 11) ILOTopics (1-to-1 Mapping)
+        // 11) ILOTopics Join Entries (2 Topics per ILO)
         // ============================================================================
         const iloTopicInserts = [];
-        for (let i = 0; i < ilosRows.length; i++) {
+        let orientationIloResult = await queryInterface.sequelize.query(
+            `SELECT ilo_id FROM IntendedLearningOutcomes WHERE is_orientation = true AND co_id IN (${cosRows.map(c => c.co_id).join(',')}) ORDER BY ilo_id LIMIT 1;`,
+            { type: queryInterface.sequelize.QueryTypes.SELECT }
+        );
+        orientationIlo = orientationIloResult.length > 0 ? orientationIloResult[0] : null;
+        
+        if (orientationIlo) {
+            const otopic1 = topicsRows.find(t => t.title === 'Course Orientation and VMO Alignment');
+            const otopic2 = topicsRows.find(t => t.title === 'Additional Orientation Activity (VMO Extension)');
+            if (otopic1) iloTopicInserts.push({ ilo_id: Number(orientationIlo.ilo_id), topic_id: Number(otopic1.topic_id), createdAt: now, updatedAt: now });
+            if (otopic2) iloTopicInserts.push({ ilo_id: Number(orientationIlo.ilo_id), topic_id: Number(otopic2.topic_id), createdAt: now, updatedAt: now });
+        }
+
+        const technicalIlosRows = await queryInterface.sequelize.query(
+            `SELECT ilo_id FROM IntendedLearningOutcomes WHERE (is_orientation = false OR is_orientation IS NULL) AND co_id IN (${cosRows.map(c => c.co_id).join(',')}) ORDER BY ilo_id ASC;`,
+            { type: queryInterface.sequelize.QueryTypes.SELECT }
+        );
+
+        const techTopics1 = topicsRows.slice(1, 13);
+        const techTopics2 = topicsRows.slice(14); 
+        
+        const combinedTechTopics = [...techTopics1, ...techTopics2];
+        for (let i = 0; i < combinedTechTopics.length; i++) {
+            const currentTopic = combinedTechTopics[i];
+            const currentIlo = technicalIlosRows[i % technicalIlosRows.length];
+            
             iloTopicInserts.push({
-                ilo_id: Number(ilosRows[i].ilo_id),
-                topic_id: Number(topicsRows[i].topic_id),
-                createdAt: now, updatedAt: now
+                ilo_id: Number(currentIlo.ilo_id),
+                topic_id: Number(currentTopic.topic_id),
+                createdAt: now,
+                updatedAt: now
             });
         }
         await queryInterface.bulkInsert('ILOTopics', iloTopicInserts, {});
 
         const iloTopicsRows = await queryInterface.sequelize.query(
-            `SELECT ilo_topic_id FROM ILOTopics ORDER BY ilo_topic_id DESC LIMIT ${topicTitles.length};`,
+            `SELECT ilo_topic_id, ilo_id, topic_id FROM \`ILOTopics\` ORDER BY ilo_topic_id DESC LIMIT ${iloTopicInserts.length};`,
             { type: queryInterface.sequelize.QueryTypes.SELECT }
         ).then(res => res.reverse());
 
         // ============================================================================
-        // 12) Teaching and Learning Activities (3 per Topic)
+        // 12) Teaching and Learning Activities (3 TLAs per ILO)
         // ============================================================================
+        const allIlosRows = await queryInterface.sequelize.query(
+            `SELECT ilo_id, is_orientation FROM IntendedLearningOutcomes WHERE co_id IN (${cosRows.map(c => c.co_id).join(',')}) ORDER BY ilo_id ASC;`,
+            { type: queryInterface.sequelize.QueryTypes.SELECT }
+        );
+        
         const tlasToInsert = [];
-        topicsRows.forEach((topic) => {
-            if (topic.title === 'Course Orientation and VMO Alignment') {
-                tlasToInsert.push({ tla_name: 'VMO Reading', description: 'Read materials on UNC VMO and PEOs', performed_by: 'S', class_phase: 'preclass', is_lab: true, createdAt: now, updatedAt: now });
-                tlasToInsert.push({ tla_name: 'Course Orientation Lecture', description: 'Interactive orientation covering course outcomes and topics.', performed_by: 'T', class_phase: 'inclass', is_lab: false, createdAt: now, updatedAt: now });
-                tlasToInsert.push({ tla_name: 'VMO Visual Alignment Poster', description: 'Self-paced completion of the alignment poster.', performed_by: 'S', class_phase: 'postclass', is_lab: true, createdAt: now, updatedAt: now });
+        
+        allIlosRows.forEach((ilo, idx) => {
+            if (ilo.is_orientation) {
+                tlasToInsert.push({ tla_name: 'VMO & Outcomes Reading Assignment', description: 'Read the materials on UNC VMO...', performed_by: 'S', class_phase: 'preclass', is_lab: true, createdAt: now, updatedAt: now });
+                tlasToInsert.push({ tla_name: 'Course Orientation Lecture', description: 'The orientation will cover course outcomes and topic outline...', performed_by: 'T', class_phase: 'inclass', is_lab: false, createdAt: now, updatedAt: now });
+                tlasToInsert.push({ tla_name: 'VMO Visual Alignment Poster', description: 'Self-paced completion of the Intro to AI...', performed_by: 'S', class_phase: 'postclass', is_lab: true, createdAt: now, updatedAt: now });
             } else {
-                tlasToInsert.push({ tla_name: `Pre-Class Reading: ${topic.title}`, description: `Students execute self-paced prep learning. Note: For GUI Layouts, students must specifically draft UI wireframes prior to entering the coding lab.`, performed_by: 'S', class_phase: 'preclass', is_lab: true, createdAt: now, updatedAt: now }); // Wireframe drafting added based on PH comment
-                tlasToInsert.push({ tla_name: `Interactive Seminar: ${topic.title}`, description: `In-depth lecture and live syntax demonstration by the instructor covering core criteria of the topic.`, performed_by: 'T', class_phase: 'inclass', is_lab: false, createdAt: now, updatedAt: now });
-                tlasToInsert.push({ tla_name: `Implementation Lab: ${topic.title}`, description: `Practical lab. Note: For Exception Handling, students are strictly required to log generated exceptions to a persistent flat file using a custom Logger class rather than relying on generic print stack traces.`, performed_by: 'S', class_phase: 'postclass', is_lab: true, createdAt: now, updatedAt: now }); // Logging requirement added based on PH comment
+                tlasToInsert.push({ tla_name: `OOP Syntax Reading (ILO ${idx})`, description: `Students execute self-paced prep learning mapping out core object definitions.`, performed_by: 'S', class_phase: 'preclass', is_lab: true, createdAt: now, updatedAt: now });
+                tlasToInsert.push({ tla_name: `Architecture Seminar (ILO ${idx})`, description: `An in-depth theoretical analysis covering strict Object-Oriented principles.`, performed_by: 'T', class_phase: 'inclass', is_lab: false, createdAt: now, updatedAt: now });
+                tlasToInsert.push({ tla_name: `Code Implementation Lab (ILO ${idx})`, description: `A practical laboratory follow-up coordinating UML translations into functional code.`, performed_by: 'S', class_phase: 'postclass', is_lab: true, createdAt: now, updatedAt: now });
             }
         });
 
         await queryInterface.bulkInsert('TeachingAndLearningActivities', tlasToInsert, {});
-
+        
         const tlasRows = await queryInterface.sequelize.query(
-            `SELECT tla_id FROM TeachingAndLearningActivities ORDER BY tla_id DESC LIMIT ${tlasToInsert.length};`,
+            `SELECT tla_id, tla_name FROM TeachingAndLearningActivities ORDER BY tla_id DESC LIMIT ${tlasToInsert.length};`,
             { type: queryInterface.sequelize.QueryTypes.SELECT }
         ).then(res => res.reverse());
 
@@ -302,17 +367,26 @@ module.exports = {
         // 13) TopicTLAs Assignment
         // ============================================================================
         const topicTlaInserts = [];
-        for (let i = 0; i < iloTopicsRows.length; i++) {
-            const jRow = iloTopicsRows[i];
-            topicTlaInserts.push(
-                { ilo_topic_id: jRow.ilo_topic_id, tla_id: tlasRows[i * 3].tla_id, createdAt: now, updatedAt: now },
-                { ilo_topic_id: jRow.ilo_topic_id, tla_id: tlasRows[i * 3 + 1].tla_id, createdAt: now, updatedAt: now },
-                { ilo_topic_id: jRow.ilo_topic_id, tla_id: tlasRows[i * 3 + 2].tla_id, createdAt: now, updatedAt: now }
-            );
-        }
+        const iloTopicGroups = {};
+        iloTopicsRows.forEach(row => {
+            if (!iloTopicGroups[row.ilo_id]) iloTopicGroups[row.ilo_id] = [];
+            iloTopicGroups[row.ilo_id].push(row);
+        });
+        
+        allIlosRows.forEach((ilo, i) => {
+            const preTla = tlasRows[i * 3];
+            const inTla = tlasRows[i * 3 + 1];
+            const postTla = tlasRows[i * 3 + 2];
+            const itRows = iloTopicGroups[ilo.ilo_id] || [];
+            
+            itRows.forEach(itRow => {
+                if (preTla) topicTlaInserts.push({ ilo_topic_id: itRow.ilo_topic_id, tla_id: preTla.tla_id, createdAt: now, updatedAt: now });
+                if (inTla) topicTlaInserts.push({ ilo_topic_id: itRow.ilo_topic_id, tla_id: inTla.tla_id, createdAt: now, updatedAt: now });
+                if (postTla) topicTlaInserts.push({ ilo_topic_id: itRow.ilo_topic_id, tla_id: postTla.tla_id, createdAt: now, updatedAt: now });
+            });
+        });
         await queryInterface.bulkInsert('TopicTLAs', topicTlaInserts, {});
 
-        // ============================================================================
         // 14) TLAAssessments (20/30/50 Weight Mapping)
         // ============================================================================
         const tlaAssessmentInserts = [];
@@ -321,7 +395,7 @@ module.exports = {
         // Filter out the orientation ILO to only map assessments to the 12 technical ILOs
         const technicalIloTopics = iloTopicsRows.slice(1);
 
-        for (let i = 0; i < technicalIloTopics.length; i++) {
+        for (let i = 0; i < technicalIlosRows.length; i++) {
             const coIndex = Math.floor(i / 3);
             const iloIndex = i % 3;
             const currentPeriod = periods[coIndex];

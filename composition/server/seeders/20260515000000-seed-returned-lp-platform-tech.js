@@ -111,21 +111,21 @@ module.exports = {
         // ============================================================================
         const iloData = [
             // CO1 (Prelim Period)
-            { co_id: cos[0].co_id, description: 'Analyze the evolutionary transition from monolithic hardware-bound operating systems to modular, API-driven core kernels.', hours: 6 },
-            { co_id: cos[0].co_id, description: 'Distinguish the structural differences between Windows Server environments and POSIX-compliant Linux distributions.', hours: 6 },
-            { co_id: cos[0].co_id, description: 'Evaluate standard storage protocols (SAN, NAS, block, object) to determine optimal data tiering configurations.', hours: 6 },
+            { co_id: cos[0].co_id, description: 'Analyze the evolutionary transition from monolithic hardware-bound operating systems to modular, API-driven core kernels.' },
+            { co_id: cos[0].co_id, description: 'Distinguish the structural differences between Windows Server environments and POSIX-compliant Linux distributions.' },
+            { co_id: cos[0].co_id, description: 'Evaluate standard storage protocols (SAN, NAS, block, object) to determine optimal data tiering configurations.' },
             // CO2 (Midterm Period)
-            { co_id: cos[1].co_id, description: 'Deploy and initialize Type-1 (Bare Metal) hypervisors such as VMware ESXi and Microsoft Hyper-V into server hardware.', hours: 6 },
-            { co_id: cos[1].co_id, description: 'Configure virtual network adapters, bridged connections, and NAT firewalls to securely route inter-VM traffic.', hours: 6 },
-            { co_id: cos[1].co_id, description: 'Execute virtual machine migration pipelines and high-availability clustered failover routines.', hours: 6 },
+            { co_id: cos[1].co_id, description: 'Deploy and initialize Type-1 (Bare Metal) hypervisors such as VMware ESXi and Microsoft Hyper-V into server hardware.' },
+            { co_id: cos[1].co_id, description: 'Configure virtual network adapters, bridged connections, and NAT firewalls to securely route inter-VM traffic.' },
+            { co_id: cos[1].co_id, description: 'Execute virtual machine migration pipelines and high-availability clustered failover routines.' },
             // CO3 (Semi-Final Period)
-            { co_id: cos[2].co_id, description: 'Construct optimized Dockerfiles employing multi-stage builds to dramatically reduce container image footprints.', hours: 6 },
-            { co_id: cos[2].co_id, description: 'Orchestrate multi-container applications and local development networks utilizing Docker Compose YAML configurations.', hours: 6 },
-            { co_id: cos[2].co_id, description: 'Deploy, scale, and manage containerized workloads across clustered nodes utilizing Kubernetes (K8s) deployment manifests.', hours: 6 },
+            { co_id: cos[2].co_id, description: 'Construct optimized Dockerfiles employing multi-stage builds to dramatically reduce container image footprints.' },
+            { co_id: cos[2].co_id, description: 'Orchestrate multi-container applications and local development networks utilizing Docker Compose YAML configurations.' },
+            { co_id: cos[2].co_id, description: 'Deploy, scale, and manage containerized workloads across clustered nodes utilizing Kubernetes (K8s) deployment manifests.' },
             // CO4 (Final Period)
-            { co_id: cos[3].co_id, description: 'Compare Infrastructure as a Service (IaaS), Platform as a Service (PaaS), and Serverless cloud consumption models.', hours: 6 },
-            { co_id: cos[3].co_id, description: 'Write declarative configuration files using HashiCorp Configuration Language (HCL) to provision Terraform modules.', hours: 6 },
-            { co_id: cos[3].co_id, description: 'Automate post-provisioning server state configurations using Ansible playbooks and YAML-based execution logic.', hours: 6 }
+            { co_id: cos[3].co_id, description: 'Compare Infrastructure as a Service (IaaS), Platform as a Service (PaaS), and Serverless cloud consumption models.' },
+            { co_id: cos[3].co_id, description: 'Write declarative configuration files using HashiCorp Configuration Language (HCL) to provision Terraform modules.' },
+            { co_id: cos[3].co_id, description: 'Automate post-provisioning server state configurations using Ansible playbooks and YAML-based execution logic.' }
         ];
 
         await queryInterface.bulkInsert('IntendedLearningOutcomes', iloData.map(i => ({ ...i, createdAt: now, updatedAt: now })), {});
@@ -150,12 +150,13 @@ module.exports = {
             'Kubernetes (K8s) Control Plane Architecture', 'Kubernetes Pods, Deployments, and Services', 'K8s Ingress Controllers and Load Balancing',
             'Cloud Computing Service Models (IaaS, PaaS, SaaS)', 'Public Cloud Core Infrastructure (AWS, Azure, GCP)', 'Identity and Access Management (IAM) in the Cloud',
             'Infrastructure as Code (IaC) Methodologies', 'Terraform State Management and Modules', 'Immutable Infrastructure Principles',
-            'Configuration Management with Ansible', 'CI/CD Pipelines for Infrastructure Automation'
+            'Configuration Management with Ansible', 'CI/CD Pipelines for Infrastructure Automation',
+            'Course Orientation and VMO Alignment'
         ];
 
         await queryInterface.bulkInsert('Topics', topicTitles.map(t => ({ title: t, createdAt: now, updatedAt: now })), {});
         const topics = await queryInterface.sequelize.query(
-            `SELECT topic_id, title FROM Topics ORDER BY topic_id DESC LIMIT 35;`,
+            `SELECT topic_id, title FROM Topics ORDER BY topic_id DESC LIMIT 36;`,
             { type: queryInterface.sequelize.QueryTypes.SELECT }
         ).then(res => res.reverse());
 
@@ -171,7 +172,7 @@ module.exports = {
         // 7. REFERENCES (35 records)
         // ============================================================================
         const referencesData = [];
-        for (let i = 0; i < 35; i++) {
+        for (let i = 0; i < 36; i++) {
             referencesData.push({
                 title: `Platform Technologies Handbook: Vol ${i+1}`,
                 author: `Tech Author ${i+1}`,
@@ -185,7 +186,7 @@ module.exports = {
         await queryInterface.bulkInsert('References', referencesData, {});
 
         const references = await queryInterface.sequelize.query(
-            `SELECT reference_id FROM \`References\` ORDER BY reference_id DESC LIMIT 35;`,
+            `SELECT reference_id FROM \`References\` ORDER BY reference_id DESC LIMIT 36;`,
             { type: queryInterface.sequelize.QueryTypes.SELECT }
         ).then(res => res.reverse());
 
@@ -204,7 +205,8 @@ module.exports = {
             'Prometheus Metrics Dashboarding Lab', 'Linux Privilege Escalation Audit', 'Windows Server Role Configuration',
             'Object Storage S3 Integration Code', 'K8s Secrets Management Lab', 'Docker Swarm vs K8s Debate',
             'PaaS Heroku App Deployment', 'Serverless AWS Lambda Coding', 'Network Latency Troubleshooting Lab',
-            'Terraform Module Reuse Workshop', 'Comprehensive Cloud Infrastructure Build'
+            'Terraform Module Reuse Workshop', 'Comprehensive Cloud Infrastructure Build',
+            'Course Orientation Lecture'
         ];
 
         await queryInterface.bulkInsert('TeachingAndLearningActivities', tlaTitles.map((t, idx) => ({
@@ -213,7 +215,7 @@ module.exports = {
         })), {});
 
         const tlas = await queryInterface.sequelize.query(
-            `SELECT tla_id FROM TeachingAndLearningActivities ORDER BY tla_id DESC LIMIT 35;`,
+            `SELECT tla_id FROM TeachingAndLearningActivities ORDER BY tla_id DESC LIMIT 36;`,
             { type: queryInterface.sequelize.QueryTypes.SELECT }
         ).then(res => res.reverse());
 
@@ -232,11 +234,19 @@ module.exports = {
             iloReferenceInserts.push({ ilo_id: iloId, reference_id: references[i * 2].reference_id, createdAt: now, updatedAt: now });
             iloReferenceInserts.push({ ilo_id: iloId, reference_id: references[(i * 2) + 1].reference_id, createdAt: now, updatedAt: now });
         }
+        
+        // Orientation Map
+        const oIlo = ilos.find(i => i.is_orientation) || ilos[12];
+        if (oIlo) {
+            iloTopicInserts.push({ ilo_id: oIlo.ilo_id, topic_id: topics[35].topic_id, createdAt: now, updatedAt: now });
+            iloReferenceInserts.push({ ilo_id: oIlo.ilo_id, reference_id: references[35].reference_id, createdAt: now, updatedAt: now });
+        }
         await queryInterface.bulkInsert('ILOTopics', iloTopicInserts, {});
         await queryInterface.bulkInsert('ILOReferences', iloReferenceInserts, {});
 
+
         const iloTopics = await queryInterface.sequelize.query(
-            `SELECT ilo_topic_id FROM ILOTopics ORDER BY ilo_topic_id DESC LIMIT 24;`,
+            `SELECT ilo_topic_id FROM ILOTopics ORDER BY ilo_topic_id DESC LIMIT 25;`,
             { type: queryInterface.sequelize.QueryTypes.SELECT }
         ).then(res => res.reverse());
 
@@ -244,7 +254,7 @@ module.exports = {
         // 10. TOPIC TLAs
         // ============================================================================
         const topicTlaInserts = [];
-        for (let i = 0; i < 24; i++) {
+        for (let i = 0; i < 25; i++) {
             topicTlaInserts.push({
                 ilo_topic_id: iloTopics[i].ilo_topic_id,
                 tla_id: tlas[i].tla_id,

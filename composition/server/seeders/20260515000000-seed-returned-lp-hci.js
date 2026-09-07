@@ -80,17 +80,18 @@ module.exports = {
         );
         const ilo1Id = iloTopic1Query[0].ilo_id;
 
-        const tlaQuery = await queryInterface.sequelize.query(
-            `SELECT tla_id FROM TeachingAndLearningActivities
-             WHERE tla_name LIKE '%Moderated Usability Testing%' AND class_phase = 'postclass' LIMIT 1;`,
-            { type: queryInterface.sequelize.QueryTypes.SELECT }
-        );
-        const tlaId = tlaQuery[0].tla_id;
-
         const topic2Query = await queryInterface.sequelize.query(
             `SELECT topic_id FROM Topics WHERE title = 'Moderated Usability Testing Execution and Data Synthesis' LIMIT 1;`,
             { type: queryInterface.sequelize.QueryTypes.SELECT }
         );
+
+        const tlaQuery = await queryInterface.sequelize.query(
+            `SELECT t.tla_id FROM TeachingAndLearningActivities t JOIN TopicTLAs tt ON t.tla_id = tt.tla_id JOIN ILOTopics it ON tt.ilo_topic_id = it.ilo_topic_id WHERE it.topic_id = ${topic2Query[0].topic_id} AND t.class_phase = 'postclass' LIMIT 1;`,
+            { type: queryInterface.sequelize.QueryTypes.SELECT }
+        );
+        const tlaId = tlaQuery[0].tla_id;
+
+        
 
         const iloTopic2Query = await queryInterface.sequelize.query(
             `SELECT ilo_id FROM ILOTopics WHERE topic_id = ${topic2Query[0].topic_id} LIMIT 1;`,

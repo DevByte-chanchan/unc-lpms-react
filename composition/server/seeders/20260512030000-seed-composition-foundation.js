@@ -64,19 +64,7 @@ module.exports = {
                 term: '2nd Semester SY 2024-2025',
                 createdAt: now, updatedAt: now
             },
-            {
-                course_id: 3,
-                course_no: "BIT201",
-                course_title: 'Database Systems',
-                credit: '2 LEC, 1 LAB',
-                contact_hrs: '2 Hrs Lec, 3 Hrs Lab',
-                classification: 'Core Courses',
-                cmo: 'CMO No. 8 S. 2017',
-                year_lvl: 'SECOND YEAR',
-                term: '1st Semester SY 2024-2025',
-                createdAt: now, updatedAt: now
-            },
-            {
+{
                 course_id: 4,
                 course_no: "BIT202",
                 course_title: 'Software Engineering',
@@ -162,23 +150,12 @@ module.exports = {
             { prerequisite_id: 1, course_id: 1, prerequisite_course_id: 2, createdAt: now, updatedAt: now },
 
             // Database Systems requires Data Structures
-            { prerequisite_id: 2, course_id: 3, prerequisite_course_id: 7, createdAt: now, updatedAt: now },
-
-            // Software Engineering requires Database Systems
-            { prerequisite_id: 3, course_id: 4, prerequisite_course_id: 3, createdAt: now, updatedAt: now },
-
-            // Mobile App Dev requires Web Dev II
-            { prerequisite_id: 4, course_id: 5, prerequisite_course_id: 2, createdAt: now, updatedAt: now },
-
-            // Network Security requires Data Structures
-            { prerequisite_id: 5, course_id: 6, prerequisite_course_id: 7, createdAt: now, updatedAt: now },
-
-            // AI requires Data Structures
-            { prerequisite_id: 6, course_id: 8, prerequisite_course_id: 7, createdAt: now, updatedAt: now },
-
-            // Web Security requires Web Dev II
-            { prerequisite_id: 7, course_id: 9, prerequisite_course_id: 2, createdAt: now, updatedAt: now }
-        ], {});
+// Software Engineering requires Database Systems
+// Mobile App Dev requires Web Dev II
+// Network Security requires Data Structures
+// AI requires Data Structures
+// Web Security requires Web Dev II
+], {});
 
 
         // 5) ProgramCourseOfferings
@@ -199,13 +176,7 @@ Through lectures, hands-on projects, and usability testing, learners will develo
             },
 
             // 7 more realistic program course offerings (mix programs and courses)
-            { pc_offering_id: 2, revision_number: 1, course_id: 2, program_id: 1, dept_id: 3, course_description: 'Advanced web development topics and frameworks.', createdAt: now, updatedAt: now },
-            { pc_offering_id: 3, revision_number: 1, course_id: 3, program_id: 1, dept_id: 3, course_description: 'Database design, normalization, and SQL.', createdAt: now, updatedAt: now },
-            { pc_offering_id: 4, revision_number: 1, course_id: 4, program_id: 2, dept_id: 3, course_description: 'Software development lifecycle and best practices.', createdAt: now, updatedAt: now },
-            { pc_offering_id: 5, revision_number: 1, course_id: 5, program_id: 1, dept_id: 3, course_description: 'Mobile app design and deployment.', createdAt: now, updatedAt: now },
-            { pc_offering_id: 6, revision_number: 1, course_id: 6, program_id: 2, dept_id: 3, course_description: 'Principles of network security and defense.', createdAt: now, updatedAt: now },
-            { pc_offering_id: 7, revision_number: 1, course_id: 7, program_id: 1, dept_id: 3, course_description: 'Core algorithms and data structure implementations.', createdAt: now, updatedAt: now },
-            { pc_offering_id: 8, revision_number: 1, course_id: 9, program_id: 1, dept_id: 3, course_description: 'Web performance, caching, and security practices.', createdAt: now, updatedAt: now }
+
         ], {});
 
         // --- CourseOutcomes (unchanged for HCI and other offerings) ---
@@ -216,30 +187,7 @@ Through lectures, hands-on projects, and usability testing, learners will develo
             { co_id: 3, pc_offering_id: 1, co_description: 'CO3: Develop a Front-End Prototype for the proposed software application that follows HCI design principles, UI/UX laws, accessibility standards, and web accessibility guidelines', createdAt: now, updatedAt: now },
             { co_id: 4, pc_offering_id: 1, co_description: 'CO4: Defend the front-end prototype through usability testing and evaluation in UI/UX design.', createdAt: now, updatedAt: now },
 
-            // Web Dev II (pc_offering_id = 2)
-            { co_id: 5, pc_offering_id: 2, co_description: 'CO1: Build responsive web pages using modern frameworks.', createdAt: now, updatedAt: now },
-            { co_id: 6, pc_offering_id: 2, co_description: 'CO2: Integrate RESTful APIs and client-side state management.', createdAt: now, updatedAt: now },
-            { co_id: 7, pc_offering_id: 2, co_description: 'CO3: Optimize front-end performance and accessibility.', createdAt: now, updatedAt: now },
-            { co_id: 8, pc_offering_id: 2, co_description: 'CO4: Apply security best practices for web applications.', createdAt: now, updatedAt: now },
-
-            // Database Systems (pc_offering_id = 3)
-            { co_id: 9, pc_offering_id: 3, co_description: 'CO1: Design normalized relational schemas.', createdAt: now, updatedAt: now },
-            { co_id: 10, pc_offering_id: 3, co_description: 'CO2: Implement complex queries and transactions.', createdAt: now, updatedAt: now },
-            { co_id: 11, pc_offering_id: 3, co_description: 'CO3: Use indexing and optimization techniques.', createdAt: now, updatedAt: now },
-            { co_id: 12, pc_offering_id: 3, co_description: 'CO4: Integrate databases with application layers.', createdAt: now, updatedAt: now },
-
-            // Software Engineering (pc_offering_id = 4)
-            { co_id: 13, pc_offering_id: 4, co_description: 'CO1: Apply software engineering methodologies to project planning.', createdAt: now, updatedAt: now },
-            { co_id: 14, pc_offering_id: 4, co_description: 'CO2: Use version control and CI/CD pipelines.', createdAt: now, updatedAt: now },
-            { co_id: 15, pc_offering_id: 4, co_description: 'CO3: Produce design artifacts and documentation.', createdAt: now, updatedAt: now },
-            { co_id: 16, pc_offering_id: 4, co_description: 'CO4: Evaluate software quality through testing strategies.', createdAt: now, updatedAt: now },
-
-            // Mobile Dev (pc_offering_id = 5)
-            { co_id: 17, pc_offering_id: 5, co_description: 'CO1: Create mobile UI prototypes and deploy to devices.', createdAt: now, updatedAt: now },
-            { co_id: 18, pc_offering_id: 5, co_description: 'CO2: Integrate device APIs and persistent storage.', createdAt: now, updatedAt: now },
-            { co_id: 19, pc_offering_id: 5, co_description: 'CO3: Optimize mobile performance and battery usage.', createdAt: now, updatedAt: now },
-            { co_id: 20, pc_offering_id: 5, co_description: 'CO4: Apply security and privacy best practices for mobile apps.', createdAt: now, updatedAt: now }
-        ], {});
+], {});
 
 // --- ProgramOutcomes (BSIT program_id = 1) create 10 POs ---
         const bsitPOs = [];
@@ -265,7 +213,7 @@ Through lectures, hands-on projects, and usability testing, learners will develo
             });
         }
 
-        await queryInterface.bulkInsert('ProgramOutcomes', [...bsitPOs, ...bscsPOs], {});
+        await queryInterface.bulkInsert('ProgramOutcomes', [...bsitPOs], {});
 
 // --- ProgramOutcomeAlignments (more scattered, cover PO1..PO10) ---
 // Ensure mappings are varied (not diagonal) and include multiple PO links per CO where appropriate.
@@ -287,33 +235,7 @@ Through lectures, hands-on projects, and usability testing, learners will develo
             { po_alignment_id: 11, co_id: 4, po_id: 8, attainment_level: 'E', createdAt: now, updatedAt: now },
             { po_alignment_id: 12, co_id: 4, po_id: 5, attainment_level: 'D', createdAt: now, updatedAt: now },
 
-            // Web Dev II COs (co_id 5..8) mapped across PO1..PO10
-            { po_alignment_id: 13, co_id: 5, po_id: 1, attainment_level: 'E', createdAt: now, updatedAt: now },
-            { po_alignment_id: 14, co_id: 5, po_id: 4, attainment_level: 'I', createdAt: now, updatedAt: now },
-            { po_alignment_id: 15, co_id: 6, po_id: 2, attainment_level: 'I', createdAt: now, updatedAt: now },
-            { po_alignment_id: 16, co_id: 6, po_id: 9, attainment_level: 'D', createdAt: now, updatedAt: now },
-            { po_alignment_id: 17, co_id: 7, po_id: 3, attainment_level: 'D', createdAt: now, updatedAt: now },
-            { po_alignment_id: 18, co_id: 7, po_id: 10, attainment_level: 'E', createdAt: now, updatedAt: now },
-            { po_alignment_id: 19, co_id: 8, po_id: 6, attainment_level: 'I', createdAt: now, updatedAt: now },
-
-            // Database Systems COs (co_id 9..12) mapped to mid-range POs
-            { po_alignment_id: 20, co_id: 9, po_id: 5, attainment_level: 'I', createdAt: now, updatedAt: now },
-            { po_alignment_id: 21, co_id: 10, po_id: 6, attainment_level: 'E', createdAt: now, updatedAt: now },
-            { po_alignment_id: 22, co_id: 11, po_id: 7, attainment_level: 'D', createdAt: now, updatedAt: now },
-            { po_alignment_id: 23, co_id: 12, po_id: 8, attainment_level: 'I', createdAt: now, updatedAt: now },
-
-            // Software Engineering COs (co_id 13..16) mapped to higher PO ids (including PO11..PO12 if BSCS used)
-            { po_alignment_id: 24, co_id: 13, po_id: 1, attainment_level: 'I', createdAt: now, updatedAt: now },
-            { po_alignment_id: 25, co_id: 14, po_id: 2, attainment_level: 'D', createdAt: now, updatedAt: now },
-            { po_alignment_id: 26, co_id: 15, po_id: 3, attainment_level: 'E', createdAt: now, updatedAt: now },
-            { po_alignment_id: 27, co_id: 16, po_id: 4, attainment_level: 'I', createdAt: now, updatedAt: now },
-
-            // Mobile Dev COs (co_id 17..20) add variety and cross-linking
-            { po_alignment_id: 28, co_id: 17, po_id: 9, attainment_level: 'E', createdAt: now, updatedAt: now },
-            { po_alignment_id: 29, co_id: 18, po_id: 10, attainment_level: 'I', createdAt: now, updatedAt: now },
-            { po_alignment_id: 30, co_id: 19, po_id: 5, attainment_level: 'D', createdAt: now, updatedAt: now },
-            { po_alignment_id: 31, co_id: 20, po_id: 6, attainment_level: 'E', createdAt: now, updatedAt: now }
-        ], {});
+], {});
 
         // 9) CourseOfferingAssignments
         // Each ProgramCourseOffering should have one CourseOfferingAssignment (1:1)
@@ -388,25 +310,25 @@ Through lectures, hands-on projects, and usability testing, learners will develo
             { co_id: 1, description: " Cite the value and relevance \n" +
                     " of  the University's and the \n" +
                     " College's VMO as related to \n" +
-                    " the course ", weeks: 1.0, hours: 2, is_orientation: true, createdAt: now, updatedAt: now },
-            { co_id: 1, description: 'Distinguish the core concepts, principles, and theories in designing user interfaces.', weeks: 1.0, hours: 5, assessment_tool: 'Objective Type Quiz', createdAt: now, updatedAt: now },
-            { co_id: 1, description: 'Determine how to use design tools proficiently in creating and refining user interface elements.', weeks: 1.0, hours: 5, assessment_tool: 'Objective Type Activity (Figma)', createdAt: now, updatedAt: now },
-            { co_id: 1, description: 'Propose a comprehensive User Interface (UI) design for a specified software application by applying the core HCI concepts, theories, and principles.', weeks: 2.0, hours: 10, assessment_tool: 'UI Design Proposal', createdAt: now, updatedAt: now },
+                    " the course ", is_orientation: true, createdAt: now, updatedAt: now },
+            { co_id: 1, description: 'Distinguish the core concepts, principles, and theories in designing user interfaces.', assessment_tool: 'Objective Type Quiz', createdAt: now, updatedAt: now },
+            { co_id: 1, description: 'Determine how to use design tools proficiently in creating and refining user interface elements.', assessment_tool: 'Objective Type Activity (Figma)', createdAt: now, updatedAt: now },
+            { co_id: 1, description: 'Propose a comprehensive User Interface (UI) design for a specified software application by applying the core HCI concepts, theories, and principles.', assessment_tool: 'UI Design Proposal', createdAt: now, updatedAt: now },
 
             // CO2 (Midterm Academic Period)
-            { co_id: 2, description: 'Distinguish user research methodologies, user personas, and user-centered design (UCD) process frameworks.', weeks: 1.0, hours: 5, assessment_tool: 'Objective Type Quiz (UCD)', createdAt: now, updatedAt: now },
-            { co_id: 2, description: 'Determine how to build structurally-sound wireframes and layout compositions based on usability conventions.', weeks: 1.0, hours: 5, assessment_tool: 'UCD Process Document', createdAt: now, updatedAt: now },
-            { co_id: 2, description: 'Propose a cohesive User Experience (UX) wireframe package and user journey framework applying standard UCD principles.', weeks: 2.0, hours: 10, assessment_tool: 'UI/UX Design Presentation', createdAt: now, updatedAt: now },
+            { co_id: 2, description: 'Distinguish user research methodologies, user personas, and user-centered design (UCD) process frameworks.', assessment_tool: 'Objective Type Quiz (UCD)', createdAt: now, updatedAt: now },
+            { co_id: 2, description: 'Determine how to build structurally-sound wireframes and layout compositions based on usability conventions.', assessment_tool: 'UCD Process Document', createdAt: now, updatedAt: now },
+            { co_id: 2, description: 'Propose a cohesive User Experience (UX) wireframe package and user journey framework applying standard UCD principles.', assessment_tool: 'UI/UX Design Presentation', createdAt: now, updatedAt: now },
 
             // CO3 (Semifinal Academic Period)
-            { co_id: 3, description: 'Distinguish dynamic visual architectures, advanced component patterns, and global accessibility standards.', weeks: 1.0, hours: 5, assessment_tool: 'Objective Type Quiz (UX laws and Accessibility Standards)', createdAt: now, updatedAt: now },
-            { co_id: 3, description: 'Determine how to implement screen reader and keyboard navigation considerations in interactive prototype elements.', weeks: 1.0, hours: 5, assessment_tool: 'UI/UX Design Implementation Document', createdAt: now, updatedAt: now },
-            { co_id: 3, description: 'Propose a fully-interactive high-fidelity mockup with micro-interactions, conforming to WCAG 2.1 regulatory standards.', weeks: 2.0, hours: 10, assessment_tool: 'Front-end Code Presentation', createdAt: now, updatedAt: now },
+            { co_id: 3, description: 'Distinguish dynamic visual architectures, advanced component patterns, and global accessibility standards.', assessment_tool: 'Objective Type Quiz (UX laws and Accessibility Standards)', createdAt: now, updatedAt: now },
+            { co_id: 3, description: 'Determine how to implement screen reader and keyboard navigation considerations in interactive prototype elements.', assessment_tool: 'UI/UX Design Implementation Document', createdAt: now, updatedAt: now },
+            { co_id: 3, description: 'Propose a fully-interactive high-fidelity mockup with micro-interactions, conforming to WCAG 2.1 regulatory standards.', assessment_tool: 'Front-end Code Presentation', createdAt: now, updatedAt: now },
 
             // CO4 (Final Academic Period)
-            { co_id: 4, description: 'Distinguish qualitative and quantitative usability metrics, testing methodologies, and analytical protocols.', weeks: 1.0, hours: 5, assessment_tool: 'Objective type Quiz (Usability Testing)', createdAt: now, updatedAt: now },
-            { co_id: 4, description: 'Determine how to analyze user performance data, time-on-task, and error rates from moderated evaluative tests.', weeks: 1.0, hours: 5, assessment_tool: 'Prototype Evaluation Document', createdAt: now, updatedAt: now },
-            { co_id: 4, description: 'Propose a comprehensive Usability Evaluation and Design Handoff Report backed by empirical testing feedback.', weeks: 2.0, hours: 10, assessment_tool: 'Front-End Prototype Presentation', createdAt: now, updatedAt: now }
+            { co_id: 4, description: 'Distinguish qualitative and quantitative usability metrics, testing methodologies, and analytical protocols.', assessment_tool: 'Objective type Quiz (Usability Testing)', createdAt: now, updatedAt: now },
+            { co_id: 4, description: 'Determine how to analyze user performance data, time-on-task, and error rates from moderated evaluative tests.', assessment_tool: 'Prototype Evaluation Document', createdAt: now, updatedAt: now },
+            { co_id: 4, description: 'Propose a comprehensive Usability Evaluation and Design Handoff Report backed by empirical testing feedback.', assessment_tool: 'Front-End Prototype Presentation', createdAt: now, updatedAt: now }
         ];
 
         await queryInterface.bulkInsert('IntendedLearningOutcomes', ilos, {});
@@ -422,11 +344,11 @@ Through lectures, hands-on projects, and usability testing, learners will develo
         // ============================================================================
 
         // Fetch and cache orientation ILO
-        const orientationIloResult = await queryInterface.sequelize.query(
+        let orientationIloResult = await queryInterface.sequelize.query(
             'SELECT ilo_id FROM IntendedLearningOutcomes WHERE is_orientation = true LIMIT 1;',
             { type: queryInterface.sequelize.QueryTypes.SELECT }
         );
-        const orientationIlo = orientationIloResult.length > 0 ? orientationIloResult[0] : null;
+        let orientationIlo = orientationIloResult.length > 0 ? orientationIloResult[0] : null;
 
         const textbooks = refsRows.filter(r => r.type === 'TEXTBOOK');
         const others = refsRows.filter(r => r.type !== 'TEXTBOOK');
@@ -461,9 +383,9 @@ Through lectures, hands-on projects, and usability testing, learners will develo
         await queryInterface.bulkInsert('ILOReferences', iloReferences, {});
 
         // ============================================================================
-        // 4) Topics (12 Topics mapped exactly 1-to-1 to our 12 ILOs)
+        // 4) Topics (Original + 13 Added for 2 Topics/ILO logic)
         // ============================================================================
-        const topicTitles = [
+        const originalTopicTitles = [
             'Course Orientation and VMO Alignment',
             'Cognitive Models in HCI',
             'Introduction to Human-Computer Interaction (HCI)',
@@ -479,23 +401,43 @@ Through lectures, hands-on projects, and usability testing, learners will develo
             'Moderated Usability Testing Execution and Data Synthesis',
             'Empirically-Driven Layout Iterations and Developer Handoff'
         ];
-
-        const topicsToInsert = topicTitles.map(title => ({
-            title: title,
-            createdAt: now,
-            updatedAt: now
-        }));
+        
+        const topicsToInsert = [];
+        let t_id = 1;
+        
+        for (const title of originalTopicTitles) {
+            topicsToInsert.push({ title: title, createdAt: now, updatedAt: now });
+        }
+        
+        const addedTopicTitles = [
+            'Additional Orientation Activity (VMO Extension)',
+            'Practical Exercises in Cognitive Models',
+            'Interactive HCI Explorations',
+            'Advanced UI Design Implementations',
+            'Workshop on Information Architecture',
+            'Creating High-Fidelity Personas',
+            'Wireframing Sprints',
+            'Applying Gestalt in UI Layouts',
+            'Building Reusable Figma Components',
+            'Micro-Interaction Prototyping Workshop',
+            'Accessibility Auditing Sprint',
+            'Usability Evaluation Planning',
+            'Conducting Mock Testing Sessions'
+        ];
+        
+        for (const title of addedTopicTitles) {
+            topicsToInsert.push({ title: title, createdAt: now, updatedAt: now });
+        }
 
         await queryInterface.bulkInsert('Topics', topicsToInsert, {});
 
-        // FIX: Removed 'LIMIT 12' so all 15 topics are successfully retrieved
         const topicsRows = await queryInterface.sequelize.query(
             'SELECT topic_id, title FROM `Topics` ORDER BY topic_id ASC;',
             { type: queryInterface.sequelize.QueryTypes.SELECT }
         );
 
         // ============================================================================
-        // 5) Subtopics Mapping (Includes detailed sequences requested for Topics 1 & 2)
+        // 5) Subtopics Mapping
         // ============================================================================
         const subtopicsMap = {
             'Course Orientation and VMO Alignment': [
@@ -592,7 +534,7 @@ Through lectures, hands-on projects, and usability testing, learners will develo
 
         const subtopicsToInsert = [];
         for (const t of topicsRows) {
-            const subs = subtopicsMap[t.title] || [];
+            const subs = subtopicsMap[t.title] || ['Practical Component A', 'Practical Component B'];
             subs.forEach((subTitle, idx) => {
                 subtopicsToInsert.push({
                     topic_id: t.topic_id,
@@ -603,120 +545,116 @@ Through lectures, hands-on projects, and usability testing, learners will develo
                 });
             });
         }
-
         await queryInterface.bulkInsert('Subtopics', subtopicsToInsert, {});
 
         // ============================================================================
-        // 6) ILOTopic Join Entries — Explicitly 1-to-1 Mapping for Alignment
+        // 6) ILOTopic Join Entries (2 Topics per ILO)
         // ============================================================================
-
-
         const iloTopicInserts = [];
-        const orientationTopic = topicsRows.find(t => t.title === 'Course Orientation and VMO Alignment');
-
-        if (orientationIlo && orientationTopic) {
-            iloTopicInserts.push({
-                ilo_id: Number(orientationIlo.ilo_id),
-                topic_id: Number(orientationTopic.topic_id),
-                createdAt: now,
-                updatedAt: now
-            });
+        orientationIloResult = await queryInterface.sequelize.query(
+            'SELECT ilo_id FROM IntendedLearningOutcomes WHERE is_orientation = true ORDER BY ilo_id LIMIT 1;',
+            { type: queryInterface.sequelize.QueryTypes.SELECT }
+        );
+        orientationIlo = orientationIloResult.length > 0 ? orientationIloResult[0] : null;
+        
+        if (orientationIlo) {
+            const otopic1 = topicsRows.find(t => t.title === 'Course Orientation and VMO Alignment');
+            const otopic2 = topicsRows.find(t => t.title === 'Additional Orientation Activity (VMO Extension)');
+            if (otopic1) iloTopicInserts.push({ ilo_id: Number(orientationIlo.ilo_id), topic_id: Number(otopic1.topic_id), createdAt: now, updatedAt: now });
+            if (otopic2) iloTopicInserts.push({ ilo_id: Number(orientationIlo.ilo_id), topic_id: Number(otopic2.topic_id), createdAt: now, updatedAt: now });
         }
 
-        const technicalTopicsRows = topicsRows.filter(t => t.title !== 'Course Orientation and VMO Alignment');
-
-        // FIX: Modified query condition to handle database NULL variables properly
         const technicalIlosRows = await queryInterface.sequelize.query(
             'SELECT ilo_id FROM IntendedLearningOutcomes WHERE is_orientation = false OR is_orientation IS NULL ORDER BY ilo_id ASC;',
             { type: queryInterface.sequelize.QueryTypes.SELECT }
         );
 
-        for (let i = 0; i < technicalTopicsRows.length; i++) {
-            const currentTopic = technicalTopicsRows[i];
-            const matchingIlo = technicalIlosRows[i % technicalIlosRows.length];
-
+        // Orig topics (excluding orientation): index 1 to 13 (length 13)
+        // Added topics (excluding VMO Extension): The array addedTopicTitles has VMO at index 0, so indices 14 to 26 in topicsRows
+        const techTopics1 = topicsRows.slice(1, 14); 
+        const techTopics2 = topicsRows.slice(15, 27); // 12 items. wait, 13 new topics, 1 is orientation, 12 technical.
+        // Wait! We have 12 technical ILOs. So 12 added technical topics are perfect!
+        
+        
+        // We have techTopics1 (length 13) and techTopics2 (length 12). Total 25 topics.
+        // We have 12 technical ILOs.
+        // Assign each of the 25 topics to an ILO sequentially to guarantee usage of all topics, 
+        // ensuring each ILO gets at least 2 (25 / 12 = 2 with 1 remainder, so one gets 3).
+        
+        const combinedTechTopics = [...techTopics1, ...techTopics2];
+        for (let i = 0; i < combinedTechTopics.length; i++) {
+            const currentTopic = combinedTechTopics[i];
+            const currentIlo = technicalIlosRows[i % technicalIlosRows.length];
+            
             iloTopicInserts.push({
-                ilo_id: Number(matchingIlo.ilo_id),
+                ilo_id: Number(currentIlo.ilo_id),
                 topic_id: Number(currentTopic.topic_id),
                 createdAt: now,
                 updatedAt: now
             });
         }
+
         await queryInterface.bulkInsert('ILOTopics', iloTopicInserts, {});
 
-        // Re-fetch junction table configuration
         const iloTopicsRows = await queryInterface.sequelize.query(
-            'SELECT ilo_topic_id FROM `ILOTopics` ORDER BY ilo_topic_id ASC;',
+            'SELECT ilo_topic_id, ilo_id, topic_id FROM `ILOTopics` ORDER BY ilo_topic_id ASC;',
             { type: queryInterface.sequelize.QueryTypes.SELECT }
         );
 
         // ============================================================================
-        // 7) Teaching and Learning Activities (Exactly 3 per Topic: PRE, IN, POST)
+        // 7) Teaching and Learning Activities (3 TLAs per ILO)
         // ============================================================================
+        const allIlosRows = await queryInterface.sequelize.query(
+            'SELECT ilo_id, is_orientation FROM IntendedLearningOutcomes ORDER BY ilo_id ASC;',
+            { type: queryInterface.sequelize.QueryTypes.SELECT }
+        );
+        
         const tlasToInsert = [];
-        topicsRows.forEach((topic) => {
-            if (topic.title === 'Course Orientation and VMO Alignment') {
-                tlasToInsert.push({
-                    tla_name: 'VMO & Outcomes Reading Assignment',
-                    description: ' Read the materials on UNC VMO' +
-                        ' and CCS VMO, Program Educational' +
-                        ' Objectives (PEOs), and Program' +
-                        ' Outcomes (POs)',
-                    performed_by: 'S', class_phase: 'preclass', is_lab: true, createdAt: now, updatedAt: now
-                });
-                tlasToInsert.push({
-                    tla_name: 'Course Orientation Lecture & Collaborative Forum',
-                    description: 'The orientation will cover course outcomes and topic outline, assessment and evaluation activities, grading and class policies, and the flipped classroom approach. It will also introduce LinkedIn courses under MQUAP and explain the AI usage policy.',
-                    performed_by: 'T', class_phase: 'inclass', is_lab: false, createdAt: now, updatedAt: now
-                });
-                tlasToInsert.push({
-                    tla_name: 'VMO Visual Alignment Poster & Foundation AI Course',
-                    description: 'Self-paced completion of the Google Introduction to Generative AI',
-                    performed_by: 'S', class_phase: 'postclass', is_lab: true, createdAt: now, updatedAt: now
-                });
+        
+        // Ensure 3 TLA creation PER ILO!
+        allIlosRows.forEach((ilo, idx) => {
+            if (ilo.is_orientation) {
+                tlasToInsert.push({ tla_name: 'VMO & Outcomes Reading Assignment', description: 'Read the materials on UNC VMO and CCS VMO, Program Educational Objectives (PEOs), and Program Outcomes (POs)', performed_by: 'S', class_phase: 'preclass', is_lab: true, createdAt: now, updatedAt: now });
+                tlasToInsert.push({ tla_name: 'Course Orientation Lecture & Collaborative Forum', description: 'The orientation will cover course outcomes and topic outline, assessment and evaluation activities, grading and class policies, and the flipped classroom approach. It will also introduce LinkedIn courses under MQUAP and explain the AI usage policy.', performed_by: 'T', class_phase: 'inclass', is_lab: false, createdAt: now, updatedAt: now });
+                tlasToInsert.push({ tla_name: 'VMO Visual Alignment Poster', description: 'Self-paced completion of the Google Introduction to Generative AI', performed_by: 'S', class_phase: 'postclass', is_lab: true, createdAt: now, updatedAt: now });
             } else {
-                tlasToInsert.push({
-                    tla_name: `Core Materials Reading of ${topic.title}`,
-                    description: `Students execute self-paced prep learning by reading target chapters, lecture slides, and online course files. Students prepare personal reference summaries noting key conceptual distinctions and complete end-of-chapter diagnostic tests to evaluate their base understanding.`,
-                    performed_by: 'S', class_phase: 'preclass', is_lab: true, createdAt: now, updatedAt: now
-                });
-                tlasToInsert.push({
-                    tla_name: `Structured Seminar ${topic.title}`,
-                    description: `An in-depth theoretical analysis and system discussion covering core criteria, system mechanics, and industry guidelines. This includes live UI/UX platform demonstrations and active student engagement through real-time interactive assessment quizzes.`,
-                    performed_by: 'T', class_phase: 'inclass', is_lab: false, createdAt: now, updatedAt: now
-                });
-                tlasToInsert.push({
-                    tla_name: `Design Review & Implementation of ${topic.title}`,
-                    description: `A practical laboratory follow-up where the instructor reviews the previous quizzes to identify common pain points, coordinates tailored feedback, and reviews layout progress. Students proceed with self-paced system courses and execute independent UI updates.`,
-                    performed_by: 'S', class_phase: 'postclass', is_lab: true, createdAt: now, updatedAt: now
-                });
+                tlasToInsert.push({ tla_name: `Core Materials Reading (ILO ${idx+1})`, description: `Students execute self-paced prep learning by reading target chapters, lecture slides, and online course files.`, performed_by: 'S', class_phase: 'preclass', is_lab: true, createdAt: now, updatedAt: now });
+                tlasToInsert.push({ tla_name: `Structured Seminar (ILO ${idx+1})`, description: `An in-depth theoretical analysis and system discussion covering core criteria, system mechanics, and industry guidelines.`, performed_by: 'T', class_phase: 'inclass', is_lab: false, createdAt: now, updatedAt: now });
+                tlasToInsert.push({ tla_name: `Design Review & Implementation (ILO ${idx+1})`, description: `A practical laboratory follow-up where the instructor reviews the previous quizzes to identify common pain points.`, performed_by: 'S', class_phase: 'postclass', is_lab: true, createdAt: now, updatedAt: now });
             }
         });
 
-
         await queryInterface.bulkInsert('TeachingAndLearningActivities', tlasToInsert, {});
-
+        
         const tlasRows = await queryInterface.sequelize.query(
-            `SELECT tla_id, tla_name FROM TeachingAndLearningActivities ORDER BY tla_id ASC;`,
+            'SELECT tla_id, tla_name FROM TeachingAndLearningActivities ORDER BY tla_id ASC;',
             { type: queryInterface.sequelize.QueryTypes.SELECT }
         );
 
         // ============================================================================
-        // 8) TopicTLAs Assignment: Associate the 3 TLAs to their respective Topic
+        // 8) TopicTLAs Assignment: Map 3 TLAs of an ILO to ALL its topics
         // ============================================================================
         const topicTlaInserts = [];
-        for (let i = 0; i < iloTopicsRows.length; i++) {
-            const jRow = iloTopicsRows[i];
+        
+        const iloTopicGroups = {};
+        iloTopicsRows.forEach(row => {
+            if (!iloTopicGroups[row.ilo_id]) iloTopicGroups[row.ilo_id] = [];
+            iloTopicGroups[row.ilo_id].push(row);
+        });
+        
+        allIlosRows.forEach((ilo, i) => {
             const preTla = tlasRows[i * 3];
             const inTla = tlasRows[i * 3 + 1];
             const postTla = tlasRows[i * 3 + 2];
-
-            topicTlaInserts.push(
-                { ilo_topic_id: jRow.ilo_topic_id, tla_id: preTla.tla_id, createdAt: now, updatedAt: now },
-                { ilo_topic_id: jRow.ilo_topic_id, tla_id: inTla.tla_id, createdAt: now, updatedAt: now },
-                { ilo_topic_id: jRow.ilo_topic_id, tla_id: postTla.tla_id, createdAt: now, updatedAt: now }
-            );
-        }
+            const itRows = iloTopicGroups[ilo.ilo_id] || [];
+            
+            itRows.forEach(itRow => {
+                if (preTla) topicTlaInserts.push({ ilo_topic_id: itRow.ilo_topic_id, tla_id: preTla.tla_id, createdAt: now, updatedAt: now });
+                if (inTla) topicTlaInserts.push({ ilo_topic_id: itRow.ilo_topic_id, tla_id: inTla.tla_id, createdAt: now, updatedAt: now });
+                if (postTla) topicTlaInserts.push({ ilo_topic_id: itRow.ilo_topic_id, tla_id: postTla.tla_id, createdAt: now, updatedAt: now });
+            });
+        });
+        
         await queryInterface.bulkInsert('TopicTLAs', topicTlaInserts, {});
 
         // ============================================================================
@@ -725,15 +663,15 @@ Through lectures, hands-on projects, and usability testing, learners will develo
         const tlaAssessmentInserts = [];
         const periods = ['p', 'm', 's', 'f'];
 
-        // FIX: Now iterating securely over technicalIlosRows to keep the 20-30-50 logic properly aligned
         for (let i = 0; i < technicalIlosRows.length; i++) {
             const coIndex = Math.floor(i / 3);
             const iloIndex = i % 3;
 
             const currentPeriod = periods[coIndex];
 
-            // Technical topics start at index 1 in topicsRows (since index 0 is orientation)
-            // Therefore, the assigned TLA matches (i + 1)
+            // In our structure, orientation is index 0. Technical ILOs start from array index 1 (corresponding to ILO 2).
+            // TLA matching this ILO is at index (i + 1) * 3
+            // The IN-CLASS TLA for this technical ILO is index (i + 1) * 3 + 1
             const assignedTlaId = tlasRows[(i + 1) * 3 + 1].tla_id;
 
             let assessmentName = '';
@@ -743,48 +681,22 @@ Through lectures, hands-on projects, and usability testing, learners will develo
             if (iloIndex === 0) {
                 assessmentName = 'Objective-Type Quiz';
                 assessmentWeight = '20';
-
-                if (coIndex === 0) {
-                    assessmentDescription = 'Covering interactive component theories and human cognitive load.';
-                } else if (coIndex === 1) {
-                    assessmentDescription = 'Covering User-Centered Design paradigms and audience analysis methodologies.';
-                } else if (coIndex === 2) {
-                    assessmentDescription = 'Ergonomic patterns and WCAG 2.1 compliance specifications.';
-                } else {
-                    assessmentDescription = 'Covering evaluative protocol steps, metrics, and script guidelines.';
-                }
+                if (coIndex === 0) assessmentDescription = 'Covering interactive component theories and human cognitive load.';
+                else if (coIndex === 1) assessmentDescription = 'Covering User-Centered Design paradigms and audience analysis methodologies.';
+                else if (coIndex === 2) assessmentDescription = 'Ergonomic patterns and WCAG 2.1 compliance specifications.';
+                else assessmentDescription = 'Covering evaluative protocol steps, metrics, and script guidelines.';
             } else if (iloIndex === 1) {
                 assessmentWeight = '30';
-
-                if (coIndex === 0) {
-                    assessmentName = 'Objective Type Activity';
-                    assessmentDescription = 'Hands-on UI layout development exercise utilizing Figma component design engines.';
-                } else if (coIndex === 1) {
-                    assessmentName = 'UCD Process Document';
-                    assessmentDescription = 'A formal process document containing research-driven user profiles, empathy maps, and system site flows.';
-                } else if (coIndex === 2) {
-                    assessmentName = 'UI/UX Design Implementation Document';
-                    assessmentDescription = 'A detailed implementation document documenting accessibility features, color contrast compliance, and screen-reader focus hierarchies.';
-                } else {
-                    assessmentName = 'Prototype Evaluation Document';
-                    assessmentDescription = 'A complete research report compiling recorded user error logs, System Usability Scale (SUS) surveys, and qualitative notes.';
-                }
+                if (coIndex === 0) { assessmentName = 'Objective Type Activity'; assessmentDescription = 'Hands-on UI layout development exercise utilizing Figma component design engines.'; }
+                else if (coIndex === 1) { assessmentName = 'UCD Process Document'; assessmentDescription = 'A formal process document containing research-driven user profiles, empathy maps, and system site flows.'; }
+                else if (coIndex === 2) { assessmentName = 'UI/UX Design Implementation Document'; assessmentDescription = 'A detailed implementation document documenting accessibility features, color contrast compliance, and screen-reader focus hierarchies.'; }
+                else { assessmentName = 'Prototype Evaluation Document'; assessmentDescription = 'A complete research report compiling recorded user error logs, System Usability Scale (SUS) surveys, and qualitative notes.'; }
             } else {
                 assessmentWeight = '50';
-
-                if (coIndex === 0) {
-                    assessmentName = 'UI Design Proposal';
-                    assessmentDescription = 'A thorough system layout mock proposal document outlining visual composition strategies and interaction models.';
-                } else if (coIndex === 1) {
-                    assessmentName = 'UI/UX Design Presentation';
-                    assessmentDescription = 'An interactive, formal presentation of high-priority wireframes, navigation configurations, and layout details.';
-                } else if (coIndex === 2) {
-                    assessmentName = 'Front-end Code Presentation';
-                    assessmentDescription = 'An interactive front-end display demonstrating dynamic layout states, microcopy animations, and interactive component functions.';
-                } else {
-                    assessmentName = 'Front-End Prototype Presentation';
-                    assessmentDescription = 'The final capstone defense presenting a validated system prototype optimized using feedback from user testing sessions.';
-                }
+                if (coIndex === 0) { assessmentName = 'UI Design Proposal'; assessmentDescription = 'A thorough system layout mock proposal document outlining visual composition strategies and interaction models.'; }
+                else if (coIndex === 1) { assessmentName = 'UI/UX Design Presentation'; assessmentDescription = 'An interactive, formal presentation of high-priority wireframes, navigation configurations, and layout details.'; }
+                else if (coIndex === 2) { assessmentName = 'Front-end Code Presentation'; assessmentDescription = 'An interactive front-end display demonstrating dynamic layout states, microcopy animations, and interactive component functions.'; }
+                else { assessmentName = 'Front-End Prototype Presentation'; assessmentDescription = 'The final capstone defense presenting a validated system prototype optimized using feedback from user testing sessions.'; }
             }
 
             tlaAssessmentInserts.push({
@@ -800,7 +712,8 @@ Through lectures, hands-on projects, and usability testing, learners will develo
         }
 
         await queryInterface.bulkInsert('TLAAssessments', tlaAssessmentInserts, {});
-        console.log(`Successfully completed high-fidelity seeding of references, ILOs, Topics, and strictly aligned TLAs.`);
+        // end here
+console.log(`Successfully completed high-fidelity seeding of references, ILOs, Topics, and strictly aligned TLAs.`);
         // insert here
     },
 
