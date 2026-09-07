@@ -130,8 +130,8 @@ const CourseDetails = ({ offeringID, revisionNum, stylesB, fetchJson }) => {
 
     return (
         <section className="responsive-container-cd">
-            <style>
-                {\`
+            <style dangerouslySetInnerHTML={{ __html: `
+                
                   .responsive-container-cd { width: 100%; box-sizing: border-box; }
                   
                   .cd-header-line {
@@ -257,12 +257,12 @@ const CourseDetails = ({ offeringID, revisionNum, stylesB, fetchJson }) => {
                       font-weight: 500;
                       cursor: pointer;
                   }
-                \`}
-            </style>
+                \
+            ` }} />
 
             <div className="cd-header-line">
                 <button 
-                    className={\`cd-edit-btn \${isEditing ? 'save-mode' : ''}\`} 
+                    className=cd-edit-btn \${isEditing ? 'save-mode' : ''} 
                     onClick={handleEditToggle}
                 >
                     {isEditing ? (

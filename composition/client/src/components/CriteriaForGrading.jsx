@@ -128,8 +128,8 @@ const CriteriaForGrading = ({ offeringID, revisionNum, status, styles, stylesB, 
 
     return (
         <section className="responsive-container-cfg">
-            <style>
-                {\`
+            <style dangerouslySetInnerHTML={{ __html: `
+                
                   .responsive-container-cfg { width: 100%; box-sizing: border-box; overflow-x: auto; }
                   
                   .cfg-header-wrapper {
@@ -189,12 +189,12 @@ const CriteriaForGrading = ({ offeringID, revisionNum, status, styles, stylesB, 
                   @media (max-width: 768px) {
                       /* Enhanced mobile presentation config if necessary */
                   }
-                \`}
-            </style>
+                \
+            ` }} />
 
             <div className="cfg-header-wrapper">
                 <button 
-                    className={\`cfg-edit-btn \${isEditing ? 'save-mode' : ''}\`} 
+                    className=cfg-edit-btn \${isEditing ? 'save-mode' : ''} 
                     onClick={handleEditToggle}
                 >
                     {isEditing ? (
@@ -211,8 +211,8 @@ const CriteriaForGrading = ({ offeringID, revisionNum, status, styles, stylesB, 
                 </button>
             </div>
 
-            <div className={\`\${stylesB.gradingContainer} cfg-table-wrapper\`}>
-                <table className={\`\${stylesB.documentTable} mobile-grading-table\`}>
+            <div className=\${stylesB.gradingContainer} cfg-table-wrapper>
+                <table className=\${stylesB.documentTable} mobile-grading-table>
                     <thead>
                     <tr>
                         <th rowSpan="2" className={styles.headerLabel} style={{ width: '10%' }}>Course Outcome</th>
@@ -237,7 +237,7 @@ const CriteriaForGrading = ({ offeringID, revisionNum, status, styles, stylesB, 
                                 {group.ilos.map((ilo, iloIndex) => {
                                     const displayLabel = \`ILO \${iloIndex + 1}\`;
                                     return (
-                                        <tr key={\`\${group.co}-\${ilo.id}\`}>
+                                        <tr key=\${group.co}-\${ilo.id}>
                                             {iloIndex === 0 && (
                                                 <td rowSpan={group.ilos.length} className={styles.coCell}>
                                                     <strong>{group.co}</strong>
