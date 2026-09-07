@@ -7,3 +7,4 @@ const { getCourseDetailsByPcOffering } = require('../controllers/courseDetailsCo
 router.get('/:pcId/:revNum', getCourseDetailsByPcOffering);
 
 module.exports = router;
+router.put('/:pcId/:revNum', courseDetailsController.updateCourseDetailsByPcOffering);

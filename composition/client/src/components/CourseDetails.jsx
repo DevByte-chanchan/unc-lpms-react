@@ -1,11 +1,15 @@
 import React, { useState, useEffect } from 'react';
 
-
 const CourseDetails = ({ offeringID, revisionNum, stylesB, fetchJson }) => {
     const [courseDetailsData, setCourseDetailsData] = useState({
         code: '', name: '', description: '', credits: '', contact: '',
         prerequisites: '', class: '', cmo: '', revision: 0, year: '', sem: ''
     });
+    const [editData, setEditData] = useState({});
+    const [isEditing, setIsEditing] = useState(false);
+    const [showConfirm, setShowConfirm] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
+    
     const [courseDetailsLoading, setCourseDetailsLoading] = useState(false);
     const [courseDetailsError, setCourseDetailsError] = useState(null);
 
@@ -18,9 +22,7 @@ const CourseDetails = ({ offeringID, revisionNum, stylesB, fetchJson }) => {
             setCourseDetailsError(null);
             try {
                 const data = await fetchJson(`/api/course-details/${offeringID}/${revisionNum}`);
-
                 if (!mounted) return;
-
                 setCourseDetailsData({
                     code: data.code ?? '',
                     name: data.name ?? '',
@@ -47,75 +49,314 @@ const CourseDetails = ({ offeringID, revisionNum, stylesB, fetchJson }) => {
         return () => { mounted = false; };
     }, [offeringID, revisionNum, fetchJson]);
 
-    if (courseDetailsLoading) {
-        return <div className={stylesB.loadingContainer}>Loading course details...</div>;
-    }
+    const handleEditToggle = () => {
+        if (isEditing) {
+            setShowConfirm(true);
+        } else {
+            setEditData({ ...courseDetailsData });
+            setIsEditing(true);
+        }
+    };
 
-    if (courseDetailsError) {
-        return <div className={stylesB.errorContainer}>Error: {courseDetailsError}</div>;
-    }
+    const handleChange = (e, field) => {
+        setEditData(prev => ({ ...prev, [field]: e.target.value }));
+    };
+
+    const handleSaveConfirm = async () => {
+        setIsSaving(true);
+        try {
+            await fetch(`/api/course-details/${offeringID}/${revisionNum}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(editData)
+            });
+            setCourseDetailsData(editData);
+            setIsEditing(false);
+            setShowConfirm(false);
+        } catch (e) {
+            console.error('Failed to save', e);
+            alert('Failed to save modifications.');
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    if (courseDetailsLoading) return <div className={stylesB.loadingContainer}>Loading course details...</div>;
+    if (courseDetailsError) return <div className={stylesB.errorContainer}>Error: {courseDetailsError}</div>;
+
+    const inputStyle = {
+        width: '100%',
+        borderTop: 'none',
+        borderLeft: 'none',
+        borderRight: 'none',
+        borderBottom: '2px solid #6366f1',
+        outline: 'none',
+        background: 'transparent',
+        fontSize: 'inherit',
+        fontFamily: 'inherit',
+        color: '#111827',
+        padding: '2px 0'
+    };
+
+    const renderCell = (field, isBold = false) => {
+        // Revision and Prerequisites are disabled/read-only usually, but prompt allowed everything. We'll disable revision.
+        if (field === 'revision') return courseDetailsData[field]; 
+        
+        if (isEditing) {
+            return (
+                <input 
+                    type="text" 
+                    style={inputStyle} 
+                    value={editData[field]} 
+                    onChange={e => handleChange(e, field)} 
+                />
+            );
+        }
+        return isBold ? <strong>{courseDetailsData[field] || ''}</strong> : (courseDetailsData[field] || '');
+    };
+
+    const renderTextArea = (field) => {
+        if (isEditing) {
+            return (
+                <textarea 
+                    style={{ ...inputStyle, resize: 'vertical', minHeight: '150px' }} 
+                    value={editData[field]} 
+                    onChange={e => handleChange(e, field)} 
+                />
+            );
+        }
+        return courseDetailsData[field] || '';
+    };
 
     return (
-        <section>
+        <section className="responsive-container-cd">
+            <style>
+                {\`
+                  .responsive-container-cd { width: 100%; box-sizing: border-box; }
+                  
+                  .cd-header-line {
+                      display: flex;
+                      justify-content: flex-end;
+                      margin-bottom: 12px;
+                  }
+                  
+                  .cd-edit-btn {
+                      background-color: #f3f4f6; /* similar to typical label cells */
+                      border: 1px solid #d1d5db;
+                      color: #374151;
+                      padding: 6px 16px;
+                      border-radius: 4px;
+                      font-size: 14px;
+                      font-weight: 600;
+                      cursor: pointer;
+                      display: flex;
+                      align-items: center;
+                      gap: 6px;
+                      transition: all 0.2s;
+                  }
+                  
+                  .cd-edit-btn:hover {
+                      background-color: #e5e7eb;
+                  }
+
+                  .cd-edit-btn.save-mode {
+                      background-color: #6366f1;
+                      color: white;
+                      border-color: #4f46e5;
+                  }
+
+                  .cd-edit-btn.save-mode:hover {
+                      background-color: #4f46e5;
+                  }
+
+                  /* Responsive Table Overrides */
+                  @media (max-width: 800px) {
+                      .responsive-container-cd table {
+                          display: block; 
+                          width: 100%;
+                          overflow-x: auto;
+                          border: none;
+                      }
+                      .responsive-container-cd thead, 
+                      .responsive-container-cd tbody, 
+                      .responsive-container-cd tr, 
+                      .responsive-container-cd th, 
+                      .responsive-container-cd td {
+                          display: block; 
+                          width: 100%; 
+                          box-sizing: border-box;
+                      }
+                      .responsive-container-cd th.labelCell,
+                      .responsive-container-cd th.descHeader {
+                          background: #f9fafb;
+                          border-bottom: 1px solid #e5e7eb;
+                          margin-top: 10px;
+                          text-align: left;
+                          padding: 10px;
+                      }
+                      .responsive-container-cd td.valueCell, 
+                      .responsive-container-cd td.descCell {
+                          padding: 10px;
+                          border-bottom: 1px solid #e5e7eb;
+                      }
+                      .responsive-container-cd td.descCell {
+                          min-height: 100px;
+                      }
+                  }
+
+                  /* Modal Styles Matching App Theme */
+                  .cd-modal-overlay {
+                      position: fixed;
+                      top: 0; left: 0; right: 0; bottom: 0;
+                      background: rgba(17, 24, 39, 0.4);
+                      display: flex;
+                      align-items: center;
+                      justify-content: center;
+                      z-index: 9999;
+                  }
+                  .cd-modal-content {
+                      background: white;
+                      padding: 24px;
+                      border-radius: 8px;
+                      width: 90%;
+                      max-width: 450px;
+                      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+                  }
+                  .cd-modal-title {
+                      font-size: 18px;
+                      font-weight: 700;
+                      color: #111827;
+                      margin-bottom: 12px;
+                  }
+                  .cd-modal-text {
+                      font-size: 14px;
+                      color: #4b5563;
+                      margin-bottom: 20px;
+                      line-height: 1.5;
+                  }
+                  .cd-modal-actions {
+                      display: flex;
+                      justify-content: flex-end;
+                      gap: 12px;
+                  }
+                  .cd-btn-cancel {
+                      padding: 8px 16px;
+                      background: #f3f4f6;
+                      color: #374151;
+                      border: none;
+                      border-radius: 4px;
+                      font-weight: 500;
+                      cursor: pointer;
+                  }
+                  .cd-btn-confirm {
+                      padding: 8px 16px;
+                      background: #6366f1;
+                      color: white;
+                      border: none;
+                      border-radius: 4px;
+                      font-weight: 500;
+                      cursor: pointer;
+                  }
+                \`}
+            </style>
+
+            <div className="cd-header-line">
+                <button 
+                    className={\`cd-edit-btn \${isEditing ? 'save-mode' : ''}\`} 
+                    onClick={handleEditToggle}
+                >
+                    {isEditing ? (
+                        <>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+                            Save Details
+                        </>
+                    ) : (
+                        <>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                            Edit
+                        </>
+                    )}
+                </button>
+            </div>
+
             <div className={stylesB.courseDetailsContainer}>
-                <table className={stylesB.documentTable}>
+                <table className={stylesB.documentTable} style={{ width: '100%', tableLayout: 'fixed' }}>
                     <tbody>
                     <tr>
-                        <th className={stylesB.labelCell}>Course No.</th>
-                        <td className={stylesB.valueCell}>{courseDetailsData?.code || ''}</td>
-                        <th className={stylesB.descHeader}>Course Description</th>
+                        <th className={stylesB.labelCell} style={{ width: '25%' }}>Course No.</th>
+                        <td className={stylesB.valueCell} style={{ width: '30%' }}>{renderCell('code')}</td>
+                        <th className={stylesB.descHeader} style={{ width: '45%' }}>Course Description</th>
                     </tr>
 
                     <tr>
                         <th className={stylesB.labelCell}>Course Title</th>
-                        <td className={stylesB.valueCell}><strong>{courseDetailsData?.name || ''}</strong></td>
+                        <td className={stylesB.valueCell}>{renderCell('name', true)}</td>
                         <td rowSpan="9" className={stylesB.descCell}>
-                            {courseDetailsData?.description || ''}
+                            {renderTextArea('description')}
                         </td>
                     </tr>
 
                     <tr>
                         <th className={stylesB.labelCell}>Credit</th>
-                        <td className={stylesB.valueCell}>{courseDetailsData?.credits || ''}</td>
+                        <td className={stylesB.valueCell}>{renderCell('credits')}</td>
                     </tr>
 
                     <tr>
                         <th className={stylesB.labelCell}>Contact Hours/Week</th>
-                        <td className={stylesB.valueCell}>{courseDetailsData?.contact || ''}</td>
+                        <td className={stylesB.valueCell}>{renderCell('contact')}</td>
                     </tr>
 
                     <tr>
                         <th className={stylesB.labelCell}>Pre-requisites</th>
-                        <td className={stylesB.valueCell}>{courseDetailsData?.prerequisites || ''}</td>
+                        <td className={stylesB.valueCell}>{renderCell('prerequisites')}</td>
                     </tr>
 
                     <tr>
                         <th className={stylesB.labelCell}>Classification/Field</th>
-                        <td className={stylesB.valueCell}>{courseDetailsData?.class || ''}</td>
+                        <td className={stylesB.valueCell}>{renderCell('class')}</td>
                     </tr>
 
                     <tr>
                         <th className={stylesB.labelCell}>CMO</th>
-                        <td className={stylesB.valueCell}>{courseDetailsData?.cmo || ''}</td>
+                        <td className={stylesB.valueCell}>{renderCell('cmo')}</td>
                     </tr>
 
                     <tr>
                         <th className={stylesB.labelCell}>Syllabus Revision No.</th>
-                        <td className={stylesB.valueCell}>{courseDetailsData?.revision ?? 0}</td>
+                        <td className={stylesB.valueCell}>{renderCell('revision')}</td>
                     </tr>
 
                     <tr>
                         <th className={stylesB.labelCell}>Year Level</th>
-                        <td className={stylesB.valueCell}>{courseDetailsData?.year || ''}</td>
+                        <td className={stylesB.valueCell}>{renderCell('year')}</td>
                     </tr>
 
                     <tr>
                         <th className={stylesB.labelCell}>Term</th>
-                        <td className={stylesB.valueCell}>{courseDetailsData?.sem || ''}</td>
+                        <td className={stylesB.valueCell}>{renderCell('sem')}</td>
                     </tr>
                     </tbody>
                 </table>
             </div>
+
+            {showConfirm && (
+                <div className="cd-modal-overlay">
+                    <div className="cd-modal-content">
+                        <div className="cd-modal-title">Confirm Changes</div>
+                        <div className="cd-modal-text">
+                            <strong>Caution:</strong> The data in this Course Details section originates from a central curriculum source and is generally expected to be correct. Modifying these details will update the underlying course configuration. 
+                            <br/><br/>
+                            Are you certain you want to commit these changes?
+                        </div>
+                        <div className="cd-modal-actions">
+                            <button className="cd-btn-cancel" onClick={() => setShowConfirm(false)} disabled={isSaving}>Cancel</button>
+                            <button className="cd-btn-confirm" onClick={handleSaveConfirm} disabled={isSaving}>
+                                {isSaving ? 'Saving...' : 'Yes, Save Changes'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </section>
     );
 };

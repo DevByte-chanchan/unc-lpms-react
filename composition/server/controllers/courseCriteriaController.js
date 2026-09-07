@@ -63,6 +63,7 @@ async function getCourseCriteriaByPcOffering(req, res) {
                 if (!iloRecord) {
                     ilos.push({
                         id: iloLabel,
+                    dbId: iloRecord ? iloRecord.ilo_id : null,
                         assessments: '',
                         weight: { prelim: '', midterm: '', semi: '', final: '' },
                         minPassing: 60
@@ -121,6 +122,7 @@ async function getCourseCriteriaByPcOffering(req, res) {
 
                 ilos.push({
                     id: iloLabel,
+                    dbId: iloRecord ? iloRecord.ilo_id : null,
                     assessments: assessmentNames.length ? assessmentNames : '',
                     weight: weightForRender,
                     minPassing: minPassingValue
@@ -137,4 +139,51 @@ async function getCourseCriteriaByPcOffering(req, res) {
     }
 }
 
-module.exports = { getCourseCriteriaByPcOffering };
+module.exports = { getCourseCriteriaByPcOffering, updateCourseCriteriaByPcOffering };
+async function updateCourseCriteriaByPcOffering(req, res) {
+    try {
+        const { pcId, revNum } = req.params;
+        const { gradingSystem } = req.body;
+
+        if (!pcId || !revNum || !gradingSystem) return res.status(400).json({ message: 'Missing parameters' });
+
+        // Iterate through gradingSystem updates sent from frontend
+        for (const group of gradingSystem) {
+            for (let iloPos = 0; iloPos < group.ilos.length; iloPos++) {
+                const iloData = group.ilos[iloPos];
+                if (!iloData.dbId) continue; // Note: We need UI to pass the actual ilo_id!
+
+                // Find TLA ids for this ILO
+                const iloTopics = await ILOTopic.findAll({ where: { ilo_id: iloData.dbId }, raw: true });
+                const iloTopicIds = iloTopics.map(t => t.ilo_topic_id);
+                
+                const topicTlaRows = await TopicTLA.findAll({ where: { ilo_topic_id: iloTopicIds }, raw: true });
+                const tlaIds = topicTlaRows.map(t => t.tla_id);
+                
+                if (tlaIds.length === 0) continue; // No TLA to attach assessment to
+
+                // Delete old assessments for these TLAs
+                await TLAAssessment.destroy({ where: { tla_id: tlaIds } });
+
+                // Create new assessments based on the edited weights
+                const periods = ['prelim', 'midterm', 'semi', 'final'];
+                for (const p of periods) {
+                    if (iloData.weight && iloData.weight[p]) {
+                        await TLAAssessment.create({
+                            tla_id: tlaIds[0], // attach to first TLA
+                            name: Array.isArray(iloData.assessments) ? iloData.assessments.join(', ') : iloData.assessments,
+                            period: p,
+                            weight: parseFloat(iloData.weight[p]) || 0,
+                            min_passing: parseFloat(iloData.minPassing) || 60
+                        });
+                    }
+                }
+            }
+        }
+
+        return res.json({ message: 'Grading criteria updated' });
+    } catch (err) {
+        console.error('updateCourseCriteria error', err);
+        return res.status(500).json({ message: 'Internal server error' });
+    }
+}

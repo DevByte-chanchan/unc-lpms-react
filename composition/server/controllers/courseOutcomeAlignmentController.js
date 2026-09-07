@@ -78,4 +78,42 @@ async function getCourseProgramOutcomeAlignment(req, res) {
     }
 }
 
-module.exports = { getCourseProgramOutcomeAlignment };
+module.exports = { getCourseProgramOutcomeAlignment, updateCourseProgramOutcomeAlignment };
+async function updateCourseProgramOutcomeAlignment(req, res) {
+    try {
+        const { pcId, revNum } = req.params;
+        const { courseOutcomes, programOutcomes } = req.body;
+
+        if (!pcId || !revNum || !courseOutcomes || !programOutcomes) 
+            return res.status(400).json({ message: 'Missing parameters' });
+
+        // Iterate through all courseOutcomes and perform an upsert on ProgramOutcomeAlignment
+        for (const co of courseOutcomes) {
+            for (let i = 0; i < co.poMappings.length; i++) {
+                const attainLevel = co.poMappings[i] || null;
+                const poId = programOutcomes[i].po_id;
+
+                if (attainLevel) {
+                    const existing = await ProgramOutcomeAlignment.findOne({ where: { co_id: co.id, po_id: poId } });
+                    if (existing) {
+                        existing.attainment_level = attainLevel;
+                        await existing.save();
+                    } else {
+                        await ProgramOutcomeAlignment.create({
+                            co_id: co.id,
+                            po_id: poId,
+                            attainment_level: attainLevel
+                        });
+                    }
+                } else {
+                    // Destroy if empty
+                    await ProgramOutcomeAlignment.destroy({ where: { co_id: co.id, po_id: poId } });
+                }
+            }
+        }
+        return res.json({ message: 'Successfully updated' });
+    } catch (err) {
+        console.error('updateCourseProgramOutcomeAlignment error', err);
+        return res.status(500).json({ message: 'Internal server error' });
+    }
+}

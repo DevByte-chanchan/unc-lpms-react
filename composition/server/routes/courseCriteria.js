@@ -8,3 +8,4 @@ const { getCourseCriteriaByPcOffering } = require('../controllers/courseCriteria
 router.get('/:pcId/:revNum', getCourseCriteriaByPcOffering);
 
 module.exports = router;
+router.put('/:pcId/:revNum', courseCriteriaController.updateCourseCriteriaByPcOffering);

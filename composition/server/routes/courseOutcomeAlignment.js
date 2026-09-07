@@ -7,3 +7,4 @@ const { getCourseProgramOutcomeAlignment } = require('../controllers/courseOutco
 router.get('/:pcId/:revNum', getCourseProgramOutcomeAlignment);
 
 module.exports = router;
+router.put('/:pcId/:revNum', courseOutcomeAlignmentController.updateCourseProgramOutcomeAlignment);
