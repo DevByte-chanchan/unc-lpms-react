@@ -1,11 +1,8 @@
-// routes/courseCriteria.js
 const express = require('express');
 const router = express.Router();
-// Updated import to reflect the version-controlled controller function name
-const { getCourseCriteriaByPcOffering } = require('../controllers/courseCriteriaController');
+const { getCourseCriteriaByPcOffering, updateCourseCriteriaByPcOffering } = require('../controllers/courseCriteriaController');
 
-// GET /api/course-criteria/:pcId/:revNum
 router.get('/:pcId/:revNum', getCourseCriteriaByPcOffering);
+router.put('/:pcId/:revNum', updateCourseCriteriaByPcOffering);
 
 module.exports = router;
-router.put('/:pcId/:revNum', courseCriteriaController.updateCourseCriteriaByPcOffering);
