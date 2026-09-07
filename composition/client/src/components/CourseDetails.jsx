@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-const CourseDetails = ({ offeringID, revisionNum, stylesB, fetchJson }) => {
+const CourseDetails = ({ offeringID, revisionNum, stylesB, fetchJson, isReadOnly = false }) => {
     const [courseDetailsData, setCourseDetailsData] = useState({
         code: '', name: '', description: '', credits: '', contact: '',
         prerequisites: '', class: '', cmo: '', revision: 0, year: '', sem: ''
@@ -114,7 +114,8 @@ const CourseDetails = ({ offeringID, revisionNum, stylesB, fetchJson }) => {
     };
 
     return (
-        <section className="responsive-container-root">
+        <React.Fragment>
+            {!isReadOnly && (
             <div className="matrix-btns-container">
                 {isEditing && (
                     <button className="matrix-cancel-btn" onClick={() => { setIsEditing(false); setShowConfirm(false); }}>
@@ -138,8 +139,9 @@ const CourseDetails = ({ offeringID, revisionNum, stylesB, fetchJson }) => {
                     )}
                 </button>
             </div>
+            )}
 
-            <div className={stylesB.courseDetailsContainer}>
+            <div className={stylesB.courseDetailsContainer} style={{ overflowX: "auto", paddingBottom: "15px", width: "100%" }}>
                 <table className={stylesB.documentTable} style={{ width: '100%', tableLayout: 'fixed' }}>
                     <tbody>
                     <tr>
@@ -217,7 +219,7 @@ const CourseDetails = ({ offeringID, revisionNum, stylesB, fetchJson }) => {
                     </div>
                 </div>
             )}
-        </section>
+        </React.Fragment>
     );
 };
 

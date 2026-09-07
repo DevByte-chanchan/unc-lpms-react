@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Inbox } from "react-feather";
 
-const OutcomeAlignment = ({ offeringID, revisionNum, styles, stylesB, fetchJson }) => {
+const OutcomeAlignment = ({ offeringID, revisionNum, styles, stylesB, fetchJson, isReadOnly = false }) => {
     const [cpaData, setCpaData] = useState({
         course: { code: '', title: '' }, programOutcomes: [], courseOutcomes: []
     });
@@ -105,7 +105,7 @@ const OutcomeAlignment = ({ offeringID, revisionNum, styles, stylesB, fetchJson 
     };
 
     return (
-        <section className="responsive-container-root">
+        <React.Fragment>
             <div className={stylesB['cpa-container']} style={{ padding: '0' }}>
                 
                 <div className="matrix-flex-header" style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", width: "100%", marginBottom: "15px" }}>
@@ -118,6 +118,7 @@ const OutcomeAlignment = ({ offeringID, revisionNum, styles, stylesB, fetchJson 
                         </div>
                     </div>
                     
+                    {!isReadOnly && (
                     <div style={{ display: "flex", gap: "10px" }}>
                         {isEditing && (
                             <button className="matrix-cancel-btn" onClick={() => { setIsEditing(false); setShowConfirm(false); }}>
@@ -141,6 +142,7 @@ const OutcomeAlignment = ({ offeringID, revisionNum, styles, stylesB, fetchJson 
                             )}
                         </button>
                     </div>
+                )}
                 </div>
 
                 <div style={{ border: "none", overflowX: "auto", width: "100%", paddingBottom: "15px" }} className={stylesB.tableScrollWrapper}>
@@ -204,7 +206,7 @@ const OutcomeAlignment = ({ offeringID, revisionNum, styles, stylesB, fetchJson 
                     </div>
                 </div>
             )}
-        </section>
+        </React.Fragment>
     );
 };
 

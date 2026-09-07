@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-const CriteriaForGrading = ({ offeringID, revisionNum, status, styles, stylesB, fetchJson }) => {
+const CriteriaForGrading = ({ offeringID, revisionNum, status, styles, stylesB, fetchJson, isReadOnly = false }) => {
     const [criteriaData, setCriteriaData] = useState({ gradingSystem: [] });
     
     const [isEditing, setIsEditing] = useState(false);
@@ -114,7 +114,8 @@ const CriteriaForGrading = ({ offeringID, revisionNum, status, styles, stylesB, 
     if (criteriaError) return <div className={stylesB.errorContainer}>Error: {criteriaError}</div>;
 
     return (
-        <section className="responsive-container-root">
+        <React.Fragment>
+            {!isReadOnly && (
             <div className="matrix-btns-container">
                 {isEditing && (
                     <button className="matrix-cancel-btn" onClick={() => { setIsEditing(false); setShowConfirm(false); }}>
@@ -138,8 +139,9 @@ const CriteriaForGrading = ({ offeringID, revisionNum, status, styles, stylesB, 
                     )}
                 </button>
             </div>
+            )}
 
-            <div className={stylesB.gradingContainer + " cfg-table-wrapper"}>
+            <div className={stylesB.gradingContainer + " cfg-table-wrapper"} style={{ overflowX: "auto", paddingBottom: "15px", width: "100%" }}>
                 <table className={stylesB.documentTable + " mobile-grading-table"}>
                     <thead>
                     <tr>
@@ -246,7 +248,7 @@ const CriteriaForGrading = ({ offeringID, revisionNum, status, styles, stylesB, 
                     </div>
                 </div>
             )}
-        </section>
+        </React.Fragment>
     );
 };
 

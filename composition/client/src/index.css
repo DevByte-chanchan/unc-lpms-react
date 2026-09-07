@@ -408,9 +408,9 @@ th, td {
 /* Safe Container Scaling */
 .responsive-container-root {
     width: 100%;
-    overflow-x: auto;
-    padding-bottom: 15px; /* safe breathing room for scrollbar */
+    box-sizing: border-box;
 }
+
 .cfg-table-wrapper {
     width: 100%;
     overflow-x: auto;

@@ -55,8 +55,7 @@ const SyllabusPreview = ({ isOpen, onClose, pcId: propPcId, revNum: propRevNum, 
 
                     {/* ---------------- COURSE DETAILS ---------------- */}
                     {selectedSection === 'Course Details' && (
-                        <CourseDetails
-                            offeringID={currentPcId}
+                        <CourseDetails isReadOnly={true} offeringID={currentPcId}
                             revisionNum={currentRevNum}
                             stylesB={stylesB}
                             fetchJson={fetchJson}
@@ -65,8 +64,7 @@ const SyllabusPreview = ({ isOpen, onClose, pcId: propPcId, revNum: propRevNum, 
 
                     {/* ---------------- CO PO ALIGNMENT ---------------- */}
                     {selectedSection === 'Course and Program Outcome Alignment' && (
-                        <OutcomeAlignment
-                            offeringID={currentPcId}
+                        <OutcomeAlignment isReadOnly={true} offeringID={currentPcId}
                             revisionNum={currentRevNum}
                             styles={styles}
                             stylesB={stylesB}
@@ -102,8 +100,7 @@ const SyllabusPreview = ({ isOpen, onClose, pcId: propPcId, revNum: propRevNum, 
 
                     {/* ---------------- CRITERIA FOR GRADING ---------------- */}
                     {selectedSection === 'Criteria for Grading' && (
-                        <CriteriaForGrading
-                            offeringID={currentPcId}
+                        <CriteriaForGrading isReadOnly={true} offeringID={currentPcId}
                             revisionNum={currentRevNum}
                             status={status}
                             styles={styles}
