@@ -25,16 +25,14 @@ const ILOs = ({ offeringID, revisionNum, status, styles, fetchJson }) => {
                 if (!mounted) return;
                 const processedILOs = [];
                 let coDisplayCounter = 1;
-                let globalWeek = 1;
 
                 // Process COs and ILOs directly during fetch to assign sequences predictably for searching
                 for (const co of data.courseOutcomes) {
                     co.ilos.sort((a, b) => a.id - b.id);
                     let iloDisplaySequence = 1;
-                    const isCourseOrientationCO1 = (coDisplayCounter === 1 && co.ilos.length === 4);
                     
                     co.ilos.forEach((ilo, index) => {
-                        let isOrientation = (isCourseOrientationCO1 && index === 0);
+                        let isOrientation = ilo.isOrientation;
                         let iloNumber = isOrientation ? 0 : iloDisplaySequence;
                         let label = isOrientation ? "Course Orientation" : `CO ${coDisplayCounter} - ILO ${iloNumber}`;
                         
@@ -44,12 +42,10 @@ const ILOs = ({ offeringID, revisionNum, status, styles, fetchJson }) => {
                             coNumber: coDisplayCounter,
                             iloNumber: iloNumber,
                             isOrientation: isOrientation,
-                            entryLabel: label,
-                            weekStatic: globalWeek
+                            entryLabel: label
                         });
                         
                         if (!isOrientation) iloDisplaySequence++;
-                        globalWeek++;
                     });
                     coDisplayCounter++;
                 }
@@ -193,8 +189,8 @@ const ILOs = ({ offeringID, revisionNum, status, styles, fetchJson }) => {
                                         }}>
                                             {ilo.description}
                                         </td>
-                                        <td width={130} style={{ color: '#4b5563', fontSize: '13px', flexShrink: 0 }}>
-                                            Week {ilo.weekStatic} &bull; 3 Hr
+                                        <td width={190} style={{ color: '#4b5563', fontSize: '13px', flexShrink: 0 }}>
+                                            {ilo.formattedWeekStr} &bull; {ilo.hours} Hr
                                         </td>
                                         <td className={styles.fill} style={{ width: 'auto', minWidth: '160px', flexShrink: 0, paddingRight: '15px' }}>
                                             {/* Using standard outlined mapContentsBtn border */}
@@ -257,7 +253,7 @@ const ILOs = ({ offeringID, revisionNum, status, styles, fetchJson }) => {
                                             <div className={styles.iloGridBox_Header}>
                                                 <span className={styles.iloGridBox_Title}>Course Orientation</span>
                                                 <span className={styles.iloGridBox_Meta}>
-                                                    Week {courseOrientation.weekStatic} &bull; 3 Hours
+                                                    {courseOrientation.formattedWeekStr} &bull; {courseOrientation.hours} Hrs
                                                 </span>
                                             </div>
                                             <div className={styles.iloGridBox_Desc}>
@@ -292,7 +288,7 @@ const ILOs = ({ offeringID, revisionNum, status, styles, fetchJson }) => {
                                                                         ILO {ilo.iloNumber}
                                                                     </span>
                                                                     <span className={styles.iloGridBox_Meta}>
-                                                                        Week {ilo.weekStatic} &bull; 3 Hours
+                                                                        {ilo.formattedWeekStr} &bull; {ilo.hours} Hrs
                                                                     </span>
                                                                 </div>
                                                                 <div className={styles.iloGridBox_Desc}>
