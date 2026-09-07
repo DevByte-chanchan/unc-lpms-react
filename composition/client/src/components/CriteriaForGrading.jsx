@@ -1,36 +1,31 @@
 import React, { useState, useEffect } from 'react';
+import { Inbox } from 'react-feather';
 
 const CriteriaForGrading = ({ offeringID, revisionNum, status, styles, stylesB, fetchJson, isReadOnly = false }) => {
-    const [criteriaData, setCriteriaData] = useState({ gradingSystem: [] });
-    
+    const [cfgData, setCfgData] = useState([]);
+    const [cfgLoading, setCfgLoading] = useState(false);
+    const [cfgError, setCfgError] = useState(null);
     const [isEditing, setIsEditing] = useState(false);
     const [editData, setEditData] = useState([]);
     const [showConfirm, setShowConfirm] = useState(false);
-    const [isSaving, setIsSaving] = useState(false);
-
-    const [criteriaLoading, setCriteriaLoading] = useState(false);
-    const [criteriaError, setCriteriaError] = useState(null);
 
     useEffect(() => {
         if (!offeringID || !revisionNum) return;
         let mounted = true;
 
         async function fetchCriteria() {
-            setCriteriaLoading(true);
-            setCriteriaError(null);
+            setCfgLoading(true);
+            setCfgError(null);
             try {
                 const data = await fetchJson(`/api/course-criteria/${offeringID}/${revisionNum}`);
                 if (!mounted) return;
-                setCriteriaData({
-                    gradingSystem: Array.isArray(data.gradingSystem) ? data.gradingSystem : []
-                });
+                setCfgData(data ?? []);
             } catch (err) {
-                console.error('fetchCriteria error', err);
+                console.error(err);
                 if (!mounted) return;
-                setCriteriaError(err.message);
-                setCriteriaData({ gradingSystem: [] });
+                setCfgError(err.message);
             } finally {
-                if (mounted) setCriteriaLoading(false);
+                if (mounted) setCfgLoading(false);
             }
         }
         fetchCriteria();
@@ -41,80 +36,52 @@ const CriteriaForGrading = ({ offeringID, revisionNum, status, styles, stylesB, 
         if (isEditing) {
             setShowConfirm(true);
         } else {
-            setEditData(JSON.parse(JSON.stringify(criteriaData.gradingSystem)));
+            setEditData(JSON.parse(JSON.stringify(cfgData)));
             setIsEditing(true);
         }
     };
 
-    const handleSaveConfirm = async () => {
-        setIsSaving(true);
-        try {
-            await fetch(`/api/course-criteria/${offeringID}/${revisionNum}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ gradingSystem: editData })
-            });
-            setCriteriaData({ gradingSystem: editData });
-            setIsEditing(false);
-            setShowConfirm(false);
-        } catch (e) {
-            console.error('Failed to save criteria', e);
-            alert('Failed to save criteria');
-        } finally {
-            setIsSaving(false);
-        }
-    };
-
-    const handleChange = (coIndex, iloIndex, field, value, isWeight = false) => {
+    const handleTlaChange = (coIndex, iloIndex, tlaIndex, field, value) => {
         setEditData(prev => {
             const upd = [...prev];
-            if (isWeight) {
-                upd[coIndex].ilos[iloIndex].weight[field] = value;
-            } else {
-                upd[coIndex].ilos[iloIndex][field] = value;
-            }
+            upd[coIndex].ilos[iloIndex].tlassessments[tlaIndex][field] = value;
             return upd;
         });
     };
 
-    const renderInput = (coIndex, iloIndex, field, isWeight = false) => {
-        const ilo = isEditing ? editData[coIndex].ilos[iloIndex] : criteriaData.gradingSystem[coIndex].ilos[iloIndex];
-        const val = isWeight ? (ilo.weight ? ilo.weight[field] : '') : ilo[field];
-        
-        let displayVal = val;
-        if (!isEditing && Array.isArray(val)) displayVal = val.join(', ');
-
-        if (isEditing) {
-            return (
-                <input
-                    type="text"
-                    value={displayVal || ''}
-                    onChange={(e) => handleChange(coIndex, iloIndex, field, e.target.value, isWeight)}
-                    className="matrix-edit-input matrix-edit-center"
-                />
-            );
-        }
-        return displayVal || '';
-    };
-
-    const calcTotalForPeriod = (period, useEditData = false) => {
-        const source = useEditData ? editData : criteriaData.gradingSystem;
-        let total = 0;
-        source.forEach(group => {
-            group.ilos.forEach(ilo => {
-                const w = parseFloat(ilo.weight ? ilo.weight[period] : 0);
-                if (!isNaN(w)) total += w;
+    const handleSaveConfirm = async () => {
+        try {
+            await fetch(`/api/course-criteria/${offeringID}/${revisionNum}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ criteriaData: editData })
             });
-        });
-        return total;
+
+            setCfgData(editData);
+            setIsEditing(false);
+            setShowConfirm(false);
+        } catch (e) {
+            console.error('Failed to save criteria', e);
+        }
     };
 
-    const currentSystem = isEditing ? editData : criteriaData.gradingSystem;
+    if (cfgLoading) return <div className={stylesB.loadingContainer}>Loading criteria for grading...</div>;
+    if (cfgError) return <div className={stylesB.errorContainer}>Error: {cfgError}</div>;
 
-    if (criteriaError) return <div className={stylesB.errorContainer}>Error: {criteriaError}</div>;
+    const renderInput = (value, coIndex, iloIndex, tlaIndex, field, type="number") => {
+        if (!isEditing) return value !== null && value !== undefined ? (type === "number" && value > 0 ? value + '%' : value) : '';
+        return (
+            <input 
+                type={type} 
+                value={value || ''} 
+                onChange={(e) => handleTlaChange(coIndex, iloIndex, tlaIndex, field, e.target.value)} 
+                className={"matrix-edit-input " + (type==="number" ? "matrix-edit-center" : "")}
+            />
+        );
+    };
 
     return (
-        <React.Fragment>
+        <div style={{ position: "relative" }}>
             {!isReadOnly && (
             <div className="matrix-btns-container">
                 {isEditing && (
@@ -142,88 +109,85 @@ const CriteriaForGrading = ({ offeringID, revisionNum, status, styles, stylesB, 
             )}
 
             <div className={stylesB.gradingContainer + " cfg-table-wrapper"} style={{ overflowX: "auto", paddingBottom: "15px", width: "100%" }}>
-                <table className={stylesB.documentTable + " mobile-grading-table"}>
+                <table className={stylesB.gradingTable}>
                     <thead>
                     <tr>
-                        <th rowSpan="2" className={styles.headerLabel} style={{ width: '10%' }}>Course Outcome</th>
-                        <th rowSpan="2" className={styles.headerLabel} style={{ minWidth: '80px' }}>ILO</th>
-                        <th rowSpan="2" className={styles.headerLabel} style={{ width: '35%' }}>Assessment Strategy</th>
-                        <th colSpan="4" className={styles.headerLabelCenter}>Weight</th>
-                        <th rowSpan="2" className={styles.headerLabelCenter} style={{ width: '10%' }}>Minimum Passing</th>
+                        <th rowSpan="2" className={stylesB.labelCell} style={{ width: '10%' }}>Course Outcome</th>
+                        <th rowSpan="2" className={stylesB.labelCell} style={{ minWidth: '80px' }}>ILO</th>
+                        <th rowSpan="2" className={stylesB.labelCell} style={{ width: '35%' }}>Assessment Strategy</th>
+                        <th colSpan="4" className={stylesB.labelCell} style={{ textAlign: "center" }}>Weight</th>
+                        <th rowSpan="2" className={stylesB.labelCell} style={{ textAlign: "center", width: '10%' }}>Minimum Passing</th>
                     </tr>
                     <tr>
-                        <th className={styles.subHeaderDesc} style={{ minWidth: '60px' }}>Prelim</th>
-                        <th className={styles.subHeaderDesc} style={{ minWidth: '60px' }}>Midterm</th>
-                        <th className={styles.subHeaderDesc} style={{ minWidth: '60px' }}>Semi</th>
-                        <th className={styles.subHeaderDesc} style={{ minWidth: '60px' }}>Final</th>
+                        <th className={stylesB.labelCell} style={{ minWidth: '60px' }}>Prelim</th>
+                        <th className={stylesB.labelCell} style={{ minWidth: '60px' }}>Midterm</th>
+                        <th className={stylesB.labelCell} style={{ minWidth: '60px' }}>Semi</th>
+                        <th className={stylesB.labelCell} style={{ minWidth: '60px' }}>Final</th>
                     </tr>
                     </thead>
                     <tbody>
-                    {criteriaLoading ? (
-                        <tr><td colSpan="8" style={{ textAlign: 'center', padding: '20px' }}>Loading...</td></tr>
-                    ) : currentSystem.length > 0 ? (
-                        currentSystem.map((group, coIndex) => (
-                            <React.Fragment key={group.co}>
-                                {group.ilos.map((ilo, iloIndex) => {
-                                    const displayLabel = "ILO " + (iloIndex + 1);
-                                    return (
-                                        <tr key={group.co + "-" + ilo.id}>
-                                            {iloIndex === 0 && (
-                                                <td rowSpan={group.ilos.length} className={styles.coCell}>
-                                                    <strong>{group.co}</strong>
-                                                </td>
+                    {(isEditing ? editData : cfgData).length > 0 ? (
+                        (isEditing ? editData : cfgData).map((co, coIndex) => (
+                            <React.Fragment key={co.co_id}>
+                                {co.ilos && co.ilos.length > 0 ? (
+                                    co.ilos.map((ilo, iloIndex) => (
+                                        <React.Fragment key={ilo.ilo_id}>
+                                            {ilo.tlassessments && ilo.tlassessments.length > 0 ? (
+                                                ilo.tlassessments.map((tla, tlaIndex) => (
+                                                    <tr key={tla.tla_id}>
+                                                        {iloIndex === 0 && tlaIndex === 0 && (
+                                                            <td rowSpan={co.totalTlaCount} className={stylesB.outcomeCell}>
+                                                                {co.co_description}
+                                                            </td>
+                                                        )}
+                                                        {tlaIndex === 0 && (
+                                                            <td rowSpan={ilo.tlassessments.length} className={stylesB.iloCell}>
+                                                                {ilo.description}
+                                                            </td>
+                                                        )}
+                                                        <td className={stylesB.assessmentCell}>
+                                                            {renderInput(tla.assessment_tool, coIndex, iloIndex, tlaIndex, 'assessment_tool', 'text')}
+                                                        </td>
+                                                        <td className={stylesB.weightCell}>{renderInput(tla.prelim_weight, coIndex, iloIndex, tlaIndex, 'prelim_weight')}</td>
+                                                        <td className={stylesB.weightCell}>{renderInput(tla.midterm_weight, coIndex, iloIndex, tlaIndex, 'midterm_weight')}</td>
+                                                        <td className={stylesB.weightCell}>{renderInput(tla.semifinal_weight, coIndex, iloIndex, tlaIndex, 'semifinal_weight')}</td>
+                                                        <td className={stylesB.weightCell}>{renderInput(tla.finals_weight, coIndex, iloIndex, tlaIndex, 'finals_weight')}</td>
+                                                        <td className={stylesB.weightCell}>{renderInput(tla.minimum_passing, coIndex, iloIndex, tlaIndex, 'minimum_passing')}</td>
+                                                    </tr>
+                                                ))
+                                            ) : (
+                                                <tr key={`empty-tla-${ilo.ilo_id}`}>
+                                                    {iloIndex === 0 && (
+                                                        <td rowSpan={co.totalTlaCount || 1} className={stylesB.outcomeCell}>
+                                                            {co.co_description}
+                                                        </td>
+                                                    )}
+                                                    <td className={stylesB.iloCell}>
+                                                        {ilo.description}
+                                                    </td>
+                                                    <td colSpan="6" className={stylesB.emptyDataCell}>No assessments listed.</td>
+                                                </tr>
                                             )}
-                                            <td className={styles.dataCellCenter}>
-                                                <span style={{ fontWeight: '500' }}>{displayLabel}</span>
-                                            </td>
-                                            <td className={styles.dataCellCenter}>
-                                                {renderInput(coIndex, iloIndex, 'assessments', false)}
-                                            </td>
-                                            <td className={stylesB.dataCellCenter}>
-                                                {renderInput(coIndex, iloIndex, 'prelim', true)}
-                                            </td>
-                                            <td className={stylesB.dataCellCenter}>
-                                                {renderInput(coIndex, iloIndex, 'midterm', true)}
-                                            </td>
-                                            <td className={stylesB.dataCellCenter}>
-                                                {renderInput(coIndex, iloIndex, 'semi', true)}
-                                            </td>
-                                            <td className={stylesB.dataCellCenter}>
-                                                {renderInput(coIndex, iloIndex, 'final', true)}
-                                            </td>
-                                            <td className={stylesB.dataCellCenter}>
-                                                {renderInput(coIndex, iloIndex, 'minPassing', false)}
-                                            </td>
-                                        </tr>
-                                    );
-                                })}
+                                        </React.Fragment>
+                                    ))
+                                ) : (
+                                    <tr key={`empty-ilo-${co.co_id}`}>
+                                        <td className={stylesB.outcomeCell}>
+                                            {co.co_description}
+                                        </td>
+                                        <td colSpan="7" className={stylesB.emptyDataCell}>No ILOs listed.</td>
+                                    </tr>
+                                )}
                             </React.Fragment>
                         ))
                     ) : (
                         <tr>
-                            <td colSpan="8" style={{ textAlign: 'center', padding: '30px' }}>
-                                No grading criteria configured.
+                            <td colSpan="8" className={stylesB.emptyDataCell}>
+                                <div style={{ textAlign: 'center', padding: '30px' }}>
+                                    <Inbox size={40} strokeWidth={1} style={{ display: 'block', margin: '0 auto 10px' }} />
+                                    <span>No criteria for grading found.</span>
+                                </div>
                             </td>
-                        </tr>
-                    )}
-                    {currentSystem.length > 0 && (
-                        <tr className={styles.totalsRow}>
-                            <td colSpan="3" className={styles.coCell} style={{ textAlign: 'right', paddingRight: '15px' }}>
-                                <strong>TOTAL</strong>
-                            </td>
-                            <td className={stylesB.dataCellCenter}>
-                                <strong>{calcTotalForPeriod('prelim', isEditing)}%</strong>
-                            </td>
-                            <td className={stylesB.dataCellCenter}>
-                                <strong>{calcTotalForPeriod('midterm', isEditing)}%</strong>
-                            </td>
-                            <td className={stylesB.dataCellCenter}>
-                                <strong>{calcTotalForPeriod('semi', isEditing)}%</strong>
-                            </td>
-                            <td className={stylesB.dataCellCenter}>
-                                <strong>{calcTotalForPeriod('final', isEditing)}%</strong>
-                            </td>
-                            <td className={stylesB.dataCellCenter}></td>
                         </tr>
                     )}
                     </tbody>
@@ -235,20 +199,18 @@ const CriteriaForGrading = ({ offeringID, revisionNum, status, styles, stylesB, 
                     <div className="matrix-modal-content">
                         <div className="matrix-modal-title">Confirm Changes</div>
                         <div className="matrix-modal-text">
-                            <strong>Caution:</strong> Criteria for Grading originates from the baseline TLA Assessment mappings. Continuing will permanently override these base metrics in the source syllabus tracking configuration.
+                            <strong>Caution:</strong> Grading criteria matrices calculate exact percentage weights across terms. Changing these can deeply affect student grading logic.
                             <br/><br/>
-                            Are you certain you want to push these new grading criteria?
+                            Are you certain you want to commit these weights?
                         </div>
                         <div className="matrix-modal-actions">
-                            <button className="matrix-btn-cancel" onClick={() => setShowConfirm(false)} disabled={isSaving}>Cancel</button>
-                            <button className="matrix-btn-confirm" onClick={handleSaveConfirm} disabled={isSaving}>
-                                {isSaving ? 'Saving...' : 'Yes, Modify Criteria'}
-                            </button>
+                            <button className="matrix-btn-cancel" onClick={() => setShowConfirm(false)}>Cancel</button>
+                            <button className="matrix-btn-confirm" onClick={handleSaveConfirm}>Yes, Save Criteria</button>
                         </div>
                     </div>
                 </div>
             )}
-        </React.Fragment>
+        </div>
     );
 };
 

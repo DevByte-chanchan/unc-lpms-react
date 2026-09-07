@@ -114,7 +114,7 @@ const CourseDetails = ({ offeringID, revisionNum, stylesB, fetchJson, isReadOnly
     };
 
     return (
-        <React.Fragment>
+        <div style={{ position: "relative" }}>
             {!isReadOnly && (
             <div className="matrix-btns-container">
                 {isEditing && (
@@ -219,7 +219,7 @@ const CourseDetails = ({ offeringID, revisionNum, stylesB, fetchJson, isReadOnly
                     </div>
                 </div>
             )}
-        </React.Fragment>
+        </div>
     );
 };
 

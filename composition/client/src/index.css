@@ -227,7 +227,7 @@ th, td {
     justify-content: center;
     align-items: center;
     padding: 0 15px;
-    border-radius: 4px;
+    border-radius: 20px;
     cursor: pointer;
 }
 
@@ -274,7 +274,7 @@ th, td {
     border: 1px solid #d1d5db;
     color: #374151;
     padding: 6px 16px;
-    border-radius: 4px;
+    border-radius: 20px;
     font-size: 14px;
     font-weight: 600;
     cursor: pointer;
@@ -319,7 +319,7 @@ th, td {
 
 .matrix-edit-textarea {
     resize: vertical;
-    min-height: 120px;
+    min-height: 250px;
 }
 
 .matrix-edit-select {
@@ -379,7 +379,7 @@ th, td {
     background: #f3f4f6;
     color: #374151;
     border: none;
-    border-radius: 4px;
+    border-radius: 20px;
     font-weight: 500;
     cursor: pointer;
 }
@@ -389,7 +389,7 @@ th, td {
     background: #6366f1;
     color: white;
     border: none;
-    border-radius: 4px;
+    border-radius: 20px;
     font-weight: 500;
     cursor: pointer;
 }
@@ -418,19 +418,13 @@ th, td {
 .mobile-grading-table {
     min-width: 800px;
 }
-.matrix-btns-container {
-    display: flex;
-    justify-content: flex-end;
-    gap: 12px;
-    margin-bottom: 12px;
-    width: 100%;
-}
+
 .matrix-cancel-btn {
     background-color: transparent;
     border: 1px solid #d1d5db;
     color: #4b5563;
     padding: 6px 16px;
-    border-radius: 4px;
+    border-radius: 20px;
     font-size: 14px;
     font-weight: 600;
     cursor: pointer;
@@ -438,4 +432,41 @@ th, td {
 }
 .matrix-cancel-btn:hover {
     background-color: #f3f4f6;
+}
+
+/* UI Refinements */
+.matrix-btns-container {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    z-index: 20;
+}
+
+.matrix-edit-btn, .matrix-cancel-btn {
+    border-radius: 9999px !important;
+    padding: 6px 18px !important;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    transform: none !important;
+    transition: background-color 0.2s !important;
+}
+.matrix-edit-btn:hover, .matrix-cancel-btn:hover {
+    transform: none !important;
+    border: 1px solid #d1d5db; /* Stop border random styling! */
+}
+
+.matrix-edit-btn.save-mode {
+    background-color: #ef4444 !important; /* Red */
+    border-color: #dc2626 !important;
+}
+
+.matrix-edit-btn.save-mode:hover {
+    background-color: #dc2626 !important;
+}
+
+/* Stop row moving hovers! */
+tr, tr:hover, tbody tr, tbody tr:hover, th, th:hover, td, td:hover {
+    transform: none !important;
 }
