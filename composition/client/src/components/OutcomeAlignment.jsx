@@ -107,7 +107,7 @@ const OutcomeAlignment = ({ offeringID, revisionNum, styles, stylesB, fetchJson 
     return (
         <section className="responsive-container-root">
             <div className={stylesB['cpa-container']} style={{ padding: '0' }}>
-                <div className="matrix-flex-header">
+                <div className="matrix-btns-container">
                     <div className={stylesB.legend} style={{ margin: 0, padding: 0, background: 'transparent' }}>
                         <span className={stylesB.legendTitle}>Legend:</span>
                         <div className={stylesB.legendItems}>
@@ -116,7 +116,12 @@ const OutcomeAlignment = ({ offeringID, revisionNum, styles, stylesB, fetchJson 
                             <span><strong>D</strong>  Demonstrative</span>
                         </div>
                     </div>
-                    <button 
+                    {isEditing && (
+                    <button className="matrix-cancel-btn" onClick={() => { setIsEditing(false); setShowConfirm(false); }}>
+                        Cancel
+                    </button>
+                )}
+                <button 
                         className={"matrix-edit-btn " + (isEditing ? "save-mode" : "")} 
                         onClick={handleEditToggle}
                     >

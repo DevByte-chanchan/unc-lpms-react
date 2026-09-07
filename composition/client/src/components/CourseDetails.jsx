@@ -115,7 +115,12 @@ const CourseDetails = ({ offeringID, revisionNum, stylesB, fetchJson }) => {
 
     return (
         <section className="responsive-container-root">
-            <div className="matrix-header-line">
+            <div className="matrix-btns-container">
+                {isEditing && (
+                    <button className="matrix-cancel-btn" onClick={() => { setIsEditing(false); setShowConfirm(false); }}>
+                        Cancel
+                    </button>
+                )}
                 <button 
                     className={"matrix-edit-btn " + (isEditing ? "save-mode" : "")} 
                     onClick={handleEditToggle}

@@ -304,7 +304,7 @@ th, td {
     border-top: none;
     border-left: none;
     border-right: none;
-    border-bottom: 2px solid #6366f1;
+    border-bottom: 2px solid black;
     outline: none;
     background: transparent;
     font-size: inherit;
@@ -325,7 +325,7 @@ th, td {
 .matrix-edit-select {
     width: 100%;
     border: none;
-    border-bottom: 2px solid #6366f1;
+    border-bottom: 2px solid black;
     outline: none;
     background: transparent;
     text-align: center;
@@ -404,65 +404,38 @@ th, td {
     min-width: 800px;
 }
 
-@media (max-width: 900px) {
-    /* Outcome Alignments */
-    .mobile-matrix-table { display: block; border: 0 !important; }
-    .mobile-matrix-table thead { display: none; }
-    .mobile-matrix-table tbody { display: flex; flex-direction: column; gap: 16px; }
-    .mobile-matrix-table tr { 
-        display: flex; 
-        flex-direction: column; 
-        border: 1px solid #e5e7eb; 
-        border-radius: 6px; 
-        overflow: hidden; 
-    }
-    .mobile-matrix-table td.mobile-desc { 
-        background: #f9fafb; 
-        font-weight: bold; 
-        border-bottom: 1px solid #e5e7eb; 
-        padding: 12px; 
-    }
-    .mobile-matrix-table td.mobile-mapping {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 8px 12px;
-        border-bottom: 1px solid #f3f4f6;
-    }
-    .mobile-matrix-table td.mobile-mapping::before {
-        content: attr(data-label);
-        font-weight: 600;
-        color: #6b7280;
-        font-size: 13px;
-    }
-    .matrix-flex-header { flex-direction: column; align-items: flex-start; }
-    .matrix-edit-btn { align-self: flex-end; }
-    
-    /* Course Details */
-    .responsive-container-root table {
-        display: block; 
-        width: 100%;
-        overflow-x: auto;
-        border: none;
-    }
-    .responsive-container-root thead, 
-    .responsive-container-root tbody, 
-    .responsive-container-root tr, 
-    .responsive-container-root th, 
-    .responsive-container-root td {
-        display: block; 
-        width: 100%; 
-        box-sizing: border-box;
-    }
-    .responsive-container-root th {
-        background: #f9fafb;
-        border-bottom: 1px solid #e5e7eb;
-        margin-top: 10px;
-        text-align: left;
-        padding: 10px;
-    }
-    .responsive-container-root td {
-        padding: 10px;
-        border-bottom: 1px solid #e5e7eb;
-    }
+
+/* Safe Container Scaling */
+.responsive-container-root {
+    width: 100%;
+    overflow-x: auto;
+    padding-bottom: 15px; /* safe breathing room for scrollbar */
+}
+.cfg-table-wrapper {
+    width: 100%;
+    overflow-x: auto;
+}
+.mobile-grading-table {
+    min-width: 800px;
+}
+.matrix-btns-container {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-bottom: 12px;
+    width: 100%;
+}
+.matrix-cancel-btn {
+    background-color: transparent;
+    border: 1px solid #d1d5db;
+    color: #4b5563;
+    padding: 6px 16px;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.matrix-cancel-btn:hover {
+    background-color: #f3f4f6;
 }
