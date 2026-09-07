@@ -107,7 +107,8 @@ const OutcomeAlignment = ({ offeringID, revisionNum, styles, stylesB, fetchJson 
     return (
         <section className="responsive-container-root">
             <div className={stylesB['cpa-container']} style={{ padding: '0' }}>
-                <div className="matrix-btns-container">
+                
+                <div className="matrix-flex-header" style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", width: "100%", marginBottom: "15px" }}>
                     <div className={stylesB.legend} style={{ margin: 0, padding: 0, background: 'transparent' }}>
                         <span className={stylesB.legendTitle}>Legend:</span>
                         <div className={stylesB.legendItems}>
@@ -116,31 +117,34 @@ const OutcomeAlignment = ({ offeringID, revisionNum, styles, stylesB, fetchJson 
                             <span><strong>D</strong>  Demonstrative</span>
                         </div>
                     </div>
-                    {isEditing && (
-                    <button className="matrix-cancel-btn" onClick={() => { setIsEditing(false); setShowConfirm(false); }}>
-                        Cancel
-                    </button>
-                )}
-                <button 
-                        className={"matrix-edit-btn " + (isEditing ? "save-mode" : "")} 
-                        onClick={handleEditToggle}
-                    >
-                        {isEditing ? (
-                            <>
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
-                                Save Alignments
-                            </>
-                        ) : (
-                            <>
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
-                                Edit Alignments
-                            </>
+                    
+                    <div style={{ display: "flex", gap: "10px" }}>
+                        {isEditing && (
+                            <button className="matrix-cancel-btn" onClick={() => { setIsEditing(false); setShowConfirm(false); }}>
+                                Cancel
+                            </button>
                         )}
-                    </button>
+                        <button 
+                            className={"matrix-edit-btn " + (isEditing ? "save-mode" : "")} 
+                            onClick={handleEditToggle}
+                        >
+                            {isEditing ? (
+                                <>
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+                                    Save Alignments
+                                </>
+                            ) : (
+                                <>
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                                    Edit Alignments
+                                </>
+                            )}
+                        </button>
+                    </div>
                 </div>
 
-                <div style={{ border: "none" }} className={stylesB.tableScrollWrapper}>
-                    <table className={stylesB.alignmentTable + " mobile-matrix-table"}>
+                <div style={{ border: "none", overflowX: "auto", width: "100%", paddingBottom: "15px" }} className={stylesB.tableScrollWrapper}>
+                    <table className={stylesB.alignmentTable}>
                         <thead>
                         <tr>
                             <th className={stylesB.firstColHeader}>
@@ -157,21 +161,21 @@ const OutcomeAlignment = ({ offeringID, revisionNum, styles, stylesB, fetchJson 
                         {cpaData.courseOutcomes && cpaData.courseOutcomes.length > 0 ? (
                             cpaData.courseOutcomes.map((co, coIndex) => (
                                 <tr key={co.id}>
-                                    <td className={stylesB.descCell + " mobile-desc"}>
+                                    <td className={stylesB.descCell}>
                                         {co.description}
                                     </td>
                                     {(cpaData.programOutcomes.length > 0 ? cpaData.programOutcomes : Array(9).fill({key: 'PO?'})).map((po, poIndex) => (
-                                        <td key={poIndex} className={stylesB.mappingCell + " mobile-mapping"} data-label={po.key}>
+                                        <td key={poIndex} className={stylesB.mappingCell} data-label={po.key}>
                                             {renderCell(co, coIndex, poIndex)}
                                         </td>
                                     ))}
                                 </tr>
                             ))
                         ) : (
-                            <tr className={styles.emptyRow}>
+                            <tr>
                                 <td colSpan={(cpaData.programOutcomes.length || 9) + 1}>
-                                    <div className={styles.emptyStateContainer}>
-                                        <Inbox size={40} strokeWidth={1} />
+                                    <div style={{ textAlign: 'center', padding: '30px' }}>
+                                        <Inbox size={40} strokeWidth={1} style={{ display: 'block', margin: '0 auto 10px' }} />
                                         <span>No course outcomes / alignments found for this course.</span>
                                     </div>
                                 </td>
