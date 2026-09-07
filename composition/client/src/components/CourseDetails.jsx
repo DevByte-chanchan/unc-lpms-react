@@ -84,29 +84,14 @@ const CourseDetails = ({ offeringID, revisionNum, stylesB, fetchJson }) => {
     if (courseDetailsLoading) return <div className={stylesB.loadingContainer}>Loading course details...</div>;
     if (courseDetailsError) return <div className={stylesB.errorContainer}>Error: {courseDetailsError}</div>;
 
-    const inputStyle = {
-        width: '100%',
-        borderTop: 'none',
-        borderLeft: 'none',
-        borderRight: 'none',
-        borderBottom: '2px solid #6366f1',
-        outline: 'none',
-        background: 'transparent',
-        fontSize: 'inherit',
-        fontFamily: 'inherit',
-        color: '#111827',
-        padding: '2px 0'
-    };
-
     const renderCell = (field, isBold = false) => {
-        // Revision and Prerequisites are disabled/read-only usually, but prompt allowed everything. We'll disable revision.
         if (field === 'revision') return courseDetailsData[field]; 
         
         if (isEditing) {
             return (
                 <input 
                     type="text" 
-                    style={inputStyle} 
+                    className="matrix-edit-input"
                     value={editData[field]} 
                     onChange={e => handleChange(e, field)} 
                 />
@@ -119,7 +104,7 @@ const CourseDetails = ({ offeringID, revisionNum, stylesB, fetchJson }) => {
         if (isEditing) {
             return (
                 <textarea 
-                    style={{ ...inputStyle, resize: 'vertical', minHeight: '150px' }} 
+                    className="matrix-edit-input matrix-edit-textarea"
                     value={editData[field]} 
                     onChange={e => handleChange(e, field)} 
                 />
@@ -129,140 +114,10 @@ const CourseDetails = ({ offeringID, revisionNum, stylesB, fetchJson }) => {
     };
 
     return (
-        <section className="responsive-container-cd">
-            <style dangerouslySetInnerHTML={{ __html: `
-                
-                  .responsive-container-cd { width: 100%; box-sizing: border-box; }
-                  
-                  .cd-header-line {
-                      display: flex;
-                      justify-content: flex-end;
-                      margin-bottom: 12px;
-                  }
-                  
-                  .cd-edit-btn {
-                      background-color: #f3f4f6; /* similar to typical label cells */
-                      border: 1px solid #d1d5db;
-                      color: #374151;
-                      padding: 6px 16px;
-                      border-radius: 4px;
-                      font-size: 14px;
-                      font-weight: 600;
-                      cursor: pointer;
-                      display: flex;
-                      align-items: center;
-                      gap: 6px;
-                      transition: all 0.2s;
-                  }
-                  
-                  .cd-edit-btn:hover {
-                      background-color: #e5e7eb;
-                  }
-
-                  .cd-edit-btn.save-mode {
-                      background-color: #6366f1;
-                      color: white;
-                      border-color: #4f46e5;
-                  }
-
-                  .cd-edit-btn.save-mode:hover {
-                      background-color: #4f46e5;
-                  }
-
-                  /* Responsive Table Overrides */
-                  @media (max-width: 800px) {
-                      .responsive-container-cd table {
-                          display: block; 
-                          width: 100%;
-                          overflow-x: auto;
-                          border: none;
-                      }
-                      .responsive-container-cd thead, 
-                      .responsive-container-cd tbody, 
-                      .responsive-container-cd tr, 
-                      .responsive-container-cd th, 
-                      .responsive-container-cd td {
-                          display: block; 
-                          width: 100%; 
-                          box-sizing: border-box;
-                      }
-                      .responsive-container-cd th.labelCell,
-                      .responsive-container-cd th.descHeader {
-                          background: #f9fafb;
-                          border-bottom: 1px solid #e5e7eb;
-                          margin-top: 10px;
-                          text-align: left;
-                          padding: 10px;
-                      }
-                      .responsive-container-cd td.valueCell, 
-                      .responsive-container-cd td.descCell {
-                          padding: 10px;
-                          border-bottom: 1px solid #e5e7eb;
-                      }
-                      .responsive-container-cd td.descCell {
-                          min-height: 100px;
-                      }
-                  }
-
-                  /* Modal Styles Matching App Theme */
-                  .cd-modal-overlay {
-                      position: fixed;
-                      top: 0; left: 0; right: 0; bottom: 0;
-                      background: rgba(17, 24, 39, 0.4);
-                      display: flex;
-                      align-items: center;
-                      justify-content: center;
-                      z-index: 9999;
-                  }
-                  .cd-modal-content {
-                      background: white;
-                      padding: 24px;
-                      border-radius: 8px;
-                      width: 90%;
-                      max-width: 450px;
-                      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-                  }
-                  .cd-modal-title {
-                      font-size: 18px;
-                      font-weight: 700;
-                      color: #111827;
-                      margin-bottom: 12px;
-                  }
-                  .cd-modal-text {
-                      font-size: 14px;
-                      color: #4b5563;
-                      margin-bottom: 20px;
-                      line-height: 1.5;
-                  }
-                  .cd-modal-actions {
-                      display: flex;
-                      justify-content: flex-end;
-                      gap: 12px;
-                  }
-                  .cd-btn-cancel {
-                      padding: 8px 16px;
-                      background: #f3f4f6;
-                      color: #374151;
-                      border: none;
-                      border-radius: 4px;
-                      font-weight: 500;
-                      cursor: pointer;
-                  }
-                  .cd-btn-confirm {
-                      padding: 8px 16px;
-                      background: #6366f1;
-                      color: white;
-                      border: none;
-                      border-radius: 4px;
-                      font-weight: 500;
-                      cursor: pointer;
-                  }
-                \
-            ` }} />
-
-            <div className="cd-header-line">
+        <section className="responsive-container-root">
+            <div className="matrix-header-line">
                 <button 
-                    className={'cd-edit-btn ' + (isEditing ? 'save-mode' : '')} 
+                    className={"matrix-edit-btn " + (isEditing ? "save-mode" : "")} 
                     onClick={handleEditToggle}
                 >
                     {isEditing ? (
@@ -340,17 +195,17 @@ const CourseDetails = ({ offeringID, revisionNum, stylesB, fetchJson }) => {
             </div>
 
             {showConfirm && (
-                <div className="cd-modal-overlay">
-                    <div className="cd-modal-content">
-                        <div className="cd-modal-title">Confirm Changes</div>
-                        <div className="cd-modal-text">
+                <div className="matrix-modal-overlay">
+                    <div className="matrix-modal-content">
+                        <div className="matrix-modal-title">Confirm Changes</div>
+                        <div className="matrix-modal-text">
                             <strong>Caution:</strong> The data in this Course Details section originates from a central curriculum source and is generally expected to be correct. Modifying these details will update the underlying course configuration. 
                             <br/><br/>
                             Are you certain you want to commit these changes?
                         </div>
-                        <div className="cd-modal-actions">
-                            <button className="cd-btn-cancel" onClick={() => setShowConfirm(false)} disabled={isSaving}>Cancel</button>
-                            <button className="cd-btn-confirm" onClick={handleSaveConfirm} disabled={isSaving}>
+                        <div className="matrix-modal-actions">
+                            <button className="matrix-btn-cancel" onClick={() => setShowConfirm(false)} disabled={isSaving}>Cancel</button>
+                            <button className="matrix-btn-confirm" onClick={handleSaveConfirm} disabled={isSaving}>
                                 {isSaving ? 'Saving...' : 'Yes, Save Changes'}
                             </button>
                         </div>

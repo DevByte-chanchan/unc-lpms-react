@@ -10,7 +10,6 @@ const CriteriaForGrading = ({ offeringID, revisionNum, status, styles, stylesB, 
 
     const [criteriaLoading, setCriteriaLoading] = useState(false);
     const [criteriaError, setCriteriaError] = useState(null);
-    const [commentCounts, setCommentCounts] = useState({}); // Kept for safety if needed by other dependencies
 
     useEffect(() => {
         if (!offeringID || !revisionNum) return;
@@ -78,9 +77,6 @@ const CriteriaForGrading = ({ offeringID, revisionNum, status, styles, stylesB, 
         });
     };
 
-    // Derived rendering helpers
-    const getBadgeCount = () => 0; // stubbed to mimic behavior
-
     const renderInput = (coIndex, iloIndex, field, isWeight = false) => {
         const ilo = isEditing ? editData[coIndex].ilos[iloIndex] : criteriaData.gradingSystem[coIndex].ilos[iloIndex];
         const val = isWeight ? (ilo.weight ? ilo.weight[field] : '') : ilo[field];
@@ -94,16 +90,7 @@ const CriteriaForGrading = ({ offeringID, revisionNum, status, styles, stylesB, 
                     type="text"
                     value={displayVal || ''}
                     onChange={(e) => handleChange(coIndex, iloIndex, field, e.target.value, isWeight)}
-                    style={{
-                        width: '100%',
-                        border: 'none',
-                        borderBottom: '2px solid #6366f1',
-                        outline: 'none',
-                        background: 'transparent',
-                        textAlign: 'center',
-                        fontSize: 'inherit',
-                        fontFamily: 'inherit'
-                    }}
+                    className="matrix-edit-input matrix-edit-center"
                 />
             );
         }
@@ -127,74 +114,10 @@ const CriteriaForGrading = ({ offeringID, revisionNum, status, styles, stylesB, 
     if (criteriaError) return <div className={stylesB.errorContainer}>Error: {criteriaError}</div>;
 
     return (
-        <section className="responsive-container-cfg">
-            <style dangerouslySetInnerHTML={{ __html: `
-                
-                  .responsive-container-cfg { width: 100%; box-sizing: border-box; overflow-x: auto; }
-                  
-                  .cfg-header-wrapper {
-                      display: flex;
-                      justify-content: flex-end;
-                      margin-bottom: 12px;
-                  }
-                  
-                  .cfg-edit-btn {
-                      background-color: #f3f4f6;
-                      border: 1px solid #d1d5db;
-                      color: #374151;
-                      padding: 6px 16px;
-                      border-radius: 4px;
-                      font-size: 14px;
-                      font-weight: 600;
-                      cursor: pointer;
-                      display: flex;
-                      align-items: center;
-                      gap: 6px;
-                      transition: all 0.2s;
-                  }
-                  .cfg-edit-btn:hover { background-color: #e5e7eb; }
-                  .cfg-edit-btn.save-mode { background-color: #6366f1; color: white; border-color: #4f46e5; }
-                  .cfg-edit-btn.save-mode:hover { background-color: #4f46e5; }
-
-                  .cfg-modal-overlay {
-                      position: fixed;
-                      top: 0; left: 0; right: 0; bottom: 0;
-                      background: rgba(17, 24, 39, 0.4);
-                      display: flex;
-                      align-items: center;
-                      justify-content: center;
-                      z-index: 9999;
-                  }
-                  .cfg-modal-content {
-                      background: white;
-                      padding: 24px;
-                      border-radius: 8px;
-                      width: 90%;
-                      max-width: 450px;
-                      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-                  }
-                  .cfg-modal-title { font-size: 18px; font-weight: 700; color: #111827; margin-bottom: 12px; }
-                  .cfg-modal-text { font-size: 14px; color: #4b5563; margin-bottom: 20px; line-height: 1.5; }
-                  .cfg-modal-actions { display: flex; justify-content: flex-end; gap: 12px; }
-                  .cfg-btn-cancel { padding: 8px 16px; background: #f3f4f6; color: #374151; border: none; border-radius: 4px; font-weight: 500; cursor: pointer; }
-                  .cfg-btn-confirm { padding: 8px 16px; background: #6366f1; color: white; border: none; border-radius: 4px; font-weight: 500; cursor: pointer; }
-
-                  /* Simple responsive scrolling */
-                  .cfg-table-wrapper {
-                      width: 100%;
-                      overflow-x: auto;
-                  }
-                  .mobile-grading-table { min-width: 800px; }
-                  
-                  @media (max-width: 768px) {
-                      /* Enhanced mobile presentation config if necessary */
-                  }
-                \
-            ` }} />
-
-            <div className="cfg-header-wrapper">
+        <section className="responsive-container-root">
+            <div className="matrix-header-line">
                 <button 
-                    className={'cfg-edit-btn ' + (isEditing ? 'save-mode' : '')} 
+                    className={"matrix-edit-btn " + (isEditing ? "save-mode" : "")} 
                     onClick={handleEditToggle}
                 >
                     {isEditing ? (
@@ -211,8 +134,8 @@ const CriteriaForGrading = ({ offeringID, revisionNum, status, styles, stylesB, 
                 </button>
             </div>
 
-            <div className={stylesB.gradingContainer + ' cfg-table-wrapper'}>
-                <table className={stylesB.documentTable + ' mobile-grading-table'}>
+            <div className={stylesB.gradingContainer + " cfg-table-wrapper"}>
+                <table className={stylesB.documentTable + " mobile-grading-table"}>
                     <thead>
                     <tr>
                         <th rowSpan="2" className={styles.headerLabel} style={{ width: '10%' }}>Course Outcome</th>
@@ -235,9 +158,9 @@ const CriteriaForGrading = ({ offeringID, revisionNum, status, styles, stylesB, 
                         currentSystem.map((group, coIndex) => (
                             <React.Fragment key={group.co}>
                                 {group.ilos.map((ilo, iloIndex) => {
-                                    const displayLabel = \`ILO \${iloIndex + 1}\`;
+                                    const displayLabel = "ILO " + (iloIndex + 1);
                                     return (
-                                        <tr key=\${group.co}-\${ilo.id}>
+                                        <tr key={group.co + "-" + ilo.id}>
                                             {iloIndex === 0 && (
                                                 <td rowSpan={group.ilos.length} className={styles.coCell}>
                                                     <strong>{group.co}</strong>
@@ -301,17 +224,17 @@ const CriteriaForGrading = ({ offeringID, revisionNum, status, styles, stylesB, 
             </div>
 
             {showConfirm && (
-                <div className="cfg-modal-overlay">
-                    <div className="cfg-modal-content">
-                        <div className="cfg-modal-title">Confirm Changes</div>
-                        <div className="cfg-modal-text">
+                <div className="matrix-modal-overlay">
+                    <div className="matrix-modal-content">
+                        <div className="matrix-modal-title">Confirm Changes</div>
+                        <div className="matrix-modal-text">
                             <strong>Caution:</strong> Criteria for Grading originates from the baseline TLA Assessment mappings. Continuing will permanently override these base metrics in the source syllabus tracking configuration.
                             <br/><br/>
                             Are you certain you want to push these new grading criteria?
                         </div>
-                        <div className="cfg-modal-actions">
-                            <button className="cfg-btn-cancel" onClick={() => setShowConfirm(false)} disabled={isSaving}>Cancel</button>
-                            <button className="cfg-btn-confirm" onClick={handleSaveConfirm} disabled={isSaving}>
+                        <div className="matrix-modal-actions">
+                            <button className="matrix-btn-cancel" onClick={() => setShowConfirm(false)} disabled={isSaving}>Cancel</button>
+                            <button className="matrix-btn-confirm" onClick={handleSaveConfirm} disabled={isSaving}>
                                 {isSaving ? 'Saving...' : 'Yes, Modify Criteria'}
                             </button>
                         </div>

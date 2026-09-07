@@ -243,3 +243,226 @@ th, td {
     width: 20px;
     height: 20px;
 }
+
+
+/* --- Matrix Edit and Responsiveness Classes --- */
+
+/* Generic Layout */
+.responsive-container-root {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.matrix-header-line {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 12px;
+}
+
+.matrix-flex-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+/* Edit Toggle Buttons */
+.matrix-edit-btn {
+    background-color: #f3f4f6;
+    border: 1px solid #d1d5db;
+    color: #374151;
+    padding: 6px 16px;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s;
+}
+
+.matrix-edit-btn:hover {
+    background-color: #e5e7eb;
+}
+
+.matrix-edit-btn.save-mode {
+    background-color: #6366f1;
+    color: white;
+    border-color: #4f46e5;
+}
+
+.matrix-edit-btn.save-mode:hover {
+    background-color: #4f46e5;
+}
+
+/* Inputs & Selections */
+.matrix-edit-input {
+    width: 100%;
+    border-top: none;
+    border-left: none;
+    border-right: none;
+    border-bottom: 2px solid #6366f1;
+    outline: none;
+    background: transparent;
+    font-size: inherit;
+    font-family: inherit;
+    color: #111827;
+    padding: 4px 0;
+}
+
+.matrix-edit-center {
+    text-align: center;
+}
+
+.matrix-edit-textarea {
+    resize: vertical;
+    min-height: 120px;
+}
+
+.matrix-edit-select {
+    width: 100%;
+    border: none;
+    border-bottom: 2px solid #6366f1;
+    outline: none;
+    background: transparent;
+    text-align: center;
+    font-weight: bold;
+    cursor: pointer;
+    padding: 4px 0;
+}
+
+/* Modals */
+.matrix-modal-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(17, 24, 39, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+}
+
+.matrix-modal-content {
+    background: white;
+    padding: 24px;
+    border-radius: 8px;
+    width: 90%;
+    max-width: 450px;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+
+.matrix-modal-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: #111827;
+    margin-bottom: 12px;
+}
+
+.matrix-modal-text {
+    font-size: 14px;
+    color: #4b5563;
+    margin-bottom: 20px;
+    line-height: 1.5;
+}
+
+.matrix-modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+}
+
+.matrix-btn-cancel {
+    padding: 8px 16px;
+    background: #f3f4f6;
+    color: #374151;
+    border: none;
+    border-radius: 4px;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.matrix-btn-confirm {
+    padding: 8px 16px;
+    background: #6366f1;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+/* Responsive Viewports */
+.cfg-table-wrapper {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.mobile-grading-table {
+    min-width: 800px;
+}
+
+@media (max-width: 900px) {
+    /* Outcome Alignments */
+    .mobile-matrix-table { display: block; border: 0 !important; }
+    .mobile-matrix-table thead { display: none; }
+    .mobile-matrix-table tbody { display: flex; flex-direction: column; gap: 16px; }
+    .mobile-matrix-table tr { 
+        display: flex; 
+        flex-direction: column; 
+        border: 1px solid #e5e7eb; 
+        border-radius: 6px; 
+        overflow: hidden; 
+    }
+    .mobile-matrix-table td.mobile-desc { 
+        background: #f9fafb; 
+        font-weight: bold; 
+        border-bottom: 1px solid #e5e7eb; 
+        padding: 12px; 
+    }
+    .mobile-matrix-table td.mobile-mapping {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 12px;
+        border-bottom: 1px solid #f3f4f6;
+    }
+    .mobile-matrix-table td.mobile-mapping::before {
+        content: attr(data-label);
+        font-weight: 600;
+        color: #6b7280;
+        font-size: 13px;
+    }
+    .matrix-flex-header { flex-direction: column; align-items: flex-start; }
+    .matrix-edit-btn { align-self: flex-end; }
+    
+    /* Course Details */
+    .responsive-container-root table {
+        display: block; 
+        width: 100%;
+        overflow-x: auto;
+        border: none;
+    }
+    .responsive-container-root thead, 
+    .responsive-container-root tbody, 
+    .responsive-container-root tr, 
+    .responsive-container-root th, 
+    .responsive-container-root td {
+        display: block; 
+        width: 100%; 
+        box-sizing: border-box;
+    }
+    .responsive-container-root th {
+        background: #f9fafb;
+        border-bottom: 1px solid #e5e7eb;
+        margin-top: 10px;
+        text-align: left;
+        padding: 10px;
+    }
+    .responsive-container-root td {
+        padding: 10px;
+        border-bottom: 1px solid #e5e7eb;
+    }
+}
