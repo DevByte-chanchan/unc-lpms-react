@@ -220,7 +220,7 @@ const OutcomeAlignment = ({ offeringID, revisionNum, styles, stylesB, fetchJson 
                         </div>
                     </div>
                     <button 
-                        className=oa-edit-btn \${isEditing ? 'save-mode' : ''} 
+                        className={'oa-edit-btn ' + (isEditing ? 'save-mode' : '')} 
                         onClick={handleEditToggle}
                     >
                         {isEditing ? (
@@ -238,7 +238,7 @@ const OutcomeAlignment = ({ offeringID, revisionNum, styles, stylesB, fetchJson 
                 </div>
 
                 <div style={{ border: "none" }} className={stylesB.tableScrollWrapper}>
-                    <table className=\${stylesB.alignmentTable} mobile-matrix-table>
+                    <table className={stylesB.alignmentTable + ' mobile-matrix-table'}>
                         <thead>
                         <tr>
                             <th className={stylesB.firstColHeader}>
@@ -255,11 +255,11 @@ const OutcomeAlignment = ({ offeringID, revisionNum, styles, stylesB, fetchJson 
                         {cpaData.courseOutcomes && cpaData.courseOutcomes.length > 0 ? (
                             cpaData.courseOutcomes.map((co, coIndex) => (
                                 <tr key={co.id}>
-                                    <td className=\${stylesB.descCell} desc>
+                                    <td className={stylesB.descCell + ' desc'}>
                                         {co.description}
                                     </td>
                                     {(cpaData.programOutcomes.length > 0 ? cpaData.programOutcomes : Array(9).fill({key: 'PO?'})).map((po, poIndex) => (
-                                        <td key={poIndex} className=\${stylesB.mappingCell} mapping data-label={po.key}>
+                                        <td key={poIndex} className={stylesB.mappingCell + ' mapping'} data-label={po.key}>
                                             {renderCell(co, coIndex, poIndex)}
                                         </td>
                                     ))}

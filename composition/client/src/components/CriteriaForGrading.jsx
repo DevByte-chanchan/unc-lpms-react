@@ -194,7 +194,7 @@ const CriteriaForGrading = ({ offeringID, revisionNum, status, styles, stylesB, 
 
             <div className="cfg-header-wrapper">
                 <button 
-                    className=cfg-edit-btn \${isEditing ? 'save-mode' : ''} 
+                    className={'cfg-edit-btn ' + (isEditing ? 'save-mode' : '')} 
                     onClick={handleEditToggle}
                 >
                     {isEditing ? (
@@ -211,8 +211,8 @@ const CriteriaForGrading = ({ offeringID, revisionNum, status, styles, stylesB, 
                 </button>
             </div>
 
-            <div className=\${stylesB.gradingContainer} cfg-table-wrapper>
-                <table className=\${stylesB.documentTable} mobile-grading-table>
+            <div className={stylesB.gradingContainer + ' cfg-table-wrapper'}>
+                <table className={stylesB.documentTable + ' mobile-grading-table'}>
                     <thead>
                     <tr>
                         <th rowSpan="2" className={styles.headerLabel} style={{ width: '10%' }}>Course Outcome</th>

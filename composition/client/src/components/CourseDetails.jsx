@@ -262,7 +262,7 @@ const CourseDetails = ({ offeringID, revisionNum, stylesB, fetchJson }) => {
 
             <div className="cd-header-line">
                 <button 
-                    className=cd-edit-btn \${isEditing ? 'save-mode' : ''} 
+                    className={'cd-edit-btn ' + (isEditing ? 'save-mode' : '')} 
                     onClick={handleEditToggle}
                 >
                     {isEditing ? (
