@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { fetchJson as defaultFetchJson } from '../utils/api';
 
-const CriteriaForGrading = ({ offeringID, revisionNum, status, styles, stylesB, fetchJson, isReadOnly = false }) => {
+const CriteriaForGrading = ({ offeringID, revisionNum, status, styles, stylesB, fetchJson = defaultFetchJson, isReadOnly = false }) => {
     const [criteriaData, setCriteriaData] = useState({ gradingSystem: [] });
     
     const [isEditing, setIsEditing] = useState(false);
@@ -10,6 +11,7 @@ const CriteriaForGrading = ({ offeringID, revisionNum, status, styles, stylesB, 
 
     const [criteriaLoading, setCriteriaLoading] = useState(false);
     const [criteriaError, setCriteriaError] = useState(null);
+    const apiFetch = fetchJson || defaultFetchJson;
 
     useEffect(() => {
         if (!offeringID || !revisionNum) return;
@@ -49,7 +51,7 @@ const CriteriaForGrading = ({ offeringID, revisionNum, status, styles, stylesB, 
     const handleSaveConfirm = async () => {
         setIsSaving(true);
         try {
-            await fetch(`/api/course-criteria/${offeringID}/${revisionNum}`, {
+            await apiFetch(`/api/course-criteria/${offeringID}/${revisionNum}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ gradingSystem: editData })

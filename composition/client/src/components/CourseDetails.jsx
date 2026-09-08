@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { fetchJson as defaultFetchJson } from '../utils/api';
 
-const CourseDetails = ({ offeringID, revisionNum, stylesB, fetchJson, isReadOnly = false }) => {
+const CourseDetails = ({ offeringID, revisionNum, stylesB, fetchJson = defaultFetchJson, isReadOnly = false }) => {
     const [courseDetailsData, setCourseDetailsData] = useState({
         code: '', name: '', description: '', credits: '', contact: '',
         prerequisites: '', class: '', cmo: '', revision: 0, year: '', sem: ''
@@ -13,6 +14,8 @@ const CourseDetails = ({ offeringID, revisionNum, stylesB, fetchJson, isReadOnly
     const [courseDetailsLoading, setCourseDetailsLoading] = useState(false);
     const [courseDetailsError, setCourseDetailsError] = useState(null);
 
+    const apiFetch = fetchJson || defaultFetchJson;
+
     useEffect(() => {
         if (!offeringID || !revisionNum) return;
         let mounted = true;
@@ -21,7 +24,7 @@ const CourseDetails = ({ offeringID, revisionNum, stylesB, fetchJson, isReadOnly
             setCourseDetailsLoading(true);
             setCourseDetailsError(null);
             try {
-                const data = await fetchJson(`/api/course-details/${offeringID}/${revisionNum}`);
+                const data = await apiFetch(`/api/course-details/${offeringID}/${revisionNum}`);
                 if (!mounted) return;
                 setCourseDetailsData({
                     code: data.code ?? '',
@@ -47,7 +50,7 @@ const CourseDetails = ({ offeringID, revisionNum, stylesB, fetchJson, isReadOnly
 
         fetchCourseDetails();
         return () => { mounted = false; };
-    }, [offeringID, revisionNum, fetchJson]);
+    }, [offeringID, revisionNum, apiFetch]);
 
     const handleEditToggle = () => {
         if (isEditing) {
@@ -65,15 +68,11 @@ const CourseDetails = ({ offeringID, revisionNum, stylesB, fetchJson, isReadOnly
     const handleSaveConfirm = async () => {
         setIsSaving(true);
         try {
-            const res = await fetch(`/api/course-details/${offeringID}/${revisionNum}`, {
+            await apiFetch(`/api/course-details/${offeringID}/${revisionNum}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ description: editData.description })
             });
-            if (!res.ok) {
-                const errData = await res.json().catch(() => ({}));
-                throw new Error(errData.message || `Server returned ${res.status}`);
-            }
             setCourseDetailsData(prev => ({
                 ...prev,
                 description: editData.description

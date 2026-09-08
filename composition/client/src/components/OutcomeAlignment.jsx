@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import { fetchJson as defaultFetchJson } from '../utils/api';
 import { Inbox } from "react-feather";
 
-const OutcomeAlignment = ({ offeringID, revisionNum, styles, stylesB, fetchJson, isReadOnly = false }) => {
+const OutcomeAlignment = ({ offeringID, revisionNum, styles, stylesB, fetchJson = defaultFetchJson, isReadOnly = false }) => {
     const [cpaData, setCpaData] = useState({
         course: { code: '', title: '' }, programOutcomes: [], courseOutcomes: []
     });
@@ -13,6 +14,7 @@ const OutcomeAlignment = ({ offeringID, revisionNum, styles, stylesB, fetchJson,
     
     const [cpaLoading, setCpaLoading] = useState(false);
     const [cpaError, setCpaError] = useState(null);
+    const apiFetch = fetchJson || defaultFetchJson;
 
     useEffect(() => {
         if (!offeringID || !revisionNum) return;
@@ -62,7 +64,7 @@ const OutcomeAlignment = ({ offeringID, revisionNum, styles, stylesB, fetchJson,
     const handleSaveConfirm = async () => {
         setIsSaving(true);
         try {
-            await fetch(`/api/course-outcome-alignment/${offeringID}/${revisionNum}`, {
+            await apiFetch(`/api/course-outcome-alignment/${offeringID}/${revisionNum}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
