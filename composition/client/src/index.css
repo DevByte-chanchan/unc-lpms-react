@@ -389,7 +389,7 @@ tbody tr:hover, tbody tr:focus {
 .matrix-edit-desc-wrapper {
     width: 100% !important;
     height: 100% !important;
-    min-height: 400px !important;
+    min-height: 280px !important;
     display: flex !important;
     flex-direction: column !important;
     box-sizing: border-box !important;
@@ -398,7 +398,7 @@ tbody tr:hover, tbody tr:focus {
 .matrix-edit-textarea {
     width: 100% !important;
     height: 100% !important;
-    min-height: 400px !important;
+    min-height: 280px !important;
     flex: 1 1 auto !important;
     box-sizing: border-box !important;
     border: none !important;
