@@ -11,9 +11,9 @@ export function InlineModal({ isOpen, title, onClose, children, actions }) {
     return (
         <div className={styles.modalOverlay} role="dialog" aria-modal="true" aria-labelledby="modal-title">
             <div className={styles.modal}>
-                <div className={styles.modalHeader} style={{ padding: "12px 20px" }}>
+                <div className={styles.modalHeader}>
                     <h3 id="modal-title">{title}</h3>
-                    <button type="button" aria-label="Close" className={styles.closeIcon || ''} onClick={onClose} style={{ background: 'transparent', border: 'none', padding: 6 }}>
+                    <button type="button" aria-label="Close" className={styles.closeIcon || ''} onClick={onClose}>
                         <X size={16} />
                     </button>
                 </div>
@@ -106,7 +106,6 @@ const ReferenceForm = forwardRef(({ iloId, status, setUnresolvedCount }, ref) =>
             setUnresolvedCount(reviewComments.filter(c => !c.resolved_status).length);
         }
     }, [reviewComments, setUnresolvedCount]);
-
 
     const handleOpenAdd = () => {
         setNewRefDraft({ title: '', type: 'Textbook', author: '', isbn: '', link: '', publication_year: '' });
@@ -207,30 +206,29 @@ const ReferenceForm = forwardRef(({ iloId, status, setUnresolvedCount }, ref) =>
     const renderDynamicFields = () => {
         const type = newRefDraft.type;
         return (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <>
+                <TextField label="Title" value={newRefDraft.title} onChange={(v) => setNewRefDraft(prev => ({ ...prev, title: v }))} />
                 {type === 'Textbook' && (
                     <>
-                        <TextField label="Title" value={newRefDraft.title} onChange={(v) => setNewRefDraft(prev => ({ ...prev, title: v }))} />
                         <TextField label="Author(s)" value={newRefDraft.author} onChange={(v) => setNewRefDraft(prev => ({ ...prev, author: v }))} />
+                        <TextField label="ISBN" value={newRefDraft.isbn} onChange={(v) => setNewRefDraft(prev => ({ ...prev, isbn: v }))} />
                         <TextField label="Publication Year" value={newRefDraft.publication_year} onChange={(v) => setNewRefDraft(prev => ({ ...prev, publication_year: v }))} />
-                        <TextField label="ISBN (Optional)" value={newRefDraft.isbn} onChange={(v) => setNewRefDraft(prev => ({ ...prev, isbn: v }))} />
+                        <TextField label="Link (optional)" value={newRefDraft.link} onChange={(v) => setNewRefDraft(prev => ({ ...prev, link: v }))} />
                     </>
                 )}
                 {type === 'Open Educational Resources' && (
                     <>
-                        <TextField label="Title" value={newRefDraft.title} onChange={(v) => setNewRefDraft(prev => ({ ...prev, title: v }))} />
                         <TextField label="Author / Source" value={newRefDraft.author} onChange={(v) => setNewRefDraft(prev => ({ ...prev, author: v }))} />
                         <TextField label="Link" value={newRefDraft.link} onChange={(v) => setNewRefDraft(prev => ({ ...prev, link: v }))} />
                     </>
                 )}
                 {type === 'Online Resources' && (
                     <>
-                        <TextField label="Title" value={newRefDraft.title} onChange={(v) => setNewRefDraft(prev => ({ ...prev, title: v }))} />
                         <TextField label="Author / Publisher" value={newRefDraft.author} onChange={(v) => setNewRefDraft(prev => ({ ...prev, author: v }))} />
                         <TextField label="Link" value={newRefDraft.link} onChange={(v) => setNewRefDraft(prev => ({ ...prev, link: v }))} />
                     </>
                 )}
-            </div>
+            </>
         );
     };
 
@@ -251,9 +249,14 @@ const ReferenceForm = forwardRef(({ iloId, status, setUnresolvedCount }, ref) =>
                 isOpen={isAddOpen}
                 title="Add Reference"
                 onClose={() => setIsAddOpen(false)}
-                actions={<button style={{ color: "white", fontWeight: 500 }} className="confirmBtn" onClick={handleSaveNewRefLocal}>Add Reference</button>}
+                actions={
+                    <>
+                        <button type="button" className={styles.cancelBtn} onClick={() => setIsAddOpen(false)}>Cancel</button>
+                        <button type="button" className={styles.confirmBtn} onClick={handleSaveNewRefLocal}>Add</button>
+                    </>
+                }
             >
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', padding: '10px 0' }}>
+                <div className={styles.refModalBodyContent}>
                     <Dropdown
                         label="Type"
                         value={newRefDraft.type}
@@ -261,7 +264,7 @@ const ReferenceForm = forwardRef(({ iloId, status, setUnresolvedCount }, ref) =>
                         onChange={(v) => setNewRefDraft(prev => ({ ...prev, type: v }))}
                     />
                     {renderDynamicFields()}
-                    {validationError && <div style={{ color: '#b00020' }}>{validationError}</div>}
+                    {validationError && <div className={styles.modalError}>{validationError}</div>}
                 </div>
             </InlineModal>
         </div>
