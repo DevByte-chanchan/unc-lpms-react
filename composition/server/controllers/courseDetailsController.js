@@ -3,7 +3,7 @@ const { Course, ProgramCourseOffering, Prerequisite } = require('../models');
 
 async function getCourseDetailsByPcOffering(req, res) {
     try {
-        // Extract parameters from the new route structure
+        // Extract parameters from the route structure
         const { pcId, revNum } = req.params;
 
         if (!pcId || !revNum) {
@@ -30,34 +30,37 @@ async function getCourseDetailsByPcOffering(req, res) {
         const course = pco.Course;
 
         // 2. Fetch the prerequisite course details using the retrieved course_id
-        const prereqRecords = await Prerequisite.findAll({
-            where: { course_id: course.course_id },
-            include: [{
-                model: Course,
-                as: 'PrereqCourse',
-                attributes: ['course_no', 'course_title']
-            }]
-        });
+        let prerequisites = '';
+        if (course && course.course_id) {
+            const prereqRecords = await Prerequisite.findAll({
+                where: { course_id: course.course_id },
+                include: [{
+                    model: Course,
+                    as: 'PrereqCourse',
+                    attributes: ['course_no', 'course_title']
+                }]
+            });
 
-        const prereqTitles = prereqRecords
-            .map(r => r.PrereqCourse ? r.PrereqCourse.course_title : null)
-            .filter(Boolean);
+            const prereqTitles = prereqRecords
+                .map(r => r.PrereqCourse ? r.PrereqCourse.course_title : null)
+                .filter(Boolean);
 
-        const prerequisites = prereqTitles.length ? prereqTitles.join(', ') : '';
+            prerequisites = prereqTitles.length ? prereqTitles.join(', ') : '';
+        }
 
-        // 3. Construct the response payload maintaining exact previous structure
+        // 3. Construct the response payload
         const response = {
-            code: course.course_no,
-            name: course.course_title,
-            description: pco.course_description, // Extracted directly from specific PCO version
-            credits: course.credit,
-            contact: course.contact_hrs,
+            code: course ? course.course_no : '',
+            name: course ? course.course_title : '',
+            description: pco.course_description || '',
+            credits: course ? course.credit : '',
+            contact: course ? course.contact_hrs : '',
             prerequisites,
-            class: course.classification,
-            cmo: course.cmo,
+            class: course ? course.classification : '',
+            cmo: course ? course.cmo : '',
             revision: pco.revision_number,
-            year: course.year_lvl,
-            sem: course.term
+            year: course ? course.year_lvl : '',
+            sem: course ? course.term : ''
         };
 
         return res.json(response);
@@ -66,8 +69,6 @@ async function getCourseDetailsByPcOffering(req, res) {
         return res.status(500).json({ message: 'Internal server error' });
     }
 }
-
-module.exports = { getCourseDetailsByPcOffering, updateCourseDetailsByPcOffering };
 
 async function updateCourseDetailsByPcOffering(req, res) {
     try {
@@ -83,33 +84,35 @@ async function updateCourseDetailsByPcOffering(req, res) {
 
         if (!pco) return res.status(404).json({ message: 'Program Course Offering version not found' });
 
-        const course = pco.Course;
-
-        // Update ProgramCourseOffering
+        // Update ProgramCourseOffering (course_description)
         if (description !== undefined) {
             pco.course_description = description;
             await pco.save();
         }
 
-        // Update Course
-        if (code !== undefined) course.course_no = code;
-        if (name !== undefined) course.course_title = name;
-        if (credits !== undefined) course.credit = credits;
-        if (contact !== undefined) course.contact_hrs = contact;
-        if (classification !== undefined) course.classification = classification;
-        if (cmo !== undefined) course.cmo = cmo;
-        if (year !== undefined) course.year_lvl = year;
-        if (sem !== undefined) course.term = sem;
+        // Update Course if other fields were provided
+        const course = pco.Course;
+        if (course) {
+            let hasCourseChanges = false;
+            if (code !== undefined) { course.course_no = code; hasCourseChanges = true; }
+            if (name !== undefined) { course.course_title = name; hasCourseChanges = true; }
+            if (credits !== undefined) { course.credit = credits; hasCourseChanges = true; }
+            if (contact !== undefined) { course.contact_hrs = contact; hasCourseChanges = true; }
+            if (classification !== undefined) { course.classification = classification; hasCourseChanges = true; }
+            if (cmo !== undefined) { course.cmo = cmo; hasCourseChanges = true; }
+            if (year !== undefined) { course.year_lvl = year; hasCourseChanges = true; }
+            if (sem !== undefined) { course.term = sem; hasCourseChanges = true; }
 
-        await course.save();
-        
-        // Note: For prerequisites, since it's a derived string of multiple records, mapping it back is complex. 
-        // We will just not update prerequisites via text directly, or we can try to warn the user.
-        // But for structural adherence we return success.
+            if (hasCourseChanges) {
+                await course.save();
+            }
+        }
 
-        return res.json({ message: 'Successfully updated' });
+        return res.json({ message: 'Successfully updated', description: pco.course_description });
     } catch (err) {
         console.error('updateCourseDetails error:', err);
-        return res.status(500).json({ message: 'Internal server error' });
+        return res.status(500).json({ message: 'Internal server error', error: err.message });
     }
 }
+
+module.exports = { getCourseDetailsByPcOffering, updateCourseDetailsByPcOffering };

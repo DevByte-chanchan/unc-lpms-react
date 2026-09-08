@@ -6,7 +6,7 @@ module.exports = (sequelize, DataTypes) => {
         course_id: { type: DataTypes.INTEGER, allowNull: false },
         program_id: { type: DataTypes.INTEGER, allowNull: false },
         dept_id: { type: DataTypes.INTEGER, allowNull: false },
-        course_description: { type: DataTypes.STRING(500), allowNull: false }
+        course_description: { type: DataTypes.TEXT, allowNull: false }
     }, {
         tableName: 'ProgramCourseOfferings'
     });

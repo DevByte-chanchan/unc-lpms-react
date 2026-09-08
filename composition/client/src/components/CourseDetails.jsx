@@ -5,7 +5,7 @@ const CourseDetails = ({ offeringID, revisionNum, stylesB, fetchJson, isReadOnly
         code: '', name: '', description: '', credits: '', contact: '',
         prerequisites: '', class: '', cmo: '', revision: 0, year: '', sem: ''
     });
-    const [editData, setEditData] = useState({});
+    const [editData, setEditData] = useState({ description: '' });
     const [isEditing, setIsEditing] = useState(false);
     const [showConfirm, setShowConfirm] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
@@ -53,29 +53,36 @@ const CourseDetails = ({ offeringID, revisionNum, stylesB, fetchJson, isReadOnly
         if (isEditing) {
             setShowConfirm(true);
         } else {
-            setEditData({ ...courseDetailsData });
+            setEditData({ description: courseDetailsData.description || '' });
             setIsEditing(true);
         }
     };
 
-    const handleChange = (e, field) => {
-        setEditData(prev => ({ ...prev, [field]: e.target.value }));
+    const handleDescriptionChange = (e) => {
+        setEditData({ description: e.target.value });
     };
 
     const handleSaveConfirm = async () => {
         setIsSaving(true);
         try {
-            await fetch(`/api/course-details/${offeringID}/${revisionNum}`, {
+            const res = await fetch(`/api/course-details/${offeringID}/${revisionNum}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(editData)
+                body: JSON.stringify({ description: editData.description })
             });
-            setCourseDetailsData(editData);
+            if (!res.ok) {
+                const errData = await res.json().catch(() => ({}));
+                throw new Error(errData.message || `Server returned ${res.status}`);
+            }
+            setCourseDetailsData(prev => ({
+                ...prev,
+                description: editData.description
+            }));
             setIsEditing(false);
             setShowConfirm(false);
         } catch (e) {
-            console.error('Failed to save', e);
-            alert('Failed to save modifications.');
+            console.error('Failed to save course description', e);
+            alert(`Failed to save course description: ${e.message}`);
         } finally {
             setIsSaving(false);
         }
@@ -84,36 +91,27 @@ const CourseDetails = ({ offeringID, revisionNum, stylesB, fetchJson, isReadOnly
     if (courseDetailsLoading) return <div className={stylesB.loadingContainer}>Loading course details...</div>;
     if (courseDetailsError) return <div className={stylesB.errorContainer}>Error: {courseDetailsError}</div>;
 
+    // In edit mode, all course detail rows remain static text
     const renderCell = (field, isBold = false) => {
-        if (field === 'revision') return courseDetailsData[field]; 
-        
-        if (isEditing) {
-            return (
-                <input 
-                    type="text" 
-                    className="matrix-edit-input"
-                    value={editData[field] ?? ''} 
-                    onChange={e => handleChange(e, field)} 
-                />
-            );
-        }
-        return isBold ? <strong>{courseDetailsData[field] || ''}</strong> : (courseDetailsData[field] || '');
+        const val = courseDetailsData[field] ?? '';
+        return isBold ? <strong>{val}</strong> : val;
     };
 
-    const renderTextArea = (field) => {
+    // Only Course Description turns into an editable textarea field
+    const renderTextArea = () => {
         if (isEditing) {
             return (
                 <div className="matrix-edit-desc-wrapper">
                     <textarea 
                         className="matrix-edit-textarea"
-                        value={editData[field] ?? ''} 
-                        onChange={e => handleChange(e, field)} 
+                        value={editData.description ?? ''} 
+                        onChange={handleDescriptionChange} 
                         placeholder="Enter course description..."
                     />
                 </div>
             );
         }
-        return courseDetailsData[field] || '';
+        return courseDetailsData.description || '';
     };
 
     return (
@@ -137,12 +135,12 @@ const CourseDetails = ({ offeringID, revisionNum, stylesB, fetchJson, isReadOnly
                         {isEditing ? (
                             <>
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
-                                Save Details
+                                Save Description
                             </>
                         ) : (
                             <>
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
-                                Edit
+                                Edit Description
                             </>
                         )}
                     </button>
@@ -162,7 +160,7 @@ const CourseDetails = ({ offeringID, revisionNum, stylesB, fetchJson, isReadOnly
                         <th className={stylesB.labelCell}>Course Title</th>
                         <td className={stylesB.valueCell}>{renderCell('name', true)}</td>
                         <td rowSpan="9" className={`${stylesB.descCell} matrix-desc-cell`}>
-                            {renderTextArea('description')}
+                            {renderTextArea()}
                         </td>
                     </tr>
 
@@ -214,14 +212,12 @@ const CourseDetails = ({ offeringID, revisionNum, stylesB, fetchJson, isReadOnly
                     <div className="matrix-modal-content">
                         <div className="matrix-modal-title">Confirm Changes</div>
                         <div className="matrix-modal-text">
-                            <strong>Caution:</strong> The data in this Course Details section originates from a central curriculum source and is generally expected to be correct. Modifying these details will update the underlying course configuration. 
-                            <br/><br/>
-                            Are you certain you want to commit these changes?
+                            Are you sure you want to update the course description for this syllabus? Once saved, this change will be recorded in the database.
                         </div>
                         <div className="matrix-modal-actions">
                             <button className="matrix-btn-cancel" onClick={() => setShowConfirm(false)} disabled={isSaving}>Cancel</button>
                             <button className="matrix-btn-confirm" onClick={handleSaveConfirm} disabled={isSaving}>
-                                {isSaving ? 'Saving...' : 'Yes, Save Changes'}
+                                {isSaving ? 'Saving...' : 'Yes, Save Description'}
                             </button>
                         </div>
                     </div>
