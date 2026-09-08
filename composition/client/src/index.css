@@ -67,9 +67,7 @@ button {
 }
 button:hover {
     border-color: #646cff;
-    border: none !important;
     outline: none !important;
-    opacity: 0.9;
 }
 button:focus,
 button:focus-visible {
@@ -111,12 +109,10 @@ tbody tr {
     box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.08);
     display: flex;
     font-weight: 300;
-    transition: background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+    transition: background 0.2s ease;
 }
 tbody tr:hover {
     background: #FAFAFA;
-    transform: translateY(-1px);
-    box-shadow: 0 3px 6px 0 rgba(0, 0, 0, 0.1);
 }
 
 th, td {
@@ -244,94 +240,178 @@ th, td {
     height: 20px;
 }
 
-
 /* --- Matrix Edit and Responsiveness Classes --- */
 
-/* Generic Layout */
-.responsive-container-root {
-    width: 100%;
-    box-sizing: border-box;
-}
-
-.matrix-header-line {
+/* Top row container for action buttons (Course Details & Criteria for Grading) */
+.matrix-btns-container {
     display: flex;
     justify-content: flex-end;
+    align-items: center;
+    gap: 8px;
     margin-bottom: 12px;
+    width: 100%;
 }
 
+/* Flex header for Outcome Alignment: legend on left, buttons on right */
 .matrix-flex-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     flex-wrap: wrap;
     gap: 12px;
-    margin-bottom: 16px;
+    margin-bottom: 12px;
+    width: 100%;
 }
 
-/* Edit Toggle Buttons */
+/* Edit & Cancel Buttons: perfectly rounded pills with fixed sizing and no hover shrink */
+.matrix-edit-btn,
+.matrix-cancel-btn {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 6px !important;
+    height: 36px !important;
+    padding: 0 18px !important;
+    border-radius: 9999px !important;
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    cursor: pointer !important;
+    box-sizing: border-box !important;
+    transform: none !important;
+    outline: none !important;
+    text-decoration: none !important;
+    line-height: normal !important;
+    border: 1px solid #d1d5db !important;
+    transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease !important;
+}
+
+/* Default state: Gray background matching label cells */
 .matrix-edit-btn {
-    background-color: #f3f4f6;
-    border: 1px solid #d1d5db;
-    color: #374151;
-    padding: 6px 16px;
-    border-radius: 20px;
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    transition: all 0.2s;
+    background-color: #EFEFEF !important;
+    color: #374151 !important;
+    border: 1px solid #d1d5db !important;
 }
 
 .matrix-edit-btn:hover {
-    background-color: #e5e7eb;
+    background-color: #e2e4e8 !important;
+    color: #1f2937 !important;
+    border: 1px solid #d1d5db !important;
+    transform: none !important;
+    outline: none !important;
+    opacity: 1 !important;
 }
 
+/* Save Mode: Red background */
 .matrix-edit-btn.save-mode {
-    background-color: #6366f1;
-    color: white;
-    border-color: #4f46e5;
+    background-color: #dc2626 !important;
+    color: #ffffff !important;
+    border: 1px solid #dc2626 !important;
 }
 
 .matrix-edit-btn.save-mode:hover {
-    background-color: #4f46e5;
+    background-color: #b91c1c !important;
+    color: #ffffff !important;
+    border: 1px solid #b91c1c !important;
+    transform: none !important;
+    outline: none !important;
+    opacity: 1 !important;
 }
 
-/* Inputs & Selections */
+/* Cancel Button: subtle outline */
+.matrix-cancel-btn {
+    background-color: transparent !important;
+    color: #4b5563 !important;
+    border: 1px solid #d1d5db !important;
+}
+
+.matrix-cancel-btn:hover {
+    background-color: #f3f4f6 !important;
+    color: #111827 !important;
+    border: 1px solid #d1d5db !important;
+    transform: none !important;
+    outline: none !important;
+    opacity: 1 !important;
+}
+
+.matrix-edit-btn:focus,
+.matrix-cancel-btn:focus,
+.matrix-edit-btn:focus-visible,
+.matrix-cancel-btn:focus-visible {
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+/* Stop all row moving hovers and reflows */
+table, tbody, tr, th, td,
+table:hover, tbody:hover, tr:hover, th:hover, td:hover,
+tbody tr:hover, tbody tr:focus {
+    transform: none !important;
+}
+
+/* Editable inputs and dropdowns: crisp black bottom border */
 .matrix-edit-input {
-    width: 100%;
-    border-top: none;
-    border-left: none;
-    border-right: none;
-    border-bottom: 2px solid black;
-    outline: none;
-    background: transparent;
-    font-size: inherit;
-    font-family: inherit;
-    color: #111827;
-    padding: 4px 0;
+    width: 100% !important;
+    border: none !important;
+    border-bottom: 2px solid #000000 !important;
+    outline: none !important;
+    background: transparent !important;
+    font-size: inherit !important;
+    font-family: inherit !important;
+    color: #000000 !important;
+    padding: 4px 0 !important;
+    box-sizing: border-box !important;
 }
 
 .matrix-edit-center {
-    text-align: center;
-}
-
-.matrix-edit-textarea {
-    resize: vertical;
-    min-height: 250px;
+    text-align: center !important;
 }
 
 .matrix-edit-select {
-    width: 100%;
-    border: none;
-    border-bottom: 2px solid black;
-    outline: none;
-    background: transparent;
-    text-align: center;
-    font-weight: bold;
-    cursor: pointer;
-    padding: 4px 0;
+    width: 100% !important;
+    border: none !important;
+    border-bottom: 2px solid #000000 !important;
+    outline: none !important;
+    background: transparent !important;
+    text-align: center !important;
+    font-weight: bold !important;
+    cursor: pointer !important;
+    padding: 4px 0 !important;
+    box-sizing: border-box !important;
+    color: #000000 !important;
+}
+
+/* Course Description: fills full remaining cell height with matching styling */
+.matrix-desc-cell {
+    height: 100% !important;
+    vertical-align: top !important;
+}
+
+.matrix-edit-desc-wrapper {
+    width: 100% !important;
+    height: 100% !important;
+    min-height: 400px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    box-sizing: border-box !important;
+}
+
+.matrix-edit-textarea {
+    width: 100% !important;
+    height: 100% !important;
+    min-height: 400px !important;
+    flex: 1 1 auto !important;
+    box-sizing: border-box !important;
+    border: none !important;
+    border-bottom: 2px solid #000000 !important;
+    outline: none !important;
+    background: transparent !important;
+    font-size: 14px !important;
+    font-family: inherit !important;
+    line-height: 1.6 !important;
+    color: #000000 !important;
+    padding: 4px 0 !important;
+    resize: vertical !important;
+    display: block !important;
 }
 
 /* Modals */
@@ -348,10 +428,10 @@ th, td {
 .matrix-modal-content {
     background: white;
     padding: 24px;
-    border-radius: 8px;
+    border-radius: 12px;
     width: 90%;
-    max-width: 450px;
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    max-width: 460px;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15);
 }
 
 .matrix-modal-title {
@@ -365,7 +445,7 @@ th, td {
     font-size: 14px;
     color: #4b5563;
     margin-bottom: 20px;
-    line-height: 1.5;
+    line-height: 1.6;
 }
 
 .matrix-modal-actions {
@@ -375,98 +455,41 @@ th, td {
 }
 
 .matrix-btn-cancel {
-    padding: 8px 16px;
-    background: #f3f4f6;
-    color: #374151;
-    border: none;
-    border-radius: 20px;
-    font-weight: 500;
-    cursor: pointer;
+    padding: 8px 18px !important;
+    background: #f3f4f6 !important;
+    color: #374151 !important;
+    border: 1px solid #d1d5db !important;
+    border-radius: 9999px !important;
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    cursor: pointer !important;
+}
+
+.matrix-btn-cancel:hover {
+    background: #e5e7eb !important;
 }
 
 .matrix-btn-confirm {
-    padding: 8px 16px;
-    background: #6366f1;
-    color: white;
-    border: none;
-    border-radius: 20px;
-    font-weight: 500;
-    cursor: pointer;
-}
-
-/* Responsive Viewports */
-.cfg-table-wrapper {
-    width: 100%;
-    overflow-x: auto;
-}
-
-.mobile-grading-table {
-    min-width: 800px;
-}
-
-
-/* Safe Container Scaling */
-.responsive-container-root {
-    width: 100%;
-    box-sizing: border-box;
-}
-
-.cfg-table-wrapper {
-    width: 100%;
-    overflow-x: auto;
-}
-.mobile-grading-table {
-    min-width: 800px;
-}
-
-.matrix-cancel-btn {
-    background-color: transparent;
-    border: 1px solid #d1d5db;
-    color: #4b5563;
-    padding: 6px 16px;
-    border-radius: 20px;
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-.matrix-cancel-btn:hover {
-    background-color: #f3f4f6;
-}
-
-/* UI Refinements */
-.matrix-btns-container {
-    display: flex;
-    justify-content: flex-end;
-    gap: 8px;
-    position: absolute;
-    top: 5px;
-    right: 5px;
-    z-index: 20;
-}
-
-.matrix-edit-btn, .matrix-cancel-btn {
+    padding: 8px 18px !important;
+    background: #dc2626 !important;
+    color: #ffffff !important;
+    border: 1px solid #dc2626 !important;
     border-radius: 9999px !important;
-    padding: 6px 18px !important;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    transform: none !important;
-    transition: background-color 0.2s !important;
-}
-.matrix-edit-btn:hover, .matrix-cancel-btn:hover {
-    transform: none !important;
-    border: 1px solid #d1d5db; /* Stop border random styling! */
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    cursor: pointer !important;
 }
 
-.matrix-edit-btn.save-mode {
-    background-color: #ef4444 !important; /* Red */
-    border-color: #dc2626 !important;
+.matrix-btn-confirm:hover {
+    background: #b91c1c !important;
 }
 
-.matrix-edit-btn.save-mode:hover {
-    background-color: #dc2626 !important;
+/* Viewport scrolling support */
+.cfg-table-wrapper {
+    width: 100%;
+    overflow-x: auto;
 }
 
-/* Stop row moving hovers! */
-tr, tr:hover, tbody tr, tbody tr:hover, th, th:hover, td, td:hover {
-    transform: none !important;
+.mobile-grading-table {
+    min-width: 800px;
 }

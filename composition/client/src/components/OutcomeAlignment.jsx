@@ -121,11 +121,12 @@ const OutcomeAlignment = ({ offeringID, revisionNum, styles, stylesB, fetchJson,
                     {!isReadOnly && (
                     <div style={{ display: "flex", gap: "10px" }}>
                         {isEditing && (
-                            <button className="matrix-cancel-btn" onClick={() => { setIsEditing(false); setShowConfirm(false); }}>
+                            <button type="button" className="matrix-cancel-btn" onClick={() => { setIsEditing(false); setShowConfirm(false); }}>
                                 Cancel
                             </button>
                         )}
                         <button 
+                            type="button"
                             className={"matrix-edit-btn " + (isEditing ? "save-mode" : "")} 
                             onClick={handleEditToggle}
                         >

@@ -115,16 +115,16 @@ const CriteriaForGrading = ({ offeringID, revisionNum, status, styles, stylesB, 
     if (criteriaError) return <div className={stylesB.errorContainer}>Error: {criteriaError}</div>;
 
     return (
-        <div style={{ position: 'relative' }}>
+        <div style={{ width: '100%' }}>
             {!isReadOnly && (
                 <div className="matrix-btns-container">
                     {isEditing && (
-                        <button className="matrix-cancel-btn" onClick={() => { setIsEditing(false); setShowConfirm(false); }}>
+                        <button type="button" className="matrix-cancel-btn" onClick={() => { setIsEditing(false); setShowConfirm(false); }}>
                             Cancel
                         </button>
                     )}
                     <button 
-                        className={'cfg-edit-btn matrix-edit-btn ' + (isEditing ? 'save-mode' : '')} 
+                        className={'matrix-edit-btn ' + (isEditing ? 'save-mode' : '')} 
                         onClick={handleEditToggle}
                     >
                         {isEditing ? (
