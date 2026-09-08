@@ -17,6 +17,15 @@ function normalizePeriod(raw) {
     return null;
 }
 
+function getPeriodChar(raw) {
+    const s = String(raw).toLowerCase();
+    if (s.startsWith('p')) return 'p';
+    if (s.startsWith('m')) return 'm';
+    if (s.startsWith('s')) return 's';
+    if (s.startsWith('f')) return 'f';
+    return 'p';
+}
+
 function parseWeight(w) {
     if (w == null) return null;
     const cleaned = String(w).replace('%', '').trim();
@@ -39,7 +48,7 @@ async function getCourseCriteriaByPcOffering(req, res) {
         const gradingSystem = [];
 
         for (let coIndex = 0; coIndex < 4; coIndex++) {
-            const coLabel = `CO${coIndex + 1}`;
+            const coLabel = 'CO' + (coIndex + 1);
             const coRecord = courseOutcomes[coIndex] || null;
 
             const allIlosForCo = coRecord
@@ -63,7 +72,7 @@ async function getCourseCriteriaByPcOffering(req, res) {
                 if (!iloRecord) {
                     ilos.push({
                         id: iloLabel,
-                    dbId: iloRecord ? iloRecord.ilo_id : null,
+                        dbId: iloRecord ? iloRecord.ilo_id : null,
                         assessments: '',
                         weight: { prelim: '', midterm: '', semi: '', final: '' },
                         minPassing: 60
@@ -88,7 +97,7 @@ async function getCourseCriteriaByPcOffering(req, res) {
                     })
                     : [];
 
-                const tlaIds = topicTlaRows.map(t => t.tla_id).filter(Boolean);
+                const tlaIds = [...new Set(topicTlaRows.map(t => t.tla_id).filter(Boolean))];
 
                 // Fetch TLAAssessments for these tlaIds
                 const assessments = tlaIds.length
@@ -104,7 +113,7 @@ async function getCourseCriteriaByPcOffering(req, res) {
                 let minPassingValue = null;
 
                 for (const a of assessments) {
-                    if (a.name) assessmentNames.push(a.name);
+                    if (a.name && !assessmentNames.includes(a.name)) assessmentNames.push(a.name);
                     const periodKey = normalizePeriod(a.period);
                     const w = parseWeight(a.weight);
                     if (periodKey && w !== null) weightAcc[periodKey] += w;
@@ -129,7 +138,7 @@ async function getCourseCriteriaByPcOffering(req, res) {
                 });
             }
 
-            gradingSystem.push({ co: coLabel, ilos });
+            gradingSystem.push({ co: `CO${coIndex + 1}`, ilos });
         }
 
         return res.json({ gradingSystem });
@@ -139,7 +148,6 @@ async function getCourseCriteriaByPcOffering(req, res) {
     }
 }
 
-module.exports = { getCourseCriteriaByPcOffering, updateCourseCriteriaByPcOffering };
 async function updateCourseCriteriaByPcOffering(req, res) {
     try {
         const { pcId, revNum } = req.params;
@@ -151,14 +159,14 @@ async function updateCourseCriteriaByPcOffering(req, res) {
         for (const group of gradingSystem) {
             for (let iloPos = 0; iloPos < group.ilos.length; iloPos++) {
                 const iloData = group.ilos[iloPos];
-                if (!iloData.dbId) continue; // Note: We need UI to pass the actual ilo_id!
+                if (!iloData || !iloData.dbId) continue;
 
                 // Find TLA ids for this ILO
                 const iloTopics = await ILOTopic.findAll({ where: { ilo_id: iloData.dbId }, raw: true });
                 const iloTopicIds = iloTopics.map(t => t.ilo_topic_id);
                 
                 const topicTlaRows = await TopicTLA.findAll({ where: { ilo_topic_id: iloTopicIds }, raw: true });
-                const tlaIds = topicTlaRows.map(t => t.tla_id);
+                const tlaIds = [...new Set(topicTlaRows.map(t => t.tla_id).filter(Boolean))];
                 
                 if (tlaIds.length === 0) continue; // No TLA to attach assessment to
 
@@ -168,14 +176,27 @@ async function updateCourseCriteriaByPcOffering(req, res) {
                 // Create new assessments based on the edited weights
                 const periods = ['prelim', 'midterm', 'semi', 'final'];
                 for (const p of periods) {
-                    if (iloData.weight && iloData.weight[p]) {
-                        await TLAAssessment.create({
-                            tla_id: tlaIds[0], // attach to first TLA
-                            name: Array.isArray(iloData.assessments) ? iloData.assessments.join(', ') : iloData.assessments,
-                            period: p,
-                            weight: parseFloat(iloData.weight[p]) || 0,
-                            min_passing: parseFloat(iloData.minPassing) || 60
-                        });
+                    const rawWeight = iloData.weight && iloData.weight[p];
+                    if (rawWeight !== undefined && rawWeight !== null && String(rawWeight).trim() !== '') {
+                        const parsedWeight = parseFloat(rawWeight);
+                        if (!isNaN(parsedWeight) && parsedWeight > 0) {
+                            const rawAssess = iloData.assessments;
+                            const assessText = Array.isArray(rawAssess)
+                                ? rawAssess.filter(Boolean).join(', ')
+                                : (typeof rawAssess === 'string' ? rawAssess.trim() : '');
+                            const finalName = (assessText || 'Assessment').slice(0, 70);
+                            const finalDesc = assessText || 'Assessment';
+                            const periodChar = getPeriodChar(p);
+
+                            await TLAAssessment.create({
+                                tla_id: tlaIds[0], // attach to first TLA
+                                name: finalName,
+                                description: finalDesc,
+                                period: periodChar,
+                                weight: String(parsedWeight),
+                                min_passing: parseInt(iloData.minPassing, 10) || 60
+                            });
+                        }
                     }
                 }
             }
@@ -184,6 +205,8 @@ async function updateCourseCriteriaByPcOffering(req, res) {
         return res.json({ message: 'Grading criteria updated' });
     } catch (err) {
         console.error('updateCourseCriteria error', err);
-        return res.status(500).json({ message: 'Internal server error' });
+        return res.status(500).json({ message: 'Internal server error', error: err.message });
     }
 }
+
+module.exports = { getCourseCriteriaByPcOffering, updateCourseCriteriaByPcOffering };

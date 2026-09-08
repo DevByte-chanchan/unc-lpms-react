@@ -21,7 +21,7 @@ const CriteriaForGrading = ({ offeringID, revisionNum, status, styles, stylesB, 
             setCriteriaLoading(true);
             setCriteriaError(null);
             try {
-                const data = await fetchJson(`/api/course-criteria/${offeringID}/${revisionNum}`);
+                const data = await apiFetch(`/api/course-criteria/${offeringID}/${revisionNum}`);
                 if (!mounted) return;
                 setCriteriaData({
                     gradingSystem: Array.isArray(data.gradingSystem) ? data.gradingSystem : []
@@ -37,7 +37,7 @@ const CriteriaForGrading = ({ offeringID, revisionNum, status, styles, stylesB, 
         }
         fetchCriteria();
         return () => { mounted = false; };
-    }, [offeringID, revisionNum, fetchJson]);
+    }, [offeringID, revisionNum, apiFetch]);
 
     const handleEditToggle = () => {
         if (isEditing) {
@@ -61,7 +61,7 @@ const CriteriaForGrading = ({ offeringID, revisionNum, status, styles, stylesB, 
             setShowConfirm(false);
         } catch (e) {
             console.error('Failed to save criteria', e);
-            alert('Failed to save criteria');
+            alert(`Failed to save criteria: ${e.message}`);
         } finally {
             setIsSaving(false);
         }
@@ -82,9 +82,7 @@ const CriteriaForGrading = ({ offeringID, revisionNum, status, styles, stylesB, 
     const renderInput = (coIndex, iloIndex, field, isWeight = false) => {
         const ilo = isEditing ? editData[coIndex].ilos[iloIndex] : criteriaData.gradingSystem[coIndex].ilos[iloIndex];
         const val = isWeight ? (ilo.weight ? ilo.weight[field] : '') : ilo[field];
-        
-        let displayVal = val;
-        if (!isEditing && Array.isArray(val)) displayVal = val.join(', ');
+        const displayVal = Array.isArray(val) ? val.join(', ') : (val ?? '');
 
         if (isEditing) {
             return (
