@@ -11,7 +11,7 @@ export function InlineModal({ isOpen, title, onClose, children, actions }) {
     return (
         <div className={styles.modalOverlay} role="dialog" aria-modal="true" aria-labelledby="modal-title">
             <div className={styles.modal}>
-                <div className={styles.modalHeader}>
+                <div className={styles.modalHeader} style={{ padding: "12px 20px" }}>
                     <h3 id="modal-title">{title}</h3>
                     <button type="button" aria-label="Close" className={styles.closeIcon || ''} onClick={onClose} style={{ background: 'transparent', border: 'none', padding: 6 }}>
                         <X size={16} />
@@ -207,29 +207,30 @@ const ReferenceForm = forwardRef(({ iloId, status, setUnresolvedCount }, ref) =>
     const renderDynamicFields = () => {
         const type = newRefDraft.type;
         return (
-            <>
-                <TextField label="Title" value={newRefDraft.title} onChange={(v) => setNewRefDraft(prev => ({ ...prev, title: v }))} />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 {type === 'Textbook' && (
                     <>
+                        <TextField label="Title" value={newRefDraft.title} onChange={(v) => setNewRefDraft(prev => ({ ...prev, title: v }))} />
                         <TextField label="Author(s)" value={newRefDraft.author} onChange={(v) => setNewRefDraft(prev => ({ ...prev, author: v }))} />
-                        <TextField label="ISBN" value={newRefDraft.isbn} onChange={(v) => setNewRefDraft(prev => ({ ...prev, isbn: v }))} />
                         <TextField label="Publication Year" value={newRefDraft.publication_year} onChange={(v) => setNewRefDraft(prev => ({ ...prev, publication_year: v }))} />
-                        <TextField label="Link (optional)" value={newRefDraft.link} onChange={(v) => setNewRefDraft(prev => ({ ...prev, link: v }))} />
+                        <TextField label="ISBN (Optional)" value={newRefDraft.isbn} onChange={(v) => setNewRefDraft(prev => ({ ...prev, isbn: v }))} />
                     </>
                 )}
                 {type === 'Open Educational Resources' && (
                     <>
+                        <TextField label="Title" value={newRefDraft.title} onChange={(v) => setNewRefDraft(prev => ({ ...prev, title: v }))} />
                         <TextField label="Author / Source" value={newRefDraft.author} onChange={(v) => setNewRefDraft(prev => ({ ...prev, author: v }))} />
                         <TextField label="Link" value={newRefDraft.link} onChange={(v) => setNewRefDraft(prev => ({ ...prev, link: v }))} />
                     </>
                 )}
                 {type === 'Online Resources' && (
                     <>
+                        <TextField label="Title" value={newRefDraft.title} onChange={(v) => setNewRefDraft(prev => ({ ...prev, title: v }))} />
                         <TextField label="Author / Publisher" value={newRefDraft.author} onChange={(v) => setNewRefDraft(prev => ({ ...prev, author: v }))} />
                         <TextField label="Link" value={newRefDraft.link} onChange={(v) => setNewRefDraft(prev => ({ ...prev, link: v }))} />
                     </>
                 )}
-            </>
+            </div>
         );
     };
 
@@ -250,9 +251,9 @@ const ReferenceForm = forwardRef(({ iloId, status, setUnresolvedCount }, ref) =>
                 isOpen={isAddOpen}
                 title="Add Reference"
                 onClose={() => setIsAddOpen(false)}
-                actions={<button style={{ color: "white", fontWeight: 400 }} className="confirmBtn" onClick={handleSaveNewRefLocal}>Add</button>}
+                actions={<button style={{ color: "white", fontWeight: 500 }} className="confirmBtn" onClick={handleSaveNewRefLocal}>Add Reference</button>}
             >
-                <div style={{ display: 'grid', gap: 12 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', padding: '10px 0' }}>
                     <Dropdown
                         label="Type"
                         value={newRefDraft.type}

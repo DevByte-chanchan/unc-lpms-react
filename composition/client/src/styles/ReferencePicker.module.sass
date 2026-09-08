@@ -1,6 +1,10 @@
 .container
   width: 100%
   font-family: 'Manrope', sans-serif
+  display: flex
+  flex-direction: column
+  flex: 1
+  min-height: 0
 
 .label
   font-weight: 600
@@ -13,57 +17,98 @@
   border-radius: 8px
   background: #fff
   overflow: hidden
+  display: flex
+  flex-direction: column
+  flex: 1
+  min-height: 0
   &.error
     border-color: #ff5252
 
 .header
   background: #F8FAFC
   border-bottom: 1px solid #DCE2F0
-  padding: 10px
-
-.searchBar
+  padding: 0 12px 0 0
   display: flex
   align-items: center
-  gap: 10px
+  height: 48px
+  box-sizing: border-box
+
+.filterTabs
+  display: flex
+  align-items: stretch
+  height: 100%
+  margin: 0
+  gap: 0
+
+.tab
+  display: flex
+  align-items: center
+  justify-content: center
+  height: 100%
+  padding: 0 18px
+  font-size: 13px
+  font-weight: 600
+  border: none
+  border-radius: 0
+  border-right: 1px solid #E2E8F0
+  background: #EDF2F7
+  color: #4A5568
+  cursor: pointer
+  transition: all 0.2s
+  white-space: nowrap
+  outline: none
+  &:hover
+    background: #E2E8F0
+    color: #2D3748
+  &.activeTab
+    background: #3182CE
+    color: #FFFFFF
+    border-right-color: #2B6CB0
+
+.searchBar
+  flex: 1
+  display: flex
+  align-items: center
+  gap: 8px
   background: #fff
   border: 1px solid #E2E8F0
-  padding: 8px 12px
+  padding: 6px 12px
   border-radius: 6px
-  margin-bottom: 10px
+  margin: 0 12px
+  box-sizing: border-box
   input
     border: none
     outline: none
     width: 100%
-    font-size: 14px
+    font-size: 13px
+    color: #2D3748
+    background: transparent
 
-.filterTabs
-  display: flex
-  gap: 5px
-  button
-    background: #EDF2F7
-    border: none
-    padding: 4px 10px
-    border-radius: 4px
-    font-size: 12px
-    cursor: pointer
-    color: #4A5568
-    transition: all 0.2s
-    &.activeTab
-      background: #3182CE
-      color: #fff
+.searchIcon
+  color: #A0AEC0
+  flex-shrink: 0
 
-.selfAdder
+.mainAddBtn
   display: flex
   align-items: center
-  outline: none
-  border: 0
-  margin-left: auto
+  justify-content: center
+  gap: 6px
   background: #3182CE
-  color: black !important
-
-.selfAdder:focus
-  outline: none
-
+  color: white
+  border: none
+  padding: 8px 16px
+  border-radius: 6px
+  font-size: 13px
+  font-weight: 600
+  cursor: pointer
+  white-space: nowrap
+  transition: background 0.2s
+  flex-shrink: 0
+  &:hover
+    background: #2B6CB0
+  &:disabled
+    opacity: 0.6
+    cursor: not-allowed
 
 .list
   flex: 1
@@ -81,6 +126,7 @@
     background: #F1F5F9
   &.selectedRow
     background: #EBF8FF
+    animation: selectionPulse 0.6s ease-out forwards
 
 .icon
   color: #718096
@@ -132,26 +178,8 @@
 a
   font-size: 14px
 
-
-/* ADD THIS ANIMATION BLOCK */
 @keyframes selectionPulse
   0%
-    background-color: #90CDF4 /* A noticeably darker blue to draw the eye */
+    background-color: #90CDF4
   100%
     background-color: #EBF8FF
-
-.row
-  display: flex
-  align-items: flex-start
-  padding: 12px
-  gap: 12px
-  border-bottom: 1px solid #F1F5F9
-  cursor: pointer
-  transition: background 0.2s
-  &:hover
-    background: #F1F5F9
-
-  /* UPDATE THIS NESTED CLASS */
-  &.selectedRow
-    background: #EBF8FF
-    animation: selectionPulse 0.6s ease-out forwards /* Triggers when class is applied */

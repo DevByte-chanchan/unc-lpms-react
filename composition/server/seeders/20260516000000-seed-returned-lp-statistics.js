@@ -159,7 +159,7 @@ module.exports = {
 
         await queryInterface.bulkInsert('Topics', topicTitles.map(t => ({ title: t, createdAt: now, updatedAt: now })), {});
         const topics = await queryInterface.sequelize.query(
-            `SELECT topic_id, title FROM Topics ORDER BY topic_id DESC LIMIT 36;`,
+            `SELECT topic_id, title FROM Topics ORDER BY topic_id DESC LIMIT ${topicTitles.length};`,
             { type: queryInterface.sequelize.QueryTypes.SELECT }
         ).then(res => res.reverse());
 
@@ -200,7 +200,7 @@ module.exports = {
         await queryInterface.bulkInsert('References', referencesData, {});
 
         const references = await queryInterface.sequelize.query(
-            `SELECT reference_id FROM \`References\` ORDER BY reference_id DESC LIMIT 36;`,
+            `SELECT reference_id FROM \`References\` ORDER BY reference_id DESC LIMIT ${topicTitles.length};`,
             { type: queryInterface.sequelize.QueryTypes.SELECT }
         ).then(res => res.reverse());
 
@@ -229,7 +229,7 @@ module.exports = {
         })), {});
 
         const tlas = await queryInterface.sequelize.query(
-            `SELECT tla_id FROM TeachingAndLearningActivities ORDER BY tla_id DESC LIMIT 36;`,
+            `SELECT tla_id FROM TeachingAndLearningActivities ORDER BY tla_id DESC LIMIT ${topicTitles.length};`,
             { type: queryInterface.sequelize.QueryTypes.SELECT }
         ).then(res => res.reverse());
 
@@ -261,7 +261,7 @@ module.exports = {
 
 
         const iloTopics = await queryInterface.sequelize.query(
-            `SELECT ilo_topic_id FROM ILOTopics ORDER BY ilo_topic_id DESC LIMIT 25;`,
+            `SELECT ilo_topic_id FROM ILOTopics ORDER BY ilo_topic_id DESC LIMIT ${iloTopicInserts.length};`,
             { type: queryInterface.sequelize.QueryTypes.SELECT }
         ).then(res => res.reverse());
 
@@ -270,7 +270,7 @@ module.exports = {
         // ============================================================================
 
         const topicTlaInserts = [];
-        for (let i = 0; i < 25; i++) {
+        for (let i = 0; i < iloTopicInserts.length; i++) {
             topicTlaInserts.push({
                 ilo_topic_id: iloTopics[i].ilo_topic_id,
                 tla_id: tlas[i].tla_id,
@@ -285,28 +285,30 @@ module.exports = {
 
         const assessmentInserts = [];
         const periods = ['p', 'm', 's', 'f'];
-        const weightDistribution = [10, 15, 25]; // Applied twice per ILO = 20, 30, 50
+        const weightDistribution = [20, 30, 50]; // Applied once per ILO = 20, 30, 50
         const assessmentNames = ['Problem Set', 'Lab Report', 'Project Presentation', 'Data Analysis Exam', 'Modeling Assignment'];
 
+        // Get technical ILOs only (skip orientation if it exists)
+        const technicalIlos = ilos.filter(ilo => !ilo.is_orientation);
+        
         for (let i = 0; i < 12; i++) {
             const coIndex = Math.floor(i / 3);
             const iloPosInCo = i % 3;
             const targetPeriod = periods[coIndex];
             const targetWeightPerAssessment = String(weightDistribution[iloPosInCo]);
 
-            const assignedTlasForIlo = [tlas[i * 2].tla_id, tlas[(i * 2) + 1].tla_id];
+            // Just assign ONE assessment per ILO using the first TLA of that ILO
+            const assignedTlaId = tlas[i * 2].tla_id;
 
-            assignedTlasForIlo.forEach((tlaId, idx) => {
-                assessmentInserts.push({
-                    tla_id: tlaId,
-                    name: assessmentNames[(i + idx) % assessmentNames.length],
-                    description: `Summative assessment evaluating statistical reasoning and applied analysis.`,
-                    period: targetPeriod,
-                    weight: targetWeightPerAssessment,
-                    min_passing: 60,
-                    createdAt: now,
-                    updatedAt: now
-                });
+            assessmentInserts.push({
+                tla_id: assignedTlaId,
+                name: assessmentNames[i % assessmentNames.length],
+                description: `Summative assessment evaluating statistical reasoning and applied analysis.`,
+                period: targetPeriod,
+                weight: targetWeightPerAssessment,
+                min_passing: 60,
+                createdAt: now,
+                updatedAt: now
             });
         }
         await queryInterface.bulkInsert('TLAAssessments', assessmentInserts, {});

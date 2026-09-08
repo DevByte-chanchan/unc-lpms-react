@@ -80,11 +80,21 @@ const CriteriaForGrading = ({ offeringID, revisionNum, status, styles, stylesB, 
     };
 
     const renderInput = (coIndex, iloIndex, field, isWeight = false) => {
-        const ilo = isEditing ? editData[coIndex].ilos[iloIndex] : criteriaData.gradingSystem[coIndex].ilos[iloIndex];
+        const originalIlo = criteriaData.gradingSystem[coIndex].ilos[iloIndex];
+        const originalVal = isWeight ? (originalIlo.weight ? originalIlo.weight[field] : '') : originalIlo[field];
+        
+        const ilo = isEditing ? editData[coIndex].ilos[iloIndex] : originalIlo;
         const val = isWeight ? (ilo.weight ? ilo.weight[field] : '') : ilo[field];
         const displayVal = Array.isArray(val) ? val.join(', ') : (val ?? '');
 
-        if (isEditing) {
+        let isEditable = isEditing;
+        if (isEditing && isWeight) {
+            if (!originalVal || String(originalVal).trim() === '') {
+                isEditable = false;
+            }
+        }
+
+        if (isEditable) {
             return (
                 <input
                     type="text"
@@ -126,6 +136,7 @@ const CriteriaForGrading = ({ offeringID, revisionNum, status, styles, stylesB, 
                     <button 
                         className={'matrix-edit-btn ' + (isEditing ? 'save-mode' : '')} 
                         onClick={handleEditToggle}
+                        disabled={isEditing && JSON.stringify(editData) === JSON.stringify(criteriaData.gradingSystem)}
                     >
                         {isEditing ? (
                             <>

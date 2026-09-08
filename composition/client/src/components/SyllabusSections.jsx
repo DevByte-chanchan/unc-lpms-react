@@ -191,11 +191,11 @@ const SyllabusSections = () => {
                 ) : (
                     <>
                         {selectedSection === 'Course Details' &&
-                            <CourseDetails offeringID={offeringID} revisionNum={revisionNum} stylesB={stylesB} fetchJson={fetchJson} />
+                            <CourseDetails offeringID={offeringID} revisionNum={revisionNum} stylesB={stylesB} fetchJson={fetchJson} isReadOnly={!(status === 'draft' || status === 'returned')} />
                         }
 
                         {selectedSection === 'Course and Program Outcome Alignment' &&
-                            <OutcomeAlignment offeringID={offeringID} revisionNum={revisionNum} styles={styles} stylesB={stylesB} fetchJson={fetchJson} />
+                            <OutcomeAlignment offeringID={offeringID} revisionNum={revisionNum} styles={styles} stylesB={stylesB} fetchJson={fetchJson} isReadOnly={!(status === 'draft' || status === 'returned')} />
                         }
 
                         {selectedSection === 'Intended Learning Outcomes' && (
@@ -203,7 +203,7 @@ const SyllabusSections = () => {
                         )}
 
                         {selectedSection === 'Criteria for Grading' && (
-                            <CriteriaForGrading offeringID={offeringID} revisionNum={revisionNum} status={status} styles={styles} stylesB={stylesB} fetchJson={fetchJson} />
+                            <CriteriaForGrading offeringID={offeringID} revisionNum={revisionNum} status={status} styles={styles} stylesB={stylesB} fetchJson={fetchJson} isReadOnly={!(status === 'draft' || status === 'returned')} />
                         )}
 
                         {selectedSection === 'Course Coverage' && (

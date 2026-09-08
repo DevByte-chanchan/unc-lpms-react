@@ -156,7 +156,7 @@ module.exports = {
 
         await queryInterface.bulkInsert('Topics', topicTitles.map(t => ({ title: t, createdAt: now, updatedAt: now })), {});
         const topics = await queryInterface.sequelize.query(
-            `SELECT topic_id, title FROM Topics ORDER BY topic_id DESC LIMIT 36;`,
+            `SELECT topic_id, title FROM Topics ORDER BY topic_id DESC LIMIT ${topicTitles.length};`,
             { type: queryInterface.sequelize.QueryTypes.SELECT }
         ).then(res => res.reverse());
 
@@ -186,7 +186,7 @@ module.exports = {
         await queryInterface.bulkInsert('References', referencesData, {});
 
         const references = await queryInterface.sequelize.query(
-            `SELECT reference_id FROM \`References\` ORDER BY reference_id DESC LIMIT 36;`,
+            `SELECT reference_id FROM \`References\` ORDER BY reference_id DESC LIMIT ${topicTitles.length};`,
             { type: queryInterface.sequelize.QueryTypes.SELECT }
         ).then(res => res.reverse());
 
@@ -215,7 +215,7 @@ module.exports = {
         })), {});
 
         const tlas = await queryInterface.sequelize.query(
-            `SELECT tla_id FROM TeachingAndLearningActivities ORDER BY tla_id DESC LIMIT 36;`,
+            `SELECT tla_id FROM TeachingAndLearningActivities ORDER BY tla_id DESC LIMIT ${topicTitles.length};`,
             { type: queryInterface.sequelize.QueryTypes.SELECT }
         ).then(res => res.reverse());
 
@@ -246,7 +246,7 @@ module.exports = {
 
 
         const iloTopics = await queryInterface.sequelize.query(
-            `SELECT ilo_topic_id FROM ILOTopics ORDER BY ilo_topic_id DESC LIMIT 25;`,
+            `SELECT ilo_topic_id FROM ILOTopics ORDER BY ilo_topic_id DESC LIMIT ${iloTopicInserts.length};`,
             { type: queryInterface.sequelize.QueryTypes.SELECT }
         ).then(res => res.reverse());
 
@@ -254,7 +254,7 @@ module.exports = {
         // 10. TOPIC TLAs
         // ============================================================================
         const topicTlaInserts = [];
-        for (let i = 0; i < 25; i++) {
+        for (let i = 0; i < iloTopicInserts.length; i++) {
             topicTlaInserts.push({
                 ilo_topic_id: iloTopics[i].ilo_topic_id,
                 tla_id: tlas[i].tla_id,
@@ -268,7 +268,7 @@ module.exports = {
         // ============================================================================
         const assessmentInserts = [];
         const periods = ['p', 'm', 's', 'f'];
-        const weightDistribution = [10, 15, 25]; // Applied twice per ILO = 20, 30, 50
+        const weightDistribution = [20, 30, 50]; // Applied once per ILO = 20, 30, 50 // Applied twice per ILO = 20, 30, 50
         const assessmentNames = ['Practical Server Config', 'Lab Troubleshooting', 'Network Provisioning Task', 'Architecture Presentation', 'Deployment Simulation'];
 
         for (let i = 0; i < 12; i++) {
@@ -279,10 +279,10 @@ module.exports = {
 
             const assignedTlasForIlo = [tlas[i * 2].tla_id, tlas[(i * 2) + 1].tla_id];
 
-            assignedTlasForIlo.forEach((tlaId, idx) => {
+            const tlaId = tlas[i * 2]?.tla_id || tlas[i]?.tla_id; if (tlaId) {
                 assessmentInserts.push({
                     tla_id: tlaId,
-                    name: assessmentNames[(i + idx) % assessmentNames.length],
+                    name: assessmentNames[i % assessmentNames.length],
                     description: `Summative integration test evaluating platform technology execution metrics.`,
                     period: targetPeriod,
                     weight: targetWeightPerAssessment,
@@ -290,7 +290,7 @@ module.exports = {
                     createdAt: now,
                     updatedAt: now
                 });
-            });
+            }
         }
         await queryInterface.bulkInsert('TLAAssessments', assessmentInserts, {});
 

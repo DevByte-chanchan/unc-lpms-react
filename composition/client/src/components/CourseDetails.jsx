@@ -130,6 +130,7 @@ const CourseDetails = ({ offeringID, revisionNum, stylesB, fetchJson = defaultFe
                         type="button"
                         className={"matrix-edit-btn " + (isEditing ? "save-mode" : "")} 
                         onClick={handleEditToggle}
+                        disabled={isEditing && (!editData.description || editData.description.trim() === "" || editData.description === (courseDetailsData.description || ""))}
                     >
                         {isEditing ? (
                             <>

@@ -131,6 +131,7 @@ const OutcomeAlignment = ({ offeringID, revisionNum, styles, stylesB, fetchJson 
                             type="button"
                             className={"matrix-edit-btn " + (isEditing ? "save-mode" : "")} 
                             onClick={handleEditToggle}
+                            disabled={isEditing && JSON.stringify(editData) === JSON.stringify(cpaData.courseOutcomes)}
                         >
                             {isEditing ? (
                                 <>

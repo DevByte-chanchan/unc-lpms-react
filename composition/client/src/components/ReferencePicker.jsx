@@ -15,9 +15,13 @@ import { Search, Book, Globe, Unlock, ExternalLink, Plus } from 'react-feather';
  */
 const ReferencePicker = ({ options = [], value = [], onChange, error, disabled, onAddReference }) => {
     const [searchTerm, setSearchTerm] = useState('');
-    const [activeFilter, setActiveFilter] = useState('All');
+    const [activeFilter, setActiveFilter] = useState('Textbook');
 
-    const types = ['All', 'Textbook', 'Open Educational Resources', 'Online Resources'];
+    const filterTabs = [
+        { key: 'Textbook', label: 'Textbook' },
+        { key: 'Open Educational Resources', label: 'OER' },
+        { key: 'Online Resources', label: 'Online' },
+    ];
 
     // Helper to normalize type strings into a canonical key
     const normalizeTypeKey = (type) => {
@@ -64,7 +68,7 @@ const ReferencePicker = ({ options = [], value = [], onChange, error, disabled, 
     // Filter AND Sort by search term, active type, and selection status
     const filteredOptions = useMemo(() => {
         const term = String(searchTerm || '').trim().toLowerCase();
-        const activeKey = activeFilter === 'All' ? null : normalizeTypeKey(activeFilter);
+        const activeKey = normalizeTypeKey(activeFilter);
 
         // 1. Filter out items based on search and tabs
         let results = normalizedOptions.filter(ref => {
@@ -123,46 +127,44 @@ const ReferencePicker = ({ options = [], value = [], onChange, error, disabled, 
     return (
         <div className={styles.container} style={{ display: "flex", flexDirection: "column", flex: 1, minHeight: 0 }}>
             <div className={styles.pickerWrapper + (error ? ` ${styles.error}` : '')} style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
-                {/* Header: search + filters */}
+                {/* Header: filter buttons (left) + search (center) + Add Reference button (right) */}
                 <div className={styles.header}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%' }}>
-                        <div className={styles.searchBar} style={{ flex: 1 }}>
-                            <Search size={16} />
-                            <input
-                                type="text"
-                                placeholder="Search"
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                disabled={disabled}
-                            />
-                        </div>
-
-                        <div className={styles.filterTabs} style={{ marginLeft: 12 }}>
-                            {types.map(type => {
-                                const isActive = activeFilter === type;
-                                return (
-                                    <button
-                                        key={type}
-                                        type="button"
-                                        className={`${styles.tab} ${isActive ? styles.activeTab : ''}`}
-                                        onClick={() => setActiveFilter(type)}
-                                    >
-                                        {type === 'Open Educational Resources' ? 'OER' : (type === 'Online Resources' ? 'Online' : type)}
-                                    </button>
-                                );
-                            })}
-
-                            <button
-                                className={styles.selfAdder}
-                                type="button"
-                                onClick={() => onAddReference && onAddReference()}
-                                disabled={disabled}
-                                style={{ marginLeft: 8 }}
-                            >
-                                <Plus size={14} />&nbsp; Add my own Reference
-                            </button>
-                        </div>
+                    <div className={styles.filterTabs}>
+                        {filterTabs.map(tab => {
+                            const isActive = activeFilter === tab.key;
+                            return (
+                                <button
+                                    key={tab.key}
+                                    type="button"
+                                    className={`${styles.tab} ${isActive ? styles.activeTab : ''}`}
+                                    onClick={() => setActiveFilter(tab.key)}
+                                >
+                                    {tab.label}
+                                </button>
+                            );
+                        })}
                     </div>
+
+                    <div className={styles.searchBar}>
+                        <Search size={15} className={styles.searchIcon} />
+                        <input
+                            type="text"
+                            placeholder="Search"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            disabled={disabled}
+                        />
+                    </div>
+
+                    <button
+                        className={styles.mainAddBtn}
+                        type="button"
+                        onClick={() => onAddReference && onAddReference()}
+                        disabled={disabled}
+                    >
+                        <Plus size={16} />
+                        <span>Add Reference</span>
+                    </button>
                 </div>
 
                 {/* List */}
