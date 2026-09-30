@@ -1,6 +1,19 @@
 'use strict';
 
 const { sequelize, Sequelize } = require('../models');
+const {
+    canAccessCourseRows,
+    loadOfferingCourseRows,
+    loadCourseCodeRows,
+    loadCommentCourseRows
+} = require('../middleware/courseAuthorization');
+
+const COMMENT_ROLE_BY_ACCOUNT = {
+    'program-head': 'PROGRAM_HEAD',
+    'director-of-libraries': 'LIBRARY_DIRECTOR',
+    'industry-consultant': 'INDUSTRY_CONSULTANT',
+    dean: 'DEAN'
+};
 
 /**
  * 1. GET /api/comments/unresolved-counts/:pcId/:revNum
@@ -91,6 +104,10 @@ exports.createCourseComment = async (req, res) => {
     try {
         const { code, commenter_role, message, co_index, ilo_index, comment_for, target_titles } = req.body || {};
 
+        if (commenter_role !== COMMENT_ROLE_BY_ACCOUNT[req.user?.role]) {
+            return res.status(403).json({ error: 'Comment attribution must match the signed-in account.' });
+        }
+
         const normalizedFor = comment_for ? String(comment_for).toLowerCase().trim() : null;
         const titles = Array.isArray(target_titles) ? target_titles.filter(Boolean) : [];
 
@@ -112,6 +129,10 @@ exports.createCourseComment = async (req, res) => {
         );
         if (offering.length === 0) return res.status(404).json({ message: 'Course not found.' });
         const pcId = offering[0].pc_offering_id;
+        const accessRows = await loadOfferingCourseRows(pcId);
+        if (!canAccessCourseRows(req.user, accessRows)) {
+            return res.status(403).json({ error: 'You do not have access to this course.' });
+        }
 
         // Attach to the course assignment so the Revisions timeline can group
         // this comment under the reviewer's RETURNED event.
@@ -255,6 +276,14 @@ exports.getCourseCommentsByCode = async (req, res) => {
             return res.status(400).json({ message: 'Course code is required.' });
         }
 
+        const accessRows = await loadCourseCodeRows(code, pcId);
+        if (accessRows.length === 0) {
+            return res.status(404).json({ message: 'Course not found.' });
+        }
+        if (!canAccessCourseRows(req.user, accessRows)) {
+            return res.status(403).json({ error: 'You do not have access to this course.' });
+        }
+
         let offeringFilter = '';
         const replacements = [code];
         if (pcId && !Number.isNaN(Number(pcId))) {
@@ -368,6 +397,25 @@ exports.updateResolutionStatuses = async (req, res) => {
 
         if (updates.length === 0) {
             return res.status(200).json({ message: 'No adjustment tracking flags submitted.' });
+        }
+
+        if (updates.length > 100) {
+            return res.status(400).json({ message: 'At most 100 resolution updates may be submitted at once.' });
+        }
+
+        const commentIds = [...new Set(updates.map(item => Number(item?.comment_id)))];
+        if (commentIds.some(id => !Number.isSafeInteger(id) || id <= 0)) {
+            return res.status(400).json({ message: 'Each update must contain a valid comment_id.' });
+        }
+        const accessRows = await loadCommentCourseRows(commentIds);
+        for (const commentId of commentIds) {
+            const rowsForComment = accessRows.filter(row => Number(row.comment_id) === commentId);
+            if (rowsForComment.length === 0) {
+                return res.status(404).json({ message: `Comment ${commentId} was not found.` });
+            }
+            if (!canAccessCourseRows(req.user, rowsForComment)) {
+                return res.status(403).json({ error: 'You do not have access to this course.' });
+            }
         }
 
         await sequelize.transaction(async (t) => {

@@ -19,7 +19,7 @@ function InlineModal({ isOpen, title, onClose, children }) {
             <div className={styles.modal}>
                 <div className={styles.modalHeader}>
                     <h3>{title}</h3>
-                    <button type="button" onClick={onClose} style={{ background: 'transparent', border: 'none', padding: 6 }}>
+                    <button type="button" className="app-icon-close" onClick={onClose} aria-label="Close">
                         <X size={16} />
                     </button>
                 </div>
@@ -31,7 +31,7 @@ function InlineModal({ isOpen, title, onClose, children }) {
 
 const TopicForm = () => {
     const navigate = useNavigate();
-    const { courseCode, iloId, status } = useParams();
+    const { iloId, status } = useParams();
 
     const [availableTopics, setAvailableTopics] = useState([]);
     const [selectedTopics, setSelectedTopics] = useState([]);

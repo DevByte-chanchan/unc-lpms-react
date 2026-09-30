@@ -1,0 +1,122 @@
+// The consolidated approval chain — "consolidated status po sya" [53:22].
+//
+// This used to be styled entirely with inline values, which is why it read as a
+// different app from the rest of the screen: 11/12/13px type against the 14px
+// everything else uses, and its own colours that no stylesheet could reach.
+// Everything here now comes from `styles/tokens.css`, so it changes when the
+// rest of the app changes.
+
+.strip
+  // A band, not a card. .navi and .dynamic-sections are both flush white
+  // strips running the full width of the screen with square corners; a rounded
+  // bordered box floating in the page gutter is what made this look bolted on.
+  // Horizontal padding matches .navi so the legend lines up with the back
+  // button directly above it.
+  display: flex
+  flex-wrap: wrap
+  align-items: center
+  gap: var(--sp-3)
+  width: 100%
+  // Inset from the band's edges rather than hugging them. On a wide screen the
+  // gutter is --sp-7, the same 30px .dynamic-sections uses, so the chips line
+  // up with the section content directly below instead of with the band edge.
+  padding: var(--sp-4) var(--sp-5)
+  background: var(--surface)
+  border: none
+  border-radius: 0
+  font-family: var(--font-ui)
+
+// For a caller that already supplies its own surface.
+.compact
+  padding: 0
+  background: transparent
+
+.legend
+  font-size: var(--fs-2xs)
+  font-weight: var(--fw-semibold)
+  color: var(--ink-faint)
+  text-transform: uppercase
+  letter-spacing: .04em
+  white-space: nowrap
+
+// One chip per approver. Sized off --control-h-sm so a row of chips lines up
+// with the app's other small controls instead of floating at its own scale.
+.step
+  display: inline-flex
+  align-items: center
+  gap: var(--sp-2)
+  height: var(--control-h-sm)
+  padding: 0 var(--sp-4)
+  border-radius: var(--radius-pill)
+  border: 1px solid transparent
+  font-size: var(--fs-sm)
+  font-weight: var(--fw-semibold)
+  white-space: nowrap
+  transition: box-shadow var(--t-fast), background var(--t-fast)
+
+  svg
+    flex-shrink: 0
+
+.pending
+  background: var(--surface-sunken)
+  color: var(--ink-muted)
+  border-color: var(--line)
+
+.approved
+  background: var(--good-soft)
+  color: var(--good)
+  border-color: var(--good-line)
+
+.returned
+  background: var(--warn-soft)
+  color: var(--warn)
+  border-color: var(--warn-line)
+
+// The caller's own stage, when they can act on it: a real control, so it gets
+// the accent ring rather than just a colour.
+.actionable
+  cursor: pointer
+  border-color: var(--accent)
+  box-shadow: 0 0 0 2px var(--accent-soft)
+
+  &:hover
+    box-shadow: 0 0 0 3px var(--accent-soft)
+
+.date
+  font-weight: var(--fw-normal)
+  opacity: .85
+
+// "0/4 approved — waiting on ..." can run long with five approvers, so it
+// truncates rather than pushing the chips onto another line. The full text
+// stays in the title attribute.
+.summary
+  margin-left: auto
+  min-width: 0
+  max-width: 46%
+  overflow: hidden
+  text-overflow: ellipsis
+  white-space: nowrap
+  font-size: var(--fs-xs)
+  color: var(--ink-muted)
+
+@media (max-width: 900px)
+  .summary
+    margin-left: 0
+    max-width: 100%
+    flex-basis: 100%
+
+// On a phone the strip tightens its own spacing and lets the chips wrap, but
+// the chips themselves keep --control-h-sm / --fs-sm. Shrinking them here is
+// what would put this component back on its own scale — the exact problem the
+// tokens exist to stop.
+@media (max-width: 600px)
+  .strip
+    gap: var(--sp-2)
+    padding: var(--sp-3)
+
+  .legend
+    flex-basis: 100%
+
+@media (min-width: 768px)
+  .strip
+    padding: var(--sp-4) var(--sp-7)

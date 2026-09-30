@@ -263,11 +263,14 @@ const ILOForm = () => {
                             <div className={styles.modal}>
                                 <div className={styles.modalHeader} style={{ borderBottomColor: '#FF5252' }}>
                                     <h3 style={{ color: '#FF5252' }}>Validation Error</h3>
-                                    <X
-                                        size={24}
-                                        className={styles.closeIcon}
+                                    <button
+                                        type="button"
+                                        className={`${styles.closeIcon} app-icon-close`}
                                         onClick={() => setShowErrorModal(false)}
-                                    />
+                                        aria-label="Close validation error"
+                                    >
+                                        <X size={16} />
+                                    </button>
                                 </div>
                                 <div className={styles.modalBody}>
                                     <AlertCircle size={40} color="#FF5252" style={{ marginBottom: '1rem' }} />

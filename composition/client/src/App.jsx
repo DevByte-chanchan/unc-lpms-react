@@ -1,36 +1,42 @@
 import './App.css'
-import {useEffect, useState} from 'react'
+import {lazy, Suspense, useEffect, useState} from 'react'
 import {BrowserRouter as Router, Routes, Route, Navigate, useLocation} from 'react-router-dom'
-import AssignedCourses from "./pages/AssignedCourses.jsx";
-import Syllabus from "./pages/Syllabus.jsx";
-import ReferenceForm from "./pages/ReferenceForm.jsx";
-import TopicForm from "./pages/TopicForm.jsx";
-import TLAForm from "./pages/TLAForm.jsx";
-import CommentRecorder from "./pages/CommentRecorder.jsx";
-import ILOForm from "./pages/ILOForm.jsx";
-import SyllabusRevisions from "./pages/SyllabusRevisions.jsx";
-import ApprovalCourses from "./pages/ApprovalCourses.jsx";
-import ProgramHead from "./pages/ProgramHead.jsx";
-import DirectorOfLibraries from "./pages/DirectorOfLibraries.jsx";
-import IndustryConsultant from "./pages/IndustryConsultant.jsx";
-import ProgramHeadIndustryConsultant from "./pages/ProgramHeadIndustryConsultant.jsx";
-import ProgramHeadCourseOfferings from "./pages/ProgramHeadCourseOfferings.jsx";
-import COAEPUpload from "./pages/lpsm/ProgramHead/COAEPUpload.jsx";
-import CoPoAlignment from "./pages/lpsm/ProgramHead/CoPoAlignment.jsx";
-import PoPeoAlignment from "./pages/lpsm/ProgramHead/PoPeoAlignment.jsx";
-import DirectorReferenceLibrary from "./pages/lpsm/DirectorOfLibraries/ReferenceLibrary.jsx";
-import DirectorAddReference from "./pages/lpsm/DirectorOfLibraries/AddReference.jsx";
-import DirectorViewReference from "./pages/lpsm/DirectorOfLibraries/ViewReference.jsx";
-import DirectorCourseCatalog from "./pages/lpsm/DirectorOfLibraries/CourseCatalog.jsx";
-import ApprovalSyllabus from "./pages/ApprovalSyllabus.jsx";
-import Dean from "./pages/Dean.jsx";
-import VPAA from "./pages/VPAA.jsx";
+import { LEGACY_REDIRECTS } from "./utils/routes.js";
 import ErrorBoundary from "./components/ErrorBoundary.jsx";
+import ResizeVeil from "./components/ResizeVeil.jsx";
+import OverflowTooltip from "./components/OverflowTooltip.jsx";
 import Login from "./pages/Login.jsx";
 
 import { seedDemoWorkflowsCanonical } from './utils/demoCourses';
-import { getSession, onSessionChange, routeGuardRedirect } from './utils/session';
+import { getSession, onSessionChange, reconcileSession, routeGuardRedirect } from './utils/session';
 seedDemoWorkflowsCanonical()
+
+// Each workspace is loaded only when its route is opened. This keeps the large
+// syllabus editors and PDF helpers out of the login and course-list download.
+const AssignedCourses = lazy(() => import('./pages/AssignedCourses.jsx'))
+const Syllabus = lazy(() => import('./pages/Syllabus.jsx'))
+const ReferenceForm = lazy(() => import('./pages/ReferenceForm.jsx'))
+const TopicForm = lazy(() => import('./pages/TopicForm.jsx'))
+const TLAForm = lazy(() => import('./pages/TLAForm.jsx'))
+const CommentRecorder = lazy(() => import('./pages/CommentRecorder.jsx'))
+const ILOForm = lazy(() => import('./pages/ILOForm.jsx'))
+const SyllabusRevisions = lazy(() => import('./pages/SyllabusRevisions.jsx'))
+const ApprovalCourses = lazy(() => import('./pages/ApprovalCourses.jsx'))
+const ProgramHead = lazy(() => import('./pages/ProgramHead.jsx'))
+const DirectorOfLibraries = lazy(() => import('./pages/DirectorOfLibraries.jsx'))
+const IndustryConsultant = lazy(() => import('./pages/IndustryConsultant.jsx'))
+const ProgramHeadIndustryConsultant = lazy(() => import('./pages/ProgramHeadIndustryConsultant.jsx'))
+const ProgramHeadCourseOfferings = lazy(() => import('./pages/ProgramHeadCourseOfferings.jsx'))
+const COAEPUpload = lazy(() => import('./pages/lpsm/ProgramHead/COAEPUpload.jsx'))
+const CoPoAlignment = lazy(() => import('./pages/lpsm/ProgramHead/CoPoAlignment.jsx'))
+const PoPeoAlignment = lazy(() => import('./pages/lpsm/ProgramHead/PoPeoAlignment.jsx'))
+const DirectorReferenceLibrary = lazy(() => import('./pages/lpsm/DirectorOfLibraries/ReferenceLibrary.jsx'))
+const DirectorAddReference = lazy(() => import('./pages/lpsm/DirectorOfLibraries/AddReference.jsx'))
+const DirectorViewReference = lazy(() => import('./pages/lpsm/DirectorOfLibraries/ViewReference.jsx'))
+const DirectorCourseCatalog = lazy(() => import('./pages/lpsm/DirectorOfLibraries/CourseCatalog.jsx'))
+const ApprovalSyllabus = lazy(() => import('./pages/ApprovalSyllabus.jsx'))
+const Dean = lazy(() => import('./pages/Dean.jsx'))
+const VPAA = lazy(() => import('./pages/VPAA.jsx'))
 
 // Nothing renders until somebody is signed in, so every page below reads one
 // identity for the whole flow instead of assuming a demo user. The /role/:role
@@ -38,9 +44,26 @@ seedDemoWorkflowsCanonical()
 // that signed in — otherwise one link is enough to switch accounts mid-flow.
 function SessionGate({ children }) {
     const [session, setSession] = useState(() => getSession())
+    const [checkingSession, setCheckingSession] = useState(true)
     const location = useLocation()
 
-    useEffect(() => onSessionChange(() => setSession(getSession())), [])
+    useEffect(() => {
+        let active = true
+        const stopListening = onSessionChange(() => setSession(getSession()))
+
+        void reconcileSession().finally(() => {
+            if (!active) return
+            setSession(getSession())
+            setCheckingSession(false)
+        })
+
+        return () => {
+            active = false
+            stopListening()
+        }
+    }, [])
+
+    if (checkingSession) return <div className="routeLoading" role="status">Checking session…</div>
 
     if (!session) return <Login />
 
@@ -55,8 +78,11 @@ function App() {
     return (
         <Router>
             <div className="appPage">
+                <ResizeVeil />
+                <OverflowTooltip />
                 <ErrorBoundary>
                     <SessionGate>
+                    <Suspense fallback={<div className="routeLoading" role="status">Loading page…</div>}>
                     <Routes>
                         {/* --- INSTRUCTOR / DEFAULT ROUTES --- */}
                         <Route path={'/'} element={<ErrorBoundary><AssignedCourses /></ErrorBoundary>} />
@@ -70,10 +96,10 @@ function App() {
 
                         {/* --- FORMS --- */}
                         <Route path={'/references/form/:iloId/:status'} element={<ErrorBoundary><ReferenceForm /></ErrorBoundary>} />
-                        <Route path={'/references/form/:id'} element={<ErrorBoundary><ReferenceForm /></ErrorBoundary>} />
+                        <Route path={'/references/form/:refId'} element={<ErrorBoundary><ReferenceForm /></ErrorBoundary>} />
                         <Route path={'/references/form/:code/:refId'} element={<ErrorBoundary><ReferenceForm /></ErrorBoundary>} />
                         <Route path={'/topics/form/:iloId/:status'} element={<ErrorBoundary><TopicForm /></ErrorBoundary>} />
-                        <Route path={'/topics/form/:id'} element={<ErrorBoundary><TopicForm /></ErrorBoundary>} />
+                        <Route path={'/topics/form/:topicId'} element={<ErrorBoundary><TopicForm /></ErrorBoundary>} />
                         <Route path={'/topics/form/:code/:topicId'} element={<ErrorBoundary><TopicForm /></ErrorBoundary>} />
                         <Route path={'/tlas/form/:iloId/:status'} element={<ErrorBoundary><TLAForm /></ErrorBoundary>} />
                         <Route path={'/tlas/form/:code/:iloId/:status'} element={<ErrorBoundary><TLAForm /></ErrorBoundary>} />
@@ -82,16 +108,15 @@ function App() {
                         {/* --- ROLE-BASED APPROVER ROUTES --- */}
                         <Route path={'/role/industry-consultant'} element={<ErrorBoundary><IndustryConsultant /></ErrorBoundary>} />
                         <Route path={'/role/program-head'} element={<ErrorBoundary><ProgramHead /></ErrorBoundary>} />
-                        <Route path={'/role/program-head/upload-documents'} element={<ErrorBoundary><COAEPUpload /></ErrorBoundary>} />
+                        <Route path={'/role/program-head/coaep-upload'} element={<ErrorBoundary><COAEPUpload /></ErrorBoundary>} />
                         <Route path={'/role/program-head/co-po-alignment'} element={<ErrorBoundary><CoPoAlignment /></ErrorBoundary>} />
                         <Route path={'/role/program-head/po-peo-alignment'} element={<ErrorBoundary><PoPeoAlignment /></ErrorBoundary>} />
                         <Route path={'/role/director-of-libraries'} element={<ErrorBoundary><DirectorOfLibraries /></ErrorBoundary>} />
-                        <Route path={'/role/director-of-libraries/upload-documents'} element={<ErrorBoundary><DirectorReferenceLibrary /></ErrorBoundary>} />
                         <Route path={'/role/director-of-libraries/reference-library'} element={<ErrorBoundary><DirectorReferenceLibrary /></ErrorBoundary>} />
                         <Route path={'/role/director-of-libraries/course-catalog'} element={<ErrorBoundary><DirectorCourseCatalog /></ErrorBoundary>} />
                         <Route path={'/role/director-of-libraries/add-reference'} element={<ErrorBoundary><DirectorAddReference /></ErrorBoundary>} />
-                        <Route path={'/role/director-of-libraries/view-reference/:id'} element={<ErrorBoundary><DirectorViewReference /></ErrorBoundary>} />
-                        <Route path={'/role/director-of-libraries/edit-reference/:id'} element={<ErrorBoundary><DirectorAddReference /></ErrorBoundary>} />
+                        <Route path={'/role/director-of-libraries/view-reference/:refId'} element={<ErrorBoundary><DirectorViewReference /></ErrorBoundary>} />
+                        <Route path={'/role/director-of-libraries/edit-reference/:refId'} element={<ErrorBoundary><DirectorAddReference /></ErrorBoundary>} />
                         <Route path={'/role/program-head/industry-consultant'} element={<ErrorBoundary><ProgramHeadIndustryConsultant /></ErrorBoundary>} />
                         <Route path={'/role/program-head/course-offerings'} element={<ErrorBoundary><ProgramHeadCourseOfferings /></ErrorBoundary>} />
                         <Route path={'/role/dean'} element={<ErrorBoundary><Dean /></ErrorBoundary>} />
@@ -101,12 +126,23 @@ function App() {
                         <Route path="/role/:approver">
                             <Route index element={<Navigate to="approval-course-table" replace />} />
                             <Route path="approval-course-table" element={<ErrorBoundary><ApprovalCourses /></ErrorBoundary>} />
-                            <Route path="courses/:courseName" element={<ErrorBoundary><ApprovalSyllabus /></ErrorBoundary>} />
+                            <Route path="courses/:code" element={<ErrorBoundary><ApprovalSyllabus /></ErrorBoundary>} />
                         </Route>
+                        {/* --- PATHS THAT USED TO WORK, AND STILL DO ---
+                            Renamed for consistency (see utils/routes.js). These keep every
+                            old bookmark, every link this rename missed, and every teammate's
+                            branch pointing at the old path working. Declared from the same
+                            list routes.test.js checks, so a redirect cannot quietly point at
+                            a route that no longer exists. */}
+                        {LEGACY_REDIRECTS.map(({ from, to }) => (
+                            <Route key={from} path={from} element={<Navigate to={to({})} replace />} />
+                        ))}
+
                         {/* Instructor role should use instructor course UI when browsing courses */}
-                        <Route path="/role/instructor/courses/:courseName" element={<ErrorBoundary><Syllabus /></ErrorBoundary>} />
+                        <Route path="/role/instructor/courses/:code" element={<ErrorBoundary><Syllabus /></ErrorBoundary>} />
                         <Route path="*" element={<Navigate to="/" replace />} />
                     </Routes>
+                    </Suspense>
                     </SessionGate>
                 </ErrorBoundary>
             </div>

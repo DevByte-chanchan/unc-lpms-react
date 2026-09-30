@@ -1,144 +1,96 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { Plus, BookOpen, FileText, Globe, Upload, AlertTriangle, AlertCircle, X, Maximize, Minimize2 } from 'react-feather';
+import { Link } from 'react-router-dom';
+import {
+  Archive,
+  BookOpen,
+  Bookmark,
+  ChevronLeft,
+  ChevronRight,
+  Filter,
+  Plus,
+  RotateCcw,
+  Search,
+  Trash2,
+  Upload,
+  X,
+} from 'react-feather';
 import SkeletonA from '../../../layouts/SkeletonA.jsx';
 import HeaderA from '../../../components/HeaderA.jsx';
 import SideNavigation from '../../../components/SideNavigation.jsx';
 import AddReferenceModal from '../../../components/AddReferenceModal.jsx';
+import EmptyState from '../../../components/EmptyState.jsx';
 import TableScrollRegion from '../../../components/TableScrollRegion.jsx';
+import SortableTh from '../../../components/SortableTh.jsx';
 import styles from '../../../styles/ReferenceLibrary.module.scss';
 
 import { getReferences, setReferences, addReference, archiveReference, unarchiveReference } from '../../../utils/referenceLibrary.js';
 import { fetchJson } from '../../../utils/api.js';
-import * as XLSX from 'xlsx';
+import { sanitizeUrl } from '../../../utils/sanitize.js';
+import { parseReferenceCsv, MAX_CSV_BYTES } from '../../../utils/csvImport.js';
+import { nextSort, referenceLibraryColumns, sortRows } from '../../../utils/tableSort.js';
+import { buildReferenceCourseTarget } from '../../../utils/referenceCourseNavigation.js';
+import {
+  buildReferenceFacets,
+  filterReferenceRecords,
+  getReferencePreview,
+  getReferenceViewValue,
+  isReferenceDeprecated,
+  loadReferenceSavedViews,
+  normalizeReferenceLibraryRows,
+  paginateReferenceRecords,
+  referencePageSizeForWidth,
+  storeReferenceSavedViews,
+} from '../../../utils/referenceDiscovery.js';
 
-const PROGRAM_MAP = {
-  'BSCS': 'BS Computer Science',
-  'BSIT': 'BS Information Technology',
-  'BSBA': 'BS Business Administration',
-  'BSE': 'BS Education',
-  'BSN': 'BS Nursing',
-  'BSA': 'BS Accountancy',
-  'BSPsych': 'BS Psychology',
-  'BSMA': 'BS Management Accounting',
-  'BSHM': 'BS Hospitality Management',
-  'BSTM': 'BS Tourism Management',
-  'BSRT': 'BS Radiologic Technology',
-  'BSMT': 'BS Medical Technology',
-  'BSPH': 'BS Public Health',
-  'BSPT': 'BS Physical Therapy',
-  'BSNursing': 'BS Nursing',
-  'BSARCH': 'BS Architecture',
-  'BSCpE': 'BS Computer Engineering',
-  'BSEE': 'BS Electrical Engineering',
-  'BSCIE': 'BS Civil Engineering',
-  'BSME': 'BS Mechanical Engineering',
-  'BSChE': 'BS Chemical Engineering',
-  'BSIE': 'BS Industrial Engineering',
-  'BSECE': 'BS Electronics Engineering',
-  'GE': 'General Education',
+const CURRENT_YEAR = new Date().getFullYear();
+
+const REFERENCE_LIBRARY_COLUMNS = referenceLibraryColumns().filter(column => column.key !== 'actions');
+
+const SEARCH_FIELDS = [
+  ['all', 'All fields'],
+  ['title', 'Title'],
+  ['authors', 'Author'],
+  ['id', 'Reference ID'],
+  ['isbn', 'ISBN'],
+  ['publisher', 'Publisher'],
+];
+
+const YEAR_LABELS = {
+  recent: 'Last 3 years',
+  '2020s': '2020–2023',
+  older: 'Before 2020',
+  unknown: 'Unknown year',
 };
-
-const DEPARTMENT_MAP = {
-  'BSCS': 'School of Computing and Information Sciences',
-  'BSIT': 'School of Computing and Information Sciences',
-  'BSCpE': 'School of Computing and Information Sciences',
-  'BSBA': 'College of Business and Accountancy',
-  'BSA': 'College of Business and Accountancy',
-  'BSMA': 'College of Business and Accountancy',
-  'BSHM': 'College of Business and Accountancy',
-  'BSTM': 'College of Business and Accountancy',
-  'BSE': 'College of Education and Arts & Sciences',
-  'BSPsych': 'College of Education and Arts & Sciences',
-  'BSN': 'College of Nursing and Allied Health Sciences',
-  'BSRT': 'College of Nursing and Allied Health Sciences',
-  'BSMT': 'College of Nursing and Allied Health Sciences',
-  'BSPH': 'College of Nursing and Allied Health Sciences',
-  'BSPT': 'College of Nursing and Allied Health Sciences',
-  'BSARCH': 'College of Engineering and Architecture',
-  'BSEE': 'College of Engineering and Architecture',
-  'BSCIE': 'College of Engineering and Architecture',
-  'BSME': 'College of Engineering and Architecture',
-  'BSChE': 'College of Engineering and Architecture',
-  'BSIE': 'College of Engineering and Architecture',
-  'BSECE': 'College of Engineering and Architecture',
-  'GE': 'General Education Department',
-};
-
-const extractProgramPrefix = (code) => {
-  if (!code) return 'GE';
-  const match = code.match(/^([A-Za-z]+)/);
-  if (!match) return 'GE';
-  const prefix = match[1].toUpperCase();
-  if (prefix.startsWith('BSCS')) return 'BSCS';
-  if (prefix.startsWith('BSIT')) return 'BSIT';
-  if (prefix.startsWith('BSCPE') || prefix.startsWith('BSCP')) return 'BSCpE';
-  if (prefix.startsWith('BSBA')) return 'BSBA';
-  if (prefix.startsWith('BSA')) return 'BSA';
-  if (prefix.startsWith('BSMA')) return 'BSMA';
-  if (prefix.startsWith('BSHM')) return 'BSHM';
-  if (prefix.startsWith('BSTM')) return 'BSTM';
-  if (prefix.startsWith('BSE')) return 'BSE';
-  if (prefix.startsWith('BSPSYCH')) return 'BSPsych';
-  if (prefix.startsWith('BSN')) return 'BSN';
-  if (prefix.startsWith('BSRT')) return 'BSRT';
-  if (prefix.startsWith('BSMT')) return 'BSMT';
-  if (prefix.startsWith('BSPH')) return 'BSPH';
-  if (prefix.startsWith('BSPT')) return 'BSPT';
-  if (prefix.startsWith('BSARCH')) return 'BSARCH';
-  if (prefix.startsWith('BSEE')) return 'BSEE';
-  if (prefix.startsWith('BSCIE') || prefix.startsWith('BSCE')) return 'BSCIE';
-  if (prefix.startsWith('BSME')) return 'BSME';
-  if (prefix.startsWith('BSCH')) return 'BSChE';
-  if (prefix.startsWith('BSIE')) return 'BSIE';
-  if (prefix.startsWith('BSECE') || prefix.startsWith('BSELEC')) return 'BSECE';
-  return 'GE';
-};
-
-const getProgramName = (prefix) => PROGRAM_MAP[prefix] || PROGRAM_MAP['GE'];
-const getDepartmentName = (prefix) => DEPARTMENT_MAP[prefix] || DEPARTMENT_MAP['GE'];
-
-const DEPARTMENT_COLORS = {
-  'School of Computing and Information Sciences': '#3b82f6',
-  'College of Business and Accountancy': '#f97316',
-  'College of Education and Arts & Sciences': '#ec4899',
-  'College of Nursing and Allied Health Sciences': '#14b8a6',
-  'College of Engineering and Architecture': '#a855f7',
-  'General Education Department': '#6b7280',
-};
-
-const DEPARTMENT_SHORT = {
-  'School of Computing and Information Sciences': 'SCIS',
-  'College of Business and Accountancy': 'CBA',
-  'College of Education and Arts & Sciences': 'CEAS',
-  'College of Nursing and Allied Health Sciences': 'CNAHS',
-  'College of Engineering and Architecture': 'CEA',
-  'General Education Department': 'GenEd',
-};
-
-const getDeptColor = (dept) => DEPARTMENT_COLORS[dept] || '#9ca3af';
-const getDeptShort = (dept) => DEPARTMENT_SHORT[dept] || dept;
 
 const ReferenceLibrary = () => {
   const [references, setReferencesState] = useState(() => getReferences(true));
+  const [courseAssignments, setCourseAssignments] = useState(null);
   const [addRefOpen, setAddRefOpen] = useState(false);
   const [editRef, setEditRef] = useState(null);
+  const [query, setQuery] = useState('');
+  const [searchField, setSearchField] = useState('all');
   const [filterType, setFilterType] = useState('');
   const [filterDepartment, setFilterDepartment] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
+  const [filterYear, setFilterYear] = useState('');
   const [tab, setTab] = useState('active');
+  const [recentOnly, setRecentOnly] = useState(false);
+  const [sort, setSort] = useState({ sortKey: 'id', sortDir: 'asc' });
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(() => referencePageSizeForWidth(
+    typeof window === 'undefined' ? 0 : window.innerWidth
+  ));
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [saveViewOpen, setSaveViewOpen] = useState(false);
+  const [savedViewName, setSavedViewName] = useState('');
+  const [savedViews, setSavedViews] = useState(() => (
+    typeof window === 'undefined' ? [] : loadReferenceSavedViews(window.localStorage)
+  ));
   const activeRefs = useMemo(() => references.filter(r => !r.archived), [references]);
   const archivedRefs = useMemo(() => references.filter(r => r.archived), [references]);
-  const CURRENT_YEAR = new Date().getFullYear();
-  const isDeprecated = (ref) => {
-    if (!ref.year) return false;
-    const y = typeof ref.year === 'string' ? parseInt(ref.year) : ref.year;
-    return !isNaN(y) && CURRENT_YEAR - y >= 5;
-  };
 
   /* ── Load references from the server (seeded DB data) and merge with local ── */
   useEffect(() => {
     let mounted = true;
-    const TYPE_MAP = { TEXTBOOK: 'Textbook', ONLINE: 'Online Resources', OER: 'Open Educational Resources' };
     // old hardcoded demo entries — swept from localStorage on sync
     const LEGACY_DUMMY_IDS = new Set(['TB-DEP-001', 'OR-ISS-001', 'OE-DEP-002', 'TB-BUS-001', 'TB-EDU-001', 'OE-NUR-001', 'OR-ENG-001', 'TB-CS-002', 'OE-BUS-002', 'TB-ENG-002', 'TB-VOLD-001', 'NUR-OBS-001']);
 
@@ -148,36 +100,7 @@ const ReferenceLibrary = () => {
         if (!mounted || !Array.isArray(rows) || rows.length === 0) return;
 
         const existing = getReferences(true);
-        const byId = new Map(existing.map(r => [String(r.id), r]));
-
-        const synced = rows.map(r => {
-          const id = `srv-${r.reference_id}`;
-          const prev = byId.get(id);
-          const usedInCourses = r.used_in_courses ? String(r.used_in_courses).split(',').filter(Boolean) : [];
-          const prefixes = [...new Set(usedInCourses.map(c => extractProgramPrefix(c)))];
-          const programs = [...new Set(prefixes.map(p => getProgramName(p)))].filter(Boolean);
-          const departments = [...new Set(prefixes.map(p => getDepartmentName(p)))].filter(Boolean);
-          const year = r.publication_year ? parseInt(String(r.publication_year).slice(0, 4), 10) : '';
-          return {
-            id,
-            numericId: r.reference_id,
-            title: r.title,
-            authors: r.author || '',
-            type: TYPE_MAP[r.type] || r.type,
-            year: Number.isNaN(year) ? '' : year,
-            isbn: r.isbn || '',
-            link: r.link || '',
-            publisher: prev?.publisher || '',
-            filename: prev?.filename || '',
-            uploadDate: (r.createdAt || '').slice(0, 10),
-            // locally-managed flags survive re-syncs
-            hasIssue: prev?.hasIssue || false,
-            archived: prev?.archived || false,
-            departments: departments.length ? departments : (prev?.departments || []),
-            programs: programs.length ? programs : (prev?.programs || []),
-            usedInCourses,
-          };
-        });
+        const synced = normalizeReferenceLibraryRows(rows, existing);
 
         // keep locally-added references, drop server copies + legacy hardcoded demos
         const locals = existing.filter(r => !String(r.id).startsWith('srv-') && !LEGACY_DUMMY_IDS.has(String(r.id)));
@@ -193,6 +116,21 @@ const ReferenceLibrary = () => {
     return () => { mounted = false; };
   }, []);
 
+  useEffect(() => {
+    let mounted = true;
+    fetchJson('/api/assignments?limit=1000')
+      .then(response => {
+        if (!mounted) return;
+        const rows = Array.isArray(response) ? response : (response?.data || response?.rows || []);
+        setCourseAssignments(rows);
+      })
+      .catch(error => {
+        if (import.meta.env.DEV) console.warn('Course link availability check skipped:', error?.message);
+        if (mounted) setCourseAssignments([]);
+      });
+    return () => { mounted = false; };
+  }, []);
+
   /* ── Sync when references change ─────────────────────────────────── */
   const syncReferences = (newRefs) => {
     setReferences(newRefs);
@@ -200,23 +138,19 @@ const ReferenceLibrary = () => {
   };
 
   /* ── Bulk Upload ─────────────────────────────────────────────────── */
-  const handleBulkUpload = (e) => {
+  const handleBulkUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = (evt) => {
-      try {
-        const workbook = XLSX.read(evt.target.result, { type: 'array' });
-        const sheetName = workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[sheetName];
-        const rows = XLSX.utils.sheet_to_json(worksheet);
+    try {
+      if (file.size > MAX_CSV_BYTES) throw new Error('CSV file is larger than 2 MB.');
+      const rows = parseReferenceCsv(await file.text());
 
-        let added = 0;
-        let skipped = 0;
-        const existingIds = new Set(getReferences(true).map(r => r.id));
+      let added = 0;
+      let skipped = 0;
+      const existingIds = new Set(getReferences(true).map(r => r.id));
 
-        rows.forEach((row) => {
+      rows.forEach((row) => {
           const title = (row['Title'] || row['title'] || '').toString().trim();
           const authors = (row['Author(s)'] || row['Authors'] || row['author'] || row['authors'] || '').toString().trim();
           const type = (row['Reference Type'] || row['Type'] || row['type'] || '').toString().trim();
@@ -258,18 +192,16 @@ const ReferenceLibrary = () => {
 
           existingIds.add(refId);
           added++;
-        });
+      });
 
-        const updated = getReferences(true);
-        syncReferences(updated);
-        setBulkResult({ added, skipped, total: rows.length });
-        setShowBulkModal(true);
-      } catch (err) {
-        console.error('Bulk upload failed:', err);
-        alert('Failed to parse the Excel file. Please check the format.');
-      }
-    };
-    reader.readAsArrayBuffer(file);
+      const updated = getReferences(true);
+      syncReferences(updated);
+      setBulkResult({ added, skipped, total: rows.length });
+      setShowBulkModal(true);
+    } catch (err) {
+      console.error('Bulk upload failed:', err);
+      alert(err?.message || 'Failed to parse the CSV file. Please check the format.');
+    }
     e.target.value = '';
   };
 
@@ -278,46 +210,92 @@ const ReferenceLibrary = () => {
   const [archiveRef, setArchiveRef] = useState(null);
   const [showBulkModal, setShowBulkModal] = useState(false);
   const [bulkResult, setBulkResult] = useState(null);
-  const [isFullscreen, setIsFullscreen] = useState(false);
   const [toast, setToast] = useState(null);
   const toastTimerRef = useRef(null);
   const fileInputRef = useRef(null);
 
-  /* ── Stats ─────────────────────────────────────────────────────────── */
-  const stats = useMemo(() => {
-    const total = activeRefs.length;
-    const textbooks = activeRefs.filter((r) => r.type === 'Textbook').length;
-    const oer = activeRefs.filter((r) => r.type === 'Open Educational Resources').length;
-    const online = activeRefs.filter((r) => r.type === 'Online Resources').length;
-    const deprecated = activeRefs.filter(isDeprecated).length;
-    return { total, textbooks, oer, online, deprecated };
-  }, [activeRefs]);
-
-  /* ── Filter ────────────────────────────────────────────────────────── */
-  const sourceRefs = tab === 'archived' ? archivedRefs : activeRefs;
-
-  const allDepartments = useMemo(() => {
-    const deps = new Set();
-    activeRefs.forEach(r => (r.departments || []).forEach(d => deps.add(d)));
-    return Array.from(deps).sort();
-  }, [activeRefs]);
-
+  /* ── Discovery model ───────────────────────────────────────────────── */
+  const facetSource = useMemo(() => filterReferenceRecords(references, {
+    query,
+    searchField,
+    tab,
+    recentOnly,
+    currentYear: CURRENT_YEAR,
+  }), [references, query, searchField, tab, recentOnly]);
+  const facets = useMemo(() => buildReferenceFacets(facetSource, CURRENT_YEAR), [facetSource]);
+  const recentCount = useMemo(() => filterReferenceRecords(references, {
+    tab: 'active',
+    recentOnly: true,
+    currentYear: CURRENT_YEAR,
+  }).length, [references]);
+  const criteria = useMemo(() => ({
+    query,
+    searchField,
+    department: filterDepartment,
+    type: filterType,
+    yearRange: filterYear,
+    tab,
+    recentOnly,
+    currentYear: CURRENT_YEAR,
+  }), [query, searchField, filterDepartment, filterType, filterYear, tab, recentOnly]);
+  const currentViewCriteria = useMemo(() => ({
+    ...criteria,
+    sortKey: sort.sortKey,
+    sortDir: sort.sortDir,
+  }), [criteria, sort]);
+  const activeViewValue = useMemo(
+    () => getReferenceViewValue(currentViewCriteria, savedViews),
+    [currentViewCriteria, savedViews],
+  );
+  const selectedSavedView = activeViewValue.startsWith('saved:')
+    ? savedViews.find(savedView => `saved:${savedView.id}` === activeViewValue)
+    : null;
   const filtered = useMemo(() => {
-    let result = sourceRefs;
-    if (filterType) {
-      result = result.filter((r) => r.type === filterType);
-    }
-    if (filterDepartment) {
-      result = result.filter((r) => (r.departments || []).includes(filterDepartment));
-    }
-    return result;
-  }, [sourceRefs, filterType, filterDepartment]);
+    return filterReferenceRecords(references, criteria);
+  }, [references, criteria]);
+  const sortedReferences = useMemo(
+    () => sortRows(filtered, REFERENCE_LIBRARY_COLUMNS, sort.sortKey, sort.sortDir),
+    [filtered, sort]
+  );
+  const pageResult = useMemo(
+    () => paginateReferenceRecords(sortedReferences, page, pageSize),
+    [sortedReferences, page, pageSize]
+  );
+  const previewReference = useMemo(
+    () => getReferencePreview(viewRef, sortedReferences),
+    [viewRef, sortedReferences]
+  );
+  const appliedFilterCount = [filterDepartment, filterType, filterYear].filter(Boolean).length;
+  const hasDiscoveryCriteria = Boolean(query || filterDepartment || filterType || filterYear || recentOnly || tab !== 'active');
+
+  useEffect(() => {
+    const closePanels = (event) => {
+      if (event.key !== 'Escape') return;
+      setFiltersOpen(false);
+      setViewRef(null);
+    };
+    window.addEventListener('keydown', closePanels);
+    return () => window.removeEventListener('keydown', closePanels);
+  }, []);
+
+  useEffect(() => {
+    const updatePageSize = () => setPageSize(referencePageSizeForWidth(window.innerWidth));
+    window.addEventListener('resize', updatePageSize);
+    return () => window.removeEventListener('resize', updatePageSize);
+  }, []);
+
+  useEffect(() => {
+    setPage(1);
+  }, [query, searchField, filterDepartment, filterType, filterYear, tab, recentOnly, sort.sortKey, sort.sortDir, pageSize]);
+
+  const handleSort = (key) => setSort(current => nextSort(current, key));
 
   /* ── Handlers ──────────────────────────────────────────────────────── */
   const confirmArchive = () => {
     if (archiveRef) {
       archiveReference(archiveRef.id);
       setReferencesState(getReferences(true));
+      if (viewRef?.id === archiveRef.id) setViewRef(null);
       setArchiveRef(null);
     }
   };
@@ -325,10 +303,87 @@ const ReferenceLibrary = () => {
   const confirmUnarchive = (id) => {
     unarchiveReference(id);
     setReferencesState(getReferences(true));
+    if (viewRef?.id === id) setViewRef(null);
   };
 
   const handleClose = () => {
     setViewRef(null);
+  };
+
+  const resetDiscovery = () => {
+    setQuery('');
+    setSearchField('all');
+    setFilterDepartment('');
+    setFilterType('');
+    setFilterYear('');
+    setTab('active');
+    setRecentOnly(false);
+    setSort({ sortKey: 'id', sortDir: 'asc' });
+    setFiltersOpen(false);
+  };
+
+  const selectBuiltInView = (view) => {
+    setQuery('');
+    setSearchField('all');
+    setFilterDepartment('');
+    setFilterType('');
+    setFilterYear('');
+    setRecentOnly(view === 'recent');
+    setTab(view === 'archived' ? 'archived' : 'active');
+    setSort({ sortKey: 'id', sortDir: 'asc' });
+    setViewRef(null);
+  };
+
+  const applySavedView = (savedView) => {
+    const saved = savedView.criteria || {};
+    setQuery(saved.query || '');
+    setSearchField(saved.searchField || 'all');
+    setFilterDepartment(saved.department || '');
+    setFilterType(saved.type || '');
+    setFilterYear(saved.yearRange || '');
+    setTab(saved.tab || 'active');
+    setRecentOnly(Boolean(saved.recentOnly));
+    setSort({ sortKey: saved.sortKey || 'id', sortDir: saved.sortDir === 'desc' ? 'desc' : 'asc' });
+    setViewRef(null);
+  };
+
+  const changeView = (event) => {
+    const value = event.target.value;
+    if (value === 'active' || value === 'recent' || value === 'archived') {
+      selectBuiltInView(value);
+      return;
+    }
+    if (value.startsWith('saved:')) {
+      const savedView = savedViews.find(item => `saved:${item.id}` === value);
+      if (savedView) applySavedView(savedView);
+    }
+  };
+
+  const saveCurrentView = (event) => {
+    event.preventDefault();
+    const name = savedViewName.trim();
+    if (!name) return;
+    const nextViews = storeReferenceSavedViews(window.localStorage, [
+      {
+        id: `view-${Date.now()}`,
+        name,
+        criteria: currentViewCriteria,
+      },
+      ...savedViews,
+    ]);
+    setSavedViews(nextViews);
+    setSavedViewName('');
+    setSaveViewOpen(false);
+    showPageToast(`Saved view “${name}”.`);
+  };
+
+  const deleteSavedView = (event, id) => {
+    event.stopPropagation();
+    const nextViews = storeReferenceSavedViews(
+      window.localStorage,
+      savedViews.filter(savedView => savedView.id !== id),
+    );
+    setSavedViews(nextViews);
   };
 
   const showPageToast = (message, type = 'success') => {
@@ -337,251 +392,266 @@ const ReferenceLibrary = () => {
     toastTimerRef.current = window.setTimeout(() => setToast(null), 2500);
   };
 
+  const activeFilterChips = [
+    filterDepartment && { key: 'department', label: filterDepartment, remove: () => setFilterDepartment('') },
+    filterType && { key: 'type', label: filterType, remove: () => setFilterType('') },
+    filterYear && { key: 'year', label: YEAR_LABELS[filterYear] || filterYear, remove: () => setFilterYear('') },
+  ].filter(Boolean);
+
+  const renderUsedInCourse = (courseCode) => {
+    if (courseAssignments === null) {
+      return <span key={courseCode} className={styles.courseChecking}>{courseCode}</span>;
+    }
+
+    const target = buildReferenceCourseTarget(courseCode, courseAssignments);
+    if (target.kind === 'reviewable') {
+      return (
+        <Link
+          key={courseCode}
+          to={target.href}
+          className={styles.courseLink}
+          aria-label={`Open Assigned Course Offerings for ${courseCode}`}
+        >
+          {courseCode}
+        </Link>
+      );
+    }
+
+    return (
+      <span
+        key={courseCode}
+        className={styles.courseUnavailable}
+        title={target.message}
+        aria-label={`${courseCode}: ${target.message}`}
+      >
+        <span>{courseCode}</span>
+        <small>{target.message}</small>
+      </span>
+    );
+  };
+
   /* ── Content ───────────────────────────────────────────────────────── */
   const content = (
     <div className={styles.container}>
-      <div className={styles.header}>
-        <h1>REFERENCE LIBRARY</h1>
-      </div>
-
-      {/* Stats Cards */}
-      <div className={styles.statsGrid}>
-        <div className={styles.statCard}>
-          <div className={`${styles.statIconWrap} ${styles.statIconBlue}`}><BookOpen size={20} /></div>
-          <div className={styles.statContent}>
-            <div className={styles.statValue}>{stats.total}</div>
-            <div className={styles.statLabel}>Total References</div>
-          </div>
-        </div>
-        <div className={styles.statCard}>
-          <div className={`${styles.statIconWrap} ${styles.statIconGreen}`}><BookOpen size={20} /></div>
-          <div className={styles.statContent}>
-            <div className={styles.statValue}>{stats.textbooks}</div>
-            <div className={styles.statLabel}>Textbooks</div>
-          </div>
-        </div>
-        <div className={styles.statCard}>
-          <div className={`${styles.statIconWrap} ${styles.statIconTeal}`}><FileText size={20} /></div>
-          <div className={styles.statContent}>
-            <div className={styles.statValue}>{stats.oer}</div>
-            <div className={styles.statLabel}>Open Educational Resources</div>
-          </div>
-        </div>
-        <div className={styles.statCard}>
-          <div className={`${styles.statIconWrap} ${styles.statIconPurple}`}><Globe size={20} /></div>
-          <div className={styles.statContent}>
-            <div className={styles.statValue}>{stats.online}</div>
-            <div className={styles.statLabel}>Online Resources</div>
-          </div>
-        </div>
-        <div className={styles.statCard}>
-          <div className={`${styles.statIconWrap} ${styles.statIconYellow}`}><AlertTriangle size={20} /></div>
-          <div className={styles.statContent}>
-            <div className={styles.statValue}>{stats.deprecated}</div>
-            <div className={styles.statLabel}>Deprecated (5+ yrs)</div>
-          </div>
-        </div>
-      </div>
-
-      {/* Controls */}
-      <div className={styles.controlsBar}>
-        <div className={`filter-container ${styles.filterControl}`}>
-          <p>Filter by <strong>Department</strong>:</p>
-          <select value={filterDepartment} onChange={(e) => { setFilterDepartment(e.target.value); }}>
-            <option value="">All Departments</option>
-            {allDepartments.map(d => <option key={d} value={d}>{d}</option>)}
-          </select>
-        </div>
-        <div className={`filter-container ${styles.filterControl}`}>
-          <p>Filter by <strong>Type</strong>:</p>
-          <select value={filterType} onChange={(e) => setFilterType(e.target.value)}>
-            <option value="">All Types</option>
-            <option value="Textbook">Textbook</option>
-            <option value="Open Educational Resources">Open Educational Resources</option>
-            <option value="Online Resources">Online Resources</option>
-          </select>
-        </div>
-        <div className={styles.actionsGroup} data-collapsible-buttons>
-          <button className={styles.addBtn} type="button" onClick={() => { setEditRef(null); setAddRefOpen(true); }}>
-            <Plus size={16} /><span className="btn-label">Add Reference</span>
-          </button>
-          <button className={styles.bulkBtn} type="button" onClick={() => fileInputRef.current?.click()}>
-            <Upload size={16} /><span className="btn-label">Bulk Upload</span>
-          </button>
-        </div>
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept=".xlsx,.xls"
-          style={{ display: 'none' }}
-          onChange={handleBulkUpload}
-        />
-      </div>
-
-      {/* Tabs */}
-      <div style={{ display: 'flex', gap: 24, marginBottom: 16 }}>
-        <button onClick={() => setTab('active')} style={{ padding: '10px 0', fontSize: 14, fontWeight: 600, fontFamily: "'Poppins', sans-serif", background: 'none', border: 'none', color: tab === 'active' ? '#1e3a5f' : '#6b7280', cursor: 'pointer' }}>
-          Active References ({activeRefs.length})
-        </button>
-        <button onClick={() => setTab('archived')} style={{ padding: '10px 0', fontSize: 14, fontWeight: 600, fontFamily: "'Poppins', sans-serif", background: 'none', border: 'none', color: tab === 'archived' ? '#dc2626' : '#6b7280', cursor: 'pointer' }}>
-          Archived ({archivedRefs.length})
-        </button>
-      </div>
-
-      {/* Table */}
-      <TableScrollRegion label="Reference library" minWidth={980} className={styles.tableWrapper}>
-        <table>
-          <thead>
-            <tr>
-              <th width={140}>ID</th>
-              <th width={420}>TITLE</th>
-              <th width={260}>AUTHOR(S)</th>
-              <th width={210}>TYPE</th>
-              <th width={90}>YEAR</th>
-              <th className="fill"></th>
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.length > 0 ? (
-              filtered.map((ref) => (
-                <tr key={ref.id} className={isDeprecated(ref) ? styles.rowDeprecated : ''}>
-                  <td width={140} className={styles.cellNowrap}>{ref.id}</td>
-                  <td width={420}>
-                    <div className={styles.titleCell}>
-                      <span className={styles.refTitle}>{ref.title}</span>
-                      {ref.filename && <span className={styles.refFilename}>{ref.filename}</span>}
-                    </div>
-                  </td>
-                  <td width={260}>{ref.authors}</td>
-                  <td width={210} className={styles.cellNowrap}>{ref.type}</td>
-                  <td width={90} className={styles.cellNowrap}>{ref.year || '—'}</td>
-                  <td className="fill">
-                    <div className={styles.actionGroup}>
-                      <button className={styles.actionView} type="button" onClick={() => setViewRef(ref)}>View</button>
-                      <span className={styles.actionDot}>·</span>
-                      <button className={styles.actionEdit} type="button" onClick={() => { setEditRef(ref); setAddRefOpen(true); }}>Edit</button>
-                      {tab === 'archived' ? (
-                        <>
-                          <span className={styles.actionDot}>·</span>
-                          <button className={styles.actionEdit} type="button" onClick={() => confirmUnarchive(ref.id)} style={{ color: '#047857' }}>Unarchive</button>
-                        </>
-                      ) : (
-                        <>
-                          <span className={styles.actionDot}>·</span>
-                          <button className={styles.actionDelete} type="button" onClick={() => setArchiveRef(ref)}>Archive</button>
-                        </>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))
-            ) : (
-              <tr><td colSpan="6" className={styles.noData}>No {tab === 'archived' ? 'archived' : ''} references found</td></tr>
-            )}
-          </tbody>
-        </table>
-      </TableScrollRegion>
-
-      {/* ── VIEW MODAL ──────────────────────────────────────────────────── */}
-      {viewRef && (
-        <>
-          {!isFullscreen && <div onClick={handleClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 2999 }} />}
-          <div role="dialog" aria-modal="true" aria-label="Reference details" style={isFullscreen ? { position: 'fixed', inset: 0, zIndex: 3000, background: '#fff', display: 'flex', flexDirection: 'column', overflow: 'hidden', width: '100%', maxWidth: '100%', maxHeight: '100%', borderRadius: 0 } : { position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: 3000 }} className={styles.viewModal} onClick={(e) => e.stopPropagation()}>
-            <div className={styles.modalHeader}>
-              <h2>REFERENCE DETAILS</h2>
-              <div style={{ display: 'flex', gap: 6 }}>
-                <button onClick={() => setIsFullscreen(v => !v)} title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'} aria-label="Toggle fullscreen" style={{ background: '#fff', border: '1px solid #e2e8f0', cursor: 'pointer', color: '#334155', width: 32, height: 32, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: 6, padding: 0, lineHeight: 0, transition: 'all 0.15s' }}
-                  onMouseEnter={e => { e.currentTarget.style.background = '#f1f5f9'; e.currentTarget.style.borderColor = '#cbd5e1'; }}
-                  onMouseLeave={e => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.borderColor = '#e2e8f0'; }}
-                >{isFullscreen ? <Minimize2 size={14} /> : <Maximize size={14} />}</button>
-                <button onClick={handleClose} aria-label="Close" style={{ background: '#E81123', border: '1px solid #E81123', cursor: 'pointer', color: '#fff', width: 32, height: 32, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: 6, padding: 0, lineHeight: 0, transition: 'all 0.15s' }}
-                  onMouseEnter={e => { e.currentTarget.style.background = '#B91C1C'; e.currentTarget.style.borderColor = '#B91C1C'; }}
-                  onMouseLeave={e => { e.currentTarget.style.background = '#E81123'; e.currentTarget.style.color = '#fff'; e.currentTarget.style.borderColor = '#E81123'; }}
-                ><X size={14} /></button>
-              </div>
+      <div className={styles.discoveryWorkbench}>
+        <div className={styles.discoveryTop}>
+          <div className={styles.pageHeader}>
+            <div>
+              <h1 className={styles.pageTitle}>REFERENCE LIBRARY</h1>
             </div>
-            <div className={styles.modalBody} style={isFullscreen ? { flex: 1, overflow: 'auto' } : {}}>
-              {/* ── Title block: name, authors, status chips ── */}
-              <div style={{ padding: '16px 20px 14px', borderBottom: '1px solid #f1f5f9' }}>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 10 }}>
-                  {(() => {
-                    const t = viewRef.type || ''
-                    const c = t === 'Textbook'
-                      ? { background: '#e0f2fe', color: '#0369a1' }
-                      : t === 'Online Resources'
-                        ? { background: '#ede9fe', color: '#6d28d9' }
-                        : { background: '#fef3c7', color: '#92400e' }
-                    return <span style={{ ...c, padding: '3px 10px', borderRadius: 3, fontSize: '0.78rem', fontWeight: 600 }}>{t || 'Reference'}</span>
-                  })()}
-                  {viewRef.year && (
-                    <span style={{ background: '#f1f5f9', color: '#475569', padding: '3px 10px', borderRadius: 3, fontSize: '0.78rem', fontWeight: 600 }}>{viewRef.year}</span>
-                  )}
-                  {isDeprecated(viewRef) && (
-                    <span style={{ background: '#fef3c7', color: '#92400e', padding: '3px 10px', borderRadius: 3, fontSize: '0.78rem', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                      <AlertTriangle size={12} /> 5+ years old
-                    </span>
-                  )}
-                </div>
-                <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 600, color: '#1e293b', lineHeight: 1.35 }}>{viewRef.title}</h3>
-                {viewRef.authors && <div style={{ marginTop: 4, fontSize: '0.85rem', color: '#64748b' }}>{viewRef.authors}</div>}
-              </div>
+            <div className={styles.headerActions} data-collapsible-buttons>
+              <button className={styles.addBtn} type="button" onClick={() => { setEditRef(null); setAddRefOpen(true); }}>
+                <Plus size={16} /><span className="btn-label">Add Reference</span>
+              </button>
+              <button className={styles.bulkBtn} type="button" onClick={() => fileInputRef.current?.click()}>
+                <Upload size={15} /> Bulk Upload
+              </button>
+            </div>
+          </div>
 
-              {isDeprecated(viewRef) && (
-                <div className={styles.warningBanner}>
-                  <AlertTriangle size={16} /> This reference is over 5 years old and may be outdated.
-                </div>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".csv,text/csv"
+            style={{ display: 'none' }}
+            onChange={handleBulkUpload}
+          />
+
+      <form className={styles.searchForm} role="search" onSubmit={(event) => event.preventDefault()}>
+        <label className={styles.visuallyHidden} htmlFor="reference-search-field">Search field</label>
+        <select id="reference-search-field" className={styles.searchField} value={searchField} onChange={(event) => setSearchField(event.target.value)}>
+          {SEARCH_FIELDS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+        </select>
+        <div className={styles.searchInputWrap}>
+          <label className={styles.visuallyHidden} htmlFor="reference-search">Search references</label>
+          <input
+            id="reference-search"
+            className={styles.searchInput}
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Search title, author, ISBN, publisher, ID, or keyword"
+          />
+          {query && (
+            <button className={styles.clearSearch} type="button" onClick={() => setQuery('')} aria-label="Clear search">
+              <X size={15} />
+            </button>
+          )}
+          <button className={styles.searchIconButton} type="submit" aria-label="Search references" title="Search references">
+            <Search size={16} aria-hidden="true" />
+          </button>
+        </div>
+      </form>
+
+          <div className={styles.savedViews} aria-label="Reference views">
+        <label className={styles.savedViewsLabel} htmlFor="reference-library-view">View</label>
+        <select id="reference-library-view" className={styles.viewSelect} value={activeViewValue} onChange={changeView}>
+          {activeViewValue === 'custom' && <option value="custom" disabled>Custom view</option>}
+          <option value="active">All active · {activeRefs.length}</option>
+          <option value="recent">Recent additions · {recentCount}</option>
+          <option value="archived">Archived · {archivedRefs.length}</option>
+          {savedViews.length > 0 && (
+            <optgroup label="Saved views">
+              {savedViews.map(savedView => <option key={savedView.id} value={`saved:${savedView.id}`}>{savedView.name}</option>)}
+            </optgroup>
+          )}
+        </select>
+        {selectedSavedView && (
+          <button className={styles.savedViewDelete} type="button" aria-label={`Delete saved view ${selectedSavedView.name}`} title="Delete this saved view" onClick={(event) => deleteSavedView(event, selectedSavedView.id)}>
+            <Trash2 size={14} />
+          </button>
+        )}
+        {saveViewOpen && activeViewValue === 'custom' ? (
+          <form className={styles.saveViewForm} onSubmit={saveCurrentView}>
+            <label className={styles.visuallyHidden} htmlFor="saved-view-name">Saved view name</label>
+            <input id="saved-view-name" className={styles.saveViewInput} autoFocus maxLength={50} value={savedViewName} onChange={(event) => setSavedViewName(event.target.value)} placeholder="View name" />
+            <button className={styles.saveViewSubmit} type="submit" disabled={!savedViewName.trim()}>Save</button>
+            <button className={styles.saveViewCancel} type="button" onClick={() => { setSaveViewOpen(false); setSavedViewName(''); }}>Cancel</button>
+          </form>
+        ) : activeViewValue === 'custom' ? (
+          <button className={styles.saveViewButton} type="button" onClick={() => setSaveViewOpen(true)} title="Save the current search, filters, and sorting">
+            <Bookmark size={13} /> Save view
+          </button>
+        ) : null}
+          </div>
+          {activeFilterChips.length > 0 && (
+            <div className={styles.activeFilters} aria-label="Active filters">
+              <span className={styles.activeFiltersLabel}>Active filters</span>
+              {activeFilterChips.map(filter => (
+                <button key={filter.key} type="button" className={styles.activeFilterChip} onClick={filter.remove} aria-label={`Remove ${filter.label} filter`}>
+                  <span>{filter.label}</span><X size={12} />
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+      {filtersOpen && <button type="button" className={styles.filterBackdrop} onClick={() => setFiltersOpen(false)} aria-label="Close filters" />}
+      {viewRef && <button type="button" className={styles.previewBackdrop} onClick={handleClose} aria-label="Close reference preview" />}
+
+        <div className={styles.discoveryLayout}>
+        <aside className={`${styles.facetRail} ${filtersOpen ? styles.filterDrawer : ''}`} aria-label="Reference filters">
+          <div className={styles.facetHeader}>
+            <h2 className={styles.facetTitle}>Refine results</h2>
+            <div className={styles.facetHeaderActions}>
+              {hasDiscoveryCriteria && <button className={styles.resetButton} type="button" onClick={resetDiscovery}>Reset all</button>}
+              {filtersOpen && <button className={`${styles.drawerClose} app-icon-close`} type="button" onClick={() => setFiltersOpen(false)} aria-label="Close filters"><X size={15} /></button>}
+            </div>
+          </div>
+
+          <div className={styles.facetGroup}>
+            <h3 className={styles.facetGroupTitle}>Department</h3>
+            {facets.departments.map(item => <button key={item.value} className={`${styles.facetOption} ${filterDepartment === item.value ? styles.facetOptionActive : ''}`} type="button" aria-pressed={filterDepartment === item.value} onClick={() => setFilterDepartment(current => current === item.value ? '' : item.value)}><span>{item.value}</span><span className={styles.facetCount}>{item.count}</span></button>)}
+          </div>
+
+          <div className={styles.facetGroup}>
+            <h3 className={styles.facetGroupTitle}>Reference type</h3>
+            {facets.types.map(item => <button key={item.value} className={`${styles.facetOption} ${filterType === item.value ? styles.facetOptionActive : ''}`} type="button" aria-pressed={filterType === item.value} onClick={() => setFilterType(current => current === item.value ? '' : item.value)}><span>{item.value}</span><span className={styles.facetCount}>{item.count}</span></button>)}
+          </div>
+
+          <div className={styles.facetGroup}>
+            <h3 className={styles.facetGroupTitle}>Publication year</h3>
+            {facets.years.map(item => <button key={item.value} className={`${styles.facetOption} ${filterYear === item.value ? styles.facetOptionActive : ''}`} type="button" aria-pressed={filterYear === item.value} onClick={() => setFilterYear(current => current === item.value ? '' : item.value)}><span>{YEAR_LABELS[item.value]}</span><span className={styles.facetCount}>{item.count}</span></button>)}
+          </div>
+
+          <div className={styles.facetGroup}>
+            <h3 className={styles.facetGroupTitle}>Record status</h3>
+            <button className={`${styles.facetOption} ${tab === 'active' ? styles.facetOptionActive : ''}`} type="button" aria-pressed={tab === 'active'} onClick={() => { setTab('active'); setRecentOnly(false); }}><span>Active</span><span className={styles.facetCount}>{activeRefs.length}</span></button>
+            <button className={`${styles.facetOption} ${tab === 'archived' ? styles.facetOptionActive : ''}`} type="button" aria-pressed={tab === 'archived'} onClick={() => { setTab('archived'); setRecentOnly(false); }}><span>Archived</span><span className={styles.facetCount}>{archivedRefs.length}</span></button>
+          </div>
+        </aside>
+
+        <section className={styles.resultsPane} aria-label="Reference results">
+          <div className={styles.mobileToolbar}>
+            <button className={styles.mobileFilterButton} type="button" onClick={() => setFiltersOpen(true)}><Filter size={14} /> Filters {appliedFilterCount > 0 && `(${appliedFilterCount})`}</button>
+            {hasDiscoveryCriteria && <button className={styles.resetButton} type="button" onClick={resetDiscovery}><RotateCcw size={12} /> Reset</button>}
+          </div>
+          <div className={styles.resultsHeader}>
+            <div>
+              <h2 className={styles.resultsTitle}>{sortedReferences.length} {sortedReferences.length === 1 ? 'reference' : 'references'}</h2>
+              <span className={styles.resultsMeta}>{hasDiscoveryCriteria ? 'Matching the current search and filters' : 'All records in this view'}</span>
+              {sortedReferences.some(ref => isReferenceDeprecated(ref, CURRENT_YEAR)) && (
+                <span className={styles.reviewLegend}><span className={styles.reviewLegendDot} aria-hidden="true" />May need review</span>
               )}
-              <div className={styles.modalSection}>
-                <h3 className={styles.modalSectionTitle}>Basic Information</h3>
-                <div className={styles.modalRow}><span className={styles.modalLabel}>REFERENCE ID</span><span className={styles.modalValue}>{viewRef.id}</span></div>
-                {viewRef.isbn && <div className={styles.modalRow}><span className={styles.modalLabel}>ISBN</span><span className={styles.modalValue}>{viewRef.isbn}</span></div>}
-                {viewRef.link && <div className={styles.modalRow}><span className={styles.modalLabel}>LINK</span><a href={viewRef.link} target="_blank" rel="noopener noreferrer" className={styles.modalLink}>{viewRef.link}</a></div>}
-                {viewRef.publisher && <div className={styles.modalRow}><span className={styles.modalLabel}>PUBLISHER</span><span className={styles.modalValue}>{viewRef.publisher}</span></div>}
-                {viewRef.filename && <div className={styles.modalRow}><span className={styles.modalLabel}>FILE</span><span className={styles.modalValue}>{viewRef.filename}</span></div>}
-              </div>
+            </div>
+            <select className={styles.sortSelect} value={`${sort.sortKey}:${sort.sortDir}`} onChange={(event) => { const [sortKey, sortDir] = event.target.value.split(':'); setSort({ sortKey, sortDir }); }} aria-label="Sort references">
+              <option value="id:asc">ID: A to Z</option><option value="title:asc">Title: A to Z</option><option value="title:desc">Title: Z to A</option><option value="year:desc">Newest year</option><option value="year:asc">Oldest year</option>
+            </select>
+          </div>
 
-              {(viewRef.usedInCourses || []).length > 0 && (
-                <div className={styles.modalSection}>
-                  <h3 className={styles.modalSectionTitle}>Used in Courses</h3>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, padding: '4px 0' }}>
-                    {viewRef.usedInCourses.map((code, i) => (
-                      <span key={i} style={{ background: '#f1f5f9', color: '#475569', padding: '3px 10px', borderRadius: 3, fontSize: '0.78rem', fontWeight: 600 }}>{code}</span>
-                    ))}
-                  </div>
-                </div>
-              )}
+          <TableScrollRegion label="Reference library" minWidth={720} className={styles.tableWrapper}>
+            <table>
+              <thead><tr>{REFERENCE_LIBRARY_COLUMNS.map(column => <SortableTh key={column.key} col={column} sortKey={sort.sortKey} sortDir={sort.sortDir} onSort={handleSort} />)}</tr></thead>
+              <tbody>
+                {pageResult.items.length > 0 ? pageResult.items.map(ref => (
+                  <tr
+                    key={ref.id}
+                    className={`${styles.resultRow} ${previewReference?.id === ref.id ? styles.resultRowSelected : ''}`}
+                    tabIndex={0}
+                    aria-selected={previewReference?.id === ref.id}
+                    onClick={() => setViewRef(ref)}
+                    onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setViewRef(ref); } }}
+                  >
+                    <td className={styles.cellNowrap}>{ref.id}</td>
+                    <td><div className={styles.titleCell}><div className={styles.titleLine}><span className={styles.refTitle}>{ref.title}</span></div>{ref.filename && <span className={styles.refFilename}>{ref.filename}</span>}</div></td>
+                    <td><span className={styles.cellEllipsis}>{ref.authors || '—'}</span></td>
+                    <td className={styles.cellNowrap}><span className={styles.typeBadge}>{ref.type}</span></td>
+                    <td className={`${styles.cellNowrap} ${styles.yearCell}`}><span className={styles.yearValue}>{ref.year || '—'}</span>{isReferenceDeprecated(ref, CURRENT_YEAR) && <span className={styles.deprecatedMarker} role="img" title="May need review — published five or more years ago" aria-label="May need review — published five or more years ago" />}</td>
+                  </tr>
+                )) : (
+                  <EmptyState colSpan={5} icon={<BookOpen size={22} strokeWidth={1.6} />} title={hasDiscoveryCriteria ? 'No references match this search' : tab === 'archived' ? 'Nothing has been archived' : 'No references in the library yet'} hint={hasDiscoveryCriteria ? 'Try a different search term, remove a filter, or reset the view.' : tab === 'archived' ? 'References you archive are kept here and can be restored later.' : 'Add a reference or use Bulk Upload to start the catalog.'} />
+                )}
+              </tbody>
+            </table>
+          </TableScrollRegion>
 
-              <div className={styles.modalSection}>
-                <h3 className={styles.modalSectionTitle}>Department</h3>
-                {(viewRef.departments || []).length > 0 ? (
-                  <div className={styles.modalRow}>
-                    <span className={styles.modalLabel}>DEPARTMENT</span>
-                    <span className={styles.modalValue} style={{ display: 'flex', flexWrap: 'nowrap', overflowX: 'auto', gap: 6 }}>
-                      {(viewRef.departments || []).map((d, i) => (
-                        <span key={i} className={styles.deptBadge} style={{ backgroundColor: getDeptColor(d) + '1a', color: getDeptColor(d), borderLeft: `3px solid ${getDeptColor(d)}`, whiteSpace: 'nowrap' }}>
-                          <span className={styles.deptBadgeShort}>{getDeptShort(d)}</span>
-                          <span className={styles.deptBadgeFull}>{d}</span>
-                        </span>
-                      ))}
-                    </span>
-                  </div>
+          <div className={styles.pagination}>
+            <span>Showing {pageResult.start}–{pageResult.end} of {pageResult.total}</span>
+            <div className={styles.paginationControls}>
+              <button
+                className={styles.paginationBtn}
+                type="button"
+                aria-label="Previous page"
+                disabled={pageResult.page <= 1}
+                onClick={() => setPage(pageResult.page - 1)}
+              >
+                <ChevronLeft size={16} />
+              </button>
+              <span>Page {pageResult.page} of {pageResult.pageCount}</span>
+              <button
+                className={styles.paginationBtn}
+                type="button"
+                aria-label="Next page"
+                disabled={pageResult.page >= pageResult.pageCount}
+                onClick={() => setPage(pageResult.page + 1)}
+              >
+                <ChevronRight size={16} />
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <aside className={`${styles.previewPane} ${viewRef ? styles.previewSheet : ''}`} aria-label="Reference preview">
+          {previewReference ? (
+            <>
+              <div className={styles.previewHeader}><div><h2 className={styles.previewTitle}>{previewReference.title}</h2><div className={styles.previewId}><span>{previewReference.id} · {previewReference.archived ? 'Archived' : 'Active'}</span></div></div><button className={`${styles.previewClose} app-icon-close`} type="button" onClick={handleClose} aria-label="Close reference preview"><X size={15} /></button></div>
+              {isReferenceDeprecated(previewReference, CURRENT_YEAR) && <div className={styles.warningBanner}>This reference is five years old or older and may need review.</div>}
+              <dl className={styles.previewMetadata}>
+                <dt>Author(s)</dt><dd>{previewReference.authors || 'Not provided'}</dd><dt>Type</dt><dd>{previewReference.type || 'Not provided'}</dd><dt>ISBN</dt><dd>{previewReference.isbn || 'Not provided'}</dd><dt>Year</dt><dd>{previewReference.year || 'Not provided'}</dd><dt>Publisher</dt><dd>{previewReference.publisher || 'Not provided'}</dd><dt>Department</dt><dd>{(previewReference.departments || []).join(', ') || 'Not assigned'}</dd><dt>Used in</dt><dd className={styles.courseLinks}>{(previewReference.usedInCourses || []).length ? previewReference.usedInCourses.map(renderUsedInCourse) : 'No courses recorded'}</dd>
+                {sanitizeUrl(previewReference.link) && <><dt>Link</dt><dd><a href={sanitizeUrl(previewReference.link)} target="_blank" rel="noopener noreferrer" className={styles.modalLink}>Open resource</a></dd></>}
+              </dl>
+              <div className={styles.previewActions}>
+                <button className={styles.previewPrimary} type="button" onClick={() => { setEditRef(previewReference); setAddRefOpen(true); }}>Edit record</button>
+                {previewReference.archived ? (
+                  <button className={styles.previewSecondary} type="button" onClick={() => confirmUnarchive(previewReference.id)}><RotateCcw size={13} /> Restore</button>
                 ) : (
-                  <div className={styles.modalRow}><span className={styles.modalLabel}>DEPARTMENT</span><span className={styles.modalValue} style={{ color: '#9ca3af', fontStyle: 'italic' }}>Not assigned</span></div>
+                  <button className={`${styles.previewSecondary} ${styles.rowActionDanger}`} type="button" onClick={() => setArchiveRef(previewReference)}><Archive size={13} /> Archive record</button>
                 )}
               </div>
-
-              <div className={styles.modalSection}>
-                <h3 className={styles.modalSectionTitle}>Metadata</h3>
-                <div className={styles.modalRow}><span className={styles.modalLabel}>UPLOAD DATE</span><span className={styles.modalValue}>{viewRef.uploadDate ? new Date(viewRef.uploadDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : '—'}</span></div>
-              </div>
-            </div>
-            <div className={styles.modalActions}>
-              <button className={styles.modalBtnEdit} onClick={() => { setViewRef(null); setEditRef(viewRef); setAddRefOpen(true); }}>Edit Reference</button>
-              <button className={styles.modalBtnClose} onClick={() => setViewRef(null)}>Close</button>
-            </div>
-          </div>
-        </>
-      )}
+            </>
+          ) : <div className={styles.previewEmpty}><BookOpen size={30} /><p>Select a reference to preview its details without leaving the result list.</p></div>}
+        </aside>
+        </div>
+      </div>
 
       {/* ── ARCHIVE CONFIRMATION MODAL ──────────────────────────────────── */}
       {archiveRef && (
@@ -608,7 +678,7 @@ const ReferenceLibrary = () => {
           <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
             <div className={styles.modalHeader}>
               <h2>Bulk Upload Result</h2>
-              <button className={styles.modalClose} onClick={() => { setShowBulkModal(false); setBulkResult(null); }}>✕</button>
+              <button type="button" className={`${styles.modalClose} app-icon-close`} onClick={() => { setShowBulkModal(false); setBulkResult(null); }} aria-label="Close bulk upload">✕</button>
             </div>
             <div className={styles.modalBody}>
               <div style={{ textAlign: 'center', marginBottom: 16 }}>

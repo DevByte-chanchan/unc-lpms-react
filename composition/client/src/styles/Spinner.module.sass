@@ -1,0 +1,66 @@
+// The loading ring.
+//
+// Centred BOTH ways, which is the whole point — the thing it replaced was a
+// bare text node that sat wherever the layout dropped it.
+
+.wrap
+  display: flex
+  flex-direction: column
+  align-items: center
+  justify-content: center
+  gap: var(--sp-3)
+  width: 100%
+  // `flex: 1` so that inside a column-flex page (which most screens here are)
+  // this takes the leftover space and centres inside it, rather than being
+  // sized by its own content and pinned to the top.
+  flex: 1 1 auto
+  color: var(--ink-faint)
+
+.inline
+  display: inline-flex
+  align-items: center
+  vertical-align: middle
+
+// A ring, not a full circle: three sides in a faint grey and one in the app's
+// colour is what makes the rotation visible. A uniformly coloured circle spins
+// without appearing to move at all.
+.ring
+  display: block
+  box-sizing: border-box
+  border-style: solid
+  border-color: var(--line)
+  border-top-color: var(--primary)
+  border-radius: 50%
+  animation: spinnerTurn 0.7s linear infinite
+
+.label
+  font-size: var(--fs-xs)
+  color: var(--ink-muted)
+
+.srOnly
+  position: absolute
+  width: 1px
+  height: 1px
+  padding: 0
+  margin: -1px
+  overflow: hidden
+  clip: rect(0, 0, 0, 0)
+  white-space: nowrap
+  border: 0
+
+@keyframes spinnerTurn
+  to
+    transform: rotate(360deg)
+
+// Anyone who has asked their system not to animate things gets a ring that
+// simply sits there. Removing the animation without replacing it would leave
+// a static broken-looking circle, so it fades instead.
+@media (prefers-reduced-motion: reduce)
+  .ring
+    animation: spinnerPulse 1.4s ease-in-out infinite
+
+@keyframes spinnerPulse
+  0%, 100%
+    opacity: 1
+  50%
+    opacity: .35

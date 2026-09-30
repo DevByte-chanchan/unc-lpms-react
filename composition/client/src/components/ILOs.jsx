@@ -35,7 +35,7 @@ const AssignScheduleModal = ({ isOpen, onClose, onSave, iloId, currentWeeks, cur
             <div className={styles.scheduleModal}>
                 <div className={styles.modalHeader}>
                     <h3 className={styles.modalTitle}>Time Allocation</h3>
-                    <button type="button" className={styles.closeBtn} onClick={onClose}>×</button>
+                    <button type="button" className={`${styles.closeBtn} app-icon-close`} onClick={onClose} aria-label="Close schedule">×</button>
                 </div>
 
                 <form onSubmit={handleSubmit} className={styles.formBody}>
@@ -202,7 +202,7 @@ const ILOs = ({ offeringID, revisionNum, status, styles, fetchJson }) => {
                     const parsed = JSON.parse(error.message.substring(jsonStart));
                     errorMsg = parsed.message || errorMsg;
                 }
-            } catch (e) {
+            } catch {
                 // Fallback to standard error
             }
 

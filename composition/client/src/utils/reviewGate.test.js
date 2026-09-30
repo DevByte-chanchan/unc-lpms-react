@@ -1,11 +1,13 @@
 // Runnable self-check for the review rules — `node src/utils/reviewGate.test.js`
 // from client/. Workflow shapes are the ones workflowHelpers actually stores.
 
+const reviewGate = await import('./reviewGate.js');
+
 const {
   validateReturn, COMMENT_TYPES, isActionableComment, checkText, hasBlockingTextIssues,
   buildSignature, verifySignature, addSignature, consolidatedStatus, canActOnStage,
   encodeCommentType, parseCommentType
-} = await import('./reviewGate.js');
+} = reviewGate;
 
 const test = (name, fn) => {
   try {
@@ -75,6 +77,36 @@ test('the comment type survives the round trip to the instructor', () => {
   eq(parseCommentType('[TODO] check this').text, '[TODO] check this', 'an unknown tag is not stripped');
   eq(encodeCommentType('suggest-topic', '   '), '', 'empty text is not tagged into existence');
   eq(parseCommentType(encodeCommentType('note', 'FYI only.')).actionable, false, 'a note stays non-actionable');
+});
+
+test('approval comments separate appended reference suggestions from reviewer text', () => {
+  if (typeof reviewGate.parseApprovalCommentDisplay !== 'function') {
+    throw new Error('approval comment display parser is missing');
+  }
+
+  const parsed = reviewGate.parseApprovalCommentDisplay(
+    'Please update this source.\n\nSuggested references: AWS Well-Architected Framework — Amazon Web Services; Advanced Java Programming (OER) — OER Consortium'
+  );
+
+  eq(parsed.body, 'Please update this source.', 'reviewer text');
+  eq(parsed.suggestions.length, 2, 'suggestion count');
+  eq(parsed.suggestions[0].title, 'AWS Well-Architected Framework', 'first suggestion title');
+  eq(parsed.suggestions[0].authors, 'Amazon Web Services', 'first suggestion author');
+  eq(parsed.suggestions[1].title, 'Advanced Java Programming (OER)', 'second suggestion title');
+});
+
+test('approval comment context removes repeated CO text and humanizes reviewer roles', () => {
+  if (typeof reviewGate.compactCommentIlo !== 'function') {
+    throw new Error('compact ILO formatter is missing');
+  }
+  if (typeof reviewGate.reviewerRoleLabel !== 'function') {
+    throw new Error('reviewer role formatter is missing');
+  }
+
+  eq(reviewGate.compactCommentIlo('CO1-ILO3', 'CO1'), 'ILO3', 'compact ILO');
+  eq(reviewGate.compactCommentIlo('ILO2', 'CO1'), 'ILO2', 'already compact ILO');
+  eq(reviewGate.reviewerRoleLabel('LIBRARY_DIRECTOR'), 'Director of Libraries', 'server role');
+  eq(reviewGate.reviewerRoleLabel('Director of Libraries'), 'Director of Libraries', 'display role');
 });
 
 test('spelling and grammar are caught at entry, before the program head sees them', () => {

@@ -52,13 +52,17 @@ async function getReferenceLibrary(req, res) {
                  r.link,
                  r.publication_year,
                  r.createdAt,
-                 GROUP_CONCAT(DISTINCT crs.course_no) AS used_in_courses
+                 GROUP_CONCAT(DISTINCT crs.course_no) AS used_in_courses,
+                 GROUP_CONCAT(DISTINCT p.name) AS programs,
+                 GROUP_CONCAT(DISTINCT d.name) AS departments
              FROM \`References\` r
                  LEFT JOIN ILOReferences ir ON ir.reference_id = r.reference_id
                  LEFT JOIN IntendedLearningOutcomes ilo ON ilo.ilo_id = ir.ilo_id
                  LEFT JOIN CourseOutcomes co ON co.co_id = ilo.co_id
                  LEFT JOIN ProgramCourseOfferings pco ON pco.pc_offering_id = co.pc_offering_id
                  LEFT JOIN Courses crs ON crs.course_id = pco.course_id
+                 LEFT JOIN Programs p ON p.program_id = pco.program_id
+                 LEFT JOIN Departments d ON d.dept_id = pco.dept_id
              GROUP BY r.reference_id
              ORDER BY r.title ASC;`,
             { type: Sequelize.QueryTypes.SELECT }

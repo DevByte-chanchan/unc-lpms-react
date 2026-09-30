@@ -1,333 +1,201 @@
-import { useState, useEffect } from 'react';
-import { ChevronRight, Upload, Trash2 } from 'react-feather';
+import { useEffect, useMemo, useState } from 'react';
+import { ChevronRight, FileText } from 'react-feather';
 import SkeletonA from '../../../layouts/SkeletonA.jsx';
 import HeaderA from '../../../components/HeaderA.jsx';
 import SideNavigation from '../../../components/SideNavigation.jsx';
 import PDFViewerModal from '../../../components/PDFViewerModal.jsx';
-import { buildCoaepHtml } from '../../../utils/syllabusPdfHtml.js';
-import { getAllPrograms, getProgramCourses, getCoaepData, saveCoaepData, extractProgramPrefix, getProgramName } from '../../../utils/programCurriculumData.js';
-import unclogo from '../../../assets/unclogo.png';
-import { FONT, BTN_DARK, BTN_OUTLINE, BTN_DANGER, TH, THC, TD, TDC } from './uiTokens.js';
-import { fetchJson } from '../../../utils/api.js';
-import tbl from '../../../styles/AlignmentTables.module.sass';
+import EmptyState from '../../../components/EmptyState.jsx';
 import TableScrollRegion from '../../../components/TableScrollRegion.jsx';
+import { buildCoaepHtml } from '../../../utils/syllabusPdfHtml.js';
+import { fetchJson } from '../../../utils/api.js';
+import { buildGeneratedCoaepRecord } from '../../../utils/generatedCoaepRecord.js';
+import { extractProgramPrefix, getAllPrograms, getProgramCourses, getProgramName } from '../../../utils/programCurriculumData.js';
+import unclogo from '../../../assets/unclogo.png';
+import tbl from '../../../styles/AlignmentTables.module.sass';
 import pageStyles from '../../../styles/ProgramHeadWorkspace.module.sass';
 
-const CURRENT_YEAR = new Date().getFullYear()
-
 const COAEPUpload = () => {
-  const [courseCode, setCourseCode] = useState('')
-  const [courses, setCourses] = useState([])
-  const [coaepRecord, setCoaepRecord] = useState(null)
-  const [selectedFile, setSelectedFile] = useState(null)
-  const [showUpload, setShowUpload] = useState(false)
-  const [form, setForm] = useState({
-    facultyName: '', schoolYear: String(CURRENT_YEAR), semester: '1st Semester',
-    preparedBy: '', approvedBy: '',
-  })
+  const programs = useMemo(() => getAllPrograms(), []);
+  const [courseCode, setCourseCode] = useState('');
+  const [courses, setCourses] = useState([]);
+  const [serverPrograms, setServerPrograms] = useState([]);
+  const [serverCoaep, setServerCoaep] = useState(null);
+  const [selectedFile, setSelectedFile] = useState(null);
 
-  const programs = getAllPrograms()
-
-  // The record is keyed by the short program prefix of the course — the same key
-  // CoPoAlignment and PoPeoAlignment use. Keying by the server's Program.name
-  // split one program into two entries in the store, so a COAEP saved while the
-  // server was reachable vanished on the offline fallback.
-  const programCode = extractProgramPrefix(courseCode) || programs[0] || ''
-
-  // Programs + courses come from the DATABASE (assignments carry both);
-  // static lists are only a fallback when the server is unreachable.
-  const [serverPrograms, setServerPrograms] = useState([])
   useEffect(() => {
-    let mounted = true
+    let active = true;
+    const setFallbackCourses = () => {
+      const fallback = getProgramCourses(programs[0]);
+      if (!active) return;
+      setCourses(fallback);
+      setCourseCode(current => current || fallback[0]?.code || '');
+    };
+
     fetchJson('/api/assignments')
-      .then(resp => {
-        if (!mounted) return
-        const rows = Array.isArray(resp) ? resp : (resp.data || [])
-        const seenC = new Set(); const cs = []
-        const seenP = new Set(); const ps = []
-        rows.forEach(r => {
-          const c = r.ProgramCourseOffering?.Course
-          const p = r.ProgramCourseOffering?.Program
-          if (c?.course_no && !seenC.has(c.course_no)) {
-            seenC.add(c.course_no)
-            cs.push({ code: c.course_no, name: c.course_title || '' })
+      .then(response => {
+        const rows = Array.isArray(response) ? response : (response.data || []);
+        const courseRows = [];
+        const programNames = new Set();
+        const seenCourseCodes = new Set();
+        rows.forEach(row => {
+          const course = row.ProgramCourseOffering?.Course;
+          const program = row.ProgramCourseOffering?.Program;
+          if (course?.course_no && !seenCourseCodes.has(course.course_no)) {
+            seenCourseCodes.add(course.course_no);
+            courseRows.push({ code: course.course_no, name: course.course_title || '' });
           }
-          if (p?.name && !seenP.has(p.name)) { seenP.add(p.name); ps.push(p.name) }
-        })
-        cs.sort((a, b) => a.code.localeCompare(b.code))
-        if (cs.length > 0) {
-          setCourses(cs)
-          // Program.name is a display label only — the storage key comes from
-          // the course code, so online and offline reads land on one entry.
-          setServerPrograms(ps)
-          if (!cs.find(c => c.code === courseCode)) setCourseCode(cs[0].code)
-        } else {
-          const fallback = getProgramCourses(programCode)
-          setCourses(fallback)
-          if (fallback.length > 0 && !fallback.find(c => c.code === courseCode)) setCourseCode(fallback[0].code)
+          if (program?.name) programNames.add(program.name);
+        });
+        courseRows.sort((left, right) => left.code.localeCompare(right.code));
+        if (!active) return;
+        if (courseRows.length === 0) {
+          setFallbackCourses();
+          return;
         }
+        setCourses(courseRows);
+        setServerPrograms([...programNames].sort());
+        setCourseCode(current => courseRows.some(course => course.code === current) ? current : courseRows[0].code);
       })
-      .catch(() => {
-        if (!mounted) return
-        const fallback = getProgramCourses(programCode || programs[0])
-        setCourses(fallback)
-        if (fallback.length > 0 && !fallback.find(c => c.code === courseCode)) setCourseCode(fallback[0].code)
-      })
-    return () => { mounted = false }
-  }, [])
+      .catch(setFallbackCourses);
+
+    return () => { active = false; };
+  }, [programs]);
 
   useEffect(() => {
-    if (programCode && courseCode) {
-      const rec = getCoaepData(programCode, courseCode)
-      setCoaepRecord(rec)
-    }
-  }, [programCode, courseCode])
-
-  // Real COAEP content (COs, ILOs, assessment tools) straight from the database
-  const [serverCoaep, setServerCoaep] = useState(null)
-  useEffect(() => {
-    if (!courseCode) return
-    let mounted = true
-    setServerCoaep(null)
+    if (!courseCode) return undefined;
+    let active = true;
+    setServerCoaep(null);
     fetchJson(`/api/coaep/${encodeURIComponent(courseCode)}`)
-      .then(d => { if (mounted) setServerCoaep(d) })
-      .catch(() => { if (mounted) setServerCoaep(null) })
-    return () => { mounted = false }
-  }, [courseCode])
+      .then(payload => { if (active) setServerCoaep(payload); })
+      .catch(() => { if (active) setServerCoaep(null); });
+    return () => { active = false; };
+  }, [courseCode]);
 
-  // What we display/print: a manually-uploaded record with real content, otherwise
-  // a record built from the course's actual DB data — never a blank page.
-  // Records saved with the old one-CO placeholder are treated as absent.
-  const courseObj = courses.find(c => c.code === courseCode)
-  // Official COAEP form holds a maximum of 4 COs — cap regardless of source
-  // (old saved records may contain more, e.g. merged revisions)
-  const capCos = (rec) => rec ? { ...rec, cos: (rec.cos || []).slice(0, 4) } : rec
-  const uploaded = coaepRecord && (coaepRecord.cos || []).length > 1 ? capCos(coaepRecord) : null
-  const effectiveRecord = uploaded || (serverCoaep ? capCos({
-    header: {
-      facultyName: 'CASIMERO, DANNY',
-      schoolYear: '2025-2026',
-      course: `${courseCode} — ${serverCoaep.course?.title || courseObj?.name || ''}`,
-      semester: '1st Semester',
-    },
-    cos: serverCoaep.cos,
-    preparedBy: 'CASIMERO, DANNY',
-    approvedBy: 'DANILA, JUNAR (Program Head)',
-    dateSubmitted: new Date().toLocaleDateString('en-US'),
-  }) : null)
+  const programCode = extractProgramPrefix(courseCode) || programs[0] || '';
+  const course = courses.find(item => item.code === courseCode);
+  const generatedRecord = buildGeneratedCoaepRecord({
+    courseCode,
+    courseName: course?.name,
+    payload: serverCoaep,
+    generatedAt: new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
+  });
 
-  const handleView = () => {
-    if (!effectiveRecord) return
-    const logoUrl = new URL(unclogo, window.location.origin).href
-    const html = buildCoaepHtml(effectiveRecord, logoUrl)
-    const blob = new Blob([html], { type: 'text/html' })
-    const url = URL.createObjectURL(blob)
+  const viewGeneratedCoaep = () => {
+    if (!generatedRecord) return;
+    const logoUrl = new URL(unclogo, window.location.origin).href;
+    const html = buildCoaepHtml(generatedRecord, logoUrl);
+    const fileUrl = URL.createObjectURL(new Blob([html], { type: 'text/html' }));
     setSelectedFile({
-      name: `${programCode}_${courseCode}_COAEP.html`,
-      file_name: `${programCode}_${courseCode}_COAEP.html`,
-      file_url: url,
-      uploadedBy: 'DANILA, JUNAR',
-      uploadDate: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-    })
-  }
-
-  const handleUpload = () => {
-    if (!form.facultyName || !form.preparedBy) {
-      alert('Please fill in Faculty Name and Prepared By fields.')
-      return
-    }
-    const course = courses.find(c => c.code === courseCode)
-    const data = {
-      header: {
-        facultyName: form.facultyName,
-        schoolYear: form.schoolYear,
-        course: `${courseCode} — ${course?.name || ''}`,
-        semester: form.semester,
-      },
-      // Use the course's real COs/ILOs from the database when available
-      cos: (serverCoaep?.cos && serverCoaep.cos.length > 0) ? serverCoaep.cos : [
-        {
-          number: '1.0',
-          statement: 'Course Outcome 1',
-          ilos: [
-            { outcome: 'ILO description', assessmentTool: 'Assessment tool' },
-          ],
-        },
-      ],
-      preparedBy: form.preparedBy,
-      approvedBy: form.approvedBy,
-      dateSubmitted: new Date().toLocaleDateString('en-US'),
-      effectivityDate: '06/01/2024',
-      revisionNo: '0',
-      pageNo: '1 of 1',
-    }
-    saveCoaepData(programCode, courseCode, data)
-    setCoaepRecord(data)
-    setShowUpload(false)
-    setForm({ facultyName: '', schoolYear: String(CURRENT_YEAR), semester: '1st Semester', preparedBy: '', approvedBy: '' })
-  }
-
-  const handleDelete = () => {
-    saveCoaepData(programCode, courseCode, null)
-    setCoaepRecord(null)
-  }
-
-  const course = courses.find(c => c.code === courseCode)
-
-  const content = (
-    <div className={pageStyles.page}>
-      <div className={pageStyles.toolbar}>
-        <h2>COURSE ASSESSMENT &amp; EVALUATION PLAN (COAEP)</h2>
-        <select className={pageStyles.courseSelect} value={courseCode} onChange={e => setCourseCode(e.target.value)}
-          style={{ fontSize: 14, borderRadius: 4, border: '1px solid #D1D5DB', background: '#FFF', cursor: 'pointer', fontFamily: FONT }}>
-          {courses.map(c => <option key={c.code} value={c.code}>{c.name}</option>)}
-        </select>
-        <span style={{ fontSize: 13, color: '#6B7280', whiteSpace: 'nowrap', fontFamily: FONT }}>
-          {serverPrograms[0] || getProgramName(programCode)}
-        </span>
-        <div className={pageStyles.actions}>
-          {effectiveRecord && (
-            <button onClick={handleView}
-              style={BTN_DARK}>
-              <ChevronRight size={16} /> View COAEP
-            </button>
-          )}
-          {coaepRecord && (
-            <button onClick={handleDelete}
-              style={BTN_DANGER}>
-              <Trash2 size={16} /> Delete
-            </button>
-          )}
-          <button onClick={() => setShowUpload(true)}
-            style={BTN_DARK}>
-            <Upload size={16} /> {coaepRecord ? 'Replace' : 'Upload'} COAEP
-          </button>
-        </div>
-      </div>
-
-      {course && <div style={{ fontSize: 14, color: '#4B5563', marginBottom: 12, fontFamily: FONT }}><strong>Course:</strong> {course.name}</div>}
-
-      {effectiveRecord ? (
-        // Table view — same design as CO-PO / PO-PEO alignment pages
-        <TableScrollRegion label="COURSE ASSESSMENT & EVALUATION PLAN (COAEP)" minWidth={960}>
-          <table className={tbl.alignTable}>
-            <colgroup>
-              <col style={{ width: 40 }} />
-              <col style={{ width: '21%' }} />
-              <col style={{ width: '29%' }} />
-              <col style={{ width: '22%' }} />
-              <col />
-            </colgroup>
-            <thead>
-              <tr>
-                <th className={tbl.center}>#</th>
-                <th>Course Outcome Statement</th>
-                <th>Intended Learning Outcome</th>
-                <th>Assessment Tool</th>
-                <th>Performance Target</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(effectiveRecord.cos || []).map((co, ci) => {
-                const ilos = (co.ilos || []).length ? co.ilos : [{ outcome: '', assessmentTool: '' }]
-                return ilos.map((ilo, ii) => (
-                  <tr key={`${ci}-${ii}`}>
-                    {ii === 0 && <td className={tbl.center} style={{ fontWeight: 700 }} rowSpan={ilos.length}>{ci + 1}</td>}
-                    {ii === 0 && <td rowSpan={ilos.length}>{co.statement}</td>}
-                    <td>{ilo.outcome}</td>
-                    <td>{ilo.assessmentTool || '—'}</td>
-                    <td>{ilo.performanceTarget || effectiveRecord.performanceTarget || 'At least 90% of enrolled students with a rating of at least 60% of the total score'}</td>
-                  </tr>
-                ))
-              })}
-            </tbody>
-          </table>
-        </TableScrollRegion>
-      ) : (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1, color: '#9CA3AF', fontSize: 16 }}>
-          This course has no composed learning plan yet — COAEP content will appear once its COs and ILOs exist.
-        </div>
-      )}
-
-      {showUpload && (
-        <div>
-          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.35)', zIndex: 2 }} onClick={() => { setShowUpload(false) }} />
-          <div className={pageStyles.dialog}>
-            <div style={{ fontSize: 18, fontWeight: 600, marginBottom: 20 }}>{coaepRecord ? 'Replace' : 'Upload'} COAEP</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <div>
-                <label style={{ fontSize: 13, fontWeight: 500, display: 'block', marginBottom: 4 }}>Faculty Name</label>
-                <input value={form.facultyName} onChange={e => setForm(f => ({ ...f, facultyName: e.target.value }))}
-                  placeholder="e.g. SANTOS, MARIA C."
-                  style={{ width: '100%', padding: '8px 12px', border: '1px solid #D1D5DB', borderRadius: 6, fontSize: 14, boxSizing: 'border-box' }} />
-              </div>
-              <div className={pageStyles.fieldRow}>
-                <div style={{ flex: 1 }}>
-                  <label style={{ fontSize: 13, fontWeight: 500, display: 'block', marginBottom: 4 }}>School Year</label>
-                  <input value={form.schoolYear} onChange={e => setForm(f => ({ ...f, schoolYear: e.target.value }))}
-                    style={{ width: '100%', padding: '8px 12px', border: '1px solid #D1D5DB', borderRadius: 6, fontSize: 14, boxSizing: 'border-box' }} />
-                </div>
-                <div style={{ flex: 1 }}>
-                  <label style={{ fontSize: 13, fontWeight: 500, display: 'block', marginBottom: 4 }}>Semester</label>
-                  <select value={form.semester} onChange={e => setForm(f => ({ ...f, semester: e.target.value }))}
-                    style={{ width: '100%', padding: '8px 12px', border: '1px solid #D1D5DB', borderRadius: 6, fontSize: 14, boxSizing: 'border-box', background: '#FFF' }}>
-                    <option>1st Semester</option>
-                    <option>2nd Semester</option>
-                    <option>Summer</option>
-                  </select>
-                </div>
-              </div>
-              <div>
-                <label style={{ fontSize: 13, fontWeight: 500, display: 'block', marginBottom: 4 }}>Prepared By</label>
-                <input value={form.preparedBy} onChange={e => setForm(f => ({ ...f, preparedBy: e.target.value }))}
-                  placeholder="e.g. MARIA C. SANTOS"
-                  style={{ width: '100%', padding: '8px 12px', border: '1px solid #D1D5DB', borderRadius: 6, fontSize: 14, boxSizing: 'border-box' }} />
-              </div>
-              <div>
-                <label style={{ fontSize: 13, fontWeight: 500, display: 'block', marginBottom: 4 }}>Approved By</label>
-                <input value={form.approvedBy} onChange={e => setForm(f => ({ ...f, approvedBy: e.target.value }))}
-                  placeholder="e.g. DENNIS E. IGNACIO"
-                  style={{ width: '100%', padding: '8px 12px', border: '1px solid #D1D5DB', borderRadius: 6, fontSize: 14, boxSizing: 'border-box' }} />
-              </div>
-            </div>
-            <div className={pageStyles.dialogActions}>
-              <button onClick={() => setShowUpload(false)}
-                style={{ flex: 1, height: 40, background: '#FFF', border: '1px solid #111827', borderRadius: 6, color: '#111827', cursor: 'pointer', fontWeight: 500 }}>Cancel</button>
-              <button onClick={handleUpload}
-                style={{ flex: 1, height: 40, background: '#1F2937', borderRadius: 6, color: '#FFF', border: 'none', cursor: 'pointer', fontWeight: 500 }}>Save COAEP</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {selectedFile && (
-        <PDFViewerModal
-          file={selectedFile}
-          kind="Course Assessment & Evaluation Plan (COAEP)"
-          onClose={() => {
-            if (selectedFile.file_url?.startsWith('blob:')) URL.revokeObjectURL(selectedFile.file_url)
-            setSelectedFile(null)
-          }}
-          onExport={(f) => {
-            if (f.file_url) {
-              const a = document.createElement('a');
-              a.href = f.file_url;
-              a.download = f.file_name || f.name || 'document';
-              a.click();
-            }
-          }}
-        />
-      )}
-    </div>
-  )
+      name: `${programCode}_${courseCode}_generated_COAEP.html`,
+      file_name: `${programCode}_${courseCode}_generated_COAEP.html`,
+      file_url: fileUrl,
+      uploadedBy: 'System generated from syllabus',
+      uploadDate: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+    });
+  };
 
   return (
     <SkeletonA
       header={<HeaderA role="Program Head" name="DANILA, JUNAR" />}
       nav={<SideNavigation mode="program-head" />}
-      content={content}
-    />
-  )
-}
+      content={(
+        <div className={pageStyles.page}>
+          <div className={pageStyles.toolbar}>
+            <div className={pageStyles.titleBlock}>
+              <h2>COURSE ASSESSMENT &amp; EVALUATION PLAN (COAEP)</h2>
+              <p className={pageStyles.pageSubtitle}>View the assessment plan generated from the selected course syllabus.</p>
+            </div>
+            <label className={pageStyles.controlGroup}>
+              <span className={pageStyles.controlLabel}>Course</span>
+              <select
+                className={pageStyles.courseSelect}
+                value={courseCode}
+                onChange={event => setCourseCode(event.target.value)}
+                aria-label="Select course"
+              >
+                {courses.map(item => <option key={item.code} value={item.code}>{item.code} — {item.name}</option>)}
+              </select>
+            </label>
+            <div className={pageStyles.actions}>
+              {generatedRecord && (
+                <button type="button" className={pageStyles.primaryButton} onClick={viewGeneratedCoaep}>
+                  <ChevronRight size={16} /> View Generated COAEP
+                </button>
+              )}
+            </div>
+          </div>
 
-export default COAEPUpload
+          {course && (
+            <div className={pageStyles.contextBar}>
+              <span><strong>Course:</strong> {courseCode} — {course.name}</span>
+              <span><strong>Program:</strong> {serverPrograms[0] || getProgramName(programCode)}</span>
+              {generatedRecord && <span className={pageStyles.contextMuted}>{generatedRecord.sourceLabel}</span>}
+            </div>
+          )}
+
+          {generatedRecord ? (
+            <TableScrollRegion label="COURSE ASSESSMENT & EVALUATION PLAN (COAEP)" minWidth={960} className={pageStyles.tableRegion}>
+              <table className={tbl.alignTable}>
+                <colgroup>
+                  <col style={{ width: 40 }} />
+                  <col style={{ width: '21%' }} />
+                  <col style={{ width: '29%' }} />
+                  <col style={{ width: '22%' }} />
+                  <col />
+                </colgroup>
+                <thead>
+                  <tr>
+                    <th className={tbl.center}>#</th>
+                    <th>Course Outcome Statement</th>
+                    <th>Intended Learning Outcome</th>
+                    <th>Assessment Tool</th>
+                    <th>Performance Target</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {generatedRecord.cos.map((co, courseOutcomeIndex) => {
+                    const ilos = co.ilos?.length ? co.ilos : [{ outcome: '', assessmentTool: '' }];
+                    return ilos.map((ilo, iloIndex) => (
+                      <tr key={`${courseOutcomeIndex}-${iloIndex}`}>
+                        {iloIndex === 0 && <td className={tbl.center} style={{ fontWeight: 700 }} rowSpan={ilos.length}>{courseOutcomeIndex + 1}</td>}
+                        {iloIndex === 0 && <td rowSpan={ilos.length}>{co.statement}</td>}
+                        <td>{ilo.outcome}</td>
+                        <td>{ilo.assessmentTool || '—'}</td>
+                        <td>{ilo.performanceTarget || generatedRecord.performanceTarget}</td>
+                      </tr>
+                    ));
+                  })}
+                </tbody>
+              </table>
+            </TableScrollRegion>
+          ) : (
+            <EmptyState
+              icon={<FileText size={22} strokeWidth={1.6} />}
+              title="No generated COAEP for this course yet"
+              hint="COAEP is generated from the course learning plan after it contains course outcomes, intended learning outcomes, and assessment tools."
+            />
+          )}
+
+          {selectedFile && (
+            <PDFViewerModal
+              file={selectedFile}
+              kind="Generated Course Assessment & Evaluation Plan (COAEP)"
+              onClose={() => {
+                if (selectedFile.file_url?.startsWith('blob:')) URL.revokeObjectURL(selectedFile.file_url);
+                setSelectedFile(null);
+              }}
+              onExport={file => {
+                const link = document.createElement('a');
+                link.href = file.file_url;
+                link.download = file.file_name || file.name || 'generated-coaep.html';
+                link.click();
+              }}
+            />
+          )}
+        </div>
+      )}
+    />
+  );
+};
+
+export default COAEPUpload;

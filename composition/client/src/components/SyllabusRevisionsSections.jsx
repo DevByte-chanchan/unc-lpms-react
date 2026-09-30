@@ -1,4 +1,5 @@
 import styles from '../styles/SyllabusSections.module.sass'
+import Spinner from './Spinner.jsx';
 import {ChevronLeft, ChevronRight, Plus, Search, Inbox, MessageSquare} from 'react-feather';
 import { Info } from 'react-feather';
 import React, {useEffect, useState} from "react";
@@ -9,13 +10,13 @@ import {getSyllabusByCode, syllabiData} from "../data/syllabiData.js";
 import SyllabusPreview from "./SyllabusPreview.jsx";
 import TableScrollRegion from './TableScrollRegion.jsx';
 
-const SyllabusRevisionsSections = ({status}) => {
+const SyllabusRevisionsSections = () => {
 
     const [searchParams, setSearchParams] = useSearchParams();
     const selectedSection = searchParams.get('section') || 'Course Details';
 
     // syllabus code from route (ensure this is available to effects that load/save comments)
-    const { code, approver } = useParams();
+    const { code } = useParams();
 
     // Loading State
     const [isLoading, setIsLoading] = useState(false);
@@ -34,7 +35,7 @@ const SyllabusRevisionsSections = ({status}) => {
                 const raw = localStorage.getItem('approval_comments_v1')
                 const all = raw ? JSON.parse(raw) : []
                 setGlobalComments(Array.isArray(all) ? all : [])
-            } catch (e) {
+            } catch {
                 setGlobalComments([])
             }
         })()
@@ -88,29 +89,10 @@ const SyllabusRevisionsSections = ({status}) => {
         },
     ];
 
-    const programOutcomes = ['PO1', 'PO2', 'PO3', 'PO4', 'PO5', 'PO6', 'PO7', 'PO8', 'PO9'];
-
     // Use the canonical syllabi data source. If the route `code` doesn't match any
     // syllabus, fall back to the first syllabus in `syllabiData` so the revisions
     // page always displays data from `src/data/syllabiData.js` (e.g. BSCS313L).
     const syllabus = getSyllabusByCode(code) || (syllabiData && syllabiData.length ? syllabiData[0] : null);
-
-    // local editable copy so Open buttons can edit inline (prompt-based)
-    const [editableSyllabus, setEditableSyllabus] = useState(syllabus)
-    useEffect(() => { setEditableSyllabus(syllabus) }, [syllabus])
-    
-    // basic prompt-based editors
-    const editTopic = (topicId) => {
-        const topic = (editableSyllabus?.topics || []).find(t => t.id === topicId)
-        if (!topic) return
-        const newTitle = window.prompt('Edit topics.js title', topic.title || '')
-        if (newTitle === null) return
-        const subInput = window.prompt('Subtopics (comma-separated)', (topic.subtopics || []).map(s => s.value).join(', '))
-        if (subInput === null) return
-        const newSubs = subInput.split(',').map((s, idx) => ({ id: `${topicId}-sub-${idx}`, value: s.trim() })).filter(s => s.value)
-        const updatedTopics = (editableSyllabus?.topics || []).map(t => t.id === topicId ? { ...t, title: newTitle, subtopics: newSubs } : t)
-        setEditableSyllabus({ ...editableSyllabus, topics: updatedTopics })
-    }
 
     const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
@@ -166,7 +148,7 @@ const SyllabusRevisionsSections = ({status}) => {
             const then = new Date(iso)
             const diff = Date.now() - then.getTime()
             return diff < days * 24 * 60 * 60 * 1000
-        } catch (e) {
+        } catch {
             return false
         }
     }
@@ -201,9 +183,7 @@ const SyllabusRevisionsSections = ({status}) => {
                     <div className={styles['dynamic-sections']} style={{marginTop: '8px'}}>
 
                         {isLoading ? (
-                            <div className={styles.loadingContainer}>
-                                <div className={styles.spinner}></div>
-                            </div>
+                            <Spinner label="Loading this revision…" minHeight={320} />
                         ) : (
                             <>
 
@@ -311,7 +291,7 @@ const SyllabusRevisionsSections = ({status}) => {
                                                 </thead>
 
                                                 <tbody>
-                                                {courseOutcomes.map((co, coIndex) => (
+                                                {courseOutcomes.map((co) => (
                                                     <tr key={co.id}>
                                                         <td className={styles.courseNo}>
                                                             {co.id}

@@ -191,13 +191,22 @@ Notifications · Comments.
       suggest-tla, suggest-ai-tool, note); wired into `ApprovalCommentBox.jsx`,
       `ApprovalSyllabusSections.jsx`, `CommentMessage.jsx`.
 
-- [ ] **Spelling and grammar errors reach the program head.**
+- [x] **Spelling and grammar errors reach the program head.**
       *Fix:* run a spell/grammar check on comment text at save and surface
       flags before submission. [46:58] [49:25] [49:43]
       **RISK: MEDIUM** — external API in a save path.
-      *Partial (verified 2026-08-11):* `reviewGate.checkText` runs in the comment/approval
-      flows, but confirm/block the submission-gate path so errors are caught at ENTRY before
-      the program head sees them.
+      *Done (verified 2026-08-11):* both ends are wired, so this is no longer partial.
+      Approval side: `reviewGate.checkText` runs in the comment/approval flows. ENTRY side:
+      `client/src/utils/submissionGate.js:15` imports `hasBlockingTextIssues` from
+      `reviewGate.js` — one dictionary for both — and `validateSubmission` takes an optional
+      `textFields` array, pushing a blocker naming the offending text when any field
+      misspells. `client/src/components/SyllabusSections.jsx:202`–`:217` supplies those
+      fields (course name, every coverage topic, every ILO description plus its topics)
+      before the confirm modal, so a misspelled plan is stopped at submission and never
+      reaches the program head. `textFields` is optional, so the alignment-only behaviour
+      and its 9 existing checks are unchanged.
+      *Checked:* `node src/utils/submissionGate.test.js` (9 passing) and
+      `node src/utils/reviewGate.test.js` (7 passing); `npm run build` passes.
 
 - [x] **Login does not hold identity across the approval flow — the panel saw the account switch mid-demo.**
       *Fix:* a user stays that user across the whole flow; signup creates a
@@ -291,11 +300,81 @@ Notifications · Comments.
       *Fix:* a stepper with persistent Next/Back; a later step stays disabled
       until the current one is valid. [17:23] [51:51] [52:09]
       **RISK: MEDIUM** — restructures existing screens.
+      *Built then reverted on request (2026-08-11) — REOPENED.* The approval review was
+      converted to a stepper: `client/src/utils/reviewSteps.js` (the pure model —
+      `buildReviewFlow()` returns which steps exist, which are reachable, whether Next may
+      fire and whether the role may decide) and `client/src/components/Stepper.jsx` (the
+      renderer — step rail, progress bar, sticky Back/Next). The plan's five sections became
+      steps in reading order followed by a Decision step; a step more than one ahead was not
+      clickable and the Decision step was unreachable until every section had been opened.
+      Edrian asked for the section dropdown back, so `ApprovalSyllabusSections.jsx` was
+      returned to the `<select>` and no longer imports either file.
+      **Both files are still on disk, tested and unimported** — `reviewSteps.test.js` (7
+      checks, mutation-checked) still passes and `Stepper.jsx` is generic. Rewiring is an
+      import plus a wrapper, so the work is parked rather than lost. Nothing bundles them
+      today (vite tree-shakes unimported modules), so they cost nothing at runtime.
+      *Decide before rebuilding:* the panel asked for a stepper, but the dropdown is what the
+      team wants to demo. If the stepper is wanted again, the open question is whether the
+      read-before-approve gate comes back with it.
 
 - [ ] **Screens show everything at once and take too many clicks.**
       *Fix:* mobile-first, one focused task per screen; remove redundant
       confirmations and collapse repeated selections. [17:15] [50:56] [51:14]
       **RISK: MEDIUM** — layout change across several screens.
+      *Partially done (2026-08-11).*
+      **Kept:** approving was a confirm modal *and* a 5-second undo countdown — two
+      confirmations for one decision. The modal is gone; the countdown alone confirms, stays
+      cancellable for its whole duration, and approving costs one click instead of two.
+      The approval navi wraps instead of squeezing below 600px, and the approval chain strip
+      scrolls sideways rather than wrapping into a wall of chips. `EmptyState.module.sass`
+      and the new rules in `ApprovalSyllabusSections.module.sass` are written narrow-first —
+      the first `@media` queries in `client/src/styles/`.
+      **Reverted on request:** the one-task-per-screen restructure went with the stepper (see
+      the item above), and Add Comment / Approve are back in the top bar in their original
+      position and with their original `isRoleActive()` / `hasRoleApproved()` gating.
+      **Still open:** "one focused task per screen" for the approval review, and a
+      mobile-first pass over the Reference Library and Add Reference screens.
+
+- [x] **Empty screens are indistinguishable from broken ones.**
+      A list, table or panel with nothing in it rendered as blank space — most visibly the
+      approvers' Pending tab with the backend down, and the Course Details table, which drew
+      a full grid of empty rows. Nothing told the user whether the data was absent, still
+      loading, or lost.
+      *Fix:* one shared empty state, and demo rows so the approver tabs are not blank offline.
+      **RISK: SAFE** — additive; no existing behaviour changes when data is present.
+      *Done (2026-08-11):* new `client/src/components/EmptyState.jsx` +
+      `styles/EmptyState.module.sass` — a centred icon, a one-line statement of what is
+      missing and a hint saying why that is normal or what to do next. It takes `colSpan` so
+      it can be dropped straight into a `<tbody>` without breaking the table, and `inline`
+      for use inside a card. Wired into: the approvers' table (a different message per
+      Pending / Returned / Approved tab), the Status Dashboard plans table, its
+      "not yet submitted" and "reminders" cards, the deadline banner when no academic
+      calendar is uploaded, the References Summary, the Reference Library (separate copy for
+      the archived tab), the Course Catalog, the reference picker (carrying its
+      "search outside this course's catalog" action), the approval comments sidebar, the
+      read-only comment box, the revision history, and Course Details — which now says
+      "No course details recorded" instead of drawing an empty grid. The Comment Recorder's
+      plan dropdown says why it is disabled instead of sitting silently empty.
+      *Also done — demo rows for the approver tabs:* new
+      `client/src/utils/demoAssignments.js` builds rows in the SHAPE `/api/assignments`
+      returns, from `demoCourses.DEMO_COURSES_BY_STATUS` (the module's existing source of
+      truth for which course sits in which tab), so the table's own
+      `getCode` / `getName` / `computeOverallStatus` / `buildApproverStatus` read them with
+      no special-casing. `withDemoFallback()` is used by `ApprovalCoursesTable.jsx` and
+      `StatusDashboard.jsx`: **real data always wins** — the demo rows only stand in for an
+      empty or failed response, and are never mixed with real ones. Rows carry both the
+      nested `ProgramCourseOffering.Course` shape the approvals table reads and the
+      top-level `course_no` / `name` the dashboard reads, so one set serves both screens.
+      *Checked:* `node src/utils/demoAssignments.test.js` — 7 checks that run the table's OWN
+      status rule (copied verbatim, so it fails if the table's rule drifts) over the rows:
+      every demo course gets a row, drafts never reach the approvers' table, each row lands
+      in the tab it was built for, a pending row is genuinely mid-review (submitted, no date
+      approved, no Dean action) with some but not all showing early review progress, an
+      approved row's date approved equals the Dean's action, offering ids are deterministic,
+      and the fallback never displaces real data. A Playwright run at 390×780 and 1440×900 —
+      16 checks — confirms Pending / Returned / Approved all render rows, a stubbed empty
+      API still falls back, the empty state renders where a list is genuinely empty, and
+      there are no uncaught page errors.
 
 ---
 
@@ -324,7 +403,7 @@ Never fork their logic.
       *Done (verified 2026-08-11):* `demoCourses.js:104` now has `if (hasWorkflow(code)) continue;` —
       the seeder skips codes that already have a workflow, so approval actions persist across reload.
 
-- [ ] **COAEP records are stored under a different program key than every other alignment page.**
+- [x] **COAEP records are stored under a different program key than every other alignment page.**
       `client/src/pages/lpsm/ProgramHead/COAEPUpload.jsx:58` vs `:28`, `CoPoAlignment.jsx`,
       `PoPeoAlignment.jsx`. COAEP sets `programCode` to the server `Program.name`; the other
       pages use the short prefix from `getAllPrograms()`. Both key the same store, so one
@@ -333,8 +412,20 @@ Never fork their logic.
       for display only.
       **RISK: RISKY** — changes the storage key; records already saved under the long name are
       orphaned unless migrated.
+      *Done (verified 2026-08-11):* `COAEPUpload.jsx:33` derives the key with
+      `extractProgramPrefix(courseCode)` (falling back to `programs[0]`), matching what
+      `CoPoAlignment.jsx` and `PoPeoAlignment.jsx` use, and the comment at `:58` records that
+      `Program.name` is now a display label only — it is rendered at `:184` and keys nothing.
+      Every read and write (`getCoaepData` `:79`, `saveCoaepData` `:162`/`:169`, the export
+      filename `:124`) goes through that one derived key, so a program has a single entry and
+      a COAEP saved online no longer vanishes on the offline fallback.
+      *Checked:* `node src/utils/programKeys.test.js` (4 passing) covers the prefix
+      derivation. **Note for the human:** the migration this item warned about was never
+      needed on a fresh store, but any records a tester saved under the long program name
+      before this change are still orphaned in their own browser's `localStorage` — clearing
+      the COAEP store for that program is enough to clean it up.
 
-- [ ] **The References Summary badges unresolved comments against the wrong references.**
+- [x] **The References Summary badges unresolved comments against the wrong references.**
       `client/src/components/ReferenceSummary.jsx:56` calls `/api/comments/filter/{ref.id}/references`,
       but that route filters on `c.ilo_id` (`server/controllers/commentController.js`,
       `getCommentsByTarget`) while `ref.id` is a `reference_id` from
@@ -346,6 +437,18 @@ Never fork their logic.
       *Fix:* fetch the comments per ILO the section already knows, match a reference by the
       row's `target_id`, and count distinct `comment_id`s.
       **RISK: SAFE** — one component; the endpoint keeps its current shape.
+      *Done (verified 2026-08-11):* new `client/src/utils/referenceComments.js` holds both
+      rules as pure functions — `iloIdsFromCourse()` pulls the course's ILO ids out of the
+      payload the summary already has, and `unresolvedCountsByReference()` keys on
+      `target_id` (the field `commentController.getCommentsByTarget` actually joins a
+      reference on) and counts **distinct** `comment_id`s, so the per-`CommentTargets`-row
+      repetition no longer inflates the number. `ReferenceSummary.jsx:46`–`:66` now fetches
+      `/api/ilos/:pcId/:revNum` first and calls `/api/comments/filter/{iloId}/references` per
+      ILO instead of passing a `reference_id` into an ILO endpoint, so a row is only badged
+      for comments that point at it.
+      *Checked:* `node src/utils/referenceComments.test.js` (4 passing) — the wrong-ILO case,
+      the repeated-row inflation, resolved comments and rows with no target being excluded,
+      and the ILO ids coming out of the course payload.
 
 - [x] **The reference picker prints a raw timestamp where the year should be.**
       `client/src/components/ReferencePicker.jsx:193` renders `ref.publication_year` as-is, and

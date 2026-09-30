@@ -34,6 +34,13 @@
   width: 38px
   height: 38px
 
+.title, .hint
+  width: 100%
+  max-width: 720px
+  text-align: center
+  white-space: normal
+  overflow-wrap: anywhere
+
 .title
   font-size: var(--fs-md)
   font-weight: var(--fw-semibold)
@@ -45,17 +52,17 @@
 .hint
   font-size: var(--fs-sm)
   line-height: 1.5
-  max-width: 340px
   color: var(--ink-faint)
+  white-space: pre-line
 
 .action
   margin-top: 4px
 
 // ── inside a table ───────────────────────────────────────────────────────
 //
-// `index.css` turns every table into flexbox — `table`, `tbody`, `tbody tr`
-// and `td` are all `display: flex`. Two consequences the empty state has to
-// undo:
+// The shared table region contract in `index.css` turns retained data tables
+// into flexbox — `table`, `tbody`, `tbody tr` and `td` are all `display: flex`.
+// Two consequences the empty state has to undo:
 //
 //   1. `colSpan` does nothing under flex layout, so the cell only takes its
 //      content's width and the block sits left-aligned instead of centred.
@@ -67,19 +74,18 @@
 // `!important` is deliberate: these override global element selectors that
 // this module cannot otherwise outrank.
 
-// The row also has to claim the height the table is not using. `tbody` sizes to
-// its content, so without this the block sits just under the header instead of
-// in the middle of the empty area. A viewport-relative min-height centres it in
-// the space the table actually occupies without forcing the container to
-// scroll.
+// The row claims the actual height left inside the shared table region. The
+// region stretches its table and tbody, so flex can centre this content
+// without guessing from the browser viewport or adding a false scrollbar.
 .row
   display: flex !important
-  width: 100% !important
+  // The table canvas can be wider than the screen (900px on the course
+  // lists). Centre against the part the user can actually see, then move with
+  // scrollLeft so the message stays centred at either end of the table.
+  width: var(--table-viewport-width, 100%) !important
+  transform: translateX(var(--table-scroll-left, 0px))
   flex: 1 1 auto !important
-  // Height of the viewport minus the page header, the table's own header and
-  // its bottom padding — i.e. the space the empty table actually leaves — so
-  // the block lands in the middle of it rather than tucked under the header.
-  min-height: calc(100vh - 240px)
+  min-height: 0
   align-items: center !important
   background: transparent !important
   box-shadow: none !important
@@ -102,6 +108,3 @@
   .empty
     min-height: 220px
     padding: 40px 24px
-
-  .hint
-    max-width: 420px

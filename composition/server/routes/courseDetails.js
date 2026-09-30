@@ -3,7 +3,8 @@ const express = require('express');
 const router = express.Router();
 
 const { getCourseDetailsByPcOffering } = require('../controllers/courseDetailsController');
+const { requireOfferingAccess } = require('../middleware/courseAuthorization');
 
-router.get('/:pcId/:revNum', getCourseDetailsByPcOffering);
+router.get('/:pcId/:revNum', requireOfferingAccess, getCourseDetailsByPcOffering);
 
 module.exports = router;

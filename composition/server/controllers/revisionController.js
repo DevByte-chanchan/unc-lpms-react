@@ -5,6 +5,7 @@ const {
     Comment,
     CommentTarget
 } = require('../models');
+const { canAccessCourseRows, loadOfferingCourseRows } = require('../middleware/courseAuthorization');
 
 // Helper to format roles neatly
 const toTitleCase = (str) => {
@@ -44,9 +45,22 @@ exports.getRevisionsByOffering = async (req, res) => {
             order: [['revision_number', 'DESC']]
         });
 
+        // The target offering was authorized by route middleware, but the
+        // query above expands to sibling revisions. Re-check every expanded
+        // offering so one instructor's assignment cannot reveal another
+        // instructor's revision logs or comments.
+        const accessibleOfferings = [];
+        for (const offering of offerings) {
+            const rows = await loadOfferingCourseRows(
+                offering.pc_offering_id,
+                offering.revision_number
+            );
+            if (canAccessCourseRows(req.user, rows)) accessibleOfferings.push(offering);
+        }
+
         const formattedRevisions = [];
 
-        for (const offering of offerings) {
+        for (const offering of accessibleOfferings) {
             const assignment = offering.assignments?.[0] || {};
             const rawLogs = assignment.workflowLogs || [];
             const rawComments = assignment.comments || [];

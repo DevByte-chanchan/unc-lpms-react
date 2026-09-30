@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { Search, X, Maximize, Minimize2, CheckCircle, AlertCircle } from 'react-feather'
+import { Search, X, Maximize, Minimize2, CheckCircle, AlertCircle, MessageSquare } from 'react-feather'
 import styles from '../styles/ApprovalCommentBox.module.sass'
+import EmptyState from './EmptyState.jsx'
+import SpellCheckArea from './SpellCheckArea.jsx'
 import { getReferences } from '../utils/referenceLibrary.js'
 import { getReviewerByRole, getReviewerSeedData, normalizeRoleKey, isDeprecated } from '../utils/approvalHelpers.js'
 import { COMMENT_TYPES, commentTypeMeta, checkText } from '../utils/reviewGate.js'
@@ -9,9 +11,7 @@ import DropdownMultiSelect from './DropdownMultiSelect.jsx'
 // coverageDetail may be an array (multi-select) or a legacy string — this reports whether anything is selected
 const hasCoverageDetail = (c) => Array.isArray(c.coverageDetail) ? c.coverageDetail.length > 0 : !!c.coverageDetail
 
-const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = [], ilos = [], approverRole = null, coverageEntries = [], syllabusTopics = [], syllabusReferences = [], readOnly = false, previousComments: previousCommentsProp = [], coToIlosProp }) => {
-  const storageKey = 'approval_comments_v1'
-
+const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = [], ilos = [], approverRole = null, syllabusTopics = [], syllabusReferences = [], readOnly = false, previousComments: previousCommentsProp = [], coToIlosProp }) => {
   const defaultComment = () => ({
     id: (crypto.randomUUID && crypto.randomUUID()) || `fallback-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
     components: { references: false, topics: false, tlas: false },
@@ -90,7 +90,7 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
       })
       localStorage.setItem('approval_comment_draft_v1', JSON.stringify({ comments: normalized, selectedRefs, commentedRefIds, searchTerm }))
     } catch (e) { console.warn('Failed to save draft', e) }
-  }, [comments, selectedRefs, searchTerm, show, approverRole])
+  }, [comments, selectedRefs, commentedRefIds, searchTerm, show, approverRole])
 
   useEffect(() => {
     if (!show) return
@@ -120,19 +120,13 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
         setComments(isDirector ? forced.slice(0, 1) : forced)
       }
       if (parsed.selectedRefs) setSelectedRefs(parsed.selectedRefs)
-      if (!isDirector && parsed.commentedRefIds) setCommentedRefIds(parsed.commentedRefIds)
+      if (!isDir && parsed.commentedRefIds) setCommentedRefIds(parsed.commentedRefIds)
       if (parsed.searchTerm) setSearchTerm(parsed.searchTerm)
     } catch (e) { console.warn('Failed to restore draft', e) }
   }, [show, approverRole])
 
   const clearDraft = () => {
     try { localStorage.removeItem('approval_comment_draft_v1') } catch (e) { console.warn('Failed to clear draft', e) }
-  }
-
-  const toggleCommentComponent = (commentId, key) => {
-    setComments((prev) =>
-      prev.map((c) => (c.id === commentId ? { ...c, components: { ...c.components, [key]: !c.components[key] } } : c))
-    )
   }
 
   const updateComment = (commentId, patch) => {
@@ -164,10 +158,6 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
 
   const updateCommentIlo = (commentId, ilo) => {
     setComments((prev) => prev.map((c) => (c.id === commentId ? { ...c, ilo } : c)))
-  }
-
-  const updateRecipientRole = (commentId, recipientRole) => {
-    setComments((prev) => prev.map((c) => (c.id === commentId ? { ...c, recipientRole } : c)))
   }
 
   const addCommentSection = () => {
@@ -202,7 +192,6 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
 
   if (!show) return null
 
-  const commentsWithText = comments.filter((c) => c.text && c.text.trim())
   const hasCompleteComment = comments.some(c => c.text?.trim() && c.courseOutcome && c.ilo && c.coverageType && hasCoverageDetail(c))
 
   const saveDisabled = !hasCompleteComment
@@ -440,10 +429,9 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
             onMouseEnter={e => { e.currentTarget.style.background = '#f1f5f9'; e.currentTarget.style.borderColor = '#cbd5e1'; }}
             onMouseLeave={e => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.borderColor = '#e2e8f0'; }}
           >{isFullscreen ? <Minimize2 size={14} /> : <Maximize size={14} />}</button>
-          <button onClick={handleClose} aria-label="Close" style={{ background: '#E81123', border: '1px solid #E81123', cursor: 'pointer', color: '#fff', width: 32, height: 32, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: 6, padding: 0, lineHeight: 0, transition: 'all 0.15s' }}
-            onMouseEnter={e => { e.currentTarget.style.background = '#B91C1C'; e.currentTarget.style.borderColor = '#B91C1C'; }}
-            onMouseLeave={e => { e.currentTarget.style.background = '#E81123'; e.currentTarget.style.color = '#fff'; e.currentTarget.style.borderColor = '#E81123'; }}
-          ><X size={14} /></button>
+          <button type="button" className="app-icon-close" onClick={handleClose} aria-label="Close">
+            <X size={14} />
+          </button>
         </div>
       </div>
 
@@ -462,7 +450,11 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
                 ))}
               </div>
             ) : (
-              <div style={{ textAlign: 'center', padding: '32px 16px', color: '#9ca3af', fontSize: 14 }}>No comments recorded.</div>
+              <EmptyState
+                icon={<MessageSquare size={22} strokeWidth={1.6} />}
+                title="No comments recorded"
+                hint="Nothing has been raised on this learning plan yet. Comments left by reviewers appear here in the order they were made."
+              />
             )
           ) : isDirector ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12, height: '100%' }}>
@@ -494,13 +486,14 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
                           </button>
                         )}
                       </div>
-                      <textarea
-                        className={styles.textarea}
+                      <SpellCheckArea
                         value={c.text || ''}
-                        onChange={(e) => updateCommentText(c.id, e.target.value)}
+                        onChange={(next) => updateCommentText(c.id, next)}
                         onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleDirectorSubmit() } }}
                         placeholder={'Describe the issue or suggestion...'}
-                        style={{ width: '100%', boxSizing: 'border-box', minHeight: 140, resize: 'vertical' }}
+                        disabled={readOnly}
+                        padding="14px 10px"
+                        minHeight={140}
                       />
                       {renderTextIssues(c)}
                     </div>
@@ -524,7 +517,7 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
           ) : (
             <div className={styles.commentListWrapper}>
               <div className={styles.commentList}>
-                {comments.map((c, idx) => {
+                {comments.map((c) => {
                   return (
                     <div key={c.id} className={styles.commentItem}>
                       {comments.length > 1 && (
@@ -643,7 +636,14 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
 
                         <div className={styles.field}>
                           <label className={styles.label}>Comment</label>
-                          <textarea className={styles.textarea} value={c.text} onChange={(e) => updateCommentText(c.id, e.target.value)} placeholder={'Describe the issue or suggestion...'} rows={4} />
+                          <SpellCheckArea
+                            value={c.text || ''}
+                            onChange={(next) => updateCommentText(c.id, next)}
+                            placeholder={'Describe the issue or suggestion...'}
+                            disabled={readOnly}
+                            rows={4}
+                            padding="14px 10px"
+                          />
                           {renderTextIssues(c)}
                         </div>
 

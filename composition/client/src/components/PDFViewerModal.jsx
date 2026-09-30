@@ -1,8 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { X, Download, FileText, User, Calendar, BookOpen, ZoomIn, ZoomOut, Maximize, Minimize2, Printer, ChevronLeft, ChevronRight } from 'react-feather';
-import { jsPDF } from 'jspdf';
-import html2canvas from 'html2canvas';
-import { API_BASE } from '../utils/api.js';
 import styles from '../styles/PDFViewerModal.module.sass';
 
 const ACCENT     = '#19282C';
@@ -44,7 +41,7 @@ const btnBase = {
 const PAGE_W = 1247;
 const PAGE_H = 816;
 
-const PDFViewerModal = ({ file, kind, onClose, onExport, children }) => {
+const PDFViewerModal = ({ file, kind, onClose, children }) => {
   const [pdfSrc, setPdfSrc] = useState(null);
   const [zoom, setZoom] = useState(0.65);
   const [currentPage, setCurrentPage] = useState(1);
@@ -68,11 +65,12 @@ const PDFViewerModal = ({ file, kind, onClose, onExport, children }) => {
   }, [onClose, isFullscreen]);
 
   useEffect(() => {
-    if (!file?.file_url || !/^(https?:\/\/|\/|blob:)/i.test(file.file_url)) return;
+    const src = file?.file_url;
+    if (!src || !/^(https?:\/\/|\/|blob:)/i.test(src)) return;
     let cancelled = false;
     setIframeHeight(4000);
     setPageCount(0);
-    fetch(file.file_url)
+    fetch(src, { credentials: 'include' })
       .then(r => r.blob())
       .then(blob => {
         if (!cancelled) setPdfSrc(URL.createObjectURL(blob) + '#toolbar=0&navpanes=0');
@@ -145,48 +143,22 @@ const PDFViewerModal = ({ file, kind, onClose, onExport, children }) => {
   // dialog. Each `.page` in the preview iframe becomes exactly one PDF page (330×216mm),
   // which also guarantees no extra/blank pages from print reflow.
   const downloadName = () => (file?.file_name ? file.file_name.replace(/\.html?$/i, '') + '.pdf' : 'syllabus.pdf');
-  const triggerDownload = (blob) => {
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = downloadName();
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
-  };
-
   const handleExportPDF = async () => {
     if (exporting) return;
     setExporting(true);
     try {
-      // 1) Preferred: server-side vector render (crisp, small file, matches the
-      //    official template). Silently skipped if the backend/puppeteer isn't up.
-      const src = pdfSrc || file?.file_url;
-      if (src) {
-        try {
-          const html = await (await fetch(src)).text();
-          const resp = await fetch(`${API_BASE}/api/export-pdf`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ html }),
-          });
-          const ct = resp.headers.get('content-type') || '';
-          if (resp.ok && ct.includes('application/pdf')) {
-            triggerDownload(await resp.blob());
-            return;
-          }
-        } catch {
-          // backend unavailable — fall through to the in-browser generator
-        }
-      }
-
-      // 2) Fallback: generate the PDF entirely in the browser (no backend needed).
+      // Generate the PDF entirely in the browser. The server-side HTML renderer
+      // is intentionally disabled, so load these large libraries only when the
+      // user actually chooses Export PDF.
       //    Each `.page` becomes exactly one fixed-size sheet — no scaling, no blanks.
       const idoc = iframeRef.current?.contentDocument;
       const pageEls = idoc ? Array.from(idoc.querySelectorAll('.page')) : [];
       if (!pageEls.length) { handlePrint(); return; }
 
+      const [{ jsPDF }, { default: html2canvas }] = await Promise.all([
+        import('jspdf'),
+        import('html2canvas'),
+      ]);
       const PW = 330, PH = 216; // mm — long-bond landscape, matches @page size
       const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: [PW, PH] });
       for (let i = 0; i < pageEls.length; i++) {
@@ -330,17 +302,7 @@ const PDFViewerModal = ({ file, kind, onClose, onExport, children }) => {
             >
               <Download size={12} /> {exporting ? 'Exporting…' : 'Download PDF'}
             </button>
-            <button type="button" onClick={onClose}
-              style={{
-                width: 32, height: 32, borderRadius: 7,
-                background: '#E81123', color: '#FFFFFF', border: '1px solid #E81123',
-                cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                padding: 0, lineHeight: 0,
-                transition: 'background 0.15s ease, color 0.15s ease, border-color 0.15s ease',
-              }}
-              onMouseEnter={e => { e.currentTarget.style.background = '#B91C1C'; e.currentTarget.style.borderColor = '#B91C1C'; }}
-              onMouseLeave={e => { e.currentTarget.style.background = '#E81123'; e.currentTarget.style.color = '#FFFFFF'; e.currentTarget.style.borderColor = '#E81123'; }}
-              aria-label="Close">
+            <button type="button" className="app-icon-close" onClick={onClose} aria-label="Close">
               <X size={16} strokeWidth={2.5} color="currentColor" />
             </button>
           </div>

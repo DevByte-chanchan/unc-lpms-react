@@ -1,5 +1,103 @@
-const { CourseOfferingAssignment, ProgramCourseOffering, Course, Program, Department, AssignmentWorkflowLog } = require('../models');
-const { Op } = require('sequelize');
+const { sequelize, CourseOfferingAssignment, ProgramCourseOffering, Course, Program, Department, AssignmentWorkflowLog } = require('../models');
+const { Op, Transaction } = require('sequelize');
+const {
+    canAccessCourseRows,
+    loadAssignmentCourseRows
+} = require('../middleware/courseAuthorization');
+
+const WORKFLOW_ROLE_BY_ACCOUNT = {
+    instructor: 'INSTRUCTOR',
+    'industry-consultant': 'INDUSTRY_CONSULTANT',
+    'director-of-libraries': 'LIBRARY_DIRECTOR',
+    'program-head': 'PROGRAM_HEAD',
+    dean: 'DEAN'
+};
+
+const PARALLEL_REVIEW_ROLES = new Set([
+    'PROGRAM_HEAD',
+    'LIBRARY_DIRECTOR',
+    'INDUSTRY_CONSULTANT'
+]);
+
+// SQLite does not provide row-level SELECT FOR UPDATE locks. Serialize each
+// assignment inside this process as well as using BEGIN IMMEDIATE below, so
+// simultaneous decisions cannot both validate against the same history.
+const workflowLocks = new Map();
+const withWorkflowLock = async (assignmentKey, task) => {
+    const key = String(assignmentKey);
+    const previous = workflowLocks.get(key) || Promise.resolve();
+    let release;
+    const gate = new Promise(resolve => { release = resolve; });
+    const tail = previous.catch(() => {}).then(() => gate);
+    workflowLocks.set(key, tail);
+    await previous.catch(() => {});
+    try {
+        return await task();
+    } finally {
+        release();
+        if (workflowLocks.get(key) === tail) workflowLocks.delete(key);
+    }
+};
+
+/**
+ * Decide whether an authenticated actor may append the requested workflow
+ * event. Only events after the most recent instructor submission belong to
+ * the current review round. Distinct pending reviewers may each return it,
+ * while any return blocks the Dean and permits the instructor to resubmit.
+ */
+const validateWorkflowTransition = (logs = [], actorRole, actionType) => {
+    const history = Array.isArray(logs) ? logs : [];
+    const finalApproval = history.some(entry =>
+        entry.actor_role === 'DEAN' && ['ACCEPTED', 'APPROVED'].includes(entry.action_type)
+    );
+    if (finalApproval) {
+        return { allowed: false, error: 'This learning plan is already fully approved.' };
+    }
+
+    let lastSubmissionIndex = -1;
+    history.forEach((entry, index) => {
+        if (entry.actor_role === 'INSTRUCTOR' && entry.action_type === 'SUBMITTED') lastSubmissionIndex = index;
+    });
+
+    const round = lastSubmissionIndex >= 0 ? history.slice(lastSubmissionIndex + 1) : [];
+    const hasReturn = round.some(entry => entry.action_type === 'RETURNED');
+    if (actorRole === 'INSTRUCTOR') {
+        return actionType === 'SUBMITTED' && (lastSubmissionIndex < 0 || hasReturn)
+            ? { allowed: true }
+            : { allowed: false, error: 'The learning plan can only be submitted initially or after it is returned.' };
+    }
+
+    if (lastSubmissionIndex < 0) {
+        return { allowed: false, error: 'The instructor must submit the learning plan before reviewers can act.' };
+    }
+
+    if (PARALLEL_REVIEW_ROLES.has(actorRole)) {
+        if (round.some(entry => entry.actor_role === actorRole)) {
+            return { allowed: false, error: 'This reviewer has already recorded a decision for the current submission.' };
+        }
+        return { allowed: ['ACCEPTED', 'RETURNED'].includes(actionType) };
+    }
+
+    if (actorRole === 'DEAN') {
+        if (hasReturn) {
+            return { allowed: false, error: 'The instructor must resubmit the returned learning plan before the Dean can act.' };
+        }
+        const acceptedRoles = new Set(
+            round
+                .filter(entry => entry.action_type === 'ACCEPTED' && PARALLEL_REVIEW_ROLES.has(entry.actor_role))
+                .map(entry => entry.actor_role)
+        );
+        if ([...PARALLEL_REVIEW_ROLES].some(role => !acceptedRoles.has(role))) {
+            return { allowed: false, error: 'All three parallel reviewers must accept the learning plan before the Dean can act.' };
+        }
+        if (round.some(entry => entry.actor_role === 'DEAN')) {
+            return { allowed: false, error: 'The Dean has already recorded a decision for the current submission.' };
+        }
+        return { allowed: ['ACCEPTED', 'RETURNED'].includes(actionType) };
+    }
+
+    return { allowed: false, error: 'This role cannot perform a workflow action.' };
+};
 
 const listAssignments = async (req, res, next) => {
     try {
@@ -7,7 +105,12 @@ const listAssignments = async (req, res, next) => {
         const offset = (page - 1) * limit;
 
         const whereAssignment = {};
-        if (stakeholder) whereAssignment.stakeholder_id = stakeholder;
+        const userId = req.user?.id;
+        if (req.user?.role === 'instructor') {
+            whereAssignment.stakeholder_id = String(userId);
+        } else if (stakeholder) {
+            whereAssignment.stakeholder_id = stakeholder;
+        }
 
         // --- Academic Term Filtering Logic ---
         if (year && semester) {
@@ -45,8 +148,20 @@ const listAssignments = async (req, res, next) => {
                     where: whereOffering,
                     include: [
                         { model: Course, attributes: ['course_id', 'course_no', 'course_title'] },
-                        { model: Program, attributes: ['program_id', 'name'] },
-                        { model: Department, attributes: ['dept_id', 'name'] }
+                        {
+                            model: Program,
+                            attributes: ['program_id', 'name'],
+                            ...(req.user?.role === 'program-head'
+                                ? { where: { stakeholder_id: userId }, required: true }
+                                : {})
+                        },
+                        {
+                            model: Department,
+                            attributes: ['dept_id', 'name'],
+                            ...(req.user?.role === 'dean'
+                                ? { where: { stakeholder_id: userId }, required: true }
+                                : {})
+                        }
                     ],
                     attributes: ['pc_offering_id', 'revision_number', 'course_description', 'course_id', 'program_id', 'dept_id']
                 },
@@ -114,6 +229,10 @@ const getAssignmentById = async (req, res, next) => {
         });
 
         if (!assignment) return res.status(404).json({ error: 'Assignment not found' });
+        const accessRows = await loadAssignmentCourseRows(assignment.co_assign_id);
+        if (!canAccessCourseRows(req.user, accessRows)) {
+            return res.status(403).json({ error: 'You do not have access to this course.' });
+        }
 
         const data = assignment.toJSON();
 
@@ -139,14 +258,24 @@ const getAssignmentById = async (req, res, next) => {
  * POST /api/assignments/action
  * Module 2 integration: records a workflow action (submit / return / approve)
  * as an AssignmentWorkflowLog row so course-table statuses reflect real state.
- * Body: { actor_role, action_type, pcId?, code? } — resolves the assignment
- * from pc_offering_id when given, otherwise from the course code.
+ * Body: { actor_role, action_type, pcId } — workflow mutations require the
+ * exact offering id so duplicate course codes cannot select another program.
  */
 const recordWorkflowAction = async (req, res, next) => {
     try {
-        const { actor_role, action_type, pcId, code } = req.body || {};
+        const { actor_role, action_type, pcId } = req.body || {};
         const VALID_ACTIONS = ['SUBMITTED', 'RETURNED', 'ACCEPTED'];
         const VALID_ROLES = ['INSTRUCTOR', 'INDUSTRY_CONSULTANT', 'LIBRARY_DIRECTOR', 'PROGRAM_HEAD', 'DEAN'];
+        const authenticatedActor = WORKFLOW_ROLE_BY_ACCOUNT[req.user?.role];
+
+        if (!authenticatedActor || actor_role !== authenticatedActor) {
+            return res.status(403).json({ error: 'Your account cannot perform this workflow action.' });
+        }
+        const instructorAction = action_type === 'SUBMITTED' && authenticatedActor === 'INSTRUCTOR';
+        const reviewerAction = ['RETURNED', 'ACCEPTED'].includes(action_type) && authenticatedActor !== 'INSTRUCTOR';
+        if (!instructorAction && !reviewerAction) {
+            return res.status(403).json({ error: 'Your account cannot perform this workflow action.' });
+        }
 
         if (!VALID_ACTIONS.includes(action_type)) {
             return res.status(400).json({ error: `action_type must be one of: ${VALID_ACTIONS.join(', ')}` });
@@ -154,45 +283,77 @@ const recordWorkflowAction = async (req, res, next) => {
         if (!VALID_ROLES.includes(actor_role)) {
             return res.status(400).json({ error: `actor_role must be one of: ${VALID_ROLES.join(', ')}` });
         }
-        if (!pcId && !code) {
-            return res.status(400).json({ error: 'Provide pcId or code to identify the course assignment.' });
+        const offeringId = Number(pcId);
+        if (!Number.isSafeInteger(offeringId) || offeringId <= 0) {
+            return res.status(400).json({ error: 'Provide a valid pcId to identify the course assignment.' });
         }
 
-        let assignment = null;
-        if (pcId && !Number.isNaN(Number(pcId))) {
-            assignment = await CourseOfferingAssignment.findOne({ where: { pc_offering_id: Number(pcId) } });
-        }
-        if (!assignment && code) {
-            assignment = await CourseOfferingAssignment.findOne({
-                include: [{
-                    model: ProgramCourseOffering,
-                    required: true,
-                    include: [{ model: Course, required: true, where: { course_no: code } }]
-                }]
-            });
-        }
-        if (!assignment) {
-            return res.status(404).json({ error: 'No course assignment found for this course.' });
-        }
-
-        const log = await AssignmentWorkflowLog.create({
-            co_assign_id: assignment.co_assign_id,
-            actor_role,
-            action_type
-        });
-
-        return res.status(201).json({
-            log: {
-                log_id: log.log_id,
-                co_assign_id: log.co_assign_id,
-                actor_role: log.actor_role,
-                action_type: log.action_type,
-                createdAt: log.createdAt
+        return await withWorkflowLock(offeringId, async () => {
+            let log;
+            try {
+                const transactionOptions = sequelize.getDialect() === 'sqlite'
+                    ? { type: Transaction.TYPES.IMMEDIATE }
+                    : {};
+                log = await sequelize.transaction(transactionOptions, async transaction => {
+                const assignment = await CourseOfferingAssignment.findOne({
+                    where: { pc_offering_id: offeringId },
+                    transaction,
+                    lock: transaction.LOCK.UPDATE
+                });
+                if (!assignment) {
+                    const notFound = new Error('No course assignment found for this course.');
+                    notFound.statusCode = 404;
+                    throw notFound;
+                }
+                const accessRows = await loadAssignmentCourseRows(assignment.co_assign_id, transaction);
+                if (!canAccessCourseRows(req.user, accessRows)) {
+                    const forbidden = new Error('You do not have access to this course.');
+                    forbidden.statusCode = 403;
+                    throw forbidden;
+                }
+                const history = await AssignmentWorkflowLog.findAll({
+                    where: { co_assign_id: assignment.co_assign_id },
+                    order: [['log_id', 'ASC']],
+                    transaction,
+                    lock: transaction.LOCK.UPDATE
+                });
+                const transition = validateWorkflowTransition(history, actor_role, action_type);
+                if (!transition.allowed) {
+                    const conflict = new Error(transition.error || 'This workflow action is not allowed right now.');
+                    conflict.statusCode = 409;
+                    throw conflict;
+                }
+                return AssignmentWorkflowLog.create({
+                    co_assign_id: assignment.co_assign_id,
+                    actor_role,
+                    action_type
+                }, { transaction });
+                });
+            } catch (error) {
+                if ([403, 404, 409].includes(error?.statusCode)) {
+                    return res.status(error.statusCode).json({ error: error.message });
+                }
+                throw error;
             }
+
+            return res.status(201).json({
+                log: {
+                    log_id: log.log_id,
+                    co_assign_id: log.co_assign_id,
+                    actor_role: log.actor_role,
+                    action_type: log.action_type,
+                    createdAt: log.createdAt
+                }
+            });
         });
     } catch (err) {
         next(err);
     }
 };
 
-module.exports = { listAssignments, getAssignmentById, recordWorkflowAction };
+module.exports = {
+    listAssignments,
+    getAssignmentById,
+    recordWorkflowAction,
+    _internals: { validateWorkflowTransition, withWorkflowLock, PARALLEL_REVIEW_ROLES }
+};

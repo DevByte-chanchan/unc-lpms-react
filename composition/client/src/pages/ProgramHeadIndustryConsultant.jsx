@@ -32,8 +32,6 @@ const ProgramHeadIndustryConsultant = () => {
     const [selectedFile, setSelectedFile] = React.useState(null);
     const [searchQuery, setSearchQuery] = React.useState('');
     const fileInputRef = React.useRef(null);
-    const programName = 'Bachelor of Science in Information Technology';
-    const consultant = { name: 'Dennis Ignacio', department: 'School of Computer and Information Sciences' };
     const courses = [
         'BSCS101 - Introduction to Computing',
         'BSCS102 - Fundamentals of Programming',
@@ -73,8 +71,6 @@ const ProgramHeadIndustryConsultant = () => {
         { name: 'Paolo Vincent Garcia' },
     ];
     const [consultants, setConsultants] = React.useState(initialConsultants);
-    const [selectedConsultant, setSelectedConsultant] = React.useState(null);
-
     const pageContent = (
         <div className={pageStyles.managementPage}>
             <div className={pageStyles.pageHeader}>
@@ -146,7 +142,6 @@ const ProgramHeadIndustryConsultant = () => {
                         consultants={consultants.filter(c => c.name.toLowerCase().includes(searchQuery.toLowerCase()))}
                         hideDepartment={true}
                         onAssign={(c, idx) => {
-                            setSelectedConsultant(c);
                             setSelectedConsultantIndex(idx);
                             setSelectedCourse(c.assignedCourse || []);
                             setAssignOpen(true);

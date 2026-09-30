@@ -45,6 +45,25 @@
   height: 40px
   color: black
 
+.reviewIdentity
+  min-width: 0
+  max-width: 230px
+  display: flex
+  flex-direction: column
+  line-height: 1.25
+
+  strong
+    color: #24343a
+    font-size: 13px
+    font-weight: 600
+
+  span
+    overflow: hidden
+    color: #64748b
+    font-size: 12px
+    text-overflow: ellipsis
+    white-space: nowrap
+
 .section-select
   border-radius: 5px
   background: #F2F3F4
@@ -140,6 +159,200 @@
   background: white
   border-left: 1px solid #e2e8f0
 
+.commentsScroller
+  flex: 1
+  min-height: 0
+  overflow: auto
+  padding: 12px
+  background: #f8fafc
+  scrollbar-width: thin
+  scrollbar-color: #cbd5e1 transparent
+
+.commentsList
+  display: flex
+  flex-direction: column
+  gap: 10px
+
+.commentCard
+  padding: 14px
+  border: 1px solid #dfe4ea
+  border-radius: 8px
+  background: #fff
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04)
+  color: #334155
+
+.commentCardResolved
+  background: #fbfdfb
+  border-color: #d7e8da
+
+.commentCardHeader
+  display: flex
+  align-items: flex-start
+  justify-content: space-between
+  gap: 10px
+  margin-bottom: 10px
+
+.commentContext
+  display: inline-flex
+  align-items: center
+  gap: 6px
+  min-height: 24px
+  color: #334155
+  font-size: 12px
+  font-weight: 600
+
+  > span:not(.contextSeparator)
+    padding: 3px 7px
+    border-radius: 4px
+    background: #edf2f7
+
+.contextSeparator
+  color: #94a3b8
+  font-weight: 400
+
+.commentStatusArea
+  display: flex
+  align-items: center
+  justify-content: flex-end
+  gap: 6px
+  flex-wrap: wrap
+
+.commentStatus
+  display: inline-flex
+  align-items: center
+  min-height: 22px
+  padding: 2px 8px
+  border-radius: 999px
+  font-size: 11px
+  font-weight: 500
+
+.statusPending
+  color: #92400e
+  background: #fef3c7
+
+.statusResolved
+  color: #166534
+  background: #dcfce7
+
+.resolveCommentButton
+  display: inline-flex
+  align-items: center
+  justify-content: center
+  gap: 4px
+  min-height: 28px
+  padding: 4px 8px
+  border: 1px solid #cbd5e1
+  border-radius: 5px
+  background: #fff
+  color: #334155
+  font-family: inherit
+  font-size: 11px
+  font-weight: 500
+  cursor: pointer
+
+  &:hover
+    border-color: #94a3b8
+    background: #f8fafc
+
+.commentTarget
+  display: grid
+  grid-template-columns: 78px minmax(0, 1fr)
+  gap: 8px
+  align-items: start
+  margin-bottom: 12px
+  padding: 9px 10px
+  border: 1px solid #fde68a
+  border-radius: 6px
+  background: #fffbeb
+
+.commentTargetLabel
+  color: #92400e
+  font-size: 11px
+  font-weight: 600
+  text-transform: uppercase
+
+.commentTargetValues
+  display: flex
+  flex-direction: column
+  gap: 4px
+  min-width: 0
+  color: #78350f
+  font-size: 12px
+  line-height: 1.45
+
+  span
+    overflow-wrap: anywhere
+
+.commentMessage
+  margin-bottom: 12px
+
+  p
+    margin: 4px 0 0
+    color: #263746
+    font-size: 14px
+    font-weight: 400
+    line-height: 1.55
+    overflow-wrap: anywhere
+    white-space: pre-wrap
+
+.commentSectionLabel
+  display: block
+  color: #64748b
+  font-size: 10px
+  font-weight: 600
+  letter-spacing: .04em
+  text-transform: uppercase
+
+.commentSuggestions
+  margin-bottom: 12px
+  padding: 10px
+  border-left: 3px solid #d69e2e
+  border-radius: 0 6px 6px 0
+  background: #fffaf0
+
+  ul
+    display: flex
+    flex-direction: column
+    gap: 8px
+    margin: 7px 0 0
+    padding: 0
+    list-style: none
+
+  li
+    display: flex
+    flex-direction: column
+    gap: 1px
+    color: #78350f
+    font-size: 12px
+    line-height: 1.4
+
+    > span
+      font-weight: 500
+      overflow-wrap: anywhere
+
+    small
+      color: #9a5b13
+      font-size: 11px
+
+.commentMeta
+  display: flex
+  align-items: center
+  gap: 5px
+  flex-wrap: wrap
+  padding-top: 10px
+  border-top: 1px solid #edf0f3
+  color: #64748b
+  font-size: 11px
+  line-height: 1.4
+
+  > span:first-child
+    color: #334155
+    font-weight: 500
+
+.resolvedDate
+  margin-left: auto
+  color: #166534
+
 @media (max-width: 1024px)
   .container
     height: auto
@@ -152,6 +365,8 @@
     order: 3
     flex: 1 0 100%
     height: 40px
+  .reviewIdentity
+    flex: 1 1 140px
   .dynamic-sections
     padding: 16px
     overflow-y: visible
@@ -185,6 +400,20 @@
     height: 100%
     border-left: 0
 
+  .commentsScroller
+    padding: 10px
+
+@media (max-width: 480px)
+  .commentCardHeader
+    flex-direction: column
+
+  .commentStatusArea
+    justify-content: flex-start
+
+  .commentTarget
+    grid-template-columns: 1fr
+    gap: 3px
+
 .container section
   width: 100%
   height: auto
@@ -209,6 +438,12 @@
   gap: 5px
   height: 40px
   color: black
+  border: 0
+  font-family: inherit
+
+  &:focus-visible
+    outline: 2px solid #2563eb
+    outline-offset: 2px
 
 .submit
   color: white
@@ -889,16 +1124,172 @@
   align-items: center
   min-height: 300px
 
-.spinner
-  width: 40px
-  height: 40px
-  border: 4px solid rgba(0, 0, 0, 0.1)
-  border-left-color: #19282C
-  border-radius: 50%
-  animation: spin 0.8s linear infinite
+/* =========================================================================
+   Approval screen — shared bits + a mobile-first pass
+   ========================================================================= */
 
-@keyframes spin
-  0%
-    transform: rotate(0deg)
-  100%
-    transform: rotate(360deg)
+// The consolidated approval chain, under the navi bar. Scrolls sideways on a
+// narrow screen rather than wrapping into a wall of chips.
+.chain-strip
+  // A flush, full-width band like .navi and .dynamic-sections, not an inset
+  // card. The 6px page gap from .container is what separates it from the bar
+  // above, the same as every other band on this screen.
+  width: 100%
+  overflow-x: auto
+  scrollbar-width: none
+
+  &::-webkit-scrollbar
+    display: none
+
+/* --------------------------------------------------- wider viewports --- */
+
+// Below this the navi wraps instead of squeezing its controls to nothing.
+@media (max-width: 600px)
+  .navi
+    flex-wrap: wrap
+    padding: 8px
+
+  .section-select
+    order: 3
+    flex-basis: 100%
+
+/* ------------------------------------- section reading-order navigation --- */
+
+// Footer under the section content: Back · dots · Next. A three-column grid
+// rather than space-between, so the dots stay dead centre even when one of the
+// buttons is absent (first and last section).
+.section-nav
+  display: grid
+  grid-template-columns: 1fr auto 1fr
+  align-items: center
+  gap: 10px
+  flex-shrink: 0
+  padding: 10px 14px 14px
+  border-top: 1px solid var(--line-soft)
+  background: var(--surface)
+
+.section-nav-btn
+  display: inline-flex
+  align-items: center
+  gap: 6px
+  min-width: 0
+  height: var(--control-h-sm)
+  padding: 0 var(--sp-5)
+  border-radius: var(--radius-sm)
+  font-family: var(--font-ui)
+  font-size: var(--fs-sm)
+  font-weight: var(--fw-medium)
+  cursor: pointer
+  white-space: nowrap
+  overflow: hidden
+  text-overflow: ellipsis
+  transition: background .15s ease, border-color .15s ease
+
+.nav-prev
+  justify-self: start
+  background: var(--surface)
+  color: var(--ink-soft)
+  border: 1px solid var(--line)
+
+  &:hover
+    background: var(--surface-muted)
+
+// The forward action is the site's primary dark, the same as Approve, so the
+// eye is pulled through the plan rather than back up to the dropdown.
+.nav-next
+  justify-self: end
+  background: var(--primary)
+  color: var(--primary-ink)
+  border: 1px solid var(--primary)
+
+  &:hover
+    background: var(--primary-hover)
+
+/* --------------------------------------------------------------- dots --- */
+
+// Where you are, and a shortcut to anywhere else. The hit area is 22px even
+// though the dot is 8px, so it stays tappable on a phone.
+.nav-dots
+  display: flex
+  align-items: center
+  justify-content: center
+  gap: 3px
+
+.nav-dot
+  display: inline-flex
+  align-items: center
+  justify-content: center
+  width: 22px
+  height: 22px
+  padding: 0
+  border: none
+  background: transparent
+  cursor: pointer
+
+  span
+    display: block
+    width: 8px
+    height: 8px
+    border-radius: 99px
+    background: #cbd5e1
+    transition: width var(--t-fast), background var(--t-fast)
+
+  &:hover span
+    background: var(--ink-faint)
+
+// The current section stretches into a pill, so position is readable at a
+// glance without counting dots.
+.nav-dot-active
+  width: 32px
+
+  span
+    width: 22px
+    background: var(--primary)
+
+  &:hover span
+    background: var(--primary)
+
+/* ------------------------------------------------------- narrow screens --- */
+
+// Two buttons with full section names do not fit on a phone — they wrap and the
+// bar triples in height. Below 600px the names drop to Back / Next; the full
+// name stays in the tooltip and in each dot's aria-label.
+.nav-short
+  display: none
+
+@media (max-width: 600px)
+  .section-nav
+    padding: 10px 10px 12px
+    gap: 6px
+
+  .nav-full
+    display: none
+
+  .nav-short
+    display: inline
+
+  .nav-dots
+    gap: 0
+
+  .nav-dot
+    width: 18px
+
+  .nav-dot-active
+    width: 26px
+
+    span
+      width: 16px
+
+@media (min-width: 768px)
+  .section-nav
+    padding: 12px 30px 16px
+
+// At 740px the full forward label is wider than its grid track and spills
+// backward across the section dots. Keep the existing phone layout intact and
+// switch only the labels throughout the intermediate-width range.
+@media (min-width: 601px) and (max-width: 800px)
+  .nav-full
+    display: none
+
+  .nav-short
+    display: inline

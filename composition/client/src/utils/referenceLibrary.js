@@ -27,7 +27,7 @@ const _readAll = () => {
       return migrated
     }
     return refs
-  } catch (e) {
+  } catch {
     return []
   }
 }
@@ -91,7 +91,8 @@ export const unarchiveReference = (id) => {
   const refs = _readAll()
   const idx = refs.findIndex(r => r.id === id)
   if (idx !== -1) {
-    const { archived, ...rest } = refs[idx]
+    const rest = { ...refs[idx] }
+    delete rest.archived
     refs[idx] = rest
     _writeAll(refs)
     return refs[idx]
@@ -113,7 +114,7 @@ export const getReferenceComments = (refId) => {
     const raw = localStorage.getItem(REF_COMMENTS_KEY)
     const all = raw ? JSON.parse(raw) : []
     return Array.isArray(all) ? all.filter(c => c.refId === refId).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)) : []
-  } catch (e) { return [] }
+  } catch { return [] }
 }
 
 export const addReferenceComment = (refId, text, author) => {
@@ -124,7 +125,7 @@ export const addReferenceComment = (refId, text, author) => {
     all.push(comment)
     localStorage.setItem(REF_COMMENTS_KEY, JSON.stringify(all))
     return comment
-  } catch (e) { return null }
+  } catch { return null }
 }
 
 export default {

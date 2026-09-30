@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import SpellCheckArea from '../components/SpellCheckArea.jsx';
 import { fetchJson } from '../utils/api.js';
 import DropdownMultiSelect from '../components/DropdownMultiSelect.jsx';
 import styles from '../styles/CommentRecorder.module.sass';
@@ -48,7 +49,7 @@ export default function CommentRecorder() {
             const data = await fetchJson('/api/assignments');
             const rows = Array.isArray(data) ? data : (data.data || data.rows || []);
             setAssignments(rows);
-        } catch (e) {
+        } catch {
             setToast({ type: 'error', msg: 'Failed to load assignments (is your backend on 5000 up?)' });
         }
     }
@@ -73,7 +74,7 @@ export default function CommentRecorder() {
                 flat.push({ id: ilo.id, label: `ILO ${ilo.id} — ${String(ilo.description || '').slice(0, 70)}` });
             }));
             setIlos(flat);
-        } catch (e) {
+        } catch {
             setToast({ type: 'error', msg: 'Failed to load ILOs for this course' });
         }
     }
@@ -105,7 +106,7 @@ export default function CommentRecorder() {
                 const dedup = [];
                 list.forEach(x => { if (x.id != null && !seen.has(x.id)) { seen.add(x.id); dedup.push(x); } });
                 if (!cancelled) { setTargets(dedup); setSelectedLabels([]); }
-            } catch (e) {
+            } catch {
                 if (!cancelled) setToast({ type: 'error', msg: 'Failed to load targets' });
             }
         })();
@@ -161,12 +162,18 @@ export default function CommentRecorder() {
 
             <div className={styles.field}>
                 <span className={styles.label}>Learning plan</span>
-                <select className={styles.select} value={assignId} onChange={(e) => onAssignChange(e.target.value)}>
-                    <option value="">-- select a plan --</option>
+                <select className={styles.select} value={assignId} onChange={(e) => onAssignChange(e.target.value)} disabled={assignments.length === 0}>
+                    <option value="">{assignments.length === 0 ? '-- no learning plans assigned to you --' : '-- select a plan --'}</option>
                     {assignments.map(a => (
                         <option key={a.co_assign_id} value={a.co_assign_id}>{assignLabel(a)}</option>
                     ))}
                 </select>
+                {/* A disabled, silently empty dropdown looks broken. Say why. */}
+                {assignments.length === 0 && (
+                    <span style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>
+                        You have no course offerings for this term, so there is nothing to comment on yet.
+                    </span>
+                )}
             </div>
 
             <div className={styles.field}>
@@ -197,12 +204,12 @@ export default function CommentRecorder() {
 
             <div className={styles.field}>
                 <span className={styles.label}>Comment</span>
-                <textarea
-                    className={styles.select}
-                    style={{ minHeight: 90, resize: 'vertical' }}
+                <SpellCheckArea
                     value={message}
-                    onChange={(e) => setMessage(e.target.value)}
+                    onChange={setMessage}
                     placeholder="Describe the issue or suggestion..."
+                    padding="8px 10px"
+                    minHeight={90}
                 />
             </div>
 

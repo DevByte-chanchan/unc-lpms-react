@@ -11,7 +11,9 @@ const { sequelize, Sequelize } = require('../models');
 async function getCoaepByCourse(req, res) {
     try {
         const { code } = req.params;
+        const authorizedOfferingId = req.courseAccess?.pc_offering_id;
         if (!code) return res.status(400).json({ message: 'Course code is required.' });
+        if (!authorizedOfferingId) return res.status(403).json({ message: 'Course access was not authorized.' });
 
         const rows = await sequelize.query(
             `SELECT
@@ -29,18 +31,10 @@ async function getCoaepByCourse(req, res) {
                  LEFT JOIN TopicTLAs tt ON tt.ilo_topic_id = it.ilo_topic_id
                  LEFT JOIN TLAAssessments ta ON ta.tla_id = tt.tla_id
              WHERE crs.course_no = ?
-               AND pco.pc_offering_id = (
-                   -- only the LATEST revision of this course, otherwise COs duplicate
-                   SELECT pco2.pc_offering_id
-                   FROM ProgramCourseOfferings pco2
-                       INNER JOIN Courses c2 ON c2.course_id = pco2.course_id
-                   WHERE c2.course_no = ?
-                   ORDER BY pco2.revision_number DESC
-                   LIMIT 1
-               )
+               AND pco.pc_offering_id = ?
              GROUP BY ilo.ilo_id
              ORDER BY co.co_id ASC, ilo.ilo_id ASC;`,
-            { replacements: [code, code], type: Sequelize.QueryTypes.SELECT }
+            { replacements: [code, authorizedOfferingId], type: Sequelize.QueryTypes.SELECT }
         );
 
         if (rows.length === 0) {

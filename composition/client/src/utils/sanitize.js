@@ -52,7 +52,18 @@ export const sanitizeFileName = (name) => {
 export const sanitizeUrl = (url) => {
   if (typeof url !== 'string') return ''
   const trimmed = url.trim().slice(0, 2000)
-  if (/^(https?:\/\/)/i.test(trimmed)) return trimmed
+  const hasControlCharacter = Array.from(trimmed).some((character) => {
+    const code = character.charCodeAt(0)
+    return code <= 31 || code === 127
+  })
+  if (!trimmed || hasControlCharacter) return ''
   if (/^\/[a-zA-Z0-9/._-]*$/.test(trimmed)) return trimmed
-  return ''
+  try {
+    const parsed = new URL(trimmed)
+    if (!['http:', 'https:'].includes(parsed.protocol)) return ''
+    if (parsed.username || parsed.password || !parsed.hostname) return ''
+    return trimmed
+  } catch {
+    return ''
+  }
 }

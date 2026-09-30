@@ -2,8 +2,8 @@
 module.exports = (sequelize, DataTypes) => {
     const CourseOfferingAssignment = sequelize.define('CourseOfferingAssignment', {
         co_assign_id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-        pc_offering_id: { type: DataTypes.INTEGER, allowNull: false },
-        stakeholder_id: { type: DataTypes.STRING(20) },
+        pc_offering_id: { type: DataTypes.INTEGER, allowNull: false, unique: true },
+        stakeholder_id: { type: DataTypes.INTEGER },
         date_assigned: { type: DataTypes.DATE },
         date_submitted: { type: DataTypes.DATE },
         date_updated: { type: DataTypes.DATE }
@@ -13,6 +13,7 @@ module.exports = (sequelize, DataTypes) => {
 
     CourseOfferingAssignment.associate = function(models) {
         CourseOfferingAssignment.belongsTo(models.ProgramCourseOffering, { foreignKey: 'pc_offering_id' });
+        CourseOfferingAssignment.belongsTo(models.User, { foreignKey: 'stakeholder_id', as: 'stakeholder', constraints: false });
         CourseOfferingAssignment.hasMany(models.AssignmentWorkflowLog, { foreignKey: 'co_assign_id', as: 'workflowLogs' });
         CourseOfferingAssignment.hasMany(models.Comment, { foreignKey: 'co_assign_id', as: 'comments' });
     };

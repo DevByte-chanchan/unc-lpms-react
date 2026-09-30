@@ -1,6 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const assignmentController = require('../controllers/assignmentController');
+const { requireAuth } = require('../middleware/auth');
+
+router.use(requireAuth);
 
 // GET /api/assignments
 router.get('/', assignmentController.listAssignments);

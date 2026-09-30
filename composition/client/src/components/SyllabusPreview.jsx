@@ -11,18 +11,15 @@ import CourseCoverage from "./CourseCoverage";
 import ReferenceSummary from "./ReferenceSummary";
 import CriteriaForGrading from "./CriteriaForGrading";
 
-const SyllabusPreview = ({ isOpen, onClose, pcId: propPcId, revNum: propRevNum, code: propCode }) => {
-    // 1. Guard clause for modal visibility
-    if (!isOpen) return null;
-
-    // 2. Extract identifiers from both props and URL params to maximize flexibility
+const SyllabusPreview = ({ isOpen, onClose, pcId: propPcId, revNum: propRevNum }) => {
+    // Hooks must run in the same order whether the modal is open or closed.
     const { status, revNum: paramRevNum, pcId: paramPcId } = useParams();
+    const [selectedSection, setSelectedSection] = useState('Course Details');
+
+    if (!isOpen) return null;
 
     const currentPcId = propPcId || paramPcId;
     const currentRevNum = propRevNum || paramRevNum;
-
-    // Local section selection control state for a clean preview user experience
-    const [selectedSection, setSelectedSection] = useState('Course Details');
 
     const handleSectionChange = (e) => {
         setSelectedSection(e.target.value);
@@ -33,7 +30,7 @@ const SyllabusPreview = ({ isOpen, onClose, pcId: propPcId, revNum: propRevNum, 
             <div className={styles.modalContent}>
 
                 {/* Close Button */}
-                <button className={styles.closeButton} onClick={onClose}>×</button>
+                <button type="button" className={`${styles.closeButton} app-icon-close`} onClick={onClose} aria-label="Close syllabus preview">×</button>
 
                 <h2 className={styles.previewTitle}>Syllabus Preview</h2>
 

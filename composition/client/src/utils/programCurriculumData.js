@@ -198,11 +198,7 @@ export const savePoPeoData = (programCode, data) => {
   _write(store)
 }
 
-export const getCoPoData = (programCode, courseCode) => {
-  const store = _readMigrated()
-  const prog = store.programs[programCode]
-  const saved = prog?.courses?.[courseCode]?.coPoAlignment
-  if (saved) return saved
+export const getCoPoData = (courseCode) => {
   const course = syllabiData.find(s => s.code.replace(/\s/g, '') === (courseCode || '').replace(/\s/g, ''))
   if (course?.courseOutcomes) return { courseOutcomes: course.courseOutcomes }
   return { courseOutcomes: [] }

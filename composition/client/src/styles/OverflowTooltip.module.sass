@@ -1,0 +1,22 @@
+.tooltip
+  position: fixed
+  z-index: 10000
+  width: max-content
+  max-width: min(320px, calc(100vw - 24px))
+  padding: 7px 10px
+  border-radius: 6px
+  background: #172b31
+  box-shadow: 0 6px 18px rgba(0, 0, 0, .2)
+  color: #fff
+  font: 400 12px/1.45 'Poppins', sans-serif
+  overflow-wrap: anywhere
+  pointer-events: none
+  animation: overflow-tooltip-in 100ms ease-out
+
+@keyframes overflow-tooltip-in
+  from
+    opacity: 0
+    transform: translateY(-2px)
+  to
+    opacity: 1
+    transform: translateY(0)

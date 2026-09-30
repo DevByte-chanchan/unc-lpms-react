@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
+import { Inbox, Grid, AlertTriangle } from "react-feather";
+import EmptyState from './EmptyState.jsx';
+import Spinner from './Spinner.jsx';
 import TableScrollRegion from './TableScrollRegion.jsx';
-import {Inbox} from "react-feather";
+import { describeCourseLoadError } from '../utils/courseLoadError.js';
 
 const OutcomeAlignment = ({ offeringID, revisionNum, styles, stylesB, fetchJson }) => {
     const [cpaData, setCpaData] = useState({
@@ -29,7 +32,7 @@ const OutcomeAlignment = ({ offeringID, revisionNum, styles, stylesB, fetchJson 
             } catch (err) {
                 console.error(err);
                 if (!mounted) return;
-                setCpaError(err.message);
+                setCpaError(describeCourseLoadError(err));
             } finally {
                 if (mounted) setCpaLoading(false);
             }
@@ -39,12 +42,33 @@ const OutcomeAlignment = ({ offeringID, revisionNum, styles, stylesB, fetchJson 
         return () => { mounted = false; };
     }, [offeringID, revisionNum, fetchJson]);
 
+    // The same three states every panel in this module now has: waiting,
+    // failed, and legitimately empty. They were a line of grey text, a line of
+    // red text, and — for empty — an alignment table with no rows in it, which
+    // is the one that reads as a broken page rather than an empty one.
     if (cpaLoading) {
-        return <div className={stylesB.loadingContainer}>Loading alignment matrix...</div>;
+        return <Spinner label="Loading alignment matrix…" minHeight={280} />;
     }
 
     if (cpaError) {
-        return <div className={stylesB.errorContainer}>Error: {cpaError}</div>;
+        return (
+            <EmptyState
+                icon={<AlertTriangle size={22} strokeWidth={1.6} />}
+                title="Could not load the alignment matrix"
+                hint={cpaError}
+            />
+        );
+    }
+
+    const hasOutcomes = !!(cpaData?.courseOutcomes?.length || cpaData?.programOutcomes?.length);
+    if (!hasOutcomes) {
+        return (
+            <EmptyState
+                icon={<Grid size={22} strokeWidth={1.6} />}
+                title="No outcome alignment recorded"
+                hint="Course outcomes mapped against the programme outcomes will appear here as a matrix once the instructor has filled them in."
+            />
+        );
     }
 
     return (

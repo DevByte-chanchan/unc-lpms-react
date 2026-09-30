@@ -16,10 +16,6 @@ if (config.dialect === 'sqlite') {
 
   compatModule = { ...compat, OPEN_READWRITE: 2, OPEN_CREATE: 4, OPEN_READONLY: 1 };
 
-  // Mock sqlite3 module in require cache
-  const resolved = require.resolve('sqlite3');
-  require.cache[resolved] = { exports: compatModule, id: resolved, filename: resolved, loaded: true, children: [] };
-
   // Open raw better-sqlite3 connection.
   // Storage path may be relative (portable across machines) — resolve it
   // against the server directory, not the process cwd.

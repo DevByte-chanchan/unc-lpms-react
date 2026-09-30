@@ -1,5 +1,9 @@
 import React, { useState, useEffect } from 'react';
+import { FileText, AlertTriangle } from 'react-feather';
+import EmptyState from './EmptyState.jsx';
+import Spinner from './Spinner.jsx';
 import TableScrollRegion from './TableScrollRegion.jsx';
+import { describeCourseLoadError } from '../utils/courseLoadError.js';
 
 
 const CourseDetails = ({ offeringID, revisionNum, stylesB, fetchJson }) => {
@@ -38,7 +42,7 @@ const CourseDetails = ({ offeringID, revisionNum, stylesB, fetchJson }) => {
             } catch (err) {
                 console.error(err);
                 if (!mounted) return;
-                setCourseDetailsError(err.message);
+                setCourseDetailsError(describeCourseLoadError(err));
             } finally {
                 if (mounted) setCourseDetailsLoading(false);
             }
@@ -49,11 +53,29 @@ const CourseDetails = ({ offeringID, revisionNum, stylesB, fetchJson }) => {
     }, [offeringID, revisionNum, fetchJson]);
 
     if (courseDetailsLoading) {
-        return <div className={stylesB.loadingContainer}>Loading course details...</div>;
+        return <Spinner label="Loading course details…" minHeight={280} />;
     }
 
     if (courseDetailsError) {
-        return <div className={stylesB.errorContainer}>Error: {courseDetailsError}</div>;
+        return (
+            <EmptyState
+                icon={<AlertTriangle size={22} strokeWidth={1.6} />}
+                title="Could not load the course details"
+                hint={courseDetailsError}
+            />
+        );
+    }
+
+    // Previously this fell through to a table of empty cells, which looks like
+    // the screen loaded and lost the data.
+    if (!courseDetailsData?.code && !courseDetailsData?.name) {
+        return (
+            <EmptyState
+                icon={<FileText size={22} strokeWidth={1.6} />}
+                title="No course details recorded"
+                hint="The course number, title, description, credit units and contact hours will appear here once the instructor has entered them."
+            />
+        );
     }
 
     return (

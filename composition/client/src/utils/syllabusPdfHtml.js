@@ -1,4 +1,4 @@
-import { escapeHtml } from './sanitize.js'
+import { escapeHtml, sanitizeUrl } from './sanitize.js'
 const safe = (v, fallback = '—') => (v === null || v === undefined || v === '') ? fallback : escapeHtml(String(v))
 
 const fmtDate = (d) => {
@@ -773,7 +773,7 @@ function computeResourceChunks(syllabus) {
 }
 
 function resourcesToHtml(chunks, logo, startPageNum, total) {
-  const v = (x) => (x != null && x !== '' ? String(x) : '')
+  const v = (x) => (x != null && x !== '' ? escapeHtml(String(x)) : '')
   const CELL = 'border:1px solid black; padding:4px 6px; vertical-align:top; font-family:Arial,Helvetica,sans-serif; font-size:10pt; overflow-wrap:break-word; word-break:break-word;'
   const CELL_CODE = CELL + 'font-weight:bold; white-space:nowrap;'
   const CELL_HDR = CELL + 'font-weight:bold; text-align:center; vertical-align:middle;'
@@ -789,13 +789,21 @@ function resourcesToHtml(chunks, logo, startPageNum, total) {
       '<td style="' + CELL_HDR + '">' + (isLink ? 'LINK' : 'ISBN') + '</td>' +
       '<td style="' + CELL_HDR + '">PUBLICATION YEAR</td>' +
     '</tr>'
-    h += items.map(r => '<tr>' +
-      '<td style="' + CELL_CODE + '">' + v(r._displayId || r.id) + '</td>' +
-      '<td style="' + CELL + '">' + v(r.title) + '</td>' +
-      '<td style="' + CELL + '">' + v(r.authors) + '</td>' +
-      '<td style="' + CELL + '">' + (isLink && r.link ? '<a href="' + r.link.replace(/"/g,'&quot;') + '" style="color:#0000EE; text-decoration:underline;">' + v(r.link) + '</a>' : v(r.isbn)) + '</td>' +
-      '<td style="' + CELL + '">' + v(r.year != null ? '' + r.year : '') + '</td>' +
-    '</tr>').join('\n')
+    h += items.map(r => {
+      const safeLink = isLink ? sanitizeUrl(r.link) : ''
+      const resourceValue = isLink
+        ? (safeLink
+            ? '<a href="' + escapeHtml(safeLink) + '" style="color:#0000EE; text-decoration:underline;">' + v(r.link) + '</a>'
+            : v(r.link))
+        : v(r.isbn)
+      return '<tr>' +
+        '<td style="' + CELL_CODE + '">' + v(r._displayId || r.id) + '</td>' +
+        '<td style="' + CELL + '">' + v(r.title) + '</td>' +
+        '<td style="' + CELL + '">' + v(r.authors) + '</td>' +
+        '<td style="' + CELL + '">' + resourceValue + '</td>' +
+        '<td style="' + CELL + '">' + v(r.year != null ? '' + r.year : '') + '</td>' +
+      '</tr>'
+    }).join('\n')
     h += '</table>'
     return h
   }

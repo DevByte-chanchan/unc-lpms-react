@@ -10,6 +10,7 @@ module.exports = (sequelize, DataTypes) => {
     });
 
     Program.associate = function(models) {
+        Program.belongsTo(models.User, { foreignKey: 'stakeholder_id', as: 'stakeholder', constraints: false });
         Program.belongsTo(models.Department, { foreignKey: 'dept_id' });
         Program.hasMany(models.ProgramCourseOffering, { foreignKey: 'program_id' });
         Program.hasMany(models.ProgramOutcome, { foreignKey: 'program_id' });

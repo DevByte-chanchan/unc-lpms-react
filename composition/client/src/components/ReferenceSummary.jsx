@@ -3,6 +3,8 @@ import { BookOpen } from 'react-feather';
 import { unresolvedCountsByReference, iloIdsFromCourse } from '../utils/referenceComments.js';
 import EmptyState from './EmptyState.jsx';
 import TableScrollRegion from './TableScrollRegion.jsx';
+import { sanitizeUrl } from '../utils/sanitize.js';
+import { describeCourseLoadError } from '../utils/courseLoadError.js';
 
 const REFERENCE_VIEWS = [
     { value: 'Textbook', label: 'TEXTBOOKS', prefix: 'TB', identifier: 'ISBN', empty: 'No textbooks attached to this plan' },
@@ -36,7 +38,7 @@ const ReferenceSummary = ({ offeringID, revisionNum, status, selectedSection, st
                 setReferencesError('');
             } catch (err) {
                 console.error("Error fetching reference summary data:", err);
-                if (mounted) setReferencesError(err?.message || 'the request failed');
+                if (mounted) setReferencesError(describeCourseLoadError(err));
             } finally {
                 if (mounted) setIsReferencesLoading(false);
             }
@@ -128,11 +130,11 @@ const ReferenceSummary = ({ offeringID, revisionNum, status, selectedSection, st
             {referencesError && (
                 <div className={stylesB.refErrorBanner} role="alert">
                     <strong>Could not load the references.</strong>
-                    <span>The server did not answer — {referencesError}. Check that the backend is running on port 5000, then reload.</span>
+                    <span>{referencesError}</span>
                 </div>
             )}
 
-            <TableScrollRegion label={`${activeView.label} table`} minWidth={760} className={stylesB.refScrollWrapper}>
+            {(!referencesError || referenceData) && <TableScrollRegion label={`${activeView.label} table`} minWidth={760} className={stylesB.refScrollWrapper}>
                 <table className={stylesB.refTable}>
                     <thead>
                         <tr><th>ID</th><th>TITLE</th><th>AUTHOR/S</th><th>{activeView.identifier}</th><th>YEAR</th></tr>
@@ -161,14 +163,14 @@ const ReferenceSummary = ({ offeringID, revisionNum, status, selectedSection, st
                                     <td>{ref.authors}</td>
                                     <td>{isTextbook
                                         ? (ref.isbn || '-')
-                                        : (ref.link ? <a href={ref.link} target="_blank" rel="noreferrer">Open Resource</a> : '-')}</td>
+                                        : (sanitizeUrl(ref.link) ? <a href={sanitizeUrl(ref.link)} target="_blank" rel="noreferrer">Open Resource</a> : '-')}</td>
                                     <td>{ref.year || '-'}</td>
                                 </tr>
                             );
                         })}
                     </tbody>
                 </table>
-            </TableScrollRegion>
+            </TableScrollRegion>}
         </div>
     );
 };

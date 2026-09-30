@@ -7,9 +7,12 @@
 // (`getCourseCatalog`), so a title assigned here becomes attachable there.
 import React, { useEffect, useMemo, useState } from 'react';
 import { BookOpen, Save, RefreshCw, Search, CheckCircle } from 'react-feather';
+import { useSearchParams } from 'react-router-dom';
 import SkeletonA from '../../../layouts/SkeletonA.jsx';
 import HeaderA from '../../../components/HeaderA.jsx';
 import SideNavigation from '../../../components/SideNavigation.jsx';
+import EmptyState from '../../../components/EmptyState.jsx';
+import Spinner from '../../../components/Spinner.jsx';
 import styles from '../../../styles/CourseCatalog.module.sass';
 
 import { fetchJson } from '../../../utils/api.js';
@@ -20,6 +23,7 @@ import {
     getCourseCatalog,
     setCourseCatalog,
     rolloverCatalog,
+    selectRequestedCourse,
     termKey,
     nextTermKey,
     typeLabel
@@ -27,6 +31,8 @@ import {
 
 const CourseCatalog = () => {
     const session = getSession();
+    const [searchParams] = useSearchParams();
+    const requestedCourse = searchParams.get('course') || '';
     const settings = useMemo(() => getCatalogSettings(), []);
     const [term, setTerm] = useState(() => termKey());
 
@@ -57,12 +63,10 @@ const CourseCatalog = () => {
             const list = [...byCode.values()].sort((a, b) => a.code.localeCompare(b.code));
             setCourses(list);
             setReferences(Array.isArray(refs) ? refs : []);
-            if (list.length && !courseCode) setCourseCode(list[0].code);
+            setCourseCode(selectRequestedCourse(list, requestedCourse));
         }).finally(() => { if (mounted) setLoading(false); });
         return () => { mounted = false; };
-        // courseCode intentionally excluded: this only seeds the first selection
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    }, [requestedCourse]);
 
     // Load whatever is already assigned for this course + term.
     useEffect(() => {
@@ -175,8 +179,17 @@ const CourseCatalog = () => {
                     </div>
 
                     <div className={styles.list}>
-                        {loading && <div className={styles.empty}>Loading the reference library…</div>}
-                        {!loading && rows.length === 0 && <div className={styles.empty}>No references of this type match.</div>}
+                        {loading && <Spinner label="Loading the reference library…" minHeight={200} />}
+                        {!loading && rows.length === 0 && (
+                            <EmptyState
+                                inline
+                                icon={<BookOpen size={20} strokeWidth={1.6} />}
+                                title="Nothing of this type to assign"
+                                hint={search
+                                    ? `No ${type.toLowerCase()} in the library matches “${search}”. Clear the search, or add the title to the library first.`
+                                    : `The library holds no ${type.toLowerCase()} yet. Add them on the Reference Library screen and they will appear here.`}
+                            />
+                        )}
                         {rows.map(ref => (
                             <label key={ref.reference_id} className={styles.row}>
                                 <input

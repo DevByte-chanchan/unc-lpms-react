@@ -189,6 +189,14 @@ const splitCodes = (value) => String(value || '')
 export const courseCodesForReference = (ref) =>
     splitCodes(ref?.used_in_courses ?? ref?.courses ?? ref?.course_no)
 
+export const selectRequestedCourse = (courses, requestedCode) => {
+    const source = Array.isArray(courses) ? courses : []
+    if (source.length === 0) return ''
+    const requested = String(requestedCode || '').trim().toLocaleUpperCase()
+    const match = source.find(course => String(course?.code || '').trim().toLocaleUpperCase() === requested)
+    return match?.code || source[0]?.code || ''
+}
+
 const sameCode = (a, b) =>
     String(a || '').toUpperCase().replace(/\s+/g, '') === String(b || '').toUpperCase().replace(/\s+/g, '')
 
@@ -485,6 +493,7 @@ export default {
     availabilityOf,
     isAttachable,
     courseCodesForReference,
+    selectRequestedCourse,
     isInCourseCatalog,
     relevanceScore,
     normalizeTypeKey,

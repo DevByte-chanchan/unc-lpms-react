@@ -1,6 +1,7 @@
 // src/components/ReferencePicker.jsx
 import React, { useState, useMemo, useCallback } from 'react';
 import styles from '../styles/ReferencePicker.module.sass';
+import EmptyState from './EmptyState.jsx';
 import { Search, Book, Globe, Unlock, ExternalLink, Plus, X, AlertTriangle, Star, Lock, FileText } from 'react-feather';
 import {
     buildCatalogView,
@@ -10,6 +11,7 @@ import {
     typeLabel,
     UNCLASSIFIED_TYPE
 } from '../utils/referenceCatalog.js';
+import { sanitizeUrl } from '../utils/sanitize.js';
 
 /**
  * ReferencePicker
@@ -147,9 +149,9 @@ const ReferencePicker = ({
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    {ref.link && (
+                    {sanitizeUrl(ref.link) && (
                         <a
-                            href={ref.link}
+                            href={sanitizeUrl(ref.link)}
                             target="_blank"
                             rel="noreferrer"
                             className={styles.link}
@@ -269,14 +271,19 @@ const ReferencePicker = ({
                     {rows.length > 0 ? (
                         rows.map((ref, index) => renderRow(ref, index))
                     ) : (
-                        <div className={styles.empty}>
-                            <div>No references found matching your criteria.</div>
-                            {scope === 'catalog' && (
+                        <EmptyState
+                            inline
+                            icon={<Book size={20} strokeWidth={1.6} />}
+                            title={`No ${String(activeFilter || 'reference').toLowerCase()} to show`}
+                            hint={scope === 'catalog'
+                                ? `Nothing in ${courseCode || 'this course'}’s catalog matches. The Director of Libraries assigns titles per course each term.`
+                                : 'Nothing in the library matches. Try a different search, or add the title from an outside source below.'}
+                            action={scope === 'catalog' ? (
                                 <button type="button" className={styles.linkBtn} onClick={() => setScope('library')}>
                                     Search outside {courseCode || 'this course'}’s catalog
                                 </button>
-                            )}
-                        </div>
+                            ) : null}
+                        />
                     )}
                 </div>
 

@@ -1,0 +1,95 @@
+<style>
+  .layout-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:18px; margin-top:22px; }
+  .layout-card { border:2px solid #dfe5e8; border-radius:16px; background:#fff; overflow:hidden; cursor:pointer; transition:.18s ease; }
+  .layout-card:hover { border-color:#86979d; transform:translateY(-2px); box-shadow:0 8px 24px rgba(17,40,48,.10); }
+  .layout-card.selected { border-color:#1d3a40; box-shadow:0 0 0 3px rgba(29,58,64,.13); }
+  .mini-app { min-height:350px; background:#f6f7f7; padding:14px; color:#1a2b31; font:12px/1.35 system-ui,sans-serif; }
+  .mini-head { display:flex; justify-content:space-between; gap:8px; align-items:center; margin-bottom:12px; }
+  .mini-title { font-size:15px; font-weight:800; }
+  .mini-btn { background:#1c363b; color:#fff; border-radius:7px; padding:7px 10px; white-space:nowrap; }
+  .search { background:#fff; border:1px solid #b9c4c8; border-radius:8px; padding:9px 10px; color:#718087; flex:1; }
+  .toolbar { display:flex; gap:7px; margin-bottom:10px; }
+  .pill { padding:6px 9px; border-radius:999px; border:1px solid #d6dee1; background:#fff; white-space:nowrap; }
+  .pill.active { background:#e4f3ee; border-color:#78b89e; color:#126345; }
+  .summary { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; margin-bottom:10px; }
+  .stat { border:1px solid #dde3e5; border-radius:8px; background:#fff; padding:7px; }
+  .stat strong { display:block; font-size:15px; }
+  .table { border:1px solid #d5dde0; border-radius:8px; overflow:hidden; background:#fff; }
+  .row { display:grid; grid-template-columns:54px 1.65fr 1fr 66px 70px; align-items:center; min-height:40px; border-bottom:1px solid #e3e8ea; padding:0 7px; gap:7px; }
+  .row:last-child { border-bottom:0; }
+  .row.header { min-height:34px; background:#e9edef; font-size:10px; font-weight:800; }
+  .action { color:#126345; font-weight:700; text-align:right; }
+  .sidebar-layout { display:grid; grid-template-columns:90px 1fr; gap:9px; }
+  .sidefilters { background:#fff; border:1px solid #dce3e5; border-radius:8px; padding:8px; }
+  .sidefilters div { padding:6px 3px; border-bottom:1px solid #edf0f1; }
+  .sidefilters div:last-child { border:0; }
+  .split-layout { display:grid; grid-template-columns:1.4fr .8fr; gap:9px; }
+  .details { background:#fff; border:1px solid #d7dfe2; border-radius:8px; padding:10px; }
+  .details h4 { margin:0 0 8px; font-size:13px; }
+  .details p { margin:5px 0; color:#66777e; }
+  .card-copy { padding:14px 16px 16px; }
+  .card-copy h3 { margin:0 0 5px; font-size:17px; }
+  .card-copy p { margin:0; color:#68777d; font-size:13px; }
+  .recommended { display:inline-block; margin-bottom:7px; padding:3px 7px; border-radius:999px; background:#e0f4e9; color:#146541; font-size:11px; font-weight:800; }
+  @media (max-width:1000px) { .layout-grid { grid-template-columns:1fr; } .mini-app { min-height:300px; } }
+</style>
+
+<h2>Choose the reference-finding workspace</h2>
+<p class="subtitle">Which layout would help the Director of Libraries find and maintain records fastest during daily work?</p>
+
+<div class="layout-grid">
+  <div class="layout-card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="mini-app">
+      <div class="mini-head"><span class="mini-title">Reference Library</span><span class="mini-btn">+ Add reference</span></div>
+      <div class="toolbar"><div class="search">⌕ Search title, author, ID, ISBN…</div><span class="pill">Filters  ▾</span></div>
+      <div class="summary"><div class="stat"><strong>160</strong>All</div><div class="stat"><strong>12</strong>Needs review</div><div class="stat"><strong>8</strong>Duplicates</div><div class="stat"><strong>78</strong>Old</div></div>
+      <div class="toolbar"><span class="pill active">Active 82</span><span class="pill">Archived 78</span><span class="pill">Textbooks</span><span class="pill">OER</span></div>
+      <div class="table">
+        <div class="row header"><span>ID</span><span>TITLE</span><span>AUTHOR</span><span>YEAR</span><span>ACTIONS</span></div>
+        <div class="row"><span>R-104</span><span>Database Systems</span><span>Connolly</span><span>2024</span><span class="action">•••</span></div>
+        <div class="row"><span>R-087</span><span>Computer Networks</span><span>Tanenbaum</span><span>2021</span><span class="action">•••</span></div>
+        <div class="row"><span>R-039</span><span>Clean Architecture</span><span>Martin</span><span>2017</span><span class="action">•••</span></div>
+      </div>
+    </div>
+    <div class="card-copy"><span class="recommended">RECOMMENDED</span><h3>A. Search-first workbench</h3><p>One prominent search bar, quick-filter chips, compact results, visible maintenance counts, and an action menu on every row.</p></div>
+  </div>
+
+  <div class="layout-card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="mini-app">
+      <div class="mini-head"><span class="mini-title">Reference Library</span><span class="mini-btn">+ Add</span></div>
+      <div class="toolbar"><div class="search">⌕ Search the catalog…</div></div>
+      <div class="sidebar-layout">
+        <div class="sidefilters"><strong>Refine</strong><div>Department</div><div>Type</div><div>Year</div><div>Status</div><div>Availability</div></div>
+        <div>
+          <div class="toolbar"><span class="pill active">160 results</span><span class="pill">Sort ▾</span></div>
+          <div class="table">
+            <div class="row header"><span>ID</span><span>TITLE</span><span>AUTHOR</span><span>YEAR</span><span></span></div>
+            <div class="row"><span>R-104</span><span>Database Systems</span><span>Connolly</span><span>2024</span><span class="action">Edit</span></div>
+            <div class="row"><span>R-087</span><span>Computer Networks</span><span>Tanenbaum</span><span>2021</span><span class="action">Edit</span></div>
+            <div class="row"><span>R-039</span><span>Clean Architecture</span><span>Martin</span><span>2017</span><span class="action">Edit</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-copy"><h3>B. Catalog with filter sidebar</h3><p>Permanent filters are easy to discover and combine, but the sidebar takes space away from the table on smaller screens.</p></div>
+  </div>
+
+  <div class="layout-card" data-choice="c" onclick="toggleSelect(this)">
+    <div class="mini-app">
+      <div class="mini-head"><span class="mini-title">Reference Library</span><span class="mini-btn">+ Add</span></div>
+      <div class="toolbar"><div class="search">⌕ Search title, author, ID…</div><span class="pill">Filters ▾</span></div>
+      <div class="split-layout">
+        <div class="table">
+          <div class="row header"><span>ID</span><span>TITLE</span><span>AUTHOR</span><span>YEAR</span><span></span></div>
+          <div class="row"><span>R-104</span><span>Database Systems</span><span>Connolly</span><span>2024</span><span class="action">›</span></div>
+          <div class="row"><span>R-087</span><span>Computer Networks</span><span>Tanenbaum</span><span>2021</span><span class="action">›</span></div>
+          <div class="row"><span>R-039</span><span>Clean Architecture</span><span>Martin</span><span>2017</span><span class="action">›</span></div>
+        </div>
+        <div class="details"><h4>Database Systems</h4><p>R-104 · Textbook</p><p>Connolly & Begg</p><p>2024 · Active</p><button class="mock-button">Edit record</button></div>
+      </div>
+    </div>
+    <div class="card-copy"><h3>C. Results with preview panel</h3><p>Selecting a row opens its details beside the list. Excellent for checking records, but gives the table less room.</p></div>
+  </div>
+</div>
+
+<p style="margin-top:18px;color:#68777d">Click one layout, then tell me what you like or want changed.</p>

@@ -6,7 +6,6 @@ const { prepareNumberedStatement } = require('./utils/sqlPlaceholders');
 const compat = require('./sqlite3-compat');
 const B = require('better-sqlite3');
 const mock = { ...compat, OPEN_READWRITE: 2, OPEN_CREATE: 4, OPEN_READONLY: 1 };
-require.cache[require.resolve('sqlite3')] = { exports: mock, id: require.resolve('sqlite3'), filename: require.resolve('sqlite3'), loaded: true, children: [] };
 
 const raw = new B(config.storage);
 raw.pragma('journal_mode=WAL');
@@ -83,7 +82,12 @@ const wrapConnection = {
 };
 
 const { Umzug, SequelizeStorage } = require('umzug');
-const seq = new Sequelize('lpms', '', '', { dialect: 'sqlite', storage: config.storage, logging: false });
+const seq = new Sequelize('lpms', '', '', {
+  dialect: 'sqlite',
+  dialectModule: mock,
+  storage: config.storage,
+  logging: false
+});
 const cm = seq.dialect.connectionManager;
 cm.connections = { default: wrapConnection };
 cm.getConnection = async () => wrapConnection;

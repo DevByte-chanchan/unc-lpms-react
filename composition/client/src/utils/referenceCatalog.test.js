@@ -14,7 +14,7 @@ const {
   availabilityOf, isAttachable, isInCourseCatalog, relevanceScore, typeLabel,
   externalSearchLinks, citationFor, termKey, nextTermKey, setCourseCatalog,
   getCourseCatalog, rolloverCatalog, buildCatalogView, DEFAULT_CATALOG_SETTINGS,
-  countUnclassified, UNCLASSIFIED_TYPE
+  countUnclassified, UNCLASSIFIED_TYPE, selectRequestedCourse
 } = await import('./referenceCatalog.js');
 
 const test = (name, fn) => {
@@ -50,6 +50,16 @@ const VIEW = {
   topics: ['Introduction to User Interface (UI) Design', 'Usability Testing'],
   now: NOW
 };
+
+test('a requested catalog course is selected from the available course list', () => {
+  const courses = [
+    { code: 'BIT213L', name: 'Data Structures' },
+    { code: 'BIT313L', name: 'Human Computer Interaction' },
+  ];
+  eq(selectRequestedCourse(courses, 'bit313l'), 'BIT313L', 'case-insensitive requested course');
+  eq(selectRequestedCourse(courses, 'UNKNOWN'), 'BIT213L', 'unknown course falls back to first available');
+  eq(selectRequestedCourse([], 'BIT313L'), '', 'empty course list');
+});
 
 test('a timestamp publication_year still reads as a year', () => {
   eq(parseYear('2024-01-01 00:00:00.000 +00:00'), 2024, 'timestamp');

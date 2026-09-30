@@ -24,7 +24,7 @@ function InlineModal({ isOpen, title, onClose, children, actions }) {
             <div className={styles.modal}>
                 <div className={styles.modalHeader}>
                     <h3 id="modal-title">{title}</h3>
-                    <button type="button" aria-label="Close" className={styles.closeIcon || ''} onClick={onClose} style={{ background: 'transparent', border: 'none', padding: 6 }}>
+                    <button type="button" aria-label="Close" className={`${styles.closeIcon || ''} app-icon-close`} onClick={onClose}>
                         <X size={16} />
                     </button>
                 </div>
@@ -50,7 +50,7 @@ const ReferenceForm = () => {
     const revisionNum = searchParams.get('rev') || '';
 
     const [allReferences, setAllReferences] = useState([]);
-    const [assignedReferences, setAssignedReferences] = useState([]);
+    const [, setAssignedReferences] = useState([]);
     const [selectedRefs, setSelectedRefs] = useState([]);
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);

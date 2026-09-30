@@ -422,7 +422,6 @@ function expandSparseData(s) {
 }
 
 export function enrichSyllabi(data) {
-  let enriched = 0
   data.forEach(s => {
     if (!s.sdg) s.sdg = 'SDG4 - Quality Education'
 
@@ -436,7 +435,6 @@ export function enrichSyllabi(data) {
       s.assessments = generateAssessments(cos, s.topics)
       s.coAssessmentMethodSets = generateCoAssessmentMethodSets(cos)
       s.gradingSystem = generateGradingSystem(cos)
-      enriched++
     }
 
     // Pass 2: Expand sparse courses that have courseOutcomes but too few topics/TLAs

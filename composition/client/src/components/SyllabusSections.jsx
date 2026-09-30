@@ -1,7 +1,7 @@
 import styles from '../styles/SyllabusSections.module.sass'
 import stylesB from '../styles/SyllabusPreview.module.sass'; // Ensure this has the new modal CSS classes
 import {ChevronLeft, ChevronRight, Plus, Search, Inbox, Play, Send, MoreVertical, Download, Clock} from 'react-feather';
-import React, {useEffect, useRef, useState} from "react";
+import React, {useCallback, useEffect, useRef, useState} from "react";
 import {Link, useNavigate, useParams, useSearchParams, useLocation} from "react-router-dom";
 import SyllabusPreview from "./SyllabusPreview.jsx";
 import Revisions from "./Revisions.jsx";
@@ -18,6 +18,7 @@ import ILOs from "./ILOs";
 import CriteriaForGrading from "./CriteriaForGrading";
 import CourseCoverage from "./CourseCoverage";
 import ReferenceSummary from "./ReferenceSummary";
+import Spinner from './Spinner.jsx';
 
 
 const SyllabusSections = () => {
@@ -29,7 +30,8 @@ const SyllabusSections = () => {
     // Extracted directly from route: /courses/:pcId/:revNum/:status
     const params = useParams();
     const { status, revNum: revisionNum, pcId: offeringID } = params;
-    const courseCode = params.code || params.courseName || ''
+    // One parameter name for a course code now — see utils/routes.js.
+    const courseCode = params.code || ''
     const backPath = location.state?.fromTab
         ? `/?tab=${location.state.fromTab}`
         : (location.state?.fromStatus || status)
@@ -112,7 +114,7 @@ const SyllabusSections = () => {
     }
 
     // Keeps the localStorage workflow in sync once the server submission succeeds
-    const applyLocalWorkflowOnSubmit = () => {
+    const applyLocalWorkflowOnSubmit = useCallback(() => {
         try {
             if (!resolvedCode) {
                 console.warn('No course code resolved for this offering — workflow not updated')
@@ -142,7 +144,7 @@ const SyllabusSections = () => {
         } catch (e) {
             console.error('Failed to update local workflow', e)
         }
-    }
+    }, [resolvedCode])
 
     // Submission Modal States (undo-window submit flow)
     const [submitPhase, setSubmitPhase] = useState('IDLE');
@@ -229,25 +231,12 @@ const SyllabusSections = () => {
         setTimeLeft(5);
     };
 
-    const cancelSubmission = () => {
+    const cancelSubmission = useCallback(() => {
         setSubmitPhase('IDLE');
         setTimeLeft(5);
-    };
+    }, []);
 
-    // Safe useEffect timer implementation
-    useEffect(() => {
-        if (submitPhase === 'WAITING' && timeLeft > 0) {
-            timerRef.current = setTimeout(() => {
-                setTimeLeft(timeLeft - 1);
-            }, 1000);
-        } else if (submitPhase === 'WAITING' && timeLeft === 0) {
-            executeFinalSubmission();
-        }
-
-        return () => clearTimeout(timerRef.current);
-    }, [submitPhase, timeLeft]);
-
-    const executeFinalSubmission = async () => {
+    const executeFinalSubmission = useCallback(async () => {
         setSubmitPhase('SUBMITTING');
         try {
             await fetchJson(`/api/submit-learning-plan/${offeringID}/${revisionNum}`, {
@@ -267,7 +256,21 @@ const SyllabusSections = () => {
             cancelSubmission();
             alert(`Failed to submit the learning plan: ${error.message}`);
         }
-    };
+    }, [applyLocalWorkflowOnSubmit, cancelSubmission, navigate, offeringID, revisionNum]);
+
+    // Safe useEffect timer implementation. This is declared after the submit
+    // callback so the effect can track the exact function it invokes.
+    useEffect(() => {
+        if (submitPhase === 'WAITING' && timeLeft > 0) {
+            timerRef.current = setTimeout(() => {
+                setTimeLeft(timeLeft - 1);
+            }, 1000);
+        } else if (submitPhase === 'WAITING' && timeLeft === 0) {
+            executeFinalSubmission();
+        }
+
+        return () => clearTimeout(timerRef.current);
+    }, [submitPhase, timeLeft, executeFinalSubmission]);
 
 
     return (
@@ -343,9 +346,7 @@ const SyllabusSections = () => {
 
             <div className={styles['dynamic-sections']}>
                 {isLoading ? (
-                    <div className={styles.loadingContainer}>
-                        <div className={styles.spinner}></div>
-                    </div>
+                    <Spinner label="Loading the learning plan…" minHeight={320} />
                 ) : (
                     <>
                         {selectedSection === 'Course Details' &&
@@ -377,12 +378,13 @@ const SyllabusSections = () => {
                             onClose={() => setIsPreviewOpen(false)}
                         />
 
-                        <Revisions
-                            isOpen={isRevisionsOpen}
-                            onClose={() => setIsRevisionsOpen(false)}
-                            revNum={revisionNum}
-                            pcId={offeringID}
-                        />
+                        {isRevisionsOpen && (
+                            <Revisions
+                                onClose={() => setIsRevisionsOpen(false)}
+                                revNum={revisionNum}
+                                pcId={offeringID}
+                            />
+                        )}
 
                         {previewFile && (
                             <PDFViewerModal
@@ -403,8 +405,8 @@ const SyllabusSections = () => {
                     {submitPhase === 'CHECKING' && (
                         <div className={styles.submitModal}>
                             <div className={styles.waitingBodyCenter}>
-                                <div className={styles.spinnerDark}></div>
-                                <div className={styles.waitingTextSmall}>Checking hours and ILO alignment...</div>
+                                <Spinner inline size={32} label="Checking hours and ILO alignment" />
+                                <div className={styles.waitingTextSmall}>Checking hours and ILO alignment…</div>
                             </div>
                         </div>
                     )}
@@ -469,8 +471,8 @@ const SyllabusSections = () => {
                     {submitPhase === 'SUBMITTING' && (
                         <div className={styles.submitModal}>
                             <div className={styles.waitingBodyCenter}>
-                                <div className={styles.spinnerDark}></div>
-                                <div className={styles.waitingTextSmall}>Processing Submission...</div>
+                                <Spinner inline size={32} label="Processing submission" />
+                                <div className={styles.waitingTextSmall}>Processing submission…</div>
                             </div>
                         </div>
                     )}

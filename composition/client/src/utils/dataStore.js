@@ -79,7 +79,7 @@ export function getSuggestions(courseCode) {
     const all = raw ? JSON.parse(raw) : []
     if (!Array.isArray(all)) return []
     return courseCode ? all.filter(s => s.courseCode === courseCode) : all
-  } catch (e) { return [] }
+  } catch { return [] }
 }
 
 export function addSuggestion(courseCode, reference, suggestedBy) {

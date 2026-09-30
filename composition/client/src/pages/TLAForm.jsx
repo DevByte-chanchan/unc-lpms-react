@@ -17,6 +17,31 @@ import SideNavigation from "../components/SideNavigation.jsx";
 import { fetchJson } from "../utils/api.js";
 import CommentMessage from "../components/CommentMessage.jsx";
 
+const FLIPPED_OPTIONS = ['Pre-class', 'In-class', 'Post-class'];
+const STANDARD_OPTIONS = ['Asynchronous', 'Synchronous'];
+
+const normalizeClassPhase = (val) => {
+    if (!val) return '';
+    const v = val.toString().toLowerCase();
+    if (v.includes('pre')) return 'Pre-class';
+    if (v.includes('in')) return 'In-class';
+    if (v.includes('post')) return 'Post-class';
+    if (v.includes('async')) return 'Asynchronous';
+    if (v.includes('sync')) return 'Synchronous';
+    return val;
+};
+
+const mapDbToUi = (tla) => {
+    const hasExistingAssessment = Boolean(tla.assessmentType || tla.assessmentDetail);
+    return {
+        ...tla,
+        performedBy: tla.performedBy === 'T' ? 'Instructor' : tla.performedBy === 'S' ? 'Student' : tla.performedBy,
+        classPhase: normalizeClassPhase(tla.classPhase),
+        isLab: Boolean(tla.isLab || tla.is_lab || false),
+        hasAssessment: hasExistingAssessment
+    };
+};
+
 /* Inline modal component */
 function InlineModal({ isOpen, title, onClose, children, actions }) {
     if (!isOpen) return null;
@@ -25,7 +50,7 @@ function InlineModal({ isOpen, title, onClose, children, actions }) {
             <div className={styles.modal}>
                 <div className={styles.modalHeader}>
                     <h3 id="modal-title">{title}</h3>
-                    <button type="button" aria-label="Close" onClick={onClose} className={styles.closeIcon}>
+                    <button type="button" aria-label="Close" onClick={onClose} className={`${styles.closeIcon} app-icon-close`}>
                         <X size={16} />
                     </button>
                 </div>
@@ -38,10 +63,7 @@ function InlineModal({ isOpen, title, onClose, children, actions }) {
 
 const TLAForm = () => {
     const navigate = useNavigate();
-    const { courseCode, iloId, status } = useParams();
-
-    const FLIPPED_OPTIONS = ['Pre-class', 'In-class', 'Post-class'];
-    const STANDARD_OPTIONS = ['Asynchronous', 'Synchronous'];
+    const { iloId, status } = useParams();
 
     const [isLoading, setIsLoading] = useState(true);
     const [flipped, setFlipped] = useState(false);
@@ -58,28 +80,6 @@ const TLAForm = () => {
     const workspaceContainerRef = useRef(null);
 
     // --- Data Normalization Helpers ---
-    const normalizeClassPhase = (val) => {
-        if (!val) return '';
-        const v = val.toString().toLowerCase();
-        if (v.includes('pre')) return 'Pre-class';
-        if (v.includes('in')) return 'In-class';
-        if (v.includes('post')) return 'Post-class';
-        if (v.includes('async')) return 'Asynchronous';
-        if (v.includes('sync')) return 'Synchronous';
-        return val;
-    };
-
-    const mapDbToUi = (tla) => {
-        const hasExistingAssessment = Boolean(tla.assessmentType || tla.assessmentDetail);
-        return {
-            ...tla,
-            performedBy: tla.performedBy === 'T' ? 'Instructor' : tla.performedBy === 'S' ? 'Student' : tla.performedBy,
-            classPhase: normalizeClassPhase(tla.classPhase),
-            isLab: Boolean(tla.isLab || tla.is_lab || false),
-            hasAssessment: hasExistingAssessment
-        };
-    };
-
     const mapUiToDb = (tla) => ({
         ...tla,
         performedBy: tla.performedBy === 'Instructor' ? 'T' : tla.performedBy === 'Student' ? 'S' : tla.performedBy,
@@ -151,7 +151,7 @@ const TLAForm = () => {
         }).catch(err => console.warn('Failed to persist comment resolution:', err?.message));
     };
 
-    const getAvailableOptionsForTla = (currentTlaId) => {
+    const getAvailableOptionsForTla = () => {
         // Return all available topics to allow repeating ILO topics across multiple TLAs
         return availableTopics;
     };

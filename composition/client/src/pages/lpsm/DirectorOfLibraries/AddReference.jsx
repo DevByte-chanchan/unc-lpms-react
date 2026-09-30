@@ -5,6 +5,7 @@ import SkeletonA from '../../../layouts/SkeletonA.jsx';
 import HeaderA from '../../../components/HeaderA.jsx';
 import SideNavigation from '../../../components/SideNavigation.jsx';
 import TextField from '../../../components/TextField.jsx';
+import AutoCorrectButton from '../../../components/AutoCorrectButton.jsx';
 import DropdownA from '../../../components/DropdownA.jsx';
 import styles from '../../../styles/Form.module.sass';
 import navStyles from '../../../styles/FormNavigation.module.sass';
@@ -40,7 +41,6 @@ const AddReference = () => {
     usedInCourses: existingRef?.usedInCourses || [],
   });
 
-  const [courseInput, setCourseInput] = useState('');
   const [errors, setErrors] = useState({});
   const [toast, setToast] = useState(null);
 
@@ -59,18 +59,6 @@ const AddReference = () => {
         ? prev.departments.filter(d => d !== dept)
         : [...prev.departments, dept],
     }));
-  };
-
-  const addCourse = () => {
-    const code = courseInput.trim().toUpperCase();
-    if (code && !formData.usedInCourses.includes(code)) {
-      setFormData(prev => ({ ...prev, usedInCourses: [...prev.usedInCourses, code] }));
-      setCourseInput('');
-    }
-  };
-
-  const removeCourse = (code) => {
-    setFormData(prev => ({ ...prev, usedInCourses: prev.usedInCourses.filter(c => c !== code) }));
   };
 
   const goBackHandler = () => navigate(-1);
@@ -175,12 +163,24 @@ const AddReference = () => {
           onChange={(val) => handleChange('title', val)}
           error={errors.title}
         />
+        <AutoCorrectButton
+          value={formData.title}
+          onChange={(next) => handleChange('title', next)}
+          label="Check title"
+          compact
+        />
 
         <TextField
           label={'Author(s)'}
           value={formData.authors}
           onChange={(val) => handleChange('authors', val)}
           error={errors.authors}
+        />
+        <AutoCorrectButton
+          value={formData.authors}
+          onChange={(next) => handleChange('authors', next)}
+          label="Check author names"
+          compact
         />
 
         {formData.type === 'Textbook' && (

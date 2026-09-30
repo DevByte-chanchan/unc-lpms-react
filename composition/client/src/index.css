@@ -1,21 +1,12 @@
 @import url('https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&display=swap');
-
-/* Design tokens — sizes, colours and radii in one place. Purely additive:
-   nothing below is changed by it, but any stylesheet or inline style can now
-   use var(--fs-md), var(--radius-sm), var(--primary) and so on. See the file
-   for the rationale and the scope note. */
 @import './styles/tokens.css';
 
-*{
+*,
+*::before,
+*::after {
     box-sizing: border-box;
-    font-family: 'Poppins', sans-serif;
-
-}
-
-h2{
-    font-weight: 600;
-    font-size: 24px;
+    font-family: var(--font-ui);
 }
 
 :root {
@@ -23,6 +14,8 @@ h2{
     height: 100vh;
     height: 100dvh;
     overflow: hidden;
+    color: var(--ink);
+    background: var(--surface-sunken);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
 }
@@ -31,81 +24,126 @@ body {
     margin: 0;
     display: flex;
     min-width: 320px;
+    width: 100%;
     height: 100vh;
     height: 100dvh;
-    width: 100%;
     overflow: hidden;
+    color: var(--ink);
+    background: var(--surface-sunken);
+    font-size: var(--fs-md);
+    line-height: 1.45;
 }
 
 #root {
+    display: flex;
+    flex-direction: column;
     width: 100%;
     min-width: 0;
     height: 100%;
-    display: flex;
-    flex-direction: column;
     overflow: hidden;
 }
 
 a {
-    font-weight: 500;
-    color: #646cff;
-    text-decoration: inherit;
-}
-a:hover {
-    color: #535bf2;
+    color: var(--accent);
+    font-weight: var(--fw-medium);
+    text-decoration: none;
 }
 
-h1 {
-    font-size: 3.2em;
-    line-height: 1.1;
+a:hover {
+    color: #1d4ed8;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+    outline: 3px solid rgba(37, 99, 235, 0.28);
+    outline-offset: 2px;
+}
+
+h1,
+h2,
+h3,
+h4,
+p {
+    margin-block-start: 0;
 }
 
 button {
-    border-radius: 8px;
+    min-height: 0;
     border: 1px solid transparent;
+    border-radius: var(--radius-md);
     padding: 0.6em 1.2em;
-    font-size: 1em;
-    font-weight: 500;
-    font-family: inherit;
-    background-color: #1a1a1a;
+    color: var(--primary-ink);
+    background-color: var(--primary);
+    font: var(--fw-medium) var(--fs-md) / 1.2 var(--font-ui);
     cursor: pointer;
-    transition: border-color 0.25s;
-    outline: none !important;
+    transition:
+        border-color var(--t-fast),
+        background-color var(--t-fast),
+        color var(--t-fast),
+        box-shadow var(--t-fast),
+        transform var(--t-fast);
+}
 
+button:hover:not(:disabled) {
+    border-color: var(--primary-hover);
+    background-color: var(--primary-hover);
 }
-button:hover {
-    border-color: #646cff;
-    border: none !important;
-    outline: none !important;
+
+button:active:not(:disabled) {
+    transform: translateY(1px);
 }
-button:focus,
+
+button:focus {
+    outline: none;
+}
+
 button:focus-visible {
-    outline: 4px auto -webkit-focus-ring-color;
+    outline: 3px solid rgba(37, 99, 235, 0.32);
+    outline-offset: 2px;
 }
 
-table{
-    border-collapse: collapse;
+button:disabled,
+input:disabled,
+select:disabled,
+textarea:disabled {
+    cursor: not-allowed;
+    opacity: 0.58;
+}
+
+input,
+select,
+textarea {
+    font: inherit;
+}
+
+/* Tables are intentionally scoped to the shared scroll region. This keeps
+   table layout rules from leaking into unrelated content or modal tables. */
+[data-table-region] table {
     display: flex;
     flex-direction: column;
-    gap: 5px ;
     flex-grow: 1;
     min-width: fit-content;
     overflow-y: hidden;
+    border-collapse: collapse;
+    gap: 5px;
 }
 
-
-thead tr {
-    background: #EDEFF2;
+[data-table-region] thead tr {
     display: flex;
     text-align: left;
-    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.25);
+    background: #edeff2;
+    box-shadow: var(--shadow-sm);
 }
 
-th {
-    font-weight: 500;
+[data-table-region] th {
+    font-weight: var(--fw-medium);
 }
 
-tbody {
+[data-table-region] tbody {
     display: flex;
     flex-direction: column;
     gap: 6px;
@@ -113,58 +151,177 @@ tbody {
     padding-bottom: 20px;
 }
 
-tbody tr {
-    background: #FFF;
-    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.25);
+[data-table-region] tbody tr {
     display: flex;
-    font-weight: 300;
+    font-weight: var(--fw-normal);
+    background: var(--surface);
+    box-shadow: var(--shadow-sm);
 }
 
-
-th, td {
-    padding: 8px 8px;
+[data-table-region] th,
+[data-table-region] td {
     display: flex;
-    gap: 6px;
     align-items: center;
+    gap: 6px;
+    padding: 8px;
     font-size: 15px;
 }
-.filter-container{
+
+.filter-container {
     display: flex;
-    height: 100%;
-    justify-content: flex-end;
     align-items: center;
-    color: black;
+    justify-content: flex-end;
     min-width: 0;
+    height: 100%;
+    color: var(--ink);
+}
 
+.filter-container p {
+    margin: 0;
+    color: var(--ink-muted);
+    font-size: var(--fs-md);
+    font-weight: var(--fw-normal);
 }
-.filter-container p{
-    font-weight: 300;
-    font-size: 14px;
+
+.filter-container p strong {
+    font-weight: var(--fw-semibold);
 }
-.filter-container p strong{
-    font-weight: 500;
-}
-.filter-container select{
-    margin-left: 20px;
-    font-size: 14px;
-    outline: none;
+
+.filter-container select {
+    margin-left: var(--sp-6);
     border: 0;
+    outline: none;
     background: transparent;
+    font-size: var(--fs-md);
 }
 
-.search-container{
+.search-container {
     display: flex;
     flex-grow: 1;
     align-items: center;
     min-width: 0;
 }
 
+.search-container .search-bar {
+    display: flex;
+    flex-grow: 1;
+    align-items: center;
+    height: var(--control-h);
+    gap: 15px;
+    padding: 0 15px;
+    border: 1px solid #a4a9af;
+    border-radius: var(--radius-pill);
+}
+
+.search-bar input {
+    width: 100%;
+    height: 100%;
+    border: none;
+    outline: none;
+}
+
+.add-button {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    width: max-content;
+    height: var(--control-h);
+    gap: 5px;
+    margin-left: var(--sp-1);
+    padding: 10px 20px 10px 15px;
+    border-radius: var(--radius-pill);
+    color: #fff;
+    background: #ea1212;
+    font-size: var(--fs-md);
+}
+
+.fill {
+    display: flex;
+    flex-grow: 1;
+    align-items: center;
+    justify-content: flex-end;
+    min-width: 200px;
+    padding-right: 25px;
+    color: var(--ink);
+    font-weight: var(--fw-medium) !important;
+}
+
+.actionLink {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: fit-content;
+    height: fit-content;
+    gap: 5px;
+    padding: 0;
+    color: inherit !important;
+    cursor: pointer;
+}
+
+.x {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    padding: 0 15px;
+    border-radius: var(--radius-sm);
+    background: #f94545;
+    cursor: pointer;
+}
+
+.checkbox {
+    display: flex;
+    flex-grow: 1;
+    gap: 5px;
+    margin-left: var(--sp-6);
+    font-size: var(--fs-lg);
+    font-weight: var(--fw-normal);
+}
+
+.checkbox input[type='checkbox'] {
+    width: 20px;
+    height: 20px;
+}
+
+/* Shared dismiss control for dialogs, drawers, and popovers. */
+button.app-icon-close.app-icon-close {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 32px;
+    width: 32px;
+    min-width: 32px;
+    max-width: 32px;
+    height: 32px;
+    min-height: 32px;
+    max-height: 32px;
+    aspect-ratio: 1;
+    padding: 0;
+    border: 1px solid #E81123 !important;
+    border-radius: 7px;
+    background: #fff;
+    color: #E81123;
+    box-shadow: none;
+    line-height: 0;
+}
+
+button.app-icon-close.app-icon-close:hover {
+    background: #FFF1F2;
+    border-color: #B91C1C !important;
+    color: #B91C1C;
+}
+
+button.app-icon-close.app-icon-close:focus-visible {
+    outline: 3px solid rgba(232, 17, 35, 0.24) !important;
+    outline-offset: 2px;
+}
+
 @media (max-width: 720px) {
     .filter-container {
-        height: auto;
         flex-wrap: wrap;
         justify-content: flex-start;
-        gap: 8px;
+        height: auto;
+        gap: var(--sp-3);
     }
 
     .filter-container select {
@@ -177,84 +334,13 @@ th, td {
     }
 }
 
-.search-container .search-bar{
-    display: flex;
-    flex-grow: 1;
-    border: 1px solid #A4A9AF;
-    border-radius: 20px;
-    height: 40px;
-    padding: 0 15px;
-    gap: 15px;
-    align-items: center;
-}
-.search-bar input{
-    border: none;
-    width: 100%;
-    height: 100%;
-    outline: none;
-}
-
-.add-button{
-    display: flex;
-    background: #EA1212;
-    padding: 10px 20px 10px 15px;
-    align-items: center;
-    color: white;
-    height: 40px;
-    font-size: 14px;
-    gap: 5px;
-    border-radius: 20px;
-    margin-left: 5px;
-    width: max-content;
-    flex-wrap: wrap;
-}
-
-/* Your existing .fill style */
-.fill {
-    flex-grow: 1;
-    padding-right: 25px;
-    display: flex;
-    justify-content: end;
-    align-items: center;
-    min-width: 200px;
-    font-weight: 500 !important;
-    /* The link element now inherits its color from the <td> */
-    color: black; /* Set the desired text color for the <td> */
-}
-
-/* 🛑 NEW/UPDATED STYLE: Target the Link element directly */
-.actionLink {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    padding: 0;
-    height: fit-content;
-    width: fit-content;
-    color: inherit !important; /* Force color inheritance, overriding the blue */
-    gap: 5px; /* Spacing between text and icon */
-    cursor: pointer;
-}
-
-.x{
-    display: flex;
-    height: 100%;
-    background: #F94545;
-    justify-content: center;
-    align-items: center;
-    padding: 0 15px;
-    border-radius: 4px;
-    cursor: pointer;
-}
-
-.checkbox{
-    margin-left: 20px;
-    display: flex;
-    flex-grow: 1;
-    font-size: 16px;
-    font-weight: 400;
-    gap: 5px;
-}
-.checkbox input[type='checkbox'] {
-    width: 20px;
-    height: 20px;
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        scroll-behavior: auto !important;
+        transition-duration: 0.01ms !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+    }
 }

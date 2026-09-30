@@ -1,21 +1,33 @@
-import React, { useEffect, useState, useRef, useMemo } from 'react'
+import React, { useEffect, useState, useRef } from 'react'
 import { Link, useSearchParams, useParams, useNavigate, useLocation } from 'react-router-dom'
 import { ChevronLeft, MessageSquare, Download, MoreVertical, Check, Clock, FileText } from 'react-feather'
 import EmptyState from './EmptyState.jsx'
+import Spinner from './Spinner.jsx'
 import TableScrollRegion from './TableScrollRegion.jsx'
 import styles from '../styles/ApprovalSyllabusSections.module.sass'
 import subStyles from '../styles/SyllabusSections.module.sass'
 import stylesB from '../styles/SyllabusPreview.module.sass'
 import stylesC from '../styles/SyllabusSections.module.sass'
 import ApprovalCommentBox from './ApprovalCommentBox.jsx'
-import { getWorkflow, setWorkflow, advanceWorkflow } from '../utils/workflowHelpers'
+import { getWorkflow, setWorkflow, advanceWorkflow, startSubmissionRound } from '../utils/workflowHelpers'
 import { getSuggestions, addSuggestion, acceptSuggestion, rejectSuggestion, getSyllabus } from '../utils/dataStore'
 import { getReferences, getReferenceById } from '../utils/referenceLibrary'
 import { normalizeRoleKey } from '../utils/approvalHelpers.js'
 import { getSession, nameForRoleWithSession } from '../utils/session'
 import ApprovalChainStatus from './ApprovalChainStatus.jsx'
-import { validateReturn, buildSignature, addSignature, canActOnStage, encodeCommentType } from '../utils/reviewGate.js'
+import {
+  validateReturn,
+  buildSignature,
+  addSignature,
+  canActOnStage,
+  encodeCommentType,
+  parseApprovalCommentDisplay,
+  compactCommentIlo,
+  reviewerRoleLabel,
+} from '../utils/reviewGate.js'
 import { fetchJson } from "../utils/api.js"
+import { describeCourseLoadError } from '../utils/courseLoadError.js'
+import { canReviewLoadedCourse } from '../utils/reviewAssignments.js'
 import { seedDummyComments } from "../utils/seedDummyComments.js"
 
 import Revisions from './Revisions.jsx'
@@ -37,6 +49,13 @@ const sectionLabels = {
   'Criteria for Grading': 'Criteria for Grading',
 }
 const defaultSections = Object.keys(sectionLabels)
+const ACTOR_ROLE_MAP = {
+  instructor: 'INSTRUCTOR',
+  'industry-consultant': 'INDUSTRY_CONSULTANT',
+  'director-of-libraries': 'LIBRARY_DIRECTOR',
+  'program-head': 'PROGRAM_HEAD',
+  dean: 'DEAN',
+}
 
 
 const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', courseCode = '', embedded = false, externalSelectedSection = null, workflow: workflowProp = null, pcId = null, revNum = null }) => {
@@ -106,15 +125,20 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
 
   const [cpaData, setCpaData] = useState({ course: { code: '', title: '' }, programOutcomes: [], courseOutcomes: [] })
   const [cpaLoading, setCpaLoading] = useState(false)
-  const [cpaError, setCpaError] = useState(null)
+  const [, setCpaError] = useState(null)
   const [courseDetails, setCourseDetails] = useState(null)
   const [courseDetailsLoading, setCourseDetailsLoading] = useState(true)
+  // WHY it is empty, not just THAT it is. The catch below used to discard the
+  // error, so "nothing has been entered yet" and "the server never answered"
+  // produced the same screen — and the second one is not the user's problem to
+  // guess at.
+  const [courseDetailsError, setCourseDetailsError] = useState('')
   const [coverageData, setCoverageData] = useState(null)
-  const [coverageLoading, setCoverageLoading] = useState(false)
+  const [, setCoverageLoading] = useState(false)
   const [criteriaData, setCriteriaData] = useState(null)
-  const [criteriaLoading, setCriteriaLoading] = useState(false)
+  const [, setCriteriaLoading] = useState(false)
   const [refData, setRefData] = useState(null)
-  const [refLoading, setRefLoading] = useState(false)
+  const [, setRefLoading] = useState(false)
 
   // refs to sections for auto-scroll (coverage + references still inline)
   const courseDetailsRef = useRef(null)
@@ -128,8 +152,23 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
   const codeToUse = routeCode || courseCode
   const validPcId = pcId && !Number.isNaN(Number(pcId)) && String(Number(pcId)) === String(pcId) ? pcId : null
   const validRevNum = revNum && !Number.isNaN(Number(revNum)) && String(Number(revNum)) === String(revNum) ? revNum : null
+  const reviewRecordAvailable = canReviewLoadedCourse({
+    pcId: validPcId,
+    revNum: validRevNum,
+    code: codeToUse,
+    details: courseDetails,
+    error: courseDetailsError,
+  })
 
-  const initialLoading = !codeToUse || (validPcId && validRevNum && courseDetailsLoading && courseDetails === null)
+  // A SPINNER MUST HAVE SOMETHING TO WAIT FOR.
+  //
+  // This used to start with `!codeToUse ||` — so a screen opened without a
+  // course code showed the spinner FOREVER. Nothing was in flight; nothing
+  // would ever arrive to end it. That is the spinning circle over an empty
+  // panel: not a slow server, a wait for something that was never requested.
+  //
+  // Now it is true only while a request is genuinely outstanding.
+  const initialLoading = !!(validPcId && validRevNum && courseDetailsLoading && courseDetails === null)
 
   const handleSectionChange = (e) => {
     setSelectedSection(e.target.value)
@@ -162,7 +201,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
     try {
       const wf = advanceWorkflow(codeToUse)
       if (wf) setWorkflowState(wf)
-    } catch (e) { /* non-fatal */ }
+    } catch { /* non-fatal */ }
   }, [codeToUse, refreshKey])
 
   useEffect(() => {
@@ -173,7 +212,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
       const refreshed = JSON.parse(localStorage.getItem('approval_comments_v1') || '[]')
       const courseComments = (Array.isArray(refreshed) ? refreshed : []).filter(c => c.courseCode === codeToUse)
       setGlobalComments(courseComments)
-    } catch (e) {
+    } catch {
       setGlobalComments([])
     }
   }, [codeToUse, refreshKey])
@@ -317,9 +356,12 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
       setCourseDetailsLoading(true);
       try {
         const data = await fetchJson(`/api/course-details/${validPcId}/${validRevNum}`);
-        if (mounted) setCourseDetails(data);
+        if (mounted) { setCourseDetails(data); setCourseDetailsError(''); }
       } catch (err) {
-        if (mounted) setCourseDetails(null);
+        if (mounted) {
+          setCourseDetails(null);
+          setCourseDetailsError(describeCourseLoadError(err));
+        }
       } finally {
         if (mounted) setCourseDetailsLoading(false);
       }
@@ -337,7 +379,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
       try {
         const data = await fetchJson(`/api/course-coverage/${validPcId}/${validRevNum}`);
         if (mounted) setCoverageData(data);
-      } catch (err) {
+      } catch {
         if (mounted) setCoverageData(null);
       } finally {
         if (mounted) setCoverageLoading(false);
@@ -356,7 +398,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
       try {
         const data = await fetchJson(`/api/course-criteria/${validPcId}/${validRevNum}`);
         if (mounted) setCriteriaData(data);
-      } catch (err) {
+      } catch {
         if (mounted) setCriteriaData(null);
       } finally {
         if (mounted) setCriteriaLoading(false);
@@ -375,7 +417,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
       try {
         const data = await fetchJson(`/api/courses/${validPcId}/${validRevNum}/references`);
         if (mounted) setRefData(data);
-      } catch (err) {
+      } catch {
         if (mounted) setRefData(null);
       } finally {
         if (mounted) setRefLoading(false);
@@ -387,8 +429,14 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
 
   // resolve data: API first, fall back to empty
   const resolvedCourse = courseDetails
-  const coverage = coverageData || { ilos: [], topics: [], assessments: [] }
-  const criteria = criteriaData || { gradingSystem: [] }
+  const coverage = React.useMemo(
+    () => coverageData || { ilos: [], topics: [], assessments: [] },
+    [coverageData]
+  )
+  const criteria = React.useMemo(
+    () => criteriaData || { gradingSystem: [] },
+    [criteriaData]
+  )
   const resolvedRefs = (() => {
     if (refData) {
       if (Array.isArray(refData)) return refData
@@ -427,11 +475,11 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
     }
   }, [resolvedCourse, coverage, criteria, resolvedRefs, codeToUse, cpaData])
 
-  const libraryRefs = React.useMemo(() => getReferences(), [refreshKey])
+  const libraryRefs = getReferences()
 
   // derive role
   let storedUser = null
-  try { storedUser = JSON.parse(localStorage.getItem('user') || 'null') } catch (e) { storedUser = null }
+  try { storedUser = JSON.parse(localStorage.getItem('user') || 'null') } catch { storedUser = null }
 
   const rawRoleSource = (currentRole && currentRole.toString()) || params?.approver || storedUser?.role || storedUser?.roles?.[0] || 'approver'
   const roleSource = String(rawRoleSource).toLowerCase()
@@ -451,15 +499,6 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
               : roleSource.includes('approver')
                 ? 'approver'
                 : 'approver'
-
-  const hasApproverComments = useMemo(() => {
-    try {
-      const raw = localStorage.getItem('approval_comments_v1')
-      if (!raw) return false
-      const all = JSON.parse(raw)
-      return (Array.isArray(all) ? all : []).some(c => normalizeRoleKey(c.role) === roleKey)
-    } catch { return false }
-  }, [roleKey])
 
   const defaultBack = (() => {
     const fromTab = location.state?.fromTab
@@ -548,14 +587,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
 
   // Module 2 integration: persist workflow actions (submit / return / approve)
   // to the server so course-table statuses reflect real state across sessions.
-  const ACTOR_ROLE_MAP = {
-    'instructor': 'INSTRUCTOR',
-    'industry-consultant': 'INDUSTRY_CONSULTANT',
-    'director-of-libraries': 'LIBRARY_DIRECTOR',
-    'program-head': 'PROGRAM_HEAD',
-    'dean': 'DEAN',
-  }
-  const recordWorkflowAction = (actionType) => {
+  const recordWorkflowAction = React.useCallback((actionType) => {
     const actor = ACTOR_ROLE_MAP[roleKey]
     if (!actor || !codeToUse) return
     fetchJson('/api/assignments/action', {
@@ -563,9 +595,10 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ actor_role: actor, action_type: actionType, pcId: validPcId, code: codeToUse })
     }).catch(e => { if (import.meta.env.DEV) console.warn('Workflow action not persisted to server:', e?.message) })
-  }
+  }, [codeToUse, roleKey, validPcId])
 
-  const handleApprove = () => {
+  const handleApprove = React.useCallback(() => {
+    if (!reviewRecordAvailable) return
     try {
       const wf = getWorkflow(codeToUse || '')
       const nowIso = new Date().toISOString()
@@ -596,56 +629,30 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
     } catch (e) {
       console.error('Failed to approve', e)
     }
-  }
+  }, [codeToUse, recordWorkflowAction, roleKey, reviewRecordAvailable])
 
   // Approve countdown: gives the approver a window to undo before it takes effect
   useEffect(() => {
     if (approvePhase === 'WAITING' && approveTimeLeft > 0) {
       approveTimerRef.current = setTimeout(() => setApproveTimeLeft(t => t - 1), 1000)
     } else if (approvePhase === 'WAITING' && approveTimeLeft === 0) {
-      handleApprove()
-      setApprovePhase('DONE')
-      setTimeout(() => setApprovePhase('IDLE'), 1500)
+      if (reviewRecordAvailable) {
+        handleApprove()
+        setApprovePhase('DONE')
+        setTimeout(() => setApprovePhase('IDLE'), 1500)
+      } else {
+        setApprovePhase('IDLE')
+      }
     }
     return () => clearTimeout(approveTimerRef.current)
-  }, [approvePhase, approveTimeLeft])
+  }, [approvePhase, approveTimeLeft, handleApprove, reviewRecordAvailable])
 
   const cancelApprove = () => { setApprovePhase('IDLE'); setApproveTimeLeft(5) }
 
   const handleSubmitForReview = () => {
     try {
       const existing = getWorkflow(codeToUse)
-      const wf = existing
-        ? {
-            ...existing,
-            currentStage: 'parallel_review',
-            submittedAt: new Date().toISOString(),
-            parallelReview: {
-              library_director: existing.parallelReview?.library_director?.status === 'done'
-                ? existing.parallelReview.library_director
-                : { status: 'pending', completedAt: null },
-              industry_consultant: existing.parallelReview?.industry_consultant?.status === 'done'
-                ? existing.parallelReview.industry_consultant
-                : { status: 'pending', completedAt: null },
-              program_head: existing.parallelReview?.program_head?.status === 'done'
-                ? existing.parallelReview.program_head
-                : { status: 'pending', completedAt: null }
-            },
-            programHead: existing.programHead?.status === 'done' ? existing.programHead : { status: 'pending', completedAt: null },
-            dean: existing.dean?.status === 'done' ? existing.dean : { status: 'pending', completedAt: null }
-          }
-        : {
-            courseCode: codeToUse || '',
-            currentStage: 'parallel_review',
-            submittedAt: new Date().toISOString(),
-            parallelReview: {
-              library_director: { status: 'pending', completedAt: null },
-              industry_consultant: { status: 'pending', completedAt: null },
-              program_head: { status: 'pending', completedAt: null }
-            },
-            programHead: { status: 'pending', completedAt: null },
-            dean: { status: 'pending', completedAt: null }
-          }
+      const wf = startSubmissionRound(existing, codeToUse)
       setWorkflow(codeToUse, wf)
       setWorkflowState(getWorkflow(codeToUse))
       setRefreshKey(k => k + 1)
@@ -682,10 +689,6 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
         ? []
         : [{ id: '—', description: 'No course outcomes loaded.', poMappings: [] }]
       )
-  const programOutcomes = cpaData.programOutcomes.length > 0
-    ? cpaData.programOutcomes
-    : (['PO1','PO2','PO3','PO4','PO5','PO6','PO7','PO8','PO9','PO10','PO11','PO12','PO13'].map(key => ({ key })))
-
   const realILOs = React.useMemo(() => {
     if (!coverage?.ilos || coverage.ilos.length === 0) return []
     return coverage.ilos.map(ilo => ilo.id).filter(Boolean)
@@ -764,7 +767,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
         : 'Department Head'
 
       const sectionToSave = externalSelectedSection || selectedSection
-      const prepared = (payload.comments || []).map((c, i) => ({
+      const prepared = (payload.comments || []).map((c) => ({
         id: `${submissionId}-${c.id}`,
         courseCode: code,
         section: sectionToSave,
@@ -959,14 +962,19 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
     <div className={styles.container}>
       {!embedded && (
         <div className={styles.navi}>
-          <Link to={backPath} className={'actionLink'}>
+          <Link to={backPath} className={'actionLink'} aria-label="Back to assigned course offerings">
             <div className={styles.return}>
               <ChevronLeft size={22} />
             </div>
           </Link>
 
+          <div className={styles.reviewIdentity} title={resolvedCourse?.name || codeToUse || ''}>
+            <strong>{codeToUse || 'Course'}</strong>
+            {resolvedCourse?.name && <span>{resolvedCourse.name}</span>}
+          </div>
+
           <div className={styles['section-select']}>
-            <select value={selectedSection} onChange={handleSectionChange}>
+            <select value={selectedSection} onChange={handleSectionChange} aria-label="Learning plan section">
               {defaultSections.map((s) => <option key={s} value={s}>{sectionLabels[s]}</option>)}
             </select>
           </div>
@@ -996,18 +1004,20 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
             }
             if (effectiveStatus !== 'approved' && roleKey !== 'instructor') {
               return (<>
-                <div className={`${styles.draft} ${!(isRoleActive() || hasRoleApproved()) ? styles['disabled-btn'] : ''}`} onClick={() => {
+                <button type="button" className={`${styles.draft} ${(!reviewRecordAvailable || !(isRoleActive() || hasRoleApproved())) ? styles['disabled-btn'] : ''}`} aria-disabled={!reviewRecordAvailable || !(isRoleActive() || hasRoleApproved())} onClick={() => {
+                  if (!reviewRecordAvailable) { showToastMsg('This course revision could not be loaded, so it cannot be reviewed.', 'warning'); return }
                   // Approvers can always ADD comments while the plan is in review —
                   // including in the returned stage or after their own approval.
                   if (isRoleActive() || hasRoleApproved()) { setReadOnlyCommentModal(false); openComment() }
                   else if (roleKey === 'dean') showToastMsg('Waiting for previous approvers to complete their review.', 'warning')
                   else showToastMsg('Commenting is not available until the workflow reaches your review stage.', 'warning')
-                }}><MessageSquare size={16} /> Add Comment</div>
-                <div className={`${styles.submit} ${(!isRoleActive() || hasRoleApproved()) ? styles['disabled-btn'] : ''}`} onClick={() => {
+                }}><MessageSquare size={16} /> Add Comment</button>
+                <button type="button" className={`${styles.submit} ${(!reviewRecordAvailable || !isRoleActive() || hasRoleApproved()) ? styles['disabled-btn'] : ''}`} aria-disabled={!reviewRecordAvailable || !isRoleActive() || hasRoleApproved()} onClick={() => {
+                  if (!reviewRecordAvailable) { showToastMsg('This course revision could not be loaded, so it cannot be approved.', 'warning'); return }
                   if (hasRoleApproved()) showToastMsg('You have already approved this learning plan.', 'warning')
                   else if (isRoleActive()) startApprove()
                   else if (roleKey === 'dean') showToastMsg('Waiting for previous approvers to complete their review.', 'warning')
-                }}><Check size={16} /> Approve</div>
+                }}><Check size={16} /> Approve</button>
               </>)
             }
             if (effectiveStatus === 'approved' && roleKey === 'vpaa') {
@@ -1095,7 +1105,9 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
             workflow={workflowState || getWorkflow(codeToUse || '')}
             activeRole={roleKey}
             onActivate={() => {
-              if (hasRoleApproved()) {
+              if (!reviewRecordAvailable) {
+                showToastMsg('This course revision could not be loaded, so it cannot be approved.', 'warning')
+              } else if (hasRoleApproved()) {
                 showToastMsg('You have already approved this learning plan.', 'warning')
               } else if (isRoleActive()) {
                 startApprove()
@@ -1111,9 +1123,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
         <div className={styles['plan-pane']}>
           <div className={styles['dynamic-sections']} ref={containerRef}>
             {initialLoading ? (
-              <div className={styles.loadingContainer}>
-                <div className={styles.spinner}></div>
-              </div>
+              <Spinner label="Loading learning plan…" minHeight={320} />
             ) : (
             <>
             {/* A table of blank rows is the worst of both worlds — it looks
@@ -1123,8 +1133,12 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
               <section>
                 <EmptyState
                   icon={<FileText size={22} strokeWidth={1.6} />}
-                  title="No course details recorded"
-                  hint={`Nothing has been entered for ${codeToUse || 'this course'} yet, or the details could not be loaded from the server.`}
+                  title={courseDetailsError ? 'Could not load the course details' : 'No course details recorded'}
+                  hint={courseDetailsError
+                    ? courseDetailsError
+                    : (validPcId && validRevNum)
+                      ? `Nothing has been entered for ${codeToUse || 'this course'} yet.`
+                      : `This plan was opened without a revision reference, so there is nothing to load. Reach it from the approvals table rather than by typing the address.`}
                 />
               </section>
             )}
@@ -1239,50 +1253,74 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
             )}
             </>)}
           </div>
-        </div>
-
-        {/* Linear reading-order navigation. The dropdown (top) stays as the
-            jump-anywhere control; these let an approver go start-to-finish
-            without reaching for the mouse each time [panel: "meron ka nalang
-            nung parang Next"]. */}
-        {!embedded && (
-          (() => {
+          {/* Reading-order navigation. The dropdown above is the
+              jump-anywhere control; the dots show where you are in the plan and
+              are shortcuts in their own right; Back / Next walk it in order —
+              "meron ka nalang nung parang Next" [17:23]. All three write the
+              same `selectedSection`, so they cannot disagree about where you
+              are. A button that could never do anything here is not rendered
+              at all, rather than sitting permanently greyed out. */}
+          {!embedded && (() => {
             const idx = defaultSections.indexOf(activeSelectedSection)
             const prev = idx > 0 ? defaultSections[idx - 1] : null
             const next = idx >= 0 && idx < defaultSections.length - 1 ? defaultSections[idx + 1] : null
-            const goTo = (target) => setSelectedSection(target)
             return (
-              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, padding: '12px 20px 0' }}>
-                <button
-                  disabled={!prev}
-                  onClick={() => prev && goTo(prev)}
-                  style={{
-                    display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 14px',
-                    borderRadius: 6, fontSize: 13, fontWeight: 500, cursor: prev ? 'pointer' : 'not-allowed',
-                    background: prev ? '#fff' : '#f1f5f9', color: prev ? '#1f2937' : '#9ca3af',
-                    border: `1px solid ${prev ? '#e2e8f0' : '#f1f5f9'}`, fontFamily: "'Poppins', sans-serif"
-                  }}
-                >
-                  &#8592; {prev ? sectionLabels[prev] : 'Previous section'}
-                </button>
-                <button
-                  disabled={!next}
-                  onClick={() => next && goTo(next)}
-                  style={{
-                    display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 14px',
-                    borderRadius: 6, fontSize: 13, fontWeight: 500, cursor: next ? 'pointer' : 'not-allowed',
-                    background: next ? '#19282C' : '#f1f5f9', color: next ? '#fff' : '#9ca3af',
-                    border: `1px solid ${next ? '#19282C' : '#f1f5f9'}`, fontFamily: "'Poppins', sans-serif"
-                  }}
-                >
-                  {next ? `Next section: ${sectionLabels[next]}` : 'Next section'} &#8594;
-                </button>
+              <div className={styles['section-nav']}>
+                {prev ? (
+                  <button
+                    type="button"
+                    title={`Back to ${sectionLabels[prev]}`}
+                    onClick={() => setSelectedSection(prev)}
+                    className={`${styles['section-nav-btn']} ${styles['nav-prev']}`}
+                  >
+                    <span aria-hidden="true">&#8592;</span>
+                    <span className={styles['nav-full']}>{sectionLabels[prev]}</span>
+                    <span className={styles['nav-short']}>Back</span>
+                  </button>
+                ) : <span />}
+
+                <div className={styles['nav-dots']} role="tablist" aria-label="Sections">
+                  {defaultSections.map((sec, i) => {
+                    const current = sec === activeSelectedSection
+                    return (
+                      <button
+                        key={sec}
+                        type="button"
+                        role="tab"
+                        aria-selected={current}
+                        aria-label={`${sectionLabels[sec]} (section ${i + 1} of ${defaultSections.length})`}
+                        title={sectionLabels[sec]}
+                        onClick={() => setSelectedSection(sec)}
+                        className={`${styles['nav-dot']} ${current ? styles['nav-dot-active'] : ''}`}
+                      >
+                        <span />
+                      </button>
+                    )
+                  })}
+                </div>
+
+                {next ? (
+                  <button
+                    type="button"
+                    title={`Continue to ${sectionLabels[next]}`}
+                    onClick={() => setSelectedSection(next)}
+                    className={`${styles['section-nav-btn']} ${styles['nav-next']}`}
+                  >
+                    <span className={styles['nav-full']}>{`Next: ${sectionLabels[next]}`}</span>
+                    <span className={styles['nav-short']}>Next</span>
+                    <span aria-hidden="true">&#8594;</span>
+                  </button>
+                ) : <span />}
               </div>
             )
-          })()
-        )}
+          })()}
+        </div>
 
-        {!embedded && roleKey !== 'vpaa' && activeSelectedSection === 'Course Coverage' && (
+        {/* The comments panel used to be shown only on Course Coverage, but
+            Add Comment is available on every section and the comment box can
+            target references and TLAs too — so a comment raised anywhere else
+            was saved and then never shown. It belongs on every section. */}
+        {!embedded && roleKey !== 'vpaa' && (
           <div className={styles['comments-shell']} data-collapsed={sidebarCollapsed}>
             <button
               type="button"
@@ -1323,7 +1361,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
                 </span>
               </div>
 
-              <div style={{ flex: 1, overflow: 'auto', padding: '10px 0' }}>
+              <div className={styles.commentsScroller}>
                 {visibleComments.length === 0 ? (
                   <EmptyState
                     icon={<MessageSquare size={22} strokeWidth={1.6} />}
@@ -1333,132 +1371,95 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
                       : 'Use Add Comment above to raise a revision, suggest a topic, a TLA or an AI tool.'}
                   />
                 ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column' }}>
+                  <div className={styles.commentsList}>
                     {visibleComments.map((comment) => {
-                      const roleKeyToLabel = { 'instructor': 'Instructor', 'program-head': 'Program Head', 'dean': 'Dean', 'director-of-libraries': 'Director of Libraries', 'industry-consultant': 'Industry Consultant' }
                       const isRecipient = ({ 'instructor': 'instructor', 'program-head': 'program_head' }[roleKey]) === comment.recipientRole
                       const coverageType = comment.coverageType || ''
+                      const details = Array.isArray(comment.coverageDetail)
+                        ? comment.coverageDetail.filter(Boolean)
+                        : (comment.coverageDetail ? [comment.coverageDetail] : [])
+                      const display = parseApprovalCommentDisplay(comment.comment, comment.suggestedRefs)
+                      const compactIlo = compactCommentIlo(comment.ilo, comment.courseOutcome)
+                      const roleLabel = reviewerRoleLabel(comment.role)
+                      const submittedAt = comment.createdAt || comment.submittedAt
                       return (
-                        <div key={comment.id} style={{
-                          display: 'flex', alignItems: 'flex-start', gap: 14,
-                          padding: '16px 20px',
-                          borderBottom: '1px solid #f1f5f9',
-                          opacity: comment.resolved ? 0.65 : 1,
-                          transition: 'background 0.2s ease, opacity 0.2s ease'
-                        }}
-                          onMouseEnter={(e) => { e.currentTarget.style.background = '#f8fafc' }}
-                          onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}>
-                          <div style={{ position: 'relative', width: 18, height: 18, marginTop: 3, flexShrink: 0 }}>
-                            {comment.resolved ? (
-                              <span style={{
-                                display: 'inline-block', width: 18, height: 18, borderRadius: 4,
-                                backgroundColor: '#2e7d32', border: '2px solid #2e7d32',
-                                position: 'relative', boxSizing: 'border-box'
-                              }}>
-                                <span style={{
-                                  position: 'absolute', left: 4, top: 1, width: 5, height: 9,
-                                  border: 'solid white', borderWidth: '0 2px 2px 0',
-                                  transform: 'rotate(45deg)'
-                                }} />
+                        <article
+                          key={comment.id}
+                          className={`${styles.commentCard} ${comment.resolved ? styles.commentCardResolved : ''}`}
+                        >
+                          <header className={styles.commentCardHeader}>
+                            <div className={styles.commentContext} aria-label="Comment context">
+                              {comment.courseOutcome && <span>{comment.courseOutcome}</span>}
+                              {comment.courseOutcome && compactIlo && <span className={styles.contextSeparator}>›</span>}
+                              {compactIlo && <span>{compactIlo}</span>}
+                            </div>
+                            <div className={styles.commentStatusArea}>
+                              <span className={`${styles.commentStatus} ${comment.resolved ? styles.statusResolved : styles.statusPending}`}>
+                                {comment.resolved ? 'Resolved' : 'Pending'}
                               </span>
-                            ) : isRecipient ? (
-                              <label style={{ cursor: 'pointer', display: 'block', width: 18, height: 18 }}
-                                title="Mark as fixed — the approver will see this comment checked"
-                                onClick={(e) => { e.stopPropagation(); markCommentResolved(comment.id) }}>
-                                <input type="checkbox"
-                                  style={{ position: 'absolute', opacity: 0, cursor: 'pointer', width: 0, height: 0 }}
-                                  onChange={() => markCommentResolved(comment.id)} />
-                                <span style={{
-                                  position: 'absolute', top: 0, left: 0, width: 18, height: 18,
-                                  backgroundColor: '#fff', border: '2px solid #cbd5e1', borderRadius: 4,
-                                  boxSizing: 'border-box', transition: 'all 0.2s'
-                                }} />
-                              </label>
-                            ) : null}
-                          </div>
-
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flex: 1, minWidth: 0 }}>
-                            {(coverageType || comment.courseOutcome || comment.ilo) && (
-                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, alignItems: 'center' }}>
-                                {comment.courseOutcome && (
-                                  <span style={{ background: comment.resolved ? '#f1f5f9' : '#edf2f7', padding: '4px 10px', borderRadius: 3, fontSize: '0.78rem', fontWeight: 500, letterSpacing: '-0.01em', color: comment.resolved ? '#94a3b8' : '#4a5568' }}>
-                                    [CO: {comment.courseOutcome}]
-                                  </span>
-                                )}
-                                {comment.ilo && (
-                                  <span style={{ background: comment.resolved ? '#f1f5f9' : '#edf2f7', padding: '4px 10px', borderRadius: 3, fontSize: '0.78rem', fontWeight: 500, letterSpacing: '-0.01em', color: comment.resolved ? '#94a3b8' : '#4a5568' }}>
-                                    [ILO: {comment.ilo}]
-                                  </span>
-                                )}
-                                {(() => {
-                                  // coverageDetail may be an array (UI comments) or a string (server-synced comments)
-                                  const details = Array.isArray(comment.coverageDetail)
-                                    ? comment.coverageDetail
-                                    : (comment.coverageDetail ? [comment.coverageDetail] : [])
-                                  const ct = comment.coverageType || 'Topic'
-                                  const colors = comment.resolved
-                                    ? { background: '#f1f5f9', color: '#94a3b8' }
-                                    : {
-                                        background: ct === 'Topic' ? '#e0f2fe' : ct === 'TLA' ? '#ede9fe' : ct === 'References' ? '#fef3c7' : '#edf2f7',
-                                        color: ct === 'Topic' ? '#0369a1' : ct === 'TLA' ? '#6d28d9' : ct === 'References' ? '#92400e' : '#4a5568',
-                                      }
-                                  const chipStyle = {
-                                    ...colors, padding: '4px 10px', borderRadius: 3, fontSize: '0.78rem', fontWeight: 500,
-                                    letterSpacing: '-0.01em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 240
-                                  }
-                                  if (details.length === 0) {
-                                    // no target name — still show the coverage type so the comment stays connected
-                                    return comment.coverageType ? (
-                                      <span style={chipStyle}>[{ct.toUpperCase()}]</span>
-                                    ) : null
-                                  }
-                                  return details.map((detail, di) => (
-                                    <span key={di} style={chipStyle}>
-                                      [{ct.toUpperCase()}: {detail}]
-                                    </span>
-                                  ))
-                                })()}
-                              </div>
-                            )}
-
-                            <p style={{
-                              margin: 0, fontSize: '0.92rem', lineHeight: 1.45, color: comment.resolved ? '#94a3b8' : '#334155',
-                              wordBreak: 'break-word',
-                              textDecoration: comment.resolved ? 'line-through' : 'none'
-                            }}>
-                              {comment.comment}
-                            </p>
-
-                            {comment.suggestedRefs && comment.suggestedRefs.length > 0 && (
-                              <div style={{ padding: '6px 10px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 4, fontSize: '0.75rem' }}>
-                                <div style={{ fontWeight: 600, color: '#92400e', marginBottom: 2 }}>Suggested References:</div>
-                                {comment.suggestedRefs.map((sr, si) => (
-                                  <div key={si} style={{ color: '#78350f' }}>
-                                    {sr.title}{sr.authors ? ` — ${sr.authors}` : ''}
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-
-                            <div style={{ fontSize: '0.8rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: 6, marginTop: 2, flexWrap: 'wrap' }}>
-                              <span style={{ fontWeight: 600, color: '#475569' }}>{comment.reviewer || 'Reviewer'}</span>
-                              <span style={{ color: '#cbd5e1' }}>•</span>
-                              <span style={{ fontSize: '0.78rem' }}>{comment.createdAt || comment.submittedAt ? new Date(comment.createdAt || comment.submittedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''}</span>
-                              {comment.resolved && (
-                                <span style={{
-                                  display: 'inline-flex', alignItems: 'center', gap: 4,
-                                  background: '#dcfce7', color: '#166534',
-                                  padding: '2px 10px', borderRadius: 10,
-                                  fontSize: '0.75rem', fontWeight: 600, marginLeft: 'auto'
-                                }}>
-                                  <span style={{ fontSize: '0.8rem', lineHeight: 1 }}>✓</span>
-                                  Fixed by instructor
-                                  {comment.resolvedAt ? ` · ${new Date(comment.resolvedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}` : ''}
-                                </span>
+                              {!comment.resolved && isRecipient && (
+                                <button
+                                  type="button"
+                                  className={styles.resolveCommentButton}
+                                  onClick={() => markCommentResolved(comment.id)}
+                                >
+                                  <Check size={13} /> Mark resolved
+                                </button>
                               )}
                             </div>
+                          </header>
+
+                          {(coverageType || details.length > 0) && (
+                            <div className={styles.commentTarget}>
+                              <span className={styles.commentTargetLabel}>{coverageType || 'Target'}</span>
+                              <div className={styles.commentTargetValues}>
+                                {details.length > 0
+                                  ? details.map((detail, index) => (
+                                      <span key={`${detail}-${index}`} title={detail}>{detail}</span>
+                                    ))
+                                  : <span>{coverageType}</span>}
+                              </div>
+                            </div>
+                          )}
+
+                          <div className={styles.commentMessage}>
+                            <span className={styles.commentSectionLabel}>Reviewer comment</span>
+                            <p>{display.body || 'No written comment provided.'}</p>
                           </div>
-                        </div>
+
+                          {display.suggestions.length > 0 && (
+                            <div className={styles.commentSuggestions}>
+                              <span className={styles.commentSectionLabel}>Suggested references</span>
+                              <ul>
+                                {display.suggestions.map((reference, index) => (
+                                  <li key={`${reference.title}-${index}`}>
+                                    <span>{reference.title}</span>
+                                    {reference.authors && <small>{reference.authors}</small>}
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+
+                          <footer className={styles.commentMeta}>
+                            <span>{roleLabel}</span>
+                            <span aria-hidden="true">·</span>
+                            <span>{comment.reviewer || 'Reviewer'}</span>
+                            {submittedAt && (
+                              <>
+                                <span aria-hidden="true">·</span>
+                                <time dateTime={submittedAt}>
+                                  {new Date(submittedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                </time>
+                              </>
+                            )}
+                            {comment.resolvedAt && (
+                              <span className={styles.resolvedDate}>
+                                Fixed {new Date(comment.resolvedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                              </span>
+                            )}
+                          </footer>
+                        </article>
                       )
                     })}
                   </div>
@@ -1547,12 +1548,13 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
       })()}
 
       {/* ── REVISIONS OVERLAY ──────────────────────────────────────────────── */}
-      <Revisions
-        isOpen={isRevisionsOpen}
-        onClose={() => setIsRevisionsOpen(false)}
-        pcId={validPcId}
-        revNum={validRevNum}
-      />
+      {isRevisionsOpen && (
+        <Revisions
+          onClose={() => setIsRevisionsOpen(false)}
+          pcId={validPcId}
+          revNum={validRevNum}
+        />
+      )}
 
       {/* ── PDF VIEWER MODAL ───────────────────────────────────────────── */}
       {previewFile && (

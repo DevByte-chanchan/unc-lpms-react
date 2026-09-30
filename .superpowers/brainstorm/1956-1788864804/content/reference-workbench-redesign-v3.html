@@ -1,0 +1,125 @@
+<style>
+  .workspace { margin-top:20px; border:1px solid #d8e0e3; border-radius:18px; background:#f7f8f8; overflow:hidden; box-shadow:0 14px 38px rgba(16,42,50,.10); color:#172c32; font:13px/1.35 system-ui,sans-serif; }
+  .top { padding:18px 20px 14px; background:#fff; border-bottom:1px solid #dfe5e7; }
+  .titlebar { display:flex; justify-content:space-between; align-items:flex-start; gap:14px; }
+  .titlebar h3 { margin:0 0 3px; font-size:22px; }
+  .muted { color:#73838a; }
+  .primary { border:0; border-radius:9px; padding:10px 14px; color:#fff; background:#1b393f; font-weight:750; }
+  .searchline { display:grid; grid-template-columns:132px 1fr auto; margin-top:15px; }
+  .field-select { border:1px solid #98a8ad; border-right:0; border-radius:10px 0 0 10px; background:#eef2f3; padding:10px 11px; font-weight:700; }
+  .query { border:1px solid #98a8ad; background:#fff; padding:10px 12px; color:#677980; }
+  .searchbtn { border:0; border-radius:0 10px 10px 0; background:#d82929; color:#fff; padding:10px 18px; font-weight:800; }
+  .savedbar { display:flex; align-items:center; gap:7px; margin-top:10px; overflow:auto; }
+  .savedbar strong { white-space:nowrap; }
+  .chip { border:1px solid #d2dcdf; border-radius:999px; background:#fff; padding:6px 10px; white-space:nowrap; }
+  .chip.active { background:#e4f2ed; border-color:#73a993; color:#145b45; font-weight:750; }
+  .body { display:grid; grid-template-columns:210px minmax(420px,1fr) 285px; min-height:440px; }
+  .facets { padding:15px; background:#f1f4f4; border-right:1px solid #dce3e5; }
+  .facet-head { display:flex; justify-content:space-between; margin-bottom:12px; }
+  .facet { padding:12px 0; border-top:1px solid #d8e0e2; }
+  .facet:first-of-type { border-top:0; }
+  .facet-title { font-weight:800; margin-bottom:7px; }
+  .facet-option { display:flex; justify-content:space-between; padding:4px 0; color:#4c626a; }
+  .facet-option span:last-child { color:#8a999f; }
+  .results { min-width:0; padding:14px; background:#fff; }
+  .result-tools { display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:10px; }
+  .result-tools select { border:1px solid #ced8db; border-radius:8px; background:#fff; padding:7px; }
+  .tablewrap { overflow:auto; border:1px solid #d3dcdf; border-radius:10px; }
+  .table { min-width:720px; }
+  .row { display:grid; grid-template-columns:34px 70px minmax(190px,1.5fr) minmax(120px,1fr) 82px 62px; align-items:center; gap:8px; min-height:46px; padding:0 10px; border-bottom:1px solid #e5eaec; }
+  .row:last-child { border-bottom:0; }
+  .row.header { min-height:36px; background:#e9edef; font-size:10px; font-weight:850; }
+  .row.selected { background:#edf7f3; box-shadow:inset 3px 0 #278060; }
+  .tag { width:max-content; border-radius:999px; background:#e7f2ff; color:#225e88; padding:3px 7px; font-size:11px; }
+  .pager { display:flex; justify-content:space-between; align-items:center; margin-top:10px; color:#60737a; }
+  .pages { display:flex; gap:4px; }
+  .page { border:1px solid #cfdbde; background:#fff; border-radius:6px; padding:4px 7px; }
+  .page.current { background:#1b393f; color:#fff; border-color:#1b393f; }
+  .preview { padding:16px; background:#fbfcfc; border-left:1px solid #dce3e5; }
+  .preview-head { display:flex; justify-content:space-between; align-items:start; }
+  .preview h4 { font-size:17px; margin:0 0 4px; }
+  .close { border:0; background:transparent; font-size:18px; color:#6d7f85; }
+  .record-id { color:#72848a; font-size:12px; }
+  .cover { height:98px; margin:15px 0; border-radius:10px; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg,#dfeceb,#edf3f2); font-size:34px; }
+  .metadata { display:grid; grid-template-columns:74px 1fr; gap:7px 8px; font-size:12px; }
+  .metadata dt { color:#73848a; }
+  .metadata dd { margin:0; font-weight:650; overflow-wrap:anywhere; }
+  .preview-actions { display:grid; grid-template-columns:1fr auto; gap:7px; margin-top:16px; }
+  .secondary { border:1px solid #b7c4c8; border-radius:8px; background:#fff; padding:8px; font-weight:700; }
+  .more { border:1px solid #b7c4c8; border-radius:8px; background:#fff; padding:8px 11px; }
+  .mobile-note { display:none; }
+  .why { margin-top:18px; display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; }
+  .why-card { border:1px solid #dbe3e5; border-radius:12px; padding:13px; background:#fff; }
+  .why-card strong { display:block; margin-bottom:4px; }
+  .why-card span { color:#6e7f86; font-size:12px; }
+  @media(max-width:1050px) {
+    .body { grid-template-columns:180px minmax(390px,1fr); }
+    .preview { display:none; }
+    .mobile-note { display:block; margin-top:10px; color:#6d7e85; }
+    .why { grid-template-columns:repeat(2,1fr); }
+  }
+  @media(max-width:720px) {
+    .body { display:block; }
+    .facets { display:none; }
+    .searchline { grid-template-columns:105px 1fr; }
+    .searchbtn { grid-column:1 / -1; border-radius:8px; margin-top:7px; }
+    .field-select { border-right:0; border-radius:8px 0 0 8px; }
+    .query { border-radius:0 8px 8px 0; }
+    .why { grid-template-columns:1fr; }
+  }
+</style>
+
+<h2>A real redesign: Reference Discovery Workbench</h2>
+<p class="subtitle">Inspired by library catalog and reference-management systems—not just a restyled version of the existing page.</p>
+
+<div class="workspace">
+  <div class="top">
+    <div class="titlebar"><div><h3>Reference Library</h3><span class="muted">Discover, inspect, and maintain reference records</span></div><button class="primary">＋ Add Reference</button></div>
+    <div class="searchline"><div class="field-select">All fields⌄</div><div class="query">⌕ Search title, author, ISBN, publisher, ID, or keyword</div><button class="searchbtn">Search</button></div>
+    <div class="savedbar"><strong>Saved views</strong><span class="chip active">All references · 160</span><span class="chip">Recent additions · 18</span><span class="chip">My department · 42</span><span class="chip">Archived · 78</span><span class="chip">＋ Save current search</span></div>
+  </div>
+
+  <div class="body">
+    <aside class="facets">
+      <div class="facet-head"><strong>Refine results</strong><span class="muted">Reset</span></div>
+      <div class="facet"><div class="facet-title">Department</div><div class="facet-option"><span>CCS</span><span>42</span></div><div class="facet-option"><span>Engineering</span><span>31</span></div><div class="facet-option"><span>Business</span><span>27</span></div><div class="facet-option"><span>General Education</span><span>60</span></div></div>
+      <div class="facet"><div class="facet-title">Reference type</div><div class="facet-option"><span>Textbook</span><span>50</span></div><div class="facet-option"><span>Open education</span><span>58</span></div><div class="facet-option"><span>Online resource</span><span>52</span></div></div>
+      <div class="facet"><div class="facet-title">Publication year</div><div class="facet-option"><span>2024–2026</span><span>36</span></div><div class="facet-option"><span>2020–2023</span><span>49</span></div><div class="facet-option"><span>Before 2020</span><span>75</span></div></div>
+      <div class="facet"><div class="facet-title">Record status</div><div class="facet-option"><span>Active</span><span>82</span></div><div class="facet-option"><span>Archived</span><span>78</span></div></div>
+    </aside>
+
+    <main class="results">
+      <div class="result-tools"><span><strong>160 results</strong> <span class="muted">· updates as filters change</span></span><select><option>Newest first</option></select></div>
+      <div class="tablewrap">
+        <div class="table">
+          <div class="row header"><span>□</span><span>ID ↕</span><span>TITLE ↕</span><span>AUTHOR(S) ↕</span><span>TYPE ↕</span><span>YEAR ↕</span></div>
+          <div class="row selected"><span>□</span><span>R-104</span><strong>Database Systems</strong><span>Connolly & Begg</span><span class="tag">Textbook</span><span>2024</span></div>
+          <div class="row"><span>□</span><span>R-087</span><strong>Computer Networks</strong><span>A. Tanenbaum</span><span class="tag">Textbook</span><span>2021</span></div>
+          <div class="row"><span>□</span><span>R-066</span><strong>Web Accessibility Guide</strong><span>W3C</span><span class="tag">Online</span><span>2023</span></div>
+          <div class="row"><span>□</span><span>R-039</span><strong>Clean Architecture</strong><span>R. Martin</span><span class="tag">E-book</span><span>2017</span></div>
+          <div class="row"><span>□</span><span>R-018</span><strong>Introduction to Algorithms</strong><span>Cormen et al.</span><span class="tag">Textbook</span><span>2022</span></div>
+        </div>
+      </div>
+      <div class="pager"><span>Showing 1–25 of 160</span><span class="pages"><button class="page">‹</button><button class="page current">1</button><button class="page">2</button><button class="page">3</button><button class="page">›</button></span></div>
+      <div class="mobile-note">On a small screen, filters open as a drawer and selecting a row opens the preview as a full-width sheet. The table keeps its horizontal scrollbar.</div>
+    </main>
+
+    <aside class="preview">
+      <div class="preview-head"><div><h4>Database Systems</h4><span class="record-id">R-104 · Active</span></div><button class="close">×</button></div>
+      <div class="cover">▤</div>
+      <dl class="metadata"><dt>Authors</dt><dd>Thomas Connolly, Carolyn Begg</dd><dt>Type</dt><dd>Textbook</dd><dt>ISBN</dt><dd>978-1-292-06118-4</dd><dt>Year</dt><dd>2024</dd><dt>Department</dt><dd>College of Computer Studies</dd><dt>Publisher</dt><dd>Pearson</dd></dl>
+      <div class="preview-actions"><button class="primary">Edit record</button><button class="more">•••</button></div>
+    </aside>
+  </div>
+</div>
+
+<div class="why">
+  <div class="why-card"><strong>Field-specific search</strong><span>Search everything or limit the query to title, author, ISBN, publisher, or ID.</span></div>
+  <div class="why-card"><strong>Live catalog facets</strong><span>Every filter shows its matching count and narrows the result list immediately.</span></div>
+  <div class="why-card"><strong>Saved views</strong><span>Frequently used searches become one-click views instead of repeated filter setup.</span></div>
+  <div class="why-card"><strong>Quick preview</strong><span>Inspect and edit a record without navigating away from the result list.</span></div>
+</div>
+
+<div class="options" style="margin-top:18px">
+  <div class="option" data-choice="approve-discovery-workbench" onclick="toggleSelect(this)"><div class="letter">✓</div><div class="content"><h3>Use this redesign for improvement 1</h3><p>Implement the search, facets, saved views, compact results, quick preview, pagination, and responsive behavior.</p></div></div>
+</div>

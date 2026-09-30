@@ -65,12 +65,74 @@ export const parseCommentType = (message = '') => {
     }
 }
 
+// Director-of-Libraries comments are persisted as one message with an optional
+// "Suggested reference(s)" suffix. Split that wire format for presentation so
+// the reviewer's own words and the resource recommendations remain distinct.
+export const parseApprovalCommentDisplay = (message = '', structuredSuggestions = []) => {
+    const raw = String(message || '').trim()
+    const marker = /(?:\r?\n){2,}\s*Suggested references?:\s*/i
+    const match = marker.exec(raw)
+    const body = (match ? raw.slice(0, match.index) : raw).trim()
+    const appended = match ? raw.slice(match.index + match[0].length).trim() : ''
+
+    const parsedSuggestions = appended
+        ? appended.split(/\s*;\s*/).filter(Boolean).map(entry => {
+            const [title, ...authorParts] = entry.split(/\s+—\s+/)
+            return { title: title.trim(), authors: authorParts.join(' — ').trim() }
+        })
+        : []
+
+    const normalizedStructured = (Array.isArray(structuredSuggestions) ? structuredSuggestions : [])
+        .map(reference => ({
+            title: String(reference?.title || '').trim(),
+            authors: String(reference?.authors || '').trim()
+        }))
+        .filter(reference => reference.title)
+
+    const suggestions = [...normalizedStructured]
+    parsedSuggestions.forEach(reference => {
+        const duplicate = suggestions.some(existing => (
+            existing.title.toLowerCase() === reference.title.toLowerCase()
+            && existing.authors.toLowerCase() === reference.authors.toLowerCase()
+        ))
+        if (!duplicate) suggestions.push(reference)
+    })
+
+    return { body, suggestions }
+}
+
+export const compactCommentIlo = (ilo = '', courseOutcome = '') => {
+    const value = String(ilo || '').trim()
+    const co = String(courseOutcome || '').trim()
+    if (co && value.toLowerCase().startsWith(`${co.toLowerCase()}-`)) {
+        return value.slice(co.length + 1)
+    }
+    const terminalIlo = /(ILO\d+)$/i.exec(value)
+    return terminalIlo ? terminalIlo[1].toUpperCase() : value
+}
+
+export const reviewerRoleLabel = (role = '') => {
+    const normalized = String(role || '').trim().toLowerCase().replace(/_/g, '-').replace(/\s+/g, '-')
+    const labels = {
+        'library-director': 'Director of Libraries',
+        'director-of-libraries': 'Director of Libraries',
+        'program-head': 'Program Head',
+        'industry-consultant': 'Industry Consultant',
+        dean: 'Dean',
+        instructor: 'Instructor'
+    }
+    return labels[normalized] || String(role || '').trim() || 'Reviewer'
+}
+
 // ---------------------------------------------------- spelling / grammar ---
 
 // Runs offline at entry so a typo never reaches the program head [46:58]
 // [49:25]. A hosted grammar API would catch more — that needs a key and a
 // human decision, so it is deliberately not called from here [49:43].
-const MISSPELLINGS = {
+// Exported so `autoCorrect.js` can reuse the same dictionary when the online
+// service is unreachable — one list of misspellings for the whole module,
+// which is the point of it living here.
+export const MISSPELLINGS = {
     teh: 'the', adn: 'and', recieve: 'receive', seperate: 'separate', occured: 'occurred',
     definately: 'definitely', accomodate: 'accommodate', neccessary: 'necessary',
     refrence: 'reference', refrences: 'references', sylabus: 'syllabus', sylabbus: 'syllabus',
@@ -234,6 +296,9 @@ export default {
     isActionableComment,
     encodeCommentType,
     parseCommentType,
+    parseApprovalCommentDisplay,
+    compactCommentIlo,
+    reviewerRoleLabel,
     checkText,
     hasBlockingTextIssues,
     buildSignature,

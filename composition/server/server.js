@@ -3,15 +3,65 @@ const app = express();
 const port = process.env.PORT || 5000;
 const cors = require('cors');
 
+// KEEP THE PROCESS ALIVE WHEN A QUERY FAILS.
+//
+// This backend exited on its own once, and it cost a day of "the data is
+// gone":
+//
+//     Server listening on 5000
+//     SqliteError: no such table: Users        ← ONE missing table…
+//     Node.js v24.19.0                         ← …and the process was gone
+//
+// Node 24 terminates on an unhandled promise rejection, and the sqlite3
+// compatibility shim in models/index.js reports a failed query twice — once
+// through the callback (handled) and once by rethrowing (not). So a query
+// error that application code had correctly caught still killed the server,
+// and every screen in the app went blank at the same moment, for a reason
+// none of them had anything to do with.
+//
+// A failed query must degrade one request. It must never take down the routes
+// that had nothing to do with it.
+process.on('unhandledRejection', (reason) => {
+    console.error('Unhandled rejection (the server is staying up):', reason);
+});
+
+const configuredOrigins = new Set(
+    String(process.env.LPMS_ALLOWED_ORIGINS || '')
+        .split(',')
+        .map(value => value.trim())
+        .filter(Boolean)
+);
+const isAllowedOrigin = (origin) => {
+    if (!origin) return true;
+    if (configuredOrigins.has(origin)) return true;
+    if (process.env.NODE_ENV === 'production') return false;
+    try {
+        const url = new URL(origin);
+        return url.protocol === 'http:' && ['localhost', '127.0.0.1'].includes(url.hostname);
+    } catch {
+        return false;
+    }
+};
+
 app.use(cors({
-    // Reflect any origin (local dev app) — avoids CORS breakage when Vite
-    // auto-picks a different port (5173/5174/5180/etc.)
-    origin: true
+    // Credentialed sessions require an exact origin, never "*". Development
+    // accepts only loopback Vite ports; deployments opt in explicit origins.
+    origin: (origin, callback) => callback(null, isAllowedOrigin(origin) ? origin || false : false),
+    credentials: true
 }));
 
 app.use(express.json());
 
 // routes
+// Sign-in / sign-up. Mounted first because nothing else depends on it and it
+// is the one route group that must work before the app renders anything.
+app.use('/api/auth', require('./routes/auth'));
+
+// Everything below this point reads or mutates institutional learning-plan
+// data. Browser route guards are only presentation; this is the server-owned
+// authentication boundary for every business API.
+app.use('/api', require('./middleware/auth').requireAuth);
+
 const assignmentRoutes = require('./routes/assignments');
 app.use('/api/assignments', assignmentRoutes);
 
@@ -55,4 +105,16 @@ app.use((err, req, res, next) => {
     res.status(err.status || 500).json({ error: err.message || 'Internal Server Error' });
 });
 
-app.listen(port, () => console.log(`Server listening on ${port}`));
+// Sign-in needs a Users table that arrived later than every other table here,
+// via a migration nothing else in this app has ever required. Rather than
+// depend on someone having remembered to run it, create it if it is missing —
+// idempotent, additive, and it touches no other table. See
+// utils/ensureAuthSchema.js.
+//
+// Awaited BEFORE listening, so there is no window in which the port is open
+// and the table is not there yet. It cannot throw; a database that will not
+// cooperate leaves sign-in degraded and everything else working.
+(async () => {
+    await require('./utils/ensureAuthSchema').ensureAuthSchemaAndReport();
+    app.listen(port, () => console.log(`Server listening on ${port}`));
+})();

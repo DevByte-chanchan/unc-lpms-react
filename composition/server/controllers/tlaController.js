@@ -109,7 +109,7 @@ async function syncTlasToIlo(req, res) {
     const t = await sequelize.transaction();
     try {
         const iloId = Number(req.params.iloId);
-        const { tlas, topicIdMap } = req.body;
+        const { tlas } = req.body;
 
         if (!iloId || !Array.isArray(tlas)) {
             await t.rollback();
@@ -119,6 +119,40 @@ async function syncTlasToIlo(req, res) {
         // Discover valid ilo_topic_ids for isolated deletion
         const iloTopics = await ILOTopic.findAll({ where: { ilo_id: iloId }, transaction: t });
         const validIloTopicIds = iloTopics.map(it => it.ilo_topic_id);
+        const topicIds = [...new Set(iloTopics.map(it => it.topic_id))];
+        const targetTopics = topicIds.length
+            ? await Topic.findAll({ where: { topic_id: topicIds }, transaction: t })
+            : [];
+        const bridgeByTitle = new Map();
+        for (const bridge of iloTopics) {
+            const topic = targetTopics.find(item => Number(item.topic_id) === Number(bridge.topic_id));
+            if (topic?.title) bridgeByTitle.set(String(topic.title), bridge.ilo_topic_id);
+        }
+
+        for (const item of tlas) {
+            const unknownTitle = (item.selectedTopics || []).find(title => !bridgeByTitle.has(String(title)));
+            if (unknownTitle) {
+                await t.rollback();
+                return res.status(400).json({ message: 'A selected topic is not assigned to this learning outcome.' });
+            }
+        }
+
+        const existingTlaIds = tlas
+            .map(item => typeof item?.id === 'number' ? item.id : null)
+            .filter(Boolean);
+        for (const tlaId of existingTlaIds) {
+            const owned = await TopicTLA.findOne({
+                where: {
+                    tla_id: tlaId,
+                    ilo_topic_id: { [db.Sequelize.Op.in]: validIloTopicIds.length ? validIloTopicIds : [0] }
+                },
+                transaction: t
+            });
+            if (!owned) {
+                await t.rollback();
+                return res.status(403).json({ message: 'A selected activity belongs to another learning outcome.' });
+            }
+        }
 
         for (const tlaData of tlas) {
             let currentTlaId = tlaData.id;
@@ -178,7 +212,7 @@ async function syncTlasToIlo(req, res) {
 
             if (tlaData.selectedTopics && tlaData.selectedTopics.length > 0) {
                 const newMappings = tlaData.selectedTopics
-                    .map(title => topicIdMap[title])
+                    .map(title => bridgeByTitle.get(String(title)))
                     .filter(Boolean)
                     .map(ilo_topic_id => ({ tla_id: currentTlaId, ilo_topic_id }));
 

@@ -101,7 +101,8 @@ export const routes = {
     courseOfferings: () => '/role/program-head/course-offerings',
 
     referenceLibrary: () => '/role/director-of-libraries/reference-library',
-    courseCatalog: () => '/role/director-of-libraries/course-catalog',
+    directorAssignedCourses: (query) => withQuery('/role/director-of-libraries', query),
+    courseCatalog: (query) => withQuery('/role/director-of-libraries/course-catalog', query),
     addReference: () => '/role/director-of-libraries/add-reference',
     viewReference: (refId) => `/role/director-of-libraries/view-reference/${enc(refId)}`,
     editReference: (refId) => `/role/director-of-libraries/edit-reference/${enc(refId)}`

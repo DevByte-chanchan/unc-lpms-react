@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
+import { Clock } from "react-feather";
 import { fetchJson } from "../utils/api";
+import EmptyState from "./EmptyState.jsx";
+import Spinner from "./Spinner.jsx";
 import styles from '../styles/Revisions.module.sass';
 import stylesB from "../styles/SyllabusPreview.module.sass";
 
@@ -10,9 +13,16 @@ import CourseCoverage from "./CourseCoverage";
 import ReferenceSummary from "./ReferenceSummary";
 import CriteriaForGrading from "./CriteriaForGrading";
 
-const Revisions = ({ isOpen, onClose, pcId: propPcId, revNum: propRevNum }) => {
-    if (!isOpen) return null;
-
+// MOUNTED ONLY WHILE OPEN — see the call sites in SyllabusSections.jsx and
+// ApprovalSyllabusSections.jsx.
+//
+// This used to start with `if (!isOpen) return null;` and then call seven
+// hooks. Both callers render it unconditionally, so the closed render ran no
+// hooks and the render after opening ran seven: React's "Rendered more hooks
+// than during the previous render", every time the overlay was opened. The
+// guard now lives with the callers, which also means no revision history is
+// fetched while nobody is looking at it.
+const Revisions = ({ onClose, pcId: propPcId, revNum: propRevNum }) => {
     const { status, revNum: paramRevNum, pcId: paramPcId } = useParams();
 
     const currentPcId = propPcId || paramPcId;
@@ -69,7 +79,7 @@ const Revisions = ({ isOpen, onClose, pcId: propPcId, revNum: propRevNum }) => {
     return (
         <div className={styles.modalOverlay}>
             <div className={styles.modalContent}>
-                <button className={styles.closeButton} onClick={onClose}>×</button>
+                <button type="button" className={`${styles.closeButton} app-icon-close`} onClick={onClose} aria-label="Close revisions">×</button>
                 <h2 className={styles.previewTitle}>Revisions Tracking</h2>
 
                 <div className={styles.splitContainer}>
@@ -114,15 +124,17 @@ const Revisions = ({ isOpen, onClose, pcId: propPcId, revNum: propRevNum }) => {
 
                         <div className={styles.accordionStack}>
                             {loading ? (
-                                <div style={{ padding: '1rem', color: '#666', textAlign: 'center' }}>Loading history...</div>
+                                <Spinner label="Loading revision history…" minHeight={180} />
                             ) : revisionsData.length === 0 ? (
-                                <div style={{ padding: '1rem', color: '#666', textAlign: 'center' }}>No revision history available.</div>
+                                <EmptyState
+                                    icon={<Clock size={22} strokeWidth={1.6} />}
+                                    title="No revision history yet"
+                                    hint="Each time this learning plan is submitted, returned or approved, that step is recorded here."
+                                />
+
                             ) : (
                                 revisionsData.map((rev) => {
                                     const isExpanded = expandedAccordion === rev.revNum;
-                                    const revStatus = rev?.status || "UNKNOWN";
-                                    const statusClass = styles[revStatus.toLowerCase()] || '';
-
                                     return (
                                         <div key={`rev-${rev.revNum}`} className={styles.accordionItem}>
 

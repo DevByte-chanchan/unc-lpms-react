@@ -1,0 +1,84 @@
+// Sits under a textarea or input. Built on styles/tokens.css so it matches
+// every other control in the module rather than inventing its own scale.
+
+.wrap
+  display: flex
+  flex-direction: column
+  gap: var(--sp-2)
+  width: 100%
+  font-family: var(--font-ui)
+  margin-top: var(--sp-2)
+
+.compact
+  margin-top: var(--sp-1)
+  gap: var(--sp-1)
+
+.row
+  display: flex
+  align-items: center
+  gap: var(--sp-3)
+  flex-wrap: wrap
+
+.button
+  display: inline-flex
+  align-items: center
+  gap: var(--sp-2)
+  height: var(--control-h-sm)
+  padding: 0 var(--sp-5)
+  border-radius: var(--radius-sm)
+  border: 1px solid var(--line)
+  background: var(--surface)
+  color: var(--ink-soft)
+  font-family: inherit
+  font-size: var(--fs-sm)
+  font-weight: var(--fw-medium)
+  cursor: pointer
+  white-space: nowrap
+  transition: background var(--t-fast), border-color var(--t-fast)
+
+  &:hover:not(:disabled)
+    background: var(--surface-muted)
+    border-color: #cbd5e1
+
+  &:disabled
+    opacity: .5
+    cursor: not-allowed
+
+// Attribution required by the service's terms — visible, not nofollow.
+// Quiet, but never hidden.
+.credit
+  font-size: var(--fs-2xs)
+  color: var(--ink-faint)
+  text-decoration: none
+  white-space: nowrap
+
+  &:hover
+    color: var(--ink-muted)
+    text-decoration: underline
+
+.notice
+  display: flex
+  align-items: flex-start
+  gap: var(--sp-2)
+  margin: 0
+  font-size: var(--fs-xs)
+  line-height: 1.45
+  color: var(--ink-muted)
+
+  svg
+    flex-shrink: 0
+    margin-top: 2px
+
+.good
+  color: var(--good)
+
+.neutral
+  color: var(--ink-muted)
+
+.warn
+  color: var(--warn)
+
+@media (max-width: 600px)
+  .button
+    flex: 1
+    justify-content: center

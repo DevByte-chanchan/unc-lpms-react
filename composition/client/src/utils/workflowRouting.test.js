@@ -10,7 +10,7 @@ globalThis.localStorage = {
   removeItem: (k) => store.delete(k)
 };
 
-const { setWorkflow, getWorkflow } = await import('./workflowHelpers.js');
+const { setWorkflow, getWorkflow, startSubmissionRound } = await import('./workflowHelpers.js');
 
 const test = (name, fn) => {
   try {
@@ -48,4 +48,21 @@ test('a submitted plan is readable under the code the approver page uses', () =>
   if (wf.currentStage !== 'parallel_review') throw new Error('Approver should see the submitted stage');
   if (!wf.submittedAt) throw new Error('Approver should see the submission timestamp');
   if (wf.parallelReview.program_head.status !== 'pending') throw new Error('Program head should be pending');
+});
+
+test('resubmission starts a fresh reviewer round instead of carrying old approvals forward', () => {
+  if (typeof startSubmissionRound !== 'function') throw new Error('the shared resubmission policy is missing');
+  const previous = submittedWorkflow('BIT313L');
+  previous.currentStage = 'returned';
+  previous.parallelReview.library_director = { status: 'done', completedAt: '2026-08-01T00:00:00.000Z' };
+  previous.parallelReview.program_head = { status: 'done', completedAt: '2026-08-02T00:00:00.000Z' };
+  previous.programHead = { status: 'done', completedAt: '2026-08-02T00:00:00.000Z' };
+
+  const next = startSubmissionRound(previous, 'BIT313L', '2026-08-30T00:00:00.000Z');
+  for (const reviewer of Object.values(next.parallelReview)) {
+    if (reviewer.status !== 'pending' || reviewer.completedAt !== null) {
+      throw new Error('every parallel reviewer must decide again after resubmission');
+    }
+  }
+  if (next.dean.status !== 'pending') throw new Error('the Dean must wait for the new review round');
 });

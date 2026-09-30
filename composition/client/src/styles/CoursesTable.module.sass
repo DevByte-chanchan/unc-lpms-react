@@ -1,5 +1,6 @@
 
 .courses-table
+  position: relative
   display: flex
   flex-direction: column
   width: 100%
@@ -11,6 +12,26 @@
   padding: 20px 30px
   background: white
 
+// TWO RAILS, AND EVERYTHING SITS ON ONE OF THEM.
+//
+// Measured on the approver screen at 1690px before this: the page heading
+// started at x=130, the first column heading at x=148, and on the right the
+// segmented control ended at x=1660 while the row's actions ended at x=1635.
+// So the title was 18px left of the column under it and the tabs were 25px
+// right of the buttons under them — four edges, no two the same.
+//
+//   OUTER RAIL  130 / 1660   the table's own frame: the grey header band and
+//                            each row card. The top bar's contents share it.
+//   INNER RAIL  148 / 1642   everything READ as content: the page heading, the
+//                            filters, the tabs, every column heading, every
+//                            cell value, the row actions.
+//
+// The inner rail is just the outer rail plus $cell-inset, so the header row
+// gets that as horizontal padding and the actions cell uses it instead of its
+// own 25px. Change $cell-inset and all six edges move together; that is the
+// point of it being a variable rather than 18px written in three places.
+$cell-inset: 18px
+
 .header
   display: flex
   width: 100%
@@ -21,6 +42,10 @@
   align-items: center
   gap: 15px
   margin-bottom: 20px
+  // Puts the h2 and the status tabs on the same rail as the column headings
+  // below them, which carry this much padding from the shared table-region
+  // contract.
+  padding: 0 $cell-inset
   //background: yellow
 
 .header h2
@@ -70,6 +95,10 @@
       &:hover
         color: #444
 
+      &:focus-visible
+        outline: 2px solid #2563eb
+        outline-offset: 2px
+
       &.active
         background-color: #ffffff
         color: #333
@@ -91,14 +120,43 @@
 select option
   font-size: 12px
 
-::-webkit-scrollbar
-  display: none
-
 .table-container
   width: 100%
   max-width: 100%
   display: flex
   overflow: auto
+
+  // SortableTh keeps its spoken sort state absolutely positioned. Anchor it
+  // to the visible button so later columns cannot widen the document outside
+  // this labelled scroll region.
+  th > button
+    position: relative
+
+  // The inner rail, stated here rather than inherited.
+  //
+  // These cells were being padded by `table th { padding: 12px 18px }` in
+  // ReferenceLibrary.module.scss — a bare element selector at the top level of
+  // a CSS MODULE, which scopes class names and leaves element selectors
+  // global. So one page's table styling reached every table in the app, and
+  // the 18px this file aligns the header row to lived in a file about the
+  // reference library. Changing it there would silently pull these two rails
+  // apart. Declared here, both edges come from $cell-inset and move together.
+  th, td
+    padding: 12px $cell-inset
+
+.retryButton
+  min-height: 36px
+  padding: 6px 14px
+  border: 1px solid #19282c
+  border-radius: 5px
+  background: #19282c
+  color: #fff
+  cursor: pointer
+  font: 500 13px 'Poppins', sans-serif
+
+  &:focus-visible
+    outline: 2px solid #2563eb
+    outline-offset: 2px
 
 .status
   justify-content: center
@@ -110,7 +168,9 @@ select option
 
 .fill
   flex-grow: 1
-  padding-right: 25px
+  // 25px here put the View link and the kebab menu 7px inside the tabs above
+  // them. Same inset as every other cell means the right rail is one line.
+  padding-right: $cell-inset
   display: flex
   justify-content: end
   align-items: center
@@ -119,6 +179,55 @@ select option
   font-weight: 500 !important
   //background: green
 
+
+// Long values stay on one line instead of making their row twice as tall.
+//
+// THE BUG THIS FIXES, measured rather than assumed: with a 100-character
+// course name, that row rendered 88px tall while every other row stayed 46px.
+//
+// WHICH PROPERTY DOES WHAT — established by removing each one and re-measuring,
+// because the obvious story was wrong:
+//   * `white-space: nowrap` is what fixes the height. Remove it and the row
+//     goes straight back to 88px, min-width or no min-width.
+//   * `min-width: 0` is about WIDTH. index.css makes th/td flex items, and a
+//     flex item's default `min-width: auto` refuses to shrink below its
+//     content, so without this the cell wins the argument and pushes the row
+//     wider instead of clipping.
+//   * `overflow: hidden` + `text-overflow: ellipsis` are what turn the clip
+//     into a "…" rather than a hard cut mid-letter.
+//
+// SCOPED, DELIBERATELY. The `feature/course-assignment` branch has these four
+// declarations in the GLOBAL `th, td` rule in index.css, which is right for an
+// app that is all admin tables. This module has 25 tables, most of them
+// Christian's and Arra's, holding ILO descriptions, topics and TLA text that
+// are MEANT to wrap. A global `white-space: nowrap` would flatten every one of
+// them into a single clipped line. So it is a class, applied per table.
+//
+// Every cell using this must carry a `title`, or the full text becomes
+// unreadable rather than merely abbreviated.
+.truncate
+  th, td
+    min-width: 0
+    overflow: hidden
+    white-space: nowrap
+
+  // AND THE TEXT NEEDS ITS OWN BOX. `text-overflow` has no effect on a flex
+  // container, and index.css makes every td one — so with the properties on
+  // the cell alone the name was cut off mid-letter with no "…" to say so,
+  // which reads as a rendering fault rather than an abbreviation. The ellipsis
+  // has to go on an inline child, which is why the cells wrap their text in a
+  // <span>. (The source branch does the same thing, for the same reason.)
+  th > span, td > span
+    min-width: 0
+    flex: 0 1 auto
+    overflow: hidden
+    text-overflow: ellipsis
+    white-space: nowrap
+
+  // The actions cell holds buttons, not text; clipping it would cut the
+  // kebab menu's focus ring off.
+  th.fill, td.fill
+    overflow: visible
 
 .sub-column th
   font-weight: 300
@@ -168,5 +277,3 @@ select option
     bottom: 12px
     width: auto
     max-height: calc(100dvh - 24px)
-
-

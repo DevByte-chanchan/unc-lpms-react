@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import Spinner from './Spinner.jsx';
 import TableScrollRegion from './TableScrollRegion.jsx';
+import { describeCourseLoadError } from '../utils/courseLoadError.js';
 
 // --- 1. MAIN COMPONENT DEFINITION ---
 const CriteriaForGrading = ({ offeringID, revisionNum, status, styles, stylesB, fetchJson }) => {
@@ -27,7 +29,7 @@ const CriteriaForGrading = ({ offeringID, revisionNum, status, styles, stylesB, 
             } catch (err) {
                 console.error('fetchCriteria error', err);
                 if (!mounted) return;
-                setCriteriaError(err.message);
+                setCriteriaError(describeCourseLoadError(err));
                 setCriteriaData({ gradingSystem: [] });
             } finally {
                 if (mounted) setCriteriaLoading(false);
@@ -138,7 +140,7 @@ const CriteriaForGrading = ({ offeringID, revisionNum, status, styles, stylesB, 
                     <tbody>
                     {criteriaLoading ? (
                         <tr>
-                            <td colSpan="8" style={{ textAlign: 'center', padding: '20px' }}>Loading...</td>
+                            <td colSpan="8" style={{ flex: '1 1 auto', justifyContent: 'center', padding: 0 }}><Spinner label="Loading grading criteria…" minHeight={140} /></td>
                         </tr>
                     ) : criteriaError ? (
                         <tr>

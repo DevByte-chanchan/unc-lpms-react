@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import TableScrollRegion from './TableScrollRegion.jsx';
+import { AlertTriangle } from 'react-feather';
+import EmptyState from './EmptyState.jsx';
+import { describeCourseLoadError } from '../utils/courseLoadError.js';
 
 const TlaGroup = ({ title, tlas, stylesB }) => {
     if (!tlas || tlas.length === 0) return null;
@@ -25,6 +28,7 @@ const TlaGroup = ({ title, tlas, stylesB }) => {
 const CourseCoverage = ({ offeringID, revisionNum, status, selectedSection, styles, stylesB, fetchJson }) => {
     const [coverageData, setCoverageData] = useState({ ilos: [], topics: [], assessments: [] });
     const [isMatrixLoading, setIsMatrixLoading] = useState(true);
+    const [coverageError, setCoverageError] = useState('');
     const [coverageCommentCounts, setCoverageCommentCounts] = useState({});
 
     // 1. Fetch live coverage database records
@@ -35,11 +39,13 @@ const CourseCoverage = ({ offeringID, revisionNum, status, selectedSection, styl
         async function fetchLiveCoverageMatrix() {
             try {
                 setIsMatrixLoading(true);
+                setCoverageError('');
                 const data = await fetchJson(`/api/course-coverage/${offeringID}/${revisionNum}`);
                 if (!mounted) return;
                 setCoverageData(data);
             } catch (err) {
                 console.error("Error communicating with dynamic course coverage components:", err);
+                if (mounted) setCoverageError(describeCourseLoadError(err));
             } finally {
                 if (mounted) setIsMatrixLoading(false);
             }
@@ -103,6 +109,10 @@ const CourseCoverage = ({ offeringID, revisionNum, status, selectedSection, styl
                 </div>
             </div>
         );
+    }
+
+    if (coverageError) {
+        return <EmptyState icon={<AlertTriangle size={22} strokeWidth={1.6} />} title="Could not load course coverage" hint={coverageError} />;
     }
 
     const ilos = coverageData.ilos || [];

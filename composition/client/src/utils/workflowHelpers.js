@@ -4,7 +4,7 @@ const _readAll = () => {
   try {
     const raw = localStorage.getItem(WORKFLOW_KEY)
     return raw ? JSON.parse(raw) : {}
-  } catch (e) {
+  } catch {
     return {}
   }
 }
@@ -25,6 +25,21 @@ const defaultWorkflow = (courseCode = '') => ({
     industry_consultant: { status: 'pending', completedAt: null },
     program_head: { status: 'pending', completedAt: null }
   },
+  programHead: { status: 'pending', completedAt: null },
+  dean: { status: 'pending', completedAt: null }
+})
+
+export const startSubmissionRound = (existing, courseCode = '', submittedAt = new Date().toISOString()) => ({
+  ...(existing || defaultWorkflow(courseCode)),
+  courseCode,
+  currentStage: 'parallel_review',
+  submittedAt,
+  parallelReview: {
+    library_director: { status: 'pending', completedAt: null },
+    industry_consultant: { status: 'pending', completedAt: null },
+    program_head: { status: 'pending', completedAt: null }
+  },
+  // Retained for older consumers that still read the duplicated PH field.
   programHead: { status: 'pending', completedAt: null },
   dean: { status: 'pending', completedAt: null }
 })
@@ -101,6 +116,7 @@ export default {
   setWorkflow,
   advanceWorkflow,
   resetWorkflowStage,
+  startSubmissionRound,
   seedDemoWorkflows
 }
 

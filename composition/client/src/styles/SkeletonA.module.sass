@@ -1,29 +1,27 @@
-*
-  padding: 0
-
 .main-layout
   width: 100%
-  height: 100dvh
+  height: 100%
   min-height: 100dvh
-  background: #F3F4F6
+  background: var(--surface-sunken)
   display: flex
   gap: 10px
   overflow: hidden
 
 .left
   flex: 0 0 90px
-  background: white
   width: 90px
   min-width: 90px
-  height: 100dvh
+  height: 100%
+  background: var(--surface)
+  border-right: 1px solid var(--line)
+  transition: flex-basis var(--t-med), min-width var(--t-med)
 
 .left:hover
   flex-basis: 280px
   min-width: 280px
-  transition: flex-basis .4s ease, min-width .4s ease
 
 .right
-  background: #F3F4F6
+  background: var(--surface-sunken)
   flex: 1 1 auto
   min-width: 0
   min-height: 0
@@ -37,7 +35,8 @@
   flex: 0 0 auto
   min-height: 70px
   height: auto
-  background: white
+  background: var(--surface)
+  border-bottom: 1px solid var(--line)
 
 .down
   flex: 1 1 auto
@@ -57,4 +56,12 @@
     min-width: 72px
     max-width: 72px
 
+@media (max-width: 720px)
+  .left, .left:hover
+    flex-basis: 60px
+    width: 60px
+    min-width: 60px
+    max-width: 60px
 
+  .up
+    min-height: 58px

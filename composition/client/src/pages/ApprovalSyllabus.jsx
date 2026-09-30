@@ -5,7 +5,6 @@ import Header from "../components/Header.jsx";
 import SideNavigation from "../components/SideNavigation.jsx";
 import ApprovalSyllabusSections from "../components/ApprovalSyllabusSections.jsx";
 import Syllabus from "./Syllabus.jsx";
-import { getWorkflow } from '../utils/workflowHelpers'
 import pageStyles from '../styles/ApprovalSyllabus.module.sass'
 
 const roleNames = {
@@ -34,7 +33,7 @@ const normalizeName = (name) => {
 }
 
 const ApprovalSyllabus = () => {
-  const { approver, courseName } = useParams();
+  const { approver, code } = useParams();
   const [searchParams] = useSearchParams();
 
   // Extract pcId and revNum from query params (passed from ApprovalCoursesTable)
@@ -53,10 +52,9 @@ const ApprovalSyllabus = () => {
   // normalized role key (pass to SideNavigation and sections)
   const roleKey = approver || 'program-head';
 
-  // decode courseName for display
-  const decodedCourse = courseName ? decodeURIComponent(courseName) : '';
-
-  const workflow = getWorkflow(decodedCourse || '')
+  // The route parameter is a course CODE (BSCS511), which is why it is no
+  // longer called courseName.
+  const decodedCourse = code ? decodeURIComponent(code) : '';
 
   return (
     <Skeleton

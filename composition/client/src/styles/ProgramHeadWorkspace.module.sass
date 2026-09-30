@@ -10,31 +10,141 @@
   background: white
   box-sizing: border-box
   overflow: hidden
+  font-family: 'Poppins', sans-serif
 
 .toolbar
   width: 100%
   min-width: 0
-  min-height: 40px
-  display: flex
+  display: grid
+  grid-template-columns: minmax(320px, auto) minmax(240px, 360px) minmax(0, 1fr) auto
   align-items: center
   gap: 15px
-  flex-wrap: wrap
+  margin-bottom: 16px
 
   h2
     margin: 0
     font-size: 22px
+    line-height: 1.3
+    font-weight: 600
     overflow-wrap: anywhere
 
+.titleBlock
+  min-width: 0
+
+.pageSubtitle
+  max-width: 720px
+  margin: 4px 0 0
+  color: #64748b
+  font-size: 13px
+  line-height: 1.5
+
+.controlGroup
+  min-width: 0
+  display: flex
+  flex-direction: column
+  gap: 5px
+
+.controlLabel
+  color: #64748b
+  font-size: 11px
+  font-weight: 600
+  letter-spacing: .02em
+  text-transform: uppercase
+
 .courseSelect
+  width: 100%
+  height: 40px
   min-width: 0
   max-width: 360px
-  padding: 6px 12px
+  padding: 0 12px
+  box-sizing: border-box
+  border: 1px solid #d1d5db
+  border-radius: 6px
+  background: #fff
+  color: #1f2937
+  cursor: pointer
+  font: 400 14px 'Poppins', sans-serif
+
+  &:focus-visible
+    outline: 2px solid #2563eb
+    outline-offset: 2px
 
 .actions
-  margin-left: auto
   display: flex
+  align-items: center
+  justify-content: flex-end
   flex-wrap: wrap
   gap: 8px
+
+.primaryButton, .secondaryButton
+  min-height: 40px
+  padding: 8px 18px
+  display: inline-flex
+  align-items: center
+  justify-content: center
+  gap: 7px
+  border-radius: 6px
+  cursor: pointer
+  white-space: nowrap
+  font: 500 14px 'Poppins', sans-serif
+  transition: background-color .18s ease, border-color .18s ease, color .18s ease
+
+  &:focus-visible
+    outline: 2px solid #2563eb
+    outline-offset: 2px
+
+  &:disabled
+    cursor: not-allowed
+    opacity: .5
+
+.primaryButton
+  border: 1px solid #19282c
+  background: #19282c
+  color: #fff
+
+  &:hover:not(:disabled)
+    border-color: #263c43
+    background: #263c43
+
+.secondaryButton
+  border: 1px solid #a4a9af
+  background: #fff
+  color: #172b31
+
+  &:hover:not(:disabled)
+    border-color: #7d8f95
+    background: #f3f6f6
+
+.contextBar
+  width: 100%
+  min-width: 0
+  min-height: 42px
+  padding: 10px 12px
+  box-sizing: border-box
+  display: flex
+  align-items: center
+  flex-wrap: wrap
+  gap: 6px 18px
+  border: 1px solid #e2e8f0
+  border-radius: 6px
+  background: #f8fafc
+  color: #475569
+  font-size: 13px
+  line-height: 1.5
+
+.contextMuted
+  color: #64748b
+
+.tableRegion
+  margin-top: 16px
+  border: 1px solid #aeb5ba
+  background: #fff
+
+.compactTableRegion
+  flex: 0 0 auto
+  min-height: 0
+  height: auto
+  overflow-y: hidden
 
 .dialog
   position: fixed
@@ -107,12 +217,19 @@
   align-items: center
   justify-content: center
   gap: 8px
-  background: #ea1212
+  background: #19282c
   border: 0
   border-radius: 6px
   color: #fff
   cursor: pointer
   white-space: nowrap
+
+  &:hover
+    background: #263c43
+
+  &:focus-visible
+    outline: 2px solid #2563eb
+    outline-offset: 2px
 
 .dataToolbar
   width: 100%
@@ -131,6 +248,61 @@
   align-items: center
   flex-wrap: wrap
   gap: 12px
+
+.sortControl
+  position: relative
+
+.sortButton
+  min-height: 40px
+  padding: 8px 12px
+  display: inline-flex
+  align-items: center
+  justify-content: center
+  gap: 8px
+  border: 1px solid #b7c0c5
+  border-radius: 6px
+  background: #fff
+  color: #24343a
+  cursor: pointer
+  font: 500 13px 'Poppins', sans-serif
+
+  &:hover, &[aria-expanded="true"]
+    background: #f3f6f6
+
+  &:focus-visible
+    outline: 2px solid #2563eb
+    outline-offset: 2px
+
+.sortMenu
+  position: absolute
+  top: calc(100% + 5px)
+  left: 0
+  z-index: 5
+  width: max-content
+  min-width: 100%
+  padding: 5px
+  border: 1px solid #cbd5d9
+  border-radius: 8px
+  background: #fff
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .12)
+
+  button
+    width: 100%
+    min-height: 36px
+    padding: 6px 10px
+    display: flex
+    align-items: center
+    gap: 8px
+    border: 0
+    border-radius: 5px
+    background: transparent
+    color: #24343a
+    cursor: pointer
+    text-align: left
+    font: 400 13px 'Poppins', sans-serif
+
+    &:hover, &[aria-pressed="true"]
+      background: #edf2f4
 
 .toolbarControls
   min-width: 0
@@ -162,6 +334,58 @@
   outline: none
   background: transparent
   font-size: 14px
+
+.searchClear
+  flex: 0 0 28px
+  width: 28px
+  height: 28px
+  padding: 0
+  display: inline-flex
+  align-items: center
+  justify-content: center
+  border: 0
+  border-radius: 4px
+  background: transparent
+  color: #475569
+  cursor: pointer
+
+  &:hover
+    background: #e8edef
+
+.resultsSummary
+  min-height: 24px
+  margin-bottom: 10px
+  display: flex
+  align-items: center
+  flex-wrap: wrap
+  gap: 8px
+  color: #475569
+  font: 400 13px 'Poppins', sans-serif
+
+  button
+    padding: 2px 4px
+    border: 0
+    background: transparent
+    color: #075f7a
+    cursor: pointer
+    font: inherit
+    text-decoration: underline
+
+.noResults
+  width: 100%
+  min-height: 96px
+  justify-content: center
+  gap: 8px
+  color: #475569
+  text-align: center
+
+  button
+    border: 0
+    background: transparent
+    color: #075f7a
+    cursor: pointer
+    font: inherit
+    text-decoration: underline
 
 .managementDialog
   position: fixed
@@ -241,6 +465,26 @@
   text-align: center
   overflow-wrap: anywhere
 
+  &:hover, &:focus-visible
+    border-color: #567580
+    background: #f7fafb
+
+  &:focus-visible
+    outline: 2px solid #2563eb
+    outline-offset: 2px
+
+.dialogTitle
+  margin: 0
+  color: #24343a
+  font-size: 20px
+  font-weight: 600
+
+.fileFeedback
+  margin: -8px 0 0
+  color: #24343a
+  font-size: 13px
+  overflow-wrap: anywhere
+
 .managementDialogActions
   width: 100%
   min-width: 0
@@ -251,6 +495,10 @@
   > button
     min-width: 0
     flex: 1 1 140px
+
+    &:disabled
+      opacity: .5
+      cursor: not-allowed
 
 .detailIdentity
   min-width: 0
@@ -274,10 +522,14 @@
 @media (max-width: 1024px)
   .page
     overflow-y: auto
-  .toolbar h2
-    flex: 1 0 100%
+  .toolbar
+    grid-template-columns: minmax(0, 1fr) auto
+  .titleBlock
+    grid-column: 1 / -1
+  .controlGroup
+    grid-column: 1
   .actions
-    margin-left: 0
+    grid-column: 2
   .dataToolbar
     flex-wrap: wrap
     align-items: stretch
@@ -293,11 +545,19 @@
     height: auto
     min-height: 100%
     padding: 14px 12px
+  .toolbar
+    grid-template-columns: minmax(0, 1fr)
+    gap: 12px
+  .titleBlock, .controlGroup, .actions
+    grid-column: 1
   .courseSelect, .actions
     width: 100%
     max-width: none
   .actions > button
     flex: 1 1 140px
+  .contextBar
+    align-items: flex-start
+    flex-direction: column
   .dialog
     padding: 18px
   .fieldRow

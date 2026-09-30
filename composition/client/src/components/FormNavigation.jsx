@@ -1,11 +1,10 @@
-import {Link} from "react-router-dom";
-import {Check, CheckCircle, ChevronLeft} from "react-feather";
+import {CheckCircle, ChevronLeft} from "react-feather";
 import React from "react";
 import styles from "../styles/FormNavigation.module.sass";
 
 const FormNavigation = ({ goBack, onSave }) => { // 1. Add onSave prop
 
-    const goBackHandler = (e) => { goBack() }
+    const goBackHandler = () => { goBack() }
 
     return (
         <div className={styles.navi}>

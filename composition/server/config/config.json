@@ -3,5 +3,10 @@
     "dialect": "sqlite",
     "storage": "data/lpms_composition.sqlite",
     "logging": false
+  },
+  "production": {
+    "dialect": "sqlite",
+    "storage": "data/lpms_composition.sqlite",
+    "logging": false
   }
 }

@@ -26,7 +26,6 @@ test('every retained reference category has an option and selected-category empt
 test('a failed refetch reports the server error without hiding cached rows', () => {
   assert.match(source, /isReferencesLoading\s*&&\s*!referenceData/)
   assert.match(source, /\{referencesError\s*&&\s*\([\s\S]*role="alert"/)
-  assert.match(source, /The server did not answer[\s\S]*referencesError[\s\S]*backend is running on port 5000/)
 
   const bannerIndex = source.indexOf('{referencesError && (')
   const tableIndex = source.indexOf('<TableScrollRegion')

@@ -1,17 +1,19 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import styles from '../styles/CoursesTable.module.sass';
-import { ChevronRight, XCircle, HelpCircle, Download } from 'react-feather';
+import { ChevronRight, XCircle, Download, Clock, RotateCcw, CheckCircle, HelpCircle } from 'react-feather';
+import SortableTh from './SortableTh.jsx';
+import { sortRows, nextSort } from '../utils/tableSort.js';
 import { fetchJson } from "../utils/api.js";
 import { buildSyllabusExportFile } from "../utils/exportSyllabus.js";
 import PDFViewerModal from "./PDFViewerModal.jsx";
+import EmptyState from "./EmptyState.jsx";
+import Spinner from "./Spinner.jsx";
+import { loadReviewAssignments } from '../utils/reviewAssignments.js';
 import unclogo from '../assets/unclogo.png';
 import TableScrollRegion from './TableScrollRegion.jsx';
-
-const getProgram = (code) => {
-  if (code && code.startsWith('IT ')) return 'Information Technology';
-  return 'Computer Science';
-};
+import { buildApproverStatus, computeOverallStatus, latestSubmissionAt } from '../utils/assignmentStatus.js';
+import { filterAssignmentsByCourse, readAssignedCourseFilters } from '../utils/referenceCourseNavigation.js';
 
 const EXPORT_ROLES = ['dean', 'vpaa', 'instructor'];
 
@@ -26,6 +28,9 @@ const ApprovalCoursesTable = ({ role = 'approver', styleHooks = {} }) => {
     const currentYear = new Date().getFullYear();
     const startYear = 2000;
     const semOptions = ['1st Sem', '2nd Sem'];
+    const [searchParams, setSearchParams] = useSearchParams();
+    const linkedCourseFilters = readAssignedCourseFilters(searchParams, currentYear);
+    const targetCourse = linkedCourseFilters.course;
     const yearOptions = [];
     for (let i = currentYear; i >= startYear; i--) {
         const schoolYearLabel = `${i} - ${i + 1}`;
@@ -36,17 +41,15 @@ const ApprovalCoursesTable = ({ role = 'approver', styleHooks = {} }) => {
         );
     }
 
-    const [selectedYear, setSelectedYear] = useState(currentYear);
-    const [selectedSem, setSelectedSem] = useState(semOptions[0] || "");
+    const [selectedYear, setSelectedYear] = useState(linkedCourseFilters.year);
+    const [selectedSem, setSelectedSem] = useState(linkedCourseFilters.semester);
 
     const statuses = role === 'vpaa' ? ["APPROVED"] : ["PENDING", "RETURNED", "APPROVED"];
 
-    const [searchParams, setSearchParams] = useSearchParams();
     const defaultStatus = role === 'vpaa' ? 'APPROVED' : 'PENDING';
     const [selectedStatus, setSelectedStatus] = useState(() => {
-        const fromUrl = searchParams.get('status');
-        if (fromUrl && statuses.some(s => s.toLowerCase() === fromUrl.toLowerCase())) {
-            return fromUrl.toUpperCase();
+        if (statuses.includes(linkedCourseFilters.status)) {
+            return linkedCourseFilters.status;
         }
         return defaultStatus;
     });
@@ -56,6 +59,11 @@ const ApprovalCoursesTable = ({ role = 'approver', styleHooks = {} }) => {
     };
     const [assignments, setAssignments] = useState([]);
     const [loading, setLoading] = useState(false);
+    const [loadError, setLoadError] = useState(false);
+    // Newest first is the useful default for an approver: the plan that just
+    // arrived is the one they have not seen.
+    const [sort, setSort] = useState({ sortKey: 'date_assigned', sortDir: 'desc' });
+    const onSort = (key) => setSort(current => nextSort(current, key));
     const [popup, setPopup] = useState({ open: false, data: null, pos: null });
     const [exportFile, setExportFile] = useState(null);
     const [exporting, setExporting] = useState(false);
@@ -89,77 +97,25 @@ const ApprovalCoursesTable = ({ role = 'approver', styleHooks = {} }) => {
       }
     }
 
+    const loadAssignments = useCallback(async () => {
+        setLoading(true);
+        setLoadError(false);
+        try {
+            const rows = await loadReviewAssignments(fetchJson, selectedYear, selectedSem);
+            setAssignments(rows);
+        } catch (err) {
+            console.error("Error loading assignments:", err);
+            setAssignments([]);
+            setLoadError(true);
+        } finally {
+            setLoading(false);
+        }
+    }, [selectedYear, selectedSem]);
+
     // Fetch data whenever Year or Semester changes
     useEffect(() => {
         loadAssignments();
-    }, [selectedYear, selectedSem]);
-
-    const computeOverallStatus = (row) => {
-        const logs = row.logs || [];
-        const sortedLogs = [...logs].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-        const latestLog = sortedLogs.length > 0 ? sortedLogs[0] : null;
-
-        if (latestLog && latestLog.action_type === 'RETURNED') {
-            return 'Returned';
-        }
-
-        if (latestLog && latestLog.action_type === 'ACCEPTED' && latestLog.actor_role === 'DEAN') {
-            return 'Approved';
-        }
-
-        const hasBeenSubmitted =
-            row.date_submitted !== null ||
-            logs.some(log => log.action_type === 'SUBMITTED' || log.action_type === 'ACCEPTED');
-
-        if (hasBeenSubmitted) {
-            return 'Pending';
-        }
-
-        return 'Draft';
-    };
-
-    const buildApproverStatus = (row) => {
-        const logs = row.logs || [];
-
-        const getLatestActionForRole = (roleKey) => {
-            const roleLogs = logs.filter(l => l.actor_role === roleKey);
-            if (roleLogs.length === 0) return null;
-            return roleLogs.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0];
-        };
-
-        const rolesToTrack = [
-            { label: 'Industry Consultant', roleKey: 'INDUSTRY_CONSULTANT' },
-            { label: 'Library Director', roleKey: 'LIBRARY_DIRECTOR' },
-            { label: 'Program Head', roleKey: 'PROGRAM_HEAD' },
-            { label: 'Dean', roleKey: 'DEAN' }
-        ];
-
-        return rolesToTrack.map(r => {
-            const latestAction = getLatestActionForRole(r.roleKey);
-
-            if (!latestAction) {
-                return { title: r.label, status: 'Pending' };
-            }
-
-            if (latestAction.action_type === 'ACCEPTED') {
-                return { title: r.label, status: 'Accepted', acceptedAt: latestAction.createdAt };
-            }
-
-            if (latestAction.action_type === 'RETURNED') {
-                const instructorSubmissions = logs.filter(l => l.action_type === 'SUBMITTED');
-                const latestSubmission = instructorSubmissions.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0];
-
-                const details = { title: r.label, status: 'Returned', returnedAt: latestAction.createdAt };
-
-                if (latestSubmission && new Date(latestSubmission.createdAt) > new Date(latestAction.createdAt)) {
-                    details.updatedAt = latestSubmission.createdAt;
-                }
-                return details;
-            }
-
-            return { title: r.label, status: 'Pending' };
-        });
-    };
+    }, [loadAssignments]);
 
     const getCode = (row) => {
         const pco = row.ProgramCourseOffering || {};
@@ -177,24 +133,9 @@ const ApprovalCoursesTable = ({ role = 'approver', styleHooks = {} }) => {
         return course.course_title || course.title || course.name || pco.course_description || row.name || '-';
     };
 
-    async function loadAssignments() {
-        setLoading(true);
-        try {
-            // Append the filter query parameters to the URL
-            const url = `/api/assignments?year=${selectedYear}&semester=${encodeURIComponent(selectedSem)}`;
-            const data = await fetchJson(url);
-            const rows = Array.isArray(data) ? data : (data.data || data.rows || []);
-            setAssignments(rows);
-        } catch (err) {
-            console.error("Error loading assignments:", err);
-            setAssignments([]);
-        } finally {
-            setLoading(false);
-        }
-    }
-
     const filteredRows = (() => {
-        const rows = assignments.filter(row => computeOverallStatus(row).toUpperCase() === selectedStatus);
+        const rows = filterAssignmentsByCourse(assignments, targetCourse)
+            .filter(row => computeOverallStatus(row).toUpperCase() === selectedStatus);
         if (selectedStatus !== 'APPROVED') return rows;
         // Approved tab: show only the LATEST revision per course (older approved
         // revisions live in the Revisions page) — matches the instructor's table.
@@ -209,15 +150,102 @@ const ApprovalCoursesTable = ({ role = 'approver', styleHooks = {} }) => {
         return [...byCourse.values()];
     })();
 
-    const getStatusCount = (statusName) => assignments.filter(row => computeOverallStatus(row).toUpperCase() === statusName).length;
+    // The columns, described once. `sortValue` exists because the code and the
+    // name are not plain fields — they are dug out of a nested
+    // ProgramCourseOffering, so sorting on `row.code` would compare undefined
+    // to undefined and appear to do nothing.
+    const COLUMNS = [
+        { key: 'date_assigned', label: 'DATE ASSIGNED', width: 200, type: 'date' },
+        { key: 'code', label: 'CODE', width: 150, type: 'text', sortValue: (r) => getCode(r) },
+        { key: 'name', label: 'COURSE NAME', width: 350, type: 'text', sortValue: (r) => getName(r) },
+        ...(selectedStatus === 'APPROVED'
+            ? [{ key: 'date_approved', label: 'DATE APPROVED', width: 200, type: 'date' }]
+            : []),
+        { key: 'actions', label: 'ACTIONS', className: styles.fill, sortable: false }
+    ];
 
-    const openPopup = (row, e) => {
-        const rect = e?.currentTarget?.getBoundingClientRect();
-        const logs = row.logs || [];
+    const sortedRows = sortRows(filteredRows, COLUMNS, sort.sortKey, sort.sortDir);
 
-        const submissionLogs = logs.filter(l => l.action_type === 'SUBMITTED')
-            .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
-        const submittedAt = submissionLogs.length > 0 ? submissionLogs[0].createdAt : row.date_submitted;
+    // THE ROW'S ACTIONS, IN THE ROW.
+    //
+    // These used to be a kebab menu whose entire contents were one item,
+    // "Approval details" — two clicks and a popup to reach one popup. The
+    // instructor's table has always shown the same thing as a question mark
+    // you click once, so this now matches it: View, Export where the role has
+    // it, and the details behind the (?).
+    //
+    // View stays a real <Link>: an approver opening three plans in three tabs
+    // is the normal way to use this screen, and a button that calls navigate()
+    // cannot be middle-clicked or copied.
+    const rowActions = (row) => (
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <Link className={'actionLink'} to={getCourseLink(row)}
+                  style={{ minWidth: 90, display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                View <ChevronRight size={16} />
+            </Link>
+
+            {selectedStatus === 'APPROVED' && EXPORT_ROLES.includes(role) &&
+                <span className="actionLink"
+                      style={{ minWidth: 90, display: 'inline-flex', alignItems: 'center', gap: 5, cursor: exporting ? 'wait' : 'pointer', color: '#6b7280' }}
+                      onClick={() => !exporting && handleExport(row)}>
+                    {exporting ? 'Exporting…' : 'Export'} <Download size={16} />
+                </span>
+            }
+
+            {/* `title` and `aria-label` both: the icon alone says nothing to a
+                screen reader, and nothing on hover either. */}
+            <button type="button" className={styles.info} title="Approval details"
+                    aria-label="Approval details"
+                    onClick={(e) => openPopup(row, e)}>
+                <HelpCircle opacity={.8} size={18} />
+            </button>
+        </div>
+    );
+
+    // What each tab says when it has no rows. A blank table cannot be told
+    // apart from a broken one, so every tab states which list is empty and why
+    // that is a normal thing to see.
+    const EMPTY_BY_STATUS = {
+        PENDING: {
+            icon: <Clock size={22} strokeWidth={1.6} />,
+            title: 'No learning plans waiting for you',
+            hint: 'Plans appear here once an instructor submits them for review.\nNothing is pending for this term and semester.'
+        },
+        RETURNED: {
+            icon: <RotateCcw size={22} strokeWidth={1.6} />,
+            title: 'Nothing has been returned',
+            hint: 'A plan lands here when a reviewer sends it back to the instructor with comments.'
+        },
+        APPROVED: {
+            icon: <CheckCircle size={22} strokeWidth={1.6} />,
+            title: 'No approved learning plans yet',
+            hint: 'A plan shows here once the Dean has given the final approval.'
+        }
+    };
+
+    const emptyRow = (colSpan) => {
+        if (targetCourse) {
+            return (
+                <EmptyState
+                    colSpan={colSpan}
+                    icon={<Clock size={22} strokeWidth={1.6} />}
+                    title={`${targetCourse} is not available in this view`}
+                    hint="Its review status or academic term may have changed. Return to the Reference Library and open the course again."
+                />
+            );
+        }
+        const meta = EMPTY_BY_STATUS[selectedStatus] || EMPTY_BY_STATUS.PENDING;
+        return <EmptyState colSpan={colSpan} icon={meta.icon} title={meta.title} hint={meta.hint} />;
+    };
+
+    // `anchor` is normally the click event on the (?) button; a bare DOMRect is
+    // still accepted so a caller that has already dismissed its own UI (and so
+    // has no event left to pass) can say where the popup should point.
+    const openPopup = (row, anchor) => {
+        const rect = typeof anchor?.currentTarget?.getBoundingClientRect === 'function'
+            ? anchor.currentTarget.getBoundingClientRect()
+            : (typeof anchor?.bottom === 'number' ? anchor : null);
+        const submittedAt = latestSubmissionAt(row);
         const approverStatuses = buildApproverStatus(row);
 
         const popupH = 280;
@@ -251,7 +279,7 @@ const ApprovalCoursesTable = ({ role = 'approver', styleHooks = {} }) => {
                 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                         <strong style={{ color: '#666' }}>View details</strong>
-                        <button onClick={onClose} style={{ border: 'none', background: 'transparent', cursor: 'pointer', padding: 4 }} aria-label="Close details">
+                        <button type="button" className="app-icon-close" onClick={onClose} aria-label="Close details">
                             <XCircle size={18} />
                         </button>
                     </div>
@@ -279,17 +307,6 @@ const ApprovalCoursesTable = ({ role = 'approver', styleHooks = {} }) => {
                 </div>
             </>
         );
-    };
-
-    const statusBadge = (status) => {
-        const map = {
-            Pending: { color: '#b45309', background: '#fffbeb' },
-            Returned: { color: '#dc2626', background: '#fef2f2' },
-            Approved: { color: '#047857', background: '#ecfdf5' },
-            Draft: { color: '#6b7280', background: '#f3f4f6' },
-        };
-        const s = map[status] || { color: '#6b7280', background: '#f3f4f6' };
-        return <span style={{ ...s, padding: '3px 10px', borderRadius: 99, fontWeight: 600, fontSize: 12 }}>{status}</span>;
     };
 
     return (
@@ -322,13 +339,13 @@ const ApprovalCoursesTable = ({ role = 'approver', styleHooks = {} }) => {
                 <div className={styles['filter-container']}>
                     <div className={styles['segmented-control']}>
                         {statuses.map((status) => {
-                            const count = getStatusCount(status);
                             return (
                                 <button
                                     key={status}
                                     type="button"
                                     className={`${styles['control-item']} ${selectedStatus === status ? styles['active'] : ''}`}
                                     onClick={() => updateStatus(status)}
+                                    aria-pressed={selectedStatus === status}
                                 >
                                     {status.charAt(0) + status.slice(1).toLowerCase()}
                                 </button>
@@ -344,92 +361,68 @@ const ApprovalCoursesTable = ({ role = 'approver', styleHooks = {} }) => {
                 minWidth={900}
                 className={styles['table-container']}
             >
-                {loading && <div>Loading...</div>}
+                {/* While loading, show ONLY the spinner. Rendering it above the
+                    table meant the empty state ("No learning plans waiting for
+                    you") was on screen at the same time as "Loading…", which
+                    tells the reader two contradictory things. */}
+                {loading && <Spinner label="Loading course offerings…" />}
 
-                {selectedStatus === 'APPROVED' &&
-                    <table>
+                {!loading && loadError && (
+                    <EmptyState
+                        icon={<XCircle size={22} strokeWidth={1.6} />}
+                        title="Could not load assigned course offerings"
+                        hint="The course list could not be loaded. Try again; no sample records have been substituted for your assignments."
+                        action={<button type="button" className={styles.retryButton} onClick={loadAssignments}>Try again</button>}
+                    />
+                )}
+
+                {!loading && !loadError && selectedStatus === 'APPROVED' &&
+                    <table className={styles.truncate}>
                         <thead>
                         <tr>
-                            <th width={200} style={{textAlign:'center'}}>DATE ASSIGNED</th>
-                            <th width={150} style={{textAlign:'center'}}>CODE</th>
-                            <th width={350} style={{textAlign:'center'}}>COURSE NAME</th>
-                            {selectedStatus === 'APPROVED' && <th width={200} style={{textAlign:'center'}}>DATE APPROVED</th>}
-                            <th className={styles.fill}></th>
+                            {COLUMNS.map(col => (
+                                <SortableTh key={col.key} col={col} sortKey={sort.sortKey} sortDir={sort.sortDir} onSort={onSort} />
+                            ))}
                         </tr>
                         </thead>
                         <tbody>
-                        {filteredRows.map((row, index) => (
+                        {sortedRows.map((row, index) => (
                             <tr key={index}>
                                 <td width={200}>{formatDate(row.date_assigned)}</td>
-                                <td width={150}>{getCode(row)}</td>
-                                <td width={350}>{getName(row)}</td>
-                                {selectedStatus === 'APPROVED' && <td width={200}>{formatDate(row.date_approved)}</td>}
-                                <td className={styles.fill}>
-                                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                                        <Link
-                                            className={'actionLink'}
-                                            to={getCourseLink(row)}
-                                            style={{ minWidth: 90, display: 'inline-flex', alignItems: 'center', gap: 5 }}
-                                        >
-                                            View
-                                            <ChevronRight size={16} />
-                                        </Link>
-
-                                        {selectedStatus === 'APPROVED' && EXPORT_ROLES.includes(role) &&
-                                            <span className="actionLink" style={{ minWidth: 90, display: 'inline-flex', alignItems: 'center', gap: 5, cursor: exporting ? 'wait' : 'pointer', color: '#6b7280' }} onClick={() => !exporting && handleExport(row)}>
-                                                {exporting ? '...' : 'Export'} <Download size={16} />
-                                            </span>
-                                        }
-
-                                        {selectedStatus ==='APPROVED' &&
-                                            <button onClick={(e) => openPopup(row, e)} className={styles.info}>
-                                                <HelpCircle size={18} />
-                                            </button>
-                                        }
-
-                                    </div>
-                                </td>
+                                <td width={150} title={getCode(row)}><span>{getCode(row)}</span></td>
+                                {/* The <span> is what makes the ellipsis appear
+                                    (see .truncate), and `title` is not
+                                    decoration: the cell clips now, so this is
+                                    the only way to read a long name in full. */}
+                                <td width={350} title={getName(row)}><span>{getName(row)}</span></td>
+                                <td width={200}>{formatDate(row.date_approved)}</td>
+                                <td className={styles.fill}>{rowActions(row)}</td>
                             </tr>
                         ))}
+                        {!loading && sortedRows.length === 0 && emptyRow(5)}
                         </tbody>
                     </table>
                 }
 
-                {(selectedStatus === 'PENDING' || selectedStatus === 'RETURNED') &&
-                    <table>
+                {!loading && !loadError && (selectedStatus === 'PENDING' || selectedStatus === 'RETURNED') &&
+                    <table className={styles.truncate}>
                         <thead>
                         <tr>
-                            <th width={200} style={{textAlign:'center'}}>DATE ASSIGNED</th>
-                            <th width={150} style={{textAlign:'center'}}>CODE</th>
-                            <th width={350} style={{textAlign:'center'}}>COURSE NAME</th>
-                            <th className={styles.fill}></th>
+                            {COLUMNS.map(col => (
+                                <SortableTh key={col.key} col={col} sortKey={sort.sortKey} sortDir={sort.sortDir} onSort={onSort} />
+                            ))}
                         </tr>
                         </thead>
                         <tbody>
-                        {filteredRows.map((row, index) => {
-                            const overallStatus = computeOverallStatus(row);
-                            return (
-                                <tr key={index}>
-                                    <td width={200}>{formatDate(row.date_assigned)}</td>
-                                    <td width={150}>{getCode(row)}</td>
-                                    <td width={350}>{getName(row)}</td>
-
-                                    <td className={styles.fill}>
-                                        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                                            <Link className={'actionLink'}
-                                                  to={getCourseLink(row)}
-                                                  style={{ minWidth: 90, display: 'inline-flex', alignItems: 'center', gap: 5 }}
-                                            >
-                                                View <ChevronRight size={16} />
-                                            </Link>
-                                            <button onClick={(e) => openPopup(row, e)} className={styles.info}>
-                                                <HelpCircle opacity={.8} size={18} />
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            );
-                        })}
+                        {sortedRows.map((row, index) => (
+                            <tr key={index}>
+                                <td width={200}>{formatDate(row.date_assigned)}</td>
+                                <td width={150} title={getCode(row)}><span>{getCode(row)}</span></td>
+                                <td width={350} title={getName(row)}><span>{getName(row)}</span></td>
+                                <td className={styles.fill}>{rowActions(row)}</td>
+                            </tr>
+                        ))}
+                        {!loading && sortedRows.length === 0 && emptyRow(4)}
                         </tbody>
                     </table>
                 }

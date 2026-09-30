@@ -399,8 +399,8 @@ const DeanFaculty = () => {
                   <div style={{ fontSize: 14, color: '#374151', fontWeight: 500 }}>{selectedFaculty.role}</div>
                 </div>
               </div>
-              <button onClick={() => setShowDetailModal(false)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 0 }}>
-                <X size={24} color="#111827" />
+              <button type="button" className="app-icon-close" onClick={() => setShowDetailModal(false)} aria-label="Close faculty details">
+                <X size={16} />
               </button>
             </div>
 

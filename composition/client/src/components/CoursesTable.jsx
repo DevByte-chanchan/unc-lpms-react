@@ -1,12 +1,20 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
+import Spinner from './Spinner.jsx';
 import { Link, useSearchParams } from 'react-router-dom';
 import styles from '../styles/CoursesTable.module.sass';
-import { ChevronRight, Edit, XCircle, HelpCircle, Download } from 'react-feather';
+import { ChevronRight, Edit, XCircle, HelpCircle, Download, FileText, Clock, RotateCcw, CheckCircle } from 'react-feather';
+import EmptyState from './EmptyState.jsx';
 import { fetchJson } from "../utils/api.js";
 import { buildSyllabusExportFile } from "../utils/exportSyllabus.js";
 import PDFViewerModal from "./PDFViewerModal.jsx";
 import unclogo from '../assets/unclogo.png';
 import TableScrollRegion from './TableScrollRegion.jsx';
+import SortableTh from './SortableTh.jsx';
+import { instructorCourseColumns, nextSort, sortRows } from '../utils/tableSort.js';
+import { buildApproverStatus, computeOverallStatus, latestSubmissionAt } from '../utils/assignmentStatus.js';
+
+const SEM_OPTIONS = ['1st Sem', '2nd Sem'];
+const STATUS_OPTIONS = ["DRAFT", "PENDING", "RETURNED", "APPROVED"];
 
 // --- Custom Date Formatters to Ensure Global Consistency ---
 const formatDate = (dateString) => {
@@ -38,7 +46,6 @@ const CoursesTable = () => {
     const [searchParams, setSearchParams] = useSearchParams();
     const currentYear = new Date().getFullYear();
     const startYear = 2000;
-    const semOptions = ['1st Sem', '2nd Sem'];
     const yearOptions = [];
     for (let i = currentYear; i >= startYear; i--) {
         const schoolYearLabel = `${i} - ${i + 1}`;
@@ -50,14 +57,13 @@ const CoursesTable = () => {
     }
 
     const [selectedYear, setSelectedYear] = useState(currentYear);
-    const [selectedSem, setSelectedSem] = useState(semOptions[0]);
+    const [selectedSem, setSelectedSem] = useState(SEM_OPTIONS[0]);
 
-    const statusesOptions = ["DRAFT", "PENDING", "RETURNED", "APPROVED"];
-    const [statuses, setStatuses] = useState(statusesOptions);
+    const [statuses, setStatuses] = useState(STATUS_OPTIONS);
     const urlStatus = searchParams.get('status');
     const [selectedStatus, setSelectedStatus] = useState(() => {
         if (urlStatus) {
-            const found = statusesOptions.find(s => s.toLowerCase() === urlStatus.toLowerCase());
+            const found = STATUS_OPTIONS.find(s => s.toLowerCase() === urlStatus.toLowerCase());
             if (found) return found;
         }
         return 'DRAFT';
@@ -66,6 +72,7 @@ const CoursesTable = () => {
     const [assignments, setAssignments] = useState([]);
     const [loading, setLoading] = useState(false);
     const [popup, setPopup] = useState({ open: false, data: null });
+    const [sort, setSort] = useState({ sortKey: 'date_assigned', sortDir: 'desc' });
 
     // Handle Status Constraints based on Year Selection
     useEffect(() => {
@@ -73,26 +80,14 @@ const CoursesTable = () => {
             setStatuses(["APPROVED"]);
             setSelectedStatus("APPROVED");
         } else {
-            setStatuses(statusesOptions);
-            if (!searchParams.get('status')) setSelectedStatus("DRAFT");
+            setStatuses(STATUS_OPTIONS);
+            if (!urlStatus) setSelectedStatus("DRAFT");
         }
-    }, [selectedYear, currentYear]);
+    }, [selectedYear, currentYear, urlStatus]);
 
-    // Fetch data whenever Year or Semester changes
-    useEffect(() => {
-        loadAssignments();
-    }, [selectedYear, selectedSem]);
-
-    const handleStatusChange = (e) => {
-        const val = e.target.value;
-        setSelectedStatus(val);
-        setSearchParams({ status: val.toLowerCase() }, { replace: true });
-    };
-
-    async function loadAssignments() {
+    const loadAssignments = useCallback(async () => {
         setLoading(true);
         try {
-            // Append the filter query parameters to the URL
             const url = `/api/assignments?year=${selectedYear}&semester=${encodeURIComponent(selectedSem)}`;
             const data = await fetchJson(url);
             const rows = Array.isArray(data) ? data : (data.data || data.rows || []);
@@ -103,7 +98,18 @@ const CoursesTable = () => {
         } finally {
             setLoading(false);
         }
-    }
+    }, [selectedYear, selectedSem]);
+
+    // Fetch data whenever Year or Semester changes
+    useEffect(() => {
+        loadAssignments();
+    }, [loadAssignments]);
+
+    const handleStatusChange = (e) => {
+        const val = e.target.value;
+        setSelectedStatus(val);
+        setSearchParams({ status: val.toLowerCase() }, { replace: true });
+    };
 
     const getCode = (assignment) => {
         const pco = assignment.ProgramCourseOffering || {};
@@ -156,80 +162,8 @@ const CoursesTable = () => {
         }
     };
 
-    const computeOverallStatus = (row) => {
-        const logs = row.logs || [];
-        const sortedLogs = [...logs].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-        const latestLog = sortedLogs.length > 0 ? sortedLogs[0] : null;
-
-        if (latestLog && latestLog.action_type === 'RETURNED') {
-            return 'Returned';
-        }
-
-        if (latestLog && latestLog.action_type === 'ACCEPTED' && latestLog.actor_role === 'DEAN') {
-            return 'Approved';
-        }
-
-        const hasBeenSubmitted =
-            row.date_submitted !== null ||
-            logs.some(log => log.action_type === 'SUBMITTED' || log.action_type === 'ACCEPTED');
-
-        if (hasBeenSubmitted) {
-            return 'Pending';
-        }
-
-        return 'Draft';
-    };
-
-    const buildApproverStatus = (row) => {
-        const logs = row.logs || [];
-
-        const getLatestActionForRole = (role) => {
-            const roleLogs = logs.filter(l => l.actor_role === role);
-            if (roleLogs.length === 0) return null;
-            return roleLogs.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0];
-        };
-
-        const rolesToTrack = [
-            { label: 'Industry Consultant', roleKey: 'INDUSTRY_CONSULTANT' },
-            { label: 'Library Director', roleKey: 'LIBRARY_DIRECTOR' },
-            { label: 'Program Head', roleKey: 'PROGRAM_HEAD' },
-            { label: 'Dean', roleKey: 'DEAN' }
-        ];
-
-        return rolesToTrack.map(r => {
-            const latestAction = getLatestActionForRole(r.roleKey);
-
-            if (!latestAction) {
-                return { title: r.label, status: 'Pending' };
-            }
-
-            if (latestAction.action_type === 'ACCEPTED') {
-                return { title: r.label, status: 'Accepted', acceptedAt: latestAction.createdAt };
-            }
-
-            if (latestAction.action_type === 'RETURNED') {
-                const instructorSubmissions = logs.filter(l => l.action_type === 'SUBMITTED');
-                const latestSubmission = instructorSubmissions.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0];
-
-                const details = { title: r.label, status: 'Returned', returnedAt: latestAction.createdAt };
-
-                if (latestSubmission && new Date(latestSubmission.createdAt) > new Date(latestAction.createdAt)) {
-                    details.updatedAt = latestSubmission.createdAt;
-                }
-                return details;
-            }
-
-            return { title: r.label, status: 'Pending' };
-        });
-    };
-
     const openPopup = (row) => {
-        const logs = row.logs || [];
-
-        const submissionLogs = logs.filter(l => l.action_type === 'SUBMITTED')
-            .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
-
-        const submittedAt = submissionLogs.length > 0 ? submissionLogs[0].createdAt : row.date_submitted;
+        const submittedAt = latestSubmissionAt(row);
         const approverStatuses = buildApproverStatus(row);
 
         setPopup({ open: true, data: { submittedAt, approverStatuses } });
@@ -241,6 +175,48 @@ const CoursesTable = () => {
         const overall = computeOverallStatus(row);
         return overall.toUpperCase() === selectedStatus;
     });
+    const columns = instructorCourseColumns({
+        approved: selectedStatus === 'APPROVED',
+        getCode,
+        getName
+    }).map(column => column.key === 'actions'
+        ? { ...column, className: styles.fill }
+        : column);
+    const sortedRows = sortRows(filteredRows, columns, sort.sortKey, sort.sortDir);
+    const handleSort = (key) => setSort(current => nextSort(current, key));
+
+    // The instructor's own table was the one screen still showing a bare
+    // column header with nothing under it when a tab was empty — the approver's
+    // table has said which list is empty and why since the empty-state pass,
+    // and an instructor looking at four blank tabs cannot tell "nothing
+    // assigned" from "the backend is down".
+    const EMPTY_BY_STATUS = {
+        DRAFT: {
+            icon: <FileText size={22} strokeWidth={1.6} />,
+            title: 'No drafts to work on',
+            hint: 'A learning plan appears here as soon as your Program Head assigns you a course offering for this term and semester.'
+        },
+        PENDING: {
+            icon: <Clock size={22} strokeWidth={1.6} />,
+            title: 'Nothing waiting for approval',
+            hint: 'Plans you have submitted sit here until the Program Head, Library Director and Dean have reviewed them.'
+        },
+        RETURNED: {
+            icon: <RotateCcw size={22} strokeWidth={1.6} />,
+            title: 'Nothing has been returned to you',
+            hint: 'If a reviewer sends a plan back with comments, it lands here so you can update and resubmit it.'
+        },
+        APPROVED: {
+            icon: <CheckCircle size={22} strokeWidth={1.6} />,
+            title: 'No approved learning plans yet',
+            hint: 'A plan moves here once the Dean has given the final approval.'
+        }
+    };
+
+    const emptyRow = (colSpan) => {
+        const meta = EMPTY_BY_STATUS[selectedStatus] || EMPTY_BY_STATUS.DRAFT;
+        return <EmptyState colSpan={colSpan} icon={meta.icon} title={meta.title} hint={meta.hint} />;
+    };
 
     const DetailsPopup = ({ data, onClose }) => {
         if (!data) return null;
@@ -255,7 +231,7 @@ const CoursesTable = () => {
             }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                     <strong>View details</strong>
-                    <button onClick={onClose} style={{ border: 'none', background: 'transparent', cursor: 'pointer', padding: 4 }} aria-label="Close details">
+                    <button type="button" className="app-icon-close" onClick={onClose} aria-label="Close details">
                         <XCircle size={18} />
                     </button>
                 </div>
@@ -303,7 +279,7 @@ const CoursesTable = () => {
                         value={selectedSem}
                         onChange={(e) => setSelectedSem(e.target.value)}
                     >
-                        {semOptions.map(sem => (
+                        {SEM_OPTIONS.map(sem => (
                             <option key={sem} value={sem}>{sem}</option>
                         ))}
                     </select>
@@ -334,22 +310,29 @@ const CoursesTable = () => {
                 minWidth={900}
                 className={styles['table-container']}
             >
-                {loading && <div>Loading...</div>}
+                {loading && <Spinner label="Loading course offerings…" />}
 
-                {/* DRAFT and APPROVED TABLE */}
-                {(selectedStatus === 'DRAFT' || selectedStatus === 'APPROVED') &&
+                {/* DRAFT and APPROVED TABLE.
+                    `!loading` matters: without it the spinner and an empty
+                    table are on screen together, which says two different
+                    things at once. */}
+                {!loading && (selectedStatus === 'DRAFT' || selectedStatus === 'APPROVED') &&
                     <table>
                         <thead>
                         <tr>
-                            <th width={200}>DATE ASSIGNED</th>
-                            <th width={150}>CODE</th>
-                            <th width={350}>COURSE NAME</th>
-                            {selectedStatus === 'APPROVED' && <th width={200}>DATE APPROVED</th>}
-                            <th className={styles.fill}></th>
+                            {columns.map(column => (
+                                <SortableTh
+                                    key={column.key}
+                                    col={column}
+                                    sortKey={sort.sortKey}
+                                    sortDir={sort.sortDir}
+                                    onSort={handleSort}
+                                />
+                            ))}
                         </tr>
                         </thead>
                         <tbody>
-                        {filteredRows.map((row, index) => (
+                        {sortedRows.map((row, index) => (
                             <tr key={index}>
                                 <td width={200}>{formatDate(row.date_assigned)}</td>
                                 <td width={150}>{getCode(row)}</td>
@@ -383,26 +366,31 @@ const CoursesTable = () => {
                                         }
                                     </div>
                                 </td>
-                                <td></td>
                             </tr>
                         ))}
+                        {sortedRows.length === 0 && emptyRow(selectedStatus === 'APPROVED' ? 5 : 4)}
                         </tbody>
                     </table>
                 }
 
                 {/* PENDING and RETURNED TABLE (Status column completely removed) */}
-                {(selectedStatus === 'PENDING' || selectedStatus === 'RETURNED') &&
+                {!loading && (selectedStatus === 'PENDING' || selectedStatus === 'RETURNED') &&
                     <table>
                         <thead>
                         <tr>
-                            <th width={200}>DATE ASSIGNED</th>
-                            <th width={150}>CODE</th>
-                            <th width={350}>COURSE NAME</th>
-                            <th className={styles.fill}></th>
+                            {columns.map(column => (
+                                <SortableTh
+                                    key={column.key}
+                                    col={column}
+                                    sortKey={sort.sortKey}
+                                    sortDir={sort.sortDir}
+                                    onSort={handleSort}
+                                />
+                            ))}
                         </tr>
                         </thead>
                         <tbody>
-                        {filteredRows.map((row, index) => {
+                        {sortedRows.map((row, index) => {
                             const overallStatus = computeOverallStatus(row);
                             return (
                                 <tr key={index}>
@@ -435,6 +423,7 @@ const CoursesTable = () => {
                                 </tr>
                             );
                         })}
+                        {sortedRows.length === 0 && emptyRow(4)}
                         </tbody>
                     </table>
                 }

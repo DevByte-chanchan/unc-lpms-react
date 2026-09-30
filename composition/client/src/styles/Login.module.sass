@@ -1,0 +1,378 @@
+// Sign in / create account.
+//
+// This screen was built with inline styles and drifted: labels and fields were
+// spaced by three different margins, the inputs did not share a height with
+// the rest of the app's controls, the logo and the title were centred against
+// each other by eye, and the demo chips wrapped 3-then-3 into a ragged block.
+// It is one stylesheet now, on styles/tokens.css, with a single vertical
+// rhythm: every field is the same distance from the next, and every control is
+// --control-h tall with the same radius and border as the buttons elsewhere.
+
+.page
+  min-height: 100vh
+  display: flex
+  align-items: center
+  justify-content: center
+  padding: var(--sp-6)
+  background: #f3f4f6
+  font-family: var(--font-ui)
+
+.card
+  width: 100%
+  max-width: 400px
+  background: var(--surface)
+  border: 1px solid var(--line)
+  border-radius: var(--radius-md)
+  box-shadow: var(--shadow-md)
+  padding: var(--sp-7)
+
+/* ------------------------------------------------------------- header --- */
+
+// The logo and the two-line title are centred against each other rather than
+// sharing a top edge, which is what made the header look tilted.
+.header
+  display: flex
+  align-items: center
+  gap: var(--sp-4)
+  padding-bottom: var(--sp-6)
+  margin-bottom: var(--sp-6)
+  border-bottom: 1px solid var(--line-soft)
+
+.logo
+  width: 42px
+  height: 42px
+  object-fit: contain
+  flex-shrink: 0
+
+.titles
+  min-width: 0
+
+.title
+  font-size: var(--fs-lg)
+  font-weight: var(--fw-semibold)
+  color: var(--primary)
+  line-height: 1.25
+
+.subtitle
+  font-size: var(--fs-xs)
+  color: var(--ink-muted)
+  margin-top: 2px
+
+/* -------------------------------------------------------------- fields --- */
+
+// One gap between every field, set once. Previously each label carried its own
+// margin-top and they did not agree.
+.form
+  display: flex
+  flex-direction: column
+  gap: var(--sp-5)
+
+.field
+  display: flex
+  flex-direction: column
+  gap: var(--sp-2)
+  min-width: 0
+
+.label
+  font-size: var(--fs-xs)
+  font-weight: var(--fw-semibold)
+  color: #4b5563
+
+// Label on the left, "Forgot password?" on the right, sharing the label's row
+// so the link costs no vertical space and the field rhythm is unchanged.
+.labelRow
+  display: flex
+  align-items: baseline
+  justify-content: space-between
+  gap: var(--sp-3)
+
+// A text link that is really a button — it changes the form's mode, it does
+// not navigate, so <a href="#"> would be a lie to a screen reader.
+.link
+  padding: 0
+  border: none
+  background: transparent
+  color: var(--accent)
+  font-family: inherit
+  font-size: var(--fs-2xs)
+  cursor: pointer
+
+  &:hover
+    text-decoration: underline
+
+  &:focus-visible
+    outline: 2px solid var(--accent)
+    outline-offset: 2px
+    border-radius: 2px
+
+.hint
+  font-size: var(--fs-2xs)
+  line-height: 1.5
+  color: var(--ink-faint)
+
+.control
+  width: 100%
+  box-sizing: border-box
+  height: var(--control-h)
+  padding: 0 var(--sp-4)
+  border: 1px solid #d5d9dd
+  border-radius: var(--radius-sm)
+  background: var(--surface)
+  font-family: inherit
+  font-size: var(--fs-md)
+  color: var(--ink)
+  outline: none
+  transition: border-color var(--t-fast), box-shadow var(--t-fast)
+
+  &::placeholder
+    color: var(--ink-faint)
+
+  // There was no focus style at all before — a keyboard user could not tell
+  // where they were.
+  &:focus
+    border-color: var(--accent)
+    box-shadow: 0 0 0 3px var(--accent-soft)
+
+  // The email carried into the reset step. Still readable and still focusable
+  // (so it can be copied), but visibly not a field you are meant to edit —
+  // changing it there would just fail the token check.
+  &[readonly]
+    background: var(--surface-sunken)
+    color: var(--ink-muted)
+    cursor: default
+
+// The native arrow sits wherever the browser puts it, which was not where the
+// password field's eye sits. Drawing our own chevron and positioning it on the
+// same axis puts the two controls' icons on one vertical line: the eye is
+// `right: 4px` in a 32px box, so its centre is 20px from the right edge — and
+// `right 12px center` on a 16px icon lands its centre at 12 + 8 = 20px too.
+select.control
+  cursor: pointer
+  appearance: none
+  -webkit-appearance: none
+  -moz-appearance: none
+  padding-right: 42px
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E")
+  background-repeat: no-repeat
+  background-position: right 12px center
+
+  // IE/Edge legacy: hide the built-in arrow so it cannot double up.
+  &::-ms-expand
+    display: none
+
+/* ------------------------------------------------------ password field --- */
+
+.passwordWrap
+  position: relative
+  display: flex
+
+.passwordWrap .control
+  padding-right: 42px
+
+// Centred on the input's midline rather than pinned a fixed distance from the
+// top, so it stays put if the control height ever changes.
+.peek
+  position: absolute
+  right: 4px
+  top: 50%
+  transform: translateY(-50%)
+  width: 32px
+  height: 32px
+  display: flex
+  align-items: center
+  justify-content: center
+  padding: 0
+  border: none
+  border-radius: var(--radius-sm)
+  background: transparent
+  color: var(--ink-muted)
+  cursor: pointer
+
+  &:hover
+    background: var(--surface-sunken)
+    color: var(--ink-soft)
+
+  &:focus-visible
+    outline: 2px solid var(--accent)
+    outline-offset: 1px
+
+/* ------------------------------------------------------------- actions --- */
+
+.submit
+  width: 100%
+  height: var(--control-h)
+  margin-top: var(--sp-1)
+  border: none
+  border-radius: var(--radius-sm)
+  background: var(--primary)
+  color: var(--primary-ink)
+  font-family: inherit
+  font-size: var(--fs-md)
+  font-weight: var(--fw-medium)
+  cursor: pointer
+  transition: background var(--t-fast)
+
+  &:hover:not(:disabled)
+    background: var(--primary-hover)
+
+  &:disabled
+    opacity: .65
+    cursor: wait
+
+.switch
+  width: 100%
+  margin-top: var(--sp-4)
+  padding: var(--sp-2)
+  background: transparent
+  border: none
+  border-radius: var(--radius-sm)
+  color: var(--accent)
+  font-family: inherit
+  font-size: var(--fs-sm)
+  cursor: pointer
+
+  &:hover
+    background: var(--accent-soft)
+
+// Same shape as .alert so the two never jump the layout when one replaces the
+// other — only the colour says which it is.
+.notice
+  display: flex
+  gap: var(--sp-2)
+  font-size: var(--fs-xs)
+  line-height: 1.45
+  color: var(--ink-soft)
+  background: var(--accent-soft)
+  border: 1px solid var(--accent-line)
+  border-radius: var(--radius-sm)
+  padding: var(--sp-3) var(--sp-4)
+
+.alert
+  display: flex
+  gap: var(--sp-2)
+  font-size: var(--fs-xs)
+  line-height: 1.45
+  color: var(--danger)
+  background: var(--danger-soft)
+  border: 1px solid var(--danger-line)
+  border-radius: var(--radius-sm)
+  padding: var(--sp-3) var(--sp-4)
+
+/* --------------------------------------------------------------- footer --- */
+
+.footer
+  margin-top: var(--sp-6)
+  padding-top: var(--sp-5)
+  border-top: 1px solid var(--line-soft)
+
+// A dot plus one line, instead of a two-line orange paragraph that shouted
+// louder than the form.
+.status
+  display: flex
+  align-items: flex-start
+  gap: var(--sp-2)
+  font-size: var(--fs-2xs)
+  line-height: 1.5
+  color: var(--ink-muted)
+  margin-bottom: var(--sp-4)
+
+.dot
+  width: 7px
+  height: 7px
+  border-radius: 50%
+  flex-shrink: 0
+  margin-top: 5px
+  background: var(--ink-faint)
+
+.online
+  background: var(--good)
+
+.offline
+  background: var(--warn)
+
+// Shown only when the backend is up but its accounts table is not. Two
+// commands, on their own lines, so they can be copied without picking them
+// out of a sentence.
+.setup
+  font-size: var(--fs-2xs)
+  line-height: 1.6
+  color: var(--ink-muted)
+  background: var(--surface-sunken)
+  border: 1px solid var(--line-soft)
+  border-radius: var(--radius-sm)
+  padding: var(--sp-3)
+  margin-bottom: var(--sp-4)
+
+  code
+    font-family: ui-monospace, monospace
+    color: var(--ink-soft)
+
+.cmd
+  display: block
+  margin-top: var(--sp-2)
+  padding: 4px var(--sp-2)
+  background: var(--surface)
+  border: 1px solid var(--line)
+  border-radius: 3px
+  // Wraps rather than scrolling out of sight: a command you cannot see the
+  // end of is a command you will mistype.
+  white-space: normal
+  word-break: break-word
+
+.demoLabel
+  font-size: var(--fs-2xs)
+  color: var(--ink-faint)
+  margin-bottom: var(--sp-3)
+
+  code
+    font-family: ui-monospace, monospace
+    color: var(--ink-muted)
+
+// A 2-column grid rather than flex-wrap: six chips land as three even rows
+// instead of wrapping into a ragged block.
+.demoGrid
+  display: grid
+  grid-template-columns: 1fr 1fr
+  gap: var(--sp-2)
+
+.demoChip
+  height: 30px
+  padding: 0 var(--sp-3)
+  border: 1px solid var(--line)
+  border-radius: var(--radius-sm)
+  background: var(--surface)
+  color: var(--ink-muted)
+  font-family: inherit
+  font-size: var(--fs-2xs)
+  cursor: pointer
+  white-space: nowrap
+  overflow: hidden
+  text-overflow: ellipsis
+  transition: background var(--t-fast), border-color var(--t-fast)
+
+  &:hover
+    background: var(--surface-muted)
+    border-color: #cbd5e1
+    color: var(--ink-soft)
+
+/* -------------------------------------------------------------- honeypot --- */
+
+// Off-screen, not display:none — some bots skip hidden inputs but fill
+// positioned ones. Never give this a visible box.
+.trap
+  position: absolute
+  left: -9999px
+  top: auto
+  width: 1px
+  height: 1px
+  overflow: hidden
+
+@media (max-width: 420px)
+  .page
+    padding: var(--sp-3)
+
+  .card
+    padding: var(--sp-6) var(--sp-5)
+
+  .demoGrid
+    grid-template-columns: 1fr

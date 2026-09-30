@@ -1,0 +1,98 @@
+<style>
+  .preview-grid { display:grid; grid-template-columns:minmax(0,1.8fr) minmax(280px,.72fr); gap:22px; margin-top:20px; align-items:start; }
+  .frame { border:1px solid #dce3e5; border-radius:18px; background:#f6f7f7; overflow:hidden; box-shadow:0 10px 30px rgba(22,45,53,.08); }
+  .frame-label { padding:10px 14px; background:#e9edef; color:#52636a; font:700 11px/1 system-ui; letter-spacing:.08em; }
+  .app { padding:20px; color:#172b31; font:13px/1.35 system-ui,sans-serif; }
+  .head { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; margin-bottom:16px; }
+  .head h3 { margin:0 0 3px; font-size:22px; }
+  .muted { color:#718087; }
+  .button { border:0; border-radius:9px; padding:10px 14px; background:#1b353b; color:#fff; font-weight:750; white-space:nowrap; }
+  .searchbar { display:flex; gap:8px; margin-bottom:12px; }
+  .search { flex:1; display:flex; align-items:center; gap:8px; min-width:0; border:1px solid #9eacb1; background:#fff; border-radius:10px; padding:10px 12px; color:#53666d; }
+  .search strong { color:#22383e; }
+  .filter { border:1px solid #aebbc0; background:#fff; border-radius:10px; padding:10px 13px; font-weight:700; white-space:nowrap; }
+  .filter em { font-style:normal; color:#fff; background:#e02d2d; border-radius:999px; padding:1px 6px; margin-left:4px; }
+  .chips { display:flex; gap:7px; overflow:hidden; margin-bottom:12px; }
+  .chip { border:1px solid #d4dde0; border-radius:999px; background:#fff; padding:6px 10px; white-space:nowrap; }
+  .chip.active { background:#e4f2ed; border-color:#76ab98; color:#155d47; font-weight:750; }
+  .result-head { display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:8px; }
+  .select { border:1px solid #d0d9dc; border-radius:8px; background:#fff; padding:7px 9px; }
+  .tablewrap { border:1px solid #d1dade; border-radius:10px; background:#fff; overflow:auto; }
+  .table { min-width:760px; }
+  .row { display:grid; grid-template-columns:72px minmax(190px,1.5fr) minmax(120px,1fr) 100px 72px 86px; gap:10px; align-items:center; min-height:48px; padding:0 12px; border-bottom:1px solid #e5eaec; }
+  .row:last-child { border-bottom:0; }
+  .row.header { min-height:38px; background:#e8ecee; font-size:11px; font-weight:800; }
+  .type { display:inline-block; border-radius:999px; padding:4px 7px; background:#e9f4ff; color:#245f88; width:max-content; }
+  .actions { display:flex; justify-content:flex-end; gap:4px; position:sticky; right:0; background:#fff; box-shadow:-8px 0 10px -10px #20353c; }
+  .iconbtn { border:1px solid #cad4d8; background:#fff; border-radius:7px; padding:6px 7px; color:#1c424a; }
+  .footer { display:flex; justify-content:space-between; gap:10px; align-items:center; margin-top:10px; color:#607178; }
+  .pages { display:flex; gap:5px; }
+  .page { border:1px solid #d2dbde; background:#fff; border-radius:7px; padding:5px 8px; }
+  .page.active { color:#fff; background:#1c363b; border-color:#1c363b; }
+  .phone .app { padding:14px; }
+  .phone .head { align-items:center; }
+  .phone .head h3 { font-size:19px; }
+  .phone .searchbar { display:grid; grid-template-columns:1fr auto; }
+  .phone .button .wide-label { display:none; }
+  .phone .chips { overflow-x:auto; padding-bottom:4px; }
+  .phone .tablewrap { scrollbar-color:#415b62 #e1e6e8; }
+  .phone .footer { align-items:flex-start; flex-direction:column; }
+  .scope { margin-top:20px; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+  .scope-card { padding:14px; border:1px solid #dbe2e5; border-radius:12px; background:#fff; }
+  .scope-card h4 { margin:0 0 7px; }
+  .scope-card ul { margin:0; padding-left:18px; color:#607178; }
+  .scope-card li { margin:5px 0; }
+  @media(max-width:950px) { .preview-grid { grid-template-columns:1fr; } }
+</style>
+
+<h2>Refined recommendation: Search-first reference workbench</h2>
+<p class="subtitle">Focused only on improvement 1: finding records quickly and handling everyday record actions. Bulk import and maintenance warnings stay for stages 2 and 3.</p>
+
+<div class="preview-grid">
+  <div class="frame">
+    <div class="frame-label">DESKTOP</div>
+    <div class="app">
+      <div class="head"><div><h3>Reference Library</h3><span class="muted">Find and maintain catalog records</span></div><button class="button">＋ Add Reference</button></div>
+      <div class="searchbar"><div class="search">⌕ <strong>Search</strong>&nbsp; title, author, reference ID, or ISBN…</div><button class="filter">☷ Filters <em>2</em></button></div>
+      <div class="chips"><span class="chip active">All references · 160</span><span class="chip">Active · 82</span><span class="chip">Archived · 78</span><span class="chip">Textbooks · 50</span><span class="chip">OER · 58</span><span class="chip">Online · 52</span></div>
+      <div class="result-head"><span><strong>160 references</strong> <span class="muted">· 2 filters applied</span></span><span class="select">Newest first⌄</span></div>
+      <div class="tablewrap">
+        <div class="table">
+          <div class="row header"><span>ID ↕</span><span>TITLE ↕</span><span>AUTHOR(S) ↕</span><span>TYPE ↕</span><span>YEAR ↕</span><span>ACTIONS</span></div>
+          <div class="row"><span>R-104</span><strong>Database Systems</strong><span>Connolly & Begg</span><span class="type">Textbook</span><span>2024</span><span class="actions"><button class="iconbtn">View</button><button class="iconbtn">•••</button></span></div>
+          <div class="row"><span>R-087</span><strong>Computer Networks</strong><span>A. Tanenbaum</span><span class="type">Textbook</span><span>2021</span><span class="actions"><button class="iconbtn">View</button><button class="iconbtn">•••</button></span></div>
+          <div class="row"><span>R-039</span><strong>Clean Architecture</strong><span>R. Martin</span><span class="type">E-book</span><span>2017</span><span class="actions"><button class="iconbtn">View</button><button class="iconbtn">•••</button></span></div>
+          <div class="row"><span>R-018</span><strong>Introduction to Algorithms</strong><span>Cormen et al.</span><span class="type">Textbook</span><span>2022</span><span class="actions"><button class="iconbtn">View</button><button class="iconbtn">•••</button></span></div>
+        </div>
+      </div>
+      <div class="footer"><span>Showing 1–25 of 160</span><span class="pages"><button class="page">‹</button><button class="page active">1</button><button class="page">2</button><button class="page">3</button><button class="page">›</button></span></div>
+    </div>
+  </div>
+
+  <div class="frame phone">
+    <div class="frame-label">SMALL SCREEN</div>
+    <div class="app">
+      <div class="head"><div><h3>Reference Library</h3><span class="muted">160 records</span></div><button class="button">＋ <span class="wide-label">Add</span></button></div>
+      <div class="searchbar"><div class="search">⌕ Search references…</div><button class="filter">☷ <em>2</em></button></div>
+      <div class="chips"><span class="chip active">All · 160</span><span class="chip">Active · 82</span><span class="chip">Archived · 78</span></div>
+      <div class="result-head"><strong>Results</strong><span class="select">Sort⌄</span></div>
+      <div class="tablewrap">
+        <div class="table">
+          <div class="row header"><span>ID ↕</span><span>TITLE ↕</span><span>AUTHOR(S) ↕</span><span>TYPE ↕</span><span>YEAR ↕</span><span>ACTIONS</span></div>
+          <div class="row"><span>R-104</span><strong>Database Systems</strong><span>Connolly & Begg</span><span class="type">Textbook</span><span>2024</span><span class="actions"><button class="iconbtn">View</button><button class="iconbtn">•••</button></span></div>
+          <div class="row"><span>R-087</span><strong>Computer Networks</strong><span>A. Tanenbaum</span><span class="type">Textbook</span><span>2021</span><span class="actions"><button class="iconbtn">View</button><button class="iconbtn">•••</button></span></div>
+        </div>
+      </div>
+      <div class="footer"><span>Swipe or use the bottom scrollbar to see every column. Actions stay visible.</span><span class="pages"><button class="page">‹</button><button class="page active">1</button><button class="page">2</button><button class="page">›</button></span></div>
+    </div>
+  </div>
+</div>
+
+<div class="scope">
+  <div class="scope-card"><h4>Included now</h4><ul><li>Instant search by title, author, ID, and ISBN</li><li>Department, type, year, and status filters</li><li>Quick-filter chips and result count</li><li>Compact sortable table with pagination</li><li>View, edit, and archive actions that remain reachable</li></ul></div>
+  <div class="scope-card"><h4>Behavior</h4><ul><li>Search and filters work together</li><li>Clear individual filters or reset all</li><li>Useful empty and loading states</li><li>Desktop remains compact</li><li>Small screens scroll horizontally without overlapping text</li></ul></div>
+</div>
+
+<div class="options" style="margin-top:18px">
+  <div class="option" data-choice="approve-v2" onclick="toggleSelect(this)"><div class="letter">✓</div><div class="content"><h3>Approve this design</h3><p>Use this as the implementation target for improvement 1.</p></div></div>
+</div>

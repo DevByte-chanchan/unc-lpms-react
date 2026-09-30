@@ -1,0 +1,238 @@
+// The self-checking textarea.
+//
+// THE ONE RULE IN THIS FILE: `.area` and `.backdrop` must render text
+// identically. Same font, same size, same line-height, same letter-spacing,
+// same padding, same border width, same whitespace handling, same box-sizing.
+// Every one of those shifts the text if it differs, and a highlight that is
+// one pixel out is worse than no highlight, because it points at the wrong
+// letter. The shared properties live in the %textbox placeholder below so they
+// physically cannot drift apart — do not move any of them into just one rule.
+
+%textbox
+  box-sizing: border-box
+  width: 100%
+  margin: 0
+  padding: var(--sp-3) var(--sp-4)
+  border: 1px solid #d5d9dd
+  border-radius: var(--radius-sm)
+  font-family: var(--font-ui)
+  font-size: var(--fs-md)
+  line-height: 1.55
+  letter-spacing: normal
+  // pre-wrap so runs of spaces and newlines occupy the same width in the
+  // backdrop as they do in the textarea.
+  white-space: pre-wrap
+  overflow-wrap: break-word
+  word-break: normal
+  tab-size: 4
+
+.wrap
+  position: relative
+  width: 100%
+
+.field
+  position: relative
+  display: block
+
+.backdrop
+  @extend %textbox
+  position: absolute
+  inset: 0
+  overflow: hidden
+  // Invisible: it exists to carry the marks, and the real text sits on top of
+  // it in the textarea. Transparent rather than hidden, because the marks are
+  // positioned by this text's layout.
+  color: transparent
+  background: var(--surface)
+  pointer-events: none
+  border-color: transparent
+
+.area
+  @extend %textbox
+  position: relative
+  display: block
+  resize: vertical
+  color: var(--ink)
+  // See-through, so the backdrop's marks read as underlines on this text.
+  background: transparent
+  outline: none
+  transition: border-color var(--t-fast), box-shadow var(--t-fast)
+
+  &::placeholder
+    color: var(--ink-faint)
+
+  &:focus
+    border-color: var(--accent)
+    box-shadow: 0 0 0 3px var(--accent-soft)
+
+  &:disabled
+    background: var(--surface-sunken)
+    cursor: not-allowed
+
+// The underline. `mark` defaults to a yellow block background, which would
+// cover the text — so the colour is thrown away and the mark becomes a line
+// under the word, the shape everybody already reads as "this is misspelled".
+.markSpelling,
+.markGrammar
+  color: transparent
+  background: transparent
+  border-radius: 2px
+  text-decoration-line: underline
+  text-decoration-style: wavy
+  text-decoration-thickness: 1px
+  text-underline-offset: 2px
+
+// Red for "this is not a word", amber for "this may be wrong" — the second is
+// a judgement call by the service and should not shout as loudly.
+.markSpelling
+  text-decoration-color: var(--danger)
+
+.markGrammar
+  text-decoration-color: var(--warn)
+
+/* ------------------------------------------------------------ the bar --- */
+
+.bar
+  display: flex
+  align-items: center
+  gap: var(--sp-3)
+  margin-top: var(--sp-2)
+  flex-wrap: wrap
+
+.count
+  display: inline-flex
+  align-items: center
+  gap: 5px
+  height: var(--control-h-sm)
+  padding: 0 var(--sp-2)
+  border: none
+  background: transparent
+  color: var(--danger)
+  font-family: inherit
+  font-size: var(--fs-2xs)
+  cursor: pointer
+  border-radius: var(--radius-sm)
+
+  &:hover
+    background: var(--danger-soft)
+
+.clean
+  color: var(--good)
+  cursor: default
+
+  &:hover
+    background: transparent
+
+.pending
+  color: var(--ink-faint)
+  cursor: default
+
+  &:hover
+    background: transparent
+
+.check
+  display: inline-flex
+  align-items: center
+  gap: 5px
+  height: var(--control-h-sm)
+  padding: 0 var(--sp-3)
+  border: 1px solid var(--line)
+  border-radius: var(--radius-sm)
+  background: var(--surface)
+  color: var(--ink-muted)
+  font-family: inherit
+  font-size: var(--fs-2xs)
+  cursor: pointer
+  transition: background var(--t-fast), border-color var(--t-fast)
+
+  &:hover:not(:disabled)
+    background: var(--surface-muted)
+    color: var(--ink-soft)
+
+  &:disabled
+    opacity: .55
+    cursor: not-allowed
+
+.credit
+  margin-left: auto
+  font-size: var(--fs-2xs)
+  color: var(--ink-faint)
+  text-decoration: none
+
+  &:hover
+    text-decoration: underline
+
+.notice
+  margin: var(--sp-2) 0 0
+  font-size: var(--fs-2xs)
+  line-height: 1.5
+  color: var(--ink-muted)
+
+/* -------------------------------------------------------- the popup --- */
+
+.popup
+  position: absolute
+  z-index: 30
+  min-width: 180px
+  max-width: 260px
+  padding: var(--sp-2)
+  background: var(--surface)
+  border: 1px solid var(--line)
+  border-radius: var(--radius-md)
+  box-shadow: var(--shadow-md)
+
+.popupHead
+  display: flex
+  align-items: flex-start
+  gap: var(--sp-2)
+  padding: 0 var(--sp-2) var(--sp-2)
+  margin-bottom: var(--sp-1)
+  border-bottom: 1px solid var(--line-soft)
+  font-size: var(--fs-2xs)
+  line-height: 1.4
+  color: var(--ink-muted)
+
+.popupClose
+  flex-shrink: 0
+  display: flex
+  align-items: center
+  justify-content: center
+  width: 18px
+  height: 18px
+  margin-left: auto
+  padding: 0
+  border: none
+  border-radius: 3px
+  background: transparent
+  color: var(--ink-faint)
+  cursor: pointer
+
+  &:hover
+    background: var(--surface-sunken)
+    color: var(--ink-soft)
+
+// The suggestions themselves: full-width rows, because a list of words you
+// click is a menu, and a menu you have to aim at is a bad menu.
+.suggestion
+  display: block
+  width: 100%
+  padding: 6px var(--sp-2)
+  border: none
+  border-radius: var(--radius-sm)
+  background: transparent
+  color: var(--ink)
+  font-family: inherit
+  font-size: var(--fs-sm)
+  text-align: left
+  cursor: pointer
+
+  &:hover,
+  &:focus-visible
+    background: var(--accent-soft)
+    color: var(--accent)
+    outline: none
+
+.popupEmpty
+  padding: 6px var(--sp-2)
+  font-size: var(--fs-2xs)
+  color: var(--ink-faint)

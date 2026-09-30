@@ -1,5 +1,8 @@
 import React from 'react'
 import { logError } from '../utils/auditLogger'
+import { planLazyImportRecovery } from '../utils/lazyImportRecovery'
+
+const LAZY_IMPORT_RECOVERY_KEY = 'lpms:lazy-import-recovery'
 
 class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -18,6 +21,22 @@ class ErrorBoundary extends React.Component {
     })
     if (this.props.onError) {
       this.props.onError(error, errorInfo)
+    }
+
+    // React.lazy caches a rejected import promise, so merely resetting the
+    // boundary cannot recover after Vite invalidates an HMR module URL or a
+    // deployment replaces a chunk. Reload once for that exact failed module;
+    // the stored signature prevents a persistent network failure from looping.
+    try {
+      const previousSignature = window.sessionStorage.getItem(LAZY_IMPORT_RECOVERY_KEY)
+      const recovery = planLazyImportRecovery(error, window.location.href, previousSignature)
+      if (recovery.shouldReload) {
+        window.sessionStorage.setItem(LAZY_IMPORT_RECOVERY_KEY, recovery.signature)
+        window.location.reload()
+      }
+    } catch {
+      // Storage can be unavailable in restricted browser modes. In that case
+      // retain the normal error screen and its explicit Reload Page action.
     }
   }
 

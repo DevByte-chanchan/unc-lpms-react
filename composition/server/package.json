@@ -18,11 +18,8 @@
     "react-feather": "^2.0.10",
     "react-router-dom": "^7.9.6",
     "sequelize": "^6.37.8",
-    "sqlite3": "^5.1.7",
+    "sqlite3": "^6.0.1",
     "umzug": "^3.8.2"
-  },
-  "optionalDependencies": {
-    "puppeteer": "^24.43.1"
   },
   "devDependencies": {
     "@eslint/js": "^9.36.0",
@@ -37,8 +34,13 @@
     "sass": "^1.93.2",
     "vite": "^7.1.7"
   },
+  "overrides": {
+    "sequelize": {
+      "uuid": "^11.1.1"
+    }
+  },
   "allowScripts": {
     "better-sqlite3@12.11.1": true,
-    "puppeteer@24.43.1": true
+    "sqlite3@6.0.1": true
   }
 }

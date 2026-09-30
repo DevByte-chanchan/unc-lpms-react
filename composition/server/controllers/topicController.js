@@ -83,6 +83,26 @@ async function assignTopicsToILO(req, res) {
         const ilo_id = Number(rawIloId);
         const finalTopicIds = [];
 
+        const suppliedTopicIds = topics
+            .map(topic => Number(topic?.topic_id))
+            .filter(Number.isFinite);
+        if (suppliedTopicIds.length > 0) {
+            const existingTopicMappings = await ILOTopic.findAll({
+                where: {
+                    topic_id: { [Op.in]: suppliedTopicIds }
+                },
+                transaction: t
+            });
+            const foreignOnlyTopic = suppliedTopicIds.find(topicId => {
+                const mappings = existingTopicMappings.filter(mapping => Number(mapping.topic_id) === topicId);
+                return mappings.length > 0 && !mappings.some(mapping => Number(mapping.ilo_id) === ilo_id);
+            });
+            if (foreignOnlyTopic) {
+                await t.rollback();
+                return res.status(403).json({ message: 'A selected topic belongs to another learning outcome.' });
+            }
+        }
+
         // 1. Process each topic (Create or Update)
         for (const topicData of topics) {
             let currentTopicId = topicData.topic_id ? Number(topicData.topic_id) : null;

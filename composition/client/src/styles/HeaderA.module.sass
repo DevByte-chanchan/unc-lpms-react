@@ -1,5 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap')
-
 .header
   width: 100%
   box-sizing: border-box
@@ -10,6 +8,8 @@
   flex-wrap: wrap
   gap: 12px
   padding: 10px 30px
+  color: var(--ink)
+  font-family: var(--font-ui)
 
 .department
   flex: 1 1 40px
@@ -26,30 +26,42 @@
   gap: 0
 
 .name
-  font-weight: 500
-  font-size: 16px
+  font-weight: var(--fw-semibold)
+  font-size: var(--fs-lg)
   max-width: 100%
   text-align: right
   overflow-wrap: anywhere
 
 .role
-  font-weight: 400
-  font-size: 16px
-  color: #DC2626
+  font-weight: var(--fw-normal)
+  font-size: var(--fs-md)
+  color: var(--danger)
   max-width: 100%
   text-align: right
   overflow-wrap: anywhere
 
 .signOut
   flex: 0 0 auto
+  min-height: 0
   padding: 4px 10px
+  border: 1px solid var(--line)
+  border-radius: var(--radius-md)
+  color: var(--ink-soft)
+  background: var(--surface)
   font-size: 12px
-  border: 1px solid #d5d9dd
-  background: transparent
-  color: inherit
+
+  &:hover
+    border-color: var(--ink-faint)
+    color: var(--ink)
+    background: var(--surface-muted)
+
+  &:focus-visible
+    outline: 3px solid rgba(37, 99, 235, 0.28)
+    outline-offset: 2px
 
 @media (max-width: 720px)
   .header
+    min-height: 58px
     padding: 8px 12px
 
   .department
@@ -61,4 +73,4 @@
 
   .name, .role
     text-align: left
-    font-size: 14px
+    font-size: var(--fs-md)

@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { ChevronRight, Upload, Edit3, Check, X } from 'react-feather';
+import { useState, useEffect, useMemo } from 'react';
+import { ChevronRight, Edit3, Check, X } from 'react-feather';
 import SkeletonA from '../../../layouts/SkeletonA.jsx';
 import HeaderA from '../../../components/HeaderA.jsx';
 import SideNavigation from '../../../components/SideNavigation.jsx';
@@ -13,15 +13,6 @@ import pageStyles from '../../../styles/ProgramHeadWorkspace.module.sass';
 
 const GAS_LABELS = ['EC', 'CL', 'ERC', 'LL']
 
-/* ── app design tokens: matches syllabus tables + existing buttons ── */
-const FONT = "'Poppins', sans-serif"
-export const BTN_DARK = { display: 'flex', alignItems: 'center', gap: 6, padding: '10px 20px', height: 40, background: '#19282C', borderRadius: 6, color: '#fff', border: 'none', cursor: 'pointer', fontSize: 14, fontWeight: 500, fontFamily: FONT }
-export const BTN_OUTLINE = { display: 'flex', alignItems: 'center', gap: 6, padding: '10px 20px', height: 40, background: 'transparent', borderRadius: 6, color: '#000', border: '1px solid #A4A9AF', cursor: 'pointer', fontSize: 14, fontWeight: 500, fontFamily: FONT }
-const TH = { border: '1px solid #000', padding: '8px 10px', background: '#fff', fontWeight: 700, fontSize: 13, fontFamily: FONT, textAlign: 'left' }
-const THC = { ...TH, textAlign: 'center' }
-const TD = { border: '1px solid #000', padding: '8px 10px', fontSize: 13, fontFamily: FONT }
-const TDC = { ...TD, textAlign: 'center' }
-
 const PoPeoAlignment = () => {
   const [programCode, setProgramCode] = useState('')
   const [data, setData] = useState(null)
@@ -29,11 +20,11 @@ const PoPeoAlignment = () => {
   const [editing, setEditing] = useState(false)
   const [editRows, setEditRows] = useState([])
 
-  const programs = getAllPrograms()
+  const programs = useMemo(() => getAllPrograms(), [])
 
   useEffect(() => {
     if (!programCode && programs.length > 0) setProgramCode(programs[0])
-  }, [programs])
+  }, [programs, programCode])
 
   useEffect(() => {
     if (programCode) {
@@ -84,23 +75,38 @@ const PoPeoAlignment = () => {
   const content = (
     <div className={pageStyles.page}>
       <div className={pageStyles.toolbar}>
-        <h2>PROGRAM OUTCOMES &amp; PEO ALIGNMENT</h2>
+        <div className={pageStyles.titleBlock}>
+          <h2>PROGRAM OUTCOMES &amp; PEO ALIGNMENT</h2>
+          <p className={pageStyles.pageSubtitle}>Review and maintain Program Outcome mappings for the selected program.</p>
+        </div>
+        <label className={pageStyles.controlGroup}>
+          <span className={pageStyles.controlLabel}>Program</span>
+          <select
+            className={pageStyles.courseSelect}
+            value={programCode}
+            onChange={event => setProgramCode(event.target.value)}
+            disabled={editing}
+            aria-label="Select program"
+          >
+            {programs.map(program => <option key={program} value={program}>{program} — {getProgramName(program)}</option>)}
+          </select>
+        </label>
         <div className={pageStyles.actions}>
           {!editing ? (
             <>
-              <button onClick={() => setEditing(true)} style={BTN_OUTLINE}>
+              <button type="button" className={pageStyles.secondaryButton} onClick={() => setEditing(true)}>
                 <Edit3 size={16} /> Edit Alignment
               </button>
-              <button onClick={handleView} style={BTN_DARK}>
+              <button type="button" className={pageStyles.primaryButton} onClick={handleView}>
                 <ChevronRight size={16} /> View
               </button>
             </>
           ) : (
             <>
-              <button onClick={handleCancel} style={BTN_OUTLINE}>
+              <button type="button" className={pageStyles.secondaryButton} onClick={handleCancel}>
                 <X size={16} /> Cancel
               </button>
-              <button onClick={handleSave} style={BTN_DARK}>
+              <button type="button" className={pageStyles.primaryButton} onClick={handleSave}>
                 <Check size={16} /> Save
               </button>
             </>
@@ -108,7 +114,12 @@ const PoPeoAlignment = () => {
         </div>
       </div>
 
-      <TableScrollRegion label="PROGRAM OUTCOMES & PEO ALIGNMENT" minWidth={960}>
+      <div className={pageStyles.contextBar}>
+        <span><strong>Program:</strong> {programCode} — {getProgramName(programCode)}</span>
+        <span className={pageStyles.contextMuted}>{editing ? 'Save or cancel these changes before switching programs.' : 'Program-level alignment master data.'}</span>
+      </div>
+
+      <TableScrollRegion label="PROGRAM OUTCOMES & PEO ALIGNMENT" minWidth={960} className={pageStyles.tableRegion}>
         <table className={tbl.alignTable}>
           <colgroup>
             <col style={{ width: 40 }} />

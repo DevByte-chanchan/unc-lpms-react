@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Maximize, Minimize2 } from 'react-feather';
 import TextField from './TextField.jsx';
+import AutoCorrectButton from './AutoCorrectButton.jsx';
 import DropdownA from './DropdownA.jsx';
 import DropdownMultiSelect from './DropdownMultiSelect.jsx';
 import { addReference, updateReference } from '../utils/referenceLibrary.js';
@@ -159,11 +160,7 @@ const AddReferenceModal = ({ show, onClose, refToEdit = null, onSaved, onError }
               onMouseLeave={e => { e.currentTarget.style.background = '#fff'; }}>
               {isFullscreen ? <Minimize2 size={16} color="#6b7280" /> : <Maximize size={16} color="#6b7280" />}
             </button>
-            <button type="button" onClick={onClose} aria-label="Close"
-              style={{ ...headerBtn, background: '#E81123', color: '#fff', border: '1px solid #E81123',
-                transition: 'background 0.15s ease, border-color 0.15s ease' }}
-              onMouseEnter={e => { e.currentTarget.style.background = '#B91C1C'; e.currentTarget.style.borderColor = '#B91C1C'; }}
-              onMouseLeave={e => { e.currentTarget.style.background = '#E81123'; e.currentTarget.style.borderColor = '#E81123'; }}>
+            <button type="button" className="app-icon-close" onClick={onClose} aria-label="Close">
               <X size={16} strokeWidth={2.5} color="currentColor" />
             </button>
           </div>
@@ -174,8 +171,10 @@ const AddReferenceModal = ({ show, onClose, refToEdit = null, onSaved, onError }
             initialValue={formData.type} onChange={val => handleChange('type', val)} error={errors.type} style={{ padding: 0 }} />
           <div style={{ height: 16 }} />
           <TextField label="Reference Title" value={formData.title} onChange={val => handleChange('title', val)} error={errors.title} style={{ padding: 0 }} />
+          <AutoCorrectButton value={formData.title} onChange={next => handleChange('title', next)} label="Check title" compact />
           <div style={{ height: 16 }} />
           <TextField label="Author(s)" value={formData.authors} onChange={val => handleChange('authors', val)} error={errors.authors} style={{ padding: 0 }} />
+          <AutoCorrectButton value={formData.authors} onChange={next => handleChange('authors', next)} label="Check author names" compact />
           <div style={{ height: 16 }} />
           {formData.type === 'Textbook' && (<><TextField label="ISBN" value={formData.isbn} onChange={val => handleChange('isbn', val)} error={errors.isbn} style={{ padding: 0 }} /><div style={{ height: 16 }} /></>)}
           {(formData.type === 'Textbook' || formData.type === 'Open Educational Resources') && (<><TextField label="Publication Year" value={formData.year} onChange={val => handleChange('year', val)} error={errors.year} placeholder="YYYY" style={{ padding: 0 }} /><div style={{ height: 16 }} /></>)}

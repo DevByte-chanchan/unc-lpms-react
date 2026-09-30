@@ -15,7 +15,7 @@ module.exports = {
                 onDelete: 'CASCADE'
             },
             stakeholder_id: {
-                type: Sequelize.STRING(20),
+                type: Sequelize.INTEGER,
                 allowNull: true
             },
             date_assigned: { type: Sequelize.DATE, allowNull: true },

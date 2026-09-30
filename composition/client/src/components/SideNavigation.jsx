@@ -1,10 +1,27 @@
 import styles from '../styles/SideNavigation.module.sass'
 import unclogo from '../assets/unclogo.png'
-import { FileText, LogOut, BookOpen, Upload } from 'react-feather'
+import { BookOpen, CheckCircle, FileText, GitMerge, Layers, LogOut, Target, UploadCloud } from 'react-feather'
 import { useSearchParams, useNavigate, useLocation } from 'react-router-dom'
 import { useEffect, useRef, useState } from 'react'
 import { logout } from '../utils/session'
 import { routes } from '../utils/routes.js';
+import SignOutDialog from './SignOutDialog.jsx'
+import { navigationIconName } from '../utils/navigationIcons.js'
+
+const NAVIGATION_ICON_COMPONENTS = {
+    BookOpen,
+    CheckCircle,
+    FileText,
+    GitMerge,
+    Layers,
+    Target,
+    UploadCloud,
+}
+
+const NavigationIcon = ({ label }) => {
+    const Icon = NAVIGATION_ICON_COMPONENTS[navigationIconName(label)] || FileText
+    return <Icon size={24} />
+}
 
 const SideNavigation = ({ mode = 'instructor' }) => {
     const navigate = useNavigate()
@@ -20,7 +37,7 @@ const SideNavigation = ({ mode = 'instructor' }) => {
     }
 
     // LPSM Program Head upload pages
-    if (location.pathname.startsWith('/role/program-head/upload-documents')) {
+    if (location.pathname.startsWith(routes.coaepUpload())) {
         selected = 'COAEP';
     }
     if (location.pathname.startsWith('/role/program-head/co-po-alignment')) {
@@ -37,7 +54,7 @@ const SideNavigation = ({ mode = 'instructor' }) => {
         location.pathname.startsWith('/role/director-of-libraries/edit-reference')) {
         selected = 'Reference Library';
     }
-    if (location.pathname.startsWith('/role/director-of-libraries/upload-documents')) {
+    if (location.pathname.startsWith(routes.referenceLibrary())) {
         selected = 'Upload Documents';
     }
     if (location.pathname.startsWith('/role/director-of-libraries/course-catalog')) {
@@ -46,7 +63,6 @@ const SideNavigation = ({ mode = 'instructor' }) => {
 
     const [showPopup, setShowPopup] = useState(false)
     const [isExpanded, setIsExpanded] = useState(false)
-    const logoutRef = useRef(null)
     const navRef = useRef(null)
     const [pinned, setPinned] = useState(false)
 
@@ -63,7 +79,7 @@ const SideNavigation = ({ mode = 'instructor' }) => {
         }
     }
 
-    const onLogoutClick = () => setShowPopup((prev) => !prev)
+    const onLogoutClick = () => setShowPopup(true)
     const activateWithKeyboard = (event, action) => {
         if (event.key === 'Enter' || event.key === ' ') {
             event.preventDefault()
@@ -81,37 +97,25 @@ const SideNavigation = ({ mode = 'instructor' }) => {
         navigate('/', { replace: true })
     }
 
-    // --- POPUP & RESIZE LOGIC ---
     useEffect(() => {
-        const handler = (e) => {
-            if (!showPopup) return
-            if (logoutRef.current && !logoutRef.current.contains(e.target)) setShowPopup(false)
-        }
-        document.addEventListener('mousedown', handler)
-        return () => document.removeEventListener('mousedown', handler)
-    }, [showPopup])
-
-    useEffect(() => {
-        if (showPopup) setShowPopup(false)
+        setShowPopup(false)
     }, [selected])
 
     useEffect(() => {
-        if (!navRef.current) return
+        const navElement = navRef.current
+        if (!navElement) return
         let ro
         try {
             ro = new ResizeObserver((entries) => {
                 for (const entry of entries) {
                     const w = entry.contentRect.width
                     setIsExpanded(w > 120)
-                    if (w < 100 && showPopup) {
-                        setShowPopup(false)
-                    }
                 }
             })
-            ro.observe(navRef.current)
+            ro.observe(navElement)
         } catch (e) { console.warn('ResizeObserver failed', e) }
-        return () => { if (ro && navRef.current) ro.disconnect() }
-    }, [showPopup])
+        return () => { if (ro) ro.disconnect() }
+    }, [])
 
     useEffect(() => {
         const el = navRef.current
@@ -175,7 +179,7 @@ const SideNavigation = ({ mode = 'instructor' }) => {
                         aria-label="Learning Plan"
                         onKeyDown={(event) => activateWithKeyboard(event, () => handlePageChange('Syllabus'))}
                     >
-                        <FileText size={24} />
+                        <NavigationIcon label="Learning Plan" />
                         <span className={styles.listText}>Learning Plan</span>
                     </div>
                 )}
@@ -185,15 +189,15 @@ const SideNavigation = ({ mode = 'instructor' }) => {
                 {mode === 'program-head' && (
                     <>
                         <div onClick={() => { navigate('/role/program-head/co-po-alignment') }} className={`${styles.list} ${selected === 'CO & PO Alignment' ? styles.selected : ''}`} role="link" tabIndex={0} title="CO & PO Alignment" aria-label="CO & PO Alignment" onKeyDown={(event) => activateWithKeyboard(event, () => navigate('/role/program-head/co-po-alignment'))}>
-                            <FileText size={24} /> <span className={styles.listText}>CO & PO Alignment</span>
+                            <NavigationIcon label="CO & PO Alignment" /> <span className={styles.listText}>CO & PO Alignment</span>
                         </div>
 
                         <div onClick={() => { navigate('/role/program-head/po-peo-alignment') }} className={`${styles.list} ${selected === 'PO & PEO Alignment' ? styles.selected : ''}`} role="link" tabIndex={0} title="PO & PEO Alignment" aria-label="PO & PEO Alignment" onKeyDown={(event) => activateWithKeyboard(event, () => navigate('/role/program-head/po-peo-alignment'))}>
-                            <FileText size={24} /> <span className={styles.listText}>PO & PEO Alignment</span>
+                            <NavigationIcon label="PO & PEO Alignment" /> <span className={styles.listText}>PO & PEO Alignment</span>
                         </div>
 
                         <div onClick={() => { navigate('/role/program-head/upload-documents') }} className={`${styles.list} ${selected === 'COAEP' ? styles.selected : ''}`} role="link" tabIndex={0} title="COAEP" aria-label="COAEP" onKeyDown={(event) => activateWithKeyboard(event, () => navigate('/role/program-head/upload-documents'))}>
-                            <FileText size={24} /> <span className={styles.listText}>COAEP</span>
+                            <NavigationIcon label="COAEP" /> <span className={styles.listText}>COAEP</span>
                         </div>
                     </>
                 )}
@@ -201,10 +205,10 @@ const SideNavigation = ({ mode = 'instructor' }) => {
                 {mode === 'director-of-libraries' && (
                     <>
                         <div onClick={() => { navigate('/role/director-of-libraries/reference-library') }} className={`${styles.list} ${selected === 'Reference Library' ? styles.selected : ''}`} role="link" tabIndex={0} title="Reference Library" aria-label="Reference Library" onKeyDown={(event) => activateWithKeyboard(event, () => navigate('/role/director-of-libraries/reference-library'))}>
-                            <BookOpen size={24} /> <span className={styles.listText}>Reference Library</span>
+                            <NavigationIcon label="Reference Library" /> <span className={styles.listText}>Reference Library</span>
                         </div>
                         <div onClick={() => { navigate('/role/director-of-libraries/course-catalog') }} className={`${styles.list} ${selected === 'Course Catalog' ? styles.selected : ''}`} role="link" tabIndex={0} title="Course Catalog" aria-label="Course Catalog" onKeyDown={(event) => activateWithKeyboard(event, () => navigate('/role/director-of-libraries/course-catalog'))}>
-                            <Upload size={24} /> <span className={styles.listText}>Course Catalog</span>
+                            <NavigationIcon label="Course Catalog" /> <span className={styles.listText}>Course Catalog</span>
                         </div>
                     </>
                 )}
@@ -214,24 +218,22 @@ const SideNavigation = ({ mode = 'instructor' }) => {
                 {mode === 'vpaa' && (
                     <>
                         <div onClick={() => { navigate('/role/vpaa?page=Approved%20Plans') }} className={`${styles.list} ${selected === 'Approved Plans' ? styles.selected : ''}`} role="link" tabIndex={0} title="Approved Plans" aria-label="Approved Plans" onKeyDown={(event) => activateWithKeyboard(event, () => navigate('/role/vpaa?page=Approved%20Plans'))}>
-                            <FileText size={24} /> <span className={styles.listText}>Approved Plans</span>
+                            <NavigationIcon label="Approved Plans" /> <span className={styles.listText}>Approved Plans</span>
                         </div>
                     </>
                 )}
 
-                <div className={styles.logoutWrapper} ref={logoutRef}>
+                <div className={styles.logoutWrapper}>
                     <div className={styles.listB} onClick={onLogoutClick} role="button" tabIndex={0} title="Log out" aria-label="Log out" onKeyDown={(event) => activateWithKeyboard(event, onLogoutClick)}>
                         <LogOut size={24} color={'#F94545'} /> <span className={styles.listText}>Log Out</span>
                     </div>
-
-                    {showPopup && (
-                        <div className={styles.rolePopup}>
-                            <div className={styles.popupTitle}>Sign out?</div>
-                            <button className={styles.popupItem} onClick={confirmLogout}>Yes, sign out</button>
-                            <button className={styles.popupItem} onClick={() => setShowPopup(false)}>Cancel</button>
-                        </div>
-                    )}
                 </div>
+
+                <SignOutDialog
+                    open={showPopup}
+                    onConfirm={confirmLogout}
+                    onCancel={() => setShowPopup(false)}
+                />
             </div>
         </div>
     )

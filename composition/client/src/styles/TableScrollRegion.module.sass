@@ -4,16 +4,50 @@
   flex: 1
   min-width: 0
   min-height: 0
-  overflow-x: auto
+  // Consumer style hooks are attached to this same element. Some legacy
+  // hooks still say overflow-x: hidden, so the shared table contract must win.
+  overflow-x: auto !important
   overflow-y: auto
   overscroll-behavior-inline: contain
   scrollbar-gutter: stable
+  scrollbar-width: thin
+  scrollbar-color: #5f6f78 #e5e9ec
   -webkit-overflow-scrolling: touch
+
+  &::-webkit-scrollbar
+    width: 7px
+    height: 7px
+
+  &::-webkit-scrollbar-track
+    background: #e5e9ec
+    border-radius: 999px
+
+  &::-webkit-scrollbar-thumb
+    min-width: 44px
+    background: #5f6f78
+    border: 1px solid #e5e9ec
+    border-radius: 999px
+
+  &::-webkit-scrollbar-thumb:hover
+    background: #34454f
 
   &:focus-visible
     outline: 2px solid #2563eb
     outline-offset: 2px
 
 .canvas
+  display: flex
+  flex-direction: column
   width: 100%
   min-height: 100%
+
+// Let the table measure itself against this region instead of against the
+// browser viewport. The direct-child scope keeps this contract away from
+// nested data tables inside forms and modals.
+.canvas > :global(table)
+  width: 100%
+  min-height: 100%
+
+.canvas > :global(table) > :global(tbody)
+  flex: 1 1 auto
+  min-height: 0

@@ -2,13 +2,14 @@ import React from "react";
 import Skeleton from "../layouts/SkeletonA.jsx";
 import Header from "../components/HeaderA.jsx";
 import SideNavigation from "../components/SideNavigation.jsx";
-import { Clock, Search, ArrowUp, ArrowDown, Upload, Sliders, Clipboard, Briefcase, ChevronRight, X } from "react-feather";
+import { Search, ArrowUp, ArrowDown, Upload, Clipboard, ChevronRight, X } from "react-feather";
 import ConsultantsTable from '../components/ConsultantsTable.jsx'
 import styles from '../styles/CoursesTable.module.sass'
 import TableScrollRegion from '../components/TableScrollRegion.jsx'
 
 import syllabusStyles from '../styles/SyllabusSections.module.sass'
 import pageStyles from '../styles/ProgramHeadWorkspace.module.sass'
+import { getVisibleCourseOfferings } from '../utils/courseOfferingView.js'
 
 const UploadButton = ({ onClick }) => (
     <button
@@ -25,6 +26,7 @@ const UploadButton = ({ onClick }) => (
 const ProgramHeadCourseOfferings = () => {
     const [showModal, setShowModal] = React.useState(false);
     const [sortOpen, setSortOpen] = React.useState(false);
+    const [sortOrder, setSortOrder] = React.useState('title-asc');
     const [showTable, setShowTable] = React.useState(false);
     const [assignOpen, setAssignOpen] = React.useState(false);
     const [detailsOpen, setDetailsOpen] = React.useState(false);
@@ -36,20 +38,6 @@ const ProgramHeadCourseOfferings = () => {
     const [coursesList, setCoursesList] = React.useState([]);
     const [selectedYearFilter, setSelectedYearFilter] = React.useState(null);
     const fileInputRef = React.useRef(null);
-    const programName = 'Bachelor of Science in Information Technology';
-    const consultant = { name: 'Dennis Ignacio', department: 'School of Computer and Information Sciences' };
-    const courses = [
-        'BSCS313L – Human & Computer Interaction',
-        'BSCS111L – Fundamentals of Programming',
-        'BSIT212L - Mobile Application Development',
-        'BSIT213L - Database Management Systems',
-        'BSIT214L - Software Development Life Cycle',
-        'BSIT215L - Systems Analysis and Design',
-        'BSIT216L - Network Administration',
-        'BSIT217L - Cybersecurity Fundamentals',
-        'BSIT218L - Cloud Technologies',
-        'BSIT219L - Data Analytics',
-    ];
     const initialConsultants = [];
     const seededConsultants = [
         { name: 'Maria Santos' },
@@ -80,13 +68,23 @@ const ProgramHeadCourseOfferings = () => {
         { code: 'BSIT213L', title: 'Database Management Systems', year: 'Second Year', instructor: 'Prof. L. Garcia' },
         { code: 'BSIT217L', title: 'Cybersecurity Fundamentals', year: 'Third Year', instructor: 'Dr. R. Bautista' } 
     ];
-    const [consultants, setConsultants] = React.useState(initialConsultants);
-    const [selectedConsultant, setSelectedConsultant] = React.useState(null);
-
+    const [, setConsultants] = React.useState(initialConsultants);
+    const visibleCourses = getVisibleCourseOfferings(coursesList, {
+        query: searchQuery,
+        yearLevel: selectedYearFilter,
+        sortOrder,
+    });
+    const clearFilters = () => {
+        setSearchQuery('');
+        setSelectedYearFilter(null);
+    };
     const pageContent = (
         <div className={pageStyles.managementPage}>
             <div className={pageStyles.pageHeader}>
-                <h2>Course Offerings</h2>
+                <div className={pageStyles.titleBlock}>
+                    <h2>Course Offerings</h2>
+                    <p className={pageStyles.pageSubtitle}>Browse and manage the courses for the current offering.</p>
+                </div>
                 <div className={pageStyles.pageHeaderActions}>
                     <UploadButton onClick={() => setShowModal(true)} />
                 </div>
@@ -95,36 +93,26 @@ const ProgramHeadCourseOfferings = () => {
             {showTable && coursesList.length > 0 && (
                 <div className={`${syllabusStyles.header} ${pageStyles.dataToolbar}`}>
                     <div className={pageStyles.toolbarSort}>
-                        <div style={{ position: 'relative' }}>
+                        <div className={pageStyles.sortControl}>
                             <button
-                                style={{
-                                    width: 120, height: 40,
-                                    display: 'flex', flexDirection: 'row', justifyContent: 'center', alignItems: 'center',
-                                    padding: '8px 12px', gap: 2,
-                                    background: 'transparent', border: '1px solid #D1D5DB', borderRadius: 9999,
-                                    color: '#595959', cursor: 'pointer', fontSize: 14, fontWeight: 600
-                                }}
+                                type="button"
+                                className={pageStyles.sortButton}
                                 onClick={() => setSortOpen((v) => !v)}
+                                aria-expanded={sortOpen}
+                                aria-controls="course-offering-sort-options"
                             >
-                                <span style={{ display: 'inline-flex', alignItems: 'center', marginRight: 6 }}>
-                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                        <path d="M8 17V5" stroke="#595959" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                                        <path d="M5 8l3-3 3 3" stroke="#595959" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                                        <path d="M16 7v12" stroke="#595959" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                                        <path d="M13 16l3 3 3-3" stroke="#595959" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                                    </svg>
-                                </span>
-                                <span>Sort</span>
+                                {sortOrder === 'title-asc' ? <ArrowUp size={16} /> : <ArrowDown size={16} />}
+                                <span>Title: {sortOrder === 'title-asc' ? 'A to Z' : 'Z to A'}</span>
                             </button>
                             {sortOpen && (
-                                <div style={{ position: 'absolute', top: '110%', left: 0, background: '#FFFFFF', border: '1px solid #D1D5DB', borderRadius: 6, boxShadow: '0 8px 24px rgba(0,0,0,0.12)', width: 120, padding: 8, zIndex: 5 }}>
-                                    <button onClick={() => setSortOpen(false)} style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', background: 'transparent', border: 'none', cursor: 'pointer', padding: '8px 10px', borderRadius: 6, color: '#111827' }}>
-                                        <ArrowUp size={16} color="#374151" />
-                                        <span style={{ fontSize: 14 }}>A to Z</span>
+                                <div id="course-offering-sort-options" className={pageStyles.sortMenu} aria-label="Sort courses by title">
+                                    <button type="button" aria-pressed={sortOrder === 'title-asc'} onClick={() => { setSortOrder('title-asc'); setSortOpen(false); }}>
+                                        <ArrowUp size={16} />
+                                        <span>Title: A to Z</span>
                                     </button>
-                                    <button onClick={() => setSortOpen(false)} style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', background: 'transparent', border: 'none', cursor: 'pointer', padding: '8px 10px', borderRadius: 6, color: '#111827' }}>
-                                        <ArrowDown size={16} color="#374151" />
-                                        <span style={{ fontSize: 14 }}>Z to A</span>
+                                    <button type="button" aria-pressed={sortOrder === 'title-desc'} onClick={() => { setSortOrder('title-desc'); setSortOpen(false); }}>
+                                        <ArrowDown size={16} />
+                                        <span>Title: Z to A</span>
                                     </button>
                                 </div>
                             )}
@@ -143,18 +131,17 @@ const ProgramHeadCourseOfferings = () => {
                         </div>
                         <div className={`${syllabusStyles['section-select']} ${pageStyles.searchShell}`}>
                             <Search size={16} style={{ marginRight: 8, color: '#374151' }} />
-                            <input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search courses" className={pageStyles.searchInput} />
+                            <input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search courses" aria-label="Search course offerings by code, title, or instructor" className={pageStyles.searchInput} />
+                            {searchQuery && <button type="button" className={pageStyles.searchClear} onClick={() => setSearchQuery('')} aria-label="Clear course search"><X size={15} /></button>}
                         </div>
                     </div>
                 </div>
             )}
 
             {showTable && coursesList.length > 0 && (
-                <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, opacity: 0.4 }}>
-                        <Clock size={16} color="#374151" />
-                        <span style={{ fontSize: 13, color: '#374151', fontWeight: 500 }}>Current Period: 1st Semester 2026-2027</span>
-                    </div>
+                <div className={pageStyles.resultsSummary} role="status" aria-live="polite">
+                    Showing {visibleCourses.length} of {coursesList.length} course offerings
+                    {(searchQuery || selectedYearFilter) && <button type="button" onClick={clearFilters}>Clear filters</button>}
                 </div>
             )}
 
@@ -175,10 +162,7 @@ const ProgramHeadCourseOfferings = () => {
                             </tr>
                         </thead>
                         <tbody>
-                            {coursesList.filter(r => (
-                                (!searchQuery || r.code.toLowerCase().includes(searchQuery.toLowerCase()) || r.title.toLowerCase().includes(searchQuery.toLowerCase()) || r.instructor.toLowerCase().includes(searchQuery.toLowerCase())) &&
-                                (!selectedYearFilter || r.year === selectedYearFilter)
-                            )).map((row, idx) => (
+                            {visibleCourses.map((row, idx) => (
                                 <tr key={idx}>
                                     <td width={120}>{row.code}</td>
                                     <td width={350}>{row.title}</td>
@@ -192,6 +176,9 @@ const ProgramHeadCourseOfferings = () => {
                                     </td>
                                 </tr>
                             ))}
+                            {visibleCourses.length === 0 && (
+                                <tr><td colSpan={5} className={pageStyles.noResults}>No course offerings match your search or filters. <button type="button" onClick={clearFilters}>Clear filters</button></td></tr>
+                            )}
                         </tbody>
                     </table>
                 </TableScrollRegion>
@@ -204,7 +191,8 @@ const ProgramHeadCourseOfferings = () => {
                         <Clipboard size={40} color="#9CA3AF" />
                     </div>
                     <div style={{ fontSize: 18, fontWeight: 600, color: '#111827' }}>No courses yet</div>
-                    <div style={{ color: '#6B7280', textAlign: 'center', maxWidth: 420 }}>You don't have any courses uploaded. Upload a course list or add one to get started.</div>
+                    <div style={{ color: '#6B7280', textAlign: 'center', maxWidth: 420 }}>Upload a course list to get started.</div>
+                    <button type="button" className={pageStyles.secondaryButton} onClick={() => setShowModal(true)}>Choose a file</button>
                 </div>
             )}
 
@@ -212,14 +200,22 @@ const ProgramHeadCourseOfferings = () => {
                 <div>
                     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.35)', zIndex: 2 }} onClick={() => setShowModal(false)} />
                     <div
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="course-offering-upload-title"
                         className={`${pageStyles.managementDialog} ${pageStyles.dialogWide}`}
                     >
                         <div className={pageStyles.dialogHeader}>
-                            <div style={{ fontSize: 20, fontWeight: 600 }}>Upload Course Offerings</div>
+                            <h2 id="course-offering-upload-title" className={pageStyles.dialogTitle}>Upload Course Offerings</h2>
+                            <button type="button" className="app-icon-close" onClick={() => setShowModal(false)} aria-label="Close upload dialog"><X size={16} /></button>
                         </div>
 
                         <div
+                            role="button"
+                            tabIndex={0}
+                            aria-label="Choose a course offerings file"
                             onClick={() => fileInputRef.current && fileInputRef.current.click()}
+                            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileInputRef.current?.click(); } }}
                             onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; }}
                             onDrop={(e) => { e.preventDefault(); const file = e.dataTransfer.files && e.dataTransfer.files[0]; if (file) { setSelectedFile(file); } }}
                             className={pageStyles.dialogDropZone}
@@ -229,13 +225,13 @@ const ProgramHeadCourseOfferings = () => {
                             </div>
                             <div style={{ fontSize: 16, fontWeight: 600, color: '#111827' }}>{selectedFile ? selectedFile.name : 'Drag & drop file here'}</div>
                             <div style={{ color: '#6B7280', fontSize: 13 }}>Upload .xlsx, .xls or .csv</div>
-                            <input id="consultant-file-input" type="file" ref={fileInputRef} accept=".csv,.xlsx,.xls" onChange={(e) => { const file = e.target.files && e.target.files[0]; setSelectedFile(file || null); }} style={{ display: 'none' }} />
+                            <input id="course-offerings-file-input" type="file" ref={fileInputRef} accept=".csv,.xlsx,.xls" onChange={(e) => { const file = e.target.files && e.target.files[0]; setSelectedFile(file || null); }} style={{ display: 'none' }} />
                         </div>
+                        {selectedFile && <p className={pageStyles.fileFeedback} role="status">Selected: {selectedFile.name}</p>}
 
                         <div className={pageStyles.managementDialogActions}>
                             <button onClick={() => { setSelectedFile(null); if (fileInputRef.current) fileInputRef.current.value = ''; setShowModal(false); }} style={{ flex: 1, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#FFFFFF', border: '1px solid #111827', borderRadius: 8, color: '#111827', cursor: 'pointer', fontWeight: 500 }}>Cancel</button>
-                            <button onClick={() => {
-                                if (!selectedFile) { alert('Please choose a file first'); return; }
+                            <button disabled={!selectedFile} onClick={() => {
                                 // simulate upload and seed some data so the table isn't empty
                                 setCoursesList(seededCourseRows);
                                 setConsultants(seededConsultants);
@@ -304,10 +300,12 @@ const ProgramHeadCourseOfferings = () => {
                         <div className={pageStyles.dialogHeader} style={{ marginBottom: 8 }}>
                             <h2 style={{ margin: 0, fontSize: 20, fontWeight: 600, color: '#111827' }}>Course Details</h2>
                             <button
+                                type="button"
+                                className="app-icon-close"
                                 onClick={() => setDetailsOpen(false)}
-                                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#6B7280' }}
+                                aria-label="Close course details"
                             >
-                                <X size={24} strokeWidth={2} />
+                                <X size={16} strokeWidth={2} />
                             </button>
                         </div>
 
