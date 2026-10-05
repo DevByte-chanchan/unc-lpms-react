@@ -1,9 +1,15 @@
 // A plan's approval state, derived from its server workflow log and from nothing else.
-// The shape matches what the approval screens already read (`currentStage`,
-// `parallelReview`, `dean`, `signatures`), so `consolidatedStatus` and `canActOnStage` in
-// reviewGate.js are unchanged. It mirrors the server's transition rules
-// (assignmentController.validateWorkflowTransition): only events after the instructor's
-// latest submission belong to the current round, and any return reopens the plan.
+// The shape matches what the approval screens read (`currentStage`, `parallelReview`,
+// `dean`, `returnedBy`, `signatures`), so `consolidatedStatus` and `canActOnStage` in
+// reviewGate.js take it directly. It mirrors server/utils/workflowRules.js:
+//
+//   instructor submits -> Library Director and Program Head review in parallel
+//                      -> the Dean acts only after BOTH have accepted.
+//
+// The Industry Consultant is not in the chain (read and comment only); old log entries by
+// them are ignored. A return goes back to the instructor and resumes at the step that
+// returned it: on resubmit only the reviewer(s) who returned it decide again, acceptances
+// already given still count, and if the Dean returned it, it goes back to the Dean only.
 //
 // Stages: draft (never submitted) -> submitted -> parallel_review -> dean -> approved,
 // or returned.
@@ -12,10 +18,10 @@ import { buildSignature } from './reviewGate.js'
 const ROLE_KEY = {
   PROGRAM_HEAD: 'program-head',
   LIBRARY_DIRECTOR: 'director-of-libraries',
-  INDUSTRY_CONSULTANT: 'industry-consultant',
   DEAN: 'dean'
 }
-const PARALLEL = ['PROGRAM_HEAD', 'LIBRARY_DIRECTOR', 'INDUSTRY_CONSULTANT']
+const REQUIRED = ['LIBRARY_DIRECTOR', 'PROGRAM_HEAD']
+const DECIDING = new Set([...REQUIRED, 'DEAN'])
 
 const time = (log) => new Date(log.createdAt).getTime()
 const pending = () => ({ status: 'pending', completedAt: null })
@@ -27,55 +33,60 @@ export const workflowFromLogs = (logs = [], courseCode = '') => {
     .sort((a, b) => (time(a.log) - time(b.log)) || (a.index - b.index))
     .map(entry => entry.log)
 
-  const deanAccepted = [...history].reverse().find(log =>
-    log.actor_role === 'DEAN' && ['ACCEPTED', 'APPROVED'].includes(log.action_type))
+  const accepted = new Map()   // role -> the ACCEPTED log
+  const returned = new Set()
+  let submitted = false
+  let lastSubmission = null
 
-  let lastSubmission = -1
-  history.forEach((log, index) => {
-    if (log.actor_role === 'INSTRUCTOR' && log.action_type === 'SUBMITTED') lastSubmission = index
-  })
-  const submitted = lastSubmission >= 0
-  const round = submitted ? history.slice(lastSubmission + 1) : history
-  const hasReturn = round.some(log => log.action_type === 'RETURNED')
-
-  const decisionOf = (role) => {
-    const latest = round.filter(log => log.actor_role === role).at(-1)
-    return latest?.action_type === 'ACCEPTED' ? { status: 'done', completedAt: latest.createdAt, log: latest } : pending()
+  for (const log of history) {
+    if (log.actor_role === 'INSTRUCTOR' && log.action_type === 'SUBMITTED') {
+      if (!submitted) { submitted = true; accepted.clear() }
+      returned.clear()           // whoever returned it decides again; nobody else's decision is lost
+      lastSubmission = log
+    } else if (DECIDING.has(log.actor_role)) {
+      if (['ACCEPTED', 'APPROVED'].includes(log.action_type)) {
+        accepted.set(log.actor_role, log)
+        returned.delete(log.actor_role)
+      } else if (log.action_type === 'RETURNED') {
+        returned.add(log.actor_role)
+        accepted.delete(log.actor_role)
+      }
+    }
   }
-  const parallel = Object.fromEntries(PARALLEL.map(role => [role, decisionOf(role)]))
-  const allParallelDone = PARALLEL.every(role => parallel[role].status === 'done')
-  const anyParallelDone = PARALLEL.some(role => parallel[role].status === 'done')
+
+  const done = (role) => accepted.has(role)
+  const node = (role) => (done(role)
+    ? { status: 'done', completedAt: accepted.get(role).createdAt }
+    : pending())
+  const reviewersDone = REQUIRED.every(done)
 
   let currentStage = 'draft'
-  if (deanAccepted) currentStage = 'approved'
-  else if (hasReturn) currentStage = 'returned'
-  else if (submitted && allParallelDone) currentStage = 'dean'
-  else if (submitted && anyParallelDone) currentStage = 'parallel_review'
+  if (done('DEAN')) currentStage = 'approved'
+  else if (returned.size > 0) currentStage = 'returned'
+  else if (submitted && reviewersDone) currentStage = 'dean'
+  else if (submitted && REQUIRED.some(done)) currentStage = 'parallel_review'
   else if (submitted) currentStage = 'submitted'
-  else if (history.some(log => log.action_type === 'RETURNED')) currentStage = 'returned'
-
-  const strip = ({ status, completedAt }) => ({ status, completedAt })
-  const dean = deanAccepted ? { status: 'done', completedAt: deanAccepted.createdAt } : pending()
 
   // A signature is rebuilt from the log (who, role, when); logs without a name carry none.
-  const signedBy = [...PARALLEL.map(role => parallel[role].log), deanAccepted]
-    .filter(log => log?.actor_name)
-    .map(log => buildSignature({ name: log.actor_name }, ROLE_KEY[log.actor_role], courseCode, new Date(log.createdAt)))
+  const signatures = [...accepted.entries()]
+    .filter(([, log]) => log.actor_name)
+    .map(([role, log]) => buildSignature({ name: log.actor_name }, ROLE_KEY[role], courseCode, new Date(log.createdAt)))
     .filter(Boolean)
 
   return {
     courseCode,
     currentStage,
-    submittedAt: submitted ? history[lastSubmission].createdAt : null,
+    submittedAt: lastSubmission ? lastSubmission.createdAt : null,
+    // Which roles returned the plan and have not yet decided again (account role keys).
+    returnedBy: [...returned].map(role => ROLE_KEY[role]),
     parallelReview: {
-      library_director: strip(parallel.LIBRARY_DIRECTOR),
-      industry_consultant: strip(parallel.INDUSTRY_CONSULTANT),
-      program_head: strip(parallel.PROGRAM_HEAD)
+      library_director: node('LIBRARY_DIRECTOR'),
+      program_head: node('PROGRAM_HEAD')
     },
     // Retained for older consumers that still read the duplicated PH field.
-    programHead: strip(parallel.PROGRAM_HEAD),
-    dean,
-    signatures: signedBy
+    programHead: node('PROGRAM_HEAD'),
+    dean: node('DEAN'),
+    signatures
   }
 }
 

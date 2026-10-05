@@ -9,6 +9,7 @@ import TableScrollRegion from '../../../components/TableScrollRegion.jsx';
 import { buildCoaepHtml } from '../../../utils/syllabusPdfHtml.js';
 import { fetchJson } from '../../../utils/api.js';
 import { getSession } from '../../../utils/session.js';
+import { fetchFormInfo } from '../../../utils/formSettings.js';
 import { buildGeneratedCoaepRecord } from '../../../utils/generatedCoaepRecord.js';
 import { extractProgramPrefix, getAllPrograms, getProgramCourses, getProgramName } from '../../../utils/programCurriculumData.js';
 import unclogo from '../../../assets/unclogo.png';
@@ -81,10 +82,11 @@ const COAEPView = () => {
     payload: serverCoaep,
   });
 
-  const viewGeneratedCoaep = () => {
+  const viewGeneratedCoaep = async () => {
     if (!generatedRecord) return;
     const logoUrl = new URL(unclogo, window.location.origin).href;
-    const html = buildCoaepHtml(generatedRecord, logoUrl);
+    const formInfo = await fetchFormInfo();
+    const html = buildCoaepHtml(generatedRecord, logoUrl, { formInfo });
     const fileUrl = URL.createObjectURL(new Blob([html], { type: 'text/html' }));
     // A draft export is marked in its file name as well as watermarked inside.
     const fileName = `${programCode}_${courseCode}_generated_COAEP${generatedRecord.approved ? '' : '_DRAFT'}.html`;

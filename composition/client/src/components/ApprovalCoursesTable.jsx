@@ -12,10 +12,10 @@ import Spinner from "./Spinner.jsx";
 import { loadReviewAssignments } from '../utils/reviewAssignments.js';
 import unclogo from '../assets/unclogo.png';
 import TableScrollRegion from './TableScrollRegion.jsx';
-import { buildApproverStatus, computeOverallStatus, latestSubmissionAt } from '../utils/assignmentStatus.js';
+import { buildApproverStatus, canExportRow, computeOverallStatus, latestSubmissionAt } from '../utils/assignmentStatus.js';
 import { filterAssignmentsByCourse, readAssignedCourseFilters } from '../utils/referenceCourseNavigation.js';
 
-const EXPORT_ROLES = ['dean', 'vpaa', 'instructor'];
+const EXPORT_ROLES = ['dean', 'vpaa', 'instructor', 'program-head', 'director-of-libraries'];
 
 const formatDate = (dateString) => {
     if (!dateString) return '-';
@@ -184,7 +184,7 @@ const ApprovalCoursesTable = ({ role = 'approver', styleHooks = {} }) => {
                 View <ChevronRight size={16} />
             </Link>
 
-            {selectedStatus === 'APPROVED' && EXPORT_ROLES.includes(role) &&
+            {(selectedStatus === 'APPROVED' || canExportRow(row)) && EXPORT_ROLES.includes(role) &&
                 <span className="actionLink"
                       style={{ minWidth: 90, display: 'inline-flex', alignItems: 'center', gap: 5, cursor: exporting ? 'wait' : 'pointer', color: '#6b7280' }}
                       onClick={() => !exporting && handleExport(row)}>

@@ -138,13 +138,6 @@ module.exports = {
             },
             {
                 co_assign_id: assignId,
-                actor_role: 'INDUSTRY_CONSULTANT',
-                action_type: 'ACCEPTED',
-                createdAt: new Date('2026-06-24 13:00:00'),
-                updatedAt: new Date('2026-06-24 13:00:00')
-            },
-            {
-                co_assign_id: assignId,
                 actor_role: 'PROGRAM_HEAD',
                 action_type: 'ACCEPTED',
                 createdAt: new Date('2026-06-25 09:45:00'),

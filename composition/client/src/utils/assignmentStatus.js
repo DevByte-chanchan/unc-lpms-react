@@ -1,23 +1,18 @@
+// Course-table status for one assignment row, derived from its workflow log.
+// The rules (who must approve, what a return does) live in workflowFromLogs.js.
+import { workflowFromLogs } from './workflowFromLogs.js'
+import { exportEligibility } from './reviewGate.js'
+
+// Display label and workflow-log role for each REQUIRED approver, in review order. The
+// Industry Consultant is not listed: they are not part of the approval chain.
 const REVIEWERS = [
-  { label: 'Industry Consultant', roleKey: 'INDUSTRY_CONSULTANT' },
-  { label: 'Library Director', roleKey: 'LIBRARY_DIRECTOR' },
-  { label: 'Program Head', roleKey: 'PROGRAM_HEAD' },
-  { label: 'Dean', roleKey: 'DEAN' }
+  { label: 'Library Director', roleKey: 'LIBRARY_DIRECTOR', node: ['parallelReview', 'library_director'], accountRole: 'director-of-libraries' },
+  { label: 'Program Head', roleKey: 'PROGRAM_HEAD', node: ['parallelReview', 'program_head'], accountRole: 'program-head' },
+  { label: 'Dean', roleKey: 'DEAN', node: ['dean'], accountRole: 'dean' }
 ]
 
 const chronologicalLogs = (row = {}) => [...(Array.isArray(row.logs) ? row.logs : [])]
   .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
-
-const currentRoundLogs = (row = {}) => {
-  const logs = chronologicalLogs(row)
-  let latestSubmissionIndex = -1
-  logs.forEach((entry, index) => {
-    if (entry.actor_role === 'INSTRUCTOR' && entry.action_type === 'SUBMITTED') {
-      latestSubmissionIndex = index
-    }
-  })
-  return latestSubmissionIndex < 0 ? logs : logs.slice(latestSubmissionIndex + 1)
-}
 
 export const latestSubmissionAt = (row = {}) => {
   const submissions = chronologicalLogs(row).filter(entry =>
@@ -27,34 +22,34 @@ export const latestSubmissionAt = (row = {}) => {
 }
 
 export const computeOverallStatus = (row = {}) => {
-  const logs = chronologicalLogs(row)
-  const latest = logs.at(-1)
-
-  if (latest?.action_type === 'RETURNED') return 'Returned'
-  if (latest?.action_type === 'ACCEPTED' && latest.actor_role === 'DEAN') return 'Approved'
-  if (row.date_submitted || logs.some(entry =>
-    entry.action_type === 'SUBMITTED' || entry.action_type === 'ACCEPTED'
-  )) return 'Pending'
-  return 'Draft'
+  const { currentStage } = workflowFromLogs(row.logs || [])
+  if (currentStage === 'approved') return 'Approved'
+  if (currentStage === 'returned') return 'Returned'
+  if (currentStage === 'draft') return 'Draft'
+  return 'Pending'
 }
 
 export const buildApproverStatus = (row = {}) => {
-  const round = currentRoundLogs(row)
-
+  const workflow = workflowFromLogs(row.logs || [])
   return REVIEWERS.map(reviewer => {
-    const latest = round.filter(entry => entry.actor_role === reviewer.roleKey).at(-1)
-    if (!latest) return { title: reviewer.label, status: 'Pending' }
-    if (latest.action_type === 'ACCEPTED') {
-      return { title: reviewer.label, status: 'Accepted', acceptedAt: latest.createdAt }
-    }
-    if (latest.action_type === 'RETURNED') {
-      return { title: reviewer.label, status: 'Returned', returnedAt: latest.createdAt }
+    const node = reviewer.node.reduce((acc, key) => acc?.[key], workflow)
+    if (node?.status === 'done') return { title: reviewer.label, status: 'Accepted', acceptedAt: node.completedAt }
+    if (workflow.returnedBy.includes(reviewer.accountRole)) {
+      const returnedAt = chronologicalLogs(row)
+        .filter(entry => entry.actor_role === reviewer.roleKey && entry.action_type === 'RETURNED')
+        .at(-1)?.createdAt
+      return { title: reviewer.label, status: 'Returned', returnedAt }
     }
     return { title: reviewer.label, status: 'Pending' }
   })
 }
 
+// A row's syllabus can be exported once the Director of Libraries and the Program Head have
+// accepted it, even before the Dean (the export is then marked "Pending Dean approval").
+export const canExportRow = (row = {}) => exportEligibility(workflowFromLogs(row.logs || [])).allowed
+
 export default {
+  canExportRow,
   computeOverallStatus,
   latestSubmissionAt,
   buildApproverStatus

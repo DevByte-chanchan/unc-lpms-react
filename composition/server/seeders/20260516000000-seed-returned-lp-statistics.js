@@ -75,13 +75,13 @@ module.exports = {
 
         // ============================================================================
         // 3.5 ASSIGNMENT WORKFLOW LOGS (NEW ARCHITECTURE)
-        // Simulate Assigned -> Submitted -> Returned by Industry Consultant
+        // Simulate Assigned -> Submitted -> Returned by Library Director
         // ============================================================================
 
         await queryInterface.bulkInsert('AssignmentWorkflowLogs', [
             { co_assign_id: assignId, actor_role: 'PROGRAM_HEAD', action_type: 'ASSIGNED', createdAt: new Date('2026-06-01 09:00:00'), updatedAt: new Date('2026-06-01 09:00:00') },
             { co_assign_id: assignId, actor_role: 'INSTRUCTOR', action_type: 'SUBMITTED', createdAt: new Date('2026-06-10 14:30:00'), updatedAt: new Date('2026-06-10 14:30:00') },
-            { co_assign_id: assignId, actor_role: 'INDUSTRY_CONSULTANT', action_type: 'RETURNED', createdAt: new Date('2026-06-15 10:15:00'), updatedAt: new Date('2026-06-15 10:15:00') }
+            { co_assign_id: assignId, actor_role: 'LIBRARY_DIRECTOR', action_type: 'RETURNED', createdAt: new Date('2026-06-15 10:15:00'), updatedAt: new Date('2026-06-15 10:15:00') }
         ], {});
 
         // ============================================================================
@@ -289,25 +289,25 @@ module.exports = {
         const rawCommentsData = [
             // Comment 1: Target a Topic in CO1, ILO 1 (Probability)
             {
-                co_assign_id: assignId, commenter_role: 'INDUSTRY_CONSULTANT', resolved_status: false,
+                co_assign_id: assignId, commenter_role: 'LIBRARY_DIRECTOR', resolved_status: false,
                 ilo_id: ilos[0].ilo_id, comment_for: 'topics', target_id: topics[0].topic_id,
                 message: 'The probability topic should include applied examples in computing such as hashing collision probabilities and randomized algorithms; add a short module on practical applications.'
             },
             // Comment 2: Target a TLA in CO1, ILO 2 (Distributions)
             {
-                co_assign_id: assignId, commenter_role: 'INDUSTRY_CONSULTANT', resolved_status: false,
+                co_assign_id: assignId, commenter_role: 'LIBRARY_DIRECTOR', resolved_status: false,
                 ilo_id: ilos[1].ilo_id, comment_for: 'tlas', target_id: tlas[2].tla_id,
                 message: 'For distribution labs, require students to simulate sampling variability in code (R or Python) and submit reproducible scripts rather than static outputs.'
             },
             // Comment 3: Target a Topic in CO2, ILO 2 (Inference)
             {
-                co_assign_id: assignId, commenter_role: 'INDUSTRY_CONSULTANT', resolved_status: false,
+                co_assign_id: assignId, commenter_role: 'LIBRARY_DIRECTOR', resolved_status: false,
                 ilo_id: ilos[4].ilo_id, comment_for: 'topics', target_id: topics[7].topic_id,
                 message: 'Hypothesis testing section should explicitly cover multiple testing corrections (Bonferroni, FDR) when students analyze many features.'
             },
             // Comment 4: Target a TLA in CO3, ILO 3 (Regression)
             {
-                co_assign_id: assignId, commenter_role: 'INDUSTRY_CONSULTANT', resolved_status: false,
+                co_assign_id: assignId, commenter_role: 'LIBRARY_DIRECTOR', resolved_status: false,
                 ilo_id: ilos[7].ilo_id, comment_for: 'tlas', target_id: tlas[10].tla_id,
                 message: 'Regression lab must include diagnostics for heteroscedasticity and influence (Cook\'s distance); require remediation steps when assumptions fail.'
             },

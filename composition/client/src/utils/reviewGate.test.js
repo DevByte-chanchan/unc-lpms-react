@@ -6,7 +6,7 @@ const reviewGate = await import('./reviewGate.js');
 const {
   validateReturn, COMMENT_TYPES, isActionableComment, checkText, hasBlockingTextIssues,
   buildSignature, verifySignature, addSignature, consolidatedStatus, canActOnStage,
-  encodeCommentType, parseCommentType
+  encodeCommentType, parseCommentType, APPROVER_CHAIN, exportEligibility
 } = reviewGate;
 
 const test = (name, fn) => {
@@ -28,13 +28,13 @@ const pend = () => ({ status: 'pending', completedAt: null });
 
 const SUBMITTED = {
   courseCode: 'BIT313L', currentStage: 'submitted',
-  parallelReview: { library_director: pend(), industry_consultant: pend(), program_head: pend() },
+  parallelReview: { library_director: pend(), program_head: pend() },
   programHead: pend(), dean: pend()
 };
 
 const READY_FOR_DEAN = {
   courseCode: 'BIT313L', currentStage: 'dean',
-  parallelReview: { library_director: done('2026-07-01T00:00:00Z'), industry_consultant: done('2026-07-02T00:00:00Z'), program_head: done('2026-07-03T00:00:00Z') },
+  parallelReview: { library_director: done('2026-07-01T00:00:00Z'), program_head: done('2026-07-03T00:00:00Z') },
   programHead: done('2026-07-03T00:00:00Z'), dean: pend()
 };
 
@@ -148,11 +148,11 @@ test('the consolidated view shows every stage and who has not approved', () => {
   const fresh = consolidatedStatus(SUBMITTED);
   eq(fresh.steps.length, 5, 'the whole chain is represented');
   eq(fresh.approvedCount, 0, 'nobody has approved yet');
-  eq(fresh.awaiting.length, 4, 'four approvers outstanding (the VPAA only reads)');
+  eq(fresh.awaiting.length, 3, 'three approvers outstanding (the consultant and the VPAA only read)');
   if (fresh.isFullyApproved) throw new Error('a submitted plan is not approved');
 
   const mid = consolidatedStatus(READY_FOR_DEAN);
-  eq(mid.approvedCount, 3, 'three of four have approved');
+  eq(mid.approvedCount, 2, 'the Director of Libraries and the Program Head have approved');
   eq(mid.awaiting.join(','), 'Dean', 'only the Dean is left');
   eq(mid.dateApproved, null, 'no date until the Dean signs');
 
@@ -167,14 +167,41 @@ test('each role can act only on its own stage, and the Dean goes last', () => {
   if (!canActOnStage('dean', READY_FOR_DEAN)) throw new Error('the Dean acts once the rest are done');
   if (canActOnStage('program-head', READY_FOR_DEAN)) throw new Error('a role that already approved does not act twice');
   if (canActOnStage('vpaa', READY_FOR_DEAN)) throw new Error('the VPAA has read access only');
-  // defaultWorkflow starts a plan nobody has touched at 'submitted', so an
-  // untouched plan is still the instructor's to submit — but once an approver
-  // has acted it is out of their hands until it comes back.
-  if (!canActOnStage('instructor', SUBMITTED)) throw new Error('the instructor can still submit a plan no approver has acted on');
+  // A never-submitted plan (stage 'draft') is the instructor's to submit; once submitted it is
+  // out of their hands until a reviewer returns it.
+  if (!canActOnStage('instructor', { ...SUBMITTED, currentStage: 'draft' })) throw new Error('the instructor submits a draft');
+  if (canActOnStage('instructor', SUBMITTED)) throw new Error('a submitted plan is locked while reviewers decide');
   if (canActOnStage('instructor', READY_FOR_DEAN)) throw new Error('a plan under review is not the instructor’s to change');
   if (!canActOnStage('instructor', { ...READY_FOR_DEAN, currentStage: 'returned' })) throw new Error('a returned plan is the instructor’s to fix');
   if (canActOnStage('instructor', { ...READY_FOR_DEAN, currentStage: 'approved' })) throw new Error('an approved plan is closed to everyone');
   if (canActOnStage('PROGRAM_HEAD', { ...READY_FOR_DEAN, currentStage: 'approved' })) throw new Error('nothing is actionable once approved (server casing too)');
+});
+
+test('the industry consultant is view-only: never a required step, cannot accept or return', () => {
+  eq(APPROVER_CHAIN.filter(step => !step.readOnly).map(step => step.role).join(','), 'director-of-libraries,program-head,dean', 'the required chain');
+  if (canActOnStage('industry-consultant', SUBMITTED)) throw new Error('the consultant cannot act');
+  if (canActOnStage('industry-consultant', READY_FOR_DEAN)) throw new Error('the consultant cannot act at the Dean stage either');
+  if (consolidatedStatus(SUBMITTED).awaiting.includes('Industry Consultant')) throw new Error('nobody waits for the consultant');
+});
+
+test('a reviewer who returned the plan waits for the instructor; the other can still decide', () => {
+  const ph = { ...SUBMITTED, currentStage: 'returned', returnedBy: ['program-head'] };
+  if (canActOnStage('program-head', ph)) throw new Error('the returner waits for the instructor');
+  if (!canActOnStage('director-of-libraries', ph)) throw new Error('the other reviewer is not blocked');
+  if (canActOnStage('dean', { ...READY_FOR_DEAN, currentStage: 'returned', returnedBy: ['dean'] })) throw new Error('the Dean who returned it waits too');
+  eq(consolidatedStatus(ph).steps.find(s => s.role === 'program-head').status, 'returned', 'chip shows returned');
+  eq(consolidatedStatus(ph).steps.find(s => s.role === 'director-of-libraries').status, 'pending', 'the other chip stays pending');
+});
+
+test('the syllabus can be exported once the Director of Libraries and Program Head accepted; the Dean is not needed', () => {
+  eq(exportEligibility(SUBMITTED).allowed, false, 'nobody accepted');
+  eq(exportEligibility({ ...SUBMITTED, parallelReview: { library_director: done('2026-07-01T00:00:00Z'), program_head: pend() } }).allowed, false, 'only one accepted');
+  const ready = exportEligibility(READY_FOR_DEAN);
+  eq(ready.allowed, true, 'both accepted');
+  eq(ready.pendingDean, true, 'but still pending the Dean');
+  const approved = exportEligibility({ ...READY_FOR_DEAN, currentStage: 'approved', dean: done('2026-08-01T00:00:00Z') });
+  eq(approved.pendingDean, false, 'approved');
+  eq(approved.approved, true, 'approved');
 });
 
 console.log('\nAll review gate checks passed.');

@@ -18,8 +18,8 @@ test('a submitted plan is locked while reviewers decide', () => {
     assert.equal(state([...submitted, log('PROGRAM_HEAD', 'ACCEPTED')]).editable, false);
 });
 
-test('any return in the current round reopens editing, even if another reviewer accepted', () => {
-    const logs = [log('INSTRUCTOR', 'SUBMITTED'), log('PROGRAM_HEAD', 'ACCEPTED'), log('INDUSTRY_CONSULTANT', 'RETURNED')];
+test('any return reopens editing, even if the other reviewer accepted', () => {
+    const logs = [log('INSTRUCTOR', 'SUBMITTED'), log('PROGRAM_HEAD', 'ACCEPTED'), log('LIBRARY_DIRECTOR', 'RETURNED')];
     assert.deepEqual(state(logs), { state: 'Returned', editable: true });
 });
 
@@ -35,4 +35,8 @@ test('a Dean acceptance is final and locks the plan', () => {
 
 test('legacy returned rows with no submission log are still editable', () => {
     assert.deepEqual(state([log('LIBRARY_DIRECTOR', 'RETURNED')]), { state: 'Returned', editable: true });
+});
+
+test('old industry consultant entries do not change a plan\'s state', () => {
+    assert.deepEqual(state([log('INSTRUCTOR', 'SUBMITTED'), log('INDUSTRY_CONSULTANT', 'RETURNED')]), { state: 'Pending', editable: false });
 });

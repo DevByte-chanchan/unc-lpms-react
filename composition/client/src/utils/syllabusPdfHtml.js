@@ -1,4 +1,5 @@
 import { escapeHtml, sanitizeUrl } from './sanitize.js'
+import { DEFAULT_FORM_INFO } from './formInfo.js'
 const safe = (v, fallback = '—') => (v === null || v === undefined || v === '') ? fallback : escapeHtml(String(v))
 
 const fmtDate = (d) => {
@@ -22,6 +23,11 @@ const activePoColumns = (courseOutcomes) => {
 // Available content height (px) between header and footer in a 216mm page
 const PAGE_BUDGET = 540
 
+// The ISO form identity (doc control no., form revision, effectivity) is set at the start of
+// each build from the server's form settings and read by the shared header and footer.
+let FORM = DEFAULT_FORM_INFO.syllabus
+const setActiveForm = (formInfo, key) => { FORM = { ...DEFAULT_FORM_INFO[key], ...((formInfo || {})[key] || {}) } }
+
 const pageHeader = (logo) => `<table style="width:100%; border-collapse:collapse; border:1px solid #000; margin-bottom:8px;">
   <tr>
     <td style="width:80px; min-width:80px; max-width:80px; padding:4px; border:1px solid #000; text-align:center; vertical-align:middle;">
@@ -35,14 +41,14 @@ const pageHeader = (logo) => `<table style="width:100%; border-collapse:collapse
     </td>
     <td style="width:120px; min-width:120px; max-width:120px; padding:5px 8px; vertical-align:middle; border:1px solid #000;">
       <div style="font-size:9pt; font-weight:bold; color:#000;">Doc. Control No.:</div>
-      <div style="font-size:9pt; font-weight:normal; color:#000;">UNC-FM-VPAA-01</div>
+      <div style="font-size:9pt; font-weight:normal; color:#000;">${safe(FORM.docControlNo)}</div>
     </td>
   </tr>
 </table>`
 
 const pageFooter = (pageNum, total) => `<div style="position:absolute; left:85px; right:85px; bottom:26px; display:flex; justify-content:space-between; padding-top:4px; font-size:8.5pt; font-family:Arial,Helvetica,sans-serif;">
-  <span>Effectivity: 06/01/2024</span>
-  <span>Revision No.: 0</span>
+  <span>Effectivity: ${safe(FORM.effectivity)}</span>
+  <span>Revision No.: ${safe(FORM.revisionNo)}</span>
   <span>Page No.: <span class="pgno">${pageNum}</span> of <span class="pgtot">${total}</span></span>
 </div>`
 
@@ -838,12 +844,27 @@ function page14(syllabus, workflow, logo, pageNum, total) {
   const extractInstructorName = () => { const n = syllabus.instructor || ''; return n || '—' }
   const extractDate = (d) => d ? fmtDate(d) : '_____________'
 
+  // Who approved and when comes from the plan's workflow (derived from the server log): the
+  // approver's signature carries the name, the node carries the date. Nothing is filled in
+  // for a step that has not been accepted.
+  const approval = (roleKey, node) => {
+    const signature = (workflow?.signatures || []).find(sig => sig.role === roleKey)
+    const accepted = node?.status === 'done'
+    return {
+      name: signature?.name || node?.reviewerName || '_____________',
+      date: accepted ? extractDate(signature?.signedAt || node?.completedAt) : extractDate(null)
+    }
+  }
+  const librarian = approval('director-of-libraries', workflow?.parallelReview?.library_director)
+  const programHead = approval('program-head', workflow?.parallelReview?.program_head || workflow?.programHead)
+  const dean = approval('dean', workflow?.dean)
   const signatories = [
     { label: 'Prepared by:', name: extractInstructorName(), role: 'Faculty', date: extractDate(workflow?.submittedAt) },
-    { label: 'Reviewed by:', name: safe(workflow?.parallelReview?.industry_consultant?.reviewerName || '_____________'), role: 'Industry Expert/Consultant', date: extractDate(workflow?.parallelReview?.industry_consultant?.completedAt) },
-    { label: 'Resources Certified by:', name: safe(workflow?.parallelReview?.library_director?.reviewerName || '_____________'), role: 'Director of Libraries', date: extractDate(workflow?.parallelReview?.library_director?.completedAt) },
-    { label: 'Approved By:', name: safe(workflow?.programHead?.reviewerName || '_____________'), role: 'Program Head', date: extractDate(workflow?.programHead?.completedAt) },
-    { label: 'Noted by:', name: safe(workflow?.dean?.reviewerName || '_____________'), role: 'College Dean', date: extractDate(workflow?.dean?.completedAt || workflow?.approvedAt) },
+    // The industry consultant reviews as documentation only; this line is not part of the approval chain.
+    { label: 'Reviewed by:', name: '_____________', role: 'Industry Expert/Consultant', date: extractDate(null) },
+    { label: 'Resources Certified by:', name: safe(librarian.name), role: 'Director of Libraries', date: librarian.date },
+    { label: 'Approved By:', name: safe(programHead.name), role: 'Program Head', date: programHead.date },
+    { label: 'Noted by:', name: safe(dean.name), role: 'College Dean', date: dean.date },
   ]
 
   const SIG_CELL = 'border:1px solid black; text-align:center; padding:4px 6px; font-family:Arial,Helvetica,sans-serif; vertical-align:top;'
@@ -928,7 +949,15 @@ function page14(syllabus, workflow, logo, pageNum, total) {
   </div>`]
 }
 
-export function buildSyllabusHtml(syllabus, courseCode, workflow, logoBase64) {
+// Added to every page of a syllabus exported before the Dean has accepted it.
+const PENDING_DEAN_MARK = `<div style="position:absolute; top:6px; right:85px; border:1.5px solid #b45309; background:#fef3c7; color:#78350f; font-family:Arial,Helvetica,sans-serif; font-size:8.5pt; font-weight:bold; padding:2px 8px; z-index:10;">PENDING DEAN APPROVAL</div>
+    <div aria-hidden="true" style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%) rotate(-28deg); font-family:Arial,Helvetica,sans-serif; font-size:70pt; font-weight:bold; color:rgba(180,83,9,0.13); white-space:nowrap; pointer-events:none; z-index:10;">PENDING DEAN APPROVAL</div>`
+const markPendingDean = (html) => html.replace(/(<div class="page[^"]*">)/g, `$1${PENDING_DEAN_MARK}`)
+
+// options: { formInfo, pendingApproval }. A syllabus exported before the Dean accepts it
+// (allowed once the Director of Libraries and the Program Head have) is marked pending.
+export function buildSyllabusHtml(syllabus, courseCode, workflow, logoBase64, options = {}) {
+  setActiveForm(options.formInfo, 'syllabus')
   if (!syllabus) {
     return `<!DOCTYPE html>
 <html><head><meta charset="utf-8"><style>
@@ -1166,7 +1195,8 @@ export function buildSyllabusHtml(syllabus, courseCode, workflow, logoBase64) {
     ...page14(syllabus, workflow, logo, 6 + covChunks.length + resChunks.length, total),
   ]
 
-  return HEAD + allPages.join('\n') + FOOT
+  const html = HEAD + allPages.join('\n') + FOOT
+  return options.pendingApproval ? markPendingDean(html) : html
 }
 
 const alignmentHead = `<!DOCTYPE html>
@@ -1200,7 +1230,8 @@ const alignmentHead = `<!DOCTYPE html>
 
 const alignmentFoot = `</body></html>`
 
-export function buildPoPeoHtml(logoBase64, programCode = 'BSIT', poData = null) {
+export function buildPoPeoHtml(logoBase64, programCode = 'BSIT', poData = null, options = {}) {
+  setActiveForm(options.formInfo, 'syllabus')
   const prog = safe(programCode)
   const logo = logoBase64 || null
   if (!poData) {
@@ -1258,7 +1289,8 @@ export function buildPoPeoHtml(logoBase64, programCode = 'BSIT', poData = null) 
   return alignmentHead + body + alignmentFoot
 }
 
-export function buildCoPoHtml(cos, courseCode, courseName, logoBase64) {
+export function buildCoPoHtml(cos, courseCode, courseName, logoBase64, options = {}) {
+  setActiveForm(options.formInfo, 'syllabus')
   const logo = logoBase64 || null
   const activeCols = activePoColumns(cos)
   const poCount = activeCols.length
@@ -1296,7 +1328,8 @@ export function buildCoPoHtml(cos, courseCode, courseName, logoBase64) {
   return alignmentHead + body + alignmentFoot
 }
 
-export function buildCoaepHtml(coaepData, logoBase64) {
+export function buildCoaepHtml(coaepData, logoBase64, options = {}) {
+  setActiveForm(options.formInfo, 'coaep')
   const logo = logoBase64 || null
   const h = coaepData.header || {}
   const DEFAULT_TARGET = 'At least 90% of enrolled students with a rating of at least 60% of the total score'
@@ -1316,7 +1349,7 @@ export function buildCoaepHtml(coaepData, logoBase64) {
       </td>
       <td style="width:120px; min-width:120px; max-width:120px; padding:5px 8px; vertical-align:middle; border:1px solid #000;">
         <div style="font-size:9pt; font-weight:bold; color:#000;">Doc. Control No.:</div>
-        <div style="font-size:9pt; font-weight:bold; color:#000;">UNC-FM-VPAA-02</div>
+        <div style="font-size:9pt; font-weight:bold; color:#000;">${safe(FORM.docControlNo)}</div>
       </td>
     </tr>
   </table>`

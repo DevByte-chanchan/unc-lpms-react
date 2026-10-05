@@ -1,5 +1,6 @@
 const { sequelize, CourseOfferingAssignment, ProgramCourseOffering, Course, Program, Department, AssignmentWorkflowLog } = require('../models');
 const { Op, Transaction } = require('sequelize');
+const { REQUIRED_REVIEWERS, validateWorkflowTransition } = require('../utils/workflowRules');
 const {
     canAccessCourseRows,
     loadAssignmentCourseRows
@@ -7,17 +8,14 @@ const {
 
 const WORKFLOW_ROLE_BY_ACCOUNT = {
     instructor: 'INSTRUCTOR',
-    'industry-consultant': 'INDUSTRY_CONSULTANT',
     'director-of-libraries': 'LIBRARY_DIRECTOR',
     'program-head': 'PROGRAM_HEAD',
     dean: 'DEAN'
 };
 
-const PARALLEL_REVIEW_ROLES = new Set([
-    'PROGRAM_HEAD',
-    'LIBRARY_DIRECTOR',
-    'INDUSTRY_CONSULTANT'
-]);
+// The Industry Consultant is not in the chain (read and comment only), so they have no
+// workflow role here and cannot record an action. See utils/workflowRules.js.
+const PARALLEL_REVIEW_ROLES = new Set(REQUIRED_REVIEWERS);
 
 // SQLite does not provide row-level SELECT FOR UPDATE locks. Serialize each
 // assignment inside this process as well as using BEGIN IMMEDIATE below, so
@@ -37,66 +35,6 @@ const withWorkflowLock = async (assignmentKey, task) => {
         release();
         if (workflowLocks.get(key) === tail) workflowLocks.delete(key);
     }
-};
-
-/**
- * Decide whether an authenticated actor may append the requested workflow
- * event. Only events after the most recent instructor submission belong to
- * the current review round. Distinct pending reviewers may each return it,
- * while any return blocks the Dean and permits the instructor to resubmit.
- */
-const validateWorkflowTransition = (logs = [], actorRole, actionType) => {
-    const history = Array.isArray(logs) ? logs : [];
-    const finalApproval = history.some(entry =>
-        entry.actor_role === 'DEAN' && ['ACCEPTED', 'APPROVED'].includes(entry.action_type)
-    );
-    if (finalApproval) {
-        return { allowed: false, error: 'This learning plan is already fully approved.' };
-    }
-
-    let lastSubmissionIndex = -1;
-    history.forEach((entry, index) => {
-        if (entry.actor_role === 'INSTRUCTOR' && entry.action_type === 'SUBMITTED') lastSubmissionIndex = index;
-    });
-
-    const round = lastSubmissionIndex >= 0 ? history.slice(lastSubmissionIndex + 1) : [];
-    const hasReturn = round.some(entry => entry.action_type === 'RETURNED');
-    if (actorRole === 'INSTRUCTOR') {
-        return actionType === 'SUBMITTED' && (lastSubmissionIndex < 0 || hasReturn)
-            ? { allowed: true }
-            : { allowed: false, error: 'The learning plan can only be submitted initially or after it is returned.' };
-    }
-
-    if (lastSubmissionIndex < 0) {
-        return { allowed: false, error: 'The instructor must submit the learning plan before reviewers can act.' };
-    }
-
-    if (PARALLEL_REVIEW_ROLES.has(actorRole)) {
-        if (round.some(entry => entry.actor_role === actorRole)) {
-            return { allowed: false, error: 'This reviewer has already recorded a decision for the current submission.' };
-        }
-        return { allowed: ['ACCEPTED', 'RETURNED'].includes(actionType) };
-    }
-
-    if (actorRole === 'DEAN') {
-        if (hasReturn) {
-            return { allowed: false, error: 'The instructor must resubmit the returned learning plan before the Dean can act.' };
-        }
-        const acceptedRoles = new Set(
-            round
-                .filter(entry => entry.action_type === 'ACCEPTED' && PARALLEL_REVIEW_ROLES.has(entry.actor_role))
-                .map(entry => entry.actor_role)
-        );
-        if ([...PARALLEL_REVIEW_ROLES].some(role => !acceptedRoles.has(role))) {
-            return { allowed: false, error: 'All three parallel reviewers must accept the learning plan before the Dean can act.' };
-        }
-        if (round.some(entry => entry.actor_role === 'DEAN')) {
-            return { allowed: false, error: 'The Dean has already recorded a decision for the current submission.' };
-        }
-        return { allowed: ['ACCEPTED', 'RETURNED'].includes(actionType) };
-    }
-
-    return { allowed: false, error: 'This role cannot perform a workflow action.' };
 };
 
 const listAssignments = async (req, res, next) => {
@@ -285,7 +223,7 @@ const recordWorkflowAction = async (req, res, next) => {
     try {
         const { actor_role, action_type, pcId } = req.body || {};
         const VALID_ACTIONS = ['SUBMITTED', 'RETURNED', 'ACCEPTED'];
-        const VALID_ROLES = ['INSTRUCTOR', 'INDUSTRY_CONSULTANT', 'LIBRARY_DIRECTOR', 'PROGRAM_HEAD', 'DEAN'];
+        const VALID_ROLES = ['INSTRUCTOR', 'LIBRARY_DIRECTOR', 'PROGRAM_HEAD', 'DEAN'];
         const authenticatedActor = WORKFLOW_ROLE_BY_ACCOUNT[req.user?.role];
 
         if (!authenticatedActor || actor_role !== authenticatedActor) {

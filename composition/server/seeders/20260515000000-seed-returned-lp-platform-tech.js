@@ -75,12 +75,12 @@ module.exports = {
 
         // ============================================================================
         // 3.5 ASSIGNMENT WORKFLOW LOGS (NEW ARCHITECTURE)
-        // Simulate Assigned -> Submitted -> Returned by Industry Consultant
+        // Simulate Assigned -> Submitted -> Returned by Program Head
         // ============================================================================
         await queryInterface.bulkInsert('AssignmentWorkflowLogs', [
             { co_assign_id: assignId, actor_role: 'PROGRAM_HEAD', action_type: 'ASSIGNED', createdAt: new Date('2026-06-01 09:00:00'), updatedAt: new Date('2026-06-01 09:00:00') },
             { co_assign_id: assignId, actor_role: 'INSTRUCTOR', action_type: 'SUBMITTED', createdAt: new Date('2026-06-10 14:30:00'), updatedAt: new Date('2026-06-10 14:30:00') },
-            { co_assign_id: assignId, actor_role: 'INDUSTRY_CONSULTANT', action_type: 'RETURNED', createdAt: new Date('2026-06-15 10:15:00'), updatedAt: new Date('2026-06-15 10:15:00') }
+            { co_assign_id: assignId, actor_role: 'PROGRAM_HEAD', action_type: 'RETURNED', createdAt: new Date('2026-06-15 10:15:00'), updatedAt: new Date('2026-06-15 10:15:00') }
         ], {});
 
         // ============================================================================
@@ -272,25 +272,25 @@ module.exports = {
         const rawCommentsData = [
             // Comment 1: Target a Topic in CO2, ILO 1 (Virtualization basics)
             {
-                co_assign_id: assignId, commenter_role: 'INDUSTRY_CONSULTANT', resolved_status: false,
+                co_assign_id: assignId, commenter_role: 'PROGRAM_HEAD', resolved_status: false,
                 ilo_id: ilos[3].ilo_id, comment_for: 'topics', target_id: topics[6].topic_id,
                 message: 'In modern enterprise environments, managing Hyper-V and ESXi from the CLI is just as critical as the GUI. Ensure this virtualization topic explicitly lists PowerShell and ESXCLI commands.'
             },
             // Comment 2: Target a TLA in CO2, ILO 2 (Virtual Networking)
             {
-                co_assign_id: assignId, commenter_role: 'INDUSTRY_CONSULTANT', resolved_status: false,
+                co_assign_id: assignId, commenter_role: 'PROGRAM_HEAD', resolved_status: false,
                 ilo_id: ilos[4].ilo_id, comment_for: 'tlas', target_id: tlas[8].tla_id,
                 message: 'This VLAN lab is too theoretical. Students need to actively configure 802.1Q trunking on virtual switches. Please adjust the TLA description to require a working trunk port demonstration.'
             },
             // Comment 3: Target a Topic in CO3, ILO 3 (Kubernetes)
             {
-                co_assign_id: assignId, commenter_role: 'INDUSTRY_CONSULTANT', resolved_status: false,
+                co_assign_id: assignId, commenter_role: 'PROGRAM_HEAD', resolved_status: false,
                 ilo_id: ilos[8].ilo_id, comment_for: 'topics', target_id: topics[16].topic_id,
                 message: 'You cannot teach Kubernetes effectively without covering Role-Based Access Control (RBAC). Add RBAC and Security Contexts to this topic before moving on to deployments.'
             },
             // Comment 4: Target a TLA in CO3, ILO 3 (K8s TLA)
             {
-                co_assign_id: assignId, commenter_role: 'INDUSTRY_CONSULTANT', resolved_status: false,
+                co_assign_id: assignId, commenter_role: 'PROGRAM_HEAD', resolved_status: false,
                 ilo_id: ilos[8].ilo_id, comment_for: 'tlas', target_id: tlas[17].tla_id,
                 message: 'Instead of running Minikube locally for this assessment, consider using a free tier of a managed service like EKS or GKE. Industry practice rarely involves local clusters for production modeling.'
             },

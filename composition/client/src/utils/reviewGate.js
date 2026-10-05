@@ -221,14 +221,14 @@ export const addSignature = (workflow = {}, signature) => {
 
 // ------------------------------------------------- consolidated status ---
 
-// Program Head → Director of Libraries → Industry Consultant → Dean (final,
-// with a date approved) → VPAA (read-only). The Dean is the last approver; the
-// VPAA only ever sees what is already approved.
+// The required chain: Director of Libraries and Program Head review in parallel, then the
+// Dean (final, with a date approved). The Industry Consultant and the VPAA are view-only:
+// the consultant may comment, but is never a required step and cannot accept or return.
 export const APPROVER_CHAIN = [
-    { role: 'program-head', label: 'Program Head', path: ['parallelReview', 'program_head'] },
     { role: 'director-of-libraries', label: 'Director of Libraries', path: ['parallelReview', 'library_director'] },
-    { role: 'industry-consultant', label: 'Industry Consultant', path: ['parallelReview', 'industry_consultant'] },
+    { role: 'program-head', label: 'Program Head', path: ['parallelReview', 'program_head'] },
     { role: 'dean', label: 'Dean', path: ['dean'], final: true },
+    { role: 'industry-consultant', label: 'Industry Consultant', path: ['consultant'], readOnly: true },
     { role: 'vpaa', label: 'VPAA', path: ['vpaa'], readOnly: true }
 ]
 
@@ -238,15 +238,19 @@ const readPath = (obj, path) => path.reduce((acc, key) => (acc ? acc[key] : unde
 // is, who has acted and who has not.
 export const consolidatedStatus = (workflow = {}) => {
     const stage = workflow.currentStage || 'submitted'
+    // With `returnedBy` (derived from the server log) only the roles that returned the plan
+    // show as returned; without it, a returned plan marks everyone who has not approved.
+    const returnedRoles = Array.isArray(workflow.returnedBy) ? workflow.returnedBy : null
     const steps = APPROVER_CHAIN.map(step => {
         const node = readPath(workflow, step.path) || {}
         const done = node.status === 'done'
+        const returned = returnedRoles ? returnedRoles.includes(step.role) : stage === 'returned'
         return {
             role: step.role,
             label: step.label,
             final: !!step.final,
             readOnly: !!step.readOnly,
-            status: done ? 'approved' : (stage === 'returned' ? 'returned' : 'pending'),
+            status: done ? 'approved' : (returned && !step.readOnly ? 'returned' : 'pending'),
             completedAt: node.completedAt || null,
             signature: (workflow.signatures || []).find(s => s.role === step.role) || null
         }
@@ -273,22 +277,32 @@ export const canActOnStage = (roleKey, workflow = {}) => {
     if (role === 'vpaa') return false                       // read access only
     const status = consolidatedStatus(workflow)
     if (role === 'instructor') {
-        // The plan is the instructor's until an approver has acted on it, and
-        // again once it comes back. `defaultWorkflow` starts a never-submitted
-        // plan at 'submitted', so the stage alone cannot say.
-        if (stage === 'approved') return false
-        return stage === 'returned' || status.approvedCount === 0
+        // The plan is the instructor's before the first submission and again once a reviewer
+        // has returned it; while it is with the reviewers, or once approved, it is locked.
+        return stage === 'draft' || stage === 'returned'
     }
     // Reviewers have nothing to act on until the instructor has submitted the plan.
-    if (stage === 'draft') return false
+    if (stage === 'draft' || stage === 'approved') return false
     const step = status.steps.find(s => s.role === role)
     if (!step) return false
-    if (step.status === 'approved') return false
+    if (step.readOnly) return false                 // the consultant comments but never decides
+    if (step.status === 'approved') return false    // already accepted: not asked again
     if (step.final) {
-        // The Dean is final: everybody before them has to be done first.
-        return status.steps.filter(s => !s.final && !s.readOnly).every(s => s.status === 'approved')
+        // The Dean is final: both reviewers have accepted, and nothing is waiting on the instructor.
+        return stage !== 'returned' && status.steps.filter(s => !s.final && !s.readOnly).every(s => s.status === 'approved')
     }
-    return stage !== 'approved'
+    // A reviewer who returned the plan waits for the instructor to resubmit.
+    return step.status !== 'returned'
+}
+
+// The syllabus may be exported once the Director of Libraries and the Program Head have both
+// accepted, even before the Dean. Until the Dean accepts, the export is marked
+// "Pending Dean approval".
+export const exportEligibility = (workflow = {}) => {
+    const approved = workflow.currentStage === 'approved' || workflow.dean?.status === 'done'
+    const reviewersDone = workflow.parallelReview?.library_director?.status === 'done'
+        && workflow.parallelReview?.program_head?.status === 'done'
+    return { allowed: approved || reviewersDone, approved, pendingDean: !approved && reviewersDone }
 }
 
 export default {
@@ -308,5 +322,6 @@ export default {
     addSignature,
     APPROVER_CHAIN,
     consolidatedStatus,
-    canActOnStage
+    canActOnStage,
+    exportEligibility
 }

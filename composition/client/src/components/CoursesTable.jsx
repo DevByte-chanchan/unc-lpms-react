@@ -11,7 +11,7 @@ import unclogo from '../assets/unclogo.png';
 import TableScrollRegion from './TableScrollRegion.jsx';
 import SortableTh from './SortableTh.jsx';
 import { instructorCourseColumns, nextSort, sortRows } from '../utils/tableSort.js';
-import { buildApproverStatus, computeOverallStatus, latestSubmissionAt } from '../utils/assignmentStatus.js';
+import { buildApproverStatus, canExportRow, computeOverallStatus, latestSubmissionAt } from '../utils/assignmentStatus.js';
 
 const SEM_OPTIONS = ['1st Sem', '2nd Sem'];
 const STATUS_OPTIONS = ["DRAFT", "PENDING", "RETURNED", "APPROVED"];
@@ -349,7 +349,7 @@ const CoursesTable = () => {
                                             <ChevronRight size={18} />
                                         </Link>
 
-                                        {selectedStatus === 'APPROVED' &&
+                                        {(selectedStatus === 'APPROVED' || canExportRow(row)) &&
                                             <span
                                                 className="actionLink"
                                                 style={{ minWidth: 90, display: 'inline-flex', alignItems: 'center', gap: 5, cursor: exporting ? 'wait' : 'pointer', color: '#6b7280' }}

@@ -7,6 +7,9 @@ import SyllabusPreview from "./SyllabusPreview.jsx";
 import Revisions from "./Revisions.jsx";
 import {fetchJson, apiErrorMessage} from "../utils/api";
 import { useServerWorkflow } from '../utils/useServerWorkflow.js'
+import { exportEligibility } from '../utils/reviewGate.js'
+import { fetchFormInfo } from '../utils/formSettings.js'
+import { buildReviewRecordFile } from '../utils/exportSyllabus.js'
 import { validateSubmission } from '../utils/submissionGate'
 import PDFViewerModal from './PDFViewerModal'
 import { buildSyllabusHtml } from '../utils/syllabusPdfHtml.js'
@@ -53,12 +56,26 @@ const SyllabusSections = () => {
 
     // The export's approval block reads the server workflow log; nothing is kept locally.
     const { workflow } = useServerWorkflow(offeringID, resolvedCode)
+    // Exportable once the Director of Libraries and the Program Head have accepted, even before the Dean.
+    const exportInfo = exportEligibility(workflow)
 
     const [isLoading, setIsLoading] = useState(false);
     const [isPreviewOpen, setIsPreviewOpen] = useState(false);
     const [isRevisionsOpen, setIsRevisionsOpen] = useState(false);
     const [previewFile, setPreviewFile] = useState(null)
     const [exportingPdf, setExportingPdf] = useState(false)
+
+    // The accreditation review record: every comment, workflow action and the final approvers.
+    const handleReviewRecord = async () => {
+        setExportingPdf(true)
+        try {
+            setPreviewFile(await buildReviewRecordFile({ pcId: offeringID, code: resolvedCode }))
+        } catch (err) {
+            alert('Failed to generate the review record: ' + (err?.message || err))
+        } finally {
+            setExportingPdf(false)
+        }
+    }
 
     const handleExport = async () => {
         setExportingPdf(true)
@@ -94,12 +111,13 @@ const SyllabusSections = () => {
                 course_title: courseRes?.name || '',
             }
             const logoUrl = new URL(unclogo, window.location.origin).href
-            const html = buildSyllabusHtml(syllabus, resolvedCode, workflow, logoUrl)
+            const formInfo = await fetchFormInfo()
+            const html = buildSyllabusHtml(syllabus, resolvedCode, workflow, logoUrl, { formInfo, pendingApproval: exportInfo.pendingDean })
             const blob = new Blob([html], { type: 'text/html' })
             const url = URL.createObjectURL(blob)
             setPreviewFile({
                 file_url: url,
-                file_name: `Syllabus_${resolvedCode}.html`,
+                file_name: `Syllabus_${resolvedCode}${exportInfo.pendingDean ? '_PENDING_DEAN_APPROVAL' : ''}.html`,
                 instructor_name: syllabus?.instructor || '—',
                 course_id: resolvedCode,
                 course_name: syllabus?.name || '',
@@ -281,7 +299,7 @@ const SyllabusSections = () => {
                 }
 
                 {
-                    status === 'approved' &&
+                    status !== 'draft' &&
                     <>
                         <div className={styles.divider}><div className={styles.line}></div></div>
 
@@ -298,11 +316,14 @@ const SyllabusSections = () => {
                                     </button>
                                 }
                                 {
-                                    status === 'approved' &&
+                                    (status === 'approved' || exportInfo.allowed) &&
                                     <button type="button" disabled={exportingPdf} onClick={(e) => { e.stopPropagation(); setIsOpen(false); handleExport(); }}>
-                                        <Download strokeWidth={2} size={14} /> {exportingPdf ? 'Exporting...' : 'Export'}
+                                        <Download strokeWidth={2} size={14} /> {exportingPdf ? 'Exporting...' : (exportInfo.pendingDean ? 'Export (pending Dean approval)' : 'Export')}
                                     </button>
                                 }
+                                <button type="button" disabled={exportingPdf} onClick={(e) => { e.stopPropagation(); setIsOpen(false); handleReviewRecord(); }}>
+                                    <Download strokeWidth={2} size={14} /> Review record
+                                </button>
 
                             </div>
                         </div>

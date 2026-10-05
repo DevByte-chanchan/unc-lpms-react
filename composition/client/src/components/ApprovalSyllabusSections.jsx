@@ -10,6 +10,8 @@ import stylesB from '../styles/SyllabusPreview.module.sass'
 import stylesC from '../styles/SyllabusSections.module.sass'
 import ApprovalCommentBox from './ApprovalCommentBox.jsx'
 import { useServerWorkflow } from '../utils/useServerWorkflow.js'
+import { fetchFormInfo } from '../utils/formSettings.js'
+import { buildReviewRecordFile } from '../utils/exportSyllabus.js'
 import { getSuggestions, addSuggestion, acceptSuggestion, rejectSuggestion, getSyllabus } from '../utils/dataStore'
 import { getReferences, getReferenceById } from '../utils/referenceLibrary'
 import { normalizeRoleKey } from '../utils/approvalHelpers.js'
@@ -18,6 +20,7 @@ import ApprovalChainStatus from './ApprovalChainStatus.jsx'
 import {
   validateReturn,
   canActOnStage,
+  exportEligibility,
   encodeCommentType,
   parseApprovalCommentDisplay,
   compactCommentIlo,
@@ -47,9 +50,9 @@ const sectionLabels = {
   'Criteria for Grading': 'Criteria for Grading',
 }
 const defaultSections = Object.keys(sectionLabels)
+// The Industry Consultant has no workflow role: they read and comment, but never accept or return.
 const ACTOR_ROLE_MAP = {
   instructor: 'INSTRUCTOR',
-  'industry-consultant': 'INDUSTRY_CONSULTANT',
   'director-of-libraries': 'LIBRARY_DIRECTOR',
   'program-head': 'PROGRAM_HEAD',
   dean: 'DEAN',
@@ -65,6 +68,8 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
   const validPcId = pcId && !Number.isNaN(Number(pcId)) && String(Number(pcId)) === String(pcId) ? pcId : null
   const { workflow: serverWorkflow, error: workflowError, reload: reloadWorkflow } = useServerWorkflow(validPcId, courseCode)
   const workflowState = workflowProp || serverWorkflow
+  // Exportable once the Director of Libraries and the Program Head have accepted, even before the Dean.
+  const exportInfo = exportEligibility(workflowState)
   const fallbackStage = workflowState.currentStage === 'draft' ? '' : (workflowState.currentStage || '')
   const effectiveStatus = effectiveFromUrl || fallbackStage || 'submitted'
   const params = useParams()
@@ -99,16 +104,29 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
 
   // Shared export routine so the Export action can live both as a standalone
   // button and inside the "more" dropdown stack (next to Revisions).
+  // The accreditation review record: every comment, workflow action and the final approvers.
+  const runReviewRecord = async () => {
+    setExportingPdf(true)
+    try {
+      setPreviewFile(await buildReviewRecordFile({ pcId: validPcId, code: codeToUse }))
+    } catch (err) {
+      alert('Failed to generate the review record: ' + (err?.message || err))
+    } finally {
+      setExportingPdf(false)
+    }
+  }
+
   const runExport = async () => {
     setExportingPdf(true)
     try {
       const logoUrl = new URL(unclogo, window.location.origin).href
-      const html = buildSyllabusHtml(syllabus, codeToUse, workflowState, logoUrl)
+      const formInfo = await fetchFormInfo()
+      const html = buildSyllabusHtml(syllabus, codeToUse, workflowState, logoUrl, { formInfo, pendingApproval: exportInfo.pendingDean })
       const blob = new Blob([html], { type: 'text/html' })
       const url = URL.createObjectURL(blob)
       setPreviewFile({
         file_url: url,
-        file_name: `Syllabus_${codeToUse}.html`,
+        file_name: `Syllabus_${codeToUse}${exportInfo.pendingDean ? '_PENDING_DEAN_APPROVAL' : ''}.html`,
         instructor_name: syllabus?.instructor || '—',
         course_id: codeToUse,
         course_name: syllabus?.name || '',
@@ -630,8 +648,8 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
   }
 
   // Whether this role may act on the plan at its current stage. One rule for the
-  // whole chain — Program Head → Director of Libraries → Industry Consultant →
-  // Dean (final) → VPAA (read-only) — so this component is reused per role
+  // whole chain — Director of Libraries and Program Head in parallel, then the
+  // Dean (final); the Industry Consultant and VPAA are view-only — so this component is reused per role
   // without any role acting out of turn. `canActOnStage` in reviewGate.js owns
   // it; this component only asks.
   const isRoleActive = () => canActOnStage(roleKey, workflowState)
@@ -639,7 +657,6 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
   const hasRoleApproved = () => {
     const wf = workflowState
     if (roleKey === 'director-of-libraries') return wf.parallelReview?.library_director?.status === 'done'
-    if (roleKey === 'industry-consultant') return wf.parallelReview?.industry_consultant?.status === 'done'
     if (roleKey === 'program-head') return wf.programHead?.status === 'done'
     if (roleKey === 'dean') return wf.dean?.status === 'done'
     return false
@@ -849,7 +866,8 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
 
       setRefreshKey(k => k + 1)
 
-      if (workflowState.currentStage !== 'returned') {
+      // Only a required reviewer's comments return the plan; the consultant's are documentation.
+      if (roleKey !== 'industry-consultant' && workflowState.currentStage !== 'returned') {
         recordWorkflowAction('RETURNED').then(() => {
           reloadWorkflow()
         }).catch(e => alert(apiErrorMessage(e, 'Could not record the return.')))
@@ -918,6 +936,35 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
     }
   }
 
+  // Export / review-record menu. Revisions only for an approved plan; Export once the Director of
+  // Libraries and the Program Head have accepted (marked pending until the Dean does); the review
+  // record (every comment, action and approver) is always available and is a separate document.
+  const exportMenu = (approved) => (<>
+    <div className={styles.divider}>
+      <div className={styles.line}></div>
+    </div>
+    <div onClick={toggleMenu} ref={dropdownRef} className={`${styles.more} ${isOpen ? styles.active : ''}`}>
+      <div className={styles.moreIcon}>
+        <MoreVertical strokeWidth={2} size={16} />
+      </div>
+      <div className={styles.dropdownMenu}>
+        {approved && (
+          <button type="button" onClick={(e) => { e.stopPropagation(); setIsRevisionsOpen(true); setIsOpen(false); }}>
+            <Clock strokeWidth={2} size={14} /> Revisions
+          </button>
+        )}
+        {(approved || exportInfo.allowed) && (
+          <button type="button" disabled={exportingPdf} onClick={(e) => { e.stopPropagation(); setIsOpen(false); runExport(); }}>
+            <Download strokeWidth={2} size={14} /> {exportingPdf ? 'Exporting...' : (exportInfo.pendingDean ? 'Export (pending Dean approval)' : 'Export')}
+          </button>
+        )}
+        <button type="button" disabled={exportingPdf} onClick={(e) => { e.stopPropagation(); setIsOpen(false); runReviewRecord(); }}>
+          <Download strokeWidth={2} size={14} /> Review record
+        </button>
+      </div>
+    </div>
+  </>)
+
   // No offering, or the log could not be read: say so instead of showing the plan as a draft.
   if (workflowError && !workflowProp) {
     return (
@@ -958,7 +1005,8 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
             if (effectiveStatus !== 'approved' && roleKey === 'instructor') {
               const stage = workflowState.currentStage || 'submitted'
               const isReturned = stage === 'returned'
-              const hasUnresolved = globalComments.some(c => c.recipientRole === 'instructor' && !c.resolved)
+              // Industry Consultant comments are documentation: they never block a resubmission.
+              const hasUnresolved = globalComments.some(c => c.recipientRole === 'instructor' && !c.resolved && c.role !== 'Industry Consultant')
               return (
                 <div className={styles.submit} onClick={() => {
                   if (!isRoleActive()) {
@@ -977,20 +1025,20 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
             }
             if (effectiveStatus !== 'approved' && roleKey !== 'instructor') {
               return (<>
-                <button type="button" className={`${styles.draft} ${(!reviewRecordAvailable || !(isRoleActive() || hasRoleApproved())) ? styles['disabled-btn'] : ''}`} aria-disabled={!reviewRecordAvailable || !(isRoleActive() || hasRoleApproved())} onClick={() => {
+                <button type="button" className={`${styles.draft} ${(!reviewRecordAvailable || !(roleKey === 'industry-consultant' || isRoleActive() || hasRoleApproved())) ? styles['disabled-btn'] : ''}`} aria-disabled={!reviewRecordAvailable || !(roleKey === 'industry-consultant' || isRoleActive() || hasRoleApproved())} onClick={() => {
                   if (!reviewRecordAvailable) { showToastMsg('This course revision could not be loaded, so it cannot be reviewed.', 'warning'); return }
                   // Approvers can always ADD comments while the plan is in review —
                   // including in the returned stage or after their own approval.
-                  if (isRoleActive() || hasRoleApproved()) { setReadOnlyCommentModal(false); openComment() }
+                  if (roleKey === 'industry-consultant' || isRoleActive() || hasRoleApproved()) { setReadOnlyCommentModal(false); openComment() }
                   else if (roleKey === 'dean') showToastMsg('Waiting for previous approvers to complete their review.', 'warning')
                   else showToastMsg('Commenting is not available until the workflow reaches your review stage.', 'warning')
                 }}><MessageSquare size={16} /> Add Comment</button>
-                <button type="button" className={`${styles.submit} ${(!reviewRecordAvailable || !isRoleActive() || hasRoleApproved()) ? styles['disabled-btn'] : ''}`} aria-disabled={!reviewRecordAvailable || !isRoleActive() || hasRoleApproved()} onClick={() => {
+                {roleKey !== 'industry-consultant' && (<button type="button" className={`${styles.submit} ${(!reviewRecordAvailable || !isRoleActive() || hasRoleApproved()) ? styles['disabled-btn'] : ''}`} aria-disabled={!reviewRecordAvailable || !isRoleActive() || hasRoleApproved()} onClick={() => {
                   if (!reviewRecordAvailable) { showToastMsg('This course revision could not be loaded, so it cannot be approved.', 'warning'); return }
                   if (hasRoleApproved()) showToastMsg('You have already approved this learning plan.', 'warning')
                   else if (isRoleActive()) startApprove()
                   else if (roleKey === 'dean') showToastMsg('Waiting for previous approvers to complete their review.', 'warning')
-                }}><Check size={16} /> Approve</button>
+                }}><Check size={16} /> Approve</button>)}
               </>)
             }
             if (effectiveStatus === 'approved' && roleKey === 'vpaa') {
@@ -999,7 +1047,8 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
                   setExportingPdf(true)
                   try {
                     const logoUrl = new URL(unclogo, window.location.origin).href
-                    const html = buildSyllabusHtml(syllabus, codeToUse, workflowState, logoUrl)
+                    const formInfo = await fetchFormInfo()
+                    const html = buildSyllabusHtml(syllabus, codeToUse, workflowState, logoUrl, { formInfo })
                     const blob = new Blob([html], { type: 'text/html' })
                     const url = URL.createObjectURL(blob)
                     setPreviewFile({
@@ -1022,48 +1071,10 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
                 </div>
               </>)
             }
-            if (effectiveStatus === 'approved' && (roleKey === 'instructor' || roleKey === 'dean')) {
-              return (<>
-                <div className={styles.divider}>
-                  <div className={styles.line}></div>
-                </div>
-                <div onClick={toggleMenu} ref={dropdownRef} className={`${styles.more} ${isOpen ? styles.active : ''}`}>
-                  <div className={styles.moreIcon}>
-                    <MoreVertical strokeWidth={2} size={16} />
-                  </div>
-                  <div className={styles.dropdownMenu}>
-                    <button type="button" onClick={(e) => { e.stopPropagation(); setIsRevisionsOpen(true); setIsOpen(false); }}>
-                      <Clock strokeWidth={2} size={14} /> Revisions
-                    </button>
-                    <button type="button" disabled={exportingPdf} onClick={(e) => { e.stopPropagation(); setIsOpen(false); runExport(); }}>
-                      <Download strokeWidth={2} size={14} /> {exportingPdf ? 'Exporting...' : 'Export'}
-                    </button>
-                  </div>
-                </div>
-              </>)
-            }
-            if (effectiveStatus === 'approved') {
-              return (<>
-                <div className={styles.divider}>
-                  <div className={styles.line}></div>
-                </div>
-                <div onClick={toggleMenu} ref={dropdownRef} className={`${styles.more} ${isOpen ? styles.active : ''}`}>
-                  <div className={styles.moreIcon}>
-                    <MoreVertical strokeWidth={2} size={16} />
-                  </div>
-                  <div className={styles.dropdownMenu}>
-                    <button type="button" onClick={(e) => { e.stopPropagation(); setIsRevisionsOpen(true); setIsOpen(false); }}>
-                      <Clock strokeWidth={2} size={14} /> Revisions
-                    </button>
-                    <button type="button" disabled={exportingPdf} onClick={(e) => { e.stopPropagation(); setIsOpen(false); runExport(); }}>
-                      <Download strokeWidth={2} size={14} /> {exportingPdf ? 'Exporting...' : 'Export'}
-                    </button>
-                  </div>
-                </div>
-              </>)
-            }
+            if (effectiveStatus === 'approved') return exportMenu(true)
             return null
           })()}
+          {effectiveStatus !== 'approved' && roleKey !== 'vpaa' && exportMenu(false)}
         </div>
       )}
 

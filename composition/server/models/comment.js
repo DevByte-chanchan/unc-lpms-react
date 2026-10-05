@@ -4,6 +4,9 @@ module.exports = (sequelize, DataTypes) => {
         comment_id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
         co_assign_id: { type: DataTypes.INTEGER, allowNull: true },
         commenter_role: { type: DataTypes.STRING(30), allowNull: false },
+        // Who wrote it. Older rows only have the role; see utils/authorBackfill.js.
+        commenter_user_id: { type: DataTypes.INTEGER, allowNull: true },
+        commenter_name: { type: DataTypes.STRING(100), allowNull: true },
         message: { type: DataTypes.TEXT, allowNull: false },
         resolved_status: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
         resolved_date: { type: DataTypes.DATE, allowNull: true },

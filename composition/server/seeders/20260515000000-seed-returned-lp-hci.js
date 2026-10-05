@@ -61,7 +61,6 @@ module.exports = {
             { co_assign_id: assignId, actor_role: 'PROGRAM_HEAD', action_type: 'ASSIGNED', createdAt: new Date('2026-06-01 09:00:00'), updatedAt: new Date('2026-06-01 09:00:00') },
             { co_assign_id: assignId, actor_role: 'INSTRUCTOR', action_type: 'SUBMITTED', createdAt: new Date('2026-06-15 10:00:00'), updatedAt: new Date('2026-06-15 10:00:00') },
             // Rejected by Stakeholders
-            { co_assign_id: assignId, actor_role: 'INDUSTRY_CONSULTANT', action_type: 'RETURNED', createdAt: new Date('2026-06-18 14:00:00'), updatedAt: new Date('2026-06-18 14:00:00') },
             { co_assign_id: assignId, actor_role: 'PROGRAM_HEAD', action_type: 'RETURNED', createdAt: new Date('2026-06-19 11:30:00'), updatedAt: new Date('2026-06-19 11:30:00') }
         ], {});
 

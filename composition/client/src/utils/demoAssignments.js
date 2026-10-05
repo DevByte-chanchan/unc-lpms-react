@@ -117,7 +117,6 @@ export const buildDemoAssignments = (now = new Date()) => {
         base.logs = [
             log('SUBMITTED', 'INSTRUCTOR', submitted),
             log('ACCEPTED', 'LIBRARY_DIRECTOR', at(22 - index)),
-            log('ACCEPTED', 'INDUSTRY_CONSULTANT', at(20 - index)),
             log('ACCEPTED', 'PROGRAM_HEAD', at(18 - index)),
             log('ACCEPTED', 'DEAN', deanAt)
         ]

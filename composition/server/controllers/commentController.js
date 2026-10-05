@@ -38,6 +38,7 @@ exports.getUnresolvedCommentCounts = async (req, res) => {
                  INNER JOIN CourseOutcomes co ON co.co_id = ilo.co_id
                  INNER JOIN ProgramCourseOfferings pco ON pco.pc_offering_id = co.pc_offering_id
              WHERE pco.pc_offering_id = ? AND pco.revision_number = ? AND c.resolved_status = false
+               AND c.commenter_role <> 'INDUSTRY_CONSULTANT'
              GROUP BY c.ilo_id, c.comment_for;`,
             {
                 replacements: [pcId, revNum],
@@ -242,9 +243,12 @@ exports.createCourseComment = async (req, res) => {
 
         const now = new Date();
         const [commentId] = await sequelize.query(
-            `INSERT INTO Comments (commenter_role, message, resolved_status, co_assign_id, ilo_id, comment_for, createdAt, updatedAt)
-             VALUES (?, ?, 0, ?, ?, ?, ?, ?);`,
-            { replacements: [commenter_role, message, coAssignId, iloId, normalizedFor, now, now], type: Sequelize.QueryTypes.INSERT }
+            `INSERT INTO Comments (commenter_role, commenter_user_id, commenter_name, message, resolved_status, co_assign_id, ilo_id, comment_for, createdAt, updatedAt)
+             VALUES (?, ?, ?, ?, 0, ?, ?, ?, ?, ?);`,
+            {
+                replacements: [commenter_role, req.user?.id ?? null, req.user?.name || null, message, coAssignId, iloId, normalizedFor, now, now],
+                type: Sequelize.QueryTypes.INSERT
+            }
         );
         for (const tid of targetIds) {
             await sequelize.query(

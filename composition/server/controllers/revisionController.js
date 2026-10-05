@@ -6,6 +6,7 @@ const {
     CommentTarget
 } = require('../models');
 const { canAccessCourseRows, loadOfferingCourseRows } = require('../middleware/courseAuthorization');
+const { planEditState } = require('../utils/workflowRules');
 
 // Helper to format roles neatly
 const toTitleCase = (str) => {
@@ -176,23 +177,8 @@ exports.getRevisionsByOffering = async (req, res) => {
                 });
             }
 
-            const sortedLogsDesc = [...rawLogs].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-            const latestLog = sortedLogsDesc.length > 0 ? sortedLogsDesc[0] : null;
-
-            let computedStatus = 'Draft';
-            if (latestLog && latestLog.action_type === 'RETURNED') {
-                computedStatus = 'Returned';
-            } else if (latestLog && latestLog.action_type === 'ACCEPTED' && latestLog.actor_role === 'DEAN') {
-                computedStatus = 'Approved';
-            } else {
-                const hasBeenSubmitted =
-                    offering.date_submitted !== null ||
-                    rawLogs.some(log => log.action_type === 'SUBMITTED' || log.action_type === 'ACCEPTED');
-
-                if (hasBeenSubmitted) {
-                    computedStatus = 'Pending';
-                }
-            }
+            // The workflow log is the single source of truth for a plan's status.
+            const computedStatus = planEditState(sortedLogs).state;
 
             formattedRevisions.push({
                 revNum: offering.revision_number,

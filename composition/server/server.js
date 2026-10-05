@@ -97,6 +97,8 @@ app.use('/api/course-coverage', courseCoverageRoutes);
 app.use('/api', courseReferenceRoutes);
 app.use('/api/submit-learning-plan', submissionRoutes);
 app.use('/api/coaep', require('./routes/coaepRoutes'));
+app.use('/api/form-settings', require('./routes/formSettings'));
+app.use('/api/course-consultants', require('./routes/courseConsultants'));
 app.use('/api', require('./routes/exportPdf'));
 
 // global error handler

@@ -80,13 +80,11 @@ module.exports = {
             { co_assign_id: assignId, actor_role: 'PROGRAM_HEAD', action_type: 'ASSIGNED', createdAt: new Date('2025-06-01 09:00:00'), updatedAt: new Date('2025-06-01 09:00:00') },
             { co_assign_id: assignId, actor_role: 'INSTRUCTOR', action_type: 'SUBMITTED', createdAt: new Date('2025-06-15 10:00:00'), updatedAt: new Date('2025-06-15 10:00:00') },
             // Returns requiring revisions
-            { co_assign_id: assignId, actor_role: 'INDUSTRY_CONSULTANT', action_type: 'RETURNED', createdAt: new Date('2025-06-18 14:00:00'), updatedAt: new Date('2025-06-18 14:00:00') },
             { co_assign_id: assignId, actor_role: 'PROGRAM_HEAD', action_type: 'RETURNED', createdAt: new Date('2025-06-19 11:30:00'), updatedAt: new Date('2025-06-19 11:30:00') },
             // Instructor fixes and resubmits
             { co_assign_id: assignId, actor_role: 'INSTRUCTOR', action_type: 'SUBMITTED', createdAt: new Date('2025-06-25 09:00:00'), updatedAt: new Date('2025-06-25 09:00:00') },
             // Final Approvals
             { co_assign_id: assignId, actor_role: 'LIBRARY_DIRECTOR', action_type: 'ACCEPTED', createdAt: new Date('2025-06-26 10:00:00'), updatedAt: new Date('2025-06-26 10:00:00') },
-            { co_assign_id: assignId, actor_role: 'INDUSTRY_CONSULTANT', action_type: 'ACCEPTED', createdAt: new Date('2025-06-27 13:00:00'), updatedAt: new Date('2025-06-27 13:00:00') },
             { co_assign_id: assignId, actor_role: 'PROGRAM_HEAD', action_type: 'ACCEPTED', createdAt: new Date('2025-06-28 09:45:00'), updatedAt: new Date('2025-06-28 09:45:00') },
             { co_assign_id: assignId, actor_role: 'DEAN', action_type: 'ACCEPTED', createdAt: new Date('2025-07-02 15:00:00'), updatedAt: new Date('2025-07-02 15:00:00') }
         ], {});
