@@ -6,7 +6,7 @@ import ApprovalCoursesTable from "../components/ApprovalCoursesTable.jsx";
 const DirectorOfLibraries = () => {
   return (
     <Skeleton
-      header={<Header role="Director Of Libraries" name="SANTOS, MARIA" />}
+      header={<Header role="Director Of Libraries" />}
       nav={<SideNavigation mode="director-of-libraries" />}
       content={
         <div

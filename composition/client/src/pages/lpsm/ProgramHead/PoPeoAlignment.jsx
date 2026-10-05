@@ -199,7 +199,7 @@ const PoPeoAlignment = () => {
 
   return (
     <SkeletonA
-      header={<HeaderA role="Program Head" name="DANILA, JUNAR" />}
+      header={<HeaderA role="Program Head" />}
       nav={<SideNavigation mode="program-head" />}
       content={content}
     />

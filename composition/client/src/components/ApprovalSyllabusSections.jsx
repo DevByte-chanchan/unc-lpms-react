@@ -63,7 +63,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
   const effectiveFromUrl = (statusParam || status || '').toLowerCase()
   // A plan's stage and who may act come from the server workflow log, never from local storage.
   const validPcId = pcId && !Number.isNaN(Number(pcId)) && String(Number(pcId)) === String(pcId) ? pcId : null
-  const { workflow: serverWorkflow, reload: reloadWorkflow } = useServerWorkflow(validPcId, courseCode)
+  const { workflow: serverWorkflow, error: workflowError, reload: reloadWorkflow } = useServerWorkflow(validPcId, courseCode)
   const workflowState = workflowProp || serverWorkflow
   const fallbackStage = workflowState.currentStage === 'draft' ? '' : (workflowState.currentStage || '')
   const effectiveStatus = effectiveFromUrl || fallbackStage || 'submitted'
@@ -916,6 +916,20 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
         }).catch(e => { if (import.meta.env.DEV) console.warn('Failed to sync resolution to server:', e?.message) })
       }
     }
+  }
+
+  // No offering, or the log could not be read: say so instead of showing the plan as a draft.
+  if (workflowError && !workflowProp) {
+    return (
+      <div className={styles.container}>
+        <div role="alert" style={{ margin: 24, padding: '16px 20px', border: '1px solid #b91c1c', background: '#fef2f2', color: '#7f1d1d', borderRadius: 8 }}>
+          <strong>Approval status unavailable.</strong> {workflowError}
+          <div style={{ marginTop: 10 }}>
+            <Link to={backPath} className={'actionLink'}>Back to course list</Link>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (

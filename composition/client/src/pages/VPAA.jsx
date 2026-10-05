@@ -9,7 +9,7 @@ const VPAA = () => {
   return (
     <>
       <SkeletonA
-        header={<HeaderA role="VPAA" name="GARCIA, CARLOS" />}
+        header={<HeaderA role="VPAA" />}
         nav={<SideNavigation mode="vpaa" />}
         content={
           <div className={vpaaStyles.container}>

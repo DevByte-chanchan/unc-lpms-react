@@ -265,7 +265,7 @@ const TLAForm = () => {
 
     return (
         <SkeletonA
-            header={<HeaderA role={'Instructor'} name={'NORTON, MONICA'} />}
+            header={<HeaderA role={'Instructor'} />}
             nav={<SideNavigation />}
             content={
                 <div className={styles.container}>

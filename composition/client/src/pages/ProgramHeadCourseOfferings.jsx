@@ -368,7 +368,7 @@ const ProgramHeadCourseOfferings = () => {
 
     return (
         <Skeleton
-            header={<Header role="Program Head" name="DANILA, JUNAR" />}
+            header={<Header role="Program Head" />}
             nav={<SideNavigation mode="program-head" />}
             content={pageContent}
         />

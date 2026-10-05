@@ -31,24 +31,7 @@ const ApprovalCourses = ({ isEmbedded = false, roleOverride = null }) => {
       'vpaa': 'VPAA'
     }
 
-    const roleDisplayNames = {
-      'program-head': 'DANILA, JUNAR',
-      'director-of-libraries': 'SANTOS, MARIA',
-      'industry-consultant': 'CRUZ, ROBERTO',
-      'dean': 'REYES, AGNES',
-      'instructor': 'CASIMERO, DANNY',
-      'vpaa': 'GARCIA, CARLOS'
-    }
-
-    const normalizeName = (name) => {
-      if (!name || name.toLowerCase().includes('norton') || name.toLowerCase().includes('monica')) {
-        return 'CASIMERO, DANNY';
-      }
-      return name;
-    }
-
     const displayRole = role ? (roleNames[role] || role.split('-').map(w => w[0].toUpperCase() + w.slice(1)).join(' ')) : 'Approver';
-    const displayName = normalizeName(role ? (roleDisplayNames[role] || 'CASIMERO, DANNY') : 'Approver');
 
     const content = role === 'instructor'
       ? <CoursesTable />
@@ -62,7 +45,7 @@ const ApprovalCourses = ({ isEmbedded = false, roleOverride = null }) => {
     // Otherwise, wrap with full layout
     return (
         <Skeleton
-            header={<Header role={displayRole} name={displayName} />}
+            header={<Header role={displayRole} />}
             content={content}
             nav={<SideNavigation mode={role === 'instructor' ? 'instructor' : (approver || 'program-head')} />}
         />

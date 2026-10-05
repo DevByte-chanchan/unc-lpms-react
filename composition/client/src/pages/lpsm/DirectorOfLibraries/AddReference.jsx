@@ -250,7 +250,7 @@ const AddReference = () => {
 
   return (
     <SkeletonA
-      header={<HeaderA role="Director of Libraries" name="SANTOS, MARIA" />}
+      header={<HeaderA role="Director of Libraries" />}
       nav={<SideNavigation mode="director-of-libraries" />}
       content={content}
     />

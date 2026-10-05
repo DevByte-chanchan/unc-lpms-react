@@ -25,7 +25,7 @@ const Dean = () => {
 
   return (
     <SkeletonA
-      header={<HeaderA role="Dean" name="REYES, AGNES" />}
+      header={<HeaderA role="Dean" />}
       nav={<SideNavigation mode="dean" />}
       content={renderContent()}
     />

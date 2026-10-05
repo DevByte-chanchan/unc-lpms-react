@@ -25,7 +25,7 @@ const ViewReference = () => {
   if (!ref) {
     return (
       <SkeletonA
-        header={<HeaderA role="Director of Libraries" name="SANTOS, MARIA" />}
+        header={<HeaderA role="Director of Libraries" />}
         nav={<SideNavigation mode="director-of-libraries" />}
         content={<div style={{ padding: 30, background: 'white', height: '100%' }}>Reference not found.</div>}
       />
@@ -115,7 +115,7 @@ const ViewReference = () => {
 
   return (
     <SkeletonA
-      header={<HeaderA role="Director of Libraries" name="SANTOS, MARIA" />}
+      header={<HeaderA role="Director of Libraries" />}
       nav={<SideNavigation mode="director-of-libraries" />}
       content={content}
     />

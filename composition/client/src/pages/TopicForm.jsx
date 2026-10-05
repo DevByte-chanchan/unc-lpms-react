@@ -162,7 +162,7 @@ const TopicForm = () => {
 
     return (
         <Skeleton
-            header={<Header role={'Instructor'} name={'NORTON, MONICA'} />}
+            header={<Header role={'Instructor'} />}
             nav={<SideNavigation />}
             content={
                 <div className={styles.container}>
