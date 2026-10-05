@@ -16,6 +16,8 @@ import SideNavigation from "../components/SideNavigation.jsx";
 // Imported universal API client utility
 import { fetchJson, apiErrorMessage } from "../utils/api.js";
 import CommentMessage from "../components/CommentMessage.jsx";
+import { PERIODS, periodLabel, periodCode, parseWeight } from "../utils/assessmentWeights.js";
+import { IED_LEVELS } from "../utils/iedLevels.js";
 
 const FLIPPED_OPTIONS = ['Pre-class', 'In-class', 'Post-class'];
 const STANDARD_OPTIONS = ['Asynchronous', 'Synchronous'];
@@ -70,6 +72,9 @@ const TLAForm = () => {
     const [availableTopics, setAvailableTopics] = useState([]);
     const [topicIdMap, setTopicIdMap] = useState({});
     const [assessmentSuggestions, setAssessmentSuggestions] = useState([]);
+    // Period this ILO's weeks fall in, and its level's course-wide weight budget.
+    const [suggestedPeriod, setSuggestedPeriod] = useState('');
+    const [levelWeight, setLevelWeight] = useState(null);
     const [errors, setErrors] = useState({});
     const [tlas, setTlas] = useState([]);
     const [showConfirm, setShowConfirm] = useState(false);
@@ -84,7 +89,9 @@ const TLAForm = () => {
         ...tla,
         performedBy: tla.performedBy === 'Instructor' ? 'T' : tla.performedBy === 'Student' ? 'S' : tla.performedBy,
         assessmentType: tla.hasAssessment ? tla.assessmentType : '',
-        assessmentDetail: tla.hasAssessment ? tla.assessmentDetail : ''
+        assessmentDetail: tla.hasAssessment ? tla.assessmentDetail : '',
+        assessmentPeriod: tla.hasAssessment ? tla.assessmentPeriod : '',
+        assessmentWeight: tla.hasAssessment ? tla.assessmentWeight : ''
     });
 
     // Fetch Core Data & Filtered TLA Review Comments
@@ -108,6 +115,8 @@ const TLAForm = () => {
                 setAvailableTopics(availableTopics || []);
                 setTopicIdMap(topicIdMap || {});
                 setAssessmentSuggestions(assessmentTypeSuggestions || ['Case Study', 'Presentation', 'Exam', 'Report', 'Lab Exercise']);
+                setSuggestedPeriod(data.suggestedPeriod || '');
+                setLevelWeight(data.levelWeight || null);
 
                 // Normalize comments data states
                 setReviewComments(targetedComments.map(c => ({
@@ -125,7 +134,7 @@ const TLAForm = () => {
                     setTlas([{
                         id: Date.now(), selectedTopics: [], classPhase: '', performedBy: '',
                         tlaName: '', tlaDescription: '', laboratory: false, isLab: false,
-                        hasAssessment: false, assessmentType: '', assessmentDetail: ''
+                        hasAssessment: false, assessmentType: '', assessmentDetail: '', assessmentPeriod: '', assessmentWeight: ''
                     }]);
                 }
             } catch (error) {
@@ -170,7 +179,7 @@ const TLAForm = () => {
         setTlas([...tlas, {
             id: generatedId, selectedTopics: [], classPhase: '', performedBy: '',
             tlaName: '', tlaDescription: '', laboratory: false, isLab: false,
-            hasAssessment: false, assessmentType: '', assessmentDetail: ''
+            hasAssessment: false, assessmentType: '', assessmentDetail: '', assessmentPeriod: '', assessmentWeight: ''
         }]);
 
         // Clear highlight flash after 1.2 seconds
@@ -202,6 +211,8 @@ const TLAForm = () => {
             if (tla.hasAssessment) {
                 if (!tla.assessmentType.trim()) newErrors[`tla_${tla.id}_assessmentType`] = "Required";
                 if (!tla.assessmentDetail.trim()) newErrors[`tla_${tla.id}_assessmentDetail`] = "Detail required";
+                if (!tla.assessmentPeriod) newErrors[`tla_${tla.id}_assessmentPeriod`] = "Choose a period";
+                if (parseWeight(tla.assessmentWeight) === null) newErrors[`tla_${tla.id}_assessmentWeight`] = "Enter a weight from 0 to 100";
             }
         });
         setErrors(newErrors);
@@ -386,7 +397,10 @@ const TLAForm = () => {
                                                         {!item.hasAssessment ? (
                                                             <button
                                                                 type="button"
-                                                                onClick={() => handleTlaChange(item.id, 'hasAssessment', true)}
+                                                                onClick={() => {
+                                                                    handleTlaChange(item.id, 'hasAssessment', true);
+                                                                    if (!item.assessmentPeriod && suggestedPeriod) handleTlaChange(item.id, 'assessmentPeriod', suggestedPeriod);
+                                                                }}
                                                                 className={styles.addAssessmentBtn}
                                                             >
                                                                 <Plus size={15} />
@@ -405,6 +419,8 @@ const TLAForm = () => {
                                                                             handleTlaChange(item.id, 'hasAssessment', false);
                                                                             handleTlaChange(item.id, 'assessmentType', '');
                                                                             handleTlaChange(item.id, 'assessmentDetail', '');
+                                                                            handleTlaChange(item.id, 'assessmentPeriod', '');
+                                                                            handleTlaChange(item.id, 'assessmentWeight', '');
                                                                         }}
                                                                         className={styles.removeAssessmentBtn}
                                                                         title="Remove Assessment"
@@ -429,6 +445,29 @@ const TLAForm = () => {
                                                                         placeholder="e.g., Usability Metrics and KPIs"
                                                                     />
                                                                 </div>
+
+                                                                <div className={styles.fieldsGridTwo}>
+                                                                    <Dropdown
+                                                                        label={'Period'}
+                                                                        options={PERIODS.map(period => period.label)}
+                                                                        value={periodLabel(item.assessmentPeriod)}
+                                                                        onChange={(label) => handleTlaChange(item.id, 'assessmentPeriod', periodCode(label))}
+                                                                        error={errors[`tla_${item.id}_assessmentPeriod`]}
+                                                                    />
+                                                                    <TextField
+                                                                        label={'Weight (% of the whole course)'}
+                                                                        value={item.assessmentWeight}
+                                                                        onChange={(val) => handleTlaChange(item.id, 'assessmentWeight', val)}
+                                                                        error={errors[`tla_${item.id}_assessmentWeight`]}
+                                                                        placeholder="e.g., 12.5"
+                                                                    />
+                                                                </div>
+                                                                {levelWeight && (
+                                                                    <p>
+                                                                        {IED_LEVELS.find(level => level.code === levelWeight.level)?.name} assessments must total {levelWeight.target}% across the course;
+                                                                        the other ILOs at this level use {levelWeight.usedElsewhere}%.
+                                                                    </p>
+                                                                )}
                                                             </div>
                                                         )}
                                                     </div>

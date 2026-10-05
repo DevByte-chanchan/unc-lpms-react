@@ -21,10 +21,6 @@ module.exports = (sequelize, DataTypes) => {
             type: DataTypes.DECIMAL(4, 2),
             allowNull: true // Added weeks
         },
-        assessment_tool: {
-            type: DataTypes.STRING(200),
-            allowNull: true // Added assessment tool
-        },
         // Introductory / Enabling / Demonstrative; null for orientation ILOs.
         ied_level: {
             type: DataTypes.ENUM('I', 'E', 'D'),

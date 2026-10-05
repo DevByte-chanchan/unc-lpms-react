@@ -381,7 +381,7 @@ Through lectures, hands-on projects, and usability testing, learners will develo
         );
 
         // ============================================================================
-        // 2) Intended Learning Outcomes (Structured with week, hours, assessment_tool)
+        // 2) Intended Learning Outcomes (Structured with week, hours)
         // ============================================================================
         const ilos = [
             // CO1 (Prelim Academic Period)
@@ -389,24 +389,24 @@ Through lectures, hands-on projects, and usability testing, learners will develo
                     " of  the University's and the \n" +
                     " College's VMO as related to \n" +
                     " the course ", weeks: 1.0, hours: 2, is_orientation: true, createdAt: now, updatedAt: now },
-            { co_id: 1, description: 'Distinguish the core concepts, principles, and theories in designing user interfaces.', weeks: 1.0, hours: 5, assessment_tool: 'Objective Type Quiz', createdAt: now, updatedAt: now },
-            { co_id: 1, description: 'Determine how to use design tools proficiently in creating and refining user interface elements.', weeks: 1.0, hours: 5, assessment_tool: 'Objective Type Activity (Figma)', createdAt: now, updatedAt: now },
-            { co_id: 1, description: 'Propose a comprehensive User Interface (UI) design for a specified software application by applying the core HCI concepts, theories, and principles.', weeks: 2.0, hours: 10, assessment_tool: 'UI Design Proposal', createdAt: now, updatedAt: now },
+            { co_id: 1, description: 'Distinguish the core concepts, principles, and theories in designing user interfaces.', weeks: 1.0, hours: 5, createdAt: now, updatedAt: now },
+            { co_id: 1, description: 'Determine how to use design tools proficiently in creating and refining user interface elements.', weeks: 1.0, hours: 5, createdAt: now, updatedAt: now },
+            { co_id: 1, description: 'Propose a comprehensive User Interface (UI) design for a specified software application by applying the core HCI concepts, theories, and principles.', weeks: 2.0, hours: 10, createdAt: now, updatedAt: now },
 
             // CO2 (Midterm Academic Period)
-            { co_id: 2, description: 'Distinguish user research methodologies, user personas, and user-centered design (UCD) process frameworks.', weeks: 1.0, hours: 5, assessment_tool: 'Objective Type Quiz (UCD)', createdAt: now, updatedAt: now },
-            { co_id: 2, description: 'Determine how to build structurally-sound wireframes and layout compositions based on usability conventions.', weeks: 1.0, hours: 5, assessment_tool: 'UCD Process Document', createdAt: now, updatedAt: now },
-            { co_id: 2, description: 'Propose a cohesive User Experience (UX) wireframe package and user journey framework applying standard UCD principles.', weeks: 2.0, hours: 10, assessment_tool: 'UI/UX Design Presentation', createdAt: now, updatedAt: now },
+            { co_id: 2, description: 'Distinguish user research methodologies, user personas, and user-centered design (UCD) process frameworks.', weeks: 1.0, hours: 5, createdAt: now, updatedAt: now },
+            { co_id: 2, description: 'Determine how to build structurally-sound wireframes and layout compositions based on usability conventions.', weeks: 1.0, hours: 5, createdAt: now, updatedAt: now },
+            { co_id: 2, description: 'Propose a cohesive User Experience (UX) wireframe package and user journey framework applying standard UCD principles.', weeks: 2.0, hours: 10, createdAt: now, updatedAt: now },
 
             // CO3 (Semifinal Academic Period)
-            { co_id: 3, description: 'Distinguish dynamic visual architectures, advanced component patterns, and global accessibility standards.', weeks: 1.0, hours: 5, assessment_tool: 'Objective Type Quiz (UX laws and Accessibility Standards)', createdAt: now, updatedAt: now },
-            { co_id: 3, description: 'Determine how to implement screen reader and keyboard navigation considerations in interactive prototype elements.', weeks: 1.0, hours: 5, assessment_tool: 'UI/UX Design Implementation Document', createdAt: now, updatedAt: now },
-            { co_id: 3, description: 'Propose a fully-interactive high-fidelity mockup with micro-interactions, conforming to WCAG 2.1 regulatory standards.', weeks: 2.0, hours: 10, assessment_tool: 'Front-end Code Presentation', createdAt: now, updatedAt: now },
+            { co_id: 3, description: 'Distinguish dynamic visual architectures, advanced component patterns, and global accessibility standards.', weeks: 1.0, hours: 5, createdAt: now, updatedAt: now },
+            { co_id: 3, description: 'Determine how to implement screen reader and keyboard navigation considerations in interactive prototype elements.', weeks: 1.0, hours: 5, createdAt: now, updatedAt: now },
+            { co_id: 3, description: 'Propose a fully-interactive high-fidelity mockup with micro-interactions, conforming to WCAG 2.1 regulatory standards.', weeks: 2.0, hours: 10, createdAt: now, updatedAt: now },
 
             // CO4 (Final Academic Period)
-            { co_id: 4, description: 'Distinguish qualitative and quantitative usability metrics, testing methodologies, and analytical protocols.', weeks: 1.0, hours: 5, assessment_tool: 'Objective type Quiz (Usability Testing)', createdAt: now, updatedAt: now },
-            { co_id: 4, description: 'Determine how to analyze user performance data, time-on-task, and error rates from moderated evaluative tests.', weeks: 1.0, hours: 5, assessment_tool: 'Prototype Evaluation Document', createdAt: now, updatedAt: now },
-            { co_id: 4, description: 'Propose a comprehensive Usability Evaluation and Design Handoff Report backed by empirical testing feedback.', weeks: 2.0, hours: 10, assessment_tool: 'Front-End Prototype Presentation', createdAt: now, updatedAt: now }
+            { co_id: 4, description: 'Distinguish qualitative and quantitative usability metrics, testing methodologies, and analytical protocols.', weeks: 1.0, hours: 5, createdAt: now, updatedAt: now },
+            { co_id: 4, description: 'Determine how to analyze user performance data, time-on-task, and error rates from moderated evaluative tests.', weeks: 1.0, hours: 5, createdAt: now, updatedAt: now },
+            { co_id: 4, description: 'Propose a comprehensive Usability Evaluation and Design Handoff Report backed by empirical testing feedback.', weeks: 2.0, hours: 10, createdAt: now, updatedAt: now }
         ];
 
         await queryInterface.bulkInsert('IntendedLearningOutcomes', ilos, {});

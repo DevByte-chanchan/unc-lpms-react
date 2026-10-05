@@ -25,7 +25,7 @@ import {
   compactCommentIlo,
   reviewerRoleLabel,
 } from '../utils/reviewGate.js'
-import { fetchJson } from "../utils/api.js"
+import { fetchJson, apiErrorMessage } from "../utils/api.js"
 import { describeCourseLoadError } from '../utils/courseLoadError.js'
 import { canReviewLoadedCourse } from '../utils/reviewAssignments.js'
 import { seedDummyComments } from "../utils/seedDummyComments.js"
@@ -587,18 +587,22 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
 
   // Module 2 integration: persist workflow actions (submit / return / approve)
   // to the server so course-table statuses reflect real state across sessions.
+  // The server's workflow log is the single source of truth for a plan's status,
+  // so callers update their local view only after this resolves. Rejects when the
+  // server refuses the action (e.g. the plan is not at this reviewer's stage).
   const recordWorkflowAction = React.useCallback((actionType) => {
     const actor = ACTOR_ROLE_MAP[roleKey]
-    if (!actor || !codeToUse) return
-    fetchJson('/api/assignments/action', {
+    if (!actor || !codeToUse) return Promise.reject(new Error('This role cannot record a workflow action for this course.'))
+    return fetchJson('/api/assignments/action', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ actor_role: actor, action_type: actionType, pcId: validPcId, code: codeToUse })
-    }).catch(e => { if (import.meta.env.DEV) console.warn('Workflow action not persisted to server:', e?.message) })
+    })
   }, [codeToUse, roleKey, validPcId])
 
   const handleApprove = React.useCallback(() => {
     if (!reviewRecordAvailable) return
+    recordWorkflowAction('ACCEPTED').then(() => {
     try {
       const wf = getWorkflow(codeToUse || '')
       const nowIso = new Date().toISOString()
@@ -625,10 +629,10 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
       advanceWorkflow(codeToUse)
       setWorkflowState(getWorkflow(codeToUse))
       setRefreshKey(k => k + 1)
-      recordWorkflowAction('ACCEPTED')
     } catch (e) {
       console.error('Failed to approve', e)
     }
+    }).catch(e => alert(apiErrorMessage(e, 'Could not record your approval.')))
   }, [codeToUse, recordWorkflowAction, roleKey, reviewRecordAvailable])
 
   // Approve countdown: gives the approver a window to undo before it takes effect
@@ -650,19 +654,23 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
   const cancelApprove = () => { setApprovePhase('IDLE'); setApproveTimeLeft(5) }
 
   const handleSubmitForReview = () => {
-    try {
-      const existing = getWorkflow(codeToUse)
-      const wf = startSubmissionRound(existing, codeToUse)
-      setWorkflow(codeToUse, wf)
-      setWorkflowState(getWorkflow(codeToUse))
-      setRefreshKey(k => k + 1)
-      recordWorkflowAction('SUBMITTED')
-    } catch (e) {
-      console.error('Failed to submit', e)
-    }
-    setShowSubmitModal(false)
-    showToastMsg('Learning Plan submitted for review!')
-    navigate(backPath)
+    recordWorkflowAction('SUBMITTED').then(() => {
+      try {
+        const existing = getWorkflow(codeToUse)
+        const wf = startSubmissionRound(existing, codeToUse)
+        setWorkflow(codeToUse, wf)
+        setWorkflowState(getWorkflow(codeToUse))
+        setRefreshKey(k => k + 1)
+      } catch (e) {
+        console.error('Failed to submit', e)
+      }
+      setShowSubmitModal(false)
+      showToastMsg('Learning Plan submitted for review!')
+      navigate(backPath)
+    }).catch(e => {
+      setShowSubmitModal(false)
+      alert(apiErrorMessage(e, 'Could not submit the learning plan.'))
+    })
   }
 
   // Whether this role may act on the plan at its current stage. One rule for the
@@ -888,11 +896,12 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
 
       const wf = getWorkflow(codeToUse)
       if (wf && wf.currentStage !== 'returned') {
-        wf.currentStage = 'returned'
-        setWorkflow(codeToUse, wf)
-        advanceWorkflow(codeToUse)
-        setWorkflowState(getWorkflow(codeToUse))
-        recordWorkflowAction('RETURNED')
+        recordWorkflowAction('RETURNED').then(() => {
+          wf.currentStage = 'returned'
+          setWorkflow(codeToUse, wf)
+          advanceWorkflow(codeToUse)
+          setWorkflowState(getWorkflow(codeToUse))
+        }).catch(e => alert(apiErrorMessage(e, 'Could not record the return.')))
       }
     } catch (e) {
       console.error('Failed to persist approval comment', e)

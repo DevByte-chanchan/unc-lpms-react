@@ -1321,31 +1321,49 @@ export function buildCoaepHtml(coaepData, logoBase64) {
     </tr>
   </table>`
 
-  // Bigger, more readable table cells (9.5pt) — content is split across pages
-  // (2 COs per page) so everything fits, including the Reminders block.
+  // One row per ILO. Its level, topics, TLAs and assessments are listed inside the
+  // row, so the list columns use a smaller type than the form's 9.5pt body.
+  const cell = 'border:1px solid #000; padding:5px 6px; vertical-align:top; line-height:1.3;'
+  const list = (items) => items.length
+    ? `<ul style="margin:0; padding-left:11px;">${items.map(item => `<li>${item}</li>`).join('')}</ul>`
+    : '—'
+  const iloCells = (ilo) => {
+    const level = ilo.level
+      ? `${safe(ilo.levelName)} (${safe(ilo.level)})<br>${safe(ilo.levelWeight)}% of course`
+      : '—'
+    const topics = list((ilo.topics || []).map(t => safe(t)))
+    const tlas = list((ilo.tlas || []).map(t => safe(t.name) + (t.phase ? ` (${safe(t.phase)})` : '')))
+    const assessments = list((ilo.assessments || []).map(a =>
+      `${safe(a.name)} — ${a.periodLabel ? safe(a.periodLabel) + ', ' : ''}${safe(a.weight)}%`))
+    return `<td style="${cell} font-size:9pt;">${safe(ilo.outcome)}</td>
+      <td style="${cell} font-size:8.5pt;">${level}</td>
+      <td style="${cell} font-size:8.5pt;">${topics}</td>
+      <td style="${cell} font-size:8.5pt;">${tlas}</td>
+      <td style="${cell} font-size:8.5pt;">${assessments}</td>
+      <td style="${cell} font-size:8.5pt;">${target(ilo)}</td>`
+  }
   const coBlock = (co, idx) => {
-    const ilos = (co.ilos || []).length ? co.ilos : [{ outcome: '', assessmentTool: '' }]
-    const firstRow = ilos[0]
+    const ilos = (co.ilos || []).length ? co.ilos : [{ outcome: '', topics: [], tlas: [], assessments: [] }]
     const rest = ilos.slice(1).map(ilo => `<tr>
-      <td style="border:1px solid #000; padding:6px 7px; vertical-align:top; font-size:9.5pt; line-height:1.35;">${safe(ilo.outcome)}</td>
-      <td style="border:1px solid #000; padding:6px 7px; vertical-align:top; font-size:9.5pt; line-height:1.35;">${safe(ilo.assessmentTool)}</td>
-      <td style="border:1px solid #000; padding:6px 7px; vertical-align:top; font-size:9pt; line-height:1.35;">${target(ilo)}</td>
+      ${iloCells(ilo)}
     </tr>`).join('\n      ')
     return `<tr>
       <td style="border:1px solid #000; padding:6px 4px; vertical-align:top; text-align:center; font-size:9.5pt; font-weight:bold;" rowspan="${ilos.length}">${idx + 1}</td>
-      <td style="border:1px solid #000; padding:6px 7px; vertical-align:top; font-size:9.5pt; line-height:1.35;" rowspan="${ilos.length}">${safe(co.statement)}</td>
-      <td style="border:1px solid #000; padding:6px 7px; vertical-align:top; font-size:9.5pt; line-height:1.35;">${safe(firstRow.outcome)}</td>
-      <td style="border:1px solid #000; padding:6px 7px; vertical-align:top; font-size:9.5pt; line-height:1.35;">${safe(firstRow.assessmentTool)}</td>
-      <td style="border:1px solid #000; padding:6px 7px; vertical-align:top; font-size:9pt; line-height:1.35;">${target(firstRow)}</td>
+      <td style="${cell} font-size:9pt;" rowspan="${ilos.length}">${safe(co.statement)}</td>
+      ${iloCells(ilos[0])}
     </tr>${rest}`
   }
 
+  const th = 'border:1px solid #000; padding:5px 6px; font-size:9pt;'
   const tableHead = `<tr>
-        <th style="border:1px solid #000; padding:6px 3px; width:3%; font-size:9.5pt;"></th>
-        <th style="border:1px solid #000; padding:6px 7px; width:21%; font-size:9.5pt;">Course Outcome Statement</th>
-        <th style="border:1px solid #000; padding:6px 7px; width:29%; font-size:9.5pt;">Intended Learning Outcome</th>
-        <th style="border:1px solid #000; padding:6px 7px; width:22%; font-size:9.5pt;">Assessment Tool</th>
-        <th style="border:1px solid #000; padding:6px 7px; width:25%; font-size:9.5pt;">Performance Target</th>
+        <th style="border:1px solid #000; padding:5px 3px; width:3%; font-size:9pt;"></th>
+        <th style="${th} width:12%;">Course Outcome Statement</th>
+        <th style="${th} width:17%;">Intended Learning Outcome</th>
+        <th style="${th} width:9%;">Level / Weight</th>
+        <th style="${th} width:13%;">Topics</th>
+        <th style="${th} width:14%;">TLAs</th>
+        <th style="${th} width:15%;">Assessment Tool</th>
+        <th style="${th} width:17%;">Performance Target</th>
       </tr>`
 
   const metaBlock = `<table style="width:100%; border-collapse:collapse; font-size:9.5pt; margin-bottom:8px;">
@@ -1389,10 +1407,16 @@ export function buildCoaepHtml(coaepData, logoBase64) {
       ${notes}
     </div>`
 
-  // Split COs across pages: 2 per page keeps rows large and leaves room for
-  // the signature + reminders block on the last page.
+  // Anything but a fully approved plan is a draft: banner on every page plus a
+  // diagonal watermark, so a printed or saved copy can never pass as final.
+  const isDraft = coaepData.approved !== true
+  const draftOverlay = `<div style="border:2px solid #b45309; background:#fef3c7; color:#78350f; text-align:center; font-weight:bold; font-size:10pt; padding:4px 8px; margin-bottom:6px;">DRAFT – NOT APPROVED. This plan has not been fully approved; this COAEP is not final.</div>
+    <div aria-hidden="true" style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%) rotate(-28deg); font-size:84pt; font-weight:bold; color:rgba(180,83,9,0.16); white-space:nowrap; pointer-events:none; z-index:10;">DRAFT – NOT APPROVED</div>`
+
+  // One CO per page: each ILO row now lists its topics, TLAs and assessments, and
+  // the page must still leave room for the signature + reminders block.
   const cos = coaepData.cos || []
-  const COS_PER_PAGE = 2
+  const COS_PER_PAGE = 1
   const chunks = []
   for (let i = 0; i < cos.length; i += COS_PER_PAGE) chunks.push(cos.slice(i, i + COS_PER_PAGE))
   if (chunks.length === 0) chunks.push([])
@@ -1403,6 +1427,7 @@ export function buildCoaepHtml(coaepData, logoBase64) {
     const isFirst = pi === 0
     const isLast = pi === totalPages - 1
     return `<div class="page">
+    ${isDraft ? draftOverlay : ''}
     ${coaepHeader}
     ${isFirst ? metaBlock : ''}
     <table style="width:100%; border-collapse:collapse; font-size:9.5pt;">

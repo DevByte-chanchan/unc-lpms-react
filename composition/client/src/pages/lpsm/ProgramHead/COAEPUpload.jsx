@@ -77,7 +77,6 @@ const COAEPUpload = () => {
     courseCode,
     courseName: course?.name,
     payload: serverCoaep,
-    generatedAt: new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
   });
 
   const viewGeneratedCoaep = () => {
@@ -85,12 +84,14 @@ const COAEPUpload = () => {
     const logoUrl = new URL(unclogo, window.location.origin).href;
     const html = buildCoaepHtml(generatedRecord, logoUrl);
     const fileUrl = URL.createObjectURL(new Blob([html], { type: 'text/html' }));
+    // A draft export is marked in its file name as well as watermarked inside.
+    const fileName = `${programCode}_${courseCode}_generated_COAEP${generatedRecord.approved ? '' : '_DRAFT'}.html`;
     setSelectedFile({
-      name: `${programCode}_${courseCode}_generated_COAEP.html`,
-      file_name: `${programCode}_${courseCode}_generated_COAEP.html`,
+      name: fileName,
+      file_name: fileName,
       file_url: fileUrl,
       uploadedBy: 'System generated from syllabus',
-      uploadDate: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+      uploadDate: generatedRecord.approved ? generatedRecord.approvalDate : 'Not approved',
     });
   };
 
@@ -133,14 +134,26 @@ const COAEPUpload = () => {
             </div>
           )}
 
+          {generatedRecord && !generatedRecord.approved && (
+            <div
+              role="status"
+              style={{ margin: '0 0 12px', padding: '10px 14px', border: '1px solid #b45309', background: '#fef3c7', color: '#78350f', borderRadius: 6, fontWeight: 600 }}
+            >
+              {generatedRecord.banner} — this plan has not been fully approved, so this COAEP is a draft and is not final.
+            </div>
+          )}
+
           {generatedRecord ? (
-            <TableScrollRegion label="COURSE ASSESSMENT & EVALUATION PLAN (COAEP)" minWidth={960} className={pageStyles.tableRegion}>
+            <TableScrollRegion label="COURSE ASSESSMENT & EVALUATION PLAN (COAEP)" minWidth={1280} className={pageStyles.tableRegion}>
               <table className={tbl.alignTable}>
                 <colgroup>
                   <col style={{ width: 40 }} />
-                  <col style={{ width: '21%' }} />
-                  <col style={{ width: '29%' }} />
-                  <col style={{ width: '22%' }} />
+                  <col style={{ width: '13%' }} />
+                  <col style={{ width: '17%' }} />
+                  <col style={{ width: '10%' }} />
+                  <col style={{ width: '13%' }} />
+                  <col style={{ width: '14%' }} />
+                  <col style={{ width: '15%' }} />
                   <col />
                 </colgroup>
                 <thead>
@@ -148,19 +161,31 @@ const COAEPUpload = () => {
                     <th className={tbl.center}>#</th>
                     <th>Course Outcome Statement</th>
                     <th>Intended Learning Outcome</th>
+                    <th>Level / Weight</th>
+                    <th>Topics</th>
+                    <th>TLAs</th>
                     <th>Assessment Tool</th>
                     <th>Performance Target</th>
                   </tr>
                 </thead>
                 <tbody>
                   {generatedRecord.cos.map((co, courseOutcomeIndex) => {
-                    const ilos = co.ilos?.length ? co.ilos : [{ outcome: '', assessmentTool: '' }];
+                    const ilos = co.ilos?.length ? co.ilos : [{ outcome: '', topics: [], tlas: [], assessments: [] }];
                     return ilos.map((ilo, iloIndex) => (
                       <tr key={`${courseOutcomeIndex}-${iloIndex}`}>
                         {iloIndex === 0 && <td className={tbl.center} style={{ fontWeight: 700 }} rowSpan={ilos.length}>{courseOutcomeIndex + 1}</td>}
                         {iloIndex === 0 && <td rowSpan={ilos.length}>{co.statement}</td>}
                         <td>{ilo.outcome}</td>
-                        <td>{ilo.assessmentTool || '—'}</td>
+                        <td>
+                          {ilo.level ? <>{ilo.levelName} ({ilo.level})<br />{ilo.levelWeight}% of course</> : '—'}
+                        </td>
+                        <td>{ilo.topics?.length ? <ul style={{ margin: 0, paddingLeft: 16 }}>{ilo.topics.map(topic => <li key={topic}>{topic}</li>)}</ul> : '—'}</td>
+                        <td>{ilo.tlas?.length ? <ul style={{ margin: 0, paddingLeft: 16 }}>{ilo.tlas.map(tla => <li key={tla.name}>{tla.name}{tla.phase ? ` (${tla.phase})` : ''}</li>)}</ul> : '—'}</td>
+                        <td>
+                          {ilo.assessments?.length
+                            ? <ul style={{ margin: 0, paddingLeft: 16 }}>{ilo.assessments.map(item => <li key={item.name}>{item.name} — {item.periodLabel ? `${item.periodLabel}, ` : ''}{item.weight}%</li>)}</ul>
+                            : '—'}
+                        </td>
                         <td>{ilo.performanceTarget || generatedRecord.performanceTarget}</td>
                       </tr>
                     ));

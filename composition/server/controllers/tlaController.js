@@ -1,4 +1,7 @@
 const db = require('../models');
+const { PERIOD_LABELS, periodForWeek, startWeekOfIlo, parseWeight, formatWeight } = require('../utils/assessmentWeights');
+const { IED_WEIGHTS } = require('../utils/iedRule');
+const { loadOfferingAssessments } = require('../utils/offeringAssessments');
 const { Topic, ILOTopic, TopicTLA, sequelize } = db;
 
 // Using the exact names confirmed by your debug log
@@ -76,7 +79,9 @@ async function getTlasForIlo(req, res) {
                         laboratory: Boolean(tlaObj.laboratory),
                         isLab: Boolean(tlaObj.is_lab || tlaObj.isLab || false),
                         assessmentType,
-                        assessmentDetail
+                        assessmentDetail,
+                        assessmentPeriod: matchingAss ? (matchingAss.period || '') : '',
+                        assessmentWeight: matchingAss ? (matchingAss.weight || '') : ''
                     };
                 });
             }
@@ -91,11 +96,36 @@ async function getTlasForIlo(req, res) {
             }
         });
 
+        // Context for the assessment fields: which period this ILO's weeks fall in,
+        // and how much of its level's course-wide weight the other ILOs already use.
+        const ilo = await db.IntendedLearningOutcome.findByPk(iloId);
+        const courseOutcome = ilo ? await db.CourseOutcome.findByPk(ilo.co_id) : null;
+        let suggestedPeriod = null;
+        let levelWeight = null;
+        if (courseOutcome) {
+            const coIds = (await db.CourseOutcome.findAll({
+                where: { pc_offering_id: courseOutcome.pc_offering_id }, attributes: ['co_id'], raw: true
+            })).map(co => co.co_id);
+            const offeringIlos = await db.IntendedLearningOutcome.findAll({
+                where: { co_id: coIds }, attributes: ['ilo_id', 'weeks'], order: [['ilo_id', 'ASC']], raw: true
+            });
+            suggestedPeriod = periodForWeek(startWeekOfIlo(offeringIlos, iloId));
+
+            if (ilo.ied_level && !ilo.is_orientation) {
+                const others = (await loadOfferingAssessments(courseOutcome.pc_offering_id))
+                    .filter(row => row.ied_level === ilo.ied_level && Number(row.ilo_id) !== iloId);
+                const usedElsewhere = others.reduce((sum, row) => sum + (parseWeight(row.weight) ?? 0), 0);
+                levelWeight = { level: ilo.ied_level, target: IED_WEIGHTS[ilo.ied_level], usedElsewhere: Number(formatWeight(usedElsewhere)) };
+            }
+        }
+
         return res.json({
             availableTopics,
             topicIdMap: titleToIloTopicId,
             tlas,
-            assessmentTypeSuggestions: Array.from(assessmentTypesSet)
+            assessmentTypeSuggestions: Array.from(assessmentTypesSet),
+            suggestedPeriod,
+            levelWeight
         });
 
     } catch (err) {
@@ -127,6 +157,20 @@ async function syncTlasToIlo(req, res) {
         for (const bridge of iloTopics) {
             const topic = targetTopics.find(item => Number(item.topic_id) === Number(bridge.topic_id));
             if (topic?.title) bridgeByTitle.set(String(topic.title), bridge.ilo_topic_id);
+        }
+
+        // An assessment needs an explicit period and weight; nothing is defaulted.
+        for (const item of tlas) {
+            if (!(item.assessmentType || item.assessmentDetail)) continue;
+            const label = item.assessmentType || item.tlaName || 'this assessment';
+            if (!PERIOD_LABELS[item.assessmentPeriod]) {
+                await t.rollback();
+                return res.status(400).json({ message: `Choose a period (Prelim, Midterm, Semi-final or Final) for ${label}.` });
+            }
+            if (parseWeight(item.assessmentWeight) === null) {
+                await t.rollback();
+                return res.status(400).json({ message: `Enter a weight between 0 and 100 for ${label}.` });
+            }
         }
 
         for (const item of tlas) {
@@ -182,7 +226,9 @@ async function syncTlasToIlo(req, res) {
             if (tlaData.assessmentType || tlaData.assessmentDetail) {
                 const assessmentPayload = {
                     name: tlaData.assessmentType || 'General',
-                    description: tlaData.assessmentDetail || ''
+                    description: tlaData.assessmentDetail || '',
+                    period: tlaData.assessmentPeriod,
+                    weight: formatWeight(parseWeight(tlaData.assessmentWeight))
                 };
 
                 if (existingAssessment) {
@@ -192,8 +238,8 @@ async function syncTlasToIlo(req, res) {
                         tla_id: currentTlaId,
                         name: assessmentPayload.name,
                         description: assessmentPayload.description,
-                        period: 'm',
-                        weight: '20',
+                        period: assessmentPayload.period,
+                        weight: assessmentPayload.weight,
                         min_passing: 60
                     }, { transaction: t });
                 }

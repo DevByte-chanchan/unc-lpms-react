@@ -128,21 +128,21 @@ module.exports = {
         const ilos = [
             // CO1
             { co_id: cosRows[0].co_id, description: "Cite the value and relevance of the University's and the College's VMO as related to the course", weeks: 1.0, hours: 2, is_orientation: true, createdAt: now, updatedAt: now },
-            { co_id: cosRows[0].co_id, description: 'Analyze enterprise architectural abstractions to distinguish between remote procedure interfaces and loosely coupled system hooks.', weeks: 1.0, hours: 5, assessment_tool: 'Objective Type Quiz', createdAt: now, updatedAt: now },
-            { co_id: cosRows[0].co_id, description: 'Establish clean RESTful design schemas and GraphQL contracts matching the Richardson Maturity Framework.', weeks: 1.0, hours: 5, assessment_tool: 'Schema Design Activity', createdAt: now, updatedAt: now },
-            { co_id: cosRows[0].co_id, description: 'Model interface translation modules capable of interconnecting legacy monolithic databases with microservices.', weeks: 2.0, hours: 10, assessment_tool: 'Architecture Blueprint Proposal', createdAt: now, updatedAt: now },
+            { co_id: cosRows[0].co_id, description: 'Analyze enterprise architectural abstractions to distinguish between remote procedure interfaces and loosely coupled system hooks.', weeks: 1.0, hours: 5, createdAt: now, updatedAt: now },
+            { co_id: cosRows[0].co_id, description: 'Establish clean RESTful design schemas and GraphQL contracts matching the Richardson Maturity Framework.', weeks: 1.0, hours: 5, createdAt: now, updatedAt: now },
+            { co_id: cosRows[0].co_id, description: 'Model interface translation modules capable of interconnecting legacy monolithic databases with microservices.', weeks: 2.0, hours: 10, createdAt: now, updatedAt: now },
             // CO2
-            { co_id: cosRows[1].co_id, description: 'Execute cross-platform data serializations using language-agnostic engines (Protocol Buffers, Avro, JSON).', weeks: 1.0, hours: 5, assessment_tool: 'Objective Type Quiz', createdAt: now, updatedAt: now },
-            { co_id: cosRows[1].co_id, description: 'Implement optimized data communication backbones utilizing low-latency gRPC patterns over HTTP/2.', weeks: 1.0, hours: 5, assessment_tool: 'Implementation Document', createdAt: now, updatedAt: now },
-            { co_id: cosRows[1].co_id, description: 'Build automated transformation adapters to remediate structural fields moving between relational datasets.', weeks: 2.0, hours: 10, assessment_tool: 'Adapter Code Presentation', createdAt: now, updatedAt: now },
+            { co_id: cosRows[1].co_id, description: 'Execute cross-platform data serializations using language-agnostic engines (Protocol Buffers, Avro, JSON).', weeks: 1.0, hours: 5, createdAt: now, updatedAt: now },
+            { co_id: cosRows[1].co_id, description: 'Implement optimized data communication backbones utilizing low-latency gRPC patterns over HTTP/2.', weeks: 1.0, hours: 5, createdAt: now, updatedAt: now },
+            { co_id: cosRows[1].co_id, description: 'Build automated transformation adapters to remediate structural fields moving between relational datasets.', weeks: 2.0, hours: 10, createdAt: now, updatedAt: now },
             // CO3
-            { co_id: cosRows[2].co_id, description: 'Configure multi-node message-oriented middleware platforms to support scalable event subscriptions.', weeks: 1.0, hours: 5, assessment_tool: 'Objective Type Quiz', createdAt: now, updatedAt: now },
-            { co_id: cosRows[2].co_id, description: 'Deploy resilient exception handshakes and callback routines to protect runtime data pipelines.', weeks: 1.0, hours: 5, assessment_tool: 'Pipeline Schematic', createdAt: now, updatedAt: now },
-            { co_id: cosRows[2].co_id, description: 'Manage compound state actions traversing detached databases guided by the Saga design pattern.', weeks: 2.0, hours: 10, assessment_tool: 'Saga State Workflow Presentation', createdAt: now, updatedAt: now },
+            { co_id: cosRows[2].co_id, description: 'Configure multi-node message-oriented middleware platforms to support scalable event subscriptions.', weeks: 1.0, hours: 5, createdAt: now, updatedAt: now },
+            { co_id: cosRows[2].co_id, description: 'Deploy resilient exception handshakes and callback routines to protect runtime data pipelines.', weeks: 1.0, hours: 5, createdAt: now, updatedAt: now },
+            { co_id: cosRows[2].co_id, description: 'Manage compound state actions traversing detached databases guided by the Saga design pattern.', weeks: 2.0, hours: 10, createdAt: now, updatedAt: now },
             // CO4
-            { co_id: cosRows[3].co_id, description: 'Apply identity management and multi-tenant authorization policies utilizing OAuth 2.0 and JSON Web Tokens.', weeks: 1.0, hours: 5, assessment_tool: 'Objective Type Quiz', createdAt: now, updatedAt: now },
-            { co_id: cosRows[3].co_id, description: 'Establish zero-trust transaction perimeters by routing application traffic through API gateways.', weeks: 1.0, hours: 5, assessment_tool: 'Security Implementation Document', createdAt: now, updatedAt: now },
-            { co_id: cosRows[3].co_id, description: 'Analyze distributed tracing spans to identify microservice request blockages and processing inefficiencies.', weeks: 2.0, hours: 10, assessment_tool: 'Tracing Report Defense', createdAt: now, updatedAt: now }
+            { co_id: cosRows[3].co_id, description: 'Apply identity management and multi-tenant authorization policies utilizing OAuth 2.0 and JSON Web Tokens.', weeks: 1.0, hours: 5, createdAt: now, updatedAt: now },
+            { co_id: cosRows[3].co_id, description: 'Establish zero-trust transaction perimeters by routing application traffic through API gateways.', weeks: 1.0, hours: 5, createdAt: now, updatedAt: now },
+            { co_id: cosRows[3].co_id, description: 'Analyze distributed tracing spans to identify microservice request blockages and processing inefficiencies.', weeks: 2.0, hours: 10, createdAt: now, updatedAt: now }
         ];
 
         await queryInterface.bulkInsert('IntendedLearningOutcomes', ilos, {});

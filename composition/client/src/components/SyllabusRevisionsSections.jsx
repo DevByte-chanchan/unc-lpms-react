@@ -343,11 +343,6 @@ const SyllabusRevisionsSections = () => {
                                                     </select>
                                                 </div>
 
-                                                <Link to={'/references/form/:id'}>
-                                                    <div className={'add-button'}>
-                                                        <Plus size={16} strokeWidth={3}/> Add Reference
-                                                    </div>
-                                                </Link>
                                             </div>
 
                                             <TableScrollRegion label="References" minWidth={760}>
@@ -355,8 +350,7 @@ const SyllabusRevisionsSections = () => {
                                                 <thead>
                                                 <tr>
                                                     <th width={200}>REFERENCE ID</th>
-                                                    <th width={400}>TITLE</th>
-                                                    <th className={styles.fill} ></th>
+                                                    <th className={styles.fill}>TITLE</th>
                                                 </tr>
                                                 </thead>
                                                 <tbody>
@@ -364,17 +358,12 @@ const SyllabusRevisionsSections = () => {
                                                     syllabus.references.map((ref) => (
                                                         <tr key={ref.id}>
                                                             <td width={200}>{ref.id}</td>
-                                                            <td width={400}>{ref.title}</td>
-                                                            <td className={styles.fill}>
-                                                                <Link className={'actionLink'} to={`/references/form/${code}/${ref.id}`}>
-                                                                    Open <ChevronRight size={18} />
-                                                                </Link>
-                                                            </td>
+                                                            <td className={styles.fill}>{ref.title}</td>
                                                         </tr>
                                                     ))
                                                 ) : (
                                                     <tr className={styles.emptyRow}>
-                                                        <td colSpan={3}>
+                                                        <td colSpan={2}>
                                                             <div className={styles.emptyStateContainer}>
                                                                 <Inbox size={40} strokeWidth={1} />
                                                                 <span>No references added yet.</span>
@@ -399,37 +388,25 @@ const SyllabusRevisionsSections = () => {
                                                         <input placeholder={"Search topics.js name"} type="text"/>
                                                     </div>
                                                 </div>
-
-                                                <Link to={'/topics/form/:id'}>
-                                                    <div className={'add-button'}>
-                                                        <Plus size={16} strokeWidth={3}/> Add Topic
-                                                    </div>
-                                                </Link>
                                             </div>
 
                                             <TableScrollRegion label="Topics" minWidth={760}>
                                             <table>
                                                 <thead>
                                                 <tr>
-                                                    <th width={400}>TITLE</th>
-                                                    <th className={styles.fill} ></th>
+                                                    <th className={styles.fill}>TITLE</th>
                                                 </tr>
                                                 </thead>
                                                 <tbody>
                                                 {syllabus?.topics && syllabus.topics.length > 0 ? (
                                                     syllabus.topics.map((topic) => (
                                                         <tr key={topic.id}>
-                                                            <td>{topic.title}</td>
-                                                            <td className={styles.fill}>
-                                                                <Link className={'actionLink'} to={`/topics/form/${code}/${topic.id}`}>
-                                                                    Open <ChevronRight size={18}/>
-                                                                </Link>
-                                                            </td>
+                                                            <td className={styles.fill}>{topic.title}</td>
                                                         </tr>
                                                     ))
                                                 ) : (
                                                     <tr className={styles.emptyRow}>
-                                                        <td colSpan={2}>
+                                                        <td colSpan={1}>
                                                             <div className={styles.emptyStateContainer}>
                                                                 <Inbox size={40} strokeWidth={1} />
                                                                 <span>No topics created yet.</span>

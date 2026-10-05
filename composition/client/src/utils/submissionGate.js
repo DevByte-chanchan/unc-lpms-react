@@ -13,6 +13,7 @@
 // The spelling/grammar entry gate reuses the same dictionary the approval
 // flow uses, so both agree on what a misspelling is.
 import { hasBlockingTextIssues } from './reviewGate.js'
+import { weightProblems } from './assessmentWeights.js'
 
 export const DEFAULT_GATE_CONFIG = {
   // Contact hours in `course-details.contact` are per week; a term is this long.
@@ -90,6 +91,8 @@ export const validateSubmission = ({ courseDetails = null, coverage = null, text
   }
 
   blockers.push(...iedProblems(ilos))
+  // Faculty split each level's weight as they like; across the course I = 20%, E = 30%, D = 50%.
+  blockers.push(...weightProblems(Array.isArray(coverage?.assessments) ? coverage.assessments : []))
 
   const totalAllocatedHours = ilos.reduce((sum, i) => sum + parseHours(i.allocatedTime), 0)
   const expectedHours = expectedTermHours(courseDetails?.contact, cfg)

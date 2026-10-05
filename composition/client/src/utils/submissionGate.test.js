@@ -29,7 +29,17 @@ const ilo = (id, hours, topics = ['t'], references = ['r']) => {
   };
 };
 
+// 20 / 30 / 50 across the course, split over several assessments.
+const alignedAssessments = () => [
+  { iedLevel: 'I', weight: '8', isOrientation: false },
+  { iedLevel: 'I', weight: '12', isOrientation: false },
+  { iedLevel: 'E', weight: '30', isOrientation: false },
+  { iedLevel: 'D', weight: '20', isOrientation: false },
+  { iedLevel: 'D', weight: '30', isOrientation: false }
+];
+
 const alignedCoverage = () => ({
+  assessments: alignedAssessments(),
   ilos: [
     ilo('CO1-ILO1', 2), ilo('CO1-ILO2', 5), ilo('CO1-ILO3', 5), ilo('CO1-ILO4', 10),
     ilo('CO2-ILO1', 5), ilo('CO2-ILO2', 5), ilo('CO2-ILO3', 10),
@@ -105,6 +115,26 @@ test('an ILO with no IED level blocks submission, an orientation ILO does not', 
     throw new Error(`Unexpected blockers: ${result.blockers.join(' | ')}`);
   }
   if (result.blockers.some(b => b.includes('CO1'))) throw new Error('Orientation ILO must not be flagged');
+});
+
+test('assessment weights that miss 20 / 30 / 50 block submission and name the level', () => {
+  const coverage = alignedCoverage();
+  coverage.assessments[4].weight = '25'; // Demonstrative now totals 45
+  const result = validateSubmission({ courseDetails, coverage });
+  if (result.ok) throw new Error('Expected the gate to block');
+  if (!result.blockers.includes('Demonstrative assessment weights total 45%, but must total 50%.')) {
+    throw new Error(`Unexpected blockers: ${result.blockers.join(' | ')}`);
+  }
+  if (result.blockers.length !== 1) throw new Error('Only the Demonstrative level should be flagged');
+});
+
+test('a plan with no assessments at all is blocked on every level', () => {
+  const coverage = alignedCoverage();
+  coverage.assessments = [];
+  const result = validateSubmission({ courseDetails, coverage });
+  if (result.blockers.filter(b => b.includes('assessment weights total')).length !== 3) {
+    throw new Error('Expected a blocker per level');
+  }
 });
 
 test('an empty plan blocks submission', () => {

@@ -114,7 +114,16 @@ exports.getCourseCoverage = async (req, res, next) => {
             });
         }
 
+        // TLA -> ILO, so each assessment can report the IED level of its ILO.
+        const iloIdByIloTopic = new Map(topicsData.map(t => [t.ilo_topic_id, t.ilo_id]));
+        const iloById = new Map(ilos.map(ilo => [ilo.ilo_id, ilo]));
+        const iloIdByTla = new Map();
+        tlasData.forEach(t => {
+            if (!iloIdByTla.has(t.tla_id)) iloIdByTla.set(t.tla_id, iloIdByIloTopic.get(t.ilo_topic_id));
+        });
+
         const compiledAssessments = rawAssessments.map(assess => {
+            const owner = iloById.get(iloIdByTla.get(assess.tla_id));
             const assignedTlaName = tlaIdToNameMap.get(assess.tla_id) || '';
             const method = assess.name || assess.assessment_method || assess.assessmentMethod || assess.method_name || '';
             const desc = assess.description || assess.assessment_description || assess.details || '';
@@ -127,6 +136,8 @@ exports.getCourseCoverage = async (req, res, next) => {
                 description: desc,
                 period: assess.period || '',
                 weight: assess.weight || 0,
+                iedLevel: owner?.ied_level || null,
+                isOrientation: !!owner?.is_orientation,
                 minPassing: assess.min_passing || assess.minPassing || 60
             };
         });

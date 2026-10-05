@@ -153,21 +153,21 @@ module.exports = {
             // Orientation
             { co_id: cosRows[0].co_id, description: "Cite the value and relevance of the University's and the College's VMO as related to the course", weeks: 1.0, hours: 2, is_orientation: true, createdAt: now, updatedAt: now },
             // CO1
-            { co_id: cosRows[0].co_id, description: 'Define class blueprints and instantiate objects with appropriate state mapping.', weeks: 1.0, hours: 5, assessment_tool: 'Objective Type Quiz', createdAt: now, updatedAt: now },
-            { co_id: cosRows[0].co_id, description: 'Encapsulate class state using access modifiers and property methods.', weeks: 1.0, hours: 5, assessment_tool: 'Code Refactoring Exercise', createdAt: now, updatedAt: now },
-            { co_id: cosRows[0].co_id, description: 'Construct hierarchical relationships using inheritance and method overriding.', weeks: 2.0, hours: 10, assessment_tool: 'Class Diagram Implementation', createdAt: now, updatedAt: now },
+            { co_id: cosRows[0].co_id, description: 'Define class blueprints and instantiate objects with appropriate state mapping.', weeks: 1.0, hours: 5, createdAt: now, updatedAt: now },
+            { co_id: cosRows[0].co_id, description: 'Encapsulate class state using access modifiers and property methods.', weeks: 1.0, hours: 5, createdAt: now, updatedAt: now },
+            { co_id: cosRows[0].co_id, description: 'Construct hierarchical relationships using inheritance and method overriding.', weeks: 2.0, hours: 10, createdAt: now, updatedAt: now },
             // CO2
-            { co_id: cosRows[1].co_id, description: 'Design abstract base classes to enforce structural contracts.', weeks: 1.0, hours: 5, assessment_tool: 'Objective Type Quiz', createdAt: now, updatedAt: now },
-            { co_id: cosRows[1].co_id, description: 'Implement multiple interfaces to achieve decoupling and polymorphism.', weeks: 1.0, hours: 5, assessment_tool: 'Interface Design Task', createdAt: now, updatedAt: now },
-            { co_id: cosRows[1].co_id, description: 'Utilize generic collections (Lists, Maps, Sets) for dynamic data storage.', weeks: 2.0, hours: 10, assessment_tool: 'Data Structure Project', createdAt: now, updatedAt: now },
+            { co_id: cosRows[1].co_id, description: 'Design abstract base classes to enforce structural contracts.', weeks: 1.0, hours: 5, createdAt: now, updatedAt: now },
+            { co_id: cosRows[1].co_id, description: 'Implement multiple interfaces to achieve decoupling and polymorphism.', weeks: 1.0, hours: 5, createdAt: now, updatedAt: now },
+            { co_id: cosRows[1].co_id, description: 'Utilize generic collections (Lists, Maps, Sets) for dynamic data storage.', weeks: 2.0, hours: 10, createdAt: now, updatedAt: now },
             // CO3
-            { co_id: cosRows[2].co_id, description: 'Catch and handle runtime exceptions using try-catch-finally blocks.', weeks: 1.0, hours: 5, assessment_tool: 'Objective Type Quiz', createdAt: now, updatedAt: now },
-            { co_id: cosRows[2].co_id, description: 'Create graphical user interface layouts using standard library components.', weeks: 1.0, hours: 5, assessment_tool: 'Wireframe to Code Activity', createdAt: now, updatedAt: now },
-            { co_id: cosRows[2].co_id, description: 'Bind action listeners to UI components to handle user-driven events.', weeks: 2.0, hours: 10, assessment_tool: 'Interactive App Prototype', createdAt: now, updatedAt: now },
+            { co_id: cosRows[2].co_id, description: 'Catch and handle runtime exceptions using try-catch-finally blocks.', weeks: 1.0, hours: 5, createdAt: now, updatedAt: now },
+            { co_id: cosRows[2].co_id, description: 'Create graphical user interface layouts using standard library components.', weeks: 1.0, hours: 5, createdAt: now, updatedAt: now },
+            { co_id: cosRows[2].co_id, description: 'Bind action listeners to UI components to handle user-driven events.', weeks: 2.0, hours: 10, createdAt: now, updatedAt: now },
             // CO4
-            { co_id: cosRows[3].co_id, description: 'Serialize and deserialize object states into binary format.', weeks: 1.0, hours: 5, assessment_tool: 'Objective Type Quiz', createdAt: now, updatedAt: now },
-            { co_id: cosRows[3].co_id, description: 'Read and write unstructured text data using file input/output streams.', weeks: 1.0, hours: 5, assessment_tool: 'File Parser Script', createdAt: now, updatedAt: now },
-            { co_id: cosRows[3].co_id, description: 'Establish basic database connectivity (JDBC/ADO.NET) for persistent records.', weeks: 2.0, hours: 10, assessment_tool: 'CRUD Application Integration', createdAt: now, updatedAt: now }
+            { co_id: cosRows[3].co_id, description: 'Serialize and deserialize object states into binary format.', weeks: 1.0, hours: 5, createdAt: now, updatedAt: now },
+            { co_id: cosRows[3].co_id, description: 'Read and write unstructured text data using file input/output streams.', weeks: 1.0, hours: 5, createdAt: now, updatedAt: now },
+            { co_id: cosRows[3].co_id, description: 'Establish basic database connectivity (JDBC/ADO.NET) for persistent records.', weeks: 2.0, hours: 10, createdAt: now, updatedAt: now }
         ];
 
         await queryInterface.bulkInsert('IntendedLearningOutcomes', ilos, {});

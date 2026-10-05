@@ -1,5 +1,7 @@
 const { CourseOfferingAssignment, AssignmentWorkflowLog, ProgramCourseOffering, CourseOutcome, IntendedLearningOutcome } = require('../models');
 const { findIedProblems } = require('../utils/iedRule');
+const { findWeightProblems } = require('../utils/assessmentWeights');
+const { loadOfferingAssessments } = require('../utils/offeringAssessments');
 
 async function submitLearningPlan(req, res) {
     try {
@@ -54,7 +56,12 @@ async function submitLearningPlan(req, res) {
                 raw: true
             })
             : [];
-        const blockers = findIedProblems(coIds, ilos);
+        // Assessment weights: faculty split each level's share however they like,
+        // but across the course I must total 20%, E 30% and D 50%.
+        const blockers = [
+            ...findIedProblems(coIds, ilos),
+            ...findWeightProblems(await loadOfferingAssessments(offering.pc_offering_id))
+        ];
         if (blockers.length > 0) {
             return res.status(400).json({ message: blockers.join(' '), blockers });
         }

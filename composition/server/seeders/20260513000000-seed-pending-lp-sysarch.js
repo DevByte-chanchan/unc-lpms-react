@@ -129,21 +129,21 @@ module.exports = {
         const ilos = [
             // CO1
             { co_id: cosRows[0].co_id, description: "Cite the value and relevance of the University's and the College's VMO as related to the course", weeks: 1.0, hours: 2, is_orientation: true, createdAt: now, updatedAt: now },
-            { co_id: cosRows[0].co_id, description: 'Differentiate between monolithic and microservice architectural patterns.', weeks: 1.0, hours: 5, assessment_tool: 'Objective Type Quiz', createdAt: now, updatedAt: now },
-            { co_id: cosRows[0].co_id, description: 'Design RESTful API specifications following strict Richardson Maturity Model levels.', weeks: 1.0, hours: 5, assessment_tool: 'Architecture Document', createdAt: now, updatedAt: now },
-            { co_id: cosRows[0].co_id, description: 'Construct GraphQL schemas to optimize client-server data fetching constraints.', weeks: 2.0, hours: 10, assessment_tool: 'API Design Proposal', createdAt: now, updatedAt: now },
+            { co_id: cosRows[0].co_id, description: 'Differentiate between monolithic and microservice architectural patterns.', weeks: 1.0, hours: 5, createdAt: now, updatedAt: now },
+            { co_id: cosRows[0].co_id, description: 'Design RESTful API specifications following strict Richardson Maturity Model levels.', weeks: 1.0, hours: 5, createdAt: now, updatedAt: now },
+            { co_id: cosRows[0].co_id, description: 'Construct GraphQL schemas to optimize client-server data fetching constraints.', weeks: 2.0, hours: 10, createdAt: now, updatedAt: now },
             // CO2
-            { co_id: cosRows[1].co_id, description: 'Serialize complex data structures using Protocol Buffers and gRPC.', weeks: 1.0, hours: 5, assessment_tool: 'Objective Type Quiz', createdAt: now, updatedAt: now },
-            { co_id: cosRows[1].co_id, description: 'Map legacy XML/SOAP payloads into modernized JSON data dictionaries.', weeks: 1.0, hours: 5, assessment_tool: 'Payload Mapping Document', createdAt: now, updatedAt: now },
-            { co_id: cosRows[1].co_id, description: 'Implement Extract, Transform, Load (ETL) pipelines for data warehousing.', weeks: 2.0, hours: 10, assessment_tool: 'Pipeline Presentation', createdAt: now, updatedAt: now },
+            { co_id: cosRows[1].co_id, description: 'Serialize complex data structures using Protocol Buffers and gRPC.', weeks: 1.0, hours: 5, createdAt: now, updatedAt: now },
+            { co_id: cosRows[1].co_id, description: 'Map legacy XML/SOAP payloads into modernized JSON data dictionaries.', weeks: 1.0, hours: 5, createdAt: now, updatedAt: now },
+            { co_id: cosRows[1].co_id, description: 'Implement Extract, Transform, Load (ETL) pipelines for data warehousing.', weeks: 2.0, hours: 10, createdAt: now, updatedAt: now },
             // CO3
-            { co_id: cosRows[2].co_id, description: 'Configure publish/subscribe architectures using Apache Kafka brokers.', weeks: 1.0, hours: 5, assessment_tool: 'Objective Type Quiz', createdAt: now, updatedAt: now },
-            { co_id: cosRows[2].co_id, description: 'Trace asynchronous event lifecycles within an Enterprise Service Bus (ESB).', weeks: 1.0, hours: 5, assessment_tool: 'Implementation Document', createdAt: now, updatedAt: now },
-            { co_id: cosRows[2].co_id, description: 'Resolve distributed transaction failures using the Saga Pattern.', weeks: 2.0, hours: 10, assessment_tool: 'Architecture Presentation', createdAt: now, updatedAt: now },
+            { co_id: cosRows[2].co_id, description: 'Configure publish/subscribe architectures using Apache Kafka brokers.', weeks: 1.0, hours: 5, createdAt: now, updatedAt: now },
+            { co_id: cosRows[2].co_id, description: 'Trace asynchronous event lifecycles within an Enterprise Service Bus (ESB).', weeks: 1.0, hours: 5, createdAt: now, updatedAt: now },
+            { co_id: cosRows[2].co_id, description: 'Resolve distributed transaction failures using the Saga Pattern.', weeks: 2.0, hours: 10, createdAt: now, updatedAt: now },
             // CO4
-            { co_id: cosRows[3].co_id, description: 'Implement OAuth 2.0 and OpenID Connect for secure cross-service delegation.', weeks: 1.0, hours: 5, assessment_tool: 'Objective Type Quiz', createdAt: now, updatedAt: now },
-            { co_id: cosRows[3].co_id, description: 'Enforce Zero Trust network policies utilizing API Gateways and Service Meshes.', weeks: 1.0, hours: 5, assessment_tool: 'Evaluation Document', createdAt: now, updatedAt: now },
-            { co_id: cosRows[3].co_id, description: 'Diagnose JSON Web Token (JWT) vulnerabilities in stateless authentication flows.', weeks: 2.0, hours: 10, assessment_tool: 'System Handoff Presentation', createdAt: now, updatedAt: now }
+            { co_id: cosRows[3].co_id, description: 'Implement OAuth 2.0 and OpenID Connect for secure cross-service delegation.', weeks: 1.0, hours: 5, createdAt: now, updatedAt: now },
+            { co_id: cosRows[3].co_id, description: 'Enforce Zero Trust network policies utilizing API Gateways and Service Meshes.', weeks: 1.0, hours: 5, createdAt: now, updatedAt: now },
+            { co_id: cosRows[3].co_id, description: 'Diagnose JSON Web Token (JWT) vulnerabilities in stateless authentication flows.', weeks: 2.0, hours: 10, createdAt: now, updatedAt: now }
         ];
 
         await queryInterface.bulkInsert('IntendedLearningOutcomes', ilos, {});
