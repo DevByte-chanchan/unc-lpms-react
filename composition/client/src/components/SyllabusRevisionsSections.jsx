@@ -452,19 +452,16 @@ const SyllabusRevisionsSections = () => {
                                                 <thead>
                                                 <tr>
                                                     <th width={400}>Entry ID</th>
-                                                    <th className={styles.fill} ></th>
+                                                    <th className={styles.fill}>Description</th>
                                                 </tr>
                                                 </thead>
                                                 <tbody>
+                                                {/* Read-only: a past revision is a snapshot, and the ILO editor works on the live offering. */}
                                                 {syllabus?.ilos && syllabus.ilos.length > 0 ? (
                                                     syllabus.ilos.map((ilo) => (
                                                         <tr key={ilo.id}>
                                                             <td>{ilo.id}</td>
-                                                            <td className={styles.fill}>
-                                                                <Link className={'actionLink'} to={`/ilos/form/${code}/${ilo.id}`}>
-                                                                    Open <ChevronRight size={18}/>
-                                                                </Link>
-                                                            </td>
+                                                            <td className={styles.fill}>{ilo.intendedLearningOutcome}</td>
                                                         </tr>
                                                     ))
                                                 ) : (

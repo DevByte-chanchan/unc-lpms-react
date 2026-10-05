@@ -20,3 +20,16 @@ export async function fetchJson(endpoint, opts = {}) {
     }
     return res.json();
 }
+
+// fetchJson errors read "HTTP 409: {"message":"..."}"; show just the message.
+export function apiErrorMessage(err, fallback = 'Request failed.') {
+    const raw = String(err?.message || '');
+    const start = raw.indexOf('{');
+    if (start >= 0) {
+        try {
+            const body = JSON.parse(raw.slice(start));
+            return body.message || body.error || fallback;
+        } catch { /* not JSON, fall through */ }
+    }
+    return raw || fallback;
+}

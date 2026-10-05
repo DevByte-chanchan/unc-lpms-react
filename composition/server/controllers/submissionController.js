@@ -1,4 +1,5 @@
-const { CourseOfferingAssignment, AssignmentWorkflowLog, ProgramCourseOffering } = require('../models');
+const { CourseOfferingAssignment, AssignmentWorkflowLog, ProgramCourseOffering, CourseOutcome, IntendedLearningOutcome } = require('../models');
+const { findIedProblems } = require('../utils/iedRule');
 
 async function submitLearningPlan(req, res) {
     try {
@@ -37,6 +38,26 @@ async function submitLearningPlan(req, res) {
             });
         }
         // ----------------------------------------------------
+
+        // Every course outcome needs an Introductory, Enabling and Demonstrative ILO.
+        const courseOutcomes = await CourseOutcome.findAll({
+            where: { pc_offering_id: offering.pc_offering_id },
+            attributes: ['co_id'],
+            order: [['co_id', 'ASC']],
+            raw: true
+        });
+        const coIds = courseOutcomes.map(co => co.co_id);
+        const ilos = coIds.length
+            ? await IntendedLearningOutcome.findAll({
+                where: { co_id: coIds },
+                attributes: ['co_id', 'ied_level', 'is_orientation'],
+                raw: true
+            })
+            : [];
+        const blockers = findIedProblems(coIds, ilos);
+        if (blockers.length > 0) {
+            return res.status(400).json({ message: blockers.join(' '), blockers });
+        }
 
         const now = new Date();
 

@@ -14,12 +14,20 @@ const test = (name, fn) => {
 // GET /api/course-details/1/1 (BIT313L, 13 ILOs, 82 allocated hours).
 const courseDetails = { code: 'BIT313L', contact: '2 Hrs Lec, 3 Hrs Lab' };
 
-const ilo = (id, hours, topics = ['t'], references = ['r']) => ({
-  id,
-  allocatedTime: `(${hours} hrs)`,
-  topics,
-  references
-});
+// CO1 opens with an orientation ILO; every other ILO is I, E, D in order.
+const ilo = (id, hours, topics = ['t'], references = ['r']) => {
+  const [, co, n] = id.match(/CO([0-9]+)-ILO([0-9]+)/).map(Number);
+  const orientation = co === 1 && n === 1;
+  return {
+    id,
+    coNumber: co,
+    isOrientation: orientation,
+    iedLevel: orientation ? null : 'IED'[n - (co === 1 ? 2 : 1)],
+    allocatedTime: `(${hours} hrs)`,
+    topics,
+    references
+  };
+};
 
 const alignedCoverage = () => ({
   ilos: [
@@ -77,6 +85,26 @@ test('over- and under-allocated hours block submission', () => {
   const under = { ilos: alignedCoverage().ilos.slice(0, 4) }; // 22 of 90 hrs
   const underResult = validateSubmission({ courseDetails, coverage: under });
   if (underResult.ok) throw new Error('Under-allocation should block');
+});
+
+test('a CO missing an IED level blocks submission and names the level', () => {
+  const coverage = alignedCoverage();
+  coverage.ilos.find(i => i.id === 'CO3-ILO3').iedLevel = 'E'; // CO3 loses its only Demonstrative ILO
+  const result = validateSubmission({ courseDetails, coverage });
+  if (result.ok) throw new Error('Expected the gate to block');
+  if (!result.blockers.some(b => b === 'CO3 needs at least one Demonstrative ILO.')) {
+    throw new Error(`Unexpected blockers: ${result.blockers.join(' | ')}`);
+  }
+});
+
+test('an ILO with no IED level blocks submission, an orientation ILO does not', () => {
+  const coverage = alignedCoverage();
+  coverage.ilos.find(i => i.id === 'CO2-ILO1').iedLevel = null;
+  const result = validateSubmission({ courseDetails, coverage });
+  if (!result.blockers.some(b => b.startsWith('CO2 has 1 ILO with no IED level'))) {
+    throw new Error(`Unexpected blockers: ${result.blockers.join(' | ')}`);
+  }
+  if (result.blockers.some(b => b.includes('CO1'))) throw new Error('Orientation ILO must not be flagged');
 });
 
 test('an empty plan blocks submission', () => {

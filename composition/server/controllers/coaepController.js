@@ -21,6 +21,8 @@ async function getCoaepByCourse(req, res) {
                  co.co_description,
                  ilo.ilo_id,
                  ilo.description AS ilo_description,
+                 ilo.target_students_percent,
+                 ilo.target_score_percent,
                  GROUP_CONCAT(DISTINCT ta.name) AS assessment_tools,
                  crs.course_title
              FROM CourseOutcomes co
@@ -53,6 +55,7 @@ async function getCoaepByCourse(req, res) {
             }
             cosMap.get(r.co_id).ilos.push({
                 outcome: clean(r.ilo_description),
+                performanceTarget: `At least ${r.target_students_percent}% of enrolled students with a rating of at least ${r.target_score_percent}% of the total score`,
                 assessmentTool: r.assessment_tools ? r.assessment_tools.split(',').map(clean).join(' / ') : '',
             });
         }

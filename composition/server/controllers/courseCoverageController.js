@@ -273,6 +273,9 @@ exports.getCourseCoverage = async (req, res, next) => {
 
             return {
                 id: `CO${coNum}-ILO${localIloIndexNum}`,
+                coNumber: coNum,
+                iedLevel: ilo.ied_level || null,
+                isOrientation: !!ilo.is_orientation,
                 intendedLearningOutcome: ilo.description || ilo.intendedLearningOutcome || '',
                 deliveryWeek: deliveryWeekString,
                 allocatedTime: `(${ilo.hours || 0} hrs)`,

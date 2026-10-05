@@ -14,7 +14,7 @@ import { X, CheckCircle, MessageSquare, Plus, Award, Trash2 } from "react-feathe
 import SideNavigation from "../components/SideNavigation.jsx";
 
 // Imported universal API client utility
-import { fetchJson } from "../utils/api.js";
+import { fetchJson, apiErrorMessage } from "../utils/api.js";
 import CommentMessage from "../components/CommentMessage.jsx";
 
 const FLIPPED_OPTIONS = ['Pre-class', 'In-class', 'Post-class'];
@@ -238,7 +238,7 @@ const TLAForm = () => {
             setShowConfirm(true);
         } catch (error) {
             console.error("Error saving TLAs details profile:", error);
-            alert("Failed to save changes. Please view logs.");
+            alert(apiErrorMessage(error, "Failed to save changes. Please view logs."));
         }
     };
 

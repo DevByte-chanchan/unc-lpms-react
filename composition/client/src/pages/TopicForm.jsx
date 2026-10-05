@@ -9,7 +9,7 @@ import TopicSelector from "../components/TopicSelector.jsx";
 import { X, CheckCircle, MessageSquare } from 'react-feather';
 
 // Imported universal API client utility
-import { fetchJson } from "../utils/api.js";
+import { fetchJson, apiErrorMessage } from "../utils/api.js";
 import CommentMessage from "../components/CommentMessage.jsx";
 
 function InlineModal({ isOpen, title, onClose, children }) {
@@ -145,7 +145,7 @@ const TopicForm = () => {
 
         } catch (err) {
             console.error("Topics save processing exception profile:", err);
-            setValidationError(err.message || "Failed to update learning topics metadata allocations.");
+            setValidationError(apiErrorMessage(err, "Failed to update learning topics metadata allocations."));
         } finally {
             setSaving(false);
         }

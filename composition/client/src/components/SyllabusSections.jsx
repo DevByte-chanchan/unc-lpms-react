@@ -5,7 +5,7 @@ import React, {useCallback, useEffect, useRef, useState} from "react";
 import {Link, useNavigate, useParams, useSearchParams, useLocation} from "react-router-dom";
 import SyllabusPreview from "./SyllabusPreview.jsx";
 import Revisions from "./Revisions.jsx";
-import {fetchJson} from "../utils/api";
+import {fetchJson, apiErrorMessage} from "../utils/api";
 import { getWorkflow, setWorkflow } from '../utils/workflowHelpers'
 import { validateSubmission } from '../utils/submissionGate'
 import PDFViewerModal from './PDFViewerModal'
@@ -254,7 +254,7 @@ const SyllabusSections = () => {
         } catch (error) {
             console.error("Error during submission:", error);
             cancelSubmission();
-            alert(`Failed to submit the learning plan: ${error.message}`);
+            alert(`Failed to submit the learning plan: ${apiErrorMessage(error)}`);
         }
     }, [applyLocalWorkflowOnSubmit, cancelSubmission, navigate, offeringID, revisionNum]);
 

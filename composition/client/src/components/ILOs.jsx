@@ -288,6 +288,15 @@ const ILOs = ({ offeringID, revisionNum, status, styles, fetchJson }) => {
                                     <td width={600}>{ilo.description}</td>
                                     <td className={styles.fill} width={250} style={{ display: "flex", flexDirection: "column", alignItems: "end", gap: 5 }}>
 
+                                        {/* Edit ILO text — the offering rides along so the form can load it */}
+                                        <Link className="actionLink" to={`/ilos/form/${encodeURIComponent(iloData.course?.course_no || 'course')}/${ilo.id}?pcId=${offeringID}&rev=${revisionNum}`}>
+                                                <span className={styles['link-text-wrapper']}>
+                                                    Edit ILO
+                                                    <ChevronRight size={18} />
+                                                    <div className={styles.fixedWidth}></div>
+                                                </span>
+                                        </Link>
+
                                         {/* Assign Week and Time Button (Trigger) */}
                                         <button
                                             className={`${styles.actionLink} ${styles.schedSetter}`}

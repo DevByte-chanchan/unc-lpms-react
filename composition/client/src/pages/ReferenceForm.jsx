@@ -12,7 +12,7 @@ import Dropdown from '../components/Dropdown.jsx';
 import { X, CheckCircle, MessageSquare } from 'react-feather';
 
 // Imported universal API client utility
-import { fetchJson } from "../utils/api.js";
+import { fetchJson, apiErrorMessage } from "../utils/api.js";
 import CommentMessage from "../components/CommentMessage.jsx";
 import { getSession } from "../utils/session.js";
 import { getCourseCatalog, normalizeReference } from "../utils/referenceCatalog.js";
@@ -268,7 +268,7 @@ const ReferenceForm = () => {
             setShowConfirm(true);
         } catch (err) {
             console.error('Comprehensive save operation failure:', err);
-            setValidationError(err.message || 'Failed to securely synchronize settings changes.');
+            setValidationError(apiErrorMessage(err, 'Failed to securely synchronize settings changes.'));
         } finally {
             setSaving(false);
         }

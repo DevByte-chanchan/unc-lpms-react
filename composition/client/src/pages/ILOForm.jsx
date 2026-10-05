@@ -1,152 +1,105 @@
-import React, { useState, useMemo } from "react";
+import React, { useEffect, useState } from "react";
 import Skeleton from "../layouts/Skeleton.jsx";
 import Header from "../components/Header.jsx";
 import FormNavigation from "../components/FormNavigation.jsx";
 import styles from "../styles/Form.module.sass";
-import { useNavigate, useParams } from "react-router-dom";
-import Dropdown from "../components/Dropdown.jsx";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import TextArea from "../components/TextArea.jsx";
-import MultiSelect from "../components/MultiSelect.jsx";
+import TextField from "../components/TextField.jsx";
+import Dropdown from "../components/Dropdown.jsx";
 import SideNavigation from "../components/SideNavigation.jsx";
-import { getSyllabusByCode } from "../data/syllabiData";
+import { fetchJson, apiErrorMessage } from "../utils/api.js";
+import { getSession } from "../utils/session.js";
+import { IED_LEVELS, DEFAULT_TARGET, levelLabel, levelCode, parsePercent } from "../utils/iedLevels.js";
 import { X, AlertCircle, CheckCircle } from "react-feather";
 
+const MIN_DESCRIPTION = 10;
+const MAX_DESCRIPTION = 500;
+
+// Topics, TLAs, references and the weekly schedule each have their own
+// server-backed screen (linked from the ILO table); this form owns the ILO text.
 const ILOForm = () => {
     const navigate = useNavigate();
-    const { code, iloId } = useParams();
+    const { iloId } = useParams();
+    const [searchParams] = useSearchParams();
+    const session = getSession();
 
-    const goBackHandler = () => {
-        navigate(-1);
-    };
+    // ILOs.jsx puts the offering on the link, same as the reference form.
+    const offeringID = searchParams.get('pcId') || '';
+    const revisionNum = searchParams.get('rev') || '';
 
-    // 1. Get Data
-    const syllabus = getSyllabusByCode(code);
-    const iloData = syllabus?.ilos.find(i => i.id === iloId) || {};
-
-    const weeks = () => Array.from({ length: 18 }, (_, i) => `Week ${i + 1}`);
-
-    const availableTopics = syllabus?.topics
-        ? syllabus.topics.map(t => t.title)
-        : [];
-
-    const availableReferences = syllabus?.references
-        ? syllabus.references.map(r => `${r.id} - ${r.title}`)
-        : [];
-
-    // 2. Initialize State
-    const [courseOutcome] = useState(iloData.courseOutcome || '');
-    const [intendedLearningOutcome, setIntendedLearningOutcome] = useState(iloData.intendedLearningOutcome || '');
-    const [deliveryWeek, setDeliveryWeek] = useState(iloData.deliveryWeek || '');
-    const [allocatedTime, setAllocatedTime] = useState(iloData.allocatedTime || '');
-
-    // selectedTopics contains an array of Topic Titles (strings)
-    const [selectedTopics, setSelectedTopics] = useState(iloData.topics || []);
-    const [selectedReferences, setSelectedReferences] = useState(iloData.references || []);
-
-    // Error State
+    const [courseOutcome, setCourseOutcome] = useState('');
+    const [intendedLearningOutcome, setIntendedLearningOutcome] = useState('');
+    const [isOrientation, setIsOrientation] = useState(false);
+    const [iedLevel, setIedLevel] = useState('');
+    const [targetStudents, setTargetStudents] = useState(String(DEFAULT_TARGET.studentsPercent));
+    const [targetScore, setTargetScore] = useState(String(DEFAULT_TARGET.scorePercent));
+    const [loading, setLoading] = useState(true);
+    const [loadError, setLoadError] = useState('');
+    const [saving, setSaving] = useState(false);
     const [errors, setErrors] = useState({});
-
-    // Modal States
     const [showConfirmModal, setShowConfirmModal] = useState(false);
     const [showErrorModal, setShowErrorModal] = useState(false);
 
-    // --- NEW LOGIC: GENERATE TLA STRING ---
-    // This calculates the text whenever 'selectedTopics' changes
-    const derivedTLAText = useMemo(() => {
-        if (!syllabus || !selectedTopics || selectedTopics.length === 0) {
-            return "Select topics above to view associated Teaching & Learning Activities.";
+    const goBackHandler = () => navigate(-1);
+
+    useEffect(() => {
+        if (!offeringID || !revisionNum) {
+            setLoadError('Open this form from the syllabus ILO table so the course offering is known.');
+            setLoading(false);
+            return undefined;
         }
+        let mounted = true;
+        fetchJson(`/api/ilos/${encodeURIComponent(offeringID)}/${encodeURIComponent(revisionNum)}`)
+            .then(data => {
+                if (!mounted) return;
+                for (const co of data.courseOutcomes || []) {
+                    const ilo = (co.ilos || []).find(item => String(item.id) === String(iloId));
+                    if (ilo) {
+                        setCourseOutcome(co.description || '');
+                        setIntendedLearningOutcome(ilo.description || '');
+                        setIsOrientation(!!ilo.is_orientation);
+                        setIedLevel(ilo.ied_level || '');
+                        setTargetStudents(String(ilo.target_students_percent ?? DEFAULT_TARGET.studentsPercent));
+                        setTargetScore(String(ilo.target_score_percent ?? DEFAULT_TARGET.scorePercent));
+                        return;
+                    }
+                }
+                setLoadError('This ILO was not found in the course offering.');
+            })
+            .catch(err => { if (mounted) setLoadError(err.message || 'Could not load the ILO.'); })
+            .finally(() => { if (mounted) setLoading(false); });
+        return () => { mounted = false; };
+    }, [offeringID, revisionNum, iloId]);
 
-        // 1. Find the full topics.js objects for the selected titles
-        const matchingTopics = syllabus.topics.filter(t =>
-            selectedTopics.includes(t.title)
-        );
-
-        // 2. Aggregate all TLAs from these topics
-        let allTLAs = [];
-        matchingTopics.forEach(topic => {
-            if (topic.tlas) {
-                allTLAs = [...allTLAs, ...topic.tlas];
-            }
-        });
-
-        if (allTLAs.length === 0) return "No TLAs found for the selected topics.";
-
-        // 3. Define the order and buckets
-        const phases = ["Pre-class", "In-class", "Post-class"];
-        let resultString = "";
-
-        // 4. Loop through phases to create the grouped string
-        phases.forEach(phase => {
-            // Find TLAs that match this phase
-            const phaseTLAs = allTLAs.filter(t => t.classPhase === phase);
-
-            if (phaseTLAs.length > 0) {
-                // Add Header (e.g., "PRE-CLASS:")
-                resultString += `${phase.toUpperCase()}:\n`;
-
-                // Add each TLA details
-                phaseTLAs.forEach(tla => {
-                    // Logic 1: Determine Actor Tag [I] or [S]
-                    // Checks first letter of 'performedBy' (e.g., "Student" -> "S")
-                    const actorChar = tla.performedBy ? tla.performedBy.charAt(0).toUpperCase() : 'S';
-
-                    // Logic 2: Determine Lab Tag (LAB)
-                    // Checks if activityType is explicitly 'Laboratory'
-                    const isLab = tla.activityType && tla.activityType.toLowerCase() === 'laboratory';
-                    const labSuffix = isLab ? " (LAB)" : "";
-
-                    // Construct String: • [S] Name (LAB): Description
-                    resultString += `• [${actorChar}] ${tla.tlaName}${labSuffix}: ${tla.tlaDescription}\n`;
-                });
-
-                // Add spacing between groups
-                resultString += `\n`;
-            }
-        });
-
-        return resultString.trim();
-    }, [selectedTopics, syllabus]);
-
-    // --- HANDLERS ---
-
-    const handleTextChange = (setter, field, val) => {
-        setter(val);
-        if (errors[field]) setErrors(prev => ({ ...prev, [field]: null }));
+    const handleTextChange = (val) => {
+        setIntendedLearningOutcome(val);
+        if (errors.intendedLearningOutcome) setErrors(prev => ({ ...prev, intendedLearningOutcome: null }));
     };
 
-    const handleMultiSelectChange = (setter, field, newVal) => {
-        setter(newVal);
+    const clearError = (field) => {
         if (errors[field]) setErrors(prev => ({ ...prev, [field]: null }));
     };
-
-    // --- VALIDATION ---
 
     const validateForm = () => {
-        let newErrors = {};
-
-        if (!intendedLearningOutcome.trim()) {
+        const newErrors = {};
+        if (!isOrientation && !iedLevel) newErrors.iedLevel = "Choose Introductory, Enabling or Demonstrative.";
+        if (parsePercent(targetStudents) === null) newErrors.targetStudents = "Enter a whole number from 1 to 100.";
+        if (parsePercent(targetScore) === null) newErrors.targetScore = "Enter a whole number from 1 to 100.";
+        const text = intendedLearningOutcome.trim();
+        if (!text) {
             newErrors.intendedLearningOutcome = "Intended Learning Outcome is required.";
-        } else if (intendedLearningOutcome.length < 10) {
+        } else if (text.length < MIN_DESCRIPTION) {
             newErrors.intendedLearningOutcome = "Description is too short.";
+        } else if (text.length > MAX_DESCRIPTION) {
+            newErrors.intendedLearningOutcome = `Description must be at most ${MAX_DESCRIPTION} characters.`;
         }
-
-        if (!deliveryWeek) newErrors.deliveryWeek = "Delivery Week is required.";
-        if (!allocatedTime) newErrors.allocatedTime = "Allocated Time is required.";
-
-        if (selectedTopics.length === 0) {
-            newErrors.topics = "Please select at least one topics.js.";
-        }
-
-        if (selectedReferences.length === 0) {
-            newErrors.references = "Please select at least one reference.";
-        }
-
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
 
     const handleSaveClick = () => {
+        if (loadError || saving) return;
         if (validateForm()) {
             setShowConfirmModal(true);
         } else {
@@ -154,22 +107,33 @@ const ILOForm = () => {
         }
     };
 
-    const handleConfirmSave = () => {
-        if (import.meta.env.DEV) console.log("Saving ILO Data:", {
-            courseOutcome,
-            intendedLearningOutcome,
-            deliveryWeek,
-            allocatedTime,
-            topics: selectedTopics,
-            references: selectedReferences
-        });
-        setShowConfirmModal(false);
-        navigate(-1);
+    const handleConfirmSave = async () => {
+        setSaving(true);
+        try {
+            await fetchJson(`/api/ilos/${encodeURIComponent(iloId)}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    description: intendedLearningOutcome,
+                    ...(isOrientation ? {} : { ied_level: iedLevel }),
+                    target_students_percent: parsePercent(targetStudents),
+                    target_score_percent: parsePercent(targetScore)
+                })
+            });
+            setShowConfirmModal(false);
+            navigate(-1);
+        } catch (err) {
+            setShowConfirmModal(false);
+            setErrors({ intendedLearningOutcome: apiErrorMessage(err, 'Could not save the ILO.') });
+            setShowErrorModal(true);
+        } finally {
+            setSaving(false);
+        }
     };
 
     return (
         <Skeleton
-            header={<Header role={'Instructor'} name={'NORTON, MONICA'} />}
+            header={<Header role={session?.roleLabel || 'Instructor'} name={session?.name || ''} />}
             nav={<SideNavigation />}
             content={
                 <div className={styles.container}>
@@ -178,68 +142,55 @@ const ILOForm = () => {
                     <div className={styles['form-container']}>
                         <h2>ILO & Course Outcome Alignment</h2>
 
-                        <TextArea
-                            disabled={true}
-                            label={'Course Outcome'}
-                            value={courseOutcome}
-                            readOnly={true}
-                        />
+                        {loading && <p>Loading ILO...</p>}
+                        {loadError && <p role="alert">{loadError}</p>}
 
-                        <TextArea
-                            label={'Intended Learning Outcome'}
-                            value={intendedLearningOutcome}
-                            onChange={(val) => handleTextChange(setIntendedLearningOutcome, 'intendedLearningOutcome', val)}
-                            error={errors.intendedLearningOutcome}
-                            rows={4}
-                        />
+                        {!loading && !loadError && (
+                            <>
+                                <TextArea
+                                    disabled={true}
+                                    label={'Course Outcome'}
+                                    value={courseOutcome}
+                                    readOnly={true}
+                                />
 
-                        <div className={styles.list}>
-                            <Dropdown
-                                label={'Delivery Week'}
-                                options={weeks()}
-                                value={deliveryWeek}
-                                onChange={(val) => handleTextChange(setDeliveryWeek, 'deliveryWeek', val)}
-                                error={errors.deliveryWeek}
-                            />
-                            <Dropdown
-                                label={'Allocated Time'}
-                                options={['1 hour', '1.5 hours', '2 hours', '2.5 hours', '3 hours', '3.5 hours', '4 hours']}
-                                value={allocatedTime}
-                                onChange={(val) => handleTextChange(setAllocatedTime, 'allocatedTime', val)}
-                                error={errors.allocatedTime}
-                            />
-                        </div>
+                                <TextArea
+                                    label={'Intended Learning Outcome'}
+                                    value={intendedLearningOutcome}
+                                    onChange={handleTextChange}
+                                    error={errors.intendedLearningOutcome}
+                                    rows={4}
+                                />
 
-                        <h2>Topics & TLAs</h2>
-                        <MultiSelect
-                            label={'Select Topics'}
-                            options={availableTopics}
-                            value={selectedTopics}
-                            onChange={(val) => handleMultiSelectChange(setSelectedTopics, 'topics', val)}
-                            error={errors.topics}
-                        />
+                                {isOrientation ? (
+                                    <p>This is an orientation ILO, so it has no IED level.</p>
+                                ) : (
+                                    <Dropdown
+                                        label={'IED Level'}
+                                        options={IED_LEVELS.map(level => levelLabel(level.code))}
+                                        value={levelLabel(iedLevel)}
+                                        onChange={(label) => { setIedLevel(levelCode(label) || ''); clearError('iedLevel'); }}
+                                        error={errors.iedLevel}
+                                    />
+                                )}
 
-                        {/* --- UPDATED TEXT AREA FOR TLAS --- */}
-                        <TextArea
-                            label={'Associated Teaching & Learning Activities (TLAs)'}
-                            value={derivedTLAText}
-                            disabled={true}
-                            readOnly={true}
-                            rows={15} // Kept static rows as requested
-                        />
-
-                        <h2>References</h2>
-                        <MultiSelect
-                            label={'Select Title(s)'}
-                            options={availableReferences}
-                            value={selectedReferences}
-                            onChange={(val) => handleMultiSelectChange(setSelectedReferences, 'references', val)}
-                            error={errors.references}
-                        />
-
+                                <h2>COAEP Performance Target</h2>
+                                <TextField
+                                    label={'Percent of enrolled students'}
+                                    value={targetStudents}
+                                    onChange={(val) => { setTargetStudents(val); clearError('targetStudents'); }}
+                                    error={errors.targetStudents}
+                                />
+                                <TextField
+                                    label={'Minimum rating (percent of the total score)'}
+                                    value={targetScore}
+                                    onChange={(val) => { setTargetScore(val); clearError('targetScore'); }}
+                                    error={errors.targetScore}
+                                />
+                            </>
+                        )}
                     </div>
 
-                    {/* --- POPUPS / MODALS --- */}
                     {showConfirmModal && (
                         <div className={styles.modalOverlay}>
                             <div className={styles.modal}>
@@ -251,8 +202,8 @@ const ILOForm = () => {
                                     <p>Are you sure you want to save these changes?</p>
                                 </div>
                                 <div className={styles.modalActions}>
-                                    <button className={styles.cancelBtn} onClick={() => setShowConfirmModal(false)}>No, Cancel</button>
-                                    <button className={styles.confirmBtn} onClick={handleConfirmSave}>Yes, Save</button>
+                                    <button className={styles.cancelBtn} onClick={() => setShowConfirmModal(false)} disabled={saving}>No, Cancel</button>
+                                    <button className={styles.confirmBtn} onClick={handleConfirmSave} disabled={saving}>{saving ? 'Saving...' : 'Yes, Save'}</button>
                                 </div>
                             </div>
                         </div>
@@ -277,10 +228,9 @@ const ILOForm = () => {
                                     <p>Please fix the highlighted issues before saving.</p>
 
                                     <ul className={styles.errorList}>
-                                        {Object.entries(errors).map(([key, err], idx) => (
-                                            <li key={idx}>
-                                                {key === 'intendedLearningOutcome' ? 'ILO Description' :
-                                                    key.charAt(0).toUpperCase() + key.slice(1)}: {err}
+                                        {Object.entries(errors).filter(([, err]) => err).map(([key, err]) => (
+                                            <li key={key}>
+                                                {{ intendedLearningOutcome: 'ILO Description', iedLevel: 'IED Level', targetStudents: 'Students target', targetScore: 'Score target' }[key] || key}: {err}
                                             </li>
                                         ))}
                                     </ul>

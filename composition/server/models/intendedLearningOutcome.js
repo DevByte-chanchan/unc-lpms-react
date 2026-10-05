@@ -25,6 +25,22 @@ module.exports = (sequelize, DataTypes) => {
             type: DataTypes.STRING(200),
             allowNull: true // Added assessment tool
         },
+        // Introductory / Enabling / Demonstrative; null for orientation ILOs.
+        ied_level: {
+            type: DataTypes.ENUM('I', 'E', 'D'),
+            allowNull: true
+        },
+        // COAEP performance target: % of students at >= % of the total score.
+        target_students_percent: {
+            type: DataTypes.INTEGER,
+            allowNull: false,
+            defaultValue: 90
+        },
+        target_score_percent: {
+            type: DataTypes.INTEGER,
+            allowNull: false,
+            defaultValue: 60
+        },
         is_orientation:{
             type: DataTypes.BOOLEAN,
             defaultValue: false,

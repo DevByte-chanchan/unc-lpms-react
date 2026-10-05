@@ -37,6 +37,29 @@ export const expectedTermHours = (contact, config = DEFAULT_GATE_CONFIG) => {
   return weekly * (config.weeksPerTerm || DEFAULT_GATE_CONFIG.weeksPerTerm)
 }
 
+// Every course outcome needs at least one Introductory, Enabling and Demonstrative
+// ILO (orientation ILOs are outside the scheme). Mirrors server/utils/iedRule.js,
+// which enforces the same rule when the plan is actually submitted.
+const IED_LEVELS = ['I', 'E', 'D']
+const IED_NAMES = { I: 'Introductory', E: 'Enabling', D: 'Demonstrative' }
+
+export const iedProblems = (ilos = []) => {
+  const problems = []
+  const coNumbers = [...new Set(ilos.map(i => i.coNumber).filter(n => n != null))].sort((a, b) => a - b)
+  coNumbers.forEach(coNumber => {
+    const own = ilos.filter(i => i.coNumber === coNumber && !i.isOrientation)
+    const unlevelled = own.filter(i => !IED_LEVELS.includes(i.iedLevel)).length
+    if (unlevelled) {
+      problems.push(`CO${coNumber} has ${unlevelled} ILO${unlevelled > 1 ? 's' : ''} with no IED level.`)
+    }
+    const missing = IED_LEVELS.filter(level => !own.some(i => i.iedLevel === level))
+    if (missing.length) {
+      problems.push(`CO${coNumber} needs at least one ${missing.map(level => IED_NAMES[level]).join(' and one ')} ILO.`)
+    }
+  })
+  return problems
+}
+
 export const validateSubmission = ({ courseDetails = null, coverage = null, textFields = null, config = DEFAULT_GATE_CONFIG } = {}) => {
   const cfg = { ...DEFAULT_GATE_CONFIG, ...(config || {}) }
   const blockers = []
@@ -65,6 +88,8 @@ export const validateSubmission = ({ courseDetails = null, coverage = null, text
   if (missingRefs.length) {
     blockers.push(`No reference attached to: ${missingRefs.join(', ')}.`)
   }
+
+  blockers.push(...iedProblems(ilos))
 
   const totalAllocatedHours = ilos.reduce((sum, i) => sum + parseHours(i.allocatedTime), 0)
   const expectedHours = expectedTermHours(courseDetails?.contact, cfg)
