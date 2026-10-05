@@ -1,5 +1,7 @@
 'use strict';
 
+const { assignIedLevels, seedAssessments, assertPlanValid } = require('../utils/planSeed');
+
 /**
  * Seeder: Single Course Learning Plan - "Object-Oriented Programming"
  * Status Target: APPROVED
@@ -170,7 +172,7 @@ module.exports = {
             { co_id: cosRows[3].co_id, description: 'Establish basic database connectivity (JDBC/ADO.NET) for persistent records.', weeks: 2.0, hours: 10, createdAt: now, updatedAt: now }
         ];
 
-        await queryInterface.bulkInsert('IntendedLearningOutcomes', ilos, {});
+        await queryInterface.bulkInsert('IntendedLearningOutcomes', assignIedLevels(ilos), {});
 
         const ilosRows = await queryInterface.sequelize.query(
             `SELECT ilo_id, co_id, description, is_orientation FROM IntendedLearningOutcomes WHERE co_id IN (${cosRows.map(c => c.co_id).join(',')}) ORDER BY ilo_id ASC;`,
@@ -313,48 +315,12 @@ module.exports = {
         await queryInterface.bulkInsert('TopicTLAs', topicTlaInserts, {});
 
         // ============================================================================
-        // 14) TLAAssessments (20/30/50 Weight Mapping)
+        // TLA ASSESSMENTS: one per ILO, on a TLA reached by joining from that ILO.
+        // Level, name, weight and period come from utils/planSeed.js, so Introductory,
+        // Enabling and Demonstrative assessments total exactly 20 / 30 / 50 for the course.
         // ============================================================================
-        const tlaAssessmentInserts = [];
-        const periods = ['p', 'm', 's', 'f'];
-
-        // Filter out the orientation ILO to only map assessments to the 12 technical ILOs
-        const technicalIloTopics = iloTopicsRows.slice(1);
-
-        for (let i = 0; i < technicalIloTopics.length; i++) {
-            const coIndex = Math.floor(i / 3);
-            const iloIndex = i % 3;
-            const currentPeriod = periods[coIndex];
-
-            // Assigned TLA matches the IN-CLASS phase of the specific topic (i + 1 due to orientation offset)
-            const assignedTlaId = tlasRows[(i + 1) * 3 + 1].tla_id;
-
-            let assessmentName = '';
-            let assessmentWeight = '20';
-
-            if (iloIndex === 0) {
-                assessmentName = 'Objective Type Quiz';
-                assessmentWeight = '20';
-            } else if (iloIndex === 1) {
-                assessmentName = coIndex === 0 ? 'Code Refactoring Exercise' : (coIndex === 1 ? 'Interface Design Task' : (coIndex === 2 ? 'Wireframe to Code Activity' : 'File Parser Script'));
-                assessmentWeight = '30';
-            } else {
-                assessmentName = coIndex === 0 ? 'Class Diagram Implementation' : (coIndex === 1 ? 'Data Structure Project' : (coIndex === 2 ? 'Interactive App Prototype' : 'CRUD Application Integration'));
-                assessmentWeight = '50';
-            }
-
-            tlaAssessmentInserts.push({
-                tla_id: assignedTlaId,
-                name: assessmentName,
-                description: `Summative evaluation metric testing OOP competency and syntax accuracy for ${assessmentName}.`,
-                period: currentPeriod,
-                weight: assessmentWeight,
-                min_passing: 60,
-                createdAt: now,
-                updatedAt: now
-            });
-        }
-        await queryInterface.bulkInsert('TLAAssessments', tlaAssessmentInserts, {});
+        await seedAssessments(queryInterface, { offeringId: pcId, now });
+        await assertPlanValid(queryInterface, pcId);
 
         // ============================================================================
         // 15. COMMENTS & COMMENT TARGETS (Actionable Workflow Trail)

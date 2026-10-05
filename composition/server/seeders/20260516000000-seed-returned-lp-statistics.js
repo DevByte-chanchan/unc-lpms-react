@@ -1,5 +1,7 @@
 'use strict';
 
+const { assignIedLevels, seedAssessments, assertPlanValid } = require('../utils/planSeed');
+
 /**
  * Seeder: Single Course Learning Plan - "Statistics"
  * Status Target: RETURNED (By Industry Consultant)
@@ -115,24 +117,24 @@ module.exports = {
 
         const iloData = [
             // CO1 (Prelim Period)
-            { co_id: cos[0].co_id, description: 'Compute probabilities using combinatorics, conditional probability, and Bayes theorem.', hours: 6 },
-            { co_id: cos[0].co_id, description: 'Differentiate and apply common discrete and continuous distributions (Binomial, Poisson, Normal, Exponential).', hours: 6 },
-            { co_id: cos[0].co_id, description: 'Model sampling distributions and apply the Central Limit Theorem to approximate sampling behavior.', hours: 6 },
+            { co_id: cos[0].co_id, description: 'Compute probabilities using combinatorics, conditional probability, and Bayes theorem.', weeks: 1, hours: 4 },
+            { co_id: cos[0].co_id, description: 'Differentiate and apply common discrete and continuous distributions (Binomial, Poisson, Normal, Exponential).', weeks: 1, hours: 4 },
+            { co_id: cos[0].co_id, description: 'Model sampling distributions and apply the Central Limit Theorem to approximate sampling behavior.', weeks: 2, hours: 5 },
             // CO2 (Midterm Period)
-            { co_id: cos[1].co_id, description: 'Construct point and interval estimates for means and proportions and interpret confidence levels.', hours: 6 },
-            { co_id: cos[1].co_id, description: 'Perform hypothesis tests for means, proportions, and variances using t-tests, z-tests, and chi-square tests.', hours: 6 },
-            { co_id: cos[1].co_id, description: 'Apply ANOVA techniques to compare multiple group means and interpret post-hoc analyses.', hours: 6 },
+            { co_id: cos[1].co_id, description: 'Construct point and interval estimates for means and proportions and interpret confidence levels.', weeks: 1, hours: 4 },
+            { co_id: cos[1].co_id, description: 'Perform hypothesis tests for means, proportions, and variances using t-tests, z-tests, and chi-square tests.', weeks: 1, hours: 4 },
+            { co_id: cos[1].co_id, description: 'Apply ANOVA techniques to compare multiple group means and interpret post-hoc analyses.', weeks: 2, hours: 5 },
             // CO3 (Semi-Final Period)
-            { co_id: cos[2].co_id, description: 'Fit simple and multiple linear regression models and interpret coefficients, residuals, and diagnostics.', hours: 6 },
-            { co_id: cos[2].co_id, description: 'Use logistic regression for binary outcomes and evaluate model performance using ROC and confusion matrices.', hours: 6 },
-            { co_id: cos[2].co_id, description: 'Apply model selection techniques (AIC, BIC, cross-validation) and address multicollinearity and interaction terms.', hours: 6 },
+            { co_id: cos[2].co_id, description: 'Fit simple and multiple linear regression models and interpret coefficients, residuals, and diagnostics.', weeks: 1, hours: 4 },
+            { co_id: cos[2].co_id, description: 'Use logistic regression for binary outcomes and evaluate model performance using ROC and confusion matrices.', weeks: 1, hours: 4 },
+            { co_id: cos[2].co_id, description: 'Apply model selection techniques (AIC, BIC, cross-validation) and address multicollinearity and interaction terms.', weeks: 2, hours: 5 },
             // CO4 (Final Period)
-            { co_id: cos[3].co_id, description: 'Perform exploratory data analysis and create publication-quality visualizations using statistical software.', hours: 6 },
-            { co_id: cos[3].co_id, description: 'Implement reproducible analysis workflows using scripts and notebooks; document data cleaning and transformation steps.', hours: 6 },
-            { co_id: cos[3].co_id, description: 'Conduct a capstone data analysis project applying the full statistical pipeline from question to inference and reporting.', hours: 6 }
+            { co_id: cos[3].co_id, description: 'Perform exploratory data analysis and create publication-quality visualizations using statistical software.', weeks: 1, hours: 4 },
+            { co_id: cos[3].co_id, description: 'Implement reproducible analysis workflows using scripts and notebooks; document data cleaning and transformation steps.', weeks: 1, hours: 4 },
+            { co_id: cos[3].co_id, description: 'Conduct a capstone data analysis project applying the full statistical pipeline from question to inference and reporting.', weeks: 2, hours: 5 }
         ];
 
-        await queryInterface.bulkInsert('IntendedLearningOutcomes', iloData.map(i => ({ ...i, createdAt: now, updatedAt: now })), {});
+        await queryInterface.bulkInsert('IntendedLearningOutcomes', assignIedLevels(iloData).map(i => ({ ...i, createdAt: now, updatedAt: now })), {});
 
         const ilos = await queryInterface.sequelize.query(
             `SELECT ilo_id FROM IntendedLearningOutcomes WHERE co_id IN (${cos.map(c => c.co_id).join(',')}) ORDER BY ilo_id ASC;`,
@@ -272,36 +274,12 @@ module.exports = {
         await queryInterface.bulkInsert('TopicTLAs', topicTlaInserts, {});
 
         // ============================================================================
-        // 11. TLA ASSESSMENTS (20/30/50 Grading Logic)
+        // TLA ASSESSMENTS: one per ILO, on a TLA reached by joining from that ILO.
+        // Level, name, weight and period come from utils/planSeed.js, so Introductory,
+        // Enabling and Demonstrative assessments total exactly 20 / 30 / 50 for the course.
         // ============================================================================
-
-        const assessmentInserts = [];
-        const periods = ['p', 'm', 's', 'f'];
-        const weightDistribution = [10, 15, 25]; // Applied twice per ILO = 20, 30, 50
-        const assessmentNames = ['Problem Set', 'Lab Report', 'Project Presentation', 'Data Analysis Exam', 'Modeling Assignment'];
-
-        for (let i = 0; i < 12; i++) {
-            const coIndex = Math.floor(i / 3);
-            const iloPosInCo = i % 3;
-            const targetPeriod = periods[coIndex];
-            const targetWeightPerAssessment = String(weightDistribution[iloPosInCo]);
-
-            const assignedTlasForIlo = [tlas[i * 2].tla_id, tlas[(i * 2) + 1].tla_id];
-
-            assignedTlasForIlo.forEach((tlaId, idx) => {
-                assessmentInserts.push({
-                    tla_id: tlaId,
-                    name: assessmentNames[(i + idx) % assessmentNames.length],
-                    description: `Summative assessment evaluating statistical reasoning and applied analysis.`,
-                    period: targetPeriod,
-                    weight: targetWeightPerAssessment,
-                    min_passing: 60,
-                    createdAt: now,
-                    updatedAt: now
-                });
-            });
-        }
-        await queryInterface.bulkInsert('TLAAssessments', assessmentInserts, {});
+        await seedAssessments(queryInterface, { offeringId: offeringId, now });
+        await assertPlanValid(queryInterface, offeringId);
 
         // ============================================================================
         // 12. COMMENTS & COMMENT TARGETS (THE NEW WORKFLOW MECHANIC)

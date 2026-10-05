@@ -1,6 +1,6 @@
 import styles from '../styles/SideNavigation.module.sass'
 import unclogo from '../assets/unclogo.png'
-import { BookOpen, CheckCircle, FileText, GitMerge, Layers, LogOut, Target, UploadCloud } from 'react-feather'
+import { BookOpen, CheckCircle, Clipboard, FileText, GitMerge, Layers, LogOut, Target } from 'react-feather'
 import { useSearchParams, useNavigate, useLocation } from 'react-router-dom'
 import { useEffect, useRef, useState } from 'react'
 import { logout } from '../utils/session'
@@ -11,11 +11,11 @@ import { navigationIconName } from '../utils/navigationIcons.js'
 const NAVIGATION_ICON_COMPONENTS = {
     BookOpen,
     CheckCircle,
+    Clipboard,
     FileText,
     GitMerge,
     Layers,
     Target,
-    UploadCloud,
 }
 
 const NavigationIcon = ({ label }) => {
@@ -36,8 +36,8 @@ const SideNavigation = ({ mode = 'instructor' }) => {
         selected = 'Syllabus';
     }
 
-    // LPSM Program Head upload pages
-    if (location.pathname.startsWith(routes.coaepUpload())) {
+    // LPSM Program Head pages
+    if (location.pathname.startsWith(routes.coaepView())) {
         selected = 'COAEP';
     }
     if (location.pathname.startsWith('/role/program-head/co-po-alignment')) {
@@ -196,7 +196,7 @@ const SideNavigation = ({ mode = 'instructor' }) => {
                             <NavigationIcon label="PO & PEO Alignment" /> <span className={styles.listText}>PO & PEO Alignment</span>
                         </div>
 
-                        <div onClick={() => { navigate('/role/program-head/upload-documents') }} className={`${styles.list} ${selected === 'COAEP' ? styles.selected : ''}`} role="link" tabIndex={0} title="COAEP" aria-label="COAEP" onKeyDown={(event) => activateWithKeyboard(event, () => navigate('/role/program-head/upload-documents'))}>
+                        <div onClick={() => { navigate(routes.coaepView()) }} className={`${styles.list} ${selected === 'COAEP' ? styles.selected : ''}`} role="link" tabIndex={0} title="COAEP" aria-label="COAEP" onKeyDown={(event) => activateWithKeyboard(event, () => navigate(routes.coaepView()))}>
                             <NavigationIcon label="COAEP" /> <span className={styles.listText}>COAEP</span>
                         </div>
                     </>

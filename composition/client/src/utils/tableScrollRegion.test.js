@@ -25,7 +25,7 @@ const tableConsumers = [
   'components/ApprovalSyllabusSections.jsx',
   'pages/ProgramHeadCourseOfferings.jsx',
   'pages/lpsm/DirectorOfLibraries/ReferenceLibrary.jsx',
-  'pages/lpsm/ProgramHead/COAEPUpload.jsx',
+  'pages/lpsm/ProgramHead/COAEPView.jsx',
   'pages/lpsm/ProgramHead/CoPoAlignment.jsx',
   'pages/lpsm/ProgramHead/PoPeoAlignment.jsx',
 ]

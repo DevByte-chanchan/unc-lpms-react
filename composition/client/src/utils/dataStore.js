@@ -1,6 +1,5 @@
 import { syllabiData as staticSyllabi } from '../data/syllabiData.js'
 import { enrichSyllabi } from '../data/syllabiDataEnricher.js'
-import { getWorkflow } from './workflowHelpers.js'
 
 const SYLLABI_KEY = 'lpms_syllabi_v2'
 const SUGGESTIONS_KEY = 'lpms_suggestions_v1'
@@ -38,13 +37,6 @@ const normalizeInstructor = (s) => {
 
 export function getSyllabi() {
   return initSyllabi().map(normalizeInstructor)
-}
-
-export function getUnifiedSyllabi() {
-  return initSyllabi().map(s => {
-    const wf = getWorkflow(s.code)
-    return { ...s, workflow: wf, currentStage: wf.currentStage }
-  })
 }
 
 export function getSyllabus(code) {

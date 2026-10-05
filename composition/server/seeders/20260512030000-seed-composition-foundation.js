@@ -1,5 +1,7 @@
 'use strict';
 
+const { assignIedLevels, seedAssessments, assertPlanValid } = require('../utils/planSeed');
+
 /**
  * Seeder: composition foundational data
  * - Inserts Departments, Programs, Courses, Prerequisites (assumes prerequisite_course_id exists),
@@ -409,7 +411,7 @@ Through lectures, hands-on projects, and usability testing, learners will develo
             { co_id: 4, description: 'Propose a comprehensive Usability Evaluation and Design Handoff Report backed by empirical testing feedback.', weeks: 2.0, hours: 10, createdAt: now, updatedAt: now }
         ];
 
-        await queryInterface.bulkInsert('IntendedLearningOutcomes', ilos, {});
+        await queryInterface.bulkInsert('IntendedLearningOutcomes', assignIedLevels(ilos), {});
 
         // Fetch inserted ILOs
         const ilosRows = await queryInterface.sequelize.query(
@@ -720,86 +722,12 @@ Through lectures, hands-on projects, and usability testing, learners will develo
         await queryInterface.bulkInsert('TopicTLAs', topicTlaInserts, {});
 
         // ============================================================================
-        // 9) TLAAssessments: Map to exact assessment_tool & Weight Constraints (20, 30, 50)
+        // TLA ASSESSMENTS: one per ILO, on a TLA reached by joining from that ILO.
+        // Level, name, weight and period come from utils/planSeed.js, so Introductory,
+        // Enabling and Demonstrative assessments total exactly 20 / 30 / 50 for the course.
         // ============================================================================
-        const tlaAssessmentInserts = [];
-        const periods = ['p', 'm', 's', 'f'];
-
-        // FIX: Now iterating securely over technicalIlosRows to keep the 20-30-50 logic properly aligned
-        for (let i = 0; i < technicalIlosRows.length; i++) {
-            const coIndex = Math.floor(i / 3);
-            const iloIndex = i % 3;
-
-            const currentPeriod = periods[coIndex];
-
-            // Technical topics start at index 1 in topicsRows (since index 0 is orientation)
-            // Therefore, the assigned TLA matches (i + 1)
-            const assignedTlaId = tlasRows[(i + 1) * 3 + 1].tla_id;
-
-            let assessmentName = '';
-            let assessmentDescription = '';
-            let assessmentWeight = '20';
-
-            if (iloIndex === 0) {
-                assessmentName = 'Objective-Type Quiz';
-                assessmentWeight = '20';
-
-                if (coIndex === 0) {
-                    assessmentDescription = 'Covering interactive component theories and human cognitive load.';
-                } else if (coIndex === 1) {
-                    assessmentDescription = 'Covering User-Centered Design paradigms and audience analysis methodologies.';
-                } else if (coIndex === 2) {
-                    assessmentDescription = 'Ergonomic patterns and WCAG 2.1 compliance specifications.';
-                } else {
-                    assessmentDescription = 'Covering evaluative protocol steps, metrics, and script guidelines.';
-                }
-            } else if (iloIndex === 1) {
-                assessmentWeight = '30';
-
-                if (coIndex === 0) {
-                    assessmentName = 'Objective Type Activity';
-                    assessmentDescription = 'Hands-on UI layout development exercise utilizing Figma component design engines.';
-                } else if (coIndex === 1) {
-                    assessmentName = 'UCD Process Document';
-                    assessmentDescription = 'A formal process document containing research-driven user profiles, empathy maps, and system site flows.';
-                } else if (coIndex === 2) {
-                    assessmentName = 'UI/UX Design Implementation Document';
-                    assessmentDescription = 'A detailed implementation document documenting accessibility features, color contrast compliance, and screen-reader focus hierarchies.';
-                } else {
-                    assessmentName = 'Prototype Evaluation Document';
-                    assessmentDescription = 'A complete research report compiling recorded user error logs, System Usability Scale (SUS) surveys, and qualitative notes.';
-                }
-            } else {
-                assessmentWeight = '50';
-
-                if (coIndex === 0) {
-                    assessmentName = 'UI Design Proposal';
-                    assessmentDescription = 'A thorough system layout mock proposal document outlining visual composition strategies and interaction models.';
-                } else if (coIndex === 1) {
-                    assessmentName = 'UI/UX Design Presentation';
-                    assessmentDescription = 'An interactive, formal presentation of high-priority wireframes, navigation configurations, and layout details.';
-                } else if (coIndex === 2) {
-                    assessmentName = 'Front-end Code Presentation';
-                    assessmentDescription = 'An interactive front-end display demonstrating dynamic layout states, microcopy animations, and interactive component functions.';
-                } else {
-                    assessmentName = 'Front-End Prototype Presentation';
-                    assessmentDescription = 'The final capstone defense presenting a validated system prototype optimized using feedback from user testing sessions.';
-                }
-            }
-
-            tlaAssessmentInserts.push({
-                tla_id: assignedTlaId,
-                name: assessmentName,
-                description: assessmentDescription,
-                period: currentPeriod,
-                weight: assessmentWeight,
-                min_passing: 60,
-                createdAt: now,
-                updatedAt: now
-            });
-        }
-
-        await queryInterface.bulkInsert('TLAAssessments', tlaAssessmentInserts, {});
+        await seedAssessments(queryInterface, { offeringId: 1, now });
+        await assertPlanValid(queryInterface, 1);
         console.log(`Successfully completed high-fidelity seeding of references, ILOs, Topics, and strictly aligned TLAs.`);
         // insert here
     },

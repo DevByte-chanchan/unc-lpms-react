@@ -1,5 +1,7 @@
 'use strict';
 
+const { assignIedLevels, seedAssessments, assertPlanValid } = require('../utils/planSeed');
+
 /**
  * Seeder: Single Course Learning Plan - "Object-Oriented Programming" (REVISION 2)
  * Status Target: APPROVED
@@ -125,24 +127,24 @@ module.exports = {
         // 5. INTENDED LEARNING OUTCOMES (12 records, 3 per CO - Rev 2 Focus)
         // ============================================================================
         const iloData = [
-            { co_id: cos[0].co_id, description: 'Define class blueprints and encapsulate state using advanced property methods.', hours: 6 },
-            { co_id: cos[0].co_id, description: 'Construct deep hierarchical relationships and analyze Liskov Substitution violations.', hours: 6 },
-            { co_id: cos[0].co_id, description: 'Apply the Single Responsibility and Open/Closed principles in class design.', hours: 6 },
+            { co_id: cos[0].co_id, description: 'Define class blueprints and encapsulate state using advanced property methods.', weeks: 1, hours: 6 },
+            { co_id: cos[0].co_id, description: 'Construct deep hierarchical relationships and analyze Liskov Substitution violations.', weeks: 1, hours: 6 },
+            { co_id: cos[0].co_id, description: 'Apply the Single Responsibility and Open/Closed principles in class design.', weeks: 2, hours: 10 },
 
-            { co_id: cos[1].co_id, description: 'Design interfaces to enforce structural contracts and multiple inheritance.', hours: 6 },
-            { co_id: cos[1].co_id, description: 'Utilize generic collections with bounds and wildcards for type-safe data.', hours: 6 },
-            { co_id: cos[1].co_id, description: 'Implement lambda expressions and functional interfaces for declarative logic.', hours: 6 },
+            { co_id: cos[1].co_id, description: 'Design interfaces to enforce structural contracts and multiple inheritance.', weeks: 1, hours: 6 },
+            { co_id: cos[1].co_id, description: 'Utilize generic collections with bounds and wildcards for type-safe data.', weeks: 1, hours: 6 },
+            { co_id: cos[1].co_id, description: 'Implement lambda expressions and functional interfaces for declarative logic.', weeks: 2, hours: 10 },
 
-            { co_id: cos[2].co_id, description: 'Construct objects securely using Creational patterns (Singleton, Factory).', hours: 6 },
-            { co_id: cos[2].co_id, description: 'Manage component communication using Behavioral patterns (Observer, Strategy).', hours: 6 },
-            { co_id: cos[2].co_id, description: 'Create declarative graphical user interface layouts and event listeners.', hours: 6 },
+            { co_id: cos[2].co_id, description: 'Construct objects securely using Creational patterns (Singleton, Factory).', weeks: 1, hours: 6 },
+            { co_id: cos[2].co_id, description: 'Manage component communication using Behavioral patterns (Observer, Strategy).', weeks: 1, hours: 6 },
+            { co_id: cos[2].co_id, description: 'Create declarative graphical user interface layouts and event listeners.', weeks: 2, hours: 10 },
 
-            { co_id: cos[3].co_id, description: 'Read, write, and serialize complex objects to JSON/XML via Streams.', hours: 6 },
-            { co_id: cos[3].co_id, description: 'Establish secure relational database connectivity using connection pooling.', hours: 6 },
-            { co_id: cos[3].co_id, description: 'Write comprehensive unit tests and implement mocking for decoupled components.', hours: 6 }
+            { co_id: cos[3].co_id, description: 'Read, write, and serialize complex objects to JSON/XML via Streams.', weeks: 1, hours: 6 },
+            { co_id: cos[3].co_id, description: 'Establish secure relational database connectivity using connection pooling.', weeks: 1, hours: 6 },
+            { co_id: cos[3].co_id, description: 'Write comprehensive unit tests and implement mocking for decoupled components.', weeks: 2, hours: 10 }
         ];
 
-        await queryInterface.bulkInsert('IntendedLearningOutcomes', iloData.map(i => ({ ...i, createdAt: now, updatedAt: now })), {});
+        await queryInterface.bulkInsert('IntendedLearningOutcomes', assignIedLevels(iloData).map(i => ({ ...i, createdAt: now, updatedAt: now })), {});
         const ilos = await queryInterface.sequelize.query(
             `SELECT ilo_id FROM IntendedLearningOutcomes WHERE co_id IN (${cos.map(c => c.co_id).join(',')}) ORDER BY ilo_id ASC;`,
             { type: queryInterface.sequelize.QueryTypes.SELECT }
@@ -298,36 +300,12 @@ module.exports = {
         await queryInterface.bulkInsert('TopicTLAs', topicTlaInserts, {});
 
         // ============================================================================
-        // 11. TLA ASSESSMENTS
+        // TLA ASSESSMENTS: one per ILO, on a TLA reached by joining from that ILO.
+        // Level, name, weight and period come from utils/planSeed.js, so Introductory,
+        // Enabling and Demonstrative assessments total exactly 20 / 30 / 50 for the course.
         // ============================================================================
-        const assessmentInserts = [];
-        const periods = ['p', 'm', 's', 'f'];
-        const weightDistribution = [10, 15, 25];
-        const assessmentNames = ['Architecture Review', 'Refactoring Exam', 'Design Pattern Project', 'Unit Test Coverage Metric', 'Full-Stack Integration'];
-
-        for (let i = 0; i < 12; i++) {
-            const coIndex = Math.floor(i / 3);
-            const iloPosInCo = i % 3;
-
-            const targetPeriod = periods[coIndex];
-            const targetWeightPerAssessment = String(weightDistribution[iloPosInCo]);
-
-            const assignedTlasForIlo = [tlas[i * 2].tla_id, tlas[(i * 2) + 1].tla_id];
-
-            assignedTlasForIlo.forEach((tlaId, idx) => {
-                assessmentInserts.push({
-                    tla_id: tlaId,
-                    name: assessmentNames[(i + idx) % assessmentNames.length],
-                    description: `Summative evaluation metric testing advanced OOP competency, memory profiling, and test coverage.`,
-                    period: targetPeriod,
-                    weight: targetWeightPerAssessment,
-                    min_passing: 60,
-                    createdAt: now,
-                    updatedAt: now
-                });
-            });
-        }
-        await queryInterface.bulkInsert('TLAAssessments', assessmentInserts, {});
+        await seedAssessments(queryInterface, { offeringId: offeringId, now });
+        await assertPlanValid(queryInterface, offeringId);
 
         // ============================================================================
         // 12. COMMENTS & COMMENT TARGETS (New 2026 Revision Trail)

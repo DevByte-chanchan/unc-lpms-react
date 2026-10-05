@@ -11,7 +11,6 @@
 // this module only decides the list + which tab each course lives in.
 // ============================================================================
 import { getSyllabi } from './dataStore.js';
-import { setWorkflow, hasWorkflow } from './workflowHelpers.js';
 
 // 4 courses per status tab (16 total). All exist in syllabiData (enriched) and
 // are seeded in the DB by seeders/populate_full_syllabi.js.
@@ -91,41 +90,6 @@ export function statusLabelForCode(code) {
   return cap(STATUS_BY_CODE[code]) || 'Draft';
 }
 
-// Seed the workflow store so the approver-chain popup and the syllabus detail
-// page reflect the same fixed statuses as the tables.
-//
-// Missing entries only. This runs at module load on every page load, so writing
-// unconditionally reset an approve / return / submit the moment the app was
-// reopened — the same "add missing entries only, never overwrite existing user
-// data" rule seedDemoWorkflows already follows.
-export function seedDemoWorkflowsCanonical() {
-  const done = (n) => ({ status: 'done', completedAt: daysAgo(n) });
-  const pend = () => ({ status: 'pending', completedAt: null });
-
-  for (const [code, status] of Object.entries(STATUS_BY_CODE)) {
-    if (hasWorkflow(code)) continue;
-    let wf;
-    if (status === 'draft') {
-      wf = { courseCode: code, currentStage: 'submitted',
-        parallelReview: { library_director: pend(), industry_consultant: pend(), program_head: pend() },
-        programHead: pend(), dean: pend() };
-    } else if (status === 'pending') {
-      wf = { courseCode: code, currentStage: 'submitted', submittedAt: daysAgo(10),
-        parallelReview: { library_director: pend(), industry_consultant: pend(), program_head: pend() },
-        programHead: pend(), dean: pend() };
-    } else if (status === 'returned') {
-      wf = { courseCode: code, currentStage: 'returned', submittedAt: daysAgo(12),
-        parallelReview: { library_director: done(6), industry_consultant: done(9), program_head: pend() },
-        programHead: pend(), dean: pend() };
-    } else {
-      wf = { courseCode: code, currentStage: 'approved', submittedAt: daysAgo(22),
-        parallelReview: { library_director: done(17), industry_consultant: done(18), program_head: done(16) },
-        programHead: done(16), dean: done(6), vpaa: done(2) };
-    }
-    setWorkflow(code, wf);
-  }
-}
-
 export default {
   DEMO_COURSES_BY_STATUS,
   STATUS_BY_CODE,
@@ -133,5 +97,4 @@ export default {
   buildRow,
   getCoursesForRole,
   statusLabelForCode,
-  seedDemoWorkflowsCanonical,
 };

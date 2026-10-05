@@ -1,5 +1,7 @@
 'use strict';
 
+const { assignIedLevels, seedAssessments, assertPlanValid } = require('../utils/planSeed');
+
 /**
  * Seeder: Single Course Learning Plan - "System Integration & Architecture"
  * Status Target: PENDING
@@ -63,6 +65,16 @@ module.exports = {
             createdAt: now,
             updatedAt: now
         }], {});
+
+        const assignmentRow = await queryInterface.sequelize.query(
+            `SELECT co_assign_id FROM CourseOfferingAssignments WHERE pc_offering_id = ${pcId};`,
+            { type: queryInterface.sequelize.QueryTypes.SELECT }
+        );
+        // The workflow log is the single source of truth for a plan's status.
+        await queryInterface.bulkInsert('AssignmentWorkflowLogs', [
+            { co_assign_id: assignmentRow[0].co_assign_id, actor_role: 'PROGRAM_HEAD', action_type: 'ASSIGNED', createdAt: new Date('2026-06-01'), updatedAt: new Date('2026-06-01') },
+            { co_assign_id: assignmentRow[0].co_assign_id, actor_role: 'INSTRUCTOR', action_type: 'SUBMITTED', createdAt: new Date('2026-06-15'), updatedAt: new Date('2026-06-15') }
+        ], {});
 
         // ============================================================================
         // 4) Course Outcomes
@@ -146,7 +158,7 @@ module.exports = {
             { co_id: cosRows[3].co_id, description: 'Diagnose JSON Web Token (JWT) vulnerabilities in stateless authentication flows.', weeks: 2.0, hours: 10, createdAt: now, updatedAt: now }
         ];
 
-        await queryInterface.bulkInsert('IntendedLearningOutcomes', ilos, {});
+        await queryInterface.bulkInsert('IntendedLearningOutcomes', assignIedLevels(ilos), {});
 
         const ilosRows = await queryInterface.sequelize.query(
             `SELECT ilo_id, co_id, description, is_orientation FROM IntendedLearningOutcomes WHERE co_id IN (${cosRows.map(c => c.co_id).join(',')}) ORDER BY ilo_id ASC;`,
@@ -348,78 +360,12 @@ module.exports = {
         await queryInterface.bulkInsert('TopicTLAs', topicTlaInserts, {});
 
         // ============================================================================
-        // 14) TLAAssessments (20/30/50 Rigorous Weight Mapping)
+        // TLA ASSESSMENTS: one per ILO, on a TLA reached by joining from that ILO.
+        // Level, name, weight and period come from utils/planSeed.js, so Introductory,
+        // Enabling and Demonstrative assessments total exactly 20 / 30 / 50 for the course.
         // ============================================================================
-        const tlaAssessmentInserts = [];
-        const periods = ['p', 'm', 's', 'f'];
-
-        for (let i = 0; i < technicalIlosRows.length; i++) {
-            const coIndex = Math.floor(i / 3);
-            const iloIndex = i % 3;
-            const currentPeriod = periods[coIndex];
-
-            // Assigned TLA matches the IN-CLASS phase of the specific topic (i + 1 due to orientation index 0)
-            const assignedTlaId = tlasRows[(i + 1) * 3 + 1].tla_id;
-
-            let assessmentName = '';
-            let assessmentDescription = '';
-            let assessmentWeight = '20';
-
-            if (iloIndex === 0) {
-                assessmentName = 'Objective-Type Quiz';
-                assessmentWeight = '20';
-
-                if (coIndex === 0) assessmentDescription = 'Covering monolithic architectures, microservices theories, and core API patterns.';
-                else if (coIndex === 1) assessmentDescription = 'Covering serialization methodologies and XML vs JSON paradigms.';
-                else if (coIndex === 2) assessmentDescription = 'Covering asynchronous event-driven system mechanics and Kafka topologies.';
-                else assessmentDescription = 'Covering distributed authorization frameworks and modern JWT token lifecycles.';
-            } else if (iloIndex === 1) {
-                assessmentWeight = '30';
-
-                if (coIndex === 0) {
-                    assessmentName = 'Architecture Document';
-                    assessmentDescription = 'A formal schema design document covering API endpoints, methods, and payload structures.';
-                } else if (coIndex === 1) {
-                    assessmentName = 'Payload Mapping Document';
-                    assessmentDescription = 'A detailed mapping schematic converting legacy SOAP specifications into structured JSON layouts.';
-                } else if (coIndex === 2) {
-                    assessmentName = 'Implementation Document';
-                    assessmentDescription = 'A structured configuration document mapping out message brokers, publisher endpoints, and subscriber protocols.';
-                } else {
-                    assessmentName = 'Evaluation Document';
-                    assessmentDescription = 'A formal security audit report detailing network gateway policies, rate limiting, and zero-trust vulnerabilities.';
-                }
-            } else {
-                assessmentWeight = '50';
-
-                if (coIndex === 0) {
-                    assessmentName = 'API Design Proposal';
-                    assessmentDescription = 'A comprehensive architectural proposal defending API data flow, RESTful constraints, and GraphQL fetch optimization.';
-                } else if (coIndex === 1) {
-                    assessmentName = 'Pipeline Presentation';
-                    assessmentDescription = 'An interactive presentation demonstrating a fully functional ETL data pipeline moving data across systems.';
-                } else if (coIndex === 2) {
-                    assessmentName = 'Architecture Presentation';
-                    assessmentDescription = 'An interactive display showcasing the Saga transaction flow covering compensating transactions across services.';
-                } else {
-                    assessmentName = 'System Handoff Presentation';
-                    assessmentDescription = 'The final capstone defense presenting a secured microservice architecture utilizing OIDC and resilient service meshes.';
-                }
-            }
-
-            tlaAssessmentInserts.push({
-                tla_id: assignedTlaId,
-                name: assessmentName,
-                description: assessmentDescription,
-                period: currentPeriod,
-                weight: assessmentWeight,
-                min_passing: 60,
-                createdAt: now,
-                updatedAt: now
-            });
-        }
-
-        await queryInterface.bulkInsert('TLAAssessments', tlaAssessmentInserts, {});
+        await seedAssessments(queryInterface, { offeringId: pcId, now });
+        await assertPlanValid(queryInterface, pcId);
         console.log(`Successfully completed rigorous data mapping for pending course BIT321L using foundational flow.`);
     },
 

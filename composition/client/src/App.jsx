@@ -7,9 +7,10 @@ import ResizeVeil from "./components/ResizeVeil.jsx";
 import OverflowTooltip from "./components/OverflowTooltip.jsx";
 import Login from "./pages/Login.jsx";
 
-import { seedDemoWorkflowsCanonical } from './utils/demoCourses';
 import { getSession, onSessionChange, reconcileSession, routeGuardRedirect } from './utils/session';
-seedDemoWorkflowsCanonical()
+// A plan's approval state lives in the server's workflow log. Drop the browser-side copy
+// older builds kept, so a stale entry can never be mistaken for the real status.
+try { localStorage.removeItem('lpsm_workflow_v1'); localStorage.removeItem('lpsm_workflow_seeded_v5') } catch { /* storage unavailable */ }
 
 // Each workspace is loaded only when its route is opened. This keeps the large
 // syllabus editors and PDF helpers out of the login and course-list download.
@@ -27,7 +28,7 @@ const DirectorOfLibraries = lazy(() => import('./pages/DirectorOfLibraries.jsx')
 const IndustryConsultant = lazy(() => import('./pages/IndustryConsultant.jsx'))
 const ProgramHeadIndustryConsultant = lazy(() => import('./pages/ProgramHeadIndustryConsultant.jsx'))
 const ProgramHeadCourseOfferings = lazy(() => import('./pages/ProgramHeadCourseOfferings.jsx'))
-const COAEPUpload = lazy(() => import('./pages/lpsm/ProgramHead/COAEPUpload.jsx'))
+const COAEPView = lazy(() => import('./pages/lpsm/ProgramHead/COAEPView.jsx'))
 const CoPoAlignment = lazy(() => import('./pages/lpsm/ProgramHead/CoPoAlignment.jsx'))
 const PoPeoAlignment = lazy(() => import('./pages/lpsm/ProgramHead/PoPeoAlignment.jsx'))
 const DirectorReferenceLibrary = lazy(() => import('./pages/lpsm/DirectorOfLibraries/ReferenceLibrary.jsx'))
@@ -108,7 +109,7 @@ function App() {
                         {/* --- ROLE-BASED APPROVER ROUTES --- */}
                         <Route path={'/role/industry-consultant'} element={<ErrorBoundary><IndustryConsultant /></ErrorBoundary>} />
                         <Route path={'/role/program-head'} element={<ErrorBoundary><ProgramHead /></ErrorBoundary>} />
-                        <Route path={'/role/program-head/coaep-upload'} element={<ErrorBoundary><COAEPUpload /></ErrorBoundary>} />
+                        <Route path={'/role/program-head/coaep'} element={<ErrorBoundary><COAEPView /></ErrorBoundary>} />
                         <Route path={'/role/program-head/co-po-alignment'} element={<ErrorBoundary><CoPoAlignment /></ErrorBoundary>} />
                         <Route path={'/role/program-head/po-peo-alignment'} element={<ErrorBoundary><PoPeoAlignment /></ErrorBoundary>} />
                         <Route path={'/role/director-of-libraries'} element={<ErrorBoundary><DirectorOfLibraries /></ErrorBoundary>} />

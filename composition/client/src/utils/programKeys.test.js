@@ -1,5 +1,5 @@
 // Runnable self-check for the one-key-per-program rule —
-// `node src/utils/programKeys.test.js` from client/. COAEPUpload used to key by
+// `node src/utils/programKeys.test.js` from client/. The COAEP page used to key by
 // the server's Program.name while the other alignment pages key by the short
 // prefix, so one program had two entries and a COAEP saved online vanished on
 // the offline fallback.
@@ -30,7 +30,7 @@ const eq = (actual, expected, what) => {
 };
 
 test('the COAEP page and the alignment pages derive the same key from a course', () => {
-  // What COAEPUpload now does: extractProgramPrefix(courseCode).
+  // What the COAEP page now does: extractProgramPrefix(courseCode).
   eq(extractProgramPrefix('BIT313L'), 'BIT', 'the course code carries the program');
   eq(extractProgramPrefix('BSCS511'), 'BSCS', 'and for computer science');
   // What it used to do: Program.name straight off /api/assignments.

@@ -168,7 +168,7 @@ const listAssignments = async (req, res, next) => {
                 {
                     model: AssignmentWorkflowLog,
                     as: 'workflowLogs', // Uses correct DB alias
-                    attributes: ['actor_role', 'action_type', 'createdAt']
+                    attributes: ['actor_role', 'actor_name', 'action_type', 'createdAt']
                 }
             ],
             distinct: true,
@@ -204,6 +204,26 @@ const listAssignments = async (req, res, next) => {
         });
     } catch (err) {
         next(err);
+    }
+};
+
+// GET /api/assignments/offering/:pcId — the workflow log of one offering's assignment.
+// The approval screens derive a plan's stage and who may act from this, and from nothing else.
+const getWorkflowByOffering = async (req, res, next) => {
+    try {
+        const assignmentId = req.courseAccess?.co_assign_id;
+        if (!assignmentId) {
+            return res.json({ co_assign_id: null, pc_offering_id: req.courseAccess?.pc_offering_id ?? null, logs: [] });
+        }
+        const logs = await AssignmentWorkflowLog.findAll({
+            where: { co_assign_id: assignmentId },
+            attributes: ['actor_role', 'actor_name', 'action_type', 'createdAt'],
+            order: [['createdAt', 'ASC'], ['log_id', 'ASC']],
+            raw: true
+        });
+        return res.json({ co_assign_id: assignmentId, pc_offering_id: req.courseAccess.pc_offering_id, logs });
+    } catch (err) {
+        return next(err);
     }
 };
 
@@ -326,6 +346,7 @@ const recordWorkflowAction = async (req, res, next) => {
                 return AssignmentWorkflowLog.create({
                     co_assign_id: assignment.co_assign_id,
                     actor_role,
+                    actor_name: String(req.user?.name || '').slice(0, 100) || null,
                     action_type
                 }, { transaction });
                 });
@@ -354,6 +375,7 @@ const recordWorkflowAction = async (req, res, next) => {
 module.exports = {
     listAssignments,
     getAssignmentById,
+    getWorkflowByOffering,
     recordWorkflowAction,
     _internals: { validateWorkflowTransition, withWorkflowLock, PARALLEL_REVIEW_ROLES }
 };

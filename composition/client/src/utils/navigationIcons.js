@@ -2,7 +2,7 @@ const NAVIGATION_ICON_NAMES = Object.freeze({
   'Learning Plan': 'FileText',
   'CO & PO Alignment': 'GitMerge',
   'PO & PEO Alignment': 'Target',
-  COAEP: 'UploadCloud',
+  COAEP: 'Clipboard',
   'Reference Library': 'BookOpen',
   'Course Catalog': 'Layers',
   'Approved Plans': 'CheckCircle',

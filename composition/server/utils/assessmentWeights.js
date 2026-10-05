@@ -1,19 +1,17 @@
 'use strict';
 
 const { IED_NAMES, IED_WEIGHTS } = require('./iedRule');
+const { TERM_PERIODS } = require('../config/termPeriods');
 
-// TLAAssessments.period holds one of these single-letter codes.
-const PERIOD_LABELS = { p: 'Prelim', m: 'Midterm', s: 'Semi-final', f: 'Final' };
-
-// Last teaching week of each grading period in an 18-week term. These match the
-// seeded learning plans (one course outcome per period, weeks 1-5, 6-9, 10-13,
-// 14-18); they only drive the pre-selected period, which the faculty can change.
-const PERIOD_LAST_WEEK = [['p', 5], ['m', 9], ['s', 13], ['f', 18]];
+// TLAAssessments.period holds one of these single-letter codes. The week boundaries
+// live in config/termPeriods.js; they only drive the pre-selected period, which the
+// faculty can change.
+const PERIOD_LABELS = Object.fromEntries(TERM_PERIODS.map(period => [period.code, period.label]));
 
 const periodForWeek = (week) => {
     if (!Number.isFinite(week) || week < 1) return null;
-    const hit = PERIOD_LAST_WEEK.find(([, last]) => week <= last);
-    return hit ? hit[0] : 'f';
+    const hit = TERM_PERIODS.find(period => week <= period.lastWeek);
+    return (hit || TERM_PERIODS[TERM_PERIODS.length - 1]).code;
 };
 
 // ilos: every ILO of the offering in ilo_id order, as { ilo_id, weeks }. ILOs are

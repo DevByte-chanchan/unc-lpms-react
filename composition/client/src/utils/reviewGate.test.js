@@ -1,5 +1,5 @@
 // Runnable self-check for the review rules — `node src/utils/reviewGate.test.js`
-// from client/. Workflow shapes are the ones workflowHelpers actually stores.
+// from client/. Workflow shapes are the ones workflowFromLogs produces.
 
 const reviewGate = await import('./reviewGate.js');
 

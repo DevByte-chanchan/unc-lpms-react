@@ -365,7 +365,7 @@ test('role-specific workspaces declare compact and mobile contracts', () => {
   }
 
   for (const file of [
-    'pages/lpsm/ProgramHead/COAEPUpload.jsx',
+    'pages/lpsm/ProgramHead/COAEPView.jsx',
     'pages/lpsm/ProgramHead/CoPoAlignment.jsx',
     'pages/lpsm/ProgramHead/PoPeoAlignment.jsx',
   ]) {

@@ -6,7 +6,7 @@ import {Link, useNavigate, useParams, useSearchParams, useLocation} from "react-
 import SyllabusPreview from "./SyllabusPreview.jsx";
 import Revisions from "./Revisions.jsx";
 import {fetchJson, apiErrorMessage} from "../utils/api";
-import { getWorkflow, setWorkflow } from '../utils/workflowHelpers'
+import { useServerWorkflow } from '../utils/useServerWorkflow.js'
 import { validateSubmission } from '../utils/submissionGate'
 import PDFViewerModal from './PDFViewerModal'
 import { buildSyllabusHtml } from '../utils/syllabusPdfHtml.js'
@@ -39,8 +39,7 @@ const SyllabusSections = () => {
             : '/'
 
     // The instructor route is /courses/:pcId/:revNum/:status, which carries no
-    // course code — without this the workflow was written under '' and
-    // setWorkflow dropped it, so a submitted plan never reached the approvers.
+    // course code, so it is resolved from the offering.
     const [resolvedCode, setResolvedCode] = useState(courseCode)
     useEffect(() => {
         if (courseCode) { setResolvedCode(courseCode); return }
@@ -51,6 +50,9 @@ const SyllabusSections = () => {
             .catch(err => console.warn('Could not resolve the course code for this offering:', err))
         return () => { cancelled = true }
     }, [courseCode, offeringID, revisionNum])
+
+    // The export's approval block reads the server workflow log; nothing is kept locally.
+    const { workflow } = useServerWorkflow(offeringID, resolvedCode)
 
     const [isLoading, setIsLoading] = useState(false);
     const [isPreviewOpen, setIsPreviewOpen] = useState(false);
@@ -79,7 +81,6 @@ const SyllabusSections = () => {
                 }
                 return refRes.references || []
             })()
-            const wf = getWorkflow(resolvedCode)
             const syllabus = {
                 ...(courseRes || {}),
                 courseOutcomes: coaRes?.courseOutcomes || [],
@@ -93,7 +94,7 @@ const SyllabusSections = () => {
                 course_title: courseRes?.name || '',
             }
             const logoUrl = new URL(unclogo, window.location.origin).href
-            const html = buildSyllabusHtml(syllabus, resolvedCode, wf, logoUrl)
+            const html = buildSyllabusHtml(syllabus, resolvedCode, workflow, logoUrl)
             const blob = new Blob([html], { type: 'text/html' })
             const url = URL.createObjectURL(blob)
             setPreviewFile({
@@ -112,39 +113,6 @@ const SyllabusSections = () => {
             setExportingPdf(false)
         }
     }
-
-    // Keeps the localStorage workflow in sync once the server submission succeeds
-    const applyLocalWorkflowOnSubmit = useCallback(() => {
-        try {
-            if (!resolvedCode) {
-                console.warn('No course code resolved for this offering — workflow not updated')
-                return
-            }
-            const existing = getWorkflow(resolvedCode)
-            const wf = existing
-                ? { ...existing, currentStage: 'parallel_review', submittedAt: new Date().toISOString(),
-                    parallelReview: {
-                        library_director: existing.parallelReview?.library_director?.status === 'done' ? existing.parallelReview.library_director : { status: 'pending', completedAt: null },
-                        industry_consultant: existing.parallelReview?.industry_consultant?.status === 'done' ? existing.parallelReview.industry_consultant : { status: 'pending', completedAt: null },
-                        program_head: existing.parallelReview?.program_head?.status === 'done' ? existing.parallelReview.program_head : { status: 'pending', completedAt: null }
-                    },
-                    programHead: existing.programHead?.status === 'done' ? existing.programHead : { status: 'pending', completedAt: null },
-                    dean: existing.dean?.status === 'done' ? existing.dean : { status: 'pending', completedAt: null }
-                }
-                : { courseCode: resolvedCode, currentStage: 'parallel_review', submittedAt: new Date().toISOString(),
-                    parallelReview: {
-                        library_director: { status: 'pending', completedAt: null },
-                        industry_consultant: { status: 'pending', completedAt: null },
-                        program_head: { status: 'pending', completedAt: null }
-                    },
-                    programHead: { status: 'pending', completedAt: null },
-                    dean: { status: 'pending', completedAt: null }
-                }
-            setWorkflow(resolvedCode, wf)
-        } catch (e) {
-            console.error('Failed to update local workflow', e)
-        }
-    }, [resolvedCode])
 
     // Submission Modal States (undo-window submit flow)
     const [submitPhase, setSubmitPhase] = useState('IDLE');
@@ -244,7 +212,6 @@ const SyllabusSections = () => {
                 headers: { 'Content-Type': 'application/json' }
             });
 
-            applyLocalWorkflowOnSubmit();
             setSubmitPhase('DONE');
 
             setTimeout(() => {
@@ -256,7 +223,7 @@ const SyllabusSections = () => {
             cancelSubmission();
             alert(`Failed to submit the learning plan: ${apiErrorMessage(error)}`);
         }
-    }, [applyLocalWorkflowOnSubmit, cancelSubmission, navigate, offeringID, revisionNum]);
+    }, [cancelSubmission, navigate, offeringID, revisionNum]);
 
     // Safe useEffect timer implementation. This is declared after the submit
     // callback so the effect can track the exact function it invokes.

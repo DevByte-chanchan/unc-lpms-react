@@ -8,13 +8,15 @@ import EmptyState from '../../../components/EmptyState.jsx';
 import TableScrollRegion from '../../../components/TableScrollRegion.jsx';
 import { buildCoaepHtml } from '../../../utils/syllabusPdfHtml.js';
 import { fetchJson } from '../../../utils/api.js';
+import { getSession } from '../../../utils/session.js';
 import { buildGeneratedCoaepRecord } from '../../../utils/generatedCoaepRecord.js';
 import { extractProgramPrefix, getAllPrograms, getProgramCourses, getProgramName } from '../../../utils/programCurriculumData.js';
 import unclogo from '../../../assets/unclogo.png';
 import tbl from '../../../styles/AlignmentTables.module.sass';
 import pageStyles from '../../../styles/ProgramHeadWorkspace.module.sass';
 
-const COAEPUpload = () => {
+const COAEPView = () => {
+  const session = getSession();
   const programs = useMemo(() => getAllPrograms(), []);
   const [courseCode, setCourseCode] = useState('');
   const [courses, setCourses] = useState([]);
@@ -97,7 +99,7 @@ const COAEPUpload = () => {
 
   return (
     <SkeletonA
-      header={<HeaderA role="Program Head" name="DANILA, JUNAR" />}
+      header={<HeaderA role={session?.roleLabel || 'Program Head'} name={session?.name || ''} />}
       nav={<SideNavigation mode="program-head" />}
       content={(
         <div className={pageStyles.page}>
@@ -223,4 +225,4 @@ const COAEPUpload = () => {
   );
 };
 
-export default COAEPUpload;
+export default COAEPView;

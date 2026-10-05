@@ -4,6 +4,8 @@ module.exports = (sequelize, DataTypes) => {
         log_id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
         co_assign_id: { type: DataTypes.INTEGER, allowNull: false },
         actor_role: { type: DataTypes.STRING(30), allowNull: false },
+        // Name of the signed-in user who acted; the approval screens rebuild each approver's signature from it.
+        actor_name: { type: DataTypes.STRING(100), allowNull: true },
         action_type: { type: DataTypes.ENUM('ASSIGNED', 'SUBMITTED', 'RETURNED', 'ACCEPTED'), allowNull: false },
     }, {
         tableName: 'AssignmentWorkflowLogs'

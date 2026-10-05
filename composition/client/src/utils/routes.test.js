@@ -54,7 +54,8 @@ test('every legacy path still resolves to a route that exists', () => {
 test('the retained renamed paths are the ones still supported', () => {
     const from = LEGACY_REDIRECTS.map(r => r.from)
     assert(!from.includes('/assignedtos'), 'the removed TOS route must not remain as a redirect')
-    assert(from.includes('/role/program-head/upload-documents'), 'the COAEP uploader moved and must still work')
+    assert(from.includes('/role/program-head/upload-documents'), 'the old COAEP uploader path must still work')
+    assert(from.includes('/role/program-head/coaep-upload'), 'the renamed COAEP path must still work')
     assert(from.includes('/role/director-of-libraries/upload-documents'), 'the duplicate library path must still work')
 })
 

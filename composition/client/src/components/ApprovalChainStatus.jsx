@@ -14,7 +14,7 @@ import styles from '../styles/ApprovalChainStatus.module.sass'
  * scale, which is why it looked like a different app from the screen around it.
  *
  * Props:
- * - workflow: the stored workflow object (workflowHelpers.getWorkflow)
+ * - workflow: the plan's workflow, derived from its server log (workflowFromLogs)
  * - compact:  drops the card chrome, for use inside a row that already has some
  * - activeRole:  the signed-in role key (e.g. 'program-head'). When set, that
  *   caller's chip becomes a live control — clickable when the workflow has

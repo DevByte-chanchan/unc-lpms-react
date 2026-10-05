@@ -49,7 +49,7 @@ export const PATTERNS = {
     approvalCourseTable: '/role/:role/approval-course-table',
     approvalSyllabus: '/role/:role/courses/:code',
 
-    coaepUpload: '/role/program-head/coaep-upload',
+    coaepView: '/role/program-head/coaep',
     coPoAlignment: '/role/program-head/co-po-alignment',
     poPeoAlignment: '/role/program-head/po-peo-alignment',
     industryConsultants: '/role/program-head/industry-consultant',
@@ -94,7 +94,7 @@ export const routes = {
     approvalCourseTable: (role, query) => withQuery(`/role/${enc(role)}/approval-course-table`, query),
     approvalSyllabus: (role, code, query) => withQuery(`/role/${enc(role)}/courses/${enc(code)}`, query),
 
-    coaepUpload: () => '/role/program-head/coaep-upload',
+    coaepView: () => '/role/program-head/coaep',
     coPoAlignment: () => '/role/program-head/co-po-alignment',
     poPeoAlignment: () => '/role/program-head/po-peo-alignment',
     industryConsultants: () => '/role/program-head/industry-consultant',
@@ -117,9 +117,12 @@ export const routes = {
  * not worth doing — so it is done once, here, with the old ones kept.
  */
 export const LEGACY_REDIRECTS = [
-    // Same segment, two unrelated screens. The Program Head's is now named for
-    // what it actually uploads.
-    { from: '/role/program-head/upload-documents', to: () => routes.coaepUpload() },
+    // Same segment, two unrelated screens. The Program Head's is now the COAEP view.
+    { from: '/role/program-head/upload-documents', to: () => routes.coaepView() },
+
+    // The COAEP page never uploaded anything (it shows the plan generated from the syllabus),
+    // so it was renamed from coaep-upload to coaep.
+    { from: '/role/program-head/coaep-upload', to: () => routes.coaepView() },
 
     // An exact duplicate of the reference library, reachable under a name that
     // described neither it nor the Program Head screen of the same name.

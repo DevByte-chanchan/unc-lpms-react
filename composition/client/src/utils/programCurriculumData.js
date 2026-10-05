@@ -120,7 +120,7 @@ export const getProgramCourses = (programPrefix) => {
 // ---------------------------------------------------------------------------
 // One program, one key.
 //
-// COAEPUpload used to key records by the server's `Program.name` ("BS
+// The COAEP page used to key records by the server's `Program.name` ("BS
 // Information Technology") while every other alignment page keys by the short
 // prefix `extractProgramPrefix` returns ("BIT"). The same program then had two
 // entries in this store, and a COAEP saved while the server was reachable

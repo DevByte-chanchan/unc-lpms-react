@@ -279,6 +279,8 @@ export const canActOnStage = (roleKey, workflow = {}) => {
         if (stage === 'approved') return false
         return stage === 'returned' || status.approvedCount === 0
     }
+    // Reviewers have nothing to act on until the instructor has submitted the plan.
+    if (stage === 'draft') return false
     const step = status.steps.find(s => s.role === role)
     if (!step) return false
     if (step.status === 'approved') return false

@@ -1,5 +1,7 @@
 'use strict';
 
+const { assignIedLevels, seedAssessments, assertPlanValid } = require('../utils/planSeed');
+
 /**
  * Seeder: Single Course Learning Plan - "Integrative Programming and Technologies"
  * Status Target: DRAFT (date_submitted: null)
@@ -63,6 +65,15 @@ module.exports = {
             createdAt: now,
             updatedAt: now
         }], {});
+
+        const assignmentRow = await queryInterface.sequelize.query(
+            `SELECT co_assign_id FROM CourseOfferingAssignments WHERE pc_offering_id = ${pcId};`,
+            { type: queryInterface.sequelize.QueryTypes.SELECT }
+        );
+        // The workflow log is the single source of truth for a plan's status.
+        await queryInterface.bulkInsert('AssignmentWorkflowLogs', [
+            { co_assign_id: assignmentRow[0].co_assign_id, actor_role: 'PROGRAM_HEAD', action_type: 'ASSIGNED', createdAt: new Date('2026-06-01'), updatedAt: new Date('2026-06-01') }
+        ], {});
 
         // ============================================================================
         // 4) Course Outcomes
@@ -145,7 +156,7 @@ module.exports = {
             { co_id: cosRows[3].co_id, description: 'Analyze distributed tracing spans to identify microservice request blockages and processing inefficiencies.', weeks: 2.0, hours: 10, createdAt: now, updatedAt: now }
         ];
 
-        await queryInterface.bulkInsert('IntendedLearningOutcomes', ilos, {});
+        await queryInterface.bulkInsert('IntendedLearningOutcomes', assignIedLevels(ilos), {});
 
         const ilosRows = await queryInterface.sequelize.query(
             `SELECT ilo_id, co_id, description, is_orientation FROM IntendedLearningOutcomes WHERE co_id IN (${cosRows.map(c => c.co_id).join(',')}) ORDER BY ilo_id ASC;`,
@@ -347,78 +358,12 @@ module.exports = {
         await queryInterface.bulkInsert('TopicTLAs', topicTlaInserts, {});
 
         // ============================================================================
-        // 14) TLAAssessments (20/30/50 Rigorous Weight Mapping)
+        // TLA ASSESSMENTS: one per ILO, on a TLA reached by joining from that ILO.
+        // Level, name, weight and period come from utils/planSeed.js, so Introductory,
+        // Enabling and Demonstrative assessments total exactly 20 / 30 / 50 for the course.
         // ============================================================================
-        const tlaAssessmentInserts = [];
-        const periods = ['p', 'm', 's', 'f'];
-
-        for (let i = 0; i < technicalIlosRows.length; i++) {
-            const coIndex = Math.floor(i / 3);
-            const iloIndex = i % 3;
-            const currentPeriod = periods[coIndex];
-
-            // Assigned TLA matches the IN-CLASS phase of the specific topic (i + 1 due to orientation index 0)
-            const assignedTlaId = tlasRows[(i + 1) * 3 + 1].tla_id;
-
-            let assessmentName = '';
-            let assessmentDescription = '';
-            let assessmentWeight = '20';
-
-            if (iloIndex === 0) {
-                assessmentName = 'Objective-Type Quiz';
-                assessmentWeight = '20';
-
-                if (coIndex === 0) assessmentDescription = 'Covering architectural abstractions, API boundaries, and middleware decoupling techniques.';
-                else if (coIndex === 1) assessmentDescription = 'Covering serialization methodologies and efficient data transport formatting constraints.';
-                else if (coIndex === 2) assessmentDescription = 'Covering asynchronous event-driven models, publish/subscribe theories, and Kafka mechanics.';
-                else assessmentDescription = 'Covering distributed identity management, OAuth 2.0 flows, and robust zero-trust policies.';
-            } else if (iloIndex === 1) {
-                assessmentWeight = '30';
-
-                if (coIndex === 0) {
-                    assessmentName = 'Schema Design Activity';
-                    assessmentDescription = 'A structured exercise involving the design of RESTful constraints and GraphQL schemas.';
-                } else if (coIndex === 1) {
-                    assessmentName = 'Implementation Document';
-                    assessmentDescription = 'A technical implementation record specifying the deployment of gRPC tunnels and JSON structures.';
-                } else if (coIndex === 2) {
-                    assessmentName = 'Pipeline Schematic';
-                    assessmentDescription = 'A visual configuration detailing broker pathways, dead letter queues, and exception catch blocks.';
-                } else {
-                    assessmentName = 'Security Implementation Document';
-                    assessmentDescription = 'A formal security audit report evaluating gateway traversal rules and active mTLS endpoints.';
-                }
-            } else {
-                assessmentWeight = '50';
-
-                if (coIndex === 0) {
-                    assessmentName = 'Architecture Blueprint Proposal';
-                    assessmentDescription = 'A comprehensive capstone blueprint proposing end-to-end integration mapping for legacy systems.';
-                } else if (coIndex === 1) {
-                    assessmentName = 'Adapter Code Presentation';
-                    assessmentDescription = 'An interactive presentation showcasing automated data transformation pipelines across heterogeneous endpoints.';
-                } else if (coIndex === 2) {
-                    assessmentName = 'Saga State Workflow Presentation';
-                    assessmentDescription = 'An interactive demonstration resolving distributed transaction failures through compensating saga state events.';
-                } else {
-                    assessmentName = 'Tracing Report Defense';
-                    assessmentDescription = 'A final presentation utilizing OpenTelemetry spans to isolate, analyze, and diagnose microservice inefficiencies.';
-                }
-            }
-
-            tlaAssessmentInserts.push({
-                tla_id: assignedTlaId,
-                name: assessmentName,
-                description: assessmentDescription,
-                period: currentPeriod,
-                weight: assessmentWeight,
-                min_passing: 60,
-                createdAt: now,
-                updatedAt: now
-            });
-        }
-
-        await queryInterface.bulkInsert('TLAAssessments', tlaAssessmentInserts, {});
+        await seedAssessments(queryInterface, { offeringId: pcId, now });
+        await assertPlanValid(queryInterface, pcId);
         console.log(`Successfully completed rigorous data mapping for DRAFT course BIT312L using foundational flow.`);
     },
 

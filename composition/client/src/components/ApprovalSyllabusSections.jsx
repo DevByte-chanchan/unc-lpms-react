@@ -9,7 +9,7 @@ import subStyles from '../styles/SyllabusSections.module.sass'
 import stylesB from '../styles/SyllabusPreview.module.sass'
 import stylesC from '../styles/SyllabusSections.module.sass'
 import ApprovalCommentBox from './ApprovalCommentBox.jsx'
-import { getWorkflow, setWorkflow, advanceWorkflow, startSubmissionRound } from '../utils/workflowHelpers'
+import { useServerWorkflow } from '../utils/useServerWorkflow.js'
 import { getSuggestions, addSuggestion, acceptSuggestion, rejectSuggestion, getSyllabus } from '../utils/dataStore'
 import { getReferences, getReferenceById } from '../utils/referenceLibrary'
 import { normalizeRoleKey } from '../utils/approvalHelpers.js'
@@ -17,8 +17,6 @@ import { getSession, nameForRoleWithSession } from '../utils/session'
 import ApprovalChainStatus from './ApprovalChainStatus.jsx'
 import {
   validateReturn,
-  buildSignature,
-  addSignature,
   canActOnStage,
   encodeCommentType,
   parseApprovalCommentDisplay,
@@ -63,7 +61,11 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
   const [selectedSection, setSelectedSection] = useState(defaultSections[0])
   const statusParam = searchParams.get('status')
   const effectiveFromUrl = (statusParam || status || '').toLowerCase()
-  const fallbackStage = (() => { try { const wf = getWorkflow(courseCode || ''); return wf?.currentStage || '' } catch { return '' } })()
+  // A plan's stage and who may act come from the server workflow log, never from local storage.
+  const validPcId = pcId && !Number.isNaN(Number(pcId)) && String(Number(pcId)) === String(pcId) ? pcId : null
+  const { workflow: serverWorkflow, reload: reloadWorkflow } = useServerWorkflow(validPcId, courseCode)
+  const workflowState = workflowProp || serverWorkflow
+  const fallbackStage = workflowState.currentStage === 'draft' ? '' : (workflowState.currentStage || '')
   const effectiveStatus = effectiveFromUrl || fallbackStage || 'submitted'
   const params = useParams()
   const navigate = useNavigate()
@@ -75,7 +77,6 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
 
   const [showCommentModal, setShowCommentModal] = useState(false)
   const [readOnlyCommentModal, setReadOnlyCommentModal] = useState(false)
-  const [workflowState, setWorkflowState] = useState(() => workflowProp || getWorkflow(courseCode || ''))
   // Approve confirmation flow (matches the instructor's submit modal):
   // IDLE → CONFIRM → WAITING (undo countdown) → DONE
   const [approvePhase, setApprovePhase] = useState('IDLE')
@@ -102,8 +103,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
     setExportingPdf(true)
     try {
       const logoUrl = new URL(unclogo, window.location.origin).href
-      const wf = getWorkflow(codeToUse)
-      const html = buildSyllabusHtml(syllabus, codeToUse, wf, logoUrl)
+      const html = buildSyllabusHtml(syllabus, codeToUse, workflowState, logoUrl)
       const blob = new Blob([html], { type: 'text/html' })
       const url = URL.createObjectURL(blob)
       setPreviewFile({
@@ -150,7 +150,6 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
 
   const { code: routeCode } = useParams();
   const codeToUse = routeCode || courseCode
-  const validPcId = pcId && !Number.isNaN(Number(pcId)) && String(Number(pcId)) === String(pcId) ? pcId : null
   const validRevNum = revNum && !Number.isNaN(Number(revNum)) && String(Number(revNum)) === String(revNum) ? revNum : null
   const reviewRecordAvailable = canReviewLoadedCourse({
     pcId: validPcId,
@@ -192,17 +191,6 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
       document.removeEventListener('click', handleClickOutside)
     }
   }, [isOpen])
-
-  // Normalize the workflow stage on load (e.g. returned → dean once all
-  // parallel reviewers have re-accepted) so button gating reflects reality
-  // without waiting for someone to perform another action.
-  useEffect(() => {
-    if (!codeToUse) return
-    try {
-      const wf = advanceWorkflow(codeToUse)
-      if (wf) setWorkflowState(wf)
-    } catch { /* non-fatal */ }
-  }, [codeToUse, refreshKey])
 
   useEffect(() => {
     try {
@@ -602,38 +590,13 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
 
   const handleApprove = React.useCallback(() => {
     if (!reviewRecordAvailable) return
+    // The server records the approval (and who signed it: "pwede ba naka-attach na digital
+    // signature?" [53:41]); the screen then re-reads the log instead of keeping its own copy.
     recordWorkflowAction('ACCEPTED').then(() => {
-    try {
-      const wf = getWorkflow(codeToUse || '')
-      const nowIso = new Date().toISOString()
-      if (roleKey === 'director-of-libraries') {
-        wf.parallelReview = wf.parallelReview || {}
-        wf.parallelReview.library_director = { status: 'done', completedAt: nowIso }
-      }
-      if (roleKey === 'industry-consultant') {
-        wf.parallelReview = wf.parallelReview || {}
-        wf.parallelReview.industry_consultant = { status: 'done', completedAt: nowIso }
-      }
-      if (roleKey === 'program-head') {
-        wf.parallelReview = wf.parallelReview || {}
-        wf.parallelReview.program_head = { status: 'done', completedAt: nowIso }
-        wf.programHead = { status: 'done', completedAt: nowIso }
-      }
-      if (roleKey === 'dean') {
-        wf.dean = { status: 'done', completedAt: nowIso }
-      }
-      // "pwede ba naka-attach na digital signature?" [53:41] — the approval
-      // carries who signed it, in what role and when.
-      const signature = buildSignature(getSession(), roleKey, codeToUse, new Date(nowIso))
-      setWorkflow(codeToUse, signature ? addSignature(wf, signature) : wf)
-      advanceWorkflow(codeToUse)
-      setWorkflowState(getWorkflow(codeToUse))
+      reloadWorkflow()
       setRefreshKey(k => k + 1)
-    } catch (e) {
-      console.error('Failed to approve', e)
-    }
     }).catch(e => alert(apiErrorMessage(e, 'Could not record your approval.')))
-  }, [codeToUse, recordWorkflowAction, roleKey, reviewRecordAvailable])
+  }, [recordWorkflowAction, reloadWorkflow, reviewRecordAvailable])
 
   // Approve countdown: gives the approver a window to undo before it takes effect
   useEffect(() => {
@@ -655,15 +618,8 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
 
   const handleSubmitForReview = () => {
     recordWorkflowAction('SUBMITTED').then(() => {
-      try {
-        const existing = getWorkflow(codeToUse)
-        const wf = startSubmissionRound(existing, codeToUse)
-        setWorkflow(codeToUse, wf)
-        setWorkflowState(getWorkflow(codeToUse))
-        setRefreshKey(k => k + 1)
-      } catch (e) {
-        console.error('Failed to submit', e)
-      }
+      reloadWorkflow()
+      setRefreshKey(k => k + 1)
       setShowSubmitModal(false)
       showToastMsg('Learning Plan submitted for review!')
       navigate(backPath)
@@ -678,11 +634,10 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
   // Dean (final) → VPAA (read-only) — so this component is reused per role
   // without any role acting out of turn. `canActOnStage` in reviewGate.js owns
   // it; this component only asks.
-  const isRoleActive = () => canActOnStage(roleKey, getWorkflow(codeToUse || ''))
+  const isRoleActive = () => canActOnStage(roleKey, workflowState)
 
   const hasRoleApproved = () => {
-    const wf = getWorkflow(codeToUse || '')
-    if (!wf) return false
+    const wf = workflowState
     if (roleKey === 'director-of-libraries') return wf.parallelReview?.library_director?.status === 'done'
     if (roleKey === 'industry-consultant') return wf.parallelReview?.industry_consultant?.status === 'done'
     if (roleKey === 'program-head') return wf.programHead?.status === 'done'
@@ -894,13 +849,9 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
 
       setRefreshKey(k => k + 1)
 
-      const wf = getWorkflow(codeToUse)
-      if (wf && wf.currentStage !== 'returned') {
+      if (workflowState.currentStage !== 'returned') {
         recordWorkflowAction('RETURNED').then(() => {
-          wf.currentStage = 'returned'
-          setWorkflow(codeToUse, wf)
-          advanceWorkflow(codeToUse)
-          setWorkflowState(getWorkflow(codeToUse))
+          reloadWorkflow()
         }).catch(e => alert(apiErrorMessage(e, 'Could not record the return.')))
       }
     } catch (e) {
@@ -991,8 +942,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
           {/* approval controls — direct children of .navi like instructor */}
           {(() => {
             if (effectiveStatus !== 'approved' && roleKey === 'instructor') {
-              const wf = workflowState || getWorkflow(codeToUse || '')
-              const stage = wf?.currentStage || 'submitted'
+              const stage = workflowState.currentStage || 'submitted'
               const isReturned = stage === 'returned'
               const hasUnresolved = globalComments.some(c => c.recipientRole === 'instructor' && !c.resolved)
               return (
@@ -1035,8 +985,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
                   setExportingPdf(true)
                   try {
                     const logoUrl = new URL(unclogo, window.location.origin).href
-                    const wf = getWorkflow(codeToUse)
-                    const html = buildSyllabusHtml(syllabus, codeToUse, wf, logoUrl)
+                    const html = buildSyllabusHtml(syllabus, codeToUse, workflowState, logoUrl)
                     const blob = new Blob([html], { type: 'text/html' })
                     const url = URL.createObjectURL(blob)
                     setPreviewFile({
@@ -1111,7 +1060,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
       {!embedded && roleKey !== 'vpaa' && (
         <div className={styles['chain-strip']}>
           <ApprovalChainStatus
-            workflow={workflowState || getWorkflow(codeToUse || '')}
+            workflow={workflowState}
             activeRole={roleKey}
             onActivate={() => {
               if (!reviewRecordAvailable) {
@@ -1532,8 +1481,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
 
       {/* ── SUBMIT / REVISION MODAL ────────────────────────────────────── */}
       {showSubmitModal && (() => {
-        const wf = workflowState || getWorkflow(codeToUse || '')
-        const stage = wf?.currentStage || 'submitted'
+        const stage = workflowState.currentStage || 'submitted'
         const isReturned = stage === 'returned'
         return (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(2px)' }} onClick={() => setShowSubmitModal(false)}>

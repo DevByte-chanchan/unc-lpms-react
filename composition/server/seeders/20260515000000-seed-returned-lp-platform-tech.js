@@ -1,5 +1,7 @@
 'use strict';
 
+const { assignIedLevels, seedAssessments, assertPlanValid } = require('../utils/planSeed');
+
 /**
  * Seeder: Single Course Learning Plan - "Platform Technologies"
  * Status Target: RETURNED (By Industry Consultant)
@@ -111,24 +113,24 @@ module.exports = {
         // ============================================================================
         const iloData = [
             // CO1 (Prelim Period)
-            { co_id: cos[0].co_id, description: 'Analyze the evolutionary transition from monolithic hardware-bound operating systems to modular, API-driven core kernels.', hours: 6 },
-            { co_id: cos[0].co_id, description: 'Distinguish the structural differences between Windows Server environments and POSIX-compliant Linux distributions.', hours: 6 },
-            { co_id: cos[0].co_id, description: 'Evaluate standard storage protocols (SAN, NAS, block, object) to determine optimal data tiering configurations.', hours: 6 },
+            { co_id: cos[0].co_id, description: 'Analyze the evolutionary transition from monolithic hardware-bound operating systems to modular, API-driven core kernels.', weeks: 1, hours: 6 },
+            { co_id: cos[0].co_id, description: 'Distinguish the structural differences between Windows Server environments and POSIX-compliant Linux distributions.', weeks: 1, hours: 6 },
+            { co_id: cos[0].co_id, description: 'Evaluate standard storage protocols (SAN, NAS, block, object) to determine optimal data tiering configurations.', weeks: 2, hours: 10 },
             // CO2 (Midterm Period)
-            { co_id: cos[1].co_id, description: 'Deploy and initialize Type-1 (Bare Metal) hypervisors such as VMware ESXi and Microsoft Hyper-V into server hardware.', hours: 6 },
-            { co_id: cos[1].co_id, description: 'Configure virtual network adapters, bridged connections, and NAT firewalls to securely route inter-VM traffic.', hours: 6 },
-            { co_id: cos[1].co_id, description: 'Execute virtual machine migration pipelines and high-availability clustered failover routines.', hours: 6 },
+            { co_id: cos[1].co_id, description: 'Deploy and initialize Type-1 (Bare Metal) hypervisors such as VMware ESXi and Microsoft Hyper-V into server hardware.', weeks: 1, hours: 6 },
+            { co_id: cos[1].co_id, description: 'Configure virtual network adapters, bridged connections, and NAT firewalls to securely route inter-VM traffic.', weeks: 1, hours: 6 },
+            { co_id: cos[1].co_id, description: 'Execute virtual machine migration pipelines and high-availability clustered failover routines.', weeks: 2, hours: 10 },
             // CO3 (Semi-Final Period)
-            { co_id: cos[2].co_id, description: 'Construct optimized Dockerfiles employing multi-stage builds to dramatically reduce container image footprints.', hours: 6 },
-            { co_id: cos[2].co_id, description: 'Orchestrate multi-container applications and local development networks utilizing Docker Compose YAML configurations.', hours: 6 },
-            { co_id: cos[2].co_id, description: 'Deploy, scale, and manage containerized workloads across clustered nodes utilizing Kubernetes (K8s) deployment manifests.', hours: 6 },
+            { co_id: cos[2].co_id, description: 'Construct optimized Dockerfiles employing multi-stage builds to dramatically reduce container image footprints.', weeks: 1, hours: 6 },
+            { co_id: cos[2].co_id, description: 'Orchestrate multi-container applications and local development networks utilizing Docker Compose YAML configurations.', weeks: 1, hours: 6 },
+            { co_id: cos[2].co_id, description: 'Deploy, scale, and manage containerized workloads across clustered nodes utilizing Kubernetes (K8s) deployment manifests.', weeks: 2, hours: 10 },
             // CO4 (Final Period)
-            { co_id: cos[3].co_id, description: 'Compare Infrastructure as a Service (IaaS), Platform as a Service (PaaS), and Serverless cloud consumption models.', hours: 6 },
-            { co_id: cos[3].co_id, description: 'Write declarative configuration files using HashiCorp Configuration Language (HCL) to provision Terraform modules.', hours: 6 },
-            { co_id: cos[3].co_id, description: 'Automate post-provisioning server state configurations using Ansible playbooks and YAML-based execution logic.', hours: 6 }
+            { co_id: cos[3].co_id, description: 'Compare Infrastructure as a Service (IaaS), Platform as a Service (PaaS), and Serverless cloud consumption models.', weeks: 1, hours: 6 },
+            { co_id: cos[3].co_id, description: 'Write declarative configuration files using HashiCorp Configuration Language (HCL) to provision Terraform modules.', weeks: 1, hours: 6 },
+            { co_id: cos[3].co_id, description: 'Automate post-provisioning server state configurations using Ansible playbooks and YAML-based execution logic.', weeks: 2, hours: 10 }
         ];
 
-        await queryInterface.bulkInsert('IntendedLearningOutcomes', iloData.map(i => ({ ...i, createdAt: now, updatedAt: now })), {});
+        await queryInterface.bulkInsert('IntendedLearningOutcomes', assignIedLevels(iloData).map(i => ({ ...i, createdAt: now, updatedAt: now })), {});
 
         const ilos = await queryInterface.sequelize.query(
             `SELECT ilo_id FROM IntendedLearningOutcomes WHERE co_id IN (${cos.map(c => c.co_id).join(',')}) ORDER BY ilo_id ASC;`,
@@ -254,35 +256,12 @@ module.exports = {
         await queryInterface.bulkInsert('TopicTLAs', topicTlaInserts, {});
 
         // ============================================================================
-        // 11. TLA ASSESSMENTS (20/30/50 Grading Logic)
+        // TLA ASSESSMENTS: one per ILO, on a TLA reached by joining from that ILO.
+        // Level, name, weight and period come from utils/planSeed.js, so Introductory,
+        // Enabling and Demonstrative assessments total exactly 20 / 30 / 50 for the course.
         // ============================================================================
-        const assessmentInserts = [];
-        const periods = ['p', 'm', 's', 'f'];
-        const weightDistribution = [10, 15, 25]; // Applied twice per ILO = 20, 30, 50
-        const assessmentNames = ['Practical Server Config', 'Lab Troubleshooting', 'Network Provisioning Task', 'Architecture Presentation', 'Deployment Simulation'];
-
-        for (let i = 0; i < 12; i++) {
-            const coIndex = Math.floor(i / 3);
-            const iloPosInCo = i % 3;
-            const targetPeriod = periods[coIndex];
-            const targetWeightPerAssessment = String(weightDistribution[iloPosInCo]);
-
-            const assignedTlasForIlo = [tlas[i * 2].tla_id, tlas[(i * 2) + 1].tla_id];
-
-            assignedTlasForIlo.forEach((tlaId, idx) => {
-                assessmentInserts.push({
-                    tla_id: tlaId,
-                    name: assessmentNames[(i + idx) % assessmentNames.length],
-                    description: `Summative integration test evaluating platform technology execution metrics.`,
-                    period: targetPeriod,
-                    weight: targetWeightPerAssessment,
-                    min_passing: 60,
-                    createdAt: now,
-                    updatedAt: now
-                });
-            });
-        }
-        await queryInterface.bulkInsert('TLAAssessments', assessmentInserts, {});
+        await seedAssessments(queryInterface, { offeringId: offeringId, now });
+        await assertPlanValid(queryInterface, offeringId);
 
         // ============================================================================
         // 12. COMMENTS & COMMENT TARGETS (THE NEW WORKFLOW MECHANIC)
