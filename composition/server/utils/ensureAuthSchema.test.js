@@ -110,6 +110,14 @@ const columns = async (sequelize) => {
         await sequelize.close();
     });
 
+    await test('a table from before the credential-flow migration gets those columns, keeping its rows', async () => {
+        const sequelize = await freshDb({ withUsers: true, withCredentialColumns: false });
+        await sequelize.query("INSERT INTO Users (name, email, role) VALUES ('KEEP, ME', 'keep@unc.edu.ph', 'dean')");
+        const r = await ensureAuthSchema(modelsFor(sequelize));
+        assert(r.ok && ['must_change_password', 'password_changed_at', 'temp_password_expires_at'].every(c => r.addedColumns.includes(c)),
+            `expected the credential columns added, got ${JSON.stringify(r.addedColumns)}`);
+        const [rows] = await sequelize.query('SELECT email, must_change_password FROM Users');
+        assert(rows.length === 1 && rows[0].must_change_password === 0, 'the row survives with the flag off');
     await test('an existing, complete table is left completely alone', async () => {
         const sequelize = await freshDb({ withUsers: true });
         await sequelize.query("INSERT INTO Users (name, email, role) VALUES ('KEEP, ME', 'keep@unc.edu.ph', 'dean')");

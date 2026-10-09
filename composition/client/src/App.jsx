@@ -16,6 +16,7 @@ try { localStorage.removeItem('lpsm_workflow_v1'); localStorage.removeItem('lpsm
 // syllabus editors and PDF helpers out of the login and course-list download.
 const AssignedCourses = lazy(() => import('./pages/AssignedCourses.jsx'))
 const SuperuserUsers = lazy(() => import('./pages/SuperuserUsers.jsx'))
+const ChangePassword = lazy(() => import('./pages/ChangePassword.jsx'))
 const Syllabus = lazy(() => import('./pages/Syllabus.jsx'))
 const ReferenceForm = lazy(() => import('./pages/ReferenceForm.jsx'))
 const TopicForm = lazy(() => import('./pages/TopicForm.jsx'))
@@ -88,6 +89,7 @@ function App() {
                     <Routes>
                         {/* --- INSTRUCTOR / DEFAULT ROUTES --- */}
                         <Route path={'/'} element={<ErrorBoundary><AssignedCourses /></ErrorBoundary>} />
+                        <Route path={'/change-password'} element={<ErrorBoundary><ChangePassword /></ErrorBoundary>} />
                         <Route path={'/record-comments'} element={<ErrorBoundary><CommentRecorder /></ErrorBoundary>} />
 
                         {/* --- COURSE EDITING ROUTES --- */}

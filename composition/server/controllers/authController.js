@@ -27,7 +27,10 @@
 const { User } = require('../models');
 const { hashPassword, verifyPassword, needsRehash } = require('../utils/password');
 const { TTL_MS: RESET_TTL_MS, createToken, hashToken, expiryFrom, verifyReset } = require('../utils/resetToken');
-const { COOKIE_NAME, SESSION_TTL_MS, issueSession, revokeSession, revokeUserSessions } = require('../middleware/auth');
+const { COOKIE_NAME, SESSION_TTL_MS, issueSession, revokeSession, revokeUserSessions, revokeOtherUserSessions } = require('../middleware/auth');
+const { mailer, resetEmail } = require('../utils/mailer');
+
+const { record: audit } = require('../utils/audit');
 
 const ROLE_KEYS = require('../models/user').ROLE_KEYS;
 
@@ -300,7 +303,14 @@ exports.login = async (req, res, next) => {
             return res.status(403).json({ error: 'This account has been deactivated. Contact the administrator.' });
         }
 
+        // An admin-issued temporary password stops working after 72 hours. The password was
+        // correct, so saying why is not an account-enumeration leak.
+        if (user.must_change_password && user.temp_password_expires_at
+            && new Date(user.temp_password_expires_at) <= new Date()) {
             auditAuth(req, 'LOGIN', 'denied', user, { reason: 'temporary-password-expired' });
+            return res.status(403).json({ error: 'Your temporary password has expired. Ask the administrator to issue a new one.' });
+        }
+
         clearFailures(attemptKey);
 
         // Transparently upgrade a hash written with weaker parameters.
@@ -311,7 +321,8 @@ exports.login = async (req, res, next) => {
         await user.save();
 
         startSession(res, user);
-        return res.json({ user: user.toPublic() });
+        auditAuth(req, 'LOGIN', 'success', user, user.must_change_password ? { mustChangePassword: true } : undefined);
+        return res.json({ user: user.toPublic(), mustChangePassword: Boolean(user.must_change_password) });
     } catch (err) {
         return next(err);
     }
@@ -345,10 +356,11 @@ exports.requestReset = async (req, res, next) => {
         if (isBot(req.body)) return res.json({ ok: true });
 
         const email = normalizeEmail(req.body?.email);
+        const mailReady = mailer.configured();
         const localDemoDelivery = process.env.NODE_ENV !== 'production'
             && process.env.LPMS_EXPOSE_RESET_TOKEN === '1'
             && LOOPBACK_ADDRESSES.has(req.ip || req.socket?.remoteAddress || '');
-        if (!localDemoDelivery) {
+        if (!localDemoDelivery && !mailReady) {
             return res.json({
                 ok: true,
                 message: 'Password reset delivery is not configured. Contact the system administrator.'
@@ -358,7 +370,9 @@ exports.requestReset = async (req, res, next) => {
         // not found.
         const sameAnswer = {
             ok: true,
-            message: 'If that email has an account, a reset link has been created. It expires in 30 minutes.'
+            message: mailReady
+                ? 'If that email has an account, a reset link has been sent. It expires in 30 minutes.'
+                : 'If that email has an account, a reset link has been created. It expires in 30 minutes.'
         };
         if (!email) return res.json(sameAnswer);
 
@@ -370,6 +384,16 @@ exports.requestReset = async (req, res, next) => {
         user.reset_expires_at = expiryFrom(Date.now());
         await user.save();
 
+        if (mailReady) {
+            // Not awaited: a missing account answers instantly, so waiting on SMTP here would
+            // reveal which emails exist. The token only ever leaves in the email.
+            const message = resetEmail({ name: user.name, email: user.email, token: rawToken });
+            mailer.send({ to: user.email, ...message })
+                .then(sent => auditAuth(req, 'PASSWORD_RESET_REQUESTED', sent.ok ? 'success' : 'failed', user, { delivery: 'email' }));
+            return res.json(sameAnswer);
+        }
+
+        auditAuth(req, 'PASSWORD_RESET_REQUESTED', 'success', user, { delivery: 'shown-demo' });
         return res.json({ ...sameAnswer, devToken: rawToken });
     } catch (err) {
         return next(err);
@@ -401,6 +425,9 @@ exports.resetPassword = async (req, res, next) => {
         // Single use: consume the token so the same link cannot be replayed.
         user.reset_token_hash = null;
         user.reset_expires_at = null;
+        user.must_change_password = false;
+        user.temp_password_expires_at = null;
+        user.password_changed_at = new Date();
         await user.save();
 
         // A password reset is an account-recovery boundary. Remove every old
@@ -412,6 +439,55 @@ exports.resetPassword = async (req, res, next) => {
         clearFailuresForEmail(email);
 
         startSession(res, user);
+        auditAuth(req, 'PASSWORD_RESET', 'success', user);
+        return res.json({ user: user.toPublic() });
+    } catch (err) {
+        return next(err);
+    }
+};
+
+// ------------------------------------------------------ change password ---
+//
+// The signed-in user changes their own password. Also the forced screen after an admin-issued
+// temporary password. Wrong current passwords count toward the same lockout as sign-in.
+exports.changePassword = async (req, res, next) => {
+    try {
+        const currentPassword = String(req.body?.currentPassword ?? '');
+        const newPassword = String(req.body?.newPassword ?? '');
+        const source = req.ip || req.socket?.remoteAddress || 'unknown';
+        const attemptKey = `${source}\u0000${normalizeEmail(req.user.email)}`;
+
+        if (isLockedOut(attemptKey)) {
+            return res.status(429).json({ error: 'Too many failed attempts. Wait a few minutes and try again.' });
+        }
+
+        const user = await User.scope('withSecret').findByPk(req.user.id);
+        if (!user) return res.status(401).json({ error: 'Authentication required.' });
+
+        if (!currentPassword || !(await verifyPassword(currentPassword, user.password_hash))) {
+            recordFailure(attemptKey);
+            auditAuth(req, 'PASSWORD_CHANGE_FAILED', 'failed', user, { reason: 'wrong-current-password' });
+            return res.status(401).json({ error: 'Your current password is incorrect.' });
+        }
+
+        const problem = validatePassword(newPassword);
+        if (problem) return res.status(400).json({ error: problem });
+        if (newPassword === currentPassword) {
+            return res.status(400).json({ error: 'The new password must be different from your current password.' });
+        }
+
+        user.password_hash = await hashPassword(newPassword);
+        user.must_change_password = false;
+        user.temp_password_expires_at = null;
+        user.password_changed_at = new Date();
+        user.reset_token_hash = null;
+        user.reset_expires_at = null;
+        await user.save();
+
+        // Other browsers signed in as this user are logged out; this one stays.
+        revokeOtherUserSessions(user.user_id, req.sessionToken);
+        clearFailures(attemptKey);
+        await auditAuth(req, 'PASSWORD_CHANGED', 'success', user);
         return res.json({ user: user.toPublic() });
     } catch (err) {
         return next(err);

@@ -30,6 +30,7 @@
 export const PATTERNS = {
     instructorHome: '/',
     recordComments: '/record-comments',
+    changePassword: '/change-password',
 
     syllabusByRevision: '/courses/:pcId/:revNum/:status',
     syllabusByOffering: '/offerings/:pcId/:status',
@@ -78,6 +79,7 @@ const withQuery = (path, query) => {
 export const routes = {
     instructorHome: () => '/',
     recordComments: () => '/record-comments',
+    changePassword: () => '/change-password',
 
     syllabusByRevision: (pcId, revNum, status) => `/courses/${enc(pcId)}/${enc(revNum)}/${enc(status)}`,
     // A working copy (no revision number yet) is addressed by its offering id alone.

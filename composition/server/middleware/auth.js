@@ -40,6 +40,22 @@ const revokeUserSessions = (userId) => {
     return revoked;
 };
 
+// Revoke every session of a user except the one making the request (used by change-password).
+const revokeOtherUserSessions = (userId, keepToken) => {
+    const target = String(userId);
+    const keep = keepToken ? tokenDigest(keepToken) : null;
+    let revoked = 0;
+    for (const [key, session] of sessions.entries()) {
+        if (key === keep || String(session.user.id) !== target) continue;
+        sessions.delete(key);
+        revoked += 1;
+    }
+    return revoked;
+};
+
+// While a temporary password is still in force, only these may be called.
+const FORCED_CHANGE_ALLOWED = /^\/api\/auth\/(change-password|session|logout)(\?|$)/;
+
 const cookieValue = (header = '', name = COOKIE_NAME) => {
     for (const part of String(header).split(';')) {
         const separator = part.indexOf('=');
@@ -58,7 +74,7 @@ const cookieValue = (header = '', name = COOKIE_NAME) => {
 const defaultFindUserById = async userId => {
     const { User } = require('../models');
     return User.findByPk(userId, {
-        attributes: ['user_id', 'name', 'email', 'role', 'is_active']
+        attributes: ['user_id', 'name', 'email', 'role', 'is_active', 'must_change_password', 'temp_password_expires_at']
     });
 };
 
@@ -82,12 +98,22 @@ const createRequireAuth = ({ findUserById = defaultFindUserById } = {}) => async
             return res.status(401).json({ error: 'Authentication required.' });
         }
 
+        const mustChangePassword = Boolean(user.must_change_password);
+        if (mustChangePassword && user.temp_password_expires_at && new Date(user.temp_password_expires_at) <= new Date()) {
+            sessions.delete(key);
+            return res.status(401).json({ error: 'Authentication required.' });
+        }
+
         req.user = {
             id: user.user_id ?? user.id,
             name: user.name,
             email: user.email,
-            role: user.role
+            role: user.role,
+            mustChangePassword
         };
+        if (mustChangePassword && !FORCED_CHANGE_ALLOWED.test(req.originalUrl || req.url || '')) {
+            return res.status(403).json({ error: 'You must change your temporary password first.', code: 'PASSWORD_CHANGE_REQUIRED' });
+        }
         req.sessionToken = token;
         return next();
     } catch (error) {
@@ -129,6 +155,7 @@ module.exports = {
     issueSession,
     revokeSession,
     revokeUserSessions,
+    revokeOtherUserSessions,
     createRequireAuth,
     requireAuth,
     requireRole,

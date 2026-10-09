@@ -232,7 +232,9 @@ const fromServer = (u) => ({
   name: u.name,
   email: u.email,
   role: u.role,
-  roleLabel: roleMeta(u.role)?.label || u.role
+  roleLabel: roleMeta(u.role)?.label || u.role,
+  // True while an administrator-issued temporary password is still in force.
+  mustChangePassword: Boolean(u.mustChangePassword)
 })
 
 // `opts.role` is the "Login as" selector. Optional — when given it has to
@@ -323,6 +325,17 @@ export const signup = async ({ name, email, password, role, honeypot = '' } = {}
   }
 
   return { ...signupLocal({ name: cleanName, email: cleanEmail, password, role: cleanRole }), degraded: res.reachable }
+}
+
+// Changes the signed-in user's own password. The server also clears the forced-change flag; the
+// stored session is updated to match so the route guard lets the user through.
+export const changePassword = async (currentPassword, newPassword) => {
+  if (!currentPassword) return { ok: false, error: 'Enter your current password.' }
+  if (String(newPassword || '').length < 8) return { ok: false, error: 'Password must be at least 8 characters.' }
+  const res = await postAuth('/change-password', { currentPassword, newPassword })
+  if (!res.reachable) return { ok: false, error: 'The server is not answering. Try again in a moment.' }
+  if (!res.ok || !res.data?.user) return { ok: false, error: res.data?.error || 'Could not change the password.' }
+  return { ok: true, user: setSession({ ...(getSession() || {}), ...fromServer(res.data.user) }) }
 }
 
 // ------------------------------------------------------- password reset ---
@@ -541,6 +554,11 @@ export const isInstructorPath = (pathname = '') => {
 export const routeGuardRedirect = (session, pathname = '') => {
   if (!session?.role) return null
 
+  // A temporary password must be replaced before anything else is reachable.
+  if (session.mustChangePassword) {
+    return String(pathname).split(/[?#]/)[0].replace(/\/+$/, '') === '/change-password' ? null : '/change-password'
+  }
+
   const urlRole = roleFromPath(pathname)
   if (!urlRole) {
     // Not /role/-scoped: it is the instructor's, or it is neither (/login).
@@ -565,6 +583,7 @@ export const onSessionChange = (handler) => {
 
 export default {
   ROLES,
+  changePassword,
   registrationRoles,
   DEMO_PASSWORD,
   roleMeta,

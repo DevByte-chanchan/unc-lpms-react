@@ -64,6 +64,11 @@ module.exports = (sequelize, DataTypes) => {
 
         last_login_at: { type: DataTypes.DATE, allowNull: true },
 
+        // Credential flow. An admin-issued temporary password must be replaced at first sign-in
+        // and stops working at temp_password_expires_at (72 hours after it was issued).
+        must_change_password: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
+        password_changed_at: { type: DataTypes.DATE, allowNull: true },
+        temp_password_expires_at: { type: DataTypes.DATE, allowNull: true },
         // Password reset. The RAW token is emailed/shown to the user and never
         // stored; only its SHA-256 lives here, so a copy of this table cannot
         // be used to reset anyone's password. Single outstanding reset per
@@ -103,7 +108,8 @@ module.exports = (sequelize, DataTypes) => {
             name: this.name,
             email: this.email,
             role: this.role,
-            isActive: this.is_active
+            isActive: this.is_active,
+            mustChangePassword: Boolean(this.must_change_password)
         };
     };
 

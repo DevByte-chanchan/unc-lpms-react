@@ -18,6 +18,10 @@ router.post('/forgot-password', auth.requestReset);
 // POST /api/auth/reset-password — consume a token and set a new password
 router.post('/reset-password', auth.resetPassword);
 
+// POST /api/auth/change-password — signed-in user changes their own password (also the forced
+// first-sign-in change). Allowed while a temporary password is still in force.
+router.post('/change-password', requireAuth, auth.changePassword);
+
 // POST /api/auth/logout — invalidate the server-side session and expire its
 // HttpOnly cookie. Authentication prevents arbitrary cookie churn.
 router.post('/logout', requireAuth, auth.logout);

@@ -13,7 +13,7 @@ globalThis.Event = class { constructor(type) { this.type = type } };
 globalThis.fetch = async () => { throw new Error('no server in this test') };
 
 const sessionModule = await import('./session.js');
-const { login, signup, logout, getSession, homeRouteForRole, nameForRoleWithSession, routeGuardRedirect, DEMO_PASSWORD, authMode, requestPasswordReset, resetPassword, isDemoMode, reconcileSession, registrationRoles } = sessionModule;
+const { changePassword, login, signup, logout, getSession, homeRouteForRole, nameForRoleWithSession, routeGuardRedirect, DEMO_PASSWORD, authMode, requestPasswordReset, resetPassword, isDemoMode, reconcileSession, registrationRoles } = sessionModule;
 
 // `login` and `signup` are async now (they try the server first), so the
 // runner awaits and the whole file runs in order.
@@ -771,7 +771,38 @@ test('a completed reset signs the person in as the account the server returned',
   logout();
 });
 
+test('a temporary-password session can reach only the change-password screen, every role', () => {
   for (const role of ['instructor', 'program-head', 'dean', 'superuser']) {
+    const forced = { id: 1, role, mustChangePassword: true };
+    for (const path of ['/', '/role/dean', '/role/superuser', '/courses/IT321', '/change-password/x']) {
+      if (routeGuardRedirect(forced, path) !== '/change-password') throw new Error(`${role} must be sent from ${path} to /change-password`);
+    }
+    if (routeGuardRedirect(forced, '/change-password') !== null) throw new Error('the change-password screen itself must render');
+  }
+  if (routeGuardRedirect({ id: 1, role: 'dean', mustChangePassword: false }, '/change-password') !== null) {
+    throw new Error('anyone may open change-password voluntarily');
+  }
+});
+
+test('the login flag survives the server round trip, and a completed change clears it', async () => {
+  const serverUser = { id: 7, name: 'NEW, USER', email: 'new@unc.edu.ph', role: 'instructor', mustChangePassword: true };
+  await withFetch(async (url) => (String(url).endsWith('/login') ? jsonRes(200, { user: serverUser, mustChangePassword: true }) : jsonRes(404, {})), async () => {
+    const result = await login('new@unc.edu.ph', 'Temp-pass1', { role: 'instructor' });
+    if (!result.ok || !getSession()?.mustChangePassword) throw new Error('the session must remember the forced change');
+  });
+
+  await withFetch(async () => jsonRes(401, { error: 'Your current password is incorrect.' }), async () => {
+    const wrong = await changePassword('nope', 'Brand-new-9');
+    if (wrong.ok || wrong.error !== 'Your current password is incorrect.') throw new Error('the server message must be shown');
+    if (!getSession()?.mustChangePassword) throw new Error('a failed change must not clear the flag');
+  });
+
+  let sent = null;
+  await withFetch(async (url, init) => { sent = JSON.parse(init.body); return jsonRes(200, { user: { ...serverUser, mustChangePassword: false } }); }, async () => {
+    if ((await changePassword('', 'Brand-new-9')).ok) throw new Error('current password is required');
+    if ((await changePassword('Temp-pass1', 'short')).ok) throw new Error('short passwords are caught before the network');
+    const done = await changePassword('Temp-pass1', 'Brand-new-9');
+    if (!done.ok || getSession()?.mustChangePassword) throw new Error('the flag must clear after a successful change');
     if (sent.currentPassword !== 'Temp-pass1' || sent.newPassword !== 'Brand-new-9') throw new Error('both passwords must be sent');
   });
   logout();

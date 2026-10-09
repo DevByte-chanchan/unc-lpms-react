@@ -1,4 +1,4 @@
-import { expireSession } from './session.js';
+import { expireSession, getSession, setSession } from './session.js';
 
 const configuredApiBase = (typeof import.meta !== 'undefined' && import.meta.env)
     ? import.meta.env.VITE_API_BASE
@@ -13,6 +13,10 @@ export async function fetchJson(endpoint, opts = {}) {
     if (!res.ok) {
         if (res.status === 401) expireSession();
         const text = await res.text().catch(() => '');
+        // A temporary password is still in force: send the user to the change-password screen.
+        if (res.status === 403 && text.includes('PASSWORD_CHANGE_REQUIRED') && getSession()) {
+            setSession({ ...getSession(), mustChangePassword: true });
+        }
         const message = text ? `HTTP ${res.status}: ${text}` : `HTTP ${res.status}`;
         const err = new Error(message);
         err.status = res.status;

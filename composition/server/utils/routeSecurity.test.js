@@ -178,7 +178,7 @@ test('the current-session endpoint returns the identity behind the cookie', asyn
         });
 
         assert.equal(response.status, 200);
-        assert.deepEqual(await response.json(), { user });
+        assert.deepEqual(await response.json(), { user: { ...user, mustChangePassword: false } });
     } finally {
         await server.close();
     }

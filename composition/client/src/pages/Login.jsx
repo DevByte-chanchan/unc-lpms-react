@@ -54,6 +54,16 @@ const Login = () => {
   const [trap, setTrap] = useState('')
   const [showPassword, setShowPassword] = useState(false)
 
+  // A password-reset link from the email opens the reset form with the code and email filled in.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const token = params.get('reset')
+    if (!token) return
+    setForm(prev => ({ ...prev, token, email: params.get('email') || prev.email }))
+    setMode('reset')
+    window.history.replaceState(null, '', window.location.pathname)
+  }, [])
+
   useEffect(() => {
     let live = true
     authMode().then(m => { if (live) setStore(m) })

@@ -43,6 +43,11 @@
 
 const TABLE = 'Users';
 
+// Added by migration 20260912000000; repaired here too so a forgotten migration cannot break sign-in.
+const CREDENTIAL_COLUMNS = [
+    ['must_change_password', 'BOOLEAN NOT NULL DEFAULT 0'],
+    ['password_changed_at', 'DATETIME'],
+    ['temp_password_expires_at', 'DATETIME'],
 // `models` is a parameter with a default rather than a top-level require, so
 // the test can hand in a throwaway database instead of opening the real one.
 // Requiring it lazily also means a broken model file degrades sign-in rather
