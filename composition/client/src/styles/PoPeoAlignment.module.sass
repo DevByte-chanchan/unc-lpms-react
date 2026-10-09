@@ -1,0 +1,112 @@
+// PO & PEO page: section headings, inline editors and notices around the alignment tables.
+.sectionTitle
+  margin: var(--sp-5) 0 var(--sp-3)
+  font-size: var(--fs-lg)
+  font-weight: var(--fw-semibold)
+  color: var(--ink)
+
+.textInput
+  width: 100%
+  box-sizing: border-box
+  padding: var(--sp-3) var(--sp-4)
+  border: 1px solid var(--line)
+  border-radius: var(--radius-sm)
+  background: var(--surface)
+  color: var(--ink)
+  font-family: inherit
+  font-size: var(--fs-md)
+  resize: vertical
+
+  &:focus-visible
+    outline: 3px solid rgba(37, 99, 235, 0.28)
+    outline-offset: 1px
+
+.iconButton
+  display: inline-flex
+  align-items: center
+  justify-content: center
+  width: 30px
+  height: 30px
+  padding: 0
+  border: 1px solid var(--line)
+  border-radius: var(--radius-sm)
+  background: var(--surface)
+  color: var(--danger)
+  cursor: pointer
+
+  &:hover
+    background: var(--danger-soft)
+    border-color: var(--danger-line)
+
+.addButton
+  display: inline-flex
+  align-items: center
+  gap: var(--sp-2)
+  margin-top: var(--sp-3)
+  padding: var(--sp-3) var(--sp-5)
+  border: 1px dashed var(--ink-faint)
+  border-radius: var(--radius-md)
+  background: var(--surface)
+  color: var(--ink-soft)
+  font-size: var(--fs-md)
+  cursor: pointer
+
+  &:hover
+    background: var(--surface-muted)
+
+.empty
+  padding: var(--sp-5)
+  text-align: center
+  color: var(--ink-muted)
+
+.alert, .ok
+  padding: var(--sp-4) var(--sp-5)
+  border-radius: var(--radius-md)
+  font-size: var(--fs-sm)
+
+.alert
+  background: var(--danger-soft)
+  border: 1px solid var(--danger-line)
+  color: var(--danger)
+
+.ok
+  background: #f0fdf4
+  border: 1px solid #bbf7d0
+  color: #166534
+
+// Collapsible list of the program outcomes under the CO-PO table.
+.legendList
+  margin-top: var(--sp-4)
+  padding: var(--sp-4) var(--sp-5)
+  border: 1px solid var(--line)
+  border-radius: var(--radius-md)
+  background: var(--surface-muted)
+  font-size: var(--fs-sm)
+  color: var(--ink-soft)
+
+  summary
+    cursor: pointer
+    font-weight: var(--fw-semibold)
+    color: var(--ink)
+
+  ul
+    margin: var(--sp-3) 0 0
+    padding-left: var(--sp-6)
+
+  li
+    margin-bottom: var(--sp-1)
+
+// "Draft – not approved" notice above a COAEP built from an unapproved plan.
+.draftBanner
+  margin: 0 0 var(--sp-4)
+  padding: var(--sp-4) var(--sp-5)
+  border: 1px solid #b45309
+  border-radius: var(--radius-md)
+  background: #fef3c7
+  color: #78350f
+  font-weight: var(--fw-semibold)
+  font-size: var(--fs-sm)
+
+// Two tables stack on this page, so the page scrolls instead of clipping the second one.
+.scrollPage
+  overflow-y: auto !important

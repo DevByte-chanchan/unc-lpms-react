@@ -10,6 +10,7 @@ import {fetchJson, apiErrorMessage} from "../utils/api";
 import { useServerWorkflow } from '../utils/useServerWorkflow.js'
 import { exportEligibility } from '../utils/reviewGate.js'
 import { fetchFormInfo } from '../utils/formSettings.js'
+import { fetchProgramAlignment } from '../utils/programAlignment.js'
 import { buildReviewRecordFile } from '../utils/exportSyllabus.js'
 import { validateSubmission } from '../utils/submissionGate'
 import PDFViewerModal from './PDFViewerModal'
@@ -113,7 +114,8 @@ const SyllabusSections = () => {
             }
             const logoUrl = new URL(unclogo, window.location.origin).href
             const formInfo = await fetchFormInfo()
-            const html = buildSyllabusHtml(syllabus, resolvedCode, workflow, logoUrl, { formInfo, pendingApproval: exportInfo.pendingDean })
+            const programAlignment = await fetchProgramAlignment(offeringID)
+            const html = buildSyllabusHtml(syllabus, resolvedCode, workflow, logoUrl, { formInfo, programAlignment, pendingApproval: exportInfo.pendingDean })
             const blob = new Blob([html], { type: 'text/html' })
             const url = URL.createObjectURL(blob)
             setPreviewFile({

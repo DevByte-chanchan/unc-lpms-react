@@ -107,12 +107,24 @@ const PDFViewerModal = ({ file, kind, onClose, children }) => {
       const pages = iframe.contentDocument.querySelectorAll('.page');
       setPageCount(pages.length);
       const body = iframe.contentDocument.body;
-      if (body) setIframeHeight(body.scrollHeight);
+      if (!body) return;
+      if (pages.length > 0) { setIframeHeight(body.scrollHeight); return; }
+      // A flowing document (no fixed .page sheets, e.g. the review record): its height includes the
+      // body's own margins, and it grows when fonts and images arrive, so it is re-measured below.
+      const style = iframe.contentWindow.getComputedStyle(body);
+      setIframeHeight(Math.ceil(body.getBoundingClientRect().height + parseFloat(style.marginTop || 0) + parseFloat(style.marginBottom || 0)));
     };
     measure();
     // The document's measured re-pagination script runs just after load and can
     // change the page count — re-measure once it has settled.
     setTimeout(measure, 250);
+    try {
+      const idoc = iframeRef.current?.contentDocument;
+      idoc?.fonts?.ready?.then(measure);
+      if (idoc?.body && typeof iframeRef.current.contentWindow.ResizeObserver === 'function') {
+        new iframeRef.current.contentWindow.ResizeObserver(measure).observe(idoc.body);
+      }
+    } catch { /* a document that cannot be observed keeps the measurements above */ }
   };
 
   const goToPage = (n) => {

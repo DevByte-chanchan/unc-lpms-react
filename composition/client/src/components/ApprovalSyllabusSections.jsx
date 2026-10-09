@@ -12,6 +12,7 @@ import stylesC from '../styles/SyllabusSections.module.sass'
 import ApprovalCommentBox from './ApprovalCommentBox.jsx'
 import { useServerWorkflow } from '../utils/useServerWorkflow.js'
 import { fetchFormInfo } from '../utils/formSettings.js'
+import { fetchProgramAlignment } from '../utils/programAlignment.js'
 import { buildReviewRecordFile } from '../utils/exportSyllabus.js'
 import { getSuggestions, addSuggestion, acceptSuggestion, rejectSuggestion, getSyllabus } from '../utils/dataStore'
 import { loadLibrary } from '../utils/referenceStore.js'
@@ -40,6 +41,7 @@ import CourseCoverage from './CourseCoverage'
 import ReferenceSummary from './ReferenceSummary'
 import OutcomeAlignment from './OutcomeAlignment'
 import CriteriaForGrading from './CriteriaForGrading'
+import PokeButton from './PokeButton.jsx'
 
 
 
@@ -58,6 +60,10 @@ const ACTOR_ROLE_MAP = {
   'program-head': 'PROGRAM_HEAD',
   dean: 'DEAN',
 }
+
+// The role a comment is attributed to. The consultant comments but is not part of the approval chain,
+// so they stay out of ACTOR_ROLE_MAP (which gates workflow actions).
+const COMMENT_ROLE_MAP = { ...ACTOR_ROLE_MAP, 'industry-consultant': 'INDUSTRY_CONSULTANT' }
 
 
 const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', courseCode = '', embedded = false, externalSelectedSection = null, workflow: workflowProp = null, pcId = null, revNum = null }) => {
@@ -122,7 +128,8 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
     try {
       const logoUrl = new URL(unclogo, window.location.origin).href
       const formInfo = await fetchFormInfo()
-      const html = buildSyllabusHtml(syllabus, codeToUse, workflowState, logoUrl, { formInfo, pendingApproval: exportInfo.pendingDean })
+      const programAlignment = await fetchProgramAlignment(validPcId)
+      const html = buildSyllabusHtml(syllabus, codeToUse, workflowState, logoUrl, { formInfo, programAlignment, pendingApproval: exportInfo.pendingDean })
       const blob = new Blob([html], { type: 'text/html' })
       const url = URL.createObjectURL(blob)
       setPreviewFile({
@@ -247,6 +254,9 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
       'INSTRUCTOR': 'CASIMERO, DANNY',
     }
     const coverageMap = { 'references': 'References', 'topics': 'Topic', 'tlas': 'TLA' }
+    // The server copy of a comment carries its type as a leading "[Requested revision]" tag; the local
+    // copy does not. Compare without the tag so one comment is never listed twice.
+    const untagged = (text) => String(text || '').replace(/^\s*\[[^\]]+\]\s*/, '').trim().toLowerCase()
 
     // A row written by whoever is signed in must keep showing their name, not the
     // demo name for that role — re-labelling it on reload is the account switch
@@ -268,15 +278,15 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
         const existingTexts = new Set(
           list
             .filter(c => c.courseCode === codeToUse && !String(c.id || '').startsWith('server-'))
-            .map(c => (c.comment || '').trim().toLowerCase())
+            .map(c => untagged(c.comment))
         )
 
         const converted = rows
           .filter(r => {
-            const full = (r.message || '').trim().toLowerCase()
+            const full = untagged(r.message)
             // server copies of DOL comments carry an appended suggestion line —
             // compare the base text too so they don't duplicate in the sidebar
-            const base = (r.message || '').split('\n\nSuggested reference')[0].trim().toLowerCase()
+            const base = untagged((r.message || '').split('\n\nSuggested reference')[0])
             return !existingTexts.has(full) && !existingTexts.has(base)
           })
           .map(r => {
@@ -813,7 +823,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             code,
-            commenter_role: ACTOR_ROLE_MAP[roleKey] || roleKey.toUpperCase(),
+            commenter_role: COMMENT_ROLE_MAP[roleKey] || roleKey.toUpperCase(),
             // The type rides along in the message — the server stores one
             // string, and the instructor's forms parse the tag back into a
             // labelled, actionable suggestion [48:30].
@@ -1032,6 +1042,8 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
             }
             if (effectiveStatus !== 'approved' && roleKey !== 'instructor') {
               return (<>
+                {/* The plan is with its instructor (not submitted, or returned): the Program Head can remind them. */}
+                {roleKey === 'program-head' && validPcId && ['draft', 'returned'].includes(workflowState.currentStage) && <PokeButton offeringId={validPcId} />}
                 <button type="button" className={`${styles.draft} ${(!reviewRecordAvailable || !(roleKey === 'industry-consultant' || isRoleActive() || hasRoleApproved())) ? styles['disabled-btn'] : ''}`} aria-disabled={!reviewRecordAvailable || !(roleKey === 'industry-consultant' || isRoleActive() || hasRoleApproved())} onClick={() => {
                   if (!reviewRecordAvailable) { showToastMsg('This course revision could not be loaded, so it cannot be reviewed.', 'warning'); return }
                   // Approvers can always ADD comments while the plan is in review —
@@ -1055,7 +1067,8 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
                   try {
                     const logoUrl = new URL(unclogo, window.location.origin).href
                     const formInfo = await fetchFormInfo()
-                    const html = buildSyllabusHtml(syllabus, codeToUse, workflowState, logoUrl, { formInfo })
+                    const programAlignment = await fetchProgramAlignment(validPcId)
+                    const html = buildSyllabusHtml(syllabus, codeToUse, workflowState, logoUrl, { formInfo, programAlignment })
                     const blob = new Blob([html], { type: 'text/html' })
                     const url = URL.createObjectURL(blob)
                     setPreviewFile({

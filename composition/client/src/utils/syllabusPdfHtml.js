@@ -8,7 +8,7 @@ const fmtDate = (d) => {
   catch { return d }
 }
 
-const poLabels = ['PO1', 'PO2', 'PO3', 'PO4', 'PO5', 'PO6', 'PO7', 'PO8', 'PO9', 'PO10', 'PO11', 'PO12', 'PO13']
+const poLabels = Array.from({ length: 25 }, (_, i) => `PO${i + 1}`)
 
 const activePoColumns = (courseOutcomes) => {
   const active = []
@@ -98,15 +98,23 @@ function page1(logo, total) {
   </div>`
 }
 
-function page2(logo, total) {
+// alignment === undefined keeps the built-in BSIT sample (older callers and tests); anything else is the
+// program's real data, or null when it could not be found.
+function page2(logo, total, alignment) {
+  const real = alignment !== undefined
+  const peos = alignment?.peos || []
+  const departmentLine = real ? safe(alignment?.program?.department, '') : 'DEPARTMENT NAME'
+  const programLine = real ? safe(alignment?.program?.name, '') : 'Bachelor of Science in _______________'
+  const peoCell = real ? peos.map((peo, i) => `${i + 1}. ${safe(peo.statement)}`).join('<br>') : '<em>per program (ie BSIT, BSCS) usually 1-3 PEOs</em>'
+  const missionBlock = real ? missionTableHtml(peos) : null
   return `<div class="page page-break">
     ${pageHeader(logo)}
 
     <table style="width:100%; border-collapse:collapse; font-family:Arial, Helvetica, sans-serif; font-size:10pt; margin-bottom:12px;">
       <tr>
         <td colspan="2" style="border:1px solid #000; padding:4px 6px; background:#f2f2f2;">
-          <strong>DEPARTMENT NAME</strong><br>
-          Program: Bachelor of Science in _______________
+          <strong>${departmentLine}</strong><br>
+          Program: ${programLine}
         </td>
       </tr>
       <tr>
@@ -119,11 +127,11 @@ function page2(logo, total) {
       </tr>
       <tr>
         <td style="font-weight:700; border:1px solid #000; padding:4px 6px; vertical-align:top;">PROGRAM EDUCATIONAL OBJECTIVES</td>
-        <td style="border:1px solid #000; padding:4px 6px;"><em>per program (ie BSIT, BSCS) usually 1-3 PEOs</em></td>
+        <td style="border:1px solid #000; padding:4px 6px;">${peoCell}</td>
       </tr>
     </table>
 
-    <table style="width:100%; border-collapse:collapse; font-family:Arial, Helvetica, sans-serif; font-size:10pt;">
+    ${missionBlock ?? `    <table style="width:100%; border-collapse:collapse; font-family:Arial, Helvetica, sans-serif; font-size:10pt;">
       <tr>
         <td colspan="2" style="font-weight:700; border:1px solid #000; padding:4px 6px; background:#f2f2f2;">PROGRAM EDUCATIONAL OBJECTIVES (PEOs) AND ITS RELATIONSHIP TO THE UNC MISSION STATEMENT</td>
       </tr>
@@ -143,13 +151,23 @@ function page2(logo, total) {
         <td style="border:1px solid #000; padding:4px 6px; text-align:justify;">3. Become a globally-competitive Information Technology practitioner, through the aid of continuing education and gain leadership responsibilities, as guided by the university and the college&rsquo;s core values.</td>
         <td style="border:1px solid #000; padding:4px 6px; text-align:center;">&#x2714;</td>
       </tr>
-    </table>
+    </table>`}
 
     ${pageFooter(2, total)}
   </div>`
 }
 
-function page3(logo, total) {
+function page3(logo, total, alignment) {
+  if (alignment !== undefined) {
+    const peoCount = Math.max((alignment?.peos || []).length, 1)
+    const rows = (alignment?.outcomes || []).map(o => ({ text: o.text, peos: o.peos || [], gas: o.gas || [] }))
+    return `<div class="page page-break">
+    ${pageHeader(logo)}
+    ${poTableHtml(rows, peoCount, safe(alignment?.program?.name, ''))}
+
+    ${pageFooter(3, total)}
+  </div>`
+  }
   const poData = [
     { text: 'Apply knowledge in computing, science, and mathematics in developing IT solutions.', peos: [1,2], gas: [2,3,4] },
     { text: 'Apply best practices and standards in developing IT solutions.', peos: [1,2], gas: [3,4] },
@@ -1189,8 +1207,8 @@ export function buildSyllabusHtml(syllabus, courseCode, workflow, logoBase64, op
 
   const allPages = [
     page1(logo, total),
-    page2(logo, total),
-    page3(logo, total),
+    page2(logo, total, options.programAlignment),
+    page3(logo, total, options.programAlignment),
     page4(syllabus, logo, total),
     ...page5(syllabus, logo, 5, total),
     ...courseCoveragePages(syllabus, logo, 6, total),
@@ -1233,6 +1251,52 @@ const alignmentHead = `<!DOCTYPE html>
 
 const alignmentFoot = `</body></html>`
 
+// The PEO / UNC-mission table and the PO-to-PEO table, shared by the standalone export and the
+// syllabus pages. Callers pass the program's own PEOs and outcomes.
+const CHECK = '&#x2714;'
+function missionTableHtml(peoList) {
+  const check = (on) => (on ? CHECK : '')
+  const cell = 'border:1px solid #000; padding:2px 4px; text-align:center;'
+  if (peoList.length === 0) return ''
+  return `<table style="width:100%; border-collapse:collapse; font-family:Arial,Helvetica,sans-serif; font-size:9pt; margin-bottom:10px;">
+      <tr>
+        <td style="font-weight:700; border:1px solid #000; padding:3px 5px;">PROGRAM EDUCATIONAL OBJECTIVES (PEOs) AND ITS RELATIONSHIP TO THE UNC MISSION STATEMENT</td>
+        <td style="width:130px; font-weight:700; border:1px solid #000; padding:2px 4px; text-align:center;">UNC MISSION STATEMENT</td>
+      </tr>
+      ${peoList.map((peo, i) => `<tr>
+        <td style="border:1px solid #000; padding:2px 4px; text-align:justify; overflow-wrap:break-word;">${i + 1}. ${safe(peo.statement)}</td>
+        <td style="${cell}">${check(peo.missionAligned)}</td>
+      </tr>`).join('')}
+    </table>`
+}
+
+function poTableHtml(poData, peoCount, prog) {
+  const check = (on) => (on ? CHECK : '')
+  const cell = 'border:1px solid #000; padding:2px 4px; text-align:center;'
+  return `
+    <table style="width:100%; border-collapse:collapse; font-family:Arial,Helvetica,sans-serif; font-size:9pt;">
+      <tr>
+        <td colspan="${peoCount + 6}" style="font-weight:700; border:1px solid #000; padding:3px 5px;">PROGRAM OUTCOMES (POs) AND ITS RELATIONSHIP TO PROGRAM EDUCATIONAL OBJECTIVES (PEOs)</td>
+      </tr>
+      <tr>
+        <td colspan="${peoCount}" style="font-weight:700; ${cell}">PEOs</td>
+        <td colspan="2" style="font-weight:700; ${cell}">PROGRAM OUTCOMES (POs)</td>
+        <td colspan="4" style="font-weight:700; ${cell}">GRADUATE ATTRIBUTES</td>
+      </tr>
+      <tr>
+        ${Array.from({ length: peoCount }, (_, i) => `<td style="width:34px; font-weight:700; ${cell}">${i + 1}</td>`).join('')}
+        <td colspan="2" style="border:1px solid #000; padding:2px 4px; text-align:left;">By the time of graduation, the students of the <strong>${prog}</strong> program shall have the ability to:</td>
+        ${['EC', 'CL', 'ERC', 'LL'].map(label => `<td style="width:36px; font-weight:700; ${cell}">${label}</td>`).join('')}
+      </tr>
+      ${poData.map((po, i) => `<tr>
+        ${Array.from({ length: peoCount }, (_, p) => `<td style="${cell}">${check(po.peos.includes(p + 1))}</td>`).join('')}
+        <td style="width:52px; font-weight:700; ${cell}">PO${i + 1}</td>
+        <td style="border:1px solid #000; padding:2px 4px; text-align:justify; overflow-wrap:break-word;">${safe(po.text)}</td>
+        ${[1, 2, 3, 4].map(g => `<td style="${cell}">${check(po.gas.includes(g))}</td>`).join('')}
+      </tr>`).join('')}
+    </table>`
+}
+
 export function buildPoPeoHtml(logoBase64, programCode = 'BSIT', poData = null, options = {}) {
   setActiveForm(options.formInfo, 'syllabus')
   const prog = safe(programCode)
@@ -1254,39 +1318,14 @@ export function buildPoPeoHtml(logoBase64, programCode = 'BSIT', poData = null, 
       { text: 'Develop the skills needed to engage in independent and lifelong learning.', peos: [2,3], gas: [2,4] },
     ]
   }
+  // PEO columns follow the program's own PEOs (three when none are given, as before).
+  const peoList = Array.isArray(options.peos) ? options.peos : []
+  const peoCount = peoList.length > 0 ? peoList.length : 3
+  const missionTable = missionTableHtml(peoList)
   const body = `<div class="page page-break">
     ${pageHeader(logo)}
-    <table style="width:100%; border-collapse:collapse; font-family:Arial,Helvetica,sans-serif; font-size:9pt;">
-      <tr>
-        <td colspan="9" style="font-weight:700; border:1px solid #000; padding:3px 5px;">PROGRAM OUTCOMES (POs) AND ITS RELATIONSHIP TO PROGRAM EDUCATIONAL OBJECTIVES (PEOs)</td>
-      </tr>
-      <tr>
-        <td colspan="3" style="font-weight:700; border:1px solid #000; padding:2px 4px; text-align:center;">PEOs</td>
-        <td colspan="2" style="font-weight:700; border:1px solid #000; padding:2px 4px; text-align:center;">PROGRAM OUTCOMES (POs)</td>
-        <td colspan="4" style="font-weight:700; border:1px solid #000; padding:2px 4px; text-align:center;">GRADUATE ATTRIBUTES</td>
-      </tr>
-      <tr>
-        <td style="width:34px; font-weight:700; border:1px solid #000; padding:2px 4px; text-align:center;">1</td>
-        <td style="width:34px; font-weight:700; border:1px solid #000; padding:2px 4px; text-align:center;">2</td>
-        <td style="width:34px; font-weight:700; border:1px solid #000; padding:2px 4px; text-align:center;">3</td>
-        <td colspan="2" style="border:1px solid #000; padding:2px 4px; text-align:left;">By the time of graduation, the students of the <strong>${prog}</strong> program shall have the ability to:</td>
-        <td style="width:36px; font-weight:700; border:1px solid #000; padding:2px 4px; text-align:center;">EC</td>
-        <td style="width:36px; font-weight:700; border:1px solid #000; padding:2px 4px; text-align:center;">CL</td>
-        <td style="width:36px; font-weight:700; border:1px solid #000; padding:2px 4px; text-align:center;">ERC</td>
-        <td style="width:36px; font-weight:700; border:1px solid #000; padding:2px 4px; text-align:center;">LL</td>
-      </tr>
-      ${poData.map((po, i) => `<tr>
-        <td style="border:1px solid #000; padding:2px 4px; text-align:center;">${po.peos.includes(1) ? '&#x2714;' : ''}</td>
-        <td style="border:1px solid #000; padding:2px 4px; text-align:center;">${po.peos.includes(2) ? '&#x2714;' : ''}</td>
-        <td style="border:1px solid #000; padding:2px 4px; text-align:center;">${po.peos.includes(3) ? '&#x2714;' : ''}</td>
-        <td style="width:52px; font-weight:700; border:1px solid #000; padding:2px 4px; text-align:center;">PO${i + 1}</td>
-        <td style="border:1px solid #000; padding:2px 4px; text-align:justify; overflow-wrap:break-word;">${po.text}</td>
-        <td style="border:1px solid #000; padding:2px 4px; text-align:center;">${po.gas.includes(1) ? '&#x2714;' : ''}</td>
-        <td style="border:1px solid #000; padding:2px 4px; text-align:center;">${po.gas.includes(2) ? '&#x2714;' : ''}</td>
-        <td style="border:1px solid #000; padding:2px 4px; text-align:center;">${po.gas.includes(3) ? '&#x2714;' : ''}</td>
-        <td style="border:1px solid #000; padding:2px 4px; text-align:center;">${po.gas.includes(4) ? '&#x2714;' : ''}</td>
-      </tr>`).join('\n      ')}
-    </table>
+    ${missionTable}
+    ${poTableHtml(poData, peoCount, prog)}
     ${pageFooter(1, 1)}
   </div>`
   return alignmentHead + body + alignmentFoot

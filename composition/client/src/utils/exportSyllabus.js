@@ -3,6 +3,7 @@ import { offeringKey } from './offeringKey.js'
 import { buildSyllabusHtml } from './syllabusPdfHtml.js'
 import { buildReviewRecordHtml } from './reviewRecordHtml.js'
 import { fetchFormInfo } from './formSettings.js'
+import { fetchProgramAlignment } from './programAlignment.js'
 import { workflowFromLogs } from './workflowFromLogs.js'
 import { exportEligibility } from './reviewGate.js'
 
@@ -71,7 +72,8 @@ export async function buildSyllabusExportFile({ pcId, revNum, code, workflow = n
     course_title: courseRes?.name || '',
   }
 
-  const html = buildSyllabusHtml(syllabus, code, workflow, logoUrl, { formInfo, pendingApproval: eligibility.pendingDean })
+  const programAlignment = await fetchProgramAlignment(pcId)
+  const html = buildSyllabusHtml(syllabus, code, workflow, logoUrl, { formInfo, programAlignment, pendingApproval: eligibility.pendingDean })
   const blob = new Blob([html], { type: 'text/html' })
   const url = URL.createObjectURL(blob)
 

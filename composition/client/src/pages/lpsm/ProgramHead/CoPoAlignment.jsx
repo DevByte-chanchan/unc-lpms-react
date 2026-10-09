@@ -5,67 +5,90 @@ import HeaderA from '../../../components/HeaderA.jsx';
 import SideNavigation from '../../../components/SideNavigation.jsx';
 import PDFViewerModal from '../../../components/PDFViewerModal.jsx';
 import { buildCoPoHtml } from '../../../utils/syllabusPdfHtml.js';
-import { getAllPrograms, getProgramCourses, getCoPoData } from '../../../utils/programCurriculumData.js';
+import { fetchJson, apiErrorMessage } from '../../../utils/api.js';
+import { computeOverallStatus } from '../../../utils/assignmentStatus.js';
+import { revisionLabel, termLabel } from '../../../utils/offeringLabels.js';
 import unclogo from '../../../assets/unclogo.png';
 import tbl from '../../../styles/AlignmentTables.module.sass';
 import TableScrollRegion from '../../../components/TableScrollRegion.jsx';
 import pageStyles from '../../../styles/ProgramHeadWorkspace.module.sass';
+import styles from '../../../styles/PoPeoAlignment.module.sass';
 
-const poLabels = ['PO1', 'PO2', 'PO3', 'PO4', 'PO5', 'PO6', 'PO7', 'PO8', 'PO9', 'PO10', 'PO11', 'PO12', 'PO13'];
+// Instructors often type "CO1:" at the start of the outcome; the table numbers them itself.
+const withoutNumber = (text) => String(text || '').replace(/^\s*CO\s*\d+\s*[:.-]\s*/i, '');
+
+// One offering per option: the course, its term and its revision, so two revisions of a course
+// can be told apart. The outcomes and their PO marks come from the instructor's syllabus.
+const describe = (row) => {
+  const offering = row.ProgramCourseOffering || {};
+  const course = offering.Course || {};
+  const parts = [termLabel(offering), revisionLabel(offering)].filter(Boolean);
+  return {
+    id: String(offering.pc_offering_id),
+    code: course.course_no || '',
+    name: course.course_title || '',
+    status: computeOverallStatus(row),
+    label: `${course.course_no || '?'} — ${course.course_title || ''}${parts.length ? ` (${parts.join(', ')})` : ''}`
+  };
+};
 
 const CoPoAlignment = () => {
-  const programs = useMemo(() => getAllPrograms(), []);
-  const [programCode, setProgramCode] = useState('');
-  const [courseCode, setCourseCode] = useState('');
-  const [courses, setCourses] = useState([]);
+  const [offerings, setOfferings] = useState(null);
+  const [offeringId, setOfferingId] = useState('');
   const [data, setData] = useState(null);
+  const [error, setError] = useState('');
   const [selectedFile, setSelectedFile] = useState(null);
 
   useEffect(() => {
-    if (!programCode && programs.length) setProgramCode(programs[0]);
-  }, [programCode, programs]);
+    let live = true;
+    fetchJson('/api/assignments?limit=500')
+      .then(response => {
+        if (!live) return;
+        const rows = Array.isArray(response) ? response : (response.data || []);
+        const list = rows.filter(row => row.ProgramCourseOffering?.pc_offering_id).map(describe)
+          .sort((a, b) => a.code.localeCompare(b.code) || a.label.localeCompare(b.label));
+        setOfferings(list);
+        if (list.length > 0) setOfferingId(list[0].id);
+      })
+      .catch(err => { if (live) { setOfferings([]); setError(apiErrorMessage(err, 'Could not load your courses.')); } });
+    return () => { live = false; };
+  }, []);
 
   useEffect(() => {
-    const nextCourses = getProgramCourses(programCode);
-    setCourses(nextCourses);
-    setCourseCode(nextCourses[0]?.code || '');
-  }, [programCode]);
+    if (!offeringId) return undefined;
+    let live = true;
+    setData(null);
+    setError('');
+    fetchJson(`/api/course-outcome-alignment/${offeringId}`)
+      .then(result => { if (live) setData(result); })
+      .catch(err => { if (live) setError(apiErrorMessage(err, 'Could not load the course outcomes.')); });
+    return () => { live = false; };
+  }, [offeringId]);
 
-  useEffect(() => {
-    setData(courseCode ? getCoPoData(courseCode) : null);
-  }, [programCode, courseCode]);
+  const current = useMemo(() => (offerings || []).find(item => item.id === offeringId), [offerings, offeringId]);
+  const outcomes = data?.courseOutcomes || [];
+  const programOutcomes = data?.programOutcomes || [];
 
   const handleView = () => {
-    const outcomes = data?.courseOutcomes || [];
-    if (!outcomes.length || !courseCode) return;
-
-    const course = courses.find((item) => item.code === courseCode);
+    if (!outcomes.length || !current) return;
     const logoUrl = new URL(unclogo, window.location.origin).href;
-    const html = buildCoPoHtml(outcomes, courseCode, course?.name || '', logoUrl);
-    const blob = new Blob([html], { type: 'text/html' });
-    const url = URL.createObjectURL(blob);
-    setSelectedFile({ name: `${programCode}_${courseCode}_CO_PO.html`, file_url: url });
+    const cos = outcomes.map((outcome, index) => ({ description: `CO${index + 1}: ${withoutNumber(outcome.description)}`, poMappings: outcome.poMappings }));
+    const html = buildCoPoHtml(cos, current.code, current.name, logoUrl);
+    const url = URL.createObjectURL(new Blob([html], { type: 'text/html' }));
+    setSelectedFile({ name: `${current.code}_CO_PO.html`, file_url: url });
   };
-
-  const course = courses.find((item) => item.code === courseCode);
-  const outcomes = data?.courseOutcomes || [];
 
   const content = (
     <div className={pageStyles.page}>
       <div className={pageStyles.toolbar}>
         <div className={pageStyles.titleBlock}>
           <h2>COURSE OUTCOMES &amp; PO ALIGNMENT</h2>
-          <p className={pageStyles.pageSubtitle}>Review the selected syllabus revision and its Program Outcome mappings.</p>
+          <p className={pageStyles.pageSubtitle}>Review how each course outcome supports the program outcomes. The instructor sets these in the syllabus.</p>
         </div>
         <label className={pageStyles.controlGroup}>
           <span className={pageStyles.controlLabel}>Course</span>
-          <select
-            className={pageStyles.courseSelect}
-            value={courseCode}
-            onChange={(event) => setCourseCode(event.target.value)}
-            aria-label="Select course"
-          >
-            {courses.map((item) => <option key={item.code} value={item.code}>{item.code} — {item.name}</option>)}
+          <select className={pageStyles.courseSelect} value={offeringId} onChange={event => setOfferingId(event.target.value)} aria-label="Select course">
+            {(offerings || []).map(item => <option key={item.id} value={item.id}>{item.label}</option>)}
           </select>
         </label>
         <div className={pageStyles.actions}>
@@ -75,10 +98,17 @@ const CoPoAlignment = () => {
         </div>
       </div>
 
-      {course && (
+      {error && <div role="alert" className={styles.alert}>{error}</div>}
+
+      {offerings !== null && offerings.length === 0 && !error && (
+        <div className={pageStyles.contextBar}><span>No course is assigned in your program yet.</span></div>
+      )}
+
+      {current && (
         <div className={pageStyles.contextBar}>
-          <span><strong>Course:</strong> {courseCode} — {course.name}</span>
-          <span className={pageStyles.contextMuted}>Request changes through syllabus revision comments.</span>
+          <span><strong>Course:</strong> {current.code} — {current.name}</span>
+          <span><strong>Syllabus status:</strong> {current.status}</span>
+          <span className={pageStyles.contextMuted}>Request changes through the syllabus review comments.</span>
         </div>
       )}
 
@@ -90,39 +120,53 @@ const CoPoAlignment = () => {
         <span style={{ marginLeft: 'auto', color: '#64748b' }}>ILO structure and assessment alignment remain in the syllabus.</span>
       </div>
 
-      <TableScrollRegion
-        label="COURSE OUTCOMES & PO ALIGNMENT"
-        minWidth={960}
-        className={`${pageStyles.tableRegion} ${pageStyles.compactTableRegion}`}
-      >
-        <table className={`${tbl.alignTable} ${tbl.compactRows}`}>
-          <colgroup>
-            <col />
-            {poLabels.map((po) => <col key={po} style={{ width: 52 }} />)}
-          </colgroup>
-          <thead>
-            <tr>
-              <th>After completion of the course, the student should be able to:</th>
-              {poLabels.map((po) => <th key={po} className={tbl.center}>{po}</th>)}
-            </tr>
-          </thead>
-          <tbody>
-            {outcomes.map((outcome, outcomeIndex) => (
-              <tr key={outcome.id || outcomeIndex}>
-                <td><strong>{outcome.id || `CO${outcomeIndex + 1}`}:</strong> {outcome.description}</td>
-                {Array.from({ length: 13 }, (_, poIndex) => (
-                  <td key={poIndex} className={tbl.center} style={{ fontWeight: outcome.poMappings?.[poIndex] ? 700 : 400 }}>
-                    {outcome.poMappings?.[poIndex] || ''}
-                  </td>
-                ))}
+      {current && (
+        <TableScrollRegion
+          label="COURSE OUTCOMES & PO ALIGNMENT"
+          minWidth={Math.max(640, 320 + programOutcomes.length * 52)}
+          className={`${pageStyles.tableRegion} ${pageStyles.compactTableRegion}`}
+        >
+          <table className={`${tbl.alignTable} ${tbl.compactRows}`}>
+            <colgroup>
+              <col />
+              {programOutcomes.map((po) => <col key={po.key} style={{ width: 52 }} />)}
+            </colgroup>
+            <thead>
+              <tr>
+                <th>After completion of the course, the student should be able to:</th>
+                {programOutcomes.map((po) => <th key={po.key} className={tbl.center} title={po.description}>{po.key}</th>)}
               </tr>
-            ))}
-            {!outcomes.length && (
-              <tr><td colSpan={14} className={tbl.emptyCell}>No course outcomes are available for this syllabus revision.</td></tr>
-            )}
-          </tbody>
-        </table>
-      </TableScrollRegion>
+            </thead>
+            <tbody>
+              {outcomes.map((outcome, outcomeIndex) => (
+                <tr key={outcome.id}>
+                  <td><strong>CO{outcomeIndex + 1}:</strong> {withoutNumber(outcome.description)}</td>
+                  {programOutcomes.map((po, poIndex) => (
+                    <td key={po.key} className={tbl.center} style={{ fontWeight: outcome.poMappings?.[poIndex] ? 700 : 400 }}>
+                      {outcome.poMappings?.[poIndex] || ''}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+              {data && !outcomes.length && (
+                <tr><td colSpan={programOutcomes.length + 1} className={tbl.emptyCell}>The instructor has not written course outcomes for this syllabus yet.</td></tr>
+              )}
+              {!data && !error && (
+                <tr><td colSpan={programOutcomes.length + 1} className={tbl.emptyCell}>Loading…</td></tr>
+              )}
+            </tbody>
+          </table>
+        </TableScrollRegion>
+      )}
+
+      {programOutcomes.length > 0 && (
+        <details className={styles.legendList}>
+          <summary>Program outcomes ({programOutcomes.length})</summary>
+          <ul>
+            {programOutcomes.map(po => <li key={po.key}><strong>{po.key}</strong> {po.description}</li>)}
+          </ul>
+        </details>
+      )}
 
       {selectedFile && (
         <PDFViewerModal

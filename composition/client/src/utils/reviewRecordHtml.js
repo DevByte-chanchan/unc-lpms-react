@@ -76,6 +76,11 @@ export const buildReviewRecordHtml = (record) => {
   body { font-family: Arial, Helvetica, sans-serif; color:#000; margin: 24px 32px; }
   h1 { font-size: 15pt; margin: 0 0 2px; } h2 { font-size: 11pt; margin: 14px 0 2px; }
   p { font-size: 9.5pt; margin: 2px 0; } td, th { word-break: break-word; }
+  /* On screen the record is drawn as a paper sheet, like the other exports. */
+  @media screen {
+    html { background: transparent; }
+    body { background: #fff; box-sizing: border-box; width: 330mm; max-width: 100%; margin: 24px auto; padding: 42px 85px 32px; box-shadow: 0 2px 16px rgba(0,0,0,0.12); }
+  }
   @media print { body { margin: 12mm; } tr { page-break-inside: avoid; } }
 </style></head><body>
   <h1>COURSE REVIEW RECORD</h1>

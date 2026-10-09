@@ -239,6 +239,16 @@ select option
   border: none
   display: flex
   padding: 0
+  // The icon draws in currentColor; the global button text colour is white, which vanished on this white background.
+  color: var(--ink-soft)
+  cursor: pointer
+
+  &:hover
+    color: var(--ink)
+
+  &:focus-visible
+    outline: 3px solid rgba(37, 99, 235, 0.32)
+    outline-offset: 2px
 
 
 .lighten

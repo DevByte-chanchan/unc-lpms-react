@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ChevronRight, FileText } from 'react-feather';
 import SkeletonA from '../../../layouts/SkeletonA.jsx';
 import HeaderA from '../../../components/HeaderA.jsx';
@@ -7,80 +7,71 @@ import PDFViewerModal from '../../../components/PDFViewerModal.jsx';
 import EmptyState from '../../../components/EmptyState.jsx';
 import TableScrollRegion from '../../../components/TableScrollRegion.jsx';
 import { buildCoaepHtml } from '../../../utils/syllabusPdfHtml.js';
-import { fetchJson } from '../../../utils/api.js';
+import { fetchJson, apiErrorMessage } from '../../../utils/api.js';
 import { getSession } from '../../../utils/session.js';
 import { fetchFormInfo } from '../../../utils/formSettings.js';
 import { buildGeneratedCoaepRecord } from '../../../utils/generatedCoaepRecord.js';
-import { extractProgramPrefix, getAllPrograms, getProgramCourses, getProgramName } from '../../../utils/programCurriculumData.js';
 import unclogo from '../../../assets/unclogo.png';
 import tbl from '../../../styles/AlignmentTables.module.sass';
 import pageStyles from '../../../styles/ProgramHeadWorkspace.module.sass';
+import styles from '../../../styles/PoPeoAlignment.module.sass';
 
 const COAEPView = () => {
   const session = getSession();
-  const programs = useMemo(() => getAllPrograms(), []);
   const [courseCode, setCourseCode] = useState('');
-  const [courses, setCourses] = useState([]);
-  const [serverPrograms, setServerPrograms] = useState([]);
-  const [serverCoaep, setServerCoaep] = useState(null);
+  const [courses, setCourses] = useState(null);
+  const [programName, setProgramName] = useState('');
+  const [serverCoaep, setServerCoaep] = useState(undefined);
+  const [error, setError] = useState('');
   const [selectedFile, setSelectedFile] = useState(null);
 
+  // The Program Head's real assigned courses, one entry per course code.
   useEffect(() => {
     let active = true;
-    const setFallbackCourses = () => {
-      const fallback = getProgramCourses(programs[0]);
-      if (!active) return;
-      setCourses(fallback);
-      setCourseCode(current => current || fallback[0]?.code || '');
-    };
-
-    fetchJson('/api/assignments')
+    fetchJson('/api/assignments?limit=500')
       .then(response => {
+        if (!active) return;
         const rows = Array.isArray(response) ? response : (response.data || []);
-        const courseRows = [];
-        const programNames = new Set();
-        const seenCourseCodes = new Set();
+        const byCode = new Map();
         rows.forEach(row => {
           const course = row.ProgramCourseOffering?.Course;
-          const program = row.ProgramCourseOffering?.Program;
-          if (course?.course_no && !seenCourseCodes.has(course.course_no)) {
-            seenCourseCodes.add(course.course_no);
-            courseRows.push({ code: course.course_no, name: course.course_title || '' });
-          }
-          if (program?.name) programNames.add(program.name);
+          if (course?.course_no && !byCode.has(course.course_no)) byCode.set(course.course_no, { code: course.course_no, name: course.course_title || '' });
         });
-        courseRows.sort((left, right) => left.code.localeCompare(right.code));
-        if (!active) return;
-        if (courseRows.length === 0) {
-          setFallbackCourses();
-          return;
-        }
-        setCourses(courseRows);
-        setServerPrograms([...programNames].sort());
-        setCourseCode(current => courseRows.some(course => course.code === current) ? current : courseRows[0].code);
+        const list = [...byCode.values()].sort((left, right) => left.code.localeCompare(right.code));
+        setProgramName(rows.find(row => row.ProgramCourseOffering?.Program?.name)?.ProgramCourseOffering.Program.name || '');
+        setCourses(list);
+        setCourseCode(list[0]?.code || '');
       })
-      .catch(setFallbackCourses);
-
+      .catch(err => { if (active) { setCourses([]); setError(apiErrorMessage(err, 'Could not load your courses.')); } });
     return () => { active = false; };
-  }, [programs]);
+  }, []);
 
+  // undefined = loading, null = this course has no plan content yet.
   useEffect(() => {
     if (!courseCode) return undefined;
     let active = true;
-    setServerCoaep(null);
+    setServerCoaep(undefined);
     fetchJson(`/api/coaep/${encodeURIComponent(courseCode)}`)
-      .then(payload => { if (active) setServerCoaep(payload); })
-      .catch(() => { if (active) setServerCoaep(null); });
+      .then(payload => { if (active) { setServerCoaep(payload); setError(''); } })
+      .catch(err => {
+        if (!active) return;
+        setServerCoaep(null);
+        // 404 simply means the plan has no outcomes yet; anything else is worth showing.
+        if (err.status !== 404) setError(apiErrorMessage(err, 'Could not load the COAEP.'));
+      });
     return () => { active = false; };
   }, [courseCode]);
 
-  const programCode = extractProgramPrefix(courseCode) || programs[0] || '';
-  const course = courses.find(item => item.code === courseCode);
+  const course = (courses || []).find(item => item.code === courseCode);
   const generatedRecord = buildGeneratedCoaepRecord({
     courseCode,
     courseName: course?.name,
-    payload: serverCoaep,
+    payload: serverCoaep || null,
   });
+
+  // One target for every row reads better above the table than repeated in a column.
+  const targets = new Set((generatedRecord?.cos || []).flatMap(co => (co.ilos || []).map(ilo => ilo.performanceTarget || generatedRecord.performanceTarget)));
+  const sharedTarget = targets.size === 1 ? [...targets][0] : null;
 
   const viewGeneratedCoaep = async () => {
     if (!generatedRecord) return;
@@ -89,13 +80,19 @@ const COAEPView = () => {
     const html = buildCoaepHtml(generatedRecord, logoUrl, { formInfo });
     const fileUrl = URL.createObjectURL(new Blob([html], { type: 'text/html' }));
     // A draft export is marked in its file name as well as watermarked inside.
-    const fileName = `${programCode}_${courseCode}_generated_COAEP${generatedRecord.approved ? '' : '_DRAFT'}.html`;
+    const fileName = `${courseCode}_generated_COAEP${generatedRecord.approved ? '' : '_DRAFT'}.html`;
     setSelectedFile({
       name: fileName,
       file_name: fileName,
       file_url: fileUrl,
       uploadedBy: 'System generated from syllabus',
       uploadDate: generatedRecord.approved ? generatedRecord.approvalDate : 'Not approved',
+      // The viewer's side panel reads these; without them it printed "undefined — undefined".
+      course_id: courseCode,
+      course_name: course?.name || '',
+      instructor_name: '—',
+      submission_date: '',
+      period_label: generatedRecord.sourceLabel,
     });
   };
 
@@ -118,7 +115,7 @@ const COAEPView = () => {
                 onChange={event => setCourseCode(event.target.value)}
                 aria-label="Select course"
               >
-                {courses.map(item => <option key={item.code} value={item.code}>{item.code} — {item.name}</option>)}
+                {(courses || []).map(item => <option key={item.code} value={item.code}>{item.code} — {item.name}</option>)}
               </select>
             </label>
             <div className={pageStyles.actions}>
@@ -133,32 +130,35 @@ const COAEPView = () => {
           {course && (
             <div className={pageStyles.contextBar}>
               <span><strong>Course:</strong> {courseCode} — {course.name}</span>
-              <span><strong>Program:</strong> {serverPrograms[0] || getProgramName(programCode)}</span>
+              {programName && <span><strong>Program:</strong> {programName}</span>}
               {generatedRecord && <span className={pageStyles.contextMuted}>{generatedRecord.sourceLabel}</span>}
             </div>
           )}
 
+          {error && <div role="alert" className={styles.alert}>{error}</div>}
+
           {generatedRecord && !generatedRecord.approved && (
-            <div
-              role="status"
-              style={{ margin: '0 0 12px', padding: '10px 14px', border: '1px solid #b45309', background: '#fef3c7', color: '#78350f', borderRadius: 6, fontWeight: 600 }}
-            >
+            <div role="status" className={styles.draftBanner}>
               {generatedRecord.banner} — this plan has not been fully approved, so this COAEP is a draft and is not final.
             </div>
           )}
 
+          {sharedTarget && generatedRecord && (
+            <div className={pageStyles.contextBar}><span><strong>Performance target:</strong> {sharedTarget}</span></div>
+          )}
+
           {generatedRecord ? (
-            <TableScrollRegion label="COURSE ASSESSMENT & EVALUATION PLAN (COAEP)" minWidth={1280} className={pageStyles.tableRegion}>
+            <TableScrollRegion label="COURSE ASSESSMENT & EVALUATION PLAN (COAEP)" minWidth={sharedTarget ? 1000 : 1280} className={pageStyles.tableRegion}>
               <table className={tbl.alignTable}>
                 <colgroup>
                   <col style={{ width: 40 }} />
                   <col style={{ width: '13%' }} />
                   <col style={{ width: '17%' }} />
-                  <col style={{ width: '10%' }} />
+                  <col style={{ width: '12%' }} />
                   <col style={{ width: '13%' }} />
                   <col style={{ width: '14%' }} />
-                  <col style={{ width: '15%' }} />
                   <col />
+                  {!sharedTarget && <col style={{ width: '15%' }} />}
                 </colgroup>
                 <thead>
                   <tr>
@@ -169,7 +169,7 @@ const COAEPView = () => {
                     <th>Topics</th>
                     <th>TLAs</th>
                     <th>Assessment Tool</th>
-                    <th>Performance Target</th>
+                    {!sharedTarget && <th>Performance Target</th>}
                   </tr>
                 </thead>
                 <tbody>
@@ -190,13 +190,21 @@ const COAEPView = () => {
                             ? <ul style={{ margin: 0, paddingLeft: 16 }}>{ilo.assessments.map(item => <li key={item.name}>{item.name} — {item.periodLabel ? `${item.periodLabel}, ` : ''}{item.weight}%</li>)}</ul>
                             : '—'}
                         </td>
-                        <td>{ilo.performanceTarget || generatedRecord.performanceTarget}</td>
+                        {!sharedTarget && <td>{ilo.performanceTarget || generatedRecord.performanceTarget}</td>}
                       </tr>
                     ));
                   })}
                 </tbody>
               </table>
             </TableScrollRegion>
+          ) : serverCoaep === undefined && courseCode ? (
+            <div className={styles.empty}>Loading…</div>
+          ) : courses !== null && courses.length === 0 ? (
+            <EmptyState
+              icon={<FileText size={22} strokeWidth={1.6} />}
+              title="No course is assigned in your program yet"
+              hint="Its COAEP appears here once an assigned course has a learning plan with course outcomes."
+            />
           ) : (
             <EmptyState
               icon={<FileText size={22} strokeWidth={1.6} />}
