@@ -1,0 +1,22 @@
+node_modules
+npm-debug.log*
+logs
+temp
+*.log
+.DS_Store
+.vscode
+.idea
+Dockerfile
+.dockerignore
+
+# Never bake local secrets, encrypted signatures or database backups into the image.
+# (data/*.sqlite is deliberately NOT listed: the Dockerfile seeds a fresh volume from it.)
+.env
+.env.*
+storage
+data.bak_*
+data.old_*
+tmp-*.sqlite*
+
+# Sync-tool placeholders in server/data; they are not part of the database.
+.fuse_hidden*

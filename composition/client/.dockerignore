@@ -1,0 +1,10 @@
+node_modules
+dist
+.vite
+npm-debug.log*
+*.log
+.DS_Store
+.vscode
+.idea
+Dockerfile
+.dockerignore
