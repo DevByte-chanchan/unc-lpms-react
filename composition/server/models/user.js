@@ -69,6 +69,16 @@ module.exports = (sequelize, DataTypes) => {
         must_change_password: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
         password_changed_at: { type: DataTypes.DATE, allowNull: true },
         temp_password_expires_at: { type: DataTypes.DATE, allowNull: true },
+
+        // E-signature. The image is an AES-256-GCM encrypted file (utils/signatureStore.js); only
+        // its random file name, mime type, IV, auth tag and key version are stored here.
+        signature_path: { type: DataTypes.STRING(80), allowNull: true },
+        signature_mime: { type: DataTypes.STRING(20), allowNull: true },
+        signature_iv: { type: DataTypes.STRING(32), allowNull: true },
+        signature_tag: { type: DataTypes.STRING(32), allowNull: true },
+        signature_key_version: { type: DataTypes.INTEGER, allowNull: true },
+        signature_updated_at: { type: DataTypes.DATE, allowNull: true },
+
         // Password reset. The RAW token is emailed/shown to the user and never
         // stored; only its SHA-256 lives here, so a copy of this table cannot
         // be used to reset anyone's password. Single outstanding reset per
@@ -91,7 +101,7 @@ module.exports = (sequelize, DataTypes) => {
             // So a stray `User.findAll()` in some future controller cannot
             // leak password hashes or a live reset token into an API response
             // by accident.
-            attributes: { exclude: ['password_hash', 'reset_token_hash'] }
+            attributes: { exclude: ['password_hash', 'reset_token_hash', 'signature_path', 'signature_iv', 'signature_tag'] }
         },
         scopes: {
             // The login path has to see the hash, and asks for it explicitly.

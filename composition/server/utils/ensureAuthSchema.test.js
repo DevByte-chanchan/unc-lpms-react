@@ -19,14 +19,17 @@ const test = async (name, fn) => {
 };
 const assert = (condition, message) => { if (!condition) throw new Error(message); };
 
-const freshDb = async ({ withUsers = false, withResetColumns = true } = {}) => {
+const freshDb = async ({ withUsers = false, withResetColumns = true, withCredentialColumns = true } = {}) => {
     if (fs.existsSync(DB)) fs.unlinkSync(DB);
     const sequelize = new Sequelize({ dialect: 'sqlite', storage: DB, logging: false });
     // A stand-in for the tables this database already has.
     await sequelize.query('CREATE TABLE Assignments (id INTEGER PRIMARY KEY, name TEXT)');
     await sequelize.query("INSERT INTO Assignments (name) VALUES ('a real row')");
+    await sequelize.query('CREATE TABLE AssignmentWorkflowLogs (log_id INTEGER PRIMARY KEY, actor_user_id INTEGER)');
     if (withUsers) {
-        const cols = withResetColumns ? ', reset_token_hash TEXT, reset_expires_at DATETIME' : '';
+        const cols = (withResetColumns ? ', reset_token_hash TEXT, reset_expires_at DATETIME' : '')
+            + (withCredentialColumns ? ', must_change_password BOOLEAN NOT NULL DEFAULT 0, password_changed_at DATETIME, temp_password_expires_at DATETIME'
+                + ', signature_path VARCHAR(80), signature_mime VARCHAR(20), signature_iv VARCHAR(32), signature_tag VARCHAR(32), signature_key_version INTEGER, signature_updated_at DATETIME' : '');
         await sequelize.query(`CREATE TABLE Users (
             user_id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, email TEXT UNIQUE,
             password_hash TEXT, role TEXT, is_active TINYINT DEFAULT 1, last_login_at DATETIME,

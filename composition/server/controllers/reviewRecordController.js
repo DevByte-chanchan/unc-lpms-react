@@ -3,6 +3,7 @@
 const { sequelize, Sequelize, Comment } = require('../models');
 const { assignmentChain, effectiveLogs } = require('../utils/effectiveLogs');
 const { assembleReviewRecord } = require('../utils/reviewRecord');
+const { signaturesForLogs } = require('../utils/approverSignatures');
 
 const select = (sql, replacements = []) =>
     sequelize.query(sql, { replacements, type: Sequelize.QueryTypes.SELECT });
@@ -101,7 +102,10 @@ async function getReviewRecord(req, res, next) {
             iloLabels,
             targetTitles: await buildTargetTitles(comments),
         });
-        return res.json({ ...record, generatedAt: new Date().toISOString() });
+        // Each approver's e-signature image (data: URI), only for approvals they performed.
+        const signatures = await signaturesForLogs(logs);
+        const approvers = record.approvers.map(approver => ({ ...approver, signature: signatures[approver.role] || null }));
+        return res.json({ ...record, approvers, generatedAt: new Date().toISOString() });
     } catch (err) {
         return next(err);
     }

@@ -31,6 +31,7 @@ export const PATTERNS = {
     instructorHome: '/',
     recordComments: '/record-comments',
     changePassword: '/change-password',
+    profile: '/profile',
 
     syllabusByRevision: '/courses/:pcId/:revNum/:status',
     syllabusByOffering: '/offerings/:pcId/:status',
@@ -80,6 +81,7 @@ export const routes = {
     instructorHome: () => '/',
     recordComments: () => '/record-comments',
     changePassword: () => '/change-password',
+    profile: () => '/profile',
 
     syllabusByRevision: (pcId, revNum, status) => `/courses/${enc(pcId)}/${enc(revNum)}/${enc(status)}`,
     // A working copy (no revision number yet) is addressed by its offering id alone.

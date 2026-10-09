@@ -7,6 +7,11 @@ const ENTITY_MAP = {
   '/': '&#x2F;'
 }
 
+// An e-signature image comes from the server as a data: URI. Embed it only if it is exactly that
+// (PNG or JPEG, base64); anything else is dropped rather than risk markup in an export.
+const SIGNATURE_URI = /^data:image\/(png|jpeg);base64,[A-Za-z0-9+/]+={0,2}$/
+export const signatureImageSrc = (value) => (typeof value === 'string' && SIGNATURE_URI.test(value) ? value : '')
+
 export const escapeHtml = (str) => {
   if (str === null || str === undefined) return ''
   return String(str).replace(/[&<>"'/]/g, (char) => ENTITY_MAP[char])

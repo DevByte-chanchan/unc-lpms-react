@@ -27,6 +27,9 @@ const HeaderA = ({name, role}) => {
             </div>
             {session &&
                 <button type="button" onClick={() => navigate('/profile')} title="Profile and e-signature" className={styles.signOut}>
+                    Profile
+                </button>
+            }
             {session &&
                 <button type="button" onClick={() => setShowSignOut(true)} title="Sign out" className={styles.signOut}>
                     Sign out

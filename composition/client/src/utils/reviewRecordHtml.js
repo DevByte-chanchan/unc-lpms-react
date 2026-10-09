@@ -2,7 +2,7 @@
 // every reviewer comment (who, role, section, message, date, resolved), every workflow
 // action (who, role, action, date) and the final approvers. It is deliberately a different
 // document from the clean syllabus export, which carries no comments.
-import { escapeHtml } from './sanitize.js'
+import { escapeHtml, signatureImageSrc } from './sanitize.js'
 
 const esc = (value, fallback = '—') =>
   (value === null || value === undefined || value === '') ? fallback : escapeHtml(String(value))
@@ -32,12 +32,16 @@ export const buildReviewRecordHtml = (record) => {
   const where = (c) => [c.section, c.location].filter(Boolean).join(' — ')
 
   const approvers = table(
-    ['Approver', 'Role', 'Accepted on'],
-    (record?.approvers || []).map(a => [
-      a.accepted ? esc(a.name, 'Name not recorded') : '<em>Not yet accepted</em>',
-      esc(a.roleLabel),
-      a.accepted ? esc(fmt(a.date)) : '—'
-    ]),
+    ['Approver', 'Role', 'Accepted on', 'Signature'],
+    (record?.approvers || []).map(a => {
+      const image = a.accepted ? signatureImageSrc(a.signature) : ''
+      return [
+        a.accepted ? esc(a.name, 'Name not recorded') : '<em>Not yet accepted</em>',
+        esc(a.roleLabel),
+        a.accepted ? esc(fmt(a.date)) : '—',
+        image ? `<img src="${image}" alt="Signature" style="max-height:14mm; max-width:40mm;">` : '—'
+      ]
+    }),
     'No approvers recorded.')
 
   const actions = table(

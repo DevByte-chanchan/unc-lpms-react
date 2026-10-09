@@ -48,6 +48,15 @@ const CREDENTIAL_COLUMNS = [
     ['must_change_password', 'BOOLEAN NOT NULL DEFAULT 0'],
     ['password_changed_at', 'DATETIME'],
     ['temp_password_expires_at', 'DATETIME'],
+    // e-signature metadata (migration 20260913000000)
+    ['signature_path', 'VARCHAR(80)'],
+    ['signature_mime', 'VARCHAR(20)'],
+    ['signature_iv', 'VARCHAR(32)'],
+    ['signature_tag', 'VARCHAR(32)'],
+    ['signature_key_version', 'INTEGER'],
+    ['signature_updated_at', 'DATETIME']
+];
+
 // `models` is a parameter with a default rather than a top-level require, so
 // the test can hand in a throwaway database instead of opening the real one.
 // Requiring it lazily also means a broken model file degrades sign-in rather
@@ -104,6 +113,19 @@ const ensureAuthSchema = async (injectedModels) => {
                 await queryInterface.addColumn(TABLE, 'reset_expires_at', { type: DataTypes.DATE, allowNull: true });
                 result.addedColumns.push('reset_expires_at');
             }
+            for (const [name, definition] of CREDENTIAL_COLUMNS) {
+                if (columns.includes(name)) continue;
+                await sequelize.query(`ALTER TABLE ${TABLE} ADD COLUMN ${name} ${definition}`);
+                result.addedColumns.push(name);
+            }
+        }
+
+        // The workflow log model writes actor_user_id (migration 20260913000000); a database that
+        // missed the migration would otherwise fail every approval action.
+        const [logColumns] = await sequelize.query('PRAGMA table_info(AssignmentWorkflowLogs)');
+        if (logColumns.length && !logColumns.some(c => c.name === 'actor_user_id')) {
+            await sequelize.query('ALTER TABLE AssignmentWorkflowLogs ADD COLUMN actor_user_id INTEGER');
+            result.addedColumns.push('actor_user_id');
         }
 
         result.accounts = await User.count();

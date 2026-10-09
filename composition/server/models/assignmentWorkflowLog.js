@@ -6,6 +6,8 @@ module.exports = (sequelize, DataTypes) => {
         actor_role: { type: DataTypes.STRING(30), allowNull: false },
         // Name of the signed-in user who acted; the approval screens rebuild each approver's signature from it.
         actor_name: { type: DataTypes.STRING(100), allowNull: true },
+        // The account that acted, so an approval can be tied to that person's e-signature. NULL on older rows.
+        actor_user_id: { type: DataTypes.INTEGER, allowNull: true },
         action_type: { type: DataTypes.ENUM('ASSIGNED', 'SUBMITTED', 'RETURNED', 'ACCEPTED'), allowNull: false },
     }, {
         tableName: 'AssignmentWorkflowLogs'

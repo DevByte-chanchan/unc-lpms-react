@@ -4,6 +4,7 @@ const assignmentController = require('../controllers/assignmentController');
 const { requireAuth } = require('../middleware/auth');
 const { requireOfferingAccess } = require('../middleware/courseAuthorization');
 const { getReviewRecord } = require('../controllers/reviewRecordController');
+const { getOfferingSignatures } = require('../controllers/signatureExportController');
 
 router.use(requireAuth);
 
@@ -18,6 +19,10 @@ router.get('/offering/:pcId', requireOfferingAccess, assignmentController.getWor
 
 // GET /api/assignments/offering/:pcId/review-record — the accreditation record (comments, actions, approvers)
 router.get('/offering/:pcId/review-record', requireOfferingAccess, getReviewRecord);
+
+// GET /api/assignments/offering/:pcId/signatures — approvers' e-signature images (data: URIs) for the
+// syllabus approval block; only for approvals they performed. Access follows the course.
+router.get('/offering/:pcId/signatures', requireOfferingAccess, getOfferingSignatures);
 
 // GET /api/assignments/:id
 router.get('/:id', assignmentController.getAssignmentById);

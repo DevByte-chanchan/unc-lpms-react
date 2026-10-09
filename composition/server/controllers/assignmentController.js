@@ -293,8 +293,14 @@ const recordWorkflowAction = async (req, res, next) => {
                     co_assign_id: assignment.co_assign_id,
                     actor_role,
                     actor_name: String(req.user?.name || '').slice(0, 100) || null,
+                    actor_user_id: req.user?.id ?? null,
                     action_type
                 }, { transaction });
+                // The revision number is assigned only now, when the Dean accepts.
+                if (actor_role === 'DEAN' && action_type === 'ACCEPTED') {
+                    await assignRevisionOnApproval(offeringId, new Date(), transaction);
+                }
+                return created;
                 });
             } catch (error) {
                 if ([403, 404, 409].includes(error?.statusCode)) {
