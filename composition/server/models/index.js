@@ -4,9 +4,12 @@ const path = require('path');
 const Sequelize = require('sequelize');
 const basename = path.basename(__filename);
 const env = process.env.NODE_ENV || 'development';
-const config = require(__dirname + '/../config/config.json')[env];
+const config = { ...require(__dirname + '/../config/config.json')[env] };
+// Only in test mode, and only for a file whose name says "test": a test that needs a database of its
+// own (an empty one, for the seeding script) can point the server code at it.
+if (env === 'test' && process.env.LPMS_TEST_DB_FILE) config.storage = process.env.LPMS_TEST_DB_FILE;
 // Tests must never open the real database (they write audit rows, accounts, ...).
-if (env === 'test' && !/test/.test(String(config.storage))) throw new Error('NODE_ENV=test must use a test database.');
+if (env === 'test' && !/test/.test(path.basename(String(config.storage)))) throw new Error('NODE_ENV=test must use a test database.');
 const { prepareNumberedStatement } = require('../utils/sqlPlaceholders');
 const db = {};
 
