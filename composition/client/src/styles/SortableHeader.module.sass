@@ -23,6 +23,11 @@
   letter-spacing: inherit
   text-transform: inherit
 
+  // A light tint, never a dark fill: the label keeps the header's own text colour.
+  &:hover
+    background: rgba(15, 23, 42, 0.07)
+    border-radius: 4px
+
   // No ring on a mouse click — it reads as a stray stroke on the header…
   &:focus
     outline: none

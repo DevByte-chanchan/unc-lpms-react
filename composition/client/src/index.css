@@ -88,7 +88,10 @@ button {
         transform var(--t-fast);
 }
 
-button:hover:not(:disabled) {
+/* :where() gives this hover zero specificity. It darkens a plain button, but never overrides a
+   button that sets its own background (a transparent sort header, a pale panel toggle): those
+   used to turn dark on hover with their dark text and icons unreadable. */
+:where(button:hover:not(:disabled)) {
     border-color: var(--primary-hover);
     background-color: var(--primary-hover);
 }
