@@ -17,9 +17,14 @@
 //   - one working copy at a time per course and program
 //   - at most one new approved revision per course, program and term (a carry-over is not new)
 //
+// Old data with several offerings per course and program (revisions that all share the course's
+// one term text) is handled by utils/offeringBackfill.js; see there for what is kept and cleared.
+// A case it cannot settle stops the migration with a message that names the course and offerings.
+// The migration is safe to run again after fixing the data.
+//
 // down() drops the indexes and columns; revision numbers set to 0 are not restored.
 
-const { backfillOfferings } = require('../utils/offeringBackfill');
+const { backfillOfferings, findIndexConflicts, describeConflicts } = require('../utils/offeringBackfill');
 
 const INDEXES = {
     offerings_one_working_copy:
@@ -43,6 +48,10 @@ module.exports = {
         await add('approved_at', { type: Sequelize.DATE, allowNull: true });
 
         await backfillOfferings(queryInterface);
+        // Older data with several offerings per course and program is settled by the backfill where
+        // that is safe; anything left would break an index, so stop here and say what to do.
+        const conflicts = await findIndexConflicts(queryInterface);
+        if (conflicts.length > 0) throw new Error(describeConflicts(conflicts));
         for (const sql of Object.values(INDEXES)) await queryInterface.sequelize.query(sql);
     },
 
