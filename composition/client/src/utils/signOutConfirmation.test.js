@@ -8,12 +8,11 @@ const here = path.dirname(fileURLToPath(import.meta.url))
 const src = path.resolve(here, '..')
 const read = relative => fs.readFileSync(path.join(src, relative), 'utf8')
 
-test('every header sign-out action opens the shared confirmation instead of logging out directly', () => {
+test('sign-out lives in the left bar only and opens the shared confirmation instead of logging out directly', () => {
   for (const relative of ['components/Header.jsx', 'components/HeaderA.jsx']) {
-    const source = read(relative)
-    assert.doesNotMatch(source, /onClick=\{logout\}/, `${relative} must not log out immediately`)
-    assert.match(source, /SignOutDialog/, `${relative} must use the shared confirmation dialog`)
+    assert.doesNotMatch(read(relative), /logout|Sign out|NotificationBell|\/profile/, `${relative} shows only the name and role`)
   }
+  assert.doesNotMatch(read('components/SideNavigation.jsx'), /onClick=\{logout\}/, 'the left bar must not log out immediately')
 
   const sideNavigation = read('components/SideNavigation.jsx')
   assert.match(sideNavigation, /SignOutDialog/)

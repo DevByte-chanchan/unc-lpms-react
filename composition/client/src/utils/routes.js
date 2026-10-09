@@ -56,11 +56,9 @@ export const PATTERNS = {
     coPoAlignment: '/role/program-head/co-po-alignment',
     poPeoAlignment: '/role/program-head/po-peo-alignment',
     industryConsultants: '/role/program-head/industry-consultant',
-    courseOfferings: '/role/program-head/course-offerings',
     userManagement: '/role/superuser',
 
     referenceLibrary: '/role/director-of-libraries/reference-library',
-    courseCatalog: '/role/director-of-libraries/course-catalog',
     addReference: '/role/director-of-libraries/add-reference',
     viewReference: '/role/director-of-libraries/view-reference/:refId',
     editReference: '/role/director-of-libraries/edit-reference/:refId'
@@ -106,12 +104,10 @@ export const routes = {
     coPoAlignment: () => '/role/program-head/co-po-alignment',
     poPeoAlignment: () => '/role/program-head/po-peo-alignment',
     industryConsultants: () => '/role/program-head/industry-consultant',
-    courseOfferings: () => '/role/program-head/course-offerings',
     userManagement: () => '/role/superuser',
 
     referenceLibrary: () => '/role/director-of-libraries/reference-library',
     directorAssignedCourses: (query) => withQuery('/role/director-of-libraries', query),
-    courseCatalog: (query) => withQuery('/role/director-of-libraries/course-catalog', query),
     addReference: () => '/role/director-of-libraries/add-reference',
     viewReference: (refId) => `/role/director-of-libraries/view-reference/${enc(refId)}`,
     editReference: (refId) => `/role/director-of-libraries/edit-reference/${enc(refId)}`

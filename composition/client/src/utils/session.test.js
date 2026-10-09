@@ -143,7 +143,7 @@ test('a role page can only be opened by the role that signed in', async () => {
   if (routeGuardRedirect(instructor, '/role/dean') !== '/') {
     throw new Error('An instructor on /role/dean must be sent back to their own view');
   }
-  if (routeGuardRedirect(instructor, '/role/program-head/course-offerings') !== '/') {
+  if (routeGuardRedirect(instructor, '/role/program-head/co-po-alignment') !== '/') {
     throw new Error('The guard must cover the pages under a role, not just its landing page');
   }
   if (routeGuardRedirect(instructor, '/role/instructor/courses/BIT313L') !== null) {

@@ -146,6 +146,16 @@
 // same axis puts the two controls' icons on one vertical line: the eye is
 // `right: 4px` in a 32px box, so its centre is 20px from the right edge — and
 // `right 12px center` on a 16px icon lands its centre at 12 + 8 = 20px too.
+// Browser autofill paints the field yellow and swaps the text colour; keep the card's own colours.
+.control:-webkit-autofill,
+.control:-webkit-autofill:hover,
+.control:-webkit-autofill:focus
+  -webkit-box-shadow: 0 0 0 1000px var(--surface) inset
+  box-shadow: 0 0 0 1000px var(--surface) inset
+  -webkit-text-fill-color: var(--ink)
+  caret-color: var(--ink)
+  transition: background-color 9999s ease-out 0s
+
 select.control
   cursor: pointer
   appearance: none
@@ -332,12 +342,19 @@ select.control
 // instead of wrapping into a ragged block.
 .demoGrid
   display: grid
-  grid-template-columns: 1fr 1fr
+  grid-template-columns: 1fr
   gap: var(--sp-2)
 
+// One account per row: the role, then the email to sign in with.
 .demoChip
-  height: 30px
-  padding: 0 var(--sp-3)
+  display: flex
+  flex-direction: column
+  align-items: flex-start
+  gap: 1px
+  height: auto
+  min-height: 40px
+  padding: var(--sp-3) var(--sp-4)
+  text-align: left
   border: 1px solid var(--line)
   border-radius: var(--radius-sm)
   background: var(--surface)
@@ -354,6 +371,38 @@ select.control
     background: var(--surface-muted)
     border-color: #cbd5e1
     color: var(--ink-soft)
+
+  &:focus-visible
+    outline: 2px solid var(--accent)
+    outline-offset: 1px
+
+.demoRole
+  font-size: var(--fs-xs)
+  font-weight: var(--fw-semibold)
+  color: var(--ink-soft)
+
+.demoEmail
+  font-size: var(--fs-xs)
+  color: var(--ink-muted)
+  max-width: 100%
+  overflow: hidden
+  text-overflow: ellipsis
+
+// "Administrator sign-in": plain text under the form, not a second call to action.
+.adminLink
+  display: block
+  margin: var(--sp-3) auto 0
+  padding: 0
+  border: none
+  background: transparent
+  color: var(--ink-muted)
+  font-family: inherit
+  font-size: var(--fs-xs)
+  cursor: pointer
+
+  &:hover
+    color: var(--ink-soft)
+    text-decoration: underline
 
 /* -------------------------------------------------------------- honeypot --- */
 

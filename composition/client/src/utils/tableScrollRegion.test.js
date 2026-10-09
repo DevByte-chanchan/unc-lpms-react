@@ -23,7 +23,6 @@ const tableConsumers = [
   'components/ReferenceSummary.jsx',
   'components/SyllabusRevisionsSections.jsx',
   'components/ApprovalSyllabusSections.jsx',
-  'pages/ProgramHeadCourseOfferings.jsx',
   'pages/lpsm/DirectorOfLibraries/ReferenceLibrary.jsx',
   'pages/lpsm/ProgramHead/COAEPView.jsx',
   'pages/lpsm/ProgramHead/CoPoAlignment.jsx',

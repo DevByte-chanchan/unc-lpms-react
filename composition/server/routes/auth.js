@@ -30,6 +30,10 @@ router.post('/logout', requireAuth, auth.logout);
 // HttpOnly server session after refreshes and backend restarts.
 router.get('/session', requireAuth, auth.currentSession);
 
+// GET /api/auth/demo-accounts — the demo accounts the sign-in screen may list. Off by default
+// (LPMS_SHOW_DEMO_ACCOUNTS=1 turns it on), never in production.
+router.get('/demo-accounts', auth.demoAccounts);
+
 // GET /api/auth/health — is server-side auth available? The client uses this
 // to decide whether to fall back to its local account store.
 router.get('/health', auth.health);

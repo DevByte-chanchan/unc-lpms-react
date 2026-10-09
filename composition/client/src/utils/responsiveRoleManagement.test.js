@@ -31,7 +31,6 @@ const sassBlock = (css, selector, after = null) => {
 }
 
 const rolePages = [
-  ['pages/ProgramHeadCourseOfferings.jsx', 'Search courses'],
   ['pages/ProgramHeadIndustryConsultant.jsx', 'Search consultants'],
   ['pages/DeanPrograms.jsx', 'Search programs'],
   ['pages/DeanFaculty.jsx', 'Search faculty'],

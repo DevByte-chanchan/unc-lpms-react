@@ -3,7 +3,7 @@ import { Eye, EyeOff, AlertCircle, Info } from 'react-feather'
 import { useNavigate } from 'react-router-dom'
 import {
   ROLES, DEMO_MODE, DEMO_PASSWORD, listAccounts, login, signup, homeRouteForRole, roleMeta, authMode,
-  registrationRoles,
+  registrationRoles, fetchDemoAccounts,
   requestPasswordReset, resetPassword
 } from '../utils/session'
 import styles from '../styles/Login.module.sass'
@@ -30,7 +30,7 @@ const COPY = {
 const STORE_DOT = { server: 'online', local: 'offline', unconfigured: 'offline' }
 const STORE_MESSAGE = {
   checking: 'Checking accounts…',
-  server: 'Signed-in accounts come from the server.',
+  server: '',
   local: DEMO_MODE
     ? 'Offline mode — the server is not running, so the built-in demo accounts are being used.'
     : 'The authentication server is unavailable. Sign-in is temporarily disabled.',
@@ -53,6 +53,10 @@ const Login = () => {
   // my.unc.edu.ph, which hides an input named `body` the same way.
   const [trap, setTrap] = useState('')
   const [showPassword, setShowPassword] = useState(false)
+  // The superuser is not offered in the "Login as" list; they use the administrator sign-in below.
+  const [adminMode, setAdminMode] = useState(false)
+  // Demo accounts listed by the server (email, role, shared password), when it is set up to.
+  const [serverDemo, setServerDemo] = useState(null)
 
   // A password-reset link from the email opens the reset form with the code and email filled in.
   useEffect(() => {
@@ -62,6 +66,12 @@ const Login = () => {
     setForm(prev => ({ ...prev, token, email: params.get('email') || prev.email }))
     setMode('reset')
     window.history.replaceState(null, '', window.location.pathname)
+  }, [])
+
+  useEffect(() => {
+    let live = true
+    fetchDemoAccounts().then(found => { if (live) setServerDemo(found) })
+    return () => { live = false }
   }, [])
 
   useEffect(() => {
@@ -81,6 +91,7 @@ const Login = () => {
     setError('')
     setNotice('')
     setShowPassword(false)
+    if (next !== 'login') setAdminMode(false)
   }
 
   const submitLabel = busy ? COPY[mode].busy : COPY[mode].submit
@@ -114,7 +125,7 @@ const Login = () => {
       }
 
       const result = mode === 'login'
-        ? await login(form.email, form.password, { role: form.role, honeypot: trap })
+        ? await login(form.email, form.password, { role: adminMode ? 'superuser' : form.role, honeypot: trap })
         : await signup({ ...form, honeypot: trap })
 
       if (!result.ok) {
@@ -135,12 +146,17 @@ const Login = () => {
       ...prev,
       name: account.name,
       email: account.email,
-      password: DEMO_PASSWORD,
+      password: demoPassword,
       role: account.role
     }))
   }
 
   const isAuthMode = mode === 'login' || mode === 'signup'
+
+  // The demo accounts to list: the server's (all of them, with their emails), else the built-in
+  // browser ones in a demo build. Either way the shared password is shown with them.
+  const demoAccounts = serverDemo ? serverDemo.accounts : (DEMO_MODE ? listAccounts() : [])
+  const demoPassword = serverDemo ? serverDemo.password : DEMO_PASSWORD
 
   return (
     <div className={styles.page}>
@@ -149,7 +165,7 @@ const Login = () => {
           <img className={styles.logo} src={unclogo} alt="University of Nueva Caceres" />
           <div className={styles.titles}>
             <div className={styles.title}>Learning Plan System</div>
-            <div className={styles.subtitle}>{COPY[mode].subtitle}</div>
+            <div className={styles.subtitle}>{mode === 'login' && adminMode ? 'Administrator sign-in' : COPY[mode].subtitle}</div>
           </div>
         </header>
 
@@ -164,13 +180,13 @@ const Login = () => {
               The reset flow has no role field at all: the account already has
               one, and asking again would let a wrong answer look like a failed
               reset. */}
-          {isAuthMode && (
+          {isAuthMode && !(mode === 'login' && adminMode) && (
             <div className={styles.field}>
               <label className={styles.label} htmlFor="login-role">
                 {mode === 'login' ? 'Login as' : 'Register as'}
               </label>
               <select id="login-role" className={styles.control} value={form.role} onChange={set('role')}>
-                {(mode === 'signup' ? registrationRoles(DEMO_MODE) : ROLES)
+                {(mode === 'signup' ? registrationRoles(DEMO_MODE) : ROLES.filter(r => r.key !== 'superuser'))
                   .map(r => <option key={r.key} value={r.key}>{r.label}</option>)}
               </select>
             </div>
@@ -276,6 +292,12 @@ const Login = () => {
           </button>
         </form>
 
+        {mode === 'login' && (
+          <button type="button" className={styles.adminLink} onClick={() => { setAdminMode(v => !v); setError('') }}>
+            {adminMode ? 'Back to regular sign-in' : 'Administrator sign-in'}
+          </button>
+        )}
+
         <button
           type="button"
           className={styles.switch}
@@ -296,10 +318,12 @@ const Login = () => {
               is running, but /api/auth is not mounted or the Users table has
               not been migrated. Sign-in falls back to the demo accounts and
               still works — but you need to be told why, and what to run. */}
-          <div className={styles.status}>
-            <span className={`${styles.dot} ${STORE_DOT[store] ? styles[STORE_DOT[store]] : ''}`} />
-            <span>{STORE_MESSAGE[store] || STORE_MESSAGE.checking}</span>
-          </div>
+          {(STORE_MESSAGE[store] ?? STORE_MESSAGE.checking) !== '' && (
+            <div className={styles.status}>
+              <span className={`${styles.dot} ${STORE_DOT[store] ? styles[STORE_DOT[store]] : ''}`} />
+              <span>{STORE_MESSAGE[store] ?? STORE_MESSAGE.checking}</span>
+            </div>
+          )}
 
           {DEMO_MODE && store === 'unconfigured' && (
             <div className={styles.setup}>
@@ -311,13 +335,14 @@ const Login = () => {
             </div>
           )}
 
-          {DEMO_MODE && (
+          {mode === 'login' && !adminMode && demoAccounts.length > 0 && (
             <>
-              <div className={styles.demoLabel}>Demo accounts (password <code>{DEMO_PASSWORD}</code>)</div>
+              <div className={styles.demoLabel}>Demo accounts. The password for all of them is <code>{demoPassword}</code>. Click one to fill the form.</div>
               <div className={styles.demoGrid}>
-                {listAccounts().map(a => (
+                {demoAccounts.map(a => (
                   <button key={a.email} type="button" className={styles.demoChip} onClick={() => applyDemoAccount(a)}>
-                    {roleMeta(a.role)?.label || a.role}
+                    <span className={styles.demoRole}>{roleMeta(a.role)?.label || a.role}</span>
+                    <span className={styles.demoEmail}>{a.email}</span>
                   </button>
                 ))}
               </div>

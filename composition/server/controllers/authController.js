@@ -494,6 +494,29 @@ exports.changePassword = async (req, res, next) => {
     }
 };
 
+// ------------------------------------------------------- demo accounts ---
+//
+// The sign-in screen can list the demo accounts (email + role) and their shared password, so people
+// trying the app do not have to look them up. OFF unless LPMS_SHOW_DEMO_ACCOUNTS=1, never in
+// production, and only for demo accounts that actually exist and are active. The superuser is not a
+// demo account and is never listed. Nothing else about any account is exposed.
+exports.demoAccounts = async (req, res, next) => {
+    try {
+        if (process.env.NODE_ENV === 'production' || process.env.LPMS_SHOW_DEMO_ACCOUNTS !== '1') {
+            return res.json({ enabled: false, accounts: [] });
+        }
+        const { DEMO_USERS, DEMO_PASSWORD } = require('../seeders/20260812000000-demo-users');
+        const existing = await User.findAll({ where: { email: DEMO_USERS.map(u => u.email), is_active: true } });
+        const present = new Set(existing.map(u => u.email));
+        const accounts = DEMO_USERS
+            .filter(u => present.has(u.email))
+            .map(u => ({ name: u.name, email: u.email, role: u.role }));
+        return res.json({ enabled: accounts.length > 0, password: DEMO_PASSWORD, accounts });
+    } catch (err) {
+        return next(err);
+    }
+};
+
 exports.logout = (req, res) => {
     auditAuth(req, 'LOGOUT', 'success', req.user);
     revokeSession(req.sessionToken);

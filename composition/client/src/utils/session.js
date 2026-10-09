@@ -445,6 +445,21 @@ export const authMode = async () => {
   return 'server'
 }
 
+// The demo accounts the sign-in screen may list, when the server was started with
+// LPMS_SHOW_DEMO_ACCOUNTS=1 (never in production): { password, accounts: [{ name, email, role }] },
+// or null when it lists nothing or cannot be reached.
+export const fetchDemoAccounts = async () => {
+  try {
+    const res = await fetch(`${authBase()}/demo-accounts`)
+    if (!res.ok) return null
+    const data = await res.json()
+    if (!data?.enabled || !Array.isArray(data.accounts) || data.accounts.length === 0) return null
+    return { password: String(data.password || ''), accounts: data.accounts }
+  } catch {
+    return null
+  }
+}
+
 // ----------------------------------------------------------- local store ---
 //
 // The original browser-only store, kept as the offline fallback. Its `digest`
@@ -597,6 +612,7 @@ export default {
   loginLocal,
   signupLocal,
   authMode,
+  fetchDemoAccounts,
   requestPasswordReset,
   resetPassword,
   logout,

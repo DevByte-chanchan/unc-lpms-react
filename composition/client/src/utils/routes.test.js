@@ -108,9 +108,6 @@ test('query strings are built the same way everywhere', () => {
     assert(routes.approvalSyllabus('dean', 'IT 321', { status: 'pending', pcId: '', revNum: 2 }) ===
         '/role/dean/courses/IT%20321?status=pending&revNum=2',
         routes.approvalSyllabus('dean', 'IT 321', { status: 'pending', pcId: '', revNum: 2 }))
-    assert(routes.courseCatalog({ course: 'BIT 313L' }) ===
-        '/role/director-of-libraries/course-catalog?course=BIT%20313L',
-        routes.courseCatalog({ course: 'BIT 313L' }))
     assert(routes.directorAssignedCourses({ status: 'returned', year: 2026, semester: '1st Sem', course: 'BIT321L' }) ===
         '/role/director-of-libraries?status=returned&year=2026&semester=1st%20Sem&course=BIT321L',
         routes.directorAssignedCourses({ status: 'returned', year: 2026, semester: '1st Sem', course: 'BIT321L' }))

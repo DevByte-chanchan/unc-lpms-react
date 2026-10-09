@@ -1,11 +1,12 @@
 import styles from '../styles/SideNavigation.module.sass'
 import unclogo from '../assets/unclogo.png'
-import { BookOpen, CheckCircle, Clipboard, FileText, GitMerge, Layers, LogOut, Target, Users } from 'react-feather'
+import { BookOpen, CheckCircle, Clipboard, FileText, GitMerge, Layers, LogOut, Target, User, Users } from 'react-feather'
 import { useSearchParams, useNavigate, useLocation } from 'react-router-dom'
 import { useEffect, useRef, useState } from 'react'
-import { logout } from '../utils/session'
+import { getSession, logout } from '../utils/session'
 import { routes } from '../utils/routes.js';
 import SignOutDialog from './SignOutDialog.jsx'
+import NotificationBell from './NotificationBell.jsx'
 import { navigationIconName } from '../utils/navigationIcons.js'
 
 const NAVIGATION_ICON_COMPONENTS = {
@@ -57,9 +58,6 @@ const SideNavigation = ({ mode = 'instructor' }) => {
     }
     if (location.pathname.startsWith(routes.referenceLibrary())) {
         selected = 'Upload Documents';
-    }
-    if (location.pathname.startsWith('/role/director-of-libraries/course-catalog')) {
-        selected = 'Course Catalog';
     }
 
     const [showPopup, setShowPopup] = useState(false)
@@ -189,12 +187,12 @@ const SideNavigation = ({ mode = 'instructor' }) => {
 
                 {mode === 'program-head' && (
                     <>
-                        <div onClick={() => { navigate('/role/program-head/co-po-alignment') }} className={`${styles.list} ${selected === 'CO & PO Alignment' ? styles.selected : ''}`} role="link" tabIndex={0} title="CO & PO Alignment" aria-label="CO & PO Alignment" onKeyDown={(event) => activateWithKeyboard(event, () => navigate('/role/program-head/co-po-alignment'))}>
-                            <NavigationIcon label="CO & PO Alignment" /> <span className={styles.listText}>CO & PO Alignment</span>
-                        </div>
-
                         <div onClick={() => { navigate('/role/program-head/po-peo-alignment') }} className={`${styles.list} ${selected === 'PO & PEO Alignment' ? styles.selected : ''}`} role="link" tabIndex={0} title="PO & PEO Alignment" aria-label="PO & PEO Alignment" onKeyDown={(event) => activateWithKeyboard(event, () => navigate('/role/program-head/po-peo-alignment'))}>
                             <NavigationIcon label="PO & PEO Alignment" /> <span className={styles.listText}>PO & PEO Alignment</span>
+                        </div>
+
+                        <div onClick={() => { navigate('/role/program-head/co-po-alignment') }} className={`${styles.list} ${selected === 'CO & PO Alignment' ? styles.selected : ''}`} role="link" tabIndex={0} title="CO & PO Alignment" aria-label="CO & PO Alignment" onKeyDown={(event) => activateWithKeyboard(event, () => navigate('/role/program-head/co-po-alignment'))}>
+                            <NavigationIcon label="CO & PO Alignment" /> <span className={styles.listText}>CO & PO Alignment</span>
                         </div>
 
                         <div onClick={() => { navigate(routes.coaepView()) }} className={`${styles.list} ${selected === 'COAEP' ? styles.selected : ''}`} role="link" tabIndex={0} title="COAEP" aria-label="COAEP" onKeyDown={(event) => activateWithKeyboard(event, () => navigate(routes.coaepView()))}>
@@ -207,9 +205,6 @@ const SideNavigation = ({ mode = 'instructor' }) => {
                     <>
                         <div onClick={() => { navigate('/role/director-of-libraries/reference-library') }} className={`${styles.list} ${selected === 'Reference Library' ? styles.selected : ''}`} role="link" tabIndex={0} title="Reference Library" aria-label="Reference Library" onKeyDown={(event) => activateWithKeyboard(event, () => navigate('/role/director-of-libraries/reference-library'))}>
                             <NavigationIcon label="Reference Library" /> <span className={styles.listText}>Reference Library</span>
-                        </div>
-                        <div onClick={() => { navigate('/role/director-of-libraries/course-catalog') }} className={`${styles.list} ${selected === 'Course Catalog' ? styles.selected : ''}`} role="link" tabIndex={0} title="Course Catalog" aria-label="Course Catalog" onKeyDown={(event) => activateWithKeyboard(event, () => navigate('/role/director-of-libraries/course-catalog'))}>
-                            <NavigationIcon label="Course Catalog" /> <span className={styles.listText}>Course Catalog</span>
                         </div>
                     </>
                 )}
@@ -231,6 +226,16 @@ const SideNavigation = ({ mode = 'instructor' }) => {
                 )}
 
                 <div className={styles.logoutWrapper}>
+                    {/* The superuser administers accounts and receives no plan notifications. */}
+                    {mode !== 'superuser' && getSession() && <NotificationBell />}
+                    <div
+                        onClick={() => navigate('/profile')}
+                        className={`${styles.list} ${location.pathname === '/profile' ? styles.selected : ''}`}
+                        role="link" tabIndex={0} title="Profile and e-signature" aria-label="Profile"
+                        onKeyDown={(event) => activateWithKeyboard(event, () => navigate('/profile'))}
+                    >
+                        <User size={24} /> <span className={styles.listText}>Profile</span>
+                    </div>
                     <div className={styles.listB} onClick={onLogoutClick} role="button" tabIndex={0} title="Log out" aria-label="Log out" onKeyDown={(event) => activateWithKeyboard(event, onLogoutClick)}>
                         <LogOut size={24} color={'#F94545'} /> <span className={styles.listText}>Log Out</span>
                     </div>

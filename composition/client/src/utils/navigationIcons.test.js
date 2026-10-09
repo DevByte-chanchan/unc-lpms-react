@@ -8,7 +8,6 @@ const DESTINATIONS = [
   'PO & PEO Alignment',
   'COAEP',
   'Reference Library',
-  'Course Catalog',
   'Approved Plans',
 ]
 
@@ -19,10 +18,9 @@ test('every retained navigation destination has its own meaningful icon', () => 
   assert.equal(new Set(iconNames).size, DESTINATIONS.length, 'navigation destinations must not reuse one generic icon')
 })
 
-test('navigation icons describe alignment, plan, catalog, and approval destinations', () => {
+test('navigation icons describe alignment, plan, and approval destinations', () => {
   assert.equal(navigationIconName('CO & PO Alignment'), 'GitMerge')
   assert.equal(navigationIconName('PO & PEO Alignment'), 'Target')
   assert.equal(navigationIconName('COAEP'), 'Clipboard')
-  assert.equal(navigationIconName('Course Catalog'), 'Layers')
   assert.equal(navigationIconName('Approved Plans'), 'CheckCircle')
 })

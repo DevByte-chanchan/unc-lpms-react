@@ -28,10 +28,11 @@ test('compact navigation labels remain accessible without rail expansion', () =>
   assert.match(css, /\.listText[\s\S]*display:\s*none/)
 })
 
-test('headers use a classed sign-out action and wrap at mobile width', () => {
-  for (const file of ['components/Header.jsx', 'components/HeaderA.jsx']) {
-    assert.match(read(file), /className=\{styles\.signOut\}/)
-  }
+test('headers wrap at mobile width and the left bar carries Notifications, Profile and Log Out', () => {
+  const nav = read('components/SideNavigation.jsx')
+  assert.match(nav, /<NotificationBell/)
+  assert.match(nav, /navigate\('\/profile'\)/)
+  assert.match(nav, /Log Out/)
   for (const file of ['styles/Header.module.sass', 'styles/HeaderA.module.sass']) {
     assert.match(read(file), /flex-wrap:\s*wrap/)
     assert.match(read(file), /overflow-wrap:\s*anywhere/)

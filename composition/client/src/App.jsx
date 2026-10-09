@@ -30,14 +30,12 @@ const ProgramHead = lazy(() => import('./pages/ProgramHead.jsx'))
 const DirectorOfLibraries = lazy(() => import('./pages/DirectorOfLibraries.jsx'))
 const IndustryConsultant = lazy(() => import('./pages/IndustryConsultant.jsx'))
 const ProgramHeadIndustryConsultant = lazy(() => import('./pages/ProgramHeadIndustryConsultant.jsx'))
-const ProgramHeadCourseOfferings = lazy(() => import('./pages/ProgramHeadCourseOfferings.jsx'))
 const COAEPView = lazy(() => import('./pages/lpsm/ProgramHead/COAEPView.jsx'))
 const CoPoAlignment = lazy(() => import('./pages/lpsm/ProgramHead/CoPoAlignment.jsx'))
 const PoPeoAlignment = lazy(() => import('./pages/lpsm/ProgramHead/PoPeoAlignment.jsx'))
 const DirectorReferenceLibrary = lazy(() => import('./pages/lpsm/DirectorOfLibraries/ReferenceLibrary.jsx'))
 const DirectorAddReference = lazy(() => import('./pages/lpsm/DirectorOfLibraries/AddReference.jsx'))
 const DirectorViewReference = lazy(() => import('./pages/lpsm/DirectorOfLibraries/ViewReference.jsx'))
-const DirectorCourseCatalog = lazy(() => import('./pages/lpsm/DirectorOfLibraries/CourseCatalog.jsx'))
 const ApprovalSyllabus = lazy(() => import('./pages/ApprovalSyllabus.jsx'))
 const Dean = lazy(() => import('./pages/Dean.jsx'))
 const VPAA = lazy(() => import('./pages/VPAA.jsx'))
@@ -120,12 +118,10 @@ function App() {
                         <Route path={'/role/program-head/po-peo-alignment'} element={<ErrorBoundary><PoPeoAlignment /></ErrorBoundary>} />
                         <Route path={'/role/director-of-libraries'} element={<ErrorBoundary><DirectorOfLibraries /></ErrorBoundary>} />
                         <Route path={'/role/director-of-libraries/reference-library'} element={<ErrorBoundary><DirectorReferenceLibrary /></ErrorBoundary>} />
-                        <Route path={'/role/director-of-libraries/course-catalog'} element={<ErrorBoundary><DirectorCourseCatalog /></ErrorBoundary>} />
                         <Route path={'/role/director-of-libraries/add-reference'} element={<ErrorBoundary><DirectorAddReference /></ErrorBoundary>} />
                         <Route path={'/role/director-of-libraries/view-reference/:refId'} element={<ErrorBoundary><DirectorViewReference /></ErrorBoundary>} />
                         <Route path={'/role/director-of-libraries/edit-reference/:refId'} element={<ErrorBoundary><DirectorAddReference /></ErrorBoundary>} />
                         <Route path={'/role/program-head/industry-consultant'} element={<ErrorBoundary><ProgramHeadIndustryConsultant /></ErrorBoundary>} />
-                        <Route path={'/role/program-head/course-offerings'} element={<ErrorBoundary><ProgramHeadCourseOfferings /></ErrorBoundary>} />
                         <Route path={'/role/dean'} element={<ErrorBoundary><Dean /></ErrorBoundary>} />
                         <Route path={'/role/vpaa'} element={<ErrorBoundary><VPAA /></ErrorBoundary>} />
                         <Route path={'/role/superuser'} element={<ErrorBoundary><SuperuserUsers /></ErrorBoundary>} />

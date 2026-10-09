@@ -4,7 +4,6 @@ const NAVIGATION_ICON_NAMES = Object.freeze({
   'PO & PEO Alignment': 'Target',
   COAEP: 'Clipboard',
   'Reference Library': 'BookOpen',
-  'Course Catalog': 'Layers',
   'Approved Plans': 'CheckCircle',
   'User Management': 'Users',
 })

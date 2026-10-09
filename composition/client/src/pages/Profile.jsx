@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import Skeleton from '../layouts/SkeletonA.jsx'
 import Header from '../components/HeaderA.jsx'
 import SideNavigation from '../components/SideNavigation.jsx'
-import pageStyles from '../styles/ProgramHeadWorkspace.module.sass'
+import styles from '../styles/Profile.module.sass'
 import { API_BASE, fetchJson, apiErrorMessage } from '../utils/api.js'
 import { getSession, roleMeta } from '../utils/session.js'
 import { routes } from '../utils/routes.js'
@@ -84,44 +84,53 @@ const Profile = () => {
         }
     }
 
+    const displayName = profile?.name || session?.name || '—'
+    const initial = (displayName.match(/[A-Za-z]/) || ['?'])[0].toUpperCase()
+
     const content = (
-        <div className={pageStyles.managementPage}>
-            <div className={pageStyles.pageHeader}><h2>Profile</h2></div>
+        <div className={styles.page}>
+            <h2 className={styles.title}>Profile</h2>
 
-            {error && <div role="alert" style={{ margin: '0 0 12px', color: '#b91c1c' }}>{error}</div>}
-            {notice && <div role="status" style={{ margin: '0 0 12px', color: '#166534' }}>{notice}</div>}
+            {error && <div role="alert" className={styles.alert}>{error}</div>}
+            {notice && <div role="status" className={styles.ok}>{notice}</div>}
 
-            <dl style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: '8px 16px', maxWidth: 520 }}>
-                <dt>Name</dt><dd style={{ margin: 0 }}>{profile?.name || session?.name || '—'}</dd>
-                <dt>Email</dt><dd style={{ margin: 0 }}>{profile?.email || session?.email || '—'}</dd>
-                <dt>Role</dt><dd style={{ margin: 0 }}>{roleMeta(profile?.role || session?.role)?.label || '—'}</dd>
-                <dt>Password</dt><dd style={{ margin: 0 }}><Link to={routes.changePassword()}>Change password</Link></dd>
-            </dl>
+            <section className={styles.card} aria-label="Account">
+                <div className={styles.identity}>
+                    <div className={styles.avatar} aria-hidden="true">{initial}</div>
+                    <div className={styles.identityText}>
+                        <div className={styles.name}>{displayName}</div>
+                        <span className={styles.roleChip}>{roleMeta(profile?.role || session?.role)?.label || '—'}</span>
+                    </div>
+                </div>
+                <dl className={styles.details}>
+                    <dt>Email</dt><dd>{profile?.email || session?.email || '—'}</dd>
+                    <dt>Password</dt><dd><Link className={styles.link} to={routes.changePassword()}>Change password</Link></dd>
+                </dl>
+            </section>
 
-            <h3 style={{ marginTop: 28 }}>E-signature</h3>
-            <p style={{ color: '#6B7280', maxWidth: 520 }}>
-                PNG or JPEG, up to 1 MB, between 16 and 2000 pixels on each side. It is stored encrypted and appears on
-                the syllabus approval block and the review record only for plans you approved.
-            </p>
+            <section className={styles.card} aria-label="E-signature">
+                <h3 className={styles.cardTitle}>E-signature</h3>
+                <p className={styles.hint}>
+                    PNG or JPEG, up to 1 MB, between 16 and 2000 pixels on each side. It is stored encrypted and appears on
+                    the syllabus approval block and the review record only for plans you approved.
+                </p>
 
-            <div style={{ width: 320, height: 120, border: '1px dashed #9CA3AF', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#fff', marginBottom: 12 }}>
-                {preview
-                    ? <img src={preview} alt="Your e-signature" style={{ maxWidth: '100%', maxHeight: '100%' }} />
-                    : <span style={{ color: '#6B7280' }}>{profile?.hasSignature ? 'Loading…' : 'No signature uploaded'}</span>}
-            </div>
+                <div className={styles.signature}>
+                    {preview
+                        ? <img src={preview} alt="Your e-signature" />
+                        : <span>{profile?.hasSignature ? 'Loading…' : 'No signature uploaded'}</span>}
+                </div>
 
-            <input ref={fileInput} type="file" accept="image/png,image/jpeg" onChange={choose} style={{ display: 'none' }} aria-label="Signature image file" />
-            <div style={{ display: 'flex', gap: 12 }}>
-                <button type="button" className={pageStyles.uploadButton} disabled={busy} onClick={() => fileInput.current?.click()}>
-                    {profile?.hasSignature ? 'Replace signature' : 'Upload signature'}
-                </button>
-                {profile?.hasSignature && (
-                    <button type="button" disabled={busy} onClick={remove}
-                        style={{ height: 40, padding: '0 16px', background: '#FFFFFF', border: '1px solid #111827', borderRadius: 8, cursor: 'pointer' }}>
-                        Remove
+                <input ref={fileInput} type="file" accept="image/png,image/jpeg" onChange={choose} style={{ display: 'none' }} aria-label="Signature image file" />
+                <div className={styles.actions}>
+                    <button type="button" className={styles.primary} disabled={busy} onClick={() => fileInput.current?.click()}>
+                        {profile?.hasSignature ? 'Replace signature' : 'Upload signature'}
                     </button>
-                )}
-            </div>
+                    {profile?.hasSignature && (
+                        <button type="button" className={styles.secondary} disabled={busy} onClick={remove}>Remove</button>
+                    )}
+                </div>
+            </section>
         </div>
     )
 

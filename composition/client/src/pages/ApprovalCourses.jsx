@@ -15,9 +15,7 @@ const ApprovalCourses = ({ isEmbedded = false, roleOverride = null }) => {
         useEffect(() => {
             const page = searchParams.get('page');
             if (!page) return;
-            if (role === 'program-head' && page === 'Course Offerings') {
-                navigate('/role/program-head/course-offerings', { replace: true });
-            } else if (role === 'program-head' && page === 'Industry Consultant') {
+            if (role === 'program-head' && page === 'Industry Consultant') {
                 navigate('/role/program-head/industry-consultant', { replace: true });
             }
         }, [searchParams, role, navigate]);
