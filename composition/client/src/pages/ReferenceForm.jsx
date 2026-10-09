@@ -1,5 +1,5 @@
 // src/pages/ReferenceForm.jsx
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { offeringKey } from '../utils/offeringKey.js'
 import Skeleton from '../layouts/Skeleton.jsx';
 import Header from '../components/Header.jsx';
@@ -16,7 +16,7 @@ import { X, CheckCircle, MessageSquare } from 'react-feather';
 import { fetchJson, apiErrorMessage } from "../utils/api.js";
 import CommentMessage from "../components/CommentMessage.jsx";
 import { getSession } from "../utils/session.js";
-import { getCourseCatalog, normalizeReference } from "../utils/referenceCatalog.js";
+import { normalizeReference } from "../utils/referenceCatalog.js";
 import { loadReferenceTypes } from "../utils/referenceStore.js";
 
 function InlineModal({ isOpen, title, onClose, children, actions }) {
@@ -80,12 +80,6 @@ const ReferenceForm = () => {
         }
         return () => { mounted = false; };
     }, [offeringID, revisionNum, iloId]);
-
-    // References the Director of Libraries assigned to this course this term.
-    const catalogIds = useMemo(
-        () => (course.code ? getCourseCatalog(course.code).referenceIds : []),
-        [course.code]
-    );
 
     useEffect(() => {
         if (!iloId) return;
@@ -243,7 +237,6 @@ const ReferenceForm = () => {
                                     courseCode={course.code}
                                     courseTitle={course.name}
                                     topics={iloTopics}
-                                    assignedIds={catalogIds}
                                 />
 
                                 <InlineModal isOpen={showConfirm} title="Saved" onClose={() => setShowConfirm(false)}>

@@ -15,7 +15,6 @@
 import { hasReferenceType, referenceTypeLabel } from './referenceTypes.js'
 
 const SETTINGS_KEY = 'lpsm_reference_settings_v1'
-const CATALOG_KEY = 'lpsm_course_catalog_v1'
 
 // The window is a setting, not two hard-coded years — "within 2021 to 2025" is
 // what "last 5 years" evaluates to when the term ends in 2025 [10:55].
@@ -191,23 +190,13 @@ const splitCodes = (value) => String(value || '')
 export const courseCodesForReference = (ref) =>
     splitCodes(ref?.used_in_courses ?? ref?.courses ?? ref?.course_no)
 
-export const selectRequestedCourse = (courses, requestedCode) => {
-    const source = Array.isArray(courses) ? courses : []
-    if (source.length === 0) return ''
-    const requested = String(requestedCode || '').trim().toLocaleUpperCase()
-    const match = source.find(course => String(course?.code || '').trim().toLocaleUpperCase() === requested)
-    return match?.code || source[0]?.code || ''
-}
-
 const sameCode = (a, b) =>
     String(a || '').toUpperCase().replace(/\s+/g, '') === String(b || '').toUpperCase().replace(/\s+/g, '')
 
-// A reference belongs to a course's catalog when the library already records it
-// against that course, or when the Director of Libraries assigned it there.
-export const isInCourseCatalog = (ref, courseCode, assignedIds = []) => {
+// A reference belongs to a course's set when the library already records it against that course.
+export const isInCourseCatalog = (ref, courseCode) => {
     if (!courseCode) return true
-    if (courseCodesForReference(ref).some(c => sameCode(c, courseCode))) return true
-    return assignedIds.some(id => String(id) === String(ref?.reference_id))
+    return courseCodesForReference(ref).some(c => sameCode(c, courseCode))
 }
 
 // --------------------------------------------------------------- relevance ---
@@ -323,64 +312,6 @@ export const citationFor = (ref) => {
 
 // -------------------------------------------------- per-course catalog store ---
 
-// Academic term key, e.g. 'AY2026-2027-1'. The suggested set is versioned by
-// term so it "updates every semester after faculty finalize" [16:22] [16:57].
-export const termKey = (date = new Date()) => {
-    const y = date.getFullYear()
-    const m = date.getMonth() + 1
-    // Aug–Dec = 1st semester of AY y/y+1; Jan–Jul = 2nd semester of AY y-1/y.
-    return m >= 8 ? `AY${y}-${y + 1}-1` : `AY${y - 1}-${y}-2`
-}
-
-export const nextTermKey = (term = termKey()) => {
-    const m = /^AY(\d{4})-(\d{4})-(\d)$/.exec(String(term))
-    if (!m) return termKey()
-    const [, start, end, sem] = m
-    return sem === '1' ? `AY${start}-${end}-2` : `AY${Number(end)}-${Number(end) + 1}-1`
-}
-
-const readCatalogStore = () => readJson(CATALOG_KEY, {})
-
-export const listCatalogTerms = () => Object.keys(readCatalogStore()).sort()
-
-export const getCourseCatalog = (courseCode, term = termKey()) => {
-    const store = readCatalogStore()
-    const entry = store[term]?.[String(courseCode || '').toUpperCase()]
-    return entry || { referenceIds: [], updatedAt: null, updatedBy: null, term }
-}
-
-export const setCourseCatalog = (courseCode, referenceIds = [], { term = termKey(), updatedBy = '' } = {}) => {
-    const store = readCatalogStore()
-    const code = String(courseCode || '').toUpperCase()
-    if (!code) return null
-    const entry = {
-        referenceIds: [...new Set(referenceIds.map(Number).filter(n => !Number.isNaN(n)))],
-        updatedAt: new Date().toISOString(),
-        updatedBy,
-        term
-    }
-    store[term] = { ...(store[term] || {}), [code]: entry }
-    writeJson(CATALOG_KEY, store)
-    return entry
-}
-
-// Carry a term's assignments forward so the next semester starts from the set
-// the faculty finalised rather than from nothing.
-export const rolloverCatalog = (fromTerm = termKey(), toTerm = nextTermKey(fromTerm)) => {
-    const store = readCatalogStore()
-    const source = store[fromTerm] || {}
-    const target = { ...(store[toTerm] || {}) }
-    let carried = 0
-    Object.entries(source).forEach(([code, entry]) => {
-        if (target[code]) return
-        target[code] = { ...entry, term: toTerm, rolledOverFrom: fromTerm }
-        carried += 1
-    })
-    store[toTerm] = target
-    writeJson(CATALOG_KEY, store)
-    return { toTerm, carried }
-}
-
 // ------------------------------------------------------------ the view ---
 
 export const normalizeReference = (r = {}) => ({
@@ -410,8 +341,7 @@ export const buildCatalogView = (references = [], {
     topics = [],
     type = 'Textbook',
     search = '',
-    scope = 'catalog',              // 'catalog' | 'library'
-    assignedIds = [],
+    scope = 'catalog',              // 'catalog' (this course's titles) | 'library' (everything)
     settings = DEFAULT_CATALOG_SETTINGS,
     now = new Date()
 } = {}) => {
@@ -430,7 +360,7 @@ export const buildCatalogView = (references = [], {
     // "Understanding the Self" [16:13].
     const inScope = scope === 'library'
         ? ofType
-        : ofType.filter(r => isInCourseCatalog(r, courseCode, assignedIds))
+        : ofType.filter(r => isInCourseCatalog(r, courseCode))
     const hiddenByCourse = ofType.length - inScope.length
 
     const outdated = inScope.filter(r => !isWithinRecency(r, window))
@@ -475,7 +405,6 @@ export default {
     availabilityOf,
     isAttachable,
     courseCodesForReference,
-    selectRequestedCourse,
     isInCourseCatalog,
     relevanceScore,
     normalizeTypeKey,
@@ -486,12 +415,6 @@ export default {
     EXTERNAL_SOURCES,
     externalSearchLinks,
     citationFor,
-    termKey,
-    nextTermKey,
-    getCourseCatalog,
-    setCourseCatalog,
-    rolloverCatalog,
-    listCatalogTerms,
     normalizeReference,
     buildCatalogView
 }

@@ -158,4 +158,11 @@ test('the reference-library table model sorts ID, title, authors, type, and year
     assert(sortRows(refs, columns, 'year', 'desc')[0].year === 2024, 'year arrow must sort numerically')
 })
 
+test('text ids sort by number inside the text: srv-2 comes before srv-10 and srv-100', () => {
+    const columns = tableSort.referenceLibraryColumns()
+    const refs = ['srv-100', 'srv-2', 'srv-10', 'srv-1'].map(id => ({ id, title: id, authors: '', type: '', year: 0 }))
+    const ordered = sortRows(refs, columns, 'id', 'asc').map(ref => ref.id).join(',')
+    assert(ordered === 'srv-1,srv-2,srv-10,srv-100', ordered)
+})
+
 console.log(`\n${passed} table-sort checks passed.`)

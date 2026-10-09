@@ -58,8 +58,9 @@ const compareTyped = (a, b, type) => {
     if (type === 'number') return (Number(a) || 0) - (Number(b) || 0)
     // localeCompare, not `<`, so "Ángeles" and "Zamora" order the way a person
     // expects rather than by code point.
+    // numeric: true keeps ids like srv-2 before srv-10.
     return String(a == null ? '' : a).toLowerCase()
-        .localeCompare(String(b == null ? '' : b).toLowerCase())
+        .localeCompare(String(b == null ? '' : b).toLowerCase(), undefined, { numeric: true })
 }
 
 /**

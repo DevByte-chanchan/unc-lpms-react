@@ -21,9 +21,8 @@ setReferenceTypes([
 const {
   parseYear, recencyWindow, isWithinRecency, chapterInfo, collapseChaptersToBooks,
   availabilityOf, isAttachable, isInCourseCatalog, relevanceScore, typeLabel,
-  externalSearchLinks, citationFor, termKey, nextTermKey, setCourseCatalog,
-  getCourseCatalog, rolloverCatalog, buildCatalogView, DEFAULT_CATALOG_SETTINGS,
-  countUnclassified, UNCLASSIFIED_TYPE, selectRequestedCourse, normalizeTypeKey, isUnclassifiedType
+  externalSearchLinks, citationFor, buildCatalogView, DEFAULT_CATALOG_SETTINGS,
+  countUnclassified, UNCLASSIFIED_TYPE, normalizeTypeKey, isUnclassifiedType
 } = await import('./referenceCatalog.js');
 
 const test = (name, fn) => {
@@ -59,16 +58,6 @@ const VIEW = {
   topics: ['Introduction to User Interface (UI) Design', 'Usability Testing'],
   now: NOW
 };
-
-test('a requested catalog course is selected from the available course list', () => {
-  const courses = [
-    { code: 'BIT213L', name: 'Data Structures' },
-    { code: 'BIT313L', name: 'Human Computer Interaction' },
-  ];
-  eq(selectRequestedCourse(courses, 'bit313l'), 'BIT313L', 'case-insensitive requested course');
-  eq(selectRequestedCourse(courses, 'UNKNOWN'), 'BIT213L', 'unknown course falls back to first available');
-  eq(selectRequestedCourse([], 'BIT313L'), '', 'empty course list');
-});
 
 test('a timestamp publication_year still reads as a year', () => {
   eq(parseYear('2024-01-01 00:00:00.000 +00:00'), 2024, 'timestamp');
@@ -124,7 +113,6 @@ test('only library-available or approved-external references may be attached', (
 test('course scope keeps a programming course away from general-education titles', () => {
   if (isInCourseCatalog(LIBRARY[2], 'BIT313L')) throw new Error('"Understanding the Self" is a GE101 title [16:13]');
   if (!isInCourseCatalog(LIBRARY[0], 'BIT313L')) throw new Error('an HCI title belongs to BIT313L');
-  if (!isInCourseCatalog(LIBRARY[5], 'BIT313L', [6])) throw new Error('a director-assigned reference joins the catalog');
   if (!isInCourseCatalog(LIBRARY[2], '')) throw new Error('with no course, nothing is scoped out');
 });
 
@@ -215,23 +203,6 @@ test('a blank or off-vocabulary type stays reachable now that "All" is gone', ()
 
   const textbooks = buildCatalogView(odd, { ...VIEW, type: 'Textbook' }).rows.map(r => r.title);
   if (textbooks.includes('Departmental Handout')) throw new Error('the fallback rows must not leak into a typed tab');
-});
-
-test('the course catalog is versioned per term and rolls into the next one', () => {
-  eq(termKey(new Date('2026-09-01')), 'AY2026-2027-1', 'first semester');
-  eq(termKey(new Date('2027-02-01')), 'AY2026-2027-2', 'second semester');
-  eq(nextTermKey('AY2026-2027-1'), 'AY2026-2027-2', 'next within the year');
-  eq(nextTermKey('AY2026-2027-2'), 'AY2027-2028-1', 'next academic year');
-
-  setCourseCatalog('BIT313L', [1, 5, 5], { term: 'AY2026-2027-1', updatedBy: 'SANTOS, MARIA' });
-  const saved = getCourseCatalog('BIT313L', 'AY2026-2027-1');
-  eq(saved.referenceIds.length, 2, 'ids are de-duplicated');
-  eq(saved.updatedBy, 'SANTOS, MARIA', 'who uploaded it');
-
-  const { toTerm, carried } = rolloverCatalog('AY2026-2027-1');
-  eq(toTerm, 'AY2026-2027-2', 'rolled into the next term');
-  eq(carried, 1, 'one course carried');
-  eq(getCourseCatalog('BIT313L', 'AY2026-2027-2').rolledOverFrom, 'AY2026-2027-1', 'the new term records where it came from');
 });
 
 console.log('\nAll reference catalog checks passed.');

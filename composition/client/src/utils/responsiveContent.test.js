@@ -352,7 +352,6 @@ test('approval footer uses compact section labels before the 740px grid collides
 test('role-specific workspaces declare compact and mobile contracts', () => {
   const styleFiles = [
     'styles/ProgramHeadWorkspace.module.sass',
-    'styles/CourseCatalog.module.sass',
     'styles/ReferenceLibrary.module.scss',
     'styles/ViewReference.module.scss',
     'styles/VPAA.module.scss',
@@ -431,7 +430,6 @@ test('icon-only surface close controls share the outlined red treatment', () => 
     'components/SyllabusPreview.jsx',
     'pages/DeanFaculty.jsx',
     'pages/ILOForm.jsx',
-    'pages/ProgramHeadCourseOfferings.jsx',
     'pages/ReferenceForm.jsx',
     'pages/TLAForm.jsx',
     'pages/TopicForm.jsx',

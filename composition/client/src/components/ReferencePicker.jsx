@@ -36,8 +36,7 @@ const ReferencePicker = ({
     onAddReference,
     courseCode = '',
     courseTitle = '',
-    topics = [],
-    assignedIds = []
+    topics = []
 }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [activeFilter, setActiveFilter] = useState('Textbook');
@@ -62,10 +61,9 @@ const ReferencePicker = ({
             type: activeFilter,
             search: searchTerm,
             scope,
-            assignedIds,
             settings
         }),
-        [options, courseCode, courseTitle, topics, activeFilter, searchTerm, scope, assignedIds, settings]
+        [options, courseCode, courseTitle, topics, activeFilter, searchTerm, scope, settings]
     );
 
     const isRefSelected = useCallback((ref) => {
@@ -277,7 +275,7 @@ const ReferencePicker = ({
                             icon={<Book size={20} strokeWidth={1.6} />}
                             title={`No ${String(activeFilter || 'reference').toLowerCase()} to show`}
                             hint={scope === 'catalog'
-                                ? `Nothing in ${courseCode || 'this course'}’s catalog matches. The Director of Libraries assigns titles per course each term.`
+                                ? `Nothing in ${courseCode || 'this course'}’s catalog matches. Titles appear here once the library records them against this course.`
                                 : 'Nothing in the library matches. Try a different search, or add the title from an outside source below.'}
                             action={scope === 'catalog' ? (
                                 <button type="button" className={styles.linkBtn} onClick={() => setScope('library')}>

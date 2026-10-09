@@ -33,6 +33,11 @@ module.exports = {
             user: { id: programHead.user_id, name: programHead.name },
         });
         console.log(`Carried BIT213L over to 2027-2028 1st semester as offering ${result.offeringId} (Rev ${result.revision}).`);
+
+        // The plan seeders each inserted their own copy of the shared titles; keep one row per title.
+        const { mergeDuplicateReferences } = require('../utils/mergeDuplicateReferences');
+        const merged = await mergeDuplicateReferences({ apply: true });
+        if (merged.removed > 0) console.log(`Merged ${merged.removed} duplicate reference row(s) into ${merged.groups} title(s).`);
     },
 
     async down() {
