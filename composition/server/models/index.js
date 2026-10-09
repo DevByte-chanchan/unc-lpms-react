@@ -137,6 +137,8 @@ if (config.dialect === 'sqlite' && wrapConnection) {
   const cm = sequelize.dialect.connectionManager;
   cm.connections = { default: wrapConnection };
   cm.getConnection = async () => wrapConnection;
+  // One shared connection means one open transaction at a time; queue the rest (see the module).
+  require('../utils/transactionQueue').serializeTransactions(sequelize);
 }
 
 // 1. Read and initialize models

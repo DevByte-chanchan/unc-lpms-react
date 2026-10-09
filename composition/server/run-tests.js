@@ -13,6 +13,7 @@ const { spawnSync } = require('child_process');
 
 const env = { ...process.env, NODE_ENV: 'test' };
 const dataDir = path.join(__dirname, 'data');
+fs.mkdirSync(dataDir, { recursive: true }); // a fresh checkout has no data folder (its contents are git-ignored)
 for (const suffix of ['', '-wal', '-shm']) fs.rmSync(path.join(dataDir, `lpms_test.sqlite${suffix}`), { force: true });
 
 const migrate = spawnSync(process.execPath, ['migrate.js'], { cwd: __dirname, env, stdio: 'inherit' });
