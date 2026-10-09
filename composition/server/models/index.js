@@ -29,6 +29,7 @@ if (config.dialect === 'sqlite') {
   raw.pragma('foreign_keys=ON');
   // better-sqlite3 already waits 5 s for a lock; state it so it is a decision, not a default, and
   // give a CLI script (migrate, seeder, create-superuser) running beside the server longer to finish.
+  raw.pragma('busy_timeout = 10000');
 
   // SQLite drivers can only bind numbers/strings/null — convert JS values
   // (Date objects from seeders/bulk ops, booleans) into storable forms.
@@ -124,6 +125,10 @@ if (config.dialect === 'sqlite') {
 
 const sequelize = new Sequelize(config.database || 'lpms', config.username || '', config.password || '', {
   ...config,
+  // Every SQLite transaction takes the write lock when it BEGINs (BEGIN IMMEDIATE). A deferred one
+  // that reads and then writes fails at once with SQLITE_BUSY_SNAPSHOT if another connection
+  // committed in between: busy_timeout does not apply to that case, so it cannot be waited out.
+  ...(config.dialect === 'sqlite' ? { transactionType: 'IMMEDIATE' } : {}),
   dialectModule: compatModule || undefined,
   logging: false,
 });
