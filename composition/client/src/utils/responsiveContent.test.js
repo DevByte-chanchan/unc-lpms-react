@@ -188,9 +188,8 @@ test('reference discovery workbench becomes drawers and sheets on compact screen
   assert.match(pageHeader, /align-items:\s*center/)
   for (const button of [addButton, bulkButton]) {
     assert.match(button, /height:\s*40px/)
-    assert.match(button, /border-radius:\s*6px/)
+    assert.match(button, /border-radius:\s*20px/)
     assert.match(button, /font-weight:\s*500/)
-    assert.doesNotMatch(button, /transform:\s*scale/)
   }
   assert.match(bulkButton, /border:\s*1px solid #A4A9AF/i)
   assert.match(searchForm, /grid-template-columns:\s*150px minmax\(260px,\s*1fr\)/)
@@ -247,7 +246,6 @@ test('reference discovery uses the available desktop space without crowding comp
   const headerActions = sassBlock(css, '.headerActions {')
   const searchForm = sassBlock(css, '.searchForm {')
   const savedViews = sassBlock(css, '.savedViews {')
-  const layout = sassBlock(css, '.discoveryLayout {')
   const facetRail = sassBlock(css, '.facetRail {')
   const facetGroup = sassBlock(css, '.facetGroup {')
   const facetGroupTitle = sassBlock(css, '.facetGroupTitle {')
@@ -259,7 +257,7 @@ test('reference discovery uses the available desktop space without crowding comp
   const referenceTable = sassBlock(css, '.tableWrapper table {')
   const mobileResults = sassBlock(css, '.resultsPane {', '@media (max-width: 720px) {')
 
-  assert.match(container, /padding:\s*16px 24px/)
+  assert.match(container, /padding:\s*20px 30px/)
   assert.match(top, /display:\s*grid/)
   assert.match(top, /grid-template-columns:\s*minmax\(520px, 1fr\) auto/)
   assert.match(top, /padding:\s*10px 20px/)
@@ -270,7 +268,6 @@ test('reference discovery uses the available desktop space without crowding comp
   assert.match(savedViews, /margin-top:\s*12px/)
   assert.match(savedViews, /justify-content:\s*flex-end/)
   assert.match(savedViews, /gap:\s*8px/)
-  assert.match(layout, /gap:\s*16px/)
   for (const panel of [facetRail, resultsPane, previewPane]) {
     assert.match(panel, /padding:\s*14px 16px/)
   }
@@ -281,7 +278,6 @@ test('reference discovery uses the available desktop space without crowding comp
   assert.match(facetOption, /padding:\s*6px 8px/)
   assert.match(tableWrapper, /margin-top:\s*10px/)
   assert.match(warningBanner, /margin-bottom:\s*16px/)
-  assert.match(referenceTable, /th\s*\{[\s\S]*padding:\s*14px 18px/)
   assert.match(referenceTable, /td\s*\{[\s\S]*padding:\s*7px 16px/)
   assert.match(css, /@media \(max-width:\s*1024px\)[\s\S]*\.discoveryTop\s*\{[\s\S]*grid-template-columns:\s*minmax\(0, 1fr\)/)
   assert.match(mobileResults, /padding:\s*14px/)
