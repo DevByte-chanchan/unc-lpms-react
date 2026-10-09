@@ -26,3 +26,6 @@ composition/server/data.bak_*/
 composition/server/data.old_*/
 composition/server/data/lpms_test.sqlite*
 composition/server/tmp-*.sqlite*
+
+# stray empty SQLite file from an old default path
+composition/server/config/database.sqlite
