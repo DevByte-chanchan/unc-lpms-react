@@ -55,6 +55,7 @@ export const PATTERNS = {
     poPeoAlignment: '/role/program-head/po-peo-alignment',
     industryConsultants: '/role/program-head/industry-consultant',
     courseOfferings: '/role/program-head/course-offerings',
+    userManagement: '/role/superuser',
 
     referenceLibrary: '/role/director-of-libraries/reference-library',
     courseCatalog: '/role/director-of-libraries/course-catalog',
@@ -102,6 +103,7 @@ export const routes = {
     poPeoAlignment: () => '/role/program-head/po-peo-alignment',
     industryConsultants: () => '/role/program-head/industry-consultant',
     courseOfferings: () => '/role/program-head/course-offerings',
+    userManagement: () => '/role/superuser',
 
     referenceLibrary: () => '/role/director-of-libraries/reference-library',
     directorAssignedCourses: (query) => withQuery('/role/director-of-libraries', query),

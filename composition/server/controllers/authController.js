@@ -187,6 +187,8 @@ exports.register = async (req, res, next) => {
         if (!name) return res.status(400).json({ error: 'Full name is required.' });
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return res.status(400).json({ error: 'Enter a valid email address.' });
         if (!ROLE_KEYS.includes(role)) return res.status(400).json({ error: 'Select a valid role.' });
+        // The superuser is never self-registered, not even in the local demo.
+        if (role === 'superuser') return res.status(403).json({ error: 'This role cannot be self-registered.' });
         if (role !== 'instructor' && !localPrivilegedRegistrationEnabled(source)) {
             return res.status(403).json({ error: 'Approver accounts must be provisioned by an administrator.' });
         }

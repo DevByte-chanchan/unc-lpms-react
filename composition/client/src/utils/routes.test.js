@@ -88,7 +88,7 @@ test('one parameter name per concept', () => {
 test('a role page lives under /role, and nothing else does', () => {
     for (const [name, pattern] of Object.entries(PATTERNS)) {
         const roleScoped = pattern.startsWith('/role/')
-        const mentionsRole = /program-head|director-of-libraries|:role/.test(pattern)
+        const mentionsRole = /program-head|director-of-libraries|superuser|:role/.test(pattern)
         assert(roleScoped === mentionsRole,
             `${name} ("${pattern}") is inconsistent about being role-scoped`)
     }

@@ -27,14 +27,15 @@ export const ROLES = [
   { key: 'director-of-libraries', label: 'Director of Libraries', home: '/role/director-of-libraries' },
   { key: 'industry-consultant', label: 'Industry Consultant', home: '/role/industry-consultant' },
   { key: 'dean', label: 'Dean', home: '/role/dean' },
-  { key: 'vpaa', label: 'VPAA', home: '/role/vpaa' }
+  { key: 'vpaa', label: 'VPAA', home: '/role/vpaa' },
+  { key: 'superuser', label: 'Superuser', home: '/role/superuser' }
 ]
 
-// Local/demo builds need to create accounts for every role so each review
-// step can be exercised on one development machine. Production keeps public
+// Local/demo builds need to create accounts for every learning-plan role so each review
+// step can be exercised on one development machine. The superuser is never self-registered. Production keeps public
 // self-registration limited to instructors; approvers are privileged users.
 export const registrationRoles = (demoMode = DEMO_MODE) =>
-  demoMode ? ROLES : ROLES.filter(role => role.key === 'instructor')
+  demoMode ? ROLES.filter(role => role.key !== 'superuser') : ROLES.filter(role => role.key === 'instructor')
 
 export const roleMeta = (roleKey = '') => ROLES.find(r => r.key === roleKey) || null
 

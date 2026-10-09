@@ -4,6 +4,11 @@
     "storage": "data/lpms_composition.sqlite",
     "logging": false
   },
+  "test": {
+    "dialect": "sqlite",
+    "storage": "data/lpms_test.sqlite",
+    "logging": false
+  },
   "production": {
     "dialect": "sqlite",
     "storage": "data/lpms_composition.sqlite",

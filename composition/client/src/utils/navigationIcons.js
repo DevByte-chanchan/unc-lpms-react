@@ -6,6 +6,7 @@ const NAVIGATION_ICON_NAMES = Object.freeze({
   'Reference Library': 'BookOpen',
   'Course Catalog': 'Layers',
   'Approved Plans': 'CheckCircle',
+  'User Management': 'Users',
 })
 
 export const navigationIconName = (label) => NAVIGATION_ICON_NAMES[label] || null

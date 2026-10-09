@@ -5,7 +5,7 @@
 // ROLE VOCABULARY — this is the whole reason the model exists in this shape.
 // my.unc.edu.ph's login has roles like Parent, Student and Teacher because it
 // is the university-wide portal. LPMS has none of those: every screen and
-// every route guard in this app keys on the six roles below, which are the
+// every route guard in this app keys on the roles below, which are the
 // same strings as `client/src/utils/session.js ROLES` and
 // `client/src/utils/approvalHelpers.js normalizeRoleKey`. An account created
 // with any other role could sign in and then reach nothing, so the set is
@@ -17,7 +17,10 @@ const ROLE_KEYS = [
     'director-of-libraries',
     'industry-consultant',
     'dean',
-    'vpaa'
+    'vpaa',
+    // Administers accounts and reads the audit trail. Created only by the bootstrap script or
+    // by another superuser; self-registration never accepts it.
+    'superuser'
 ];
 
 module.exports = (sequelize, DataTypes) => {

@@ -1,5 +1,5 @@
 const path = require('path');
-const config = require('./config/config.json').development;
+const config = require('./config/config.json')[process.env.NODE_ENV === 'test' ? 'test' : 'development'];
 const Sequelize = require('sequelize');
 const { prepareNumberedStatement } = require('./utils/sqlPlaceholders');
 

@@ -6,6 +6,7 @@ const basename = path.basename(__filename);
 const env = process.env.NODE_ENV || 'development';
 const config = require(__dirname + '/../config/config.json')[env];
 // Tests must never open the real database (they write audit rows, accounts, ...).
+if (env === 'test' && !/test/.test(String(config.storage))) throw new Error('NODE_ENV=test must use a test database.');
 const { prepareNumberedStatement } = require('../utils/sqlPlaceholders');
 const db = {};
 
@@ -26,6 +27,8 @@ if (config.dialect === 'sqlite') {
   const raw = new B(storagePath);
   raw.pragma('journal_mode=WAL');
   raw.pragma('foreign_keys=ON');
+  // better-sqlite3 already waits 5 s for a lock; state it so it is a decision, not a default, and
+  // give a CLI script (migrate, seeder, create-superuser) running beside the server longer to finish.
 
   // SQLite drivers can only bind numbers/strings/null — convert JS values
   // (Date objects from seeders/bulk ops, booleans) into storable forms.

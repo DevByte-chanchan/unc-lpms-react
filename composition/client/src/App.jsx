@@ -15,6 +15,7 @@ try { localStorage.removeItem('lpsm_workflow_v1'); localStorage.removeItem('lpsm
 // Each workspace is loaded only when its route is opened. This keeps the large
 // syllabus editors and PDF helpers out of the login and course-list download.
 const AssignedCourses = lazy(() => import('./pages/AssignedCourses.jsx'))
+const SuperuserUsers = lazy(() => import('./pages/SuperuserUsers.jsx'))
 const Syllabus = lazy(() => import('./pages/Syllabus.jsx'))
 const ReferenceForm = lazy(() => import('./pages/ReferenceForm.jsx'))
 const TopicForm = lazy(() => import('./pages/TopicForm.jsx'))
@@ -123,6 +124,7 @@ function App() {
                         <Route path={'/role/program-head/course-offerings'} element={<ErrorBoundary><ProgramHeadCourseOfferings /></ErrorBoundary>} />
                         <Route path={'/role/dean'} element={<ErrorBoundary><Dean /></ErrorBoundary>} />
                         <Route path={'/role/vpaa'} element={<ErrorBoundary><VPAA /></ErrorBoundary>} />
+                        <Route path={'/role/superuser'} element={<ErrorBoundary><SuperuserUsers /></ErrorBoundary>} />
 
                         {/* Generic role pages: default to approval-course-table */}
                         <Route path="/role/:approver">

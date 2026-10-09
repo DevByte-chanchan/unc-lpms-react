@@ -1,6 +1,6 @@
 import styles from '../styles/SideNavigation.module.sass'
 import unclogo from '../assets/unclogo.png'
-import { BookOpen, CheckCircle, Clipboard, FileText, GitMerge, Layers, LogOut, Target } from 'react-feather'
+import { BookOpen, CheckCircle, Clipboard, FileText, GitMerge, Layers, LogOut, Target, Users } from 'react-feather'
 import { useSearchParams, useNavigate, useLocation } from 'react-router-dom'
 import { useEffect, useRef, useState } from 'react'
 import { logout } from '../utils/session'
@@ -16,6 +16,7 @@ const NAVIGATION_ICON_COMPONENTS = {
     GitMerge,
     Layers,
     Target,
+    Users,
 }
 
 const NavigationIcon = ({ label }) => {
@@ -169,7 +170,7 @@ const SideNavigation = ({ mode = 'instructor' }) => {
             </div>
 
             <div className={styles['nav-list']}>
-                {mode !== 'vpaa' && (
+                {mode !== 'vpaa' && mode !== 'superuser' && (
                     <div
                         onClick={() => handlePageChange('Syllabus')}
                         className={`${styles.list} ${selected === 'Syllabus' ? styles.selected : ''}`}
@@ -214,6 +215,12 @@ const SideNavigation = ({ mode = 'instructor' }) => {
                 )}
 
                 
+
+                {mode === 'superuser' && (
+                    <div onClick={() => { navigate(routes.userManagement()) }} className={`${styles.list} ${styles.selected}`} role="link" tabIndex={0} title="User Management" aria-label="User Management" onKeyDown={(event) => activateWithKeyboard(event, () => navigate(routes.userManagement()))}>
+                        <NavigationIcon label="User Management" /> <span className={styles.listText}>User Management</span>
+                    </div>
+                )}
 
                 {mode === 'vpaa' && (
                     <>

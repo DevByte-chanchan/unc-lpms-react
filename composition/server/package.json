@@ -3,6 +3,7 @@
   "private": true,
   "version": "0.0.0",
   "scripts": {
+    "test": "node run-tests.js",
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",

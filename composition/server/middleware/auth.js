@@ -97,9 +97,25 @@ const createRequireAuth = ({ findUserById = defaultFindUserById } = {}) => async
 
 const requireAuth = createRequireAuth();
 
+const requirePermission = (permission) => (req, res, next) => {
+    const { hasPermission } = require('../config/permissions');
+    if (!req.user || !hasPermission(req.user.role, permission)) {
+        return res.status(403).json({ error: 'You do not have permission to perform this action.' });
+    }
+    return next();
+};
+
+// The superuser administers accounts, reads the audit trail and has their own profile; they have no business in
 // learning-plan data, so every other business API is closed to them (/api/auth is mounted
 // before this and is unaffected).
 const SUPERUSER_PATHS = /^\/(users|audit-logs|profile)(\/|$)/;
+const restrictSuperuser = (req, res, next) => {
+    if (req.user?.role === 'superuser' && !SUPERUSER_PATHS.test(req.path)) {
+        return res.status(403).json({ error: 'You do not have permission to perform this action.' });
+    }
+    return next();
+};
+
 const requireRole = (...allowedRoles) => (req, res, next) => {
     if (!req.user || !allowedRoles.includes(req.user.role)) {
         return res.status(403).json({ error: 'You do not have permission to perform this action.' });
@@ -115,5 +131,7 @@ module.exports = {
     revokeUserSessions,
     createRequireAuth,
     requireAuth,
-    requireRole
+    requireRole,
+    requirePermission,
+    restrictSuperuser
 };

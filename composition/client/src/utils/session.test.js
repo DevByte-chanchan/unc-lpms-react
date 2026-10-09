@@ -45,6 +45,10 @@ test('local registration offers every learning-plan role while production offers
     'vpaa'
   ];
 
+  if (localRoles.includes('superuser') || productionRoles.includes('superuser')) {
+    throw new Error('The superuser must never be offered on the registration form');
+  }
+
   if (JSON.stringify(localRoles) !== JSON.stringify(expectedLocalRoles)) {
     throw new Error(`Local registration roles are incomplete: ${localRoles.join(', ')}`);
   }
@@ -765,6 +769,21 @@ test('a completed reset signs the person in as the account the server returned',
   // The role is the account's, not the form's — the reset screen never asks.
   if ('role' in calls[0].body) throw new Error('the reset request must not carry a client-chosen role');
   logout();
+});
+
+  for (const role of ['instructor', 'program-head', 'dean', 'superuser']) {
+    if (sent.currentPassword !== 'Temp-pass1' || sent.newPassword !== 'Brand-new-9') throw new Error('both passwords must be sent');
+  });
+  logout();
+});
+
+test('the superuser lands on user management and cannot open another role pages', () => {
+  const superuser = { id: 9, role: 'superuser' };
+  if (homeRouteForRole('superuser') !== '/role/superuser') throw new Error('superuser home route is wrong');
+  if (routeGuardRedirect(superuser, '/role/superuser') !== null) throw new Error('superuser must reach its own page');
+  if (routeGuardRedirect(superuser, '/role/dean') !== '/role/superuser') throw new Error('superuser must not open the Dean page');
+  if (routeGuardRedirect(superuser, '/') !== '/role/superuser') throw new Error('superuser must not open the instructor home');
+  if (routeGuardRedirect({ id: 1, role: 'dean' }, '/role/superuser') !== '/role/dean') throw new Error('a Dean must not open the superuser page');
 });
 
 await run();

@@ -20,6 +20,7 @@ export const ROLE_LABEL_MAP = {
   'industry-consultant': 'Industry Consultant',
   'director-of-libraries': 'Director of Libraries',
   'instructor': 'Instructor',
+  'superuser': 'Superuser',
 }
 
 export const getReviewerByRole = (role) =>
@@ -31,6 +32,7 @@ export const getReviewerSeedData = (index = 0) =>
 export const normalizeRoleKey = (raw) => {
   if (!raw) return ''
   const r = String(raw).toLowerCase()
+  if (r.includes('superuser')) return 'superuser'
   if (r.includes('program')) return 'program-head'
   if (r.includes('dean')) return 'dean'
   if (r.includes('industry')) return 'industry-consultant'
