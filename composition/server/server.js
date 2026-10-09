@@ -78,6 +78,7 @@ app.use('/api/course-details', courseDetailsRoutes);
 
 const courseOutcomeAlignmentRoutes = require('./routes/courseOutcomeAlignment');
 app.use('/api/course-outcome-alignment', courseOutcomeAlignmentRoutes);
+app.use('/api/program-outcomes', require('./routes/programOutcomes'));
 
 const courseCriteriaRoutes = require('./routes/courseCriteria');
 app.use('/api/course-criteria', courseCriteriaRoutes);

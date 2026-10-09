@@ -3,7 +3,9 @@ module.exports = (sequelize, DataTypes) => {
     const ProgramOutcome = sequelize.define('ProgramOutcome', {
         po_id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
         program_id: { type: DataTypes.INTEGER, allowNull: false },
-        description: { type: DataTypes.STRING(200), allowNull: false }
+        description: { type: DataTypes.STRING(200), allowNull: false },
+        peo_numbers: { type: DataTypes.TEXT, allowNull: false, defaultValue: '[]' },
+        ga_numbers: { type: DataTypes.TEXT, allowNull: false, defaultValue: '[]' }
     }, {
         tableName: 'ProgramOutcomes'
     });
