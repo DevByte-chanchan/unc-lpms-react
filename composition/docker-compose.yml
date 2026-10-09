@@ -44,6 +44,9 @@ services:
       # https, not over plain http) and how many reverse proxies stand in front of the API (empty = none).
       LPMS_COOKIE_SECURE: "${LPMS_COOKIE_SECURE:-}"
       LPMS_TRUST_PROXY: "${LPMS_TRUST_PROXY:-}"
+      # Data Protection Officer shown on the Privacy Notice page (/privacy). Empty = "not set up yet".
+      LPMS_DPO_NAME: "${LPMS_DPO_NAME:-}"
+      LPMS_DPO_EMAIL: "${LPMS_DPO_EMAIL:-}"
       PORT: "5000"
       # Stated explicitly so the API is told to accept the origin the browser
       # actually loads the app from, whatever NODE_ENV ends up being.

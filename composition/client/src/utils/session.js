@@ -300,7 +300,22 @@ export const login = async (email, password, opts = {}) => {
   return { ...local, degraded: res.reachable }
 }
 
-export const signup = async ({ name, email, password, role, honeypot = '' } = {}) => {
+// The Privacy Notice (version, sections, Data Protection Officer's contact), or null when the server
+// cannot be reached. Public: no session needed.
+export const fetchPrivacyNotice = async () => {
+  try {
+    const res = await fetch(`${authBase()}/privacy`)
+    if (!res.ok) return null
+    const data = await res.json()
+    return data?.version && Array.isArray(data.sections) ? data : null
+  } catch {
+    return null
+  }
+}
+
+// `consentVersion` is the Privacy Notice version the person accepted; the server records it and refuses
+// registration without the current one.
+export const signup = async ({ name, email, password, role, honeypot = '', consentVersion } = {}) => {
   const cleanName = String(name || '').trim()
   const cleanEmail = normalizeEmail(email)
   const cleanRole = String(role || '').trim()
@@ -315,7 +330,7 @@ export const signup = async ({ name, email, password, role, honeypot = '' } = {}
     return { ok: false, error: 'Approver accounts must be provisioned by an administrator.' }
   }
 
-  const res = await postAuth('/register', { name: cleanName, email: cleanEmail, password, role: cleanRole, body: honeypot })
+  const res = await postAuth('/register', { name: cleanName, email: cleanEmail, password, role: cleanRole, body: honeypot, privacy_consent_version: consentVersion })
 
   if (isServerAnswer(res) && res.data.user) {
     return { ok: true, user: setSession(fromServer(res.data.user)), source: 'server' }
@@ -613,6 +628,7 @@ export default {
   signupLocal,
   authMode,
   fetchDemoAccounts,
+  fetchPrivacyNotice,
   requestPasswordReset,
   resetPassword,
   logout,

@@ -5,6 +5,10 @@ const router = express.Router();
 const auth = require('../controllers/authController');
 const { requireAuth } = require('../middleware/auth');
 
+// GET /api/auth/privacy — the Privacy Notice and the Data Protection Officer's contact. Public: it has
+// to be readable before anyone has an account.
+router.get('/privacy', auth.privacyNotice);
+
 // POST /api/auth/register — create an account with one of the six LPMS roles
 router.post('/register', auth.register);
 

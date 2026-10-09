@@ -29,6 +29,7 @@ const { hashPassword, verifyPassword, needsRehash } = require('../utils/password
 const { TTL_MS: RESET_TTL_MS, createToken, hashToken, expiryFrom, verifyReset } = require('../utils/resetToken');
 const { COOKIE_NAME, SESSION_TTL_MS, issueSession, revokeSession, revokeUserSessions, revokeOtherUserSessions, cookieValue } = require('../middleware/auth');
 const { sessionCookieOptions } = require('../utils/serverSecurity');
+const { PRIVACY_NOTICE_VERSION, privacyNotice } = require('../config/privacy');
 const { mailer, resetEmail } = require('../utils/mailer');
 
 const { record: audit } = require('../utils/audit');
@@ -160,6 +161,10 @@ const validatePassword = (password) => {
     return null;
 };
 
+// ------------------------------------------------------------- privacy ---
+
+exports.privacyNotice = (req, res) => res.json(privacyNotice());
+
 // ------------------------------------------------------------ register ---
 
 exports.register = async (req, res, next) => {
@@ -199,6 +204,17 @@ exports.register = async (req, res, next) => {
         const passwordProblem = validatePassword(password);
         if (passwordProblem) return res.status(400).json({ error: passwordProblem });
 
+        // Registration records that the person accepted the current Privacy Notice. The client sends the
+        // version it showed; anything other than the current version is refused, so a stale page cannot
+        // register someone against text they were never shown.
+        if (String(req.body?.privacy_consent_version ?? '') !== PRIVACY_NOTICE_VERSION) {
+            return res.status(400).json({
+                error: 'Read and accept the Privacy Notice to create an account.',
+                code: 'CONSENT_REQUIRED',
+                version: PRIVACY_NOTICE_VERSION
+            });
+        }
+
         const existing = await User.findOne({ where: { email } });
         if (existing) return res.status(409).json({ error: 'An account with that email already exists.' });
 
@@ -206,11 +222,13 @@ exports.register = async (req, res, next) => {
             name,
             email,
             role,
-            password_hash: await hashPassword(password)
+            password_hash: await hashPassword(password),
+            privacy_consent_version: PRIVACY_NOTICE_VERSION,
+            privacy_consent_at: new Date()
         });
 
         startSession(req, res, user);
-        auditAuth(req, 'REGISTER', 'success', user, { role: user.role });
+        auditAuth(req, 'REGISTER', 'success', user, { role: user.role, privacyConsentVersion: PRIVACY_NOTICE_VERSION });
         return res.status(201).json({ user: user.toPublic() });
     } catch (err) {
         // A unique-constraint race between the check above and the insert.

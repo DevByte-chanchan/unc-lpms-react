@@ -1,0 +1,68 @@
+// Privacy Notice page: a single readable column, usable signed out.
+.page
+  min-height: 100vh
+  box-sizing: border-box
+  padding: var(--sp-6) var(--sp-5)
+  background: var(--surface-muted)
+  display: flex
+  justify-content: center
+  align-items: flex-start
+  overflow-y: auto
+
+.card
+  width: 100%
+  max-width: 720px
+  box-sizing: border-box
+  padding: var(--sp-7)
+  background: var(--surface)
+  border: 1px solid var(--line)
+  border-radius: var(--radius-md)
+  box-shadow: var(--shadow-sm)
+  color: var(--ink)
+
+.title
+  margin: 0 0 var(--sp-1)
+  font-size: var(--fs-xl)
+  font-weight: var(--fw-semibold)
+
+.version
+  margin: 0 0 var(--sp-6)
+  font-size: var(--fs-sm)
+  color: var(--ink-muted)
+
+.section
+  margin-top: var(--sp-6)
+
+  h2
+    margin: 0 0 var(--sp-3)
+    font-size: var(--fs-lg)
+    font-weight: var(--fw-semibold)
+
+  ul
+    margin: 0
+    padding-left: var(--sp-6)
+
+  li
+    margin-bottom: var(--sp-3)
+    font-size: var(--fs-md)
+    line-height: 1.55
+
+  p
+    margin: 0
+    font-size: var(--fs-md)
+    line-height: 1.55
+
+  a
+    color: var(--accent)
+
+.muted
+  color: var(--ink-muted)
+
+.problem
+  color: var(--danger)
+
+.back
+  display: inline-block
+  margin-top: var(--sp-7)
+  color: var(--accent)
+  font-size: var(--fs-md)

@@ -66,6 +66,9 @@ module.exports = (sequelize, DataTypes) => {
 
         // Credential flow. An admin-issued temporary password must be replaced at first sign-in
         // and stops working at temp_password_expires_at (72 hours after it was issued).
+        // The Privacy Notice version accepted at registration, and when (config/privacy.js).
+        privacy_consent_version: { type: DataTypes.STRING(20), allowNull: true },
+        privacy_consent_at: { type: DataTypes.DATE, allowNull: true },
         must_change_password: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
         password_changed_at: { type: DataTypes.DATE, allowNull: true },
         temp_password_expires_at: { type: DataTypes.DATE, allowNull: true },

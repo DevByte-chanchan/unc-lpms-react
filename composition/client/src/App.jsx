@@ -6,6 +6,7 @@ import ErrorBoundary from "./components/ErrorBoundary.jsx";
 import ResizeVeil from "./components/ResizeVeil.jsx";
 import OverflowTooltip from "./components/OverflowTooltip.jsx";
 import Login from "./pages/Login.jsx";
+import Privacy from "./pages/Privacy.jsx";
 
 import { getSession, onSessionChange, reconcileSession, routeGuardRedirect } from './utils/session';
 // A plan's approval state lives in the server's workflow log. Drop the browser-side copy
@@ -66,6 +67,9 @@ function SessionGate({ children }) {
     }, [])
 
     if (checkingSession) return <div className="routeLoading" role="status">Checking session…</div>
+
+    // The Privacy Notice must be readable before anyone has an account.
+    if (location.pathname === '/privacy') return <Privacy />
 
     if (!session) return <Login />
 

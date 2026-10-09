@@ -7,6 +7,7 @@ const auth = require('../controllers/authController');
 const { hashPassword } = require('./password');
 const { hashToken } = require('./resetToken');
 const { COOKIE_NAME, issueSession, createRequireAuth } = require('../middleware/auth');
+const { PRIVACY_NOTICE_VERSION } = require('../config/privacy');
 
 const responseRecorder = () => {
     const record = { statusCode: 200, body: null, cookies: [] };
@@ -138,7 +139,7 @@ test('localhost development registration can provision an approver for the local
         const res = responseRecorder();
         await auth.register({
             ip: '127.0.0.1',
-            body: { ...user, password: 'password123' }
+            body: { ...user, password: 'password123', privacy_consent_version: PRIVACY_NOTICE_VERSION }
         }, res, error => { throw error; });
 
         assert.equal(res.record.statusCode, 201);
@@ -167,7 +168,7 @@ test('allowed instructor registration starts a server session', async () => {
 
     try {
         const res = responseRecorder();
-        await auth.register({ ip: '127.0.0.1', body: { ...user, password: 'password123' } }, res, error => { throw error; });
+        await auth.register({ ip: '127.0.0.1', body: { ...user, password: 'password123', privacy_consent_version: PRIVACY_NOTICE_VERSION } }, res, error => { throw error; });
 
         assert.equal(res.record.statusCode, 201);
         assert.equal(res.record.cookies[0]?.name, 'lpms_session');
@@ -247,7 +248,7 @@ test('an explicitly enabled production registration still creates an instructor 
         const res = responseRecorder();
         await auth.register({
             ip: '198.51.100.72',
-            body: { name: 'ENABLED USER', email: 'enabled@example.test', password: 'password123', role: 'instructor' }
+            body: { name: 'ENABLED USER', email: 'enabled@example.test', password: 'password123', role: 'instructor', privacy_consent_version: PRIVACY_NOTICE_VERSION }
         }, res, error => { throw error; });
         assert.equal(res.record.statusCode, 201);
         assert.equal(res.record.body.user.role, 'instructor');

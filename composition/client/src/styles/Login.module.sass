@@ -425,3 +425,28 @@ select.control
 
   .demoGrid
     grid-template-columns: 1fr
+
+// "I accept the Privacy Notice" row on the registration form.
+.consent
+  display: flex
+  align-items: flex-start
+  gap: var(--sp-3)
+  font-size: var(--fs-sm)
+  line-height: 1.45
+  color: var(--ink-soft)
+  cursor: pointer
+
+  input
+    margin-top: 2px
+    flex: 0 0 auto
+
+  a
+    color: var(--accent)
+
+.legal
+  margin-top: var(--sp-4)
+  text-align: center
+  font-size: var(--fs-xs)
+
+  a
+    color: var(--ink-muted)

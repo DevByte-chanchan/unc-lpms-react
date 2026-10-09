@@ -3,7 +3,7 @@ import { Eye, EyeOff, AlertCircle, Info } from 'react-feather'
 import { useNavigate } from 'react-router-dom'
 import {
   ROLES, DEMO_MODE, DEMO_PASSWORD, listAccounts, login, signup, homeRouteForRole, roleMeta, authMode,
-  registrationRoles, fetchDemoAccounts,
+  registrationRoles, fetchDemoAccounts, fetchPrivacyNotice,
   requestPasswordReset, resetPassword
 } from '../utils/session'
 import styles from '../styles/Login.module.sass'
@@ -57,6 +57,9 @@ const Login = () => {
   const [adminMode, setAdminMode] = useState(false)
   // Demo accounts listed by the server (email, role, shared password), when it is set up to.
   const [serverDemo, setServerDemo] = useState(null)
+  // Registration needs the person to accept the Privacy Notice; the server records the version shown.
+  const [privacy, setPrivacy] = useState(null)
+  const [accepted, setAccepted] = useState(false)
 
   // A password-reset link from the email opens the reset form with the code and email filled in.
   useEffect(() => {
@@ -73,6 +76,13 @@ const Login = () => {
     fetchDemoAccounts().then(found => { if (live) setServerDemo(found) })
     return () => { live = false }
   }, [])
+
+  useEffect(() => {
+    if (mode !== 'signup') return undefined
+    let live = true
+    fetchPrivacyNotice().then(found => { if (live) setPrivacy(found) })
+    return () => { live = false }
+  }, [mode])
 
   useEffect(() => {
     let live = true
@@ -92,6 +102,7 @@ const Login = () => {
     setNotice('')
     setShowPassword(false)
     if (next !== 'login') setAdminMode(false)
+    setAccepted(false)
   }
 
   const submitLabel = busy ? COPY[mode].busy : COPY[mode].submit
@@ -124,9 +135,14 @@ const Login = () => {
         return
       }
 
+      if (mode === 'signup' && !accepted) {
+        setError('Read and accept the Privacy Notice to create an account.')
+        return
+      }
+
       const result = mode === 'login'
         ? await login(form.email, form.password, { role: adminMode ? 'superuser' : form.role, honeypot: trap })
-        : await signup({ ...form, honeypot: trap })
+        : await signup({ ...form, honeypot: trap, consentVersion: privacy?.version })
 
       if (!result.ok) {
         setError(result.error)
@@ -287,6 +303,17 @@ const Login = () => {
             </div>
           )}
 
+          {mode === 'signup' && (
+            <label className={styles.consent}>
+              <input type="checkbox" checked={accepted} onChange={(e) => setAccepted(e.target.checked)} />
+              <span>
+                I have read and accept the{' '}
+                <a href="/privacy" target="_blank" rel="noopener noreferrer">Privacy Notice</a>
+                {privacy ? ` (version ${privacy.version})` : ''}.
+              </span>
+            </label>
+          )}
+
           <button type="submit" className={styles.submit} disabled={busy}>
             {submitLabel}
           </button>
@@ -309,6 +336,10 @@ const Login = () => {
               ? 'Already have an account? Sign in'
               : 'Back to sign in'}
         </button>
+
+        <div className={styles.legal}>
+          <a href="/privacy" target="_blank" rel="noopener noreferrer">Privacy Notice</a>
+        </div>
 
         <div className={styles.footer}>
           {/* Which account store is actually answering. Without this the
