@@ -8,12 +8,12 @@ import { fetchJson } from "../utils/api.js";
 import { buildSyllabusExportFile } from "../utils/exportSyllabus.js";
 import { revisionOf } from "../utils/offeringKey.js";
 import PDFViewerModal from "./PDFViewerModal.jsx";
-import PokeButton from "./PokeButton.jsx";
 import EmptyState from "./EmptyState.jsx";
 import Spinner from "./Spinner.jsx";
 import { loadReviewAssignments } from '../utils/reviewAssignments.js';
 import unclogo from '../assets/unclogo.png';
 import TableScrollRegion from './TableScrollRegion.jsx';
+import PokeButton from './PokeButton.jsx';
 import { buildApproverStatus, canExportRow, computeOverallStatus, latestSubmissionAt } from '../utils/assignmentStatus.js';
 import { filterAssignmentsByCourse, readAssignedCourseFilters } from '../utils/referenceCourseNavigation.js';
 
@@ -194,8 +194,8 @@ const ApprovalCoursesTable = ({ role = 'approver', styleHooks = {} }) => {
                 </span>
             }
 
-            {/* Program Head and Dean can remind a reviewer who has a pending item (rate limited by the server). */}
-            {selectedStatus === 'PENDING' && ['program-head', 'dean'].includes(role) &&
+            {/* A returned plan waits for its instructor: the Program Head can remind them to resubmit (rate limited by the server). */}
+            {selectedStatus === 'RETURNED' && role === 'program-head' &&
                 <PokeButton offeringId={getOfferingID(row)} />
             }
 

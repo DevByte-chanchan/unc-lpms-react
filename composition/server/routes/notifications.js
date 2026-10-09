@@ -9,7 +9,7 @@ router.get('/unread-count', controller.unreadCount);
 router.put('/read-all', controller.markAllRead);
 router.put('/:id/read', controller.markRead);
 
-// Poke: Program Head and Dean only (users the matrix grants notification:poke).
+// Poke (remind the instructor to submit): Program Head and Dean only (users the matrix grants notification:poke).
 router.get('/poke-targets/:offeringId', requirePermission('notification:poke'), controller.pokeTargets);
 router.post('/poke', requirePermission('notification:poke'), controller.poke);
 

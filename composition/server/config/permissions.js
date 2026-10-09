@@ -18,7 +18,7 @@ const PERMISSIONS = Object.freeze({
     'plan:view-approved': 'Read approved learning plans and export them',
     'reference:manage': 'Maintain the reference library',
     'form-settings:edit': 'Edit the ISO form revision and effectivity',
-    'notification:poke': 'Send a reminder to a reviewer with a pending item'
+    'notification:poke': 'Remind an instructor to submit a learning plan'
 });
 
 const ROLE_PERMISSIONS = Object.freeze({

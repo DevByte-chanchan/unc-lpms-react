@@ -380,77 +380,70 @@ test('the forced-password gate also covers notifications', async () => {
 
 const poke = (as, offeringId, targetUserId) => call(as, 'POST', '/poke', { offeringId, targetUserId });
 
-test('poke permissions: Program Head and Dean only, and only for a reviewer with a pending item', async () => {
-    const f = await fixture();
-    await act(f, 'instructor', 'INSTRUCTOR', 'SUBMITTED'); // Library Director and Program Head are pending
+test('poke permissions: Program Head and Dean only, and only for the assigned instructor', async () => {
+    const f = await fixture(); // assigned, not yet submitted
 
     for (const nobody of [f.instructor, f.ld, { user_id: f.instructor.user_id, role: 'industry-consultant' }, { user_id: f.instructor.user_id, role: 'vpaa' }]) {
-        assert.equal((await poke(nobody, f.offeringId, f.ld.user_id)).status, 403, nobody.role);
+        assert.equal((await poke(nobody, f.offeringId, f.instructor.user_id)).status, 403, nobody.role);
     }
     assert.equal((await call(f.ld, 'GET', `/poke-targets/${f.offeringId}`)).status, 403);
 
     assert.equal((await poke(f.ph, f.offeringId, f.ph.user_id)).status, 400, 'not yourself');
-    assert.equal((await poke(f.ph, 'x', f.ld.user_id)).status, 400);
+    assert.equal((await poke(f.ph, 'x', f.instructor.user_id)).status, 400);
     assert.equal((await poke(f.ph, f.offeringId, undefined)).status, 400);
-    assert.equal((await poke(f.ph, 999999, f.ld.user_id)).status, 404, 'unknown offering');
-    assert.equal((await poke({ user_id: 999999, role: 'program-head' }, f.offeringId, f.ld.user_id)).status, 403, 'a Program Head of another program has no access');
-    assert.equal((await poke(f.ph, f.offeringId, f.dean.user_id)).status, 409, 'the Dean has nothing pending yet');
-    assert.equal((await poke(f.ph, f.offeringId, f.instructor.user_id)).status, 409, 'not a reviewer');
+    assert.equal((await poke(f.ph, 999999, f.instructor.user_id)).status, 404, 'unknown offering');
+    assert.equal((await poke({ user_id: 999999, role: 'program-head' }, f.offeringId, f.instructor.user_id)).status, 403, 'a Program Head of another program has no access');
+    assert.equal((await poke(f.ph, f.offeringId, f.ld.user_id)).status, 409, 'a reviewer is not the instructor');
+    assert.equal((await poke(f.ph, f.offeringId, f.dean.user_id)).status, 409, 'the Dean is not the instructor');
     assert.equal((await poke(f.ph, f.offeringId, 999999)).status, 409, 'unknown person');
-    const stranger = await makeUser('director-of-libraries'); // a reviewer, but not a user with an item here
-    stranger.is_active = false;
-    await stranger.save();
-    assert.equal((await poke(f.ph, f.offeringId, stranger.user_id)).status, 409, 'inactive account');
+    const other = await makeUser('instructor'); // an instructor, but not the one assigned here
+    assert.equal((await poke(f.ph, f.offeringId, other.user_id)).status, 409, 'an instructor of another course');
+    other.is_active = false;
+    await other.save();
+    assert.equal((await poke(f.ph, f.offeringId, other.user_id)).status, 409, 'inactive account');
     assert.equal((await Notification.count({ where: { type: 'poke', offering_id: f.offeringId } })), 0, 'nothing was sent by the refusals');
 });
 
-test('poke: delivered, audited, and limited to one per target per offering per 4 hours', async () => {
+test('poke: delivered, audited, and limited to one per instructor per offering per 4 hours', async () => {
     const f = await fixture();
-    await act(f, 'instructor', 'INSTRUCTOR', 'SUBMITTED');
 
-    const first = await poke(f.ph, f.offeringId, f.ld.user_id);
+    const first = await poke(f.ph, f.offeringId, f.instructor.user_id);
     assert.equal(first.status, 201);
-    const [n] = await inbox(f.ld, 'poke');
-    assert.equal(n.message, `${f.code} — reminder: review pending by Program Head`);
+    const [n] = await inbox(f.instructor, 'poke');
+    assert.equal(n.message, `${f.code} — reminder: submit your learning plan by Program Head`);
     assert.equal(n.actor_role, 'PROGRAM_HEAD');
     assert.equal(n.offering_id, f.offeringId);
 
     const audit = await AuditLog.findAll({ where: { action: 'NOTIFICATION_POKE', entity_id: String(f.offeringId) } });
     assert.equal(audit.length, 1);
-    assert.deepEqual(JSON.parse(audit[0].details), { target_user_id: f.ld.user_id, offering_id: f.offeringId });
+    assert.deepEqual(JSON.parse(audit[0].details), { target_user_id: f.instructor.user_id, offering_id: f.offeringId });
     assert.equal(audit[0].actor_user_id, f.ph.user_id);
 
-    const again = await poke(f.ph, f.offeringId, f.ld.user_id);
+    const again = await poke(f.ph, f.offeringId, f.instructor.user_id);
     assert.equal(again.status, 429);
     const body = await again.json();
     assert.ok(body.retryAfterSeconds > 4 * 3600 - 60 && body.retryAfterSeconds <= 4 * 3600);
     assert.equal(again.headers.get('retry-after'), String(body.retryAfterSeconds));
-    assert.equal((await poke(f.dean, f.offeringId, f.ld.user_id)).status, 429, 'the limit is per target and offering, whoever pokes');
-    assert.equal((await Notification.count({ where: { type: 'poke', recipient_user_id: f.ld.user_id } })), 1);
-
-    // Another target on the same offering is a separate limit; the Dean can poke the Program Head.
-    assert.equal((await poke(f.dean, f.offeringId, f.ph.user_id)).status, 201);
+    assert.equal((await poke(f.dean, f.offeringId, f.instructor.user_id)).status, 429, 'the limit is per target and offering, whoever pokes');
+    assert.equal((await Notification.count({ where: { type: 'poke', recipient_user_id: f.instructor.user_id } })), 1);
 
     const targets = await (await call(f.ph, 'GET', `/poke-targets/${f.offeringId}`)).json();
-    const ld = targets.targets.find(t => t.userId === f.ld.user_id);
-    assert.ok(ld.nextPokeAt, 'the poked reviewer shows when they can be poked again');
-    assert.ok(!targets.targets.some(t => t.userId === f.ph.user_id), 'you are not your own target');
-    assert.ok(!targets.targets.some(t => t.userId === f.dean.user_id) && !targets.targets.some(t => t.userId === f.instructor.user_id));
+    assert.deepEqual(targets.targets.map(t => t.userId), [f.instructor.user_id], 'the instructor is the only target');
+    assert.ok(targets.targets[0].nextPokeAt, 'the poked instructor shows when they can be poked again');
 
     // After the window the same pair can be poked again.
     await Notification.update({ created_at: new Date(Date.now() - 5 * 3600 * 1000) }, { where: { id: n.id } }); // via the model, so it is stored in the same UTC format
-    assert.equal((await poke(f.ph, f.offeringId, f.ld.user_id)).status, 201);
-    const refreshed = await (await call(f.ph, 'GET', `/poke-targets/${f.offeringId}`)).json();
-    assert.ok(refreshed.targets.find(t => t.userId === f.ld.user_id).nextPokeAt);
+    assert.equal((await poke(f.ph, f.offeringId, f.instructor.user_id)).status, 201);
 });
 
-test('the Dean becomes pokeable only once both reviewers accepted', async () => {
+test('poke only while the plan is unsubmitted or returned', async () => {
     const f = await fixture();
     await act(f, 'instructor', 'INSTRUCTOR', 'SUBMITTED');
-    await act(f, 'ph', 'PROGRAM_HEAD', 'ACCEPTED');
-    await act(f, 'ld', 'LIBRARY_DIRECTOR', 'ACCEPTED');
-    assert.equal((await poke(f.ph, f.offeringId, f.dean.user_id)).status, 201);
-    assert.equal((await poke(f.ph, f.offeringId, f.ld.user_id)).status, 409, 'accepted reviewers have nothing pending');
+    assert.equal((await poke(f.ph, f.offeringId, f.instructor.user_id)).status, 409, 'submitted: nothing to remind');
+    assert.deepEqual((await (await call(f.ph, 'GET', `/poke-targets/${f.offeringId}`)).json()).targets, []);
+
+    await act(f, 'ph', 'PROGRAM_HEAD', 'RETURNED');
+    assert.equal((await poke(f.ph, f.offeringId, f.instructor.user_id)).status, 201, 'returned: waiting for the instructor again');
 });
 
 // ------------------------------------------------------------------ retention
@@ -487,4 +480,18 @@ test('retention purges read notifications older than 90 days, keeps unread and r
     assert.equal(timer.unrefd, true);
     for (let i = 0; i < 50 && await Notification.count({ where: { message: 'old read at boot' } }); i += 1) await new Promise(r => setTimeout(r, 20));
     assert.equal(await Notification.count({ where: { message: 'old read at boot' } }), 0, 'purged at boot');
+});
+
+test('the migration removes the old reviewer reminders and nothing else', async () => {
+    const user = await makeUser('director-of-libraries');
+    const row = (type, message) => ({ recipient_user_id: user.user_id, type, offering_id: null, message, actor_role: 'PROGRAM_HEAD', is_read: false });
+    const [oldPoke, newPoke, other] = await Notification.bulkCreate([
+        row('poke', 'MATH311L — reminder: review pending by Program Head'),
+        row('poke', 'BIT312L — reminder: submit your learning plan by Program Head'),
+        row('plan_submitted', 'BIT312L — submitted for review by Instructor')
+    ]);
+    await require('../migrations/20260917000000-remove-reviewer-pokes').up(sequelize.getQueryInterface());
+    assert.equal(await Notification.findByPk(oldPoke.id), null, 'the old reviewer reminder is gone');
+    assert.ok(await Notification.findByPk(newPoke.id), 'the new instructor reminder stays');
+    assert.ok(await Notification.findByPk(other.id), 'other notifications stay');
 });

@@ -1,12 +1,12 @@
 'use strict';
 
 // A user's own notifications. Every query is scoped to req.user; no endpoint takes a user id
-// except the poke target, which is validated as a reviewer with a pending item on the offering.
+// except the poke target, which is validated as the instructor assigned to the offering.
 
 const { Op, Transaction } = require('sequelize');
 const { sequelize, Sequelize, Notification, User } = require('../models');
 const { effectiveLogs } = require('../utils/effectiveLogs');
-const { planEditState, pendingReviewerRoles } = require('../utils/workflowRules');
+const { planEditState } = require('../utils/workflowRules');
 const { canAccessCourseRows, loadOfferingCourseRows } = require('../middleware/courseAuthorization');
 const { peopleFor, usersForRole } = require('../utils/notificationEvents');
 const { eventMessage, ROLE_LABEL } = require('../utils/notify');
@@ -95,15 +95,17 @@ const markAllRead = async (req, res, next) => {
 };
 
 // ---- poke ---------------------------------------------------------------------------------
+// A poke reminds the instructor assigned to an offering to submit their learning plan. It is only
+// possible while the plan is still the instructor's to submit (never submitted, or returned).
 
-// Loads what a poke needs: the offering's people and its pending reviewer roles, or an error reply.
+// Loads what a poke needs: the offering's people and the plan's edit state, or an error reply.
 const loadPokeContext = async (req, res, offeringId) => {
     const rows = await loadOfferingCourseRows(offeringId);
     if (rows.length === 0) { res.status(404).json({ error: 'Course offering not found.' }); return null; }
     if (!canAccessCourseRows(req.user, rows)) { res.status(403).json({ error: 'You do not have access to this course.' }); return null; }
     const people = await peopleFor(offeringId);
     const logs = people?.assignmentId ? await effectiveLogs(sequelize, people.assignmentId) : [];
-    return { people, pending: pendingReviewerRoles(logs) };
+    return { people, awaitingInstructor: !!people?.assignmentId && planEditState(logs).editable };
 };
 
 const lastPoke = (userId, offeringId, transaction) => Notification.findOne({
@@ -113,7 +115,7 @@ const lastPoke = (userId, offeringId, transaction) => Notification.findOne({
 });
 const nextPokeAt = (poke) => (poke ? new Date(new Date(poke.created_at).getTime() + POKE_WINDOW_MS) : null);
 
-// GET /api/notifications/poke-targets/:offeringId — reviewers with a pending item, and when each may be poked again
+// GET /api/notifications/poke-targets/:offeringId — the instructor, when their plan is not submitted, and when they may be poked again
 const pokeTargets = async (req, res, next) => {
     try {
         const offeringId = asInt(req.params.offeringId);
@@ -122,8 +124,8 @@ const pokeTargets = async (req, res, next) => {
         if (!context) return undefined;
 
         const targets = [];
-        for (const role of context.pending) {
-            for (const userId of usersForRole(context.people, role)) {
+        if (context.awaitingInstructor) {
+            for (const userId of usersForRole(context.people, 'INSTRUCTOR')) {
                 if (!userId || String(userId) === String(req.user.id)) continue;
                 const user = await User.findByPk(userId);
                 if (!user || !user.is_active) continue;
@@ -149,11 +151,10 @@ const poke = async (req, res, next) => {
         if (!context) return undefined;
 
         const target = await User.findByPk(targetUserId);
-        const workflowRole = target && target.is_active ? WORKFLOW_ROLE_BY_ACCOUNT[target.role] : null;
-        const holdsPending = workflowRole
-            && context.pending.includes(workflowRole)
-            && usersForRole(context.people, workflowRole).some(id => String(id) === String(targetUserId));
-        if (!holdsPending) return res.status(409).json({ error: 'That person has no pending review on this course.' });
+        const isInstructor = target && target.is_active
+            && usersForRole(context.people, 'INSTRUCTOR').some(id => String(id) === String(targetUserId));
+        if (!isInstructor) return res.status(409).json({ error: 'Only the instructor assigned to this course can be poked.' });
+        if (!context.awaitingInstructor) return res.status(409).json({ error: 'This learning plan is already submitted, so there is nothing to remind the instructor about.' });
 
         // Check and insert under one write lock, so two simultaneous pokes cannot both pass.
         const outcome = await sequelize.transaction({ type: Transaction.TYPES.IMMEDIATE }, async (transaction) => {
@@ -163,7 +164,7 @@ const poke = async (req, res, next) => {
                 recipient_user_id: targetUserId,
                 type: 'poke',
                 offering_id: offeringId,
-                message: eventMessage(context.people.courseCode, 'reminder: review pending', req.user.role),
+                message: eventMessage(context.people.courseCode, 'reminder: submit your learning plan', req.user.role),
                 actor_role: WORKFLOW_ROLE_BY_ACCOUNT[req.user.role] || null,
                 is_read: false
             }, { transaction });
@@ -173,7 +174,7 @@ const poke = async (req, res, next) => {
         if (outcome.limited) {
             const retryAfterSeconds = Math.max(1, Math.ceil((outcome.next.getTime() - Date.now()) / 1000));
             res.set('Retry-After', String(retryAfterSeconds));
-            return res.status(429).json({ error: 'This reviewer was already poked about this course. Try again later.', retryAfterSeconds, nextPokeAt: outcome.next });
+            return res.status(429).json({ error: 'This instructor was already reminded about this course. Try again later.', retryAfterSeconds, nextPokeAt: outcome.next });
         }
 
         await audit({
