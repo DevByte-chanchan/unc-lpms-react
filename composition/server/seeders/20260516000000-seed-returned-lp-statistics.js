@@ -195,7 +195,7 @@ module.exports = {
                 isbn: i % 2 === 0 ? `978-0262${100 + i}` : null,
                 link: i % 2 !== 0 ? `https://stats-resources.example.com/vol${i}` : null,
                 publication_year: new Date(`201${(i%10)}-01-01`),
-                type: i % 3 === 0 ? 'TEXTBOOK' : i % 3 === 1 ? 'ONLINE' : 'OER',
+                type: i % 3 === 0 ? 'Textbook' : i % 3 === 1 ? 'Online Resource' : 'OER',
                 createdAt: now, updatedAt: now
             });
         }

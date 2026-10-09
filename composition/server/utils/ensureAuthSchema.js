@@ -128,6 +128,17 @@ const ensureAuthSchema = async (injectedModels) => {
             result.addedColumns.push('actor_user_id');
         }
 
+        // The Reference model reads these (migration 20260915000000); without them every
+        // reference query would fail.
+        const [refColumns] = await sequelize.query('PRAGMA table_info(`References`)');
+        if (refColumns.length) {
+            for (const [name, definition] of [['archived', 'BOOLEAN NOT NULL DEFAULT 0'], ['created_by', 'INTEGER'], ['publisher', 'VARCHAR(200)']]) {
+                if (refColumns.some(c => c.name === name)) continue;
+                await sequelize.query(`ALTER TABLE \`References\` ADD COLUMN ${name} ${definition}`);
+                result.addedColumns.push(name);
+            }
+        }
+
         result.accounts = await User.count();
         result.ok = true;
     } catch (err) {

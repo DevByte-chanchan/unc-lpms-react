@@ -17,6 +17,7 @@ import { fetchJson, apiErrorMessage } from "../utils/api.js";
 import CommentMessage from "../components/CommentMessage.jsx";
 import { getSession } from "../utils/session.js";
 import { getCourseCatalog, normalizeReference } from "../utils/referenceCatalog.js";
+import { loadReferenceTypes } from "../utils/referenceStore.js";
 
 function InlineModal({ isOpen, title, onClose, children, actions }) {
     if (!isOpen) return null;
@@ -62,11 +63,6 @@ const ReferenceForm = () => {
     // Context-Targeted Comments Checklist Tracking States
     const [reviewComments, setReviewComments] = useState([]);
 
-    const [isAddOpen, setIsAddOpen] = useState(false);
-    const [newRefDraft, setNewRefDraft] = useState({
-        title: '', type: 'Textbook', author: '', isbn: '', link: '', publication_year: '', external_approved: false
-    });
-
     const [showConfirm, setShowConfirm] = useState(false);
 
     // Course + topic context for the picker's scoping and its suggestions.
@@ -105,6 +101,7 @@ const ReferenceForm = () => {
                 const commentsUrl = `/api/comments/filter/${encodeURIComponent(iloId)}/references`;
 
                 // Leveraging the centralized utility setup to auto-parse promises
+                await loadReferenceTypes();
                 const fetchPromises = [fetchJson(refsUrl), fetchJson(assignedUrl)];
                 if (status === 'returned') {
                     fetchPromises.push(fetchJson(commentsUrl));
@@ -130,7 +127,12 @@ const ReferenceForm = () => {
                 // normalizeReference spreads the raw row FIRST so the parsed
                 // fields win; the old shape spread `...r` last, which put the
                 // raw "2024-01-01 00:00:00.000 +00:00" straight back on top.
-                const normalizedRefs = (Array.isArray(refs) ? refs : []).map(normalizeReference);
+                // An archived reference stays visible on a plan that already uses it, but cannot be
+                // picked for a new link (the server refuses it too).
+                const alreadyAssigned = new Set((Array.isArray(assigned) ? assigned : []).map(a => Number(a.reference_id)));
+                const normalizedRefs = (Array.isArray(refs) ? refs : [])
+                    .filter(r => !r.archived || alreadyAssigned.has(Number(r.reference_id)))
+                    .map(normalizeReference);
 
                 setAllReferences(normalizedRefs);
                 setAssignedReferences(Array.isArray(assigned) ? assigned : []);
@@ -174,44 +176,6 @@ const ReferenceForm = () => {
         }).catch(err => console.warn('Failed to persist comment resolution:', err?.message));
     };
 
-    const handleOpenAdd = () => {
-        setNewRefDraft({ title: '', type: 'Textbook', author: '', isbn: '', link: '', publication_year: '', external_approved: false });
-        setValidationError(null);
-        setIsAddOpen(true);
-    };
-
-    const handleSaveNewRefLocal = () => {
-        if (!newRefDraft.title || !newRefDraft.type) {
-            setValidationError('Title and Type are required for the new reference.');
-            return;
-        }
-        // "itong books ba na to available sa library? kung hindi, di pwede
-        // mag-lagay references" [49:06] — a hand-typed title has to be declared
-        // available before the picker will let it be attached.
-        if (!newRefDraft.external_approved) {
-            setValidationError('Confirm this reference is held by the library or is an approved external resource before adding it.');
-            return;
-        }
-
-        const tempId = `temp-${Date.now()}`;
-        const newOption = {
-            reference_id: null,
-            _temp_id: tempId,
-            title: newRefDraft.title,
-            type: newRefDraft.type,
-            author: newRefDraft.author,
-            isbn: newRefDraft.isbn,
-            link: newRefDraft.link,
-            publication_year: newRefDraft.publication_year || null,
-            external_approved: true
-        };
-
-        setAllReferences(prev => [newOption, ...prev]);
-        setSelectedRefs(prev => [newOption, ...prev]);
-        setIsAddOpen(false);
-        setValidationError(null);
-    };
-
     const handleSave = async () => {
         setValidationError(null);
         if (!selectedRefs || selectedRefs.length === 0) {
@@ -234,31 +198,7 @@ const ReferenceForm = () => {
                 });
             }
 
-            const toCreate = selectedRefs.filter(r => !r.reference_id);
-            const createdMap = {};
-
-            for (const r of toCreate) {
-                const payload = {
-                    title: r.title, type: r.type, author: r.author || null,
-                    isbn: r.isbn || null, link: r.link || null, publication_year: r.publication_year || null
-                };
-
-                const created = await fetchJson(`/api/references`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-
-                if (r._temp_id) createdMap[r._temp_id] = created;
-                setAllReferences(prev => prev.map(x => (x._temp_id && x._temp_id === r._temp_id ? created : x)));
-                setSelectedRefs(prev => prev.map(x => (x._temp_id && x._temp_id === r._temp_id ? created : x)));
-            }
-
-            const reference_ids = selectedRefs.map(r => {
-                if (r.reference_id) return r.reference_id;
-                if (r._temp_id && createdMap[r._temp_id]) return createdMap[r._temp_id].reference_id;
-                return null;
-            }).filter(Boolean);
+            const reference_ids = selectedRefs.map(r => r.reference_id).filter(Boolean);
 
             await fetchJson(`/api/ilo-references/assign`, {
                 method: 'POST',
@@ -273,35 +213,6 @@ const ReferenceForm = () => {
         } finally {
             setSaving(false);
         }
-    };
-
-    const renderDynamicFields = () => {
-        const type = newRefDraft.type;
-        return (
-            <>
-                <TextField label="Title" value={newRefDraft.title} onChange={(v) => setNewRefDraft(prev => ({ ...prev, title: v }))} />
-                {type === 'Textbook' && (
-                    <>
-                        <TextField label="Author(s)" value={newRefDraft.author} onChange={(v) => setNewRefDraft(prev => ({ ...prev, author: v }))} />
-                        <TextField label="ISBN" value={newRefDraft.isbn} onChange={(v) => setNewRefDraft(prev => ({ ...prev, isbn: v }))} />
-                        <TextField label="Publication Year" value={newRefDraft.publication_year} onChange={(v) => setNewRefDraft(prev => ({ ...prev, publication_year: v }))} />
-                        <TextField label="Link (optional)" value={newRefDraft.link} onChange={(v) => setNewRefDraft(prev => ({ ...prev, link: v }))} />
-                    </>
-                )}
-                {type === 'Open Educational Resources' && (
-                    <>
-                        <TextField label="Author / Source" value={newRefDraft.author} onChange={(v) => setNewRefDraft(prev => ({ ...prev, author: v }))} />
-                        <TextField label="Link" value={newRefDraft.link} onChange={(v) => setNewRefDraft(prev => ({ ...prev, link: v }))} />
-                    </>
-                )}
-                {type === 'Online Resources' && (
-                    <>
-                        <TextField label="Author / Publisher" value={newRefDraft.author} onChange={(v) => setNewRefDraft(prev => ({ ...prev, author: v }))} />
-                        <TextField label="Link" value={newRefDraft.link} onChange={(v) => setNewRefDraft(prev => ({ ...prev, link: v }))} />
-                    </>
-                )}
-            </>
-        );
     };
 
     const getCommentTargetLabel = (comment) => {
@@ -329,38 +240,11 @@ const ReferenceForm = () => {
                                     onChange={(val) => setSelectedRefs(val)}
                                     error={validationError}
                                     disabled={loading || saving}
-                                    onAddReference={handleOpenAdd}
                                     courseCode={course.code}
                                     courseTitle={course.name}
                                     topics={iloTopics}
                                     assignedIds={catalogIds}
                                 />
-
-                                <InlineModal
-                                    isOpen={isAddOpen}
-                                    title="Add Reference"
-                                    onClose={() => setIsAddOpen(false)}
-                                    actions={<button style={{ color: "white", fontWeight: 400 }} className="confirmBtn" onClick={handleSaveNewRefLocal}>Add</button>}
-                                >
-                                    <div style={{ display: 'grid', gap: 12 }}>
-                                        <Dropdown
-                                            label="Type"
-                                            value={newRefDraft.type}
-                                            options={['Textbook', 'Open Educational Resources', 'Online Resources']}
-                                            onChange={(v) => setNewRefDraft(prev => ({ ...prev, type: v }))}
-                                        />
-                                        {renderDynamicFields()}
-                                        <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 13 }}>
-                                            <input
-                                                type="checkbox"
-                                                checked={!!newRefDraft.external_approved}
-                                                onChange={(e) => setNewRefDraft(prev => ({ ...prev, external_approved: e.target.checked }))}
-                                            />
-                                            <span>This title is held by the UNC library, or is an approved external resource.</span>
-                                        </label>
-                                        {validationError && <div style={{ color: '#b00020' }}>{validationError}</div>}
-                                    </div>
-                                </InlineModal>
 
                                 <InlineModal isOpen={showConfirm} title="Saved" onClose={() => setShowConfirm(false)}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>

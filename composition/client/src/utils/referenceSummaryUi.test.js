@@ -15,7 +15,7 @@ test('Reference Summary defaults to Textbooks and has no combined view', () => {
 })
 
 test('every retained reference category has an option and selected-category empty feedback', () => {
-  for (const value of ['Textbook', 'Open Educational Resources', 'Online Resources']) {
+  for (const value of ['Textbook', 'Open Educational Resources', 'Online Resources', 'Online Subscriptions']) {
     assert.match(source, new RegExp(`value:\\s*['"]${value}['"]`))
   }
   assert.match(source, /activeReferences\.length\s*===\s*0/)

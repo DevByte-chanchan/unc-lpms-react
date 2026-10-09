@@ -14,7 +14,7 @@ import { useServerWorkflow } from '../utils/useServerWorkflow.js'
 import { fetchFormInfo } from '../utils/formSettings.js'
 import { buildReviewRecordFile } from '../utils/exportSyllabus.js'
 import { getSuggestions, addSuggestion, acceptSuggestion, rejectSuggestion, getSyllabus } from '../utils/dataStore'
-import { getReferences, getReferenceById } from '../utils/referenceLibrary'
+import { loadLibrary } from '../utils/referenceStore.js'
 import { normalizeRoleKey } from '../utils/approvalHelpers.js'
 import { getSession, nameForRoleWithSession } from '../utils/session'
 import ApprovalChainStatus from './ApprovalChainStatus.jsx'
@@ -482,7 +482,13 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
     }
   }, [resolvedCourse, coverage, criteria, resolvedRefs, codeToUse, cpaData])
 
-  const libraryRefs = getReferences()
+  // The reference library, from the server: used to name the references a Director comment points at.
+  const [libraryRefs, setLibraryRefs] = useState([])
+  useEffect(() => {
+    let live = true
+    loadLibrary().then(refs => { if (live) setLibraryRefs(refs) }).catch(() => { if (live) setLibraryRefs([]) })
+    return () => { live = false }
+  }, [])
 
   // derive role
   let storedUser = null
@@ -781,7 +787,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
       // DOL comments target references directly — attach the reference titles
       // so the sidebar shows [REFERENCES: ...] chips like other roles' comments.
       const dolRefTitles = roleKey === 'director-of-libraries'
-        ? (payload.commentedReferences || []).map(id => getReferenceById(id)?.title).filter(Boolean)
+        ? (payload.commentedReferences || []).map(id => libraryRefs.find(ref => String(ref.id) === String(id))?.title).filter(Boolean)
         : []
       if (dolRefTitles.length > 0) {
         prepared.forEach(p => {
@@ -849,7 +855,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
             })
           }).catch(e => { if (import.meta.env.DEV) console.warn('DOL comment not persisted to server:', e?.message) })
 
-          const targetTitles = commentedRefIds.map(id => getReferenceById(id)?.title).filter(Boolean)
+          const targetTitles = commentedRefIds.map(id => libraryRefs.find(ref => String(ref.id) === String(id))?.title).filter(Boolean)
           if (targetTitles.length > 0) targetTitles.forEach(t => postToServer([t]))
           else postToServer([]) // suggestion-only — server attaches to the course's first reference ILO
         }

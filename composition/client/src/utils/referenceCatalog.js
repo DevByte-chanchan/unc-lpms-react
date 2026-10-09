@@ -12,6 +12,8 @@
 // outside search [11:21] [11:39], library availability [49:06] and O'Reilly as
 // a source [12:05] [12:32].
 
+import { hasReferenceType, referenceTypeLabel } from './referenceTypes.js'
+
 const SETTINGS_KEY = 'lpsm_reference_settings_v1'
 const CATALOG_KEY = 'lpsm_course_catalog_v1'
 
@@ -257,39 +259,19 @@ export const relevanceScore = (ref, { courseTitle = '', topics = [] } = {}) => {
 
 // --------------------------------------------------------------- type keys ---
 
-export const TYPE_KEYS = {
-    TEXTBOOK: 'textbook',
-    OER: 'open educational resources',
-    ONLINE: 'online resources'
-}
+// A reference's type is one of the keys the server defines (Textbook, OER, Online Resource,
+// Online Subscription) and is matched EXACTLY: no case folding, no substrings. Anything else is
+// unclassified. The keys and labels come from utils/referenceTypes.js (loaded from the server).
+export const normalizeTypeKey = (type) => (hasReferenceType(type) ? type : '')
 
-export const normalizeTypeKey = (type) => {
-    if (!type) return ''
-    const t = String(type).toLowerCase().trim()
-    if (t.includes('textbook')) return TYPE_KEYS.TEXTBOOK
-    if (t.includes('open') || t.includes('oer')) return TYPE_KEYS.OER
-    if (t.includes('online') || t.includes('or')) return TYPE_KEYS.ONLINE
-    return t
-}
-
-// One label table so a row from the database (TEXTBOOK) and a row from the Add
-// Reference modal (Textbook) never sit side by side in different casing.
-export const TYPE_LABELS = {
-    [TYPE_KEYS.TEXTBOOK]: 'Textbook',
-    [TYPE_KEYS.OER]: 'Open Educational Resources',
-    [TYPE_KEYS.ONLINE]: 'Online Resources'
-}
-
-export const typeLabel = (type) => TYPE_LABELS[normalizeTypeKey(type)] || String(type || 'Unclassified')
-
-const KNOWN_TYPE_KEYS = new Set(Object.values(TYPE_KEYS))
+export const typeLabel = (type) => referenceTypeLabel(type) || String(type || 'Unclassified')
 
 // With the "All" tab gone, a row whose type is blank or off-vocabulary matches
 // no tab and becomes unreachable. It gets its own tab instead of disappearing —
 // but only when such a row actually exists.
 export const UNCLASSIFIED_TYPE = 'Unclassified'
 
-export const isUnclassifiedType = (type) => !KNOWN_TYPE_KEYS.has(normalizeTypeKey(type))
+export const isUnclassifiedType = (type) => normalizeTypeKey(type) === ''
 
 export const countUnclassified = (references = []) =>
     references.filter(r => isUnclassifiedType(r?.type ?? r?.Type)).length

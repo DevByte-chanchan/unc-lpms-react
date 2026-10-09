@@ -113,16 +113,16 @@ module.exports = {
         // ============================================================================
         const references = [
             // Textbooks
-            { title: 'Enterprise Integration Patterns', author: 'Gregor Hohpe', isbn: '978-0321200686', link: null, publication_year: new Date('2003-01-01'), type: 'TEXTBOOK', createdAt: now, updatedAt: now },
-            { title: 'Building Microservices', author: 'Sam Newman', isbn: '978-1491950357', link: null, publication_year: new Date('2021-01-01'), type: 'TEXTBOOK', createdAt: now, updatedAt: now },
-            { title: 'Designing Data-Intensive Applications', author: 'Martin Kleppmann', isbn: '978-1449373320', link: null, publication_year: new Date('2017-01-01'), type: 'TEXTBOOK', createdAt: now, updatedAt: now },
+            { title: 'Enterprise Integration Patterns', author: 'Gregor Hohpe', isbn: '978-0321200686', link: null, publication_year: new Date('2003-01-01'), type: 'Textbook', createdAt: now, updatedAt: now },
+            { title: 'Building Microservices', author: 'Sam Newman', isbn: '978-1491950357', link: null, publication_year: new Date('2021-01-01'), type: 'Textbook', createdAt: now, updatedAt: now },
+            { title: 'Designing Data-Intensive Applications', author: 'Martin Kleppmann', isbn: '978-1449373320', link: null, publication_year: new Date('2017-01-01'), type: 'Textbook', createdAt: now, updatedAt: now },
             // Online/OER
-            { title: 'AWS Well-Architected Framework', author: 'Amazon Web Services', isbn: null, link: 'https://aws.amazon.com/architecture/', publication_year: new Date('2024-01-01'), type: 'ONLINE', createdAt: now, updatedAt: now },
-            { title: 'The Twelve-Factor App', author: 'Adam Wiggins', isbn: null, link: 'https://12factor.net/', publication_year: new Date('2017-01-01'), type: 'ONLINE', createdAt: now, updatedAt: now },
+            { title: 'AWS Well-Architected Framework', author: 'Amazon Web Services', isbn: null, link: 'https://aws.amazon.com/architecture/', publication_year: new Date('2024-01-01'), type: 'Online Resource', createdAt: now, updatedAt: now },
+            { title: 'The Twelve-Factor App', author: 'Adam Wiggins', isbn: null, link: 'https://12factor.net/', publication_year: new Date('2017-01-01'), type: 'Online Resource', createdAt: now, updatedAt: now },
             { title: 'GraphQL Specification', author: 'GraphQL Foundation', isbn: null, link: 'https://spec.graphql.org/', publication_year: new Date('2024-01-01'), type: 'OER', createdAt: now, updatedAt: now },
             { title: 'Kafka: The Definitive Guide', author: 'Confluent', isbn: null, link: 'https://www.confluent.io/', publication_year: new Date('2023-01-01'), type: 'OER', createdAt: now, updatedAt: now },
             // Required Orientation Docs
-            { title: 'UNC Student Handbook', author: 'University of Nueva Caceres', isbn: null, link: 'https://unc.edu.ph/student-handbook', publication_year: new Date('2024-06-01'), type: 'ONLINE', createdAt: now, updatedAt: now },
+            { title: 'UNC Student Handbook', author: 'University of Nueva Caceres', isbn: null, link: 'https://unc.edu.ph/student-handbook', publication_year: new Date('2024-06-01'), type: 'Online Resource', createdAt: now, updatedAt: now },
             { title: 'CCS VMO Curated Materials', author: 'CCS Dean\'s Office', isbn: null, link: 'https://unc.edu.ph/ccs-vmo', publication_year: new Date('2024-06-01'), type: 'OER', createdAt: now, updatedAt: now }
         ];
 
@@ -172,8 +172,8 @@ module.exports = {
         );
         const orientationIlo = orientationIloResult.length > 0 ? orientationIloResult[0] : null;
 
-        const textbooks = refsRows.filter(r => r.type === 'TEXTBOOK');
-        const others = refsRows.filter(r => r.type !== 'TEXTBOOK');
+        const textbooks = refsRows.filter(r => r.type === 'Textbook');
+        const others = refsRows.filter(r => r.type !== 'Textbook');
         const technicalIlos = ilosRows.filter(ilo => !ilo.is_orientation);
 
         const iloReferences = [];

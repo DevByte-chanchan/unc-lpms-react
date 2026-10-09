@@ -3,7 +3,7 @@ import { Search, X, Maximize, Minimize2, CheckCircle, AlertCircle, MessageSquare
 import styles from '../styles/ApprovalCommentBox.module.sass'
 import EmptyState from './EmptyState.jsx'
 import SpellCheckArea from './SpellCheckArea.jsx'
-import { getReferences } from '../utils/referenceLibrary.js'
+import { loadLibrary } from '../utils/referenceStore.js'
 import { getReviewerByRole, getReviewerSeedData, normalizeRoleKey, isDeprecated } from '../utils/approvalHelpers.js'
 import { COMMENT_TYPES, commentTypeMeta, checkText } from '../utils/reviewGate.js'
 import DropdownMultiSelect from './DropdownMultiSelect.jsx'
@@ -71,7 +71,11 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
   const resolvedIlos = (ilos && ilos.length) ? ilos : []
 
   useEffect(() => {
-    setLibraryRefs(getReferences())
+    let live = true
+    loadLibrary()
+      .then(refs => { if (live) setLibraryRefs(refs.filter(ref => !ref.archived)) })
+      .catch(() => { if (live) setLibraryRefs([]) })
+    return () => { live = false }
   }, [])
 
   useEffect(() => {

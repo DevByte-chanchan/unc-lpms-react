@@ -9,12 +9,21 @@ globalThis.localStorage = {
   removeItem: (k) => store.delete(k)
 };
 
+// The type definitions the server serves (GET /api/references/types): keys and labels are exact.
+const { setReferenceTypes } = await import('./referenceTypes.js');
+setReferenceTypes([
+  { key: 'Textbook', label: 'Textbook', group: 'Textbook', fields: [] },
+  { key: 'OER', label: 'Open Educational Resource (OER)', group: 'Open Educational Resources', fields: [] },
+  { key: 'Online Resource', label: 'Online Resource', group: 'Online Resources', fields: [] },
+  { key: 'Online Subscription', label: 'Online Subscription (e.g., O’Reilly)', group: 'Online Subscriptions', fields: [] }
+]);
+
 const {
   parseYear, recencyWindow, isWithinRecency, chapterInfo, collapseChaptersToBooks,
   availabilityOf, isAttachable, isInCourseCatalog, relevanceScore, typeLabel,
   externalSearchLinks, citationFor, termKey, nextTermKey, setCourseCatalog,
   getCourseCatalog, rolloverCatalog, buildCatalogView, DEFAULT_CATALOG_SETTINGS,
-  countUnclassified, UNCLASSIFIED_TYPE, selectRequestedCourse
+  countUnclassified, UNCLASSIFIED_TYPE, selectRequestedCourse, normalizeTypeKey, isUnclassifiedType
 } = await import('./referenceCatalog.js');
 
 const test = (name, fn) => {
@@ -34,13 +43,13 @@ const eq = (actual, expected, what) => {
 // Live server shapes: an HCI textbook, an out-of-window one, an unrelated
 // general-education title, and a chapter of a book that is also in the list.
 const LIBRARY = [
-  { reference_id: 1, title: 'HCI Models, Theories, and Frameworks', type: 'TEXTBOOK', author: 'John Carroll', isbn: '978-1', publication_year: '2023-01-01 00:00:00.000 +00:00', used_in_courses: 'BIT313L' },
-  { reference_id: 2, title: 'Atomic Design', type: 'TEXTBOOK', author: 'Brad Frost', publication_year: '2016-01-01 00:00:00.000 +00:00', used_in_courses: 'BIT313L' },
-  { reference_id: 3, title: 'Understanding the Self', type: 'TEXTBOOK', author: 'Alata', publication_year: '2024-01-01 00:00:00.000 +00:00', used_in_courses: 'GE101' },
-  { reference_id: 4, title: 'Chapter 4: UX Design Principles', type: 'TEXTBOOK', author: 'Rex Hartson', publication_year: '2022-01-01 00:00:00.000 +00:00', used_in_courses: 'BIT313L' },
-  { reference_id: 5, title: 'The UX Book', type: 'TEXTBOOK', author: 'Rex Hartson', isbn: '978-2', publication_year: '2022-01-01 00:00:00.000 +00:00', used_in_courses: 'BIT313L' },
-  { reference_id: 6, title: 'Usability Testing Essentials', type: 'TEXTBOOK', author: 'Carol Barnum', isbn: '978-3', publication_year: '2021-01-01 00:00:00.000 +00:00', used_in_courses: null },
-  { reference_id: 7, title: 'MDN Web Docs', type: 'ONLINE', author: 'Mozilla', publication_year: '2025-01-01 00:00:00.000 +00:00', used_in_courses: 'BIT313L' }
+  { reference_id: 1, title: 'HCI Models, Theories, and Frameworks', type: 'Textbook', author: 'John Carroll', isbn: '978-1', publication_year: '2023-01-01 00:00:00.000 +00:00', used_in_courses: 'BIT313L' },
+  { reference_id: 2, title: 'Atomic Design', type: 'Textbook', author: 'Brad Frost', publication_year: '2016-01-01 00:00:00.000 +00:00', used_in_courses: 'BIT313L' },
+  { reference_id: 3, title: 'Understanding the Self', type: 'Textbook', author: 'Alata', publication_year: '2024-01-01 00:00:00.000 +00:00', used_in_courses: 'GE101' },
+  { reference_id: 4, title: 'Chapter 4: UX Design Principles', type: 'Textbook', author: 'Rex Hartson', publication_year: '2022-01-01 00:00:00.000 +00:00', used_in_courses: 'BIT313L' },
+  { reference_id: 5, title: 'The UX Book', type: 'Textbook', author: 'Rex Hartson', isbn: '978-2', publication_year: '2022-01-01 00:00:00.000 +00:00', used_in_courses: 'BIT313L' },
+  { reference_id: 6, title: 'Usability Testing Essentials', type: 'Textbook', author: 'Carol Barnum', isbn: '978-3', publication_year: '2021-01-01 00:00:00.000 +00:00', used_in_courses: null },
+  { reference_id: 7, title: 'MDN Web Docs', type: 'Online Resource', author: 'Mozilla', publication_year: '2025-01-01 00:00:00.000 +00:00', used_in_courses: 'BIT313L' }
 ];
 
 const NOW = new Date('2025-06-01T00:00:00Z');
@@ -91,7 +100,7 @@ test('a chapter resolves to its parent book and is never listed on its own', () 
   // is not a book, its only a chapter" [13:43].
   const settings = { ...DEFAULT_CATALOG_SETTINGS, chapterOverrides: { 'ux design principles': 'The UX Book' } };
   const rows = collapseChaptersToBooks(
-    [{ reference_id: 9, title: 'UX Design Principles', type: 'TEXTBOOK' }, { reference_id: 5, title: 'The UX Book', type: 'TEXTBOOK' }],
+    [{ reference_id: 9, title: 'UX Design Principles', type: 'Textbook' }, { reference_id: 5, title: 'The UX Book', type: 'Textbook' }],
     settings
   );
   eq(rows.length, 1, 'chapter folded into the book');
@@ -99,7 +108,7 @@ test('a chapter resolves to its parent book and is never listed on its own', () 
   if (!rows[0].chapters.includes('UX Design Principles')) throw new Error('the chapter should survive as a hint on the book row');
 
   // A chapter whose book is not in the list is promoted, not dropped.
-  const promoted = collapseChaptersToBooks([{ reference_id: 4, title: 'Chapter 2: Interaction Design', type: 'TEXTBOOK' }]);
+  const promoted = collapseChaptersToBooks([{ reference_id: 4, title: 'Chapter 2: Interaction Design', type: 'Textbook' }]);
   eq(promoted[0].title, 'Interaction Design', 'promoted to the parent title');
   eq(promoted[0].promotedFromChapter, true, 'flagged as promoted');
 });
@@ -136,7 +145,7 @@ test('the view is course-scoped, type-split, in-window, book-level and A–Z', (
 
   const titles = rows.map(r => r.title);
   if (titles.includes('Understanding the Self')) throw new Error('a GE title reached a programming course [16:13]');
-  if (titles.includes('MDN Web Docs')) throw new Error('an ONLINE row reached the Textbook tab [15:29]');
+  if (titles.includes('MDN Web Docs')) throw new Error('an Online Resource row reached the Textbook tab [15:29]');
   if (titles.includes('Atomic Design')) throw new Error('a 2016 title is outside the 5-year window [10:55]');
   if (titles.includes('Chapter 4: UX Design Principles')) throw new Error('a chapter was listed as a standalone title [13:43]');
   if (!titles.includes('The UX Book')) throw new Error('the chapter should resolve to its parent book [14:18]');
@@ -165,12 +174,28 @@ test('the library scope is the outside search fallback, and it is opt-in', () =>
   eq(citationFor(LIBRARY[0]), 'John Carroll (2023). HCI Models, Theories, and Frameworks.', 'citation');
 });
 
-test('type labels are one vocabulary, whatever casing the row arrived in', () => {
-  eq(typeLabel('TEXTBOOK'), 'Textbook', 'db casing');
-  eq(typeLabel('Textbook'), 'Textbook', 'form casing');
-  eq(typeLabel('OER'), 'Open Educational Resources', 'oer');
-  eq(typeLabel('ONLINE'), 'Online Resources', 'online');
-  eq(typeLabel('Online Resources'), 'Online Resources', 'form online');
+test('type keys are matched exactly: no case folding, no substrings', () => {
+  eq(typeLabel('Textbook'), 'Textbook', 'textbook');
+  eq(typeLabel('OER'), 'Open Educational Resource (OER)', 'oer');
+  eq(typeLabel('Online Resource'), 'Online Resource', 'online resource');
+  eq(typeLabel('Online Subscription'), 'Online Subscription (e.g., O’Reilly)', 'subscription');
+  // The old matcher treated anything containing "or" as an online resource and anything with "open" as OER.
+  for (const guess of ['TEXTBOOK', 'textbook', 'ONLINE', 'online', 'Online Resources', 'Open Educational Resources', 'Corporate Report', 'Opening Remarks', 'oer']) {
+    eq(normalizeTypeKey(guess), '', `"${guess}" is not a type key`);
+    eq(isUnclassifiedType(guess), true, `"${guess}" is unclassified`);
+  }
+  eq(normalizeTypeKey('Online Subscription'), 'Online Subscription', 'a subscription is its own type, not an online resource');
+  eq(typeLabel('TEXTBOOK'), 'TEXTBOOK', 'an unknown value is shown as it is');
+});
+
+test('each type has its own tab: a subscription is not listed under online resources', () => {
+  const rows = [
+    { reference_id: 30, title: 'Learning Platform', type: 'Online Subscription', author: '', used_in_courses: 'BIT313L', publication_year: '2025' },
+    { reference_id: 31, title: 'MDN Web Docs', type: 'Online Resource', author: 'Mozilla', used_in_courses: 'BIT313L', publication_year: '2025' }
+  ];
+  const titlesOf = (type) => buildCatalogView(rows, { ...VIEW, type }).rows.map(r => r.title);
+  eq(titlesOf('Online Subscription').join('|'), 'Learning Platform', 'subscription tab');
+  eq(titlesOf('Online Resource').join('|'), 'MDN Web Docs', 'online resource tab');
 });
 
 test('a blank or off-vocabulary type stays reachable now that "All" is gone', () => {

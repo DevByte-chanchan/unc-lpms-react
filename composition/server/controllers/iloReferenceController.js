@@ -106,6 +106,22 @@ async function assignReferencesToILO(req, res) {
       }
     }
 
+    // An archived reference may stay on a plan that already uses it, but cannot be newly linked.
+    if (reference_ids.length > 0) {
+      const archived = await Reference.findAll({
+        where: { reference_id: { [Op.in]: reference_ids }, archived: true },
+        attributes: ['reference_id'], transaction: t, raw: true
+      });
+      if (archived.length > 0) {
+        const alreadyLinked = new Set((await ILOReference.findAll({ where: { ilo_id }, attributes: ['reference_id'], transaction: t, raw: true })).map(r => r.reference_id));
+        const blocked = archived.map(r => r.reference_id).filter(id => !alreadyLinked.has(id));
+        if (blocked.length) {
+          await t.rollback();
+          return res.status(400).json({ message: 'Archived references cannot be added to a plan.', archived: blocked });
+        }
+      }
+    }
+
     // Delete existing assignments for this ILO
     await ILOReference.destroy({ where: { ilo_id }, transaction: t });
 

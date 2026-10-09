@@ -16,6 +16,8 @@ import Spinner from '../../../components/Spinner.jsx';
 import styles from '../../../styles/CourseCatalog.module.sass';
 
 import { fetchJson } from '../../../utils/api.js';
+import { loadReferenceTypes } from '../../../utils/referenceStore.js';
+import { getReferenceTypes } from '../../../utils/referenceTypes.js';
 import { getSession } from '../../../utils/session.js';
 import {
     buildCatalogView,
@@ -49,7 +51,8 @@ const CourseCatalog = () => {
         let mounted = true;
         Promise.all([
             fetchJson('/api/assignments').catch(() => null),
-            fetchJson('/api/references/library').catch(() => [])
+            fetchJson('/api/references/library').catch(() => []),
+            loadReferenceTypes().catch(() => [])
         ]).then(([assignments, refs]) => {
             if (!mounted) return;
             const rows = assignments?.data || [];
@@ -62,7 +65,8 @@ const CourseCatalog = () => {
             });
             const list = [...byCode.values()].sort((a, b) => a.code.localeCompare(b.code));
             setCourses(list);
-            setReferences(Array.isArray(refs) ? refs : []);
+            // Archived references cannot be added to a course catalog.
+            setReferences(Array.isArray(refs) ? refs.filter(ref => !ref.archived) : []);
             setCourseCode(selectRequestedCourse(list, requestedCourse));
         }).finally(() => { if (mounted) setLoading(false); });
         return () => { mounted = false; };
@@ -165,14 +169,14 @@ const CourseCatalog = () => {
                                 onChange={(e) => setSearch(e.target.value)}
                             />
                         </div>
-                        {['Textbook', 'Open Educational Resources', 'Online Resources'].map(t => (
+                        {getReferenceTypes().map(({ key: t }) => (
                             <button
                                 key={t}
                                 type="button"
                                 className={type === t ? styles.activeTab : styles.tab}
                                 onClick={() => setType(t)}
                             >
-                                {t === 'Open Educational Resources' ? 'OER' : (t === 'Online Resources' ? 'Online' : t)}
+                                {t}
                             </button>
                         ))}
                         <span className={styles.count}>{selectedIds.length} assigned to {courseCode || '—'}</span>

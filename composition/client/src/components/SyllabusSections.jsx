@@ -93,7 +93,7 @@ const SyllabusSections = () => {
                 if (Array.isArray(refRes)) return refRes
                 if (refRes.data) {
                     if (Array.isArray(refRes.data)) return refRes.data
-                    const m = [...(refRes.data.Textbook || []), ...(refRes.data['Open Educational Resources'] || []), ...(refRes.data['Online Resources'] || [])]
+                    const m = [...(refRes.data.Textbook || []), ...(refRes.data['Open Educational Resources'] || []), ...(refRes.data['Online Resources'] || []), ...(refRes.data['Online Subscriptions'] || [])]
                     if (m.length) return m
                     return refRes.data.references || []
                 }

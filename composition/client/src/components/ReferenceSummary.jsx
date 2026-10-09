@@ -11,6 +11,7 @@ const REFERENCE_VIEWS = [
     { value: 'Textbook', label: 'TEXTBOOKS', prefix: 'TB', identifier: 'ISBN', empty: 'No textbooks attached to this plan' },
     { value: 'Open Educational Resources', label: 'OPEN EDUCATIONAL RESOURCES', prefix: 'OE', identifier: 'LINK', empty: 'No open educational resources attached to this plan' },
     { value: 'Online Resources', label: 'ONLINE RESOURCES', prefix: 'OR', identifier: 'LINK', empty: 'No online resources attached to this plan' },
+    { value: 'Online Subscriptions', label: 'ONLINE SUBSCRIPTIONS', prefix: 'OS', identifier: 'LINK', empty: 'No online subscriptions attached to this plan' },
 ];
 
 const ReferenceSummary = ({ offeringID, revisionNum, status, selectedSection, styles, stylesB, fetchJson }) => {

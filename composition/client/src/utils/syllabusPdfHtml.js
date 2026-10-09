@@ -739,11 +739,12 @@ function courseCoveragePages(syllabus, logo, startPageNum, total) {
 function computeResourceChunks(syllabus) {
   const refs = syllabus.references || []
 
-  const prefixMap = { TEXTBOOKS: 'TB', 'OPEN EDUCATIONAL RESOURCES': 'OE', 'ONLINE RESOURCES': 'OR' }
+  const prefixMap = { TEXTBOOKS: 'TB', 'OPEN EDUCATIONAL RESOURCES': 'OE', 'ONLINE RESOURCES': 'OR', 'ONLINE SUBSCRIPTIONS': 'OS' }
   const rawBuckets = [
     { name: 'TEXTBOOKS', items: refs.filter(r => (r.type || '').toLowerCase() === 'textbook'), isLink: false },
     { name: 'OPEN EDUCATIONAL RESOURCES', items: refs.filter(r => { const t = (r.type || '').toLowerCase(); return t.includes('educational') || t === 'open educational resources' }), isLink: true },
-    { name: 'ONLINE RESOURCES', items: refs.filter(r => (r.type || '').toLowerCase().includes('online')), isLink: true },
+    { name: 'ONLINE RESOURCES', items: refs.filter(r => (r.type || '').toLowerCase() === 'online resources'), isLink: true },
+    { name: 'ONLINE SUBSCRIPTIONS', items: refs.filter(r => (r.type || '').toLowerCase() === 'online subscriptions'), isLink: true },
   ]
 
   const estItemH = 34

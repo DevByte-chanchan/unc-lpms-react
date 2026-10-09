@@ -121,7 +121,7 @@ test('server reference duplicates consolidate without losing linked metadata', (
     sourceIds: [28, 38],
     title: 'CCS VMO Curated Materials',
     authors: "CCS Dean’s Office",
-    type: 'Open Educational Resources',
+    type: 'OER',
     year: 2024,
     isbn: '',
     link: '',
@@ -143,7 +143,7 @@ test('server references sharing only an ISBN remain separate records', () => {
       title: 'Clean Architecture',
       author: 'Robert C. Martin',
       isbn: '978-0134494166',
-      type: 'TEXTBOOK',
+      type: 'Textbook',
       publication_year: '2017-01-01',
       departments: 'School of Computer and Information Sciences',
     },
@@ -152,7 +152,7 @@ test('server references sharing only an ISBN remain separate records', () => {
       title: 'Platform Technologies Handbook: Vol 5',
       author: 'Tech Author 5',
       isbn: '978-0134494166',
-      type: 'ONLINE',
+      type: 'Online Resource',
       publication_year: '2025-01-01',
       departments: 'School of Computer and Information Sciences',
     },
@@ -162,39 +162,29 @@ test('server references sharing only an ISBN remain separate records', () => {
   equal(normalized.map(record => record.id), ['srv-52', 'srv-129'], 'ISBN reuse must not collapse different works')
 })
 
-test('authoritative server departments survive normalization and local flags survive consolidation', () => {
-  const rows = [
-    {
-      reference_id: 141,
-      title: 'Baeldung: Guide to Java Streams',
-      author: 'Eugen Paraschiv',
-      type: 'ONLINE',
-      used_in_courses: 'BIT213L',
-      programs: 'Bachelor of Science in Information Technology',
-      departments: 'School of Computer and Information Sciences',
-    },
-    {
-      reference_id: 142,
-      title: 'Baeldung: Guide to Java Streams',
-      author: 'Eugen Paraschiv',
-      type: 'ONLINE',
-      used_in_courses: 'BIT321L',
-      programs: 'Bachelor of Science in Information Technology',
-      departments: 'School of Computer and Information Sciences',
-    },
-  ]
-  const existing = [{
-    id: 'srv-142',
-    sourceIds: [142],
-    archived: true,
-    hasIssue: true,
-    departments: ['General Education Department'],
-  }]
+test('departments come from the server, and a record is archived only when every row behind it is', () => {
+  const row = (id, extra) => ({
+    reference_id: id,
+    title: 'Baeldung: Guide to Java Streams',
+    author: 'Eugen Paraschiv',
+    type: 'Online Resource',
+    used_in_courses: 'BIT213L',
+    programs: 'Bachelor of Science in Information Technology',
+    departments: 'School of Computer and Information Sciences',
+    ...extra,
+  })
 
-  const [record] = normalizeReferenceLibraryRows(rows, existing)
-  equal(record.departments, ['School of Computer and Information Sciences'], 'server department relations must replace guessed General Education values')
-  assert(record.archived, 'an archived duplicate must keep the consolidated record archived')
-  assert(record.hasIssue, 'a local issue flag from any source row must survive consolidation')
+  const [mixed] = normalizeReferenceLibraryRows([row(141, { archived: 1 }), row(142, { archived: 0 })])
+  equal(mixed.departments, ['School of Computer and Information Sciences'], 'server department relations are used as they are')
+  assert(!mixed.archived, 'one active row keeps the consolidated record active')
+  equal(mixed.sourceIds, [141, 142], 'the record knows every server row behind it')
+
+  const [archived] = normalizeReferenceLibraryRows([row(141, { archived: 1 }), row(142, { archived: true })])
+  assert(archived.archived, 'every row archived: the record is archived')
+
+  const [withPublisher] = normalizeReferenceLibraryRows([row(143, { publisher: "  O'Reilly   Media " })])
+  equal(withPublisher.publisher, "O'Reilly Media", 'the publisher / provider comes from the server')
+  equal(withPublisher.type, 'Online Resource', 'the type is the server key, unchanged')
 })
 
 test('all-field search matches normalized title, author, ID, ISBN, and publisher', () => {

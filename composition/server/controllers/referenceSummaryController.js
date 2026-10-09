@@ -5,6 +5,10 @@ const {
     Reference,
     ILOReference
 } = require('../models');
+const { REFERENCE_TYPES } = require('../config/referenceTypes');
+
+// { references: [], <one empty list per type group> }, e.g. Textbook, Open Educational Resources, ...
+const emptySummary = () => Object.fromEntries([['references', []], ...Object.values(REFERENCE_TYPES).map(type => [type.group, []])]);
 
 exports.getReferenceSummary = async (req, res, next) => {
     const { pcId, revNum } = req.params;
@@ -17,12 +21,12 @@ exports.getReferenceSummary = async (req, res, next) => {
         // Direct Query: Skip Course discovery hooks and target CO records directly using pc_offering_id version
         const courseOutcomes = await CourseOutcome.findAll({ where: { pc_offering_id: pcId } });
         const coIds = courseOutcomes.map(co => co.co_id || co.id);
-        if (coIds.length === 0) return res.status(200).json({ references: [], Textbook: [], "Open Educational Resources": [], "Online Resources": [] });
+        if (coIds.length === 0) return res.status(200).json(emptySummary());
 
         // Find ILOs matching the parent COs
         const ilos = await IntendedLearningOutcome.findAll({ where: { co_id: coIds } });
         const iloIds = ilos.map(ilo => ilo.ilo_id);
-        if (iloIds.length === 0) return res.status(200).json({ references: [], Textbook: [], "Open Educational Resources": [], "Online Resources": [] });
+        if (iloIds.length === 0) return res.status(200).json(emptySummary());
 
         // Fetch References via Junction Table (ILOReference)
         const rawReferences = await ILOReference.findAll({
@@ -36,10 +40,8 @@ exports.getReferenceSummary = async (req, res, next) => {
 
         // Deduplication and Categorization
         const seenReferenceIds = new Set();
-        const textbooks = [];
-        const oer = [];
-        const onlineResources = [];
-        const allReferences = [];
+        const groups = emptySummary();
+        const allReferences = groups.references;
 
         rawReferences.forEach(item => {
             const ref = item.Reference;
@@ -68,28 +70,21 @@ exports.getReferenceSummary = async (req, res, next) => {
                     type: ref.type || 'Textbook'
                 };
 
-                const typeKey = (ref.type || '').toLowerCase();
-                if (typeKey.includes('oer') || typeKey.includes('open')) {
-                    structuredRef.type = 'Open Educational Resources';
-                    oer.push(structuredRef);
-                } else if (typeKey.includes('online')) {
-                    structuredRef.type = 'Online Resources';
-                    onlineResources.push(structuredRef);
-                } else {
-                    structuredRef.type = 'Textbook';
-                    textbooks.push(structuredRef);
+                // Exact type keys from config/referenceTypes.js. A reference of an unrecognised
+                // type is kept in the flat list but belongs to no group.
+                const config = REFERENCE_TYPES[ref.type];
+                if (config) {
+                    structuredRef.type = config.group;
+                    structuredRef.typeKey = ref.type;
+                    structuredRef.publisher = ref.publisher || '';
+                    groups[config.group].push(structuredRef);
                 }
 
                 allReferences.push(structuredRef);
             }
         });
 
-        return res.status(200).json({
-            references: allReferences,
-            Textbook: textbooks,
-            "Open Educational Resources": oer,
-            "Online Resources": onlineResources
-        });
+        return res.status(200).json(groups);
 
     } catch (error) {
         next(error);

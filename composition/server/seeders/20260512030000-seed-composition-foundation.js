@@ -340,19 +340,19 @@ Through lectures, hands-on projects, and usability testing, learners will develo
         // ============================================================================
         const references = [
             // TEXTBOOKS (with standard ISBN, publication year, no link)
-            { title: 'HCI Models, Theories, and Frameworks', author: 'John M. Carroll', isbn: '1-55860-808-7', link: null, publication_year: new Date('2003-01-01'), type: 'TEXTBOOK', createdAt: now, updatedAt: now },
-            { title: 'Learn Human-Computer Interaction', author: 'Christopher Reid', isbn: '978-1-83882-032-9', link: null, publication_year: new Date('2020-01-01'), type: 'TEXTBOOK', createdAt: now, updatedAt: now },
-            { title: 'Usability Testing Essentials', author: 'Carol M. Barnum', isbn: '978-0-12-375092-1', link: null, publication_year: new Date('2010-01-01'), type: 'TEXTBOOK', createdAt: now, updatedAt: now },
-            { title: 'UX Design with Figma: User-Centered Interface Design and Prototyping with Figma', author: 'Tom Green & Kevin Golsby', isbn: '2945-7793', link: null, publication_year: new Date('2024-01-01'), type: 'TEXTBOOK', createdAt: now, updatedAt: now },
-            { title: 'Web Accessibility: Web Standards and Regulatory Compliance', author: 'Tom Green & Kevin Golsby', isbn: '978-1-59059-638-8', link: null, publication_year: new Date('2006-01-01'), type: 'TEXTBOOK', createdAt: now, updatedAt: now },
+            { title: 'HCI Models, Theories, and Frameworks', author: 'John M. Carroll', isbn: '1-55860-808-7', link: null, publication_year: new Date('2003-01-01'), type: 'Textbook', createdAt: now, updatedAt: now },
+            { title: 'Learn Human-Computer Interaction', author: 'Christopher Reid', isbn: '978-1-83882-032-9', link: null, publication_year: new Date('2020-01-01'), type: 'Textbook', createdAt: now, updatedAt: now },
+            { title: 'Usability Testing Essentials', author: 'Carol M. Barnum', isbn: '978-0-12-375092-1', link: null, publication_year: new Date('2010-01-01'), type: 'Textbook', createdAt: now, updatedAt: now },
+            { title: 'UX Design with Figma: User-Centered Interface Design and Prototyping with Figma', author: 'Tom Green & Kevin Golsby', isbn: '2945-7793', link: null, publication_year: new Date('2024-01-01'), type: 'Textbook', createdAt: now, updatedAt: now },
+            { title: 'Web Accessibility: Web Standards and Regulatory Compliance', author: 'Tom Green & Kevin Golsby', isbn: '978-1-59059-638-8', link: null, publication_year: new Date('2006-01-01'), type: 'Textbook', createdAt: now, updatedAt: now },
 
             // ONLINE / OER / TECHNICAL GUIDELINES (with URLs)
-            { title: 'Beyond Vibe-coding', author: 'Addy Osmani', isbn: null, link: 'https://oreilly.com', publication_year: new Date('2024-01-01'), type: 'ONLINE', createdAt: now, updatedAt: now },
-            { title: 'UX Design Principles', author: 'UXcel', isbn: null, link: 'https://app.uxcel.com', publication_year: new Date('2023-01-01'), type: 'ONLINE', createdAt: now, updatedAt: now },
-            { title: 'Color Theory For Dummies', author: 'Eric Hibit', isbn: null, link: 'https://oreilly.com', publication_year: new Date('2022-01-01'), type: 'ONLINE', createdAt: now, updatedAt: now },
-            { title: 'Universal Principles of Typography', author: 'Elliot Jay Stocks', isbn: null, link: 'https://oreilly.com', publication_year: new Date('2023-01-01'), type: 'ONLINE', createdAt: now, updatedAt: now },
-            { title: 'Atomic Design', author: 'Brad Frost', isbn: null, link: 'https://atomicdesign.bradfrost.com', publication_year: new Date('2016-01-01'), type: 'ONLINE', createdAt: now, updatedAt: now },
-            { title: 'Guide to Developer Handoff', author: 'Figma', isbn: null, link: 'https://figma.com', publication_year: new Date('2023-01-01'), type: 'ONLINE', createdAt: now, updatedAt: now },
+            { title: 'Beyond Vibe-coding', author: 'Addy Osmani', isbn: null, link: 'https://oreilly.com', publication_year: new Date('2024-01-01'), type: 'Online Resource', createdAt: now, updatedAt: now },
+            { title: 'UX Design Principles', author: 'UXcel', isbn: null, link: 'https://app.uxcel.com', publication_year: new Date('2023-01-01'), type: 'Online Resource', createdAt: now, updatedAt: now },
+            { title: 'Color Theory For Dummies', author: 'Eric Hibit', isbn: null, link: 'https://oreilly.com', publication_year: new Date('2022-01-01'), type: 'Online Resource', createdAt: now, updatedAt: now },
+            { title: 'Universal Principles of Typography', author: 'Elliot Jay Stocks', isbn: null, link: 'https://oreilly.com', publication_year: new Date('2023-01-01'), type: 'Online Resource', createdAt: now, updatedAt: now },
+            { title: 'Atomic Design', author: 'Brad Frost', isbn: null, link: 'https://atomicdesign.bradfrost.com', publication_year: new Date('2016-01-01'), type: 'Online Resource', createdAt: now, updatedAt: now },
+            { title: 'Guide to Developer Handoff', author: 'Figma', isbn: null, link: 'https://figma.com', publication_year: new Date('2023-01-01'), type: 'Online Resource', createdAt: now, updatedAt: now },
             { title: 'ISO 9241-210:2019 Ergonomics of human-system interaction', author: 'ISO', isbn: null, link: 'https://iso.org', publication_year: new Date('2019-01-01'), type: 'OER', createdAt: now, updatedAt: now },
             { title: 'UI Principles', author: 'Figma', isbn: null, link: 'https://figma.com', publication_year: new Date('2021-01-01'), type: 'OER', createdAt: now, updatedAt: now },
             { title: 'Imagery', author: 'Figma', isbn: null, link: 'https://figma.com', publication_year: new Date('2021-01-01'), type: 'OER', createdAt: now, updatedAt: now },
@@ -370,7 +370,7 @@ Through lectures, hands-on projects, and usability testing, learners will develo
             { title: 'Design Thinking in the Age of AI', author: 'LinkedIn Learning', isbn: null, link: 'https://linkedin.com/learning', publication_year: new Date('2024-01-01'), type: 'OER', createdAt: now, updatedAt: now },
             { title: 'Ethical, Human-Centric AI Design', author: 'LinkedIn Learning', isbn: null, link: 'https://linkedin.com/learning', publication_year: new Date('2024-01-01'), type: 'OER', createdAt: now, updatedAt: now },
             { title: 'Design to Code: Using AI to Build Faster', author: 'LinkedIn Learning', isbn: null, link: 'https://linkedin.com/learning', publication_year: new Date('2024-01-01'), type: 'OER', createdAt: now, updatedAt: now },
-            { title: 'UNC Student Handbook', author: 'University of Nueva Caceres', isbn: null, link: 'https://unc.edu.ph/student-handbook', publication_year: new Date('2024-06-01'), type: 'ONLINE', createdAt: now, updatedAt: now },
+            { title: 'UNC Student Handbook', author: 'University of Nueva Caceres', isbn: null, link: 'https://unc.edu.ph/student-handbook', publication_year: new Date('2024-06-01'), type: 'Online Resource', createdAt: now, updatedAt: now },
             { title: 'CCS VMO Curated Materials', author: 'CCS Dean\'s Office', isbn: null, link: 'https://unc.edu.ph/ccs-vmo', publication_year: new Date('2024-06-01'), type: 'OER', createdAt: now, updatedAt: now }
         ];
 
@@ -430,8 +430,8 @@ Through lectures, hands-on projects, and usability testing, learners will develo
         );
         const orientationIlo = orientationIloResult.length > 0 ? orientationIloResult[0] : null;
 
-        const textbooks = refsRows.filter(r => r.type === 'TEXTBOOK');
-        const others = refsRows.filter(r => r.type !== 'TEXTBOOK');
+        const textbooks = refsRows.filter(r => r.type === 'Textbook');
+        const others = refsRows.filter(r => r.type !== 'Textbook');
         const technicalIlos = ilosRows.filter(ilo => !ilo.is_orientation);
 
         const iloReferences = [];

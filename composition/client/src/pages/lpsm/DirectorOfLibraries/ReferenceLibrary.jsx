@@ -23,8 +23,12 @@ import TableScrollRegion from '../../../components/TableScrollRegion.jsx';
 import SortableTh from '../../../components/SortableTh.jsx';
 import styles from '../../../styles/ReferenceLibrary.module.scss';
 
-import { getReferences, setReferences, addReference, archiveReference, unarchiveReference } from '../../../utils/referenceLibrary.js';
-import { fetchJson } from '../../../utils/api.js';
+import ImportPreviewModal from '../../../components/ImportPreviewModal.jsx';
+import { loadLibrary, loadReferenceTypes, setArchived } from '../../../utils/referenceStore.js';
+import { typeLabel } from '../../../utils/referenceCatalog.js';
+import { readLegacyReferences, clearLegacyReferences } from '../../../utils/legacyLocalReferences.js';
+import { csvRecordToRow, legacyReferenceToRow } from '../../../utils/referenceImportRows.js';
+import { fetchJson, apiErrorMessage } from '../../../utils/api.js';
 import { sanitizeUrl } from '../../../utils/sanitize.js';
 import { parseReferenceCsv, MAX_CSV_BYTES } from '../../../utils/csvImport.js';
 import { nextSort, referenceLibraryColumns, sortRows } from '../../../utils/tableSort.js';
@@ -36,7 +40,6 @@ import {
   getReferenceViewValue,
   isReferenceDeprecated,
   loadReferenceSavedViews,
-  normalizeReferenceLibraryRows,
   paginateReferenceRecords,
   referencePageSizeForWidth,
   storeReferenceSavedViews,
@@ -63,7 +66,10 @@ const YEAR_LABELS = {
 };
 
 const ReferenceLibrary = () => {
-  const [references, setReferencesState] = useState(() => getReferences(true));
+  const [references, setReferencesState] = useState([]);
+  const [loadState, setLoadState] = useState({ loading: true, error: '' });
+  const [importSource, setImportSource] = useState(null);
+  const [legacyCount, setLegacyCount] = useState(() => readLegacyReferences().length);
   const [courseAssignments, setCourseAssignments] = useState(null);
   const [addRefOpen, setAddRefOpen] = useState(false);
   const [editRef, setEditRef] = useState(null);
@@ -88,33 +94,18 @@ const ReferenceLibrary = () => {
   const activeRefs = useMemo(() => references.filter(r => !r.archived), [references]);
   const archivedRefs = useMemo(() => references.filter(r => r.archived), [references]);
 
-  /* ── Load references from the server (seeded DB data) and merge with local ── */
-  useEffect(() => {
-    let mounted = true;
-    // old hardcoded demo entries — swept from localStorage on sync
-    const LEGACY_DUMMY_IDS = new Set(['TB-DEP-001', 'OR-ISS-001', 'OE-DEP-002', 'TB-BUS-001', 'TB-EDU-001', 'OE-NUR-001', 'OR-ENG-001', 'TB-CS-002', 'OE-BUS-002', 'TB-ENG-002', 'TB-VOLD-001', 'NUR-OBS-001']);
-
-    async function syncLibrary() {
-      try {
-        const rows = await fetchJson('/api/references/library');
-        if (!mounted || !Array.isArray(rows) || rows.length === 0) return;
-
-        const existing = getReferences(true);
-        const synced = normalizeReferenceLibraryRows(rows, existing);
-
-        // keep locally-added references, drop server copies + legacy hardcoded demos
-        const locals = existing.filter(r => !String(r.id).startsWith('srv-') && !LEGACY_DUMMY_IDS.has(String(r.id)));
-        const merged = [...synced, ...locals];
-        setReferences(merged);
-        if (mounted) setReferencesState(merged);
-      } catch (e) {
-        if (import.meta.env.DEV) console.warn('Reference library sync skipped:', e?.message);
-      }
+  /* ── The library is the server's: load the type definitions and the references ── */
+  const reload = React.useCallback(async () => {
+    try {
+      await loadReferenceTypes();
+      setReferencesState(await loadLibrary());
+      setLoadState({ loading: false, error: '' });
+    } catch (err) {
+      setLoadState({ loading: false, error: apiErrorMessage(err, 'The reference library could not be loaded.') });
     }
-
-    syncLibrary();
-    return () => { mounted = false; };
   }, []);
+
+  useEffect(() => { reload(); }, [reload]);
 
   useEffect(() => {
     let mounted = true;
@@ -131,85 +122,40 @@ const ReferenceLibrary = () => {
     return () => { mounted = false; };
   }, []);
 
-  /* ── Sync when references change ─────────────────────────────────── */
-  const syncReferences = (newRefs) => {
-    setReferences(newRefs);
-    setReferencesState(getReferences(true));
-  };
-
-  /* ── Bulk Upload ─────────────────────────────────────────────────── */
+  /* ── CSV bulk upload: parse here, check and import on the server ───── */
   const handleBulkUpload = async (e) => {
     const file = e.target.files?.[0];
+    e.target.value = '';
     if (!file) return;
-
     try {
       if (file.size > MAX_CSV_BYTES) throw new Error('CSV file is larger than 2 MB.');
-      const rows = parseReferenceCsv(await file.text());
-
-      let added = 0;
-      let skipped = 0;
-      const existingIds = new Set(getReferences(true).map(r => r.id));
-
-      rows.forEach((row) => {
-          const title = (row['Title'] || row['title'] || '').toString().trim();
-          const authors = (row['Author(s)'] || row['Authors'] || row['author'] || row['authors'] || '').toString().trim();
-          const type = (row['Reference Type'] || row['Type'] || row['type'] || '').toString().trim();
-          const year = row['Year'] || row['year'] || '';
-          const isbn = (row['ISBN'] || row['isbn'] || '').toString().trim();
-          const link = (row['Link'] || row['link'] || row['URL'] || row['url'] || '').toString().trim();
-          const department = (row['Department'] || row['department'] || '').toString().trim();
-          const program = (row['Program'] || row['program'] || '').toString().trim();
-          const courseCode = (row['Course Code'] || row['courseCode'] || row['Course'] || row['course'] || '').toString().trim();
-
-          if (!title || !type) {
-            skipped++;
-            return;
-          }
-
-          const refId = `${type === 'Textbook' ? 'TB' : type === 'Open Educational Resources' ? 'OE' : 'OR'}${Date.now()}-${added}`;
-          if (existingIds.has(refId)) {
-            skipped++;
-            return;
-          }
-
-          addReference({
-            id: refId,
-            title,
-            authors,
-            type,
-            year: year ? parseInt(year) : '',
-            isbn,
-            link,
-            publisher: '',
-            filename: '',
-            uploadDate: new Date().toISOString().split('T')[0],
-            hasIssue: false,
-            archived: false,
-            departments: department ? [department] : [],
-            programs: program ? [program] : [],
-            usedInCourses: courseCode ? [courseCode] : [],
-          });
-
-          existingIds.add(refId);
-          added++;
-      });
-
-      const updated = getReferences(true);
-      syncReferences(updated);
-      setBulkResult({ added, skipped, total: rows.length });
-      setShowBulkModal(true);
+      const rows = parseReferenceCsv(await file.text()).map(csvRecordToRow);
+      if (rows.length === 0) throw new Error('The CSV file has no rows.');
+      setImportSource({ title: `Import ${file.name}`, rows, kind: 'csv' });
     } catch (err) {
-      console.error('Bulk upload failed:', err);
-      alert(err?.message || 'Failed to parse the CSV file. Please check the format.');
+      showPageToast(err?.message || 'Failed to read the CSV file. Please check the format.', 'error');
     }
-    e.target.value = '';
+  };
+
+  /* ── One-time upload of references saved by the old browser-only store ─ */
+  const startLegacyImport = () => {
+    const rows = readLegacyReferences().map(legacyReferenceToRow);
+    setImportSource({ title: 'Upload references saved on this browser', rows, kind: 'legacy' });
+  };
+
+  const handleImported = (result) => {
+    reload();
+    // The old store is emptied only when nothing was rejected, so a failed row is never lost.
+    if (importSource?.kind === 'legacy' && result.invalid === 0) {
+      clearLegacyReferences();
+      setLegacyCount(0);
+    }
+    showPageToast(`Imported ${result.created} of ${result.total} row(s).`);
   };
 
   /* ── Modal states ───────────────────────────────────────────────────── */
   const [viewRef, setViewRef] = useState(null);
   const [archiveRef, setArchiveRef] = useState(null);
-  const [showBulkModal, setShowBulkModal] = useState(false);
-  const [bulkResult, setBulkResult] = useState(null);
   const [toast, setToast] = useState(null);
   const toastTimerRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -291,19 +237,27 @@ const ReferenceLibrary = () => {
   const handleSort = (key) => setSort(current => nextSort(current, key));
 
   /* ── Handlers ──────────────────────────────────────────────────────── */
-  const confirmArchive = () => {
-    if (archiveRef) {
-      archiveReference(archiveRef.id);
-      setReferencesState(getReferences(true));
+  const confirmArchive = async () => {
+    if (!archiveRef) return;
+    try {
+      await setArchived(archiveRef, true);
+      await reload();
       if (viewRef?.id === archiveRef.id) setViewRef(null);
       setArchiveRef(null);
+    } catch (err) {
+      setArchiveRef(null);
+      showPageToast(apiErrorMessage(err, 'The reference was not archived.'), 'error');
     }
   };
 
-  const confirmUnarchive = (id) => {
-    unarchiveReference(id);
-    setReferencesState(getReferences(true));
-    if (viewRef?.id === id) setViewRef(null);
+  const confirmUnarchive = async (record) => {
+    try {
+      await setArchived(record, false);
+      await reload();
+      if (viewRef?.id === record.id) setViewRef(null);
+    } catch (err) {
+      showPageToast(apiErrorMessage(err, 'The reference was not restored.'), 'error');
+    }
   };
 
   const handleClose = () => {
@@ -394,7 +348,7 @@ const ReferenceLibrary = () => {
 
   const activeFilterChips = [
     filterDepartment && { key: 'department', label: filterDepartment, remove: () => setFilterDepartment('') },
-    filterType && { key: 'type', label: filterType, remove: () => setFilterType('') },
+    filterType && { key: 'type', label: typeLabel(filterType), remove: () => setFilterType('') },
     filterYear && { key: 'year', label: YEAR_LABELS[filterYear] || filterYear, remove: () => setFilterYear('') },
   ].filter(Boolean);
 
@@ -446,8 +400,15 @@ const ReferenceLibrary = () => {
               <button className={styles.bulkBtn} type="button" onClick={() => fileInputRef.current?.click()}>
                 <Upload size={15} /> Bulk Upload
               </button>
+              {legacyCount > 0 && (
+                <button className={styles.bulkBtn} type="button" onClick={startLegacyImport} title="These references were saved only in this browser by the old version">
+                  <Upload size={15} /> Upload {legacyCount} saved on this browser
+                </button>
+              )}
             </div>
           </div>
+
+          {loadState.error && <div role="alert" style={{ color: '#b91c1c', margin: '8px 0' }}>{loadState.error}</div>}
 
           <input
             ref={fileInputRef}
@@ -545,7 +506,7 @@ const ReferenceLibrary = () => {
 
           <div className={styles.facetGroup}>
             <h3 className={styles.facetGroupTitle}>Reference type</h3>
-            {facets.types.map(item => <button key={item.value} className={`${styles.facetOption} ${filterType === item.value ? styles.facetOptionActive : ''}`} type="button" aria-pressed={filterType === item.value} onClick={() => setFilterType(current => current === item.value ? '' : item.value)}><span>{item.value}</span><span className={styles.facetCount}>{item.count}</span></button>)}
+            {facets.types.map(item => <button key={item.value} className={`${styles.facetOption} ${filterType === item.value ? styles.facetOptionActive : ''}`} type="button" aria-pressed={filterType === item.value} onClick={() => setFilterType(current => current === item.value ? '' : item.value)}><span>{typeLabel(item.value)}</span><span className={styles.facetCount}>{item.count}</span></button>)}
           </div>
 
           <div className={styles.facetGroup}>
@@ -594,11 +555,11 @@ const ReferenceLibrary = () => {
                     <td className={styles.cellNowrap}>{ref.id}</td>
                     <td><div className={styles.titleCell}><div className={styles.titleLine}><span className={styles.refTitle}>{ref.title}</span></div>{ref.filename && <span className={styles.refFilename}>{ref.filename}</span>}</div></td>
                     <td><span className={styles.cellEllipsis}>{ref.authors || '—'}</span></td>
-                    <td className={styles.cellNowrap}><span className={styles.typeBadge}>{ref.type}</span></td>
+                    <td className={styles.cellNowrap}><span className={styles.typeBadge}>{typeLabel(ref.type)}</span></td>
                     <td className={`${styles.cellNowrap} ${styles.yearCell}`}><span className={styles.yearValue}>{ref.year || '—'}</span>{isReferenceDeprecated(ref, CURRENT_YEAR) && <span className={styles.deprecatedMarker} role="img" title="May need review — published five or more years ago" aria-label="May need review — published five or more years ago" />}</td>
                   </tr>
                 )) : (
-                  <EmptyState colSpan={5} icon={<BookOpen size={22} strokeWidth={1.6} />} title={hasDiscoveryCriteria ? 'No references match this search' : tab === 'archived' ? 'Nothing has been archived' : 'No references in the library yet'} hint={hasDiscoveryCriteria ? 'Try a different search term, remove a filter, or reset the view.' : tab === 'archived' ? 'References you archive are kept here and can be restored later.' : 'Add a reference or use Bulk Upload to start the catalog.'} />
+                  <EmptyState colSpan={5} icon={<BookOpen size={22} strokeWidth={1.6} />} title={hasDiscoveryCriteria ? 'No references match this search' : tab === 'archived' ? 'Nothing has been archived' : loadState.loading ? 'Loading the library…' : 'No references in the library yet'} hint={hasDiscoveryCriteria ? 'Try a different search term, remove a filter, or reset the view.' : tab === 'archived' ? 'References you archive are kept here and can be restored later.' : 'Add a reference or use Bulk Upload to start the catalog.'} />
                 )}
               </tbody>
             </table>
@@ -636,13 +597,13 @@ const ReferenceLibrary = () => {
               <div className={styles.previewHeader}><div><h2 className={styles.previewTitle}>{previewReference.title}</h2><div className={styles.previewId}><span>{previewReference.id} · {previewReference.archived ? 'Archived' : 'Active'}</span></div></div><button className={`${styles.previewClose} app-icon-close`} type="button" onClick={handleClose} aria-label="Close reference preview"><X size={15} /></button></div>
               {isReferenceDeprecated(previewReference, CURRENT_YEAR) && <div className={styles.warningBanner}>This reference is five years old or older and may need review.</div>}
               <dl className={styles.previewMetadata}>
-                <dt>Author(s)</dt><dd>{previewReference.authors || 'Not provided'}</dd><dt>Type</dt><dd>{previewReference.type || 'Not provided'}</dd><dt>ISBN</dt><dd>{previewReference.isbn || 'Not provided'}</dd><dt>Year</dt><dd>{previewReference.year || 'Not provided'}</dd><dt>Publisher</dt><dd>{previewReference.publisher || 'Not provided'}</dd><dt>Department</dt><dd>{(previewReference.departments || []).join(', ') || 'Not assigned'}</dd><dt>Used in</dt><dd className={styles.courseLinks}>{(previewReference.usedInCourses || []).length ? previewReference.usedInCourses.map(renderUsedInCourse) : 'No courses recorded'}</dd>
+                <dt>Author(s)</dt><dd>{previewReference.authors || 'Not provided'}</dd><dt>Type</dt><dd>{typeLabel(previewReference.type)}</dd><dt>ISBN</dt><dd>{previewReference.isbn || 'Not provided'}</dd><dt>Year</dt><dd>{previewReference.year || 'Not provided'}</dd><dt>Publisher</dt><dd>{previewReference.publisher || 'Not provided'}</dd><dt>Department</dt><dd>{(previewReference.departments || []).join(', ') || 'Not assigned'}</dd><dt>Used in</dt><dd className={styles.courseLinks}>{(previewReference.usedInCourses || []).length ? previewReference.usedInCourses.map(renderUsedInCourse) : 'No courses recorded'}</dd>
                 {sanitizeUrl(previewReference.link) && <><dt>Link</dt><dd><a href={sanitizeUrl(previewReference.link)} target="_blank" rel="noopener noreferrer" className={styles.modalLink}>Open resource</a></dd></>}
               </dl>
               <div className={styles.previewActions}>
                 <button className={styles.previewPrimary} type="button" onClick={() => { setEditRef(previewReference); setAddRefOpen(true); }}>Edit record</button>
                 {previewReference.archived ? (
-                  <button className={styles.previewSecondary} type="button" onClick={() => confirmUnarchive(previewReference.id)}><RotateCcw size={13} /> Restore</button>
+                  <button className={styles.previewSecondary} type="button" onClick={() => confirmUnarchive(previewReference)}><RotateCcw size={13} /> Restore</button>
                 ) : (
                   <button className={`${styles.previewSecondary} ${styles.rowActionDanger}`} type="button" onClick={() => setArchiveRef(previewReference)}><Archive size={13} /> Archive record</button>
                 )}
@@ -672,50 +633,14 @@ const ReferenceLibrary = () => {
         </div>
       )}
 
-      {/* ── BULK UPLOAD RESULT MODAL ────────────────────────────────────── */}
-      {showBulkModal && bulkResult && (
-        <div className={styles.modalOverlay} onClick={() => { setShowBulkModal(false); setBulkResult(null); }}>
-          <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
-            <div className={styles.modalHeader}>
-              <h2>Bulk Upload Result</h2>
-              <button type="button" className={`${styles.modalClose} app-icon-close`} onClick={() => { setShowBulkModal(false); setBulkResult(null); }} aria-label="Close bulk upload">✕</button>
-            </div>
-            <div className={styles.modalBody}>
-              <div style={{ textAlign: 'center', marginBottom: 16 }}>
-                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#047857" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="12" r="10" />
-                  <polyline points="16 8 10 16 7 13" />
-                </svg>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'center', gap: 24, marginBottom: 16 }}>
-                <div style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: 28, fontWeight: 700, color: '#047857' }}>{bulkResult.added}</div>
-                  <div style={{ fontSize: 13, color: '#6b7280' }}>Added</div>
-                </div>
-                <div style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: 28, fontWeight: 700, color: '#b45309' }}>{bulkResult.skipped}</div>
-                  <div style={{ fontSize: 13, color: '#6b7280' }}>Skipped</div>
-                </div>
-                <div style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: 28, fontWeight: 700, color: '#000' }}>{bulkResult.total}</div>
-                  <div style={{ fontSize: 13, color: '#6b7280' }}>Total Rows</div>
-                </div>
-              </div>
-              <p style={{ textAlign: 'center', fontSize: 14, color: '#6b7280', margin: 0 }}>
-                Expected columns: <strong>Title</strong>, <strong>Author(s)</strong>, <strong>Reference Type</strong>, <strong>Year</strong>, <strong>ISBN</strong>, <strong>Link</strong>
-              </p>
-            </div>
-            <div className={styles.modalActions}>
-              <button className={styles.modalBtnClose} onClick={() => { setShowBulkModal(false); setBulkResult(null); }}>Close</button>
-            </div>
-          </div>
-        </div>
+      {importSource && (
+        <ImportPreviewModal source={importSource} onClose={() => setImportSource(null)} onImported={handleImported} />
       )}
     </div>
   );
 
   const handleModalSaved = (result) => {
-    setReferencesState(getReferences(true));
+    reload();
     if (result?.message) showPageToast(result.message, result.type);
   };
 

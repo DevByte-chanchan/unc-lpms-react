@@ -121,6 +121,20 @@ const columns = async (sequelize) => {
             `expected the credential columns added, got ${JSON.stringify(r.addedColumns)}`);
         const [rows] = await sequelize.query('SELECT email, must_change_password FROM Users');
         assert(rows.length === 1 && rows[0].must_change_password === 0, 'the row survives with the flag off');
+        await sequelize.close();
+    });
+
+    await test('a References table from before the archive migration gets its new columns, keeping its rows', async () => {
+        const sequelize = await freshDb({ withUsers: true });
+        await sequelize.query('CREATE TABLE `References` (reference_id INTEGER PRIMARY KEY, title TEXT, type TEXT)');
+        await sequelize.query("INSERT INTO `References` (title, type) VALUES ('Kept', 'Textbook')");
+        const r = await ensureAuthSchema(modelsFor(sequelize));
+        assert(r.ok && ['archived', 'created_by', 'publisher'].every(c => r.addedColumns.includes(c)), `expected the reference columns added, got ${JSON.stringify(r.addedColumns)}`);
+        const [rows] = await sequelize.query('SELECT title, archived FROM `References`');
+        assert(rows.length === 1 && rows[0].title === 'Kept' && rows[0].archived === 0, 'the row survives, not archived');
+        await sequelize.close();
+    });
+
     await test('an existing, complete table is left completely alone', async () => {
         const sequelize = await freshDb({ withUsers: true });
         await sequelize.query("INSERT INTO Users (name, email, role) VALUES ('KEEP, ME', 'keep@unc.edu.ph', 'dean')");

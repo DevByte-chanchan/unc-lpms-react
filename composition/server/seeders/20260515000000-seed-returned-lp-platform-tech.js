@@ -180,7 +180,7 @@ module.exports = {
                 isbn: i % 2 === 0 ? `978-0134${i}94166` : null,
                 link: i % 2 !== 0 ? `https://platform-docs.com/vol${i}` : null,
                 publication_year: new Date(`202${(i%5)+1}-01-01`),
-                type: i % 3 === 0 ? 'TEXTBOOK' : i % 3 === 1 ? 'ONLINE' : 'OER',
+                type: i % 3 === 0 ? 'Textbook' : i % 3 === 1 ? 'Online Resource' : 'OER',
                 createdAt: now, updatedAt: now
             });
         }

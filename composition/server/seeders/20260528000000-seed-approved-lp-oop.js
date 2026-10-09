@@ -127,15 +127,15 @@ module.exports = {
         // ============================================================================
         const references = [
             // Textbooks
-            { title: 'Clean Code: A Handbook of Agile Software Craftsmanship', author: 'Robert C. Martin', isbn: '978-0132350884', link: null, publication_year: new Date('2008-01-01'), type: 'TEXTBOOK', createdAt: now, updatedAt: now },
-            { title: 'Effective Java', author: 'Joshua Bloch', isbn: '978-0134685991', link: null, publication_year: new Date('2017-01-01'), type: 'TEXTBOOK', createdAt: now, updatedAt: now },
-            { title: 'Head First Design Patterns', author: 'Eric Freeman', isbn: '978-0596007126', link: null, publication_year: new Date('2004-01-01'), type: 'TEXTBOOK', createdAt: now, updatedAt: now },
+            { title: 'Clean Code: A Handbook of Agile Software Craftsmanship', author: 'Robert C. Martin', isbn: '978-0132350884', link: null, publication_year: new Date('2008-01-01'), type: 'Textbook', createdAt: now, updatedAt: now },
+            { title: 'Effective Java', author: 'Joshua Bloch', isbn: '978-0134685991', link: null, publication_year: new Date('2017-01-01'), type: 'Textbook', createdAt: now, updatedAt: now },
+            { title: 'Head First Design Patterns', author: 'Eric Freeman', isbn: '978-0596007126', link: null, publication_year: new Date('2004-01-01'), type: 'Textbook', createdAt: now, updatedAt: now },
             // Online/OER
-            { title: 'Oracle Java Documentation', author: 'Oracle', isbn: null, link: 'https://docs.oracle.com/en/java/', publication_year: new Date('2025-01-01'), type: 'ONLINE', createdAt: now, updatedAt: now },
-            { title: 'Microsoft C# Programming Guide', author: 'Microsoft', isbn: null, link: 'https://learn.microsoft.com/en-us/dotnet/csharp/', publication_year: new Date('2025-01-01'), type: 'ONLINE', createdAt: now, updatedAt: now },
+            { title: 'Oracle Java Documentation', author: 'Oracle', isbn: null, link: 'https://docs.oracle.com/en/java/', publication_year: new Date('2025-01-01'), type: 'Online Resource', createdAt: now, updatedAt: now },
+            { title: 'Microsoft C# Programming Guide', author: 'Microsoft', isbn: null, link: 'https://learn.microsoft.com/en-us/dotnet/csharp/', publication_year: new Date('2025-01-01'), type: 'Online Resource', createdAt: now, updatedAt: now },
             { title: 'Refactoring.Guru', author: 'Alexander Shvets', isbn: null, link: 'https://refactoring.guru/', publication_year: new Date('2024-01-01'), type: 'OER', createdAt: now, updatedAt: now },
             // Orientation Docs
-            { title: 'UNC Student Handbook', author: 'University of Nueva Caceres', isbn: null, link: 'https://unc.edu.ph/student-handbook', publication_year: new Date('2024-06-01'), type: 'ONLINE', createdAt: now, updatedAt: now },
+            { title: 'UNC Student Handbook', author: 'University of Nueva Caceres', isbn: null, link: 'https://unc.edu.ph/student-handbook', publication_year: new Date('2024-06-01'), type: 'Online Resource', createdAt: now, updatedAt: now },
             { title: 'CCS VMO Curated Materials', author: 'CCS Dean\'s Office', isbn: null, link: 'https://unc.edu.ph/ccs-vmo', publication_year: new Date('2024-06-01'), type: 'OER', createdAt: now, updatedAt: now }
         ];
 
@@ -181,8 +181,8 @@ module.exports = {
         // 8) ILOReferences Assignment
         // ============================================================================
         const orientationIlo = ilosRows.find(ilo => ilo.is_orientation);
-        const textbooks = refsRows.filter(r => r.type === 'TEXTBOOK');
-        const others = refsRows.filter(r => r.type !== 'TEXTBOOK');
+        const textbooks = refsRows.filter(r => r.type === 'Textbook');
+        const others = refsRows.filter(r => r.type !== 'Textbook');
         const technicalIlos = ilosRows.filter(ilo => !ilo.is_orientation);
 
         const iloReferences = [];

@@ -225,8 +225,8 @@ module.exports = {
         ];
 
         const referenceData = [
-            ...textbooks.map(b => ({ title: b.title, author: b.author, isbn: b.isbn, link: null, publication_year: new Date(`${b.pubYear}-01-01`), type: 'TEXTBOOK', createdAt: now, updatedAt: now })),
-            ...onlineResources.map(o => ({ title: o.title, author: o.author, isbn: null, link: o.link, publication_year: new Date(`${o.pubYear}-01-01`), type: 'ONLINE', createdAt: now, updatedAt: now })),
+            ...textbooks.map(b => ({ title: b.title, author: b.author, isbn: b.isbn, link: null, publication_year: new Date(`${b.pubYear}-01-01`), type: 'Textbook', createdAt: now, updatedAt: now })),
+            ...onlineResources.map(o => ({ title: o.title, author: o.author, isbn: null, link: o.link, publication_year: new Date(`${o.pubYear}-01-01`), type: 'Online Resource', createdAt: now, updatedAt: now })),
             ...oerResources.map(o => ({ title: o.title, author: o.author, isbn: null, link: o.link, publication_year: new Date(`${o.pubYear}-01-01`), type: 'OER', createdAt: now, updatedAt: now }))
         ];
 

@@ -50,6 +50,7 @@ export async function buildSyllabusExportFile({ pcId, revNum, code, workflow = n
         ...(refRes.data.Textbook || []),
         ...(refRes.data['Open Educational Resources'] || []),
         ...(refRes.data['Online Resources'] || []),
+        ...(refRes.data['Online Subscriptions'] || []),
       ]
       if (m.length) return m
       return refRes.data.references || []

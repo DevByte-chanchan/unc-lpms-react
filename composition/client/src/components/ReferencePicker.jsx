@@ -12,6 +12,7 @@ import {
     UNCLASSIFIED_TYPE
 } from '../utils/referenceCatalog.js';
 import { sanitizeUrl } from '../utils/sanitize.js';
+import { getReferenceTypes } from '../utils/referenceTypes.js';
 
 /**
  * ReferencePicker
@@ -47,8 +48,9 @@ const ReferencePicker = ({
     const settings = useMemo(() => getCatalogSettings(), []);
     const unclassifiedCount = useMemo(() => countUnclassified(options), [options]);
 
+    // The tabs are the server's reference types (exact keys), plus Unclassified when needed.
     const types = useMemo(() => {
-        const base = ['Textbook', 'Open Educational Resources', 'Online Resources'];
+        const base = getReferenceTypes().map(type => type.key);
         return unclassifiedCount > 0 ? [...base, UNCLASSIFIED_TYPE] : base;
     }, [unclassifiedCount]);
 
@@ -77,10 +79,9 @@ const ReferencePicker = ({
     }, [value]);
 
     const getIcon = (type) => {
-        const label = typeLabel(type);
-        if (label === 'Textbook') return <Book size={16} />;
-        if (label === 'Open Educational Resources') return <Unlock size={16} />;
-        if (label === 'Online Resources') return <Globe size={16} />;
+        if (type === 'Textbook') return <Book size={16} />;
+        if (type === 'OER') return <Unlock size={16} />;
+        if (type === 'Online Resource' || type === 'Online Subscription') return <Globe size={16} />;
         return <FileText size={16} />;
     };
 
@@ -187,9 +188,7 @@ const ReferencePicker = ({
                         <div className={styles.filterTabs}>
                             {types.map(type => {
                                 const isActive = activeFilter === type;
-                                const short = type === 'Open Educational Resources'
-                                    ? 'OER'
-                                    : (type === 'Online Resources' ? 'Online' : type);
+                                const short = type;
                                 return (
                                     <button
                                         key={type}
@@ -202,15 +201,17 @@ const ReferencePicker = ({
                                 );
                             })}
 
-                            <button
-                                className={styles.selfAdder}
-                                type="button"
-                                onClick={() => onAddReference && onAddReference()}
-                                disabled={disabled}
-                                style={{ marginLeft: 8 }}
-                            >
-                                <Plus size={14} />&nbsp; Add my own Reference
-                            </button>
+                            {onAddReference && (
+                                <button
+                                    className={styles.selfAdder}
+                                    type="button"
+                                    onClick={() => onAddReference()}
+                                    disabled={disabled}
+                                    style={{ marginLeft: 8 }}
+                                >
+                                    <Plus size={14} />&nbsp; Add my own Reference
+                                </button>
+                            )}
                         </div>
                     </div>
 

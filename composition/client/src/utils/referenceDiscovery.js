@@ -6,12 +6,6 @@ const SEARCH_FIELDS = new Set(['all', 'title', 'authors', 'id', 'isbn', 'publish
 const TABS = new Set(['active', 'archived', 'all'])
 const YEAR_RANGES = new Set(['', 'recent', '2020s', 'older', 'unknown'])
 
-const SERVER_REFERENCE_TYPES = {
-  TEXTBOOK: 'Textbook',
-  ONLINE: 'Online Resources',
-  OER: 'Open Educational Resources',
-}
-
 const normalizeText = value => String(value ?? '')
   .normalize('NFD')
   .replace(/[\u0300-\u036f]/g, '')
@@ -28,15 +22,11 @@ const stableUnique = values => [...new Set(values)].sort((left, right) => left.l
 
 const compactWhitespace = value => String(value || '').trim().replace(/\s+/g, ' ')
 
-export const normalizeReferenceLibraryRows = (rows, existingRecords = []) => {
-  const existingBySourceId = new Map()
-  for (const record of Array.isArray(existingRecords) ? existingRecords : []) {
-    const sourceIds = Array.isArray(record?.sourceIds) && record.sourceIds.length
-      ? record.sourceIds
-      : [String(record?.id || '').replace(/^srv-/, '')]
-    sourceIds.filter(Boolean).forEach(sourceId => existingBySourceId.set(String(sourceId), record))
-  }
-
+// Library rows from GET /api/references/library -> the records the Reference Library shows.
+// The server is the only source. Rows with the same title and authors (the seeders copy a reference
+// per course) are shown as one record whose `sourceIds` lists every server row behind it; edits and
+// archiving apply to all of them. `type` is the server's type key, shown through its label.
+export const normalizeReferenceLibraryRows = (rows) => {
   const groups = new Map()
   for (const row of Array.isArray(rows) ? rows : []) {
     const numericId = Number.parseInt(row?.reference_id, 10)
@@ -52,31 +42,25 @@ export const normalizeReferenceLibraryRows = (rows, existingRecords = []) => {
     .map(group => {
       const sorted = [...group].sort((left, right) => left.numericId - right.numericId)
       const canonical = sorted[0]
-      const sourceIds = sorted.map(row => row.numericId)
-      const previousRecords = sourceIds.map(id => existingBySourceId.get(String(id))).filter(Boolean)
-      const serverDepartments = stableUnique(sorted.flatMap(row => splitMetadata(row.departments)))
-      const serverPrograms = stableUnique(sorted.flatMap(row => splitMetadata(row.programs)))
-      const previousDepartments = stableUnique(previousRecords.flatMap(record => record.departments || []))
-      const previousPrograms = stableUnique(previousRecords.flatMap(record => record.programs || []))
       const publicationYear = Number.parseInt(String(canonical.publication_year || '').slice(0, 4), 10)
 
       return {
         id: `srv-${canonical.numericId}`,
         numericId: canonical.numericId,
-        sourceIds,
+        sourceIds: sorted.map(row => row.numericId),
         title: canonical.title,
         authors: canonical.authors,
-        type: SERVER_REFERENCE_TYPES[canonical.type] || canonical.type,
+        type: canonical.type,
         year: Number.isFinite(publicationYear) ? publicationYear : '',
         isbn: compactWhitespace(canonical.isbn),
         link: compactWhitespace(canonical.link),
-        publisher: previousRecords.find(record => record.publisher)?.publisher || '',
-        filename: previousRecords.find(record => record.filename)?.filename || '',
+        publisher: compactWhitespace(canonical.publisher),
+        filename: '',
         uploadDate: String(canonical.createdAt || '').slice(0, 10),
-        hasIssue: previousRecords.some(record => record.hasIssue),
-        archived: previousRecords.some(record => record.archived),
-        departments: serverDepartments.length ? serverDepartments : previousDepartments,
-        programs: serverPrograms.length ? serverPrograms : previousPrograms,
+        hasIssue: false,
+        archived: sorted.every(row => Boolean(row.archived)),
+        departments: stableUnique(sorted.flatMap(row => splitMetadata(row.departments))),
+        programs: stableUnique(sorted.flatMap(row => splitMetadata(row.programs))),
         usedInCourses: stableUnique(sorted.flatMap(row => splitMetadata(row.used_in_courses))),
       }
     })
