@@ -8,6 +8,7 @@ import { fetchJson } from "../utils/api.js";
 import { buildSyllabusExportFile } from "../utils/exportSyllabus.js";
 import { revisionOf } from "../utils/offeringKey.js";
 import PDFViewerModal from "./PDFViewerModal.jsx";
+import PokeButton from "./PokeButton.jsx";
 import EmptyState from "./EmptyState.jsx";
 import Spinner from "./Spinner.jsx";
 import { loadReviewAssignments } from '../utils/reviewAssignments.js';
@@ -191,6 +192,11 @@ const ApprovalCoursesTable = ({ role = 'approver', styleHooks = {} }) => {
                       onClick={() => !exporting && handleExport(row)}>
                     {exporting ? 'Exporting…' : 'Export'} <Download size={16} />
                 </span>
+            }
+
+            {/* Program Head and Dean can remind a reviewer who has a pending item (rate limited by the server). */}
+            {selectedStatus === 'PENDING' && ['program-head', 'dean'].includes(role) &&
+                <PokeButton offeringId={getOfferingID(row)} />
             }
 
             {/* `title` and `aria-label` both: the icon alone says nothing to a

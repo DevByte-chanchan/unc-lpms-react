@@ -108,6 +108,7 @@ app.use('/api/offerings', require('./routes/offerings'));
 app.use('/api/audit-logs', require('./routes/auditLogs'));
 app.use('/api/users', require('./routes/users'));
 app.use('/api/profile', require('./routes/profile'));
+app.use('/api/notifications', require('./routes/notifications'));
 app.use('/api', require('./routes/exportPdf'));
 
 // global error handler
@@ -128,4 +129,6 @@ app.use((err, req, res, next) => {
 (async () => {
     await require('./utils/ensureAuthSchema').ensureAuthSchemaAndReport();
     app.listen(port, () => console.log(`Server listening on ${port}`));
+    // Read notifications older than 90 days are removed at boot and then daily.
+    require('./utils/notificationRetention').startRetention({ Notification: require('./models').Notification });
 })();

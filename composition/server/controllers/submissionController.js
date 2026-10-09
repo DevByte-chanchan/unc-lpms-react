@@ -2,6 +2,7 @@ const { CourseOfferingAssignment, AssignmentWorkflowLog, ProgramCourseOffering, 
 const { findIedProblems } = require('../utils/iedRule');
 const { findWeightProblems } = require('../utils/assessmentWeights');
 const { loadOfferingAssessments } = require('../utils/offeringAssessments');
+const { onWorkflowAction } = require('../utils/notificationEvents');
 
 async function submitLearningPlan(req, res) {
     try {
@@ -81,6 +82,12 @@ async function submitLearningPlan(req, res) {
             action_type: 'SUBMITTED',
             createdAt: now,
             updatedAt: now
+        });
+
+        // Tell the reviewers who must act. Never fails the submission.
+        await onWorkflowAction({
+            offeringId: offering.pc_offering_id, actorUserId: req.user?.id, actorRole, action: 'SUBMITTED',
+            assignmentId: assignment.co_assign_id
         });
 
         return res.status(200).json({ message: 'Learning Plan submitted successfully.', status: 'success' });

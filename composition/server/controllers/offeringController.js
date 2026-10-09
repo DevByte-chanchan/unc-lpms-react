@@ -2,6 +2,7 @@
 
 const { sequelize, Sequelize } = require('../models');
 const service = require('../services/offeringService');
+const { onCourseAssigned, onRevisionStarted } = require('../utils/notificationEvents');
 
 const asInt = (value) => (Number.isSafeInteger(Number(value)) && Number(value) > 0 ? Number(value) : null);
 
@@ -45,6 +46,7 @@ async function assignCourse(req, res, next) {
         const result = await service.assignCourseForTerm({
             courseId, programId, instructorUserId, schoolYear: body.school_year, semester: body.semester, user: req.user,
         });
+        await onCourseAssigned({ offeringId: result.offeringId, instructorUserId, actorUserId: req.user.id });
         return res.status(201).json(result);
     } catch (error) {
         return fail(res, next, error);
@@ -57,6 +59,7 @@ async function startRevision(req, res, next) {
         const offeringId = asInt(req.params.id);
         if (!offeringId) return res.status(400).json({ message: 'A valid offering id is required.' });
         const result = await service.startRevision({ offeringId, user: req.user });
+        await onRevisionStarted({ offeringId: result.offeringId, actorUserId: req.user.id });
         return res.status(201).json(result);
     } catch (error) {
         return fail(res, next, error);

@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import styles from '../styles/Header.module.sass'
 import { getSession, logout } from '../utils/session'
 import SignOutDialog from './SignOutDialog.jsx'
+import NotificationBell from './NotificationBell.jsx'
 
 // HeaderA keeps the legacy component name used by several role pages, but
 // consumes the canonical Header stylesheet so spacing and focus states stay
@@ -25,6 +26,8 @@ const HeaderA = ({name, role}) => {
                 <div className={styles.name}> {session?.name || name} </div>
                 <div className={styles.role}> {session?.roleLabel || role} </div>
             </div>
+            {/* The superuser administers accounts and receives no plan notifications. */}
+            {session && session.role !== 'superuser' && <NotificationBell />}
             {session &&
                 <button type="button" onClick={() => navigate('/profile')} title="Profile and e-signature" className={styles.signOut}>
                     Profile

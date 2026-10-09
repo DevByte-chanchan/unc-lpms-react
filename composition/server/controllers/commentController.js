@@ -1,6 +1,7 @@
 'use strict';
 
 const { sequelize, Sequelize } = require('../models');
+const { onComment, onCommentsResolved } = require('../utils/notificationEvents');
 const {
     canAccessCourseRows,
     loadOfferingCourseRows,
@@ -257,6 +258,11 @@ exports.createCourseComment = async (req, res) => {
             );
         }
 
+        // Tell the other side (the instructor, or the reviewers with a pending item). Never fails the comment.
+        await onComment({
+            offeringId: pcId, actorUserId: req.user?.id, commenterRole: commenter_role, assignmentId: coAssignId
+        });
+
         return res.status(201).json({ comment_id: commentId, ilo_id: iloId, comment_for: normalizedFor, target_ids: targetIds });
     } catch (error) {
         console.error('Error creating course comment:', error);
@@ -443,6 +449,10 @@ exports.updateResolutionStatuses = async (req, res) => {
                 );
             }
         });
+
+        if (previouslyOpen.length) {
+            await onCommentsResolved({ resolved: previouslyOpen, actorUserId: req.user?.id, actorRole: req.user?.role });
+        }
 
         return res.status(200).json({ message: 'Resolution statuses synchronized successfully.' });
     } catch (error) {

@@ -60,6 +60,16 @@ const planEditState = (logs = []) => {
     return { state: 'Pending', editable: false };
 };
 
+// The reviewer roles that must act now (empty when nothing awaits a reviewer: not submitted,
+// returned and waiting for the instructor, or fully approved). The Dean is pending only once
+// both required reviewers have accepted.
+const pendingReviewerRoles = (logs = []) => {
+    const state = deriveReviewState(logs);
+    if (!state.submitted || state.approved || state.returned.size > 0) return [];
+    const waiting = REQUIRED_REVIEWERS.filter(role => !state.accepted.has(role));
+    return waiting.length > 0 ? waiting : ['DEAN'];
+};
+
 // Whether an actor may append the requested workflow event.
 const validateWorkflowTransition = (logs = [], actorRole, actionType) => {
     const state = deriveReviewState(logs);
@@ -100,4 +110,4 @@ const validateWorkflowTransition = (logs = [], actorRole, actionType) => {
     return { allowed: true };
 };
 
-module.exports = { REQUIRED_REVIEWERS, DECIDING_ROLES, deriveReviewState, planEditState, validateWorkflowTransition };
+module.exports = { REQUIRED_REVIEWERS, DECIDING_ROLES, deriveReviewState, planEditState, pendingReviewerRoles, validateWorkflowTransition };

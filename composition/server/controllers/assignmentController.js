@@ -1,4 +1,7 @@
-const { sequelize, CourseOfferingAssignment, ProgramCourseOffering, Course, Program, Department, AssignmentWorkflowLog } = require('../models');
+const { sequelize, CourseOfferingAssignment, ProgramCourseOffering, Course, Program, Department, AssignmentWorkflowLog, CourseConsultant } = require('../models');
+const { effectiveLogs } = require('../utils/effectiveLogs');
+const { assignRevisionOnApproval } = require('../services/offeringService');
+const { onWorkflowAction: notifyWorkflowAction } = require('../utils/notificationEvents');
 const { Op, Transaction } = require('sequelize');
 const { REQUIRED_REVIEWERS, validateWorkflowTransition } = require('../utils/workflowRules');
 const {
@@ -308,6 +311,11 @@ const recordWorkflowAction = async (req, res, next) => {
                 }
                 throw error;
             }
+
+            // Tell whoever acts next. Never fails the action (see utils/notificationEvents.js).
+            await notifyWorkflowAction({
+                offeringId, actorUserId: req.user?.id, actorRole: actor_role, action: action_type, assignmentId: log.co_assign_id
+            });
 
             return res.status(201).json({
                 log: {
