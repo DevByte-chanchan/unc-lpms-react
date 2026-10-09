@@ -97,6 +97,9 @@ const createRequireAuth = ({ findUserById = defaultFindUserById } = {}) => async
 
 const requireAuth = createRequireAuth();
 
+// learning-plan data, so every other business API is closed to them (/api/auth is mounted
+// before this and is unaffected).
+const SUPERUSER_PATHS = /^\/(users|audit-logs|profile)(\/|$)/;
 const requireRole = (...allowedRoles) => (req, res, next) => {
     if (!req.user || !allowedRoles.includes(req.user.role)) {
         return res.status(403).json({ error: 'You do not have permission to perform this action.' });

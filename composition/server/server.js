@@ -62,6 +62,10 @@ app.use('/api/auth', require('./routes/auth'));
 // authentication boundary for every business API.
 app.use('/api', require('./middleware/auth').requireAuth);
 
+
+// Audit trail of every state-changing request (sign-in events are recorded by authController).
+app.use('/api', require('./utils/audit').auditMiddleware);
+
 const assignmentRoutes = require('./routes/assignments');
 app.use('/api/assignments', assignmentRoutes);
 
@@ -100,6 +104,7 @@ app.use('/api/coaep', require('./routes/coaepRoutes'));
 app.use('/api/form-settings', require('./routes/formSettings'));
 app.use('/api/course-consultants', require('./routes/courseConsultants'));
 app.use('/api/offerings', require('./routes/offerings'));
+app.use('/api/audit-logs', require('./routes/auditLogs'));
 app.use('/api', require('./routes/exportPdf'));
 
 // global error handler

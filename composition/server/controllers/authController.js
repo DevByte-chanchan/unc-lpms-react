@@ -31,6 +31,13 @@ const { COOKIE_NAME, SESSION_TTL_MS, issueSession, revokeSession, revokeUserSess
 
 const ROLE_KEYS = require('../models/user').ROLE_KEYS;
 
+// Sign-in events for the audit trail. Never pass a password or token in `details`.
+const auditAuth = (req, action, outcome, user, details) => audit({
+    actor: user ? { id: user.user_id ?? user.id, name: user.name, role: user.role } : null,
+    action, entityType: 'auth', entityId: user ? (user.user_id ?? user.id) : null,
+    outcome, details, ip: req.ip
+});
+
 // ONE message for every way a sign-in can fail: unknown email, wrong
 // password, wrong role. The moment these differ, the form becomes an oracle
 // for enumerating accounts.
@@ -198,6 +205,7 @@ exports.register = async (req, res, next) => {
         });
 
         startSession(res, user);
+        auditAuth(req, 'REGISTER', 'success', user, { role: user.role });
         return res.status(201).json({ user: user.toPublic() });
     } catch (err) {
         // A unique-constraint race between the check above and the insert.
@@ -228,6 +236,7 @@ exports.login = async (req, res, next) => {
         }
 
         if (isSourceLimited(source) || isLockedOut(attemptKey)) {
+            auditAuth(req, 'LOGIN', 'denied', null, { email, reason: 'locked-out' });
             return res.status(429).json({
                 error: 'Too many failed attempts. Wait a few minutes and try again.'
             });
@@ -280,13 +289,16 @@ exports.login = async (req, res, next) => {
         if (!user || !ok || !roleOk || publishedDemoCredential) {
             recordFailure(attemptKey);
             recordSourceFailure(source);
+            auditAuth(req, 'LOGIN', 'failed', null, { email });
             return res.status(401).json({ error: GENERIC_CREDENTIAL_ERROR });
         }
 
         if (!user.is_active) {
+            auditAuth(req, 'LOGIN', 'denied', user, { reason: 'deactivated' });
             return res.status(403).json({ error: 'This account has been deactivated. Contact the administrator.' });
         }
 
+            auditAuth(req, 'LOGIN', 'denied', user, { reason: 'temporary-password-expired' });
         clearFailures(attemptKey);
 
         // Transparently upgrade a hash written with weaker parameters.
@@ -405,6 +417,7 @@ exports.resetPassword = async (req, res, next) => {
 };
 
 exports.logout = (req, res) => {
+    auditAuth(req, 'LOGOUT', 'success', req.user);
     revokeSession(req.sessionToken);
     res.clearCookie(COOKIE_NAME, {
         httpOnly: true,
