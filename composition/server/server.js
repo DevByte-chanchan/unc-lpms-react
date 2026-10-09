@@ -43,6 +43,10 @@ const isAllowedOrigin = (origin) => {
     }
 };
 
+// Security headers, the https flag and the proxy setting come first, so every response carries them
+// (see utils/serverSecurity.js for LPMS_TRUST_PROXY and LPMS_COOKIE_SECURE).
+require('./utils/serverSecurity').applySecurity(app);
+
 app.use(cors({
     // Credentialed sessions require an exact origin, never "*". Development
     // accepts only loopback Vite ports; deployments opt in explicit origins.

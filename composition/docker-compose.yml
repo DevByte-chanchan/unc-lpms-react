@@ -40,6 +40,10 @@ services:
       # An empty database (a fresh clone) is filled with the demo data on first start. Never in
       # production, and never over a database that already has data.
       LPMS_AUTO_SEED_DEMO: "${LPMS_AUTO_SEED_DEMO:-1}"
+      # Session cookie "Secure" flag (true / false / empty = automatic: Secure in production or over
+      # https, not over plain http) and how many reverse proxies stand in front of the API (empty = none).
+      LPMS_COOKIE_SECURE: "${LPMS_COOKIE_SECURE:-}"
+      LPMS_TRUST_PROXY: "${LPMS_TRUST_PROXY:-}"
       PORT: "5000"
       # Stated explicitly so the API is told to accept the origin the browser
       # actually loads the app from, whatever NODE_ENV ends up being.

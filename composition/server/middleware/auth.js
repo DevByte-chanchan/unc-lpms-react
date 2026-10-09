@@ -4,54 +4,25 @@ const crypto = require('crypto');
 
 const COOKIE_NAME = 'lpms_session';
 const SESSION_TTL_MS = 8 * 60 * 60 * 1000;
-const sessions = new Map();
+// Sessions are kept in the Sessions table (utils/sessionStore.js): a restart no longer signs everyone
+// out. Only the token's hash, the user id, the role and the times are stored.
+const store = require('../utils/sessionStore');
 
-const tokenDigest = (token) => crypto.createHash('sha256').update(token).digest('hex');
-
+// A new random token every time, fixed 8-hour life from now (not extended by use).
 const issueSession = (user, now = Date.now()) => {
     const userId = user?.user_id ?? user?.id;
     if (userId == null) throw new Error('Cannot issue a session without a user id.');
     const token = crypto.randomBytes(32).toString('base64url');
-    sessions.set(tokenDigest(token), {
-        user: {
-            id: userId,
-            name: user.name,
-            email: user.email,
-            role: user.role
-        },
-        expiresAt: now + SESSION_TTL_MS
-    });
+    store.create({ token, userId, role: user.role, now, expiresAt: now + SESSION_TTL_MS });
     return token;
 };
 
-const revokeSession = (token) => {
-    if (!token) return false;
-    return sessions.delete(tokenDigest(token));
-};
+const revokeSession = (token) => store.remove(token);
 
-const revokeUserSessions = (userId) => {
-    const target = String(userId);
-    let revoked = 0;
-    for (const [key, session] of sessions.entries()) {
-        if (String(session.user.id) !== target) continue;
-        sessions.delete(key);
-        revoked += 1;
-    }
-    return revoked;
-};
+const revokeUserSessions = (userId) => store.removeForUser(userId);
 
 // Revoke every session of a user except the one making the request (used by change-password).
-const revokeOtherUserSessions = (userId, keepToken) => {
-    const target = String(userId);
-    const keep = keepToken ? tokenDigest(keepToken) : null;
-    let revoked = 0;
-    for (const [key, session] of sessions.entries()) {
-        if (key === keep || String(session.user.id) !== target) continue;
-        sessions.delete(key);
-        revoked += 1;
-    }
-    return revoked;
-};
+const revokeOtherUserSessions = (userId, keepToken) => store.removeForUser(userId, keepToken || null);
 
 // While a temporary password is still in force, only these may be called.
 const FORCED_CHANGE_ALLOWED = /^\/api\/auth\/(change-password|session|logout)(\?|$)/;
@@ -80,11 +51,10 @@ const defaultFindUserById = async userId => {
 
 const createRequireAuth = ({ findUserById = defaultFindUserById } = {}) => async (req, res, next) => {
     const token = cookieValue(req.headers.cookie);
-    const key = token ? tokenDigest(token) : '';
-    const session = key ? sessions.get(key) : null;
+    const session = token ? store.find(token) : null;
 
     if (!session || session.expiresAt <= Date.now()) {
-        if (key) sessions.delete(key);
+        if (token) store.remove(token);
         return res.status(401).json({ error: 'Authentication required.' });
     }
 
@@ -92,15 +62,21 @@ const createRequireAuth = ({ findUserById = defaultFindUserById } = {}) => async
         // Re-read the security-sensitive account state on every request. A
         // deactivated account or a changed role must take effect immediately,
         // not when this in-memory session happens to expire eight hours later.
-        const user = await findUserById(session.user.id);
+        const user = await findUserById(session.userId);
         if (!user || user.is_active === false) {
-            sessions.delete(key);
+            store.remove(token);
+            return res.status(401).json({ error: 'Authentication required.' });
+        }
+        // The role was recorded when the session was issued. If the account has a different role now
+        // (changed behind the session's back), the session is void: sign in again.
+        if (user.role !== undefined && session.role && user.role !== session.role) {
+            store.remove(token);
             return res.status(401).json({ error: 'Authentication required.' });
         }
 
         const mustChangePassword = Boolean(user.must_change_password);
         if (mustChangePassword && user.temp_password_expires_at && new Date(user.temp_password_expires_at) <= new Date()) {
-            sessions.delete(key);
+            store.remove(token);
             return res.status(401).json({ error: 'Authentication required.' });
         }
 
@@ -153,6 +129,7 @@ module.exports = {
     COOKIE_NAME,
     SESSION_TTL_MS,
     issueSession,
+    cookieValue,
     revokeSession,
     revokeUserSessions,
     revokeOtherUserSessions,

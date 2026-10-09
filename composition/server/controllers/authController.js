@@ -27,7 +27,8 @@
 const { User } = require('../models');
 const { hashPassword, verifyPassword, needsRehash } = require('../utils/password');
 const { TTL_MS: RESET_TTL_MS, createToken, hashToken, expiryFrom, verifyReset } = require('../utils/resetToken');
-const { COOKIE_NAME, SESSION_TTL_MS, issueSession, revokeSession, revokeUserSessions, revokeOtherUserSessions } = require('../middleware/auth');
+const { COOKIE_NAME, SESSION_TTL_MS, issueSession, revokeSession, revokeUserSessions, revokeOtherUserSessions, cookieValue } = require('../middleware/auth');
+const { sessionCookieOptions } = require('../utils/serverSecurity');
 const { mailer, resetEmail } = require('../utils/mailer');
 
 const { record: audit } = require('../utils/audit');
@@ -134,15 +135,14 @@ const localPrivilegedRegistrationEnabled = (source) =>
 
 const normalizeEmail = (v) => String(v || '').trim().toLowerCase();
 
-const startSession = (res, user) => {
+// Rotation: a browser that signs in while still holding an old session cookie has that session
+// revoked, and always gets a brand-new random token (never the old one), so a token seen before sign-in
+// cannot be carried across it.
+const startSession = (req, res, user) => {
+    const previous = cookieValue(req?.headers?.cookie);
+    if (previous) revokeSession(previous);
     const token = issueSession(user);
-    res.cookie(COOKIE_NAME, token, {
-        httpOnly: true,
-        sameSite: 'lax',
-        secure: process.env.NODE_ENV === 'production',
-        path: '/',
-        maxAge: SESSION_TTL_MS
-    });
+    res.cookie(COOKIE_NAME, token, sessionCookieOptions(req, { maxAge: SESSION_TTL_MS }));
 };
 
 // myUNC's `div#magic` trick: a field hidden from real users. A browser leaves
@@ -209,7 +209,7 @@ exports.register = async (req, res, next) => {
             password_hash: await hashPassword(password)
         });
 
-        startSession(res, user);
+        startSession(req, res, user);
         auditAuth(req, 'REGISTER', 'success', user, { role: user.role });
         return res.status(201).json({ user: user.toPublic() });
     } catch (err) {
@@ -320,7 +320,7 @@ exports.login = async (req, res, next) => {
         user.last_login_at = new Date();
         await user.save();
 
-        startSession(res, user);
+        startSession(req, res, user);
         auditAuth(req, 'LOGIN', 'success', user, user.must_change_password ? { mustChangePassword: true } : undefined);
         return res.json({ user: user.toPublic(), mustChangePassword: Boolean(user.must_change_password) });
     } catch (err) {
@@ -438,7 +438,7 @@ exports.resetPassword = async (req, res, next) => {
         // Any lockout from the failed attempts that led here is cleared.
         clearFailuresForEmail(email);
 
-        startSession(res, user);
+        startSession(req, res, user);
         auditAuth(req, 'PASSWORD_RESET', 'success', user);
         return res.json({ user: user.toPublic() });
     } catch (err) {
@@ -520,12 +520,7 @@ exports.demoAccounts = async (req, res, next) => {
 exports.logout = (req, res) => {
     auditAuth(req, 'LOGOUT', 'success', req.user);
     revokeSession(req.sessionToken);
-    res.clearCookie(COOKIE_NAME, {
-        httpOnly: true,
-        sameSite: 'lax',
-        secure: process.env.NODE_ENV === 'production',
-        path: '/'
-    });
+    res.clearCookie(COOKIE_NAME, sessionCookieOptions(req));
     return res.json({ ok: true });
 };
 
