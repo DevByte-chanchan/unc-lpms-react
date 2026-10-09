@@ -6,6 +6,7 @@ import SortableTh from './SortableTh.jsx';
 import { sortRows, nextSort } from '../utils/tableSort.js';
 import { fetchJson } from "../utils/api.js";
 import { buildSyllabusExportFile } from "../utils/exportSyllabus.js";
+import { revisionOf } from "../utils/offeringKey.js";
 import PDFViewerModal from "./PDFViewerModal.jsx";
 import EmptyState from "./EmptyState.jsx";
 import Spinner from "./Spinner.jsx";
@@ -258,8 +259,9 @@ const ApprovalCoursesTable = ({ role = 'approver', styleHooks = {} }) => {
     const getCourseLink = (row) => {
         const base = `/role/${role}/courses/${encodeURIComponent(getCode(row))}`;
         const offeringId = getOfferingID(row);
-        const revNum = (row.ProgramCourseOffering || {}).revision_number || 1;
-        return `${base}?status=${computeOverallStatus(row).toLowerCase()}&fromStatus=${selectedStatus.toLowerCase()}&pcId=${offeringId}&revNum=${revNum}`;
+        // A working copy has no revision number yet, so it is addressed by its offering id alone.
+        const revNum = revisionOf((row.ProgramCourseOffering || {}).revision_number);
+        return `${base}?status=${computeOverallStatus(row).toLowerCase()}&fromStatus=${selectedStatus.toLowerCase()}&pcId=${offeringId}${revNum ? `&revNum=${revNum}` : ''}`;
     };
 
     const DetailsPopup = ({ data, onClose, pos }) => {

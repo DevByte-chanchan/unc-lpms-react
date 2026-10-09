@@ -2,245 +2,167 @@ import React from "react";
 import Skeleton from "../layouts/SkeletonA.jsx";
 import Header from "../components/HeaderA.jsx";
 import SideNavigation from "../components/SideNavigation.jsx";
-import { Clock, Search, ArrowUp, ArrowDown, Upload, Sliders, Clipboard, Briefcase } from "react-feather";
+import { Search, Clipboard, X } from "react-feather";
 import ConsultantsTable from '../components/ConsultantsTable.jsx'
-import styles from '../styles/CoursesTable.module.sass'
-import DropdownMultiSelect from '../components/DropdownMultiSelect.jsx'
 import syllabusStyles from '../styles/SyllabusSections.module.sass'
 import pageStyles from '../styles/ProgramHeadWorkspace.module.sass'
+import { fetchJson, apiErrorMessage } from '../utils/api.js'
 
-
-const UploadButton = ({ onClick }) => (
-    <button
-        onClick={onClick}
-        className={pageStyles.uploadButton}
-    >
-        <span style={{ width: 22, height: 22, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Upload size={18} color="#FFFFFF" />
-        </span>
-        Upload Consultant List
-    </button>
-)
-
+// The Program Head assigns an industry consultant to a course. A consultant reads only the courses
+// they are actively assigned to and may comment; their comments are documentation and never block
+// the approval chain. Assignments are deactivated, never deleted.
 const ProgramHeadIndustryConsultant = () => {
-    const [showModal, setShowModal] = React.useState(false);
-    const [sortOpen, setSortOpen] = React.useState(false);
-    const [showTable, setShowTable] = React.useState(false);
-    const [assignOpen, setAssignOpen] = React.useState(false);
-    const [selectedCourse, setSelectedCourse] = React.useState([]);
-    const [selectedConsultantIndex, setSelectedConsultantIndex] = React.useState(null);
-    const [selectedFile, setSelectedFile] = React.useState(null);
+    const [assignments, setAssignments] = React.useState([]);
+    const [candidates, setCandidates] = React.useState({ courses: [], consultants: [] });
+    const [loading, setLoading] = React.useState(true);
+    const [error, setError] = React.useState('');
     const [searchQuery, setSearchQuery] = React.useState('');
-    const fileInputRef = React.useRef(null);
-    const courses = [
-        'BSCS101 - Introduction to Computing',
-        'BSCS102 - Fundamentals of Programming',
-        'BSCS202 - Data Structures and Algorithms',
-        'BSCS203 - Computer Architecture',
-        'BSCS213L - Object-Oriented Programming',
-        'BSCS305 - Web Development',
-        'BSCS306 - Database Management Systems',
-        'BSCS307 - Operating Systems',
-        'BSCS401 - Machine Learning',
-        'BSCS402 - Capstone Project',
-        'BSCS403 - Cybersecurity Fundamentals',
-        'BSCS404 - Software Engineering'
-    ];
-    const initialConsultants = [];
-    const seededConsultants = [
-        { name: 'Maria Angelica Cruz' },
-        { name: 'Mark Anthony Dela Cruz' },
-        { name: 'Ana Patricia Reyes' },
-        { name: 'Liza Mae Bautista' },
-        { name: 'Carlo Dominic Villanueva' },
-        { name: 'Mary Grace Navarro' },
-        { name: 'Jose Antonio Ramos' },
-        { name: 'Kristine Mae Flores' },
-        { name: 'Daniel Aaron Castillo' },
-        { name: 'Angelica Mae Pineda' },
-        { name: 'Paolo Vincent Garcia' },
-        { name: 'Jose Antonio Ramos' },
-        { name: 'Kristine Mae Flores' },
-        { name: 'Daniel Aaron Castillo' },
-        { name: 'Angelica Mae Pineda' },
-        { name: 'Paolo Vincent Garcia' },
-        { name: 'Jose Antonio Ramos' },
-        { name: 'Kristine Mae Flores' },
-        { name: 'Daniel Aaron Castillo' },
-        { name: 'Angelica Mae Pineda' },
-        { name: 'Paolo Vincent Garcia' },
-    ];
-    const [consultants, setConsultants] = React.useState(initialConsultants);
+    const [assignOpen, setAssignOpen] = React.useState(false);
+    const [courseId, setCourseId] = React.useState('');
+    const [consultantId, setConsultantId] = React.useState('');
+    const [busyId, setBusyId] = React.useState(null);
+    const [saving, setSaving] = React.useState(false);
+
+    const load = React.useCallback(async () => {
+        setError('');
+        try {
+            const [rows, options] = await Promise.all([
+                fetchJson('/api/course-consultants'),
+                fetchJson('/api/course-consultants/candidates'),
+            ]);
+            setAssignments(Array.isArray(rows) ? rows : []);
+            setCandidates({ courses: options.courses || [], consultants: options.consultants || [] });
+        } catch (err) {
+            setError(apiErrorMessage(err, 'Could not load the consultant assignments.'));
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
+    React.useEffect(() => { load(); }, [load]);
+
+    const closeDialog = () => { setAssignOpen(false); setCourseId(''); setConsultantId(''); };
+
+    const assign = async () => {
+        if (!courseId || !consultantId) { setError('Choose a course and a consultant.'); return; }
+        setSaving(true);
+        setError('');
+        try {
+            await fetchJson('/api/course-consultants', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ course_id: Number(courseId), consultant_user_id: Number(consultantId) }),
+            });
+            closeDialog();
+            await load();
+        } catch (err) {
+            setError(apiErrorMessage(err, 'Could not assign the consultant.'));
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const deactivate = async (row) => {
+        setBusyId(row.course_consultant_id);
+        setError('');
+        try {
+            await fetchJson(`/api/course-consultants/${row.course_consultant_id}/deactivate`, { method: 'PUT' });
+            await load();
+        } catch (err) {
+            setError(apiErrorMessage(err, 'Could not deactivate the assignment.'));
+        } finally {
+            setBusyId(null);
+        }
+    };
+
+    // Re-assigning a deactivated consultant reactivates the same record.
+    const reactivate = async (row) => {
+        setBusyId(row.course_consultant_id);
+        setError('');
+        try {
+            await fetchJson('/api/course-consultants', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ course_id: row.course_id, consultant_user_id: row.consultant_user_id }),
+            });
+            await load();
+        } catch (err) {
+            setError(apiErrorMessage(err, 'Could not reactivate the assignment.'));
+        } finally {
+            setBusyId(null);
+        }
+    };
+
+    const query = searchQuery.trim().toLowerCase();
+    const visible = assignments.filter(row => !query
+        || String(row.consultant_name || '').toLowerCase().includes(query)
+        || String(row.course_no || '').toLowerCase().includes(query)
+        || String(row.course_title || '').toLowerCase().includes(query));
+
     const pageContent = (
         <div className={pageStyles.managementPage}>
             <div className={pageStyles.pageHeader}>
                 <h2>Industry Consultant</h2>
                 <div className={pageStyles.pageHeaderActions}>
-                    <UploadButton onClick={() => setShowModal(true)} />
+                    <button type="button" className={pageStyles.uploadButton} onClick={() => setAssignOpen(true)}>
+                        <Clipboard size={18} color="#FFFFFF" /> Assign consultant
+                    </button>
                 </div>
             </div>
 
-            {showTable && consultants.length > 0 && (
-                <div className={`${syllabusStyles.header} ${pageStyles.dataToolbar}`}>
-                    <div className={pageStyles.toolbarSort}>
-                        <div style={{ position: 'relative' }}>
-                            <button
-                                style={{
-                                    width: 120, height: 40,
-                                    display: 'flex', flexDirection: 'row', justifyContent: 'center', alignItems: 'center',
-                                    padding: '8px 12px', gap: 2,
-                                    background: 'transparent', border: '1px solid #D1D5DB', borderRadius: 9999,
-                                    color: '#595959', cursor: 'pointer', fontSize: 14, fontWeight: 600
-                                }}
-                                onClick={() => setSortOpen((v) => !v)}
-                            >
-                                <span style={{ display: 'inline-flex', alignItems: 'center', marginRight: 6 }}>
-                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                        <path d="M8 17V5" stroke="#595959" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                                        <path d="M5 8l3-3 3 3" stroke="#595959" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                                        <path d="M16 7v12" stroke="#595959" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                                        <path d="M13 16l3 3 3-3" stroke="#595959" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                                    </svg>
-                                </span>
-                                <span>Sort</span>
-                            </button>
-                            {sortOpen && (
-                                <div style={{ position: 'absolute', top: '110%', left: 0, background: '#FFFFFF', border: '1px solid #D1D5DB', borderRadius: 6, boxShadow: '0 8px 24px rgba(0,0,0,0.12)', width: 120, padding: 8, zIndex: 5 }}>
-                                    <button onClick={() => setSortOpen(false)} style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', background: 'transparent', border: 'none', cursor: 'pointer', padding: '8px 10px', borderRadius: 6, color: '#111827' }}>
-                                        <ArrowUp size={16} color="#374151" />
-                                        <span style={{ fontSize: 14 }}>A to Z</span>
-                                    </button>
-                                    <button onClick={() => setSortOpen(false)} style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', background: 'transparent', border: 'none', cursor: 'pointer', padding: '8px 10px', borderRadius: 6, color: '#111827' }}>
-                                        <ArrowDown size={16} color="#374151" />
-                                        <span style={{ fontSize: 14 }}>Z to A</span>
-                                    </button>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                    <div className={pageStyles.toolbarControls}>
-                        <div className={`${syllabusStyles['section-select']} ${pageStyles.searchShell}`}>
-                            <Search size={16} style={{ marginRight: 8, color: '#374151' }} />
-                            <input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search consultants" className={pageStyles.searchInput} />
-                        </div>
+            {error && <div role="alert" style={{ margin: '0 0 12px', color: '#b91c1c' }}>{error}</div>}
+
+            <div className={`${syllabusStyles.header} ${pageStyles.dataToolbar}`}>
+                <div className={pageStyles.toolbarControls}>
+                    <div className={`${syllabusStyles['section-select']} ${pageStyles.searchShell}`}>
+                        <Search size={16} style={{ marginRight: 8, color: '#374151' }} />
+                        <input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search consultants" className={pageStyles.searchInput} />
                     </div>
                 </div>
-            )}
+            </div>
 
-            {showTable && consultants.length > 0 && (
-                <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, opacity: 0.4 }}>
-                        <Clock size={16} color="#374151" />
-                        <span style={{ fontSize: 13, color: '#374151', fontWeight: 500 }}>Current Period: 1st Semester 2026-2027</span>
-                    </div>
-                </div>
-            )}
-
-            {showTable && consultants.length > 0 && (
-                <div className={styles['table-container']} style={{ maxHeight: 700, overflowY: 'auto', paddingBottom: 16 }}>
-                    <ConsultantsTable
-                        consultants={consultants.filter(c => c.name.toLowerCase().includes(searchQuery.toLowerCase()))}
-                        hideDepartment={true}
-                        onAssign={(c, idx) => {
-                            setSelectedConsultantIndex(idx);
-                            setSelectedCourse(c.assignedCourse || []);
-                            setAssignOpen(true);
-                        }}
-                    />
-                </div>
-            )}
-
-            {/* Empty state when no consultants */}
-            {(!showTable || consultants.length === 0) && (
+            {loading ? (
+                <p>Loading assignments…</p>
+            ) : visible.length > 0 ? (
+                <ConsultantsTable assignments={visible} onDeactivate={deactivate} onReactivate={reactivate} busyId={busyId} />
+            ) : (
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
-                    <div style={{ width: 92, height: 92, borderRadius: 12, background: '#F3F4F6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <Clipboard size={40} color="#9CA3AF" />
-                    </div>
-                    <div style={{ fontSize: 18, fontWeight: 600, color: '#111827' }}>No consultants yet</div>
-                    <div style={{ color: '#6B7280', textAlign: 'center', maxWidth: 420 }}>You don't have any consultants uploaded. Upload a consultant list or add one to get started.</div>
-                </div>
-            )}
-
-            {showModal && (
-                <div>
-                    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.35)', zIndex: 2 }} onClick={() => setShowModal(false)} />
-                    <div
-                        className={`${pageStyles.managementDialog} ${pageStyles.dialogWide}`}
-                    >
-                        <div className={pageStyles.dialogHeader}>
-                            <div style={{ fontSize: 20, fontWeight: 600 }}>Upload Consultant List</div>
-                        </div>
-
-                        <div
-                            onClick={() => fileInputRef.current && fileInputRef.current.click()}
-                            onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; }}
-                            onDrop={(e) => { e.preventDefault(); const file = e.dataTransfer.files && e.dataTransfer.files[0]; if (file) { setSelectedFile(file); } }}
-                            className={pageStyles.dialogDropZone}
-                        >
-                            <div style={{ width: 64, height: 64, borderRadius: 12, background: '#F3F4F6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                <Upload size={36} color="#9CA3AF" />
-                            </div>
-                            <div style={{ fontSize: 16, fontWeight: 600, color: '#111827' }}>{selectedFile ? selectedFile.name : 'Drag & drop file here'}</div>
-                            <div style={{ color: '#6B7280', fontSize: 13 }}>Upload .xlsx, .xls or .csv</div>
-                            <input id="consultant-file-input" type="file" ref={fileInputRef} accept=".csv,.xlsx,.xls" onChange={(e) => { const file = e.target.files && e.target.files[0]; setSelectedFile(file || null); }} style={{ display: 'none' }} />
-                        </div>
-
-                        <div className={pageStyles.managementDialogActions}>
-                            <button onClick={() => { setSelectedFile(null); if (fileInputRef.current) fileInputRef.current.value = ''; setShowModal(false); }} style={{ flex: 1, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#FFFFFF', border: '1px solid #111827', borderRadius: 8, color: '#111827', cursor: 'pointer', fontWeight: 500 }}>Cancel</button>
-                            <button onClick={() => {
-                                if (!selectedFile) { alert('Please choose a file first'); return; }
-                                // simulate upload and seed some data so the table isn't empty
-                                setConsultants(seededConsultants);
-                                setShowModal(false);
-                                setShowTable(true);
-                            }} style={{ flex: 1, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#1F2937', borderRadius: 8, color: '#FFFFFF', border: 'none', cursor: 'pointer', fontWeight: 500 }}>Upload</button>
-                        </div>
+                    <div style={{ fontSize: 18, fontWeight: 600, color: '#111827' }}>No consultant assignments yet</div>
+                    <div style={{ color: '#6B7280', textAlign: 'center', maxWidth: 420 }}>
+                        Assign an industry consultant to a course. They can read that course and comment; their comments are kept as documentation.
                     </div>
                 </div>
             )}
 
             {assignOpen && (
                 <div>
-                    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 30 }} onClick={() => setAssignOpen(false)} />
-                    <div
-                        role="dialog"
-                        aria-modal="true"
-                        className={`${pageStyles.managementDialog} ${pageStyles.dialogNarrow} ${pageStyles.dialogElevated}`}
-                    >
+                    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 30 }} onClick={closeDialog} />
+                    <div role="dialog" aria-modal="true" aria-label="Assign consultant"
+                        className={`${pageStyles.managementDialog} ${pageStyles.dialogNarrow} ${pageStyles.dialogElevated}`}>
                         <div className={pageStyles.dialogHeader}>
-                            <h2 style={{ margin: 0, fontSize: 20, fontWeight: 600, color: '#111827' }}>Select Course Offerings</h2>
+                            <h2 style={{ margin: 0, fontSize: 20, fontWeight: 600, color: '#111827' }}>Assign consultant</h2>
+                            <button type="button" className="app-icon-close" aria-label="Close" onClick={closeDialog}><X size={16} /></button>
                         </div>
-
-                        {/* Name/Department removed per request */}
-
                         <div className={pageStyles.dialogContent} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                <Clipboard size={20} color={'#111827'} />
-                                <span style={{ color: '#111827', fontWeight: 500 }}>Course Offerings</span>
-                            </div>
-                            <div style={{ width: '100%' }}>
-                                <DropdownMultiSelect options={courses} value={selectedCourse} onChange={setSelectedCourse} />
-                            </div>
+                            <label>Course<br />
+                                <select value={courseId} onChange={(e) => setCourseId(e.target.value)} style={{ width: '100%' }}>
+                                    <option value="">Select a course</option>
+                                    {candidates.courses.map(c => <option key={c.course_id} value={c.course_id}>{c.course_no} — {c.course_title}</option>)}
+                                </select>
+                            </label>
+                            <label>Industry consultant<br />
+                                <select value={consultantId} onChange={(e) => setConsultantId(e.target.value)} style={{ width: '100%' }}>
+                                    <option value="">Select a consultant</option>
+                                    {candidates.consultants.map(c => <option key={c.user_id} value={c.user_id}>{c.name}</option>)}
+                                </select>
+                            </label>
                         </div>
-
                         <div className={pageStyles.managementDialogActions}>
-                            <button
-                                onClick={() => setAssignOpen(false)}
-                                style={{ flex: 1, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#FFFFFF', border: '1px solid #111827', borderRadius: 8, color: '#111827', cursor: 'pointer', fontWeight: 500 }}
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                onClick={() => {
-                                    setConsultants(prev => prev.map((item, i) => i === selectedConsultantIndex ? { ...item, assignedCourse: selectedCourse } : item));
-                                    setAssignOpen(false);
-                                    setSelectedCourse([]);
-                                    setSelectedConsultantIndex(null);
-                                }}
-                                style={{ flex: 1, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#2C3744', color: '#FFFFFF', borderRadius: 8, border: 'none', cursor: 'pointer', gap: 8, fontWeight: 500 }}
-                            >
-                                <Clipboard size={16} />
-                                <span>Assign</span>
+                            <button type="button" onClick={closeDialog}
+                                style={{ flex: 1, height: 40, background: '#FFFFFF', border: '1px solid #111827', borderRadius: 8, cursor: 'pointer' }}>Cancel</button>
+                            <button type="button" onClick={assign} disabled={saving}
+                                style={{ flex: 1, height: 40, background: '#2C3744', color: '#FFFFFF', borderRadius: 8, border: 'none', cursor: 'pointer' }}>
+                                {saving ? 'Assigning…' : 'Assign'}
                             </button>
                         </div>
                     </div>

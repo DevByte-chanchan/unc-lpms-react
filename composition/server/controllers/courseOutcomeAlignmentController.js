@@ -4,11 +4,11 @@ const { Course, ProgramCourseOffering, CourseOutcome, ProgramOutcomeAlignment, P
 async function getCourseProgramOutcomeAlignment(req, res) {
     try {
         const { pcId, revNum } = req.params;
-        if (!pcId || !revNum) return res.status(400).json({ message: 'pcId and revNum are required' });
+        if (!pcId) return res.status(400).json({ message: 'pcId is required' });
 
         // 1) Find the specific program course offering and include Course to get its metadata
         const pco = await ProgramCourseOffering.findOne({
-            where: { pc_offering_id: pcId, revision_number: revNum },
+            where: { pc_offering_id: pcId, ...(revNum ? { revision_number: revNum } : {}) },
             include: [{ model: Course, attributes: ['course_id', 'course_no', 'course_title'] }]
         });
 

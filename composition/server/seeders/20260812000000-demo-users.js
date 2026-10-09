@@ -13,6 +13,7 @@ const { hashPassword } = require('../utils/password');
 const { seedDemoUsers } = require('../utils/demoUserSeed');
 const { assignDemoOwnership, clearDemoOwnership } = require('../utils/demoOwnership');
 const { backfillAuthors } = require('../utils/authorBackfill');
+const { backfillOfferings } = require('../utils/offeringBackfill');
 
 const DEMO_PASSWORD = 'demo1234';
 
@@ -40,6 +41,9 @@ module.exports = {
         // Plans seeded before the accounts existed only know roles; now that each demo role has
         // exactly one account, fill in the names on their comments and workflow actions.
         await backfillAuthors(queryInterface);
+        // Same for each offering's term, approval date and revision number: they come from the
+        // workflow logs, which exist only once every plan has been seeded.
+        await backfillOfferings(queryInterface);
         return result;
     },
 

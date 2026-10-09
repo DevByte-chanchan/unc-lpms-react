@@ -32,6 +32,7 @@ export const PATTERNS = {
     recordComments: '/record-comments',
 
     syllabusByRevision: '/courses/:pcId/:revNum/:status',
+    syllabusByOffering: '/offerings/:pcId/:status',
     syllabusByCode: '/courses/:code',
     syllabusByCodeStatus: '/courses/:code/:status',
     revisions: '/revisions/:code',
@@ -78,6 +79,8 @@ export const routes = {
     recordComments: () => '/record-comments',
 
     syllabusByRevision: (pcId, revNum, status) => `/courses/${enc(pcId)}/${enc(revNum)}/${enc(status)}`,
+    // A working copy (no revision number yet) is addressed by its offering id alone.
+    syllabusByOffering: (pcId, status) => `/offerings/${enc(pcId)}/${enc(status)}`,
     syllabusByCode: (code, status) => (status ? `/courses/${enc(code)}/${enc(status)}` : `/courses/${enc(code)}`),
     revisions: (code) => `/revisions/${enc(code)}`,
 

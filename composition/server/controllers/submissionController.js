@@ -9,13 +9,13 @@ async function submitLearningPlan(req, res) {
         const actorRole = 'INSTRUCTOR'; // Defaulting to instructor based on the use case
 
         // 1. Validate inputs
-        if (!pcId || !revNum) {
-            return res.status(400).json({ message: 'pcId and revNum are required' });
+        if (!pcId) {
+            return res.status(400).json({ message: 'pcId is required' });
         }
 
         // 2. Find the correct Assignment ID using the offering ID
         const offering = await ProgramCourseOffering.findOne({
-            where: { pc_offering_id: pcId, revision_number: revNum },
+            where: { pc_offering_id: pcId, ...(revNum ? { revision_number: revNum } : {}) },
             attributes: ['pc_offering_id']
         });
 

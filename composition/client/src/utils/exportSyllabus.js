@@ -1,4 +1,5 @@
 import { fetchJson } from './api.js'
+import { offeringKey } from './offeringKey.js'
 import { buildSyllabusHtml } from './syllabusPdfHtml.js'
 import { buildReviewRecordHtml } from './reviewRecordHtml.js'
 import { fetchFormInfo } from './formSettings.js'
@@ -28,11 +29,11 @@ export async function buildSyllabusExportFile({ pcId, revNum, code, workflow = n
   const formInfo = await fetchFormInfo()
 
   const [courseRes, coaRes, covRes, critRes, refRes] = await Promise.all([
-    fetchJson(`/api/course-details/${pcId}/${revNum}`).catch(() => null),
-    fetchJson(`/api/course-outcome-alignment/${pcId}/${revNum}`).catch(() => null),
-    fetchJson(`/api/course-coverage/${pcId}/${revNum}`).catch(() => null),
-    fetchJson(`/api/course-criteria/${pcId}/${revNum}`).catch(() => null),
-    fetchJson(`/api/courses/${pcId}/${revNum}/references`).catch(() => null),
+    fetchJson(`/api/course-details/${offeringKey(pcId, revNum)}`).catch(() => null),
+    fetchJson(`/api/course-outcome-alignment/${offeringKey(pcId, revNum)}`).catch(() => null),
+    fetchJson(`/api/course-coverage/${offeringKey(pcId, revNum)}`).catch(() => null),
+    fetchJson(`/api/course-criteria/${offeringKey(pcId, revNum)}`).catch(() => null),
+    fetchJson(`/api/courses/${offeringKey(pcId, revNum)}/references`).catch(() => null),
   ])
 
   const refs = (() => {

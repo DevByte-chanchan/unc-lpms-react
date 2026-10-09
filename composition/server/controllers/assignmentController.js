@@ -77,6 +77,14 @@ const listAssignments = async (req, res, next) => {
         const whereOffering = {};
         if (programId) whereOffering.program_id = programId;
         if (courseId) whereOffering.course_id = courseId;
+        if (req.user?.role === 'industry-consultant') {
+            const assigned = (await CourseConsultant.findAll({
+                where: { consultant_user_id: userId, is_active: true }, attributes: ['course_id'], raw: true
+            })).map(row => row.course_id);
+            whereOffering.course_id = courseId
+                ? (assigned.includes(Number(courseId)) ? Number(courseId) : 0)
+                : { [Op.in]: assigned.length ? assigned : [0] };
+        }
 
         const assignments = await CourseOfferingAssignment.findAndCountAll({
             where: whereAssignment,
@@ -101,7 +109,8 @@ const listAssignments = async (req, res, next) => {
                                 : {})
                         }
                     ],
-                    attributes: ['pc_offering_id', 'revision_number', 'course_description', 'course_id', 'program_id', 'dept_id']
+                    attributes: ['pc_offering_id', 'revision_number', 'course_description', 'course_id', 'program_id', 'dept_id',
+                        'school_year', 'semester', 'base_offering_id', 'carried_from_offering_id', 'approved_at']
                 },
                 {
                     model: AssignmentWorkflowLog,
@@ -116,8 +125,13 @@ const listAssignments = async (req, res, next) => {
         });
 
         // Map and format payload properties
-        const formattedData = assignments.rows.map(assignment => {
+        const formattedData = await Promise.all(assignments.rows.map(async assignment => {
             const data = assignment.toJSON();
+
+            // A carried-over offering is the same approved syllabus: its history is its source's.
+            if (data.ProgramCourseOffering?.carried_from_offering_id) {
+                data.workflowLogs = await effectiveLogs(sequelize, data.co_assign_id);
+            }
 
             // 1. Restore the legacy 'logs' array property for frontend compatibility
             data.logs = data.workflowLogs;
@@ -132,7 +146,7 @@ const listAssignments = async (req, res, next) => {
             data.date_approved = deanApprovalLog ? deanApprovalLog.createdAt : null;
 
             return data;
-        });
+        }));
 
         res.json({
             total: assignments.count,
@@ -153,12 +167,8 @@ const getWorkflowByOffering = async (req, res, next) => {
         if (!assignmentId) {
             return res.json({ co_assign_id: null, pc_offering_id: req.courseAccess?.pc_offering_id ?? null, logs: [] });
         }
-        const logs = await AssignmentWorkflowLog.findAll({
-            where: { co_assign_id: assignmentId },
-            attributes: ['actor_role', 'actor_name', 'action_type', 'createdAt'],
-            order: [['createdAt', 'ASC'], ['log_id', 'ASC']],
-            raw: true
-        });
+        const logs = (await effectiveLogs(sequelize, assignmentId))
+            .map(({ actor_role, actor_name, action_type, createdAt }) => ({ actor_role, actor_name, action_type, createdAt }));
         return res.json({ co_assign_id: assignmentId, pc_offering_id: req.courseAccess.pc_offering_id, logs });
     } catch (err) {
         return next(err);
@@ -193,6 +203,9 @@ const getAssignmentById = async (req, res, next) => {
         }
 
         const data = assignment.toJSON();
+        if (data.ProgramCourseOffering?.carried_from_offering_id) {
+            data.workflowLogs = await effectiveLogs(sequelize, data.co_assign_id);
+        }
 
         // 1. Restore the legacy 'logs' array property for frontend compatibility
         data.logs = data.workflowLogs;
@@ -269,19 +282,14 @@ const recordWorkflowAction = async (req, res, next) => {
                     forbidden.statusCode = 403;
                     throw forbidden;
                 }
-                const history = await AssignmentWorkflowLog.findAll({
-                    where: { co_assign_id: assignment.co_assign_id },
-                    order: [['log_id', 'ASC']],
-                    transaction,
-                    lock: transaction.LOCK.UPDATE
-                });
+                const history = await effectiveLogs(sequelize, assignment.co_assign_id, transaction);
                 const transition = validateWorkflowTransition(history, actor_role, action_type);
                 if (!transition.allowed) {
                     const conflict = new Error(transition.error || 'This workflow action is not allowed right now.');
                     conflict.statusCode = 409;
                     throw conflict;
                 }
-                return AssignmentWorkflowLog.create({
+                const created = await AssignmentWorkflowLog.create({
                     co_assign_id: assignment.co_assign_id,
                     actor_role,
                     actor_name: String(req.user?.name || '').slice(0, 100) || null,

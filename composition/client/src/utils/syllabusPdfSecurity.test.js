@@ -6,7 +6,7 @@ import { buildSyllabusHtml } from './syllabusPdfHtml.js'
 test('reference metadata is text, not executable generated syllabus markup', () => {
   const html = buildSyllabusHtml({
     references: [{
-      type: 'online',
+      type: 'Online Resources',
       title: '</td><script>globalThis.pwned=true</script>',
       authors: '<img src=x onerror=alert(1)>',
       link: 'javascript:alert(1)',

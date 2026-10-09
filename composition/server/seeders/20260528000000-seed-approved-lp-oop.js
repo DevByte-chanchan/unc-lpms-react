@@ -39,7 +39,7 @@ module.exports = {
         // 2) Program Course Offering (Revision 1)
         // ============================================================================
         await queryInterface.bulkInsert('ProgramCourseOfferings', [{
-            revision_number: 1,
+            revision_number: 1, school_year: '2025-2026', semester: '1st',
             course_id: courseId,
             program_id: 1, // BSIT
             dept_id: 3,    // SCIS

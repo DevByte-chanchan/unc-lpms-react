@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { offeringKey } from '../utils/offeringKey.js'
 import TableScrollRegion from './TableScrollRegion.jsx';
 import { AlertTriangle } from 'react-feather';
 import EmptyState from './EmptyState.jsx';
@@ -33,14 +34,14 @@ const CourseCoverage = ({ offeringID, revisionNum, status, selectedSection, styl
 
     // 1. Fetch live coverage database records
     useEffect(() => {
-        if (!offeringID || !revisionNum || selectedSection !== 'Course Coverage') return;
+        if (!offeringID || selectedSection !== 'Course Coverage') return;
         let mounted = true;
 
         async function fetchLiveCoverageMatrix() {
             try {
                 setIsMatrixLoading(true);
                 setCoverageError('');
-                const data = await fetchJson(`/api/course-coverage/${offeringID}/${revisionNum}`);
+                const data = await fetchJson(`/api/course-coverage/${offeringKey(offeringID, revisionNum)}`);
                 if (!mounted) return;
                 setCoverageData(data);
             } catch (err) {

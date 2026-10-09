@@ -17,7 +17,7 @@ const {
 exports.getCourseCoverage = async (req, res, next) => {
     const { pcId, revNum } = req.params;
 
-    if (!pcId || !revNum) {
+    if (!pcId) {
         return res.status(400).json({
             error: "Missing version identification parameters. Please verify your API endpoint route configurations."
         });

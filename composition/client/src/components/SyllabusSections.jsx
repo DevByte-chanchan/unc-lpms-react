@@ -1,4 +1,5 @@
 import styles from '../styles/SyllabusSections.module.sass'
+import { offeringKey } from '../utils/offeringKey.js'
 import stylesB from '../styles/SyllabusPreview.module.sass'; // Ensure this has the new modal CSS classes
 import {ChevronLeft, ChevronRight, Plus, Search, Inbox, Play, Send, MoreVertical, Download, Clock} from 'react-feather';
 import React, {useCallback, useEffect, useRef, useState} from "react";
@@ -46,9 +47,9 @@ const SyllabusSections = () => {
     const [resolvedCode, setResolvedCode] = useState(courseCode)
     useEffect(() => {
         if (courseCode) { setResolvedCode(courseCode); return }
-        if (!offeringID || !revisionNum) return
+        if (!offeringID) return
         let cancelled = false
-        fetchJson(`/api/course-details/${offeringID}/${revisionNum}`)
+        fetchJson(`/api/course-details/${offeringKey(offeringID, revisionNum)}`)
             .then(d => { if (!cancelled && d?.code) setResolvedCode(d.code) })
             .catch(err => console.warn('Could not resolve the course code for this offering:', err))
         return () => { cancelled = true }
@@ -81,11 +82,11 @@ const SyllabusSections = () => {
         setExportingPdf(true)
         try {
             const [courseRes, coaRes, covRes, critRes, refRes] = await Promise.all([
-                fetchJson(`/api/course-details/${offeringID}/${revisionNum}`).catch(() => null),
-                fetchJson(`/api/course-outcome-alignment/${offeringID}/${revisionNum}`).catch(() => null),
-                fetchJson(`/api/course-coverage/${offeringID}/${revisionNum}`).catch(() => null),
-                fetchJson(`/api/course-criteria/${offeringID}/${revisionNum}`).catch(() => null),
-                fetchJson(`/api/courses/${offeringID}/${revisionNum}/references`).catch(() => null),
+                fetchJson(`/api/course-details/${offeringKey(offeringID, revisionNum)}`).catch(() => null),
+                fetchJson(`/api/course-outcome-alignment/${offeringKey(offeringID, revisionNum)}`).catch(() => null),
+                fetchJson(`/api/course-coverage/${offeringKey(offeringID, revisionNum)}`).catch(() => null),
+                fetchJson(`/api/course-criteria/${offeringKey(offeringID, revisionNum)}`).catch(() => null),
+                fetchJson(`/api/courses/${offeringKey(offeringID, revisionNum)}/references`).catch(() => null),
             ])
             const refs = (() => {
                 if (!refRes) return []
@@ -184,8 +185,8 @@ const SyllabusSections = () => {
         setSubmitPhase('CHECKING');
         try {
             const [details, coverage] = await Promise.all([
-                fetchJson(`/api/course-details/${offeringID}/${revisionNum}`),
-                fetchJson(`/api/course-coverage/${offeringID}/${revisionNum}`)
+                fetchJson(`/api/course-details/${offeringKey(offeringID, revisionNum)}`),
+                fetchJson(`/api/course-coverage/${offeringKey(offeringID, revisionNum)}`)
             ]);
             const result = await validateSubmission({
                 courseDetails: details,
@@ -225,7 +226,7 @@ const SyllabusSections = () => {
     const executeFinalSubmission = useCallback(async () => {
         setSubmitPhase('SUBMITTING');
         try {
-            await fetchJson(`/api/submit-learning-plan/${offeringID}/${revisionNum}`, {
+            await fetchJson(`/api/submit-learning-plan/${offeringKey(offeringID, revisionNum)}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' }
             });

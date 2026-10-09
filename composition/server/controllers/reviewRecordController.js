@@ -1,6 +1,7 @@
 'use strict';
 
-const { sequelize, Sequelize, AssignmentWorkflowLog, Comment } = require('../models');
+const { sequelize, Sequelize, Comment } = require('../models');
+const { assignmentChain, effectiveLogs } = require('../utils/effectiveLogs');
 const { assembleReviewRecord } = require('../utils/reviewRecord');
 
 const select = (sql, replacements = []) =>
@@ -65,27 +66,39 @@ async function getReviewRecord(req, res, next) {
         const offeringId = req.courseAccess?.pc_offering_id;
         const assignmentId = req.courseAccess?.co_assign_id;
         const [course] = await select(
-            `SELECT c.course_no, c.course_title, c.term, pco.revision_number
+            `SELECT c.course_no, c.course_title, c.term, pco.revision_number, pco.school_year, pco.semester, pco.carried_from_offering_id
              FROM ProgramCourseOfferings pco INNER JOIN Courses c ON c.course_id = pco.course_id
              WHERE pco.pc_offering_id = ?;`, [offeringId]);
         if (!course) return res.status(404).json({ message: 'Course offering not found.' });
 
-        const logs = assignmentId
-            ? await AssignmentWorkflowLog.findAll({
-                where: { co_assign_id: assignmentId },
-                attributes: ['actor_role', 'actor_name', 'action_type', 'createdAt'],
-                order: [['createdAt', 'ASC'], ['log_id', 'ASC']], raw: true
+        // A carried-over offering's record is the record of the revision it carries.
+        const logs = await effectiveLogs(sequelize, assignmentId);
+        const comments = assignmentId
+            ? await Comment.findAll({
+                where: { co_assign_id: await assignmentChain(sequelize, assignmentId) },
+                order: [['createdAt', 'ASC'], ['comment_id', 'ASC']], raw: true
             })
             : [];
-        const comments = assignmentId
-            ? await Comment.findAll({ where: { co_assign_id: assignmentId }, order: [['createdAt', 'ASC'], ['comment_id', 'ASC']], raw: true })
-            : [];
+
+        // Comment locations may refer to the ILOs of the offering this one was carried from.
+        const chain = assignmentId ? await assignmentChain(sequelize, assignmentId) : [];
+        const offeringIds = chain.length
+            ? (await select(`SELECT pc_offering_id FROM CourseOfferingAssignments WHERE co_assign_id IN (${chain.map(() => '?').join(', ')})`, chain)).map(r => r.pc_offering_id)
+            : [offeringId];
+        const iloLabels = new Map();
+        for (const id of offeringIds) for (const [iloId, label] of await buildIloLabels(id)) iloLabels.set(iloId, label);
 
         const record = assembleReviewRecord({
-            course: { code: course.course_no, title: course.course_title, term: course.term, revisionNumber: course.revision_number },
+            course: {
+                code: course.course_no,
+                title: course.course_title,
+                term: course.school_year ? `${course.semester} Semester, ${course.school_year}` : course.term,
+                revisionNumber: course.revision_number > 0 ? course.revision_number : null,
+                carriedOver: !!course.carried_from_offering_id,
+            },
             logs,
             comments,
-            iloLabels: await buildIloLabels(offeringId),
+            iloLabels,
             targetTitles: await buildTargetTitles(comments),
         });
         return res.json({ ...record, generatedAt: new Date().toISOString() });

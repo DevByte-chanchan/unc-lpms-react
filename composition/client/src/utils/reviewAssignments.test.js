@@ -56,3 +56,9 @@ test('review actions require a loaded revision matching the opened course', () =
   assert.equal(canReviewLoadedCourse({ ...context, revNum: '2' }), false)
   assert.equal(canReviewLoadedCourse({ ...context, code: 'BIT203' }), false)
 })
+
+test('a working copy has no revision number and is reviewed by its offering id alone', () => {
+  const working = { pcId: '16', revNum: null, code: 'BIT213L', details: { code: 'BIT213L', revision: null }, error: '' }
+  assert.equal(canReviewLoadedCourse(working), true)
+  assert.equal(canReviewLoadedCourse({ ...working, details: { code: 'BIT213L', revision: 2 } }), false, 'an approved revision must be opened with its number')
+})

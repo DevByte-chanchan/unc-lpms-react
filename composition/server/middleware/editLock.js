@@ -1,6 +1,7 @@
 'use strict';
 
-const { AssignmentWorkflowLog } = require('../models');
+const { sequelize } = require('../models');
+const { effectiveLogs } = require('../utils/effectiveLogs');
 const { planEditState, lockMessage } = require('../utils/editLock');
 
 // Runs after a require*Access middleware, which leaves the offering's
@@ -11,12 +12,7 @@ const requireEditablePlan = async (req, res, next) => {
         const assignmentId = req.courseAccess?.co_assign_id;
         if (!assignmentId) return next(); // never assigned = no workflow yet = draft
 
-        const logs = await AssignmentWorkflowLog.findAll({
-            where: { co_assign_id: assignmentId },
-            attributes: ['actor_role', 'action_type'],
-            order: [['createdAt', 'ASC'], ['log_id', 'ASC']],
-            raw: true
-        });
+        const logs = await effectiveLogs(sequelize, assignmentId);
         const { state, editable } = planEditState(logs);
         if (!editable) return res.status(409).json({ message: lockMessage(state), status: state });
         return next();

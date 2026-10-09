@@ -9,7 +9,7 @@ const {
 exports.getReferenceSummary = async (req, res, next) => {
     const { pcId, revNum } = req.params;
 
-    if (!pcId || !revNum) {
+    if (!pcId) {
         return res.status(400).json({ error: "Missing versioning configuration identifiers." });
     }
 

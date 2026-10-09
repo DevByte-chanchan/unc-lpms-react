@@ -6,5 +6,6 @@ const { requireOfferingAccess } = require('../middleware/courseAuthorization');
 
 // GET /api/course-outcome-alignment/:pcId/:revNum
 router.get('/:pcId/:revNum', requireOfferingAccess, getCourseProgramOutcomeAlignment);
+router.get('/:pcId', requireOfferingAccess, getCourseProgramOutcomeAlignment);
 
 module.exports = router;

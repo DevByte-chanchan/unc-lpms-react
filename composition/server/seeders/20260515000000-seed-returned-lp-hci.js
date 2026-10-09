@@ -20,7 +20,7 @@ module.exports = {
              FROM CourseOfferingAssignments coa
                       JOIN ProgramCourseOfferings pco ON coa.pc_offering_id = pco.pc_offering_id
                       JOIN Courses c ON pco.course_id = c.course_id
-             WHERE c.course_no = 'BIT313L' AND pco.revision_number = 1
+             WHERE c.course_no = 'BIT313L'
              ORDER BY coa.co_assign_id DESC LIMIT 1;`,
             { type: queryInterface.sequelize.QueryTypes.SELECT }
         );
@@ -171,7 +171,7 @@ module.exports = {
              FROM CourseOfferingAssignments coa
                       JOIN ProgramCourseOfferings pco ON coa.pc_offering_id = pco.pc_offering_id
                       JOIN Courses c ON pco.course_id = c.course_id
-             WHERE c.course_no = 'BIT313L' AND pco.revision_number = 1
+             WHERE c.course_no = 'BIT313L'
              ORDER BY coa.co_assign_id DESC LIMIT 1;`,
             { type: queryInterface.sequelize.QueryTypes.SELECT }
         );

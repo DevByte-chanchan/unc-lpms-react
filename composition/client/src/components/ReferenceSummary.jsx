@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { offeringKey } from '../utils/offeringKey.js'
 import { BookOpen } from 'react-feather';
 import { unresolvedCountsByReference, iloIdsFromCourse } from '../utils/referenceComments.js';
 import EmptyState from './EmptyState.jsx';
@@ -25,13 +26,13 @@ const ReferenceSummary = ({ offeringID, revisionNum, status, selectedSection, st
 
     // 1. Fetch live syllabus materials configuration datasets
     useEffect(() => {
-        if (!offeringID || !revisionNum || selectedSection !== 'References Summary') return;
+        if (!offeringID || selectedSection !== 'References Summary') return;
         let mounted = true;
 
         async function fetchReferenceSummaryData() {
             try {
                 setIsReferencesLoading(true);
-                const data = await fetchJson(`/api/courses/${offeringID}/${revisionNum}/references`);
+                const data = await fetchJson(`/api/courses/${offeringKey(offeringID, revisionNum)}/references`);
 
                 if (!mounted) return;
                 setReferenceData(data);
@@ -57,12 +58,12 @@ const ReferenceSummary = ({ offeringID, revisionNum, status, selectedSection, st
     // distinct comment_ids.
     useEffect(() => {
         if (status !== 'returned' || selectedSection !== 'References Summary' || !referenceData) return;
-        if (!offeringID || !revisionNum) return;
+        if (!offeringID) return;
         let mounted = true;
 
         async function gatherReferenceCommentCounts() {
             try {
-                const course = await fetchJson(`/api/ilos/${offeringID}/${revisionNum}`);
+                const course = await fetchJson(`/api/ilos/${offeringKey(offeringID, revisionNum)}`);
                 const iloIds = iloIdsFromCourse(course);
                 if (iloIds.length === 0) return;
 

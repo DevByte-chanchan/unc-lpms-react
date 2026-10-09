@@ -24,7 +24,7 @@ exports.getUnresolvedCommentCounts = async (req, res) => {
         // Fixed: Mapped to the actual router parameters
         const { pcId, revNum } = req.params;
 
-        if (!pcId || !revNum) {
+        if (!pcId) {
             return res.status(400).json({ message: 'Course offering ID and revision number are required.' });
         }
 
@@ -37,11 +37,11 @@ exports.getUnresolvedCommentCounts = async (req, res) => {
                  INNER JOIN IntendedLearningOutcomes ilo ON ilo.ilo_id = c.ilo_id
                  INNER JOIN CourseOutcomes co ON co.co_id = ilo.co_id
                  INNER JOIN ProgramCourseOfferings pco ON pco.pc_offering_id = co.pc_offering_id
-             WHERE pco.pc_offering_id = ? AND pco.revision_number = ? AND c.resolved_status = false
+             WHERE pco.pc_offering_id = ? AND (? IS NULL OR pco.revision_number = ?) AND c.resolved_status = false
                AND c.commenter_role <> 'INDUSTRY_CONSULTANT'
              GROUP BY c.ilo_id, c.comment_for;`,
             {
-                replacements: [pcId, revNum],
+                replacements: [pcId, revNum || null, revNum || null],
                 type: Sequelize.QueryTypes.SELECT
             }
         );
@@ -352,7 +352,7 @@ exports.getCourseComments = async (req, res) => {
     try {
         const { pcId, revNum } = req.params;
 
-        if (!pcId || !revNum) {
+        if (!pcId) {
             return res.status(400).json({ message: 'Course offering ID and revision number are required.' });
         }
 
@@ -372,10 +372,10 @@ exports.getCourseComments = async (req, res) => {
                       INNER JOIN IntendedLearningOutcomes ilo ON ilo.ilo_id = c.ilo_id
                       INNER JOIN CourseOutcomes co ON co.co_id = ilo.co_id
                       INNER JOIN ProgramCourseOfferings pco ON pco.pc_offering_id = co.pc_offering_id
-             WHERE pco.pc_offering_id = ? AND pco.revision_number = ?
+             WHERE pco.pc_offering_id = ? AND (? IS NULL OR pco.revision_number = ?)
              ORDER BY c.createdAt DESC;`,
             {
-                replacements: [pcId, revNum],
+                replacements: [pcId, revNum || null, revNum || null],
                 type: Sequelize.QueryTypes.SELECT
             }
         );
@@ -421,6 +421,14 @@ exports.updateResolutionStatuses = async (req, res) => {
                 return res.status(403).json({ error: 'You do not have access to this course.' });
             }
         }
+
+        // Remember which comments are being newly resolved, to tell their authors afterwards.
+        const newlyResolvedIds = updates.filter(item => item.resolved_status).map(item => Number(item.comment_id));
+        const previouslyOpen = newlyResolvedIds.length === 0 ? [] : await sequelize.query(
+            `SELECT c.comment_id, c.commenter_user_id AS authorUserId, a.pc_offering_id AS offeringId
+             FROM Comments c LEFT JOIN CourseOfferingAssignments a ON a.co_assign_id = c.co_assign_id
+             WHERE c.resolved_status = 0 AND c.comment_id IN (${newlyResolvedIds.map(() => '?').join(', ')});`,
+            { replacements: newlyResolvedIds, type: Sequelize.QueryTypes.SELECT });
 
         await sequelize.transaction(async (t) => {
             for (const item of updates) {

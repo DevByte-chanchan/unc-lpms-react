@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { offeringKey, revisionOf } from '../utils/offeringKey.js'
 import { Link } from 'react-router-dom';
 import { ChevronRight, Inbox } from "react-feather";
 import TableScrollRegion from './TableScrollRegion.jsx';
@@ -94,14 +95,14 @@ const ILOs = ({ offeringID, revisionNum, status, styles, fetchJson }) => {
 
     // 1. Fetch main ILO Data layer
     useEffect(() => {
-        if (!offeringID || !revisionNum) return;
+        if (!offeringID) return;
         let mounted = true;
 
         async function fetchILOs() {
             setLoading(true);
             setError(null);
             try {
-                const data = await fetchJson(`/api/ilos/${offeringID}/${revisionNum}`);
+                const data = await fetchJson(`/api/ilos/${offeringKey(offeringID, revisionNum)}`);
 
                 if (!mounted) return;
                 const flatILOs = [];
@@ -289,7 +290,7 @@ const ILOs = ({ offeringID, revisionNum, status, styles, fetchJson }) => {
                                     <td className={styles.fill} width={250} style={{ display: "flex", flexDirection: "column", alignItems: "end", gap: 5 }}>
 
                                         {/* Edit ILO text — the offering rides along so the form can load it */}
-                                        <Link className="actionLink" to={`/ilos/form/${encodeURIComponent(iloData.course?.course_no || 'course')}/${ilo.id}?pcId=${offeringID}&rev=${revisionNum}`}>
+                                        <Link className="actionLink" to={`/ilos/form/${encodeURIComponent(iloData.course?.course_no || 'course')}/${ilo.id}?pcId=${offeringID}${revisionOf(revisionNum) ? `&rev=${revisionOf(revisionNum)}` : ''}`}>
                                                 <span className={styles['link-text-wrapper']}>
                                                     Edit ILO
                                                     <ChevronRight size={18} />
@@ -339,7 +340,7 @@ const ILOs = ({ offeringID, revisionNum, status, styles, fetchJson }) => {
 
                                         {/* Assign References — the offering rides along so the
                                             picker can scope results to this course [13:25] [16:13] */}
-                                        <Link className="actionLink" to={`/references/form/${ilo.id}/${status}?pcId=${offeringID}&rev=${revisionNum}`}>
+                                        <Link className="actionLink" to={`/references/form/${ilo.id}/${status}?pcId=${offeringID}${revisionOf(revisionNum) ? `&rev=${revisionOf(revisionNum)}` : ''}`}>
                                                 <span className={styles['link-text-wrapper']}>
                                                     Assign References
                                                     <ChevronRight size={18} />

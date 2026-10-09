@@ -10,6 +10,7 @@ const { requireOfferingAccess, requireIloParamAccess } = require('../middleware/
 
 // GET /api/ilos/:pcId/:revNum
 router.get('/:pcId/:revNum', requireOfferingAccess, getILOsByPcOffering);
+router.get('/:pcId', requireOfferingAccess, getILOsByPcOffering);
 
 router.put('/:ilo_id', requireRole('instructor'), requireIloParamAccess('ilo_id'), requireEditablePlan, updateIlo);
 router.put('/:ilo_id/schedule', requireRole('instructor'), requireIloParamAccess('ilo_id'), requireEditablePlan, updateIloSchedule);

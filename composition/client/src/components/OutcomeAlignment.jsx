@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { offeringKey } from '../utils/offeringKey.js'
 import { Inbox, Grid, AlertTriangle } from "react-feather";
 import EmptyState from './EmptyState.jsx';
 import Spinner from './Spinner.jsx';
@@ -13,14 +14,14 @@ const OutcomeAlignment = ({ offeringID, revisionNum, styles, stylesB, fetchJson 
     const [cpaError, setCpaError] = useState(null);
 
     useEffect(() => {
-        if (!offeringID || !revisionNum) return;
+        if (!offeringID) return;
         let mounted = true;
 
         async function fetchCPA() {
             setCpaLoading(true);
             setCpaError(null);
             try {
-                const data = await fetchJson(`/api/course-outcome-alignment/${offeringID}/${revisionNum}`);
+                const data = await fetchJson(`/api/course-outcome-alignment/${offeringKey(offeringID, revisionNum)}`);
 
                 if (!mounted) return;
 

@@ -6,5 +6,6 @@ const { requireOfferingAccess } = require('../middleware/courseAuthorization');
 
 // GET request matching standard RESTful parameter patterns for university courses
 router.get('/courses/:pcId/:revNum/references', requireOfferingAccess, referenceSummaryController.getReferenceSummary);
+router.get('/courses/:pcId/references', requireOfferingAccess, referenceSummaryController.getReferenceSummary);
 
 module.exports = router;

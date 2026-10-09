@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react'
+import { offeringKey } from '../utils/offeringKey.js'
 import { Link, useSearchParams, useParams, useNavigate, useLocation } from 'react-router-dom'
 import { ChevronLeft, MessageSquare, Download, MoreVertical, Check, Clock, FileText } from 'react-feather'
 import EmptyState from './EmptyState.jsx'
@@ -185,7 +186,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
   // panel: not a slow server, a wait for something that was never requested.
   //
   // Now it is true only while a request is genuinely outstanding.
-  const initialLoading = !!(validPcId && validRevNum && courseDetailsLoading && courseDetails === null)
+  const initialLoading = !!(validPcId && courseDetailsLoading && courseDetails === null)
 
   const handleSectionChange = (e) => {
     setSelectedSection(e.target.value)
@@ -330,13 +331,13 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
 
   // CPA data loading (Course & Program Outcome Alignment)
   useEffect(() => {
-    if (!validPcId || !validRevNum) return;
+    if (!validPcId) return;
     let mounted = true;
     async function fetchCPA() {
       setCpaLoading(true);
       setCpaError(null);
       try {
-        const data = await fetchJson(`/api/course-outcome-alignment/${validPcId}/${validRevNum}`);
+        const data = await fetchJson(`/api/course-outcome-alignment/${offeringKey(validPcId, validRevNum)}`);
         if (!mounted) return;
         setCpaData({
           course: data.course ?? { code: '', title: '' },
@@ -356,12 +357,12 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
 
   // API load: Course Details
   useEffect(() => {
-    if (!validPcId || !validRevNum) return;
+    if (!validPcId) return;
     let mounted = true;
     async function fetchCourseDetails() {
       setCourseDetailsLoading(true);
       try {
-        const data = await fetchJson(`/api/course-details/${validPcId}/${validRevNum}`);
+        const data = await fetchJson(`/api/course-details/${offeringKey(validPcId, validRevNum)}`);
         if (mounted) { setCourseDetails(data); setCourseDetailsError(''); }
       } catch (err) {
         if (mounted) {
@@ -378,12 +379,12 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
 
   // API load: Course Coverage (ilos + topics + assessments)
   useEffect(() => {
-    if (!validPcId || !validRevNum) return;
+    if (!validPcId) return;
     let mounted = true;
     async function fetchCoverage() {
       setCoverageLoading(true);
       try {
-        const data = await fetchJson(`/api/course-coverage/${validPcId}/${validRevNum}`);
+        const data = await fetchJson(`/api/course-coverage/${offeringKey(validPcId, validRevNum)}`);
         if (mounted) setCoverageData(data);
       } catch {
         if (mounted) setCoverageData(null);
@@ -397,12 +398,12 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
 
   // API load: Criteria for Grading
   useEffect(() => {
-    if (!validPcId || !validRevNum) return;
+    if (!validPcId) return;
     let mounted = true;
     async function fetchCriteria() {
       setCriteriaLoading(true);
       try {
-        const data = await fetchJson(`/api/course-criteria/${validPcId}/${validRevNum}`);
+        const data = await fetchJson(`/api/course-criteria/${offeringKey(validPcId, validRevNum)}`);
         if (mounted) setCriteriaData(data);
       } catch {
         if (mounted) setCriteriaData(null);
@@ -416,12 +417,12 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
 
   // API load: References
   useEffect(() => {
-    if (!validPcId || !validRevNum) return;
+    if (!validPcId) return;
     let mounted = true;
     async function fetchRefs() {
       setRefLoading(true);
       try {
-        const data = await fetchJson(`/api/courses/${validPcId}/${validRevNum}/references`);
+        const data = await fetchJson(`/api/courses/${offeringKey(validPcId, validRevNum)}/references`);
         if (mounted) setRefData(data);
       } catch {
         if (mounted) setRefData(null);
@@ -1119,7 +1120,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
                   title={courseDetailsError ? 'Could not load the course details' : 'No course details recorded'}
                   hint={courseDetailsError
                     ? courseDetailsError
-                    : (validPcId && validRevNum)
+                    : (validPcId)
                       ? `Nothing has been entered for ${codeToUse || 'this course'} yet.`
                       : `This plan was opened without a revision reference, so there is nothing to load. Reach it from the approvals table rather than by typing the address.`}
                 />

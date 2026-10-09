@@ -91,6 +91,7 @@ function App() {
 
                         {/* --- COURSE EDITING ROUTES --- */}
                         <Route path={'/courses/:pcId/:revNum/:status'} element={<ErrorBoundary><Syllabus /></ErrorBoundary>} />
+                        <Route path={'/offerings/:pcId/:status'} element={<ErrorBoundary><Syllabus /></ErrorBoundary>} />
                         <Route path={'/courses/:code'} element={<ErrorBoundary><Syllabus /></ErrorBoundary>} />
                         <Route path={'/courses/:code/:status'} element={<ErrorBoundary><Syllabus /></ErrorBoundary>} />
                         <Route path={'/revisions/:code'} element={<ErrorBoundary><SyllabusRevisions /></ErrorBoundary>} />

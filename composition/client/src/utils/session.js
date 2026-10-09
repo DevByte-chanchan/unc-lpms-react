@@ -517,6 +517,7 @@ export const roleFromPath = (pathname = '') => {
 const INSTRUCTOR_PATHS = [
   '/record-comments',
   '/courses',
+  '/offerings',
   '/revisions',
   '/references',
   '/topics',

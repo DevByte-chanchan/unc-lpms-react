@@ -7,5 +7,6 @@ const { requireOfferingAccess } = require('../middleware/courseAuthorization');
 
 // GET /api/course-criteria/:pcId/:revNum
 router.get('/:pcId/:revNum', requireOfferingAccess, getCourseCriteriaByPcOffering);
+router.get('/:pcId', requireOfferingAccess, getCourseCriteriaByPcOffering);
 
 module.exports = router;

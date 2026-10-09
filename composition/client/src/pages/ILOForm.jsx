@@ -9,6 +9,7 @@ import TextField from "../components/TextField.jsx";
 import Dropdown from "../components/Dropdown.jsx";
 import SideNavigation from "../components/SideNavigation.jsx";
 import { fetchJson, apiErrorMessage } from "../utils/api.js";
+import { offeringKey } from "../utils/offeringKey.js";
 import { getSession } from "../utils/session.js";
 import { IED_LEVELS, DEFAULT_TARGET, levelLabel, levelCode, parsePercent } from "../utils/iedLevels.js";
 import { X, AlertCircle, CheckCircle } from "react-feather";
@@ -44,13 +45,13 @@ const ILOForm = () => {
     const goBackHandler = () => navigate(-1);
 
     useEffect(() => {
-        if (!offeringID || !revisionNum) {
+        if (!offeringID) {
             setLoadError('Open this form from the syllabus ILO table so the course offering is known.');
             setLoading(false);
             return undefined;
         }
         let mounted = true;
-        fetchJson(`/api/ilos/${encodeURIComponent(offeringID)}/${encodeURIComponent(revisionNum)}`)
+        fetchJson(`/api/ilos/${offeringKey(encodeURIComponent(offeringID), revisionNum ? encodeURIComponent(revisionNum) : null)}`)
             .then(data => {
                 if (!mounted) return;
                 for (const co of data.courseOutcomes || []) {

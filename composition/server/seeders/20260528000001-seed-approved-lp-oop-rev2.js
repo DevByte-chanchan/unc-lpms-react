@@ -32,7 +32,7 @@ module.exports = {
         // 2. PROGRAM COURSE OFFERING (REVISION 2)
         // ============================================================================
         await queryInterface.bulkInsert('ProgramCourseOfferings', [{
-            revision_number: 2,
+            revision_number: 2, school_year: '2026-2027', semester: '1st',
             course_id: courseId, // Using the ID fetched from the database
             program_id: 1,
             dept_id: 3,

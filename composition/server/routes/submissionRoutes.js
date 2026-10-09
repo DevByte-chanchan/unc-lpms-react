@@ -5,5 +5,6 @@ const { requireRole } = require('../middleware/auth');
 const { requireOfferingAccess } = require('../middleware/courseAuthorization');
 
 router.post('/:pcId/:revNum', requireRole('instructor'), requireOfferingAccess, submitLearningPlan);
+router.post('/:pcId', requireRole('instructor'), requireOfferingAccess, submitLearningPlan);
 
 module.exports = router;

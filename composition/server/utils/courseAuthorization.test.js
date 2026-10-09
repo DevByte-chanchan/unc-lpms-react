@@ -12,7 +12,8 @@ const rows = [{
     pc_offering_id: 10,
     instructor_user_id: '1',
     program_head_user_id: 2,
-    dean_user_id: 5
+    dean_user_id: 5,
+    consultant_user_ids: '4,7'
 }];
 
 test('course access is bound to the authenticated instructor assignment', () => {
@@ -28,9 +29,17 @@ test('program heads and deans are constrained by program and department ownershi
 });
 
 test('central university reviewers retain their intended institution-wide view', () => {
-    for (const role of ['director-of-libraries', 'industry-consultant', 'vpaa']) {
+    for (const role of ['director-of-libraries', 'vpaa']) {
         assert.equal(canAccessCourseRows({ id: 500, role }, rows), true);
     }
+});
+
+test('an industry consultant reads only the courses they are actively assigned to', () => {
+    assert.equal(canAccessCourseRows({ id: 4, role: 'industry-consultant' }, rows), true);
+    assert.equal(canAccessCourseRows({ id: 7, role: 'industry-consultant' }, rows), true);
+    assert.equal(canAccessCourseRows({ id: 500, role: 'industry-consultant' }, rows), false, 'not assigned');
+    assert.equal(canAccessCourseRows({ id: 4, role: 'industry-consultant' }, [{ ...rows[0], consultant_user_ids: null }]), false, 'no active assignment');
+    assert.equal(canAccessCourseRows({ id: 4, role: 'industry-consultant' }, [{ ...rows[0], consultant_user_ids: '14' }]), false, 'ids are matched whole, not by substring');
 });
 
 test('course access middleware rejects an authenticated user outside the course scope', async () => {

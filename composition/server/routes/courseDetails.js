@@ -6,5 +6,6 @@ const { getCourseDetailsByPcOffering } = require('../controllers/courseDetailsCo
 const { requireOfferingAccess } = require('../middleware/courseAuthorization');
 
 router.get('/:pcId/:revNum', requireOfferingAccess, getCourseDetailsByPcOffering);
+router.get('/:pcId', requireOfferingAccess, getCourseDetailsByPcOffering);
 
 module.exports = router;

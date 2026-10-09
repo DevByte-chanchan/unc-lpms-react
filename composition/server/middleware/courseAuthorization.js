@@ -2,15 +2,18 @@
 
 const { sequelize, Sequelize } = require('../models');
 
+// The Industry Consultant is not global: they read only the courses they are actively assigned to.
 const GLOBAL_REVIEW_ROLES = new Set([
     'director-of-libraries',
-    'industry-consultant',
     'vpaa'
 ]);
 
 const CONTEXT_COLUMNS = `
     pco.pc_offering_id,
     pco.revision_number,
+    pco.course_id,
+    (SELECT GROUP_CONCAT(cc.consultant_user_id) FROM CourseConsultants cc
+      WHERE cc.course_id = pco.course_id AND cc.is_active = 1) AS consultant_user_ids,
     coa.co_assign_id,
     coa.stakeholder_id AS instructor_user_id,
     p.stakeholder_id AS program_head_user_id,
@@ -39,6 +42,9 @@ const canAccessCourseRows = (user, rows) => {
     }
     if (user.role === 'dean') {
         return rows.some(row => normalizeId(row.dean_user_id) === userId);
+    }
+    if (user.role === 'industry-consultant') {
+        return rows.some(row => normalizeId(row.consultant_user_ids).split(',').includes(userId));
     }
     return false;
 };

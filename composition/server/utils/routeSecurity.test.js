@@ -283,7 +283,7 @@ test('an instructor cannot act on or read another instructor course', async () =
             headers,
             body: JSON.stringify({ actor_role: 'INSTRUCTOR', action_type: 'SUBMITTED', pcId: 9 })
         });
-        const ilos = await fetch(`${server.baseUrl}/api/ilos/9/1`, { headers });
+        const ilos = await fetch(`${server.baseUrl}/api/ilos/9`, { headers });
 
         assert.equal(action.status, 403);
         assert.deepEqual(await action.json(), { error: 'You do not have access to this course.' });
@@ -307,12 +307,12 @@ test('all course-scoped read endpoints reject a foreign instructor', async () =>
     const server = await startCourseReadServer({ id: 999, role: 'instructor' });
     try {
         const paths = [
-            '/api/course-details/9/1',
-            '/api/course-criteria/9/1',
-            '/api/course-coverage/9/1',
-            '/api/course-outcome-alignment/9/1',
+            '/api/course-details/9',
+            '/api/course-criteria/9',
+            '/api/course-coverage/9',
+            '/api/course-outcome-alignment/9',
             '/api/revisions/9',
-            '/api/courses/9/1/references',
+            '/api/courses/9/references',
             `/api/coaep/${encodeURIComponent(course.course_no)}`
         ];
         for (const path of paths) {

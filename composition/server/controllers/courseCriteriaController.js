@@ -27,7 +27,7 @@ function parseWeight(w) {
 async function getCourseCriteriaByPcOffering(req, res) {
     try {
         const { pcId, revNum } = req.params;
-        if (!pcId || !revNum) return res.status(400).json({ message: 'pcId and revNum are required' });
+        if (!pcId) return res.status(400).json({ message: 'pcId is required' });
 
         // Direct fetch: Find course outcomes linked explicitly to this pc_offering_id
         const courseOutcomes = await CourseOutcome.findAll({

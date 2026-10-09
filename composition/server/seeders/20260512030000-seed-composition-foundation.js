@@ -188,7 +188,7 @@ module.exports = {
         await queryInterface.bulkInsert('ProgramCourseOfferings', [
             {
                 pc_offering_id: 1,
-                revision_number: 1,
+                revision_number: 0, school_year: '2026-2027', semester: '1st',
                 course_id: 1,
                 program_id: 1,
                 dept_id: 3,
@@ -201,13 +201,13 @@ Through lectures, hands-on projects, and usability testing, learners will develo
             },
 
             // 7 more realistic program course offerings (mix programs and courses)
-            { pc_offering_id: 2, revision_number: 1, course_id: 2, program_id: 1, dept_id: 3, course_description: 'Advanced web development topics and frameworks.', createdAt: now, updatedAt: now },
-            { pc_offering_id: 3, revision_number: 1, course_id: 3, program_id: 1, dept_id: 3, course_description: 'Database design, normalization, and SQL.', createdAt: now, updatedAt: now },
-            { pc_offering_id: 4, revision_number: 1, course_id: 4, program_id: 2, dept_id: 3, course_description: 'Software development lifecycle and best practices.', createdAt: now, updatedAt: now },
-            { pc_offering_id: 5, revision_number: 1, course_id: 5, program_id: 1, dept_id: 3, course_description: 'Mobile app design and deployment.', createdAt: now, updatedAt: now },
-            { pc_offering_id: 6, revision_number: 1, course_id: 6, program_id: 2, dept_id: 3, course_description: 'Principles of network security and defense.', createdAt: now, updatedAt: now },
-            { pc_offering_id: 7, revision_number: 1, course_id: 7, program_id: 1, dept_id: 3, course_description: 'Core algorithms and data structure implementations.', createdAt: now, updatedAt: now },
-            { pc_offering_id: 8, revision_number: 1, course_id: 9, program_id: 1, dept_id: 3, course_description: 'Web performance, caching, and security practices.', createdAt: now, updatedAt: now }
+            { pc_offering_id: 2, revision_number: 0, school_year: '2026-2027', semester: '1st', course_id: 2, program_id: 1, dept_id: 3, course_description: 'Advanced web development topics and frameworks.', createdAt: now, updatedAt: now },
+            { pc_offering_id: 3, revision_number: 0, school_year: '2026-2027', semester: '1st', course_id: 3, program_id: 1, dept_id: 3, course_description: 'Database design, normalization, and SQL.', createdAt: now, updatedAt: now },
+            { pc_offering_id: 4, revision_number: 0, school_year: '2026-2027', semester: '1st', course_id: 4, program_id: 2, dept_id: 3, course_description: 'Software development lifecycle and best practices.', createdAt: now, updatedAt: now },
+            { pc_offering_id: 5, revision_number: 0, school_year: '2026-2027', semester: '1st', course_id: 5, program_id: 1, dept_id: 3, course_description: 'Mobile app design and deployment.', createdAt: now, updatedAt: now },
+            { pc_offering_id: 6, revision_number: 0, school_year: '2026-2027', semester: '1st', course_id: 6, program_id: 2, dept_id: 3, course_description: 'Principles of network security and defense.', createdAt: now, updatedAt: now },
+            { pc_offering_id: 7, revision_number: 0, school_year: '2026-2027', semester: '1st', course_id: 7, program_id: 1, dept_id: 3, course_description: 'Core algorithms and data structure implementations.', createdAt: now, updatedAt: now },
+            { pc_offering_id: 8, revision_number: 0, school_year: '2026-2027', semester: '1st', course_id: 9, program_id: 1, dept_id: 3, course_description: 'Web performance, caching, and security practices.', createdAt: now, updatedAt: now }
         ], {});
 
         // --- CourseOutcomes (unchanged for HCI and other offerings) ---

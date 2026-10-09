@@ -1,4 +1,5 @@
 const {
+    sequelize,
     ProgramCourseOffering,
     CourseOfferingAssignment,
     AssignmentWorkflowLog,
@@ -7,6 +8,7 @@ const {
 } = require('../models');
 const { canAccessCourseRows, loadOfferingCourseRows } = require('../middleware/courseAuthorization');
 const { planEditState } = require('../utils/workflowRules');
+const { effectiveLogs } = require('../utils/effectiveLogs');
 
 // Helper to format roles neatly
 const toTitleCase = (str) => {
@@ -178,10 +180,20 @@ exports.getRevisionsByOffering = async (req, res) => {
             }
 
             // The workflow log is the single source of truth for a plan's status.
-            const computedStatus = planEditState(sortedLogs).state;
+            // (A carried-over offering is the same approved syllabus, so it takes its source's history.)
+            const computedStatus = planEditState(
+                offering.carried_from_offering_id && assignment.co_assign_id
+                    ? await effectiveLogs(sequelize, assignment.co_assign_id)
+                    : sortedLogs
+            ).state;
 
             formattedRevisions.push({
-                revNum: offering.revision_number,
+                // 0 in the database means "no revision number yet": a working copy.
+                revNum: offering.revision_number > 0 ? offering.revision_number : null,
+                workingCopy: offering.revision_number === 0,
+                carriedOver: !!offering.carried_from_offering_id,
+                schoolYear: offering.school_year,
+                semester: offering.semester,
                 pcId: offering.pc_offering_id,
                 status: computedStatus,
                 updatedAt: offering.updatedAt,

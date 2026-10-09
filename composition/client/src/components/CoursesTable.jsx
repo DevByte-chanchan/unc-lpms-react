@@ -1,10 +1,12 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { offeringPath } from '../utils/offeringKey.js'
 import Spinner from './Spinner.jsx';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import styles from '../styles/CoursesTable.module.sass';
 import { ChevronRight, Edit, XCircle, HelpCircle, Download, FileText, Clock, RotateCcw, CheckCircle } from 'react-feather';
 import EmptyState from './EmptyState.jsx';
-import { fetchJson } from "../utils/api.js";
+import { fetchJson, apiErrorMessage } from "../utils/api.js";
+import { revisionLabel } from '../utils/offeringLabels.js';
 import { buildSyllabusExportFile } from "../utils/exportSyllabus.js";
 import PDFViewerModal from "./PDFViewerModal.jsx";
 import unclogo from '../assets/unclogo.png';
@@ -138,6 +140,23 @@ const CoursesTable = () => {
         if (exportFile) URL.revokeObjectURL(exportFile.file_url);
         setExportFile(null);
     };
+    // The lead instructor starts a revision from an approved (or carried-over) syllabus: a working copy
+    // with no revision number yet. The server enforces one working copy at a time and one new approved
+    // revision per term, and says so if either rule stops it.
+    const navigate = useNavigate();
+    const [startingId, setStartingId] = useState(null);
+    const startRevision = async (row) => {
+        setStartingId(getOfferingID(row));
+        try {
+            const result = await fetchJson(`/api/offerings/${getOfferingID(row)}/start-revision`, { method: 'POST' });
+            navigate(offeringPath(result.offeringId, null, 'draft'));
+        } catch (error) {
+            alert(apiErrorMessage(error, 'Could not start a revision.'));
+        } finally {
+            setStartingId(null);
+        }
+    };
+
     const handleExport = async (row) => {
         try {
             setExporting(true);
@@ -342,7 +361,7 @@ const CoursesTable = () => {
                                     <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                                         <Link
                                             className={'actionLink'}
-                                            to={`/courses/${getOfferingID(row)}/${getRevNum(row)}/${selectedStatus.toLowerCase()}`}
+                                            to={offeringPath(getOfferingID(row), getRevNum(row), selectedStatus.toLowerCase())}
                                             state={{ fromStatus: selectedStatus.toLowerCase() }}
                                         >
                                             {selectedStatus === 'DRAFT' ? 'Compose' : 'View'}
@@ -356,6 +375,20 @@ const CoursesTable = () => {
                                                 onClick={() => !exporting && handleExport(row)}
                                             >
                                                 {exporting ? '...' : 'Export'} <Download size={16} />
+                                            </span>
+                                        }
+
+                                        {selectedStatus === 'APPROVED' &&
+                                            <span style={{ fontSize: 12, color: '#374151' }}>{revisionLabel(row.ProgramCourseOffering)}</span>
+                                        }
+
+                                        {selectedStatus === 'APPROVED' &&
+                                            <span
+                                                className="actionLink"
+                                                style={{ minWidth: 110, display: 'inline-flex', alignItems: 'center', cursor: startingId ? 'wait' : 'pointer' }}
+                                                onClick={() => !startingId && startRevision(row)}
+                                            >
+                                                {startingId === getOfferingID(row) ? '...' : 'Start revision'}
                                             </span>
                                         }
 
@@ -402,14 +435,14 @@ const CoursesTable = () => {
                                         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                                             {overallStatus === 'Returned' ? (
                                                 <Link className={'actionLink'}
-                                                      to={`/courses/${getOfferingID(row)}/${getRevNum(row)}/${selectedStatus.toLowerCase()}`}
+                                                      to={offeringPath(getOfferingID(row), getRevNum(row), selectedStatus.toLowerCase())}
                                                       state={{ fromStatus: selectedStatus.toLowerCase() }}
                                                 >
                                                     Update<Edit size={16} />
                                                 </Link>
                                             ) : (
                                                 <Link className={'actionLink'}
-                                                      to={`/courses/${getOfferingID(row)}/${getRevNum(row)}/${selectedStatus.toLowerCase()}`}
+                                                      to={offeringPath(getOfferingID(row), getRevNum(row), selectedStatus.toLowerCase())}
                                                       state={{ fromStatus: selectedStatus.toLowerCase() }}
                                                 >
                                                     View <ChevronRight size={16} />

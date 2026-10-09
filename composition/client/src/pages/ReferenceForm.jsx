@@ -1,5 +1,6 @@
 // src/pages/ReferenceForm.jsx
 import React, { useEffect, useMemo, useState } from 'react';
+import { offeringKey } from '../utils/offeringKey.js'
 import Skeleton from '../layouts/Skeleton.jsx';
 import Header from '../components/Header.jsx';
 import FormNavigation from '../components/FormNavigation.jsx';
@@ -71,8 +72,8 @@ const ReferenceForm = () => {
     // Course + topic context for the picker's scoping and its suggestions.
     useEffect(() => {
         let mounted = true;
-        if (offeringID && revisionNum) {
-            fetchJson(`/api/course-details/${offeringID}/${revisionNum}`)
+        if (offeringID) {
+            fetchJson(`/api/course-details/${offeringKey(offeringID, revisionNum)}`)
                 .then(d => { if (mounted && d) setCourse({ code: d.code || '', name: d.name || '' }); })
                 .catch(err => console.warn('Could not resolve the course for this ILO:', err?.message));
         }

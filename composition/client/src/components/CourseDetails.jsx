@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { offeringKey } from '../utils/offeringKey.js'
 import { FileText, AlertTriangle } from 'react-feather';
 import EmptyState from './EmptyState.jsx';
 import Spinner from './Spinner.jsx';
@@ -15,14 +16,14 @@ const CourseDetails = ({ offeringID, revisionNum, stylesB, fetchJson }) => {
     const [courseDetailsError, setCourseDetailsError] = useState(null);
 
     useEffect(() => {
-        if (!offeringID || !revisionNum) return;
+        if (!offeringID) return;
         let mounted = true;
 
         async function fetchCourseDetails() {
             setCourseDetailsLoading(true);
             setCourseDetailsError(null);
             try {
-                const data = await fetchJson(`/api/course-details/${offeringID}/${revisionNum}`);
+                const data = await fetchJson(`/api/course-details/${offeringKey(offeringID, revisionNum)}`);
 
                 if (!mounted) return;
 

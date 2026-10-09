@@ -6,15 +6,15 @@ async function getCourseDetailsByPcOffering(req, res) {
         // Extract parameters from the new route structure
         const { pcId, revNum } = req.params;
 
-        if (!pcId || !revNum) {
-            return res.status(400).json({ message: 'pcId and revNum are required' });
+        if (!pcId) {
+            return res.status(400).json({ message: 'pcId is required' });
         }
 
         // 1. Fetch the specific version of the Program Course Offering
         const pco = await ProgramCourseOffering.findOne({
             where: {
                 pc_offering_id: pcId,
-                revision_number: revNum
+                ...(revNum ? { revision_number: revNum } : {})
             },
             include: [{
                 model: Course,
@@ -55,7 +55,11 @@ async function getCourseDetailsByPcOffering(req, res) {
             prerequisites,
             class: course.classification,
             cmo: course.cmo,
-            revision: pco.revision_number,
+            // 0 in the database means no revision number yet (a working copy the Dean has not approved).
+            revision: pco.revision_number > 0 ? pco.revision_number : null,
+            schoolYear: pco.school_year,
+            semester: pco.semester,
+            carriedOver: !!pco.carried_from_offering_id,
             year: course.year_lvl,
             sem: course.term
         };

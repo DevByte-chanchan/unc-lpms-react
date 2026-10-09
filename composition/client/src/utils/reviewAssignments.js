@@ -7,7 +7,9 @@ export const loadReviewAssignments = async (fetchJson, year, semester) => {
 }
 
 export const canReviewLoadedCourse = ({ pcId, revNum, code, details, error }) => {
-  if (error || !pcId || !revNum || !code || !details?.code) return false
-  return String(details.revision) === String(revNum)
+  if (error || !pcId || !code || !details?.code) return false
+  // An approved revision must match its number; a working copy has none (null) and is addressed by id.
+  const revisionMatches = revNum ? String(details.revision) === String(revNum) : details.revision == null
+  return revisionMatches
     && String(details.code).trim().toLocaleUpperCase() === String(code).trim().toLocaleUpperCase()
 }

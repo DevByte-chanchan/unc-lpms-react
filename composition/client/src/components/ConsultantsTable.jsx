@@ -1,58 +1,44 @@
 import React from 'react'
 import styles from '../styles/CoursesTable.module.sass'
-import { UserPlus } from 'react-feather'
 import TableScrollRegion from './TableScrollRegion.jsx'
 
-const mockConsultants = [
-  { name: 'Dennis Ignacio', department: 'School of Computer and Information Sciences' },
-  { name: 'Maria Santos', department: 'College of Engineering' },
-]
-
-const ConsultantsTable = ({ consultants = mockConsultants, onAssign, hideDepartment = false }) => {
-  return (
-    <TableScrollRegion label="Industry Consultant" minWidth={760} className={styles['table-container']}>
-      <table>
-        <thead style={{ position: 'sticky', top: 0, background: '#FFFFFF', zIndex: 1 }}>
-          <tr>
-            <th width={260}>NAME</th>
-            {!hideDepartment && <th width={500}>DEPARTMENT</th>}
-            <th width={260}>ASSIGNED COURSE</th>
-            <th className={styles.fill}></th>
-          </tr>
-        </thead>
-        <tbody>
-          {consultants.map((c, idx) => (
-            <tr key={idx}>
-              <td width={260}>{c.name}</td>
-              {!hideDepartment && <td width={500}>{c.department}</td>}
-              <td width={260}>
-                {Array.isArray(c.assignedCourse) ? (
-                  <ul style={{ margin: 0, paddingLeft: 16 }}>
-                    {c.assignedCourse.map((course, i) => (
-                      <li key={i} style={{ fontSize: 14, lineHeight: '1.3', marginBottom: 4 }}>{course}</li>
-                    ))}
-                  </ul>
+// The industry consultants the Program Head has assigned to courses. An assignment is ended by
+// deactivating it, never by deleting it, so there is no delete action here: the row stays as
+// part of the accreditation trail. Re-assigning a deactivated consultant reactivates the row.
+const ConsultantsTable = ({ assignments = [], onDeactivate, onReactivate, busyId = null }) => (
+  <TableScrollRegion label="Industry consultant assignments" minWidth={760} className={styles['table-container']}>
+    <table>
+      <thead style={{ position: 'sticky', top: 0, background: '#FFFFFF', zIndex: 1 }}>
+        <tr>
+          <th width={260}>CONSULTANT</th>
+          <th width={320}>COURSE</th>
+          <th width={140}>STATUS</th>
+          <th className={styles.fill}></th>
+        </tr>
+      </thead>
+      <tbody>
+        {assignments.map(row => {
+          const active = !!row.is_active
+          return (
+            <tr key={row.course_consultant_id}>
+              <td>{row.consultant_name || `User ${row.consultant_user_id}`}</td>
+              <td>{row.course_no} — {row.course_title}</td>
+              <td>{active ? 'Active' : 'Deactivated'}</td>
+              <td className={styles.fill}>
+                {active ? (
+                  <button type="button" className={styles.actionLink} disabled={busyId === row.course_consultant_id}
+                    onClick={() => onDeactivate && onDeactivate(row)}>Deactivate</button>
                 ) : (
-                  (c.assignedCourse || '')
+                  <button type="button" className={styles.actionLink} disabled={busyId === row.course_consultant_id}
+                    onClick={() => onReactivate && onReactivate(row)}>Reactivate</button>
                 )}
               </td>
-              <td className={styles.fill} style={{ minWidth: 160, paddingRight: 10 }}>
-                <a
-                  href="#"
-                  className={styles.actionLink}
-                  onClick={(e) => { e.preventDefault(); onAssign && onAssign(c, idx); }}
-                  style={{ color: '#111827', display: 'inline-flex', alignItems: 'center' }}
-                >
-                  <span style={{ marginRight: 8 }}>Assign</span>
-                  <span className={styles.actionIcon} style={{ color: '#111827' }}><UserPlus size={18} /></span>
-                </a>
-              </td>
             </tr>
-          ))}
-        </tbody>
-      </table>
-    </TableScrollRegion>
-  )
-}
+          )
+        })}
+      </tbody>
+    </table>
+  </TableScrollRegion>
+)
 
 export default ConsultantsTable

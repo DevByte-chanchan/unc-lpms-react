@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { offeringKey } from '../utils/offeringKey.js'
 import Spinner from './Spinner.jsx';
 import TableScrollRegion from './TableScrollRegion.jsx';
 import { describeCourseLoadError } from '../utils/courseLoadError.js';
@@ -12,14 +13,14 @@ const CriteriaForGrading = ({ offeringID, revisionNum, status, styles, stylesB, 
 
     // --- 2. FETCH GRADING CRITERIA DATA LAYER ---
     useEffect(() => {
-        if (!offeringID || !revisionNum) return;
+        if (!offeringID) return;
         let mounted = true;
 
         async function fetchCriteria() {
             setCriteriaLoading(true);
             setCriteriaError(null);
             try {
-                const data = await fetchJson(`/api/course-criteria/${offeringID}/${revisionNum}`);
+                const data = await fetchJson(`/api/course-criteria/${offeringKey(offeringID, revisionNum)}`);
 
                 if (!mounted) return;
 

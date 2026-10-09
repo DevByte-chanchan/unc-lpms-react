@@ -1,3 +1,4 @@
+import { historyRevisionLabel } from "../utils/offeringLabels.js";
 import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { Clock } from "react-feather";
@@ -22,15 +23,13 @@ import CriteriaForGrading from "./CriteriaForGrading";
 // than during the previous render", every time the overlay was opened. The
 // guard now lives with the callers, which also means no revision history is
 // fetched while nobody is looking at it.
-const Revisions = ({ onClose, pcId: propPcId, revNum: propRevNum }) => {
-    const { status, revNum: paramRevNum, pcId: paramPcId } = useParams();
+const Revisions = ({ onClose, pcId: propPcId }) => {
+    const { status, pcId: paramPcId } = useParams();
 
     const currentPcId = propPcId || paramPcId;
-    const initialRevNum = Number(propRevNum || paramRevNum || 2);
-
-    const [selectedRevNum, setSelectedRevNum] = useState(initialRevNum);
+    // Entries are keyed by offering id: a working copy has no revision number yet.
     const [activePcId, setActivePcId] = useState(Number(currentPcId));
-    const [expandedAccordion, setExpandedAccordion] = useState(initialRevNum);
+    const [expandedAccordion, setExpandedAccordion] = useState(Number(currentPcId));
     const [selectedSection, setSelectedSection] = useState('Course Details');
 
     const [revisionsData, setRevisionsData] = useState([]);
@@ -53,11 +52,11 @@ const Revisions = ({ onClose, pcId: propPcId, revNum: propRevNum }) => {
         loadRevisions();
     }, [currentPcId]);
 
-    const handleAccordionToggle = (revNum, pcId) => {
-        setExpandedAccordion(expandedAccordion === revNum ? null : revNum);
-        setSelectedRevNum(revNum);
+    const handleAccordionToggle = (pcId) => {
+        setExpandedAccordion(expandedAccordion === pcId ? null : pcId);
         if (pcId) setActivePcId(Number(pcId));
     };
+    const selectedRevNum = revisionsData.find(rev => rev.pcId === activePcId)?.revNum ?? null;
 
     const getIndicatorClass = (type) => {
         const safeType = (type || '').toUpperCase();
@@ -134,14 +133,14 @@ const Revisions = ({ onClose, pcId: propPcId, revNum: propRevNum }) => {
 
                             ) : (
                                 revisionsData.map((rev) => {
-                                    const isExpanded = expandedAccordion === rev.revNum;
+                                    const isExpanded = expandedAccordion === rev.pcId;
                                     return (
-                                        <div key={`rev-${rev.revNum}`} className={styles.accordionItem}>
+                                        <div key={`rev-${rev.pcId}`} className={styles.accordionItem}>
 
                                             {/* Accordion Header */}
-                                            <div className={styles.accordionHeader} onClick={() => handleAccordionToggle(rev.revNum, rev.pcId)}>
+                                            <div className={styles.accordionHeader} onClick={() => handleAccordionToggle(rev.pcId)}>
                                                 <div className={styles.accordionMetaInfo}>
-                                                    <span className={styles.revLabelText}>Revision {rev.revNum}</span>
+                                                    <span className={styles.revLabelText}>{historyRevisionLabel(rev)}{rev.schoolYear ? ` · ${rev.schoolYear} ${rev.semester} sem` : ''}</span>
                                                     {/*<span className={`${styles.statusMiniTag} ${statusClass}`}>{revStatus}</span>*/}
                                                 </div>
                                                 <span className={styles.toggleArrow}>{isExpanded ? "▲" : "▼"}</span>

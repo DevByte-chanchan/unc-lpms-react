@@ -1,6 +1,7 @@
 'use strict';
 
-const { sequelize, Sequelize, AssignmentWorkflowLog } = require('../models');
+const { sequelize, Sequelize } = require('../models');
+const { effectiveLogs } = require('../utils/effectiveLogs');
 const { planEditState } = require('../utils/editLock');
 const { assembleCoaep } = require('../utils/coaepAssembly');
 
@@ -61,14 +62,7 @@ async function getCoaepByCourse(req, res) {
 
         // Status comes from the workflow log, the single source of truth for a plan.
         const assignmentId = req.courseAccess?.co_assign_id;
-        const logs = assignmentId
-            ? await AssignmentWorkflowLog.findAll({
-                where: { co_assign_id: assignmentId },
-                attributes: ['actor_role', 'action_type', 'createdAt'],
-                order: [['createdAt', 'ASC'], ['log_id', 'ASC']],
-                raw: true
-            })
-            : [];
+        const logs = await effectiveLogs(sequelize, assignmentId);
         const { state } = planEditState(logs);
         const approval = state === 'Approved'
             ? [...logs].reverse().find(entry => entry.actor_role === 'DEAN' && ['ACCEPTED', 'APPROVED'].includes(entry.action_type))
@@ -79,7 +73,8 @@ async function getCoaepByCourse(req, res) {
             status: {
                 state,
                 approved: state === 'Approved',
-                revisionNumber: req.courseAccess?.revision_number ?? null,
+                // 0 = no revision number yet (a working copy)
+                revisionNumber: req.courseAccess?.revision_number > 0 ? req.courseAccess.revision_number : null,
                 approvedAt: approval ? new Date(approval.createdAt).toISOString() : null,
             },
             cos: assembleCoaep({ baseRows, topicRows, tlaRows, assessmentRows }),
