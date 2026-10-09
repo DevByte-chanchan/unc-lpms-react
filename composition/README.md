@@ -1,5 +1,79 @@
 # LPMS — learning plan composition
 
+`server/` is a Node/Express API backed by a single SQLite file, and `client/`
+is the Vite + React frontend.
+
+## Running with Docker
+
+Both services run on host ports chosen so this stack can be up at the same time
+as the Portfolio and Watch Party stacks:
+
+| | host | container |
+| --- | --- | --- |
+| API | http://localhost:5001 | 5000 |
+| Frontend | http://localhost:5174 | 5173 |
+
+```sh
+# Production build of the frontend, served by `vite preview`.
+docker compose up --build
+
+# Vite dev server with hot reload, on the same ports.
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
+
+docker compose down          # stop
+docker compose down -v       # stop and delete the database volume
+```
+
+Sign in with any of the demo accounts, for example
+`monica.norton@unc.edu.ph` / `demo1234`.
+
+**A fresh clone has no data on purpose.** The database file is not in git (it is ignored), so a
+clone starts with an empty database. With Docker, the first start of an empty database loads the demo
+data automatically (`LPMS_AUTO_SEED_DEMO=1`, on by default in `docker-compose.yml`); later starts see
+the data and skip it, and it never runs when `NODE_ENV=production`. Without Docker, run
+`node migrate.js` and then `node seed-demo.js` in `server/` once. Set `LPMS_AUTO_SEED_DEMO=0` to turn the
+automatic load off.
+
+Ports and URLs can be overridden from the environment; `.env.example` lists
+every variable and its default.
+
+Two things are worth knowing before changing the setup:
+
+- **The database lives in a Docker volume, not in `server/data`.** WAL mode
+  needs a shared-memory sidecar next to the database file, and a sidecar written
+  by the host's own Node process cannot be reused inside a Linux container — the
+  server would die at startup with `SQLITE_IOERR_SHMOPEN`. The server's
+  entrypoint copies the worktree's database into the volume the first time the
+  volume is empty, so there are now two copies: the worktree file (used by a
+  plain `node server.js`) and the volume. To push host changes into the
+  container, stop the stack and copy the files in:
+
+  ```sh
+  docker compose stop
+  docker compose cp server/data/. server:/app/data/
+  docker compose start        # the entrypoint fixes ownership on the way up
+  ```
+- **`NODE_ENV` defaults to `development`.** The API refuses the published demo
+  password whenever `NODE_ENV=production`, and every account in this worktree is
+  a demo account, so production mode would leave no way to sign in.
+
+## Running without Docker
+
+```sh
+cd server && node server.js     # http://localhost:5000
+cd client && npm run dev        # http://localhost:5173
+```
+
+`scripts/start-dev-servers.bat` starts both in the background and writes to
+`logs/`.
+
+## Tests
+
+```sh
+cd server && node --test "utils/*.test.js"
+cd client && node --test "src/utils/*.test.js"
+```
+
 ## First-time setup for a new groupmate
 
 Run these in order, from `composition/`:

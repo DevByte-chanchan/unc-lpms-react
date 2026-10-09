@@ -47,6 +47,21 @@ migrate_or_stop() {
     fi
 }
 
+# On a brand-new, empty database (a fresh clone has no database file, so the volume starts empty),
+# load the demo data so the app has something to show. Off unless LPMS_AUTO_SEED_DEMO=1 (the compose
+# file turns it on). seed-demo.js --if-empty does nothing when the database already has data and
+# never runs in production, so it is safe on every start. If a seeder fails the container stops.
+seed_demo_if_empty() {
+    if [ "${LPMS_AUTO_SEED_DEMO:-}" != "1" ]; then
+        return 0
+    fi
+    echo "Checking whether the demo data needs loading (LPMS_AUTO_SEED_DEMO=1)..."
+    if ! "$@" node seed-demo.js --if-empty; then
+        echo "Loading the demo data FAILED. The server was not started. Read the message above." >&2
+        exit 1
+    fi
+}
+
 if [ "$(id -u)" = "0" ]; then
     mkdir -p "$DATA_DIR"
     seed_if_empty
@@ -56,10 +71,12 @@ if [ "$(id -u)" = "0" ]; then
     chown -R "$APP_USER":"$APP_USER" "$SIGNATURE_DIR"
     # As the app user, so the database and its WAL files stay owned by it.
     migrate_or_stop setpriv --reuid="$APP_USER" --regid="$APP_USER" --init-groups --
+    seed_demo_if_empty setpriv --reuid="$APP_USER" --regid="$APP_USER" --init-groups --
     exec setpriv --reuid="$APP_USER" --regid="$APP_USER" --init-groups -- "$@"
 fi
 
 # Already unprivileged, e.g. `docker run --user node`.
 seed_if_empty
 migrate_or_stop
+seed_demo_if_empty
 exec "$@"

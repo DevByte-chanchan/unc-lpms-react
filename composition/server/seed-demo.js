@@ -14,6 +14,9 @@
 //     superuser can be created before or after);
 //   * runs the seeders in filename order and stops at the first failure.
 // On a refusal nothing is changed.
+//
+// `--if-empty` is for start-up scripts (the Docker entrypoint): a database that already has data, or
+// NODE_ENV=production, is skipped quietly with exit code 0 instead of refused, and an empty one is seeded.
 
 const fs = require('fs');
 const path = require('path');
@@ -96,12 +99,21 @@ module.exports = { runSeedDemo, findExistingData, SeedDemoError, GUARDED_TABLES 
 
 if (require.main === module) {
     (async () => {
+        const ifEmpty = process.argv.includes('--if-empty');
         // Checked before the database is even opened.
+        if (ifEmpty && process.env.NODE_ENV === 'production') {
+            console.log('Demo data skipped: NODE_ENV is "production".');
+            process.exit(0);
+        }
         if (process.env.NODE_ENV === 'production') {
             console.error('Refused: NODE_ENV is "production". Demo accounts and demo plans must never be loaded into a real deployment.');
             process.exit(1);
         }
         const { sequelize, Sequelize } = require('./models');
+        if (ifEmpty && (await findExistingData(sequelize)).length > 0) {
+            console.log('Demo data skipped: the database already has data.');
+            process.exit(0);
+        }
         const result = await runSeedDemo({ sequelize, Sequelize, log: console.log });
         console.log(`\nDemo data loaded (${result.applied.length} seeders). Demo accounts, all with the password "${result.password}":`);
         for (const account of result.accounts) console.log(`  ${account.email.padEnd(30)} ${account.role}`);

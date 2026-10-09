@@ -25,16 +25,10 @@ module.exports = {
         ], {});
 
         // 2) Programs
-        // Add the requested programs to dept_id = 3 (SCIS)
+        // The two programs of SCIS (dept_id = 3) that the demo plans belong to
         await queryInterface.bulkInsert('Programs', [
             { program_id: 1, dept_id: 3, name: 'Bachelor of Science in Information Technology', stakeholder_id: null, createdAt: now, updatedAt: now },
-            { program_id: 2, dept_id: 3, name: 'Bachelor of Science in Computer Science', stakeholder_id: null, createdAt: now, updatedAt: now },
-            { program_id: 3, dept_id: 3, name: 'Associate in Computer Technology', stakeholder_id: null, createdAt: now, updatedAt: now },
-            { program_id: 4, dept_id: 3, name: 'Bachelor of Library and Information Science', stakeholder_id: null, createdAt: now, updatedAt: now },
-
-            // Add a few programs for other departments so ProgramOutcomes can be attached
-            { program_id: 5, dept_id: 1, name: 'Bachelor of Science in Accountancy', stakeholder_id: null, createdAt: now, updatedAt: now },
-            { program_id: 6, dept_id: 2, name: 'Bachelor of Science in Civil Engineering', stakeholder_id: null, createdAt: now, updatedAt: now }
+            { program_id: 2, dept_id: 3, name: 'Bachelor of Science in Computer Science', stakeholder_id: null, createdAt: now, updatedAt: now }
         ], {});
 
         // ============================================================================
@@ -244,12 +238,19 @@ Through lectures, hands-on projects, and usability testing, learners will develo
         ], {});
 
 // --- ProgramOutcomes (BSIT program_id = 1) create 10 POs ---
+        // Which BSIT educational objectives (1-3) and graduate attributes (1-4: EC, CL, ERC, LL) each PO supports.
+        const bsitMarks = [
+            [[1, 2], [2, 3, 4]], [[1, 2], [3, 4]], [[1, 2], [1, 3, 4]], [[1, 2], [1, 3, 4]], [[1, 2, 3], [1, 2]],
+            [[1, 2, 3], [1, 3, 4]], [[1, 3], [1, 2, 3, 4]], [[1, 3], [1, 2, 3]], [[1, 3], [1, 3]], [[1, 2, 3], [1, 2, 3, 4]]
+        ];
         const bsitPOs = [];
         for (let i = 1; i <= 10; i++) {
             bsitPOs.push({
                 po_id: i,
                 program_id: 1,
                 description: `BSIT-PO${i}: Program outcome description ${i} (realistic outcome for BSIT).`,
+                peo_numbers: JSON.stringify(bsitMarks[i - 1][0]),
+                ga_numbers: JSON.stringify(bsitMarks[i - 1][1]),
                 createdAt: now,
                 updatedAt: now
             });
@@ -262,12 +263,20 @@ Through lectures, hands-on projects, and usability testing, learners will develo
                 po_id: i,
                 program_id: 2,
                 description: `BSCS-PO${i-10}: Program outcome description ${i-10} (realistic outcome for BSCS).`,
+                peo_numbers: '[]',
+                ga_numbers: '[]',
                 createdAt: now,
                 updatedAt: now
             });
         }
 
         await queryInterface.bulkInsert('ProgramOutcomes', [...bsitPOs, ...bscsPOs], {});
+
+        await queryInterface.bulkInsert('ProgramEducationalObjectives', [
+            'Utilize competently the acquired technical and non-technical skills in practicing a career in Information Technology.',
+            "Advance one's skills in Information Technology through the acquisition of best and timely practices, as supported by the foundational skills acquired.",
+            "Become a globally-competitive Information Technology practitioner, through the aid of continuing education and gain leadership responsibilities, as guided by the university and the college's core values."
+        ].map(statement => ({ program_id: 1, statement, mission_aligned: true, createdAt: now, updatedAt: now })), {});
 
 // --- ProgramOutcomeAlignments (more scattered, cover PO1..PO10) ---
 // Ensure mappings are varied (not diagonal) and include multiple PO links per CO where appropriate.
@@ -737,6 +746,7 @@ Through lectures, hands-on projects, and usability testing, learners will develo
         // Delete in reverse order to avoid FK constraint issues
         await queryInterface.bulkDelete('CourseOfferingAssignments', null, {});
         await queryInterface.bulkDelete('ProgramOutcomeAlignments', null, {});
+        await queryInterface.bulkDelete('ProgramEducationalObjectives', null, {});
         await queryInterface.bulkDelete('ProgramOutcomes', null, {});
         await queryInterface.bulkDelete('CourseOutcomes', null, {});
         await queryInterface.bulkDelete('ProgramCourseOfferings', null, {});

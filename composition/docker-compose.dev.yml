@@ -1,0 +1,32 @@
+# Frontend override: run the Vite dev server instead of the built bundle.
+#
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
+#
+# Same host ports as the default stack (frontend on 5174, backend on 5001), so
+# this replaces the `client` service rather than running beside it. Everything
+# else — the server, the network, the database volume — is inherited unchanged.
+#
+# The source is bind-mounted, so editing a file on the host reloads the browser.
+# Because those bind mounts do not reliably deliver filesystem events on Docker
+# Desktop, the dev server polls for changes (LPMS_IN_DOCKER switches that on in
+# client/vite.config.js).
+
+services:
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+      target: dev
+    image: lpms-composition-client-dev
+    container_name: lpms-composition-client-dev
+    environment:
+      LPMS_IN_DOCKER: "true"
+      PORT: "5173"
+      # The dev server reads prefixed variables from the process environment, so
+      # the API base can be changed without a rebuild.
+      VITE_API_BASE: "${LPMS_API_BASE:-http://localhost:5001}"
+    volumes:
+      - ./client/src:/app/src
+      - ./client/public:/app/public
+      - ./client/index.html:/app/index.html
+      - ./client/vite.config.js:/app/vite.config.js

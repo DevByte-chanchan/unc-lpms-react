@@ -49,7 +49,7 @@ const freshDatabase = () => {
     fs.copyFileSync(template, file);
     return file;
 };
-const cli = (file, env = {}) => spawnSync(process.execPath, ['seed-demo.js'], {
+const cli = (file, env = {}, args = []) => spawnSync(process.execPath, ['seed-demo.js', ...args], {
     cwd: server, encoding: 'utf8', env: { ...process.env, NODE_ENV: 'test', LPMS_TEST_DB_FILE: file, ...env }
 });
 const withDb = (file, fn) => { const db = new Database(file); try { return fn(db); } finally { db.close(); } };
@@ -76,7 +76,7 @@ test('an empty database is seeded through the command line, and the six accounts
     }
 
     const rows = dataRows(file);
-    assert.deepEqual([rows.Departments, rows.Programs, rows.Courses, rows.Users], [5, 6, 14, 6]);
+    assert.deepEqual([rows.Departments, rows.Programs, rows.Courses, rows.Users], [5, 2, 14, 6]);
     for (const table of ['ProgramCourseOfferings', 'IntendedLearningOutcomes', 'References', 'Comments', 'AssignmentWorkflowLogs']) {
         assert.ok(rows[table] > 0, `${table} has demo rows`);
     }
@@ -173,4 +173,26 @@ test('seed.js no longer seeds: it points to seed-demo.js and exits without runni
     assert.match(retired.stderr, /seed-demo\.js/);
     assert.match(retired.stderr, /EMPTY database/);
     assert.equal(retired.stdout, '');
+});
+
+test('--if-empty seeds an empty database, then skips quietly (exit 0, nothing changed) once it has data', () => {
+    const file = freshDatabase();
+    const first = cli(file, {}, ['--if-empty']);
+    assert.equal(first.status, 0, first.stderr);
+    assert.match(first.stdout, /Demo data loaded/);
+    const after = snapshot(file);
+
+    const second = cli(file, {}, ['--if-empty']);
+    assert.equal(second.status, 0, second.stderr);
+    assert.match(second.stdout, /skipped: the database already has data/);
+    assert.deepEqual(snapshot(file), after, 'the second run changed nothing');
+});
+
+test('--if-empty in production exits 0 without touching the database', () => {
+    const file = freshDatabase();
+    const before = snapshot(file);
+    const run = cli(file, { NODE_ENV: 'production' }, ['--if-empty']);
+    assert.equal(run.status, 0, run.stderr);
+    assert.match(run.stdout, /skipped: NODE_ENV is "production"/);
+    assert.deepEqual(snapshot(file), before);
 });

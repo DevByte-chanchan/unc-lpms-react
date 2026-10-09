@@ -27,7 +27,7 @@ export default defineConfig([
     },
   },
   {
-    files: ['**/*.test.js', 'src/utils/checkJsxImports.js'],
+    files: ['**/*.test.js', 'src/utils/checkJsxImports.js', 'vite.config.js'],
     languageOptions: {
       globals: globals.node,
     },
