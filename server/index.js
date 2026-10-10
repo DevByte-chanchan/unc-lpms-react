@@ -29,8 +29,19 @@ import { rebuildOfferings, ensureOfferingConstraints, repairCrossPeriodAssignmen
 import { renameAssignmentsTable } from './utils/renameAssignmentsTable.js';
 import { renameIdColumns } from './utils/renameIdColumns.js';
 import { backfillProgramHeadIds } from './controllers/programController.js';
+import { assertAuthConfig } from './utils/session.js';
+import { startEmailWorker } from './workers/emailWorker.js';
 
 dotenv.config();
+
+// Production without JWT_SECRET refuses to boot; development warns and uses a
+// fixed dev secret (utils/session.js).
+try {
+  assertAuthConfig();
+} catch (err) {
+  console.error('[auth] ' + err.message);
+  process.exit(1);
+}
 
 const app = express();
 
@@ -52,6 +63,9 @@ app.use(cors({
 }));
 app.options('*', cors());
 app.use(express.json({ limit: '1mb' }));
+// Never log a link token: GET /api/auth/invitation?token=… would otherwise
+// print it in every request line.
+morgan.token('url', (req) => String(req.originalUrl || req.url).replace(/([?&]token=)[^&]*/gi, '$1[redacted]'));
 app.use(morgan('dev'));
 
 let firstRequestLogged = false;
@@ -168,5 +182,7 @@ const PORT = Number(process.env.PORT || 4000);
   app.listen(PORT, () => {
     console.log('[api] listening on http://localhost:' + PORT);
     console.log('[api] CORS: ' + (allowedFromEnv.length ? 'env list = ' + allowedFromEnv.join(',') : 'any localhost (dev mode)'));
+    // Sends upload invitations once their undo window has passed, and retries.
+    startEmailWorker();
   });
 })();

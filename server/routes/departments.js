@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { requireRole } from '../middleware/auth.js';
 import { uploadExcel } from '../middleware/upload.js';
 import {
   listDepartments,
@@ -13,12 +14,12 @@ import {
 const router = Router();
 
 router.get('/',             listDepartments);
-router.post('/',            createDepartment);
+router.post('/',            requireRole('VPAA'), createDepartment);
 // PATCH /unlist must come before /:id so :id doesn't swallow "unlist".
-router.patch('/unlist',     unlistMany);
+router.patch('/unlist',     requireRole('VPAA'), unlistMany);
 router.get('/:id',          getDepartment);
-router.patch('/:id',        updateDepartment);
-router.delete('/:id',       deleteDepartment);
-router.post('/upload',      uploadExcel.single('file'), uploadDepartments);
+router.patch('/:id',        requireRole('VPAA'), updateDepartment);
+router.delete('/:id',       requireRole('VPAA'), deleteDepartment);
+router.post('/upload',      requireRole('VPAA'), uploadExcel.single('file'), uploadDepartments);
 
 export default router;

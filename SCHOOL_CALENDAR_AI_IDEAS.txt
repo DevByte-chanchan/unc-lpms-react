@@ -1,0 +1,351 @@
+================================================================================
+AI / NLP IDEAS — SCHOOL CALENDAR & SCHEDULING
+UNC LPMS · companion to COURSE_ASSIGNMENT_AI_IDEAS.txt
+================================================================================
+
+--------------------------------------------------------------------------------
+0. REALITY CHECK — THERE IS NO CALENDAR MODULE
+--------------------------------------------------------------------------------
+
+Searched the tree: no calendar page, no calendar route, no events table, no
+calendar model. Every "calendar" hit in the codebase is either the react-feather
+<Calendar> ICON or a native <input type="date"> picker:
+
+    src/components/PeriodSelector.jsx     Calendar icon in the term chip
+    src/components/EditEntityModal.jsx    Calendar icon in "Editing for <term>"
+    src/components/PDFViewerModal.jsx     Calendar icon on Submitted/Approved rows
+    src/pages/AcademicTerms.jsx           Calendar icon + native date pickers
+
+So this document is about three calendar-shaped things that DO exist, plus one
+module that doesn't exist yet.
+
+WHAT EXISTS TODAY
+
+  A) TERM DATES — server/models/academicPeriod.js
+         start_date        DATEONLY   First day of the semester
+         end_date          DATEONLY   Last day — also the auto-close trigger
+         midterm_deadline  DATEONLY   Midterm submission deadline
+         finals_deadline   DATEONLY   Finals submission deadline
+         status            ENUM       Active | Closed
+         closed_at         DATE
+
+     Entered by hand, four native date pickers per term, in
+     src/pages/AcademicTerms.jsx (editBuf / updateBuf / pastEditBuf).
+
+  B) CLASS SCHEDULE STRINGS — parsed, then thrown away. See section 1.
+
+  C) SUBMISSION TIMESTAMPS — on each assignment row:
+         date_assigned / date_submitted / date_updated
+
+There is no week/month grid, no events, no holidays, no exam calendar.
+
+
+================================================================================
+1. SCHEDULE CONFLICT DETECTION   ← the strongest idea in this document
+================================================================================
+
+This one is not speculative. It is a gap the codebase documents in its own
+comments, and the data needed to close it is already being read and discarded.
+
+--------------------------------------------------------------------------------
+1.1  THE DOCUMENTED GAP
+--------------------------------------------------------------------------------
+
+Two model files carry the same admission, verbatim:
+
+    server/models/courseOfferingAssignment.js line 11
+    server/models/courseAssignment.js         line 11
+
+        *   Flagged       — faculty matched but Inactive / On Leave (a schedule
+        *                   conflict would also flag, but is not yet detectable)
+
+"Not yet detectable." The status vocabulary was designed with schedule conflicts
+in mind and then shipped without them.
+
+--------------------------------------------------------------------------------
+1.2  THE DATA IS ALREADY THERE — AND CURRENTLY DROPPED ON THE FLOOR
+--------------------------------------------------------------------------------
+
+server/utils/teachingAssignmentParser.js reads the STRAP export, whose columns
+are documented at the top of that file:
+
+        Code | Course No | Course Description | Units | ... | Schedule | Room
+
+parseTeachingAssignment() collects the schedule column (index 9) per offering:
+
+    line 114    schedules: [],
+    line 121    if (sched) off.schedules.push(sched);
+    line 125    lastOffering.schedules.push(clean(r[9]));   // continuation rows
+
+Line 125 matters: the parser already understands that split classes emit
+continuation rows carrying a SECOND meeting time for the same offering. It
+handles that correctly.
+
+Then extractProgramAssignments() returns:
+
+    { course_code, course_name, contributor_names[], year_level, sections[] }
+
+No schedules field. The array is built, populated, handled carefully across
+continuation rows — and never returned. Every schedule string in every STRAP
+upload is parsed out of the file and discarded a few lines later.
+
+You are already 80% of the way to conflict detection and throwing away the
+result.
+
+--------------------------------------------------------------------------------
+1.3  THE NLP PART — PARSING THE SCHEDULE STRINGS
+--------------------------------------------------------------------------------
+
+Schedule cells are semi-structured natural language. Real-world variants:
+
+    "MWF 9:00-10:00 AM"
+    "TTh 1:00 - 2:30 PM"
+    "M-W-F 09:00AM-10:00AM"
+    "Sat 8:00-11:00 AM"
+    "TBA"
+    "MWF 9:00-10:00 AM / Th 1:00-4:00 PM"     (lecture + lab)
+
+This is entity extraction over a small, closed grammar — the classic case for a
+hand-written parser, NOT for a model. Target shape:
+
+    { days: ['MON','WED','FRI'], start: 540, end: 600, raw: 'MWF 9:00-10:00 AM' }
+
+    (start/end as minutes since midnight — integer comparison is trivial,
+     timezone-free, and sorts correctly.)
+
+DAY TOKEN AMBIGUITY — THE ONE REAL TRAP
+
+    "T"  = Tuesday        "Th" / "TH" = Thursday
+    "S"  = Saturday       "Su" / "SU" = Sunday
+    "M"  = Monday         "W" = Wednesday   "F" = Friday
+
+    Tokenize LONGEST-FIRST or "TTh" parses as Tuesday+Tuesday+Monday-ish
+    garbage. Match Th/Su/Sa before T/S. This is the single most common bug in
+    naive timetable parsers — write the test first:
+
+        "TTh"    -> [TUE, THU]        NOT [TUE, TUE, ...]
+        "MWF"    -> [MON, WED, FRI]
+        "TThS"   -> [TUE, THU, SAT]
+        "SuM"    -> [SUN, MON]
+
+AM/PM INFERENCE: "1:00-2:30 PM" — the PM applies to both ends. "9:00-10:00 AM"
+likewise. But "11:00-1:00 PM" crosses noon and only the end carries the marker.
+Rule: if end < start after applying the stated marker, add 12h to the end.
+
+UNPARSEABLE INPUT: "TBA", blank, or anything the grammar rejects must produce a
+null-with-reason, never a guess. A wrongly-parsed time produces a false conflict
+that erodes trust in the whole feature faster than no feature at all.
+
+COST: zero. No API, no dependency. ~100 lines plus a table-driven test file.
+
+--------------------------------------------------------------------------------
+1.4  THE CONFLICT CHECK
+--------------------------------------------------------------------------------
+
+Once schedules are structured, conflict detection is plain interval arithmetic:
+
+    Two meetings conflict  <=>  they share a day
+                           AND  start_a < end_b  AND  start_b < end_a
+
+Group by faculty_id within a period, compare pairwise. For a few hundred
+assignments this is microseconds — no indexing strategy needed.
+
+THREE CONFLICT CLASSES WORTH DISTINGUISHING
+
+    HARD   Same faculty, same day, overlapping times, two different courses.
+           A person cannot be in two rooms at once. Flag loudly.
+
+    SOFT   Back-to-back in different buildings with no gap. Physically possible,
+           practically miserable. Warn, don't block.
+
+    LOAD   Total weekly contact hours above a threshold. Not a conflict, but the
+           same machinery surfaces it for free. `contact_hrs` already exists on
+           the Course model.
+
+WHERE IT LANDS IN THE EXISTING UI — no new pages required
+
+    - UPLOAD PREVIEW: the dry run already renders per-row warnings via
+      PreviewRows.warning(). A conflict becomes one more warning line:
+          "Row 12: Amy Alegre already teaches BIT204 on MWF 9:00-10:00."
+      Caught BEFORE the destructive write, which is exactly where it belongs.
+
+    - STATUS PILL: the vocabulary already reserves a slot for this. Follow the
+      module's existing convention — conflicts should be VISIBLE and fixable,
+      like Emeritus, not archived away like Inactive.
+
+    - RE-VALIDATE: syncAssignmentsAgainstCatalog() already re-derives status on
+      every page load. Conflict state recomputes there for free.
+
+WHAT TO CHANGE
+
+    1. extractProgramAssignments()  ->  return the schedules you already collect
+    2. new server/utils/scheduleParser.js  ->  string -> {days, start, end}
+    3. course_offering_assignments  ->  add a `schedule` JSON column
+                                        (same shape as the existing
+                                         `contributors` JSON column — follow it)
+    4. conflict check inside the upload loop + syncAssignmentsAgainstCatalog()
+
+CAVEAT WORTH STATING: conflicts are only detectable across assignments THIS
+system knows about. A faculty member teaching for another program whose Program
+Head hasn't uploaded yet is invisible. Say so in the UI — "no conflicts found
+among uploaded assignments" is honest; "no conflicts" is not.
+
+
+================================================================================
+2. ACADEMIC CALENDAR DOCUMENT INGESTION
+================================================================================
+
+--------------------------------------------------------------------------------
+2.1  THE PROBLEM
+--------------------------------------------------------------------------------
+
+Every school publishes an academic calendar — PDF or Word, a table of dates:
+enrollment, start of classes, prelim/midterm/final exam weeks, holidays,
+semestral break, deadline for submission of grades.
+
+In this app, someone reads that document and hand-types FOUR dates per term into
+native date pickers in AcademicTerms.jsx. Everything else in the published
+calendar is simply not captured, because there is nowhere to put it.
+
+--------------------------------------------------------------------------------
+2.2  THE FIX — DOCUMENT EXTRACTION
+--------------------------------------------------------------------------------
+
+Upload the academic calendar; extract the dates; pre-fill the form for review.
+
+This is a genuine document-understanding task (multi-column layouts, merged
+table cells, dates written as "August 11-15, 2025" or "Aug. 11 – 15", Filipino
+holiday names, footnotes) and it is exactly what a model is good at and a regex
+is not. Claude reads PDFs natively via a `document` content block — no OCR
+pipeline, no PDF-to-text preprocessing.
+
+Use structured outputs so the response is guaranteed to parse:
+
+    output_config: { format: { type: 'json_schema', schema: {
+      type: 'object',
+      properties: {
+        school_year:      { type: 'string' },
+        semester:         { type: 'string' },
+        start_date:       { type: ['string','null'], format: 'date' },
+        end_date:         { type: ['string','null'], format: 'date' },
+        midterm_deadline: { type: ['string','null'], format: 'date' },
+        finals_deadline:  { type: ['string','null'], format: 'date' },
+        events: { type: 'array', items: {
+          type: 'object',
+          properties: {
+            name:       { type: 'string' },
+            start_date: { type: 'string', format: 'date' },
+            end_date:   { type: ['string','null'], format: 'date' },
+            kind: { type: 'string',
+                    enum: ['holiday','exam','enrollment','break','deadline','other'] }
+          },
+          required: ['name','start_date','end_date','kind'],
+          additionalProperties: false
+        }}
+      },
+      required: ['school_year','semester','start_date','end_date',
+                 'midterm_deadline','finals_deadline','events'],
+      additionalProperties: false
+    }}}
+
+COST
+
+    An academic calendar is 1-3 pages. Roughly 3-6K input tokens, ~1K output.
+    Haiku 4.5 ($1 / $5 per 1M):   about $0.01 per calendar.
+    Run maybe TWICE A YEAR. Annual cost: about two cents.
+
+    Because the volume is this trivial, do NOT optimize the model choice down.
+    Academic calendars are often ugly multi-column tables with merged cells and
+    footnotes. If Haiku misreads the layout, use Sonnet 5 or Opus 5 instead —
+    at two runs a year the price difference is rounding error, and a
+    misextracted term date propagates into every read-only / auto-close decision
+    in the app.
+
+MANDATORY: REVIEW BEFORE COMMIT
+
+    Do not write extracted dates straight to academic_periods. term dates drive
+    enforceLatestPeriod(), which decides what the ENTIRE APP will accept writes
+    to. A wrong end_date silently makes the current term read-only for everyone.
+
+    Route it through the pattern this codebase already has: the upload preview +
+    confirm + 30-second undo flow (UploadPreviewFlow.jsx, importController.js).
+    Show extracted vs current side by side, let the user confirm each field.
+    You already built the right UX for this — reuse it.
+
+
+================================================================================
+3. IF YOU BUILD AN ACTUAL CALENDAR MODULE
+================================================================================
+
+Only relevant if a calendar page is actually on your roadmap. Section 2 gives
+you the data model for free — `events[]` above is already the seed of it:
+
+    school_events
+      id, period_id, name, kind, start_date, end_date, source
+
+Three NLP-flavored features it would unlock:
+
+  3.1  NATURAL-LANGUAGE EVENT ENTRY
+       "midterm exams the third week of October" -> {start, end, kind:'exam'}
+       One cheap model call per event (~$0.0005), structured output, always
+       shown for confirmation before saving. Nice-to-have, not a priority.
+
+  3.2  DEADLINE EXTRACTION FROM MEMOS
+       Schools distribute deadline changes as memos and email attachments.
+       Same extraction as section 2, pointed at a different document type.
+       Useful precisely because these arrive mid-term and get missed.
+
+  3.3  CALENDAR-AWARE SCHEDULE VALIDATION
+       Combine sections 1 and 3: flag a class meeting that falls on a holiday,
+       or a submission deadline landing inside semestral break. Pure date
+       arithmetic once both datasets exist — no model call.
+
+DO NOT BUILD A CALENDAR MODULE JUST TO HAVE ONE. Sections 1 and 2 deliver most
+of the value and need no new page. A month grid is a lot of UI for something
+four date pickers currently handle adequately.
+
+
+================================================================================
+4. WHAT IS *NOT* WORTH AI HERE — SAY NO TO THESE
+================================================================================
+
+Listed explicitly because they look AI-shaped and are not:
+
+  - AUTO-CLOSING A TERM WHEN end_date PASSES.
+    Date comparison. AcademicTerms.jsx already does it (line ~572). No model.
+
+  - "REMIND ME BEFORE THE MIDTERM DEADLINE."
+    Date math plus a notification. Genuinely useful, zero AI content.
+
+  - VALIDATING end_date >= start_date.
+    Already implemented (line ~607). An `if`. Leave it alone.
+
+  - PREDICTING NEXT TERM'S DATES FROM HISTORY.
+    Tempting, and wrong. Academic calendars are set by administration and
+    published; they are not a time series to be forecast. Read the document
+    (section 2) instead of guessing at it from prior years.
+
+  - NATURAL-LANGUAGE QUERYING OF FOUR DATE FIELDS.
+    There are four of them and they are all on screen. A search box over four
+    visible values is worse than the values.
+
+
+================================================================================
+5. RECOMMENDED ORDER
+================================================================================
+
+  1.  1.3  Schedule string parser + tests        zero cost, self-contained
+  2.  1.2  Return schedules from the parser      a few lines; stop discarding data
+  3.  1.4  Conflict detection in upload preview  closes the documented gap
+  4.  2.2  Academic calendar extraction          ~2 cents/year, saves manual entry
+  5.  3.x  Calendar module                       only if actually on the roadmap
+
+Items 1-3 are pure JavaScript, need no API key, and close a gap the code has
+been openly carrying a TODO for. Item 4 is the only one that costs money, and it
+costs about two cents a year.
+
+Start with the schedule parser. It is testable in isolation, it has an
+unambiguous correct answer for every input, and everything else in section 1
+depends on it.
+
+================================================================================

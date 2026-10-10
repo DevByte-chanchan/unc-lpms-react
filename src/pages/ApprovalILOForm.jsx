@@ -29,15 +29,6 @@ const ApprovalILOForm = () => {
                       ? 'instructor'
                       : 'approver';
 
-  const displayRole = roleKey.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-  const defaultNames = {
-    'program-head': 'Dr. Smith',
-    'dean': 'Dean Johnson',
-    'industry-consultant': 'Consultant Lee',
-    'director-of-libraries': 'Director Brown'
-  };
-  const storedUser = JSON.parse(localStorage.getItem('user') || 'null');
-  const approverName = storedUser?.name || defaultNames[roleKey] || displayRole;
 
   const co1 = 'Apply core concepts, theories, and principles of Human-Computer Interface (HCI) in proposing a User Interface (UI) design using Figma to translate a design brief into interactive screen layouts and UI components with a high-fidelity prototype demonstrating clarity, consistency, and appropriate use of visual hierarchy.';
 
@@ -47,7 +38,7 @@ const ApprovalILOForm = () => {
 
   return (
       <Skeleton
-          header={<Header role={displayRole} name={approverName} />}
+          header={<Header />}
           nav={<SideNavigation mode={roleKey} />}
           content={
             <div className={styles.container}>

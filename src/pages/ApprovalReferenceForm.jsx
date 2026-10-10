@@ -26,22 +26,13 @@ const ApprovalReferenceForm = () => {
                       ? 'instructor'
                       : 'approver';
 
-  const displayRole = roleKey.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-  const defaultNames = {
-    'program-head': 'Dr. Smith',
-    'dean': 'Dean Johnson',
-    'industry-consultant': 'Consultant Lee',
-    'director-of-libraries': 'Director Brown'
-  };
-  const storedUser = JSON.parse(localStorage.getItem('user') || 'null');
-  const approverName = storedUser?.name || defaultNames[roleKey] || displayRole;
 
   const fixed = { type: 'Textbook', title: 'UI PRINCIPLES', authors: 'Don Norman', year: '2015' };
   const ReferenceTypes = ['Textbook', 'Online Resources', 'Open Educational Resources'];
 
   return (
       <Skeleton
-          header={<Header role={displayRole} name={approverName} />}
+          header={<Header />}
           nav={<SideNavigation mode={roleKey} />}
           content={
             <div className={styles.container}>

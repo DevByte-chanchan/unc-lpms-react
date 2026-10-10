@@ -20,6 +20,7 @@
  */
 import React from 'react';
 import { prettifyLabel } from './periodLabel.js';
+import { AUTH_SIGNED_IN_EVENT } from './api.js';
 
 const STORAGE_KEY = 'course_assignment.period_id';
 const API_BASE = (import.meta.env && import.meta.env.VITE_API_URL) || 'http://localhost:4000/api';
@@ -91,7 +92,9 @@ export const PeriodProvider = ({ children }) => {
   const refreshPeriods = React.useCallback(async () => {
     let rows = [];
     try {
-      const res = await fetch(`${API_BASE}/academic-periods`);
+      const res = await fetch(`${API_BASE}/academic-periods`, { credentials: 'include' });
+      // Not signed in yet: not an outage. The list loads on AUTH_SIGNED_IN_EVENT.
+      if (res.status === 401) return;
       if (!res.ok) {
         setApiReachable(false);
         return;
@@ -131,6 +134,12 @@ export const PeriodProvider = ({ children }) => {
   }, []);
 
   React.useEffect(() => { refreshPeriods(); }, [refreshPeriods]);
+
+  // Every sign-in (and a restored session) reloads the list — it 401s before.
+  React.useEffect(() => {
+    window.addEventListener(AUTH_SIGNED_IN_EVENT, refreshPeriods);
+    return () => window.removeEventListener(AUTH_SIGNED_IN_EVENT, refreshPeriods);
+  }, [refreshPeriods]);
 
   React.useEffect(() => {
     if (currentId) window.localStorage.setItem(STORAGE_KEY, String(currentId));

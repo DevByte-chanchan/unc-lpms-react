@@ -11,6 +11,7 @@ import { cloneFromPriorPeriod } from '../utils/periodClone.js';
 import { enforceLatestPeriod } from '../utils/latestPeriod.js';
 import { isPreviewRequest, PreviewRows, previewResponse } from '../utils/importPreview.js';
 import { beginImportBatch, beginManualBatch, completeImportBatch } from './importController.js';
+import { scheduleUploadInvitations } from '../services/invitations.js';
 
 const { Department } = db;
 
@@ -59,8 +60,7 @@ export async function createDepartment(req, res) {
     const safe = await filterOneToExistingColumns(Department, {
       name, code, dean, status: status || 'Active', period_id,
     });
-    // Snapshot first, so a row added by hand is undoable the same way an
-    // uploaded one is.
+    // Record the manual add, the same way an upload is recorded.
     const batch = await beginManualBatch('departments', period_id, name);
     const created = await Department.create(safe);
     await completeImportBatch(batch, { added: 1 });
@@ -134,12 +134,16 @@ export async function uploadDepartments(req, res) {
     // Every sheet row, valid or not, in sheet order — this is what the preview
     // table renders. Built in the SAME pass as `records` so the two can't drift.
     const preview = new PreviewRows();
+    // Deans to invite. Their email is read from the sheet for the invitation
+    // only — the departments table has no column for it.
+    const deans = [];
 
     rows.forEach((row, i) => {
       const rowNum = i + 2;   // sheet row: the header is row 1
       const name = pick(row, 'name');
       const code = pick(row, 'code');
       const dean = pick(row, 'dean');
+      const deanEmail = pick(row, 'deanemail');
 
       // Enough to answer "is this the right file", not a full data dump. Status
       // isn't shown because the sheet's is ignored — every row imports Active.
@@ -160,6 +164,7 @@ export async function uploadDepartments(req, res) {
 
       preview.ok(rowNum, cells);
       seenCodes.add(String(code).trim().toLowerCase());
+      if (dean) deans.push({ name: String(dean).trim(), email: deanEmail ? String(deanEmail).trim() : '', roles: ['Dean'] });
       records.push({
         name: String(name).trim(),
         code: String(code).trim(),
@@ -169,9 +174,9 @@ export async function uploadDepartments(req, res) {
       });
     });
 
-    // ---------- PREVIEW: persist NOTHING and return before the snapshot ----------
+    // ---------- PREVIEW: persist NOTHING and return before anything is recorded ----------
     // Everything below this line writes. A preview past it would leave an
-    // ImportBatch behind and offer an Undo for an import that never happened.
+    // ImportBatch behind for an import that never happened.
     if (isPreviewRequest(req)) {
       return previewResponse(res, {
         filename: req.file.originalname,
@@ -189,8 +194,7 @@ export async function uploadDepartments(req, res) {
       attributes: ['id', 'name', 'code', 'status'],
       raw: true,
     });
-    // Photograph the period before the upsert below overwrites anything —
-    // this is what the Undo button restores.
+    // Record the upload (who/what/when). Uploads are final — there is no undo.
     const batch = await beginImportBatch('departments', period_id, req.file.originalname);
 
     const created = await bulkUpsert(Department, records, ['name', 'dean', 'status']);
@@ -204,7 +208,15 @@ export async function uploadDepartments(req, res) {
 
     await completeImportBatch(batch, { inserted: created.length });
 
-    res.status(201).json({ inserted: created.length, skipped: errors.length, errors, headers, missing });
+    const invitations = await scheduleUploadInvitations({
+      entity: 'departments',
+      people: deans,
+      batchId: batch ? batch.id : null,
+      periodId: period_id,
+      senderId: req.user ? req.user.id : null,
+    });
+
+    res.status(201).json({ inserted: created.length, skipped: errors.length, errors, headers, missing, invitations });
   } catch (err) {
     res.status(400).json({ message: describeSequelizeError(err) });
   } finally {

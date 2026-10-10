@@ -1,34 +1,41 @@
 import styles from '../styles/SideNavigation.module.sass'
 import unclogo from '../assets/unclogo.png'
-import { FileText, LogOut, Users, BookOpen, UserCheck, Grid } from 'react-feather'
+import { FileText, LogOut, Users, BookOpen, UserCheck, Grid, Award, Key } from 'react-feather'
 import { useSearchParams, useNavigate, useLocation } from 'react-router-dom'
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
+import { useCurrentUser } from '../services/currentUser.jsx'
+import ConfirmModal from './ConfirmModal.jsx'
 
-const SideNavigation = ({ mode = 'instructor' }) => {
+const SideNavigation = ({ mode: requestedMode = 'instructor' }) => {
+    // There is no HR Staff role: its pages are the VPAA's.
+    const mode = requestedMode === 'hr-staff' ? 'ovpaa' : requestedMode
+    const { logout, roles } = useCurrentUser()
     const navigate = useNavigate()
     const location = useLocation()
     const [searchParams, setSearchParams] = useSearchParams()
 
     // --- MERGED SELECTION LOGIC ---
+    // Program Heads and Deans don't write syllabi, so they have no Syllabus
+    // page; VPAA never had one.
+    const hasSyllabus = !['program-head', 'dean', 'ovpaa'].includes(mode)
     let defaultPage = 'Syllabus';
     if (mode === 'ovpaa') defaultPage = 'Dashboard';
+    else if (mode === 'program-head') defaultPage = 'Course Offerings';
+    else if (mode === 'dean') defaultPage = 'Faculty';
     let selected = searchParams.get('page') || defaultPage;
 
     if (location.pathname.startsWith('/assignedtos') || location.pathname.startsWith('/tos')) {
         selected = 'TOS';
     }
 
-    const [showPopup, setShowPopup] = useState(false)
     const [isExpanded, setIsExpanded] = useState(false)
-    const logoutRef = useRef(null)
     const navRef = useRef(null)
     const [pinned, setPinned] = useState(false)
 
     const handlePageChange = (page) => {
         if (page === 'Syllabus') {
-            if (mode === 'program-head') navigate('/role/program-head/approval-course-table?page=Syllabus');
-            else if (mode === 'dean') navigate('/role/dean?page=Syllabus');
-            else navigate('/');
+            navigate('/');
         }
         else if (page === 'TOS') {
             navigate('/assignedtos');
@@ -38,27 +45,24 @@ const SideNavigation = ({ mode = 'instructor' }) => {
         }
     }
 
-    const onLogoutClick = () => setShowPopup((prev) => !prev)
+    // Log Out only signs out, after a confirmation. Switching roles lives in the
+    // header's user menu. Expiry / idle sign-outs don't come through here, so
+    // they never show the pop-up.
+    const [confirmLogout, setConfirmLogout] = useState(false)
+    const [loggingOut, setLoggingOut] = useState(false)
 
-    const gotoRole = (path) => {
-        setShowPopup(false)
-        navigate(path)
+    const signOut = async () => {
+        setLoggingOut(true)
+        try {
+            // logout() clears the client session even when the server call fails.
+            await logout()
+        } catch (err) {
+            console.error('Log out failed; signing out locally anyway.', err)
+        }
+        navigate('/login', { replace: true })
     }
 
-    // --- POPUP & RESIZE LOGIC ---
-    useEffect(() => {
-        const handler = (e) => {
-            if (!showPopup) return
-            if (logoutRef.current && !logoutRef.current.contains(e.target)) setShowPopup(false)
-        }
-        document.addEventListener('mousedown', handler)
-        return () => document.removeEventListener('mousedown', handler)
-    }, [showPopup])
-
-    useEffect(() => {
-        if (showPopup) setShowPopup(false)
-    }, [selected])
-
+    // --- RESIZE LOGIC ---
     useEffect(() => {
         if (!navRef.current) return
         let ro
@@ -67,15 +71,12 @@ const SideNavigation = ({ mode = 'instructor' }) => {
                 for (const entry of entries) {
                     const w = entry.contentRect.width
                     setIsExpanded(w > 120)
-                    if (w < 100 && showPopup) {
-                        setShowPopup(false)
-                    }
                 }
             })
             ro.observe(navRef.current)
         } catch (e) {}
         return () => { if (ro && navRef.current) ro.disconnect() }
-    }, [showPopup])
+    }, [])
 
     useEffect(() => {
         const el = navRef.current
@@ -127,7 +128,7 @@ const SideNavigation = ({ mode = 'instructor' }) => {
             </div>
 
             <div className={styles['nav-list']}>
-                {mode !== 'hr-staff' && mode !== 'ovpaa' && (
+                {hasSyllabus && (
                     <div
                         onClick={() => handlePageChange('Syllabus')}
                         className={`${styles.list} ${selected === 'Syllabus' ? styles.selected : ''}`}
@@ -172,10 +173,14 @@ const SideNavigation = ({ mode = 'instructor' }) => {
                         <div onClick={() => { navigate('/role/dean?page=Programs') }} className={`${styles.list} ${selected === 'Programs' ? styles.selected : ''}`}>
                             <BookOpen size={24} /> <span className={styles.listText}>Programs</span>
                         </div>
+
+                        <div onClick={() => { navigate('/role/dean?page=Vision%20%26%20Mission') }} className={`${styles.list} ${selected === 'Vision & Mission' ? styles.selected : ''}`}>
+                            <Award size={24} /> <span className={styles.listText}>Vision &amp; Mission</span>
+                        </div>
                     </>
                 )}
 
-                {(mode === 'ovpaa' || mode === 'hr-staff') && (
+                {mode === 'ovpaa' && (
                     <>
                         <div onClick={() => { navigate('/role/ovpaa?page=Dashboard') }} className={`${styles.list} ${selected === 'Dashboard' ? styles.selected : ''}`}>
                             <BookOpen size={24} /> <span className={styles.listText}>Dashboard</span>
@@ -195,24 +200,39 @@ const SideNavigation = ({ mode = 'instructor' }) => {
                     </>
                 )}
 
-                <div className={styles.logoutWrapper} ref={logoutRef}>
-                    <div className={styles.listB} onClick={onLogoutClick}>
+                {mode === 'ovpaa' && (
+                    <div onClick={() => { navigate('/role/ovpaa?page=University%20VMGO') }} className={`${styles.list} ${selected === 'University VMGO' ? styles.selected : ''}`}>
+                        <Award size={24} /> <span className={styles.listText}>University VMGO</span>
+                    </div>
+                )}
+
+                {mode === 'ovpaa' && (
+                    <div onClick={() => { navigate('/role/ovpaa?page=User%20Accounts') }} className={`${styles.list} ${selected === 'User Accounts' ? styles.selected : ''}`}>
+                        <Key size={24} /> <span className={styles.listText}>User Accounts</span>
+                    </div>
+                )}
+
+                <div className={styles.logoutWrapper}>
+                    <div className={styles.listB} onClick={() => setConfirmLogout(true)} role="button">
                         <LogOut size={24} color={'#F94545'} /> <span className={styles.listText}>Log Out</span>
                     </div>
-
-                    {showPopup && (
-                        <div className={styles.rolePopup}>
-                            <div className={styles.popupTitle}>Select role</div>
-                            <button className={styles.popupItem} onClick={() => { setShowPopup(false); navigate('/') }}>Instructor</button>
-                            <button className={styles.popupItem} onClick={() => gotoRole('/role/program-head/approval-course-table')}>Program head</button>
-                            <button className={styles.popupItem} onClick={() => gotoRole('/role/director-of-libraries/approval-course-table')}>Director of Libraries</button>
-                            <button className={styles.popupItem} onClick={() => gotoRole('/role/industry-consultant/approval-course-table')}>Industry Consultant</button>
-                            <button className={styles.popupItem} onClick={() => gotoRole('/role/dean')}>Dean</button>
-                            <button className={styles.popupItem} onClick={() => gotoRole('/role/ovpaa')}>VPAA</button>
-                        </div>
-                    )}
                 </div>
             </div>
+
+            {createPortal(<ConfirmModal
+                open={confirmLogout}
+                icon={LogOut}
+                tone="destructive"
+                title="Log out?"
+                message={roles.length > 1
+                    ? "You'll be signed out of all your roles. You'll need to sign in again to continue."
+                    : "You'll need to sign in again to continue."}
+                confirmLabel="Log out"
+                busyLabel="Logging out…"
+                busy={loggingOut}
+                onConfirm={signOut}
+                onCancel={() => { if (!loggingOut) setConfirmLogout(false) }}
+            />, document.body)}
         </div>
     )
 }

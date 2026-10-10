@@ -7,6 +7,7 @@ import { describeSequelizeError } from '../utils/uploadHelpers.js';
 import { enforceLatestPeriod } from '../utils/latestPeriod.js';
 import { isPreviewRequest, PreviewRows, previewResponse } from '../utils/importPreview.js';
 import { beginImportBatch, beginManualBatch, completeImportBatch } from './importController.js';
+import { scheduleUploadInvitations } from '../services/invitations.js';
 
 const { IndustryConsultant, Course, ConsultantCourse, Faculty } = db;
 
@@ -219,9 +220,7 @@ export async function createConsultant(req, res) {
     const safe = await filterOneToExistingColumns(IndustryConsultant, {
       name, status: derivedStatus, status_overridden: false, assigned_course_code, period_id,
     });
-    // Snapshot first, so a row added by hand is undoable the same way an
-    // uploaded one is. Covers consultant_courses too, so undo also drops the
-    // course links created below.
+    // Record the manual add, the same way an upload is recorded.
     const batch = await beginManualBatch('industry_consultants', period_id, name);
 
     const created = await IndustryConsultant.create(safe);
@@ -421,10 +420,12 @@ export async function uploadConsultants(req, res) {
         name: String(name).trim(),
         assigned_course_code: assigned ? String(assigned).trim() : null,
         codes,
+        // For the invitation only — industry_consultants has no email column.
+        email: pick(row, 'email', 'emailaddress'),
       });
     });
 
-    // ---------- PREVIEW: persist NOTHING and return before the snapshot ----------
+    // ---------- PREVIEW: persist NOTHING and return before anything is recorded ----------
     // Everything below this line writes — and this upload DESTROYS the period's
     // consultants (and their course links) before re-inserting.
     if (isPreviewRequest(req)) {
@@ -439,8 +440,7 @@ export async function uploadConsultants(req, res) {
       return res.status(400).json({ message: 'No valid rows found.', headers, errors });
     }
 
-    // Photograph the period BEFORE the destroy below — the snapshot covers
-    // consultant_courses too, so undo restores the course links as well.
+    // Record the upload (who/what/when). Uploads are final — there is no undo.
     const batch = await beginImportBatch('industry_consultants', period_id, req.file.originalname);
 
     // Replace the period's consultants (CASCADE clears their join rows),
@@ -475,6 +475,14 @@ export async function uploadConsultants(req, res) {
 
     await completeImportBatch(batch, { inserted, replaced: removed });
 
+    const invitations = await scheduleUploadInvitations({
+      entity: 'industry_consultants',
+      people: records.map((r) => ({ name: r.name, email: r.email ? String(r.email).trim() : '', roles: ['Industry Consultant'] })),
+      batchId: batch ? batch.id : null,
+      periodId: period_id,
+      senderId: req.user ? req.user.id : null,
+    });
+
     res.status(201).json({
       replaced: removed,
       inserted,
@@ -482,6 +490,7 @@ export async function uploadConsultants(req, res) {
       warnings: errors.filter((e) => e.level === 'warning').length,
       errors,
       headers,
+      invitations,
     });
   } catch (err) {
     res.status(400).json({ message: describeSequelizeError(err) });

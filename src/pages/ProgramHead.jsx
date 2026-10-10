@@ -6,7 +6,7 @@ import SideNavigation from "../components/SideNavigation.jsx";
 const ProgramHead = () => {
   return (
     <SkeletonA
-      header={<HeaderA role="Program Head" name="NORTON, MONICA" />}
+      header={<HeaderA />}
       nav={<SideNavigation />}
       content={
         <div style={{ padding: 20 }}>

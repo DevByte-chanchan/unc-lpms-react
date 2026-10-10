@@ -26,7 +26,6 @@ import AddRecordModal from "../components/AddRecordModal.jsx";
 import EditEntityModal from "../components/EditEntityModal.jsx";
 import ConfirmModal from "../components/ConfirmModal.jsx";
 import ViewArchivedButton from "../components/ViewArchivedButton.jsx";
-import UndoUploadButton from "../components/UndoUploadButton.jsx";
 import UploadPreviewFlow from "../components/UploadPreviewFlow.jsx";
 import DialogShell from "../components/DialogShell.jsx";
 import RowActionsMenu from "../components/RowActionsMenu.jsx";
@@ -38,7 +37,6 @@ import styles from '../styles/CoursesTable.module.sass';
 import syllabusStyles from '../styles/SyllabusSections.module.sass';
 import { CourseOfferingAssignmentsAPI, CoursesAPI, FacultyAPI } from '../services/api.js';
 import { usePeriod } from '../services/period.jsx';
-import { useCurrentUser } from '../services/currentUser.jsx';
 import { useHeadProgram } from '../services/useHeadProgram.js';
 import { statusPillStyle, partitionByArchive } from '../services/statusPolicy.js';
 import { sortRows, statusRank, nextSort } from '../services/tableSort.js';
@@ -67,7 +65,6 @@ const YEAR_ORDINAL = { 1: '1st', 2: '2nd', 3: '3rd', 4: '4th' };
 
 const ProgramHeadCourseAssignment = () => {
   const { currentPeriod, isCurrentTermActive } = usePeriod();
-  const { name: currentUserName, role: currentUserRole } = useCurrentUser();
   const periodId = currentPeriod && currentPeriod.id;
 
   // Which program is this Program Head assigned to? (same resolution as the
@@ -96,8 +93,6 @@ const ProgramHeadCourseAssignment = () => {
   const [revalidating, setRevalidating]       = React.useState(false);
   const fileInputRef = React.useRef(null);
 
-  // Bumped on every successful upload so the Undo button re-reads its batch.
-  const [uploadCount, setUploadCount]         = React.useState(0);
 
   const refresh = React.useCallback(() => {
     if (!periodId) { setAssignments([]); setCourses([]); setFaculty([]); return; }
@@ -149,7 +144,6 @@ const ProgramHeadCourseAssignment = () => {
   // after a successful upload happens here instead.
   const onUploadCommitted = async (result) => {
     await refresh();
-    setUploadCount((n) => n + 1);
     clearPicker();
     // The post-upload validation report still fires. It is now largely redundant
     // with the preview — which shows these same warnings BEFORE the write — but
@@ -157,16 +151,6 @@ const ProgramHeadCourseAssignment = () => {
     if (result && Array.isArray(result.warnings) && result.warnings.length > 0) {
       setUploadReview({ inserted: result.inserted, warnings: result.warnings });
     }
-  };
-
-  // Undone — put the user back where they can pick the RIGHT file.
-  const onUploadUndone = async () => {
-    await refresh();
-    setUploadCount((n) => n + 1);
-    setUploadReview(null);
-    setPendingFile(null);
-    clearPicker();
-    setShowModal(true);
   };
 
   // Add/Edit pick the course + faculty from dropdowns bound to this period's
@@ -179,7 +163,6 @@ const ProgramHeadCourseAssignment = () => {
     const record = { ...rawRecord, course_name: course ? course.title : (rawRecord.course_name || '') };
     await CourseOfferingAssignmentsAPI.create(record, periodId, selectedProgramId);
     await refresh();
-    setUploadCount((n) => n + 1);   // a manual add is undoable too
   };
 
   const onSaveEdit = async (rawPatch) => {
@@ -402,7 +385,6 @@ const ProgramHeadCourseAssignment = () => {
                 <RefreshCw size={18} />
               </button>
             )}
-            <UndoUploadButton entity="course_offering_assignments" periodId={periodId} disabled={!periodId || !isCurrentTermActive} refreshKey={uploadCount} onUndone={refresh} />
             <ActionBtn variant="white" onClick={() => { if (assignments.length > 0) { setConfirmUpload(true); } else { setShowModal(true); } }} disabled={!periodId || !isCurrentTermActive} icon={<Upload size={18} color="#374151" />} label="Upload Course Assignment" />
             {showTable && isCurrentTermActive && <ActionBtn onClick={() => setShowAddModal(true)} icon={<Plus size={18} color="#FFFFFF" />} label="Add Assignment" />}
           </div>
@@ -658,7 +640,7 @@ const ProgramHeadCourseAssignment = () => {
             </div>
       </DialogShell>
 
-      {/* Preview & Confirm, then the 30-second undo toast.
+      {/* Preview & Confirm (imports are final — there is no undo).
           `key` on the program id is load-bearing: the overlay only re-runs its dry
           run when the FILE changes, but `commit` closes over the CURRENT
           selectedProgramId. Switch program mid-review and the commit would import
@@ -667,22 +649,19 @@ const ProgramHeadCourseAssignment = () => {
       <UploadPreviewFlow
         key={'assign-preview-' + String(selectedProgramId)}
         file={pendingFile}
-        entity="course_offering_assignments"
-        periodId={periodId}
         title="Upload Course Assignment"
         preview={(f) => CourseOfferingAssignmentsAPI.uploadPreview(f, periodId, selectedProgramId)}
         commit={(f) => CourseOfferingAssignmentsAPI.upload(f, periodId, selectedProgramId)}
         onBack={() => { setPendingFile(null); setShowModal(true); }}
         onCancel={() => { setPendingFile(null); clearPicker(); }}
         onCommitted={onUploadCommitted}
-        onUndone={onUploadUndone}
       />
     </div>
   );
 
   return (
     <SkeletonA
-      header={<HeaderA role={currentUserRole} name={currentUserName} />}
+      header={<HeaderA />}
       nav={<SideNavigation mode="program-head" />}
       content={content}
     />

@@ -5,7 +5,6 @@ import AddRecordModal from "../components/AddRecordModal.jsx";
 import EditEntityModal from "../components/EditEntityModal.jsx";
 import ConfirmModal from "../components/ConfirmModal.jsx";
 import ViewArchivedButton from "../components/ViewArchivedButton.jsx";
-import UndoUploadButton from "../components/UndoUploadButton.jsx";
 import UploadPreviewFlow from "../components/UploadPreviewFlow.jsx";
 import DialogShell from "../components/DialogShell.jsx";
 import { Search, ArrowUp, ArrowDown, Upload, Plus, Clipboard } from "react-feather";
@@ -49,8 +48,6 @@ const DeanPrograms = () => {
   const [unmatchedReview, setUnmatchedReview] = React.useState(null);
   const fileInputRef = React.useRef(null);
 
-  // Bumped on every successful upload so the Undo button re-reads its batch.
-  const [uploadCount, setUploadCount]         = React.useState(0);
 
   const refresh = React.useCallback(() => {
     if (!periodId) { setProgramsList([]); setFaculty([]); return; }
@@ -115,21 +112,10 @@ const DeanPrograms = () => {
   // user can usually fix the sheet instead of ever reaching this cleanup.
   const onUploadCommitted = async (result) => {
     await refresh();
-    setUploadCount((n) => n + 1);
     clearPicker();
     if (result && Array.isArray(result.warnings) && result.warnings.length > 0) {
       setUnmatchedReview({ warnings: result.warnings, index: 0 });
     }
-  };
-
-  // Undone — put the user back where they can pick the RIGHT file.
-  const onUploadUndone = async () => {
-    await refresh();
-    setUploadCount((n) => n + 1);
-    setUnmatchedReview(null);
-    setPendingFile(null);
-    clearPicker();
-    setShowModal(true);
   };
 
   // Review modal action: keep this row (move on to next) or delete it.
@@ -158,7 +144,6 @@ const DeanPrograms = () => {
       status: record.status || 'Active',
     }, periodId);
     await refresh();
-    setUploadCount((n) => n + 1);   // a manual add is undoable too
   };
 
   const onSaveEdit = async (patch) => {
@@ -200,7 +185,6 @@ const DeanPrograms = () => {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
         <h2 style={{ margin: 0 }}>Programs</h2>
         <div style={{ display: 'flex', gap: 10 }}>
-          <UndoUploadButton entity="programs" periodId={periodId} disabled={!periodId || !isCurrentTermActive} refreshKey={uploadCount} onUndone={refresh} />
           <ActionBtn variant="white" onClick={() => { if (programsList.length > 0) { setConfirmUpload(true); } else { setShowModal(true); } }} disabled={!periodId || !isCurrentTermActive} icon={<Upload size={18} color="#374151" />} label="Upload Program List" />
           {showTable && isCurrentTermActive && <ActionBtn onClick={() => setShowAddModal(true)} icon={<Plus size={18} color="#FFFFFF" />} label="Add Program" />}
         </div>
@@ -339,19 +323,16 @@ const DeanPrograms = () => {
             </div>
       </DialogShell>
 
-      {/* Preview & Confirm, then the 30-second undo toast. The unmatched-head
+      {/* Preview & Confirm (imports are final — there is no undo). The unmatched-head
           review still fires after the commit, from onUploadCommitted. */}
       <UploadPreviewFlow
         file={pendingFile}
-        entity="programs"
-        periodId={periodId}
         title="Upload Program List"
         preview={(f) => ProgramsAPI.uploadPreview(f, periodId)}
         commit={(f) => ProgramsAPI.upload(f, periodId)}
         onBack={() => { setPendingFile(null); setShowModal(true); }}
         onCancel={() => { setPendingFile(null); clearPicker(); }}
         onCommitted={onUploadCommitted}
-        onUndone={onUploadUndone}
       />
     </div>
   );

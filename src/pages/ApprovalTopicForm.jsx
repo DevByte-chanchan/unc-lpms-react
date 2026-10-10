@@ -27,15 +27,6 @@ const ApprovalTopicForm = () => {
                       ? 'instructor'
                       : 'approver';
 
-  const displayRole = roleKey.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-  const defaultNames = {
-    'program-head': 'Dr. Smith',
-    'dean': 'Dean Johnson',
-    'industry-consultant': 'Consultant Lee',
-    'director-of-libraries': 'Director Brown'
-  };
-  const storedUser = JSON.parse(localStorage.getItem('user') || 'null');
-  const approverName = storedUser?.name || defaultNames[roleKey] || displayRole;
 
   const topic = {
     title: 'Project: Front End Prototype (detailed)',
@@ -48,7 +39,7 @@ const ApprovalTopicForm = () => {
 
   return (
       <Skeleton
-          header={<Header role={displayRole} name={approverName} />}
+          header={<Header />}
           nav={<SideNavigation mode={roleKey} />}
           content={
             <div className={styles.container}>

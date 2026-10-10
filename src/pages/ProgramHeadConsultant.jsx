@@ -1,6 +1,6 @@
 import React from "react";
 import Skeleton from "../layouts/Skeleton.jsx";
-import Header from "../components/Header.jsx";
+import Header from "../components/HeaderA.jsx";
 import SideNavigation from "../components/SideNavigation.jsx";
 import { Clock, Search, ArrowUp, ArrowDown, Upload, User, Clipboard, Briefcase } from "react-feather";
 import ConsultantsTable from '../components/ConsultantsTable.jsx'
@@ -49,7 +49,7 @@ const ProgramHeadConsultant = () => {
 
   return (
     <Skeleton
-      header={<Header role="Program Head" name="VANCE, OLIVIA" />}
+      header={<Header />}
       nav={<SideNavigation mode="program-head" />}
       content={
         <div style={{ padding: 20, background: '#FFFFFF' }}>

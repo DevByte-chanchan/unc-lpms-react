@@ -7,7 +7,7 @@ import SyllabusRevisionsSections from "../components/SyllabusRevisionsSections.j
 const SyllabusRevisions = () => {
   return (
     <SkeletonA
-      header={<HeaderA role="Instructor" name="NORTON, MONICA" />}
+      header={<HeaderA />}
       content={<SyllabusRevisionsSections />}
       nav={<SideNavigation />}
     />

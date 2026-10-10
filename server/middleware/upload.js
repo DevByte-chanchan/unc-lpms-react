@@ -46,3 +46,35 @@ export const uploadExcel = multer({
     cb(new Error(`Unsupported file type: ${file.originalname}`));
   },
 });
+
+/**
+ * PDF uploads (University VMGO). Same temp directory and 10 MB cap as
+ * uploadExcel. The filter only sees the name and declared type — the
+ * `%PDF-` magic bytes are checked by assertPdfMagic once the file is on
+ * disk, since a renamed file passes both of these.
+ */
+export const uploadPdf = multer({
+  storage,
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB
+  fileFilter: (_req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (ext === '.pdf' && ['application/pdf', 'application/octet-stream'].includes(file.mimetype)) {
+      return cb(null, true);
+    }
+    const err = new Error(`Only PDF files are accepted: ${file.originalname}`);
+    err.status = 400;
+    cb(err);
+  },
+});
+
+/** True when the file on disk starts with the PDF signature `%PDF-`. */
+export function hasPdfMagic(filePath) {
+  const fd = fs.openSync(filePath, 'r');
+  try {
+    const buf = Buffer.alloc(5);
+    fs.readSync(fd, buf, 0, 5, 0);
+    return buf.toString('latin1') === '%PDF-';
+  } finally {
+    fs.closeSync(fd);
+  }
+}

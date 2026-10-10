@@ -19,7 +19,7 @@ const DirectorOfLibraries = () => {
 
   return (
       <Skeleton
-          header={<Header role="Director Of Libraries" name="NORTON, MONICA" />}
+          header={<Header />}
           nav={<SideNavigation mode="director-of-libraries" />}
           content={<ApprovalCoursesTable role="director-of-libraries" />}
       />

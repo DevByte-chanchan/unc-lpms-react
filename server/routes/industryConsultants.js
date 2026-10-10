@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { requireRole } from '../middleware/auth.js';
 import { uploadExcel } from '../middleware/upload.js';
 import {
   listConsultants,
@@ -13,9 +14,9 @@ import {
 const router = Router();
 router.get('/',              listConsultants);
 router.get('/:id',           getConsultant);
-router.post('/',             createConsultant);
-router.patch('/:id/assign',  assignCourse);
-router.patch('/:id',         updateConsultant);
-router.delete('/:id',        deleteConsultant);
-router.post('/upload',       uploadExcel.single('file'), uploadConsultants);
+router.post('/',             requireRole('Program Head'), createConsultant);
+router.patch('/:id/assign',  requireRole('Program Head'), assignCourse);
+router.patch('/:id',         requireRole('Program Head'), updateConsultant);
+router.delete('/:id',        requireRole('Program Head'), deleteConsultant);
+router.post('/upload',       requireRole('Program Head'), uploadExcel.single('file'), uploadConsultants);
 export default router;

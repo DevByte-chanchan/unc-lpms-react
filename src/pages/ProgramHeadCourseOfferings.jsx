@@ -272,7 +272,7 @@ const ProgramHeadCourseOfferings = () => {
   const [editing, setEditing] = React.useState(null); // course being edited (hours/credit) — also hosts Archive
 
   // The signed-in Program Head (stubbed in CurrentUser until real auth).
-  const { name: userName, role: userRole, facultyId, facultyLoaded } = useCurrentUser();
+  const { name: userName, facultyId, facultyLoaded } = useCurrentUser();
 
   const refresh = React.useCallback(() => {
     if (!periodId) { setCourses([]); setArchivedCourses([]); return; }
@@ -1224,7 +1224,7 @@ const ProgramHeadCourseOfferings = () => {
 
   return (
     <SkeletonA
-      header={<HeaderA role={userRole} name={userName} />}
+      header={<HeaderA />}
       nav={<SideNavigation mode="program-head" />}
       content={content}
     />

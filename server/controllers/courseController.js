@@ -14,6 +14,12 @@ import { safeWhere } from '../utils/dbHelpers.js';
 import { rankPeriod } from '../utils/periodClone.js';
 import { PreviewRows, previewResponse } from '../utils/importPreview.js';
 import { beginImportBatch, completeImportBatch } from './importController.js';
+import {
+  looksLikeSubjectOfferings,
+  parseSubjectOfferings,
+  offeringRowsFromSubjectOfferings,
+} from '../utils/teachingAssignmentParser.js';
+import { programCoursePrefixes, programKeyFromPrefixes } from '../utils/courseCodeRules.js';
 
 const { Course, Prerequisite, ProgramCourseOffering, AcademicPeriod, CourseOfferingAssignment, Program } = db;
 // (curriculum schema realigned to lpms_composition sample)
@@ -375,17 +381,20 @@ function parseCourseRows(rows) {
   const skipped = [];
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i];
+    // Rows rebuilt from a SUBJECT OFFERINGS export carry their real sheet row;
+    // a flat sheet's row is its position under the header (row 1).
+    const rowNum = row._rowNum || i + 2;
     const course_no    = pick(row, 'courseno', 'coursenumber', 'coursecode', 'code', 'courseid', 'subjectcode', 'catalogno', 'catalognumber', 'subject');
     const course_title = pick(row, 'coursetitle', 'title', 'coursename', 'descriptivetitle', 'subjecttitle', 'descriptiontitle', 'description', 'name');
     if (!course_no || !course_title) {
-      errors.push({ row: i + 2, message: 'Missing Course No. or Course Title — skipped.' });
+      errors.push({ row: rowNum, message: 'Missing Course No. or Course Title — skipped.' });
       // A skipped row is still drawn in the preview, and it is drawn with the
       // SAME columns as an importable one — so it has to carry the same fields.
       // Capturing only the key ones left the rest of a bad row's cells blank,
       // which read as "the file is missing that data" rather than "this row is
       // being dropped for the reason in the Issue column".
       skipped.push({
-        rowNum:         i + 2,
+        rowNum:         rowNum,
         course_no:      trim(course_no),
         course_title:   trim(course_title),
         program_raw:    trim(pick(row, 'program', 'programcode', 'prog', 'programname', 'programtitle', 'curriculum', 'degreeprogram', 'degree', 'major', 'majorprogram')),
@@ -406,7 +415,7 @@ function parseCourseRows(rows) {
     const normYear = normalizeYearLevel(rawYear);
     const inferredYear = normYear ? null : inferYearLevelFromCode(codeStr);
     parsed.push({
-      rowNum:         i + 2,
+      rowNum:         rowNum,
       course_no:      codeStr,
       course_title:   String(course_title).trim(),
       credit:         trim(pick(row, 'credit', 'credits', 'creditunits', 'creditunit', 'units', 'unit', 'noofunits', 'totalunits', 'lecladbcredit')),
@@ -427,12 +436,56 @@ function parseCourseRows(rows) {
 export async function uploadCourses(req, res) {
   if (!req.file) return res.status(400).json({ message: 'No file uploaded.' });
   try {
-    const { rows, headers } = parseSheet(req.file.path);
     const period_id = getPeriodId(req);
     // The program a row belongs to is resolved from a Program column in the
     // sheet (by code/name); rows without one fall back to the program the
     // uploader is currently viewing (programId from the request).
     const defaultProgramId = Number((req.query && req.query.programId) || (req.body && req.body.programId)) || null;
+
+    // Two shapes reach this button:
+    //   • a flat curriculum sheet — header in row 1, one course per row;
+    //   • the school's SUBJECT OFFERINGS export — title rows above the header,
+    //     COURSE NO carrying a section (BIT111L-OBa), one row per section/lab
+    //     meeting, and every program in the school in one file.
+    // parseSheet() reads row 1 as the header, so the export came back with no
+    // recognised column at all. Detect it and rebuild one row per base course,
+    // keeping only the uploader's program (prefix, or section for GEE/MATH).
+    let rows;
+    let headers;
+    let sheetLayout = 'flat';
+    let sheetTerm = null;
+    let otherProgramCount = 0;
+    if (looksLikeSubjectOfferings(req.file.path)) {
+      sheetLayout = 'subject-offerings';
+      const offeringsSheet = parseSubjectOfferings(req.file.path);
+      const program = defaultProgramId
+        ? await Program.findByPk(defaultProgramId, { attributes: ['code'], raw: true })
+        : null;
+      const prefixes = program ? programCoursePrefixes(program.code) : [];
+      const programKey = programKeyFromPrefixes(prefixes);
+      const firstRowOf = new Map();
+      for (const o of offeringsSheet.offerings) {
+        const k = String(o.baseCode || '').toUpperCase();
+        const r = (o.rows && o.rows[0]) || null;
+        if (r && (!firstRowOf.has(k) || r < firstRowOf.get(k))) firstRowOf.set(k, r);
+      }
+      const allBases = new Set(offeringsSheet.offerings.map((o) => String(o.baseCode || '').toUpperCase()));
+      rows = offeringRowsFromSubjectOfferings(offeringsSheet, { prefixes, programKey })
+        .map((r) => ({
+          courseno:    r.courseno,
+          coursetitle: r.description,
+          units:       r.units,
+          term:        r.term,
+          yearlevel:   r.yearlevel,
+          _rowNum:     firstRowOf.get(String(r.courseno).toUpperCase()),
+        }))
+        .sort((a, b) => (a._rowNum || 0) - (b._rowNum || 0));
+      otherProgramCount = allBases.size - rows.length;
+      headers = offeringsSheet.headers;
+      sheetTerm = offeringsSheet.term || null;
+    } else {
+      ({ rows, headers } = parseSheet(req.file.path));
+    }
 
     const isPreview = ['1', 'true', 'yes'].includes(
       String((req.query && req.query.preview) || (req.body && req.body.preview) || '').toLowerCase()
@@ -559,6 +612,12 @@ export async function uploadCourses(req, res) {
           programColumnPresent: parsed.some((p) => p.program_raw),
           unresolvedPrograms: Array.from(unresolvedPrograms),
           unassigned,
+          // SUBJECT OFFERINGS export only: which layout was read, the term from
+          // its title row, and how many courses belonged to other programs and
+          // were left out (so a short preview isn't mistaken for a bad read).
+          sheetLayout,
+          sheetTerm,
+          otherProgramCount,
         },
       });
     }
@@ -589,11 +648,8 @@ export async function uploadCourses(req, res) {
     // share that term's semester.
     const semester = await periodSemester(period_id);
 
-    // Photograph the period before the upsert below overwrites anything —
-    // this is what the Undo button restores. Past the preview early-return, so
-    // a preview never leaves a batch behind; the snapshot also covers
-    // prerequisites / revisions / course_offering_assignments, which this upload
-    // rewrites downstream.
+    // Record the upload (who/what/when). Past the preview early-return, so a
+    // preview never leaves a batch behind. Uploads are final — there is no undo.
     const batch = await beginImportBatch('courses', period_id, req.file.originalname);
 
     let inserted = 0;

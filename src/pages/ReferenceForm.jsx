@@ -116,7 +116,7 @@ const ReferenceForm = () => {
 
     return(
         <SkeletonA
-            header={<HeaderA role={'Instructor'} name={'NORTON, MONICA'} />}
+            header={<HeaderA />}
             nav={<SideNavigation/> }
             content={
                 <div className={styles.container}>

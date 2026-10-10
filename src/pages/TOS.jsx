@@ -1,12 +1,12 @@
 import Skeleton from "../layouts/Skeleton.jsx";
-import Header from "../components/Header.jsx";
+import Header from "../components/HeaderA.jsx";
 import TosSections from "../components/TosSections.jsx";
 import SideNavigation from "../components/SideNavigation.jsx";
 
 const TOS = ({}) => {
     return (
         <Skeleton
-            header={<Header role="Instructor" name="NORTON, MONICA"  />}
+            header={<Header />}
             content={<TosSections />}
             nav={<SideNavigation/> }
         />

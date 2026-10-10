@@ -4,9 +4,21 @@ import { getPeriodId, safeWhereForPeriod } from '../utils/periodScope.js';
 import { filterOneToExistingColumns, safeDestroyByPeriod, safeWhere } from '../utils/dbHelpers.js';
 import { bulkUpsert, describeSequelizeError } from '../utils/uploadHelpers.js';
 import { enforceLatestPeriod } from '../utils/latestPeriod.js';
-import { courseSemesterOf, periodSemesterOf } from '../utils/courseSemester.js';
+import { courseSemesterOf, periodSemesterOf, semFromText } from '../utils/courseSemester.js';
+import {
+  looksLikeSubjectOfferings,
+  parseSubjectOfferings,
+  offeringRowsFromSubjectOfferings,
+  collapseFlatOfferingRows,
+} from '../utils/teachingAssignmentParser.js';
+import {
+  programCoursePrefixes,
+  programKeyFromPrefixes,
+  yearLevelFromCode,
+  semesterFromCode,
+} from '../utils/courseCodeRules.js';
 
-const { CourseOffering, Faculty, Course, AcademicPeriod } = db;
+const { CourseOffering, Faculty, Course, AcademicPeriod, Program } = db;
 
 const normCode = (s) => String(s || '').trim().toLowerCase();
 
@@ -228,7 +240,41 @@ export async function uploadCourseOfferings(req, res) {
   }
 
   try {
-    const { rows, headers } = parseSheet(req.file.path);
+    // OPTIONAL program filter. When the page sends the Program Head's program,
+    // only that program's courses are extracted (rule 1 by prefix, rule 3 by
+    // section for shared courses). Absent — which is every caller today — the
+    // whole sheet imports, exactly as before.
+    const program_id = req.body && req.body.program_id ? Number(req.body.program_id) : null;
+    const program = program_id ? await Program.findByPk(program_id, { attributes: ['code'] }) : null;
+    const prefixes = program ? programCoursePrefixes(program.code) : [];
+    const programKey = programKeyFromPrefixes(prefixes);
+
+    let rows;
+    let headers;
+    let orphans = [];
+    let sheetTerm = null;
+    let layout;
+
+    if (looksLikeSubjectOfferings(req.file.path)) {
+      // The school's SUBJECT OFFERINGS export: CODE is a numeric offer id and
+      // the real course code is in COURSE NO, blank-CODE rows are continuations
+      // of the row above, and the term lives in a title row rather than a
+      // column. One row per base course comes back, sections merged.
+      const parsed = parseSubjectOfferings(req.file.path);
+      rows      = offeringRowsFromSubjectOfferings(parsed, { prefixes, programKey });
+      headers   = parsed.headers;
+      orphans   = parsed.orphans;
+      sheetTerm = parsed.term || null;
+      layout    = parsed.layout;
+    } else {
+      const sheet = parseSheet(req.file.path);
+      headers = sheet.headers;
+      // A flat sheet can still carry a COURSE NO column and continuation rows.
+      const collapsed = collapseFlatOfferingRows(sheet.rows, sheet.headers);
+      rows    = collapsed.rows;
+      orphans = collapsed.orphans;
+      layout  = 'flat';
+    }
 
     const facWhere = await safeWhere(Faculty, { period_id });
     const facultyList = await Faculty.findAll({ where: facWhere, attributes: ['id', 'name'] });
@@ -236,15 +282,21 @@ export async function uploadCourseOfferings(req, res) {
 
     const records = [];
     const errors  = [];
+    // Extracted detail with no column to live in — returned, never stored.
+    const sections = {};
+    const extraFaculty = {};
 
     rows.forEach((row, i) => {
       const code  = pick(row, 'code');
       // Accept any of: DESCRIPTION, COURSE TITLE, TITLE, COURSE NAME, NAME.
       const title = pick(row, 'description', 'coursetitle', 'coursename', 'title', 'name');
       const units = pick(row, 'units', 'unit');
-      const term  = pick(row, 'term', 'semester');
-      const yearL = pick(row, 'yearlevel', 'year');
-      const instr = pick(row, 'instructor', 'instructorname');
+      // No TERM column? The SUBJECT OFFERINGS title row supplies it.
+      const term  = pick(row, 'term', 'semester') || sheetTerm;
+      // No YEAR LEVEL column? The code's first digit supplies it (rule 2).
+      const yearL = pick(row, 'yearlevel', 'year') || yearLevelFromCode(code) || null;
+      // FACULTY is what the school's export calls the instructor column.
+      const instr = pick(row, 'instructor', 'instructorname', 'faculty');
 
       if (!code || !title) {
         errors.push({ row: i + 2, message: 'Missing CODE or DESCRIPTION/TITLE — skipped.' });
@@ -258,6 +310,39 @@ export async function uploadCourseOfferings(req, res) {
         else errors.push({ row: i + 2, message: 'Instructor "' + instr + '" not found in Faculty for this period; saved as unresolved.', level: 'warning' });
       }
 
+      // Rule 2: the semester digit is derived for VALIDATION only. A code that
+      // disagrees with the term still imports — it is flagged, not dropped.
+      const codeSem = semesterFromCode(code);
+      const termSem = semFromText(term);
+      if (codeSem && termSem && codeSem !== termSem) {
+        errors.push({
+          row: i + 2, level: 'warning',
+          message: 'Code "' + code + '" reads as semester ' + codeSem + ' but the term is semester '
+            + termSem + '; imported as-is.',
+        });
+      }
+      if (!yearL) {
+        errors.push({
+          row: i + 2, level: 'warning',
+          message: 'No year level for "' + code + '" — the code carries no year digit and the sheet has no YEAR LEVEL column.',
+        });
+      }
+
+      const meta = row._meta || null;
+      if (meta) {
+        if (meta.sections && meta.sections.length) sections[String(code).trim()] = meta.sections;
+        // `course_offerings` has ONE instructor_name column, so only the first
+        // named faculty is stored. The rest are reported rather than dropped.
+        if (meta.extraFaculty && meta.extraFaculty.length) {
+          extraFaculty[String(code).trim()] = meta.extraFaculty;
+          errors.push({
+            row: i + 2, level: 'warning',
+            message: '"' + code + '" is taught by ' + (meta.faculty || []).length
+              + ' faculty across its sections; only "' + instr + '" is stored as the instructor.',
+          });
+        }
+      }
+
       records.push({
         code:  String(code).trim(),
         title: String(title).trim(),
@@ -269,6 +354,16 @@ export async function uploadCourseOfferings(req, res) {
         period_id,
       });
     });
+
+    for (const o of orphans) {
+      errors.push({
+        row: o.row, level: 'warning',
+        message: o.reason === 'no-parent'
+          ? 'Row ' + o.row + ' has no CODE and no row above it to belong to — skipped.'
+          : 'Row ' + o.row + ' has no CODE and does not match the course above it ('
+            + (o.parent || 'unknown') + ') — skipped.',
+      });
+    }
 
     if (records.length === 0) {
       return res.status(400).json({ message: 'No valid rows found.', headers, errors });
@@ -287,6 +382,15 @@ export async function uploadCourseOfferings(req, res) {
       warnings: errors.filter((e) => e.level === 'warning').length,
       errors,
       headers,
+      // What the extraction learned that has nowhere to be stored.
+      extraction: {
+        layout,
+        term:    sheetTerm,
+        program: program ? program.code : null,
+        sections,
+        extraFaculty,
+        orphans,
+      },
     });
   } catch (err) {
     res.status(400).json({ message: describeSequelizeError(err) });

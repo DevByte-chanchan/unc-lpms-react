@@ -21,6 +21,11 @@ import CourseFactory           from './course.js';
 import PrerequisiteFactory     from './prerequisite.js';
 import ProgramCourseOfferingFactory from './programCourseOffering.js';
 import ImportBatchFactory      from './importBatch.js';
+import UniversityStatementFactory from './universityStatement.js';
+import DepartmentStatementFactory from './departmentStatement.js';
+import UserAccountFactory     from './userAccount.js';
+import AccountInvitationFactory from './accountInvitation.js';
+import PasswordResetFactory   from './passwordReset.js';
 
 // --- Mirror tables (data sourced from other modules) ---
 // Faculty and Department records that originate from the HR / Dean
@@ -39,11 +44,20 @@ const db = {
   Course:                 CourseFactory(sequelize, DataTypes),
   Prerequisite:           PrerequisiteFactory(sequelize, DataTypes),
   ProgramCourseOffering:  ProgramCourseOfferingFactory(sequelize, DataTypes),
-  // Before-images of bulk uploads, so an upload can be undone for 30 seconds
-  // after it lands (UNDO_WINDOW_MS in utils/importUndo.js).
+  // The record of each bulk upload / manual add (uploads are final; no undo).
   // Deliberately NOT associated to AcademicPeriod: a batch must outlive the
-  // rows it describes, and a cascading delete would take the undo with them.
+  // rows it describes, and invitations still point at it.
   ImportBatch:            ImportBatchFactory(sequelize, DataTypes),
+  // University VMGO — versioned, not period-scoped (see the model).
+  UniversityStatement:    UniversityStatementFactory(sequelize, DataTypes),
+  // Department VMGO — versioned per department_code, not period-scoped.
+  DepartmentStatement:    DepartmentStatementFactory(sequelize, DataTypes),
+  // Sign-in accounts — stable across terms; linked to faculty by email, no FK.
+  UserAccount:            UserAccountFactory(sequelize, DataTypes),
+  // Set-your-password invitations and forgot-password links. Token hashes
+  // only; no foreign keys (records that outlive what they point at).
+  AccountInvitation:      AccountInvitationFactory(sequelize, DataTypes),
+  PasswordReset:          PasswordResetFactory(sequelize, DataTypes),
   sequelize,
 };
 

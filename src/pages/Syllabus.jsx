@@ -7,7 +7,7 @@ import SideNavigation from "../components/SideNavigation.jsx";
 const Syllabus = ({}) => {
     return (
         <SkeletonA
-            header={<HeaderA role="Instructor" name="NORTON, MONICA"  />}
+            header={<HeaderA />}
             content={<SyllabusSections />}
             nav={<SideNavigation/> }
 

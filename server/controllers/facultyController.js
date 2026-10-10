@@ -7,6 +7,7 @@ import { cloneFromPriorPeriod } from '../utils/periodClone.js';
 import { enforceLatestPeriod } from '../utils/latestPeriod.js';
 import { isPreviewRequest, PreviewRows, previewResponse } from '../utils/importPreview.js';
 import { beginImportBatch, beginManualBatch, completeImportBatch } from './importController.js';
+import { scheduleUploadInvitations, rolesForFacultyRow } from '../services/invitations.js';
 
 const { Faculty, Department } = db;
 
@@ -72,8 +73,7 @@ export async function createFaculty(req, res) {
       sex, birthdate: birthdate || null, email, contact_number,
       period_id,
     });
-    // Snapshot first, so a row added by hand is undoable the same way an
-    // uploaded one is.
+    // Record the manual add, the same way an upload is recorded.
     const batch = await beginManualBatch('faculty', period_id, name);
     const created = await Faculty.create(safe);
     await completeImportBatch(batch, { added: 1 });
@@ -238,7 +238,7 @@ export async function uploadFaculty(req, res) {
       });
     });
 
-    // ---------- PREVIEW: persist NOTHING and return before the snapshot ----------
+    // ---------- PREVIEW: persist NOTHING and return before anything is recorded ----------
     // Past this point the upload starts writing. A file with zero valid rows is
     // NOT an error here (unlike the commit path below) — it is the wrong-file
     // case this step exists to catch, and the red rows say so better than a 400.
@@ -270,8 +270,7 @@ export async function uploadFaculty(req, res) {
     });
     const existingByName = new Map(existing.map((r) => [String(r.name).trim().toLowerCase(), r]));
 
-    // Photograph the period before the merge below overwrites anything —
-    // this is what the Undo button restores.
+    // Record the upload (who/what/when). Uploads are final — there is no undo.
     const batch = await beginImportBatch('faculty', period_id, req.file.originalname);
 
     let inserted = 0;
@@ -290,6 +289,18 @@ export async function uploadFaculty(req, res) {
 
     await completeImportBatch(batch, { inserted, updated });
 
+    // Everyone Active on the sheet gets LPMS access: an account (if new) and a
+    // set-password invitation, sent on the email worker's next poll.
+    const invitations = await scheduleUploadInvitations({
+      entity: 'faculty',
+      people: records
+        .filter((r) => String(r.status || 'Active').trim().toLowerCase() === 'active')
+        .map((r) => ({ name: r.name, email: r.email, roles: rolesForFacultyRow(r.role) })),
+      batchId: batch ? batch.id : null,
+      periodId: period_id,
+      senderId: req.user ? req.user.id : null,
+    });
+
     const seenNames = new Set(records.map((r) => String(r.name).trim().toLowerCase()));
     const missing = existing.filter((r) => !seenNames.has(String(r.name).trim().toLowerCase()));
 
@@ -301,6 +312,7 @@ export async function uploadFaculty(req, res) {
       errors,
       headers,
       missing,
+      invitations,
     });
   } catch (err) {
     res.status(400).json({ message: describeSequelizeError(err) });

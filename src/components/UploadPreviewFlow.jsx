@@ -1,20 +1,17 @@
 /**
- * UploadPreviewFlow — the two safety steps that wrap every spreadsheet upload.
+ * UploadPreviewFlow — Preview & Confirm, the safety step that wraps every
+ * spreadsheet upload.
  *
- *   STATE 1  Preview & Confirm. A large centered dialog showing the filename,
- *            the rows the server parsed, and which of them would fail — BEFORE
- *            anything is written. This is the primary safeguard against a wrong
- *            file, because undo only lasts 30 seconds.
- *   STATE 2  Undo toast. After the commit lands, a 30-second escape hatch wired
- *            to the real, server-backed undo (ImportsAPI.undo).
+ * A large centered dialog showing the filename, the rows the server parsed,
+ * and which of them would fail — BEFORE anything is written. It is the only
+ * safeguard against a wrong file: there is no undo, so once Confirm & Import
+ * runs the upload is final (the footer says so next to the button).
  *
- * ONE component for all seven upload pages — the per-page differences are just
+ * ONE component for every upload page — the per-page differences are just
  * the two functions you hand it:
  *
  *   <UploadPreviewFlow
  *     file={pendingFile}                 // File | null — non-null opens the overlay
- *     entity="faculty"                   // the ImportBatch entity, for undo
- *     periodId={periodId}
  *     title="Upload Faculty List"
  *     preview={(f) => FacultyAPI.uploadPreview(f, periodId)}   // ?preview=1 — writes nothing
  *     commit={(f)  => FacultyAPI.upload(f, periodId)}          // the real upload
@@ -23,34 +20,21 @@
  *     // to open its year-level reconciliation popup before committing.
  *     onBack={() => setShowModal(true)}    // re-pick the file
  *     onCancel={() => setPendingFile(null)}
- *     onCommitted={async (result) => { await refresh(); bumpUploadCount(); }}
- *     onUndone={async () => { await refresh(); setShowModal(true); }}
+ *     onCommitted={async (result) => { await refresh(); }}  // the page shows its own summary
  *   />
- *
- * WHY THE COUNTDOWN IS NOT A HARDCODED 30
- * The deadline is the server's (UNDO_WINDOW_MS, server/utils/importUndo.js). We
- * read the batch we just created via ImportsAPI.latest and count down from its
- * `ms_remaining`, so the toast and the server's 410 expire together. Move the
- * constant server-side and this UI follows without a change.
- *
- * There is no fallback window after the toast: when it goes, undo is genuinely
- * gone. Nothing here may imply otherwise.
  */
 import React from 'react';
 import {
-  X, Check, AlertCircle, AlertTriangle, ChevronLeft, FileText, CornerUpLeft, Filter,
+  X, Check, AlertCircle, AlertTriangle, ChevronLeft, FileText, Filter,
 } from 'react-feather';
-import ConfirmModal from './ConfirmModal.jsx';
 import DialogShell from './DialogShell.jsx';
-import { ImportsAPI } from '../services/api.js';
-import { setUndoToastVisible } from '../services/undoToast.js';
 import styles from '../styles/UploadPreviewFlow.module.sass';
 
 const cx = (...names) => names.filter(Boolean).join(' ');
 
 // Step 3 is drawn but never active: the overlay closes on commit, so "Complete"
 // is a promise of where this ends, not a screen the user sits on.
-const Stepper = ({ active }) => {
+export const Stepper = ({ active }) => {
   const steps = ['Upload', 'Review', 'Complete'];
   return (
     <div className={styles.stepper}>
@@ -81,15 +65,12 @@ const Stepper = ({ active }) => {
 
 const UploadPreviewFlow = ({
   file,
-  entity,
-  periodId,
   title = 'Review Import',
   preview,
   commit,
   onBack,
   onCancel,
   onCommitted,
-  onUndone,
 }) => {
   // ---- State 1: preview ----
   const [data, setData]         = React.useState(null);
@@ -106,16 +87,6 @@ const UploadPreviewFlow = ({
   // What finishHandoff needs once the exit animation has played out.
   const handoffRef = React.useRef(null);
 
-  // ---- State 2: undo toast ----
-  const [toast, setToast]       = React.useState(null);   // { batch, rows }
-  const [msLeft, setMsLeft]     = React.useState(0);
-  const [asking, setAsking]     = React.useState(false);
-  const [undoing, setUndoing]   = React.useState(false);
-  const [undoError, setUndoError] = React.useState(null);
-  // The undo's own receipt — what it removed, what it put back, and whether the
-  // change BEFORE it can still be undone. Replaces the toast once undo runs.
-  const [undoDone, setUndoDone] = React.useState(null);
-
   // Dry-run the file the moment it's picked. Nothing is written; this is the
   // real importer's own parse and validation, not a client-side re-guess.
   React.useEffect(() => {
@@ -123,15 +94,9 @@ const UploadPreviewFlow = ({
       setData(null); setError(null); setOnlyErrors(false); setCommitted(false);
       setHandingOff(false); handoffRef.current = null;
     };
-    // NOT part of reset(): undoing an upload clears the page's pending file, which
-    // lands right here — and wiping the receipt on the way through meant the one
-    // message confirming the undo had happened was destroyed the instant it was
-    // created. It survives the file going away, and is cleared only when a NEW
-    // file arrives and starts a new story.
     if (!file) { reset(); return undefined; }
     let cancelled = false;
     reset();
-    setUndoDone(null);
     setLoading(true);
     Promise.resolve()
       .then(() => preview(file))
@@ -144,39 +109,6 @@ const UploadPreviewFlow = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [file]);
 
-  // Deadline-based, not accumulated ticks: a background tab throttles setInterval,
-  // and a countdown that drifted would promise seconds the server won't honour.
-  React.useEffect(() => {
-    if (!toast || !toast.batch) return undefined;
-    const deadline = Date.now() + toast.batch.ms_remaining;
-    setMsLeft(toast.batch.ms_remaining);
-    const id = setInterval(() => {
-      const left = deadline - Date.now();
-      if (left <= 0) {
-        // The window is genuinely closed — the server would answer 410 now.
-        // Take the confirm dialog with it rather than leave a button that lies.
-        setToast(null);
-        setAsking(false);
-        setMsLeft(0);
-        return;
-      }
-      setMsLeft(left);
-    }, 250);
-    // Covers unmount, dismiss and undo alike — each clears `toast`, which
-    // re-runs this effect and disposes the interval.
-    return () => clearInterval(id);
-  }, [toast]);
-
-  // Hand the countdown to the page's Undo button, or take it back. A toast with
-  // no undoable batch shows no timer, so it doesn't own the countdown either.
-  React.useEffect(() => {
-    setUndoToastVisible(!!toast && !!toast.batch);
-  }, [toast]);
-
-  // Unmounting takes the toast with it — release the countdown so the button
-  // doesn't stay silent waiting on a toast that no longer exists.
-  React.useEffect(() => () => setUndoToastVisible(false), []);
-
   const doCommit = async () => {
     setCommitting(true); setError(null);
     try {
@@ -186,27 +118,10 @@ const UploadPreviewFlow = ({
       // and re-fetching the preview to get them would parse the workbook twice.
       const result = await commit(file, data);
 
-      // Ask the server which batch that upload just created, and how long it
-      // has left. This is the same endpoint the Undo button reads — one undo
-      // mechanism, not two — and `ms_remaining` is what the toast counts down.
-      let batch = null;
-      try {
-        const latest = await ImportsAPI.latest(entity, periodId);
-        batch = latest && latest.batch ? latest.batch : null;
-      } catch {
-        // The import succeeded; only its undo handle is missing. Say so in the
-        // toast rather than fail an upload that actually landed.
-        batch = null;
-      }
-
       // The write is done — but the page's summary must not appear on top of a
       // dialog that is still on screen. Park what the handoff needs and start
       // the exit; finishHandoff picks it up when the animation ends.
-      handoffRef.current = {
-        result,
-        batch,
-        rows: (result && countImported(result)) ?? (data ? data.validCount : 0),
-      };
+      handoffRef.current = { result };
       setHandingOff(true);
     } catch (err) {
       setError(err.message || 'Import failed.');
@@ -223,8 +138,6 @@ const UploadPreviewFlow = ({
     if (!done) return;
     handoffRef.current = null;
 
-    setUndoError(null);
-    setToast({ batch: done.batch, rows: done.rows });
     // Deliberately not awaited: every page sets its summary state synchronously
     // here, and awaiting would push the unmount into a later commit — reopening
     // the gap this whole dance exists to close.
@@ -235,31 +148,9 @@ const UploadPreviewFlow = ({
     setCommitting(false);
   };
 
-  const doUndo = async () => {
-    if (!toast || !toast.batch) return;
-    setUndoing(true); setUndoError(null);
-    try {
-      const res = await ImportsAPI.undo(toast.batch.id);
-      setToast(null);          // also disposes the countdown interval
-      setAsking(false);
-      // SAY WHAT THE UNDO DID. It used to just disappear, and because undo is a
-      // point-in-time restore rather than a delete, the list it leaves behind can
-      // legitimately look identical to the one before it (re-import the same file,
-      // then undo). Silence plus an unchanged table reads as "undo is broken" —
-      // it wasn't; nothing ever told the user it had run.
-      setUndoDone(res || {});
-      if (onUndone) await onUndone();
-    } catch (err) {
-      // Includes the server's 410 if the window closed mid-dialog.
-      setUndoError(err.message || 'Undo failed.');
-    } finally {
-      setUndoing(false);
-    }
-  };
-
   // Memoized because the column widths below are measured FROM these: rebuilt on
   // every render, they'd hand the measuring pass a new array each time and it
-  // would re-measure the whole sheet on every keystroke and every countdown tick.
+  // would re-measure the whole sheet on every keystroke.
   const rows = React.useMemo(
     () => ((data && Array.isArray(data.rows)) ? data.rows : []),
     [data],
@@ -288,7 +179,6 @@ const UploadPreviewFlow = ({
   const lastFileRef = React.useRef(null);
   if (file) lastFileRef.current = file;
   const shownFile = file || lastFileRef.current;
-  const secondsLeft = Math.ceil(msLeft / 1000);
 
   // Escape cancels. The backdrop deliberately does not — a stray click on the
   // dimmed area must not discard a file the user is part-way through reviewing,
@@ -526,6 +416,9 @@ const UploadPreviewFlow = ({
                   {errorCount} {errorCount === 1 ? 'row' : 'rows'} will be skipped.
                 </span>
               )}
+              <span className={styles.finalNote}>
+                Importing can&apos;t be undone. Check the rows above before confirming.
+              </span>
               <button
                 className={cx(styles.btn, styles.btnOutline)}
                 onClick={() => !committing && onCancel && onCancel()}
@@ -544,144 +437,8 @@ const UploadPreviewFlow = ({
             </div>
           </div>
       </DialogShell>
-
-      {/* THE UNDO RECEIPT. Undo restores the period to the instant before the
-          upload — it does not "delete what was imported" — so the list it leaves
-          can be identical to the one on screen (import the same file twice, undo
-          the second). Reporting the rows it moved is the only way the user can
-          tell a working undo from a broken one, and there is no honest way to
-          show that in the table itself. */}
-      {undoDone && (
-        <div className={styles.toast} role="status" aria-live="polite">
-          <div className={styles.toastText}>
-            {/* Phrased around the FILE, not the label: the labels are a mix of
-                singular and plural ("department list", "course assignments"), and
-                any sentence agreeing with them reads wrong for half the pages. */}
-            <span>
-              <strong>Undone.</strong>{' '}
-              {undoDone.filename ? '“' + undoDone.filename + '”' : 'That upload'} has been rolled
-              back{undoDone.label ? ' — ' + undoDone.label + ' restored to the state before it' : ''}.
-            </span>
-            <span className={styles.toastSub}>
-              {undoDone.summary
-                ? undoDone.summary.removed + ' ' + (undoDone.summary.removed === 1 ? 'row' : 'rows')
-                  + ' removed · ' + undoDone.summary.restored + ' put back'
-                : 'The period was restored.'}
-              {/* Each upload is its own restore point, so a double import unwinds
-                  one click at a time. Without this line the second click is a
-                  step nobody knows to take. */}
-              {undoDone.previous && (
-                <>
-                  {' — the upload before it '}
-                  {undoDone.previous.filename ? '(“' + undoDone.previous.filename + '”) ' : ''}
-                  can still be undone with the Undo button.
-                </>
-              )}
-            </span>
-          </div>
-
-          <div className={styles.toastActions}>
-            <button
-              className={styles.dismiss}
-              onClick={() => setUndoDone(null)}
-              aria-label="Dismiss"
-            >
-              <X size={11} color="#FFFFFF" />
-            </button>
-          </div>
-        </div>
-      )}
-
-      {toast && (
-        <div className={styles.toast} role="status" aria-live="polite">
-          <div className={styles.toastText}>
-            <span>
-              <strong>Success!</strong> {toast.rows} {toast.rows === 1 ? 'row has' : 'rows have'} been
-              queued for import.
-            </span>
-            {!toast.batch && (
-              <span className={styles.toastSub}>This import can’t be undone.</span>
-            )}
-            {undoError && <span className={styles.error}>{undoError}</span>}
-          </div>
-
-          <div className={styles.toastActions}>
-            {/* Same action as the page's Undo button, so it is the same control:
-                same icon, same label, same shape, same red tabular-nums
-                countdown. Only the colours differ, because this one sits on a
-                dark toast. */}
-            {toast.batch && (
-              <button
-                className={styles.undoBtn}
-                onClick={() => { setUndoError(null); setAsking(true); }}
-                disabled={undoing}
-                // No "…and after that you can still use the Undo button" — there
-                // is no window after this one.
-                title="Undo this import — the only chance to."
-              >
-                <span className={styles.undoIcon}>
-                  <CornerUpLeft size={18} color="#18191A" />
-                </span>
-                Undo
-                <span className={styles.count}>{secondsLeft}s</span>
-              </button>
-            )}
-            <button
-              className={styles.dismiss}
-              onClick={() => { setToast(null); setAsking(false); }}
-              aria-label="Dismiss"
-            >
-              <X size={11} color="#FFFFFF" />
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Undo is a point-in-time restore, so the destructive warning stays
-          exactly as it is elsewhere. In a 30-second window there is rarely
-          anything to lose — but "rarely" is not "never".
-
-          The wrapper carries a stacking context so this dialog clears the
-          ReconciliationModal that is usually open behind it (see .undoDialogLayer). */}
-      <div className={styles.undoDialogLayer}>
-        <ConfirmModal
-          open={asking && !!toast && !!toast.batch}
-          title="Undo this import?"
-          tone="destructive"
-          confirmLabel={undoing ? 'Undoing…' : 'Undo (' + secondsLeft + 's)'}
-          busy={undoing}
-          message={
-            <span>
-              This restores the {toast && toast.batch ? toast.batch.label : 'list'} to exactly how it was
-              before {file ? '“' + file.name + '”' : 'this file'} was imported.
-              <br /><br />
-              <strong>Any changes made since then will be lost</strong> — including rows you added or
-              edited by hand afterwards.
-              {undoError && (
-                <>
-                  <br /><br />
-                  <span style={{ color: '#B91C1C' }}>{undoError}</span>
-                </>
-              )}
-            </span>
-          }
-          onConfirm={doUndo}
-          onCancel={() => { if (!undoing) { setAsking(false); setUndoError(null); } }}
-        />
-      </div>
     </>
   );
 };
-
-// How many rows actually landed, straight from the upload's own response. The
-// entities word it differently (faculty merges, programs replace), so take
-// whatever they report rather than guessing from the preview.
-function countImported(result) {
-  if (!result || typeof result !== 'object') return null;
-  const inserted = Number(result.inserted || 0);
-  const updated  = Number(result.updated || 0);
-  const total    = inserted + updated;
-  return Number.isFinite(total) && total > 0 ? total : null;
-}
 
 export default UploadPreviewFlow;

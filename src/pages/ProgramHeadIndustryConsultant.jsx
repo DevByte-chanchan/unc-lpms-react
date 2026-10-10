@@ -11,7 +11,6 @@ import EditEntityModal from "../components/EditEntityModal.jsx";
 import ViewRecordModal from "../components/ViewRecordModal.jsx";
 import ConfirmModal from "../components/ConfirmModal.jsx";
 import ViewArchivedButton from "../components/ViewArchivedButton.jsx";
-import UndoUploadButton from "../components/UndoUploadButton.jsx";
 import UploadPreviewFlow from "../components/UploadPreviewFlow.jsx";
 import DialogShell from "../components/DialogShell.jsx";
 import { RecordMeta } from "../components/RecordTimestamps.jsx";
@@ -21,7 +20,6 @@ import dd from '../styles/DropdownMenu.module.sass';
 import { ConsultantsAPI, CoursesAPI, FacultyAPI } from '../services/api.js';
 import { courseMatchesPeriod } from '../services/courseTerm.js';
 import { usePeriod } from '../services/period.jsx';
-import { useCurrentUser } from '../services/currentUser.jsx';
 import { useHeadProgram } from '../services/useHeadProgram.js';
 import { STATUS_OPTIONS, partitionByArchive } from '../services/statusPolicy.js';
 
@@ -299,7 +297,6 @@ const CourseTagPicker = ({ courses, value, onChange, excludedByCode }) => {
 
 const ProgramHeadIndustryConsultant = () => {
   const { currentPeriod, isCurrentTermActive } = usePeriod();
-  const { name: currentUserName, role: currentUserRole } = useCurrentUser();
   const periodId = currentPeriod && currentPeriod.id;
 
   // Which program is this Program Head assigned to? (same resolution as the
@@ -351,8 +348,6 @@ const ProgramHeadIndustryConsultant = () => {
       .catch(() => setCourses([]));
   }, [periodId, currentPeriod]);
 
-  // Bumped on every successful upload so the Undo button re-reads its batch.
-  const [uploadCount, setUploadCount]         = React.useState(0);
 
   const refresh = React.useCallback(() => {
     if (!periodId) { setConsultants([]); setCourses([]); return; }
@@ -431,17 +426,7 @@ const ProgramHeadIndustryConsultant = () => {
   // now the whole story, and they arrive before the write instead of after it.
   const onUploadCommitted = async () => {
     await refresh();
-    setUploadCount((n) => n + 1);
     clearPicker();
-  };
-
-  // Undone — put the user back where they can pick the RIGHT file.
-  const onUploadUndone = async () => {
-    await refresh();
-    setUploadCount((n) => n + 1);
-    setPendingFile(null);
-    clearPicker();
-    setShowModal(true);
   };
 
   const onAddConsultant = async (record) => {
@@ -450,7 +435,6 @@ const ProgramHeadIndustryConsultant = () => {
     // takes their Active/Unavailable state). No status is sent from here.
     await ConsultantsAPI.create(record, periodId);
     await refresh();
-    setUploadCount((n) => n + 1);   // a manual add is undoable too
   };
 
   const onSaveEdit = async (patch) => {
@@ -606,7 +590,6 @@ const ProgramHeadIndustryConsultant = () => {
         </div>
         {!noProgramAssigned && (
           <div style={{ display: 'flex', gap: 10 }}>
-            <UndoUploadButton entity="industry_consultants" periodId={periodId} disabled={!periodId || !isCurrentTermActive} refreshKey={uploadCount} onUndone={refresh} />
             <ActionBtn variant="white" onClick={() => { if (consultants.length > 0) { setConfirmUpload(true); } else { setShowModal(true); } }} disabled={!periodId || !isCurrentTermActive} icon={<Upload size={18} color="#374151" />} label="Upload Consultant List" />
             {showTable && isCurrentTermActive && (
               <ActionBtn onClick={() => setShowAddModal(true)} icon={<Plus size={18} color="#FFFFFF" />} label="Add Consultant" />
@@ -878,26 +861,23 @@ const ProgramHeadIndustryConsultant = () => {
             </div>
       </DialogShell>
 
-      {/* Preview & Confirm, then the 30-second undo toast. Mounted inside
+      {/* Preview & Confirm (imports are final — there is no undo). Mounted inside
           `content` — this page's return wraps everything in <SkeletonA>. */}
       <UploadPreviewFlow
         file={pendingFile}
-        entity="industry_consultants"
-        periodId={periodId}
         title="Upload Consultant List"
         preview={(f) => ConsultantsAPI.uploadPreview(f, periodId)}
         commit={(f) => ConsultantsAPI.upload(f, periodId)}
         onBack={() => { setPendingFile(null); setShowModal(true); }}
         onCancel={() => { setPendingFile(null); clearPicker(); }}
         onCommitted={onUploadCommitted}
-        onUndone={onUploadUndone}
       />
     </div>
   );
 
   return (
     <SkeletonA
-      header={<HeaderA role={currentUserRole} name={currentUserName} />}
+      header={<HeaderA />}
       nav={<SideNavigation mode="program-head" />}
       content={content}
     />

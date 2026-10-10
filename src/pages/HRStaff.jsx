@@ -13,7 +13,6 @@ import EditEntityModal from "../components/EditEntityModal.jsx";
 import ReconciliationModal from "../components/ReconciliationModal.jsx";
 import ConfirmModal from "../components/ConfirmModal.jsx";
 import ViewArchivedButton from "../components/ViewArchivedButton.jsx";
-import UndoUploadButton from "../components/UndoUploadButton.jsx";
 import UploadPreviewFlow from "../components/UploadPreviewFlow.jsx";
 import DialogShell from "../components/DialogShell.jsx";
 import { Upload, Plus, Search, ArrowUp, ArrowDown } from "react-feather";
@@ -57,8 +56,6 @@ const HRStaff = () => {
   const [departments, setDepartments]         = React.useState([]);
   const fileInputRef = React.useRef(null);
 
-  // Bumped on every successful upload so the Undo button re-reads its batch.
-  const [uploadCount, setUploadCount]         = React.useState(0);
 
   const refresh = React.useCallback(() => {
     if (!periodId) { setDepartments([]); return; }
@@ -101,23 +98,11 @@ const HRStaff = () => {
     }
     clearPicker();
     await refresh();
-    setUploadCount((n) => n + 1);
-  };
-
-  // Undone — put the user back where they can pick the RIGHT file.
-  const onUploadUndone = async () => {
-    await refresh();
-    setUploadCount((n) => n + 1);
-    setRecon(null);
-    setPendingFile(null);
-    clearPicker();
-    setShowUploadModal(true);
   };
 
   const onAddDepartment = async (record) => {
     await DepartmentsAPI.create(record, periodId);
     await refresh();
-    setUploadCount((n) => n + 1);   // a manual add is undoable too
   };
 
   const onSaveEdit = async (patch) => {
@@ -171,7 +156,6 @@ const HRStaff = () => {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
             <h2 style={{ margin: 0 }}>Departments</h2>
             <div style={{ display: 'flex', gap: 10 }}>
-              <UndoUploadButton entity="departments" periodId={periodId} disabled={!periodId || !isCurrentTermActive} refreshKey={uploadCount} onUndone={refresh} />
               <ActionBtn variant="white" onClick={() => { if (departments.length > 0) { setConfirmUpload(true); } else { setShowUploadModal(true); } }} disabled={!periodId || !isCurrentTermActive} icon={<Upload size={18} color="#374151" />} label="Upload Department List" />
               {showTable && isCurrentTermActive && <ActionBtn onClick={() => setShowAddModal(true)} icon={<Plus size={18} color="#FFFFFF" />} label="Add Department" />}
             </div>
@@ -284,19 +268,16 @@ const HRStaff = () => {
                 </div>
           </DialogShell>
 
-          {/* Preview & Confirm, then the 30-second undo toast. The reconciliation
+          {/* Preview & Confirm (imports are final — there is no undo). The reconciliation
               modal still fires after the commit, from onUploadCommitted. */}
           <UploadPreviewFlow
             file={pendingFile}
-            entity="departments"
-            periodId={periodId}
             title="Upload Department List"
             preview={(f) => DepartmentsAPI.uploadPreview(f, periodId)}
             commit={(f) => DepartmentsAPI.upload(f, periodId)}
             onBack={() => { setPendingFile(null); setShowUploadModal(true); }}
             onCancel={() => { setPendingFile(null); clearPicker(); }}
             onCommitted={onUploadCommitted}
-            onUndone={onUploadUndone}
           />
     </div>
   );

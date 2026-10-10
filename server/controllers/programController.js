@@ -128,8 +128,7 @@ export async function createProgram(req, res, next) {
     if (!(await enforceLatestPeriod(res, period_id))) return;
     const program_head_id = await resolveHeadId(program_head, period_id);
     const safe = await filterOneToExistingColumns(Program, { code, name, program_head, program_head_id, status: status || 'Active', period_id });
-    // Snapshot first, so a row added by hand is undoable the same way an
-    // uploaded one is.
+    // Record the manual add, the same way an upload is recorded.
     const batch = await beginManualBatch('programs', period_id, name);
     const created = await Program.create(safe);
     await completeImportBatch(batch, { added: 1 });
@@ -252,7 +251,7 @@ export async function uploadPrograms(req, res) {
       });
     });
 
-    // ---------- PREVIEW: persist NOTHING and return before the snapshot ----------
+    // ---------- PREVIEW: persist NOTHING and return before anything is recorded ----------
     // Everything below this line writes — and this upload DESTROYS the period's
     // programs before re-inserting. Returning past this point would wipe the list
     // on what the user was told was a dry run.
@@ -268,8 +267,7 @@ export async function uploadPrograms(req, res) {
       return res.status(400).json({ message: 'No valid rows found.', headers, errors });
     }
 
-    // Photograph the period BEFORE the destroy below — this upload replaces
-    // the whole program list, so the snapshot is the only way back.
+    // Record the upload (who/what/when). Uploads are final — there is no undo.
     const batch = await beginImportBatch('programs', period_id, req.file.originalname);
 
     const removed = await safeDestroyByPeriod(Program, period_id);

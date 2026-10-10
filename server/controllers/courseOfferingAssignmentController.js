@@ -20,9 +20,11 @@ import { parseSheet, safeUnlink, pick } from '../utils/excelParser.js';
 import {
   looksLikeTeachingAssignment,
   parseTeachingAssignment,
+  looksLikeSubjectOfferings,
+  parseSubjectOfferings,
   extractProgramAssignments,
-  programCoursePrefixes,
 } from '../utils/teachingAssignmentParser.js';
+import { programCoursePrefixes, programKeyFromPrefixes } from '../utils/courseCodeRules.js';
 import { getPeriodId, safeWhereForPeriod } from '../utils/periodScope.js';
 import { filterOneToExistingColumns, safeDestroyByPeriod, safeWhere } from '../utils/dbHelpers.js';
 import { describeSequelizeError } from '../utils/uploadHelpers.js';
@@ -282,8 +284,7 @@ export async function createCourseOfferingAssignment(req, res) {
       date_assigned: faculty_name ? new Date() : null,
       period_id,
     });
-    // Snapshot first, so a row added by hand is undoable the same way an
-    // uploaded one is.
+    // Record the manual add, the same way an upload is recorded.
     const batch = await beginManualBatch('course_offering_assignments', period_id, course_code);
     const created = await CourseOfferingAssignment.create(safe);
     await completeImportBatch(batch, { added: 1 });
@@ -412,15 +413,28 @@ export async function uploadCourseOfferingAssignments(req, res) {
 
     let rows;
     let headers;
-    if (looksLikeTeachingAssignment(req.file.path)) {
-      // Raw school "TEACHING ASSIGNMENT" export (grouped by faculty, no lead
-      // column). Flatten it, keep only THIS program's courses (BSIT → BIT …),
-      // and bring each course's faculty in as CONTRIBUTORS with the lead left
-      // empty — the Program Head designates the lead afterwards, in the system.
+    // Extracted detail with no column to live in — returned in the payload,
+    // never stored (sections, schedules, the sheet's own term, orphan rows).
+    let extraction = { layout: 'flat', term: null, termSemester: null, orphans: [], sections: {} };
+
+    const isStrap = looksLikeTeachingAssignment(req.file.path);
+    const isOfferings = !isStrap && looksLikeSubjectOfferings(req.file.path);
+
+    if (isStrap || isOfferings) {
+      // Raw school export — "TEACHING ASSIGNMENT" (grouped by faculty) or
+      // "SUBJECT OFFERINGS" (grouped by course, one block per section). Neither
+      // is a flat table and neither has a lead column. Flatten it, keep only
+      // THIS program's courses (BSIT → BIT, plus shared GEE / MATH blocks whose
+      // SECTION says BSIT), and bring each course's faculty in as CONTRIBUTORS
+      // with the lead left empty — the Program Head designates the lead
+      // afterwards, in the system.
       const program = program_id ? await Program.findByPk(program_id, { attributes: ['code'] }) : null;
       const prefixes = programCoursePrefixes(program && program.code);
-      const parsed = parseTeachingAssignment(req.file.path);
-      const extracted = extractProgramAssignments(parsed, prefixes);
+      const programKey = programKeyFromPrefixes(prefixes);
+      const parsed = isStrap
+        ? parseTeachingAssignment(req.file.path)
+        : parseSubjectOfferings(req.file.path);
+      const extracted = extractProgramAssignments(parsed, prefixes, { programKey });
       rows = extracted.map((e) => ({
         // Canonical keys the row loop reads via pick(); omitting a leadfaculty
         // key is what leaves Lead Faculty unset.
@@ -428,8 +442,17 @@ export async function uploadCourseOfferingAssignments(req, res) {
         coursename:   e.course_name,
         contributors: e.contributor_names.join('; '),
         yearlevel:    e.year_level,
+        // Derived, never stored — drives the rule 2 / rule 3 preview warnings.
+        _meta: { semester: e.semester, shared: e.shared, sections: e.sections },
       }));
       headers = ['Course Code', 'Course Name', 'Lead Faculty', 'Contributors', 'Year Level'];
+      extraction = {
+        layout:       parsed.layout,
+        term:         parsed.term || null,
+        termSemester: parsed.termSemester ?? null,
+        orphans:      parsed.orphans || [],
+        sections:     Object.fromEntries(extracted.map((e) => [e.course_code, e.sections])),
+      };
     } else {
       ({ rows, headers } = parseSheet(req.file.path));
     }
@@ -507,6 +530,13 @@ export async function uploadCourseOfferingAssignments(req, res) {
       // The row's resolved state, so the preview can show WHERE it landed rather
       // than just whether it parsed.
       cells.Status = resolved.status;
+      // Every reason this row is worth a second look, collected so one row
+      // produces one preview entry however many things are off with it.
+      const issues = [];
+      const meta = row._meta || null;
+      // Spreadsheet YEAR LEVEL wins; otherwise keep the catalog-derived one.
+      const finalYearLevel = year_level ? String(year_level).trim() : resolved.year_level;
+
       // Surface every row that isn't a clean Active assignment: unmatched rows
       // (Unassigned) need fixing; an Inactive faculty lands straight in the
       // Archive; an Emeritus faculty stays visible so the course can be
@@ -531,10 +561,43 @@ export async function uploadCourseOfferingAssignments(req, res) {
         });
         // Same reason, same wording — a row that isn't cleanly Active still
         // imports, so it is a warning, never an error.
-        preview.warning(i + 2, cells, [{ field: 'Status', message }]);
-      } else {
-        preview.ok(i + 2, cells);
+        issues.push({ field: 'Status', message });
       }
+
+      // Rule 2 — the semester digit is derived for validation only. A code that
+      // disagrees with the sheet's term is KEPT and flagged, never dropped.
+      if (meta && meta.semester && extraction.termSemester
+          && meta.semester !== extraction.termSemester) {
+        const message = 'Code "' + String(course_code).trim() + '" reads as semester ' + meta.semester
+          + ' but the upload term is semester ' + extraction.termSemester + '; imported as-is.';
+        warnings.push({ row: i + 2, course_code: String(course_code).trim(), faculty_name: faculty_name ? String(faculty_name).trim() : '', status: resolved.status, message });
+        issues.push({ field: 'Course Code', message });
+      }
+
+      // Rule 2 — a code with no digits (GEE-LITE) has no year level of its own.
+      // The catalog fills it when the course matched; otherwise say so.
+      if (!finalYearLevel) {
+        const message = 'No year level for "' + String(course_code).trim()
+          + '" — the code carries no year digit and no catalog course matched.';
+        warnings.push({ row: i + 2, course_code: String(course_code).trim(), faculty_name: faculty_name ? String(faculty_name).trim() : '', status: resolved.status, message });
+        issues.push({ field: 'Year Level', message });
+      }
+
+      // Rule 3 — a shared course (GEE, MATH) was attributed to this program by
+      // its SECTION alone. It counts only if the program really offers it, so
+      // one that resolves to no offering is called out as unresolved here
+      // rather than silently passing as a normal course.
+      if (meta && meta.shared && resolved.pc_offering_id == null) {
+        const message = '"' + String(course_code).trim() + '" is a shared course assigned to this program by its '
+          + 'section (' + (meta.sections || []).join(', ') + '), but no matching course offering exists for this '
+          + 'program in this term — it needs reconciling.';
+        warnings.push({ row: i + 2, course_code: String(course_code).trim(), faculty_name: faculty_name ? String(faculty_name).trim() : '', status: resolved.status, message });
+        issues.push({ field: 'Course Code', message });
+      }
+
+      if (issues.length) preview.warning(i + 2, cells, issues);
+      else preview.ok(i + 2, cells);
+
       records.push({
         course_code:  String(course_code).trim(),
         course_name:  course_name  ? String(course_name).trim()  : null,
@@ -543,14 +606,24 @@ export async function uploadCourseOfferingAssignments(req, res) {
         // Co-teachers (non-lead) — resolved + deduped against the lead. Never
         // affects status or the row count.
         contributors: normalizeContributors(contributorNames, faculty_name, resolved.faculty_id, lists),
-        // Spreadsheet YEAR LEVEL wins; otherwise keep the catalog-derived one.
-        year_level: year_level ? String(year_level).trim() : resolved.year_level,
+        year_level: finalYearLevel,
         date_assigned: faculty_name ? new Date() : null,
         period_id,
       });
     });
 
-    // ---------- PREVIEW: persist NOTHING and return before the snapshot ----------
+    // A continuation row with nothing above it to belong to is never invented
+    // as its own course (rule 4) — it is reported instead.
+    for (const o of extraction.orphans) {
+      warnings.push({
+        row: o.row, course_code: o.courseNo || '', status: 'Unassigned',
+        message: o.reason === 'no-parent'
+          ? 'Row ' + o.row + ' continues a course that has no row above it — skipped.'
+          : 'Row ' + o.row + ' does not match the course above it (' + (o.parent || 'unknown') + ') — skipped.',
+      });
+    }
+
+    // ---------- PREVIEW: persist NOTHING and return before anything is recorded ----------
     // Everything below this line writes — and this upload DESTROYS the period's
     // whole assignment list before re-inserting.
     if (isPreviewRequest(req)) {
@@ -558,6 +631,9 @@ export async function uploadCourseOfferingAssignments(req, res) {
         filename: req.file.originalname,
         headers,
         preview,
+        // Sections, the sheet's own term, and skipped continuation rows — all
+        // extracted, none of it storable.
+        extra: { extraction },
       });
     }
 
@@ -565,8 +641,7 @@ export async function uploadCourseOfferingAssignments(req, res) {
       return res.status(400).json({ message: 'No valid rows found.', headers, errors });
     }
 
-    // Photograph the period BEFORE the destroy below — this upload replaces
-    // the whole assignment list, so the snapshot is the only way back.
+    // Record the upload (who/what/when). Uploads are final — there is no undo.
     const batch = await beginImportBatch('course_offering_assignments', period_id, req.file.originalname);
 
     const removed = await safeDestroyByPeriod(CourseOfferingAssignment, period_id);
@@ -581,6 +656,7 @@ export async function uploadCourseOfferingAssignments(req, res) {
       warnings,
       errors,
       headers,
+      extraction,
     });
   } catch (err) {
     res.status(400).json({ message: describeSequelizeError(err) });

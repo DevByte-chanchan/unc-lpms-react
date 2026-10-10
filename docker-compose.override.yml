@@ -1,0 +1,92 @@
+# Run the app itself in containers, so the host needs no Node install.
+#
+# docker-compose.yml provides the DB and Adminer only; this file adds the two
+# Node services on the same network. Compose loads it automatically, so the
+# README quick-start still works:
+#
+#   docker compose up -d          → db, adminer, api, web
+#   docker compose logs -f api
+#   docker compose down           → removes all four
+#
+# Delete this file (or `docker compose -f docker-compose.yml up -d`) to go back
+# to DB-only and run the app from the host with `npm run dev`.
+#
+# node_modules live in NAMED VOLUMES, not on the bind mount: installing a few
+# hundred MB through a Windows bind mount is slow, and the host has no Node to
+# use them with anyway. Source is still bind-mounted, so edits are live.
+#
+# server/.env keeps its host-oriented values (localhost:3307) for anyone running
+# the backend outside Docker; the DB_HOST/DB_PORT below point at the compose
+# network instead. dotenv does not override already-set variables, so these win.
+
+services:
+  api:
+    image: node:20-slim
+    container_name: ca-api
+    working_dir: /app/server
+    # No lockfile install (`npm ci`) on purpose — package-lock.json is present
+    # but `npm install` tolerates a drifted lock, which is friendlier on a first
+    # bring-up. The volume means this only really runs once.
+    command: sh -c "npm install && npm run dev"
+    environment:
+      NODE_ENV: development
+      PORT: 4000
+      DB_HOST: db          # the compose service name, not localhost
+      DB_PORT: 3306        # container-internal port, not the 3307 host mapping
+      DB_NAME: course_assignment
+      DB_USER: ca_user
+      DB_PASSWORD: ca_password
+      DB_DIALECT: mysql
+      CORS_ORIGIN: http://localhost:5173
+      # Signs the session cookie. A dev-only default — set JWT_SECRET in your
+      # shell or the root .env to override. Production must set a real one
+      # (the server refuses to boot without it when NODE_ENV=production).
+      JWT_SECRET: ${JWT_SECRET:-lpms-compose-dev-secret-change-me}
+      # Where MAIL_MODE=capture delivers (the mailpit service below). The rest of
+      # the mail settings (MAIL_MODE, SMTP_*, MAIL_FROM, MAIL_DEV_ALLOWLIST,
+      # APP_BASE_URL) live in server/.env, NOT here: a value set here would
+      # override server/.env, since dotenv never replaces a variable that's set.
+      MAIL_CAPTURE_HOST: mailpit
+      MAIL_CAPTURE_PORT: 1025
+    ports:
+      # The browser talks to the API directly (api.js defaults to
+      # http://localhost:4000/api), so this must be published on the host.
+      - "4000:4000"
+    volumes:
+      - ./:/app
+      - api_node_modules:/app/server/node_modules
+    depends_on:
+      db:
+        condition: service_healthy
+      mailpit:
+        condition: service_started
+
+  web:
+    image: node:20-slim
+    container_name: ca-web
+    working_dir: /app
+    # --host is required: without it vite binds 127.0.0.1 inside the container
+    # and the published port answers nothing.
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0 --port 5173"
+    environment:
+      NODE_ENV: development
+      # Windows bind mounts don't forward file-change events; poll instead
+      # (read by vite.config.js) so edits show up without a restart.
+      VITE_USE_POLLING: "true"
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./:/app
+      - web_node_modules:/app/node_modules
+
+  # Local test inbox: everything sent with MAIL_MODE=capture lands here.
+  mailpit:
+    image: axllent/mailpit
+    container_name: ca-mailpit
+    ports:
+      - "8025:8025"   # web inbox
+      - "1025:1025"   # SMTP
+
+volumes:
+  api_node_modules:
+  web_node_modules:

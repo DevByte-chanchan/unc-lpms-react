@@ -1,9 +1,22 @@
 /**
  * API service — period-aware fetch wrapper.
+ *
+ * Every call carries the session cookie (credentials: 'include'). A 401 from
+ * anything but /auth/* means the session is gone: we fire ONE `auth:expired`
+ * window event (services/currentUser.jsx sends the user to /login?next=…) and
+ * stay quiet for the rest of the burst until the next sign-in re-arms it.
  */
 
 const BASE_URL =
   (import.meta.env && import.meta.env.VITE_API_URL) || 'http://localhost:4000/api';
+
+export const AUTH_EXPIRED_EVENT = 'auth:expired';
+// Fired by services/currentUser.jsx whenever a session starts (sign-in or a
+// restored cookie), so data that 401'd before sign-in can reload.
+export const AUTH_SIGNED_IN_EVENT = 'auth:signed-in';
+let expiredAnnounced = false;
+/** Called after a successful sign-in / session check, so the next expiry is announced. */
+export const rearmAuthExpired = () => { expiredAnnounced = false; };
 
 async function request(path, { method = 'GET', body, headers = {}, query } = {}) {
   const url = new URL(BASE_URL + path, window.location.origin);
@@ -12,7 +25,7 @@ async function request(path, { method = 'GET', body, headers = {}, query } = {})
       if (v !== undefined && v !== null && v !== '') url.searchParams.set(k, v);
     });
   }
-  const opts = { method, headers: { ...headers } };
+  const opts = { method, headers: { ...headers }, credentials: 'include' };
   if (body instanceof FormData) {
     opts.body = body;
   } else if (body !== undefined) {
@@ -23,6 +36,10 @@ async function request(path, { method = 'GET', body, headers = {}, query } = {})
   const contentType = res.headers.get('content-type') || '';
   const payload = contentType.includes('application/json') ? await res.json() : await res.text();
   if (!res.ok) {
+    if (res.status === 401 && !path.startsWith('/auth/') && !expiredAnnounced) {
+      expiredAnnounced = true;
+      window.dispatchEvent(new Event(AUTH_EXPIRED_EVENT));
+    }
     const message = (payload && payload.message) || 'Request failed (' + res.status + ')';
     const error = new Error(message);
     error.status = res.status;
@@ -201,22 +218,6 @@ export const CourseOfferingAssignmentsAPI = {
   revalidate: (periodId) => request('/course-offering-assignments/revalidate', { method: 'POST', query: { period_id: periodId } }),
 };
 
-// Undo for the bulk-upload buttons. The backend snapshots the affected tables
-// before each upload and keeps them restorable for 30 SECONDS; `latest` returns
-// null once that window closes, so the UI can go quiet on its own.
-//
-// The deadline lives on the server (UNDO_WINDOW_MS in server/utils/importUndo.js)
-// and reaches the client as `batch.ms_remaining`. Count down from that — never
-// from a hardcoded 30 — or the toast and the server will disagree the moment
-// the constant moves.
-//
-// entity: 'departments' | 'faculty' | 'programs' | 'courses'
-//         | 'course_offering_assignments' | 'industry_consultants'
-export const ImportsAPI = {
-  latest: (entity, periodId) => request('/imports/latest', { query: { entity, period_id: periodId } }),
-  undo:   (batchId) => request(idPath('/imports', batchId) + '/undo', { method: 'POST' }),
-};
-
 export const ArchiveAPI = {
   // Period-scoped list of archived records for one module. moduleType:
   //   'academic_terms' | 'departments' | 'faculty' | 'programs'
@@ -226,6 +227,94 @@ export const ArchiveAPI = {
   // Returns { rows: [...] }.
   list: (moduleType, periodId) =>
     request('/archive', { query: { module: moduleType, period_id: periodId } }),
+};
+
+
+// University VMGO (OVPAA). Versioned, NOT period-scoped — no period_id here.
+// `extract` only parses the PDF and returns fields to review; nothing is saved
+// until `save` is called with the reviewed fields. Restore copies an old
+// version forward as a new one, so history is never rewritten.
+export const UniversityStatementsAPI = {
+  // 404 (error.status) when nothing has been saved yet.
+  current: () => request('/university-statements/current'),
+  history: () => request('/university-statements/history'),
+  get:     (id) => request(idPath('/university-statements', id)),
+  // Returns { fields, warnings, pages, sha256, sameAsActive, filename }; 422 with
+  // a plain message when the PDF can't be read (scanned image, wrong file).
+  extract: (file) => {
+    const fd = new FormData();
+    fd.append('file', file);
+    return request('/university-statements/extract', { method: 'POST', body: fd });
+  },
+  // fields: { vision, mission, educational_policy, core_values, graduate_attributes,
+  //           source_filename, source_sha256, uploaded_by }
+  save:    (fields) => request('/university-statements', { method: 'POST', body: fields }),
+  restore: (id, uploadedBy) => request(idPath('/university-statements', id) + '/restore', { method: 'POST', body: { uploaded_by: uploadedBy } }),
+};
+
+// Department vision & mission (Dean). The department twin of UniversityStatementsAPI:
+// versioned per department_code (e.g. 'SCIS'), not period-scoped. The code
+// must name a department in the current term.
+export const DepartmentStatementsAPI = {
+  // 404 (error.status) when nothing has been saved for this department yet.
+  current: (departmentCode) => request('/department-statements', { query: { department_code: departmentCode } }),
+  // The Active version of every department that has one.
+  all:     () => request('/department-statements/all'),
+  history: (departmentCode) => request('/department-statements/history', { query: { department_code: departmentCode } }),
+  get:     (id) => request(idPath('/department-statements', id)),
+  // Returns { fields, warnings, blockHeader, pages, sha256, sameAsActive, filename,
+  // department_code, department_name }. fields: { vision, mission }. A warning
+  // with code 'DEPARTMENT_MISMATCH' means the PDF names another department.
+  extract: (file, departmentCode) => {
+    const fd = new FormData();
+    fd.append('department_code', departmentCode);
+    fd.append('file', file);
+    return request('/department-statements/extract', { method: 'POST', body: fd });
+  },
+  // fields: { vision, mission,
+  //           source_filename, source_sha256, uploaded_by }
+  save:    (departmentCode, fields) => request('/department-statements', { method: 'POST', body: { ...fields, department_code: departmentCode } }),
+  restore: (id, uploadedBy) => request(idPath('/department-statements', id) + '/restore', { method: 'POST', body: { uploaded_by: uploadedBy } }),
+};
+
+
+// Sign-in. The session lives in an httpOnly cookie the page can't read; these
+// calls only ever return the public `user` shape (never a password or hash).
+export const AuthAPI = {
+  login:  (email, password) => request('/auth/login', { method: 'POST', body: { email, password } }),
+  logout: () => request('/auth/logout', { method: 'POST' }),
+  // { user: { id, email, display_name, roles, must_change_password, facultyId, consultantId } }
+  me:     (periodId) => request('/auth/me', { query: { period_id: periodId } }),
+  changePassword: (currentPassword, newPassword) =>
+    request('/auth/change-password', { method: 'POST', body: { current_password: currentPassword, new_password: newPassword } }),
+  // The emailed links (public). An invalid, used or expired link answers 410.
+  // { display_name, email, roles }
+  invitation:       (token) => request('/auth/invitation', { query: { token } }),
+  // { user } — signs in THIS account, replacing any session the browser had.
+  acceptInvitation: (token, password) => request('/auth/accept-invitation', { method: 'POST', body: { token, password } }),
+  // Always { message } — never says whether the email exists.
+  forgotPassword:   (email) => request('/auth/forgot-password', { method: 'POST', body: { email } }),
+  // { display_name, email }
+  resetInfo:        (token) => request('/auth/reset-password', { query: { token } }),
+  // { user } — signs in THIS account, replacing any session the browser had.
+  resetPassword:    (token, password) => request('/auth/reset-password', { method: 'POST', body: { token, password } }),
+};
+
+// Account management (VPAA). Create and reset return { account, temp_password }:
+// the temporary password is shown once and can't be fetched again.
+export const UserAccountsAPI = {
+  list:          () => request('/user-accounts'),
+  create:        (data) => request('/user-accounts', { method: 'POST', body: data }),
+  update:        (id, patch) => request(idPath('/user-accounts', id), { method: 'PATCH', body: patch }),
+  resetPassword: (id) => request(idPath('/user-accounts', id) + '/reset-password', { method: 'POST' }),
+  // { created: [{ email, display_name, roles, temp_password }], skipped: [{ name, email, reason }] }
+  fromFaculty:   (periodId) => request('/user-accounts/from-faculty', { method: 'POST', body: { period_id: periodId } }),
+  // Email a set-password link now (supersedes earlier links). { message, invitation }
+  sendInvitation:    (id) => request(idPath('/user-accounts', id) + '/send-invitation', { method: 'POST' }),
+  // Email a 1-hour reset link now. { message }
+  sendPasswordReset: (id) => request(idPath('/user-accounts', id) + '/send-password-reset', { method: 'POST' }),
+  // Held invitations with no account yet (bad or colliding email).
+  heldInvitations:   () => request('/user-accounts/held-invitations'),
 };
 
 export const ApiBaseURL = BASE_URL;

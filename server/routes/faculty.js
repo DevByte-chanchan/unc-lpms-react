@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { requireRole } from '../middleware/auth.js';
 import { uploadExcel } from '../middleware/upload.js';
 import {
   listFaculty,
@@ -16,11 +17,11 @@ const router = Router();
 // It returns the row with its long `about` bio attached.
 router.get('/',          listFaculty);
 router.get('/:id',       getFaculty);
-router.post('/',         createFaculty);
+router.post('/',         requireRole('Dean'), createFaculty);
 // /inactivate must come BEFORE /:id so it isn't captured as an id.
-router.patch('/inactivate', inactivateMany);
-router.patch('/:id',     updateFaculty);
-router.delete('/:id',    deleteFaculty);
-router.post('/upload',   uploadExcel.single('file'), uploadFaculty);
+router.patch('/inactivate', requireRole('Dean'), inactivateMany);
+router.patch('/:id',     requireRole('Dean'), updateFaculty);
+router.delete('/:id',    requireRole('Dean'), deleteFaculty);
+router.post('/upload',   requireRole('Dean'), uploadExcel.single('file'), uploadFaculty);
 
 export default router;

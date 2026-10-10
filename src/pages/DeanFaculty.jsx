@@ -6,7 +6,6 @@ import EditEntityModal from "../components/EditEntityModal.jsx";
 import ConfirmModal from "../components/ConfirmModal.jsx";
 import ReconciliationModal from "../components/ReconciliationModal.jsx";
 import ViewArchivedButton from "../components/ViewArchivedButton.jsx";
-import UndoUploadButton from "../components/UndoUploadButton.jsx";
 import UploadPreviewFlow from "../components/UploadPreviewFlow.jsx";
 import DialogShell from "../components/DialogShell.jsx";
 import { Search, ArrowUp, ArrowDown, Upload, Plus, Clipboard, ChevronDown, Check, Users } from "react-feather";
@@ -45,8 +44,6 @@ const DeanFaculty = () => {
   const [roleFilter, setRoleFilter]           = React.useState(null);
   const [roleMenuOpen, setRoleMenuOpen]       = React.useState(false);
   const [faculty, setFaculty]                 = React.useState([]);
-  // Bumped on every successful upload so the Undo button re-reads its batch.
-  const [uploadCount, setUploadCount]         = React.useState(0);
   const fileInputRef = React.useRef(null);
 
   // Drop whatever is in the picker, so re-opening it never shows a stale file
@@ -94,17 +91,6 @@ const DeanFaculty = () => {
     }
     clearPicker();
     await refresh();
-    setUploadCount((n) => n + 1);
-  };
-
-  // Undone — put the user back where they can pick the RIGHT file.
-  const onUploadUndone = async () => {
-    await refresh();
-    setUploadCount((n) => n + 1);
-    setRecon(null);
-    setPendingFile(null);
-    clearPicker();
-    setShowModal(true);
   };
 
   // Reconciliation: mark the chosen missing faculty as Inactive (archived).
@@ -119,7 +105,6 @@ const DeanFaculty = () => {
   const onAddFaculty = async (record) => {
     await FacultyAPI.create(record, periodId);
     await refresh();
-    setUploadCount((n) => n + 1);   // a manual add is undoable too
   };
 
   const onSaveEdit = async (patch) => {
@@ -163,7 +148,6 @@ const DeanFaculty = () => {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
         <h2 style={{ margin: 0 }}>Faculty</h2>
         <div style={{ display: 'flex', gap: 10 }}>
-          <UndoUploadButton entity="faculty" periodId={periodId} disabled={!periodId || !isCurrentTermActive} refreshKey={uploadCount} onUndone={refresh} />
           <ActionBtn variant="white" onClick={() => { if (faculty.length > 0) { setConfirmUpload(true); } else { setShowModal(true); } }} disabled={!periodId || !isCurrentTermActive} icon={<Upload size={18} color="#374151" />} label="Upload Faculty List" />
           {showTable && isCurrentTermActive && <ActionBtn onClick={() => setShowAddModal(true)} icon={<Plus size={18} color="#FFFFFF" />} label="Add Faculty" />}
         </div>
@@ -335,19 +319,16 @@ const DeanFaculty = () => {
         onCancel={() => setConfirmUpload(false)}
       />
 
-      {/* Preview & Confirm, then the 30-second undo toast. Mounted here so the
+      {/* Preview & Confirm (imports are final — there is no undo). Mounted here so the
           toast outlives the overlay it was launched from. */}
       <UploadPreviewFlow
         file={pendingFile}
-        entity="faculty"
-        periodId={periodId}
         title="Upload Faculty List"
         preview={(f) => FacultyAPI.uploadPreview(f, periodId)}
         commit={(f) => FacultyAPI.upload(f, periodId)}
         onBack={() => { setPendingFile(null); setShowModal(true); }}
         onCancel={() => { setPendingFile(null); clearPicker(); }}
         onCommitted={onUploadCommitted}
-        onUndone={onUploadUndone}
       />
 
       {recon && (
