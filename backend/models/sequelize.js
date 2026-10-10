@@ -7,3 +7,5 @@ const sequelize = new Sequelize('lpms_db', 'lpms_user', 'lpms_pass', {
 });
 
 export default sequelize;
+
+

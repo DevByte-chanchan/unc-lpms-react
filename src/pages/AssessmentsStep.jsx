@@ -108,7 +108,7 @@ const AssessmentsStep = ({
             await deleteAttachment(courseCode, id);
             setAttachments(prev => prev.filter(a => a.id !== id));
             setQuestions(prev => prev.filter(q => q.attachmentId !== id));
-        } catch (err) {
+        } catch {
             alert('Failed to delete attachment');
         }
     };
@@ -345,3 +345,7 @@ const AssessmentsStep = ({
 };
 
 export default AssessmentsStep;
+
+
+
+

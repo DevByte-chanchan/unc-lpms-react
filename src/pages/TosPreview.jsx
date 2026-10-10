@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef} from "react";
 import layout from "../styles/TOSPreview.module.sass";
 import { useNavigate } from "react-router-dom";
 import { updateStatus, saveOutcomes, saveItems, updateCourse } from '../services/api.js';
 
 const TOSPreview = ({ isOpen, onClose, outcomeData, questions, courseName = "Human & Computer Interaction", semester = "1st Semester", schoolYear, courseCode, assessmentName, examType }) => {
+    if (!examType) return <div style={{ color: 'red', padding: '20px' }}>Error: Exam period is missing for preview.</div>;
     const [showConfirm, setShowConfirm] = useState(false);
     const [countdown, setCountdown] = useState(5);
     const [activeTab, setActiveTab] = useState('tosReport');
@@ -133,7 +134,7 @@ const TOSPreview = ({ isOpen, onClose, outcomeData, questions, courseName = "Hum
                         <input
                             type="text"
                             disabled
-                            value={examType || assessmentName || 'Midterm'}
+                            value={examType || assessmentName}
                             className={layout.numberInput}
                         />
                     </div>
@@ -305,7 +306,7 @@ const TOSPreview = ({ isOpen, onClose, outcomeData, questions, courseName = "Hum
                                                                        ? [...rawPts.slice(0, -1), Math.max(0, totalPts - sumPrev)]
                                                                        : [];
                                                                    const totalW = q.rubricRows.reduce((s, r) => s + Number(r.weight || 0), 0);
-                                                                   const wOk = Math.round(totalW) === 100;
+                                                                   Math.round(totalW) === 100;
                                                                    return (
                                                                       <>
                                                                           {q.rubricRows.map((row, ri) => (
@@ -364,3 +365,7 @@ const TOSPreview = ({ isOpen, onClose, outcomeData, questions, courseName = "Hum
 };
 
 export default TOSPreview;
+
+
+
+

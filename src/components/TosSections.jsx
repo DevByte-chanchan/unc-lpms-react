@@ -58,7 +58,7 @@ const TosSections = ({role = 'instructor'}) => {
         }
     ];
     const courseName = location.state?.courseName || '';
-    const fromExamType = location.state?.examType || 'Midterm';
+    const fromExamType = location.state?.examType;
     const fromSchoolYear = location.state?.schoolYear || String(new Date().getFullYear());
     const fromSemester = location.state?.semester || '1st Semester';
     const [courseNameState, setCourseName] = useState(courseName);
@@ -189,7 +189,7 @@ const TosSections = ({role = 'instructor'}) => {
         fetchStatus(courseCode, fromExamType).then(s => {
             if (s) {
                 setReturnCount(s.returnCount || 0);
-                try { setReturnDates(JSON.parse(s.returnDates || '[]')); } catch {}
+                try { setReturnDates(JSON.parse(s.returnDates || '[]')); } catch { /* ignore */ }
             }
         }).catch(() => {});
     }, [courseCode, dataLoaded]);
@@ -962,7 +962,7 @@ const TosSections = ({role = 'instructor'}) => {
                                                         <label>Course:</label>
                                                         <input type="text" disabled className={previewLayout.numberInput} value={courseCode && courseName ? `${courseCode} - ${courseName}` : (courseCode || courseName)} />
                                                         <label>Type:</label>
-                                                        <input type="text" disabled className={previewLayout.numberInput} value={fromExamType || assessmentName || 'Midterm'} />
+                                                        <input type="text" disabled className={previewLayout.numberInput} value={fromExamType || assessmentName} />
                                                     </div>
                                                     <div className={previewLayout.bottomRow}>
                                                         <label>Semester:</label>
@@ -1044,7 +1044,7 @@ const items = aggregatedData[co.co][ilo.id][level];
                                             </div>
                                         )}
                                         <div className={layout.viewToggleRow}>
-                                            <span className={layout.assessmentLabel}>Assessment: {assessmentName || 'Midterm'}</span>
+                                            <span className={layout.assessmentLabel}>Assessment: {assessmentName || fromExamType}</span>
                                             <div className={layout.viewToggleGroup}>
                                                 <div className={layout.viewToggleSlider} style={{ transform: `translateX(${viewMode === 'normal' ? '0' : 'calc(100% + 2px)'})` }} />
                                                 <button className={`${layout.viewToggleBtn} ${viewMode === 'normal' ? layout.viewToggleActive : ''}`} onClick={() => setViewMode('normal')}>List</button>
@@ -1631,7 +1631,7 @@ const items = aggregatedData[co.co][ilo.id][level];
                                                         <label>Course:</label>
                                                         <input type="text" disabled className={previewLayout.numberInput} value={courseCode && courseName ? `${courseCode} - ${courseName}` : (courseCode || courseName)} />
                                                         <label>Type:</label>
-                                                        <input type="text" disabled className={previewLayout.numberInput} value={fromExamType || assessmentName || 'Midterm'} />
+                                                        <input type="text" disabled className={previewLayout.numberInput} value={fromExamType || assessmentName} />
                                                     </div>
                                                     <div className={previewLayout.bottomRow}>
                                                         <label>Semester:</label>
@@ -1713,7 +1713,7 @@ const items = aggregatedData[co.co][ilo.id][level];
                                                 </div>
                                             )}
                                             <div className={layout.viewToggleRow}>
-                                                <span className={layout.assessmentLabel}>Assessment: {assessmentName || 'Midterm'}</span>
+                                                <span className={layout.assessmentLabel}>Assessment: {assessmentName || fromExamType}</span>
                                                 <div className={layout.viewToggleGroup}>
                                                     <div className={layout.viewToggleSlider} style={{ transform: `translateX(${viewMode === 'normal' ? '0' : 'calc(100% + 2px)'})` }} />
                                                     <button className={`${layout.viewToggleBtn} ${viewMode === 'normal' ? layout.viewToggleActive : ''}`} onClick={() => setViewMode('normal')}>List</button>
@@ -2266,7 +2266,7 @@ const items = aggregatedData[co.co][ilo.id][level];
                                                     <label>Course:</label>
                                                     <input type="text" disabled className={previewLayout.numberInput} value={courseCode && courseName ? `${courseCode} - ${courseName}` : (courseCode || courseName)} />
                                                     <label>Type:</label>
-                                                    <input type="text" disabled className={previewLayout.numberInput} value={fromExamType || assessmentName || 'Midterm'} />
+                                                    <input type="text" disabled className={previewLayout.numberInput} value={fromExamType || assessmentName} />
                                                 </div>
                                                 <div className={previewLayout.bottomRow}>
                                                     <label>Semester:</label>
@@ -2473,3 +2473,4 @@ const items = aggregatedData[co.co][ilo.id][level];
 };
 
 export default TosSections;
+

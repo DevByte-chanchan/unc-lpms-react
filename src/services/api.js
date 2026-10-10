@@ -36,7 +36,7 @@ export async function fetchCourses() {
     const res = await fetch(BASE);
     const data = await res.json();
     return data.map(c => {
-        const fmt = (ts) => ts ? new Date(ts).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }) : '';
+        
         const da = dateAssignedMap[c.code];
         // We will adapt the frontend mapping in the component directly, since we return raw
         return {
@@ -229,3 +229,4 @@ export const deleteAttachment = async (courseCode, period, id) => {
     if (!res.ok) throw new Error('Failed to delete attachment');
     return res.json();
 };
+

@@ -1,4 +1,5 @@
-import { sequelize, Course, CourseOutcome, IloItem, TosStatus, AssessmentItem, ItemChoice, ItemRubric } from './models/index.js';
+import { sequelize, Course, CourseOutcome, IloItem, TosStatus, AssessmentItem } from './models/index.js';
+import { createItemsForCourse } from './seed.js';
 
 function resolveText(txt, ilo, cd) {
     const domain = cd.outcomes[0].description.split(' ').slice(0, 3).join(' ');
@@ -482,189 +483,29 @@ const courseData = [
     },
 ];
 
-const iloTemplates = {
-    ILO1: [
-        { q: 'What is the primary purpose of {concept}?', l: 'Remembering', p: 1, s: 1 },
-        { q: 'Explain the difference between {conceptA} and {conceptB}.', l: 'Understanding', p: 2, s: 1 },
-        { q: 'Apply {principle} to classify a given scenario as either related or unrelated to {domain}.', l: 'Understanding', p: 2, s: 1, choices: [
-            { label: 'A', text: 'Scenario A relates to {principle} in {domain}', isCorrect: true },
-            { label: 'B', text: 'Scenario B relates to an alternative approach', isCorrect: false },
-            { label: 'C', text: 'Scenario C demonstrates an exception to {principle}', isCorrect: false },
-            { label: 'D', text: 'All scenarios are equally relevant', isCorrect: false },
-        ]},
-        { q: 'Which of the following best describes {concept}?', l: 'Remembering', p: 1, s: 1, choices: [
-            { label: 'A', text: 'A method used to implement {process} in {domain}', isCorrect: true },
-            { label: 'B', text: 'A tool that replaces {conceptB} entirely', isCorrect: false },
-            { label: 'C', text: 'An unrelated concept from {domain}', isCorrect: false },
-            { label: 'D', text: 'A metric for evaluating {principle}', isCorrect: false },
-        ]},
-        { q: 'Why is {principle} important in the context of {domain}?', l: 'Understanding', p: 2, s: 1 },
-        { q: 'Define the term {concept} as used in {domain}.', l: 'Remembering', p: 1, s: 1, choices: [
-            { label: 'A', text: 'The process of {process} applied to {domain}', isCorrect: true },
-            { label: 'B', text: 'An alternative approach to {conceptA}', isCorrect: false },
-            { label: 'C', text: 'A tool for measuring {criteria}', isCorrect: false },
-            { label: 'D', text: 'A type of {technique} in modern systems', isCorrect: false },
-        ]},
-        { q: 'Analyze how {conceptA} influences decision-making in {domain}. Provide supporting arguments.', l: 'Understanding', p: 3, s: 1, rubricRows: [
-            { name: 'Analysis', description: 'Identifies key factors and relationships involving {conceptA}', weight: 40 },
-            { name: 'Argumentation', description: 'Presents well-supported arguments with evidence from {domain}', weight: 35 },
-            { name: 'Critical Thinking', description: 'Considers alternative perspectives and counterarguments', weight: 25 },
-        ]},
-        { q: 'Restate {principle} in your own words and provide a concrete example.', l: 'Understanding', p: 3, s: 2, rubricRows: [
-            { name: 'Accuracy', description: 'Accurately restates the meaning of {principle}', weight: 40 },
-            { name: 'Relevance', description: 'Provides a relevant and concrete example', weight: 30 },
-            { name: 'Clarity', description: 'Explanation is clear and logically structured', weight: 30 },
-        ]},
-        { q: 'What is the relationship between {conceptA} and {process}?', l: 'Remembering', p: 1, s: 1, choices: [
-            { label: 'A', text: '{conceptA} is a prerequisite for understanding {process}', isCorrect: true },
-            { label: 'B', text: '{process} replaces {conceptA} in modern practice', isCorrect: false },
-            { label: 'C', text: 'They are competing approaches to {domain}', isCorrect: false },
-            { label: 'D', text: 'There is no relationship between them', isCorrect: false },
-        ]},
-    ],
-    ILO2: [
-        { q: 'Explain the difference between {conceptA} and {conceptB} with examples.', l: 'Understanding', p: 2, s: 1 },
-        { q: 'Recall the three primary components of {concept} and briefly describe each.', l: 'Understanding', p: 1, s: 1 },
-        { q: 'Describe the process of {process} with a concrete example.', l: 'Applying', p: 4, s: 2, rubricRows: [
-            { name: 'Completeness', description: 'Accurately describes each step of {process}', weight: 40 },
-            { name: 'Relevance', description: 'Example is concrete and clearly connected', weight: 30 },
-            { name: 'Organization', description: 'Writing is well-organized and easy to follow', weight: 30 },
-        ]},
-        { q: 'Why is {principle} important in the context of {domain}?', l: 'Understanding', p: 2, s: 1, choices: [
-            { label: 'A', text: 'It provides a framework for implementing {process} effectively', isCorrect: true },
-            { label: 'B', text: 'It eliminates the need for {conceptA} in modern workflows', isCorrect: false },
-            { label: 'C', text: 'It is mandated by regulatory bodies in {domain}', isCorrect: false },
-            { label: 'D', text: 'It reduces the cost of {criteria} by half', isCorrect: false },
-        ]},
-        { q: 'Create a checklist or framework that integrates {technique} with {principle} for use in {domain}.', l: 'Evaluating', p: 5, s: 2, rubricRows: [
-            { name: 'Integration', description: 'Effectively combines {technique} and {principle} into a cohesive framework', weight: 35 },
-            { name: 'Usability', description: 'Framework is practical and applicable to {domain} scenarios', weight: 35 },
-            { name: 'Originality', description: 'Demonstrates creative thinking beyond standard approaches', weight: 30 },
-        ]},
-        { q: 'Provide a step-by-step guide for implementing {technique}.', l: 'Applying', p: 4, s: 2, rubricRows: [
-            { name: 'Completeness', description: 'Steps are complete and logically sequenced', weight: 35 },
-            { name: 'Correctness', description: 'Implementation details of {technique} are correct', weight: 35 },
-            { name: 'Thoroughness', description: 'Edge cases and potential pitfalls are addressed', weight: 30 },
-        ]},
-        { q: 'Compare and contrast {approachA} and {approachB} in terms of {criteria}.', l: 'Analyzing', p: 3, s: 1 },
-        { q: 'Evaluate the effectiveness of {technique} in {domain} scenarios.', l: 'Evaluating', p: 3, s: 1, rubricRows: [
-            { name: 'Criteria Quality', description: 'Establishes clear and relevant evaluation criteria', weight: 35 },
-            { name: 'Evidence', description: 'Presents evidence-based analysis of {technique}', weight: 35 },
-            { name: 'Reasoning', description: 'Conclusion is well-reasoned and supported', weight: 30 },
-        ]},
-        { q: 'Which approach is more suitable when dealing with {criteria} constraints?', l: 'Analyzing', p: 2, s: 1, choices: [
-            { label: 'A', text: '{approachA} because it emphasizes {process} flexibility', isCorrect: false },
-            { label: 'B', text: 'It depends on the specific requirements of {domain}', isCorrect: true },
-            { label: 'C', text: '{approachB} always performs better under {criteria}', isCorrect: false },
-            { label: 'D', text: 'Both approaches handle {criteria} equally well', isCorrect: false },
-        ]},
-        { q: 'Demonstrate how to apply {technique} to solve a real-world problem.', l: 'Applying', p: 4, s: 2, rubricRows: [
-            { name: 'Scope', description: 'Problem is clearly defined and scoped', weight: 30 },
-            { name: 'Application', description: 'Application of {technique} is correct and complete', weight: 40 },
-            { name: 'Practicality', description: 'Solution addresses real-world constraints', weight: 30 },
-        ]},
-    ],
-    ILO3: [
-        { q: 'Describe the process of {process} with a detailed example from {domain}.', l: 'Applying', p: 4, s: 2, rubricRows: [
-            { name: 'Comprehensiveness', description: 'Comprehensive step-by-step description of {process}', weight: 35 },
-            { name: 'Relevance', description: 'Example is detailed and directly relevant to {domain}', weight: 35 },
-            { name: 'Integration', description: 'Connections between theory and practice are clear', weight: 30 },
-        ]},
-        { q: 'Define {concept} in one sentence and explain why it matters in {domain}.', l: 'Applying', p: 1, s: 1 },
-        { q: 'Provide a step-by-step guide for implementing {technique}.', l: 'Applying', p: 4, s: 2 },
-        { q: 'When comparing {approachA} and {approachB}, which statement is most accurate?', l: 'Analyzing', p: 2, s: 1, choices: [
-            { label: 'A', text: '{approachA} prioritizes {criteria} while {approachB} prioritizes flexibility', isCorrect: false },
-            { label: 'B', text: '{approachA} suits {domain} applications; {approachB} suits general cases', isCorrect: true },
-            { label: 'C', text: '{approachA} and {approachB} yield identical results for {process}', isCorrect: false },
-            { label: 'D', text: 'Both approaches ignore {principle} considerations entirely', isCorrect: false },
-        ]},
-        { q: 'Evaluate the effectiveness of {technique} when applied to {domain} scenarios.', l: 'Evaluating', p: 3, s: 1, rubricRows: [
-            { name: 'Framework', description: 'Systematic evaluation framework is established', weight: 35 },
-            { name: 'Depth', description: 'Specific {domain} scenarios are analyzed in depth', weight: 35 },
-            { name: 'Objectivity', description: 'Assessment is balanced and evidence-based', weight: 30 },
-        ]},
-        { q: 'Design a solution for {process} that addresses the constraints of {domain}.', l: 'Creating', p: 5, s: 2, rubricRows: [
-            { name: 'Innovation', description: 'Solution is innovative, feasible, and well-structured', weight: 35 },
-            { name: 'Constraints', description: 'All relevant {domain} constraints are addressed', weight: 35 },
-            { name: 'Justification', description: 'Design choices are clearly justified', weight: 30 },
-        ]},
-        { q: 'Summarize the key differences between {approachA} and {approachB} as they relate to {process}.', l: 'Applying', p: 2, s: 1, choices: [
-            { label: 'A', text: '{approachA} focuses on structure, while {approachB} focuses on behavior', isCorrect: false },
-            { label: 'B', text: '{approachA} is better suited for {domain} because of {principle}', isCorrect: true },
-            { label: 'C', text: '{approachB} completely replaces {approachA} in all modern contexts', isCorrect: false },
-            { label: 'D', text: 'Both approaches are identical in {domain} with minor naming differences', isCorrect: false },
-        ]},
-        { q: 'Assess the strengths and weaknesses of {technique} when applied to {domain}.', l: 'Evaluating', p: 3, s: 1 },
-        { q: 'Create a detailed implementation plan for deploying {technique} in a {domain} environment.', l: 'Creating', p: 5, s: 2, rubricRows: [
-            { name: 'Planning', description: 'Plan is comprehensive with clear phases and milestones', weight: 35 },
-            { name: 'Feasibility', description: 'Resource allocation and timeline are realistic', weight: 35 },
-            { name: 'Risk Management', description: 'Risk mitigation and contingency strategies are included', weight: 30 },
-        ]},
-        { q: 'Synthesize {conceptA} and {conceptB} to propose a novel approach for solving {process}.', l: 'Creating', p: 5, s: 2, rubricRows: [
-            { name: 'Synthesis', description: 'Novel synthesis of {conceptA} and {conceptB}', weight: 35 },
-            { name: 'Alignment', description: 'Proposed approach directly addresses {process}', weight: 35 },
-            { name: 'Critical Analysis', description: 'Feasibility and limitations are discussed', weight: 30 },
-        ]},
-    ],
-};
-
-function generateItems(courseCode) {
-    const cd = courseData.find(c => c.courseCode === courseCode);
-    if (!cd) return [];
-    const items = [];
-    for (const outcome of cd.outcomes) {
-        const co = outcome.co;
-        outcome.ilos.forEach((ilo, iloIdx) => {
-            const iloKey = `ILO${iloIdx + 1}`;
-            const templates = iloTemplates[iloKey] || iloTemplates.ILO2;
-            let spanSum = 0;
-            let i = 0;
-            while (spanSum < ilo.items) {
-                const tpl = templates[i % templates.length];
-                const span = tpl.s || 1;
-                const effectiveSpan = Math.min(span, ilo.items - spanSum);
-                if (effectiveSpan <= 0) break;
-                const item = {
-                    courseCode,
-                    co,
-                    ilo: iloKey,
-                    iloIdx,
-                    instruction: resolveText(tpl.q, ilo, cd),
-                    points: tpl.p || 2,
-                    span: effectiveSpan,
-                    cognitiveLevel: tpl.l || 'Remembering',
-                };
-                if (tpl.choices && tpl.choices.length > 0) {
-                    item.choices = tpl.choices.map(c => ({
-                        label: c.label,
-                        text: resolveText(c.text, ilo, cd),
-                        isCorrect: c.isCorrect || false,
-                    }));
-                } else if (tpl.rubricRows && tpl.rubricRows.length > 0) {
-                    item.rubricRows = tpl.rubricRows.map(r => ({
-                        criteria: resolveText(r.name, ilo, cd),
-                        description: resolveText(r.description || '', ilo, cd),
-                        weight: r.weight,
-                    }));
-                }
-                items.push(item);
-                spanSum += effectiveSpan;
-                i++;
-            }
-        });
-    }
-    return items;
-}
-
 async function seedNewCourses() {
     await Course.bulkCreate(newCourses);
-    await TosStatus.bulkCreate(newCourses.map(c => {
-        const s = { courseCode: c.code, status: c.status };
+    
+    const statusesToCreate = [];
+    for (const c of newCourses) {
+        const s = { courseCode: c.code, status: c.status, examPeriod: c.examPeriod || 'Midterm' };
         if (c.status === 'pending') s.submittedAt = new Date('2026-06-10');
         else if (c.status === 'returned') { s.submittedAt = new Date('2026-06-10'); s.returnedAt = new Date('2026-06-19'); }
         else if (c.status === 'approved') { s.submittedAt = new Date('2026-06-09'); s.approvedAt = new Date('2026-06-16'); }
-        return s;
-    }));
+        statusesToCreate.push(s);
+        
+        if (c.code === 'BSCS342L') {
+            statusesToCreate.push({
+                courseCode: c.code,
+                examPeriod: 'Midterm',
+                status: 'approved',
+                submittedAt: new Date('2026-05-10'),
+                approvedAt: new Date('2026-05-15')
+            });
+        }
+    }
+    await TosStatus.bulkCreate(statusesToCreate);
+
 
     for (const data of courseData) {
         for (const outcome of data.outcomes) {
@@ -682,33 +523,11 @@ async function seedNewCourses() {
         }
     }
 
-    const codes = newCourses.map(c => c.code);
+        const codes = newCourses.map(c => c.code);
     for (const code of codes) {
-        // build iloId lookup: (courseCode, co, iloIdx) → iloId
-        const outcomeRows = await CourseOutcome.findAll({
-            where: { courseCode: code },
-            include: [{ model: IloItem, as: 'ilos' }],
-            order: [['co', 'ASC']]
-        });
-        const iloIdMap = {};
-        outcomeRows.forEach(o => {
-            (o.ilos || []).forEach((ilo, idx) => {
-                iloIdMap[`${o.co}|${idx}`] = ilo.id;
-            });
-        });
-
-        const items = generateItems(code);
-        for (const item of items) {
-            const created = await AssessmentItem.create({
-                courseCode: item.courseCode,
-                iloId: iloIdMap[`${item.co}|${item.iloIdx}`],
-                instruction: item.instruction,
-                points: item.points,
-                span: item.span,
-                cognitiveLevel: item.cognitiveLevel,
-            });
-        }
-        console.log(`  Seeded ${items.length} items for ${code}`);
+        const isFinals = newCourses.find(c => c.code === code).examPeriod === 'Finals';
+        await createItemsForCourse(code, isFinals);
+        console.log(`  Seeded items for ${code}`);
     }
 
     console.log('New courses seeded successfully');
