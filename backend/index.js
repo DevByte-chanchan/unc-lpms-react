@@ -7,6 +7,7 @@ import { sequelize } from './models/index.js';
 import coursesRouter from './routes/courses.js';
 import outcomesRouter from './routes/outcomes.js';
 import itemsRouter from './routes/items.js';
+import attachmentsRouter from './routes/attachments.js';
 import statusRouter from './routes/status.js';
 import commentsRouter from './routes/comments.js';
 
@@ -19,6 +20,8 @@ app.use(express.json());
 app.use('/api/courses', coursesRouter);
 app.use('/api/courses', outcomesRouter);
 app.use('/api/courses', itemsRouter);
+app.use('/api/courses', attachmentsRouter);
+app.use('/api/attachments', attachmentsRouter);
 app.use('/api/courses', statusRouter);
 app.use('/api/courses', commentsRouter);
 

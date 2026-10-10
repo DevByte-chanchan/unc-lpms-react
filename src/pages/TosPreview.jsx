@@ -23,7 +23,7 @@ const TOSPreview = ({ isOpen, onClose, outcomeData, questions, courseName = "Hum
             id: r.dbId,
             co: r.co,
             description: r.description || '',
-            totalItems: r.totalItems || 0,
+            totalPoints: r.totalPoints || 0,
             ilos: (r.ilos || []).map(ilo => ({
                 iloDbId: ilo.iloDbId,
                 description: ilo.description || '',
@@ -86,7 +86,7 @@ const TOSPreview = ({ isOpen, onClose, outcomeData, questions, courseName = "Hum
     const aggregatedData = getAggregatedData();
     const totalHours = outcomeData.reduce((sum, co) => sum + (co.totalHours || 0), 0);
     const totalPercentage = Math.min(outcomeData.reduce((sum, co) => sum + (co.totalPercentage || 0), 0), 100);
-    const totalItems = outcomeData.reduce((sum, co) => sum + (co.totalItems || 0), 0);
+    const totalPoints = outcomeData.reduce((sum, co) => sum + (co.totalPoints || 0), 0);
 
     const totalCognitive = cognitiveLevels.map(level => {
         return outcomeData.reduce((sum, co) => {
@@ -165,7 +165,7 @@ const TOSPreview = ({ isOpen, onClose, outcomeData, questions, courseName = "Hum
                         <th rowSpan={2} className={layout.headerCell}>COs & ILOs</th>
                         <th rowSpan={2} className={layout.headerCell}>No. of Hours</th>
                         <th rowSpan={2} className={layout.headerCell}>%</th>
-                        <th rowSpan={2} className={layout.headerCell}>No. of Items</th>
+                        <th rowSpan={2} className={layout.headerCell}>Points</th>
                         <th colSpan={6} className={layout.headerCell}>
                             Cognitive Levels
                         </th>
@@ -191,7 +191,7 @@ const TOSPreview = ({ isOpen, onClose, outcomeData, questions, courseName = "Hum
                                     <div className={layout.cellBox}>{co.totalPercentage || 0}</div>
                                 </td>
                                 <td>
-                                    <div className={layout.cellBox}>{co.totalItems || 0}</div>
+                                    <div className={layout.cellBox}>{co.totalPoints || 0}</div>
                                 </td>
                                 {cognitiveLevels.map(level => (
                                     <td key={level} className={layout.mutedCell}>
@@ -241,7 +241,7 @@ const TOSPreview = ({ isOpen, onClose, outcomeData, questions, courseName = "Hum
                             <div className={layout.cellBox}>{totalPercentage}</div>
                         </td>
                         <td>
-                            <div className={layout.cellBox}>{totalItems}</div>
+                            <div className={layout.cellBox}>{totalPoints}</div>
                         </td>
                         {totalCognitive.map((total, index) => (
                             <td key={index}>
@@ -267,7 +267,7 @@ const TOSPreview = ({ isOpen, onClose, outcomeData, questions, courseName = "Hum
                                             <polyline points="10 9 9 9 8 9"/>
                                         </svg>
                                     </div>
-                                    <p className={layout.emptyText}>No assessment items yet</p>
+                                    <p className={layout.emptyText}>No assessment points yet</p>
                                 </div>
                             ) : (
                                 (() => {
@@ -284,16 +284,7 @@ const TOSPreview = ({ isOpen, onClose, outcomeData, questions, courseName = "Hum
                                                     <span className={layout.questionNumber}>{label}.</span>
                                                     <span className={layout.questionText}>{q.question || '(no question)'}</span>
                                                 </div>
-                                                {q.choices && q.choices.length > 0 && (
-                                                    <div className={`${layout.assessmentChoices} ${q.choices.length % 2 === 0 && q.choices.every(c => (c.text || '').length < 30) ? layout.choicesGrid : ''}`}>
-                                                        {q.choices.map((choice, ci) => (
-                                                            <div key={choice.id || ci} className={layout.choiceRow}>
-                                                                <span className={layout.choiceLetter}>{String.fromCharCode(65 + ci)}.</span>
-                                                                <span className={layout.choiceText}>{choice.text || ''}</span>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                )}
+                                                
                                                 {hasRubric && (
                                                     <div className={layout.rubricBox}>
                                                         <div className={layout.rubricHeader}>

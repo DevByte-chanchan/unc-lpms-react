@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+﻿import React, {useState, useEffect} from 'react';
 import {Link, useLocation} from 'react-router-dom'
 import styles from '../styles/CoursesTable.module.sass';
 import { ChevronRight, Download } from 'react-feather';
@@ -11,15 +11,15 @@ const TOSCoursesTable = ({}) => {
     const temp = ['Midterm', 'Finals'];
     const yearOptions = [];
     for (let i = currentYear; i >= startYear; i--) {
-        yearOptions.push(<option key={i} value={i}>{i}–{i + 1}</option>);
+        yearOptions.push(<option key={i} value={i}>{i}â€“{i + 1}</option>);
     }
     const nortonCourses = new Set(['BSCS111L','BSCS212L','BSCS313L','BSCS321L','BSCS221L','BSCS341L','BSCS342L','BSCS214L','BSCS222L','BSCS223L','BSCS314L','BSCS323L']);
 
     const draftCourses = [
-        { code: 'BSCS313L', name: 'Human & Computer Interaction',    dateAssigned: 'Jun 03, 2026', update: 'Jun 03, 2026', status: 'draft' },
-        { code: 'BSCS212L', name: 'Web Development I',               dateAssigned: 'Jun 02, 2026', update: 'Jun 05, 2026', status: 'draft' },
-        { code: 'BSCS111L', name: 'Fundamentals of Programming',     dateAssigned: 'Jun 01, 2026', update: 'Jun 04, 2026', status: 'draft' },
-        { code: 'BSCS321L', name: 'Database Management Systems',     dateAssigned: 'Jun 04, 2026', update: 'Jun 07, 2026', status: 'draft' },
+        { code: 'BSCS313L', name: 'Human & Computer Interaction',    dateAssigned: 'Jun 03, 2026', update: 'Jun 03, 2026', status: 'draft', learningPlanApproved: true },
+        { code: 'BSCS212L', name: 'Web Development I',               dateAssigned: 'Jun 02, 2026', update: 'Jun 05, 2026', status: 'draft', learningPlanApproved: false },
+        { code: 'BSCS111L', name: 'Fundamentals of Programming',     dateAssigned: 'Jun 01, 2026', update: 'Jun 04, 2026', status: 'draft', learningPlanApproved: true },
+        { code: 'BSCS321L', name: 'Database Management Systems',     dateAssigned: 'Jun 04, 2026', update: 'Jun 07, 2026', status: 'draft', learningPlanApproved: true },
     ];
     const pendingCourses = [
         { code: 'BSCS221L', name: 'Object-Oriented Programming',     dateSubmitted: 'Jun 10, 2026', status: 'pending' },
@@ -74,6 +74,22 @@ const TOSCoursesTable = ({}) => {
         setSelectedStatus(e.target.value)
     }
 
+    const displayedCourses = courses.map(c => {
+        const tos = examType === 'Midterm' ? c.midtermTos : c.finalsTos;
+        const fmt = (ts) => ts ? new Date(ts).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }) : '';
+        return {
+            ...c,
+            status: tos ? tos.status : 'draft',
+            dateSubmitted: tos ? fmt(tos.submittedAt) : '',
+            dateStatus: tos ? fmt(tos.returnedAt || tos.approvedAt) : ''
+        };
+    }).filter(c => {
+        if (selectedStatus === 'draft' && c.status !== 'draft') return false;
+        if (selectedStatus === 'pending' && c.status !== 'pending') return false;
+        if (selectedStatus === 'returned' && c.status !== 'returned') return false;
+        if (selectedStatus === 'approved' && c.status !== 'approved') return false;
+        return true;
+    });
     const nonDraft = selectedStatus === 'pending' || selectedStatus === 'approved' || selectedStatus === 'returned';
     const statusHeader = selectedStatus === 'returned' ? 'DATE RETURNED' : selectedStatus === 'approved' ? 'DATE APPROVED' : '';
 
@@ -126,8 +142,7 @@ const TOSCoursesTable = ({}) => {
                     </thead>
 
                     <tbody>
-                    {courses
-                        .filter(row => row.status === selectedStatus)
+                    {displayedCourses
                         .map((row, index) => (
                             <tr key={index}>
                                 <td width={170}>{nonDraft ? row.dateSubmitted : row.dateAssigned}</td>
@@ -142,10 +157,16 @@ const TOSCoursesTable = ({}) => {
                                         </button>
                                     )}
                                     {row.status === 'draft' ? (
+                                        (examType === 'Midterm' ? row.midtermLock?.locked : row.finalsLock?.locked) ? (
+                                            <div style={{ color: '#9CA3AF', fontSize: 13, fontStyle: 'italic', cursor: 'not-allowed' }}>
+                                                {examType === 'Midterm' ? row.midtermLock.reason : row.finalsLock.reason}
+                                            </div>
+                                        ) : (
                                         <Link className="actionLink" to={`/tos/${row.code}`} state={{ tosStatus: row.status, courseName: row.name, examType, schoolYear, semester }}>
                                             Compose
                                             <ChevronRight size={18} />
                                         </Link>
+                                        )
                                     ) : row.status === 'returned' ? (
                                         <Link className="actionLink" to={`/tos/${row.code}`} state={{ tosStatus: row.status, courseName: row.name, examType, schoolYear, semester }}>
                                             Revise
@@ -169,3 +190,4 @@ const TOSCoursesTable = ({}) => {
 };
 
 export default TOSCoursesTable;
+

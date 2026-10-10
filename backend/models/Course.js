@@ -20,6 +20,16 @@ const Course = sequelize.define('Course', {
         type: DataTypes.STRING(100),
         allowNull: false,
         defaultValue: ''
+    },
+    examPeriod: {
+        type: DataTypes.STRING(20),
+        defaultValue: 'Midterm',
+        field: 'exam_period'
+    },
+    learningPlanApproved: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: true,
+        field: 'learning_plan_approved'
     }
 }, {
     tableName: 'courses',

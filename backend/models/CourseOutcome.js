@@ -24,6 +24,10 @@ const CourseOutcome = sequelize.define('CourseOutcome', {
         type: DataTypes.INTEGER,
         defaultValue: 0,
         field: 'total_items'
+    },
+    topics: {
+        type: DataTypes.TEXT,
+        defaultValue: '[]'
     }
 }, {
     tableName: 'course_outcomes',

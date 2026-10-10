@@ -1,4 +1,4 @@
-const BASE = '/api/courses';
+const BASE = '/courses';
 
 const cogLevelMap = {
     toBackend: {
@@ -37,16 +37,13 @@ export async function fetchCourses() {
     const data = await res.json();
     return data.map(c => {
         const fmt = (ts) => ts ? new Date(ts).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }) : '';
-        const t = c.tosStatus || {};
         const da = dateAssignedMap[c.code];
+        // We will adapt the frontend mapping in the component directly, since we return raw
         return {
+            ...c,
             code: c.code,
             name: c.name,
             instructor: c.instructor || '',
-            update: fmt(c.updated_at),
-            status: t.status || 'draft',
-            dateSubmitted: fmt(t.submittedAt),
-            dateStatus: fmt(t.returnedAt || t.approvedAt),
             dateAssigned: da ? `${da}, 2026` : '',
             exported: ''
         };
@@ -85,8 +82,8 @@ export async function saveOutcomes(courseCode, outcomes) {
     return await res.json();
 }
 
-export async function fetchItems(courseCode) {
-    const res = await fetch(`${BASE}/${courseCode}/items`);
+export async function fetchItems(courseCode, period) {
+    const res = await fetch(`${BASE}/${courseCode}/${period}/items`);
     if (!res.ok) return [];
     const data = await res.json();
     return data.map(item => ({
@@ -129,7 +126,7 @@ export async function fetchItems(courseCode) {
     }));
 }
 
-export async function saveItems(courseCode, items) {
+export async function saveItems(courseCode, period, items) {
     const body = items.map(item => ({
         iloId: item.iloId || null,
         instruction: item.instruction || item.question || '',
@@ -149,7 +146,7 @@ export async function saveItems(courseCode, items) {
             sortOrder: r.sortOrder || 0
         }))
     }));
-    const res = await fetch(`${BASE}/${courseCode}/items`, {
+    const res = await fetch(`${BASE}/${courseCode}/${period}/items`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body)
@@ -158,46 +155,77 @@ export async function saveItems(courseCode, items) {
     return await res.json();
 }
 
-export async function fetchStatus(courseCode) {
-    const res = await fetch(`${BASE}/${courseCode}/status`);
+export async function fetchStatus(courseCode, period) {
+    const res = await fetch(`${BASE}/${courseCode}/${period}/status`);
     return await res.json();
 }
 
-export async function updateStatus(courseCode, status) {
-    const res = await fetch(`${BASE}/${courseCode}/status`, {
+export async function updateStatus(courseCode, period, status) {
+    const res = await fetch(`${BASE}/${courseCode}/${period}/status`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status })
     });
+    if (!res.ok) throw new Error(`updateStatus failed: ${res.status}`);
     return await res.json();
 }
 
-export async function fetchComments(courseCode) {
-    const res = await fetch(`${BASE}/${courseCode}/comments`);
+export async function fetchComments(courseCode, period) {
+    const res = await fetch(`${BASE}/${courseCode}/${period}/comments`);
     if (!res.ok) return [];
     return await res.json();
 }
 
-export async function createComment(courseCode, data) {
-    const res = await fetch(`${BASE}/${courseCode}/comments`, {
+export async function createComment(courseCode, period, data) {
+    const res = await fetch(`${BASE}/${courseCode}/${period}/comments`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
     });
+    if (!res.ok) throw new Error(`createComment failed: ${res.status}`);
     return await res.json();
 }
 
-export async function deleteComment(courseCode, id) {
-    await fetch(`${BASE}/${courseCode}/comments/${id}`, {
+export async function deleteComment(courseCode, period, id) {
+    await fetch(`${BASE}/${courseCode}/${period}/comments/${id}`, {
         method: 'DELETE'
     });
 }
 
-export async function resolveComment(courseCode, id, resolved) {
-    const res = await fetch(`${BASE}/${courseCode}/comments/${id}`, {
+export async function resolveComment(courseCode, period, id, resolved) {
+    const res = await fetch(`${BASE}/${courseCode}/${period}/comments/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ resolved })
     });
+    if (!res.ok) throw new Error(`resolveComment failed: ${res.status}`);
     return await res.json();
 }
+
+export const uploadAttachment = async (courseCode, period, iloId, file, type) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('iloId', iloId);
+    formData.append('type', type);
+
+    const res = await fetch(`/courses/${courseCode}/${period}/attachments`, {
+        method: 'POST',
+        body: formData
+    });
+    if (!res.ok) throw new Error('Upload failed');
+    return res.json();
+};
+
+export const fetchAttachments = async (courseCode, period) => {
+    const res = await fetch(`/courses/${courseCode}/${period}/attachments`);
+    if (!res.ok) throw new Error('Failed to fetch attachments');
+    return res.json();
+};
+
+export const deleteAttachment = async (courseCode, period, id) => {
+    const res = await fetch(`/courses/${courseCode}/${period}/attachments/${id}`, {
+        method: 'DELETE'
+    });
+    if (!res.ok) throw new Error('Failed to delete attachment');
+    return res.json();
+};

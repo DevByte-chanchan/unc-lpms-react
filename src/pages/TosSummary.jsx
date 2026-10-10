@@ -1,6 +1,6 @@
 import React from "react";
 import layout from "../styles/TosPreview.module.sass";
-import { AutoResizeTextarea } from "./QuestionCognitiveMapping";
+import { AutoResizeTextarea } from "./AssessmentsStep";
 
 const TOSSummary = ({ outcomeData, questions }) => {
     const cognitiveLevels = [
@@ -96,29 +96,12 @@ const TOSSummary = ({ outcomeData, questions }) => {
                                 <tbody>
                                 <tr>
                                     <td>
-                                        <div className={`${layout.cellBox} ${layout.readable}`}>Number of Items</div>
-                                    </td>
-                                    {cognitiveLevels.map(level => {
-                                        const items = aggregatedData[co.co][ilo.id][level];
-                                        return (
-                                        <td key={level}>
-                                            <div className={layout.cellBox} style={{ flexDirection: 'column', gap: 2 }}>
-                                                {items.length === 0 ? '0' : items.map((item, i) => (
-                                                    <span key={i}>{item.span} x {item.points}</span>
-                                                ))}
-                                            </div>
-                                        </td>
-                                        );
-                                    })}
-                                </tr>
-                                <tr>
-                                    <td>
-                                        <div className={`${layout.cellBox} ${layout.readable}`} style={{ fontWeight: '500' }}>Total Points</div>
+                                        <div className={`${layout.cellBox} ${layout.readable}`} style={{ fontWeight: '500' }}>Points</div>
                                     </td>
                                     {cognitiveLevels.map(level => (
                                         <td key={level}>
                                             <div className={layout.cellBox} style={{ fontWeight: '500' }}>
-                                                {aggregatedData[co.co][ilo.id][level].reduce((s, item) => s + item.points, 0)}
+                                                {aggregatedData[co.co][ilo.id][level].reduce((s, item) => s + (Number(item.points) || 0), 0)}
                                             </div>
                                         </td>
                                     ))}

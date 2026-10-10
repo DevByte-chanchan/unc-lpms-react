@@ -7,6 +7,12 @@ const TosStatus = sequelize.define('TosStatus', {
         primaryKey: true,
         autoIncrement: true
     },
+    examPeriod: {
+        type: DataTypes.STRING(20),
+        allowNull: false,
+        defaultValue: 'Midterm',
+        field: 'exam_period'
+    },
     courseCode: {
         type: DataTypes.STRING(20),
         allowNull: false,

@@ -22,3 +22,9 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# File uploads
+backend/uploads/*
+!backend/uploads/.gitkeep
+
+lpms_backup.sql

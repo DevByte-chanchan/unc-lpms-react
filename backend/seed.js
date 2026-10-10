@@ -1,4 +1,4 @@
-import { sequelize, Course, CourseOutcome, IloItem, TosStatus, AssessmentItem, ItemChoice, ItemRubric } from './models/index.js';
+import { sequelize, Course, CourseOutcome, IloItem, TosStatus, AssessmentItem } from './models/index.js';
 import { seedNewCourses } from './seed_new_courses.js';
 import { seedReturnedComments } from './seed_comments.js';
 
@@ -33,7 +33,18 @@ const courseData = [
         courseCode: 'BSCS313L',
         outcomes: [
             {
-                co: 'CO1', description: 'Apply core concepts, theories, and principles of Human-Computer Interaction (HCI) in proposing a User Interface (UI) design using Figma.', totalItems: 22,
+                co: 'CO1', description: 'Apply core concepts, theories, and principles of Human-Computer Interaction (HCI) in proposing a User Interface (UI) design using Figma.', totalItems: 22, topics: JSON.stringify([
+                'Topic 1: Introduction',
+                'Topic 2: Fundamental Concepts',
+                'Topic 3: Intermediate Methods',
+                'Topic 4: Advanced Strategies',
+                'Topic 5: Case Studies',
+                'Topic 6: Practical Applications',
+                'Topic 7: Tooling and Frameworks',
+                'Topic 8: Best Practices',
+                'Topic 9: Performance Optimization',
+                'Topic 10: Future Trends'
+            ]),
                 ilos: [
                     { description: 'Analyze the relationship between cognitive psychology and human-computer interaction.', hours: 1.5, percentage: 20, items: 2 },
                     { description: 'Synthesize user research data into actionable user personas and empathy maps.', hours: 3, percentage: 30, items: 5 },
@@ -41,7 +52,18 @@ const courseData = [
                 ]
             },
             {
-                co: 'CO2', description: 'Apply User-Centered Design (UCD) principles and ISO 9241-210 standards to develop a User Experience (UX) design.', totalItems: 22,
+                co: 'CO2', description: 'Apply User-Centered Design (UCD) principles and ISO 9241-210 standards to develop a User Experience (UX) design.', totalItems: 22, topics: JSON.stringify([
+                'Topic 1: Introduction',
+                'Topic 2: Fundamental Concepts',
+                'Topic 3: Intermediate Methods',
+                'Topic 4: Advanced Strategies',
+                'Topic 5: Case Studies',
+                'Topic 6: Practical Applications',
+                'Topic 7: Tooling and Frameworks',
+                'Topic 8: Best Practices',
+                'Topic 9: Performance Optimization',
+                'Topic 10: Future Trends'
+            ]),
                 ilos: [
                     { description: 'Apply Nielsen\'s 10 Usability Heuristics to critique existing interface designs.', hours: 2, percentage: 20, items: 2 },
                     { description: 'Create low-fidelity wireframes that solve specific user pain points.', hours: 4, percentage: 30, items: 6 },
@@ -54,7 +76,18 @@ const courseData = [
         courseCode: 'BSCS212L',
         outcomes: [
             {
-                co: 'CO1', description: 'Build responsive web pages using HTML5, CSS3, and JavaScript.', totalItems: 23,
+                co: 'CO1', description: 'Build responsive web pages using HTML5, CSS3, and JavaScript.', totalItems: 23, topics: JSON.stringify([
+                'Topic 1: Introduction',
+                'Topic 2: Fundamental Concepts',
+                'Topic 3: Intermediate Methods',
+                'Topic 4: Advanced Strategies',
+                'Topic 5: Case Studies',
+                'Topic 6: Practical Applications',
+                'Topic 7: Tooling and Frameworks',
+                'Topic 8: Best Practices',
+                'Topic 9: Performance Optimization',
+                'Topic 10: Future Trends'
+            ]),
                 ilos: [
                     { description: 'Construct semantic HTML5 documents that properly structure content using meaningful elements for accessibility.', hours: 1.5, percentage: 20, items: 2 },
                     { description: 'Implement responsive layouts using CSS Flexbox and Grid that adapt seamlessly across desktop, tablet, and mobile viewports.', hours: 3, percentage: 30, items: 5 },
@@ -62,7 +95,18 @@ const courseData = [
                 ]
             },
             {
-                co: 'CO2', description: 'Develop client-side applications using modern JavaScript frameworks.', totalItems: 23,
+                co: 'CO2', description: 'Develop client-side applications using modern JavaScript frameworks.', totalItems: 23, topics: JSON.stringify([
+                'Topic 1: Introduction',
+                'Topic 2: Fundamental Concepts',
+                'Topic 3: Intermediate Methods',
+                'Topic 4: Advanced Strategies',
+                'Topic 5: Case Studies',
+                'Topic 6: Practical Applications',
+                'Topic 7: Tooling and Frameworks',
+                'Topic 8: Best Practices',
+                'Topic 9: Performance Optimization',
+                'Topic 10: Future Trends'
+            ]),
                 ilos: [
                     { description: 'Manage application state using component-based architecture to build maintainable and reusable UI components.', hours: 2, percentage: 20, items: 2 },
                     { description: 'Implement client-side routing and data fetching to create single-page applications with multiple views.', hours: 4, percentage: 30, items: 6 },
@@ -75,7 +119,18 @@ const courseData = [
         courseCode: 'BSCS111L',
         outcomes: [
             {
-                co: 'CO1', description: 'Apply core programming concepts using Python to solve computational problems.', totalItems: 26,
+                co: 'CO1', description: 'Apply core programming concepts using Python to solve computational problems.', totalItems: 26, topics: JSON.stringify([
+                'Topic 1: Introduction',
+                'Topic 2: Fundamental Concepts',
+                'Topic 3: Intermediate Methods',
+                'Topic 4: Advanced Strategies',
+                'Topic 5: Case Studies',
+                'Topic 6: Practical Applications',
+                'Topic 7: Tooling and Frameworks',
+                'Topic 8: Best Practices',
+                'Topic 9: Performance Optimization',
+                'Topic 10: Future Trends'
+            ]),
                 ilos: [
                     { description: 'Design algorithms using sequence, selection, and iteration to break down computational problems into logical steps.', hours: 1.5, percentage: 20, items: 2 },
                     { description: 'Implement functions and modular code with well-defined parameters and return values to promote code reuse.', hours: 3, percentage: 30, items: 6 },
@@ -83,7 +138,18 @@ const courseData = [
                 ]
             },
             {
-                co: 'CO2', description: 'Develop small-scale programs following test-driven development.', totalItems: 26,
+                co: 'CO2', description: 'Develop small-scale programs following test-driven development.', totalItems: 26, topics: JSON.stringify([
+                'Topic 1: Introduction',
+                'Topic 2: Fundamental Concepts',
+                'Topic 3: Intermediate Methods',
+                'Topic 4: Advanced Strategies',
+                'Topic 5: Case Studies',
+                'Topic 6: Practical Applications',
+                'Topic 7: Tooling and Frameworks',
+                'Topic 8: Best Practices',
+                'Topic 9: Performance Optimization',
+                'Topic 10: Future Trends'
+            ]),
                 ilos: [
                     { description: 'Write unit tests to verify program correctness before implementing features, following the red-green-refactor cycle.', hours: 2, percentage: 20, items: 2 },
                     { description: 'Read from and write to files for persistent data storage between program executions.', hours: 4, percentage: 30, items: 7 },
@@ -96,7 +162,18 @@ const courseData = [
         courseCode: 'BSCS214L',
         outcomes: [
             {
-                co: 'CO1', description: 'Analyze time and space complexity of algorithms.', totalItems: 25,
+                co: 'CO1', description: 'Analyze time and space complexity of algorithms.', totalItems: 25, topics: JSON.stringify([
+                'Topic 1: Introduction',
+                'Topic 2: Fundamental Concepts',
+                'Topic 3: Intermediate Methods',
+                'Topic 4: Advanced Strategies',
+                'Topic 5: Case Studies',
+                'Topic 6: Practical Applications',
+                'Topic 7: Tooling and Frameworks',
+                'Topic 8: Best Practices',
+                'Topic 9: Performance Optimization',
+                'Topic 10: Future Trends'
+            ]),
                 ilos: [
                     { description: 'Apply Big-O notation to analyze and classify the time efficiency of algorithms in terms of worst-case and average-case performance.', hours: 1.5, percentage: 20, items: 2 },
                     { description: 'Implement common sorting and searching algorithms including quicksort, mergesort, and binary search.', hours: 3, percentage: 30, items: 5 },
@@ -104,7 +181,18 @@ const courseData = [
                 ]
             },
             {
-                co: 'CO2', description: 'Implement fundamental data structures and their operations.', totalItems: 25,
+                co: 'CO2', description: 'Implement fundamental data structures and their operations.', totalItems: 25, topics: JSON.stringify([
+                'Topic 1: Introduction',
+                'Topic 2: Fundamental Concepts',
+                'Topic 3: Intermediate Methods',
+                'Topic 4: Advanced Strategies',
+                'Topic 5: Case Studies',
+                'Topic 6: Practical Applications',
+                'Topic 7: Tooling and Frameworks',
+                'Topic 8: Best Practices',
+                'Topic 9: Performance Optimization',
+                'Topic 10: Future Trends'
+            ]),
                 ilos: [
                     { description: 'Build and traverse linked lists, stacks, and queues to understand pointer-based data structures.', hours: 2, percentage: 20, items: 2 },
                     { description: 'Construct hash tables and balanced trees to enable efficient data retrieval and storage.', hours: 4, percentage: 30, items: 7 },
@@ -117,7 +205,18 @@ const courseData = [
         courseCode: 'BSCS315L',
         outcomes: [
             {
-                co: 'CO1', description: 'Explain OS concepts including process management and memory hierarchy.', totalItems: 16,
+                co: 'CO1', description: 'Explain OS concepts including process management and memory hierarchy.', totalItems: 16, topics: JSON.stringify([
+                'Topic 1: Introduction',
+                'Topic 2: Fundamental Concepts',
+                'Topic 3: Intermediate Methods',
+                'Topic 4: Advanced Strategies',
+                'Topic 5: Case Studies',
+                'Topic 6: Practical Applications',
+                'Topic 7: Tooling and Frameworks',
+                'Topic 8: Best Practices',
+                'Topic 9: Performance Optimization',
+                'Topic 10: Future Trends'
+            ]),
                 ilos: [
                     { description: 'Describe process states, scheduling algorithms, and context switching mechanisms used by modern operating systems.', hours: 1.5, percentage: 20, items: 1 },
                     { description: 'Compare paging, segmentation, and virtual memory techniques for managing memory allocation.', hours: 3, percentage: 30, items: 3 },
@@ -125,7 +224,18 @@ const courseData = [
                 ]
             },
             {
-                co: 'CO2', description: 'Implement concurrency and IPC mechanisms.', totalItems: 16,
+                co: 'CO2', description: 'Implement concurrency and IPC mechanisms.', totalItems: 16, topics: JSON.stringify([
+                'Topic 1: Introduction',
+                'Topic 2: Fundamental Concepts',
+                'Topic 3: Intermediate Methods',
+                'Topic 4: Advanced Strategies',
+                'Topic 5: Case Studies',
+                'Topic 6: Practical Applications',
+                'Topic 7: Tooling and Frameworks',
+                'Topic 8: Best Practices',
+                'Topic 9: Performance Optimization',
+                'Topic 10: Future Trends'
+            ]),
                 ilos: [
                     { description: 'Create multi-threaded programs using synchronization primitives such as mutexes, semaphores, and condition variables.', hours: 2, percentage: 20, items: 1 },
                     { description: 'Implement inter-process communication using pipes, message queues, and shared memory.', hours: 4, percentage: 30, items: 4 },
@@ -138,7 +248,18 @@ const courseData = [
         courseCode: 'BSCS321L',
         outcomes: [
             {
-                co: 'CO1', description: 'Design relational database schemas using normalization and ER modeling.', totalItems: 0,
+                co: 'CO1', description: 'Design relational database schemas using normalization and ER modeling.', totalItems: 0, topics: JSON.stringify([
+                'Topic 1: Introduction',
+                'Topic 2: Fundamental Concepts',
+                'Topic 3: Intermediate Methods',
+                'Topic 4: Advanced Strategies',
+                'Topic 5: Case Studies',
+                'Topic 6: Practical Applications',
+                'Topic 7: Tooling and Frameworks',
+                'Topic 8: Best Practices',
+                'Topic 9: Performance Optimization',
+                'Topic 10: Future Trends'
+            ]),
                 ilos: [
                     { description: 'Create entity-relationship diagrams that accurately capture entities, attributes, and relationships for a given domain.', hours: 1.5, percentage: 20, items: 0 },
                     { description: 'Normalize tables up to Third Normal Form and Boyce-Codd Normal Form to eliminate data redundancy.', hours: 3, percentage: 30, items: 0 },
@@ -146,7 +267,18 @@ const courseData = [
                 ]
             },
             {
-                co: 'CO2', description: 'Implement database transactions, indexing, and security.', totalItems: 0,
+                co: 'CO2', description: 'Implement database transactions, indexing, and security.', totalItems: 0, topics: JSON.stringify([
+                'Topic 1: Introduction',
+                'Topic 2: Fundamental Concepts',
+                'Topic 3: Intermediate Methods',
+                'Topic 4: Advanced Strategies',
+                'Topic 5: Case Studies',
+                'Topic 6: Practical Applications',
+                'Topic 7: Tooling and Frameworks',
+                'Topic 8: Best Practices',
+                'Topic 9: Performance Optimization',
+                'Topic 10: Future Trends'
+            ]),
                 ilos: [
                     { description: 'Manage transactions with ACID properties and appropriate isolation levels to ensure data consistency.', hours: 2, percentage: 20, items: 0 },
                     { description: 'Optimize query performance using indexes, execution plan analysis, and query restructuring.', hours: 4, percentage: 30, items: 0 },
@@ -159,7 +291,18 @@ const courseData = [
         courseCode: 'BSCS322L',
         outcomes: [
             {
-                co: 'CO1', description: 'Apply SDLC methodologies to plan and document software projects.', totalItems: 22,
+                co: 'CO1', description: 'Apply SDLC methodologies to plan and document software projects.', totalItems: 22, topics: JSON.stringify([
+                'Topic 1: Introduction',
+                'Topic 2: Fundamental Concepts',
+                'Topic 3: Intermediate Methods',
+                'Topic 4: Advanced Strategies',
+                'Topic 5: Case Studies',
+                'Topic 6: Practical Applications',
+                'Topic 7: Tooling and Frameworks',
+                'Topic 8: Best Practices',
+                'Topic 9: Performance Optimization',
+                'Topic 10: Future Trends'
+            ]),
                 ilos: [
                     { description: 'Gather and document functional and non-functional requirements using interviews, surveys, and use case analysis.', hours: 1.5, percentage: 20, items: 2 },
                     { description: 'Model system behavior using UML diagrams including use case, sequence, and class diagrams.', hours: 3, percentage: 30, items: 5 },
@@ -167,7 +310,18 @@ const courseData = [
                 ]
             },
             {
-                co: 'CO2', description: 'Implement and test software following agile practices.', totalItems: 22,
+                co: 'CO2', description: 'Implement and test software following agile practices.', totalItems: 22, topics: JSON.stringify([
+                'Topic 1: Introduction',
+                'Topic 2: Fundamental Concepts',
+                'Topic 3: Intermediate Methods',
+                'Topic 4: Advanced Strategies',
+                'Topic 5: Case Studies',
+                'Topic 6: Practical Applications',
+                'Topic 7: Tooling and Frameworks',
+                'Topic 8: Best Practices',
+                'Topic 9: Performance Optimization',
+                'Topic 10: Future Trends'
+            ]),
                 ilos: [
                     { description: 'Write user stories and manage a product backlog using Agile prioritization techniques such as MoSCoW.', hours: 2, percentage: 20, items: 2 },
                     { description: 'Apply continuous integration and version control workflows using feature branches and pull requests.', hours: 4, percentage: 30, items: 6 },
@@ -180,7 +334,18 @@ const courseData = [
         courseCode: 'BSCS331L',
         outcomes: [
             {
-                co: 'CO1', description: 'Explain network architectures, protocols, and the OSI model.', totalItems: 16,
+                co: 'CO1', description: 'Explain network architectures, protocols, and the OSI model.', totalItems: 16, topics: JSON.stringify([
+                'Topic 1: Introduction',
+                'Topic 2: Fundamental Concepts',
+                'Topic 3: Intermediate Methods',
+                'Topic 4: Advanced Strategies',
+                'Topic 5: Case Studies',
+                'Topic 6: Practical Applications',
+                'Topic 7: Tooling and Frameworks',
+                'Topic 8: Best Practices',
+                'Topic 9: Performance Optimization',
+                'Topic 10: Future Trends'
+            ]),
                 ilos: [
                     { description: 'Describe encapsulation, addressing, and packet switching principles that enable data transmission across networks.', hours: 1.5, percentage: 20, items: 1 },
                     { description: 'Configure IP subnets and routing tables to segment networks and control traffic flow.', hours: 3, percentage: 30, items: 3 },
@@ -188,7 +353,18 @@ const courseData = [
                 ]
             },
             {
-                co: 'CO2', description: 'Design and secure small-to-medium enterprise networks.', totalItems: 16,
+                co: 'CO2', description: 'Design and secure small-to-medium enterprise networks.', totalItems: 16, topics: JSON.stringify([
+                'Topic 1: Introduction',
+                'Topic 2: Fundamental Concepts',
+                'Topic 3: Intermediate Methods',
+                'Topic 4: Advanced Strategies',
+                'Topic 5: Case Studies',
+                'Topic 6: Practical Applications',
+                'Topic 7: Tooling and Frameworks',
+                'Topic 8: Best Practices',
+                'Topic 9: Performance Optimization',
+                'Topic 10: Future Trends'
+            ]),
                 ilos: [
                     { description: 'Set up VLANs, STP, and link aggregation to segment broadcast domains and improve network redundancy.', hours: 2, percentage: 20, items: 1 },
                     { description: 'Configure firewall rules and access control lists to enforce network security policies.', hours: 4, percentage: 30, items: 4 },
@@ -201,7 +377,18 @@ const courseData = [
         courseCode: 'BSCS341L',
         outcomes: [
             {
-                co: 'CO1', description: 'Explain foundational AI concepts including search and knowledge representation.', totalItems: 20,
+                co: 'CO1', description: 'Explain foundational AI concepts including search and knowledge representation.', totalItems: 20, topics: JSON.stringify([
+                'Topic 1: Introduction',
+                'Topic 2: Fundamental Concepts',
+                'Topic 3: Intermediate Methods',
+                'Topic 4: Advanced Strategies',
+                'Topic 5: Case Studies',
+                'Topic 6: Practical Applications',
+                'Topic 7: Tooling and Frameworks',
+                'Topic 8: Best Practices',
+                'Topic 9: Performance Optimization',
+                'Topic 10: Future Trends'
+            ]),
                 ilos: [
                     { description: 'Compare uninformed and informed search strategies such as BFS, DFS, and A* in terms of completeness and optimality.', hours: 1.5, percentage: 20, items: 1 },
                     { description: 'Represent knowledge using propositional and first-order logic to encode facts and infer new conclusions.', hours: 3, percentage: 30, items: 4 },
@@ -209,7 +396,18 @@ const courseData = [
                 ]
             },
             {
-                co: 'CO2', description: 'Apply machine learning algorithms to structured datasets.', totalItems: 20,
+                co: 'CO2', description: 'Apply machine learning algorithms to structured datasets.', totalItems: 20, topics: JSON.stringify([
+                'Topic 1: Introduction',
+                'Topic 2: Fundamental Concepts',
+                'Topic 3: Intermediate Methods',
+                'Topic 4: Advanced Strategies',
+                'Topic 5: Case Studies',
+                'Topic 6: Practical Applications',
+                'Topic 7: Tooling and Frameworks',
+                'Topic 8: Best Practices',
+                'Topic 9: Performance Optimization',
+                'Topic 10: Future Trends'
+            ]),
                 ilos: [
                     { description: 'Train and evaluate supervised learning models including linear regression, decision trees, and support vector machines.', hours: 2, percentage: 20, items: 2 },
                     { description: 'Cluster unlabeled data using K-means and hierarchical clustering to discover natural groupings.', hours: 4, percentage: 30, items: 5 },
@@ -222,7 +420,18 @@ const courseData = [
         courseCode: 'BSCS351L',
         outcomes: [
             {
-                co: 'CO1', description: 'Identify cybersecurity threats, vulnerabilities, and risk management frameworks.', totalItems: 24,
+                co: 'CO1', description: 'Identify cybersecurity threats, vulnerabilities, and risk management frameworks.', totalItems: 24, topics: JSON.stringify([
+                'Topic 1: Introduction',
+                'Topic 2: Fundamental Concepts',
+                'Topic 3: Intermediate Methods',
+                'Topic 4: Advanced Strategies',
+                'Topic 5: Case Studies',
+                'Topic 6: Practical Applications',
+                'Topic 7: Tooling and Frameworks',
+                'Topic 8: Best Practices',
+                'Topic 9: Performance Optimization',
+                'Topic 10: Future Trends'
+            ]),
                 ilos: [
                     { description: 'Classify common attack vectors including phishing, malware, DDoS, and man-in-the-middle attacks based on their impact.', hours: 1.5, percentage: 20, items: 2 },
                     { description: 'Perform risk assessments using NIST and ISO 27001 standards to identify and prioritize security risks.', hours: 3, percentage: 30, items: 5 },
@@ -230,7 +439,18 @@ const courseData = [
                 ]
             },
             {
-                co: 'CO2', description: 'Implement security controls for network and application defence.', totalItems: 24,
+                co: 'CO2', description: 'Implement security controls for network and application defence.', totalItems: 24, topics: JSON.stringify([
+                'Topic 1: Introduction',
+                'Topic 2: Fundamental Concepts',
+                'Topic 3: Intermediate Methods',
+                'Topic 4: Advanced Strategies',
+                'Topic 5: Case Studies',
+                'Topic 6: Practical Applications',
+                'Topic 7: Tooling and Frameworks',
+                'Topic 8: Best Practices',
+                'Topic 9: Performance Optimization',
+                'Topic 10: Future Trends'
+            ]),
                 ilos: [
                     { description: 'Configure intrusion detection systems and SIEM tools to monitor network traffic and detect suspicious activity.', hours: 2, percentage: 20, items: 2 },
                     { description: 'Conduct vulnerability scans and interpret penetration test results to identify weaknesses in systems.', hours: 4, percentage: 30, items: 6 },
@@ -428,27 +648,6 @@ async function createItemsForCourse(courseCode) {
                     span: effectiveSpan,
                     cognitiveLevel: tpl.l || 'Remembering',
                 });
-                if (tpl.choices && tpl.choices.length > 0) {
-                    await ItemChoice.bulkCreate(
-                        tpl.choices.map((c, ci) => ({
-                            itemId: made.id,
-                            label: c.label,
-                            text: resolveText(c.text, ilo, cd),
-                            isCorrect: c.isCorrect || false,
-                            sortOrder: ci
-                        }))
-                    );
-                } else if (tpl.rubricRows && tpl.rubricRows.length > 0) {
-                    await ItemRubric.bulkCreate(
-                        tpl.rubricRows.map((r, ri) => ({
-                            itemId: made.id,
-                            criteria: resolveText(r.name, ilo, cd),
-                            description: resolveText(r.description || '', ilo, cd),
-                            weight: r.weight,
-                            sortOrder: ri
-                        }))
-                    );
-                }
                 spanSum += effectiveSpan;
                 i++;
             }

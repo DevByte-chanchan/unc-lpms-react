@@ -68,12 +68,7 @@ router.put('/:code/outcomes', async (req, res) => {
         outcomeRecord.dataValues.ilos = newIlos;
     }
 
-    // delete outcomes that were removed
-    for (const existingOutcome of existing) {
-        if (!keptOutcomeIds.has(existingOutcome.id)) {
-            await existingOutcome.destroy();
-        }
-    }
+    
 
     const result = await CourseOutcome.findAll({
         where: { courseCode: code },

@@ -7,6 +7,12 @@ const AssessmentItem = sequelize.define('AssessmentItem', {
         primaryKey: true,
         autoIncrement: true
     },
+    examPeriod: {
+        type: DataTypes.STRING(20),
+        allowNull: false,
+        defaultValue: 'Midterm',
+        field: 'exam_period'
+    },
     courseCode: {
         type: DataTypes.STRING(20),
         allowNull: false,
@@ -16,6 +22,11 @@ const AssessmentItem = sequelize.define('AssessmentItem', {
         type: DataTypes.INTEGER,
         allowNull: true,
         field: 'ilo_id'
+    },
+    attachmentId: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        field: 'attachment_id'
     },
     instruction: {
         type: DataTypes.TEXT,

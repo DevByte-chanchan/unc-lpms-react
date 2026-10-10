@@ -1,25 +1,27 @@
 import { Router } from 'express';
 import { TosStatus } from '../models/index.js';
+import { lockGuard } from '../middleware/lockGuard.js';
 
 const router = Router();
 
-router.get('/:code/status', async (req, res) => {
+router.get('/:code/:period/status', async (req, res) => {
     let status = await TosStatus.findOne({
-        where: { courseCode: req.params.code }
+        where: { courseCode: req.params.code, examPeriod: req.params.period }
     });
     if (!status) {
         status = await TosStatus.create({
             courseCode: req.params.code,
+            examPeriod: req.params.period,
             status: 'draft'
         });
     }
     res.json(status);
 });
 
-router.put('/:code/status', async (req, res) => {
+router.put('/:code/:period/status', lockGuard, async (req, res) => {
     const { status: newStatus } = req.body;
     let status = await TosStatus.findOne({
-        where: { courseCode: req.params.code }
+        where: { courseCode: req.params.code, examPeriod: req.params.period }
     });
     const now = new Date();
     if (status) {
@@ -35,6 +37,7 @@ router.put('/:code/status', async (req, res) => {
         else if (newStatus === 'approved') extra.approvedAt = now;
         status = await TosStatus.create({
             courseCode: req.params.code,
+            examPeriod: req.params.period,
             status: newStatus || 'draft',
             ...extra
         });

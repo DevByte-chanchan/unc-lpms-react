@@ -34,6 +34,7 @@ const ProgramHeadTOSCoursesTable = () => {
         { code: 'BSCS413L', name: 'Capstone Project 2',             instructor: 'JEFFORDS, TERRY', dateSubmitted: 'Oct 17, 2025', dateStatus: 'Oct 25, 2025', status: 'approved' },
         { code: 'BSCS315L', name: 'Operating Systems',             instructor: 'DIAZ, ROSA',      dateSubmitted: 'Oct 12, 2025', dateStatus: 'Oct 19, 2025', status: 'approved' },
     ];
+    const location = useLocation();
     const [courses, setCourses] = useState([]);
     const [loading, setLoading] = useState(true);
 
@@ -56,6 +57,7 @@ const ProgramHeadTOSCoursesTable = () => {
                         status: api.status || fc.status,
                         dateSubmitted: api.dateSubmitted || fc.dateSubmitted,
                         dateStatus: api.dateStatus || fc.dateStatus,
+                        examPeriod: api.examPeriod || fc.examPeriod || 'Midterm',
                     };
                 });
                 for (const code in apiMap) {
@@ -68,6 +70,7 @@ const ProgramHeadTOSCoursesTable = () => {
                             dateSubmitted: api.dateSubmitted || '',
                             dateStatus: api.dateStatus || '',
                             status: api.status || 'draft',
+                            examPeriod: api.examPeriod || 'Midterm',
                         });
                     }
                 }
@@ -91,7 +94,6 @@ const ProgramHeadTOSCoursesTable = () => {
             });
     }, []);
 
-    const location = useLocation();
     const [selectedStatus, setSelectedStatus] = useState(location.state?.initialStatus || 'pending');
     const [examType, setExamType] = useState('Midterm');
     const [schoolYear, setSchoolYear] = useState(String(currentYear));
@@ -146,6 +148,16 @@ const ProgramHeadTOSCoursesTable = () => {
 
                     <tbody>
                     {courses
+                        .map(row => {
+                            const tos = examType === 'Midterm' ? row.midtermTos : row.finalsTos;
+                            const fmt = (ts) => ts ? new Date(ts).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }) : '';
+                            return {
+                                ...row,
+                                status: tos ? tos.status : 'draft',
+                                dateSubmitted: tos ? fmt(tos.submittedAt) : '',
+                                dateStatus: tos ? fmt(tos.returnedAt || tos.approvedAt) : ''
+                            };
+                        })
                         .filter(row => row.status === selectedStatus)
                         .map((row, index) => (
                             <tr key={index}>
