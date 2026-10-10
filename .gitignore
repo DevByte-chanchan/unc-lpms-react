@@ -28,3 +28,4 @@ backend/uploads/*
 !backend/uploads/.gitkeep
 
 lpms_backup.sql
+lpms_backup*.sql

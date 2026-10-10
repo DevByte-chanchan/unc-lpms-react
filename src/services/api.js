@@ -1,4 +1,4 @@
-const BASE = '/courses';
+const BASE = '/api/courses';
 
 const cogLevelMap = {
     toBackend: {
@@ -44,7 +44,8 @@ export async function fetchCourses() {
             code: c.code,
             name: c.name,
             instructor: c.instructor || '',
-            dateAssigned: da ? `${da}, 2026` : '',
+            dateAssigned: da ? da + ', 2026' : '',
+            update: da ? da + ', 2026' : '',
             exported: ''
         };
     });
@@ -208,7 +209,7 @@ export const uploadAttachment = async (courseCode, period, iloId, file, type) =>
     formData.append('iloId', iloId);
     formData.append('type', type);
 
-    const res = await fetch(`/courses/${courseCode}/${period}/attachments`, {
+    const res = await fetch(`${BASE}/${courseCode}/${period}/attachments`, {
         method: 'POST',
         body: formData
     });
@@ -217,16 +218,18 @@ export const uploadAttachment = async (courseCode, period, iloId, file, type) =>
 };
 
 export const fetchAttachments = async (courseCode, period) => {
-    const res = await fetch(`/courses/${courseCode}/${period}/attachments`);
+    const res = await fetch(`${BASE}/${courseCode}/${period}/attachments`);
     if (!res.ok) throw new Error('Failed to fetch attachments');
     return res.json();
 };
 
 export const deleteAttachment = async (courseCode, period, id) => {
-    const res = await fetch(`/courses/${courseCode}/${period}/attachments/${id}`, {
+    const res = await fetch(`${BASE}/${courseCode}/${period}/attachments/${id}`, {
         method: 'DELETE'
     });
     if (!res.ok) throw new Error('Failed to delete attachment');
     return res.json();
 };
+
+
 

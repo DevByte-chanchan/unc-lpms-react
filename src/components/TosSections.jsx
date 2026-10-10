@@ -35,6 +35,7 @@ const TosSections = ({role = 'instructor'}) => {
         {
             co: "CO1",
             description: "Course Outcome 1",
+            topics: [],
             totalHours: 10.5,
             totalPercentage: 100,
             totalPoints: 20,
@@ -47,6 +48,7 @@ const TosSections = ({role = 'instructor'}) => {
         {
             co: "CO2",
             description: "Course Outcome 2",
+            topics: [],
             totalHours: 12,
             totalPercentage: 100,
             totalPoints: 30,
@@ -66,6 +68,8 @@ const TosSections = ({role = 'instructor'}) => {
     const defaultRows = getDefaultOutlines();
 
     const [rows, setRows] = useState(defaultRows);
+    const [tosTotalPoints, setTosTotalPoints] = useState(50);
+    window.tosTotalPoints = tosTotalPoints; // suppress unused
     const [dataLoaded, setDataLoaded] = useState(false);
     const [errorFields, setErrorFields] = useState({});
     const [exportErrors, setExportErrors] = useState({ outcomeOverview: [], assessmentMapping: [], tosSummary: [] });
@@ -125,6 +129,7 @@ const TosSections = ({role = 'instructor'}) => {
                 dbId: o.id,
                 co: o.co,
                 description: o.description || '',
+                topics: (o.topics && o.topics !== '[]') ? JSON.parse(o.topics) : [],
                 totalHours: (o.ilos || []).reduce((s, i) => s + (i.hours || 0), 0),
                 totalPercentage: (o.ilos || []).reduce((s, i) => s + (i.percentage || 0), 0),
                 totalPoints: (o.ilos || []).reduce((s, i) => s + (i.items || 0), 0),
@@ -137,21 +142,28 @@ const TosSections = ({role = 'instructor'}) => {
                     items: ilo.items || 0
                 }))
             }));
-            // sync both COs to same totalPoints (50/50) and redistribute ILOs by (hours × percentage)
-                        // Filter COs based on exam type
+            // sync COs to a single TOS total
             let filteredMapped = mapped;
             if (fromExamType === 'Midterm') {
                 filteredMapped = mapped.filter(co => co.co === 'CO1' || co.co === 'CO2');
             } else if (fromExamType === 'Finals') {
                 filteredMapped = mapped.filter(co => co.co === 'CO3' || co.co === 'CO4');
             }
+            if (filteredMapped.length === 0) filteredMapped = mapped;
             
-            const syncedTotal = Math.max(...filteredMapped.map(co => co.totalPoints), 0);
-            const synced = filteredMapped.map(co => ({
-                ...co,
-                totalPoints: syncedTotal,
-                ilos: redistIloItems(co.ilos, syncedTotal)
-            }));
+            const tosTotal = filteredMapped.reduce((s, co) => s + co.totalPoints, 0);
+            setTosTotalPoints(tosTotal);
+            const numCOs = filteredMapped.length;
+            const evenSplit = Math.floor(tosTotal / numCOs);
+            
+            const synced = filteredMapped.map((co, idx) => {
+                const coTotal = (idx === numCOs - 1) ? (tosTotal - (evenSplit * (numCOs - 1))) : evenSplit;
+                return {
+                    ...co,
+                    totalPoints: coTotal,
+                    ilos: redistIloItems(co.ilos, coTotal)
+                };
+            });
             setRows(synced.length ? synced : getDefaultOutlines());
             // build iloLookup: iloDbId → { co, iloLabel }
             const lookup = {};
@@ -1224,7 +1236,7 @@ const items = aggregatedData[co.co][ilo.id][level];
                                     )}
                                     {addingComment && activeScope && !showResolvedPH ? (
                                         <div className={layout.commentFormCard}>
-                                            <div className={layout.commentScope}>Commenting on {activeScope.co}{activeScope.ilo !== '—' ? ` → ${activeScope.ilo}` : ''} → {activeScope.cognitiveLevel}{activeScope.itemNumber ? ` → Item ${activeScope.itemNumber}` : ''}</div>
+                                            <div className={layout.commentScope}>Commenting on {activeScope.co}{activeScope.ilo !== '-' ? ` → ${activeScope.ilo}` : ''} → {activeScope.cognitiveLevel}{activeScope.itemNumber ? ` → Item ${activeScope.itemNumber}` : ''}</div>
                                             {activeScope.itemNumber && (
                                             <select className={layout.commentTypeSelect} value={commentType} onChange={e => setCommentType(e.target.value)}>
                                                 <option value="Question">Question</option>
@@ -1276,7 +1288,7 @@ const items = aggregatedData[co.co][ilo.id][level];
                                                 if (returnFilter !== 'all') return filtered.map(c => (
                                                     <div key={c.id} className={layout.commentCard}>
                                                         <div className={layout.commentCardHeader}>
-                                                            <div className={layout.commentCardScope}>{c.scope.co}{c.scope.ilo !== '—' ? ` → ${c.scope.ilo}` : ''} → {c.scope.cognitiveLevel}{c.scope.itemNumber ? ` → Item ${c.scope.itemNumber}` : ''}</div>
+                                                            <div className={layout.commentCardScope}>{c.scope.co}{c.scope.ilo !== '-' ? ` → ${c.scope.ilo}` : ''} → {c.scope.cognitiveLevel}{c.scope.itemNumber ? ` → Item ${c.scope.itemNumber}` : ''}</div>
                                                         </div>
                                                         {c.scope.itemNumber && c.type && <div className={layout.commentCardType}>{c.type}</div>}
                                                         <div className={layout.commentCardBody}>{c.body}</div>
@@ -1288,12 +1300,12 @@ const items = aggregatedData[co.co][ilo.id][level];
                                                 return Object.keys(groups).sort((a, b) => a - b).map(r => (
                                                     <div key={r}>
                                                         <div style={{ fontSize: 13, color: '#000000', textAlign: 'center', marginBottom: 8, paddingTop: r > 0 ? 4 : 0 }}>
-                                                            Return {r}{returnDates[r - 1] ? ` — ${new Date(returnDates[r - 1]).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}` : ''}
+                                                            Return {r}{returnDates[r - 1] ? ` - ${new Date(returnDates[r - 1]).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}` : ''}
                                                         </div>
                                                         {groups[r].map(c => (
                                                             <div key={c.id} className={layout.commentCard}>
                                                                 <div className={layout.commentCardHeader}>
-                                                                    <div className={layout.commentCardScope}>{c.scope.co}{c.scope.ilo !== '—' ? ` → ${c.scope.ilo}` : ''} → {c.scope.cognitiveLevel}{c.scope.itemNumber ? ` → Item ${c.scope.itemNumber}` : ''}</div>
+                                                                    <div className={layout.commentCardScope}>{c.scope.co}{c.scope.ilo !== '-' ? ` → ${c.scope.ilo}` : ''} → {c.scope.cognitiveLevel}{c.scope.itemNumber ? ` → Item ${c.scope.itemNumber}` : ''}</div>
                                                                 </div>
                                                                 {c.scope.itemNumber && c.type && <div className={layout.commentCardType}>{c.type}</div>}
                                                                 <div className={layout.commentCardBody}>{c.body}</div>
@@ -1315,7 +1327,7 @@ const items = aggregatedData[co.co][ilo.id][level];
                                     {comments.filter(c => !c.resolved).map(c => (
                                         <div key={c.id} className={`${layout.commentCard}${addingComment ? ` ${layout.commentCardDimmed}` : ''}`} onClick={() => handleCommentNavigation(c)} style={{ cursor: 'pointer' }}>
                                             <div className={layout.commentCardHeader}>
-                                                <div className={layout.commentCardScope}>{c.scope.co}{c.scope.ilo !== '—' ? ` → ${c.scope.ilo}` : ''} → {c.scope.cognitiveLevel}{c.scope.itemNumber ? ` → Item ${c.scope.itemNumber}` : ''}</div>
+                                                <div className={layout.commentCardScope}>{c.scope.co}{c.scope.ilo !== '-' ? ` → ${c.scope.ilo}` : ''} → {c.scope.cognitiveLevel}{c.scope.itemNumber ? ` → Item ${c.scope.itemNumber}` : ''}</div>
                                                 {!isReturnedView && <span className={layout.commentDeleteBtnWrap} onClick={e => { e.stopPropagation(); handleDeleteComment(c.id); }}><Trash2 size={16} /></span>}
                                             </div>
                                             {c.scope.itemNumber && c.type && <div className={layout.commentCardType}>{c.type}</div>}
@@ -1506,7 +1518,7 @@ const items = aggregatedData[co.co][ilo.id][level];
                                                 if (returnFilter !== 'all') return filtered.map(c => (
                                                     <div key={c.id} className={layout.commentCard}>
                                                         <div className={layout.commentCardHeader}>
-                                                            <div className={layout.commentCardScope}>{c.scope.co}{c.scope.ilo !== '—' ? ` → ${c.scope.ilo}` : ''} → {c.scope.cognitiveLevel}{c.scope.itemNumber ? ` → Item ${c.scope.itemNumber}` : ''}</div>
+                                                            <div className={layout.commentCardScope}>{c.scope.co}{c.scope.ilo !== '-' ? ` → ${c.scope.ilo}` : ''} → {c.scope.cognitiveLevel}{c.scope.itemNumber ? ` → Item ${c.scope.itemNumber}` : ''}</div>
                                                         </div>
                                                         {c.scope.itemNumber && c.type && <div className={layout.commentCardType}>{c.type}</div>}
                                                         <div className={layout.commentCardBody}>{c.body}</div>
@@ -1518,12 +1530,12 @@ const items = aggregatedData[co.co][ilo.id][level];
                                                 return Object.keys(groups).sort((a, b) => a - b).map(r => (
                                                     <div key={r}>
                                                         <div style={{ fontSize: 13, color: '#000000', textAlign: 'center', marginBottom: 8, paddingTop: r > 0 ? 4 : 0 }}>
-                                                            Return {r}{returnDates[r - 1] ? ` — ${new Date(returnDates[r - 1]).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}` : ''}
+                                                            Return {r}{returnDates[r - 1] ? ` - ${new Date(returnDates[r - 1]).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}` : ''}
                                                         </div>
                                                         {groups[r].map(c => (
                                                             <div key={c.id} className={layout.commentCard}>
                                                                 <div className={layout.commentCardHeader}>
-                                                                    <div className={layout.commentCardScope}>{c.scope.co}{c.scope.ilo !== '—' ? ` → ${c.scope.ilo}` : ''} → {c.scope.cognitiveLevel}{c.scope.itemNumber ? ` → Item ${c.scope.itemNumber}` : ''}</div>
+                                                                    <div className={layout.commentCardScope}>{c.scope.co}{c.scope.ilo !== '-' ? ` → ${c.scope.ilo}` : ''} → {c.scope.cognitiveLevel}{c.scope.itemNumber ? ` → Item ${c.scope.itemNumber}` : ''}</div>
                                                                 </div>
                                                                 {c.scope.itemNumber && c.type && <div className={layout.commentCardType}>{c.type}</div>}
                                                                 <div className={layout.commentCardBody}>{c.body}</div>
@@ -1559,7 +1571,7 @@ const items = aggregatedData[co.co][ilo.id][level];
                                                 {unresolved.map(c => (
                                                     <div key={c.id} className={layout.commentCard}>
                                                         <div className={layout.commentCardHeader}>
-                                                            <div className={layout.commentCardScope}>{c.scope.co}{c.scope.ilo !== '—' ? ` → ${c.scope.ilo}` : ''} → {c.scope.cognitiveLevel}{c.scope.itemNumber ? ` → Item ${c.scope.itemNumber}` : ''}</div>
+                                                            <div className={layout.commentCardScope}>{c.scope.co}{c.scope.ilo !== '-' ? ` → ${c.scope.ilo}` : ''} → {c.scope.cognitiveLevel}{c.scope.itemNumber ? ` → Item ${c.scope.itemNumber}` : ''}</div>
                                                             <span className={layout.commentResolveBtnWrap} onClick={() => handleResolveComment(c.id)}><CheckCircle size={16} /></span>
                                                         </div>
                                                         {c.scope.itemNumber && c.type && <div className={layout.commentCardType}>{c.type}</div>}
@@ -1580,7 +1592,7 @@ const items = aggregatedData[co.co][ilo.id][level];
                                                 {resolvedCurrentReturn.map(c => (
                                                     <div key={c.id} className={`${layout.commentCard} ${layout.commentCardResolved}`}>
                                                         <div className={layout.commentCardHeader}>
-                                                            <div className={layout.commentCardScope}>{c.scope.co}{c.scope.ilo !== '—' ? ` → ${c.scope.ilo}` : ''} → {c.scope.cognitiveLevel}{c.scope.itemNumber ? ` → Item ${c.scope.itemNumber}` : ''}</div>
+                                                            <div className={layout.commentCardScope}>{c.scope.co}{c.scope.ilo !== '-' ? ` → ${c.scope.ilo}` : ''} → {c.scope.cognitiveLevel}{c.scope.itemNumber ? ` → Item ${c.scope.itemNumber}` : ''}</div>
                                                             <span className={layout.commentUndoBtnWrap} onClick={() => handleUnresolveComment(c.id)}><RotateCcw size={16} /></span>
                                                         </div>
                                                         {c.scope.itemNumber && c.type && <div className={layout.commentCardType}>{c.type}</div>}
@@ -1916,7 +1928,7 @@ const items = aggregatedData[co.co][ilo.id][level];
                                                 if (returnFilter !== 'all') return filtered.map(c => (
                                                     <div key={c.id} className={layout.commentCard}>
                                                         <div className={layout.commentCardHeader}>
-                                                            <div className={layout.commentCardScope}>{c.scope.co}{c.scope.ilo !== '—' ? ` → ${c.scope.ilo}` : ''} → {c.scope.cognitiveLevel}{c.scope.itemNumber ? ` → Item ${c.scope.itemNumber}` : ''}</div>
+                                                            <div className={layout.commentCardScope}>{c.scope.co}{c.scope.ilo !== '-' ? ` → ${c.scope.ilo}` : ''} → {c.scope.cognitiveLevel}{c.scope.itemNumber ? ` → Item ${c.scope.itemNumber}` : ''}</div>
                                                         </div>
                                                         {c.scope.itemNumber && c.type && <div className={layout.commentCardType}>{c.type}</div>}
                                                         <div className={layout.commentCardBody}>{c.body}</div>
@@ -1928,12 +1940,12 @@ const items = aggregatedData[co.co][ilo.id][level];
                                                 return Object.keys(groups).sort((a, b) => a - b).map(r => (
                                                     <div key={r}>
                                                         <div style={{ fontSize: 13, color: '#000000', textAlign: 'center', marginBottom: 8, paddingTop: r > 0 ? 4 : 0 }}>
-                                                            Return {r}{returnDates[r - 1] ? ` — ${new Date(returnDates[r - 1]).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}` : ''}
+                                                            Return {r}{returnDates[r - 1] ? ` - ${new Date(returnDates[r - 1]).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}` : ''}
                                                         </div>
                                                         {groups[r].map(c => (
                                                             <div key={c.id} className={layout.commentCard}>
                                                                 <div className={layout.commentCardHeader}>
-                                                                    <div className={layout.commentCardScope}>{c.scope.co}{c.scope.ilo !== '—' ? ` → ${c.scope.ilo}` : ''} → {c.scope.cognitiveLevel}{c.scope.itemNumber ? ` → Item ${c.scope.itemNumber}` : ''}</div>
+                                                                    <div className={layout.commentCardScope}>{c.scope.co}{c.scope.ilo !== '-' ? ` → ${c.scope.ilo}` : ''} → {c.scope.cognitiveLevel}{c.scope.itemNumber ? ` → Item ${c.scope.itemNumber}` : ''}</div>
                                                                 </div>
                                                                 {c.scope.itemNumber && c.type && <div className={layout.commentCardType}>{c.type}</div>}
                                                                 <div className={layout.commentCardBody}>{c.body}</div>
@@ -1962,7 +1974,7 @@ const items = aggregatedData[co.co][ilo.id][level];
                                             filteredComments.map(c => (
                                                 <div key={c.id} className={layout.commentCard}>
                                                     <div className={layout.commentCardHeader}>
-                                                        <div className={layout.commentCardScope}>{c.scope.co}{c.scope.ilo !== '—' ? ` → ${c.scope.ilo}` : ''} → {c.scope.cognitiveLevel}{c.scope.itemNumber ? ` → Item ${c.scope.itemNumber}` : ''}</div>
+                                                        <div className={layout.commentCardScope}>{c.scope.co}{c.scope.ilo !== '-' ? ` → ${c.scope.ilo}` : ''} → {c.scope.cognitiveLevel}{c.scope.itemNumber ? ` → Item ${c.scope.itemNumber}` : ''}</div>
                                                     </div>
                                                     {c.scope.itemNumber && c.type && <div className={layout.commentCardType}>{c.type}</div>}
                                                     <div className={layout.commentCardBody}>{c.body}</div>

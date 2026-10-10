@@ -11,7 +11,7 @@ const TOSCoursesTable = ({}) => {
     const temp = ['Midterm', 'Finals'];
     const yearOptions = [];
     for (let i = currentYear; i >= startYear; i--) {
-        yearOptions.push(<option key={i} value={i}>{i}â€“{i + 1}</option>);
+        yearOptions.push(<option key={i} value={i}>{i}-{i + 1}</option>);
     }
     const nortonCourses = new Set(['BSCS111L','BSCS212L','BSCS313L','BSCS321L','BSCS221L','BSCS341L','BSCS342L','BSCS214L','BSCS222L','BSCS223L','BSCS314L','BSCS323L']);
 

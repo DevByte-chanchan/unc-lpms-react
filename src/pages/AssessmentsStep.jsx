@@ -37,17 +37,23 @@ const TrackerPanel = ({ outcomeData, currentCounts, totalRequired, totalCurrent,
                         const pct = ilo.items > 0 ? Math.min(100, (used / ilo.items) * 100) : (used > 0 ? 100 : 0);
                         return (
                             <div key={ilo.id} className={layout.tIloRow}>
-                                <div className={layout.tIloHeader}>
-                                    <span className={layout.tIloLabel}>{ilo.id}</span>
-                                    <div className={layout.tIloRight}>
-                                        <span className={layout.tIloUsed}>{used} / {ilo.items}</span>
-                                        {status === 'ok' ? <Check size={14} className={layout.tIconOk} /> :
-                                         status === 'over' ? <span className={layout.tIconOver}>!</span> : null}
-                                    </div>
+                                <span className={layout.tIloId}>{ilo.id}</span>
+                                <div className={layout.tBarTrack}>
+                                    <div
+                                        className={`${layout.tBarFill} ${
+                                            status === 'over' ? layout.tFillOver
+                                                : status === 'ok' ? layout.tFillOk
+                                                    : layout.tFillUnder}`}
+                                        style={{ width: `${pct}%` }}
+                                    />
                                 </div>
-                                <div className={layout.tBarBg}>
-                                    <div className={`${layout.tBarFill} ${status === 'ok' ? layout.tBarOk : status === 'over' ? layout.tBarOver : layout.tBarUnder}`} style={{ width: `${pct}%` }} />
-                                </div>
+                                <span className={`${layout.tIloCount} ${
+                                    status === 'over' ? layout.tCountOver
+                                        : status === 'ok' ? layout.tCountOk : ''}`}>
+                                    {used} / {ilo.items}
+                                    {status === 'ok' && <Check size={14} className={layout.tIconOk} />}
+                                    {status === 'over' && <span className={layout.tIconOver}>!</span>}
+                                </span>
                             </div>
                         );
                     })}
@@ -218,11 +224,11 @@ const AssessmentsStep = ({
                         <h3 style={{ fontSize: 18, fontWeight: 600 }}>Attachments</h3>
                         {!readOnly && (
                             <div style={{ display: 'flex', gap: 10 }}>
-                                <label style={{ cursor: 'pointer', background: '#3B82F6', color: '#fff', padding: '6px 12px', borderRadius: 4, fontSize: 14 }}>
+                                <label className={layout.bBtnAddChoices} style={{ cursor: 'pointer', padding: '6px 16px', borderRadius: 20 }}>
                                     <Upload size={14} style={{ marginRight: 6 }} /> Objective File
                                     <input type="file" style={{ display: 'none' }} accept=".pdf,.docx" onChange={(e) => handleFileUpload(e, 'objective')} disabled={loading} />
                                 </label>
-                                <label style={{ cursor: 'pointer', background: '#10B981', color: '#fff', padding: '6px 12px', borderRadius: 4, fontSize: 14 }}>
+                                <label className={layout.bBtnToggleRubric} style={{ cursor: 'pointer', padding: '6px 16px', borderRadius: 20 }}>
                                     <Upload size={14} style={{ marginRight: 6 }} /> Non-Objective File
                                     <input type="file" style={{ display: 'none' }} accept=".pdf,.docx" onChange={(e) => handleFileUpload(e, 'non-objective')} disabled={loading} />
                                 </label>
@@ -240,9 +246,9 @@ const AssessmentsStep = ({
                                 <div key={att.id} style={{ border: '1px solid #E5E7EB', borderRadius: 8, padding: 16, background: '#fff' }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                                            <FileText size={20} color={att.type === 'objective' ? '#3B82F6' : '#10B981'} />
+                                            <FileText size={20} color="#4B5563" />
                                             <span style={{ fontWeight: 500 }}>{att.filename}</span>
-                                            <span style={{ fontSize: 12, padding: '2px 6px', borderRadius: 12, background: att.type === 'objective' ? '#DBEAFE' : '#D1FAE5', color: att.type === 'objective' ? '#1E40AF' : '#065F46' }}>
+                                            <span style={{ fontSize: 12, padding: '2px 8px', borderRadius: 12, background: '#F3F4F6', color: '#4B5563', fontWeight: 500 }}>
                                                 {att.type}
                                             </span>
                                         </div>

@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { updateStatus, saveOutcomes, saveItems, updateCourse } from '../services/api.js';
 
 const TOSPreview = ({ isOpen, onClose, outcomeData, questions, courseName = "Human & Computer Interaction", semester = "1st Semester", schoolYear, courseCode, assessmentName, examType }) => {
-    if (!examType) return <div style={{ color: 'red', padding: '20px' }}>Error: Exam period is missing for preview.</div>;
+    
     const [showConfirm, setShowConfirm] = useState(false);
     const [countdown, setCountdown] = useState(5);
     const [activeTab, setActiveTab] = useState('tosReport');
@@ -50,7 +50,9 @@ const TOSPreview = ({ isOpen, onClose, outcomeData, questions, courseName = "Hum
         if (!showConfirm) return;
         if (countdown === 0) { handleConfirm(); return; }
         countdownRef.current = setTimeout(() => setCountdown(c => c - 1), 1000);
-        return () => { if (countdownRef.current) clearTimeout(countdownRef.current); };
+        if (!examType) return <div style={{ color: 'red', padding: '20px' }}>Error: Exam period is missing for preview.</div>;
+
+    return () => { if (countdownRef.current) clearTimeout(countdownRef.current); };
     }, [showConfirm, countdown]);
 
     const cognitiveLevels = [
@@ -219,7 +221,7 @@ const TOSPreview = ({ isOpen, onClose, outcomeData, questions, courseName = "Hum
                                         return (
                                         <td key={level}>
                                             <div className={layout.cellBox} style={{ flexDirection: 'column', gap: 2 }}>
-                                                {items.length === 0 ? '—' : items.map((item, i) => (
+                                                {items.length === 0 ? '-' : items.map((item, i) => (
                                                     <span key={i}>{item.span} x {item.points}</span>
                                                 ))}
                                             </div>
@@ -277,7 +279,7 @@ const TOSPreview = ({ isOpen, onClose, outcomeData, questions, courseName = "Hum
                                     return questions.map((q, i) => {
                                         const start = slots[i];
                                         const end = start + (q.span || 1) - 1;
-                                        const label = start === end ? String(start) : `${start}–${end}`;
+                                        const label = start === end ? String(start) : `${start}-${end}`;
                                         const hasRubric = q.rubricRows && q.rubricRows.length > 0;
                                         return (
                                             <div key={q.id} className={layout.assessmentItem}>
