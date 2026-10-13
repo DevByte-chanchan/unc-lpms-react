@@ -31,7 +31,11 @@ const ROLE_PERMISSIONS = Object.freeze({
     vpaa: ['plan:view-approved']
 });
 
-const permissionsOf = (role) => ROLE_PERMISSIONS[role] || [];
+// Object.freeze above is shallow: freeze each role's list too, so the matrix really cannot change.
+Object.values(ROLE_PERMISSIONS).forEach(list => Object.freeze(list));
+
+// Own keys only: a role named "__proto__" or "constructor" must get no permissions, not Object's members.
+const permissionsOf = (role) => (Object.hasOwn(ROLE_PERMISSIONS, role) ? ROLE_PERMISSIONS[role] : []);
 const hasPermission = (role, permission) => permissionsOf(role).includes(permission);
 
 module.exports = { PERMISSIONS, ROLE_PERMISSIONS, permissionsOf, hasPermission };
