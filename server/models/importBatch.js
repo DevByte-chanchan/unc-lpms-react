@@ -1,15 +1,19 @@
 /**
- * ImportBatch — the record of one bulk upload or manual add: which entity,
- * which period, which file, when, and the upload's own summary. Invitations
- * point at the batch that gave the access (account_invitations.import_batch_id).
+ * ImportBatch — the before-image of a bulk upload, so it can be undone.
  *
- * Uploads are final — there is no undo. `snapshot` held a before-image when
- * uploads could be undone; new batches leave it empty, and the column stays
- * so older rows keep their data (no schema change).
+ * One row is written just BEFORE an upload mutates anything. `snapshot`
+ * holds every row of every table that upload touches (see utils/importUndo.js
+ * for the per-entity table groups), so undo is a restore rather than a
+ * guess at which rows the upload created.
  *
- * status: 'pending'  — upload still running (a crashed upload leaves the row here)
- *         'complete' — upload succeeded
- *         'undone'   — legacy: an upload undone before undo was removed
+ * Uploads MERGE (update matched rows, insert the rest), so "delete what
+ * was added" would leave overwritten rows overwritten. A full snapshot is
+ * the only representation that reverts an upload exactly.
+ *
+ * status: 'pending'  — snapshot taken, upload still running (never offered
+ *                      as undoable; a crashed upload leaves the row here)
+ *         'complete' — upload succeeded; this is the batch Undo targets
+ *         'undone'   — already restored; keeps the audit trail
  */
 export default (sequelize, DataTypes) =>
   sequelize.define(
@@ -66,6 +70,12 @@ export default (sequelize, DataTypes) =>
       },
       undone_at: {
         type: DataTypes.DATE,
+        allowNull: true,
+      },
+      // Who made the change. Only they (or a VPAA) may undo it. Null on batches
+      // recorded before this column existed — those only a VPAA can undo.
+      created_by_account_id: {
+        type: DataTypes.INTEGER.UNSIGNED,
         allowNull: true,
       },
     },

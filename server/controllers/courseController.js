@@ -648,9 +648,12 @@ export async function uploadCourses(req, res) {
     // share that term's semester.
     const semester = await periodSemester(period_id);
 
-    // Record the upload (who/what/when). Past the preview early-return, so a
-    // preview never leaves a batch behind. Uploads are final — there is no undo.
-    const batch = await beginImportBatch('courses', period_id, req.file.originalname);
+    // Photograph the period before the upsert below overwrites anything —
+    // this is what the Undo button restores. Past the preview early-return, so
+    // a preview never leaves a batch behind; the snapshot also covers
+    // prerequisites / revisions / course_offering_assignments, which this upload
+    // rewrites downstream.
+    const batch = await beginImportBatch('courses', period_id, req.file.originalname, req.user);
 
     let inserted = 0;
     let updated = 0;

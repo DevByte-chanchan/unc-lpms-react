@@ -23,6 +23,8 @@ const fmtDate = (d) => (d ? new Date(d).toLocaleDateString('en-PH', { month: 'sh
 function invitationLabel(inv) {
   if (!inv) return { text: 'Not sent', tone: 'muted' };
   switch (inv.status) {
+    // Created by a faculty upload; sent once they have a course, or on Send invitation.
+    case 'waiting':   return { text: 'Not invited yet', tone: 'muted' };
     case 'scheduled': return { text: inv.reason ? 'Scheduled — retrying (' + inv.reason + ')' : 'Scheduled', tone: 'info' };
     case 'sending':   return { text: 'Sending…', tone: 'info' };
     case 'sent':      return { text: 'Sent ' + fmtDate(inv.sent_at), tone: 'info' };
@@ -43,7 +45,7 @@ const TONES = {
   bad:   { color: '#B91C1C' },
 };
 
-const canResend = (inv) => !!inv && ['sent', 'expired', 'scheduled', 'sending'].includes(inv.status);
+const canResend = (inv) => !!inv && ['waiting', 'sent', 'expired', 'scheduled', 'sending', 'failed'].includes(inv.status);
 
 const linkBtn = {
   background: 'transparent', border: 'none', padding: '4px 6px', fontFamily: 'inherit',

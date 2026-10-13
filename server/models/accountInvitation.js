@@ -6,6 +6,8 @@
  * workers/emailWorker.js (scheduled rows) or straight away (resends).
  *
  * status:
+ *   waiting    created, not invited yet: sent when there is news for the person
+ *              (a course, a role — services/notices.js) or on Invite now
  *   held       won't send until someone fixes it (hold_reason says why)
  *   scheduled  waiting for send_after (the upload's undo window + 10 s)
  *   sending    claimed by the worker
@@ -42,10 +44,16 @@ export default (sequelize, DataTypes) => sequelize.define(
     source_entity: {
       type: DataTypes.STRING(32),
       allowNull: true,
-      comment: 'faculty | departments | industry_consultants | manual | test',
+      comment: 'faculty | departments | programs | industry_consultants | manual | notice | reminder | request | test',
     },
     import_batch_id: { type: DataTypes.INTEGER.UNSIGNED, allowNull: true },
     period_id:       { type: DataTypes.INTEGER.UNSIGNED, allowNull: true, field: 'academic_period_id' },
+    created_account: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false,
+      comment: 'True when the upload that made this invitation also created the account — undoing it may remove the account.',
+    },
     sent_by_account_id: {
       type: DataTypes.INTEGER.UNSIGNED,
       allowNull: true,
@@ -55,7 +63,7 @@ export default (sequelize, DataTypes) => sequelize.define(
       type: DataTypes.STRING(16),
       allowNull: false,
       defaultValue: 'scheduled',
-      comment: 'held | scheduled | sending | sent | failed | cancelled | accepted',
+      comment: 'waiting | held | scheduled | sending | sent | failed | cancelled | accepted',
     },
     hold_reason: { type: DataTypes.STRING(255), allowNull: true },
     send_after:  { type: DataTypes.DATE, allowNull: true },

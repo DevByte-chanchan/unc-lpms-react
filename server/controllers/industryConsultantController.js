@@ -7,9 +7,39 @@ import { describeSequelizeError } from '../utils/uploadHelpers.js';
 import { enforceLatestPeriod } from '../utils/latestPeriod.js';
 import { isPreviewRequest, PreviewRows, previewResponse } from '../utils/importPreview.js';
 import { beginImportBatch, beginManualBatch, completeImportBatch } from './importController.js';
-import { scheduleUploadInvitations } from '../services/invitations.js';
+import {
+  grantConsultantAccess, revokeConsultantAccess, accessMessage, consultantAccountFor, ROLE as CONSULTANT_ROLE,
+} from '../services/consultantAccess.js';
+import { markDirty, accountsInvolved } from '../services/notices.js';
+import { accessSummaries, inviteNow, tooManyInvites } from '../services/invitations.js';
+import { resolveLinks } from './authController.js';
+import { getActiveTermId } from '../utils/latestPeriod.js';
+import { isAllowedEmailForRoles, normalizeEmail, domainMessage, externalConsultantEmailsAllowed } from '../utils/roles.js';
+import { samePerson } from '../utils/schoolEmail.js';
 
-const { IndustryConsultant, Course, ConsultantCourse, Faculty } = db;
+// Access follows the consultant list. Never throws: a problem here must not
+// fail a write that already happened.
+async function safely(label, fn) {
+  try {
+    return await fn();
+  } catch (err) {
+    console.error('[consultant] ' + label + ':', err.message);
+    return null;
+  }
+}
+
+const { IndustryConsultant, Course, ConsultantCourse, Faculty, UserAccount } = db;
+
+// The email rule for a consultant: UNC, or any valid address when
+// ALLOW_EXTERNAL_CONSULTANT_EMAILS is on (the account may then hold that one role only).
+const emailMessage = () => (externalConsultantEmailsAllowed() ? 'Enter a valid email address.' : domainMessage());
+const consultantEmailOk = (email) => isAllowedEmailForRoles(email, [CONSULTANT_ROLE]);
+
+/** The consultant's account, marked dirty so the notice worker tells them about their courses. */
+const tellConsultant = (name, periodId, req) => safely('could not queue the notice', async () => {
+  const account = await consultantAccountFor(name);
+  if (account) await markDirty([account.id], { periodId, senderId: req.user ? req.user.id : null });
+});
 
 /**
  * Normalise a person's name for fuzzy matching against the Faculty list —
@@ -84,6 +114,12 @@ function withFacultyFlag(row, facultyMap) {
   const json = row.toJSON();
   json.in_faculty_list = !!matchFaculty(row.name, facultyMap);
   return json;
+}
+
+/** Rows with their `access` cell (invitation status) — see accessSummaries. */
+async function withAccess(jsonRows) {
+  const access = await accessSummaries(jsonRows.map((r) => ({ key: r.id, name: r.name, email: null })));
+  return jsonRows.map((r) => ({ ...r, access: access[r.id] || { account_id: null, status: 'none', label: 'No account' } }));
 }
 
 /**
@@ -187,7 +223,7 @@ export async function listConsultants(req, res, next) {
     if (period_id && rows.length > 0) {
       await syncConsultantStatuses(rows, facultyMap);
     }
-    res.json(rows.map((r) => withFacultyFlag(r, facultyMap)));
+    res.json(await withAccess(rows.map((r) => withFacultyFlag(r, facultyMap))));
   } catch (err) { next(err); }
 }
 
@@ -207,8 +243,12 @@ export async function getConsultant(req, res, next) {
 export async function createConsultant(req, res) {
   try {
     const { name, assigned_course_code, assigned_course_codes } = req.body;
+    // For the account and invitation only — industry_consultants has no email column.
+    const email = normalizeEmail(req.body.email);
     const period_id = getPeriodId(req);
     if (!name)      return res.status(400).json({ message: 'name is required' });
+    if (!email)     return res.status(400).json({ message: 'email is required' });
+    if (!consultantEmailOk(email)) return res.status(400).json({ message: 'Email: ' + emailMessage() });
     if (!period_id) return res.status(400).json({ message: 'period_id is required' });
     if (!(await enforceLatestPeriod(res, period_id))) return;
     // Status is auto-linked to the Faculty list (not taken from the request):
@@ -220,8 +260,10 @@ export async function createConsultant(req, res) {
     const safe = await filterOneToExistingColumns(IndustryConsultant, {
       name, status: derivedStatus, status_overridden: false, assigned_course_code, period_id,
     });
-    // Record the manual add, the same way an upload is recorded.
-    const batch = await beginManualBatch('industry_consultants', period_id, name);
+    // Snapshot first, so a row added by hand is undoable the same way an
+    // uploaded one is. Covers consultant_courses too, so undo also drops the
+    // course links created below.
+    const batch = await beginManualBatch('industry_consultants', period_id, name, req.user);
 
     const created = await IndustryConsultant.create(safe);
     if (Array.isArray(assigned_course_codes)) {
@@ -229,8 +271,18 @@ export async function createConsultant(req, res) {
     }
     await completeImportBatch(batch, { added: 1 });
 
+    // The role (and the account, if new). The notice worker tells them —
+    // one email listing the courses linked above — after the undo window.
+    const access = await safely('could not give access', () => grantConsultantAccess({
+      name, email, periodId: period_id, senderId: req.user ? req.user.id : null, batchId: batch ? batch.id : null,
+    }));
+
     const withCourses = await IndustryConsultant.findByPk(created.id, { include: [coursesInclude] });
-    res.status(201).json(withFacultyFlag(withCourses, facultyMap));
+    res.status(201).json({
+      ...withFacultyFlag(withCourses, facultyMap),
+      access,
+      access_message: accessMessage(String(name).trim(), access),
+    });
   } catch (err) {
     res.status(400).json({ message: describeSequelizeError(err) });
   }
@@ -255,8 +307,24 @@ export async function updateConsultant(req, res) {
     // A manual status edit in the Manage form pins the value: mark it
     // overridden so the Faculty auto-link stops overwriting it on load.
     if (req.body.status !== undefined) patch.status_overridden = true;
+    const email = normalizeEmail(req.body.email);
+    if (email && !consultantEmailOk(email)) return res.status(400).json({ message: 'Email: ' + emailMessage() });
+    const oldName = row.name;
     const safe = await filterOneToExistingColumns(IndustryConsultant, patch);
     await row.update(safe);
+
+    // A different person now (new name, or an email given): they get access;
+    // the previous person loses the role if they consult on nothing else.
+    const otherPerson = patch.name && !samePerson(patch.name, oldName);
+    let access = null;
+    if (otherPerson || email) {
+      access = await safely('could not give access', () => grantConsultantAccess({
+        name: row.name, email, periodId: row.period_id, senderId: req.user ? req.user.id : null,
+      }));
+    }
+    if (otherPerson) {
+      await safely('could not remove access', () => revokeConsultantAccess({ name: oldName, periodId: row.period_id, senderId: req.user ? req.user.id : null }));
+    }
 
     // Flipping a consultant to Unavailable releases their courses so
     // other consultants can pick them up (the row also moves to archive).
@@ -277,10 +345,15 @@ export async function updateConsultant(req, res) {
       }
       await syncConsultantCourses(row.id, row.period_id, req.body.assigned_course_codes);
     }
+    // Their courses (or status) may have changed: one email after the undo window.
+    await tellConsultant(row.name, row.period_id, req);
 
     const facultyMap = await loadFacultyMap(row.period_id);
     const updated = await IndustryConsultant.findByPk(row.id, { include: [coursesInclude] });
-    res.json(withFacultyFlag(updated, facultyMap));
+    res.json({
+      ...withFacultyFlag(updated, facultyMap),
+      ...(access ? { access, access_message: accessMessage(row.name, access) } : {}),
+    });
   } catch (err) {
     res.status(400).json({ message: describeSequelizeError(err) });
   }
@@ -326,6 +399,9 @@ export async function assignCourse(req, res) {
       }
       await syncConsultantCourses(consultant.id, consultant.period_id, codes);
     }
+    // One email listing their courses, after the undo window; a second
+    // assignment inside it just updates the same email.
+    await tellConsultant(consultant.name, consultant.period_id, req);
 
     const facultyMap = await loadFacultyMap(consultant.period_id);
     const updated = await IndustryConsultant.findByPk(consultant.id, { include: [coursesInclude] });
@@ -343,7 +419,54 @@ export async function deleteConsultant(req, res, next) {
     // consultant_courses rows are removed via ON DELETE CASCADE.
     const n = await IndustryConsultant.destroy({ where: { id: req.params.id } });
     if (!n) return res.status(404).json({ message: 'Consultant not found' });
+    // Takes the role away (keeps the account) and marks them dirty, so they
+    // hear "no longer the consultant for …" only if they had courses.
+    await safely('could not remove access', () => revokeConsultantAccess({ name: row.name, periodId: row.period_id, senderId: req.user ? req.user.id : null }));
     res.status(204).end();
+  } catch (err) { next(err); }
+}
+
+/** POST /:id/invite — an invitation right now, signed by the Program Head who clicked. */
+export async function inviteConsultant(req, res, next) {
+  try {
+    const row = await IndustryConsultant.findByPk(req.params.id);
+    if (!row) return res.status(404).json({ message: 'Consultant not found' });
+    if (!(await enforceLatestPeriod(res, row.period_id))) return undefined;
+    const account = await consultantAccountFor(row.name);
+    if (!account) return res.status(400).json({ message: 'No account for ' + row.name + ' yet. Give them an email in Manage first.' });
+    if (await tooManyInvites(account.id)) return res.status(429).json({ message: 'At most 5 invitations an hour for one person. Try again later.' });
+    const r = await inviteNow(account, { senderId: req.user.id, source: 'industry_consultants', periodId: row.period_id });
+    if (r.status === 'active') return res.status(409).json({ message: r.reason, hint: 'Use Forgot password.', access: r.invitation });
+    if (r.status === 'disabled') return res.status(400).json({ message: r.reason });
+    if (r.status === 'sent') return res.json({ message: 'Invitation sent to ' + account.email + '.', access: r.invitation });
+    if (r.status === 'skipped') return res.json({ message: 'Not sent: ' + (r.reason || 'skipped by the mailer'), access: r.invitation, skipped: true });
+    return res.status(502).json({ message: 'The email could not be sent: ' + (r.reason || 'unknown error'), access: r.invitation });
+  } catch (err) {
+    return next(err);
+  }
+}
+
+/**
+ * GET /me/courses — the signed-in consultant's assigned courses this term
+ * (or ?period_id=): their industry_consultants row, matched like sign-in links
+ * it (email, then name), joined through consultant_courses to the catalog.
+ */
+export async function myCourses(req, res, next) {
+  try {
+    const periodId = Number(req.query.period_id) || await getActiveTermId();
+    if (!periodId) return res.json([]);
+    const { consultantId } = await resolveLinks(req.user, periodId);
+    if (!consultantId) return res.json([]);
+    const links = await ConsultantCourse.findAll({
+      where: { consultant_id: consultantId },
+      include: [{ model: Course, as: 'course', attributes: ['course_no', 'course_title', 'year_lvl'] }],
+      order: [['course_code', 'ASC']],
+    });
+    res.json(links.map((l) => ({
+      code: l.course ? l.course.course_no : l.course_code,
+      title: l.course ? l.course.course_title : null,
+      year_level: l.course ? l.course.year_lvl : null,
+    })));
   } catch (err) { next(err); }
 }
 
@@ -425,7 +548,7 @@ export async function uploadConsultants(req, res) {
       });
     });
 
-    // ---------- PREVIEW: persist NOTHING and return before anything is recorded ----------
+    // ---------- PREVIEW: persist NOTHING and return before the snapshot ----------
     // Everything below this line writes — and this upload DESTROYS the period's
     // consultants (and their course links) before re-inserting.
     if (isPreviewRequest(req)) {
@@ -440,8 +563,13 @@ export async function uploadConsultants(req, res) {
       return res.status(400).json({ message: 'No valid rows found.', headers, errors });
     }
 
-    // Record the upload (who/what/when). Uploads are final — there is no undo.
-    const batch = await beginImportBatch('industry_consultants', period_id, req.file.originalname);
+    // Photograph the period BEFORE the destroy below — the snapshot covers
+    // consultant_courses too, so undo restores the course links as well.
+    const batch = await beginImportBatch('industry_consultants', period_id, req.file.originalname, req.user);
+    // Who consulted before this upload, so anyone it drops loses the role —
+    // and everyone whose courses the replace could touch, so they're all told.
+    const previousNames = (await IndustryConsultant.findAll({ where: { period_id }, attributes: ['name'] })).map((r) => r.name);
+    const involvedBefore = await safely('could not list accounts', () => accountsInvolved(period_id)) || [];
 
     // Replace the period's consultants (CASCADE clears their join rows),
     // then recreate each consultant with its course links.
@@ -475,12 +603,32 @@ export async function uploadConsultants(req, res) {
 
     await completeImportBatch(batch, { inserted, replaced: removed });
 
-    const invitations = await scheduleUploadInvitations({
-      entity: 'industry_consultants',
-      people: records.map((r) => ({ name: r.name, email: r.email ? String(r.email).trim() : '', roles: ['Industry Consultant'] })),
-      batchId: batch ? batch.id : null,
-      periodId: period_id,
-      senderId: req.user ? req.user.id : null,
+    // Access for everyone on the list: an invitation for people with no
+    // account, the role for people who have one. The notice worker then sends
+    // each person ONE email listing their courses, after the undo window.
+    const invitations = { scheduled: 0, held: 0, skipped: 0, rolesAdded: 0 };
+    for (const rec of records) {
+      const r = await safely('could not give access', () => grantConsultantAccess({
+        name: rec.name,
+        email: rec.email ? String(rec.email).trim() : '',
+        periodId: period_id,
+        senderId: req.user ? req.user.id : null,
+        batchId: batch ? batch.id : null,
+      }));
+      const status = r ? r.status : 'skipped';
+      if (status === 'invited') invitations.scheduled += 1;
+      else if (status === 'held') invitations.held += 1;
+      else if (status === 'role_added') invitations.rolesAdded += 1;
+      else invitations.skipped += 1;
+    }
+    for (const name of previousNames) {
+      if (records.some((rec) => samePerson(rec.name, name))) continue;
+      await safely('could not remove access', () => revokeConsultantAccess({ name, periodId: period_id, senderId: req.user ? req.user.id : null }));
+    }
+    // Everyone involved before or after: the diff decides who really changed.
+    await safely('could not queue the notices', async () => {
+      const involvedAfter = await accountsInvolved(period_id);
+      await markDirty([...involvedBefore, ...involvedAfter], { periodId: period_id, senderId: req.user ? req.user.id : null });
     });
 
     res.status(201).json({

@@ -26,6 +26,8 @@ import DepartmentStatementFactory from './departmentStatement.js';
 import UserAccountFactory     from './userAccount.js';
 import AccountInvitationFactory from './accountInvitation.js';
 import PasswordResetFactory   from './passwordReset.js';
+import AccountNoticeFactory   from './accountNotice.js';
+import NotificationFactory    from './notification.js';
 
 // --- Mirror tables (data sourced from other modules) ---
 // Faculty and Department records that originate from the HR / Dean
@@ -44,9 +46,10 @@ const db = {
   Course:                 CourseFactory(sequelize, DataTypes),
   Prerequisite:           PrerequisiteFactory(sequelize, DataTypes),
   ProgramCourseOffering:  ProgramCourseOfferingFactory(sequelize, DataTypes),
-  // The record of each bulk upload / manual add (uploads are final; no undo).
+  // Before-images of bulk uploads, so an upload can be undone for 30 seconds
+  // after it lands (UNDO_WINDOW_MS in utils/importUndo.js).
   // Deliberately NOT associated to AcademicPeriod: a batch must outlive the
-  // rows it describes, and invitations still point at it.
+  // rows it describes, and a cascading delete would take the undo with them.
   ImportBatch:            ImportBatchFactory(sequelize, DataTypes),
   // University VMGO — versioned, not period-scoped (see the model).
   UniversityStatement:    UniversityStatementFactory(sequelize, DataTypes),
@@ -58,6 +61,10 @@ const db = {
   // only; no foreign keys (records that outlive what they point at).
   AccountInvitation:      AccountInvitationFactory(sequelize, DataTypes),
   PasswordReset:          PasswordResetFactory(sequelize, DataTypes),
+  // What each person was last told about a term (roles, courses) and whether
+  // there is news to send (services/notices.js); the in-app bell. No FKs.
+  AccountNotice:          AccountNoticeFactory(sequelize, DataTypes),
+  Notification:           NotificationFactory(sequelize, DataTypes),
   sequelize,
 };
 

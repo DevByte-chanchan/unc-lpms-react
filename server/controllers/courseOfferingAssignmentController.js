@@ -33,8 +33,21 @@ import { isPreviewRequest, PreviewRows, previewResponse } from '../utils/importP
 import { beginImportBatch, beginManualBatch, completeImportBatch } from './importController.js';
 import { courseSemesterOf, periodSemesterOf } from '../utils/courseSemester.js';
 import { offeringIndexForPeriod } from '../utils/offeringLink.js';
+import { markDirty, accountsInvolved, accountsOnRow } from '../services/notices.js';
 
 const { CourseOfferingAssignment, Course, Faculty, AcademicPeriod, Program } = db;
+
+// Every write here hands the people it touched to the notice worker
+// (services/notices.js): after the undo window they get ONE email listing
+// their courses — or nothing, when nothing really changed for them. Never
+// throws: a problem here must not fail a write that already happened.
+async function tell(accountIds, periodId, req) {
+  try {
+    await markDirty(accountIds, { periodId, senderId: req && req.user ? req.user.id : null });
+  } catch (err) {
+    console.error('[assignments] could not queue notices:', err.message);
+  }
+}
 
 /**
  * Normalise a person's name for fuzzy matching: drop common honorifics
@@ -197,6 +210,10 @@ function resolveAssignment(courseCode, facultyName, lists, programId = null) {
  */
 async function syncAssignmentsAgainstCatalog(rows, lists, periodId = null) {
   let changed = 0;
+  // Rows rewritten in any way (status, course, offering, faculty, year level) —
+  // a faculty member uploaded later now matching a row counts, even though the
+  // status may not have moved. This is what decides whether anyone is told.
+  let updated = 0;
   const summary = {};
   for (const row of rows) {
     // NEVER rewrite a row against another period's catalog. `lists` is built for
@@ -223,11 +240,12 @@ async function syncAssignmentsAgainstCatalog(rows, lists, periodId = null) {
       || row.faculty_id !== resolved.faculty_id
       || (row.year_level ?? null) !== (resolved.year_level ?? null)) {
       if (row.status !== resolved.status) changed++;
+      updated++;
       await row.update(resolved);
     }
     summary[resolved.status] = (summary[resolved.status] || 0) + 1;
   }
-  return { changed, summary };
+  return { changed, updated, summary };
 }
 
 export async function listCourseOfferingAssignments(req, res, next) {
@@ -242,7 +260,10 @@ export async function listCourseOfferingAssignments(req, res, next) {
     // year levels + Verified/Pending/Flagged, without clicking Re-validate.
     if (period_id && rows.length > 0) {
       const lists = await loadMasterLists(period_id);
-      await syncAssignmentsAgainstCatalog(rows, lists, period_id);
+      const { updated } = await syncAssignmentsAgainstCatalog(rows, lists, period_id);
+      // Only when a row really moved (e.g. a faculty member uploaded later now
+      // matches it). A plain page load with nothing changed queues nothing.
+      if (updated > 0) await tell(await accountsInvolved(period_id), period_id, req);
     }
 
     res.json(rows);
@@ -284,10 +305,13 @@ export async function createCourseOfferingAssignment(req, res) {
       date_assigned: faculty_name ? new Date() : null,
       period_id,
     });
-    // Record the manual add, the same way an upload is recorded.
-    const batch = await beginManualBatch('course_offering_assignments', period_id, course_code);
+    // Snapshot first, so a row added by hand is undoable the same way an
+    // uploaded one is.
+    const batch = await beginManualBatch('course_offering_assignments', period_id, course_code, req.user);
     const created = await CourseOfferingAssignment.create(safe);
     await completeImportBatch(batch, { added: 1 });
+    // The Lead and Contributors hear about it after the undo window.
+    await tell(await accountsOnRow(created), period_id, req);
 
     res.status(201).json(created);
   } catch (err) {
@@ -353,8 +377,12 @@ export async function updateCourseOfferingAssignment(req, res) {
       patch.year_level = req.body.year_level === '' ? null : String(req.body.year_level).trim();
     }
 
+    // The OLD Lead and Contributors, before the patch lands — whoever comes
+    // off the course is told too ("removed from …").
+    const before = await accountsOnRow(row);
     const safe = await filterOneToExistingColumns(CourseOfferingAssignment, patch);
     await row.update(safe);
+    await tell([...before, ...(await accountsOnRow(row))], row.period_id || callerPeriod, req);
     res.json(row);
   } catch (err) {
     res.status(400).json({ message: describeSequelizeError(err) });
@@ -366,7 +394,9 @@ export async function deleteCourseOfferingAssignment(req, res, next) {
     const row = await CourseOfferingAssignment.findByPk(req.params.id);
     if (!row) return res.status(404).json({ message: 'Course assignment not found' });
     if (!(await enforceLatestPeriod(res, row.period_id))) return;
+    const people = await accountsOnRow(row);
     await CourseOfferingAssignment.destroy({ where: { id: req.params.id } });
+    await tell(people, row.period_id, req);
     res.status(204).end();
   } catch (err) { next(err); }
 }
@@ -387,7 +417,10 @@ export async function revalidateCourseOfferingAssignments(req, res) {
     const where = await safeWhereForPeriod(CourseOfferingAssignment, req);
     const rows = await CourseOfferingAssignment.findAll({ where });
     const lists = await loadMasterLists(period_id);
-    const { changed, summary } = await syncAssignmentsAgainstCatalog(rows, lists, period_id);
+    const { changed, updated, summary } = await syncAssignmentsAgainstCatalog(rows, lists, period_id);
+    // Only if something really moved: the diff then tells only the people
+    // whose courses actually changed, and a no-op re-validate sends nothing.
+    if (updated > 0) await tell(await accountsInvolved(period_id), period_id, req);
     res.json({ total: rows.length, changed, summary });
   } catch (err) {
     res.status(400).json({ message: describeSequelizeError(err) });
@@ -623,7 +656,7 @@ export async function uploadCourseOfferingAssignments(req, res) {
       });
     }
 
-    // ---------- PREVIEW: persist NOTHING and return before anything is recorded ----------
+    // ---------- PREVIEW: persist NOTHING and return before the snapshot ----------
     // Everything below this line writes — and this upload DESTROYS the period's
     // whole assignment list before re-inserting.
     if (isPreviewRequest(req)) {
@@ -641,13 +674,21 @@ export async function uploadCourseOfferingAssignments(req, res) {
       return res.status(400).json({ message: 'No valid rows found.', headers, errors });
     }
 
-    // Record the upload (who/what/when). Uploads are final — there is no undo.
-    const batch = await beginImportBatch('course_offering_assignments', period_id, req.file.originalname);
+    // Photograph the period BEFORE the destroy below — this upload replaces
+    // the whole assignment list, so the snapshot is the only way back.
+    const batch = await beginImportBatch('course_offering_assignments', period_id, req.file.originalname, req.user);
+
+    // Everyone on the list BEFORE it is replaced — people the new file drops
+    // must be told too — and everyone on it after.
+    let involved = [];
+    try { involved = await accountsInvolved(period_id); } catch (err) { console.error('[assignments] could not list accounts:', err.message); }
 
     const removed = await safeDestroyByPeriod(CourseOfferingAssignment, period_id);
     const created = await CourseOfferingAssignment.bulkCreate(records);
 
     await completeImportBatch(batch, { inserted: created.length, replaced: removed });
+    try { involved = [...involved, ...(await accountsInvolved(period_id))]; } catch (err) { console.error('[assignments] could not list accounts:', err.message); }
+    await tell(involved, period_id, req);
 
     res.status(201).json({
       replaced: removed,

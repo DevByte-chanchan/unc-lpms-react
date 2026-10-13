@@ -35,7 +35,8 @@ const SideNavigation = ({ mode: requestedMode = 'instructor' }) => {
 
     const handlePageChange = (page) => {
         if (page === 'Syllabus') {
-            navigate('/');
+            // The Industry Consultant's Syllabus page is their own course list.
+            navigate(mode === 'industry-consultant' ? '/role/industry-consultant/approval-course-table' : '/');
         }
         else if (page === 'TOS') {
             navigate('/assignedtos');
@@ -150,16 +151,16 @@ const SideNavigation = ({ mode: requestedMode = 'instructor' }) => {
 
                 {mode === 'program-head' && (
                     <>
-                        <div onClick={() => { navigate('/role/program-head/industry-consultant?page=Industry%20Consultant') }} className={`${styles.list} ${selected === 'Industry Consultant' ? styles.selected : ''}`}>
-                            <Users size={24} /> <span className={styles.listText}>Industry Consultant</span>
-                        </div>
-
                         <div onClick={() => { navigate('/role/program-head/course-offerings?page=Course%20Offerings') }} className={`${styles.list} ${selected === 'Course Offerings' ? styles.selected : ''}`}>
                             <BookOpen size={24} /> <span className={styles.listText}>Course Offerings</span>
                         </div>
 
                         <div onClick={() => { navigate('/role/program-head/course-assignment?page=Course%20Assignment') }} className={`${styles.list} ${selected === 'Course Assignment' ? styles.selected : ''}`}>
                             <UserCheck size={24} /> <span className={styles.listText}>Course Assignment</span>
+                        </div>
+
+                        <div onClick={() => { navigate('/role/program-head/industry-consultant?page=Industry%20Consultant') }} className={`${styles.list} ${selected === 'Industry Consultant' ? styles.selected : ''}`}>
+                            <Users size={24} /> <span className={styles.listText}>Industry Consultant</span>
                         </div>
                     </>
                 )}

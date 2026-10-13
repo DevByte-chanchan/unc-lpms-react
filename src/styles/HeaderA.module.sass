@@ -210,3 +210,168 @@
     background: #F3F4F6
     outline: none
 
+
+// --- The bell (notifications) ---
+.bellWrap
+  position: relative
+  display: flex
+  align-items: center
+  margin-right: 6px
+
+.bell
+  position: relative
+  display: inline-flex
+  align-items: center
+  justify-content: center
+  width: 40px
+  height: 40px
+  border: 1px solid transparent
+  border-radius: 12px
+  background: transparent
+  color: #374151
+  cursor: pointer
+  transition: background 0.15s ease, border-color 0.15s ease
+
+  &:hover, &:focus-visible
+    background: #F3F4F6
+    outline: none
+
+.bellOpen
+  background: #F3F4F6
+  border-color: #E5E7EB
+
+.badge
+  position: absolute
+  top: 4px
+  right: 4px
+  min-width: 18px
+  height: 18px
+  padding: 0 5px
+  border-radius: 9999px
+  background: #DC2626
+  color: #FFFFFF
+  font-size: 11px
+  font-weight: 700
+  line-height: 18px
+  text-align: center
+  border: 2px solid #FFFFFF
+  box-sizing: content-box
+
+.bellMenu
+  position: absolute
+  top: calc(100% + 6px)
+  right: 0
+  width: 380px
+  max-width: calc(100vw - 32px)
+  background: #FFFFFF
+  border: 1px solid #E5E7EB
+  border-radius: 12px
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12)
+  z-index: 20
+  display: flex
+  flex-direction: column
+  overflow: hidden
+
+.bellHead
+  display: flex
+  align-items: center
+  justify-content: space-between
+  padding: 12px 14px 10px
+  border-bottom: 1px solid #F3F4F6
+
+.bellTitle
+  font-size: 14px
+  font-weight: 600
+  color: #18191A
+
+.markAll
+  border: none
+  background: transparent
+  font-family: inherit
+  font-size: 12.5px
+  font-weight: 500
+  color: #374151
+  cursor: pointer
+  padding: 4px 6px
+  border-radius: 6px
+
+  &:hover, &:focus-visible
+    background: #F3F4F6
+    outline: none
+
+  &:disabled
+    color: #9CA3AF
+    cursor: default
+    background: transparent
+
+.bellList
+  max-height: 420px
+  overflow-y: auto
+  display: flex
+  flex-direction: column
+
+.item
+  display: flex
+  align-items: flex-start
+  gap: 10px
+  width: 100%
+  padding: 10px 14px
+  border: none
+  border-bottom: 1px solid #F9FAFB
+  background: transparent
+  font-family: inherit
+  text-align: left
+  cursor: pointer
+
+  &:hover, &:focus-visible
+    background: #F9FAFB
+    outline: none
+
+.itemUnread
+  background: #FAFAFA
+
+.dot
+  flex-shrink: 0
+  width: 8px
+  height: 8px
+  margin-top: 6px
+  border-radius: 50%
+  background: #2563EB
+
+.dotRead
+  background: transparent
+
+.itemText
+  flex: 1
+  min-width: 0
+  display: flex
+  flex-direction: column
+  gap: 2px
+
+.itemTitle
+  font-size: 13.5px
+  line-height: 1.35
+  color: #18191A
+
+.itemTitleUnread
+  font-weight: 600
+
+.itemBody
+  font-size: 12.5px
+  line-height: 1.35
+  color: #6B7280
+
+.itemMeta
+  font-size: 11.5px
+  color: #9CA3AF
+
+.bellEmpty
+  padding: 28px 14px
+  text-align: center
+  font-size: 13px
+  color: #6B7280
+
+.bellError
+  padding: 10px 14px
+  font-size: 12.5px
+  color: #B91C1C

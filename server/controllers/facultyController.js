@@ -7,9 +7,12 @@ import { cloneFromPriorPeriod } from '../utils/periodClone.js';
 import { enforceLatestPeriod } from '../utils/latestPeriod.js';
 import { isPreviewRequest, PreviewRows, previewResponse } from '../utils/importPreview.js';
 import { beginImportBatch, beginManualBatch, completeImportBatch } from './importController.js';
-import { scheduleUploadInvitations, rolesForFacultyRow } from '../services/invitations.js';
+import {
+  scheduleUploadInvitations, rolesForFacultyRow, accessSummaries, inviteNow, tooManyInvites,
+} from '../services/invitations.js';
+import { facultyLeft, LEFT_STATUSES, accountForPerson } from '../services/notices.js';
 
-const { Faculty, Department } = db;
+const { Faculty, Department, UserAccount } = db;
 
 function toIsoDate(v) {
   if (!v) return null;
@@ -20,6 +23,24 @@ function toIsoDate(v) {
     return y + '-' + m + '-' + d;
   }
   return String(v).trim();
+}
+
+// Access follows the faculty list. Never throws: a problem here must not fail
+// a write that already happened.
+async function safely(label, fn) {
+  try {
+    return await fn();
+  } catch (err) {
+    console.error('[faculty] ' + label + ':', err.message);
+    return null;
+  }
+}
+
+/** Each row with its `access` cell (invitation status) — see accessSummaries. */
+async function withAccess(rows) {
+  const people = rows.map((r) => ({ key: r.id, name: r.name, email: r.email }));
+  const access = await accessSummaries(people);
+  return rows.map((r) => ({ ...r.toJSON(), access: access[r.id] || { account_id: null, status: 'none', label: 'No account' } }));
 }
 
 export async function listFaculty(req, res, next) {
@@ -39,7 +60,7 @@ export async function listFaculty(req, res, next) {
       }
     }
 
-    res.json(rows);
+    res.json(await withAccess(rows));
   } catch (err) { next(err); }
 }
 
@@ -73,10 +94,23 @@ export async function createFaculty(req, res) {
       sex, birthdate: birthdate || null, email, contact_number,
       period_id,
     });
-    // Record the manual add, the same way an upload is recorded.
-    const batch = await beginManualBatch('faculty', period_id, name);
+    // Snapshot first, so a row added by hand is undoable the same way an
+    // uploaded one is.
+    const batch = await beginManualBatch('faculty', period_id, name, req.user);
     const created = await Faculty.create(safe);
     await completeImportBatch(batch, { added: 1 });
+
+    // Same as the upload: an account, invited once they have a course.
+    if (String(created.status || 'Active').trim().toLowerCase() === 'active') {
+      await safely('could not prepare the account', () => scheduleUploadInvitations({
+        entity: 'faculty',
+        people: [{ name: created.name, email: created.email, roles: rolesForFacultyRow(created.role) }],
+        batchId: batch ? batch.id : null,
+        periodId: period_id,
+        senderId: req.user ? req.user.id : null,
+        defer: true,
+      }));
+    }
 
     res.status(201).json(created);
   } catch (err) {
@@ -116,8 +150,17 @@ export async function updateFaculty(req, res) {
       }
     }
 
+    const wasActive = !LEFT_STATUSES.includes(row.status);
     const safe = await filterOneToExistingColumns(Faculty, patch);
     await row.update(safe);
+
+    // Leaving the term (Active / On Leave → Inactive, Emeritus, …): the
+    // account loses Instructor only, and they're told if they lost courses.
+    if (wasActive && LEFT_STATUSES.includes(row.status)) {
+      await safely('could not update access', () => facultyLeft({
+        faculty: row, periodId: row.period_id, senderId: req.user ? req.user.id : null,
+      }));
+    }
     res.json(row);
   } catch (err) {
     res.status(400).json({ message: describeSequelizeError(err) });
@@ -134,7 +177,15 @@ export async function inactivateMany(req, res) {
     const callerPeriod = getPeriodId(req);
     if (callerPeriod && !(await enforceLatestPeriod(res, callerPeriod))) return;
     const where = callerPeriod ? { id: ids, period_id: callerPeriod } : { id: ids };
+    const rows = await Faculty.findAll({ where, attributes: ['id', 'name', 'email', 'status', 'period_id'] });
     await Faculty.update({ status: 'Inactive' }, { where });
+    // Each one leaves the term: Instructor goes, courses lost are reported.
+    for (const f of rows) {
+      if (LEFT_STATUSES.includes(f.status)) continue;   // already out
+      await safely('could not update access', () => facultyLeft({
+        faculty: { ...f.toJSON(), status: 'Inactive' }, periodId: f.period_id, senderId: req.user ? req.user.id : null,
+      }));
+    }
     res.json({ inactivated: ids.length });
   } catch (err) {
     res.status(400).json({ message: describeSequelizeError(err) });
@@ -150,6 +201,70 @@ export async function deleteFaculty(req, res, next) {
     if (!n) return res.status(404).json({ message: 'Faculty not found' });
     res.status(204).end();
   } catch (err) { next(err); }
+}
+
+// --- Invite now / Resend ------------------------------------------------------
+
+const inviteReply = (res, r, account) => {
+  if (r.status === 'active') return res.status(409).json({ message: r.reason, hint: 'Use Forgot password.', access: r.invitation });
+  if (r.status === 'disabled') return res.status(400).json({ message: r.reason });
+  if (r.status === 'sent') return res.json({ message: 'Invitation sent to ' + account.email + '.', access: r.invitation });
+  if (r.status === 'skipped') return res.json({ message: 'Not sent: ' + (r.reason || 'skipped by the mailer'), access: r.invitation, skipped: true });
+  return res.status(502).json({ message: 'The email could not be sent: ' + (r.reason || 'unknown error'), access: r.invitation });
+};
+
+async function accountForFacultyRow(row) {
+  const accounts = await UserAccount.findAll({ attributes: ['id', 'email', 'display_name', 'status', 'roles', 'must_change_password'] });
+  return accountForPerson(accounts, row);
+}
+
+/** POST /api/faculty/:id/invite — an invitation right now, signed by the Dean who clicked. */
+export async function inviteFaculty(req, res, next) {
+  try {
+    const row = await Faculty.findByPk(req.params.id);
+    if (!row) return res.status(404).json({ message: 'Faculty not found' });
+    if (!(await enforceLatestPeriod(res, row.period_id))) return undefined;
+    let account = await accountForFacultyRow(row);
+    if (!account) {
+      // Never uploaded as Active, or the account was removed: make one now.
+      const s = await scheduleUploadInvitations({
+        entity: 'faculty', people: [{ name: row.name, email: row.email, roles: rolesForFacultyRow(row.role) }],
+        periodId: row.period_id, senderId: req.user.id, defer: true,
+      });
+      account = await accountForFacultyRow(row);
+      if (!account) return res.status(400).json({ message: s.held ? 'Held: check the email on the faculty record first.' : 'No account could be made for ' + row.name + '.' });
+    }
+    if (await tooManyInvites(account.id)) return res.status(429).json({ message: 'At most 5 invitations an hour for one person. Try again later.' });
+    const r = await inviteNow(account, { senderId: req.user.id, source: 'faculty', periodId: row.period_id });
+    return inviteReply(res, r, account);
+  } catch (err) {
+    return next(err);
+  }
+}
+
+/** POST /api/faculty/invite-all { period_id } — everyone "Not invited yet" in the period. */
+export async function inviteAllFaculty(req, res, next) {
+  try {
+    const period_id = getPeriodId(req);
+    if (!period_id) return res.status(400).json({ message: 'period_id is required' });
+    if (!(await enforceLatestPeriod(res, period_id))) return undefined;
+    const rows = await Faculty.findAll({ where: { period_id }, attributes: ['id', 'name', 'email', 'role', 'status'] });
+    const list = await withAccess(rows);
+    const out = { sent: 0, skipped: 0, failed: 0, total: 0 };
+    for (const f of list) {
+      if (!f.access || f.access.status !== 'waiting' || !f.access.account_id) continue;
+      out.total += 1;
+      const account = await UserAccount.findByPk(f.access.account_id);
+      if (!account || await tooManyInvites(account.id)) { out.skipped += 1; continue; }
+      const r = await inviteNow(account, { senderId: req.user.id, source: 'faculty', periodId: period_id });
+      if (r.status === 'sent') out.sent += 1;
+      else if (r.status === 'skipped' || r.status === 'active') out.skipped += 1;
+      else out.failed += 1;
+    }
+    return res.json(out);
+  } catch (err) {
+    return next(err);
+  }
 }
 
 export async function uploadFaculty(req, res) {
@@ -238,7 +353,7 @@ export async function uploadFaculty(req, res) {
       });
     });
 
-    // ---------- PREVIEW: persist NOTHING and return before anything is recorded ----------
+    // ---------- PREVIEW: persist NOTHING and return before the snapshot ----------
     // Past this point the upload starts writing. A file with zero valid rows is
     // NOT an error here (unlike the commit path below) — it is the wrong-file
     // case this step exists to catch, and the red rows say so better than a 400.
@@ -265,21 +380,24 @@ export async function uploadFaculty(req, res) {
     // `missing` so the client can reconcile them (NOT auto-deleted).
     const existing = await Faculty.findAll({
       where: { period_id },
-      attributes: ['id', 'name', 'role', 'status'],
+      attributes: ['id', 'name', 'role', 'status', 'email'],
       raw: true,
     });
     const existingByName = new Map(existing.map((r) => [String(r.name).trim().toLowerCase(), r]));
 
-    // Record the upload (who/what/when). Uploads are final — there is no undo.
-    const batch = await beginImportBatch('faculty', period_id, req.file.originalname);
+    // Photograph the period before the merge below overwrites anything —
+    // this is what the Undo button restores.
+    const batch = await beginImportBatch('faculty', period_id, req.file.originalname, req.user);
 
     let inserted = 0;
     let updated  = 0;
+    const left = [];   // rows the file moved out of the term
     for (const rec of records) {
       const safe = await filterOneToExistingColumns(Faculty, rec);
       const ex = existingByName.get(String(rec.name).trim().toLowerCase());
       if (ex) {
         await Faculty.update(safe, { where: { id: ex.id } });
+        if (!LEFT_STATUSES.includes(ex.status) && LEFT_STATUSES.includes(rec.status)) left.push({ ...ex, status: rec.status });
         updated += 1;
       } else {
         await Faculty.create(safe);
@@ -290,7 +408,8 @@ export async function uploadFaculty(req, res) {
     await completeImportBatch(batch, { inserted, updated });
 
     // Everyone Active on the sheet gets LPMS access: an account (if new) and a
-    // set-password invitation, sent on the email worker's next poll.
+    // 'waiting' invitation — nothing is emailed until they have a course (the
+    // course assignment invites them) or the Dean presses Invite now.
     const invitations = await scheduleUploadInvitations({
       entity: 'faculty',
       people: records
@@ -299,7 +418,11 @@ export async function uploadFaculty(req, res) {
       batchId: batch ? batch.id : null,
       periodId: period_id,
       senderId: req.user ? req.user.id : null,
+      defer: true,
     });
+    for (const f of left) {
+      await safely('could not update access', () => facultyLeft({ faculty: { ...f, period_id }, periodId: period_id, senderId: req.user ? req.user.id : null }));
+    }
 
     const seenNames = new Set(records.map((r) => String(r.name).trim().toLowerCase()));
     const missing = existing.filter((r) => !seenNames.has(String(r.name).trim().toLowerCase()));

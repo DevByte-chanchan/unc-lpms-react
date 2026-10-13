@@ -2,14 +2,14 @@
  * Dry-run support for the bulk-upload endpoints.
  *
  * Every upload controller already runs in two halves: parse the sheet into
- * `records` + `errors`, THEN record the batch and write. A preview is simply an early
+ * `records` + `errors`, THEN snapshot and write. A preview is simply an early
  * return between those halves — nothing has touched the database yet, so a
  * dry run is exactly the first half with the second half skipped.
  *
  * The rule that keeps it honest: `previewResponse()` must be returned BEFORE
  * `beginImportBatch()`. Past that line the upload has started writing, and a
- * preview that leaves a batch behind would record an import that never
- * happened.
+ * preview that leaves a batch behind would offer an Undo for an import that
+ * never happened.
  *
  * SHAPE — one payload for every entity, so the client has one component:
  *

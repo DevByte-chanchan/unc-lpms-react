@@ -133,7 +133,7 @@ test('auth over HTTP', { skip }, async (t) => {
       ['GET', '/auth/me'], ['POST', '/auth/logout'], ['POST', '/auth/change-password'],
       ['GET', '/academic-periods'], ['GET', '/departments'], ['GET', '/faculty'], ['GET', '/programs'],
       ['GET', '/courses'], ['GET', '/industry-consultants'], ['GET', '/course-offering-assignments'],
-      ['GET', '/archive'], ['GET', '/university-statements/current'],
+      ['GET', '/archive'], ['GET', '/imports/latest'], ['GET', '/university-statements/current'],
       ['GET', '/department-statements/all'], ['GET', '/user-accounts'], ['POST', '/faculty/upload'],
       ['POST', '/user-accounts'], ['PATCH', '/departments/1'],
     ];

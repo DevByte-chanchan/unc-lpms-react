@@ -31,6 +31,7 @@ import { renameIdColumns } from './utils/renameIdColumns.js';
 import { backfillProgramHeadIds } from './controllers/programController.js';
 import { assertAuthConfig } from './utils/session.js';
 import { startEmailWorker } from './workers/emailWorker.js';
+import { baselineNotices } from './services/notices.js';
 
 dotenv.config();
 
@@ -165,6 +166,10 @@ const PORT = Number(process.env.PORT || 4000);
     // One-time (idempotent) backfill: sync course_offerings/course_offering_assignments
     // year_level from the catalog so moved courses reflect everywhere.
     await backfillYearLevelsFromCatalog();
+
+    // Notices: the active term's existing assignments and consultant links
+    // count as already told, so a deploy never emails about old data.
+    await baselineNotices().catch((err) => console.error('[notices] baseline failed:', err.message));
 
 
     console.log('[boot] no auto-seed (periods are user-managed).');

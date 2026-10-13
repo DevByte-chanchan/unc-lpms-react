@@ -1,5 +1,5 @@
 // Preview & Confirm — the review dialog between picking a file and writing it,
-// (the only safeguard: imports are final once confirmed).
+// plus the undo toast that follows the commit.
 //
 // Palette is the module's existing one: primary #18191A, text #374151,
 // borders #D1D5DB, error #B91C1C, muted #6B7280. The green is picked to sit
@@ -428,10 +428,130 @@ $warn-bg: #FFFBEB
   color: $error
   font-size: 13px
 
-// The last word before the write: there is no undo after Confirm & Import.
-// Grey and small — a fact about the button beside it, not an alarm.
+// Beside Confirm & Import: how long the escape hatch lasts. Grey and small —
+// a fact about the button next to it, not an alarm.
 .finalNote
   color: #6B7280
   font-size: 12px
   line-height: 1.4
   max-width: 260px
+
+// ---------- undo toast ----------
+
+// z-index 100 puts the toast ABOVE ReconciliationModal (overlay 90 / modal 91).
+// It has to: on most pages the reconciliation modal opens the instant the upload
+// lands, and at z-index 80 the toast sat UNDER its dimming overlay — visible but
+// dead, with Undo and the X swallowed by the overlay for the entire 30 seconds.
+// A 30-second escape hatch you cannot click is not an escape hatch.
+.toast
+  position: fixed
+  right: 24px
+  bottom: 24px
+  z-index: 100
+  display: flex
+  align-items: center
+  gap: 16px
+  max-width: min(560px, calc(100vw - 48px))
+  padding: 14px 14px 14px 18px
+  background: #18191A
+  border-radius: 8px
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.28)
+  color: #FFFFFF
+  animation: toastIn 0.18s ease-out
+
+@keyframes toastIn
+  from
+    opacity: 0
+    transform: translateY(8px)
+  to
+    opacity: 1
+    transform: translateY(0)
+
+.toastText
+  display: flex
+  flex-direction: column
+  gap: 2px
+  font-size: 14px
+  line-height: 1.4
+
+.toastSub
+  font-size: 12px
+  color: #9CA3AF
+
+.toastActions
+  display: flex
+  align-items: center
+  gap: 6px
+  margin-left: auto
+
+// The same control as the page's Undo button (UndoUploadButton.jsx): 40px tall,
+// 6px radius, 18px CornerUpLeft icon, 8px gap, weight 500, sentence-case label.
+// It keeps a WHITE background with dark text rather than inheriting the page
+// button's white-on-white — this one sits on a near-black toast, and the escape
+// hatch has to be the first thing the eye lands on. Contrast is the only thing
+// that differs; it is not a ghost button.
+.undoBtn
+  display: inline-flex
+  align-items: center
+  gap: 8px
+  height: 40px
+  padding: 0 18px
+  border-radius: 6px
+  border: none
+  background: #FFFFFF
+  color: #18191A
+  font-size: 14px
+  font-weight: 500
+  cursor: pointer
+  white-space: nowrap
+
+  &:hover:not(:disabled)
+    background: #E5E7EB
+
+  &:disabled
+    cursor: not-allowed
+    opacity: 0.6
+
+.undoIcon
+  width: 22px
+  height: 22px
+  display: inline-flex
+  align-items: center
+  justify-content: center
+
+// The remaining seconds — red and tabular so the digits don't jitter as they
+// tick. Identical treatment in the page button, because it is the same clock.
+.count
+  font-variant-numeric: tabular-nums
+  color: $error
+  font-weight: 700
+
+.dismiss
+  position: absolute
+  top: 4px
+  left: 4px
+  display: inline-flex
+  align-items: center
+  justify-content: center
+  width: 16px
+  height: 16px
+  padding: 0
+  border-radius: 4px
+  border: none
+  background: transparent
+  color: #FFFFFF
+  cursor: pointer
+  flex-shrink: 0
+
+  &:hover
+    background: rgba(255, 255, 255, 0.18)
+
+// The undo confirm dialog has to clear ReconciliationModal too, and ConfirmModal
+// hardcodes z-index 60/61 — a shared component we don't get to renumber for one
+// caller. A positioned ancestor with a z-index creates a stacking context, and
+// fixed-position descendants are painted INSIDE it, so the dialog's own 60/61
+// become local and the whole thing lands above the modal at 110. Zero-height
+// wrapper; it only exists to carry the stacking context.
+.undoDialogLayer
+  position: relative
+  z-index: 110

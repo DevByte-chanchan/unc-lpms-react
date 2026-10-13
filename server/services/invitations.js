@@ -1,16 +1,22 @@
 /**
  * Account invitations: "you've been given access — set your password".
  *
- *   createInvitation(account, opts)            a new row (scheduled or held)
+ *   createInvitation(account, opts)            a new row (waiting, scheduled, held or sending)
  *   sendInvitation(invitation, opts)           token → email → sent / held / failed (+ retry)
- *   scheduleUploadInvitations({ … })           after a faculty / department / consultant upload
+ *   scheduleUploadInvitations({ … })           after a faculty / department / program / consultant upload
+ *   cancelBatchInvitations(batch)              when that upload is undone
  *   deliverDueInvitations()                    the email worker's tick
+ *   sendDueReminders()                         day-3 / day-6 reminders, same tick
+ *   inviteNow(account, { senderId })           Invite now / Resend (Dean, Program Head, VPAA)
+ *   requestInvitation(email)                   "Send me a new link" from a dead link
  *   findLiveInvitation(token)                  for the set-password page
- *   invitationSummaries(accountIds)            the User Accounts "Invitation" column
+ *   invitationSummaries(accountIds)            the Invitation / Access columns
  *
  * The email is signed by whoever gave the access (sent_by_account_id), read
  * back from the row at send time — the worker sends long after the upload's
- * request is gone.
+ * request is gone. Every invitation lists the person's CURRENT roles and
+ * courses (services/notices.js → currentState), and records what it told them
+ * in account_notices, so the notice worker finds nothing new afterwards.
  */
 import { Op } from 'sequelize';
 import db from '../models/index.js';
@@ -18,9 +24,11 @@ import { sendMail } from './mailer.js';
 import { invitationEmail } from '../templates/invitationEmail.js';
 import { hashPassword } from '../controllers/authController.js';
 import { getActiveTermId } from '../utils/latestPeriod.js';
-import { isAllowedEmail, isRole, normalizeEmail, sortRoles } from '../utils/roles.js';
+import { UNDO_WINDOW_MS } from '../utils/importUndo.js';
+import { isAllowedEmail, isAllowedEmailForRoles, isRole, normalizeEmail, sortRoles } from '../utils/roles.js';
 import { schoolEmail, samePerson } from '../utils/schoolEmail.js';
 import { newToken, hashToken, looksLikeToken, unusablePassword } from '../utils/tokens.js';
+import { currentState, recordTold, deadlinesFor } from './notices.js';
 
 const { AccountInvitation, UserAccount, Faculty, Department, Program } = db;
 
@@ -28,12 +36,19 @@ export const INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 export const INVITE_TTL_DAYS = 7;
 // After a failed send: retry in 1, 5 and 30 minutes, then give up.
 export const RETRY_DELAYS_MS = [60 * 1000, 5 * 60 * 1000, 30 * 60 * 1000];
-// Upload invitations are due straight away: uploads are final (there is no
-// undo window to wait out), so the worker sends them on its next poll.
-export const UPLOAD_SEND_DELAY_MS = 0;
+// Scheduled sends wait out the upload's undo window, plus a margin, so no
+// invitation goes out while the upload that granted it can still be undone.
+export const UPLOAD_SEND_DELAY_MS = UNDO_WINDOW_MS + 10 * 1000;
+// Someone who hasn't set a password gets a reminder 3 days after each
+// invitation, at most this many times per account.
+export const REMINDER_AFTER_MS = 3 * 24 * 60 * 60 * 1000;
+export const MAX_REMINDERS = 2;
 
 // Not yet accepted, not dead: a newer invitation supersedes these.
-const OUTSTANDING = ['held', 'scheduled', 'sent', 'failed'];
+const OUTSTANDING = ['waiting', 'held', 'scheduled', 'sent', 'failed'];
+// Created but not to be sent until there is news (a course, a role) or
+// someone presses Invite now.
+export const WAITING = 'waiting';
 
 export const appBaseUrl = () => String(process.env.APP_BASE_URL || 'http://localhost:5173').replace(/\/+$/, '');
 
@@ -44,7 +59,7 @@ const cleanName = (s) => String(s || '').trim().replace(/\s+/g, ' ').slice(0, 10
 
 const periodOr = async (periodId) => Number(periodId) || await getActiveTermId();
 
-async function facultyRowFor(periodId, { name, email }) {
+export async function facultyRowFor(periodId, { name, email }) {
   if (!periodId) return null;
   const rows = await Faculty.findAll({
     where: { period_id: periodId },
@@ -97,12 +112,19 @@ export async function describeRoles(account, periodId) {
   return out;
 }
 
-// Which of the sender's roles gave the access, by where the invitation came from.
+// Which of the sender's roles gave the access, by where the invitation came
+// from. A notice (course assignment, consultant course) or a reminder is
+// signed with the sender's own highest hands-on role: Program Head if they
+// have it, else Dean, else VPAA.
 const SENDER_ROLE = {
   faculty: 'Dean',
+  programs: 'Dean',
   industry_consultants: 'Program Head',
   departments: 'VPAA',
   manual: 'VPAA',
+  notice: null,
+  reminder: null,
+  request: null,
 };
 
 /** { name, title } for the signature, or null for the system signature. */
@@ -112,8 +134,9 @@ export async function senderFor(invitation) {
   if (!account) return null;
   const pid = await periodOr(invitation.period_id);
   const person = { name: account.display_name, email: account.email };
-  const role = SENDER_ROLE[invitation.source_entity]
-    || ['VPAA', 'Dean', 'Program Head'].find((r) => (account.roles || []).includes(r));
+  const bySource = SENDER_ROLE[invitation.source_entity];
+  const order = bySource === null ? ['Program Head', 'Dean', 'VPAA'] : ['VPAA', 'Dean', 'Program Head'];
+  const role = bySource || order.find((r) => (account.roles || []).includes(r));
 
   if (role === 'VPAA') return { name: account.display_name, title: 'Vice President for Academic Affairs' };
 
@@ -142,6 +165,7 @@ export async function senderFor(invitation) {
 
 /**
  * A new invitation for `account`. Status is 'held' when holdReason is given,
+ * 'waiting' with `defer` (nothing is sent until there is news, or Invite now),
  * 'sending' with `immediate` (the caller sends it right away — never visible
  * to the worker as 'scheduled', so it can't be sent twice), otherwise
  * 'scheduled' for send_after. With supersede, every other outstanding
@@ -150,11 +174,13 @@ export async function senderFor(invitation) {
 export async function createInvitation(account, {
   source = 'manual', emailSource = 'manual', batchId = null, periodId = null,
   sendAfter = new Date(), senderId = null, holdReason = null, supersede = false, immediate = false,
+  defer = false, createdAccount = false,
 } = {}) {
   if (supersede && account) await supersedeOthers(account.id, null);
   let status = 'scheduled';
   if (holdReason) status = 'held';
   else if (immediate) status = 'sending';
+  else if (defer) status = WAITING;
   return AccountInvitation.create({
     user_account_id: account ? account.id : null,
     email: account.email,
@@ -164,13 +190,14 @@ export async function createInvitation(account, {
     import_batch_id: batchId,
     period_id: periodId,
     sent_by_account_id: senderId,
+    created_account: !!createdAccount,
     status,
     hold_reason: short(holdReason),
-    send_after: holdReason ? null : sendAfter,
+    send_after: holdReason || defer ? null : sendAfter,
   });
 }
 
-async function supersedeOthers(accountId, keepId) {
+export async function supersedeOthers(accountId, keepId) {
   if (!accountId) return;
   await AccountInvitation.update(
     { status: 'cancelled', token_hash: null, hold_reason: 'Replaced by a newer invitation.' },
@@ -182,14 +209,15 @@ const nextRetry = (attempts) => RETRY_DELAYS_MS[attempts - 1];
 
 /**
  * Deliver one invitation now. Generates the token, stores only its hash,
- * renders the email with the account's real name and roles, sends it, and
- * records the outcome:
+ * renders the email with the account's real name, roles, courses and the
+ * term's deadlines, sends it, and records the outcome:
  *   captured/sent → 'sent'   (older outstanding invitations are cancelled)
  *   skipped       → 'held'   (MAIL_MODE=off, or not on the dev allowlist)
  *   failed        → 'scheduled' again for the next retry, or 'failed' when out of retries
+ * Then (unless it failed) writes what it told them into account_notices.
  * Returns { status, reason? } — the mailer's verdict.
  */
-export async function sendInvitation(invitation, { subjectPrefix = '', note } = {}) {
+export async function sendInvitation(invitation, { subjectPrefix = '', note, state = null } = {}) {
   const account = invitation.user_account_id ? await UserAccount.findByPk(invitation.user_account_id) : null;
   if (!account || account.status !== 'Active') {
     await invitation.update({ status: 'cancelled', token_hash: null, last_error: account ? 'The account is disabled.' : 'The account no longer exists.' });
@@ -206,12 +234,19 @@ export async function sendInvitation(invitation, { subjectPrefix = '', note } = 
     expires_at: expires,
   });
 
+  const periodId = await periodOr(invitation.period_id);
   let result;
+  let now = state;
   try {
-    const [roles, sender] = await Promise.all([describeRoles(account, invitation.period_id), senderFor(invitation)]);
+    if (!now) now = await currentState(account, periodId);
+    const [roles, sender, deadlines] = await Promise.all([
+      describeRoles(account, periodId), senderFor(invitation), deadlinesFor(periodId),
+    ]);
     const mail = invitationEmail({
       name: account.display_name,
       roles,
+      courses: { lead: now.lead, contributor: now.contributor, consultant: now.consultant },
+      deadlines,
       link: appBaseUrl() + '/set-password?token=' + encodeURIComponent(token),
       sender,
       expiresInDays: INVITE_TTL_DAYS,
@@ -242,6 +277,12 @@ export async function sendInvitation(invitation, { subjectPrefix = '', note } = 
       last_error: short(result.reason || 'Unknown error'),
     });
   }
+  // The invitation told them everything (or the mailer deliberately dropped
+  // it): the notice worker must not repeat it.
+  if (now && result.status !== 'failed' && periodId) {
+    try { await recordTold(account.id, periodId, now, { result: result.status === 'skipped' ? 'Not sent: ' + (result.reason || 'skipped') : null }); }
+    catch (err) { console.error('[invitations] could not record what was told:', err.message); }
+  }
   return result;
 }
 
@@ -251,17 +292,20 @@ export async function sendInvitation(invitation, { subjectPrefix = '', note } = 
  * Claim and send every due scheduled invitation. A claim is one atomic
  * UPDATE … WHERE status = 'scheduled', so two workers (or a worker and a
  * resend) never send the same row twice. A row stuck in 'sending' (the
- * process died mid-send) is put back after 5 minutes.
+ * process died mid-send) is put back after 5 minutes. 'waiting' rows are
+ * never picked: they wait for news (services/notices.js) or Invite now.
  */
-export async function deliverDueInvitations({ limit = 20 } = {}) {
+export async function deliverDueInvitations({ limit = 20, accountIds = null } = {}) {
   const now = new Date();
+  // accountIds: tests scope the tick to their own throw-away accounts.
+  const scope = accountIds ? { user_account_id: accountIds } : {};
   await AccountInvitation.update(
     { status: 'scheduled', token_hash: null, expires_at: null },
-    { where: { status: 'sending', updatedAt: { [Op.lt]: new Date(now.getTime() - 5 * 60 * 1000) } } },
+    { where: { ...scope, status: 'sending', updatedAt: { [Op.lt]: new Date(now.getTime() - 5 * 60 * 1000) } } },
   );
 
   const due = await AccountInvitation.findAll({
-    where: { status: 'scheduled', send_after: { [Op.lte]: now } },
+    where: { ...scope, status: 'scheduled', send_after: { [Op.lte]: now } },
     order: [['send_after', 'ASC'], ['id', 'ASC']],
     limit,
   });
@@ -277,13 +321,129 @@ export async function deliverDueInvitations({ limit = 20 } = {}) {
   return { due: due.length, sent };
 }
 
+/** How many reminders this account has had (reminder rows, whatever became of them). */
+export const reminderCount = (accountId) =>
+  AccountInvitation.count({ where: { user_account_id: accountId, source_entity: 'reminder' } });
+
+/**
+ * Reminders for people who were invited and haven't set a password: 3 days
+ * after the latest invitation went out, a fresh one (new link, current roles
+ * and courses, "Reminder: " subject, signed by the original sender) — at most
+ * MAX_REMINDERS per account. After that the Dean / Program Head still see
+ * "Invited" and can Resend.
+ */
+export async function sendDueReminders({ now = new Date(), limit = 20, accountIds = null } = {}) {
+  const due = await AccountInvitation.findAll({
+    where: {
+      ...(accountIds ? { user_account_id: accountIds } : {}),
+      status: 'sent',
+      expires_at: { [Op.gt]: now },
+      sent_at: { [Op.lte]: new Date(now.getTime() - REMINDER_AFTER_MS) },
+    },
+    order: [['sent_at', 'ASC'], ['id', 'ASC']],
+    limit,
+  });
+  let sent = 0;
+  for (const old of due) {
+    if (!old.user_account_id) continue;
+    const account = await UserAccount.findByPk(old.user_account_id);
+    if (!account || account.status !== 'Active' || !account.must_change_password) continue;
+    if ((await reminderCount(account.id)) >= MAX_REMINDERS) continue;
+    // Claim the old row so a second worker can't remind for it too.
+    const [claimed] = await AccountInvitation.update(
+      { status: 'cancelled', token_hash: null, hold_reason: 'Replaced by a reminder.' },
+      { where: { id: old.id, status: 'sent' } },
+    );
+    if (!claimed) continue;
+    const fresh = await createInvitation(account, {
+      source: 'reminder', emailSource: old.email_source, periodId: old.period_id,
+      senderId: old.sent_by_account_id, supersede: true, immediate: true,
+    });
+    const r = await sendInvitation(fresh, { subjectPrefix: 'Reminder: ' });
+    if (r.status === 'sent' || r.status === 'captured') sent += 1;
+    else if (r.status !== 'failed') {
+      // The mailer dropped it (allowlist / off): keep the old link alive.
+      await old.update({ status: 'sent', token_hash: old.token_hash, hold_reason: null });
+    }
+  }
+  return { due: due.length, sent };
+}
+
+// --- Invite now / Resend / "Send me a new link" --------------------------------
+
+export const MAX_MANUAL_INVITES_PER_HOUR = 5;
+
+/** True when this account already had MAX_MANUAL_INVITES_PER_HOUR hand-sent invitations in the last hour. */
+export async function tooManyInvites(accountId) {
+  const n = await AccountInvitation.count({
+    where: {
+      user_account_id: accountId,
+      source_entity: ['manual', 'faculty', 'industry_consultants', 'request'],
+      import_batch_id: null,
+      createdAt: { [Op.gt]: new Date(Date.now() - 60 * 60 * 1000) },
+      status: { [Op.ne]: WAITING },
+    },
+  });
+  return n >= MAX_MANUAL_INVITES_PER_HOUR;
+}
+
+/**
+ * Send (or resend) an invitation right now, superseding every outstanding one.
+ * Refused (409) once the person has a password of their own — they use
+ * Forgot password instead. Returns { status: 'sent' | 'skipped' | 'failed' |
+ * 'active' | 'disabled', reason?, invitation? }.
+ */
+export async function inviteNow(account, { senderId = null, source = 'manual', periodId = null } = {}) {
+  if (!account) return { status: 'failed', reason: 'That account no longer exists.' };
+  if (account.status !== 'Active') return { status: 'disabled', reason: 'The account is disabled.' };
+  if (!account.must_change_password) {
+    return { status: 'active', reason: account.display_name + ' has already set a password — use Forgot password instead.' };
+  }
+  const invitation = await createInvitation(account, {
+    source, emailSource: 'manual', senderId, periodId: await periodOr(periodId), supersede: true, immediate: true,
+  });
+  const result = await sendInvitation(invitation);
+  const status = result.status === 'sent' || result.status === 'captured' ? 'sent' : result.status;
+  const [summary] = Object.values(await invitationSummaries([account.id]));
+  return { status, reason: result.reason || null, invitation: summary || null };
+}
+
+/**
+ * "Send me a new link" from a dead invitation link. Sends a fresh invitation
+ * ONLY when the address has an Active account that is still waiting to set a
+ * password; otherwise nothing happens. The caller answers the same way in
+ * every case. Returns true when something was sent.
+ */
+export async function requestInvitation(rawEmail) {
+  const email = normalizeEmail(rawEmail);
+  if (!email || !isAllowedEmail(email)) {
+    // A non-UNC consultant address is accepted only when the switch is on and
+    // the account has exactly that one role (checked below).
+    if (!isAllowedEmailForRoles(email, ['Industry Consultant'])) return false;
+  }
+  const account = await UserAccount.findOne({ where: { email } });
+  if (!account || account.status !== 'Active' || !account.must_change_password) return false;
+  if (!isAllowedEmailForRoles(email, account.roles || [])) return false;
+  const last = await AccountInvitation.findOne({
+    where: { user_account_id: account.id, sent_by_account_id: { [Op.ne]: null } },
+    order: [['id', 'DESC']],
+    attributes: ['sent_by_account_id', 'period_id'],
+  });
+  const r = await inviteNow(account, {
+    source: 'request', senderId: last ? last.sent_by_account_id : null, periodId: last ? last.period_id : null,
+  });
+  return r.status === 'sent';
+}
+
 // --- Uploads -----------------------------------------------------------------
 
-/** Faculty sheet role → account roles: every Active faculty member teaches. */
-export function rolesForFacultyRow(role) {
-  const r = String(role || '').trim().toLowerCase();
-  if (r === 'dean') return ['Dean', 'Instructor'];
-  if (r === 'program head') return ['Program Head', 'Instructor'];
+/**
+ * Faculty sheet row → account roles: every Active faculty member teaches, and
+ * that's all. The Role column is information only — Program Head comes from
+ * the programs upload (services/programHeadAccess.js), Dean from the
+ * departments upload.
+ */
+export function rolesForFacultyRow(_role) {
   return ['Instructor'];
 }
 
@@ -300,25 +460,31 @@ const mergeRoles = (current, granted) => {
  * account, and schedule one invitation each for those who still need one.
  *
  *   people: [{ name, email (as in the file, may be blank/odd), roles }]
+ *   defer:  true → a new or still-uninvited account gets a 'waiting'
+ *           invitation (nothing sent until they have a course, or Invite now)
+ *           instead of a scheduled one. The faculty upload does this.
  *
  * The email is the file's when it's a UNC address, otherwise
  * firstname.surname@unc.edu.ph. Held instead of scheduled:
  *   - the file gives a non-UNC address (we invite the derived one, held, so a
- *     person checks it first);
+ *     person checks it first) — unless ALLOW_EXTERNAL_CONSULTANT_EMAILS lets
+ *     an Industry-Consultant-only account use it;
  *   - no email can be worked out from the name;
  *   - the email belongs to a different person (another account, or another
  *     row of the same file).
  * Skipped: disabled accounts, accounts that already have a working password
- * of their own, and accounts with an invitation already on its way.
+ * of their own, and accounts with an invitation already on its way. A
+ * 'waiting' or 'held' invitation does not count as on its way: a later,
+ * non-deferred upload supersedes it with a real one.
  *
  * Never throws: a problem here must not undo a committed upload. Returns
- * { scheduled, held, skipped, created }.
+ * { scheduled, waiting, held, skipped, created }.
  */
-export async function scheduleUploadInvitations({ entity, people, batchId = null, periodId = null, senderId = null }) {
-  const summary = { scheduled: 0, held: 0, skipped: 0, created: 0 };
+export async function scheduleUploadInvitations({ entity, people, batchId = null, periodId = null, senderId = null, defer = false }) {
+  const summary = { scheduled: 0, waiting: 0, held: 0, skipped: 0, created: 0 };
   const claimed = new Map(); // email → name, within this file
   const sendAfter = new Date(Date.now() + UPLOAD_SEND_DELAY_MS);
-  const base = { source: entity, batchId, periodId, senderId, sendAfter };
+  const base = { source: entity, batchId, periodId, senderId, sendAfter, defer };
 
   for (const person of people || []) {
     try {
@@ -334,7 +500,7 @@ export async function scheduleUploadInvitations({ entity, people, batchId = null
       let email = null;
       let emailSource = 'derived';
       let holdReason = null;
-      if (fileEmail && isAllowedEmail(fileEmail)) {
+      if (fileEmail && isAllowedEmailForRoles(fileEmail, roles)) {
         email = fileEmail;
         emailSource = 'file';
       } else {
@@ -377,6 +543,16 @@ export async function scheduleUploadInvitations({ entity, people, batchId = null
 
       if (account) {
         if (account.status !== 'Active') { summary.skipped += 1; continue; }
+        // A non-UNC address is only ever good for an Industry-Consultant-only account.
+        if (!isAllowedEmail(account.email) && !isAllowedEmailForRoles(account.email, mergeRoles(account.roles, roles))) {
+          await AccountInvitation.create({
+            email, display_name: name, email_source: emailSource, source_entity: entity,
+            import_batch_id: batchId, period_id: periodId, sent_by_account_id: senderId, status: 'held',
+            hold_reason: short('This account uses a non-UNC email; give it a UNC address first.'),
+          });
+          summary.held += 1;
+          continue;
+        }
         const merged = mergeRoles(account.roles, roles);
         if (merged.length !== (account.roles || []).length) await account.update({ roles: merged });
         // Already has a password of their own: nothing to invite to.
@@ -392,9 +568,16 @@ export async function scheduleUploadInvitations({ entity, people, batchId = null
           },
         });
         if (onItsWay) { summary.skipped += 1; continue; }
-        // An earlier held/failed invitation is replaced by this one.
+        // A deferred upload leaves an existing waiting / held invitation as it is.
+        if (defer && !holdReason) {
+          const parked = await AccountInvitation.count({ where: { user_account_id: account.id, status: [WAITING, 'held'] } });
+          if (parked) { summary.skipped += 1; continue; }
+        }
+        // An earlier waiting/held/failed invitation is replaced by this one.
         await supersedeOthers(account.id, null);
-      } else {
+      }
+      const createdAccount = !account;
+      if (!account) {
         account = await UserAccount.create({
           email,
           display_name: name,
@@ -406,18 +589,65 @@ export async function scheduleUploadInvitations({ entity, people, batchId = null
         summary.created += 1;
       }
 
-      await createInvitation(account, { ...base, emailSource, holdReason });
-      if (holdReason) summary.held += 1; else summary.scheduled += 1;
+      await createInvitation(account, { ...base, emailSource, holdReason, createdAccount });
+      if (holdReason) summary.held += 1;
+      else if (defer) summary.waiting += 1;
+      else summary.scheduled += 1;
     } catch (err) {
       console.error('[invitations] could not prepare an invitation:', err.message);
       summary.skipped += 1;
     }
   }
 
-  if (summary.scheduled || summary.held) {
-    console.log(`[invitations] ${entity} upload: ${summary.scheduled} scheduled, ${summary.held} held, ${summary.skipped} skipped, ${summary.created} new accounts`);
+  if (summary.scheduled || summary.held || summary.waiting) {
+    console.log(`[invitations] ${entity} upload: ${summary.scheduled} scheduled, ${summary.waiting} waiting, ${summary.held} held, ${summary.skipped} skipped, ${summary.created} new accounts`);
   }
   return summary;
+}
+
+/**
+ * The upload was undone: cancel its unsent invitations (waiting / scheduled /
+ * held → cancelled), and delete the accounts it created that have no other
+ * source — never signed in, never accepted an invitation, no invitation from
+ * any other upload. Roles an upload ADDED to an account that already existed
+ * are not recorded anywhere (there is no grants table yet), so they are not
+ * taken back.
+ */
+export async function cancelBatchInvitations(batch) {
+  if (!batch) return { cancelled: 0, removedAccounts: 0 };
+  const rows = await AccountInvitation.findAll({ where: { import_batch_id: batch.id, status: [WAITING, 'scheduled', 'held'] } });
+  if (!rows.length) return { cancelled: 0, removedAccounts: 0 };
+
+  await AccountInvitation.update(
+    { status: 'cancelled', token_hash: null, hold_reason: 'The upload was undone.' },
+    { where: { id: rows.map((r) => r.id) } },
+  );
+
+  let removedAccounts = 0;
+  // Only accounts this upload itself created (recorded on the invitation —
+  // creation timestamps are second-precision and can't tell them apart).
+  const created = rows.filter((r) => r.created_account && r.user_account_id).map((r) => r.user_account_id);
+  for (const accountId of new Set(created)) {
+    const account = await UserAccount.findByPk(accountId);
+    if (!account || !account.must_change_password || account.last_login_at) continue;
+    const otherSource = await AccountInvitation.count({
+      where: {
+        user_account_id: accountId,
+        [Op.or]: [
+          { import_batch_id: { [Op.ne]: batch.id } },
+          { import_batch_id: null },
+          { status: 'accepted' },
+        ],
+      },
+    });
+    if (otherSource) continue;
+    await account.destroy();
+    await db.AccountNotice.destroy({ where: { user_account_id: accountId } }).catch(() => {});
+    await db.Notification.destroy({ where: { user_account_id: accountId } }).catch(() => {});
+    removedAccounts += 1;
+  }
+  console.log(`[invitations] undo of batch ${batch.id}: ${rows.length} invitations cancelled, ${removedAccounts} unused accounts removed`);
+  return { cancelled: rows.length, removedAccounts };
 }
 
 // --- Accepting -----------------------------------------------------------------
@@ -434,11 +664,12 @@ export async function findLiveInvitation(token) {
   return { invitation, account };
 }
 
-// --- The User Accounts column -------------------------------------------------
+// --- The Invitation / Access columns ------------------------------------------
 
 /**
  * { [accountId]: { status, sent_at, accepted_at, reason, send_after } } from
  * each account's most recent invitation. No row → no entry ("Not sent").
+ * 'waiting' = created, not invited yet.
  */
 export async function invitationSummaries(accountIds) {
   if (!accountIds.length) return {};
@@ -457,6 +688,57 @@ export async function invitationSummaries(accountIds) {
       accepted_at: r.accepted_at,
       send_after: r.send_after,
       reason: r.status === 'held' || r.status === 'cancelled' ? r.hold_reason : (r.status === 'failed' || r.status === 'scheduled' ? r.last_error : null),
+    };
+  }
+  return out;
+}
+
+// What the Access column says for each invitation status.
+export const ACCESS_LABELS = Object.freeze({
+  waiting: 'Not invited yet',
+  scheduled: 'Sending…',
+  sending: 'Sending…',
+  sent: 'Invited',
+  expired: 'Expired',
+  accepted: 'Active',
+  failed: 'Failed',
+  cancelled: 'Not invited yet',
+});
+
+/**
+ * The Access cell for a person on a list page: { account_id, status, label,
+ * sent_at, accepted_at, reason }. `status` is one of the invitation statuses,
+ * 'active' (has a password), or 'none' (no account). Resolves the account by
+ * email, else by unambiguous name.
+ */
+export async function accessSummaries(people) {
+  const accounts = await UserAccount.findAll({ attributes: ['id', 'email', 'display_name', 'status', 'must_change_password', 'roles'] });
+  const byEmail = new Map(accounts.map((a) => [a.email, a]));
+  const resolve = (p) => {
+    const e = normalizeEmail(p.email);
+    if (e && byEmail.has(e)) return byEmail.get(e);
+    const derived = schoolEmail(p.name);
+    if (derived && byEmail.has(derived) && samePerson(byEmail.get(derived).display_name, p.name)) return byEmail.get(derived);
+    const byName = accounts.filter((a) => samePerson(a.display_name, p.name));
+    return byName.length === 1 ? byName[0] : null;
+  };
+  const matched = people.map((p) => ({ key: p.key, account: resolve(p) }));
+  const summaries = await invitationSummaries([...new Set(matched.filter((m) => m.account).map((m) => m.account.id))]);
+  const out = {};
+  for (const { key, account } of matched) {
+    if (!account) { out[key] = { account_id: null, status: 'none', label: 'No account' }; continue; }
+    const inv = summaries[account.id] || null;
+    let status;
+    let label;
+    let reason = inv ? inv.reason : null;
+    if (account.status !== 'Active') { status = 'disabled'; label = 'Disabled'; }
+    else if (!account.must_change_password) { status = 'active'; label = 'Active'; }
+    else if (!inv) { status = 'waiting'; label = ACCESS_LABELS.waiting; }
+    else if (inv.status === 'held') { status = 'held'; label = 'Held: ' + (inv.reason || 'needs a check'); }
+    else { status = inv.status; label = ACCESS_LABELS[inv.status] || inv.status; }
+    out[key] = {
+      account_id: account.id, status, label, reason,
+      sent_at: inv ? inv.sent_at : null, accepted_at: inv ? inv.accepted_at : null,
     };
   }
   return out;

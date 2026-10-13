@@ -21,7 +21,6 @@ import TOS from "./pages/TOS.jsx";
 
 import SyllabusRevisions from "./pages/SyllabusRevisions.jsx";
 import ApprovalCourses from "./pages/ApprovalCourses.jsx";
-import ProgramHeadConsultant from "./pages/ProgramHeadConsultant.jsx";
 import ProgramHeadIndustryConsultant from "./pages/ProgramHeadIndustryConsultant.jsx";
 import ProgramHeadCourses from "./pages/ProgramHeadCourses.jsx";
 import ProgramHeadCourseAssignment from "./pages/ProgramHeadCourseAssignment.jsx";
@@ -31,6 +30,7 @@ import OVPAA from "./pages/OVPAA.jsx";
 import { homeFor } from './services/roles.js'
 
 const PROGRAM_HEAD_HOME = homeFor('Program Head');
+const CONSULTANT_HOME = homeFor('Industry Consultant');
 
 function App() {
   return (
@@ -75,7 +75,8 @@ function App() {
                   so viewing a past term on one page never changes another page or
                   role — selection is page-local and resets to the current term on
                   navigation. */}
-              <Route path={'/role/industry-consultant'} element={<RequireRole role="Industry Consultant"><ProgramHeadConsultant /></RequireRole>} />
+              {/* The consultant's page is Syllabus (the old mock-up is gone). */}
+              <Route path={'/role/industry-consultant'} element={<Navigate to={CONSULTANT_HOME} replace />} />
               <Route element={<RequireRole role="Program Head"><Outlet /></RequireRole>}>
                 <Route path={'/role/program-head/industry-consultant'} element={<ScopedPeriodProvider><ProgramHeadIndustryConsultant /></ScopedPeriodProvider>} />
                 <Route path={'/role/program-head/course-offerings'} element={<ScopedPeriodProvider><ProgramHeadCourses /></ScopedPeriodProvider>} />

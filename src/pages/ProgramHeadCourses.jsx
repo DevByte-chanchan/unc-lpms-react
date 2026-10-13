@@ -21,6 +21,7 @@ import HeaderA from "../components/HeaderA.jsx";
 import SideNavigation from "../components/SideNavigation.jsx";
 import PeriodSelector from "../components/PeriodSelector.jsx";
 import EditEntityModal from "../components/EditEntityModal.jsx";
+import UndoUploadButton from "../components/UndoUploadButton.jsx";
 import UploadPreviewFlow from "../components/UploadPreviewFlow.jsx";
 import DialogShell from "../components/DialogShell.jsx";
 import { Search, ArrowUp, ArrowDown, ArrowRight, ArrowLeft, Link2, Clipboard, Eye, Edit2, FileText, Upload, X, ChevronDown, Check, Layers, AlertTriangle, Archive, RotateCcw } from "react-feather";
@@ -285,6 +286,8 @@ const ProgramHeadCourses = () => {
   // The signed-in Program Head (stubbed in CurrentUser until real auth).
   const { name: userName, facultyId, facultyLoaded } = useCurrentUser();
 
+  // Bumped on every successful upload so the Undo button re-reads its batch.
+  const [uploadCount, setUploadCount]         = React.useState(0);
 
   const refresh = React.useCallback(() => {
     if (!periodId) { setCourses([]); setArchivedCourses([]); return; }
@@ -411,7 +414,7 @@ const ProgramHeadCourses = () => {
   // is in the file. The year-level popup still happens, but AFTER that step and
   // still BEFORE anything is written. Order is:
   //
-  //   pick file → Preview & Confirm → year-level popup (if needed) → uploadCommit
+  //   pick file → Preview & Confirm → year-level popup (if needed) → uploadCommit → undo toast
   const handleReviewFile = () => {
     if (!pickedFile) return;
     setShowUpload(false);
@@ -472,7 +475,7 @@ const ProgramHeadCourses = () => {
       resolverRef.current = null;
       setResolveRows(null);
       setYearChoices({});
-      pending.resolve(r);               // → UploadPreviewFlow closes
+      pending.resolve(r);               // → UploadPreviewFlow closes and raises the undo toast
     } catch (err) {
       setUploadError(err.message || 'Upload failed');
       // Leave the popup open so the user can retry — the promise stays pending.
@@ -496,12 +499,26 @@ const ProgramHeadCourses = () => {
   // "Confirm & Import" succeeded (via either branch above).
   const onUploadCommitted = async (result) => {
     refresh();
+    setUploadCount((n) => n + 1);
     setPickedFile(null);
     if (uploadInputRef.current) uploadInputRef.current.value = '';
     // Re-open the upload modal on its RESULTS pane — the rich import summary
     // (year breakdown, prerequisites linked, unresolved programs) is this page's
     // own and the toast doesn't replace it.
     setUploadResult(result);
+    setShowUpload(true);
+  };
+
+  // Undone — put the user back where they can pick the RIGHT file.
+  const onUploadUndone = async () => {
+    refresh();
+    setUploadCount((n) => n + 1);
+    setPendingFile(null);
+    setUploadResult(null);
+    setResolveRows(null);
+    setYearChoices({});
+    setPickedFile(null);
+    if (uploadInputRef.current) uploadInputRef.current.value = '';
     setShowUpload(true);
   };
 
@@ -669,6 +686,7 @@ const ProgramHeadCourses = () => {
               the school's system, so the Program Head doesn't add/edit here. */}
           {isCurrentTermActive && (
             <div style={{ display: 'flex', gap: 10 }}>
+              <UndoUploadButton entity="courses" periodId={periodId} disabled={!periodId} refreshKey={uploadCount} onUndone={refresh} />
               <button
                 onClick={() => setShowUpload(true)}
                 disabled={!periodId}
@@ -1329,7 +1347,7 @@ const ProgramHeadCourses = () => {
         </>
       )}
 
-      {/* Preview & Confirm → year-level popup → commit (final — there is no undo).
+      {/* Preview & Confirm → year-level popup → commit → undo toast.
           `commit` here is the handoff: it opens the existing reconciliation popup
           and only writes once the user has resolved every year level. Re-keyed on
           the program, because `commit` closes over selectedProgramId while the dry
@@ -1338,12 +1356,15 @@ const ProgramHeadCourses = () => {
       <UploadPreviewFlow
         key={'courses-preview-' + String(selectedProgramId)}
         file={pendingFile}
+        entity="courses"
+        periodId={periodId}
         title="Upload Course Offerings"
         preview={(f) => CoursesAPI.uploadPreview(f, periodId, selectedProgramId)}
         commit={commitCourses}
         onBack={() => { setPendingFile(null); setShowUpload(true); }}
         onCancel={() => { setPendingFile(null); setPickedFile(null); if (uploadInputRef.current) uploadInputRef.current.value = ''; }}
         onCommitted={onUploadCommitted}
+        onUndone={onUploadUndone}
       />
     </div>
   );

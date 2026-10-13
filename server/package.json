@@ -10,6 +10,8 @@
     "dev": "node --watch index.js",
     "test": "node --test tests/",
     "db:seed:users": "node scripts/seedUsers.js",
+    "db:fresh": "node scripts/purge.js",
+    "db:purge": "node scripts/purge.js",
     "samples": "node scripts/make-sample-uploads.js",
     "mail:test": "node scripts/sendTestEmail.js",
     "db:migrate": "sequelize-cli db:migrate",

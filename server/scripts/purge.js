@@ -1,107 +1,65 @@
 /**
- * Data purge — wipes every operational table back to a fresh-install state.
+ * npm run db:fresh                    (Docker: docker exec ca-api npm run db:fresh)
+ * npm run db:fresh -- --keep-vmgo     keep the University / Department VMGO statements
+ *   (npm run db:purge is the same command.)
  *
- * Run from the `server/` directory:
+ * Development only — refuses to run with NODE_ENV=production.
  *
- *     node scripts/purge.js
+ * Returns LPMS to a brand-new state:
+ *   1. TRUNCATEs every data table (built from the models, see utils/freshStart.js):
+ *      uploads, academic terms, import batches, invitations, password resets and
+ *      user accounts. SequelizeMeta is left alone; nothing is dropped.
+ *   2. Empties ./uploads/ (keeps .gitkeep). sample-uploads/ is never touched.
+ *   3. Seeds the admin and the six demo logins again (utils/seedUsers.js).
+ *      People who got their account from an upload (e.g. the Deans and
+ *      Program Heads) have none until the next upload invites them.
  *
- * What it does:
- *   1. Disables FK checks, TRUNCATEs every data table, re-enables FK checks.
- *      TRUNCATE resets AUTO_INCREMENT so new rows start at id = 1.
- *   2. Deletes every file inside ./uploads/ except .gitkeep.
- *
- * Tables intentionally NOT touched:
- *   - SequelizeMeta (migration ledger)
- *   - Any schema-only metadata Sequelize maintains
- *
- * This is a destructive operation. There is no confirmation prompt.
- * Stop the backend before running it (it doesn't matter if the backend
- * is up, but a running backend may immediately re-trigger schema sync /
- * lazy autoclose logic on next request).
+ * There is no confirmation prompt. The API can stay up: signed-in browsers get
+ * a 401 on their next request and land on the sign-in page.
  */
 import path from 'path';
 import { fileURLToPath } from 'url';
-import fs from 'fs/promises';
+import dotenv from 'dotenv';
 import db from '../models/index.js';
-import { sequelize } from '../config/sequelize.js';
+import { freshStart, extraTables, planTables, assertNotProduction, FreshStartError } from '../utils/freshStart.js';
+import { SeedError, DEMO_ACCOUNTS } from '../utils/seedUsers.js';
+
+dotenv.config();
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-
-// FK-safe TRUNCATE order (cheap because we disable FK checks anyway,
-// but listed in child→parent order for clarity).
-const TABLES = [
-  'course_offering_assignments',
-  'consultant_courses',
-  'industry_consultants',
-  'prerequisites',
-  'program_course_offerings',
-  'courses',
-  'programs',
-  'faculty',
-  'departments',
-  'academic_periods',
-];
-
 const UPLOADS_DIR = path.resolve(__dirname, '..', 'uploads');
+const keepVmgo = process.argv.includes('--keep-vmgo');
 
-async function purgeDatabase() {
-  console.log('[purge] connecting…');
+const { sequelize, ...models } = db;
+
+try {
+  assertNotProduction(process.env);
   await sequelize.authenticate();
 
-  console.log('[purge] disabling foreign key checks…');
-  await sequelize.query('SET FOREIGN_KEY_CHECKS = 0');
+  const known = planTables(models).wipe;
+  const extra = await extraTables(sequelize, known);
+  const { wiped, kept, removedUploads, seeded } = await freshStart({
+    sequelize, models, env: process.env, keepVmgo, extra, uploadsDir: UPLOADS_DIR,
+  });
 
-  for (const t of TABLES) {
-    try {
-      await sequelize.query('TRUNCATE TABLE `' + t + '`');
-      console.log('[purge]   truncated ' + t);
-    } catch (err) {
-      console.warn('[purge]   skipped ' + t + ' (' + err.message + ')');
-    }
+  const width = Math.max(...wiped.map((w) => w.table.length));
+  console.log('[fresh] wiped (rows before):');
+  wiped.forEach((w) => console.log('  ' + w.table.padEnd(width) + '  ' + w.rows));
+  if (kept.length) console.log('[fresh] kept (--keep-vmgo): ' + kept.join(', '));
+  console.log('[fresh] uploads/: ' + (removedUploads.length ? removedUploads.length + ' file(s) removed' : 'already empty'));
+
+  seeded.notes.forEach((n) => console.log('[fresh] note: ' + n));
+  console.log('[fresh] accounts recreated:');
+  for (const c of seeded.created) {
+    const demo = DEMO_ACCOUNTS.find((d) => d.email === c.email);
+    const pw = demo ? demo.password : 'ADMIN_PASSWORD from .env (must change on first sign-in)';
+    console.log('  ' + c.email.padEnd(28) + '  ' + c.roles.join(' + ').padEnd(25) + '  ' + pw);
   }
-
-  await sequelize.query('SET FOREIGN_KEY_CHECKS = 1');
-  console.log('[purge] foreign key checks restored.');
+  console.log('Fresh start done. Next: sign in as carlos.garcia@unc.edu.ph, create a term, then upload departments.');
+} catch (err) {
+  const known = err instanceof FreshStartError || err instanceof SeedError;
+  console.error('[fresh] ' + (known ? err.message : (err && err.stack) || err));
+  process.exitCode = 1;
+} finally {
+  await sequelize.close().catch(() => {});
 }
-
-async function purgeUploads() {
-  console.log('[purge] scrubbing uploads dir: ' + UPLOADS_DIR);
-  try {
-    const entries = await fs.readdir(UPLOADS_DIR);
-    for (const name of entries) {
-      if (name === '.gitkeep') continue;
-      const p = path.join(UPLOADS_DIR, name);
-      const stat = await fs.lstat(p);
-      if (stat.isDirectory()) {
-        await fs.rm(p, { recursive: true, force: true });
-      } else {
-        await fs.unlink(p);
-      }
-      console.log('[purge]   removed ' + name);
-    }
-  } catch (err) {
-    if (err.code === 'ENOENT') {
-      console.log('[purge]   uploads dir not found — nothing to clean.');
-    } else {
-      console.warn('[purge]   uploads scrub error: ' + err.message);
-    }
-  }
-}
-
-(async () => {
-  try {
-    await purgeDatabase();
-    await purgeUploads();
-    console.log('[purge] done. Fresh-install state restored.');
-  } catch (err) {
-    console.error('[purge] failed:', err);
-    process.exitCode = 1;
-  } finally {
-    await sequelize.close().catch(() => {});
-  }
-})();
-
-// Silence the "imported but unused" lint warning for the model registry —
-// importing `db` ensures models register with sequelize even though we
-// only need the connection here.
-void db;

@@ -57,4 +57,27 @@ export function isAllowedEmail(email) {
   return e.slice(at + 1) === allowedEmailDomain();
 }
 
+/** A plausible address of any domain (shape only). */
+export function isValidEmail(email) {
+  const e = normalizeEmail(email);
+  return /^[a-z0-9._%+-]+@[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(e);
+}
+
+/** ALLOW_EXTERNAL_CONSULTANT_EMAILS=true — read on every call, like the domain. */
+export const externalConsultantEmailsAllowed = () =>
+  ['1', 'true', 'yes', 'on'].includes(String(process.env.ALLOW_EXTERNAL_CONSULTANT_EMAILS || '').trim().toLowerCase());
+
+/**
+ * The email rule for an account with `roles`: a UNC address always passes;
+ * any valid address passes only when the switch is on AND the roles are
+ * exactly ['Industry Consultant'].
+ */
+export function isAllowedEmailForRoles(email, roles) {
+  if (isAllowedEmail(email)) return true;
+  if (!externalConsultantEmailsAllowed()) return false;
+  const list = Array.isArray(roles) ? roles : [];
+  return list.length === 1 && list[0] === 'Industry Consultant' && isValidEmail(email);
+}
+
 export const domainMessage = () => 'Use your @' + allowedEmailDomain() + ' email address.';
+export const EXTERNAL_EMAIL_MESSAGE = 'This account uses a non-UNC email; give it a UNC address first.';

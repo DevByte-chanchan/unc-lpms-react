@@ -11,17 +11,19 @@ import EditEntityModal from "../components/EditEntityModal.jsx";
 import ViewRecordModal from "../components/ViewRecordModal.jsx";
 import ConfirmModal from "../components/ConfirmModal.jsx";
 import ViewArchivedButton from "../components/ViewArchivedButton.jsx";
+import UndoUploadButton from "../components/UndoUploadButton.jsx";
 import UploadPreviewFlow from "../components/UploadPreviewFlow.jsx";
 import DialogShell from "../components/DialogShell.jsx";
 import { RecordMeta } from "../components/RecordTimestamps.jsx";
 import styles from '../styles/CoursesTable.module.sass';
 import syllabusStyles from '../styles/SyllabusSections.module.sass';
 import dd from '../styles/DropdownMenu.module.sass';
-import { ConsultantsAPI, CoursesAPI, FacultyAPI } from '../services/api.js';
+import { ConsultantsAPI, CoursesAPI, FacultyAPI, HealthAPI } from '../services/api.js';
 import { courseMatchesPeriod } from '../services/courseTerm.js';
 import { usePeriod } from '../services/period.jsx';
 import { useHeadProgram } from '../services/useHeadProgram.js';
 import { STATUS_OPTIONS, partitionByArchive } from '../services/statusPolicy.js';
+import { isAllowedEmail, DOMAIN_MESSAGE, ALLOWED_EMAIL_DOMAIN } from '../services/roles.js';
 
 const ActionBtn = ({ onClick, icon, label, disabled, variant }) => (
   <button onClick={onClick} disabled={disabled} style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '8px 18px', gap: 8, width: 240, height: 40, background: variant === 'white' ? '#FFFFFF' : (disabled ? '#9CA3AF' : '#18191A'), borderRadius: 6, color: variant === 'white' ? '#374151' : '#fff', border: variant === 'white' ? '1px solid #D1D5DB' : 'none', cursor: disabled ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap', opacity: disabled ? (variant === 'white' ? 0.6 : 0.7) : 1 }}>
@@ -310,6 +312,24 @@ const ProgramHeadIndustryConsultant = () => {
 
   const [showModal, setShowModal]       = React.useState(false);
   const [showAddModal, setShowAddModal] = React.useState(false);
+  // What the last manual add did about access ("Invitation…", "… was given the role"),
+  // and what Invite now / Resend answered.
+  const [accessNotice, setAccessNotice] = React.useState(null);
+  const [invitingId, setInvitingId] = React.useState(null);
+  // ALLOW_EXTERNAL_CONSULTANT_EMAILS on the server: consultants may then use a
+  // non-UNC address (read once from /health; off until it answers).
+  const [externalEmails, setExternalEmails] = React.useState(false);
+  React.useEffect(() => {
+    let cancelled = false;
+    HealthAPI.get().then((h) => { if (!cancelled) setExternalEmails(!!(h && h.features && h.features.externalConsultantEmails)); }).catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
+  // The result line goes away on its own.
+  React.useEffect(() => {
+    if (!accessNotice) return undefined;
+    const id = setTimeout(() => setAccessNotice(null), 10000);
+    return () => clearTimeout(id);
+  }, [accessNotice]);
   const [editingConsultant, setEditingConsultant]   = React.useState(null);
   const [editFromView, setEditFromView]             = React.useState(false); // edit opened from the View modal (shows Back)
   const [viewingConsultant, setViewingConsultant]   = React.useState(null);
@@ -348,6 +368,8 @@ const ProgramHeadIndustryConsultant = () => {
       .catch(() => setCourses([]));
   }, [periodId, currentPeriod]);
 
+  // Bumped on every successful upload so the Undo button re-reads its batch.
+  const [uploadCount, setUploadCount]         = React.useState(0);
 
   const refresh = React.useCallback(() => {
     if (!periodId) { setConsultants([]); setCourses([]); return; }
@@ -426,15 +448,47 @@ const ProgramHeadIndustryConsultant = () => {
   // now the whole story, and they arrive before the write instead of after it.
   const onUploadCommitted = async () => {
     await refresh();
+    setUploadCount((n) => n + 1);
     clearPicker();
+  };
+
+  // Undone — put the user back where they can pick the RIGHT file.
+  const onUploadUndone = async () => {
+    await refresh();
+    setUploadCount((n) => n + 1);
+    setPendingFile(null);
+    clearPicker();
+    setShowModal(true);
   };
 
   const onAddConsultant = async (record) => {
     // Status is auto-linked to the Faculty list by the server (the Name is
     // picked from that list, so a manual add resolves to a faculty member and
     // takes their Active/Unavailable state). No status is sent from here.
-    await ConsultantsAPI.create(record, periodId);
+    // The email is for the account and invitation only (not stored on the row).
+    const email = String(record.email || '').trim();
+    // A UNC address, or — when the server allows outside consultants — any valid one.
+    const shaped = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    if (!isAllowedEmail(email) && !(externalEmails && shaped)) throw new Error('Email: ' + (externalEmails ? 'Enter a valid email address.' : DOMAIN_MESSAGE));
+    const created = await ConsultantsAPI.create({ ...record, email }, periodId);
+    setAccessNotice(created && created.access_message ? created.access_message : null);
     await refresh();
+    setUploadCount((n) => n + 1);   // a manual add is undoable too
+  };
+
+  // Invite now / Resend for one row. 409 = already has a password.
+  const onInvite = async (row) => {
+    if (invitingId) return;
+    setInvitingId(row.id);
+    try {
+      const r = await ConsultantsAPI.invite(row.id);
+      setAccessNotice(r.message);
+      await refresh();
+    } catch (err) {
+      setAccessNotice(err.message || 'Could not send the invitation.');
+    } finally {
+      setInvitingId(null);
+    }
   };
 
   const onSaveEdit = async (patch) => {
@@ -525,6 +579,8 @@ const ProgramHeadIndustryConsultant = () => {
     // Pass status through as-is — blank/null until the user picks one
     // in the Assign popup. No default to 'Active'.
     status: c.status || '',
+    // Their LPMS account's invitation status (the Access column).
+    access: c.access || null,
   }));
 
   // Program switcher — shown only when the user heads more than one program.
@@ -590,6 +646,7 @@ const ProgramHeadIndustryConsultant = () => {
         </div>
         {!noProgramAssigned && (
           <div style={{ display: 'flex', gap: 10 }}>
+            <UndoUploadButton entity="industry_consultants" periodId={periodId} disabled={!periodId || !isCurrentTermActive} refreshKey={uploadCount} onUndone={refresh} />
             <ActionBtn variant="white" onClick={() => { if (consultants.length > 0) { setConfirmUpload(true); } else { setShowModal(true); } }} disabled={!periodId || !isCurrentTermActive} icon={<Upload size={18} color="#374151" />} label="Upload Consultant List" />
             {showTable && isCurrentTermActive && (
               <ActionBtn onClick={() => setShowAddModal(true)} icon={<Plus size={18} color="#FFFFFF" />} label="Add Consultant" />
@@ -617,6 +674,13 @@ const ProgramHeadIndustryConsultant = () => {
         </div>
       )}
 
+      {accessNotice && (
+        <div role="status" style={{ marginBottom: 12, padding: '10px 14px', background: '#F8FAFC', border: '1px solid #D1D5DB', borderRadius: 8, color: '#18191A', fontSize: 13, lineHeight: '1.4', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+          <span>{accessNotice}</span>
+          <button type="button" onClick={() => setAccessNotice(null)} aria-label="Dismiss" style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6B7280', fontSize: 16, lineHeight: 1 }}>×</button>
+        </div>
+      )}
+
       {/* Filter bar — search, left-aligned above the table. */}
       {showTable && (
         <div style={{ marginBottom: 12, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
@@ -633,6 +697,9 @@ const ProgramHeadIndustryConsultant = () => {
           hideDepartment={true}
           onAssign={(row) => { const full = visibleConsultants.find((c) => c.id === row.id); if (full) { setEditFromView(false); setEditingConsultant(full); } }}
           onArchive={isCurrentTermActive ? onArchiveRow : undefined}
+          onInvite={isCurrentTermActive ? onInvite : undefined}
+          invitingId={invitingId}
+          showAccess
           readOnly={!isCurrentTermActive}
         />
       )}
@@ -656,6 +723,9 @@ const ProgramHeadIndustryConsultant = () => {
           fields={[
             // Name is picked from the Dean's faculty list (period-scoped).
             { key: 'name', label: 'Name', required: true, type: 'searchable-select', options: facultyOptions, placeholder: 'Search faculty…' },
+            // For their LPMS account and invitation; a UNC address — or any
+            // address when the server allows outside consultants.
+            { key: 'email', label: 'Email', required: true, type: 'email', placeholder: externalEmails ? 'name@company.com or firstname.surname@' + ALLOWED_EMAIL_DOMAIN : 'firstname.surname@' + ALLOWED_EMAIL_DOMAIN },
             { key: 'assigned_course_codes', label: 'Assigned Course Offering',
               // Same grouped / searchable / year-filtered picker as the Manage modal.
               render: ({ value, onChange }) => (
@@ -861,16 +931,19 @@ const ProgramHeadIndustryConsultant = () => {
             </div>
       </DialogShell>
 
-      {/* Preview & Confirm (imports are final — there is no undo). Mounted inside
+      {/* Preview & Confirm, then the 30-second undo toast. Mounted inside
           `content` — this page's return wraps everything in <SkeletonA>. */}
       <UploadPreviewFlow
         file={pendingFile}
+        entity="industry_consultants"
+        periodId={periodId}
         title="Upload Consultant List"
         preview={(f) => ConsultantsAPI.uploadPreview(f, periodId)}
         commit={(f) => ConsultantsAPI.upload(f, periodId)}
         onBack={() => { setPendingFile(null); setShowModal(true); }}
         onCancel={() => { setPendingFile(null); clearPicker(); }}
         onCommitted={onUploadCommitted}
+        onUndone={onUploadUndone}
       />
     </div>
   );

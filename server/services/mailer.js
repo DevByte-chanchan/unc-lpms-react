@@ -94,6 +94,14 @@ export function explainMailError(err, mode) {
   return process.env.SMTP_PASS ? message.split(process.env.SMTP_PASS).join('***') : message;
 }
 
+let testSink = null;
+/**
+ * Tests only: route every send through `fn(message)` instead of SMTP (and
+ * report it as 'captured'). Pass null to restore the real transport. The
+ * MAIL_MODE=off and dev-allowlist rules still apply before the sink is reached.
+ */
+export function setMailSinkForTests(fn) { testSink = typeof fn === 'function' ? fn : null; }
+
 export async function sendMail({ to, subject, text, html, attachments } = {}) {
   const mode = currentMode();
   const recipients = (Array.isArray(to) ? to : [to]).map((s) => String(s || '').trim()).filter(Boolean);
@@ -123,8 +131,11 @@ export async function sendMail({ to, subject, text, html, attachments } = {}) {
   }
 
   try {
-    const info = await transportFor(mode).sendMail({ from: fromAddress(), to: allowed, subject, text, html, attachments });
-    const status = mode === 'capture' ? 'captured' : 'sent';
+    const message = { from: fromAddress(), to: allowed, subject, text, html, attachments };
+    // Tests: an in-process sink instead of SMTP, so a suite can count the
+    // messages it caused without a Mailpit. Never installed outside tests.
+    const info = testSink ? await testSink(message) || { messageId: 'test-' + Date.now() } : await transportFor(mode).sendMail(message);
+    const status = mode === 'capture' || testSink ? 'captured' : 'sent';
     log(allowed, status);
     return { status, messageId: info.messageId, skipped };
   } catch (err) {

@@ -1,18 +1,23 @@
 import React from 'react';
-import { Eye, Edit3, Archive } from 'react-feather';
+import { Eye, Edit3 } from 'react-feather';
 import styles from '../styles/CoursesTable.module.sass';
 import { statusPillStyle } from '../services/statusPolicy.js';
 import { sortRows, statusRank, nextSort } from '../services/tableSort.js';
 import RowActionsMenu from './RowActionsMenu.jsx';
 import SortableTh from './SortableTh.jsx';
+import AccessChip, { inviteRowAction } from './AccessChip.jsx';
 
-const FacultyTable = ({ faculty = [], onView, onEdit, hideDepartment = false }) => {
+// Access column sort: who still needs attention first.
+const ACCESS_RANK = { waiting: 0, failed: 1, expired: 2, held: 3, scheduled: 4, sending: 4, sent: 5, none: 6, disabled: 7, active: 8 };
+
+const FacultyTable = ({ faculty = [], onView, onEdit, onInvite, invitingId = null, hideDepartment = false, showAccess = false }) => {
   const columns = React.useMemo(() => [
-    { key: 'name', label: 'NAME', width: hideDepartment ? 320 : 380, type: 'text' },
+    { key: 'name', label: 'NAME', width: hideDepartment ? 300 : 360, type: 'text' },
     ...(!hideDepartment ? [{ key: 'department', label: 'DEPARTMENT', width: 180, type: 'text' }] : []),
-    { key: 'role', label: 'ROLE', width: 260, type: 'text' },
+    { key: 'role', label: 'ROLE', width: 220, type: 'text' },
     { key: 'status', label: 'STATUS', width: 120, type: 'number', sortValue: (r) => statusRank('faculty', r.status || 'Active') },
-  ], [hideDepartment]);
+    ...(showAccess ? [{ key: 'access', label: 'ACCESS', width: 150, type: 'number', sortValue: (r) => ACCESS_RANK[r.access ? r.access.status : 'none'] ?? 9 }] : []),
+  ], [hideDepartment, showAccess]);
 
   const [sort, setSort] = React.useState({ sortKey: 'name', sortDir: 'asc' });
   const onSort = (key) => setSort((s) => nextSort(s, key));
@@ -34,20 +39,24 @@ const FacultyTable = ({ faculty = [], onView, onEdit, hideDepartment = false }) 
             const status = f.status || 'Active';
             return (
               <tr key={f.id || idx}>
-                <td width={hideDepartment ? 320 : 380}>{f.name}</td>
+                <td width={hideDepartment ? 300 : 360}>{f.name}</td>
                 {!hideDepartment && <td width={180}>{f.department}</td>}
-                <td width={260}>{f.role}</td>
+                <td width={220}>{f.role}</td>
                 <td width={120}>
                   <span style={{ ...statusPillStyle('faculty', status), padding: '4px 10px', borderRadius: 4, fontSize: 12, fontWeight: 600 }}>
                     {status}
                   </span>
                 </td>
+                {showAccess && (
+                  <td width={150}><AccessChip access={f.access} /></td>
+                )}
                 <td className={styles.fill} style={{ paddingRight: 12, textAlign: 'right', whiteSpace: 'nowrap' }}>
                   <RowActionsMenu
                     row={f}
                     inline={[
                       onView && { key: 'view', label: 'View', icon: <Eye size={16} />, onClick: onView },
                       onEdit && { key: 'edit', label: 'Edit', icon: <Edit3 size={16} />, onClick: onEdit },
+                      showAccess && inviteRowAction(f.access, onInvite, invitingId === f.id),
                     ].filter(Boolean)}
                   />
                 </td>

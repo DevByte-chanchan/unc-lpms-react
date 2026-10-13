@@ -43,9 +43,9 @@ test('tokens: 32 random bytes, stored only as a SHA-256 hash', () => {
   assert.ok(!looksLikeToken(undefined));
 });
 
-test('faculty Role → account roles (the first is where they land)', () => {
-  assert.deepEqual(rolesForFacultyRow('Program Head'), ['Program Head', 'Instructor']);
-  assert.deepEqual(rolesForFacultyRow('Dean'), ['Dean', 'Instructor']);
+test('faculty Role → account roles: Instructor only (the Role column is information)', () => {
+  assert.deepEqual(rolesForFacultyRow('Program Head'), ['Instructor']);
+  assert.deepEqual(rolesForFacultyRow('Dean'), ['Instructor']);
   assert.deepEqual(rolesForFacultyRow('Associate Professor'), ['Instructor']);
 });
 

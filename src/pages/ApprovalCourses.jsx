@@ -3,6 +3,7 @@ import Skeleton from "../layouts/SkeletonA.jsx";
 import Header from "../components/HeaderA.jsx";
 import SideNavigation from "../components/SideNavigation.jsx";
 import ApprovalCoursesTable from "../components/ApprovalCoursesTable.jsx";
+import ConsultantCoursesTable from "../components/ConsultantCoursesTable.jsx";
 
 const ApprovalCourses = ({ isEmbedded = false, roleOverride = null }) => {
     const { approver } = useParams(); // dynamically get role from URL
@@ -11,7 +12,11 @@ const ApprovalCourses = ({ isEmbedded = false, roleOverride = null }) => {
     // approval links to Course Offerings); it serves the Director of Libraries
     // and the Industry Consultant.
 
-    const content = <ApprovalCoursesTable role={role} />;
+    // The Industry Consultant sees their own assigned courses; the Director of
+    // Libraries keeps the approval table.
+    const content = role === 'industry-consultant'
+        ? <ConsultantCoursesTable />
+        : <ApprovalCoursesTable role={role} />;
 
     // If embedded (used inside another component), just return the table
     if (isEmbedded) {

@@ -7,8 +7,29 @@ import { cloneFromPriorPeriod } from '../utils/periodClone.js';
 import { enforceLatestPeriod } from '../utils/latestPeriod.js';
 import { isPreviewRequest, PreviewRows, previewResponse } from '../utils/importPreview.js';
 import { beginImportBatch, beginManualBatch, completeImportBatch } from './importController.js';
+import { headsOf, syncProgramHeadRoles, unmatchedHeadMessage } from '../services/programHeadAccess.js';
 
 const { Program, Faculty } = db;
+
+// Faculty ids heading a program in the period — taken BEFORE a change, so the
+// sync afterwards knows who stopped being a head.
+const headIdsOf = async (period_id) => [...(await headsOf(period_id)).byFaculty.keys()];
+
+// Program Head access follows the programs list. Never throws: a problem here
+// must not fail a write that already happened.
+async function syncHeads(req, period_id, before, batch = null) {
+  try {
+    return await syncProgramHeadRoles({
+      periodId: period_id,
+      before,
+      batchId: batch ? batch.id : null,
+      senderId: req.user ? req.user.id : null,
+    });
+  } catch (err) {
+    console.error('[program-head] could not sync roles:', err.message);
+    return null;
+  }
+}
 
 // Strips honorifics so "Dr. Maria Santos" matches "Maria Santos".
 // Mirrors normalizeName in courseOfferingAssignmentController.
@@ -128,10 +149,13 @@ export async function createProgram(req, res, next) {
     if (!(await enforceLatestPeriod(res, period_id))) return;
     const program_head_id = await resolveHeadId(program_head, period_id);
     const safe = await filterOneToExistingColumns(Program, { code, name, program_head, program_head_id, status: status || 'Active', period_id });
-    // Record the manual add, the same way an upload is recorded.
-    const batch = await beginManualBatch('programs', period_id, name);
+    // Snapshot first, so a row added by hand is undoable the same way an
+    // uploaded one is.
+    const before = await headIdsOf(period_id);
+    const batch = await beginManualBatch('programs', period_id, name, req.user);
     const created = await Program.create(safe);
     await completeImportBatch(batch, { added: 1 });
+    await syncHeads(req, period_id, before, batch);
 
     res.status(201).json(created);
   } catch (err) {
@@ -159,7 +183,9 @@ export async function updateProgram(req, res) {
       patch.program_head_id = await resolveHeadId(patch.program_head, row.period_id);
     }
     const safe = await filterOneToExistingColumns(Program, patch);
+    const before = await headIdsOf(row.period_id);
     await row.update(safe);
+    await syncHeads(req, row.period_id, before);
     res.json(row);
   } catch (err) {
     res.status(400).json({ message: describeSequelizeError(err) });
@@ -171,8 +197,10 @@ export async function deleteProgram(req, res, next) {
     const row = await Program.findByPk(req.params.id);
     if (!row) return res.status(404).json({ message: 'Program not found' });
     if (!(await enforceLatestPeriod(res, row.period_id))) return;
+    const before = await headIdsOf(row.period_id);
     const n = await Program.destroy({ where: { id: req.params.id } });
     if (!n) return res.status(404).json({ message: 'Program not found' });
+    await syncHeads(req, row.period_id, before);
     res.status(204).end();
   } catch (err) { next(err); }
 }
@@ -232,10 +260,7 @@ export async function uploadPrograms(req, res) {
       // that doesn't match anyone is.
       const rowWarnings = [];
       if (headName && headId === null) {
-        rowWarnings.push({
-          field: 'Program Head',
-          message: '"' + headName + '" is not in this period\'s Faculty list — the program imports with no head linked.',
-        });
+        rowWarnings.push({ field: 'Program Head', message: unmatchedHeadMessage(headName) });
       }
 
       if (rowWarnings.length > 0) preview.warning(rowNum, cells, rowWarnings);
@@ -251,7 +276,7 @@ export async function uploadPrograms(req, res) {
       });
     });
 
-    // ---------- PREVIEW: persist NOTHING and return before anything is recorded ----------
+    // ---------- PREVIEW: persist NOTHING and return before the snapshot ----------
     // Everything below this line writes — and this upload DESTROYS the period's
     // programs before re-inserting. Returning past this point would wipe the list
     // on what the user was told was a dry run.
@@ -267,13 +292,19 @@ export async function uploadPrograms(req, res) {
       return res.status(400).json({ message: 'No valid rows found.', headers, errors });
     }
 
-    // Record the upload (who/what/when). Uploads are final — there is no undo.
-    const batch = await beginImportBatch('programs', period_id, req.file.originalname);
+    // Photograph the period BEFORE the destroy below — this upload replaces
+    // the whole program list, so the snapshot is the only way back.
+    const before = await headIdsOf(period_id);
+    const batch = await beginImportBatch('programs', period_id, req.file.originalname, req.user);
 
     const removed = await safeDestroyByPeriod(Program, period_id);
     const created = await bulkUpsert(Program, records, ['name', 'program_head', 'program_head_id', 'status']);
 
     await completeImportBatch(batch, { inserted: created.length, replaced: removed });
+
+    // Program Head access: granted to the heads named here, invitations for
+    // heads with no account yet, taken from heads who no longer head anything.
+    const access = await syncHeads(req, period_id, before, batch);
 
     // Cross-reference each row's program_head against the period's Faculty
     // master list. Rows whose head isn't a known Faculty name surface as
@@ -287,7 +318,7 @@ export async function uploadPrograms(req, res) {
       const head = row.program_head;
       if (!head) continue;   // No head specified: not a warning, just empty.
       if (!facultyByKey.has(normalizeFacultyName(head))) {
-        warnings.push({ id: row.id, code: row.code, name: row.name, program_head: head });
+        warnings.push({ id: row.id, code: row.code, name: row.name, program_head: head, message: unmatchedHeadMessage(head) });
       }
     }
 
@@ -298,6 +329,8 @@ export async function uploadPrograms(req, res) {
       errors,
       warnings,
       headers,
+      access,
+      invitations: access && access.invited,
     });
   } catch (err) {
     res.status(400).json({ message: describeSequelizeError(err) });

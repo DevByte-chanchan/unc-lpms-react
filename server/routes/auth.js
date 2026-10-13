@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { requireAuth } from '../middleware/auth.js';
 import { login, logout, me, changePassword } from '../controllers/authController.js';
 import {
-  getInvitation, acceptInvitation, forgotPassword, getReset, resetPassword,
+  getInvitation, acceptInvitation, forgotPassword, getReset, resetPassword, requestInvitationLink,
 } from '../controllers/passwordLinkController.js';
 import { rateLimit } from '../utils/rateLimit.js';
 
@@ -22,6 +22,8 @@ router.post('/accept-invitation',  linkLimit, acceptInvitation);
 router.get('/reset-password',      linkLimit, getReset);
 router.post('/reset-password',     linkLimit, resetPassword);
 router.post('/forgot-password',    forgotLimit, forgotPassword);
+// "Send me a new link" from a dead invitation link — same neutral answer for everyone.
+router.post('/request-invitation', forgotLimit, requestInvitationLink);
 
 router.use(requireAuth);
 router.post('/logout',          logout);

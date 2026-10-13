@@ -107,6 +107,10 @@ export const FacultyAPI = {
   upload: (file, periodId) => uploadFile('/faculty/upload', file, periodId),
   // Dry run — same route, nothing written. Feeds the Preview & Confirm step.
   uploadPreview: (file, periodId) => uploadPreview('/faculty/upload', file, periodId),
+  // Invite now / Resend. { message, access } — 409 when the person already has a password.
+  invite:    (id) => request(idPath('/faculty', id) + '/invite', { method: 'POST' }),
+  // Everyone "Not invited yet" in the period. { sent, skipped, failed, total }
+  inviteAll: (periodId) => request('/faculty/invite-all', { method: 'POST', body: { period_id: periodId } }),
 };
 
 // Curriculum catalog (period-scoped — each term owns its own copy, cloned
@@ -180,6 +184,10 @@ export const ConsultantsAPI = {
   upload: (file, periodId) => uploadFile('/industry-consultants/upload', file, periodId),
   // Dry run — same route, nothing written. Feeds the Preview & Confirm step.
   uploadPreview: (file, periodId) => uploadPreview('/industry-consultants/upload', file, periodId),
+  // The signed-in consultant's assigned courses (current term unless periodId).
+  myCourses: (periodId) => request('/industry-consultants/me/courses', { query: { period_id: periodId } }),
+  // Invite now / Resend. { message, access } — 409 when the person already has a password.
+  invite:    (id) => request(idPath('/industry-consultants', id) + '/invite', { method: 'POST' }),
 };
 
 // An assignment fills a course OFFERING — a (course × program) pairing — so
@@ -216,6 +224,22 @@ export const CourseOfferingAssignmentsAPI = {
   uploadPreview: (file, periodId, programId) =>
     uploadPreview('/course-offering-assignments/upload', file, periodId, { program_id: programId }),
   revalidate: (periodId) => request('/course-offering-assignments/revalidate', { method: 'POST', query: { period_id: periodId } }),
+};
+
+// Undo for the bulk-upload buttons. The backend snapshots the affected tables
+// before each upload and keeps them restorable for 30 SECONDS; `latest` returns
+// null once that window closes, so the UI can go quiet on its own.
+//
+// The deadline lives on the server (UNDO_WINDOW_MS in server/utils/importUndo.js)
+// and reaches the client as `batch.ms_remaining`. Count down from that — never
+// from a hardcoded 30 — or the toast and the server will disagree the moment
+// the constant moves.
+//
+// entity: 'departments' | 'faculty' | 'programs' | 'courses'
+//         | 'course_offering_assignments' | 'industry_consultants'
+export const ImportsAPI = {
+  latest: (entity, periodId) => request('/imports/latest', { query: { entity, period_id: periodId } }),
+  undo:   (batchId) => request(idPath('/imports', batchId) + '/undo', { method: 'POST' }),
 };
 
 export const ArchiveAPI = {
@@ -298,6 +322,24 @@ export const AuthAPI = {
   resetInfo:        (token) => request('/auth/reset-password', { query: { token } }),
   // { user } — signs in THIS account, replacing any session the browser had.
   resetPassword:    (token, password) => request('/auth/reset-password', { method: 'POST', body: { token, password } }),
+  // "Send me a new link" from a dead invitation link. Always { message } — never
+  // says whether the email has an account.
+  requestInvitation: (email) => request('/auth/request-invitation', { method: 'POST', body: { email } }),
+};
+
+// The bell. Every call returns only the signed-in user's own rows.
+export const NotificationsAPI = {
+  // { items: [{ id, kind, title, body, link, from, read_at, emailed_at, created_at }], unread }
+  list:        (limit = 20, before) => request('/notifications', { query: { limit, before } }),
+  // { unread } — cheap; the header polls it.
+  unreadCount: () => request('/notifications/unread-count'),
+  markRead:    (id) => request(idPath('/notifications', id) + '/read', { method: 'POST' }),
+  markAllRead: () => request('/notifications/read-all', { method: 'POST' }),
+};
+
+// Public. { ok, ts, features: { externalConsultantEmails } }
+export const HealthAPI = {
+  get: () => request('/health'),
 };
 
 // Account management (VPAA). Create and reset return { account, temp_password }:

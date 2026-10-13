@@ -60,8 +60,9 @@ export async function createDepartment(req, res) {
     const safe = await filterOneToExistingColumns(Department, {
       name, code, dean, status: status || 'Active', period_id,
     });
-    // Record the manual add, the same way an upload is recorded.
-    const batch = await beginManualBatch('departments', period_id, name);
+    // Snapshot first, so a row added by hand is undoable the same way an
+    // uploaded one is.
+    const batch = await beginManualBatch('departments', period_id, name, req.user);
     const created = await Department.create(safe);
     await completeImportBatch(batch, { added: 1 });
 
@@ -174,9 +175,9 @@ export async function uploadDepartments(req, res) {
       });
     });
 
-    // ---------- PREVIEW: persist NOTHING and return before anything is recorded ----------
+    // ---------- PREVIEW: persist NOTHING and return before the snapshot ----------
     // Everything below this line writes. A preview past it would leave an
-    // ImportBatch behind for an import that never happened.
+    // ImportBatch behind and offer an Undo for an import that never happened.
     if (isPreviewRequest(req)) {
       return previewResponse(res, {
         filename: req.file.originalname,
@@ -194,8 +195,9 @@ export async function uploadDepartments(req, res) {
       attributes: ['id', 'name', 'code', 'status'],
       raw: true,
     });
-    // Record the upload (who/what/when). Uploads are final — there is no undo.
-    const batch = await beginImportBatch('departments', period_id, req.file.originalname);
+    // Photograph the period before the upsert below overwrites anything —
+    // this is what the Undo button restores.
+    const batch = await beginImportBatch('departments', period_id, req.file.originalname, req.user);
 
     const created = await bulkUpsert(Department, records, ['name', 'dean', 'status']);
     // Only reconcile departments that are actually IN THE TABLE. Already-archived

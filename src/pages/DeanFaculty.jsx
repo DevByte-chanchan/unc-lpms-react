@@ -6,21 +6,30 @@ import EditEntityModal from "../components/EditEntityModal.jsx";
 import ConfirmModal from "../components/ConfirmModal.jsx";
 import ReconciliationModal from "../components/ReconciliationModal.jsx";
 import ViewArchivedButton from "../components/ViewArchivedButton.jsx";
+import UndoUploadButton from "../components/UndoUploadButton.jsx";
 import UploadPreviewFlow from "../components/UploadPreviewFlow.jsx";
 import DialogShell from "../components/DialogShell.jsx";
-import { Search, ArrowUp, ArrowDown, Upload, Plus, Clipboard, ChevronDown, Check, Users } from "react-feather";
+import { Search, Upload, Plus, Clipboard, ChevronDown, Check, Users, Send, X } from "react-feather";
 import styles from '../styles/CoursesTable.module.sass';
 import syllabusStyles from '../styles/SyllabusSections.module.sass';
 import { FacultyAPI } from '../services/api.js';
 import { usePeriod } from '../services/period.jsx';
 import { STATUS_OPTIONS, partitionByArchive } from '../services/statusPolicy.js';
 
-const ActionBtn = ({ onClick, icon, label, disabled, variant }) => (
-  <button onClick={onClick} disabled={disabled} style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '8px 18px', gap: 8, width: 240, height: 40, background: variant === 'white' ? '#FFFFFF' : (disabled ? '#9CA3AF' : '#18191A'), borderRadius: 6, color: variant === 'white' ? '#374151' : '#fff', border: variant === 'white' ? '1px solid #D1D5DB' : 'none', cursor: disabled ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap', opacity: disabled ? (variant === 'white' ? 0.6 : 0.7) : 1 }}>
+const ActionBtn = ({ onClick, icon, label, disabled, variant, width = 240 }) => (
+  <button onClick={onClick} disabled={disabled} style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '8px 18px', gap: 8, width, height: 40, background: variant === 'white' ? '#FFFFFF' : (disabled ? '#9CA3AF' : '#18191A'), borderRadius: 6, color: variant === 'white' ? '#374151' : '#fff', border: variant === 'white' ? '1px solid #D1D5DB' : 'none', cursor: disabled ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap', opacity: disabled ? (variant === 'white' ? 0.6 : 0.7) : 1 }}>
     <span style={{ width: 22, height: 22, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{icon}</span>
     {label}
   </button>
 );
+
+// The upload's own line under the success toast: how many accounts are
+// parked until they have a course (nothing is emailed yet).
+const uploadNote = (result) => {
+  const n = result && result.invitations ? Number(result.invitations.waiting) || 0 : 0;
+  if (!n) return null;
+  return n + (n === 1 ? ' account ready. They\'ll be invited when they\'re assigned a course.' : ' accounts ready. They\'ll be invited when they\'re assigned a course.');
+};
 
 const DeanFaculty = () => {
   const { currentPeriod, isCurrentTermActive } = usePeriod();
@@ -44,6 +53,13 @@ const DeanFaculty = () => {
   const [roleFilter, setRoleFilter]           = React.useState(null);
   const [roleMenuOpen, setRoleMenuOpen]       = React.useState(false);
   const [faculty, setFaculty]                 = React.useState([]);
+  // Bumped on every successful upload so the Undo button re-reads its batch.
+  const [uploadCount, setUploadCount]         = React.useState(0);
+  // Invite now / Resend: the row being sent, the confirm for "Invite all", and
+  // the result line ("Invitation sent to …" / "Not sent: …").
+  const [invitingId, setInvitingId]           = React.useState(null);
+  const [confirmInviteAll, setConfirmInviteAll] = React.useState(false);
+  const [notice, setNotice]                   = React.useState(null);   // { text, tone: 'ok' | 'warn' | 'error' }
   const fileInputRef = React.useRef(null);
 
   // Drop whatever is in the picker, so re-opening it never shows a stale file
@@ -61,6 +77,13 @@ const DeanFaculty = () => {
   }, [periodId]);
 
   React.useEffect(() => { refresh(); }, [refresh]);
+
+  // The result line goes away on its own.
+  React.useEffect(() => {
+    if (!notice) return undefined;
+    const id = setTimeout(() => setNotice(null), 8000);
+    return () => clearTimeout(id);
+  }, [notice]);
 
   const showTable = faculty.length > 0;
 
@@ -91,6 +114,17 @@ const DeanFaculty = () => {
     }
     clearPicker();
     await refresh();
+    setUploadCount((n) => n + 1);
+  };
+
+  // Undone — put the user back where they can pick the RIGHT file.
+  const onUploadUndone = async () => {
+    await refresh();
+    setUploadCount((n) => n + 1);
+    setRecon(null);
+    setPendingFile(null);
+    clearPicker();
+    setShowModal(true);
   };
 
   // Reconciliation: mark the chosen missing faculty as Inactive (archived).
@@ -105,6 +139,7 @@ const DeanFaculty = () => {
   const onAddFaculty = async (record) => {
     await FacultyAPI.create(record, periodId);
     await refresh();
+    setUploadCount((n) => n + 1);   // a manual add is undoable too
   };
 
   const onSaveEdit = async (patch) => {
@@ -115,6 +150,38 @@ const DeanFaculty = () => {
     } catch (err) {
       await refresh();
       throw err;
+    }
+  };
+
+  // Invite now / Resend for one row. 409 = already has a password.
+  const onInvite = async (row) => {
+    if (invitingId) return;
+    setInvitingId(row.id);
+    try {
+      const r = await FacultyAPI.invite(row.id);
+      setNotice({ text: r.message, tone: r.skipped ? 'warn' : 'ok' });
+      if (r.access) setFaculty((prev) => prev.map((f) => (f.id === row.id ? { ...f, access: { ...f.access, ...r.access, label: r.access.status === 'sent' ? 'Invited' : f.access.label } } : f)));
+      await refresh();
+    } catch (err) {
+      setNotice({ text: err.message || 'Could not send the invitation.', tone: err.status === 409 ? 'warn' : 'error' });
+    } finally {
+      setInvitingId(null);
+    }
+  };
+
+  const notInvited = React.useMemo(() => faculty.filter((f) => f.access && f.access.status === 'waiting'), [faculty]);
+
+  const onInviteAll = async () => {
+    setConfirmInviteAll(false);
+    try {
+      const r = await FacultyAPI.inviteAll(periodId);
+      const parts = [r.sent + (r.sent === 1 ? ' invitation sent' : ' invitations sent')];
+      if (r.skipped) parts.push(r.skipped + ' not sent');
+      if (r.failed) parts.push(r.failed + ' failed');
+      setNotice({ text: parts.join(', ') + '.', tone: r.failed ? 'error' : (r.skipped ? 'warn' : 'ok') });
+      await refresh();
+    } catch (err) {
+      setNotice({ text: err.message || 'Could not send the invitations.', tone: 'error' });
     }
   };
 
@@ -143,11 +210,21 @@ const DeanFaculty = () => {
     return partitionByArchive(rows, 'faculty').main;
   }, [faculty, roleFilter, searchQuery]);
 
+  const noticeStyle = notice && notice.tone === 'error'
+    ? { background: '#FEF2F2', border: '1px solid #FECACA', color: '#991B1B' }
+    : notice && notice.tone === 'warn'
+      ? { background: '#FEF3C7', border: '1px solid #FCD34D', color: '#92400E' }
+      : { background: '#F0FDF4', border: '1px solid #BBF7D0', color: '#166534' };
+
   return (
     <div style={{ padding: 20, background: '#FFFFFF', height: '100%', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
         <h2 style={{ margin: 0 }}>Faculty</h2>
         <div style={{ display: 'flex', gap: 10 }}>
+          <UndoUploadButton entity="faculty" periodId={periodId} disabled={!periodId || !isCurrentTermActive} refreshKey={uploadCount} onUndone={refresh} />
+          {showTable && isCurrentTermActive && notInvited.length > 0 && (
+            <ActionBtn variant="white" onClick={() => setConfirmInviteAll(true)} icon={<Send size={18} color="#374151" />} label={'Invite all not yet invited (' + notInvited.length + ')'} width={280} />
+          )}
           <ActionBtn variant="white" onClick={() => { if (faculty.length > 0) { setConfirmUpload(true); } else { setShowModal(true); } }} disabled={!periodId || !isCurrentTermActive} icon={<Upload size={18} color="#374151" />} label="Upload Faculty List" />
           {showTable && isCurrentTermActive && <ActionBtn onClick={() => setShowAddModal(true)} icon={<Plus size={18} color="#FFFFFF" />} label="Add Faculty" />}
         </div>
@@ -156,6 +233,13 @@ const DeanFaculty = () => {
       {!isCurrentTermActive && currentPeriod && (
         <div style={{ marginBottom: 12, padding: '10px 14px', background: '#FEF3C7', border: '1px solid #FCD34D', borderRadius: 8, color: '#92400E', fontSize: 13, lineHeight: '1.4' }}>
           <strong>Read-only:</strong> {currentPeriod.label} is not the current term. Switch to the current term to make changes.
+        </div>
+      )}
+
+      {notice && (
+        <div role="status" style={{ ...noticeStyle, marginBottom: 12, padding: '10px 14px', borderRadius: 8, fontSize: 13, lineHeight: '1.4', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+          <span>{notice.text}</span>
+          <button type="button" onClick={() => setNotice(null)} aria-label="Dismiss" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', display: 'inline-flex' }}><X size={14} /></button>
         </div>
       )}
 
@@ -217,6 +301,9 @@ const DeanFaculty = () => {
           onView={handleViewFaculty}
           onEdit={isCurrentTermActive ? (f) => { setEditFromView(false); setEditingFaculty(f); } : undefined}
           onArchive={isCurrentTermActive ? onArchiveRow : undefined}
+          onInvite={isCurrentTermActive ? onInvite : undefined}
+          invitingId={invitingId}
+          showAccess
           hideDepartment={true}
         />
       )}
@@ -319,16 +406,29 @@ const DeanFaculty = () => {
         onCancel={() => setConfirmUpload(false)}
       />
 
-      {/* Preview & Confirm (imports are final — there is no undo). Mounted here so the
+      <ConfirmModal
+        open={confirmInviteAll}
+        title="Invite everyone not yet invited?"
+        message={'This sends a set-password invitation right now to ' + notInvited.length + (notInvited.length === 1 ? ' person' : ' people') + ' whose Access says "Not invited yet". People who already have an invitation, or a password, are not affected.'}
+        confirmLabel={'Send ' + notInvited.length + (notInvited.length === 1 ? ' invitation' : ' invitations')}
+        onConfirm={onInviteAll}
+        onCancel={() => setConfirmInviteAll(false)}
+      />
+
+      {/* Preview & Confirm, then the 30-second undo toast. Mounted here so the
           toast outlives the overlay it was launched from. */}
       <UploadPreviewFlow
         file={pendingFile}
+        entity="faculty"
+        periodId={periodId}
         title="Upload Faculty List"
         preview={(f) => FacultyAPI.uploadPreview(f, periodId)}
         commit={(f) => FacultyAPI.upload(f, periodId)}
+        toastNote={uploadNote}
         onBack={() => { setPendingFile(null); setShowModal(true); }}
         onCancel={() => { setPendingFile(null); clearPicker(); }}
         onCommitted={onUploadCommitted}
+        onUndone={onUploadUndone}
       />
 
       {recon && (

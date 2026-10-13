@@ -6,6 +6,7 @@
  *   POST /api/auth/accept-invitation        { token, password }
  *   POST /api/auth/forgot-password          { email }
  *   POST /api/auth/reset-password           { token, password }
+ *   POST /api/auth/request-invitation       { email }   a new link from a dead invitation link
  *
  * Accepting an invitation or resetting a password signs in THAT account,
  * replacing whatever session the browser had: one person's link is never
@@ -13,15 +14,17 @@
  */
 import db from '../models/index.js';
 import { issueSession } from '../utils/session.js';
-import { isAllowedEmail, normalizeEmail } from '../utils/roles.js';
+import { isAllowedEmail, isAllowedEmailForRoles, normalizeEmail } from '../utils/roles.js';
 import { hashPassword, passwordProblems, presentUser, resolveLinks } from './authController.js';
-import { findLiveInvitation } from '../services/invitations.js';
+import { findLiveInvitation, requestInvitation } from '../services/invitations.js';
 import { sendPasswordReset, findLiveReset } from '../services/passwordResets.js';
 
 const { AccountInvitation, PasswordReset, UserAccount } = db;
 
-export const LINK_GONE = 'This link has expired or was already used. Ask the OVPAA office for a new one.';
+// Superseding means an older link stops working; the page offers a new one.
+export const LINK_GONE = 'This link has been replaced by a newer one or has expired. Check your inbox for the latest email from LPMS, or get a new link.';
 export const FORGOT_REPLY = 'If that email is registered, we sent a reset link.';
+export const REQUEST_REPLY = "If that address has an LPMS account waiting to be set up, we've sent a new link.";
 
 const gone = (res) => res.status(410).json({ message: LINK_GONE });
 
@@ -73,12 +76,23 @@ export async function acceptInvitation(req, res, next) {
     const updated = await setOwnPassword(account, password);
     await AccountInvitation.update(
       { status: 'cancelled', token_hash: null, hold_reason: 'The account was activated from another invitation.' },
-      { where: { user_account_id: account.id, status: ['held', 'scheduled', 'sent', 'failed'] } },
+      { where: { user_account_id: account.id, status: ['waiting', 'held', 'scheduled', 'sent', 'failed'] } },
     );
     return signInAs(res, updated, req.body && req.body.period_id);
   } catch (err) {
     return next(err);
   }
+}
+
+// Forgot password / new link: a UNC address always; an outside address only
+// when the switch is on and the account is an Industry-Consultant-only one.
+async function accountForPublicEmail(email) {
+  if (!email) return null;
+  if (!isAllowedEmail(email) && !isAllowedEmailForRoles(email, ['Industry Consultant'])) return null;
+  const account = await UserAccount.findOne({ where: { email } });
+  if (!account || account.status !== 'Active') return null;
+  if (!isAllowedEmailForRoles(email, account.roles || [])) return null;
+  return account;
 }
 
 export async function forgotPassword(req, res, next) {
@@ -87,14 +101,31 @@ export async function forgotPassword(req, res, next) {
     // Answer first, the same way for everyone; the email (if any) goes out
     // after, so neither the reply nor its timing says whether it exists.
     res.json({ message: FORGOT_REPLY });
-    if (!isAllowedEmail(email)) return undefined;
-    const account = await UserAccount.findOne({ where: { email } });
-    if (!account || account.status !== 'Active') return undefined;
+    const account = await accountForPublicEmail(email);
+    if (!account) return undefined;
     sendPasswordReset(account, { ip: req.ip }).catch((err) => console.error('[reset] send failed:', err.message));
     return undefined;
   } catch (err) {
     if (!res.headersSent) return next(err);
     console.error('[reset] forgot-password failed after replying:', err.message);
+    return undefined;
+  }
+}
+
+/**
+ * "Send me a new link". The reply never says whether the address has an
+ * account; a fresh invitation goes out only to an Active account that is
+ * still waiting to set its password (services/invitations.js).
+ */
+export async function requestInvitationLink(req, res, next) {
+  try {
+    const email = normalizeEmail(req.body && req.body.email);
+    res.json({ message: REQUEST_REPLY });
+    requestInvitation(email).catch((err) => console.error('[invitations] request failed:', err.message));
+    return undefined;
+  } catch (err) {
+    if (!res.headersSent) return next(err);
+    console.error('[invitations] request-invitation failed after replying:', err.message);
     return undefined;
   }
 }

@@ -7,8 +7,10 @@
  * purely for switching context everywhere else in the app.
  */
 import React from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Calendar, AlertTriangle, Lock, ChevronDown } from 'react-feather';
 import { usePeriod } from '../services/period.jsx';
+import { useCurrentUser } from '../services/currentUser.jsx';
 import { prettifyLabel } from '../services/periodLabel.js';
 import styles from '../styles/PeriodSelector.module.sass';
 
@@ -26,9 +28,25 @@ const startYear = (sy) => {
 };
 const rank = (p) => startYear(p.school_year) * 1000 + semRank(p.semester);
 
+// Where the VPAA creates terms (AcademicTerms, on the OVPAA Dashboard).
+const TERMS_PAGE = '/role/ovpaa?page=Dashboard';
+
+// Same look as the text links on the User Accounts page.
+const linkBtn = {
+  background: 'transparent', border: 'none', padding: '4px 6px', fontFamily: 'inherit',
+  fontSize: 12, fontWeight: 500, color: '#18191A', cursor: 'pointer', textDecoration: 'underline',
+};
+
 const PeriodSelector = ({ prominent = false }) => {
   const { periods, currentPeriod, activeTerm, isCurrentTermActive, setCurrentPeriodId } = usePeriod();
   const empty = !Array.isArray(periods) || periods.length === 0;
+  const { activeRole } = useCurrentUser();
+  const navigate = useNavigate();
+  const location = useLocation();
+  // The VPAA IS the OVPAA: they create terms rather than ask for one.
+  const isVpaa = activeRole === 'VPAA';
+  const onTermsPage = location.pathname === '/role/ovpaa'
+    && (new URLSearchParams(location.search).get('page') || 'Dashboard') === 'Dashboard';
 
   // Locked = anything that is not THE current term (the newest Active one, per
   // services/period.jsx and the server's utils/latestPeriod.js). That covers both
@@ -62,7 +80,7 @@ const PeriodSelector = ({ prominent = false }) => {
   };
 
   const buttonLabel = empty
-    ? 'No terms — ask OVPAA to add one'
+    ? (isVpaa ? 'No terms yet' : "No terms yet — the OVPAA hasn't added one")
     : (currentPeriod ? prettifyLabel(currentPeriod.label) : '— Select —');
 
   return (
@@ -153,7 +171,13 @@ const PeriodSelector = ({ prominent = false }) => {
         </span>
       )}
 
-      {empty && (
+      {empty && isVpaa && !onTermsPage && (
+        <button type="button" style={linkBtn} onClick={() => navigate(TERMS_PAGE)}>
+          Create a term
+        </button>
+      )}
+
+      {empty && !isVpaa && (
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: '#B45309', fontSize: 12, marginLeft: 4 }} title="No academic terms exist yet">
           <AlertTriangle size={14} /> setup needed
         </span>

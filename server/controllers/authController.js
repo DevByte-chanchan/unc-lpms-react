@@ -16,7 +16,7 @@ import { Op, fn, col, where as sqlWhere } from 'sequelize';
 import db from '../models/index.js';
 import { getActiveTermId } from '../utils/latestPeriod.js';
 import { issueSession, clearSession } from '../utils/session.js';
-import { isAllowedEmail, normalizeEmail, domainMessage } from '../utils/roles.js';
+import { isAllowedEmail, isAllowedEmailForRoles, normalizeEmail, domainMessage } from '../utils/roles.js';
 
 export const BCRYPT_COST = 10;
 export const MAX_ATTEMPTS = 5;
@@ -45,11 +45,15 @@ export const hashPassword = (plain) => bcrypt.hash(plain, BCRYPT_COST);
  */
 export async function verifyLogin(Model, rawEmail, password) {
   const email = normalizeEmail(rawEmail);
-  if (!isAllowedEmail(email)) return { status: 400, message: domainMessage() };
+  // An outside address is only ever accepted for an Industry-Consultant-only
+  // account, and only with ALLOW_EXTERNAL_CONSULTANT_EMAILS on; the account's
+  // roles are checked below, once it is loaded.
+  const external = !isAllowedEmail(email);
+  if (external && !isAllowedEmailForRoles(email, ['Industry Consultant'])) return { status: 400, message: domainMessage() };
 
   const account = await Model.scope('withHash').findOne({ where: { email } });
   const given = typeof password === 'string' ? password : '';
-  if (!account) {
+  if (!account || (external && !isAllowedEmailForRoles(email, account.roles || []))) {
     await bcrypt.compare(given, await getDummyHash());
     return { status: 401, message: MESSAGES.badLogin };
   }

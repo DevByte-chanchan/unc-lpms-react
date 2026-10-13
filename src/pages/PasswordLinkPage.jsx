@@ -11,13 +11,16 @@
  * invitation while signed in as Sophia)? We stop and ask first: Continue
  * signs the current person out and stays here; Cancel goes back to their
  * home. One person's link is never applied to another person's session.
+ *
+ * A dead invitation link is never a dead end: newer invitations supersede
+ * older ones, so the page explains that and offers "Send me a new link".
  */
 import React from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { AlertCircle } from 'react-feather';
+import { AlertCircle, CheckCircle } from 'react-feather';
 import { AuthAPI } from '../services/api.js';
 import { useCurrentUser } from '../services/currentUser.jsx';
-import { homeFor } from '../services/roles.js';
+import { homeFor, ALLOWED_EMAIL_DOMAIN, completeEmail, isAllowedEmail } from '../services/roles.js';
 import { Brand, ContinueAs } from './Login.jsx';
 import { FullPageSpinner } from '../components/RequireAuth.jsx';
 import { PasswordField, PasswordChecklist } from '../components/PasswordFields.jsx';
@@ -25,7 +28,9 @@ import { newPasswordChecks } from '../services/passwordRules.js';
 import styles from '../styles/Login.module.sass';
 
 const cx = (...c) => c.filter(Boolean).join(' ');
-const GONE = 'This link has expired or was already used. Ask the OVPAA office for a new one.';
+const GONE_INVITE = 'This link has been replaced by a newer one or has expired. Check your inbox for the latest email from LPMS, or get a new link.';
+const GONE_RESET = 'This link has expired or was already used. Ask for a new one from Forgot password.';
+const REQUESTED = "If that address has an LPMS account waiting to be set up, we've sent a new link.";
 
 const COPY = {
   invite: {
@@ -36,6 +41,7 @@ const COPY = {
     button: 'Set password',
     busy: 'Setting password…',
     purpose: 'set a password',
+    gone: GONE_INVITE,
   },
   reset: {
     load: (token) => AuthAPI.resetInfo(token),
@@ -45,10 +51,82 @@ const COPY = {
     button: 'Save new password',
     busy: 'Saving…',
     purpose: 'reset the password',
+    gone: GONE_RESET,
   },
 };
 
 const firstName = (name) => String(name || '').trim().split(/\s+/)[0] || name;
+
+/** "Send me a new link": an email and one button; the reply never says whether the email exists. */
+const NewLinkForm = () => {
+  const [email, setEmail] = React.useState('');
+  const [emailError, setEmailError] = React.useState(null);
+  const [error, setError] = React.useState(null);
+  const [busy, setBusy] = React.useState(false);
+  const [sent, setSent] = React.useState(null);
+
+  const onSubmit = async (e) => {
+    e.preventDefault();
+    if (busy) return;
+    setError(null);
+    const full = completeEmail(email);
+    if (full !== email) setEmail(full);
+    // Any address shaped like an email is sent to the server (an outside
+    // consultant address may be allowed there); a UNC one is completed for you.
+    if (!isAllowedEmail(full) && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(full)) { setEmailError('Enter your email address.'); return; }
+    setEmailError(null);
+    setBusy(true);
+    try {
+      const { message } = await AuthAPI.requestInvitation(full);
+      setSent(message || REQUESTED);
+    } catch (err) {
+      setError(err.status ? err.message : 'Could not reach the server. Check your connection and try again.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  if (sent) {
+    return (
+      <div className={styles.success} role="status">
+        <CheckCircle size={16} style={{ flexShrink: 0, marginTop: 1 }} />
+        <span>{sent} Check your inbox (and Spam).</span>
+      </div>
+    );
+  }
+
+  return (
+    <form className={styles.form} onSubmit={onSubmit} noValidate>
+      <div className={styles.field}>
+        <label className={styles.label} htmlFor="newlink-email">Email</label>
+        <input
+          id="newlink-email"
+          className={cx(styles.input, emailError && styles.inputInvalid)}
+          type="email"
+          autoComplete="username"
+          placeholder={'name@' + ALLOWED_EMAIL_DOMAIN}
+          value={email}
+          onChange={(e) => { setEmail(e.target.value); if (emailError) setEmailError(null); }}
+          onBlur={() => setEmail((v) => completeEmail(v))}
+          aria-invalid={!!emailError}
+          aria-describedby={emailError ? 'newlink-email-error' : 'newlink-email-help'}
+        />
+        {emailError
+          ? <span id="newlink-email-error" className={styles.fieldError}>{emailError}</span>
+          : <span id="newlink-email-help" className={styles.help}>The address your invitation was sent to (@{ALLOWED_EMAIL_DOMAIN}).</span>}
+      </div>
+      {error && (
+        <div className={styles.alert} role="alert">
+          <AlertCircle size={16} style={{ flexShrink: 0, marginTop: 1 }} />
+          <span>{error}</span>
+        </div>
+      )}
+      <button type="submit" className={cx(styles.btn, styles.btnPrimary)} disabled={busy}>
+        {busy ? <><span className={styles.spinner} aria-hidden="true" />Sending…</> : 'Send me a new link'}
+      </button>
+    </form>
+  );
+};
 
 const PasswordLinkPage = ({ mode }) => {
   const copy = COPY[mode];
@@ -69,12 +147,12 @@ const PasswordLinkPage = ({ mode }) => {
 
   React.useEffect(() => {
     let cancelled = false;
-    if (!token) { setGone(GONE); return undefined; }
+    if (!token) { setGone(copy.gone); return undefined; }
     copy.load(token)
       .then((data) => { if (!cancelled) setInfo(data); })
       .catch((err) => {
         if (cancelled) return;
-        setGone(err.status ? (err.message || GONE) : 'Could not reach the server. Check your connection and reload this page.');
+        setGone(err.status ? (err.message || copy.gone) : 'Could not reach the server. Check your connection and reload this page.');
       });
     return () => { cancelled = true; };
   }, [token, copy]);
@@ -93,8 +171,9 @@ const PasswordLinkPage = ({ mode }) => {
             <AlertCircle size={16} style={{ flexShrink: 0, marginTop: 1 }} />
             <span>{gone}</span>
           </div>
-          <button type="button" className={cx(styles.btn, styles.btnPrimary)} onClick={() => navigate('/login', { replace: true })}>
-            Go to login
+          {mode === 'invite' && <NewLinkForm />}
+          <button type="button" className={cx(styles.btn, mode === 'invite' ? styles.btnSecondary : styles.btnPrimary)} onClick={() => navigate(mode === 'reset' ? '/forgot-password' : '/login', { replace: true })}>
+            {mode === 'reset' ? 'Forgot password' : 'Go to login'}
           </button>
         </div>
       </div>
@@ -127,7 +206,7 @@ const PasswordLinkPage = ({ mode }) => {
         navigate(homeFor(u.roles[0]), { replace: true });
       }
     } catch (err) {
-      if (err.status === 410) setGone(err.message || GONE);
+      if (err.status === 410) setGone(err.message || copy.gone);
       else setError(err.status ? err.message : 'Could not reach the server. Check your connection and try again.');
       setBusy(false);
     }
