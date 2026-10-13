@@ -33,4 +33,12 @@ const canSeeComment = (user, comment) => {
 
 const filterComments = (user, comments) => comments.filter(comment => canSeeComment(user, comment));
 
-module.exports = { COMMENT_ROLE_BY_ACCOUNT, isApprover, isOwnComment, canSeeComment, filterComments };
+// The review record is the accreditation document. While a plan is under review it follows the same rule
+// as the comment lists, so it cannot be used to read a colleague's comments. Once the plan is approved
+// (or is the carry-over of an approved plan) an approver gets the whole record of the part they cover.
+const canSeeRecordComment = (user, comment, { approved = false } = {}) => {
+    if (!user || !canViewComment(user.role, comment)) return false;
+    return approved || !isApprover(user.role) ? true : isOwnComment(user, comment);
+};
+
+module.exports = { COMMENT_ROLE_BY_ACCOUNT, isApprover, isOwnComment, canSeeComment, canSeeRecordComment, filterComments };

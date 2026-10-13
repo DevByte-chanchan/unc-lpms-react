@@ -4,7 +4,7 @@ const { sequelize, Sequelize, Comment } = require('../models');
 const { assignmentChain, effectiveLogs } = require('../utils/effectiveLogs');
 const { assembleReviewRecord } = require('../utils/reviewRecord');
 const { signaturesForLogs } = require('../utils/approverSignatures');
-const { canViewComment } = require('../config/sectionAccess');
+const { canSeeRecordComment } = require('../utils/commentVisibility');
 
 const select = (sql, replacements = []) =>
     sequelize.query(sql, { replacements, type: Sequelize.QueryTypes.SELECT });
@@ -68,20 +68,22 @@ async function getReviewRecord(req, res, next) {
         const offeringId = req.courseAccess?.pc_offering_id;
         const assignmentId = req.courseAccess?.co_assign_id;
         const [course] = await select(
-            `SELECT c.course_no, c.course_title, c.term, pco.revision_number, pco.school_year, pco.semester, pco.carried_from_offering_id
+            `SELECT c.course_no, c.course_title, c.term, pco.revision_number, pco.school_year, pco.semester, pco.carried_from_offering_id, pco.approved_at
              FROM ProgramCourseOfferings pco INNER JOIN Courses c ON c.course_id = pco.course_id
              WHERE pco.pc_offering_id = ?;`, [offeringId]);
         if (!course) return res.status(404).json({ message: 'Course offering not found.' });
 
         // A carried-over offering's record is the record of the revision it carries.
         const logs = await effectiveLogs(sequelize, assignmentId);
-        // An approver who covers only part of the plan (config/sectionAccess.js) gets the record of that part.
+        // Under review, an approver's record holds their own comments only; once the plan is approved they get
+        // the whole record of the part they cover (utils/commentVisibility.js, config/sectionAccess.js).
+        const approved = course.approved_at != null || course.carried_from_offering_id != null;
         const comments = (assignmentId
             ? await Comment.findAll({
                 where: { co_assign_id: await assignmentChain(sequelize, assignmentId) },
                 order: [['createdAt', 'ASC'], ['comment_id', 'ASC']], raw: true
             })
-            : []).filter(comment => canViewComment(req.user?.role, comment));
+            : []).filter(comment => canSeeRecordComment(req.user, comment, { approved }));
 
         // Comment locations may refer to the ILOs of the offering this one was carried from.
         const chain = assignmentId ? await assignmentChain(sequelize, assignmentId) : [];
