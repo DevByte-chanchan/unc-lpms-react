@@ -89,6 +89,11 @@ const listAssignments = async (req, res, next) => {
                 : { [Op.in]: assigned.length ? assigned : [0] };
         }
 
+        // The VPAA lists approved plans only: approved, or the carry-over of an approved plan.
+        if (req.user?.role === 'vpaa') {
+            whereOffering[Op.or] = [{ approved_at: { [Op.ne]: null } }, { carried_from_offering_id: { [Op.ne]: null } }];
+        }
+
         const assignments = await CourseOfferingAssignment.findAndCountAll({
             where: whereAssignment,
             include: [

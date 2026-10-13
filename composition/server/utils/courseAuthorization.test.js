@@ -28,10 +28,10 @@ test('program heads and deans are constrained by program and department ownershi
     assert.equal(canAccessCourseRows({ id: 6, role: 'dean' }, rows), false);
 });
 
-test('central university reviewers retain their intended institution-wide view', () => {
-    for (const role of ['director-of-libraries', 'vpaa']) {
-        assert.equal(canAccessCourseRows({ id: 500, role }, rows), true);
-    }
+test('the Director of Libraries retains an institution-wide view, the VPAA only of approved plans', () => {
+    assert.equal(canAccessCourseRows({ id: 500, role: 'director-of-libraries' }, rows), true);
+    assert.equal(canAccessCourseRows({ id: 500, role: 'vpaa' }, rows), false, 'a plan that is not approved');
+    assert.equal(canAccessCourseRows({ id: 500, role: 'vpaa' }, [{ ...rows[0], approved_at: '2026-01-01T00:00:00.000Z' }]), true);
 });
 
 test('an industry consultant reads only the courses they are actively assigned to', () => {

@@ -3,14 +3,18 @@
 const { sequelize, Sequelize } = require('../models');
 
 // The Industry Consultant is not global: they read only the courses they are actively assigned to.
+// The VPAA is not global either: they read only approved plans. A plan is approved when approved_at is
+// set (the Dean accepted it), or when it is the carry-over of an approved plan into a new term
+// (carried_from_offering_id is set only from the latest approved revision).
 const GLOBAL_REVIEW_ROLES = new Set([
-    'director-of-libraries',
-    'vpaa'
+    'director-of-libraries'
 ]);
 
 const CONTEXT_COLUMNS = `
     pco.pc_offering_id,
     pco.revision_number,
+    pco.approved_at,
+    pco.carried_from_offering_id,
     pco.course_id,
     (SELECT GROUP_CONCAT(cc.consultant_user_id) FROM CourseConsultants cc
       WHERE cc.course_id = pco.course_id AND cc.is_active = 1) AS consultant_user_ids,
@@ -34,6 +38,9 @@ const canAccessCourseRows = (user, rows) => {
     const userId = normalizeId(user.id ?? user.user_id);
     if (!userId) return false;
 
+    if (user.role === 'vpaa') {
+        return rows.some(row => row.approved_at != null || row.carried_from_offering_id != null);
+    }
     if (user.role === 'instructor') {
         return rows.some(row => normalizeId(row.instructor_user_id) === userId);
     }
