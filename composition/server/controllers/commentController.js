@@ -9,17 +9,14 @@ const {
     loadCommentCourseRows
 } = require('../middleware/courseAuthorization');
 const { canViewComment, canViewSection, sectionOfComment } = require('../config/sectionAccess');
+const { COMMENT_ROLE_BY_ACCOUNT, isApprover, filterComments } = require('../utils/commentVisibility');
 
-const COMMENT_ROLE_BY_ACCOUNT = {
-    'program-head': 'PROGRAM_HEAD',
-    'director-of-libraries': 'LIBRARY_DIRECTOR',
-    'industry-consultant': 'INDUSTRY_CONSULTANT',
-    dean: 'DEAN'
-};
 
-// An approver whose role covers only part of the plan (see config/sectionAccess.js) gets back only
-// the comments about that part.
-const visibleComments = (req, rows) => rows.filter(row => canViewComment(req.user?.role, row));
+// An approver sees only the comments they wrote, and only those about the part of the plan their role
+// covers (utils/commentVisibility.js, config/sectionAccess.js). The instructor and the VPAA see them all.
+// The author's account id is used here to decide, and is not sent on.
+const visibleComments = (req, rows) => filterComments(req.user, rows).map(({ commenter_user_id: _author, ...row }) => row);
+
 
 /**
  * 1. GET /api/comments/unresolved-counts/:pcId/:revNum
@@ -34,6 +31,9 @@ exports.getUnresolvedCommentCounts = async (req, res) => {
             return res.status(400).json({ message: 'Course offering ID and revision number are required.' });
         }
 
+        const ownOnly = isApprover(req.user?.role)
+            ? ' AND (c.commenter_user_id = ? OR (c.commenter_user_id IS NULL AND c.commenter_role = ?))' : '';
+        const ownParams = ownOnly ? [req.user.id, COMMENT_ROLE_BY_ACCOUNT[req.user.role]] : [];
         const counts = await sequelize.query(
             `SELECT
                  c.ilo_id,
@@ -44,15 +44,15 @@ exports.getUnresolvedCommentCounts = async (req, res) => {
                  INNER JOIN CourseOutcomes co ON co.co_id = ilo.co_id
                  INNER JOIN ProgramCourseOfferings pco ON pco.pc_offering_id = co.pc_offering_id
              WHERE pco.pc_offering_id = ? AND (? IS NULL OR pco.revision_number = ?) AND c.resolved_status = false
-               AND c.commenter_role <> 'INDUSTRY_CONSULTANT'
+               AND c.commenter_role <> 'INDUSTRY_CONSULTANT'${ownOnly}
              GROUP BY c.ilo_id, c.comment_for;`,
             {
-                replacements: [pcId, revNum || null, revNum || null],
+                replacements: [pcId, revNum || null, revNum || null, ...ownParams],
                 type: Sequelize.QueryTypes.SELECT
             }
         );
 
-        return res.status(200).json(visibleComments(req, counts));
+        return res.status(200).json(counts.filter(row => canViewComment(req.user?.role, row)));
     } catch (error) {
         console.error('Error fetching comment counts:', error);
         return res.status(500).json({ message: 'Internal server error working with comment statistics.' });
@@ -76,6 +76,7 @@ exports.getCommentsByTarget = async (req, res) => {
             `SELECT
                  c.comment_id,
                  c.commenter_role,
+                 c.commenter_user_id,
                  c.message,
                  c.resolved_status,
                  c.ilo_id,
@@ -315,6 +316,7 @@ exports.getCourseCommentsByCode = async (req, res) => {
             `SELECT
                  c.comment_id,
                  c.commenter_role,
+                 c.commenter_user_id,
                  c.message,
                  c.resolved_status,
                  c.ilo_id,
@@ -376,6 +378,7 @@ exports.getCourseComments = async (req, res) => {
             `SELECT
                  c.comment_id,
                  c.commenter_role,
+                 c.commenter_user_id,
                  c.message,
                  c.resolved_status,
                  c.ilo_id,
