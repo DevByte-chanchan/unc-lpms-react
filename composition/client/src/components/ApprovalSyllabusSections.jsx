@@ -42,6 +42,7 @@ import ReferenceSummary from './ReferenceSummary'
 import OutcomeAlignment from './OutcomeAlignment'
 import CriteriaForGrading from './CriteriaForGrading'
 import PokeButton from './PokeButton.jsx'
+import { sectionsForRole, canSeeWholePlan } from '../utils/sectionAccess.js'
 
 
 
@@ -82,6 +83,34 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
   const params = useParams()
   const navigate = useNavigate()
   const location = useLocation()
+
+  // derive role
+  let storedUser = null
+  try { storedUser = JSON.parse(localStorage.getItem('user') || 'null') } catch { storedUser = null }
+
+  const rawRoleSource = (currentRole && currentRole.toString()) || params?.approver || storedUser?.role || storedUser?.roles?.[0] || 'approver'
+  const roleSource = String(rawRoleSource).toLowerCase()
+
+  const roleKey = roleSource.includes('program')
+    ? 'program-head'
+    : roleSource.includes('dean')
+      ? 'dean'
+      : roleSource.includes('industry')
+        ? 'industry-consultant'
+        : (roleSource.includes('library') || roleSource.includes('libraries'))
+          ? 'director-of-libraries'
+          : roleSource.includes('instructor')
+            ? 'instructor'
+            : roleSource.includes('oic') || roleSource.includes('ovpaa') || roleSource.includes('vpaa')
+              ? 'vpaa'
+              : roleSource.includes('approver')
+                ? 'approver'
+                : 'approver'
+
+  // Only the sections this role covers; the server refuses the rest (config/sectionAccess.js).
+  const visibleSections = React.useMemo(() => sectionsForRole(roleKey, defaultSections), [roleKey])
+  const wholePlanAccess = canSeeWholePlan(roleKey)
+
 
   const [isOpen, setIsOpen] = useState(false)
   const dropdownRef = useRef(null)
@@ -192,8 +221,9 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
   // would ever arrive to end it. That is the spinning circle over an empty
   // panel: not a slow server, a wait for something that was never requested.
   //
-  // Now it is true only while a request is genuinely outstanding.
-  const initialLoading = !!(validPcId && courseDetailsLoading && courseDetails === null)
+  // Now it is true only while a request is genuinely outstanding. A role that does not cover the
+  // course details never requests them, so it never waits for them.
+  const initialLoading = !!(validPcId && visibleSections.includes('Course Details') && courseDetailsLoading && courseDetails === null)
 
   const handleSectionChange = (e) => {
     setSelectedSection(e.target.value)
@@ -341,7 +371,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
 
   // CPA data loading (Course & Program Outcome Alignment)
   useEffect(() => {
-    if (!validPcId) return;
+    if (!validPcId || !visibleSections.includes('Course and Program Outcome Alignment')) return;
     let mounted = true;
     async function fetchCPA() {
       setCpaLoading(true);
@@ -363,11 +393,11 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
     }
     fetchCPA();
     return () => { mounted = false; };
-  }, [validPcId, validRevNum]);
+  }, [validPcId, validRevNum, visibleSections]);
 
   // API load: Course Details
   useEffect(() => {
-    if (!validPcId) return;
+    if (!validPcId || !visibleSections.includes('Course Details')) return;
     let mounted = true;
     async function fetchCourseDetails() {
       setCourseDetailsLoading(true);
@@ -385,11 +415,11 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
     }
     fetchCourseDetails();
     return () => { mounted = false; };
-  }, [validPcId, validRevNum]);
+  }, [validPcId, validRevNum, visibleSections]);
 
   // API load: Course Coverage (ilos + topics + assessments)
   useEffect(() => {
-    if (!validPcId) return;
+    if (!validPcId || !visibleSections.includes('Course Coverage')) return;
     let mounted = true;
     async function fetchCoverage() {
       setCoverageLoading(true);
@@ -404,11 +434,11 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
     }
     fetchCoverage();
     return () => { mounted = false; };
-  }, [validPcId, validRevNum]);
+  }, [validPcId, validRevNum, visibleSections]);
 
   // API load: Criteria for Grading
   useEffect(() => {
-    if (!validPcId) return;
+    if (!validPcId || !visibleSections.includes('Criteria for Grading')) return;
     let mounted = true;
     async function fetchCriteria() {
       setCriteriaLoading(true);
@@ -423,11 +453,11 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
     }
     fetchCriteria();
     return () => { mounted = false; };
-  }, [validPcId, validRevNum]);
+  }, [validPcId, validRevNum, visibleSections]);
 
   // API load: References
   useEffect(() => {
-    if (!validPcId) return;
+    if (!validPcId || !visibleSections.includes('References Summary')) return;
     let mounted = true;
     async function fetchRefs() {
       setRefLoading(true);
@@ -442,7 +472,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
     }
     fetchRefs();
     return () => { mounted = false; };
-  }, [validPcId, validRevNum]);
+  }, [validPcId, validRevNum, visibleSections]);
 
   // resolve data: API first, fall back to empty
   const resolvedCourse = courseDetails
@@ -499,29 +529,6 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
     loadLibrary().then(refs => { if (live) setLibraryRefs(refs) }).catch(() => { if (live) setLibraryRefs([]) })
     return () => { live = false }
   }, [])
-
-  // derive role
-  let storedUser = null
-  try { storedUser = JSON.parse(localStorage.getItem('user') || 'null') } catch { storedUser = null }
-
-  const rawRoleSource = (currentRole && currentRole.toString()) || params?.approver || storedUser?.role || storedUser?.roles?.[0] || 'approver'
-  const roleSource = String(rawRoleSource).toLowerCase()
-
-  const roleKey = roleSource.includes('program')
-    ? 'program-head'
-    : roleSource.includes('dean')
-      ? 'dean'
-      : roleSource.includes('industry')
-        ? 'industry-consultant'
-        : (roleSource.includes('library') || roleSource.includes('libraries'))
-          ? 'director-of-libraries'
-          : roleSource.includes('instructor')
-            ? 'instructor'
-            : roleSource.includes('oic') || roleSource.includes('ovpaa') || roleSource.includes('vpaa')
-              ? 'vpaa'
-              : roleSource.includes('approver')
-                ? 'approver'
-                : 'approver'
 
   const defaultBack = (() => {
     const fromTab = location.state?.fromTab
@@ -907,8 +914,8 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
   }
 
   useEffect(() => {
-    if (!defaultSections.includes(selectedSection)) setSelectedSection(defaultSections[0])
-  }, [selectedSection])
+    if (!visibleSections.includes(selectedSection)) setSelectedSection(visibleSections[0])
+  }, [selectedSection, visibleSections])
 
   const activeSelectedSection = (externalSelectedSection || selectedSection) === 'References' ? 'References Summary' : (externalSelectedSection || selectedSection)
 
@@ -965,12 +972,12 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
         <MoreVertical strokeWidth={2} size={16} />
       </div>
       <div className={styles.dropdownMenu}>
-        {approved && (
+        {approved && wholePlanAccess && (
           <button type="button" onClick={(e) => { e.stopPropagation(); setIsRevisionsOpen(true); setIsOpen(false); }}>
             <Clock strokeWidth={2} size={14} /> Revisions
           </button>
         )}
-        {(approved || exportInfo.allowed) && (
+        {(approved || exportInfo.allowed) && wholePlanAccess && (
           <button type="button" disabled={exportingPdf} onClick={(e) => { e.stopPropagation(); setIsOpen(false); runExport(); }}>
             <Download strokeWidth={2} size={14} /> {exportingPdf ? 'Exporting...' : (exportInfo.pendingDean ? 'Export (pending Dean approval)' : 'Export')}
           </button>
@@ -1013,7 +1020,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
 
           <div className={styles['section-select']}>
             <select value={selectedSection} onChange={handleSectionChange} aria-label="Learning plan section">
-              {defaultSections.map((s) => <option key={s} value={s}>{sectionLabels[s]}</option>)}
+              {visibleSections.map((s) => <option key={s} value={s}>{sectionLabels[s]}</option>)}
             </select>
           </div>
 
@@ -1264,9 +1271,9 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
               are. A button that could never do anything here is not rendered
               at all, rather than sitting permanently greyed out. */}
           {!embedded && (() => {
-            const idx = defaultSections.indexOf(activeSelectedSection)
-            const prev = idx > 0 ? defaultSections[idx - 1] : null
-            const next = idx >= 0 && idx < defaultSections.length - 1 ? defaultSections[idx + 1] : null
+            const idx = visibleSections.indexOf(activeSelectedSection)
+            const prev = idx > 0 ? visibleSections[idx - 1] : null
+            const next = idx >= 0 && idx < visibleSections.length - 1 ? visibleSections[idx + 1] : null
             return (
               <div className={styles['section-nav']}>
                 {prev ? (
@@ -1283,7 +1290,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
                 ) : <span />}
 
                 <div className={styles['nav-dots']} role="tablist" aria-label="Sections">
-                  {defaultSections.map((sec, i) => {
+                  {visibleSections.map((sec, i) => {
                     const current = sec === activeSelectedSection
                     return (
                       <button
@@ -1291,7 +1298,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
                         type="button"
                         role="tab"
                         aria-selected={current}
-                        aria-label={`${sectionLabels[sec]} (section ${i + 1} of ${defaultSections.length})`}
+                        aria-label={`${sectionLabels[sec]} (section ${i + 1} of ${visibleSections.length})`}
                         title={sectionLabels[sec]}
                         onClick={() => setSelectedSection(sec)}
                         className={`${styles['nav-dot']} ${current ? styles['nav-dot-active'] : ''}`}

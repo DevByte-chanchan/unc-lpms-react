@@ -4,6 +4,7 @@ const { sequelize, Sequelize, Comment } = require('../models');
 const { assignmentChain, effectiveLogs } = require('../utils/effectiveLogs');
 const { assembleReviewRecord } = require('../utils/reviewRecord');
 const { signaturesForLogs } = require('../utils/approverSignatures');
+const { canViewComment } = require('../config/sectionAccess');
 
 const select = (sql, replacements = []) =>
     sequelize.query(sql, { replacements, type: Sequelize.QueryTypes.SELECT });
@@ -74,12 +75,13 @@ async function getReviewRecord(req, res, next) {
 
         // A carried-over offering's record is the record of the revision it carries.
         const logs = await effectiveLogs(sequelize, assignmentId);
-        const comments = assignmentId
+        // An approver who covers only part of the plan (config/sectionAccess.js) gets the record of that part.
+        const comments = (assignmentId
             ? await Comment.findAll({
                 where: { co_assign_id: await assignmentChain(sequelize, assignmentId) },
                 order: [['createdAt', 'ASC'], ['comment_id', 'ASC']], raw: true
             })
-            : [];
+            : []).filter(comment => canViewComment(req.user?.role, comment));
 
         // Comment locations may refer to the ILOs of the offering this one was carried from.
         const chain = assignmentId ? await assignmentChain(sequelize, assignmentId) : [];

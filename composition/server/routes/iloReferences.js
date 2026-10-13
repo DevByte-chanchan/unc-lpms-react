@@ -9,9 +9,10 @@ const {
     requireIloBodyAccess,
     requireIloReferenceParamAccess
 } = require('../middleware/courseAuthorization');
+const { requireSection } = require('../middleware/sectionAccess');
 
 // GET /api/ilo-references/:iloId
-router.get('/:iloId', requireIloParamAccess('iloId'), getReferencesByILO);
+router.get('/:iloId', requireSection('references'), requireIloParamAccess('iloId'), getReferencesByILO);
 
 // POST /api/ilo-references/assign
 router.post('/assign', requireRole('instructor'), requireIloBodyAccess('ilo_id'), requireEditablePlan, assignReferencesToILO);

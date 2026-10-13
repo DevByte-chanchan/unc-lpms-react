@@ -4,12 +4,13 @@ const { getAvailableTopics, getAssignedTopics, assignTopicsToILO } = require('..
 const { requireRole } = require('../middleware/auth');
 const { requireEditablePlan } = require('../middleware/editLock');
 const { requireIloParamAccess, requireIloBodyAccess, requireIloQueryAccess } = require('../middleware/courseAuthorization');
+const { requireSection } = require('../middleware/sectionAccess');
 
 // GET /api/topics/available?iloId=97
-router.get('/available', requireIloQueryAccess('iloId'), getAvailableTopics);
+router.get('/available', requireSection('coverage'), requireIloQueryAccess('iloId'), getAvailableTopics);
 
 // GET /api/topics/assigned/:iloId
-router.get('/assigned/:iloId', requireIloParamAccess('iloId'), getAssignedTopics);
+router.get('/assigned/:iloId', requireSection('coverage'), requireIloParamAccess('iloId'), getAssignedTopics);
 
 // POST /api/topics/assign
 router.post('/assign', requireRole('instructor'), requireIloBodyAccess('ilo_id'), requireEditablePlan, assignTopicsToILO);

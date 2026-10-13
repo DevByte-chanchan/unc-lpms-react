@@ -8,6 +8,7 @@ const {
     loadCourseCodeRows,
     loadCommentCourseRows
 } = require('../middleware/courseAuthorization');
+const { canViewComment, canViewSection, sectionOfComment } = require('../config/sectionAccess');
 
 const COMMENT_ROLE_BY_ACCOUNT = {
     'program-head': 'PROGRAM_HEAD',
@@ -15,6 +16,10 @@ const COMMENT_ROLE_BY_ACCOUNT = {
     'industry-consultant': 'INDUSTRY_CONSULTANT',
     dean: 'DEAN'
 };
+
+// An approver whose role covers only part of the plan (see config/sectionAccess.js) gets back only
+// the comments about that part.
+const visibleComments = (req, rows) => rows.filter(row => canViewComment(req.user?.role, row));
 
 /**
  * 1. GET /api/comments/unresolved-counts/:pcId/:revNum
@@ -47,7 +52,7 @@ exports.getUnresolvedCommentCounts = async (req, res) => {
             }
         );
 
-        return res.status(200).json(counts);
+        return res.status(200).json(visibleComments(req, counts));
     } catch (error) {
         console.error('Error fetching comment counts:', error);
         return res.status(500).json({ message: 'Internal server error working with comment statistics.' });
@@ -87,7 +92,7 @@ exports.getCommentsByTarget = async (req, res) => {
             }
         );
 
-        return res.status(200).json(comments);
+        return res.status(200).json(visibleComments(req, comments));
     } catch (error) {
         console.error('Error fetching context targeted comments:', error);
         return res.status(500).json({ message: 'Internal server error processing review items.' });
@@ -108,6 +113,11 @@ exports.createCourseComment = async (req, res) => {
 
         if (commenter_role !== COMMENT_ROLE_BY_ACCOUNT[req.user?.role]) {
             return res.status(403).json({ error: 'Comment attribution must match the signed-in account.' });
+        }
+
+        const section = sectionOfComment({ comment_for: comment_for ? String(comment_for).toLowerCase().trim() : null });
+        if (!canViewSection(req.user?.role, section)) {
+            return res.status(403).json({ error: 'That part of the learning plan is not assigned to your role.', code: 'SECTION_RESTRICTED' });
         }
 
         const normalizedFor = comment_for ? String(comment_for).toLowerCase().trim() : null;
@@ -342,7 +352,7 @@ exports.getCourseCommentsByCode = async (req, res) => {
             }
         );
 
-        return res.status(200).json(comments);
+        return res.status(200).json(visibleComments(req, comments));
     } catch (error) {
         console.error('Error fetching course comments by code:', error);
         return res.status(500).json({ message: 'Internal server error fetching course comments.' });
@@ -386,7 +396,7 @@ exports.getCourseComments = async (req, res) => {
             }
         );
 
-        return res.status(200).json(comments);
+        return res.status(200).json(visibleComments(req, comments));
     } catch (error) {
         console.error('Error fetching course comments:', error);
         return res.status(500).json({ message: 'Internal server error fetching course comments.' });
