@@ -40,7 +40,7 @@ IloItem.hasMany(IloAttachment, { foreignKey: 'iloId', as: 'attachments' });
 IloAttachment.belongsTo(Course, { foreignKey: 'courseCode', as: 'course' });
 Course.hasMany(IloAttachment, { foreignKey: 'courseCode', as: 'attachments' });
 
-AssessmentItem.belongsTo(IloAttachment, { foreignKey: 'attachmentId', as: 'attachment' });
-IloAttachment.hasMany(AssessmentItem, { foreignKey: 'attachmentId', as: 'pointRows' });
+AssessmentItem.belongsTo(IloAttachment, { foreignKey: 'attachmentId', as: 'attachment', onDelete: 'CASCADE' });
+IloAttachment.hasMany(AssessmentItem, { foreignKey: 'attachmentId', as: 'pointRows', onDelete: 'CASCADE' });
 
 export { sequelize, IloAttachment, Course, CourseOutcome, IloItem, AssessmentItem, TosStatus, Comment };

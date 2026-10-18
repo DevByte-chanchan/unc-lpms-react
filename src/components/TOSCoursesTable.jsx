@@ -1,67 +1,54 @@
-﻿import React, {useState, useEffect} from 'react';
+import React, {useState, useEffect} from 'react';
 import {Link, useLocation} from 'react-router-dom'
 import styles from '../styles/CoursesTable.module.sass';
 import { ChevronRight, Download } from 'react-feather';
 import { fetchCourses } from '../services/api.js';
-const TOSCoursesTable = ({}) => {
+const TOSCoursesTable = () => {
 
     const currentYear = new Date().getFullYear();
     const startYear = 2000;
     const semOptions = ['1st Semester', '2nd Semester'];
-    const temp = ['Midterm', 'Finals'];
     const yearOptions = [];
     for (let i = currentYear; i >= startYear; i--) {
         yearOptions.push(<option key={i} value={i}>{i}-{i + 1}</option>);
     }
     const nortonCourses = new Set(['BSCS111L','BSCS212L','BSCS313L','BSCS321L','BSCS221L','BSCS341L','BSCS342L','BSCS214L','BSCS222L','BSCS223L','BSCS314L','BSCS323L']);
 
-    const draftCourses = [
-        { code: 'BSCS313L', name: 'Human & Computer Interaction',    dateAssigned: 'Jun 03, 2026', update: 'Jun 03, 2026', status: 'draft', learningPlanApproved: true },
-        { code: 'BSCS212L', name: 'Web Development I',               dateAssigned: 'Jun 02, 2026', update: 'Jun 05, 2026', status: 'draft', learningPlanApproved: false },
-        { code: 'BSCS111L', name: 'Fundamentals of Programming',     dateAssigned: 'Jun 01, 2026', update: 'Jun 04, 2026', status: 'draft', learningPlanApproved: true },
-        { code: 'BSCS321L', name: 'Database Management Systems',     dateAssigned: 'Jun 04, 2026', update: 'Jun 07, 2026', status: 'draft', learningPlanApproved: true },
-    ];
-    const pendingCourses = [
-        { code: 'BSCS221L', name: 'Object-Oriented Programming',     dateSubmitted: 'Jun 10, 2026', status: 'pending' },
-        { code: 'BSCS341L', name: 'Artificial Intelligence',         dateSubmitted: 'Jun 11, 2026', status: 'pending' },
-        { code: 'BSCS342L', name: 'Machine Learning Fundamentals',   dateSubmitted: 'Jun 12, 2026', status: 'pending' },
-    ];
-    const returnedCourses = [
-        { code: 'BSCS214L', name: 'Data Structures and Algorithms',   dateSubmitted: 'Jun 09, 2026', dateStatus: 'Jun 18, 2026', status: 'returned' },
-        { code: 'BSCS222L', name: 'Discrete Structures 2',           dateSubmitted: 'Jun 10, 2026', dateStatus: 'Jun 19, 2026', status: 'returned' },
-    ];
-    const approvedCourses = [
-        { code: 'BSCS223L', name: 'Web Development II',              dateSubmitted: 'Jun 09, 2026', dateStatus: 'Jun 16, 2026', status: 'approved' },
-        { code: 'BSCS314L', name: 'Data Communications',             dateSubmitted: 'Jun 10, 2026', dateStatus: 'Jun 17, 2026', status: 'approved' },
-        { code: 'BSCS323L', name: 'Systems Analysis and Design',     dateSubmitted: 'Jun 11, 2026', dateStatus: 'Jun 19, 2026', status: 'approved' },
-    ];
-    const fallbackCourses = [...draftCourses, ...pendingCourses, ...returnedCourses, ...approvedCourses];
+    
+    
+    
+    
+    
     const [courses, setCourses] = useState([]);
     const [loading, setLoading] = useState(true);
 
     const location = useLocation();
+        const [errorMsg, setErrorMsg] = useState(null);
+
     useEffect(() => {
         const navUpdate = location.state?.tosStatusUpdate;
         fetchCourses()
             .then(data => {
-                let result;
-                if (data && data.length) result = data.filter(c => nortonCourses.has(c.code));
-                else result = fallbackCourses;
+                let result = data;
+                if (nortonCourses.size > 0) {
+                    result = data.filter(c => nortonCourses.has(c.code));
+                }
+                
                 if (navUpdate) {
-                    result = result.map(c =>
-                        c.name === navUpdate.courseName ? { ...c, status: navUpdate.newStatus } : c
-                    );
+                    result = result.map(c => {
+                        if (c.name === navUpdate.courseName) {
+                            const newTos = { ...c.midtermTos, status: navUpdate.newStatus };
+                            return { ...c, midtermTos: newTos };
+                        }
+                        return c;
+                    });
                 }
                 setCourses(result);
+                setErrorMsg(null);
             })
-            .catch(() => {
-                let result = fallbackCourses;
-                if (navUpdate) {
-                    result = result.map(c =>
-                        c.name === navUpdate.courseName ? { ...c, status: navUpdate.newStatus } : c
-                    );
-                }
-                setCourses(result);
+            .catch((err) => {
+                console.error(err);
+                setErrorMsg('Failed to load courses. Please try again later.');
             })
             .finally(() => setLoading(false));
     }, []);
@@ -74,12 +61,14 @@ const TOSCoursesTable = ({}) => {
         setSelectedStatus(e.target.value)
     }
 
-    const displayedCourses = courses.map(c => {
+        const displayedCourses = courses.map(c => {
         const tos = examType === 'Midterm' ? c.midtermTos : c.finalsTos;
         const fmt = (ts) => ts ? new Date(ts).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }) : '';
         return {
             ...c,
             status: tos ? tos.status : 'draft',
+            dateAssigned: fmt(c.created_at) || '',
+            update: fmt(c.updated_at) || '',
             dateSubmitted: tos ? fmt(tos.submittedAt) : '',
             dateStatus: tos ? fmt(tos.returnedAt || tos.approvedAt) : ''
         };
@@ -90,6 +79,7 @@ const TOSCoursesTable = ({}) => {
         if (selectedStatus === 'approved' && c.status !== 'approved') return false;
         return true;
     });
+
     const nonDraft = selectedStatus === 'pending' || selectedStatus === 'approved' || selectedStatus === 'returned';
     const statusHeader = selectedStatus === 'returned' ? 'DATE RETURNED' : selectedStatus === 'approved' ? 'DATE APPROVED' : '';
 
@@ -109,7 +99,7 @@ const TOSCoursesTable = ({}) => {
                     </select>
                     <select className={styles['header-select']} value={examType} onChange={e => setExamType(e.target.value)}>
                         <option key="Midterm" value="Midterm">Midterm</option>
-                        <option key="Finals" value="Finals">Finals</option>
+                        <option key="Finals" value="Finals" disabled title="Not available yet">Finals</option>
                     </select>
                 </div>
                 <div className={styles.fill}></div>
@@ -125,9 +115,13 @@ const TOSCoursesTable = ({}) => {
                 </div>
             </div>
 
-            <div className={styles['table-container']}>
+                        <div className={styles['table-container']}>
                 {loading ? (
                     <div className={styles.loadingCell}>Loading courses...</div>
+                ) : errorMsg ? (
+                    <div className={styles.loadingCell} style={{color: 'red'}}>{errorMsg}</div>
+                ) : displayedCourses.length === 0 ? (
+                    <div className={styles.loadingCell} style={{color: '#6B7280'}}>No courses in this status.</div>
                 ) : (
                 <table>
                     <thead>
@@ -190,4 +184,6 @@ const TOSCoursesTable = ({}) => {
 };
 
 export default TOSCoursesTable;
+
+
 

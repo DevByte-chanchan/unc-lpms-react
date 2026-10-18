@@ -7,7 +7,13 @@ import previewLayout from "../styles/TOSPreview.module.sass";
 import TOSPreview from "../pages/TosPreview.jsx";
 import TOSSummary from "../pages/TosSummary.jsx";
 import AssessmentsStep, { AutoResizeTextarea } from "../pages/AssessmentsStep.jsx";
-import { fetchOutcomes, fetchItems, saveOutcomes, saveItems, fetchCourse, updateCourse, updateStatus, fetchStatus, fetchComments, createComment, deleteComment, resolveComment } from '../services/api.js';
+import AssessmentOutput from "./AssessmentOutput.jsx";
+import { fetchOutcomes, fetchItems, saveOutcomes, saveItems, fetchCourse, updateCourse, updateStatus, fetchStatus, fetchComments, createComment, deleteComment, resolveComment, ACTIVE_PERIOD } from '../services/api.js';
+
+const BLOOM_LEVELS = [
+    'Remembering', 'Understanding', 'Applying',
+    'Analyzing', 'Evaluating', 'Creating'
+];
 
 const TosSections = ({role = 'instructor'}) => {
 
@@ -19,6 +25,7 @@ const TosSections = ({role = 'instructor'}) => {
     const [viewMode, setViewMode] = useState('normal');
     const [lastClickedItemId, setLastClickedItemId] = useState(null);
     const [viewItemsTarget, setViewItemsTarget] = useState(null);
+    const [navTargetScope, setNavTargetScope] = useState(null);
     const navigate = useNavigate();
     const [searchParams, setSearchParams] = useSearchParams();
     const isProgramHead = role === 'program-head';
@@ -60,7 +67,7 @@ const TosSections = ({role = 'instructor'}) => {
         }
     ];
     const courseName = location.state?.courseName || '';
-    const fromExamType = location.state?.examType;
+    const fromExamType = location.state?.examType || ACTIVE_PERIOD;
     const fromSchoolYear = location.state?.schoolYear || String(new Date().getFullYear());
     const fromSemester = location.state?.semester || '1st Semester';
     const [courseNameState, setCourseName] = useState(courseName);
@@ -69,6 +76,7 @@ const TosSections = ({role = 'instructor'}) => {
 
     const [rows, setRows] = useState(defaultRows);
     const [tosTotalPoints, setTosTotalPoints] = useState(50);
+    const [tosTotalError, setTosTotalError] = useState('');
     window.tosTotalPoints = tosTotalPoints; // suppress unused
     const [dataLoaded, setDataLoaded] = useState(false);
     const [errorFields, setErrorFields] = useState({});
@@ -78,6 +86,17 @@ const TosSections = ({role = 'instructor'}) => {
     const [selectedVersion, setSelectedVersion] = useState(1);
     const [historyPage, setHistoryPage] = useState('tosReport');
     const [historyViewMode, setHistoryViewMode] = useState('normal');
+    const historyModalRef = useRef(null);
+    const historyPrevFocusRef = useRef(null);
+    useEffect(() => {
+        if (!showHistoryLog) return;
+        historyPrevFocusRef.current = document.activeElement;
+        historyModalRef.current?.focus();
+        return () => {
+            const prev = historyPrevFocusRef.current;
+            if (prev && typeof prev.focus === 'function') prev.focus();
+        };
+    }, [showHistoryLog]);
     const [submitLoading, setSubmitLoading] = useState(false);
     const [approveLoading, setApproveLoading] = useState(false);
     const [returnLoading, setReturnLoading] = useState(false);
@@ -190,7 +209,7 @@ const TosSections = ({role = 'instructor'}) => {
             if (data && data.length) {
                 setComments(data.map(c => ({
                     id: c.id,
-                    scope: { co: c.co, ilo: c.ilo, cognitiveLevel: c.cognitiveLevel, itemNumber: c.itemNumber, courseOutcomeId: c.courseOutcomeId, assessmentItemId: c.assessmentItemId, returnNumber: c.returnNumber || 0 },
+                    scope: { co: c.co, ilo: c.ilo, cognitiveLevel: c.cognitiveLevel, filename: (!BLOOM_LEVELS.includes(c.cognitiveLevel) && c.cognitiveLevel !== 'Points' && c.cognitiveLevel !== 'Number of Items') ? c.cognitiveLevel : '', itemNumber: c.itemNumber, courseOutcomeId: c.courseOutcomeId, assessmentItemId: c.assessmentItemId, returnNumber: c.returnNumber || 0 },
                     type: c.type,
                     body: c.body,
                     resolved: c.resolved || false,
@@ -263,15 +282,18 @@ const TosSections = ({role = 'instructor'}) => {
     };
 
     // The total is split equally between the COs of the current exam period.
-    const handleTotalPointsChange = (value) => {
-        setErrorFields(prev => {
-            const n = { ...prev };
-            Object.keys(n).forEach(k => { if (k.startsWith('oo-totalPoints-')) delete n[k]; });
-            return n;
-        });
+        const handleTotalPointsChange = (value) => {
+        const cleaned = value.replace(/[^0-9]/g, '');
+        if (value !== cleaned || (cleaned !== '' && Number(cleaned) <= 0)) {
+            setTosTotalError('Must be a positive whole number');
+        } else {
+            setTosTotalError('');
+        }
+        
+        const totalTos = cleaned === "" ? 0 : Number(cleaned);
+        setTosTotalPoints(cleaned === "" ? "" : totalTos);
+
         setRows(prev => {
-            const cleaned = value.replace(/[^0-9]/g, '');
-            const totalTos = cleaned === "" ? 0 : Number(cleaned);
             const numCos = prev.length || 1;
             const base = Math.floor(totalTos / numCos);
             const rem = totalTos % numCos;
@@ -287,7 +309,7 @@ const TosSections = ({role = 'instructor'}) => {
         });
     };
 
-    // ── TOS validation ────────────────────────────────────────────────────────
+// ── TOS validation ────────────────────────────────────────────────────────
     const validateTOS = () => {
         const issues = { outcomeOverview: [], assessmentMapping: [], tosSummary: [] };
         const fieldKeys = {};
@@ -300,7 +322,7 @@ const TosSections = ({role = 'instructor'}) => {
 
         questions.forEach(q => {
             if (q.co && q.ilo) {
-                if (counts[q.co]) counts[q.co].ilos[q.ilo] += (q.span || 1);
+                if (counts[q.co] && counts[q.co].ilos[q.ilo] !== undefined) counts[q.co].ilos[q.ilo] += (Number(q.points) || 0);
             }
         });
 
@@ -322,13 +344,13 @@ const TosSections = ({role = 'instructor'}) => {
         issues.outcomeOverview = [...ooSet];
 
         const mapSet = new Set();
-        const hasMappingIssues = () => mapSet.size > 0;
+        if (questions.length === 0) mapSet.add('No assessment points added');
         questions.forEach((q) => {
-            if (!(q.question || q.rubricItem || '').trim()) mapSet.add('Some items have no instruction text');
+            const allowed = q.ilo === 'ILO1' ? ['Remembering', 'Understanding'] : q.ilo === 'ILO2' ? ['Applying', 'Analyzing'] : ['Evaluating', 'Creating'];
             if (!q.co) { mapSet.add('Some items have no CO selected'); fieldKeys[`map-co-${q.id}`] = true; }
             if (!q.ilo) { mapSet.add('Some items have no ILO selected'); fieldKeys[`map-ilo-${q.id}`] = true; }
-            if (!q.points) mapSet.add('Some items have no points');
-            if (!q.cognitiveLevel) { mapSet.add('Some items have no cognitive level selected'); fieldKeys[`map-cognitiveLevel-${q.id}`] = true; }
+            if (!q.points || Number(q.points) <= 0) { mapSet.add('A row is missing points'); fieldKeys[`map-points-${q.id}`] = true; }
+            if (!q.cognitiveLevel) { mapSet.add("A row has no Bloom's level selected"); fieldKeys[`map-cognitiveLevel-${q.id}`] = true; } else if (!allowed.includes(q.cognitiveLevel)) { mapSet.add("A row has an invalid Bloom's level for its ILO"); fieldKeys[`map-cognitiveLevel-${q.id}`] = true; }
         });
         // Only show allocation mismatch if there are no other mapping issues (redundancy guard)
         let hasAllocMismatch = false;
@@ -339,7 +361,7 @@ const TosSections = ({role = 'instructor'}) => {
                 if (actual !== required) hasAllocMismatch = true;
             });
         });
-        if (hasAllocMismatch && !hasMappingIssues()) mapSet.add('Item allocation does not match the required distribution');
+        if (hasAllocMismatch) mapSet.add('Points allocation does not match the required distribution');
         issues.assessmentMapping = [...mapSet];
 
         return { errors: issues, fieldKeys };
@@ -364,7 +386,7 @@ const TosSections = ({role = 'instructor'}) => {
     const viewItemsNavRef = useRef(false);
 
     useEffect(() => {
-        if (selectedSection !== 'Assessment Items') return;
+        if (selectedSection !== 'Assessments') return;
         if (viewMode === 'group' && questions.length > 0) {
             if (viewItemsNavRef.current) {
                 viewItemsNavRef.current = false;
@@ -453,12 +475,14 @@ const TosSections = ({role = 'instructor'}) => {
     const resolvedCurrentReturn = comments.filter(c => c.resolved && c.scope.returnNumber === returnCount);
 
     useEffect(() => {
-        if (selectedSection === 'Outcome Overview') setCommentCategory('outcomeOverview');
-        else if (selectedSection === 'Assessments') setCommentCategory('alignment');
-        else if (selectedSection === 'TOS Summary') setCommentCategory('alignment');
-        setShowResolved(false);
-        setShowResolvedPH(false);
-    }, [selectedSection]);
+        if (!isInstructorReturned) {
+            if (selectedSection === 'Outcome Overview') setCommentCategory('outcomeOverview');
+            else if (selectedSection === 'Assessments') setCommentCategory('alignment');
+            else if (selectedSection === 'TOS Summary') setCommentCategory('alignment');
+            setShowResolved(false);
+            setShowResolvedPH(false);
+        }
+    }, [selectedSection, isInstructorReturned]);
 
     const handleResolveComment = async (id) => {
         try {
@@ -486,12 +510,13 @@ const TosSections = ({role = 'instructor'}) => {
     };
 
     const filteredComments = comments.filter(c => {
-        const isNumberItems = c.scope.cognitiveLevel === 'Points';
+        const isNumberItems = c.scope.cognitiveLevel === 'Points' || c.scope.cognitiveLevel === 'Number of Items';
         const hasItemNumber = !!c.scope.itemNumber;
         if (commentCategory === 'outcomeOverview') return isNumberItems && !hasItemNumber;
         if (commentCategory === 'assessmentItems') return hasItemNumber;
         return !isNumberItems && !hasItemNumber;
     });
+    void filteredComments;
 
     const handleCommentScroll = useCallback(() => {
         if (commentBodyRef.current) {
@@ -520,7 +545,7 @@ const TosSections = ({role = 'instructor'}) => {
 
     useEffect(() => {
         const el = assessmentBodyRef.current;
-        if (!el || selectedSection !== 'Assessment Items') return;
+        if (!el || selectedSection !== 'Assessments') return;
         el.addEventListener('scroll', handleAssessmentScroll);
         return () => el.removeEventListener('scroll', handleAssessmentScroll);
     }, [handleAssessmentScroll, selectedSection]);
@@ -555,6 +580,69 @@ const TosSections = ({role = 'instructor'}) => {
         return () => clearTimeout(timer);
     }, [viewItemsTarget]);
 
+    const formatScopeText = (s) => {
+        if (!s) return '';
+        const coPart = s.co || '';
+        const iloPart = s.ilo && s.ilo !== '—' && s.ilo !== '-' ? ` → ${s.ilo}` : '';
+        const fn = s.filename || (!BLOOM_LEVELS.includes(s.cognitiveLevel) && s.cognitiveLevel !== 'Points' && s.cognitiveLevel !== 'Number of Items' && s.cognitiveLevel ? s.cognitiveLevel : null);
+        if (fn) {
+            return `${coPart}${iloPart} → ${fn}`;
+        }
+        const cogPart = s.cognitiveLevel === 'Number of Items' ? 'Points' : (s.cognitiveLevel || '');
+        const itemPart = s.itemNumber ? ` → Row ${s.itemNumber}` : '';
+        return `${coPart}${iloPart}${cogPart ? ` → ${cogPart}` : ''}${itemPart}`;
+    };
+
+    const handleViewAssessmentsJump = (t) => {
+        if (!t) return;
+        setViewItemsTarget(null);
+        setNavTargetScope({ co: t.co, ilo: t.ilo, cognitiveLevel: t.cognitiveLevel, _ts: Date.now() });
+        if (isProgramHead) setPhSection('Assessments');
+        else setSearchParams({ section: 'Assessments' });
+        viewItemsNavRef.current = true;
+        setViewMode('group');
+        const coSet = new Set(t.ilo && t.ilo !== '\u2014' ? questions.map(q => q.co).filter(Boolean) : [t.co]);
+        const iloSet = t.ilo && t.ilo !== '\u2014' ? new Set([`${t.co}|${t.ilo}`]) : new Set();
+        setExpandedCOs(coSet);
+        setExpandedILOs(iloSet);
+        setTimeout(() => {
+            let scrollEl = null;
+            let highlightEls = [];
+            if (t.cognitiveLevel && t.cognitiveLevel !== 'Points') {
+                const rows = document.querySelectorAll(`[data-co="${t.co}"][data-ilo="${t.ilo}"][data-cog="${t.cognitiveLevel}"]`);
+                if (rows.length > 0) {
+                    scrollEl = rows[0];
+                    highlightEls = Array.from(rows);
+                } else {
+                    scrollEl = document.querySelector(`[data-ilo-header="${t.co}|${t.ilo}"]`) || document.getElementById(`co-header-${t.co}`);
+                }
+            } else if (t.ilo && t.ilo !== '\u2014') {
+                const rows = document.querySelectorAll(`[data-co="${t.co}"][data-ilo="${t.ilo}"][data-item-id]`);
+                if (rows.length > 0) {
+                    scrollEl = rows[0];
+                    highlightEls = Array.from(rows);
+                } else {
+                    scrollEl = document.querySelector(`[data-ilo-header="${t.co}|${t.ilo}"]`) || document.getElementById(`co-header-${t.co}`);
+                }
+            } else {
+                scrollEl = document.getElementById(`co-header-${t.co}`) || document.querySelector(`[data-co="${t.co}"]`);
+                const rows = document.querySelectorAll(`[data-co="${t.co}"][data-item-id]`);
+                if (rows.length > 0) {
+                    highlightEls = Array.from(rows);
+                }
+            }
+            if (scrollEl) {
+                scrollEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+            highlightEls.forEach(el => {
+                if (previewLayout?.rowPulseHighlight) {
+                    el.classList.add(previewLayout.rowPulseHighlight);
+                    setTimeout(() => el.classList.remove(previewLayout.rowPulseHighlight), 2000);
+                }
+            });
+        }, 400);
+    };
+
     const handleCellClick = (co, ilo, cognitiveLevel, itemNumber, fks = {}) => {
         if (!addingComment) return;
         const scopeKey = `${co || '\u2014'}|${ilo || '\u2014'}|${cognitiveLevel || '\u2014'}|${itemNumber || ''}`;
@@ -562,6 +650,23 @@ const TosSections = ({role = 'instructor'}) => {
         if (scopeKey === currentKey) return;
         setActiveScope({ co: co || '\u2014', ilo: ilo || '\u2014', cognitiveLevel: cognitiveLevel || '\u2014', itemNumber, courseOutcomeId: fks.courseOutcomeId || null, assessmentItemId: fks.assessmentItemId || null });
         setCommentType(itemNumber ? 'Question' : '');
+        setCommentBody('');
+    };
+
+    const handleAssessmentFileClick = (att, co, ilo, fileRows = []) => {
+        if (!addingComment) return;
+        const firstItem = fileRows && fileRows.length > 0 ? fileRows[0] : null;
+        setActiveScope({
+            co: co.co || '\u2014',
+            ilo: ilo.id || '\u2014',
+            cognitiveLevel: att.filename || '',
+            filename: att.filename,
+            fileId: att.id,
+            itemNumber: '',
+            courseOutcomeId: co.dbId || null,
+            assessmentItemId: firstItem?.id || null
+        });
+        setCommentType('');
         setCommentBody('');
     };
 
@@ -659,6 +764,21 @@ const TosSections = ({role = 'instructor'}) => {
             }
         });
         return data;
+    };
+
+    // Demo-only: approved-course Export buttons download a placeholder PDF (no server call)
+    const handleExportDemoPdf = () => {
+        try {
+            const safeName = String(courseCode || courseNameState || 'TOS').replace(/[\\/:*?"<>|]/g, '').trim() || 'TOS';
+            const link = document.createElement('a');
+            link.href = '/tos-sample.pdf';
+            link.download = `TOS - ${safeName}.pdf`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        } catch {
+            // demo placeholder download: nothing to recover
+        }
     };
 
     const handleNavigateBack = async () => {
@@ -765,24 +885,55 @@ const TosSections = ({role = 'instructor'}) => {
     }, []);
 
     const handleCommentNavigation = (c) => {
-        if (c.scope.itemNumber) {
-            if (isProgramHead && selectedSection !== 'Assessment Items') setPhSection('Assessment Items');
-            else if (!isProgramHead) setSearchParams({ section: 'Assessment Items' });
+        const isFile = !!(c.scope.filename || c.scope.fileId || (c.scope.cognitiveLevel && !BLOOM_LEVELS.includes(c.scope.cognitiveLevel) && c.scope.cognitiveLevel !== 'Points' && c.scope.cognitiveLevel !== 'Number of Items'));
+        const isAssessmentComment = !!(c.scope.itemNumber || c.scope.assessmentItemId || isFile || (c.scope.cognitiveLevel && BLOOM_LEVELS.includes(c.scope.cognitiveLevel)));
+        if (isAssessmentComment) {
+            if (isProgramHead && phSection !== 'Assessments') setPhSection('Assessments');
+            else if (!isProgramHead && selectedSection !== 'Assessments') setSearchParams({ section: 'Assessments' });
             viewItemsNavRef.current = true;
             setViewMode('group');
             const coSet = new Set(c.scope.ilo && c.scope.ilo !== '\u2014' ? questions.map(q => q.co).filter(Boolean) : [c.scope.co]);
             const iloSet = c.scope.ilo && c.scope.ilo !== '\u2014' ? new Set([`${c.scope.co}|${c.scope.ilo}`]) : new Set();
             setExpandedCOs(coSet);
             setExpandedILOs(iloSet);
+            setNavTargetScope({ co: c.scope.co, ilo: c.scope.ilo, cognitiveLevel: c.scope.cognitiveLevel, itemId: c.scope.assessmentItemId || null, _ts: Date.now() });
             setTimeout(() => {
                 const co = c.scope.co;
                 const ilo = c.scope.ilo;
                 const cog = c.scope.cognitiveLevel;
-                const el = document.querySelector(`[data-co="${co}"][data-ilo="${ilo}"][data-cog="${cog}"]`) || document.querySelector(`[data-ilo-header="${co}|${ilo}"]`) || document.getElementById(`co-header-${co}`);
-                if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                const itemId = c.scope.assessmentItemId;
+                const filename = c.scope.filename || (isFile ? cog : null);
+                let el = null;
+                if (c.scope.fileId) {
+                    el = document.querySelector(`[data-file-id="${c.scope.fileId}"]`);
+                }
+                if (!el && filename) {
+                    el = document.querySelector(`[data-filename="${filename}"][data-co="${co}"][data-ilo="${ilo}"]`) ||
+                         document.querySelector(`[data-filename="${filename}"]`);
+                }
+                if (!el && itemId) {
+                    el = document.querySelector(`[data-item-id="${itemId}"]`);
+                }
+                if (!el && co && ilo && cog && BLOOM_LEVELS.includes(cog)) {
+                    el = document.querySelector(`[data-co="${co}"][data-ilo="${ilo}"][data-cog="${cog}"]`);
+                }
+                if (!el) {
+                    el = document.querySelector(`[data-ilo-header="${co}|${ilo}"]`) || document.getElementById(`co-header-${co}`);
+                }
+                if (isFile && el?.closest) {
+                    const fileCard = el.closest('[data-file-id]');
+                    if (fileCard) el = fileCard;
+                }
+                if (el) {
+                    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    if (previewLayout?.rowPulseHighlight) {
+                        el.classList.add(previewLayout.rowPulseHighlight);
+                        setTimeout(() => el.classList.remove(previewLayout.rowPulseHighlight), 2000);
+                    }
+                }
             }, 600);
         } else {
-            if (isProgramHead && selectedSection !== 'Table of Specifications Report') setPhSection('Table of Specifications Report');
+            if (isProgramHead && phSection !== 'Table of Specifications Report') setPhSection('Table of Specifications Report');
             const co = c.scope.co;
             const ilo = c.scope.ilo;
             const rowKey = ilo && ilo !== '\u2014' ? `${co}|${ilo}` : co;
@@ -824,7 +975,7 @@ const TosSections = ({role = 'instructor'}) => {
                                 {isReturnedView || isProgramHead || effectiveStatus === 'pending' || effectiveStatus === 'approved' ? (
                                     <>
                                         <option value="Table of Specifications Report">Table of Specifications Report</option>
-                                        <option value="Assessment Items">Assessment Items</option>
+                                        <option value="Assessments">Assessments</option>
                                     </>
                                 ) : (
                                     <>
@@ -844,13 +995,13 @@ const TosSections = ({role = 'instructor'}) => {
                                     <button className={styles.historyBtn} onClick={() => { setShowHistoryLog(true); setSelectedVersion(1); }}>
                                         <Clock size={16} /> History Log
                                     </button>
-                                    <button className={styles.exportBtn} onClick={() => console.log('Export')}>
+                                    <button className={styles.exportBtn} onClick={handleExportDemoPdf}>
                                         <Download size={16} /> Export
                                     </button>
                                 </>
                             ) : effectiveStatus === 'approved' ? (
                                 <>
-                                    <button className={styles.exportBtn} onClick={() => console.log('Export')}>
+                                    <button className={styles.exportBtn} onClick={handleExportDemoPdf}>
                                         <Download size={16} /> Export
                                     </button>
                                 </>
@@ -871,13 +1022,13 @@ const TosSections = ({role = 'instructor'}) => {
                                     <button className={styles.historyBtn} onClick={() => { setShowHistoryLog(true); setSelectedVersion(1); }}>
                                         <Clock size={16} /> History Log
                                     </button>
-                                    <button className={styles.exportBtn} onClick={() => console.log('Export')}>
+                                    <button className={styles.exportBtn} onClick={handleExportDemoPdf}>
                                         <Download size={16} /> Export
                                     </button>
                                 </>
                             ) : effectiveStatus === 'approved' ? (
                                 <>
-                                    <button className={styles.exportBtn} onClick={() => console.log('Export')}>
+                                    <button className={styles.exportBtn} onClick={handleExportDemoPdf}>
                                         <Download size={16} /> Export
                                     </button>
                                 </>
@@ -963,7 +1114,7 @@ const TosSections = ({role = 'instructor'}) => {
                                             return rows.reduce((sum, co) => {
                                                 return sum + co.ilos.reduce((iloSum, ilo) => {
                                                     const items = aggregatedData[co.co][ilo.id][level];
-                                                    return iloSum + items.reduce((s, item) => s + (item.span || 1) * item.points, 0);
+                                                    return iloSum + items.reduce((s, item) => s + (Number(item.points) || 0), 0);
                                                 }, 0);
                                             }, 0);
                                         });
@@ -1005,7 +1156,7 @@ const TosSections = ({role = 'instructor'}) => {
                                                                  <td><div className={previewLayout.cellBox} style={{ fontWeight: 'bold' }}>{co.co}<InfoBadge text={co.description} /></div></td>
                                                                 <td><div className={previewLayout.cellBox}>{co.totalHours || 0}</div></td>
                                                                 <td><div className={previewLayout.cellBox}>{co.totalPercentage || 0}</div></td>
-                                                                  <td className={`${addingComment ? `${layout.cellSelectableTable}${isActiveCell(co.co, '\u2014', 'Points') ? ` ${layout.cellActiveTable}` : ''}` : `${layout.cellClickable}${isTargetCell(co.co, '\u2014', 'Points') ? ` ${layout.cellTargeted}` : ''}`}`} onClick={e => addingComment ? handleCellClick(co.co, '\u2014', 'Points', undefined, { courseOutcomeId: co.dbId }) : (() => { const r = e.currentTarget.getBoundingClientRect(); setViewItemsTarget({ co: co.co, ilo: '\u2014', cognitiveLevel: 'Points', top: r.bottom, left: r.left, width: r.width }); })()}><div className={previewLayout.cellBox}>{co.totalPoints || 0}</div></td>
+                                                                  <td className={`${layout.cellClickable}${isTargetCell(co.co, '\u2014', 'Points') ? ` ${layout.cellTargeted}` : ''}`} onClick={e => { const r = e.currentTarget.getBoundingClientRect(); setViewItemsTarget({ co: co.co, ilo: '\u2014', cognitiveLevel: 'Points', top: r.bottom, left: r.left, width: r.width, isEmpty: !(co.totalPoints || 0) }); }}><div className={previewLayout.cellBox}>{co.totalPoints || 0}</div></td>
                                                                   {cognitiveLevels.map(level => (
                                                                      <td key={level} style={{ background: 'white' }}></td>
                                                                  ))}
@@ -1015,14 +1166,15 @@ const TosSections = ({role = 'instructor'}) => {
                                                                       <td><div className={previewLayout.cellBox}>{ilo.id}<InfoBadge text={ilo.description} /></div></td>
                                                                      <td><div className={previewLayout.cellBox}>{ilo.hours || 0}</div></td>
                                                                      <td><div className={previewLayout.cellBox}>{ilo.percentage || 0}</div></td>
-                                                                        <td className={`${addingComment ? `${layout.cellSelectableTable}${isActiveCell(co.co, ilo.id, 'Points') ? ` ${layout.cellActiveTable}` : ''}` : `${layout.cellClickable}${isTargetCell(co.co, ilo.id, 'Points') ? ` ${layout.cellTargeted}` : ''}`}`} onClick={e => addingComment ? handleCellClick(co.co, ilo.id, 'Points', undefined, { courseOutcomeId: co.dbId }) : (() => { const r = e.currentTarget.getBoundingClientRect(); setViewItemsTarget({ co: co.co, ilo: ilo.id, cognitiveLevel: 'Points', top: r.bottom, left: r.left, width: r.width }); })()}><div className={previewLayout.cellBox}>{ilo.items || 0}</div></td>
+                                                                        <td className={`${layout.cellClickable}${isTargetCell(co.co, ilo.id, 'Points') ? ` ${layout.cellTargeted}` : ''}`} onClick={e => { const r = e.currentTarget.getBoundingClientRect(); setViewItemsTarget({ co: co.co, ilo: ilo.id, cognitiveLevel: 'Points', top: r.bottom, left: r.left, width: r.width, isEmpty: !(ilo.items || 0) }); }}><div className={previewLayout.cellBox}>{ilo.items || 0}</div></td>
                                                                      {cognitiveLevels.map(level => {
 const items = aggregatedData[co.co][ilo.id][level];
                                                                           return (
                                                                                  <td key={level} className={`${addingComment ? `${layout.cellSelectableTable}${isActiveCell(co.co, ilo.id, level) ? ` ${layout.cellActiveTable}` : ''}` : `${layout.cellClickable}${isTargetCell(co.co, ilo.id, level) ? ` ${layout.cellTargeted}` : ''}`}`} onClick={e => addingComment ? handleCellClick(co.co, ilo.id, level, undefined, { courseOutcomeId: co.dbId }) : (() => { const r = e.currentTarget.getBoundingClientRect(); setViewItemsTarget({ co: co.co, ilo: ilo.id, cognitiveLevel: level, top: r.bottom, left: r.left, width: r.width, isEmpty: items.length === 0 }); })()}>                                                                                  <div className={previewLayout.cellBox} style={{ flexDirection: 'column', gap: 2 }}>
-                                                                                      {items.length === 0 ? '\u2014' : items.map((item, i) => (
-                                                                                         <span key={i}>{item.span} x {item.points}</span>
-                                                                                     ))}
+                                                                                      {(() => { const pts = items.reduce((s, item) => s + (Number(item.points) || 0), 0); return pts > 0 ? pts : '\u2014'; })()}
+
+
+
                                                                                  </div>
                                                                              </td>
                                                                          );
@@ -1047,150 +1199,18 @@ const items = aggregatedData[co.co][ilo.id][level];
                                     })()}
                                 </section>
                             )}
-                            {selectedSection === 'Assessment Items' && (
+                            {phSection === 'Assessments' && (
                                 <section>
-                                    <div ref={assessmentBodyRef} className={`${previewLayout.assessmentBody} ${previewLayout.tabContent}`}>
-                                        {scrolledPastAssessmentTop && (
-                                            <div className={layout.scrollToFormBtn} onClick={() => assessmentBodyRef.current?.scrollTo({ top: 0, behavior: 'smooth' })}>
-                                                <ChevronUp size={22} strokeWidth={2.5} />
-                                            </div>
-                                        )}
-                                        <div className={layout.viewToggleRow}>
-                                            <span className={layout.assessmentLabel}>Assessment: {assessmentName || fromExamType}</span>
-                                            <div className={layout.viewToggleGroup}>
-                                                <div className={layout.viewToggleSlider} style={{ transform: `translateX(${viewMode === 'normal' ? '0' : 'calc(100% + 2px)'})` }} />
-                                                <button className={`${layout.viewToggleBtn} ${viewMode === 'normal' ? layout.viewToggleActive : ''}`} onClick={() => setViewMode('normal')}>List</button>
-                                                <button className={`${layout.viewToggleBtn} ${viewMode === 'group' ? layout.viewToggleActive : ''}`} onClick={() => setViewMode('group')}>Grouped</button>
-                                            </div>
-                                        </div>
-                                        <div className={previewLayout.assessmentList}>
-                                            {(() => {
-                                                if (questions.length === 0) return (
-                                                    <div className={previewLayout.emptyState}>
-                                                        <div className={previewLayout.emptyIcon}>
-                                                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                                                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                                                                <polyline points="14 2 14 8 20 8"/>
-                                                                <line x1="16" y1="13" x2="8" y2="13"/>
-                                                                <line x1="16" y1="17" x2="8" y2="17"/>
-                                                                <polyline points="10 9 9 9 8 9"/>
-                                                            </svg>
-                                                        </div>
-                                                        <p className={previewLayout.emptyText}>No assessment points yet</p>
-                                                    </div>
-                                                );
-                                                const grouped = {};
-                                                questions.forEach(q => {
-                                                    const co = q.co || 'Uncategorized';
-                                                    const ilo = q.ilo || 'Uncategorized';
-                                                    const cog = q.cognitiveLevel || 'Uncategorized';
-                                                    if (!grouped[co]) grouped[co] = {};
-                                                    if (!grouped[co][ilo]) grouped[co][ilo] = {};
-                                                    if (!grouped[co][ilo][cog]) grouped[co][ilo][cog] = [];
-                                                    grouped[co][ilo][cog].push(q);
-                                                });
-                                                let numCounter = 0;
-                                                const numMap = {};
-                                                questions.forEach(q => {
-                                                    numMap[q.id] = numCounter + 1;
-                                                    numCounter += (q.span || 1);
-                                                });
-                                                const renderItem = (q) => {
-                                                    const start = numMap[q.id];
-                                                    const end = start + (q.span || 1) - 1;
-                                                    const label = start === end ? String(start) : `${start}\u2013${end}`;
-                                                    const hasRubric = q.rubricRows && q.rubricRows.length > 0;
-                                                    return (
-                                                        <div key={q.id} data-item-id={q.id} className={`${previewLayout.assessmentItem} ${layout.assessmentCard}${addingComment ? ` ${layout.cellSelectable}${isActiveCell(q.co, q.ilo, q.cognitiveLevel, label) ? ` ${layout.cellActive}` : ''}` : ''}`} onClick={addingComment ? () => { setLastClickedItemId(q.id); handleCellClick(q.co, q.ilo, q.cognitiveLevel, label, { assessmentItemId: q.id }); } : undefined}>
-                                                            <div className={previewLayout.assessmentQuestion}>
-                                                                <span className={previewLayout.questionNumber}>{label}.</span>
-                                                                <span className={previewLayout.questionText}>{q.question || '(no question)'}</span>
-                                                            </div>
-                                                            
-                                                            {hasRubric && (
-                                                                <div className={previewLayout.rubricBox}>
-                                                                    <div className={previewLayout.rubricHeader}>
-                                                                        <span className={previewLayout.rubricLabel}>Rubrics</span>
-                                                                    </div>
-                                                                    <div className={previewLayout.rubricTable}>
-                                                                        <div className={`${previewLayout.rubricRow} ${previewLayout.rubricHeaderRow}`}>
-                                                                            <span className={previewLayout.rubricName}>Criteria</span>
-                                                                            <span className={previewLayout.rubricDesc}>Description</span>
-                                                                            <span className={previewLayout.rubricWeight}>Weight</span>
-                                                                            <span className={previewLayout.rubricPts}>Pts</span>
-                                                                        </div>
-                                                                        {(() => {
-                                                                            const totalPts = Number(q.points) || 0;
-                                                                            const rawPts = q.rubricRows.map((r) => Math.round((totalPts * Number(r.weight || 0)) / 100));
-                                                                            const sumOthers = rawPts.slice(0, -1).reduce((s, v) => s + v, 0);
-                                                                            const rowPts = [...rawPts.slice(0, -1), Math.max(0, totalPts - sumOthers)];
-                                                                            const totalW = q.rubricRows.reduce((s, r) => s + Number(r.weight || 0), 0);
-                                                                            return (
-                                                                                <>
-                                                                                    {q.rubricRows.map((row, ri) => (
-                                                                                        <div key={row.id || ri} className={previewLayout.rubricRow}>
-                                                                                            <span className={previewLayout.rubricName}>{row.name || ''}</span>
-                                                                                            <span className={previewLayout.rubricDesc}>{row.description || ''}</span>
-                                                                                            <span className={previewLayout.rubricWeight}>{Math.round(Number(row.weight) || 0)}%</span>
-                                                                                            <span className={previewLayout.rubricPts}>{rowPts[ri]}</span>
-                                                                                        </div>
-                                                                                    ))}
-                                                                                    <div className={`${previewLayout.rubricRow} ${previewLayout.rubricTotalRow}`}>
-                                                                                        <span className={previewLayout.rubricName}><strong>Total</strong></span>
-                                                                                        <span className={previewLayout.rubricDesc}></span>
-                                                                                        <span className={previewLayout.rubricWeight}>{Math.round(totalW)}%</span>
-                                                                                        <span className={previewLayout.rubricPts}><strong>{totalPts}</strong></span>
-                                                                                    </div>
-                                                                                </>
-                                                                            );
-                                                                        })()}
-                                                                    </div>
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    );
-                                                };
-                                                const coDesc = {};
-                                                const iloDesc = {};
-                                                rows.forEach(c => {
-                                                    coDesc[c.co] = c.description;
-                                                    c.ilos.forEach(il => { iloDesc[`${c.co}|${il.id}`] = il.description; });
-                                                });
-                                                return viewMode === 'normal' ? (
-                                                    questions.map(q => renderItem(q))
-                                                ) : (
-                                                    Object.entries(grouped).map(([co, ilos]) => (
-                                                        <div key={co} className={layout.coGroup}>
-                                                             <div className={layout.coHeader} id={`co-header-${co}`} onClick={() => toggleCO(co)}>
-                                                                 <span className={layout.accordionArrow}>{expandedCOs.has(co) ? '\u25BE' : '\u25B8'}</span>
-                                                                 <div>
-                                                                     <span className={layout.coTitle}>{co}</span>
-                                                                     {coDesc[co] && <div className={layout.coDesc}>{coDesc[co]}</div>}
-                                                                 </div>
-                                                             </div>
-                                                            {expandedCOs.has(co) && Object.entries(ilos).map(([ilo, cogs]) => (
-                                                                <div key={ilo} className={layout.iloGroup}>
-                                                                      <div className={layout.iloHeader} data-ilo-header={`${co}|${ilo}`} onClick={() => toggleILO(`${co}|${ilo}`)}>
-                                                                         <span className={layout.accordionArrow}>{expandedILOs.has(`${co}|${ilo}`) ? '\u25BE' : '\u25B8'}</span>
-                                                                         <div>
-                                                                             <span className={layout.iloTitle}>{ilo}</span>
-                                                                             {iloDesc[`${co}|${ilo}`] && <div className={layout.iloDesc}>{iloDesc[`${co}|${ilo}`]}</div>}
-                                                                         </div>
-                                                                     </div>
-                                                                    {expandedILOs.has(`${co}|${ilo}`) && Object.entries(cogs).map(([cog, items]) => (
-                                                                         <div key={cog} className={layout.cogGroup}>
-                                                                             <div className={layout.cogHeader} data-co={co} data-ilo={ilo} data-cog={cog}>{cog}</div>
-                                                                            {items.map(renderItem)}
-                                                                        </div>
-                                                                    ))}
-                                                                </div>
-                                                            ))}
-                                                        </div>
-                                                    ))
-                                                );
-                                            })()}
-                                        </div>
-                                    </div>
+                                    <AssessmentOutput
+                                        outcomeData={rows}
+                                        questions={questions}
+                                        courseCode={courseCode}
+                                        period={fromExamType}
+                                        targetScope={navTargetScope}
+                                        addingComment={addingComment}
+                                        activeScope={activeScope}
+                                        onFileClick={handleAssessmentFileClick}
+                                    />
                                 </section>
                             )}
                             </div>
@@ -1199,23 +1219,7 @@ const items = aggregatedData[co.co][ilo.id][level];
                             )}
                             {displayTarget && (
                                 <div className={`${layout.viewItemsPopup}${!viewItemsTarget ? ` ${layout.viewItemsHidden}` : ''}`} style={{ top: displayTarget.top + 4, left: displayTarget.left + displayTarget.width / 2 }}>
-                                        <button className={layout.viewItemsBtn} disabled={viewItemsTarget?.isEmpty} onClick={() => {
-                                            const t = viewItemsTarget;
-                                            setViewItemsTarget(null);
-                                            if (!t) return;
-                                            if (isProgramHead) setPhSection('Assessment Items');
-                                            else setSearchParams({ section: 'Assessment Items' });
-                                            viewItemsNavRef.current = true;
-                                            setViewMode('group');
-                                           const coSet = new Set(t.ilo && t.ilo !== '\u2014' ? questions.map(q => q.co).filter(Boolean) : [t.co]);
-                                           const iloSet = t.ilo && t.ilo !== '\u2014' ? new Set([`${t.co}|${t.ilo}`]) : new Set();
-                                           setExpandedCOs(coSet);
-                                           setExpandedILOs(iloSet);
-                                           setTimeout(() => {
-                                               const el = document.querySelector(`[data-co="${t.co}"][data-ilo="${t.ilo}"][data-cog="${t.cognitiveLevel}"]`) || document.querySelector(`[data-ilo-header="${t.co}|${t.ilo}"]`) || document.getElementById(`co-header-${t.co}`);
-                                               if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                                           }, 600);
-                                       }}>View Assessment Items</button>
+                                        <button className={layout.viewItemsBtn} disabled={viewItemsTarget?.isEmpty} onClick={() => handleViewAssessmentsJump(viewItemsTarget)}>View assessments</button>
                                 </div>
                             )}
                             {(showComment || isReturnedView) && <div ref={commentRef} className={layout.commentPanel}>
@@ -1236,7 +1240,7 @@ const items = aggregatedData[co.co][ilo.id][level];
                                     )}
                                     {addingComment && activeScope && !showResolvedPH ? (
                                         <div className={layout.commentFormCard}>
-                                            <div className={layout.commentScope}>Commenting on {activeScope.co}{activeScope.ilo !== '-' ? ` → ${activeScope.ilo}` : ''} → {activeScope.cognitiveLevel}{activeScope.itemNumber ? ` → Item ${activeScope.itemNumber}` : ''}</div>
+                                            <div className={layout.commentScope}>Commenting on {formatScopeText(activeScope)}</div>
                                             {activeScope.itemNumber && (
                                             <select className={layout.commentTypeSelect} value={commentType} onChange={e => setCommentType(e.target.value)}>
                                                 <option value="Question">Question</option>
@@ -1253,7 +1257,7 @@ const items = aggregatedData[co.co][ilo.id][level];
                                     ) : addingComment && !showResolvedPH ? (
                                         <div className={layout.commentFormCard}>
                                             <div className={layout.selectionCard} style={{ marginBottom: 0 }}>
-                                                <div className={layout.selectionPrompt}>Select a cell to comment on...</div>
+                                                <div className={layout.selectionPrompt}>{phSection === 'Assessments' ? 'Select a file to comment on...' : 'Select a cell to comment on...'}</div>
                                                 <button className={layout.selectionCancel} onClick={handleCancelComment}>Cancel</button>
                                             </div>
                                         </div>
@@ -1288,7 +1292,7 @@ const items = aggregatedData[co.co][ilo.id][level];
                                                 if (returnFilter !== 'all') return filtered.map(c => (
                                                     <div key={c.id} className={layout.commentCard}>
                                                         <div className={layout.commentCardHeader}>
-                                                            <div className={layout.commentCardScope}>{c.scope.co}{c.scope.ilo !== '-' ? ` → ${c.scope.ilo}` : ''} → {c.scope.cognitiveLevel}{c.scope.itemNumber ? ` → Item ${c.scope.itemNumber}` : ''}</div>
+                                                            <div className={layout.commentCardScope}>{formatScopeText(c.scope)}</div>
                                                         </div>
                                                         {c.scope.itemNumber && c.type && <div className={layout.commentCardType}>{c.type}</div>}
                                                         <div className={layout.commentCardBody}>{c.body}</div>
@@ -1305,7 +1309,7 @@ const items = aggregatedData[co.co][ilo.id][level];
                                                         {groups[r].map(c => (
                                                             <div key={c.id} className={layout.commentCard}>
                                                                 <div className={layout.commentCardHeader}>
-                                                                    <div className={layout.commentCardScope}>{c.scope.co}{c.scope.ilo !== '-' ? ` → ${c.scope.ilo}` : ''} → {c.scope.cognitiveLevel}{c.scope.itemNumber ? ` → Item ${c.scope.itemNumber}` : ''}</div>
+                                                                    <div className={layout.commentCardScope}>{formatScopeText(c.scope)}</div>
                                                                 </div>
                                                                 {c.scope.itemNumber && c.type && <div className={layout.commentCardType}>{c.type}</div>}
                                                                 <div className={layout.commentCardBody}>{c.body}</div>
@@ -1327,7 +1331,7 @@ const items = aggregatedData[co.co][ilo.id][level];
                                     {comments.filter(c => !c.resolved).map(c => (
                                         <div key={c.id} className={`${layout.commentCard}${addingComment ? ` ${layout.commentCardDimmed}` : ''}`} onClick={() => handleCommentNavigation(c)} style={{ cursor: 'pointer' }}>
                                             <div className={layout.commentCardHeader}>
-                                                <div className={layout.commentCardScope}>{c.scope.co}{c.scope.ilo !== '-' ? ` → ${c.scope.ilo}` : ''} → {c.scope.cognitiveLevel}{c.scope.itemNumber ? ` → Item ${c.scope.itemNumber}` : ''}</div>
+                                                <div className={layout.commentCardScope}>{formatScopeText(c.scope)}</div>
                                                 {!isReturnedView && <span className={layout.commentDeleteBtnWrap} onClick={e => { e.stopPropagation(); handleDeleteComment(c.id); }}><Trash2 size={16} /></span>}
                                             </div>
                                             {c.scope.itemNumber && c.type && <div className={layout.commentCardType}>{c.type}</div>}
@@ -1352,6 +1356,23 @@ const items = aggregatedData[co.co][ilo.id][level];
                             <div className={layout.panelMain}>
                                 {selectedSection === 'Outcome Overview' &&
                                     <section>
+                                    <div style={{ width: '100%', display: 'flex', flexDirection: 'column' }}>
+                                        <div style={{ marginBottom: 24, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 24, padding: '16px 20px', border: '1px solid #DDDFDF', borderLeft: '4px solid #9CA3AF', borderRadius: 5, background: '#FFFFFF' }}>
+                                            <div style={{ minWidth: 0 }}>
+                                                <label style={{ fontWeight: 600, fontSize: 15, color: '#1A1A1A', display: 'block', marginBottom: 2 }}>TOS Total Points</label>
+                                                <div style={{ fontSize: 13, color: '#666' }}>Enter the total points of the exam. Points per CO and ILO are calculated automatically.</div>
+                                                {tosTotalError && <div style={{ color: '#ef4444', fontSize: 12, marginTop: 4 }}>{tosTotalError}</div>}
+                                            </div>
+                                            <input
+                                                className={layout.input}
+                                                style={{ width: 100, height: 'auto', flexShrink: 0, padding: '8px 12px', fontSize: 16, fontWeight: 600, textAlign: 'center', border: '1px solid #C4C8CC', borderRadius: 5, background: '#FFFFFF' }}
+                                                type="text"
+                                                inputMode="numeric"
+                                                readOnly={readOnly}
+                                                value={tosTotalPoints}
+                                                onChange={(e) => handleTotalPointsChange(e.target.value)}
+                                            />
+                                        </div>
                                         <table className={`${layout.table} ${layout.TOSTable}`}>
                                             <thead>
                                             <tr>
@@ -1387,26 +1408,13 @@ const items = aggregatedData[co.co][ilo.id][level];
                                                             </div>
                                                         </td>
                                                         <td>
-                                                            <div className={layout.cellBox}>
-                                                                    <input
-                                                                     className={`${layout.totalCoPoint} ${layout.input} ${errorFields[`oo-totalPoints-${coIndex}`] ? layout.inputError : ''}`}
-                                                                     type="text"
-                                                                     inputMode="numeric"
-                                                                     readOnly={readOnly}
-                                                                     value={co.totalPoints}
-                                                                     onChange={(e) => handleTotalPointsChange(e.target.value)}
-                                                                     onKeyDown={(e) => {
-                                                                         if (readOnly) return;
-                                                                         if (!/[0-9]/.test(e.key) && !['Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
-                                                                             e.preventDefault();
-                                                                         }
-                                                                     }}
-                                                                />
+                                                            <div className={`${layout.cellBox} ${layout.blankCell}`}>
+                                                                    {co.totalPoints}
                                                             </div>
                                                         </td>
                                                     </tr>
 
-                                                    {co.ilos.map((ilo, iloIndex) => (
+                                                    {co.ilos.map((ilo) => (
                                                         <tr key={`${co.co}-${ilo.id}`}>
                                                             <td>
                                                                 <div className={`${layout.cellBox} ${layout.mutedBold}`}>
@@ -1430,13 +1438,7 @@ const items = aggregatedData[co.co][ilo.id][level];
                                                             </td>
                                                         <td>
                                                             <div className={layout.cellBox}>
-                                                                <input
-                                                                     className={`${layout.point} ${layout.input} ${errorFields[`oo-items-${coIndex}-${iloIndex}`] ? layout.inputError : ''}`}
-                                                                     type="text"
-                                                                     inputMode="numeric"
-                                                                     readOnly
-                                                                     value={ilo.items}
-                                                                />
+                                                                {ilo.items}
                                                             </div>
                                                         </td>
                                                         </tr>
@@ -1449,6 +1451,7 @@ const items = aggregatedData[co.co][ilo.id][level];
                                             ))}
                                             </tbody>
                                         </table>
+                                    </div>
                                     </section>
                                 }
 
@@ -1476,7 +1479,7 @@ const items = aggregatedData[co.co][ilo.id][level];
                                     </section>
                                 }
                             </div>
-                            {selectedSection !== 'TOS Summary' && (
+                            {selectedSection === 'Assessments' && (
                             <div ref={commentRef} className={layout.commentPanel}>
                                 <div className={layout.commentPanelHeader}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -1518,7 +1521,7 @@ const items = aggregatedData[co.co][ilo.id][level];
                                                 if (returnFilter !== 'all') return filtered.map(c => (
                                                     <div key={c.id} className={layout.commentCard}>
                                                         <div className={layout.commentCardHeader}>
-                                                            <div className={layout.commentCardScope}>{c.scope.co}{c.scope.ilo !== '-' ? ` → ${c.scope.ilo}` : ''} → {c.scope.cognitiveLevel}{c.scope.itemNumber ? ` → Item ${c.scope.itemNumber}` : ''}</div>
+                                                            <div className={layout.commentCardScope}>{formatScopeText(c.scope)}</div>
                                                         </div>
                                                         {c.scope.itemNumber && c.type && <div className={layout.commentCardType}>{c.type}</div>}
                                                         <div className={layout.commentCardBody}>{c.body}</div>
@@ -1535,7 +1538,7 @@ const items = aggregatedData[co.co][ilo.id][level];
                                                         {groups[r].map(c => (
                                                             <div key={c.id} className={layout.commentCard}>
                                                                 <div className={layout.commentCardHeader}>
-                                                                    <div className={layout.commentCardScope}>{c.scope.co}{c.scope.ilo !== '-' ? ` → ${c.scope.ilo}` : ''} → {c.scope.cognitiveLevel}{c.scope.itemNumber ? ` → Item ${c.scope.itemNumber}` : ''}</div>
+                                                                    <div className={layout.commentCardScope}>{formatScopeText(c.scope)}</div>
                                                                 </div>
                                                                 {c.scope.itemNumber && c.type && <div className={layout.commentCardType}>{c.type}</div>}
                                                                 <div className={layout.commentCardBody}>{c.body}</div>
@@ -1548,31 +1551,18 @@ const items = aggregatedData[co.co][ilo.id][level];
                                         </>
                                     ) : (
                                         <>
-                                        <select
-                                            value={commentCategory}
-                                            onChange={e => { setCommentCategory(e.target.value); setShowResolved(false); }}
-                                            style={{ width: '100%', padding: '8px 28px 8px 12px', borderRadius: 5, border: '1px solid #DDDFDF', fontSize: 14, fontWeight: 500, color: '#333', background: '#fff', outline: 'none', cursor: 'pointer', appearance: 'none', backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'12\' height=\'12\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%23666\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3E%3Cpolyline points=\'6 9 12 15 18 9\'%3E%3C/polyline%3E%3C/svg%3E")', backgroundRepeat: 'no-repeat', backgroundPosition: 'right 10px center', backgroundSize: 14, marginBottom: 12 }}
-                                        >
-                                            <option value="outcomeOverview" style={{ fontSize: 14 }}>Outcome Overview</option>
-                                            <option value="alignment" style={{ fontSize: 14 }}>Alignment</option>
-                                            <option value="assessmentItems" style={{ fontSize: 14 }}>Assessment Items</option>
-                                        </select>
-                                        <div style={{ borderTop: '1px solid #E5E7EB', marginBottom: 12 }} />
                                     {(() => {
-                                        const unresolved = filteredComments.filter(c => !c.resolved);
+                                        const unresolved = comments.filter(c => !c.resolved);
                                         return (
                                             <>
-                                                {unresolved.length === 0 && filteredComments.length === 0 && (
+                                                {unresolved.length === 0 && (
                                                     <div style={{ textAlign: 'center', color: '#9CA3AF', fontSize: 13, padding: '40px 0' }}>No comments yet</div>
                                                 )}
-                                                {unresolved.length === 0 && filteredComments.length > 0 && (
-                                                    <div style={{ textAlign: 'center', color: '#9CA3AF', fontSize: 13, padding: '16px 0' }}>All comments resolved</div>
-                                                )}
                                                 {unresolved.map(c => (
-                                                    <div key={c.id} className={layout.commentCard}>
+                                                    <div key={c.id} className={layout.commentCard} onClick={() => handleCommentNavigation(c)} style={{ cursor: 'pointer' }}>
                                                         <div className={layout.commentCardHeader}>
-                                                            <div className={layout.commentCardScope}>{c.scope.co}{c.scope.ilo !== '-' ? ` → ${c.scope.ilo}` : ''} → {c.scope.cognitiveLevel}{c.scope.itemNumber ? ` → Item ${c.scope.itemNumber}` : ''}</div>
-                                                            <span className={layout.commentResolveBtnWrap} onClick={() => handleResolveComment(c.id)}><CheckCircle size={16} /></span>
+                                                            <div className={layout.commentCardScope}>{formatScopeText(c.scope)}</div>
+                                                            <span className={layout.commentResolveBtnWrap} onClick={(e) => { e.stopPropagation(); handleResolveComment(c.id); }}><CheckCircle size={16} /></span>
                                                         </div>
                                                         {c.scope.itemNumber && c.type && <div className={layout.commentCardType}>{c.type}</div>}
                                                         <div className={layout.commentCardBody}>{c.body}</div>
@@ -1590,10 +1580,10 @@ const items = aggregatedData[co.co][ilo.id][level];
                                             </div>
                                             <div className={`${layout.resolvedCards}${showResolved ? ` ${layout.resolvedCardsOpen}` : ''}`}>
                                                 {resolvedCurrentReturn.map(c => (
-                                                    <div key={c.id} className={`${layout.commentCard} ${layout.commentCardResolved}`}>
+                                                    <div key={c.id} className={`${layout.commentCard} ${layout.commentCardResolved}`} onClick={() => handleCommentNavigation(c)} style={{ cursor: 'pointer' }}>
                                                         <div className={layout.commentCardHeader}>
-                                                            <div className={layout.commentCardScope}>{c.scope.co}{c.scope.ilo !== '-' ? ` → ${c.scope.ilo}` : ''} → {c.scope.cognitiveLevel}{c.scope.itemNumber ? ` → Item ${c.scope.itemNumber}` : ''}</div>
-                                                            <span className={layout.commentUndoBtnWrap} onClick={() => handleUnresolveComment(c.id)}><RotateCcw size={16} /></span>
+                                                            <div className={layout.commentCardScope}>{formatScopeText(c.scope)}</div>
+                                                            <span className={layout.commentUndoBtnWrap} onClick={(e) => { e.stopPropagation(); handleUnresolveComment(c.id); }}><RotateCcw size={16} /></span>
                                                         </div>
                                                         {c.scope.itemNumber && c.type && <div className={layout.commentCardType}>{c.type}</div>}
                                                         <div className={layout.commentCardBody}>{c.body}</div>
@@ -1632,7 +1622,7 @@ const items = aggregatedData[co.co][ilo.id][level];
                                             return rows.reduce((sum, co) => {
                                                 return sum + co.ilos.reduce((iloSum, ilo) => {
                                                     const items = aggregatedData[co.co][ilo.id][level];
-                                                    return iloSum + items.reduce((s, item) => s + (item.span || 1) * item.points, 0);
+                                                    return iloSum + items.reduce((s, item) => s + (Number(item.points) || 0), 0);
                                                 }, 0);
                                             }, 0);
                                         });
@@ -1674,7 +1664,7 @@ const items = aggregatedData[co.co][ilo.id][level];
                                                                  <td><div className={previewLayout.cellBox} style={{ fontWeight: 'bold' }}>{co.co}<InfoBadge text={co.description} /></div></td>
                                                                 <td><div className={previewLayout.cellBox}>{co.totalHours || 0}</div></td>
                                                                 <td><div className={previewLayout.cellBox}>{co.totalPercentage || 0}</div></td>
-                                                                  <td className={`${addingComment ? `${layout.cellSelectableTable}${isActiveCell(co.co, '\u2014', 'Points') ? ` ${layout.cellActiveTable}` : ''}` : `${layout.cellClickable}${isTargetCell(co.co, '\u2014', 'Points') ? ` ${layout.cellTargeted}` : ''}`}`} onClick={e => addingComment ? handleCellClick(co.co, '\u2014', 'Points', undefined, { courseOutcomeId: co.dbId }) : (() => { const r = e.currentTarget.getBoundingClientRect(); setViewItemsTarget({ co: co.co, ilo: '\u2014', cognitiveLevel: 'Points', top: r.bottom, left: r.left, width: r.width }); })()}><div className={previewLayout.cellBox}>{co.totalPoints || 0}</div></td>
+                                                                  <td className={`${layout.cellClickable}${isTargetCell(co.co, '\u2014', 'Points') ? ` ${layout.cellTargeted}` : ''}`} onClick={e => { const r = e.currentTarget.getBoundingClientRect(); setViewItemsTarget({ co: co.co, ilo: '\u2014', cognitiveLevel: 'Points', top: r.bottom, left: r.left, width: r.width, isEmpty: !(co.totalPoints || 0) }); }}><div className={previewLayout.cellBox}>{co.totalPoints || 0}</div></td>
                                                                   {cognitiveLevels.map(level => (
                                                                      <td key={level} style={{ background: 'white' }}></td>
                                                                  ))}
@@ -1684,14 +1674,15 @@ const items = aggregatedData[co.co][ilo.id][level];
                                                                       <td><div className={previewLayout.cellBox}>{ilo.id}<InfoBadge text={ilo.description} /></div></td>
                                                                      <td><div className={previewLayout.cellBox}>{ilo.hours || 0}</div></td>
                                                                      <td><div className={previewLayout.cellBox}>{ilo.percentage || 0}</div></td>
-                                                                        <td className={`${addingComment ? `${layout.cellSelectableTable}${isActiveCell(co.co, ilo.id, 'Points') ? ` ${layout.cellActiveTable}` : ''}` : `${layout.cellClickable}${isTargetCell(co.co, ilo.id, 'Points') ? ` ${layout.cellTargeted}` : ''}`}`} onClick={e => addingComment ? handleCellClick(co.co, ilo.id, 'Points', undefined, { courseOutcomeId: co.dbId }) : (() => { const r = e.currentTarget.getBoundingClientRect(); setViewItemsTarget({ co: co.co, ilo: ilo.id, cognitiveLevel: 'Points', top: r.bottom, left: r.left, width: r.width }); })()}><div className={previewLayout.cellBox}>{ilo.items || 0}</div></td>
+                                                                        <td className={`${layout.cellClickable}${isTargetCell(co.co, ilo.id, 'Points') ? ` ${layout.cellTargeted}` : ''}`} onClick={e => { const r = e.currentTarget.getBoundingClientRect(); setViewItemsTarget({ co: co.co, ilo: ilo.id, cognitiveLevel: 'Points', top: r.bottom, left: r.left, width: r.width, isEmpty: !(ilo.items || 0) }); }}><div className={previewLayout.cellBox}>{ilo.items || 0}</div></td>
                                                                      {cognitiveLevels.map(level => {
                                                                          const items = aggregatedData[co.co][ilo.id][level];
                                                                          return (
                                                                              <td key={level} className={`${addingComment ? `${layout.cellSelectableTable}${isActiveCell(co.co, ilo.id, level) ? ` ${layout.cellActiveTable}` : ''}` : `${layout.cellClickable}${isTargetCell(co.co, ilo.id, level) ? ` ${layout.cellTargeted}` : ''}`}`} onClick={e => addingComment ? handleCellClick(co.co, ilo.id, level, undefined, { courseOutcomeId: co.dbId }) : (() => { const r = e.currentTarget.getBoundingClientRect(); setViewItemsTarget({ co: co.co, ilo: ilo.id, cognitiveLevel: level, top: r.bottom, left: r.left, width: r.width, isEmpty: items.length === 0 }); })()}>                                                                                  <div className={previewLayout.cellBox} style={{ flexDirection: 'column', gap: 2 }}>
-                                                                                      {items.length === 0 ? '\u2014' : items.map((item, i) => (
-                                                                                         <span key={i}>{item.span} x {item.points}</span>
-                                                                                     ))}
+                                                                                      {(() => { const pts = items.reduce((s, item) => s + (Number(item.points) || 0), 0); return pts > 0 ? pts : '\u2014'; })()}
+
+
+
                                                                                  </div>
                                                                              </td>
                                                                          );
@@ -1716,150 +1707,15 @@ const items = aggregatedData[co.co][ilo.id][level];
                                     })()}
                                 </section>
                             )}
-                                {selectedSection === 'Assessment Items' && (
+                                {selectedSection === 'Assessments' && (
                                     <section>
-                                        <div ref={assessmentBodyRef} className={`${previewLayout.assessmentBody} ${previewLayout.tabContent}`}>
-                                            {scrolledPastAssessmentTop && (
-                                                <div className={layout.scrollToFormBtn} onClick={() => assessmentBodyRef.current?.scrollTo({ top: 0, behavior: 'smooth' })}>
-                                                    <ChevronUp size={22} strokeWidth={2.5} />
-                                                </div>
-                                            )}
-                                            <div className={layout.viewToggleRow}>
-                                                <span className={layout.assessmentLabel}>Assessment: {assessmentName || fromExamType}</span>
-                                                <div className={layout.viewToggleGroup}>
-                                                    <div className={layout.viewToggleSlider} style={{ transform: `translateX(${viewMode === 'normal' ? '0' : 'calc(100% + 2px)'})` }} />
-                                                    <button className={`${layout.viewToggleBtn} ${viewMode === 'normal' ? layout.viewToggleActive : ''}`} onClick={() => setViewMode('normal')}>List</button>
-                                                    <button className={`${layout.viewToggleBtn} ${viewMode === 'group' ? layout.viewToggleActive : ''}`} onClick={() => setViewMode('group')}>Grouped</button>
-                                                </div>
-                                            </div>
-                                            <div className={previewLayout.assessmentList}>
-                                                {(() => {
-                                                    if (questions.length === 0) return (
-                                                        <div className={previewLayout.emptyState}>
-                                                            <div className={previewLayout.emptyIcon}>
-                                                                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                                                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                                                                    <polyline points="14 2 14 8 20 8"/>
-                                                                    <line x1="16" y1="13" x2="8" y2="13"/>
-                                                                    <line x1="16" y1="17" x2="8" y2="17"/>
-                                                                    <polyline points="10 9 9 9 8 9"/>
-                                                                </svg>
-                                                            </div>
-                                                            <p className={previewLayout.emptyText}>No assessment points yet</p>
-                                                        </div>
-                                                    );
-                                                    const grouped = {};
-                                                    questions.forEach(q => {
-                                                        const co = q.co || 'Uncategorized';
-                                                        const ilo = q.ilo || 'Uncategorized';
-                                                        const cog = q.cognitiveLevel || 'Uncategorized';
-                                                        if (!grouped[co]) grouped[co] = {};
-                                                        if (!grouped[co][ilo]) grouped[co][ilo] = {};
-                                                        if (!grouped[co][ilo][cog]) grouped[co][ilo][cog] = [];
-                                                        grouped[co][ilo][cog].push(q);
-                                                    });
-                                                    let numCounter = 0;
-                                                    const numMap = {};
-                                                    questions.forEach(q => {
-                                                        numMap[q.id] = numCounter + 1;
-                                                        numCounter += (q.span || 1);
-                                                    });
-                                                    const renderItem = (q) => {
-                                                        const start = numMap[q.id];
-                                                        const end = start + (q.span || 1) - 1;
-                                                        const label = start === end ? String(start) : `${start}\u2013${end}`;
-                                                        const hasRubric = q.rubricRows && q.rubricRows.length > 0;
-                                                        return (
-                                                            <div key={q.id} data-item-id={q.id} className={`${previewLayout.assessmentItem} ${layout.assessmentCard}${addingComment ? ` ${layout.cellSelectable}${isActiveCell(q.co, q.ilo, q.cognitiveLevel, label) ? ` ${layout.cellActive}` : ''}` : ''}`} onClick={addingComment ? () => { setLastClickedItemId(q.id); handleCellClick(q.co, q.ilo, q.cognitiveLevel, label, { assessmentItemId: q.id }); } : undefined}>
-                                                                <div className={previewLayout.assessmentQuestion}>
-                                                                    <span className={previewLayout.questionNumber}>{label}.</span>
-                                                                    <span className={previewLayout.questionText}>{q.question || '(no question)'}</span>
-                                                                </div>
-                                                                
-                                                                {hasRubric && (
-                                                                    <div className={previewLayout.rubricBox}>
-                                                                        <div className={previewLayout.rubricHeader}>
-                                                                            <span className={previewLayout.rubricLabel}>Rubrics</span>
-                                                                        </div>
-                                                                        <div className={previewLayout.rubricTable}>
-                                                                            <div className={`${previewLayout.rubricRow} ${previewLayout.rubricHeaderRow}`}>
-                                                                                <span className={previewLayout.rubricName}>Criteria</span>
-                                                                                <span className={previewLayout.rubricDesc}>Description</span>
-                                                                                <span className={previewLayout.rubricWeight}>Weight</span>
-                                                                                <span className={previewLayout.rubricPts}>Pts</span>
-                                                                            </div>
-                                                                            {(() => {
-                                                                                const totalPts = Number(q.points) || 0;
-                                                                                const rawPts = q.rubricRows.map((r) => Math.round((totalPts * Number(r.weight || 0)) / 100));
-                                                                                const sumOthers = rawPts.slice(0, -1).reduce((s, v) => s + v, 0);
-                                                                                const rowPts = [...rawPts.slice(0, -1), Math.max(0, totalPts - sumOthers)];
-                                                                                const totalW = q.rubricRows.reduce((s, r) => s + Number(r.weight || 0), 0);
-                                                                                return (
-                                                                                    <>
-                                                                                        {q.rubricRows.map((row, ri) => (
-                                                                                            <div key={row.id || ri} className={previewLayout.rubricRow}>
-                                                                                                <span className={previewLayout.rubricName}>{row.name || ''}</span>
-                                                                                                <span className={previewLayout.rubricDesc}>{row.description || ''}</span>
-                                                                                                <span className={previewLayout.rubricWeight}>{Math.round(Number(row.weight) || 0)}%</span>
-                                                                                                <span className={previewLayout.rubricPts}>{rowPts[ri]}</span>
-                                                                                            </div>
-                                                                                        ))}
-                                                                                        <div className={`${previewLayout.rubricRow} ${previewLayout.rubricTotalRow}`}>
-                                                                                            <span className={previewLayout.rubricName}><strong>Total</strong></span>
-                                                                                            <span className={previewLayout.rubricDesc}></span>
-                                                                                            <span className={previewLayout.rubricWeight}>{Math.round(totalW)}%</span>
-                                                                                            <span className={previewLayout.rubricPts}><strong>{totalPts}</strong></span>
-                                                                                        </div>
-                                                                                    </>
-                                                                                );
-                                                                            })()}
-                                                                        </div>
-                                                                    </div>
-                                                                )}
-                                                            </div>
-                                                        );
-                                                    };
-                                                    const coDesc = {};
-                                                    const iloDesc = {};
-                                                    rows.forEach(c => {
-                                                        coDesc[c.co] = c.description;
-                                                        c.ilos.forEach(il => { iloDesc[`${c.co}|${il.id}`] = il.description; });
-                                                    });
-                                                    return viewMode === 'normal' ? (
-                                                        questions.map(q => renderItem(q))
-                                                    ) : (
-                                                        Object.entries(grouped).map(([co, ilos]) => (
-                                                            <div key={co} className={layout.coGroup}>
-                                                                 <div className={layout.coHeader} id={`co-header-${co}`} onClick={() => toggleCO(co)}>
-                                                                     <span className={layout.accordionArrow}>{expandedCOs.has(co) ? '\u25BE' : '\u25B8'}</span>
-                                                                     <div>
-                                                                         <span className={layout.coTitle}>{co}</span>
-                                                                         {coDesc[co] && <div className={layout.coDesc}>{coDesc[co]}</div>}
-                                                                     </div>
-                                                                 </div>
-                                                                {expandedCOs.has(co) && Object.entries(ilos).map(([ilo, cogs]) => (
-                                                                    <div key={ilo} className={layout.iloGroup}>
-                                                                          <div className={layout.iloHeader} data-ilo-header={`${co}|${ilo}`} onClick={() => toggleILO(`${co}|${ilo}`)}>
-                                                                             <span className={layout.accordionArrow}>{expandedILOs.has(`${co}|${ilo}`) ? '\u25BE' : '\u25B8'}</span>
-                                                                             <div>
-                                                                                 <span className={layout.iloTitle}>{ilo}</span>
-                                                                                 {iloDesc[`${co}|${ilo}`] && <div className={layout.iloDesc}>{iloDesc[`${co}|${ilo}`]}</div>}
-                                                                             </div>
-                                                                         </div>
-                                                                        {expandedILOs.has(`${co}|${ilo}`) && Object.entries(cogs).map(([cog, items]) => (
-                                                                             <div key={cog} className={layout.cogGroup}>
-                                                                                 <div className={layout.cogHeader} data-co={co} data-ilo={ilo} data-cog={cog}>{cog}</div>
-                                                                                {items.map(renderItem)}
-                                                                            </div>
-                                                                        ))}
-                                                                    </div>
-                                                                ))}
-                                                            </div>
-                                                        ))
-                                                    );
-                                                })()}
-                                            </div>
-                                        </div>
+                                        <AssessmentOutput
+                                            outcomeData={rows}
+                                            questions={questions}
+                                            courseCode={courseCode}
+                                            period={fromExamType}
+                                            targetScope={navTargetScope}
+                                        />
                                     </section>
                                 )}
                                 {displayTarget && (
@@ -1867,22 +1723,7 @@ const items = aggregatedData[co.co][ilo.id][level];
                                 )}
                                 {displayTarget && (
                                     <div className={`${layout.viewItemsPopup}${!viewItemsTarget ? ` ${layout.viewItemsHidden}` : ''}`} style={{ top: displayTarget.top + 4, left: displayTarget.left + displayTarget.width / 2 }}>
-                                            <button className={layout.viewItemsBtn} disabled={viewItemsTarget?.isEmpty} onClick={() => {
-                                                const t = viewItemsTarget;
-                                                if (!t) return;
-                                                setViewItemsTarget(null);
-                                                setSearchParams({ section: 'Assessment Items' });
-                                                viewItemsNavRef.current = true;
-                                                setViewMode('group');
-                                               const coSet = new Set(t.ilo && t.ilo !== '\u2014' ? questions.map(q => q.co).filter(Boolean) : [t.co]);
-                                               const iloSet = t.ilo && t.ilo !== '\u2014' ? new Set([`${t.co}|${t.ilo}`]) : new Set();
-                                               setExpandedCOs(coSet);
-                                               setExpandedILOs(iloSet);
-                                               setTimeout(() => {
-                                                   const el = document.querySelector(`[data-co="${t.co}"][data-ilo="${t.ilo}"][data-cog="${t.cognitiveLevel}"]`) || document.querySelector(`[data-ilo-header="${t.co}|${t.ilo}"]`) || document.getElementById(`co-header-${t.co}`);
-                                                   if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                                               }, 600);
-                                            }}>View Assessment Items</button>
+                                            <button className={layout.viewItemsBtn} disabled={viewItemsTarget?.isEmpty} onClick={() => handleViewAssessmentsJump(viewItemsTarget)}>View assessments</button>
                                     </div>
                                 )}
                             </div>
@@ -1928,7 +1769,7 @@ const items = aggregatedData[co.co][ilo.id][level];
                                                 if (returnFilter !== 'all') return filtered.map(c => (
                                                     <div key={c.id} className={layout.commentCard}>
                                                         <div className={layout.commentCardHeader}>
-                                                            <div className={layout.commentCardScope}>{c.scope.co}{c.scope.ilo !== '-' ? ` → ${c.scope.ilo}` : ''} → {c.scope.cognitiveLevel}{c.scope.itemNumber ? ` → Item ${c.scope.itemNumber}` : ''}</div>
+                                                            <div className={layout.commentCardScope}>{formatScopeText(c.scope)}</div>
                                                         </div>
                                                         {c.scope.itemNumber && c.type && <div className={layout.commentCardType}>{c.type}</div>}
                                                         <div className={layout.commentCardBody}>{c.body}</div>
@@ -1945,7 +1786,7 @@ const items = aggregatedData[co.co][ilo.id][level];
                                                         {groups[r].map(c => (
                                                             <div key={c.id} className={layout.commentCard}>
                                                                 <div className={layout.commentCardHeader}>
-                                                                    <div className={layout.commentCardScope}>{c.scope.co}{c.scope.ilo !== '-' ? ` → ${c.scope.ilo}` : ''} → {c.scope.cognitiveLevel}{c.scope.itemNumber ? ` → Item ${c.scope.itemNumber}` : ''}</div>
+                                                                    <div className={layout.commentCardScope}>{formatScopeText(c.scope)}</div>
                                                                 </div>
                                                                 {c.scope.itemNumber && c.type && <div className={layout.commentCardType}>{c.type}</div>}
                                                                 <div className={layout.commentCardBody}>{c.body}</div>
@@ -1958,23 +1799,13 @@ const items = aggregatedData[co.co][ilo.id][level];
                                         </>
                                     ) : (
                                         <>
-                                        <select
-                                            value={commentCategory}
-                                            onChange={e => { setCommentCategory(e.target.value); setShowResolved(false); }}
-                                            style={{ width: '100%', padding: '8px 28px 8px 12px', borderRadius: 5, border: '1px solid #DDDFDF', fontSize: 14, fontWeight: 500, color: '#333', background: '#fff', outline: 'none', cursor: 'pointer', appearance: 'none', backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'12\' height=\'12\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%23666\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3E%3Cpolyline points=\'6 9 12 15 18 9\'%3E%3C/polyline%3E%3C/svg%3E")', backgroundRepeat: 'no-repeat', backgroundPosition: 'right 10px center', backgroundSize: 14, marginBottom: 12 }}
-                                        >
-                                            <option value="outcomeOverview" style={{ fontSize: 14 }}>Outcome Overview</option>
-                                            <option value="alignment" style={{ fontSize: 14 }}>Alignment</option>
-                                            <option value="assessmentItems" style={{ fontSize: 14 }}>Assessment Items</option>
-                                        </select>
-                                        <div style={{ borderTop: '1px solid #E5E7EB', marginBottom: 12 }} />
-                                        {filteredComments.length === 0 ? (
+                                        {comments.filter(c => !c.resolved).length === 0 ? (
                                             <div style={{ textAlign: 'center', color: '#9CA3AF', fontSize: 13, padding: '40px 0' }}>No comments</div>
                                         ) : (
-                                            filteredComments.map(c => (
-                                                <div key={c.id} className={layout.commentCard}>
+                                            comments.filter(c => !c.resolved).map(c => (
+                                                <div key={c.id} className={layout.commentCard} onClick={() => handleCommentNavigation(c)} style={{ cursor: 'pointer' }}>
                                                     <div className={layout.commentCardHeader}>
-                                                        <div className={layout.commentCardScope}>{c.scope.co}{c.scope.ilo !== '-' ? ` → ${c.scope.ilo}` : ''} → {c.scope.cognitiveLevel}{c.scope.itemNumber ? ` → Item ${c.scope.itemNumber}` : ''}</div>
+                                                        <div className={layout.commentCardScope}>{formatScopeText(c.scope)}</div>
                                                     </div>
                                                     {c.scope.itemNumber && c.type && <div className={layout.commentCardType}>{c.type}</div>}
                                                     <div className={layout.commentCardBody}>{c.body}</div>
@@ -1993,7 +1824,24 @@ const items = aggregatedData[co.co][ilo.id][level];
                         <>
                             {selectedSection === 'Outcome Overview' &&
                                 <section>
-                                    <table className={`${layout.table} ${layout.TOSTable}`}>
+                                    <div style={{ width: '100%', display: 'flex', flexDirection: 'column' }}>
+                                        <div style={{ marginBottom: 24, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 24, padding: '16px 20px', border: '1px solid #DDDFDF', borderLeft: '4px solid #9CA3AF', borderRadius: 5, background: '#FFFFFF' }}>
+                                            <div style={{ minWidth: 0 }}>
+                                                <label style={{ fontWeight: 600, fontSize: 15, color: '#1A1A1A', display: 'block', marginBottom: 2 }}>TOS Total Points</label>
+                                                <div style={{ fontSize: 13, color: '#666' }}>Enter the total points of the exam. Points per CO and ILO are calculated automatically.</div>
+                                                {tosTotalError && <div style={{ color: '#ef4444', fontSize: 12, marginTop: 4 }}>{tosTotalError}</div>}
+                                            </div>
+                                            <input
+                                                className={layout.input}
+                                                style={{ width: 100, height: 'auto', flexShrink: 0, padding: '8px 12px', fontSize: 16, fontWeight: 600, textAlign: 'center', border: '1px solid #C4C8CC', borderRadius: 5, background: '#FFFFFF' }}
+                                                type="text"
+                                                inputMode="numeric"
+                                                readOnly={readOnly}
+                                                value={tosTotalPoints}
+                                                onChange={(e) => handleTotalPointsChange(e.target.value)}
+                                            />
+                                        </div>
+                                        <table className={`${layout.table} ${layout.TOSTable}`}>
                                         <thead>
                                         <tr>
                                             <th>ILOs</th>
@@ -2028,26 +1876,13 @@ const items = aggregatedData[co.co][ilo.id][level];
                                                         </div>
                                                     </td>
                                                     <td>
-                                                        <div className={layout.cellBox}>
-                                                                <input
-                                                                 className={`${layout.totalCoPoint} ${layout.input} ${errorFields[`oo-totalPoints-${coIndex}`] ? layout.inputError : ''}`}
-                                                                 type="text"
-                                                                 inputMode="numeric"
-                                                                 readOnly={readOnly}
-                                                                 value={co.totalPoints}
-                                                                 onChange={(e) => handleTotalPointsChange(e.target.value)}
-                                                                 onKeyDown={(e) => {
-                                                                     if (readOnly) return;
-                                                                     if (!/[0-9]/.test(e.key) && !['Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
-                                                                         e.preventDefault();
-                                                                     }
-                                                                 }}
-                                                            />
+                                                        <div className={`${layout.cellBox} ${layout.blankCell}`}>
+                                                                {co.totalPoints}
                                                         </div>
                                                     </td>
                                                 </tr>
 
-                                                {co.ilos.map((ilo, iloIndex) => (
+                                                {co.ilos.map((ilo) => (
                                                     <tr key={`${co.co}-${ilo.id}`}>
                                                         <td>
                                                             <div className={`${layout.cellBox} ${layout.mutedBold} ${layout.outcomeIloCell}`}>
@@ -2071,13 +1906,7 @@ const items = aggregatedData[co.co][ilo.id][level];
                                                         </td>
                                                     <td>
                                                         <div className={`${layout.cellBox} ${layout.outcomeIloCell}`}>
-                                                            <input
-                                                                 className={`${layout.point} ${layout.input} ${errorFields[`oo-items-${coIndex}-${iloIndex}`] ? layout.inputError : ''}`}
-                                                                 type="text"
-                                                                 inputMode="numeric"
-                                                                 readOnly
-                                                                 value={ilo.items}
-                                                             />
+                                                            {ilo.items}
                                                         </div>
                                                     </td>
                                                     </tr>
@@ -2090,6 +1919,7 @@ const items = aggregatedData[co.co][ilo.id][level];
                                         ))}
                                         </tbody>
                                     </table>
+                                    </div>
                                 </section>
                             }
 
@@ -2249,17 +2079,17 @@ const items = aggregatedData[co.co][ilo.id][level];
                 const data = historyData[courseCode];
                 const version = data?.versions?.find(v => v.version === selectedVersion);
                 return (
-                    <div className={layout.modalOverlay} onClick={() => setShowHistoryLog(false)}>
-                        <div className={`${layout.modal} ${layout.historyModal}`} onClick={e => e.stopPropagation()}>
-                            <div className={layout.modalHeader}>
-                                <h3 style={{ color: "#1A1A1A", margin: 0 }}>History Log</h3>
-                                <span style={{ cursor: "pointer", fontSize: "20px", color: "#999" }} onClick={() => setShowHistoryLog(false)}>×</span>
+                    <div className={layout.hlOverlay} onClick={() => setShowHistoryLog(false)}>
+                        <div className={layout.hlModal} role="dialog" aria-modal="true" aria-labelledby="historyLogTitle" tabIndex={-1} ref={historyModalRef} onClick={e => e.stopPropagation()}>
+                            <div className={layout.hlHeader}>
+                                <h3 id="historyLogTitle" className={layout.hlTitle}>History Log</h3>
+                                <span className={layout.hlClose} onClick={() => setShowHistoryLog(false)}>×</span>
                             </div>
-                            <div className={layout.historyContent}>
-                                <div className={layout.historyLeft}>
+                            <div className={layout.hlBody}>
+                                <div className={layout.hlLeft}>
                                     <select className={layout.historyPageSelect} value={historyPage} onChange={e => setHistoryPage(e.target.value)}>
                                         <option value="tosReport">Table of Specifications Report</option>
-                                        <option value="assessmentItems">Assessment Items</option>
+                                        <option value="assessmentItems">Assessments</option>
                                     </select>
                                     {historyPage === 'tosReport' ? (() => {
                                         const totalHours = rows.reduce((s, r) => s + (r.totalHours || 0), 0);
@@ -2268,37 +2098,46 @@ const items = aggregatedData[co.co][ilo.id][level];
                                         const totalCognitive = cognitiveLevels.map(level =>
                                             rows.reduce((sum, r) => sum + r.ilos.reduce((s, ilo) => {
                                                 const items = (questions || []).filter(q => q.co === r.co && q.ilo === ilo.id && q.cognitiveLevel === level);
-                                                return s + items.reduce((p, it) => p + (it.span || 1) * (it.points || 0), 0);
+                                                return s + items.reduce((p, it) => p + (Number(it.points) || 0), 0);
                                             }, 0), 0)
                                         );
                                         return (
-                                        <div className={previewLayout.tableWrapper}>
-                                            <div className={previewLayout.headerFields} style={{ marginBottom: 20 }}>
-                                                <div className={previewLayout.topRow}>
-                                                    <label>Course:</label>
-                                                    <input type="text" disabled className={previewLayout.numberInput} value={courseCode && courseName ? `${courseCode} - ${courseName}` : (courseCode || courseName)} />
-                                                    <label>Type:</label>
-                                                    <input type="text" disabled className={previewLayout.numberInput} value={fromExamType || assessmentName} />
+                                        <div className={layout.hlReport}>
+                                            <div className={layout.hlMeta}>
+                                                <div className={layout.hlMetaItem}>
+                                                    <span className={layout.hlMetaLabel}>Course:</span>
+                                                    <span className={layout.hlMetaValue}>{courseCode && courseName ? `${courseCode} - ${courseName}` : (courseCode || courseName)}</span>
                                                 </div>
-                                                <div className={previewLayout.bottomRow}>
-                                                    <label>Semester:</label>
-                                                    <input type="text" disabled className={previewLayout.numberInput} value={fromSemester} />
-                                                    <label>School Year:</label>
-                                                    <input type="text" disabled className={previewLayout.numberInput} value={`${fromSchoolYear} - ${Number(fromSchoolYear) + 1}`} />
+                                                <div className={layout.hlMetaItem}>
+                                                    <span className={layout.hlMetaLabel}>Type:</span>
+                                                    <span className={layout.hlMetaValue}>{fromExamType || assessmentName}</span>
+                                                </div>
+                                                <div className={layout.hlMetaItem}>
+                                                    <span className={layout.hlMetaLabel}>Semester:</span>
+                                                    <span className={layout.hlMetaValue}>{fromSemester}</span>
+                                                </div>
+                                                <div className={layout.hlMetaItem}>
+                                                    <span className={layout.hlMetaLabel}>School Year:</span>
+                                                    <span className={layout.hlMetaValue}>{`${fromSchoolYear} - ${Number(fromSchoolYear) + 1}`}</span>
                                                 </div>
                                             </div>
-                                            <table className={`${previewLayout.qctable} ${previewLayout.TOSTable}`}>
+                                            <div className={layout.hlTableWrap}>
+                                            <table className={layout.hlTable}>
                                                 <thead>
                                                     <tr>
-                                                        <th rowSpan={2} className={previewLayout.headerCell}>COs & ILOs</th>
-                                                        <th rowSpan={2} className={previewLayout.headerCell}>No. of Hours</th>
-                                                        <th rowSpan={2} className={previewLayout.headerCell}>%</th>
-                                                        <th rowSpan={2} className={previewLayout.headerCell}>Points</th>
-                                                        <th colSpan={6} className={previewLayout.headerCell}>Cognitive Levels</th>
+                                                        <th className={layout.hlTh}>COs & ILOs</th>
+                                                        <th className={`${layout.hlTh} ${layout.hlThNum}`}>No. of Hours</th>
+                                                        <th className={`${layout.hlTh} ${layout.hlThNum}`}>%</th>
+                                                        <th className={`${layout.hlTh} ${layout.hlThNum}`}>Points</th>
+                                                        <th colSpan={6} className={`${layout.hlTh} ${layout.hlThGroup}`}>Cognitive Levels</th>
                                                     </tr>
-                                                    <tr className={previewLayout['sub-column']}>
+                                                    <tr>
+                                                        <th className={layout.hlTh}></th>
+                                                        <th className={layout.hlTh}></th>
+                                                        <th className={layout.hlTh}></th>
+                                                        <th className={layout.hlTh}></th>
                                                         {cognitiveLevels.map(level => (
-                                                            <th key={level} className={previewLayout.lighten}>{level}</th>
+                                                            <th key={level} className={`${layout.hlTh} ${layout.hlThNum}`}>{level}</th>
                                                         ))}
                                                     </tr>
                                                 </thead>
@@ -2318,50 +2157,49 @@ const items = aggregatedData[co.co][ilo.id][level];
                                                         })();
                                                         return (
                                                         <React.Fragment key={co.co}>
-                                                            <tr data-tos-row={co.co}>
-                                                                 <td><div className={previewLayout.cellBox} style={{ fontWeight: 'bold' }}>{co.co}<InfoBadge text={co.description} /></div></td>
-                                                                <td><div className={previewLayout.cellBox}>{co.totalHours || 0}</div></td>
-                                                                <td><div className={previewLayout.cellBox}>{co.totalPercentage || 0}</div></td>
-                                                                  <td><div className={previewLayout.cellBox}>{co.totalPoints || 0}</div></td>
-                                                                  {cognitiveLevels.map(level => (
-                                                                     <td key={level}></td>
-                                                                 ))}
-                                                             </tr>
+                                                            <tr data-tos-row={co.co} className={layout.hlCoRow}>
+                                                                <td className={layout.hlTdLabel}><span className={layout.hlCoName}>{co.co}<InfoBadge text={co.description} /></span></td>
+                                                                <td className={layout.hlTdNum}>{co.totalHours || 0}</td>
+                                                                <td className={layout.hlTdNum}>{co.totalPercentage || 0}</td>
+                                                                <td className={layout.hlTdNum}>{co.totalPoints || 0}</td>
+                                                                {cognitiveLevels.map(level => (
+                                                                    <td key={level} className={layout.hlTdNum}></td>
+                                                                ))}
+                                                            </tr>
                                                             {co.ilos.map(ilo => {
                                                                 return (
-                                                                <tr data-tos-row={`${co.co}-${ilo.id}`} key={`${co.co}-${ilo.id}`}>
-                                                                    <td><div className={`${previewLayout.cellBox} ${previewLayout.mutedBold}`}>{ilo.id}<InfoBadge text={ilo.description} /></div></td>
-                                                                    <td><div className={`${previewLayout.cellBox} ${previewLayout.muted}`}>{ilo.hours || 0}</div></td>
-                                                                    <td><div className={`${previewLayout.cellBox} ${previewLayout.muted}`}>{ilo.percentage || 0}</div></td>
-                                                                    <td><div className={`${previewLayout.cellBox} ${previewLayout.muted}`}>{ilo.items || 0}</div></td>
+                                                                <tr data-tos-row={`${co.co}-${ilo.id}`} key={`${co.co}-${ilo.id}`} className={layout.hlIloRow}>
+                                                                    <td className={layout.hlTdLabel}><span className={layout.hlIloName}>{ilo.id}<InfoBadge text={ilo.description} /></span></td>
+                                                                    <td className={layout.hlTdNum}>{ilo.hours || 0}</td>
+                                                                    <td className={layout.hlTdNum}>{ilo.percentage || 0}</td>
+                                                                    <td className={layout.hlTdNum}>{ilo.items || 0}</td>
                                                                     {cognitiveLevels.map(level => {
                                                                         const items = (agg?.items?.[ilo.id]?.[level] || []);
                                                                         return (
-                                                                            <td key={level}>
-                                                                                <div className={previewLayout.cellBox} style={{ flexDirection: 'column', gap: 2 }}>
-                                                                                    {items.length === 0 ? '\u2014' : items.map((item, i) => (
-                                                                                        <span key={i}>{item.span || 1} x {item.points || 0}</span>
-                                                                                    ))}
-                                                                                </div>
+                                                                            <td key={level} className={items.length === 0 ? `${layout.hlTdNum} ${layout.hlTdEmpty}` : `${layout.hlTdNum} ${layout.hlTdFilled}`}>
+                                                                                {(() => { const pts = items.reduce((p, it) => p + (Number(it.points) || 0), 0); return pts > 0 ? pts : '\u2014'; })()}
+
+
+
                                                                             </td>
                                                                         );
                                                                     })}
                                                                 </tr>
                                                             )})}
-                                                            <tr key={`${co.co}-spacer`} style={{ height: '16px' }} />
                                                         </React.Fragment>
                                                     )})}
-                                                    <tr data-tos-row="Total" style={{ fontWeight: '500' }}>
-                                                        <td><div className={previewLayout.cellBox}>Total</div></td>
-                                                        <td><div className={previewLayout.cellBox}>{totalHours}</div></td>
-                                                        <td><div className={previewLayout.cellBox}>{totalPercentage}</div></td>
-                                                        <td><div className={previewLayout.cellBox}>{totalPoints}</div></td>
+                                                    <tr data-tos-row="Total" className={layout.hlTotalRow}>
+                                                        <td className={layout.hlTdLabel}>Total</td>
+                                                        <td className={layout.hlTdNum}>{totalHours}</td>
+                                                        <td className={layout.hlTdNum}>{totalPercentage}</td>
+                                                        <td className={layout.hlTdNum}>{totalPoints}</td>
                                                         {totalCognitive.map((total, index) => (
-                                                            <td key={index}><div className={previewLayout.cellBox}>{total}</div></td>
+                                                            <td key={index} className={layout.hlTdNum}>{total}</td>
                                                         ))}
                                                     </tr>
                                                 </tbody>
                                             </table>
+                                            </div>
                                         </div>
                                         );
                                     })()
@@ -2450,29 +2288,35 @@ const items = aggregatedData[co.co][ilo.id][level];
                                         </div>
                                     )}
                                 </div>
-                                <div className={layout.historyRight}>
-                                    <div className={layout.historyVersionTabs}>
+                                <div className={layout.hlRight}>
+                                    <div className={layout.hlVersions}>
                                         {data?.versions?.map(v => (
-                                            <button key={v.version} className={`${layout.historyVersionTab} ${selectedVersion === v.version ? layout.historyVersionActive : ''}`} onClick={() => setSelectedVersion(v.version)}>
+                                            <button key={v.version} className={`${layout.hlVersion} ${selectedVersion === v.version ? layout.hlVersionActive : ''}`} onClick={() => setSelectedVersion(v.version)}>
                                                 Version {v.version}
                                             </button>
                                         ))}
                                     </div>
-                                    <div className={layout.historyTimeline}>
-                                        {version?.actions?.map((a, i) => (
-                                            <div key={i} className={`${layout.historyAction} ${a.action?.includes('returned') ? layout.historyActionReturn : ''}`}>
-                                                <div className={layout.historyDot} />
-                                                <div className={layout.historyActionContent}>
-                                                    <p><strong>{a.role}</strong> {a.action} on <strong>{a.date}</strong></p>
-                                                    {a.comments?.map((c, ci) => (
-                                                        <div key={ci} className={layout.historyComment}>
-                                                            <div className={layout.historyCommentLabel}>{c.scope?.co} → {c.scope?.ilo} → {c.scope?.cognitiveLevel}</div>
-                                                            <p>{c.body}</p>
-                                                        </div>
-                                                    ))}
+                                    <div className={layout.hlTimeline}>
+                                        {version?.actions?.map((a, i) => {
+                                            const dotModifier = a.action?.includes('approved') ? layout.hlDotApproved
+                                                : a.action?.includes('returned') ? layout.hlDotReturned
+                                                : (a.action?.includes('submitted') || a.action?.includes('resubmitted')) ? layout.hlDotSubmitted
+                                                : '';
+                                            return (
+                                                <div key={i} className={layout.hlEvent}>
+                                                    <div className={`${layout.hlDot} ${dotModifier}`} />
+                                                    <div className={layout.hlEventBody}>
+                                                        <p><strong className={layout.hlRole}>{a.role}</strong> {a.action} on <span className={layout.hlDatePill}>{a.date}</span></p>
+                                                        {a.comments?.map((c, ci) => (
+                                                            <div key={ci} className={layout.hlComment}>
+                                                                <div className={layout.hlCommentScope}>{formatScopeText(c.scope)}</div>
+                                                                <p>{c.body}</p>
+                                                            </div>
+                                                        ))}
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        ))}
+                                            );
+                                        })}
                                     </div>
                                 </div>
                             </div>
@@ -2485,4 +2329,5 @@ const items = aggregatedData[co.co][ilo.id][level];
 };
 
 export default TosSections;
+
 

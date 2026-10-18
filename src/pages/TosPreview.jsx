@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useRef} from "react";
+import React, { useState, useEffect, useRef } from "react";
 import layout from "../styles/TOSPreview.module.sass";
 import { useNavigate } from "react-router-dom";
-import { updateStatus, saveOutcomes, saveItems, updateCourse } from '../services/api.js';
+import { updateStatus, saveOutcomes, saveItems, updateCourse, ACTIVE_PERIOD } from '../services/api.js';
+import AssessmentOutput from "../components/AssessmentOutput.jsx";
 
-const TOSPreview = ({ isOpen, onClose, outcomeData, questions, courseName = "Human & Computer Interaction", semester = "1st Semester", schoolYear, courseCode, assessmentName, examType }) => {
+const TOSPreview = ({ isOpen, onClose, outcomeData = [], questions = [], courseName = "Human & Computer Interaction", semester = "1st Semester", schoolYear, courseCode, assessmentName, examType = ACTIVE_PERIOD }) => {
     
     const [showConfirm, setShowConfirm] = useState(false);
     const [countdown, setCountdown] = useState(5);
@@ -35,14 +36,15 @@ const TOSPreview = ({ isOpen, onClose, outcomeData, questions, courseName = "Hum
         }));
         const cleanQuestions = questions.map(q => ({
             ...q,
-            choices: (q.choices || []).filter(c => (c.text || '').trim()),
+            
             rubricRows: (q.rubricRows || []).filter(r => (r.name || '').trim() || (r.description || '').trim()),
         }));
+        const period = examType || ACTIVE_PERIOD;
         Promise.all([
             saveOutcomes(courseCode, outcomesPayload),
-            saveItems(courseCode, cleanQuestions),
+            saveItems(courseCode, period, cleanQuestions),
             assessmentName ? updateCourse(courseCode, { assessmentName }) : Promise.resolve()
-        ]).then(() => updateStatus(courseCode, 'pending')).catch(() => updateStatus(courseCode, 'pending'))
+        ]).then(() => updateStatus(courseCode, period, 'pending')).catch(() => updateStatus(courseCode, period, 'pending'))
         .then(goToTable);
     };
 
@@ -50,7 +52,7 @@ const TOSPreview = ({ isOpen, onClose, outcomeData, questions, courseName = "Hum
         if (!showConfirm) return;
         if (countdown === 0) { handleConfirm(); return; }
         countdownRef.current = setTimeout(() => setCountdown(c => c - 1), 1000);
-        if (!examType) return <div style={{ color: 'red', padding: '20px' }}>Error: Exam period is missing for preview.</div>;
+        
 
     return () => { if (countdownRef.current) clearTimeout(countdownRef.current); };
     }, [showConfirm, countdown]);
@@ -109,7 +111,6 @@ const TOSPreview = ({ isOpen, onClose, outcomeData, questions, courseName = "Hum
                 <div className={layout.headerRow}>
                     <div>
                         <h2 className={layout.previewTitle}>TOS Document Preview</h2>
-                        <span className={layout.assessmentName}>Assessment: <span>{assessmentName || ''}</span></span>
                     </div>
                     <div className={layout.pillToggle}>
                         <div className={layout.pillSlider} style={{ transform: `translateX(${activeTab === 'tosReport' ? '0' : 'calc(100% + 2px)'})` }} />
@@ -220,10 +221,11 @@ const TOSPreview = ({ isOpen, onClose, outcomeData, questions, courseName = "Hum
                                         const items = aggregatedData[co.co][ilo.id][level];
                                         return (
                                         <td key={level}>
-                                            <div className={layout.cellBox} style={{ flexDirection: 'column', gap: 2 }}>
-                                                {items.length === 0 ? '-' : items.map((item, i) => (
-                                                    <span key={i}>{item.span} x {item.points}</span>
-                                                ))}
+                                            <div className={layout.cellBox}>
+                                                {(() => {
+                                                    const pts = items.reduce((s, item) => s + (Number(item.points) || 0), 0);
+                                                    return pts > 0 ? pts : '—';
+                                                })()}
                                             </div>
                                         </td>
                                         );
@@ -257,87 +259,12 @@ const TOSPreview = ({ isOpen, onClose, outcomeData, questions, courseName = "Hum
                 </div>
                     </>
                 ) : (
-                    <div className={`${layout.assessmentBody} ${layout.tabContent}`}>
-                        <div className={layout.assessmentList}>
-                            {questions.length === 0 ? (
-                                <div className={layout.emptyState}>
-                                    <div className={layout.emptyIcon}>
-                                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                                            <polyline points="14 2 14 8 20 8"/>
-                                            <line x1="16" y1="13" x2="8" y2="13"/>
-                                            <line x1="16" y1="17" x2="8" y2="17"/>
-                                            <polyline points="10 9 9 9 8 9"/>
-                                        </svg>
-                                    </div>
-                                    <p className={layout.emptyText}>No assessment points yet</p>
-                                </div>
-                            ) : (
-                                (() => {
-                                    let c = 0;
-                                    const slots = questions.map(q => { const s = c + 1; c += (q.span || 1); return s; });
-                                    return questions.map((q, i) => {
-                                        const start = slots[i];
-                                        const end = start + (q.span || 1) - 1;
-                                        const label = start === end ? String(start) : `${start}-${end}`;
-                                        const hasRubric = q.rubricRows && q.rubricRows.length > 0;
-                                        return (
-                                            <div key={q.id} className={layout.assessmentItem}>
-                                                <div className={layout.assessmentQuestion}>
-                                                    <span className={layout.questionNumber}>{label}.</span>
-                                                    <span className={layout.questionText}>{q.question || '(no question)'}</span>
-                                                </div>
-                                                
-                                                {hasRubric && (
-                                                    <div className={layout.rubricBox}>
-                                                        <div className={layout.rubricHeader}>
-                                                            <span className={layout.rubricLabel}>Rubrics</span>
-                                                        </div>
-                                                        <div className={layout.rubricTable}>
-                                                            <div className={`${layout.rubricRow} ${layout.rubricHeaderRow}`}>
-                                                                <span className={layout.rubricName}>Criteria</span>
-                                                                <span className={layout.rubricDesc}>Description</span>
-                                                                <span className={layout.rubricWeight}>Weight</span>
-                                                                <span className={layout.rubricPts}>Pts</span>
-                                                            </div>
-                                                             {(() => {
-                                                                   const totalPts = Number(q.points) || 0;
-                                                                   const rawPts = q.rubricRows.map(r => Math.round((totalPts * Number(r.weight || 0)) / 100));
-                                                                   const sumPrev = rawPts.slice(0, -1).reduce((s, v) => s + v, 0);
-                                                                   const rowPts = rawPts.length > 0
-                                                                       ? [...rawPts.slice(0, -1), Math.max(0, totalPts - sumPrev)]
-                                                                       : [];
-                                                                   const totalW = q.rubricRows.reduce((s, r) => s + Number(r.weight || 0), 0);
-                                                                   Math.round(totalW) === 100;
-                                                                   return (
-                                                                      <>
-                                                                          {q.rubricRows.map((row, ri) => (
-                                                                              <div key={row.id || ri} className={layout.rubricRow}>
-                                                                                  <span className={layout.rubricName}>{row.name || ''}</span>
-                                                                                  <span className={layout.rubricDesc}>{row.description || ''}</span>
-                                                                                   <span className={layout.rubricWeight}>{Math.round(Number(row.weight) || 0)}%</span>
-                                                                                  <span className={layout.rubricPts}>{rowPts[ri]}</span>
-                                                                              </div>
-                                                                          ))}
-                                                                           <div className={`${layout.rubricRow} ${layout.rubricTotalRow}`}>
-                                                                               <span className={layout.rubricName}><strong>Total</strong></span>
-                                                                               <span className={layout.rubricDesc}></span>
-                                                                               <span className={layout.rubricWeight}>{Math.round(totalW)}%</span>
-                                                                               <span className={layout.rubricPts}><strong>{totalPts}</strong></span>
-                                                                           </div>
-                                                                      </>
-                                                                  );
-                                                              })()}
-                                                        </div>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        );
-                                    });
-                                })()
-                            )}
-                        </div>
-                    </div>
+                    <AssessmentOutput
+                        outcomeData={outcomeData}
+                        questions={questions}
+                        courseCode={courseCode}
+                        period={examType || ACTIVE_PERIOD}
+                    />
                 )}
                 <div className={`${layout.exportButtonContainer} ${activeTab === 'assessment' ? layout.noBorderTop : ''}`}>
                     <button className={layout.export} onClick={handleSubmitApproval}>
@@ -367,6 +294,8 @@ const TOSPreview = ({ isOpen, onClose, outcomeData, questions, courseName = "Hum
 };
 
 export default TOSPreview;
+
+
 
 
 

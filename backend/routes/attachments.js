@@ -2,12 +2,13 @@ import { Router } from 'express';
 import multer from 'multer';
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
 import { IloAttachment } from '../models/index.js';
 import { lockGuard } from '../middleware/lockGuard.js';
 
 const router = Router();
-
-const uploadDir = path.join(process.cwd(), 'uploads');
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const uploadDir = path.resolve(__dirname, '..', 'uploads');
 if (!fs.existsSync(uploadDir)) {
     fs.mkdirSync(uploadDir, { recursive: true });
 }
@@ -93,7 +94,13 @@ router.delete('/:code/:period/attachments/:id', lockGuard, async (req, res) => {
 router.get('/download/:filename', (req, res) => {
     const filePath = path.join(uploadDir, req.params.filename);
     if (fs.existsSync(filePath)) {
-        res.download(filePath);
+        if (req.query.inline === '1' && path.extname(req.params.filename).toLowerCase() === '.pdf') {
+            res.setHeader('Content-Type', 'application/pdf');
+            res.setHeader('Content-Disposition', 'inline');
+            fs.createReadStream(filePath).pipe(res);
+        } else {
+            res.download(filePath);
+        }
     } else {
         res.status(404).json({ error: 'File not found' });
     }

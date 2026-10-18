@@ -1,3 +1,4 @@
+import process from 'process';
 import { Sequelize } from 'sequelize';
 
 const sequelize = new Sequelize((process.env.DB_NAME || 'lpms_db'), 'lpms_user', 'lpms_pass', {
@@ -7,6 +8,7 @@ const sequelize = new Sequelize((process.env.DB_NAME || 'lpms_db'), 'lpms_user',
 });
 
 export default sequelize;
+
 
 
 

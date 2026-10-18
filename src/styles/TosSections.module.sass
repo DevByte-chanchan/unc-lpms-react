@@ -22,6 +22,11 @@
     vertical-align: middle
 
   &.TOSTable
+    th
+      position: sticky
+      top: 0
+      z-index: 5
+      background: #F1F3F5
 
     th:nth-child(1), td:nth-child(1)
       width: 15%
@@ -85,9 +90,6 @@
   font-weight: 500
   padding: 20px
 
-.totalCoPoint
-  font-weight: 500
-
 .input
   width: 100%
   height: 100%
@@ -116,63 +118,6 @@
 
   &.inputError
     background: #FFF4F4
-
-.cellBox.point
-  min-height: 48px
-  height: 48px
-  padding: 0
-  display: flex
-
-.point input
-  height: 100%
-  width: 100%
-  border: none
-  padding: 0 6px
-  background: transparent
-  text-align: center
-
-  &::-webkit-outer-spin-button,
-  &::-webkit-inner-spin-button
-    -webkit-appearance: none
-    margin: 0
-
-  -moz-appearance: textfield
-
-.section
-  flex-grow: 1
-  display: flex
-  flex-direction: column
-  height: max-content
-  padding: 20px
-  border-radius: 5px
-  border: 1px solid #DDDFDF
-  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.25)
-
-.sectionTitle
-  margin-bottom: 16px
-  font-size: 16px
-  font-weight: 600
-  margin-top: 0
-
-.sectionHeader
-  display: flex
-  justify-content: space-between
-  align-items: center
-  margin-bottom: 16px
-
-.uploadButton
-  padding: 8px 16px
-  background: #1A1A1A
-  color: white
-  border: 1.5px solid #1A1A1A
-  border-radius: 4px
-  cursor: pointer
-  font-size: 14px
-  font-weight: 500
-
-  &:hover
-    background: #F3F4F6
-    color: #1A1A1A
 
 .pointsContainer
   display: flex
@@ -1246,36 +1191,6 @@
       background: #1A1A1A
       color: white
 
-.historyModal
-  max-width: 95vw
-  width: 95vw
-  max-height: 90vh
-  display: flex
-  flex-direction: column
-  padding: 24px 30px
-
-.historyContent
-  display: flex
-  gap: 40px
-  margin-top: 20px
-  flex: 1
-  overflow: hidden
-  min-height: 0
-
-.historyLeft
-  flex: 2
-  min-width: 0
-  overflow-y: auto
-  padding-right: 20px
-
-.historyRight
-  flex: 1
-  min-width: 300px
-  max-width: 400px
-  overflow-y: auto
-  border-left: 1px solid #E5E7EB
-  padding-left: 40px
-
 .historyPageSelect
   width: 100%
   padding: 8px 28px 8px 12px
@@ -1294,93 +1209,376 @@
   background-size: 14px
   margin-bottom: 16px
 
-.historyVersionTabs
+// ============ History Log modal (scoped hl* classes) ============
+.hlOverlay
+  position: fixed
+  inset: 0
+  background: rgba(17, 24, 39, 0.45)
   display: flex
-  gap: 8px
-  margin-bottom: 20px
+  align-items: center
+  justify-content: center
+  padding: 24px
+  z-index: 1000
 
-.historyVersionTab
-  padding: 6px 16px
-  border-radius: 20px
-  border: 1.5px solid #E5E7EB
-  background: white
-  font-size: 13px
-  font-weight: 500
-  color: #6B7280
+.hlModal
+  width: 95vw
+  max-width: 1400px
+  max-height: 88vh
+  display: flex
+  flex-direction: column
+  background: #fff
+  border-radius: 8px
+  box-shadow: 0 24px 48px -12px rgba(17, 24, 39, 0.28)
+  overflow: hidden
+  outline: none
+
+.hlHeader
+  flex-shrink: 0
+  display: flex
+  align-items: center
+  justify-content: space-between
+  padding: 16px 24px
+  border-bottom: 1px solid #EEF0F3
+
+.hlTitle
+  margin: 0
+  font-size: 16px
+  font-weight: 600
+  color: #111827
+
+.hlClose
+  display: inline-flex
+  align-items: center
+  justify-content: center
+  width: 32px
+  height: 32px
+  border-radius: 8px
+  font-size: 20px
+  line-height: 1
+  color: #9CA3AF
   cursor: pointer
-  transition: all 0.15s
+  transition: background 0.15s ease, color 0.15s ease
 
   &:hover
-    border-color: #1A1A1A
-    color: #1A1A1A
+    background: #F3F4F6
+    color: #111827
 
-.historyVersionActive
-  background: #1A1A1A
-  color: white
-  border-color: #1A1A1A
+// Two-pane body: TOS content left, tinted timeline sidebar right
+.hlBody
+  flex: 1
+  min-height: 0
+  display: flex
 
-.historyTimeline
+.hlLeft
+  flex: 1
+  min-width: 0
+  overflow-y: auto
+  padding: 20px 24px 28px
+
+.hlRight
+  flex-shrink: 0
+  width: 320px
+  overflow-y: auto
+  background: #f5f5f5
+  border-left: 1px solid #EEF0F3
+  padding: 20px
+
+.hlReport
+  display: flex
+  flex-direction: column
+
+// Course info meta row
+.hlMeta
+  display: flex
+  flex-wrap: wrap
+  background: #F9FAFB
+  border: 1px solid #EEF0F3
+  border-radius: 10px
+  padding: 8px 4px
+  margin-bottom: 16px
+
+.hlMetaItem
+  flex: 1 1 40%
+  min-width: 150px
+  padding: 4px 16px
+  border-left: 1px solid #E5E7EB
+
+  &:first-child
+    border-left: none
+
+.hlMetaLabel
+  display: block
+  font-size: 10px
+  font-weight: 600
+  letter-spacing: 0.06em
+  text-transform: uppercase
+  color: #9CA3AF
+  margin-bottom: 2px
+
+.hlMetaValue
+  display: block
+  font-size: 13px
+  font-weight: 500
+  color: #1F2937
+
+// TOS table — square corners; only the table area scrolls horizontally when needed
+.hlTableWrap
+  border-radius: 0
+  overflow-x: auto
+  background: #fff
+
+.hlTable
+  width: 100%
+  min-width: min-content
+  border-collapse: separate
+  border-spacing: 0
+  table-layout: auto
+  font-size: 13px
+  display: table
+  gap: 0
+  flex-grow: 0
+  overflow: visible
+
+  thead
+    display: table-header-group
+
+    tr
+      display: table-row
+      background: #EFEFEF
+      box-shadow: none
+
+      &:first-child
+        height: 34px
+
+        th
+          border-top: 1px solid #000
+
+      &:last-child
+        height: 32px
+
+    th
+      display: table-cell
+      padding: 4px 10px
+      font-size: 11px
+      font-weight: 600
+      color: #000
+      text-align: center
+      letter-spacing: 0.02em
+      vertical-align: middle
+      background: #EFEFEF
+      border: none
+      border-right: 1px solid #000
+      border-bottom: 1px solid #000
+      position: sticky
+      z-index: 2
+      white-space: nowrap
+
+      &:first-child
+        border-left: 1px solid #000
+
+    tr:first-child th
+      top: 0
+
+    tr:last-child th
+      top: 34px
+
+  tbody
+    display: table-row-group
+    gap: 0
+    padding-bottom: 0
+    overflow: visible
+
+    tr
+      display: table-row
+      background: #fff
+      box-shadow: none
+      font-weight: 400
+
+    td
+      display: table-cell
+      padding: 7px 10px
+      font-size: 13px
+      gap: 0
+      vertical-align: middle
+      color: #374151
+      border: none
+      border-right: 1px solid #000
+      border-bottom: 1px solid #000
+
+      &:first-child
+        border-left: 1px solid #000
+
+// Group-header (CO) rows and indented ILO rows
+.hlCoRow td
+  font-weight: 600
+  color: #111827
+
+.hlCoName
+  display: inline-flex
+  align-items: center
+  gap: 6px
+
+.hlIloName
+  display: inline-flex
+  align-items: center
+  gap: 6px
+  padding-left: 16px
+  padding-right: 16px
+
+// ILO rows: COs & ILOs label cell is centered (CO rows stay left-aligned)
+.hlIloRow .hlTdLabel
+  text-align: center
+
+// Numbers: centered, tabular; empty dashes muted
+.hlTdNum
+  text-align: center
+  font-variant-numeric: tabular-nums
+
+.hlThNum
+  text-align: center
+
+.hlThGroup
+  text-align: center
+
+.hlTdLabel
+  text-align: left
+
+.hlTable .hlTdEmpty
+  color: #D1D5DB
+
+.hlTable .hlTdFilled
+  color: #1F2937
+
+.hlItem
+  display: block
+  line-height: 1.5
+
+// Total row pinned at the end of the same table
+.hlTotalRow td
+  font-weight: 600
+  color: #111827
+
+// Timeline
+.hlTimeline
   position: relative
-  padding-left: 24px
+  display: flex
+  flex-direction: column
+  gap: 20px
 
-.historyTimeline::before
-  content: ''
-  position: absolute
-  left: 6px
-  top: 0
-  bottom: 0
-  width: 2px
-  background: #E5E7EB
+  &::before
+    content: ''
+    position: absolute
+    left: 5px
+    top: 6px
+    bottom: 6px
+    width: 2px
+    background: #E5E7EB
 
-.historyAction
+.hlEvent
   position: relative
-  margin-bottom: 24px
+  display: flex
+  gap: 12px
 
-.historyDot
-  position: absolute
-  left: -24px
-  top: 4px
-  width: 14px
-  height: 14px
+.hlDot
+  flex-shrink: 0
+  width: 12px
+  height: 12px
+  margin-top: 4px
   border-radius: 50%
-  background: #3B82F6
-  border: 3px solid white
+  background: #EA1212
+  border: 2px solid #fff
   box-shadow: 0 0 0 1px #E5E7EB
 
-.historyActionReturn .historyDot
-  background: #EF4444
+// event-type classes referenced by JSX; single app accent color
+.hlDotApproved, .hlDotReturned, .hlDotSubmitted
+  background: #EA1212
 
-.historyActionContent
+.hlEventBody
+  flex: 1
+  min-width: 0
   font-size: 13px
-  color: #555
+  color: #6B7280
   line-height: 1.6
 
   p
     margin: 0
 
-  strong
-    color: #1A1A1A
+.hlRole
+  color: #111827
+  font-weight: 600
 
-.historyComment
+.hlDatePill
+  display: inline-block
+  font-size: 11px
+  font-weight: 500
+  color: #4B5563
+  background: #F3F4F6
+  border-radius: 999px
+  padding: 1px 8px
+  margin-left: 2px
+  font-variant-numeric: tabular-nums
+
+.hlComment
   margin-top: 10px
   padding: 10px 12px
-  background: #F9FAFB
-  border-radius: 6px
-  border-left: 3px solid #DDD
+  background: #fff
+  border: 1px solid #E5E7EB
+  border-radius: 8px
 
-.historyCommentLabel
-  font-size: 12px
+.hlCommentScope
+  font-size: 11px
   font-weight: 600
-  color: #374151
+  color: #6B7280
   margin-bottom: 4px
 
-  strong
-    font-weight: 700
-
-.historyComment p
+.hlComment p
   font-size: 12px
-  color: #666
+  color: #555
   font-style: italic
   margin: 0
+
+// Version segmented control
+.hlVersions
+  display: inline-flex
+  gap: 2px
+  padding: 3px
+  background: #F3F4F6
+  border-radius: 8px
+  margin-bottom: 20px
+
+.hlVersion
+  padding: 5px 12px
+  border: none
+  border-radius: 6px
+  background: transparent
+  font-size: 12px
+  font-weight: 500
+  color: #6B7280
+  cursor: pointer
+  transition: background 0.15s ease, color 0.15s ease
+
+  &:hover
+    color: #111827
+
+  &:focus-visible
+    outline: 2px solid #19282C
+    outline-offset: 1px
+
+.hlVersionActive
+  background: #EA1212
+  color: #fff
+  font-weight: 600
+
+  &:hover
+    color: #fff
+
+@media (max-width: 900px)
+  .hlBody
+    flex-direction: column
+
+  .hlRight
+    width: auto
+    border-left: none
+    border-top: 1px solid #EEF0F3
 
 

@@ -12,94 +12,56 @@ const ProgramHeadTOSCoursesTable = () => {
     for (let i = currentYear; i >= startYear; i--) {
         yearOptions.push(<option key={i} value={i}>{i}-{i + 1}</option>);
     }
-    const fallbackCourses = [
-        // Pending - Norton
-        { code: 'BSCS221L', name: 'Object-Oriented Programming',    instructor: 'NORTON, MONICA',   dateSubmitted: 'Oct 22, 2025', dateStatus: '', status: 'pending' },
-        { code: 'BSCS341L', name: 'Artificial Intelligence',       instructor: 'NORTON, MONICA',   dateSubmitted: 'Oct 18, 2025', dateStatus: '', status: 'pending' },
-        { code: 'BSCS342L', name: 'Machine Learning Fundamentals',  instructor: 'NORTON, MONICA',   dateSubmitted: 'Oct 25, 2025', dateStatus: '', status: 'pending' },
-        // Pending - others
-        { code: 'BSCS312L', name: 'Information Management',          instructor: 'DIAZ, ROSA',      dateSubmitted: 'Oct 21, 2025', dateStatus: '', status: 'pending' },
-        { code: 'BSCS331L', name: 'Computer Networks',              instructor: 'JEFFORDS, TERRY', dateSubmitted: 'Oct 22, 2025', dateStatus: '', status: 'pending' },
-        // Returned - Norton
-        { code: 'BSCS214L', name: 'Data Structures and Algorithms', instructor: 'NORTON, MONICA',   dateSubmitted: 'Oct 10, 2025', dateStatus: 'Oct 20, 2025', status: 'returned' },
-        { code: 'BSCS222L', name: 'Discrete Structures 2',          instructor: 'NORTON, MONICA',   dateSubmitted: 'Oct 16, 2025', dateStatus: 'Oct 23, 2025', status: 'returned' },
-        // Returned - others
-        { code: 'BSCS324L', name: 'Advanced Software Engineering', instructor: 'DIAZ, ROSA',      dateSubmitted: 'Oct 24, 2025', dateStatus: 'Oct 29, 2025', status: 'returned' },
-        // Approved - Norton
-        { code: 'BSCS223L', name: 'Web Development II',             instructor: 'NORTON, MONICA',   dateSubmitted: 'Oct 11, 2025', dateStatus: 'Oct 18, 2025', status: 'approved' },
-        { code: 'BSCS314L', name: 'Data Communications',             instructor: 'NORTON, MONICA',   dateSubmitted: 'Oct 12, 2025', dateStatus: 'Oct 19, 2025', status: 'approved' },
-        { code: 'BSCS323L', name: 'Systems Analysis and Design',    instructor: 'NORTON, MONICA',   dateSubmitted: 'Oct 13, 2025', dateStatus: 'Oct 20, 2025', status: 'approved' },
-        // Approved - others
-        { code: 'BSCS332L', name: 'Network Security',               instructor: 'DIAZ, ROSA',      dateSubmitted: 'Oct 16, 2025', dateStatus: 'Oct 23, 2025', status: 'approved' },
-        { code: 'BSCS413L', name: 'Capstone Project 2',             instructor: 'JEFFORDS, TERRY', dateSubmitted: 'Oct 17, 2025', dateStatus: 'Oct 25, 2025', status: 'approved' },
-        { code: 'BSCS315L', name: 'Operating Systems',             instructor: 'DIAZ, ROSA',      dateSubmitted: 'Oct 12, 2025', dateStatus: 'Oct 19, 2025', status: 'approved' },
-    ];
+    
     const location = useLocation();
     const [courses, setCourses] = useState([]);
     const [loading, setLoading] = useState(true);
 
+        const [errorMsg, setErrorMsg] = useState(null);
+
     useEffect(() => {
         const navUpdate = location.state?.tosStatusUpdate;
         fetchCourses()
-            .then(apiCourses => {
-                const apiMap = {};
-                if (apiCourses && apiCourses.length) {
-                    apiCourses.forEach(c => { apiMap[c.code] = c; });
-                }
-                const seen = new Set();
+            .then(data => {
+                let result = data;
                 
-                let result = fallbackCourses.map(fc => {
-                    const api = apiMap[fc.code];
-                    seen.add(fc.code);
-                    if (!api) return fc;
-                    return {
-                        ...fc,
-                        instructor: api.instructor || fc.instructor,
-                        midtermTos: api.midtermTos,
-                        finalsTos: api.finalsTos,
-                        midtermLock: api.midtermLock,
-                        finalsLock: api.finalsLock
-                    };
-                });
-                for (const code in apiMap) {
-
-                    if (!seen.has(code)) {
-                        const api = apiMap[code];
-                        result.push({
-                            code: api.code,
-                            name: api.name,
-                            instructor: api.instructor || '\u2014',
-                            dateSubmitted: api.dateSubmitted || '',
-                            dateStatus: api.dateStatus || '',
-                            status: api.status || 'draft',
-                            examPeriod: api.examPeriod || 'Midterm',
-                        });
-                    }
-                }
                 if (navUpdate) {
-                    result = result.map(c =>
-                        c.code === navUpdate.courseCode ? { ...c, status: navUpdate.newStatus } : c
-                    );
+                    result = result.map(c => {
+                        if (c.name === navUpdate.courseName) {
+                            const newTos = { ...c.midtermTos, status: navUpdate.newStatus };
+                            return { ...c, midtermTos: newTos };
+                        }
+                        return c;
+                    });
                 }
                 setCourses(result);
-                setLoading(false);
+                setErrorMsg(null);
             })
-            .catch(() => {
-                let result = fallbackCourses;
-                if (navUpdate) {
-                    result = result.map(c =>
-                        c.code === navUpdate.courseCode ? { ...c, status: navUpdate.newStatus } : c
-                    );
-                }
-                setCourses(result);
-                setLoading(false);
-            });
+            .catch((err) => {
+                console.error(err);
+                setErrorMsg('Failed to load courses. Please try again later.');
+            })
+            .finally(() => setLoading(false));
     }, []);
 
     const [selectedStatus, setSelectedStatus] = useState(location.state?.initialStatus || 'pending');
     const [examType, setExamType] = useState('Midterm');
     const [schoolYear, setSchoolYear] = useState(String(currentYear));
     const [semester, setSemester] = useState('1st Semester');
+
+        const displayedCourses = courses
+        .map(row => {
+            const tos = examType === 'Midterm' ? row.midtermTos : row.finalsTos;
+            const fmt = (ts) => ts ? new Date(ts).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }) : '';
+            return {
+                ...row,
+                status: tos ? tos.status : 'draft',
+                dateSubmitted: tos ? fmt(tos.submittedAt) : '',
+                dateStatus: tos ? fmt(tos.returnedAt || tos.approvedAt) : ''
+            };
+        })
+        .filter(row => row.status === selectedStatus);
+
     const statusHeader = selectedStatus === 'returned' ? 'DATE RETURNED' : selectedStatus === 'approved' ? 'DATE APPROVED' : 'DATE SUBMITTED';
 
     return (
@@ -118,7 +80,7 @@ const ProgramHeadTOSCoursesTable = () => {
                     </select>
                     <select className={styles['header-select']} value={examType} onChange={e => setExamType(e.target.value)}>
                         <option key="Midterm" value="Midterm">Midterm</option>
-                        <option key="Finals" value="Finals">Finals</option>
+                        <option key="Finals" value="Finals" disabled title="Not available yet">Finals</option>
                     </select>
                 </div>
                 <div className={styles.fill}></div>
@@ -133,9 +95,13 @@ const ProgramHeadTOSCoursesTable = () => {
                 </div>
             </div>
 
-            <div className={styles['table-container']}>
+                        <div className={styles['table-container']}>
                 {loading ? (
                     <div className={styles.loadingCell}>Loading courses...</div>
+                ) : errorMsg ? (
+                    <div className={styles.loadingCell} style={{color: 'red'}}>{errorMsg}</div>
+                ) : displayedCourses.length === 0 ? (
+                    <div className={styles.loadingCell} style={{color: '#6B7280'}}>No courses in this status.</div>
                 ) : (
                 <table>
                     <thead>
@@ -149,18 +115,7 @@ const ProgramHeadTOSCoursesTable = () => {
                     </thead>
 
                     <tbody>
-                    {courses
-                        .map(row => {
-                            const tos = examType === 'Midterm' ? row.midtermTos : row.finalsTos;
-                            const fmt = (ts) => ts ? new Date(ts).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }) : '';
-                            return {
-                                ...row,
-                                status: tos ? tos.status : 'draft',
-                                dateSubmitted: tos ? fmt(tos.submittedAt) : '',
-                                dateStatus: tos ? fmt(tos.returnedAt || tos.approvedAt) : ''
-                            };
-                        })
-                        .filter(row => row.status === selectedStatus)
+                    {displayedCourses
                         .map((row, index) => (
                             <tr key={index}>
                                 <td width={200}>{selectedStatus === 'pending' ? row.dateSubmitted : row.dateStatus}</td>
@@ -196,3 +151,5 @@ const ProgramHeadTOSCoursesTable = () => {
 };
 
 export default ProgramHeadTOSCoursesTable;
+
+

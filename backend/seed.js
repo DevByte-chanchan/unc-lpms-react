@@ -1,8 +1,13 @@
+import process from 'process';
 import { sequelize, Course, CourseOutcome, IloItem, TosStatus, AssessmentItem, IloAttachment } from './models/index.js';
+import { structureTopics } from './topics.js';
 import path from 'path';
 import fsMod from 'fs';
 import { seedNewCourses } from './seed_new_courses.js';
 import { seedReturnedComments } from './seed_comments.js';
+import { fileURLToPath } from 'url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const courses = [
     { code: 'BSCS313L', name: 'Human & Computer Interaction', instructor: 'NORTON, MONICA' },
@@ -21,13 +26,12 @@ const statuses = [
     { courseCode: 'BSCS313L', examPeriod: 'Midterm', status: 'draft' },
     { courseCode: 'BSCS212L', examPeriod: 'Midterm', status: 'draft' },
     { courseCode: 'BSCS111L', examPeriod: 'Midterm', status: 'draft' },
-    { courseCode: 'BSCS214L', examPeriod: 'Midterm', status: 'returned', returnCount: 1, returnDates: JSON.stringify([new Date('2026-06-18').toISOString()]), submittedAt: new Date('2026-06-09'), returnedAt: new Date('2026-06-18') },
-    { courseCode: 'BSCS315L', examPeriod: 'Midterm', status: 'approved', submittedAt: new Date('2026-06-09'), approvedAt: new Date('2026-06-16') },
-    { courseCode: 'BSCS315L', examPeriod: 'Finals', status: 'draft' },
+    { courseCode: 'BSCS214L', examPeriod: 'Midterm', status: 'returned', returnCount: 1, returnDates: JSON.stringify([new Date('2026-10-18').toISOString()]), submittedAt: new Date('2026-10-09'), returnedAt: new Date('2026-10-18') },
+    { courseCode: 'BSCS315L', examPeriod: 'Midterm', status: 'approved', submittedAt: new Date('2026-10-09'), approvedAt: new Date('2026-10-16') },
     { courseCode: 'BSCS321L', examPeriod: 'Midterm', status: 'draft' },
     { courseCode: 'BSCS322L', examPeriod: 'Midterm', status: 'draft' },
-    { courseCode: 'BSCS331L', examPeriod: 'Midterm', status: 'pending', submittedAt: new Date('2026-06-10') },
-    { courseCode: 'BSCS341L', examPeriod: 'Midterm', status: 'pending', returnCount: 1, returnDates: JSON.stringify([new Date('2026-06-20').toISOString()]), submittedAt: new Date('2026-06-11'), returnedAt: new Date('2026-06-20') },
+    { courseCode: 'BSCS331L', examPeriod: 'Midterm', status: 'pending', submittedAt: new Date('2026-10-10') },
+    { courseCode: 'BSCS341L', examPeriod: 'Midterm', status: 'pending', returnCount: 1, returnDates: JSON.stringify([new Date('2026-10-20').toISOString()]), submittedAt: new Date('2026-10-11'), returnedAt: new Date('2026-10-20') },
     { courseCode: 'BSCS351L', examPeriod: 'Midterm', status: 'draft' }
 ];const courseData = [
     {
@@ -242,10 +246,13 @@ const statuses = [
     }
 ];
 
-let attToggle = 0;
-export async function createItemsForCourse(courseCode, isFinals = false) {
+export async function createItemsForCourse(courseCode) {
+    const statusRow = await TosStatus.findOne({ where: { courseCode, examPeriod: 'Midterm' } });
+    const isDraft = !statusRow || statusRow.status === 'draft';
+    if (isDraft && courseCode !== 'BSCS313L') return;
+
     const outcomeRows = await CourseOutcome.findAll({
-        where: { courseCode },
+        where: { courseCode, co: ['CO1', 'CO2'] },
         include: [{ model: IloItem, as: 'ilos' }],
         order: [['co', 'ASC']]
     });
@@ -253,18 +260,19 @@ export async function createItemsForCourse(courseCode, isFinals = false) {
     const getCognitiveLevelsForIlo = (iloIdx) => {
         if (iloIdx === 0) return ['Remembering', 'Understanding'];
         if (iloIdx === 1) return ['Applying', 'Analyzing'];
-        if (iloIdx === 2) return ['Evaluating', 'Creating'];
-        return ['Remembering', 'Understanding'];
+        return ['Evaluating', 'Creating'];
     };
 
-    const uploadDir = path.resolve(process.cwd(), 'backend', 'uploads');
+    const uploadDir = path.join(__dirname, 'uploads');
     if (!fsMod.existsSync(uploadDir)) fsMod.mkdirSync(uploadDir, { recursive: true });
-    if (!fsMod.existsSync(path.join(uploadDir, 'objective.pdf'))) {
-        fsMod.writeFileSync(path.join(uploadDir, 'objective.pdf'), '%PDF-1.4\n1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj');
-    }
-    if (!fsMod.existsSync(path.join(uploadDir, 'nonobjective.pdf'))) {
-        fsMod.writeFileSync(path.join(uploadDir, 'nonobjective.pdf'), '%PDF-1.4\n1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj');
-    }
+
+    const createPdf = (filename, content) => {
+        const filepath = path.join(uploadDir, filename);
+        if (!fsMod.existsSync(filepath)) {
+            const pdf = `%PDF-1.4\n1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n3 0 obj\n<< /Type /Page /Parent 2 0 R /Resources << /Font << /F1 4 0 R >> >> /MediaBox [0 0 612 792] /Contents 5 0 R >>\nendobj\n4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n5 0 obj\n<< /Length 44 >>\nstream\nBT /F1 12 Tf 50 700 Td (${content}) Tj ET\nendstream\nendobj\nxref\n0 6\n0000000000 65535 f \n0000000009 00000 n \n0000000058 00000 n \n0000000115 00000 n \n0000000214 00000 n \n0000000293 00000 n \ntrailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n388\n%%EOF`;
+            fsMod.writeFileSync(filepath, pdf);
+        }
+    };
 
     for (const o of outcomeRows) {
         for (let iloIdx = 0; iloIdx < (o.ilos || []).length; iloIdx++) {
@@ -273,35 +281,39 @@ export async function createItemsForCourse(courseCode, isFinals = false) {
             if (target === 0) continue;
 
             const levels = getCognitiveLevelsForIlo(iloIdx);
-            const pts1 = Math.floor(target / 2);
-            const pts2 = Math.ceil(target / 2);
+            let pts1 = Math.floor(target / 2);
+            let pts2 = Math.ceil(target / 2);
+            if (pts1 === pts2 && pts1 > 1) {
+                pts1 -= 1;
+                pts2 += 1;
+            }
             const rowsToCreate = [];
-            if (pts1 > 0) rowsToCreate.push({ points: pts1, cognitiveLevel: levels[0] });
-            if (pts2 > 0) rowsToCreate.push({ points: pts2, cognitiveLevel: levels[1] });
+            if (pts1 > 0) rowsToCreate.push({ points: pts1, cognitiveLevel: levels[0], ref: 'Items 1-5' });
+            if (pts2 > 0) rowsToCreate.push({ points: pts2, cognitiveLevel: levels[1], ref: 'Part II' });
 
-            const type = attToggle % 2 === 0 ? 'objective' : 'non-objective';
-            attToggle++;
-            const filename = type === 'objective' ? 'objective.pdf' : 'nonobjective.pdf';
-            const displayFilename = type === 'objective' ? 'sample_objective.pdf' : 'sample_rubric.pdf';
-            let examPeriod = isFinals ? 'Finals' : 'Midterm';
+            const type = iloIdx % 2 === 0 ? 'objective' : 'non-objective';
+            const filename = `${courseCode}_${o.co}_ILO${iloIdx+1}_${type}.pdf`;
+            const displayFilename = type === 'objective' ? 'Midterm Exam - Part A.pdf' : 'Project Rubric.pdf';
+            
+            createPdf(filename, `Sample ${type} assessment for ${courseCode}`);
 
             const att = await IloAttachment.create({
                 courseCode: courseCode,
-                examPeriod,
+                examPeriod: 'Midterm',
                 iloId: ilo.id,
                 filename: displayFilename,
-                filepath: `/uploads/${filename}`,
+                filepath: filename,
                 type,
-                size: 1024
+                size: 10240
             });
 
             for (const row of rowsToCreate) {
                 await AssessmentItem.create({
                     courseCode: courseCode,
-                    examPeriod,
+                    examPeriod: 'Midterm',
                     iloId: ilo.id,
                     attachmentId: att.id,
-                    instruction: 'See attachment for details.',
+                    instruction: row.ref,
                     points: row.points,
                     span: row.points,
                     cognitiveLevel: row.cognitiveLevel
@@ -322,7 +334,8 @@ async function seed() {
                 co: outcome.co,
                 description: outcome.description,
                 totalItems: outcome.totalItems,
-                courseCode: data.courseCode
+                courseCode: data.courseCode,
+                topics: structureTopics(outcome.topics)
             });
             if (outcome.ilos && outcome.ilos.length) {
                 await IloItem.bulkCreate(
@@ -336,9 +349,6 @@ async function seed() {
         await createItemsForCourse(data.courseCode);
     }
     
-    // For BSCS315L which has Finals as draft
-    await createItemsForCourse('BSCS315L', true);
-
     await seedNewCourses();
     
     await seedReturnedComments();
@@ -347,3 +357,6 @@ async function seed() {
 export { seed, courses, statuses, courseData };
 
 seed().catch(err => { console.error(err); process.exit(1); }).then(() => { console.log('Seed completed successfully'); process.exit(0); });
+
+
+

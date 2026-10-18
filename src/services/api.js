@@ -1,3 +1,5 @@
+export const ACTIVE_PERIOD = 'Midterm';
+export const ENABLED_PERIODS = ['Midterm'];
 const BASE = '/api/courses';
 
 const cogLevelMap = {
@@ -22,33 +24,10 @@ const cogLevelMap = {
 export function cogToBackend(val) { return cogLevelMap.toBackend[val] || val; }
 export function cogToFrontend(val) { return cogLevelMap.toFrontend[val] || val; }
 
-const dateAssignedMap = {
-    BSCS111L: 'Jun 01', BSCS212L: 'Jun 02', BSCS313L: 'Jun 03',
-    BSCS214L: 'Jun 04', BSCS315L: 'Jun 05', BSCS321L: 'Jun 04',
-    BSCS322L: 'Jun 03', BSCS331L: 'Jun 05', BSCS341L: 'Jun 06',
-    BSCS351L: 'Jun 07', BSCS221L: 'Jun 03', BSCS222L: 'Jun 04',
-    BSCS312L: 'Jun 05', BSCS324L: 'Jun 06', BSCS342L: 'Jun 07',
-    BSCS223L: 'Jun 01', BSCS314L: 'Jun 02', BSCS323L: 'Jun 03',
-    BSCS332L: 'Jun 04', BSCS413L: 'Jun 05',
-};
-
 export async function fetchCourses() {
     const res = await fetch(BASE);
-    const data = await res.json();
-    return data.map(c => {
-        
-        const da = dateAssignedMap[c.code];
-        // We will adapt the frontend mapping in the component directly, since we return raw
-        return {
-            ...c,
-            code: c.code,
-            name: c.name,
-            instructor: c.instructor || '',
-            dateAssigned: da ? da + ', 2026' : '',
-            update: da ? da + ', 2026' : '',
-            exported: ''
-        };
-    });
+    if (!res.ok) throw new Error('API request failed');
+    return await res.json();
 }
 
 export async function fetchCourse(courseCode) {
@@ -91,18 +70,14 @@ export async function fetchItems(courseCode, period) {
         id: item.id,
         iloId: item.iloId,
         iloItem: item.iloItem || null,
+        attachmentId: item.attachmentId,
+        instruction: item.instruction || '',
         question: item.instruction || '',
         rubricItem: '',
         points: String(item.points || 0),
         span: item.span || 1,
         cognitiveLevel: cogToFrontend(item.cognitiveLevel) || '',
-        choices: (item.choices || []).map(c => ({
-            id: c.id,
-            label: c.label || '',
-            text: c.text || '',
-            isCorrect: c.isCorrect || false,
-            sortOrder: c.sortOrder || 0
-        })),
+        
         rubricRows: (() => {
             const raw = (item.rubrics || []).map(r => ({
                 id: r.id,
@@ -130,16 +105,12 @@ export async function fetchItems(courseCode, period) {
 export async function saveItems(courseCode, period, items) {
     const body = items.map(item => ({
         iloId: item.iloId || null,
+        attachmentId: item.attachmentId,
         instruction: item.instruction || item.question || '',
         points: parseInt(item.points) || 0,
         span: parseInt(item.span) || 1,
         cognitiveLevel: cogToBackend(item.cognitiveLevel) || null,
-        choices: (item.choices || []).map(c => ({
-            label: c.label || '',
-            text: c.text || '',
-            isCorrect: c.isCorrect || false,
-            sortOrder: c.sortOrder || 0
-        })),
+        
         rubrics: (item.rubricRows || []).map(r => ({
             criteria: r.name || '',
             description: r.description || '',
@@ -230,6 +201,9 @@ export const deleteAttachment = async (courseCode, period, id) => {
     if (!res.ok) throw new Error('Failed to delete attachment');
     return res.json();
 };
+
+
+
 
 
 

@@ -25,7 +25,7 @@ const AssessmentItem = sequelize.define('AssessmentItem', {
     },
     attachmentId: {
         type: DataTypes.INTEGER,
-        allowNull: true,
+        allowNull: false,
         field: 'attachment_id'
     },
     instruction: {

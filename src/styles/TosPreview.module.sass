@@ -235,8 +235,6 @@
   color: #6B7280
   font-weight: 500
 
-
-
 .tableWrapper
   flex: 1
   overflow: auto
@@ -553,4 +551,276 @@
 .rubricPts
   color: #374151
   text-align: center
+
+.coList
+  display: flex
+  flex-direction: column
+  gap: 20px
+
+.coBlock
+  display: flex
+  flex-direction: column
+  gap: 12px
+
+.coHeader
+  display: flex
+  align-items: center
+  justify-content: space-between
+  padding-bottom: 6px
+  border-bottom: 1px solid #E5E7EB
+
+.coHeaderLeft
+  display: flex
+  align-items: center
+  gap: 8px
+  min-width: 0
+
+.aoCollapseBtn
+  display: inline-flex
+  align-items: center
+  justify-content: center
+  width: 22px
+  height: 22px
+  padding: 0
+  border: none
+  border-radius: 4px
+  background: transparent
+  color: #6B7280
+  cursor: pointer
+  flex-shrink: 0
+  transition: background 0.15s ease, color 0.15s ease
+
+  &:hover
+    background: #E5E7EB
+    color: #111827
+
+  &:focus-visible
+    outline: 2px solid #2563EB
+    outline-offset: 1px
+
+.coTitle
+  font-size: 14px
+  font-weight: 600
+  color: #1A1A1A
+
+.coPts
+  font-size: 13px
+  font-weight: 600
+  color: #4B5563
+
+.iloList
+  display: flex
+  flex-direction: column
+  gap: 14px
+  margin-left: 12px
+
+.iloBlock
+  display: flex
+  flex-direction: column
+  gap: 10px
+
+.iloHeader
+  display: flex
+  align-items: center
+  justify-content: space-between
+  flex-wrap: wrap
+  gap: 8px
+
+.iloHeaderLeft
+  display: flex
+  align-items: center
+  gap: 10px
+  flex-wrap: wrap
+
+.iloTitle
+  font-size: 13px
+  font-weight: 600
+  color: #374151
+
+.bloomChips
+  display: flex
+  gap: 6px
+  flex-wrap: wrap
+
+.bloomChip
+  font-size: 11px
+  font-weight: 500
+  padding: 2px 8px
+  border-radius: 10px
+  background: #F1F3F5
+  color: #4B5563
+
+.noFiles
+  font-size: 13px
+  color: #9CA3AF
+  padding: 8px 12px
+  background: #F9FAFB
+  border-radius: 6px
+  border: 1px dashed #E5E7EB
+
+.fileCardsList
+  display: flex
+  flex-direction: column
+  gap: 12px
+
+.fileCard
+  border: 1px solid #E5E7EB
+  border-radius: 6px
+  background: #FFFFFF
+  overflow: hidden
+
+.fileCardHeader
+  display: flex
+  align-items: center
+  justify-content: space-between
+  padding: 8px 12px
+  background: #F9FAFB
+  border-bottom: 1px solid #E5E7EB
+  gap: 10px
+
+.fileCardLeft
+  display: flex
+  align-items: center
+  gap: 8px
+  min-width: 0
+
+.fileName
+  font-size: 13px
+  font-weight: 500
+  color: #1F2937
+  overflow: hidden
+  text-overflow: ellipsis
+  white-space: nowrap
+
+.fileTypeChip
+  font-size: 11px
+  font-weight: 500
+  padding: 1px 7px
+  border-radius: 10px
+  background: #E5E7EB
+  color: #4B5563
+  flex-shrink: 0
+
+.fileSize
+  font-size: 11px
+  color: #9CA3AF
+  flex-shrink: 0
+
+.filePointsChip
+  font-size: 12px
+  font-weight: 600
+  padding: 2px 8px
+  border-radius: 10px
+  background: #E5E7EB
+  color: #374151
+  flex-shrink: 0
+
+.fileCardRight
+  display: flex
+  align-items: center
+  gap: 6px
+  flex-shrink: 0
+
+.iconBtn
+  display: inline-flex
+  align-items: center
+  justify-content: center
+  width: 26px
+  height: 26px
+  border: none
+  border-radius: 6px
+  background: transparent
+  color: #4B5563
+  cursor: pointer
+  padding: 0
+  text-decoration: none
+  flex-shrink: 0
+  transition: background 0.15s ease, color 0.15s ease
+
+  &:hover
+    background: #E5E7EB
+    color: #111827
+
+.pointGrid
+  display: flex
+  flex-direction: column
+
+.pointGridHeader, .pointGridRow
+  display: grid
+  grid-template-columns: repeat(3, minmax(0, 1fr))
+  align-items: center
+  padding: 6px 12px
+  gap: 12px
+
+.pointGridHeader
+  background: #FFFFFF
+  font-size: 12px
+  font-weight: 600
+  color: #6B7280
+  border-bottom: 1px solid #E5E7EB
+
+.pointGridRow
+  font-size: 13px
+  color: #1F2937
+  border-bottom: 1px solid #F3F4F6
+  min-height: 30px
+
+  &:last-child
+    border-bottom: none
+
+.pointColRef
+  min-width: 0
+  overflow: hidden
+  text-overflow: ellipsis
+  white-space: nowrap
+
+.pointColPts
+  text-align: left
+  font-variant-numeric: tabular-nums
+
+.pointColBloom
+  color: #4B5563
+
+.emptyPointRows
+  padding: 8px 12px
+  font-size: 12px
+  color: #9CA3AF
+  font-style: italic
+
+@keyframes rowPulseHighlightAnim
+  0%
+    background-color: rgba(254, 240, 138, 0.75)
+  50%
+    background-color: rgba(254, 240, 138, 0.4)
+  100%
+    background-color: transparent
+
+.rowPulseHighlight
+  animation: rowPulseHighlightAnim 2s ease-out forwards
+  border-radius: 4px
+
+.aoRowSelectable
+  cursor: pointer
+  transition: background-color 0.15s ease
+
+  &:hover
+    background-color: #FEF2F2
+
+.aoRowActiveComment
+  background-color: #FEF2F2 !important
+  outline: 2px solid #EA1212
+  outline-offset: -1px
+  border-radius: 3px
+
+.aoFileSelectable
+  cursor: pointer
+  transition: border-color 0.15s ease, box-shadow 0.15s ease
+
+  &:hover
+    border-color: #EA1212
+    box-shadow: 0 0 0 1px #EA1212
+
+.aoFileActiveComment
+  border: 2px solid #EA1212 !important
+  box-shadow: 0 0 0 1px #EA1212
 
