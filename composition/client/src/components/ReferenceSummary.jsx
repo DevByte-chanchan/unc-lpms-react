@@ -6,6 +6,8 @@ import EmptyState from './EmptyState.jsx';
 import TableScrollRegion from './TableScrollRegion.jsx';
 import { sanitizeUrl } from '../utils/sanitize.js';
 import { describeCourseLoadError } from '../utils/courseLoadError.js';
+import { getCatalogSettings } from '../utils/referenceCatalog.js';
+import { reviewReferences, reviewSummary } from '../utils/referenceReview.js';
 
 const REFERENCE_VIEWS = [
     { value: 'Textbook', label: 'TEXTBOOKS', prefix: 'TB', identifier: 'ISBN', empty: 'No textbooks attached to this plan' },
@@ -101,7 +103,12 @@ const ReferenceSummary = ({ offeringID, revisionNum, status, selectedSection, st
     };
 
     const activeView = REFERENCE_VIEWS.find(view => view.value === viewType) || REFERENCE_VIEWS[0];
-    const activeReferences = getDataByType(activeView.value);
+    // Review by exception: titles with an issue come first and say why; a plan with none says so.
+    const settings = getCatalogSettings();
+    const planRows = reviewReferences(Array.isArray(referenceData?.references) ? referenceData.references : [], { settings });
+    const summary = reviewSummary(planRows);
+    const reviewed = reviewReferences(getDataByType(activeView.value), { settings });
+    const activeReferences = reviewed.map(row => row.ref);
     const isTextbook = activeView.value === 'Textbook';
 
     if (isReferencesLoading && !referenceData) {
@@ -129,6 +136,12 @@ const ReferenceSummary = ({ offeringID, revisionNum, status, selectedSection, st
                 </select>
             </div>
 
+            {referenceData && summary.tone !== 'none' && (
+                <div role="status" style={{ margin: '0 0 12px', padding: '8px 12px', borderRadius: 8, fontWeight: 600, ...(summary.tone === 'clean' ? { background: '#DCFCE7', color: '#166534' } : { background: '#FEF3C7', color: '#92400E' }) }}>
+                    {summary.text}
+                </div>
+            )}
+
             {referencesError && (
                 <div className={stylesB.refErrorBanner} role="alert">
                     <strong>Could not load the references.</strong>
@@ -139,17 +152,17 @@ const ReferenceSummary = ({ offeringID, revisionNum, status, selectedSection, st
             {(!referencesError || referenceData) && <TableScrollRegion label={`${activeView.label} table`} minWidth={760} className={stylesB.refScrollWrapper}>
                 <table className={stylesB.refTable}>
                     <thead>
-                        <tr><th>ID</th><th>TITLE</th><th>AUTHOR/S</th><th>{activeView.identifier}</th><th>YEAR</th></tr>
+                        <tr><th>ID</th><th>TITLE</th><th>AUTHOR/S</th><th>{activeView.identifier}</th><th>YEAR</th><th>ISSUES</th></tr>
                     </thead>
                     <tbody>
                         {activeReferences.length === 0 ? (
                             <EmptyState
-                                colSpan={5}
+                                colSpan={6}
                                 icon={<BookOpen size={22} strokeWidth={1.6} />}
                                 title={activeView.empty}
                                 hint={`References in ${activeView.label.toLowerCase()} will appear here after they are attached to a course outcome.`}
                             />
-                        ) : activeReferences.map((ref, index) => {
+                        ) : reviewed.map(({ ref, issues }, index) => {
                             const unresolvedCount = referenceCommentCounts[ref.id] || 0;
                             return (
                                 <tr key={ref.id || `${activeView.prefix}${index + 1}`}>
@@ -167,6 +180,7 @@ const ReferenceSummary = ({ offeringID, revisionNum, status, selectedSection, st
                                         ? (ref.isbn || '-')
                                         : (sanitizeUrl(ref.link) ? <a href={sanitizeUrl(ref.link)} target="_blank" rel="noreferrer">Open Resource</a> : '-')}</td>
                                     <td>{ref.year || '-'}</td>
+                                    <td>{issues.length === 0 ? <span style={{ color: '#6B7280' }}>None</span> : issues.map(issue => <div key={issue} style={{ color: '#92400E' }}>{issue}</div>)}</td>
                                 </tr>
                             );
                         })}

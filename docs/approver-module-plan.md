@@ -63,7 +63,7 @@ Status of 2.1 to 2.4: built and checked in the real UI. The page is **Not Yet Su
 
 | # | Task | What it does | Effort |
 |---|---|---|---|
-| 3.1 | **Review by exception** for the Director. | On submission the system checks the references: availability, age, missing ISBN, duplicates. The Director sees flagged items first. A clean plan shows "no issues found", and a person still clicks accept. | M |
+| 3.1 | **Review by exception** for the Director. | The References view of a plan lists flagged titles first, with the reason (lost, withdrawn or no copies, outside the recency window, no year, no ISBN or link, listed twice) and a line at the top: "N of M references need a look" or "No issues found". A person still clicks accept. Done on the screen, from the data the plan already loads (`utils/referenceReview.js`). | done |
 | 3.2 | **Waiting-on-you reminders** for approvers. | One in-app summary per approver on the day a plan reaches 3 days waiting (the Dean: 7), then every multiple. The Dean is also told of plans stalled with another reviewer for 7 days. Counts only, no course names. Rules in `config/reminders.js`; the job is `utils/reminderJob.js`. | done |
 | 3.3 | **Returned and not resubmitted.** | Reminds the instructor at 3 and 7 days and tells the Program Head. | S |
 | 3.4 | **When the Dean approves:** notify the instructor and the VPAA, mark the clean PDF and the review record ready, and file the plan in the term archive. | No manual follow-up. | S |

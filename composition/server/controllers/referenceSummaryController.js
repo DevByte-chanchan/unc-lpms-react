@@ -67,7 +67,10 @@ exports.getReferenceSummary = async (req, res, next) => {
                     isbn: ref.isbn || ref.isbn_no || '-',
                     link: ref.link || ref.url || '#',
                     year: cleanYear,
-                    type: ref.type || 'Textbook'
+                    type: ref.type || 'Textbook',
+                    // what the reviewer needs to see whether the title can still be used
+                    status: ref.status || 'available',
+                    copies: ref.copies == null ? null : Number(ref.copies)
                 };
 
                 // Exact type keys from config/referenceTypes.js. A reference of an unrecognised
