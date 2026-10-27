@@ -50,12 +50,14 @@ Today the Program Head has a poke button but no list of who is missing, and remi
 
 | # | Task | What it does | Effort |
 |---|---|---|---|
-| 2.1 | **Term deadlines.** New table: school year, semester, optional program, syllabus due date. The Program Head and Dean set it. | One place for the due date that every reminder reads. (Idea: Syllus deadlines.) | M |
-| 2.2 | **Missing submissions page** for the Program Head (the Dean sees it read-only). | Lists every assigned course not yet submitted: course, instructor, assigned date, days left or overdue, last reminder, last edit. Filters, CSV export, and "remind selected". (Idea: Syllus missing-syllabi report.) | M |
-| 2.3 | **Automatic reminders**, a daily job in the same style as the existing clean-up job, with no new dependency. | Sends an in-app notification to the instructor at 7, 3 and 1 days before the due date, on the due date, then every 3 days overdue. Sends e-mail too when SMTP is set up. A log table stops duplicates after a restart. It stops the moment the plan is submitted, and a manual poke counts as a reminder. | M |
-| 2.4 | **Program Head digest.** | A weekly in-app summary: "N plans not submitted, M overdue", plus a flag when many are overdue. | S |
+| 2.1 | **Term deadlines.** New table: school year, semester, optional program, syllabus due date. The Program Head and Dean set it. | One place for the due date that every reminder reads. (Idea: Syllus deadlines.) | done |
+| 2.2 | **Missing submissions page** for the Program Head (the Dean sees it read-only). | Lists every assigned course not yet submitted: course, instructor, assigned date, days left or overdue, last reminder, last edit. Filters, CSV export, and "remind selected". (Idea: Syllus missing-syllabi report.) | done |
+| 2.3 | **Automatic reminders**, a daily job in the same style as the existing clean-up job, with no new dependency. | Sends an in-app notification to the instructor at 7, 3 and 1 days before the due date, on the due date, then every 3 days overdue. Sends e-mail too when SMTP is set up. A log table stops duplicates after a restart. It stops the moment the plan is submitted, and a manual poke counts as a reminder. | done |
+| 2.4 | **Program Head digest.** | A weekly in-app summary: "N plans not submitted, M overdue", plus a flag when many are overdue. | done |
 | 2.5 | **Course assignment screen with a "roll over from last term" button.** | The server already supports assigning a course, lead instructor and term. The screen is missing. Roll-over creates next term's offerings for the whole program from last term's assignments, carrying over approved content; the Program Head unticks any that change. This replaces a bulk upload. | L |
 | 2.6 | **Consultant roll-over.** | Consultants carry over too. At term end the Program Head sees a list to confirm or deactivate. | S |
+
+Status of 2.1 to 2.4: built and checked in the real UI. The page is **Not Yet Submitted** in the Program Head's sidebar. A program with no due date gets no automatic reminders. The Dean can use the same API (deadline:manage) but has no page for it yet, because the Dean's sidebar has no items. Still to build in this phase: 2.5 and 2.6.
 
 ### Phase 3: less work for the approvers
 
