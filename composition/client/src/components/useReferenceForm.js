@@ -14,6 +14,10 @@ const fromRecord = (record) => ({
   year: record?.year ? String(record.year) : '',
   link: record?.link || '',
   publisher: record?.publisher || '',
+  copies: record?.copies != null ? String(record.copies) : '',
+  status: record?.status || 'available',
+  category: record?.category || '',
+  received: record?.received || '',
 });
 
 // The server's 400 body is { message, errors: { field: message } }; fetchJson puts it in the error text.

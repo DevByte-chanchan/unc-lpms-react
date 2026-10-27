@@ -10,7 +10,9 @@ import { getReferenceTypes, fieldsFor, referenceTypeLabel } from '../utils/refer
 //
 // props: value { type, title, authors, isbn, year, link, publisher }, errors { field: message },
 //        onChange(field, value), fieldStyle (passed to each input)
-const PLACEHOLDERS = { year: 'YYYY', link: 'https://...' };
+const PLACEHOLDERS = { year: 'YYYY', link: 'https://...', copies: 'Leave empty if not known', received: 'YYYY-MM-DD' };
+
+const optionLabel = (option) => option.charAt(0).toUpperCase() + option.slice(1);
 
 const ReferenceFields = ({ value, errors = {}, onChange, fieldStyle, gap = 0 }) => {
   const types = getReferenceTypes();
@@ -30,6 +32,17 @@ const ReferenceFields = ({ value, errors = {}, onChange, fieldStyle, gap = 0 }) 
       {spacer}
       {fieldsFor(value.type).map(field => (
         <React.Fragment key={field.key}>
+          {field.kind === 'choice' ? (
+            <DropdownA
+              options={field.options.map(optionLabel)}
+              label={field.label}
+              value={optionLabel(value[field.key] || field.default || field.options[0])}
+              initialValue={optionLabel(value[field.key] || field.default || field.options[0])}
+              onChange={(label) => onChange(field.key, label.toLowerCase())}
+              error={errors[field.key]}
+              style={fieldStyle}
+            />
+          ) : (
           <TextField
             label={field.label}
             value={value[field.key] || ''}
@@ -38,6 +51,7 @@ const ReferenceFields = ({ value, errors = {}, onChange, fieldStyle, gap = 0 }) 
             placeholder={PLACEHOLDERS[field.key]}
             style={fieldStyle}
           />
+          )}
           {['title', 'authors'].includes(field.key) && (
             <AutoCorrectButton
               value={value[field.key] || ''}

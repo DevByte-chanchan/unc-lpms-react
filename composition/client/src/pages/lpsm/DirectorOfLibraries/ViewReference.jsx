@@ -65,6 +65,26 @@ const ViewReference = () => {
         </div>
         <div className={styles.detailRow2col}>
           <div>
+            <span className={styles.detailLabel}>STATUS</span>
+            <span className={styles.detailValue}>{(ref.status || 'available').charAt(0).toUpperCase() + (ref.status || 'available').slice(1)}</span>
+          </div>
+          <div>
+            <span className={styles.detailLabel}>COPIES IN THE LIBRARY</span>
+            <span className={styles.detailValue}>{ref.copies != null ? ref.copies : 'Not recorded'}</span>
+          </div>
+        </div>
+        <div className={styles.detailRow2col}>
+          <div>
+            <span className={styles.detailLabel}>SUBJECT / CATEGORY</span>
+            <span className={styles.detailValue}>{ref.category || '—'}</span>
+          </div>
+          <div>
+            <span className={styles.detailLabel}>DATE RECEIVED</span>
+            <span className={styles.detailValue}>{ref.received || '—'}</span>
+          </div>
+        </div>
+        <div className={styles.detailRow2col}>
+          <div>
             <span className={styles.detailLabel}>ISBN / DOI</span>
             <span className={styles.detailValue}>{ref.isbn || '—'}</span>
           </div>

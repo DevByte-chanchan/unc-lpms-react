@@ -26,7 +26,7 @@ export const loadReference = async (id) => {
 // The API takes the form's field keys; anything not in `fields` is left out.
 export const toPayload = (values) => {
   const payload = { type: values.type }
-  for (const key of ['title', 'authors', 'isbn', 'year', 'link', 'publisher']) {
+  for (const key of ['title', 'authors', 'isbn', 'year', 'link', 'publisher', 'copies', 'status', 'category', 'received']) {
     if (values[key] !== undefined && values[key] !== null && String(values[key]).trim() !== '') payload[key] = String(values[key]).trim()
   }
   return payload

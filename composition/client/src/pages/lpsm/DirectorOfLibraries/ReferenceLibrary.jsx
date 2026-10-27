@@ -25,7 +25,7 @@ import styles from '../../../styles/ReferenceLibrary.module.scss';
 
 import ImportPreviewModal from '../../../components/ImportPreviewModal.jsx';
 import { loadLibrary, loadReferenceTypes, setArchived } from '../../../utils/referenceStore.js';
-import { typeLabel } from '../../../utils/referenceCatalog.js';
+import { typeLabel, unavailableReason } from '../../../utils/referenceCatalog.js';
 import { readLegacyReferences, clearLegacyReferences } from '../../../utils/legacyLocalReferences.js';
 import { csvRecordToRow, legacyReferenceToRow } from '../../../utils/referenceImportRows.js';
 import { fetchJson, apiErrorMessage } from '../../../utils/api.js';
@@ -553,7 +553,7 @@ const ReferenceLibrary = () => {
                     onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setViewRef(ref); } }}
                   >
                     <td className={styles.cellNowrap}>{ref.id}</td>
-                    <td><div className={styles.titleCell}><div className={styles.titleLine}><span className={styles.refTitle}>{ref.title}</span></div>{ref.filename && <span className={styles.refFilename}>{ref.filename}</span>}</div></td>
+                    <td><div className={styles.titleCell}><div className={styles.titleLine}><span className={styles.refTitle}>{ref.title}</span>{unavailableReason(ref) && <span className={styles.issueBadge} title="Cannot be attached to a new plan">{unavailableReason(ref) === 'no copies left' ? 'No copies' : unavailableReason(ref).charAt(0).toUpperCase() + unavailableReason(ref).slice(1)}</span>}</div>{ref.filename && <span className={styles.refFilename}>{ref.filename}</span>}</div></td>
                     <td><span className={styles.cellEllipsis}>{ref.authors || '—'}</span></td>
                     <td className={styles.cellNowrap}><span className={styles.typeBadge}>{typeLabel(ref.type)}</span></td>
                     <td className={`${styles.cellNowrap} ${styles.yearCell}`}><span className={styles.yearValue}>{ref.year || '—'}</span>{isReferenceDeprecated(ref, CURRENT_YEAR) && <span className={styles.deprecatedMarker} role="img" title="May need review — published five or more years ago" aria-label="May need review — published five or more years ago" />}</td>
@@ -597,7 +597,7 @@ const ReferenceLibrary = () => {
               <div className={styles.previewHeader}><div><h2 className={styles.previewTitle}>{previewReference.title}</h2><div className={styles.previewId}><span>{previewReference.id} · {previewReference.archived ? 'Archived' : 'Active'}</span></div></div><button className={`${styles.previewClose} app-icon-close`} type="button" onClick={handleClose} aria-label="Close reference preview"><X size={15} /></button></div>
               {isReferenceDeprecated(previewReference, CURRENT_YEAR) && <div className={styles.warningBanner}>This reference is five years old or older and may need review.</div>}
               <dl className={styles.previewMetadata}>
-                <dt>Author(s)</dt><dd>{previewReference.authors || 'Not provided'}</dd><dt>Type</dt><dd>{typeLabel(previewReference.type)}</dd><dt>ISBN</dt><dd>{previewReference.isbn || 'Not provided'}</dd><dt>Year</dt><dd>{previewReference.year || 'Not provided'}</dd><dt>Publisher</dt><dd>{previewReference.publisher || 'Not provided'}</dd><dt>Department</dt><dd>{(previewReference.departments || []).join(', ') || 'Not assigned'}</dd><dt>Used in</dt><dd className={styles.courseLinks}>{(previewReference.usedInCourses || []).length ? previewReference.usedInCourses.map(renderUsedInCourse) : 'No courses recorded'}</dd>
+                <dt>Author(s)</dt><dd>{previewReference.authors || 'Not provided'}</dd><dt>Type</dt><dd>{typeLabel(previewReference.type)}</dd><dt>ISBN</dt><dd>{previewReference.isbn || 'Not provided'}</dd><dt>Year</dt><dd>{previewReference.year || 'Not provided'}</dd><dt>Publisher</dt><dd>{previewReference.publisher || 'Not provided'}</dd><dt>Status</dt><dd>{(previewReference.status || 'available').charAt(0).toUpperCase() + (previewReference.status || 'available').slice(1)}</dd><dt>Copies</dt><dd>{previewReference.copies != null ? previewReference.copies : 'Not recorded'}</dd><dt>Category</dt><dd>{previewReference.category || 'Not provided'}</dd><dt>Date received</dt><dd>{previewReference.received || 'Not recorded'}</dd><dt>Department</dt><dd>{(previewReference.departments || []).join(', ') || 'Not assigned'}</dd><dt>Used in</dt><dd className={styles.courseLinks}>{(previewReference.usedInCourses || []).length ? previewReference.usedInCourses.map(renderUsedInCourse) : 'No courses recorded'}</dd>
                 {sanitizeUrl(previewReference.link) && <><dt>Link</dt><dd><a href={sanitizeUrl(previewReference.link)} target="_blank" rel="noopener noreferrer" className={styles.modalLink}>Open resource</a></dd></>}
               </dl>
               <div className={styles.previewActions}>

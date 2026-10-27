@@ -167,8 +167,19 @@ export const collapseChaptersToBooks = (refs = [], settings = DEFAULT_CATALOG_SE
 // "itong books ba na to available sa library? kung hindi, di pwede mag-lagay
 // references" [49:06]. A row that came out of the library database is available
 // by definition; anything a faculty member typed in has to be declared.
+// Why a title cannot be used, or '' when it can: it was lost or withdrawn, or the library has no copy left
+// (copies empty means the count is not known, which is not the same as none).
+export const unavailableReason = (ref) => {
+    const status = String(ref?.status || '').toLowerCase()
+    if (status === 'lost') return 'lost'
+    if (status === 'withdrawn') return 'withdrawn'
+    if (ref?.copies === 0) return 'no copies left'
+    return ''
+}
+
 export const availabilityOf = (ref) => {
     if (!ref) return 'unverified'
+    if (unavailableReason(ref)) return 'unavailable'
     if (ref.available_in_library === true || ref.availability === 'library') return 'library'
     if (ref.external_approved === true || ref.availability === 'approved-external') return 'approved-external'
     if (ref.reference_id != null && ref.reference_id !== '') return 'library'
@@ -176,6 +187,7 @@ export const availabilityOf = (ref) => {
 }
 
 export const isAttachable = (ref, settings = DEFAULT_CATALOG_SETTINGS) => {
+    if (unavailableReason(ref)) return false
     if (!settings.requireLibraryAvailability) return true
     return availabilityOf(ref) !== 'unverified'
 }
@@ -379,6 +391,7 @@ export const buildCatalogView = (references = [], {
         outdated: !isWithinRecency(r, window),
         availability: availabilityOf(r),
         attachable: isAttachable(r, settings),
+        unavailableReason: unavailableReason(r),
         score: relevanceScore(r, { courseTitle, topics })
     }))
 
@@ -394,6 +407,7 @@ export const buildCatalogView = (references = [], {
 }
 
 export default {
+    unavailableReason,
     DEFAULT_CATALOG_SETTINGS,
     getCatalogSettings,
     setCatalogSettings,

@@ -115,7 +115,7 @@ const ReferencePicker = ({
             <div
                 key={ref.reference_id != null ? `ref-${ref.reference_id}` : `ref-temp-${index}`}
                 className={`${styles.row} ${selected ? styles.selectedRow : ''} ${blocked ? styles.blockedRow : ''}`}
-                title={blocked ? 'Not confirmed available in the library — it cannot be attached.' : undefined}
+                title={blocked ? (ref.unavailableReason ? `This title is ${ref.unavailableReason} — it cannot be attached.` : 'Not confirmed available in the library — it cannot be attached.') : undefined}
             >
                 <div
                     style={{ display: 'flex', alignItems: 'flex-start', gap: 12, flex: 1 }}

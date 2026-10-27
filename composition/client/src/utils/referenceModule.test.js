@@ -107,7 +107,7 @@ test('saving goes to the server: create, and edit / archive for every row behind
     await setArchived({ id: 'srv-40' }, false)
     assert.deepEqual(calls.map(c => `${c.method} ${c.url}`), [
       'POST /api/references',
-      'PUT /api/references/28', 'PUT /api/references/38',
+      'PUT /api/references/28?with=38', 'PUT /api/references/38?with=28',
       'PUT /api/references/28/archive', 'PUT /api/references/38/archive',
       'PUT /api/references/40/unarchive'
     ])
@@ -117,7 +117,7 @@ test('saving goes to the server: create, and edit / archive for every row behind
 })
 
 test('a failed save stops and reports, it does not pretend to have saved', async () => {
-  await withFetch((call) => (call.url.endsWith('/38')
+  await withFetch((call) => (call.url.includes('/references/38')
     ? { ok: false, status: 400, text: async () => '{"message":"The reference is not valid.","errors":{"link":"Enter a valid http(s) link"}}' }
     : ok()), async (calls) => {
     await assert.rejects(updateReference({ id: 'srv-28', sourceIds: [28, 38, 39] }, { type: 'Online Resource', title: 'T', link: 'x' }), /HTTP 400/)
