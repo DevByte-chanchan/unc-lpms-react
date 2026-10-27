@@ -107,11 +107,12 @@ const uploadedRecently = (uploadDate, now) => {
   return age >= 0 && age <= ninetyDays
 }
 
-export const isReferenceDeprecated = (record, currentYear = new Date().getFullYear()) => {
+// years: the recency rule (a title published this many years ago or more may need review).
+export const isReferenceDeprecated = (record, currentYear = new Date().getFullYear(), years = 5) => {
   const publicationYear = Number.parseInt(record?.year, 10)
   const comparisonYear = Number.parseInt(currentYear, 10)
   if (!Number.isFinite(publicationYear) || !Number.isFinite(comparisonYear)) return false
-  return comparisonYear - publicationYear >= 5
+  return comparisonYear - publicationYear >= years
 }
 
 export const filterReferenceRecords = (records, criteria = {}) => {

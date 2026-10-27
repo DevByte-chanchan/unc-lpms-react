@@ -326,7 +326,7 @@ test('reference controls, year column, age badge, and scrollbar stay visually al
   const syllabusCss = sass.compile(path.join(src, 'styles/SyllabusSections.module.sass')).css
 
   assert.match(globalCss, /select:not\(\[multiple\]\)[\s\S]*appearance:\s*none\s*!important[\s\S]*background-position:\s*right 12px center\s*!important[\s\S]*padding-right:\s*36px\s*!important/)
-  assert.match(page, /isReferenceDeprecated\(ref, CURRENT_YEAR\)[\s\S]*styles\.deprecatedMarker/)
+  assert.match(page, /isReferenceDeprecated\(ref, CURRENT_YEAR, rules\.recencyYears\)[\s\S]*styles\.deprecatedMarker/)
   assert.doesNotMatch(page, /styles\.titleLine[\s\S]*styles\.deprecatedBadge/)
   assert.match(css, /\.tableWrapper table th:nth-child\(5\),\s*\.tableWrapper table td:nth-child\(5\)[\s\S]*text-align:\s*center/)
   assert.match(css, /\.tableWrapper table td:nth-child\(5\)\s*\{[^}]*justify-content:\s*center;/)

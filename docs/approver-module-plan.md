@@ -67,14 +67,14 @@ Status of 2.1 to 2.4: built and checked in the real UI. The page is **Not Yet Su
 | 3.2 | **Waiting-on-you reminders** for approvers. | One in-app summary per approver on the day a plan reaches 3 days waiting (the Dean: 7), then every multiple. The Dean is also told of plans stalled with another reviewer for 7 days. Counts only, no course names. Rules in `config/reminders.js`; the job is `utils/reminderJob.js`. | done |
 | 3.3 | **Returned and not resubmitted.** | Reminds the instructor at 3 and 7 days and tells the Program Head. | S |
 | 3.4 | **When the Dean approves:** the instructor, Program Head, Director of Libraries and now the VPAA are notified. (The clean PDF and review record are already available on an approved plan; a term archive waits for 4.5.) | No manual follow-up. | done |
-| 3.5 | **Nightly reference health job.** | Flags titles older than the recency limit, unavailable, or duplicated. Feeds the dashboard and the report below. | M |
+| 3.5 | **Reference health.** | Done on the Reference Library screen instead of a nightly job: the library is small and the check is instant, so it is always current. Flags unavailable, outdated (by the Director's rule), no year, no ISBN or link. Duplicates are already refused on entry (1.4). | done |
 
 ### Phase 4: the Director and the VPAA
 
 | # | Task | Notes | Effort |
 |---|---|---|---|
-| 4.1 | **Director dashboard:** plans waiting, references by type, outdated, unavailable, no ISBN, duplicates. | (Idea: Plexus dashboard.) | M |
-| 4.2 | **Reference health report** with export. | (Idea: Plexus inventory report.) | S |
+| 4.1 | **Director dashboard:** plans waiting, references by type, outdated, unavailable, no ISBN, duplicates. | The reference counts are done as a summary line on the Reference Library. A separate page for plans waiting is not built; the approvals list already shows them. | partly done |
+| 4.2 | **Reference health report** with export. | Done: "Export report" on the Reference Library (CSV of every flagged title and why). | done |
 | 4.3 | **Real catalog settings:** one server-side settings row for the recency years and the two rules, edited by the Director from a "Rules" button on the Reference Library. | Done. Before, they could not be edited at all and lived only in each browser. Everyone reads them after signing in; reviewers' flags (3.1) use them. The instructor's picker reads the same saved copy, but is not changed. | done |
 | 4.4 | **Title request queue** (Director side): approve and add, or reject with a reason. | After the Director interview. The instructor's "request" button belongs to the instructor module. | M |
 | 4.5 | **VPAA term archive:** approved plans by semester and program. | Only if the OVPAA interview says it is needed. (Idea: Syllus archive.) | M |

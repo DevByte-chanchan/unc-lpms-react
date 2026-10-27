@@ -1,6 +1,8 @@
 // The Program Head's "Not Yet Submitted" page: the wording, the term choices and the CSV export.
-// Pure (no imports), so it runs under plain node in the tests. The server decides who is missing and
+// Pure (it imports only the CSV cell helper), so it runs under plain node in the tests. The server decides who is missing and
 // how late they are (GET /api/missing-submissions); this only presents it.
+
+import { csvCell as cell } from './csvCell.js'
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
@@ -58,14 +60,6 @@ export const remindSummary = (response) => {
   if (count('no-instructor')) parts.push(`${count('no-instructor')} ha${count('no-instructor') === 1 ? 's' : 've'} no active instructor.`)
   if (count('not-waiting')) parts.push(`${count('not-waiting')} no longer waiting.`)
   return parts.join(' ')
-}
-
-// A cell that starts with = + - @ (or a tab or return) would be run as a formula by a spreadsheet; the
-// apostrophe makes it plain text. Quotes, commas and line breaks are escaped as CSV needs.
-const cell = (value) => {
-  let text = String(value ?? '')
-  if (/^[=+\-@\t\r]/.test(text)) text = `'${text}`
-  return /[",\n\r]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text
 }
 
 export const CSV_COLUMNS = [

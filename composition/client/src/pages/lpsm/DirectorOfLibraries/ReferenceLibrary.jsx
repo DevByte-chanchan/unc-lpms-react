@@ -26,7 +26,8 @@ import styles from '../../../styles/ReferenceLibrary.module.scss';
 
 import ImportPreviewModal from '../../../components/ImportPreviewModal.jsx';
 import { loadLibrary, loadReferenceTypes, setArchived } from '../../../utils/referenceStore.js';
-import { typeLabel, unavailableReason } from '../../../utils/referenceCatalog.js';
+import { typeLabel, unavailableReason, getCatalogSettings, refreshCatalogSettings } from '../../../utils/referenceCatalog.js';
+import { healthSummary, toHealthCsv } from '../../../utils/referenceHealth.js';
 import { readLegacyReferences, clearLegacyReferences } from '../../../utils/legacyLocalReferences.js';
 import { csvRecordToRow, legacyReferenceToRow } from '../../../utils/referenceImportRows.js';
 import { fetchJson, apiErrorMessage } from '../../../utils/api.js';
@@ -92,7 +93,23 @@ const ReferenceLibrary = () => {
   const [savedViews, setSavedViews] = useState(() => (
     typeof window === 'undefined' ? [] : loadReferenceSavedViews(window.localStorage)
   ));
+  // The Director's rule for how recent a title must be, kept in step with the server.
+  const [rules, setRules] = useState(getCatalogSettings);
+  useEffect(() => { let on = true; refreshCatalogSettings(fetchJson).then(latest => { if (on) setRules(latest); }); return () => { on = false; }; }, []);
   const activeRefs = useMemo(() => references.filter(r => !r.archived), [references]);
+  const health = useMemo(() => healthSummary(activeRefs, { years: rules.recencyYears, currentYear: CURRENT_YEAR }), [activeRefs, rules.recencyYears]);
+
+  const exportHealthReport = () => {
+    const blob = new Blob(['﻿', toHealthCsv(activeRefs, { years: rules.recencyYears, currentYear: CURRENT_YEAR })], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'reference-health-report.csv';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  };
   const archivedRefs = useMemo(() => references.filter(r => r.archived), [references]);
 
   /* ── The library is the server's: load the type definitions and the references ── */
@@ -401,7 +418,7 @@ const ReferenceLibrary = () => {
               <button className={styles.bulkBtn} type="button" onClick={() => fileInputRef.current?.click()}>
                 <Upload size={15} /> Bulk Upload
               </button>
-              <CatalogRulesPanel onSaved={(message) => showPageToast(message)} />
+              <CatalogRulesPanel onSaved={(message) => { setRules(getCatalogSettings()); showPageToast(message); }} />
               {legacyCount > 0 && (
                 <button className={styles.bulkBtn} type="button" onClick={startLegacyImport} title="These references were saved only in this browser by the old version">
                   <Upload size={15} /> Upload {legacyCount} saved on this browser
@@ -528,11 +545,20 @@ const ReferenceLibrary = () => {
             <button className={styles.mobileFilterButton} type="button" onClick={() => setFiltersOpen(true)}><Filter size={14} /> Filters {appliedFilterCount > 0 && `(${appliedFilterCount})`}</button>
             {hasDiscoveryCriteria && <button className={styles.resetButton} type="button" onClick={resetDiscovery}><RotateCcw size={12} /> Reset</button>}
           </div>
+          {health.total > 0 && (
+            <div role="status" style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center', margin: '0 0 8px', color: health.needAttention ? '#92400E' : '#166534' }}>
+              <strong>{health.needAttention === 0 ? 'Every active reference is in good order.' : `${health.needAttention} of ${health.total} active references need attention`}</strong>
+              {health.needAttention > 0 && (
+                <span>{[health.unavailable && `${health.unavailable} not available`, health.outdated && `${health.outdated} outdated`, health.noYear && `${health.noYear} no year`, health.noIsbn && `${health.noIsbn} no ISBN`, health.noLink && `${health.noLink} no link`].filter(Boolean).join(' · ')}</span>
+              )}
+              {health.needAttention > 0 && <button type="button" className="app-link-button" onClick={exportHealthReport}>Export report</button>}
+            </div>
+          )}
           <div className={styles.resultsHeader}>
             <div>
               <h2 className={styles.resultsTitle}>{sortedReferences.length} {sortedReferences.length === 1 ? 'reference' : 'references'}</h2>
               <span className={styles.resultsMeta}>{hasDiscoveryCriteria ? 'Matching the current search and filters' : 'All records in this view'}</span>
-              {sortedReferences.some(ref => isReferenceDeprecated(ref, CURRENT_YEAR)) && (
+              {sortedReferences.some(ref => isReferenceDeprecated(ref, CURRENT_YEAR, rules.recencyYears)) && (
                 <span className={styles.reviewLegend}><span className={styles.reviewLegendDot} aria-hidden="true" />May need review</span>
               )}
             </div>
@@ -558,7 +584,7 @@ const ReferenceLibrary = () => {
                     <td><div className={styles.titleCell}><div className={styles.titleLine}><span className={styles.refTitle}>{ref.title}</span>{unavailableReason(ref) && <span className={styles.issueBadge} title="Cannot be attached to a new plan">{unavailableReason(ref) === 'no copies left' ? 'No copies' : unavailableReason(ref).charAt(0).toUpperCase() + unavailableReason(ref).slice(1)}</span>}</div>{ref.filename && <span className={styles.refFilename}>{ref.filename}</span>}</div></td>
                     <td><span className={styles.cellEllipsis}>{ref.authors || '—'}</span></td>
                     <td className={styles.cellNowrap}><span className={styles.typeBadge}>{typeLabel(ref.type)}</span></td>
-                    <td className={`${styles.cellNowrap} ${styles.yearCell}`}><span className={styles.yearValue}>{ref.year || '—'}</span>{isReferenceDeprecated(ref, CURRENT_YEAR) && <span className={styles.deprecatedMarker} role="img" title="May need review — published five or more years ago" aria-label="May need review — published five or more years ago" />}</td>
+                    <td className={`${styles.cellNowrap} ${styles.yearCell}`}><span className={styles.yearValue}>{ref.year || '—'}</span>{isReferenceDeprecated(ref, CURRENT_YEAR, rules.recencyYears) && <span className={styles.deprecatedMarker} role="img" title={`May need review — published ${rules.recencyYears} or more years ago`} aria-label={`May need review — published ${rules.recencyYears} or more years ago`} />}</td>
                   </tr>
                 )) : (
                   <EmptyState colSpan={5} icon={<BookOpen size={22} strokeWidth={1.6} />} title={hasDiscoveryCriteria ? 'No references match this search' : tab === 'archived' ? 'Nothing has been archived' : loadState.loading ? 'Loading the library…' : 'No references in the library yet'} hint={hasDiscoveryCriteria ? 'Try a different search term, remove a filter, or reset the view.' : tab === 'archived' ? 'References you archive are kept here and can be restored later.' : 'Add a reference or use Bulk Upload to start the catalog.'} />
@@ -597,7 +623,7 @@ const ReferenceLibrary = () => {
           {previewReference ? (
             <>
               <div className={styles.previewHeader}><div><h2 className={styles.previewTitle}>{previewReference.title}</h2><div className={styles.previewId}><span>{previewReference.id} · {previewReference.archived ? 'Archived' : 'Active'}</span></div></div><button className={`${styles.previewClose} app-icon-close`} type="button" onClick={handleClose} aria-label="Close reference preview"><X size={15} /></button></div>
-              {isReferenceDeprecated(previewReference, CURRENT_YEAR) && <div className={styles.warningBanner}>This reference is five years old or older and may need review.</div>}
+              {isReferenceDeprecated(previewReference, CURRENT_YEAR, rules.recencyYears) && <div className={styles.warningBanner}>{`This reference is ${rules.recencyYears} years old or older and may need review.`}</div>}
               <dl className={styles.previewMetadata}>
                 <dt>Author(s)</dt><dd>{previewReference.authors || 'Not provided'}</dd><dt>Type</dt><dd>{typeLabel(previewReference.type)}</dd><dt>ISBN</dt><dd>{previewReference.isbn || 'Not provided'}</dd><dt>Year</dt><dd>{previewReference.year || 'Not provided'}</dd><dt>Publisher</dt><dd>{previewReference.publisher || 'Not provided'}</dd><dt>Status</dt><dd>{(previewReference.status || 'available').charAt(0).toUpperCase() + (previewReference.status || 'available').slice(1)}</dd><dt>Copies</dt><dd>{previewReference.copies != null ? previewReference.copies : 'Not recorded'}</dd><dt>Category</dt><dd>{previewReference.category || 'Not provided'}</dd><dt>Date received</dt><dd>{previewReference.received || 'Not recorded'}</dd><dt>Department</dt><dd>{(previewReference.departments || []).join(', ') || 'Not assigned'}</dd><dt>Used in</dt><dd className={styles.courseLinks}>{(previewReference.usedInCourses || []).length ? previewReference.usedInCourses.map(renderUsedInCourse) : 'No courses recorded'}</dd>
                 {sanitizeUrl(previewReference.link) && <><dt>Link</dt><dd><a href={sanitizeUrl(previewReference.link)} target="_blank" rel="noopener noreferrer" className={styles.modalLink}>Open resource</a></dd></>}
