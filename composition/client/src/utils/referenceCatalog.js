@@ -57,6 +57,23 @@ export const setCatalogSettings = (patch = {}) => {
     return next
 }
 
+// The rules the Director of Libraries sets for everyone live on the server (/api/catalog-settings). This
+// browser keeps the last copy, so the screens can read them without waiting; refreshCatalogSettings
+// brings it up to date. If the server cannot be reached the last copy (or the defaults) stays in use.
+export const settingsFromApi = (body = {}) => ({
+    recencyYears: Number(body.recencyYears) || DEFAULT_CATALOG_SETTINGS.recencyYears,
+    enforceRecency: body.enforceRecency !== false,
+    requireLibraryAvailability: body.requireLibraryAvailability !== false
+})
+
+export const refreshCatalogSettings = async (fetchJson) => {
+    try {
+        return setCatalogSettings(settingsFromApi(await fetchJson('/api/catalog-settings')))
+    } catch {
+        return getCatalogSettings()
+    }
+}
+
 // ---------------------------------------------------------------- recency ---
 
 // `/api/references` returns publication_year as a full timestamp
@@ -407,6 +424,8 @@ export const buildCatalogView = (references = [], {
 }
 
 export default {
+    settingsFromApi,
+    refreshCatalogSettings,
     unavailableReason,
     DEFAULT_CATALOG_SETTINGS,
     getCatalogSettings,

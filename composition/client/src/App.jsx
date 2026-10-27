@@ -9,6 +9,8 @@ import Login from "./pages/Login.jsx";
 import Privacy from "./pages/Privacy.jsx";
 
 import { getSession, onSessionChange, reconcileSession, routeGuardRedirect } from './utils/session';
+import { fetchJson } from './utils/api.js';
+import { refreshCatalogSettings } from './utils/referenceCatalog.js';
 // A plan's approval state lives in the server's workflow log. Drop the browser-side copy
 // older builds kept, so a stale entry can never be mistaken for the real status.
 try { localStorage.removeItem('lpsm_workflow_v1'); localStorage.removeItem('lpsm_workflow_seeded_v5') } catch { /* storage unavailable */ }
@@ -66,6 +68,10 @@ function SessionGate({ children }) {
             stopListening()
         }
     }, [])
+
+    // The Reference Library rules are the Director's, set once for everyone: fetch them once signed in.
+    const signedIn = Boolean(session)
+    useEffect(() => { if (signedIn) void refreshCatalogSettings(fetchJson) }, [signedIn])
 
     if (checkingSession) return <div className="routeLoading" role="status">Checking session…</div>
 

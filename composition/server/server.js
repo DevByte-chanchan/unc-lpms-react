@@ -108,6 +108,7 @@ app.use('/api', courseReferenceRoutes);
 app.use('/api/submit-learning-plan', submissionRoutes);
 app.use('/api/coaep', require('./routes/coaepRoutes'));
 app.use('/api/form-settings', require('./routes/formSettings'));
+app.use('/api/catalog-settings', require('./routes/catalogSettings'));
 app.use('/api/course-consultants', require('./routes/courseConsultants'));
 app.use('/api/offerings', require('./routes/offerings'));
 app.use('/api/audit-logs', require('./routes/auditLogs'));

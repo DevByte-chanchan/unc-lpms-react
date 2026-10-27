@@ -75,7 +75,7 @@ Status of 2.1 to 2.4: built and checked in the real UI. The page is **Not Yet Su
 |---|---|---|---|
 | 4.1 | **Director dashboard:** plans waiting, references by type, outdated, unavailable, no ISBN, duplicates. | (Idea: Plexus dashboard.) | M |
 | 4.2 | **Reference health report** with export. | (Idea: Plexus inventory report.) | S |
-| 4.3 | **Real catalog settings:** one server-side settings row for the recency years and the availability rule, edited by the Director. | Today these live only in each browser. | M |
+| 4.3 | **Real catalog settings:** one server-side settings row for the recency years and the two rules, edited by the Director from a "Rules" button on the Reference Library. | Done. Before, they could not be edited at all and lived only in each browser. Everyone reads them after signing in; reviewers' flags (3.1) use them. The instructor's picker reads the same saved copy, but is not changed. | done |
 | 4.4 | **Title request queue** (Director side): approve and add, or reject with a reason. | After the Director interview. The instructor's "request" button belongs to the instructor module. | M |
 | 4.5 | **VPAA term archive:** approved plans by semester and program. | Only if the OVPAA interview says it is needed. (Idea: Syllus archive.) | M |
 

@@ -18,6 +18,7 @@ import SkeletonA from '../../../layouts/SkeletonA.jsx';
 import HeaderA from '../../../components/HeaderA.jsx';
 import SideNavigation from '../../../components/SideNavigation.jsx';
 import AddReferenceModal from '../../../components/AddReferenceModal.jsx';
+import CatalogRulesPanel from '../../../components/CatalogRulesPanel.jsx';
 import EmptyState from '../../../components/EmptyState.jsx';
 import TableScrollRegion from '../../../components/TableScrollRegion.jsx';
 import SortableTh from '../../../components/SortableTh.jsx';
@@ -400,6 +401,7 @@ const ReferenceLibrary = () => {
               <button className={styles.bulkBtn} type="button" onClick={() => fileInputRef.current?.click()}>
                 <Upload size={15} /> Bulk Upload
               </button>
+              <CatalogRulesPanel onSaved={(message) => showPageToast(message)} />
               {legacyCount > 0 && (
                 <button className={styles.bulkBtn} type="button" onClick={startLegacyImport} title="These references were saved only in this browser by the old version">
                   <Upload size={15} /> Upload {legacyCount} saved on this browser

@@ -6,7 +6,7 @@ import EmptyState from './EmptyState.jsx';
 import TableScrollRegion from './TableScrollRegion.jsx';
 import { sanitizeUrl } from '../utils/sanitize.js';
 import { describeCourseLoadError } from '../utils/courseLoadError.js';
-import { getCatalogSettings } from '../utils/referenceCatalog.js';
+import { getCatalogSettings, refreshCatalogSettings } from '../utils/referenceCatalog.js';
 import { reviewReferences, reviewSummary } from '../utils/referenceReview.js';
 
 const REFERENCE_VIEWS = [
@@ -26,6 +26,9 @@ const ReferenceSummary = ({ offeringID, revisionNum, status, selectedSection, st
     // second one needs to name the reason.
     const [referencesError, setReferencesError] = useState('');
     const [referenceCommentCounts, setReferenceCommentCounts] = useState({});
+    // The Director's rules (how recent a title must be), kept in step with the server.
+    const [settings, setSettings] = useState(getCatalogSettings);
+    useEffect(() => { let on = true; refreshCatalogSettings(fetchJson).then(latest => { if (on) setSettings(latest); }); return () => { on = false; }; }, [fetchJson]);
 
     // 1. Fetch live syllabus materials configuration datasets
     useEffect(() => {
@@ -104,7 +107,6 @@ const ReferenceSummary = ({ offeringID, revisionNum, status, selectedSection, st
 
     const activeView = REFERENCE_VIEWS.find(view => view.value === viewType) || REFERENCE_VIEWS[0];
     // Review by exception: titles with an issue come first and say why; a plan with none says so.
-    const settings = getCatalogSettings();
     const planRows = reviewReferences(Array.isArray(referenceData?.references) ? referenceData.references : [], { settings });
     const summary = reviewSummary(planRows);
     const reviewed = reviewReferences(getDataByType(activeView.value), { settings });
