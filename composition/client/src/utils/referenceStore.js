@@ -40,7 +40,10 @@ const idsOf = (record) => (record.sourceIds?.length ? record.sourceIds : [server
 
 export const updateReference = async (record, values) => {
   for (const id of idsOf(record)) {
-    await fetchJson(`/api/references/${id}`, { method: 'PUT', headers: json, body: JSON.stringify(toPayload(values)) })
+    // `with` names the identical rows edited together, so they are not refused as duplicates of each other.
+    const together = idsOf(record).filter(other => other !== id)
+    const query = together.length ? `?with=${together.join(',')}` : ''
+    await fetchJson(`/api/references/${id}${query}`, { method: 'PUT', headers: json, body: JSON.stringify(toPayload(values)) })
   }
 }
 

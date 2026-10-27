@@ -27,6 +27,7 @@ test('findDuplicate matches on title and authors, or on ISBN, and skips the row 
     assert.equal(findDuplicate({ title: 'Clean Code', author: 'Martin, R.', isbn: null }, stored, 1), null, 'the row being edited is not its own duplicate');
     assert.equal(findDuplicate({ title: 'Different', author: 'Different', isbn: null }, stored), null);
     assert.equal(findDuplicate({ title: 'A', author: 'B', isbn: '' }, [{ reference_id: 3, title: 'C', author: 'D', isbn: '' }]), null, 'two empty ISBNs are not a match');
+    assert.equal(findDuplicate({ title: 'Clean Code', author: 'Martin, R.', isbn: null }, stored, [1, 2]), null, 'a list of rows can be left out');
 });
 
 const PREFIX = 'ZZDUP test book ';
@@ -107,6 +108,22 @@ test('an old duplicate pair stays editable in fields other than title, authors a
     made.push(one.reference_id, two.reference_id);
     const res = await send('PUT', `/refs/${one.reference_id}`, good('old', { title: `${PREFIX}old`, authors: 'Old, A.', isbn: isbn13(903), year: '2020', publisher: 'Fixed Press' }));
     assert.equal(res.status, 200);
+});
+
+test('identical rows the library edits together can be renamed together, and only with ?with', async () => {
+    const make = () => Reference.create({ type: 'Textbook', title: `${PREFIX}twins`, author: 'Twin, T.', isbn: isbn13(904), publication_year: new Date(Date.UTC(2021, 0, 1)), publisher: 'P', archived: false, created_by: 1 });
+    const [one, two] = [await make(), await make()];
+    made.push(one.reference_id, two.reference_id);
+    const renamed = good('twins-renamed', { authors: 'Twin, T.', isbn: isbn13(904), year: '2021', publisher: 'P' });
+    const first = await send('PUT', `/refs/${one.reference_id}?with=${two.reference_id}`, renamed);
+    const second = await send('PUT', `/refs/${two.reference_id}?with=${one.reference_id}`, renamed);
+    assert.deepEqual([first.status, second.status], [200, 200]);
+    assert.equal((await Reference.findByPk(two.reference_id)).title, renamed.title);
+    // Without ?with the second one would clash with the first (same new title and authors).
+    const three = await make();
+    made.push(three.reference_id);
+    const clash = await send('PUT', `/refs/${three.reference_id}`, renamed);
+    assert.equal(clash.status, 409);
 });
 
 test('a bulk import marks a row with an existing ISBN as a duplicate', async () => {

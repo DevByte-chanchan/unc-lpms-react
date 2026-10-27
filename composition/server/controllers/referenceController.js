@@ -97,7 +97,9 @@ async function updateReference(req, res) {
         if (changed.length === 0) return res.json(stored);
         // Only when the title, authors or ISBN changed: an old duplicate must stay editable in its other fields.
         if (changed.some(field => ['title', 'authors', 'isbn'].includes(field))) {
-            const duplicate = findDuplicate(result.values, await storedForDuplicates(), id);
+            // ?with=12,13: identical rows the Reference Library edits together with this one are not duplicates of it.
+            const together = String(req.query.with || '').split(',').map(asId).filter(Boolean);
+            const duplicate = findDuplicate(result.values, await storedForDuplicates(), [id, ...together]);
             if (duplicate) return res.status(409).json(duplicateReply(duplicate));
         }
         await stored.update(result.values);

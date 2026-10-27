@@ -76,11 +76,13 @@ const isbnKey = (isbn) => clean(isbn).replace(/[ -]/g, '').toUpperCase();
 
 // The stored reference that `values` (validated, with the References column names) would duplicate, or null.
 // Same title and authors, or the same ISBN when both have one. `stored` is a list of
-// { reference_id, title, author, isbn, archived }; `exceptId` leaves one row out (the one being edited).
-const findDuplicate = (values, stored, exceptId = null) => {
+// { reference_id, title, author, isbn, archived }; `except` is one id or a list that is left out: the row being
+// edited, and the identical rows the Reference Library edits together with it.
+const findDuplicate = (values, stored, except = null) => {
+    const skip = new Set([].concat(except ?? []).map(Number));
     const key = duplicateKey(values.title, values.author);
     const isbn = isbnKey(values.isbn);
-    return stored.find(row => Number(row.reference_id) !== Number(exceptId)
+    return stored.find(row => !skip.has(Number(row.reference_id))
         && (duplicateKey(row.title, row.author) === key || (isbn !== '' && isbnKey(row.isbn) === isbn))) || null;
 };
 
