@@ -130,7 +130,7 @@ const NotificationBell = () => {
                   style={{ display: 'block', width: '100%', textAlign: 'left', padding: '10px 14px', border: 'none', borderBottom: '1px solid #f3f4f6', borderRadius: 0, background: item.isRead ? '#fff' : '#eff6ff', cursor: 'pointer', color: '#111827' }}>
                   <div style={{ fontSize: 13, fontWeight: item.isRead ? 400 : 600, whiteSpace: 'normal' }}>
                     {!item.isRead && <span aria-label="unread" style={{ display: 'inline-block', width: 8, height: 8, borderRadius: 4, background: '#2563eb', marginRight: 6 }} />}
-                    {item.type === 'poke' ? '🔔 ' : (item.type === 'reminder' || item.type === 'missing_digest') ? '⏰ ' : ''}{item.message}
+                    {item.type === 'poke' ? '🔔 ' : (item.type === 'reminder' || item.type === 'missing_digest' || item.type === 'approval_waiting') ? '⏰ ' : ''}{item.message}
                   </div>
                   <div style={{ fontSize: 11, color: '#6b7280', marginTop: 2 }}>{timeAgo(item.createdAt)}</div>
                 </button>

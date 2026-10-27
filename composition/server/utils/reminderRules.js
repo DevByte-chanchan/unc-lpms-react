@@ -3,7 +3,7 @@
 // The rules of the automatic reminders. Pure: no database, no clock of their own. Every function that
 // needs "now" takes it as an argument, so the tests can use any date without waiting for it.
 
-const { BEFORE_DUE, OVERDUE_EVERY_DAYS, DIGEST_WEEKDAY, DEFAULT_TIMEZONE, SEND_FROM_HOUR } = require('../config/reminders');
+const { BEFORE_DUE, OVERDUE_EVERY_DAYS, DIGEST_WEEKDAY, APPROVER_WAIT_DAYS, DEAN_WAIT_DAYS, DEFAULT_TIMEZONE, SEND_FROM_HOUR } = require('../config/reminders');
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -52,4 +52,26 @@ const digestText = (notSubmitted, overdue) => {
     return overdue > 0 ? `${plans}, ${overdue} overdue` : plans;
 };
 
-module.exports = { timezoneOf, schoolClock, daysUntil, reminderKindFor, reminderText, isSendingHour, isDigestDay, digestText };
+// Days a plan may wait on a reviewer before they are reminded (and the gap between reminders).
+const waitLimitFor = (role) => (role === 'DEAN' ? DEAN_WAIT_DAYS : APPROVER_WAIT_DAYS);
+
+// Is today a day to remind someone whose plan has waited `days` days? On the limit and on every multiple of it.
+const isWaitingTrigger = (days, role) => {
+    const limit = waitLimitFor(role);
+    return Number.isInteger(days) && days >= limit && days % limit === 0;
+};
+
+// A database timestamp ('2026-06-01 00:00:00.000 +00:00', or a Date) as a Date.
+const asDate = (value) => (value instanceof Date ? value : new Date(String(value).replace(' ', 'T').replace(/ ([+-][0-9]{2}:[0-9]{2})$/, '$1')));
+
+// "3 learning plans are waiting for your review, 1 for 7 days or more"; the Dean also hears of plans
+// stalled with another reviewer.
+const waitingText = ({ waiting, long, stalled = 0 }) => {
+    const plural = (n) => `${n} learning plan${n === 1 ? '' : 's'}`;
+    const parts = [];
+    if (waiting > 0) parts.push(`${plural(waiting)} ${waiting === 1 ? 'is' : 'are'} waiting for your review${long > 0 ? `, ${long} for ${DEAN_WAIT_DAYS} days or more` : ''}`);
+    if (stalled > 0) parts.push(`${plural(stalled)} stalled with another reviewer for ${DEAN_WAIT_DAYS} days or more`);
+    return parts.join('; ');
+};
+
+module.exports = { waitLimitFor, isWaitingTrigger, asDate, waitingText, timezoneOf, schoolClock, daysUntil, reminderKindFor, reminderText, isSendingHour, isDigestDay, digestText };

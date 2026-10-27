@@ -54,17 +54,17 @@ Today the Program Head has a poke button but no list of who is missing, and remi
 | 2.2 | **Missing submissions page** for the Program Head (the Dean sees it read-only). | Lists every assigned course not yet submitted: course, instructor, assigned date, days left or overdue, last reminder, last edit. Filters, CSV export, and "remind selected". (Idea: Syllus missing-syllabi report.) | done |
 | 2.3 | **Automatic reminders**, a daily job in the same style as the existing clean-up job, with no new dependency. | Sends an in-app notification to the instructor at 7, 3 and 1 days before the due date, on the due date, then every 3 days overdue. Sends e-mail too when SMTP is set up. A log table stops duplicates after a restart. It stops the moment the plan is submitted, and a manual poke counts as a reminder. | done |
 | 2.4 | **Program Head digest.** | A weekly in-app summary: "N plans not submitted, M overdue", plus a flag when many are overdue. | done |
-| 2.5 | **Course assignment screen with a "roll over from last term" button.** | The server already supports assigning a course, lead instructor and term. The screen is missing. Roll-over creates next term's offerings for the whole program from last term's assignments, carrying over approved content; the Program Head unticks any that change. This replaces a bulk upload. | L |
-| 2.6 | **Consultant roll-over.** | Consultants carry over too. At term end the Program Head sees a list to confirm or deactivate. | S |
+| 2.5 | ~~Course assignment screen with a "roll over from last term" button.~~ **Not our module** (it is the Program Head's and instructor's side). Dropped on the owner's instruction; a prototype is kept outside the repo. | | dropped |
+| 2.6 | ~~Consultant roll-over.~~ Dropped with 2.5. | | dropped |
 
-Status of 2.1 to 2.4: built and checked in the real UI. The page is **Not Yet Submitted** in the Program Head's sidebar. A program with no due date gets no automatic reminders. The Dean can use the same API (deadline:manage) but has no page for it yet, because the Dean's sidebar has no items. Still to build in this phase: 2.5 and 2.6.
+Status of 2.1 to 2.4: built and checked in the real UI. The page is **Not Yet Submitted** in the Program Head's sidebar. A program with no due date gets no automatic reminders. The Dean can use the same API (deadline:manage) but has no page for it yet, because the Dean's sidebar has no items. 2.5 and 2.6 are dropped: they belong to the Program Head and instructor side, not to the approver module.
 
 ### Phase 3: less work for the approvers
 
 | # | Task | What it does | Effort |
 |---|---|---|---|
 | 3.1 | **Review by exception** for the Director. | On submission the system checks the references: availability, age, missing ISBN, duplicates. The Director sees flagged items first. A clean plan shows "no issues found", and a person still clicks accept. | M |
-| 3.2 | **Waiting-on-you reminders** for approvers. | A daily in-app digest when a plan has waited more than 3 days, and a notice to the Dean when it has waited more than 7. | M |
+| 3.2 | **Waiting-on-you reminders** for approvers. | One in-app summary per approver on the day a plan reaches 3 days waiting (the Dean: 7), then every multiple. The Dean is also told of plans stalled with another reviewer for 7 days. Counts only, no course names. Rules in `config/reminders.js`; the job is `utils/reminderJob.js`. | done |
 | 3.3 | **Returned and not resubmitted.** | Reminds the instructor at 3 and 7 days and tells the Program Head. | S |
 | 3.4 | **When the Dean approves:** notify the instructor and the VPAA, mark the clean PDF and the review record ready, and file the plan in the term archive. | No manual follow-up. | S |
 | 3.5 | **Nightly reference health job.** | Flags titles older than the recency limit, unavailable, or duplicated. Feeds the dashboard and the report below. | M |

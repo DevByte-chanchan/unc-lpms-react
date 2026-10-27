@@ -20,6 +20,12 @@ const DIGEST_WEEKDAY = 1;
 // The school's time zone. "Today" and "the due date" are days in this zone, not in the server's.
 const DEFAULT_TIMEZONE = 'Asia/Manila';
 
+// A plan waiting on an approver: the Director of Libraries and the Program Head are reminded after this
+// many days, then every this many days; the Dean after DEAN_WAIT_DAYS. The Dean is also told when a plan
+// has been stalled with another reviewer for DEAN_WAIT_DAYS or more.
+const APPROVER_WAIT_DAYS = 3;
+const DEAN_WAIT_DAYS = 7;
+
 // How often the job wakes up. It is idempotent, so running more often only means a reminder goes
 // out sooner after the day starts.
 const CHECK_EVERY_MS = 60 * 60 * 1000;
@@ -27,4 +33,4 @@ const CHECK_EVERY_MS = 60 * 60 * 1000;
 // Reminders go out at or after this hour of the school's day, not at midnight.
 const SEND_FROM_HOUR = 8;
 
-module.exports = { BEFORE_DUE, OVERDUE_EVERY_DAYS, QUIET_HOURS, DIGEST_WEEKDAY, DEFAULT_TIMEZONE, CHECK_EVERY_MS, SEND_FROM_HOUR };
+module.exports = { BEFORE_DUE, OVERDUE_EVERY_DAYS, QUIET_HOURS, DIGEST_WEEKDAY, APPROVER_WAIT_DAYS, DEAN_WAIT_DAYS, DEFAULT_TIMEZONE, CHECK_EVERY_MS, SEND_FROM_HOUR };
