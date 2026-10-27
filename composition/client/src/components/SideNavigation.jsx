@@ -1,6 +1,6 @@
 import styles from '../styles/SideNavigation.module.sass'
 import unclogo from '../assets/unclogo.png'
-import { BookOpen, CheckCircle, Clipboard, FileText, GitMerge, Layers, LogOut, Target, User, Users } from 'react-feather'
+import { BookOpen, Briefcase, CheckCircle, Clipboard, FileText, GitMerge, Layers, LogOut, Target, User, Users } from 'react-feather'
 import { useSearchParams, useNavigate, useLocation } from 'react-router-dom'
 import { useEffect, useRef, useState } from 'react'
 import { getSession, logout } from '../utils/session'
@@ -11,6 +11,7 @@ import { navigationIconName } from '../utils/navigationIcons.js'
 
 const NAVIGATION_ICON_COMPONENTS = {
     BookOpen,
+    Briefcase,
     CheckCircle,
     Clipboard,
     FileText,
@@ -47,6 +48,9 @@ const SideNavigation = ({ mode = 'instructor' }) => {
     }
     if (location.pathname.startsWith('/role/program-head/po-peo-alignment')) {
         selected = 'PO & PEO Alignment';
+    }
+    if (location.pathname.startsWith('/role/program-head/industry-consultant')) {
+        selected = 'Industry Consultants';
     }
 
     // LPSM Director of Libraries pages
@@ -197,6 +201,10 @@ const SideNavigation = ({ mode = 'instructor' }) => {
 
                         <div onClick={() => { navigate(routes.coaepView()) }} className={`${styles.list} ${selected === 'COAEP' ? styles.selected : ''}`} role="link" tabIndex={0} title="COAEP" aria-label="COAEP" onKeyDown={(event) => activateWithKeyboard(event, () => navigate(routes.coaepView()))}>
                             <NavigationIcon label="COAEP" /> <span className={styles.listText}>COAEP</span>
+                        </div>
+
+                        <div onClick={() => { navigate('/role/program-head/industry-consultant') }} className={`${styles.list} ${selected === 'Industry Consultants' ? styles.selected : ''}`} role="link" tabIndex={0} title="Industry Consultants" aria-label="Industry Consultants" onKeyDown={(event) => activateWithKeyboard(event, () => navigate('/role/program-head/industry-consultant'))}>
+                            <NavigationIcon label="Industry Consultants" /> <span className={styles.listText}>Industry Consultants</span>
                         </div>
                     </>
                 )}

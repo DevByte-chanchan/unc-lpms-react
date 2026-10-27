@@ -7,6 +7,7 @@ const DESTINATIONS = [
   'CO & PO Alignment',
   'PO & PEO Alignment',
   'COAEP',
+  'Industry Consultants',
   'Reference Library',
   'Approved Plans',
 ]
@@ -22,5 +23,6 @@ test('navigation icons describe alignment, plan, and approval destinations', () 
   assert.equal(navigationIconName('CO & PO Alignment'), 'GitMerge')
   assert.equal(navigationIconName('PO & PEO Alignment'), 'Target')
   assert.equal(navigationIconName('COAEP'), 'Clipboard')
+  assert.equal(navigationIconName('Industry Consultants'), 'Briefcase')
   assert.equal(navigationIconName('Approved Plans'), 'CheckCircle')
 })

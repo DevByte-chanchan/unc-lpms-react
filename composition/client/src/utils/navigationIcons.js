@@ -3,6 +3,7 @@ const NAVIGATION_ICON_NAMES = Object.freeze({
   'CO & PO Alignment': 'GitMerge',
   'PO & PEO Alignment': 'Target',
   COAEP: 'Clipboard',
+  'Industry Consultants': 'Briefcase',
   'Reference Library': 'BookOpen',
   'Approved Plans': 'CheckCircle',
   'User Management': 'Users',
