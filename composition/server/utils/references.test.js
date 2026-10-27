@@ -49,7 +49,7 @@ test('describeTypes gives the client everything it needs, required fields first'
     const described = describeTypes();
     assert.deepEqual(described.map(t => t.key), TYPE_KEYS);
     const subscription = described.find(t => t.key === 'Online Subscription');
-    assert.deepEqual(subscription.fields.map(f => [f.key, f.required]), [['title', true], ['publisher', true], ['link', true], ['authors', false], ['year', false]]);
+    assert.deepEqual(subscription.fields.map(f => [f.key, f.required]), [['title', true], ['publisher', true], ['link', true], ['authors', false], ['year', false], ['status', false], ['category', false]]);
     assert.equal(subscription.fields.find(f => f.key === 'publisher').label, 'Provider / platform');
     assert.equal(subscription.fields.find(f => f.key === 'title').kind, 'text');
 });

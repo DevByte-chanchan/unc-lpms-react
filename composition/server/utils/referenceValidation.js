@@ -10,7 +10,18 @@ const { FIELDS, REFERENCE_TYPES, isReferenceType, THIS_YEAR } = require('../conf
 
 const clean = (value) => String(value ?? '').replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim();
 
+const isRealDate = (value) => {
+    const date = new Date(`${value}T00:00:00Z`);
+    return /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(value) && !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value;
+};
+
 const checkers = {
+    count: (value, def) => (/^[0-9]+$/.test(value) && Number(value) <= def.max ? null : `${def.label} must be a whole number from 0 to ${def.max}.`),
+    choice: (value, def) => (def.options.includes(value) ? null : `${def.label} must be one of: ${def.options.join(', ')}.`),
+    date: (value, def) => {
+        if (!isRealDate(value)) return `${def.label} must be a date written YYYY-MM-DD.`;
+        return value <= new Date().toISOString().slice(0, 10) ? null : `${def.label} cannot be in the future.`;
+    },
     text: (value, def) => (value.length > def.max ? `${def.label} must be at most ${def.max} characters.` : null),
     isbn: (value) => {
         if (!/^[0-9Xx][0-9Xx -]*$/.test(value)) return 'ISBN may contain only digits, hyphens, spaces and X.';
@@ -37,6 +48,7 @@ const pick = (input, key) => {
     if (input[key] !== undefined) return input[key];
     if (key === 'authors') return input.author;
     if (key === 'year') return input.publication_year;
+    if (key === 'received') return input.date_received;
     return undefined;
 };
 
@@ -53,6 +65,7 @@ const validateReference = (raw) => {
     for (const [key, def] of Object.entries(FIELDS)) {
         const allowed = config.required.includes(key) || config.optional.includes(key);
         let value = allowed ? clean(pick(input, key)) : '';
+        if (def.kind === 'choice') value = value.toLowerCase();
         if (key === 'year' && /^\d{4}-/.test(value)) value = value.slice(0, 4); // a stored timestamp
         const label = (config.labels && config.labels[key]) || def.label;
         if (allowed && !value) {
@@ -61,9 +74,8 @@ const validateReference = (raw) => {
             const problem = checkers[def.kind](value, { ...def, label });
             if (problem) errors[key] = problem;
         }
-        values[def.column] = value
-            ? (key === 'year' ? new Date(Date.UTC(Number(value), 0, 1)) : value)
-            : null;
+        const converted = def.kind === 'year' ? new Date(Date.UTC(Number(value), 0, 1)) : def.kind === 'count' ? Number(value) : value;
+        values[def.column] = value ? converted : (def.default ?? null);
     }
     return Object.keys(errors).length === 0 ? { ok: true, errors: {}, values } : { ok: false, errors, values: null };
 };

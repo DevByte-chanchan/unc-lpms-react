@@ -20,8 +20,16 @@ const FIELDS = Object.freeze({
     isbn: { label: 'ISBN', kind: 'isbn', column: 'isbn', max: 100 },
     year: { label: 'Publication Year', kind: 'year', column: 'publication_year' },
     link: { label: 'Link', kind: 'url', column: 'link', max: 500 },
-    publisher: { label: 'Publisher', kind: 'text', column: 'publisher', max: 200 }
+    publisher: { label: 'Publisher', kind: 'text', column: 'publisher', max: 200 },
+    // What the library holds (the Director of Libraries keeps these up to date).
+    copies: { label: 'Copies in the library', kind: 'count', column: 'copies', max: 9999 },
+    status: { label: 'Status', kind: 'choice', column: 'status', options: ['available', 'lost', 'withdrawn'], default: 'available' },
+    category: { label: 'Subject / category', kind: 'text', column: 'category', max: 50 },
+    received: { label: 'Date received', kind: 'date', column: 'date_received' }
 });
+
+// A reference that is lost or withdrawn, or has no copies left, cannot be attached to a new plan.
+const UNAVAILABLE_STATUSES = Object.freeze(['lost', 'withdrawn']);
 
 // Per type: `group` is the heading its references appear under in a plan's reference summary and
 // in the exported syllabus. Then the fields it must have, the ones it may have, and optional label overrides.
@@ -31,25 +39,25 @@ const REFERENCE_TYPES = Object.freeze({
         label: 'Textbook',
         group: 'Textbook',
         required: ['title', 'authors', 'isbn', 'year'],
-        optional: ['publisher', 'link']
+        optional: ['publisher', 'link', 'copies', 'status', 'category', 'received']
     },
     OER: {
         label: 'Open Educational Resource (OER)',
         group: 'Open Educational Resources',
         required: ['title', 'authors', 'year', 'link'],
-        optional: ['publisher']
+        optional: ['publisher', 'status', 'category']
     },
     'Online Resource': {
         label: 'Online Resource',
         group: 'Online Resources',
         required: ['title', 'authors', 'link'],
-        optional: ['year', 'publisher']
+        optional: ['year', 'publisher', 'status', 'category']
     },
     'Online Subscription': {
         label: 'Online Subscription (e.g., O’Reilly)',
         group: 'Online Subscriptions',
         required: ['title', 'publisher', 'link'],
-        optional: ['authors', 'year'],
+        optional: ['authors', 'year', 'status', 'category'],
         labels: { publisher: 'Provider / platform', link: 'Subscription link' }
     }
 });
@@ -64,7 +72,8 @@ const describeTypes = () => TYPE_KEYS.map(key => {
         key: fieldKey,
         label: (type.labels && type.labels[fieldKey]) || FIELDS[fieldKey].label,
         kind: FIELDS[fieldKey].kind,
-        required
+        required,
+        ...(FIELDS[fieldKey].options ? { options: FIELDS[fieldKey].options, default: FIELDS[fieldKey].default } : {})
     });
     return { key, label: type.label, group: type.group, fields: [...type.required.map(f => field(f, true)), ...type.optional.map(f => field(f, false))] };
 });
@@ -84,4 +93,4 @@ const LEGACY_TYPES = Object.freeze({
 });
 const legacyTypeKey = (value) => LEGACY_TYPES[String(value ?? '').trim().toLowerCase()] || null;
 
-module.exports = { FIELDS, REFERENCE_TYPES, TYPE_KEYS, isReferenceType, describeTypes, legacyTypeKey, LEGACY_TYPES, THIS_YEAR };
+module.exports = { FIELDS, UNAVAILABLE_STATUSES, REFERENCE_TYPES, TYPE_KEYS, isReferenceType, describeTypes, legacyTypeKey, LEGACY_TYPES, THIS_YEAR };
