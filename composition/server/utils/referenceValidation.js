@@ -71,6 +71,19 @@ const validateReference = (raw) => {
 // Identity for duplicate detection: same title and same authors, ignoring case and spacing.
 const duplicateKey = (title, authors) => `${clean(title).toLowerCase()}|${clean(authors).toLowerCase()}`;
 
+// An ISBN compared the way people write it: no spaces or hyphens, upper case. Empty when there is none.
+const isbnKey = (isbn) => clean(isbn).replace(/[ -]/g, '').toUpperCase();
+
+// The stored reference that `values` (validated, with the References column names) would duplicate, or null.
+// Same title and authors, or the same ISBN when both have one. `stored` is a list of
+// { reference_id, title, author, isbn, archived }; `exceptId` leaves one row out (the one being edited).
+const findDuplicate = (values, stored, exceptId = null) => {
+    const key = duplicateKey(values.title, values.author);
+    const isbn = isbnKey(values.isbn);
+    return stored.find(row => Number(row.reference_id) !== Number(exceptId)
+        && (duplicateKey(row.title, row.author) === key || (isbn !== '' && isbnKey(row.isbn) === isbn))) || null;
+};
+
 // Config field keys whose values differ between a stored row and validated new values.
 const changedFields = (stored, values) => {
     const changed = [];
@@ -87,4 +100,4 @@ const changedFields = (stored, values) => {
     return changed;
 };
 
-module.exports = { validateReference, duplicateKey, changedFields, clean };
+module.exports = { validateReference, duplicateKey, isbnKey, findDuplicate, changedFields, clean };

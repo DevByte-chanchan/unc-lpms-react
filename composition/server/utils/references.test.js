@@ -25,7 +25,10 @@ const GOOD = {
     'Online Resource': { type: 'Online Resource', title: 'MDN Web Docs', authors: 'Mozilla', link: 'https://developer.mozilla.org/' },
     'Online Subscription': { type: 'Online Subscription', title: 'O’Reilly Learning', publisher: 'O’Reilly Media', link: 'https://learning.oreilly.com/' }
 };
-const withTitle = (type, extra = {}) => ({ ...GOOD[type], title: uniq(GOOD[type].title), ...extra });
+// A reference cannot repeat another one's title and authors or its ISBN, and these tests leave their rows
+// in the test database, so every reference they create gets a title and (when the type has one) an ISBN of its own.
+const uniqueIsbn = () => `978${String(Date.now()).slice(-8)}${String(counter).padStart(2, '0')}`;
+const withTitle = (type, extra = {}) => ({ ...GOOD[type], title: uniq(GOOD[type].title), ...(GOOD[type].isbn ? { isbn: uniqueIsbn() } : {}), ...extra });
 
 // ----------------------------------------------------------------------- config
 
@@ -190,7 +193,7 @@ test('create: every type, validation errors, unknown type, audited with field na
 
 test('edit: validated, changes only what changed, audited with the changed field names', async () => {
     const ref = await create('Textbook');
-    const body = { ...GOOD.Textbook, title: ref.title, authors: 'Silberschatz' };
+    const body = { ...GOOD.Textbook, title: ref.title, authors: 'Silberschatz', isbn: ref.isbn };
 
     const same = await call(DIRECTOR, 'PUT', `/${ref.reference_id}`, body);
     assert.equal(same.status, 200);

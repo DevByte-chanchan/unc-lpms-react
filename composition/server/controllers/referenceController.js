@@ -6,12 +6,22 @@
 
 const { Reference, sequelize, Sequelize } = require('../models');
 const { describeTypes, FIELDS } = require('../config/referenceTypes');
-const { validateReference, duplicateKey, changedFields } = require('../utils/referenceValidation');
+const { validateReference, duplicateKey, isbnKey, findDuplicate, changedFields } = require('../utils/referenceValidation');
 const { record: audit } = require('../utils/audit');
 
 const MAX_IMPORT_ROWS = 1000;
 
 const asId = (value) => (/^\d+$/.test(String(value ?? '')) ? Number(value) : null);
+
+// The reply for a reference that already exists, naming it so the Director can open (or restore) that one.
+const duplicateReply = (existing) => ({
+    message: existing.archived
+        ? 'This reference already exists in the library and is archived. Restore it instead of adding it again.'
+        : 'This reference already exists in the library (same title and authors, or the same ISBN).',
+    code: 'DUPLICATE_REFERENCE',
+    existing: { reference_id: existing.reference_id, title: existing.title, archived: Boolean(existing.archived) }
+});
+const storedForDuplicates = () => Reference.findAll({ attributes: ['reference_id', 'title', 'author', 'isbn', 'archived'], raw: true });
 
 const auditReference = (req, action, referenceId, details = {}) => audit({
     actor: req.user, action, entityType: 'references', entityId: referenceId,
@@ -59,6 +69,9 @@ async function createReference(req, res) {
         const result = validateReference(req.body);
         if (!result.ok) return res.status(400).json({ message: 'The reference is not valid.', errors: result.errors });
 
+        const duplicate = findDuplicate(result.values, await storedForDuplicates());
+        if (duplicate) return res.status(409).json(duplicateReply(duplicate));
+
         const created = await Reference.create({ ...result.values, archived: false, created_by: req.user.id });
         // Field NAMES only, never their values.
         const fields = Object.entries(FIELDS).filter(([, def]) => result.values[def.column] != null).map(([key]) => key);
@@ -82,6 +95,11 @@ async function updateReference(req, res) {
 
         const changed = changedFields(stored.get({ plain: true }), result.values);
         if (changed.length === 0) return res.json(stored);
+        // Only when the title, authors or ISBN changed: an old duplicate must stay editable in its other fields.
+        if (changed.some(field => ['title', 'authors', 'isbn'].includes(field))) {
+            const duplicate = findDuplicate(result.values, await storedForDuplicates(), id);
+            if (duplicate) return res.status(409).json(duplicateReply(duplicate));
+        }
         await stored.update(result.values);
         await auditReference(req, 'REFERENCE_UPDATED', id, { changed });
         return res.json(stored);
@@ -111,7 +129,7 @@ const setArchived = (archived) => async (req, res) => {
  * POST /api/references/import  { rows: [{ type, title, authors, isbn, year, link, publisher }], dryRun }
  * Validates every row against the type config. dryRun only reports; otherwise the valid,
  * non-duplicate rows are created. A row is a duplicate when a reference with the same title and
- * authors already exists (or appears earlier in the same batch). Row numbers are 1-based.
+ * authors, or the same ISBN, already exists (or appears earlier in the same batch). Row numbers are 1-based.
  * Used for CSV import and for the one-time upload of references saved in the old local store.
  */
 async function importReferences(req, res) {
@@ -121,15 +139,19 @@ async function importReferences(req, res) {
         if (!Array.isArray(rows) || rows.length === 0) return res.status(400).json({ message: 'rows must be a non-empty array.' });
         if (rows.length > MAX_IMPORT_ROWS) return res.status(400).json({ message: `At most ${MAX_IMPORT_ROWS} rows per import.` });
 
-        const seen = new Set((await Reference.findAll({ attributes: ['title', 'author'], raw: true })).map(r => duplicateKey(r.title, r.author)));
+        const known = await Reference.findAll({ attributes: ['title', 'author', 'isbn'], raw: true });
+        const seen = new Set(known.map(r => duplicateKey(r.title, r.author)));
+        const seenIsbn = new Set(known.map(r => isbnKey(r.isbn)).filter(Boolean));
         const report = [];
         const toCreate = [];
         rows.forEach((row, index) => {
             const result = validateReference(row);
             if (!result.ok) return report.push({ row: index + 1, status: 'invalid', errors: result.errors });
             const key = duplicateKey(result.values.title, result.values.author);
-            if (seen.has(key)) return report.push({ row: index + 1, status: 'duplicate' });
+            const isbn = isbnKey(result.values.isbn);
+            if (seen.has(key) || (isbn && seenIsbn.has(isbn))) return report.push({ row: index + 1, status: 'duplicate' });
             seen.add(key);
+            if (isbn) seenIsbn.add(isbn);
             toCreate.push({ index, values: result.values });
             return report.push({ row: index + 1, status: 'ok' });
         });
