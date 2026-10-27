@@ -284,32 +284,33 @@ module.exports = {
         // ============================================================================
         // 12. COMMENTS & COMMENT TARGETS (THE NEW WORKFLOW MECHANIC)
         // ============================================================================
-        // Insert 6 realistic industry-academic critiques linked to Topics and TLAs.
+        // Insert 6 realistic critiques. The Director of Libraries comments on the references (their part of the
+        // plan, config/sectionAccess.js); the Industry Consultant comments on topics and activities.
 
         const rawCommentsData = [
-            // Comment 1: Target a Topic in CO1, ILO 1 (Probability)
+            // Comment 1: Director of Libraries, a reference of CO1, ILO 1 (Probability)
             {
                 co_assign_id: assignId, commenter_role: 'LIBRARY_DIRECTOR', resolved_status: false,
-                ilo_id: ilos[0].ilo_id, comment_for: 'topics', target_id: topics[0].topic_id,
-                message: 'The probability topic should include applied examples in computing such as hashing collision probabilities and randomized algorithms; add a short module on practical applications.'
+                ilo_id: ilos[0].ilo_id, comment_for: 'references', target_id: references[0].reference_id,
+                message: 'This reference for probability is more than five years old; please cite a current edition, or an open resource the library can make available to the class.'
             },
-            // Comment 2: Target a TLA in CO1, ILO 2 (Distributions)
+            // Comment 2: Director of Libraries, a reference of CO1, ILO 2 (Distributions)
             {
                 co_assign_id: assignId, commenter_role: 'LIBRARY_DIRECTOR', resolved_status: false,
-                ilo_id: ilos[1].ilo_id, comment_for: 'tlas', target_id: tlas[2].tla_id,
-                message: 'For distribution labs, require students to simulate sampling variability in code (R or Python) and submit reproducible scripts rather than static outputs.'
+                ilo_id: ilos[1].ilo_id, comment_for: 'references', target_id: references[2].reference_id,
+                message: 'The library holds no copy of this title. Please replace it with a book we can lend, or tell us so we can acquire it before the term starts.'
             },
-            // Comment 3: Target a Topic in CO2, ILO 2 (Inference)
+            // Comment 3: Director of Libraries, a reference of CO2, ILO 2 (Inference)
             {
                 co_assign_id: assignId, commenter_role: 'LIBRARY_DIRECTOR', resolved_status: false,
-                ilo_id: ilos[4].ilo_id, comment_for: 'topics', target_id: topics[7].topic_id,
-                message: 'Hypothesis testing section should explicitly cover multiple testing corrections (Bonferroni, FDR) when students analyze many features.'
+                ilo_id: ilos[4].ilo_id, comment_for: 'references', target_id: references[8].reference_id,
+                message: 'Please add the ISBN and the publication year for this reference so the library can confirm it is available.'
             },
-            // Comment 4: Target a TLA in CO3, ILO 3 (Regression)
+            // Comment 4: Director of Libraries, a reference of CO3, ILO 3 (Regression)
             {
                 co_assign_id: assignId, commenter_role: 'LIBRARY_DIRECTOR', resolved_status: false,
-                ilo_id: ilos[7].ilo_id, comment_for: 'tlas', target_id: tlas[10].tla_id,
-                message: 'Regression lab must include diagnostics for heteroscedasticity and influence (Cook\'s distance); require remediation steps when assumptions fail.'
+                ilo_id: ilos[7].ilo_id, comment_for: 'references', target_id: references[14].reference_id,
+                message: 'This title appears twice in the library under different spellings; please cite one record so students find the same copy.'
             },
             // Comment 5: Target a Topic in CO4, ILO 2 (Software)
             {
