@@ -44,6 +44,9 @@ services:
       # https, not over plain http) and how many reverse proxies stand in front of the API (empty = none).
       LPMS_COOKIE_SECURE: "${LPMS_COOKIE_SECURE:-}"
       LPMS_TRUST_PROXY: "${LPMS_TRUST_PROXY:-}"
+      # The school's time zone for the automatic reminders (a container runs in UTC), and an off switch (0).
+      LPMS_TIMEZONE: "${LPMS_TIMEZONE:-Asia/Manila}"
+      LPMS_REMINDERS: "${LPMS_REMINDERS:-}"
       # Data Protection Officer shown on the Privacy Notice page (/privacy). Empty = "not set up yet".
       LPMS_DPO_NAME: "${LPMS_DPO_NAME:-}"
       LPMS_DPO_EMAIL: "${LPMS_DPO_EMAIL:-}"

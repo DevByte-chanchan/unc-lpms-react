@@ -9,7 +9,8 @@
 
 const TYPES = Object.freeze([
     'plan_submitted', 'plan_returned', 'plan_ready_for_dean', 'plan_approved',
-    'comment_added', 'comment_resolved', 'course_assigned', 'revision_started', 'poke'
+    'comment_added', 'comment_resolved', 'course_assigned', 'revision_started', 'poke',
+    'reminder', 'missing_digest'
 ]);
 
 // Both vocabularies: workflow roles (log entries) and account roles.

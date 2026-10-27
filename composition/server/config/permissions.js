@@ -18,16 +18,17 @@ const PERMISSIONS = Object.freeze({
     'plan:view-approved': 'Read approved learning plans and export them',
     'reference:manage': 'Maintain the reference library',
     'form-settings:edit': 'Edit the ISO form revision and effectivity',
-    'notification:poke': 'Remind an instructor to submit a learning plan'
+    'notification:poke': 'Remind an instructor to submit a learning plan',
+    'deadline:manage': 'Set the syllabus due date of a term, see who has not submitted, and pause or send reminders'
 });
 
 const ROLE_PERMISSIONS = Object.freeze({
     superuser: ['users:manage', 'audit:read'],
     instructor: ['plan:edit', 'plan:comment', 'plan:view-approved'],
-    'program-head': ['course:assign', 'consultant:manage', 'alignment:manage', 'coaep:generate', 'plan:review', 'plan:comment', 'plan:view-approved', 'notification:poke'],
+    'program-head': ['course:assign', 'consultant:manage', 'alignment:manage', 'coaep:generate', 'plan:review', 'plan:comment', 'plan:view-approved', 'notification:poke', 'deadline:manage'],
     'director-of-libraries': ['reference:manage', 'plan:review', 'plan:comment', 'plan:view-approved'],
     'industry-consultant': ['plan:comment'],
-    dean: ['plan:review', 'plan:comment', 'plan:view-approved', 'form-settings:edit', 'notification:poke'],
+    dean: ['plan:review', 'plan:comment', 'plan:view-approved', 'form-settings:edit', 'notification:poke', 'deadline:manage'],
     vpaa: ['plan:view-approved']
 });
 

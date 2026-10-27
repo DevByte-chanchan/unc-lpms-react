@@ -114,6 +114,8 @@ app.use('/api/audit-logs', require('./routes/auditLogs'));
 app.use('/api/users', require('./routes/users'));
 app.use('/api/profile', require('./routes/profile'));
 app.use('/api/notifications', require('./routes/notifications'));
+app.use('/api/term-deadlines', require('./routes/termDeadlines'));
+app.use('/api/missing-submissions', require('./routes/missingSubmissions'));
 app.use('/api', require('./routes/exportPdf'));
 
 // global error handler
@@ -136,4 +138,5 @@ app.use((err, req, res, next) => {
     app.listen(port, () => console.log(`Server listening on ${port}`));
     // Read notifications older than 90 days are removed at boot and then daily.
     require('./utils/notificationRetention').startRetention({ Notification: require('./models').Notification });
+    require('./utils/reminderJob').startReminders();
 })();
