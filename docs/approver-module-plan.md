@@ -66,7 +66,7 @@ Status of 2.1 to 2.4: built and checked in the real UI. The page is **Not Yet Su
 | 3.1 | **Review by exception** for the Director. | The References view of a plan lists flagged titles first, with the reason (lost, withdrawn or no copies, outside the recency window, no year, no ISBN or link, listed twice) and a line at the top: "N of M references need a look" or "No issues found". A person still clicks accept. Done on the screen, from the data the plan already loads (`utils/referenceReview.js`). | done |
 | 3.2 | **Waiting-on-you reminders** for approvers. | One in-app summary per approver on the day a plan reaches 3 days waiting (the Dean: 7), then every multiple. The Dean is also told of plans stalled with another reviewer for 7 days. Counts only, no course names. Rules in `config/reminders.js`; the job is `utils/reminderJob.js`. | done |
 | 3.3 | **Returned and not resubmitted.** | Reminds the instructor at 3 and 7 days and tells the Program Head. | S |
-| 3.4 | **When the Dean approves:** notify the instructor and the VPAA, mark the clean PDF and the review record ready, and file the plan in the term archive. | No manual follow-up. | S |
+| 3.4 | **When the Dean approves:** the instructor, Program Head, Director of Libraries and now the VPAA are notified. (The clean PDF and review record are already available on an approved plan; a term archive waits for 4.5.) | No manual follow-up. | done |
 | 3.5 | **Nightly reference health job.** | Flags titles older than the recency limit, unavailable, or duplicated. Feeds the dashboard and the report below. | M |
 
 ### Phase 4: the Director and the VPAA

@@ -13,7 +13,8 @@ const select = (sql, replacements = []) =>
     db().sequelize.query(sql, { replacements, type: db().Sequelize.QueryTypes.SELECT });
 
 // The people attached to one offering: its instructor, its program's head, its department's dean
-// (all by course ownership), plus every active Director of Libraries (a global reviewer).
+// (all by course ownership), plus every active Director of Libraries (a global reviewer) and every
+// active VPAA (who reads approved plans).
 const peopleFor = async (offeringId) => {
     const [row] = await select(
         `SELECT c.course_no, a.co_assign_id, a.stakeholder_id AS instructor_id,
@@ -26,13 +27,15 @@ const peopleFor = async (offeringId) => {
          WHERE pco.pc_offering_id = ?;`, [offeringId]);
     if (!row) return null;
     const librarians = await select(`SELECT user_id FROM Users WHERE role = 'director-of-libraries' AND is_active = 1;`);
+    const vpaa = await select(`SELECT user_id FROM Users WHERE role = 'vpaa' AND is_active = 1;`);
     return {
         courseCode: row.course_no,
         assignmentId: row.co_assign_id,
         instructor: [row.instructor_id],
         programHead: [row.program_head_id],
         dean: [row.dean_id],
-        libraryDirectors: librarians.map(l => l.user_id)
+        libraryDirectors: librarians.map(l => l.user_id),
+        vpaa: vpaa.map(v => v.user_id)
     };
 };
 
@@ -41,7 +44,8 @@ const usersForRole = (people, role) => ({
     INSTRUCTOR: people.instructor,
     PROGRAM_HEAD: people.programHead,
     DEAN: people.dean,
-    LIBRARY_DIRECTOR: people.libraryDirectors
+    LIBRARY_DIRECTOR: people.libraryDirectors,
+    VPAA: people.vpaa
 }[role] || []);
 
 const withoutActor = (ids, actorUserId) => ids.filter(id => id != null && String(id) !== String(actorUserId));
@@ -62,7 +66,7 @@ const planEvent = ({ actorRole, action, logsAfter, people }) => {
         if (actorRole === 'DEAN') {
             return {
                 type: 'plan_approved', text: 'approved',
-                recipients: [...usersForRole(people, 'INSTRUCTOR'), ...usersForRole(people, 'PROGRAM_HEAD'), ...usersForRole(people, 'LIBRARY_DIRECTOR')]
+                recipients: [...usersForRole(people, 'INSTRUCTOR'), ...usersForRole(people, 'PROGRAM_HEAD'), ...usersForRole(people, 'LIBRARY_DIRECTOR'), ...usersForRole(people, 'VPAA')]
             };
         }
         if (pendingReviewerRoles(logsAfter).includes('DEAN')) {

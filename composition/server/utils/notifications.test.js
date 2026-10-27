@@ -34,7 +34,7 @@ const makeUser = (role, label) => User.create({
 
 // One isolated course: its own dean, program head, instructor and a plan, with only an ASSIGNED log.
 const fixture = async () => {
-    const [instructor, ph, dean, ld] = await Promise.all([makeUser('instructor'), makeUser('program-head'), makeUser('dean'), makeUser('director-of-libraries')]);
+    const [instructor, ph, dean, ld, vpaa] = await Promise.all([makeUser('instructor'), makeUser('program-head'), makeUser('dean'), makeUser('director-of-libraries'), makeUser('vpaa')]);
     const now = new Date();
     const stamps = { createdAt: now, updatedAt: now };
     const deptId = await insert('Departments', { stakeholder_id: dean.user_id, name: `Dept ${counter}.${stamp}`, code: `D${counter}`, ...stamps });
@@ -47,7 +47,7 @@ const fixture = async () => {
     });
     const assignmentId = await insert('CourseOfferingAssignments', { pc_offering_id: offeringId, stakeholder_id: String(instructor.user_id), date_assigned: now, ...stamps });
     await insert('AssignmentWorkflowLogs', { co_assign_id: assignmentId, actor_role: 'PROGRAM_HEAD', action_type: 'ASSIGNED', ...stamps });
-    return { instructor, ph, dean, ld, offeringId, assignmentId, code };
+    return { instructor, ph, dean, ld, vpaa, offeringId, assignmentId, code };
 };
 
 const ACCOUNT = { INSTRUCTOR: 'instructor', LIBRARY_DIRECTOR: 'director-of-libraries', PROGRAM_HEAD: 'program-head', DEAN: 'dean' };
@@ -79,7 +79,7 @@ test('pendingReviewerRoles: who must act now', () => {
 });
 
 test('planEvent: resubmission, return, partial acceptance, ready for Dean, approval', () => {
-    const people = { courseCode: 'X1', instructor: [1], programHead: [2], dean: [5], libraryDirectors: [3, 4] };
+    const people = { courseCode: 'X1', instructor: [1], programHead: [2], dean: [5], libraryDirectors: [3, 4], vpaa: [6] };
     const sub = L('INSTRUCTOR', 'SUBMITTED');
     const ev = (actorRole, action, logsAfter) => planEvent({ actorRole, action, logsAfter, people });
 
@@ -91,7 +91,7 @@ test('planEvent: resubmission, return, partial acceptance, ready for Dean, appro
     const ready = ev('PROGRAM_HEAD', 'ACCEPTED', [sub, L('LIBRARY_DIRECTOR', 'ACCEPTED'), L('PROGRAM_HEAD', 'ACCEPTED')]);
     assert.deepEqual([ready.type, ready.recipients], ['plan_ready_for_dean', [5]]);
     const approved = ev('DEAN', 'ACCEPTED', [sub, L('LIBRARY_DIRECTOR', 'ACCEPTED'), L('PROGRAM_HEAD', 'ACCEPTED'), L('DEAN', 'ACCEPTED')]);
-    assert.deepEqual([approved.type, approved.recipients], ['plan_approved', [1, 2, 3, 4]]);
+    assert.deepEqual([approved.type, approved.recipients], ['plan_approved', [1, 2, 3, 4, 6]]);
 });
 
 // ------------------------------------------------- the instructor's submit route
@@ -226,9 +226,9 @@ test('the workflow notifies the right people at each step, and never the actor',
     const [ready] = await inbox(f.dean, 'plan_ready_for_dean');
     assert.equal(ready.message, `${f.code} — accepted, ready for the Dean by Program Head`);
 
-    // Final approval: instructor, Program Head and Library Director hear, the Dean (actor) does not.
+    // Final approval: instructor, Program Head, Library Director and VPAA hear, the Dean (actor) does not.
     assert.equal((await act(f, 'dean', 'DEAN', 'ACCEPTED')).code, 201);
-    for (const person of [f.instructor, f.ph, f.ld]) assert.equal((await inbox(person, 'plan_approved')).length, 1);
+    for (const person of [f.instructor, f.ph, f.ld, f.vpaa]) assert.equal((await inbox(person, 'plan_approved')).length, 1);
     assert.equal((await inbox(f.dean, 'plan_approved')).length, 0);
     assert.equal((await inbox(other)).length, 0);
 });
