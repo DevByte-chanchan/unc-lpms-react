@@ -14,11 +14,7 @@ import { loadReviewAssignments } from '../utils/reviewAssignments.js';
 import unclogo from '../assets/unclogo.png';
 import TableScrollRegion from './TableScrollRegion.jsx';
 import PokeButton from './PokeButton.jsx';
-import SummaryCards from './SummaryCards.jsx';
 import { usePageSearch, matchesSearch } from '../utils/pageSearch.js';
-import { loadLibrary } from '../utils/referenceStore.js';
-import { getCatalogSettings } from '../utils/referenceCatalog.js';
-import { healthSummary } from '../utils/referenceHealth.js';
 import { buildApproverStatus, canExportRow, computeOverallStatus, latestSubmissionAt } from '../utils/assignmentStatus.js';
 import { filterAssignmentsByCourse, readAssignedCourseFilters } from '../utils/referenceCourseNavigation.js';
 
@@ -162,30 +158,6 @@ const ApprovalCoursesTable = ({ role = 'approver', styleHooks = {} }) => {
     const filteredRows = rowsFor(selectedStatus)
         .filter(row => matchesSearch(query, [getCode(row), getName(row)]));
 
-    const counts = Object.fromEntries(statuses.map(status => [status, rowsFor(status).length]));
-
-    // The Director's extra card: how many active references need attention (the Reference Library rules).
-    const [referenceHealth, setReferenceHealth] = useState(null);
-    useEffect(() => {
-        if (role !== 'director-of-libraries') return undefined;
-        let on = true;
-        loadLibrary()
-            .then(records => { if (on) setReferenceHealth(healthSummary(records.filter(record => !record.archived), { years: getCatalogSettings().recencyYears })); })
-            .catch(() => { if (on) setReferenceHealth(null); });
-        return () => { on = false; };
-    }, [role]);
-
-    const summaryCards = [
-        ...statuses.map(status => ({
-            label: status.charAt(0) + status.slice(1).toLowerCase(),
-            value: counts[status],
-            selected: selectedStatus === status,
-            onClick: () => updateStatus(status)
-        })),
-        ...(role === 'director-of-libraries' && referenceHealth ? [{
-            label: 'References needing attention', value: referenceHealth.needAttention, hint: `of ${referenceHealth.total} active`, tone: 'warn', to: '/role/director-of-libraries/reference-library'
-        }] : [])
-    ];
 
     // The columns, described once. `sortValue` exists because the code and the
     // name are not plain fields — they are dug out of a nested
@@ -401,8 +373,6 @@ const ApprovalCoursesTable = ({ role = 'approver', styleHooks = {} }) => {
                 </div>
                 )}
             </div>
-
-            <SummaryCards cards={summaryCards} label="Assigned course offerings summary" />
 
             <TableScrollRegion
                 label="Assigned course offerings"
