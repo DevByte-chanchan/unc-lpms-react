@@ -1,12 +1,13 @@
 import styles from '../styles/SideNavigation.module.sass'
 import unclogo from '../assets/unclogo.png'
-import { BookOpen, Briefcase, CheckCircle, Clipboard, Clock, FileText, GitMerge, Layers, Lock, LogOut, Target, Users } from 'react-feather'
+import { BookOpen, Briefcase, CheckCircle, Clipboard, Clock, FileText, GitMerge, Layers, Lock, LogOut, Sidebar, Target, Users } from 'react-feather'
 import { useSearchParams, useNavigate, useLocation } from 'react-router-dom'
 import { useEffect, useRef, useState } from 'react'
 import { logout } from '../utils/session'
 import { routes } from '../utils/routes.js';
 import SignOutDialog from './SignOutDialog.jsx'
 import { navigationIconName } from '../utils/navigationIcons.js'
+import { useNav } from '../layouts/NavContext.js'
 
 const NAVIGATION_ICON_COMPONENTS = {
     BookOpen,
@@ -70,7 +71,7 @@ const SideNavigation = ({ mode = 'instructor' }) => {
     const [showPopup, setShowPopup] = useState(false)
     const [isExpanded, setIsExpanded] = useState(false)
     const navRef = useRef(null)
-    const [pinned, setPinned] = useState(false)
+    const nav = useNav()
 
     const handlePageChange = (page) => {
         if (page === 'Syllabus') {
@@ -123,43 +124,17 @@ const SideNavigation = ({ mode = 'instructor' }) => {
         return () => { if (ro) ro.disconnect() }
     }, [])
 
-    useEffect(() => {
-        const el = navRef.current
-        if (!el) return
-        const findSidebarAncestor = (node) => {
-            let n = node.parentElement
-            while (n && n !== document.body) {
-                try {
-                    const w = window.getComputedStyle(n).width
-                    const num = parseFloat(w)
-                    if (!isNaN(num) && num <= 110) return n
-                } catch (e) { console.warn('Failed to parse width', e) }
-                n = n.parentElement
-            }
-            return null
-        }
-        const target = findSidebarAncestor(el) || el.parentElement
-        const toggle = (add) => { if (target) { target.classList.toggle('expanded', add); target.classList.toggle('expanded-left', add) }; document.body.classList.toggle('sidebar-expanded', add) }
-        const enter = () => { if (!pinned) toggle(true) }
-        const leave = () => { if (!pinned) toggle(false) }
-        el.addEventListener('mouseenter', enter)
-        el.addEventListener('mouseleave', leave)
-        return () => {
-            el.removeEventListener('mouseenter', enter)
-            el.removeEventListener('mouseleave', leave)
-            toggle(false)
-        }
-    }, [pinned])
-
     return (
         <div ref={navRef} className={styles.container}>
             <div className={styles.logo}>
-                <img src={unclogo} alt="University Of Nueva Caceres Logo" onClick={() => {
-                    setPinned(p => !p)
-                    const target = navRef.current ? navRef.current.parentElement : null
-                    if (target) { target.classList.toggle('expanded'); target.classList.toggle('expanded-left') }
-                    document.body.classList.toggle('sidebar-expanded')
-                }} style={{ cursor: 'pointer' }} />
+                <img src={unclogo} alt="University Of Nueva Caceres Logo" />
+                {nav.available && (
+                    <button type="button" className={styles.navToggle} onClick={nav.toggle}
+                        aria-label={nav.collapsed ? 'Expand sidebar' : 'Collapse sidebar'} aria-expanded={!nav.collapsed}
+                        title={nav.collapsed ? 'Expand sidebar' : 'Collapse sidebar'}>
+                        <Sidebar size={18} />
+                    </button>
+                )}
             </div>
 
             {/* Dynamic Title with 3-line format */}
