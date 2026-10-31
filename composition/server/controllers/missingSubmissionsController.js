@@ -8,7 +8,7 @@ const { Op, Transaction } = require('sequelize');
 const { sequelize, Notification, ReminderPause } = require('../models');
 const { programsFor } = require('./termDeadlineController');
 const { findAwaiting, standing } = require('../utils/missingSubmissions');
-const { schoolClock, timezoneOf } = require('../utils/reminderRules');
+const { schoolClock, timezoneOf, asDate, daysUntil } = require('../utils/reminderRules');
 const { eventMessage } = require('../utils/notify');
 const { POKE_WINDOW_MS } = require('./notificationController');
 const { record: audit } = require('../utils/audit');
@@ -36,7 +36,8 @@ const listMissing = async (req, res, next) => {
             schoolYear: req.query.school_year ? String(req.query.school_year) : null,
             semester: req.query.semester ? String(req.query.semester) : null
         });
-        const today = schoolClock(new Date(), timezoneOf()).day;
+        const zone = timezoneOf();
+        const today = schoolClock(new Date(), zone).day;
         const ids = rows.map(r => r.offeringId);
         const notices = await lastNotices(ids);
         const paused = new Set((await ReminderPause.findAll({ where: { offering_id: { [Op.in]: ids.length ? ids : [0] } }, raw: true })).map(p => p.offering_id));
@@ -44,11 +45,15 @@ const listMissing = async (req, res, next) => {
         const missing = rows.map(row => {
             const { daysLeft, status } = standing(row, today);
             const notice = notices.get(row.offeringId);
+            // The day the course was assigned, and how many days that left before the due date (negative: assigned
+            // after it). A plan can still be submitted late; this says why it was.
+            const assignedDay = row.assignedAt ? schoolClock(asDate(row.assignedAt), zone).day : null;
             return {
                 offeringId: row.offeringId, courseCode: row.courseCode, courseTitle: row.courseTitle,
                 programId: row.programId, programName: row.programName, schoolYear: row.schoolYear, semester: row.semester,
                 instructorName: row.instructorName || null, instructorEmail: row.instructorEmail || null, instructorActive: row.instructorActive,
-                assignedAt: row.assignedAt, planUpdatedAt: row.planUpdatedAt,
+                assignedAt: row.assignedAt, assignedDay, planUpdatedAt: row.planUpdatedAt,
+                assignedDaysBeforeDue: assignedDay && row.syllabusDue ? daysUntil(row.syllabusDue, assignedDay) : null,
                 state: row.state, isRevision: row.isRevision,
                 syllabusDue: row.syllabusDue || null, daysLeft, status,
                 lastReminderAt: notice ? notice.at : null, lastReminderBy: notice ? notice.by : null,

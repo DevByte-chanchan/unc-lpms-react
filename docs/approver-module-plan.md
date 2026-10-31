@@ -82,7 +82,7 @@ Status of 2.1 to 2.4: built and checked in the real UI. The page is **Not Yet Su
 ### Phase 5: decisions we still need (nothing to build until answered)
 
 - Who manages users: the Dean, the Program Head, or the superuser. The transcripts disagree.
-- Does the Consultant comment only, or also approve? The Dean says comment only; Sir June says approve.
+- ~~Does the Consultant comment only, or also approve?~~ Answered in the third interview: comment only, outside the approval flow; their comments are kept as the basis for the next version of the syllabus.
 - When the Dean returns a plan, does it go straight to the instructor or through the Program Head?
 - Whether the Dean may read the other approvers' comments before deciding.
 
@@ -90,7 +90,7 @@ Status of 2.1 to 2.4: built and checked in the real UI. The page is **Not Yet Su
 
 These come from the panel feedback and the transcripts, so we can build without waiting:
 
-- Syllabus due **one week before the start of the term**; the Program Head can change it per term.
+- Syllabus due **earlier than 2 weeks before classes start**: the faculty manual asks for the plan to be *approved* 2 weeks before, so the due date leaves time to review and return it. The Program Head sets it per term (no automatic default).
 - Reminders at **7, 3, 1 and 0 days**, then every **3 days** overdue.
 - An approver is reminded after **3 days**, and the Dean after **7**.
 - The Program Head and Dean set deadlines. In-app notifications always; e-mail only when SMTP is set.
@@ -133,6 +133,16 @@ These come from the panel feedback and the transcripts, so we can build without 
 The three repos are for ideas only. Plexus and Syllus have no usable license for copying code, and none of the
 three is written in our stack. Their mistakes to avoid: a committed `.env`, a hard-coded admin password that
 is reset on every migration, and no tests.
+
+## 8b. From the third interview (done, all inside existing screens)
+
+| Change | Where |
+|---|---|
+| The Not Yet Submitted page and its CSV now show when each course was assigned and how many days the instructor had before the due date ("Assigned after the due date" when late). A late plan can still be submitted. | Program Head's Not Yet Submitted |
+| "Earlier consultant suggestions": the consultant's comments on the earlier versions of a plan, shown folded at the top of a revised or carried-over plan, to the Program Head (all consultants) and to a consultant (their own). Read-only, never part of the approval. | Approver's plan view |
+| Due-date wording: approved 2 weeks before classes start, so set the date earlier. | Due-date dialog |
+
+Dropped on the owner's instruction: a VPAA-set school calendar (start of classes and exam dates), because it is not this module. Left to the instructor side's owner: main faculty with contributors, COAP before a learning plan, the 18-week total and hours per CO, test papers due a week before each exam, AI-generated topics, TLAs and questions, and reading the course-offerings PDF.
 
 ## 9. Not in this plan
 

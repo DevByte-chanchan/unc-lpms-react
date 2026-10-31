@@ -39,6 +39,7 @@ import { buildSyllabusHtml } from "../utils/syllabusPdfHtml.js"
 import unclogo from '../assets/unclogo.png'
 import CourseCoverage from './CourseCoverage'
 import ReferenceSummary from './ReferenceSummary'
+import EarlierConsultantNotes from './EarlierConsultantNotes'
 import OutcomeAlignment from './OutcomeAlignment'
 import CriteriaForGrading from './CriteriaForGrading'
 import PokeButton from './PokeButton.jsx'
@@ -1136,6 +1137,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
               <Spinner label="Loading learning plan…" minHeight={320} />
             ) : (
             <>
+            {(roleKey === 'program-head' || roleKey === 'industry-consultant') && <EarlierConsultantNotes pcId={validPcId} />}
             {/* A table of blank rows is the worst of both worlds — it looks
                 like the screen loaded but lost the data. Say plainly that
                 there is nothing recorded instead. */}

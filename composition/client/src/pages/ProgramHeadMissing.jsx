@@ -226,7 +226,7 @@ const ProgramHeadMissing = () => {
               <label>Instructors must submit by<br />
                 <input id="syllabus-due-date" type="date" value={dueText} onChange={(e) => setDueText(e.target.value)} style={{ width: '100%', height: 36 }} />
               </label>
-              <div style={{ color: '#6B7280', fontSize: 13 }}>Instructors who have not submitted are reminded 7, 3 and 1 days before this date, on the day, and every third day after it.</div>
+              <div style={{ color: '#6B7280', fontSize: 13 }}>The faculty manual asks for the plan to be approved 2 weeks before classes start. Set this date earlier than that, so there is time to review and return it. Instructors who have not submitted are reminded 7, 3 and 1 days before this date, on the day, and every third day after it. A plan can still be submitted late; the page records when it was assigned.</div>
               {dialogError && <div role="alert" style={{ color: '#b91c1c' }}>{dialogError}</div>}
             </div>
             <div className={pageStyles.managementDialogActions}>

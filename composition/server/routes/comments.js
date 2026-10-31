@@ -8,6 +8,9 @@ const { requireOfferingAccess, requireIloParamAccess } = require('../middleware/
 router.get('/unresolved-counts/:pcId/:revNum', requireOfferingAccess, commentController.getUnresolvedCommentCounts);
 router.get('/unresolved-counts/:pcId', requireOfferingAccess, commentController.getUnresolvedCommentCounts);
 
+// The consultant's comments on the earlier versions of this plan: the basis for the next one
+router.get('/earlier-consultant/:pcId', requireRole('program-head', 'industry-consultant'), requireOfferingAccess, commentController.getEarlierConsultantComments);
+
 // REUSABLE: Target retrieval filter used by ReferenceForm, TopicForm, TLAForm
 router.get('/filter/:iloId/:commentFor', requireIloParamAccess('iloId'), commentController.getCommentsByTarget);
 

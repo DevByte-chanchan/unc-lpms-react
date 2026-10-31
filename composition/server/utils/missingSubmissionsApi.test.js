@@ -156,6 +156,9 @@ test('the Program Head sees only the not-yet-submitted plans of their own progra
     assert.deepEqual([byCode.ZZMY.status, byCode.ZZMY.daysLeft], ['overdue', -2]);
     assert.deepEqual([byCode.ZZMZ.status, byCode.ZZMZ.daysLeft], ['no-deadline', null]);
     assert.equal(byCode.ZZMX.state, 'Draft');
+    // assigned today: 5 days before X's due date, 2 days after Y's, and Z has no due date to compare with
+    assert.deepEqual([byCode.ZZMX.assignedDaysBeforeDue, byCode.ZZMY.assignedDaysBeforeDue, byCode.ZZMZ.assignedDaysBeforeDue], [5, -2, null]);
+    assert.equal(byCode.ZZMX.assignedDay, today);
     assert.deepEqual(list.body.summary, { notSubmitted: 3, overdue: 1, dueSoon: 0, noDeadline: 1 });
     assert.match(byCode.ZZMX.instructorName, /insX/);
     assert.equal(byCode.ZZMX.remindersPaused, false);

@@ -33,6 +33,18 @@ export const sortMissing = (rows) => [...rows].sort((a, b) => {
 // Who last reminded the instructor, and when: "2 Nov 2026, by the system".
 export const lastReminderLabel = (row) => (row.lastReminderAt ? `${dayLabel(String(row.lastReminderAt).replace(' ', 'T'))}, by ${row.lastReminderBy}` : 'Never')
 
+// When the course was assigned, and how much time the instructor had before the due date. A plan may still
+// be submitted late; this is the record of why it was.
+export const assignedLabel = (row) => (row.assignedDay ? dayLabel(row.assignedDay) : '—')
+
+export const timeToPrepareLabel = (row) => {
+  const days = row.assignedDaysBeforeDue
+  if (days == null) return ''
+  if (days < 0) return 'Assigned after the due date'
+  if (days === 0) return 'Assigned on the due date'
+  return `${days} day${days === 1 ? '' : 's'} to prepare`
+}
+
 export const SEMESTERS = ['1st', '2nd', 'Summer']
 
 // The school years to offer: those in the data, and this one and the next, newest first.
@@ -68,6 +80,8 @@ export const CSV_COLUMNS = [
   ['Program', r => r.programName],
   ['School year', r => r.schoolYear],
   ['Semester', r => r.semester],
+  ['Assigned', r => r.assignedDay || ''],
+  ['Days to prepare', r => (r.assignedDaysBeforeDue == null ? '' : r.assignedDaysBeforeDue)],
   ['Instructor', r => r.instructorName || ''],
   ['Instructor e-mail', r => r.instructorEmail || ''],
   ['Plan', r => (r.state === 'Returned' ? 'Returned, not resubmitted' : 'Not submitted')],

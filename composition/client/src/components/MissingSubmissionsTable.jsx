@@ -1,7 +1,7 @@
 import React from 'react'
 import styles from '../styles/CoursesTable.module.sass'
 import TableScrollRegion from './TableScrollRegion.jsx'
-import { dayLabel, statusLabel, lastReminderLabel } from '../utils/missingSubmissions.js'
+import { dayLabel, statusLabel, lastReminderLabel, assignedLabel, timeToPrepareLabel } from '../utils/missingSubmissions.js'
 
 // The plans still waiting on their instructor. One row per plan, with a tick to pick it for "Remind
 // selected", where it stands against the due date, when the instructor was last reminded, and whether
@@ -22,7 +22,7 @@ const StatusBadge = ({ row }) => (
 const MissingSubmissionsTable = ({ rows = [], selected, onToggle, onToggleAll, onPause, busyId = null, showProgram = false }) => {
   const allTicked = rows.length > 0 && rows.every(row => selected.has(row.offeringId))
   return (
-    <TableScrollRegion label="Learning plans not yet submitted" minWidth={980} className={styles['table-container']}>
+    <TableScrollRegion label="Learning plans not yet submitted" minWidth={1160} className={styles['table-container']}>
       <table>
         <thead style={{ position: 'sticky', top: 0, background: '#FFFFFF', zIndex: 1 }}>
           <tr>
@@ -32,6 +32,7 @@ const MissingSubmissionsTable = ({ rows = [], selected, onToggle, onToggleAll, o
             <th width={230}>COURSE</th>
             <th width={190}>INSTRUCTOR</th>
             {showProgram && <th width={170}>PROGRAM</th>}
+            <th width={170}>ASSIGNED</th>
             <th width={120}>DUE DATE</th>
             <th width={150}>STANDING</th>
             <th width={190}>LAST REMINDER</th>
@@ -41,10 +42,10 @@ const MissingSubmissionsTable = ({ rows = [], selected, onToggle, onToggleAll, o
         <tbody>
           {rows.map(row => (
             <tr key={row.offeringId}>
-              <td>
+              <td width={44}>
                 <input type="checkbox" aria-label={`Select ${row.courseCode}`} checked={selected.has(row.offeringId)} onChange={() => onToggle(row.offeringId)} />
               </td>
-              <td>
+              <td width={230}>
                 <div>
                 <strong>{row.courseCode}</strong> — {row.courseTitle}
                 <div style={{ fontSize: 12, color: '#6B7280' }}>
@@ -52,16 +53,17 @@ const MissingSubmissionsTable = ({ rows = [], selected, onToggle, onToggleAll, o
                 </div>
                 </div>
               </td>
-              <td>
+              <td width={190}>
                 <div>
                   {row.instructorName || 'No instructor'}
                   {row.instructorName && !row.instructorActive && <div style={{ fontSize: 12, color: '#991B1B' }}>Account is deactivated</div>}
                 </div>
               </td>
-              {showProgram && <td>{row.programName}</td>}
-              <td>{dayLabel(row.syllabusDue)}</td>
-              <td><StatusBadge row={row} /></td>
-              <td>{lastReminderLabel(row)}</td>
+              {showProgram && <td width={170}><div>{row.programName}</div></td>}
+              <td width={170}><div>{assignedLabel(row)}<div style={{ fontSize: 12, color: row.assignedDaysBeforeDue < 0 ? '#991B1B' : '#6B7280' }}>{timeToPrepareLabel(row)}</div></div></td>
+              <td width={120}>{dayLabel(row.syllabusDue)}</td>
+              <td width={150}><StatusBadge row={row} /></td>
+              <td width={190}>{lastReminderLabel(row)}</td>
               <td className={styles.fill}>
                 {row.status === 'no-deadline'
                   ? <span style={{ color: '#6B7280' }}>Off: no due date set</span>

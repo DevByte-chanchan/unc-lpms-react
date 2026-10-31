@@ -10,6 +10,7 @@ const {
 } = require('../middleware/courseAuthorization');
 const { canViewComment, canViewSection, sectionOfComment } = require('../config/sectionAccess');
 const { COMMENT_ROLE_BY_ACCOUNT, isApprover, filterComments } = require('../utils/commentVisibility');
+const { earlierConsultantComments } = require('../utils/earlierConsultantComments');
 
 
 // An approver sees only the comments they wrote, and only those about the part of the plan their role
@@ -56,6 +57,20 @@ exports.getUnresolvedCommentCounts = async (req, res) => {
     } catch (error) {
         console.error('Error fetching comment counts:', error);
         return res.status(500).json({ message: 'Internal server error working with comment statistics.' });
+    }
+};
+
+/**
+ * GET /api/comments/earlier-consultant/:pcId
+ * The Industry Consultant's comments on the earlier versions of this plan (the revision or carry-over it
+ * came from), so they can be the basis for the next version. Program Head: all consultants; consultant: own.
+ */
+exports.getEarlierConsultantComments = async (req, res, next) => {
+    try {
+        const versions = await earlierConsultantComments(sequelize, req.params.pcId, req.user);
+        return res.status(200).json({ versions });
+    } catch (error) {
+        return next(error);
     }
 };
 
