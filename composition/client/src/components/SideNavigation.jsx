@@ -3,11 +3,12 @@ import unclogo from '../assets/unclogo.png'
 import { BookOpen, Briefcase, CheckCircle, Clipboard, Clock, FileText, GitMerge, Layers, Lock, LogOut, Sidebar, Target, Users } from 'react-feather'
 import { useSearchParams, useNavigate, useLocation } from 'react-router-dom'
 import { useEffect, useRef, useState } from 'react'
-import { logout } from '../utils/session'
+import { getSession, logout } from '../utils/session'
 import { routes } from '../utils/routes.js';
 import SignOutDialog from './SignOutDialog.jsx'
 import { navigationIconName } from '../utils/navigationIcons.js'
 import { useNav } from '../layouts/NavContext.js'
+import { initialsOf } from '../utils/userInitials.js'
 
 const NAVIGATION_ICON_COMPONENTS = {
     BookOpen,
@@ -72,6 +73,7 @@ const SideNavigation = ({ mode = 'instructor' }) => {
     const [isExpanded, setIsExpanded] = useState(false)
     const navRef = useRef(null)
     const nav = useNav()
+    const account = getSession()
 
     const handlePageChange = (page) => {
         if (page === 'Syllabus') {
@@ -226,6 +228,15 @@ const SideNavigation = ({ mode = 'instructor' }) => {
                     </div>
                     <div className={styles.listB} onClick={onLogoutClick} role="button" tabIndex={0} title="Log out" aria-label="Log out" onKeyDown={(event) => activateWithKeyboard(event, onLogoutClick)}>
                         <LogOut size={24} color={'#F94545'} /> <span className={styles.listText}>Log Out</span>
+                    </div>
+
+                    <div className={styles.account}>
+                    <div className={styles.avatar} aria-hidden="true">{initialsOf(account?.name)}</div>
+                    <div className={styles.accountText}>
+                        <div className={styles.accountName}>{account?.name}</div>
+                        <div className={styles.accountRole}>{account?.roleLabel}</div>
+                        {account?.email && <div className={styles.accountEmail}>{account.email}</div>}
+                    </div>
                     </div>
                 </div>
 
