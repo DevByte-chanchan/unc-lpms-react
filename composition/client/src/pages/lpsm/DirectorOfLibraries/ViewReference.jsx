@@ -37,7 +37,7 @@ const ViewReference = () => {
   const content = (
     <div className={styles.container}>
       <div className={styles.header}>
-        <h1>REFERENCE DETAILS</h1>
+        <h1 className="app-page-title">Reference details</h1>
       </div>
 
       <div className={styles.detailGrid}>

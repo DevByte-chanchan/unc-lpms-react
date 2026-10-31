@@ -120,7 +120,7 @@ const PoPeoAlignment = () => {
     <div className={`${pageStyles.page} ${styles.scrollPage}`}>
       <div className={pageStyles.toolbar}>
         <div className={pageStyles.titleBlock}>
-          <h2>PROGRAM OUTCOMES &amp; PEO ALIGNMENT</h2>
+          <h2 className="app-page-title">Program outcomes &amp; PEO alignment</h2>
           <p className={pageStyles.pageSubtitle}>The program&apos;s educational objectives and outcomes. Instructors use them in their syllabus.</p>
         </div>
         <label className={pageStyles.controlGroup}>

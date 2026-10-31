@@ -49,7 +49,7 @@ const DeanPrograms = () => {
   const pageContent = (
     <div className={pageStyles.managementPage}>
       <div className={pageStyles.pageHeader}>
-        <h2>Programs</h2>
+        <h2 className="app-page-title">Programs</h2>
         <div className={pageStyles.pageHeaderActions}>
           <UploadButton onClick={() => setShowModal(true)} />
         </div>

@@ -40,7 +40,7 @@ const FormSettingsPanel = () => {
   }
 
   return (
-    <section aria-label="Form settings" style={{ margin: '0 0 16px', border: '1px solid #d1d5db', borderRadius: 8, background: '#fff', height: 'auto', flex: '0 0 auto' }}>
+    <section aria-label="Form settings" style={{ margin: '0 0 16px', border: '1px solid var(--line)', borderRadius: 'var(--radius-md)', background: 'var(--surface)', height: 'auto', flex: '0 0 auto' }}>
       <button type="button" onClick={() => setOpen(o => !o)} aria-expanded={open}
         style={{ width: '100%', textAlign: 'left', padding: '10px 14px', background: 'none', border: 'none', color: '#111827', fontWeight: 600, cursor: 'pointer' }}>
         Form settings (ISO revision and effectivity) {open ? '▾' : '▸'}

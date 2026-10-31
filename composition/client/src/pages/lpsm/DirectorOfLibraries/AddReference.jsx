@@ -56,7 +56,7 @@ const AddReference = () => {
       </div>
 
       <div className={styles['form-container']}>
-        <h2>Reference Details</h2>
+        <h2 className="app-page-title">Reference details</h2>
         {(loadError || form.typesError) && <div role="alert" style={{ color: '#b91c1c', marginBottom: 12 }}>{loadError || form.typesError}</div>}
         {saveError && <div role="alert" style={{ color: '#b91c1c', marginBottom: 12 }}>{saveError}</div>}
         {loaded && form.typesReady && !loadError && (

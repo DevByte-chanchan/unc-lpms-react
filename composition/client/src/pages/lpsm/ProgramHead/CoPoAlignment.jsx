@@ -82,7 +82,7 @@ const CoPoAlignment = () => {
     <div className={pageStyles.page}>
       <div className={pageStyles.toolbar}>
         <div className={pageStyles.titleBlock}>
-          <h2>COURSE OUTCOMES &amp; PO ALIGNMENT</h2>
+          <h2 className="app-page-title">Course outcomes &amp; PO alignment</h2>
           <p className={pageStyles.pageSubtitle}>Review how each course outcome supports the program outcomes. The instructor sets these in the syllabus.</p>
         </div>
         <label className={pageStyles.controlGroup}>

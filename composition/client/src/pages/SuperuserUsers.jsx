@@ -123,7 +123,7 @@ const SuperuserUsers = () => {
     const pageContent = (
         <div className={pageStyles.managementPage}>
             <div className={pageStyles.pageHeader}>
-                <h2>User Management</h2>
+                <h2 className="app-page-title">User management</h2>
                 <div className={pageStyles.pageHeaderActions}>
                     <button type="button" className={pageStyles.uploadButton} onClick={() => setCreateOpen(true)}>
                         <UserPlus size={18} color="#FFFFFF" /> Create user

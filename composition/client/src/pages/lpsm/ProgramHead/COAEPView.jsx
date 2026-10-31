@@ -104,7 +104,7 @@ const COAEPView = () => {
         <div className={pageStyles.page}>
           <div className={pageStyles.toolbar}>
             <div className={pageStyles.titleBlock}>
-              <h2>COURSE ASSESSMENT &amp; EVALUATION PLAN (COAEP)</h2>
+              <h2 className="app-page-title">Course assessment &amp; evaluation plan (COAEP)</h2>
               <p className={pageStyles.pageSubtitle}>View the assessment plan generated from the selected course syllabus.</p>
             </div>
             <label className={pageStyles.controlGroup}>

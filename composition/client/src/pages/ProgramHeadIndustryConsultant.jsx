@@ -2,7 +2,8 @@ import React from "react";
 import Skeleton from "../layouts/SkeletonA.jsx";
 import Header from "../components/HeaderA.jsx";
 import SideNavigation from "../components/SideNavigation.jsx";
-import { Search, Clipboard, X } from "react-feather";
+import { Search, Clipboard, X, Briefcase } from "react-feather";
+import EmptyState from '../components/EmptyState.jsx'
 import ConsultantsTable from '../components/ConsultantsTable.jsx'
 import syllabusStyles from '../styles/SyllabusSections.module.sass'
 import pageStyles from '../styles/ProgramHeadWorkspace.module.sass'
@@ -102,7 +103,7 @@ const ProgramHeadIndustryConsultant = () => {
     const pageContent = (
         <div className={pageStyles.managementPage}>
             <div className={pageStyles.pageHeader}>
-                <h2>Industry Consultant</h2>
+                <h2 className="app-page-title">Industry consultants</h2>
                 <div className={pageStyles.pageHeaderActions}>
                     <button type="button" className={pageStyles.uploadButton} onClick={() => setAssignOpen(true)}>
                         <Clipboard size={18} color="#FFFFFF" /> Assign consultant
@@ -126,12 +127,11 @@ const ProgramHeadIndustryConsultant = () => {
             ) : visible.length > 0 ? (
                 <ConsultantsTable assignments={visible} onDeactivate={deactivate} onReactivate={reactivate} busyId={busyId} />
             ) : (
-                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
-                    <div style={{ fontSize: 18, fontWeight: 600, color: '#111827' }}>No consultant assignments yet</div>
-                    <div style={{ color: '#6B7280', textAlign: 'center', maxWidth: 420 }}>
-                        Assign an industry consultant to a course. They can read that course and comment; their comments are kept as documentation.
-                    </div>
-                </div>
+                <EmptyState
+                    icon={<Briefcase size={22} strokeWidth={1.6} />}
+                    title="No consultant assignments yet"
+                    hint="Assign an industry consultant to a course. They can read that course and comment; their comments are kept as documentation."
+                />
             )}
 
             {assignOpen && (

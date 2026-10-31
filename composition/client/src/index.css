@@ -286,6 +286,66 @@ textarea {
     height: 20px;
 }
 
+/* ---- Shared pieces of the approver-side screens ---------------------------------------------------
+   One page title, one filter control and one link button, so a screen built later looks like the ones
+   before it. Windows use the layout in styles/ProgramHeadWorkspace.module.sass (managementDialog). Doubled selectors beat the older per-page rules without !important. */
+
+.app-page-title.app-page-title {
+    margin: 0;
+    color: var(--ink);
+    font-family: var(--font-ui);
+    font-size: var(--fs-title);
+    font-weight: var(--fw-semibold);
+    line-height: 1.3;
+    letter-spacing: 0;
+    text-transform: none;
+    white-space: normal;
+}
+
+/* A filter: dark text on a light border, the height of the toolbar beside it. Red stays for warnings. */
+select.app-select.app-select {
+    height: 36px;
+    min-width: 0;
+    padding: 0 36px 0 12px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-md);
+    background-color: var(--surface);
+    color: var(--ink-soft);
+    font: var(--fw-normal) var(--fs-sm) var(--font-ui);
+    cursor: pointer;
+    outline: none;
+}
+
+select.app-select.app-select:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+}
+
+.app-filter-bar.app-filter-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--sp-3);
+    padding: 0;
+    background: transparent;
+    box-shadow: none;
+}
+
+button.app-link-button {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--sp-2);
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--accent);
+    font: var(--fw-medium) var(--fs-sm) var(--font-ui);
+    cursor: pointer;
+}
+
+button.app-link-button:hover { text-decoration: underline; }
+button.app-link-button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: var(--radius-sm); }
+
 /* Shared dismiss control for dialogs, drawers, and popovers. */
 button.app-icon-close.app-icon-close {
     display: inline-flex;

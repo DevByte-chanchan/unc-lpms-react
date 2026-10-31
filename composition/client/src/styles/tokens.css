@@ -41,7 +41,8 @@
   --fs-sm:  13px;   /* dense controls: chips, small buttons              */
   --fs-md:  14px;   /* base — body text, standard buttons, table cells   */
   --fs-lg:  16px;   /* panel and card headings                           */
-  --fs-xl:  20px;   /* screen headings                                   */
+  --fs-xl:  20px;   /* window (dialog) headings                          */
+  --fs-title: 22px; /* the title of a page: the same on every screen     */
 
   --fw-normal: 400;
   --fw-medium: 500;

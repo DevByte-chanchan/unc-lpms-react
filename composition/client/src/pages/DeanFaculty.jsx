@@ -239,7 +239,7 @@ const DeanFaculty = () => {
   return (
     <div className={pageStyles.managementPage}>
       <div className={pageStyles.pageHeader}>
-        <h2>Faculty</h2>
+        <h2 className="app-page-title">Faculty</h2>
         <div className={pageStyles.pageHeaderActions}>
           <UploadButton onClick={() => setShowModal(true)} />
         </div>

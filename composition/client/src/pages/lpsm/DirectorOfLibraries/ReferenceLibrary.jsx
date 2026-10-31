@@ -409,7 +409,7 @@ const ReferenceLibrary = () => {
         <div className={styles.discoveryTop}>
           <div className={styles.pageHeader}>
             <div>
-              <h1 className={styles.pageTitle}>REFERENCE LIBRARY</h1>
+              <h1 className={`${styles.pageTitle} app-page-title`}>Reference library</h1>
             </div>
             <div className={styles.headerActions} data-collapsible-buttons>
               <button className={styles.addBtn} type="button" onClick={() => { setEditRef(null); setAddRefOpen(true); }}>
@@ -418,7 +418,7 @@ const ReferenceLibrary = () => {
               <button className={styles.bulkBtn} type="button" onClick={() => fileInputRef.current?.click()}>
                 <Upload size={15} /> Bulk Upload
               </button>
-              <CatalogRulesPanel onSaved={(message) => { setRules(getCatalogSettings()); showPageToast(message); }} />
+              <CatalogRulesPanel buttonClassName={styles.bulkBtn} onSaved={(message) => { setRules(getCatalogSettings()); showPageToast(message); }} />
               {legacyCount > 0 && (
                 <button className={styles.bulkBtn} type="button" onClick={startLegacyImport} title="These references were saved only in this browser by the old version">
                   <Upload size={15} /> Upload {legacyCount} saved on this browser

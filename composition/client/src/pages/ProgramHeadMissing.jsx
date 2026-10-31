@@ -3,7 +3,8 @@ import Skeleton from '../layouts/SkeletonA.jsx'
 import Header from '../components/HeaderA.jsx'
 import SideNavigation from '../components/SideNavigation.jsx'
 import MissingSubmissionsTable from '../components/MissingSubmissionsTable.jsx'
-import { Search, Download, Bell, X, Calendar } from 'react-feather'
+import { Search, Download, Bell, X, Calendar, CheckCircle } from 'react-feather'
+import EmptyState from '../components/EmptyState.jsx'
 import syllabusStyles from '../styles/SyllabusSections.module.sass'
 import pageStyles from '../styles/ProgramHeadWorkspace.module.sass'
 import { fetchJson, apiErrorMessage } from '../utils/api.js'
@@ -17,7 +18,6 @@ import {
 // set for the program and term; this page sets that date, reminds people now, pauses a plan, and
 // exports the list.
 const chip = { padding: '6px 12px', borderRadius: 999, fontSize: 13, fontWeight: 600, background: '#F3F4F6', color: '#111827' }
-const select = { height: 36, borderRadius: 8, border: '1px solid #D1D5DB', padding: '0 8px', background: '#FFFFFF' }
 
 const ProgramHeadMissing = () => {
   const [data, setData] = React.useState(null)
@@ -144,7 +144,7 @@ const ProgramHeadMissing = () => {
   const pageContent = (
     <div className={pageStyles.managementPage}>
       <div className={pageStyles.pageHeader}>
-        <h2>Not Yet Submitted</h2>
+        <h2 className="app-page-title">Not yet submitted</h2>
         <div className={pageStyles.pageHeaderActions} style={{ display: 'flex', gap: 8 }}>
           <button type="button" className={pageStyles.uploadButton} onClick={remindSelected} disabled={ticked.length === 0 || reminding}>
             <Bell size={18} color="#FFFFFF" /> {reminding ? 'Sending…' : `Remind selected (${ticked.length})`}
@@ -160,10 +160,10 @@ const ProgramHeadMissing = () => {
 
       <div className={`${syllabusStyles.header} ${pageStyles.dataToolbar}`}>
         <div className={pageStyles.toolbarControls} style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-          <select aria-label="School year" style={select} value={schoolYear} onChange={(e) => { setSchoolYear(e.target.value); setSelected(new Set()) }}>
+          <select aria-label="School year" className="app-select" value={schoolYear} onChange={(e) => { setSchoolYear(e.target.value); setSelected(new Set()) }}>
             {years.map(year => <option key={year} value={year}>{year}</option>)}
           </select>
-          <select aria-label="Semester" style={select} value={semester} onChange={(e) => { setSemester(e.target.value); setSelected(new Set()) }}>
+          <select aria-label="Semester" className="app-select" value={semester} onChange={(e) => { setSemester(e.target.value); setSelected(new Set()) }}>
             <option value="">All semesters</option>
             {SEMESTERS.map(name => <option key={name} value={name}>{name} semester</option>)}
           </select>
@@ -203,12 +203,11 @@ const ProgramHeadMissing = () => {
       {loading ? (
         <p>Loading the list…</p>
       ) : empty ? (
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
-          <div style={{ fontSize: 18, fontWeight: 600, color: '#111827' }}>{rows.length === 0 ? 'Every assigned plan has been submitted' : 'Nothing matches these filters'}</div>
-          <div style={{ color: '#6B7280', textAlign: 'center', maxWidth: 440 }}>
-            {rows.length === 0 ? 'Plans that are not submitted, or were returned and not resubmitted, appear here until the instructor submits them.' : 'Change the school year, the semester or the search.'}
-          </div>
-        </div>
+        <EmptyState
+          icon={<CheckCircle size={22} strokeWidth={1.6} />}
+          title={rows.length === 0 ? 'Every assigned plan has been submitted' : 'Nothing matches these filters'}
+          hint={rows.length === 0 ? 'Plans that are not submitted, or were returned and not resubmitted, appear here until the instructor submits them.' : 'Change the school year, the semester or the search.'}
+        />
       ) : !error && (
         <MissingSubmissionsTable rows={visible} selected={selected} onToggle={toggle} onToggleAll={toggleAll} onPause={pause} busyId={busyId} showProgram={deadlines.programs.length > 1} />
       )}

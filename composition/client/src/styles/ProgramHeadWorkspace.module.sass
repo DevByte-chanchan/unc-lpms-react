@@ -178,7 +178,9 @@
   width: 100%
   min-width: 0
   min-height: calc(100dvh - 100px)
-  padding: 20px
+  // The title starts where the course lists' titles start (their 30px frame plus the 18px column inset, less
+  // the 20px this page already had), so a title is in the same place on every screen.
+  padding: 20px 30px 20px 48px
   background: #fff
   box-sizing: border-box
   display: flex
