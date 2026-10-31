@@ -40,7 +40,7 @@ test('the approvers hold the permissions their part of the chain needs, and noth
         assert.equal(hasPermission(role, 'plan:edit'), false, `${role} does not edit a plan`);
     }
     assert.equal(hasPermission('director-of-libraries', 'reference:manage'), true);
-    assert.equal(hasPermission('dean', 'form-settings:edit'), true);
+    assert.equal(hasPermission('dean', 'form-settings:edit'), false, 'the form settings are no longer edited in the application');
     assert.equal(hasPermission('instructor', 'plan:review'), false, 'the instructor does not review');
 });
 

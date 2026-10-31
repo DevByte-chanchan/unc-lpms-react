@@ -6,7 +6,6 @@ import SideNavigation from "../components/SideNavigation.jsx";
 import DeanFaculty from "./DeanFaculty.jsx";
 import DeanPrograms from "./DeanPrograms.jsx";
 import ApprovalCourses from "./ApprovalCourses.jsx";
-import FormSettingsPanel from "../components/FormSettingsPanel.jsx";
 
 const Dean = () => {
   const [searchParams] = useSearchParams();
@@ -21,10 +20,7 @@ const Dean = () => {
       case 'Syllabus':
       default:
         return (
-          <>
-            <FormSettingsPanel />
-            <ApprovalCourses key="syllabus" isEmbedded={true} roleOverride="dean" />
-          </>
+          <ApprovalCourses key="syllabus" isEmbedded={true} roleOverride="dean" />
         );
     }
   };

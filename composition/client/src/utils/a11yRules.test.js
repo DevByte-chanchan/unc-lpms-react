@@ -22,7 +22,6 @@ const BASELINE = {
   'components/ApprovalCommentBox.jsx': 5,
   'components/ApprovalCoursesTable.jsx': 1,
   'components/ApprovalSyllabusSections.jsx': 5,
-  'components/FormSettingsPanel.jsx': 2,
   'components/ReferencePicker.jsx': 2,
   'pages/DeanFaculty.jsx': 4,
   'pages/DeanPrograms.jsx': 4,

@@ -11,10 +11,3 @@ export const fetchFormInfo = async () => {
   }
 }
 
-// Dean only: update one form's revision number / effectivity date (server validates).
-export const saveFormInfo = (formKey, values) =>
-  fetchJson(`/api/form-settings/${encodeURIComponent(formKey)}`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(values)
-  })
