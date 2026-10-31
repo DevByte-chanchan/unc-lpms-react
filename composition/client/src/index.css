@@ -303,6 +303,9 @@ textarea {
 }
 
 /* A filter: dark text on a light border, the height of the toolbar beside it. Red stays for warnings. */
+/* The title of a list page sits on its own row; the filters and tabs start the row under it. */
+.app-title-row.app-title-row { flex: 1 0 100%; }
+
 select.app-select.app-select {
     height: 36px;
     min-width: 0;

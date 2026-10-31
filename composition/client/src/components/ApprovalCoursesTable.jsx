@@ -320,7 +320,7 @@ const ApprovalCoursesTable = ({ role = 'approver', styleHooks = {} }) => {
     return (
         <div className={`${styles['courses-table']} ${styleHooks.root || ''}`.trim()}>
             <div className={`${styles.header} ${styleHooks.header || ''}`.trim()}>
-                <h2 className="app-page-title">Assigned course offerings</h2>
+                <h2 className="app-page-title app-title-row">Assigned course offerings</h2>
 
                 <div className={`${styles.filterA} app-filter-bar ${styleHooks.filters || ''}`.trim()}>
                     <select
