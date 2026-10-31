@@ -118,10 +118,10 @@ export const instructorCourseColumns = ({
 
 export const referenceLibraryColumns = () => [
     { key: 'id', label: 'ID', width: 140, type: 'text' },
-    { key: 'title', label: 'TITLE', width: 420, type: 'text' },
-    { key: 'authors', label: 'AUTHOR(S)', width: 260, type: 'text' },
-    { key: 'type', label: 'TYPE', width: 210, type: 'text' },
-    { key: 'year', label: 'YEAR', width: 90, type: 'number' },
+    { key: 'title', label: 'Title', width: 420, type: 'text' },
+    { key: 'authors', label: 'Author(s)', width: 260, type: 'text' },
+    { key: 'type', label: 'Type', width: 210, type: 'text' },
+    { key: 'year', label: 'Year', width: 90, type: 'number' },
     { key: 'actions', label: '', sortable: false }
 ]
 

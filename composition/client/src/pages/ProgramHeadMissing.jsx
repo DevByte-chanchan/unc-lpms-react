@@ -10,7 +10,7 @@ import syllabusStyles from '../styles/SyllabusSections.module.sass'
 import pageStyles from '../styles/ProgramHeadWorkspace.module.sass'
 import { fetchJson, apiErrorMessage } from '../utils/api.js'
 import {
-  dayLabel, sortMissing, schoolYearOptions, currentSchoolYear, remindSummary, toCsv, SEMESTERS
+  dayLabel, programCode, sortMissing, schoolYearOptions, currentSchoolYear, remindSummary, toCsv, SEMESTERS
 } from '../utils/missingSubmissions.js'
 
 // The Program Head's list of learning plans that are still waiting on their instructor: who, since
@@ -18,7 +18,6 @@ import {
 // (7, 3 and 1 days before the due date, on the day, then every third day overdue) once a due date is
 // set for the program and term; this page sets that date, reminds people now, pauses a plan, and
 // exports the list.
-const chip = { padding: '6px 12px', borderRadius: 999, fontSize: 13, fontWeight: 600, background: '#F3F4F6', color: '#111827' }
 
 const ProgramHeadMissing = () => {
   const [data, setData] = React.useState(null)
@@ -168,27 +167,23 @@ const ProgramHeadMissing = () => {
             <option value="">All semesters</option>
             {SEMESTERS.map(name => <option key={name} value={name}>{name} semester</option>)}
           </select>
+          <span role="status" style={{ marginLeft: 'auto', fontSize: 'var(--fs-xs)', color: 'var(--ink-muted)' }}>
+            {[`${visible.length} not submitted`, count('overdue') ? `${count('overdue')} overdue` : '', count('due-soon') ? `${count('due-soon')} due soon` : '', count('no-deadline') ? `${count('no-deadline')} with no due date` : ''].filter(Boolean).join(' · ')}
+          </span>
         </div>
       </div>
 
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '4px 0 12px' }} aria-label="Summary">
-        <span style={chip}>{visible.length} not submitted</span>
-        <span style={{ ...chip, background: '#FEE2E2', color: '#991B1B' }}>{count('overdue')} overdue</span>
-        <span style={{ ...chip, background: '#FEF3C7', color: '#92400E' }}>{count('due-soon')} due within 3 days</span>
-        <span style={chip}>{count('no-deadline')} with no due date</span>
-      </div>
-
-      <div style={{ border: '1px solid #E5E7EB', borderRadius: 8, padding: '10px 14px', margin: '0 0 12px', background: '#F9FAFB' }}>
-        <div style={{ fontWeight: 600, marginBottom: 6 }}><Calendar size={14} style={{ marginRight: 6 }} />Syllabus due date</div>
+      <div style={{ margin: '0 0 12px', fontSize: 'var(--fs-sm)' }}>
         {!semester ? (
-          <div style={{ color: '#6B7280' }}>Choose a semester to see or set its due date. The system sends automatic reminders only for programs that have one.</div>
+          <div style={{ color: 'var(--ink-muted)' }}><Calendar size={13} style={{ marginRight: 6, verticalAlign: -2 }} />Choose a semester to set its due date. Reminders go out only for programs that have one.</div>
         ) : deadlines.programs.length === 0 ? (
-          <div style={{ color: '#6B7280' }}>You do not head a program yet.</div>
+          <div style={{ color: 'var(--ink-muted)' }}>You do not head a program yet.</div>
         ) : deadlines.programs.map(program => {
           const found = termDeadline(program)
           return (
-            <div key={program.program_id} style={{ display: 'flex', gap: 12, alignItems: 'center', padding: '4px 0', flexWrap: 'wrap' }}>
-              <span style={{ minWidth: 220 }}>{program.name}</span>
+            <div key={program.program_id} style={{ display: 'flex', gap: 12, alignItems: 'center', padding: '2px 0', flexWrap: 'wrap' }}>
+              <Calendar size={13} aria-hidden="true" style={{ color: 'var(--ink-muted)' }} />
+              <span title={program.name}>Due date{deadlines.programs.length > 1 ? ` · ${programCode(program.name)}` : ''}</span>
               {found ? <strong>{dayLabel(found.syllabus_due)}</strong> : <span style={{ color: '#92400E' }}>No due date, so no automatic reminders</span>}
               <button type="button" className="app-link-button" onClick={() => openDialog(program)}>{found ? 'Change' : 'Set due date'}</button>
               {found && <button type="button" className="app-link-button" onClick={() => removeDeadline(program)}>Remove</button>}
@@ -206,7 +201,7 @@ const ProgramHeadMissing = () => {
           hint={rows.length === 0 ? 'Plans that are not submitted, or were returned and not resubmitted, appear here until the instructor submits them.' : 'Change the school year, the semester or the search.'}
         />
       ) : !error && (
-        <MissingSubmissionsTable rows={visible} selected={selected} onToggle={toggle} onToggleAll={toggleAll} onPause={pause} busyId={busyId} showProgram={deadlines.programs.length > 1} />
+        <MissingSubmissionsTable rows={visible} selected={selected} onToggle={toggle} onToggleAll={toggleAll} onPause={pause} busyId={busyId} today={data?.today} />
       )}
 
       {dialog && (

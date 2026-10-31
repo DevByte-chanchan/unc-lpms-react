@@ -567,7 +567,7 @@ const ReferenceLibrary = () => {
             </select>
           </div>
 
-          <TableScrollRegion label="Reference library" minWidth={720} className={styles.tableWrapper}>
+          <TableScrollRegion label="Reference library" minWidth={720} className={`${styles.tableWrapper} app-table`}>
             <table>
               <thead><tr>{REFERENCE_LIBRARY_COLUMNS.map(column => <SortableTh key={column.key} col={column} sortKey={sort.sortKey} sortDir={sort.sortDir} onSort={handleSort} />)}</tr></thead>
               <tbody>

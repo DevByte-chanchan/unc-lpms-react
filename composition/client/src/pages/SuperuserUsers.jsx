@@ -152,15 +152,15 @@ const SuperuserUsers = () => {
             {loading ? (
                 <p>Loading users…</p>
             ) : users.length > 0 ? (
-                <TableScrollRegion label="Users" minWidth={900} className={styles['table-container']}>
+                <TableScrollRegion label="Users" minWidth={900} className={`${styles['table-container']} app-table`}>
                     <table>
                         <thead style={{ position: 'sticky', top: 0, background: '#FFFFFF', zIndex: 1 }}>
                             <tr>
-                                <th width={240}>NAME</th>
-                                <th width={260}>EMAIL</th>
-                                <th width={200}>ROLE</th>
-                                <th width={120}>STATUS</th>
-                                <th width={160}>LAST SIGN-IN</th>
+                                <th width={240}>Name</th>
+                                <th width={260}>Email</th>
+                                <th width={200}>Role</th>
+                                <th width={120}>Status</th>
+                                <th width={160}>Last sign-in</th>
                                 <th className={styles.fill}></th>
                             </tr>
                         </thead>

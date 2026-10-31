@@ -164,13 +164,13 @@ const ApprovalCoursesTable = ({ role = 'approver', styleHooks = {} }) => {
     // ProgramCourseOffering, so sorting on `row.code` would compare undefined
     // to undefined and appear to do nothing.
     const COLUMNS = [
-        { key: 'date_assigned', label: 'DATE ASSIGNED', width: 200, type: 'date' },
-        { key: 'code', label: 'CODE', width: 150, type: 'text', sortValue: (r) => getCode(r) },
-        { key: 'name', label: 'COURSE NAME', width: 350, type: 'text', sortValue: (r) => getName(r) },
+        { key: 'date_assigned', label: 'Date assigned', width: 200, type: 'date' },
+        { key: 'code', label: 'Code', width: 150, type: 'text', sortValue: (r) => getCode(r) },
+        { key: 'name', label: 'Course name', width: 350, type: 'text', sortValue: (r) => getName(r) },
         ...(selectedStatus === 'APPROVED'
-            ? [{ key: 'date_approved', label: 'DATE APPROVED', width: 200, type: 'date' }]
+            ? [{ key: 'date_approved', label: 'Date approved', width: 200, type: 'date' }]
             : []),
-        { key: 'actions', label: 'ACTIONS', className: styles.fill, sortable: false }
+        { key: 'actions', label: 'Actions', className: styles.fill, sortable: false }
     ];
 
     const sortedRows = sortRows(filteredRows, COLUMNS, sort.sortKey, sort.sortDir);
@@ -377,7 +377,7 @@ const ApprovalCoursesTable = ({ role = 'approver', styleHooks = {} }) => {
             <TableScrollRegion
                 label="Assigned course offerings"
                 minWidth={900}
-                className={styles['table-container']}
+                className={`${styles['table-container']} app-table`}
             >
                 {/* While loading, show ONLY the spinner. Rendering it above the
                     table meant the empty state ("No learning plans waiting for

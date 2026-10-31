@@ -230,12 +230,11 @@ const SideNavigation = ({ mode = 'instructor' }) => {
                         <LogOut size={24} color={'#F94545'} /> <span className={styles.listText}>Log Out</span>
                     </div>
 
-                    <div className={styles.account}>
+                    <div className={styles.account} title={account?.email || undefined}>
                     <div className={styles.avatar} aria-hidden="true">{initialsOf(account?.name)}</div>
                     <div className={styles.accountText}>
                         <div className={styles.accountName}>{account?.name}</div>
                         <div className={styles.accountRole}>{account?.roleLabel}</div>
-                        {account?.email && <div className={styles.accountEmail}>{account.email}</div>}
                     </div>
                     </div>
                 </div>

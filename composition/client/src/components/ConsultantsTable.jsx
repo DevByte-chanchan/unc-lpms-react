@@ -6,13 +6,13 @@ import TableScrollRegion from './TableScrollRegion.jsx'
 // deactivating it, never by deleting it, so there is no delete action here: the row stays as
 // part of the accreditation trail. Re-assigning a deactivated consultant reactivates the row.
 const ConsultantsTable = ({ assignments = [], onDeactivate, onReactivate, busyId = null }) => (
-  <TableScrollRegion label="Industry consultant assignments" minWidth={760} className={styles['table-container']}>
+  <TableScrollRegion label="Industry consultant assignments" minWidth={760} className={`${styles['table-container']} app-table`}>
     <table>
       <thead style={{ position: 'sticky', top: 0, background: '#FFFFFF', zIndex: 1 }}>
         <tr>
-          <th width={260}>CONSULTANT</th>
-          <th width={320}>COURSE</th>
-          <th width={140}>STATUS</th>
+          <th width={260}>Consultant</th>
+          <th width={320}>Course</th>
+          <th width={140}>Status</th>
           <th className={styles.fill}></th>
         </tr>
       </thead>

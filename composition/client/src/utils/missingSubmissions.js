@@ -45,6 +45,39 @@ export const timeToPrepareLabel = (row) => {
   return `${days} day${days === 1 ? '' : 's'} to prepare`
 }
 
+// The short forms used inside the table, where room is tight. The year is left out when it is the year of
+// `today` ("30 Oct"), and shown otherwise ("30 Oct 2025").
+export const shortDay = (value, today = '') => {
+  const text = String(value ?? '').slice(0, 10)
+  const match = /^([0-9]{4})-([0-9]{2})-([0-9]{2})$/.exec(text)
+  if (!match) return value ? String(value) : '—'
+  const sameYear = match[1] === String(today).slice(0, 4)
+  return `${Number(match[3])} ${MONTHS[Number(match[2]) - 1] || match[2]}${sameYear ? '' : ` ${match[1]}`}`
+}
+
+// "31 Oct · system", "31 Oct · person", or "Never".
+export const lastReminderShort = (row, today = '') => (
+  row.lastReminderAt ? `${shortDay(String(row.lastReminderAt).replace(' ', 'T'), today)} · ${row.lastReminderBy === 'the system' ? 'system' : 'person'}` : 'Never'
+)
+
+// The sub-line under a course: where the plan stands, when it was assigned, and the time the instructor had.
+export const courseSubline = (row, today = '') => {
+  const state = row.state === 'Returned' ? 'Returned' : 'Not submitted'
+  const days = row.assignedDaysBeforeDue
+  const prep = days == null ? '' : days < 0 ? ', assigned after the due date' : `, ${days} day${days === 1 ? '' : 's'} to prepare`
+  return `${state}${row.isRevision ? ' · revision' : ''} · assigned ${shortDay(row.assignedDay, today)}${prep}`
+}
+
+// "Bachelor of Science in Information Technology" -> "BSIT": the capitals of the words that are not small joining words.
+export const programCode = (name) => {
+  const code = String(name || '').split(/\s+/).filter(word => word && !['of', 'in', 'and', 'the', 'for'].includes(word.toLowerCase()))
+    .map(word => word[0].toUpperCase()).join('')
+  return code || '—'
+}
+
+// "NORTON, MONICA" -> "Norton, Monica" (names are stored in capitals).
+export const niceName = (name) => String(name || '').toLowerCase().replace(/(^|[\s,.-])([a-z])/g, (all, before, letter) => before + letter.toUpperCase())
+
 export const SEMESTERS = ['1st', '2nd', 'Summer']
 
 // The school years to offer: those in the data, and this one and the next, newest first.
