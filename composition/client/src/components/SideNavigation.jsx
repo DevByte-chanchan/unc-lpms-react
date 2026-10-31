@@ -1,6 +1,6 @@
 import styles from '../styles/SideNavigation.module.sass'
 import unclogo from '../assets/unclogo.png'
-import { BookOpen, Briefcase, CheckCircle, Clipboard, Clock, FileText, GitMerge, Layers, LogOut, Target, User, Users } from 'react-feather'
+import { BookOpen, Briefcase, CheckCircle, Clipboard, Clock, FileText, GitMerge, Layers, Lock, LogOut, Target, Users } from 'react-feather'
 import { useSearchParams, useNavigate, useLocation } from 'react-router-dom'
 import { useEffect, useRef, useState } from 'react'
 import { getSession, logout } from '../utils/session'
@@ -245,12 +245,12 @@ const SideNavigation = ({ mode = 'instructor' }) => {
                     {/* The superuser administers accounts and receives no plan notifications. */}
                     {mode !== 'superuser' && getSession() && <NotificationBell />}
                     <div
-                        onClick={() => navigate('/profile')}
-                        className={`${styles.list} ${location.pathname === '/profile' ? styles.selected : ''}`}
-                        role="link" tabIndex={0} title="Profile and e-signature" aria-label="Profile"
-                        onKeyDown={(event) => activateWithKeyboard(event, () => navigate('/profile'))}
+                        onClick={() => navigate('/change-password')}
+                        className={`${styles.list} ${location.pathname === '/change-password' ? styles.selected : ''}`}
+                        role="link" tabIndex={0} title="Change password" aria-label="Change password"
+                        onKeyDown={(event) => activateWithKeyboard(event, () => navigate('/change-password'))}
                     >
-                        <User size={24} /> <span className={styles.listText}>Profile</span>
+                        <Lock size={24} /> <span className={styles.listText}>Change password</span>
                     </div>
                     <div className={styles.listB} onClick={onLogoutClick} role="button" tabIndex={0} title="Log out" aria-label="Log out" onKeyDown={(event) => activateWithKeyboard(event, onLogoutClick)}>
                         <LogOut size={24} color={'#F94545'} /> <span className={styles.listText}>Log Out</span>

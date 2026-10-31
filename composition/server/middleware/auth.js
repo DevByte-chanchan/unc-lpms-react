@@ -107,10 +107,10 @@ const requirePermission = (permission) => (req, res, next) => {
     return next();
 };
 
-// The superuser administers accounts, reads the audit trail and has their own profile; they have no business in
+// The superuser administers accounts and reads the audit trail; they have no business in
 // learning-plan data, so every other business API is closed to them (/api/auth is mounted
 // before this and is unaffected).
-const SUPERUSER_PATHS = /^\/(users|audit-logs|profile)(\/|$)/;
+const SUPERUSER_PATHS = /^\/(users|audit-logs)(\/|$)/;
 const restrictSuperuser = (req, res, next) => {
     if (req.user?.role === 'superuser' && !SUPERUSER_PATHS.test(req.path)) {
         return res.status(403).json({ error: 'You do not have permission to perform this action.' });

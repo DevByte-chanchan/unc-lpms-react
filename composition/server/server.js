@@ -113,7 +113,6 @@ app.use('/api/course-consultants', require('./routes/courseConsultants'));
 app.use('/api/offerings', require('./routes/offerings'));
 app.use('/api/audit-logs', require('./routes/auditLogs'));
 app.use('/api/users', require('./routes/users'));
-app.use('/api/profile', require('./routes/profile'));
 app.use('/api/notifications', require('./routes/notifications'));
 app.use('/api/term-deadlines', require('./routes/termDeadlines'));
 app.use('/api/missing-submissions', require('./routes/missingSubmissions'));

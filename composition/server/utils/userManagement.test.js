@@ -175,7 +175,7 @@ test('the superuser is closed out of every API except users and the audit trail'
     assert.equal(outcome('superuser', '/users'), 'pass');
     assert.equal(outcome('superuser', '/users/3/role'), 'pass');
     assert.equal(outcome('superuser', '/audit-logs'), 'pass');
-    assert.equal(outcome('superuser', '/profile/signature'), 'pass');
+    assert.equal(outcome('superuser', '/profile'), 403, 'there is no profile page any more');
     for (const path of ['/assignments', '/ilos/1', '/references', '/coaep/1', '/usersX']) assert.equal(outcome('superuser', path), 403, path);
     assert.equal(outcome('dean', '/assignments'), 'pass');
 });

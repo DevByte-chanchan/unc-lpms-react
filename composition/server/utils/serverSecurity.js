@@ -1,8 +1,8 @@
 'use strict';
 
 // HTTP security settings for the API: security headers (helmet), the session cookie's flags, and
-// which proxy headers to believe. The API serves JSON and one encrypted signature image, never a
-// web page; the client (Vite) is a separate origin that fetches it, so these headers do not touch it.
+// which proxy headers to believe. The API serves JSON, never a web page; the client (Vite) is a
+// separate origin that fetches it, so these headers do not touch it.
 
 const helmet = require('helmet');
 
@@ -61,7 +61,7 @@ const applySecurity = (app, env = process.env) => {
     app.use(helmet({
         contentSecurityPolicy: apiContentSecurityPolicy,
         hsts: false,
-        // The client at another port of the same host fetches the signature image through fetch()+CORS;
+        // The client at another port of the same host fetches the API through fetch()+CORS;
         // "same-site" lets same-site embeds work and still blocks other sites.
         crossOriginResourcePolicy: { policy: 'same-site' },
         referrerPolicy: { policy: 'no-referrer' }

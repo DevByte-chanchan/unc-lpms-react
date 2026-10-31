@@ -1,4 +1,4 @@
-import { escapeHtml, sanitizeUrl, signatureImageSrc } from './sanitize.js'
+import { escapeHtml, sanitizeUrl } from './sanitize.js'
 import { DEFAULT_FORM_INFO } from './formInfo.js'
 const safe = (v, fallback = '—') => (v === null || v === undefined || v === '') ? fallback : escapeHtml(String(v))
 
@@ -871,9 +871,7 @@ function page14(syllabus, workflow, logo, pageNum, total) {
     const accepted = node?.status === 'done'
     return {
       name: signature?.name || node?.reviewerName || '_____________',
-      date: accepted ? extractDate(signature?.signedAt || node?.completedAt) : extractDate(null),
-      // The approver's uploaded e-signature, only once they have accepted (server-side check too).
-      image: accepted ? signatureImageSrc(workflow?.signatureImages?.[roleKey]) : ''
+      date: accepted ? extractDate(signature?.signedAt || node?.completedAt) : extractDate(null)
     }
   }
   const librarian = approval('director-of-libraries', workflow?.parallelReview?.library_director)
@@ -959,7 +957,7 @@ function page14(syllabus, workflow, logo, pageNum, total) {
         ${signatories.map(s => '<td style="' + SIG_CELL + 'background:#d9d9d9; font-weight:bold;">' + s.label + '</td>').join('\n        ')}
       </tr>
       <tr>
-        ${signatories.map(s => '<td style="' + SIG_CELL + 'font-weight:bold; padding-top:' + (s.image ? '4px' : '20px') + ';">' + (s.image ? '<img src="' + s.image + '" alt="Signature" style="display:block; margin:0 auto 2px; max-height:14mm; max-width:90%;">' : '') + s.name + '<br><span style="font-size:7.5pt; font-weight:normal;">' + s.role + '</span></td>').join('\n        ')}
+        ${signatories.map(s => '<td style="' + SIG_CELL + 'font-weight:bold; padding-top:20px;">' + s.name + '<br><span style="font-size:7.5pt; font-weight:normal;">' + s.role + '</span></td>').join('\n        ')}
       </tr>
       <tr>
         ${signatories.map(s => '<td style="' + SIG_CELL + 'font-size:7.5pt;">Date: ' + s.date + '</td>').join('\n        ')}

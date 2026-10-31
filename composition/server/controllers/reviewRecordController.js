@@ -4,7 +4,6 @@ const { sequelize, Sequelize, Comment } = require('../models');
 const { buildIloLabels, buildTargetTitles, approvedOrigin, freezeReviewRecord, loadSnapshot } = require('../utils/reviewRecordInputs');
 const { assignmentChain, effectiveLogs } = require('../utils/effectiveLogs');
 const { assembleReviewRecord } = require('../utils/reviewRecord');
-const { signaturesForLogs } = require('../utils/approverSignatures');
 const { canSeeRecordComment } = require('../utils/commentVisibility');
 
 const select = (sql, replacements = []) =>
@@ -69,10 +68,7 @@ async function getReviewRecord(req, res, next) {
             iloLabels,
             targetTitles: new Map([...await buildTargetTitles(comments), ...(frozen ? frozen.targetTitles : [])]),
         });
-        // Each approver's e-signature image (data: URI), only for approvals they performed.
-        const signatures = await signaturesForLogs(logs);
-        const approvers = record.approvers.map(approver => ({ ...approver, signature: signatures[approver.role] || null }));
-        return res.json({ ...record, approvers, generatedAt: new Date().toISOString() });
+        return res.json({ ...record, generatedAt: new Date().toISOString() });
     } catch (err) {
         return next(err);
     }
