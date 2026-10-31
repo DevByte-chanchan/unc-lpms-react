@@ -3,10 +3,9 @@ import unclogo from '../assets/unclogo.png'
 import { BookOpen, Briefcase, CheckCircle, Clipboard, Clock, FileText, GitMerge, Layers, Lock, LogOut, Target, Users } from 'react-feather'
 import { useSearchParams, useNavigate, useLocation } from 'react-router-dom'
 import { useEffect, useRef, useState } from 'react'
-import { getSession, logout } from '../utils/session'
+import { logout } from '../utils/session'
 import { routes } from '../utils/routes.js';
 import SignOutDialog from './SignOutDialog.jsx'
-import NotificationBell from './NotificationBell.jsx'
 import { navigationIconName } from '../utils/navigationIcons.js'
 
 const NAVIGATION_ICON_COMPONENTS = {
@@ -242,8 +241,6 @@ const SideNavigation = ({ mode = 'instructor' }) => {
                 )}
 
                 <div className={styles.logoutWrapper}>
-                    {/* The superuser administers accounts and receives no plan notifications. */}
-                    {mode !== 'superuser' && getSession() && <NotificationBell />}
                     <div
                         onClick={() => navigate('/change-password')}
                         className={`${styles.list} ${location.pathname === '/change-password' ? styles.selected : ''}`}

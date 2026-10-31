@@ -1,6 +1,7 @@
 import React from "react";
 import ProgramsTable from "../components/ProgramsTable.jsx";
-import { Clock, Search, ArrowUp, ArrowDown, Upload, Clipboard, ChevronRight, X, UserPlus } from "react-feather";
+import { usePageSearch } from '../utils/pageSearch.js'
+import { Clock, ArrowUp, ArrowDown, Upload, Clipboard, ChevronRight, X, UserPlus } from "react-feather";
 import styles from '../styles/CoursesTable.module.sass';
 import syllabusStyles from '../styles/SyllabusSections.module.sass';
 import pageStyles from '../styles/ProgramHeadWorkspace.module.sass';
@@ -22,7 +23,7 @@ const DeanPrograms = () => {
   const [sortOpen, setSortOpen] = React.useState(false);
   const [showTable, setShowTable] = React.useState(false);
   const [selectedFile, setSelectedFile] = React.useState(null);
-  const [searchQuery, setSearchQuery] = React.useState("");
+  const searchQuery = usePageSearch('Search programs');
   const [programsList, setProgramsList] = React.useState([]);
   const [showAssignModal, setShowAssignModal] = React.useState(false);
   const [selectedProgram, setSelectedProgram] = React.useState(null);
@@ -91,12 +92,6 @@ const DeanPrograms = () => {
                   </button>
                 </div>
               )}
-            </div>
-          </div>
-          <div className={pageStyles.toolbarControls}>
-            <div className={`${syllabusStyles['section-select']} ${pageStyles.searchShell}`}>
-              <Search size={16} style={{ marginRight: 8, color: '#374151' }} />
-              <input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search programs" className={pageStyles.searchInput} />
             </div>
           </div>
         </div>

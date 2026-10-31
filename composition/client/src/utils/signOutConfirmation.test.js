@@ -10,7 +10,7 @@ const read = relative => fs.readFileSync(path.join(src, relative), 'utf8')
 
 test('sign-out lives in the left bar only and opens the shared confirmation instead of logging out directly', () => {
   for (const relative of ['components/Header.jsx', 'components/HeaderA.jsx']) {
-    assert.doesNotMatch(read(relative), /logout|Sign out|NotificationBell|\/profile/, `${relative} shows only the name and role`)
+    assert.doesNotMatch(read(relative), /logout|Sign out|\/profile/, `${relative} shows only the name and role`)
   }
   assert.doesNotMatch(read('components/SideNavigation.jsx'), /onClick=\{logout\}/, 'the left bar must not log out immediately')
 

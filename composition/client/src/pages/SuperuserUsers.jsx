@@ -3,7 +3,8 @@ import Skeleton from "../layouts/SkeletonA.jsx";
 import Header from "../components/HeaderA.jsx";
 import SideNavigation from "../components/SideNavigation.jsx";
 import TableScrollRegion from '../components/TableScrollRegion.jsx'
-import { Search, UserPlus, X } from "react-feather";
+import { usePageSearch } from '../utils/pageSearch.js'
+import { UserPlus, X } from "react-feather";
 import styles from '../styles/CoursesTable.module.sass'
 import syllabusStyles from '../styles/SyllabusSections.module.sass'
 import pageStyles from '../styles/ProgramHeadWorkspace.module.sass'
@@ -21,7 +22,7 @@ const SuperuserUsers = () => {
     const [loading, setLoading] = React.useState(true);
     const [error, setError] = React.useState('');
     const [notice, setNotice] = React.useState('');
-    const [search, setSearch] = React.useState('');
+    const search = usePageSearch('Search name or email');
     const [roleFilter, setRoleFilter] = React.useState('');
     const [statusFilter, setStatusFilter] = React.useState('');
     const [createOpen, setCreateOpen] = React.useState(false);
@@ -136,10 +137,6 @@ const SuperuserUsers = () => {
 
             <div className={`${syllabusStyles.header} ${pageStyles.dataToolbar}`}>
                 <div className={pageStyles.toolbarControls}>
-                    <div className={`${syllabusStyles['section-select']} ${pageStyles.searchShell}`}>
-                        <Search size={16} style={{ marginRight: 8, color: '#374151' }} />
-                        <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search name or email" aria-label="Search users" className={pageStyles.searchInput} />
-                    </div>
                     <select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)} aria-label="Filter by role">
                         <option value="">All roles</option>
                         {ROLES.map(r => <option key={r.key} value={r.key}>{r.label}</option>)}

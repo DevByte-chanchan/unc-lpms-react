@@ -30,7 +30,8 @@ test('table layout rules are scoped to the shared table region', () => {
 })
 
 test('duplicate shells and headers reuse the canonical implementation', () => {
-  assert.match(read('components/HeaderA.jsx'), /styles\/Header\.module\.sass/)
+  assert.match(read('components/HeaderA.jsx'), /Header\.jsx/)
+  assert.match(read('components/Header.jsx'), /styles\/Header\.module\.sass/)
   assert.match(read('layouts/SkeletonA.jsx'), /Skeleton\.jsx/)
   for (const file of ['styles/Skeleton.module.sass', 'styles/SkeletonA.module.sass']) {
     assert.doesNotMatch(read(file), /(^|\n)\s*\*\s*$/)

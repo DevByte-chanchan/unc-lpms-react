@@ -2,10 +2,10 @@ import React from "react";
 import Skeleton from "../layouts/SkeletonA.jsx";
 import Header from "../components/HeaderA.jsx";
 import SideNavigation from "../components/SideNavigation.jsx";
-import { Search, Clipboard, X, Briefcase } from "react-feather";
+import { Clipboard, X, Briefcase } from "react-feather";
 import EmptyState from '../components/EmptyState.jsx'
+import { usePageSearch } from '../utils/pageSearch.js'
 import ConsultantsTable from '../components/ConsultantsTable.jsx'
-import syllabusStyles from '../styles/SyllabusSections.module.sass'
 import pageStyles from '../styles/ProgramHeadWorkspace.module.sass'
 import { fetchJson, apiErrorMessage } from '../utils/api.js'
 
@@ -17,7 +17,7 @@ const ProgramHeadIndustryConsultant = () => {
     const [candidates, setCandidates] = React.useState({ courses: [], consultants: [] });
     const [loading, setLoading] = React.useState(true);
     const [error, setError] = React.useState('');
-    const [searchQuery, setSearchQuery] = React.useState('');
+    const searchQuery = usePageSearch('Search consultants');
     const [assignOpen, setAssignOpen] = React.useState(false);
     const [courseId, setCourseId] = React.useState('');
     const [consultantId, setConsultantId] = React.useState('');
@@ -112,15 +112,6 @@ const ProgramHeadIndustryConsultant = () => {
             </div>
 
             {error && <div role="alert" style={{ margin: '0 0 12px', color: '#b91c1c' }}>{error}</div>}
-
-            <div className={`${syllabusStyles.header} ${pageStyles.dataToolbar}`}>
-                <div className={pageStyles.toolbarControls}>
-                    <div className={`${syllabusStyles['section-select']} ${pageStyles.searchShell}`}>
-                        <Search size={16} style={{ marginRight: 8, color: '#374151' }} />
-                        <input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search consultants" className={pageStyles.searchInput} />
-                    </div>
-                </div>
-            </div>
 
             {loading ? (
                 <p>Loading assignments…</p>

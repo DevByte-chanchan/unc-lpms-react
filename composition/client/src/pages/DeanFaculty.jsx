@@ -1,6 +1,7 @@
 import React from "react";
 import FacultyTable from "../components/FacultyTable.jsx";
-import { Clock, Search, ArrowUp, ArrowDown, Upload, Clipboard, User, X } from "react-feather";
+import { usePageSearch } from '../utils/pageSearch.js'
+import { Clock, ArrowUp, ArrowDown, Upload, Clipboard, User, X } from "react-feather";
 import styles from '../styles/CoursesTable.module.sass';
 import syllabusStyles from '../styles/SyllabusSections.module.sass';
 import pageStyles from '../styles/ProgramHeadWorkspace.module.sass';
@@ -23,7 +24,7 @@ const DeanFaculty = () => {
   const [showTable, setShowTable] = React.useState(false);
   const [selectedFile, setSelectedFile] = React.useState(null);
   const fileInputRef = React.useRef(null);
-  const [searchQuery, setSearchQuery] = React.useState("");
+  const searchQuery = usePageSearch('Search faculty');
   const [showDetailModal, setShowDetailModal] = React.useState(false);
   const [selectedFaculty, setSelectedFaculty] = React.useState(null);
   const [roleFilter, setRoleFilter] = React.useState(null);
@@ -292,10 +293,6 @@ const DeanFaculty = () => {
                 <option value="Program Head">Program Head</option>
                 <option value="Instructor">Instructor</option>
               </select>
-            </div>
-            <div className={`${syllabusStyles['section-select']} ${pageStyles.searchShell}`}>
-              <Search size={16} style={{ marginRight: 8, color: '#374151' }} />
-              <input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search faculty" className={pageStyles.searchInput} />
             </div>
           </div>
         </div>

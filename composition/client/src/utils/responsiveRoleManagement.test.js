@@ -75,11 +75,9 @@ test('populated role toolbars wrap without disconnecting their search inputs', (
 
   for (const [file, placeholder] of rolePages) {
     const page = read(file)
-    assert.match(page, /pageStyles\.dataToolbar/)
-    assert.match(page, /pageStyles\.toolbarControls/)
-    assert.match(page, /pageStyles\.searchShell/)
-    assert.match(page, /className=\{pageStyles\.searchInput\}/)
-    assert.match(page, new RegExp(`value=\\{searchQuery\\}[\\s\\S]*onChange=\\{\\(e\\) => setSearchQuery\\(e\\.target\\.value\\)\\}[\\s\\S]*placeholder="${placeholder}"`))
+    // The search box now lives in the top bar; the page registers it and filters its own list.
+    assert.match(page, new RegExp(`usePageSearch\\('${placeholder}'\\)`))
+    assert.doesNotMatch(page, /pageStyles\.searchShell/, `${file} has no second search box`)
     assert.doesNotMatch(page, /width:\s*360\b/)
   }
 })

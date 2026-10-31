@@ -8,17 +8,19 @@
   overflow: hidden
 
 .left
-  flex: 0 0 90px
-  width: 90px
-  min-width: 90px
+  // Open (labelled) by default; the top bar's button collapses it to icons. Narrow screens always use icons.
+  flex: 0 0 250px
+  width: 250px
+  min-width: 250px
   height: 100%
   background: var(--surface)
   border-right: 1px solid var(--line)
-  transition: flex-basis var(--t-med), min-width var(--t-med)
+  transition: flex-basis var(--t-med), min-width var(--t-med), width var(--t-med)
 
-.left:hover
-  flex-basis: 280px
-  min-width: 280px
+.left[data-nav-collapsed='true']
+  flex-basis: 90px
+  width: 90px
+  min-width: 90px
 
 .right
   background: var(--surface-sunken)
@@ -50,14 +52,14 @@
   .main-layout
     gap: 6px
 
-  .left, .left:hover
+  .left, .left[data-nav-collapsed='true']
     flex: 0 0 72px
     width: 72px
     min-width: 72px
     max-width: 72px
 
 @media (max-width: 720px)
-  .left, .left:hover
+  .left, .left[data-nav-collapsed='true']
     flex-basis: 60px
     width: 60px
     min-width: 60px

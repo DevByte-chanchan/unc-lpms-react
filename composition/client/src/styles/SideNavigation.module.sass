@@ -123,3 +123,28 @@
 
   .listText
     display: none
+
+// Collapsed to icons by the top bar's button (the layout sets data-nav-collapsed on the sidebar).
+:global([data-nav-collapsed='true']) .logo
+  padding: 10px 0
+  justify-content: center
+
+:global([data-nav-collapsed='true']) .logo img
+  width: 44px
+
+:global([data-nav-collapsed='true']) .lpms
+  padding: 0 0 20px
+  margin-top: 6px
+  font-size: 12px
+  text-align: center
+
+:global([data-nav-collapsed='true']) .nav-list
+  margin: 20px 8px 0
+
+:global([data-nav-collapsed='true']) .list, :global([data-nav-collapsed='true']) .listB
+  justify-content: center
+  padding: 10px 8px
+  gap: 0
+
+:global([data-nav-collapsed='true']) .listText
+  display: none

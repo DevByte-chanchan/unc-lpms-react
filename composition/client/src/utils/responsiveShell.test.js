@@ -28,9 +28,9 @@ test('compact navigation labels remain accessible without rail expansion', () =>
   assert.match(css, /\.listText[\s\S]*display:\s*none/)
 })
 
-test('headers wrap at mobile width and the left bar carries Notifications, Change password and Log Out', () => {
+test('headers wrap at mobile width and the top bar carries Notifications and the left bar Change password and Log Out', () => {
   const nav = read('components/SideNavigation.jsx')
-  assert.match(nav, /<NotificationBell/)
+  assert.match(read('components/Header.jsx'), /<NotificationBell/, 'the bell is in the top bar')
   assert.match(nav, /navigate\('\/change-password'\)/)
   assert.match(nav, /Log Out/)
   for (const file of ['styles/Header.module.sass', 'styles/HeaderA.module.sass']) {

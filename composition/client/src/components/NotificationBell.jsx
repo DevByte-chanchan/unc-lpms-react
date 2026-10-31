@@ -5,15 +5,17 @@ import { getSession } from '../utils/session.js'
 import { POLL_MS, loadUnreadCount, loadNotifications, markRead, markAllRead } from '../utils/notificationsApi.js'
 import { notificationPath, timeAgo } from '../utils/notificationLinks.js'
 import navStyles from '../styles/SideNavigation.module.sass'
+import headerStyles from '../styles/Header.module.sass'
 
-// Notifications, as an item of the left navigation bar: a bell with an unread badge (polled every
+// Notifications, as a bell in the top bar (variant "topbar") or an item of the left navigation bar: a bell with an unread badge (polled every
 // 45 s while the tab is visible) that opens a panel of the latest items with read / unread state,
 // mark one or all read, and click to open the course. The panel is positioned with `fixed` from the
 // item's own position, so the narrow bar's overflow cannot clip it.
 const PANEL_WIDTH = 340
 const PANEL_MAX_HEIGHT = 420
 
-const NotificationBell = () => {
+const NotificationBell = ({ variant = 'nav' }) => {
+  const topbar = variant === 'topbar'
   const navigate = useNavigate()
   const role = getSession()?.role
   const [count, setCount] = useState(0)
@@ -59,10 +61,13 @@ const NotificationBell = () => {
     const next = !open
     if (next && trigger.current) {
       const rect = trigger.current.getBoundingClientRect()
-      setAnchor({
-        left: Math.min(rect.right + 10, window.innerWidth - PANEL_WIDTH - 8),
-        top: Math.max(8, Math.min(rect.top, window.innerHeight - PANEL_MAX_HEIGHT - 8))
-      })
+      // In the top bar the panel opens under the bell, its right edge on the bell's; in the sidebar it opens beside the item.
+      setAnchor(topbar
+        ? { left: Math.max(8, Math.min(rect.right - PANEL_WIDTH, window.innerWidth - PANEL_WIDTH - 8)), top: rect.bottom + 8 }
+        : {
+          left: Math.min(rect.right + 10, window.innerWidth - PANEL_WIDTH - 8),
+          top: Math.max(8, Math.min(rect.top, window.innerHeight - PANEL_MAX_HEIGHT - 8))
+        })
       refreshList()
     }
     setOpen(next)
@@ -90,7 +95,7 @@ const NotificationBell = () => {
     <div ref={box}>
       <div
         ref={trigger}
-        className={navStyles.list}
+        className={topbar ? headerStyles.iconButton : navStyles.list}
         role="button"
         tabIndex={0}
         title="Notifications"
@@ -101,14 +106,14 @@ const NotificationBell = () => {
         onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); toggle() } }}
       >
         <span style={{ position: 'relative', display: 'inline-flex' }}>
-          <Bell size={24} />
+          <Bell size={topbar ? 20 : 24} />
           {count > 0 && (
             <span aria-hidden="true" style={{ position: 'absolute', top: -6, right: -8, minWidth: 16, height: 16, padding: '0 4px', borderRadius: 8, background: '#dc2626', color: '#fff', fontSize: 11, fontWeight: 600, lineHeight: '16px', textAlign: 'center', boxSizing: 'border-box' }}>
               {count > 99 ? '99+' : count}
             </span>
           )}
         </span>
-        <span className={navStyles.listText}>Notifications</span>
+        {!topbar && <span className={navStyles.listText}>Notifications</span>}
       </div>
 
       {open && (

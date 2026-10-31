@@ -3,8 +3,9 @@ import Skeleton from '../layouts/SkeletonA.jsx'
 import Header from '../components/HeaderA.jsx'
 import SideNavigation from '../components/SideNavigation.jsx'
 import MissingSubmissionsTable from '../components/MissingSubmissionsTable.jsx'
-import { Search, Download, Bell, X, Calendar, CheckCircle } from 'react-feather'
+import { Download, Bell, X, Calendar, CheckCircle } from 'react-feather'
 import EmptyState from '../components/EmptyState.jsx'
+import { usePageSearch } from '../utils/pageSearch.js'
 import syllabusStyles from '../styles/SyllabusSections.module.sass'
 import pageStyles from '../styles/ProgramHeadWorkspace.module.sass'
 import { fetchJson, apiErrorMessage } from '../utils/api.js'
@@ -27,7 +28,7 @@ const ProgramHeadMissing = () => {
   const [notice, setNotice] = React.useState('')
   const [schoolYear, setSchoolYear] = React.useState('')
   const [semester, setSemester] = React.useState('')
-  const [query, setQuery] = React.useState('')
+  const query = usePageSearch('Search course or instructor')
   const [selected, setSelected] = React.useState(() => new Set())
   const [busyId, setBusyId] = React.useState(null)
   const [reminding, setReminding] = React.useState(false)
@@ -167,10 +168,6 @@ const ProgramHeadMissing = () => {
             <option value="">All semesters</option>
             {SEMESTERS.map(name => <option key={name} value={name}>{name} semester</option>)}
           </select>
-          <div className={`${syllabusStyles['section-select']} ${pageStyles.searchShell}`}>
-            <Search size={16} style={{ marginRight: 8, color: '#374151' }} />
-            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search course or instructor" aria-label="Search by course or instructor" className={pageStyles.searchInput} />
-          </div>
         </div>
       </div>
 
