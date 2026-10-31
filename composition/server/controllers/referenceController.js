@@ -8,6 +8,7 @@ const { Reference, sequelize, Sequelize } = require('../models');
 const { describeTypes, FIELDS } = require('../config/referenceTypes');
 const { validateReference, duplicateKey, isbnKey, findDuplicate, changedFields } = require('../utils/referenceValidation');
 const { record: audit } = require('../utils/audit');
+const { onReferenceEdited } = require('../utils/referenceAlerts');
 
 const MAX_IMPORT_ROWS = 1000;
 
@@ -102,8 +103,11 @@ async function updateReference(req, res) {
             const duplicate = findDuplicate(result.values, await storedForDuplicates(), [id, ...together]);
             if (duplicate) return res.status(409).json(duplicateReply(duplicate));
         }
+        const before = stored.get({ plain: true });
         await stored.update(result.values);
         await auditReference(req, 'REFERENCE_UPDATED', id, { changed });
+        // A title that just became unusable: tell the Program Heads whose plans use it (never fails the edit).
+        await onReferenceEdited({ sequelize, before, after: stored.get({ plain: true }) });
         return res.json(stored);
     } catch (err) {
         console.error('updateReference error', err);

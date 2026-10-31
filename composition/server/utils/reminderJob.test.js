@@ -114,7 +114,7 @@ test('running the job again the same day sends nothing twice', async () => {
 test('on Monday the Program Head gets one summary, counting every plan still waiting in their program', async () => {
     const summary = await digests();
     assert.equal(summary.length, 1);
-    assert.equal(summary[0].message, '4 learning plans not submitted'); // A, C, D and E; B is submitted
+    assert.equal(summary[0].message, '4 learning plans not submitted, 1 with no active instructor'); // A, C, D and E; B is submitted; E's instructor is deactivated
     await run('2026-11-02T11:00:00Z');
     assert.equal((await digests()).length, 1, 'not twice the same day');
 });

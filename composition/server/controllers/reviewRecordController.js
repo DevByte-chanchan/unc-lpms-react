@@ -1,6 +1,7 @@
 'use strict';
 
 const { sequelize, Sequelize, Comment } = require('../models');
+const { buildIloLabels, buildTargetTitles, approvedOrigin, freezeReviewRecord, loadSnapshot } = require('../utils/reviewRecordInputs');
 const { assignmentChain, effectiveLogs } = require('../utils/effectiveLogs');
 const { assembleReviewRecord } = require('../utils/reviewRecord');
 const { signaturesForLogs } = require('../utils/approverSignatures');
@@ -8,55 +9,6 @@ const { canSeeRecordComment } = require('../utils/commentVisibility');
 
 const select = (sql, replacements = []) =>
     sequelize.query(sql, { replacements, type: Sequelize.QueryTypes.SELECT });
-
-// Same numbering the syllabus screens use: CO n, ILO k within it; an orientation ILO has no number.
-const buildIloLabels = async (offeringId) => {
-    const rows = await select(
-        `SELECT co.co_id, ilo.ilo_id, ilo.is_orientation
-         FROM CourseOutcomes co
-             INNER JOIN IntendedLearningOutcomes ilo ON ilo.co_id = co.co_id
-         WHERE co.pc_offering_id = ?
-         ORDER BY co.co_id ASC, ilo.ilo_id ASC;`, [offeringId]);
-    const labels = new Map();
-    const coNumbers = new Map();
-    const counters = new Map();
-    for (const row of rows) {
-        if (!coNumbers.has(row.co_id)) coNumbers.set(row.co_id, coNumbers.size + 1);
-        if (row.is_orientation) { labels.set(row.ilo_id, 'Course Orientation'); continue; }
-        counters.set(row.co_id, (counters.get(row.co_id) || 0) + 1);
-        labels.set(row.ilo_id, `CO${coNumbers.get(row.co_id)}-ILO${counters.get(row.co_id)}`);
-    }
-    return labels;
-};
-
-const TITLE_SQL = {
-    references: 'SELECT reference_id AS id, title FROM `References` WHERE reference_id IN',
-    topics: 'SELECT topic_id AS id, title FROM Topics WHERE topic_id IN',
-    tlas: 'SELECT tla_id AS id, tla_name AS title FROM TeachingAndLearningActivities WHERE tla_id IN',
-};
-
-const buildTargetTitles = async (comments) => {
-    const targets = new Map();
-    const ids = comments.map(comment => comment.comment_id);
-    if (ids.length === 0) return targets;
-    const rows = await select(`SELECT comment_id, target_id FROM CommentTargets WHERE comment_id IN (${ids.map(() => '?').join(', ')});`, ids);
-    const byType = new Map();
-    for (const comment of comments) {
-        if (!TITLE_SQL[comment.comment_for]) continue;
-        const wanted = rows.filter(row => row.comment_id === comment.comment_id).map(row => row.target_id);
-        if (wanted.length) byType.set(comment.comment_id, { type: comment.comment_for, ids: wanted });
-    }
-    for (const type of Object.keys(TITLE_SQL)) {
-        const all = [...new Set([...byType.values()].filter(entry => entry.type === type).flatMap(entry => entry.ids))];
-        if (all.length === 0) continue;
-        const titles = new Map((await select(`${TITLE_SQL[type]} (${all.map(() => '?').join(', ')});`, all)).map(row => [row.id, row.title]));
-        for (const [commentId, entry] of byType) {
-            if (entry.type !== type) continue;
-            targets.set(commentId, entry.ids.map(id => titles.get(id)).filter(Boolean));
-        }
-    }
-    return targets;
-};
 
 /**
  * GET /api/assignments/offering/:pcId/review-record
@@ -78,12 +30,22 @@ async function getReviewRecord(req, res, next) {
         // Under review, an approver's record holds their own comments only; once the plan is approved they get
         // the whole record of the part they cover (utils/commentVisibility.js, config/sectionAccess.js).
         const approved = course.approved_at != null || course.carried_from_offering_id != null;
-        const comments = (assignmentId
+        const liveComments = assignmentId
             ? await Comment.findAll({
                 where: { co_assign_id: await assignmentChain(sequelize, assignmentId) },
                 order: [['createdAt', 'ASC'], ['comment_id', 'ASC']], raw: true
             })
-            : []).filter(comment => canSeeRecordComment(req.user, comment, { approved }));
+            : [];
+        // An approved plan's record is read from the copy frozen at approval (taken now if this is the first
+        // look, for plans approved before snapshots existed), so renaming a reference or renumbering outcomes
+        // later cannot change it. A comment that was deleted since is still in the record.
+        const origin = approved ? await approvedOrigin(offeringId) : null;
+        if (origin) await freezeReviewRecord(origin);
+        const frozen = origin ? await loadSnapshot(origin) : null;
+        const byId = new Map([...liveComments, ...(frozen ? frozen.comments : [])].map(comment => [comment.comment_id, comment]));
+        const comments = [...byId.values()]
+            .sort((x, y) => String(x.createdAt).localeCompare(String(y.createdAt)) || x.comment_id - y.comment_id)
+            .filter(comment => canSeeRecordComment(req.user, comment, { approved }));
 
         // Comment locations may refer to the ILOs of the offering this one was carried from.
         const chain = assignmentId ? await assignmentChain(sequelize, assignmentId) : [];
@@ -92,6 +54,7 @@ async function getReviewRecord(req, res, next) {
             : [offeringId];
         const iloLabels = new Map();
         for (const id of offeringIds) for (const [iloId, label] of await buildIloLabels(id)) iloLabels.set(iloId, label);
+        if (frozen) for (const [iloId, label] of frozen.iloLabels) iloLabels.set(iloId, label);
 
         const record = assembleReviewRecord({
             course: {
@@ -104,7 +67,7 @@ async function getReviewRecord(req, res, next) {
             logs,
             comments,
             iloLabels,
-            targetTitles: await buildTargetTitles(comments),
+            targetTitles: new Map([...await buildTargetTitles(comments), ...(frozen ? frozen.targetTitles : [])]),
         });
         // Each approver's e-signature image (data: URI), only for approvals they performed.
         const signatures = await signaturesForLogs(logs);

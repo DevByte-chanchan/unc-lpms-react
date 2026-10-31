@@ -68,6 +68,7 @@ test('the reminder text says how long is left, with no names or personal data', 
     assert.match(rules.reminderText('BIT313L', -1), /1 day overdue/);
     assert.equal(rules.digestText(4, 0), '4 learning plans not submitted');
     assert.equal(rules.digestText(1, 1), '1 learning plan not submitted, 1 overdue');
+    assert.equal(rules.digestText(5, 0, { noDueDate: 2, noInstructor: 1 }), '5 learning plans not submitted, 2 with no due date, so no reminders, 1 with no active instructor');
 });
 
 // ---- the due date a Program Head or Dean sets ----

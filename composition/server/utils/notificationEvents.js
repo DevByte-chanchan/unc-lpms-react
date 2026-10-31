@@ -7,6 +7,7 @@
 const { pendingReviewerRoles } = require('./workflowRules');
 const { effectiveLogs } = require('./effectiveLogs');
 const { notify, eventMessage } = require('./notify');
+const { yearsRule, flagsOf, needsAttention } = require('./referenceHealth');
 
 const db = () => require('../models');
 const select = (sql, replacements = []) =>
@@ -83,6 +84,24 @@ const guarded = (fn) => async (...args) => {
     }
 };
 
+// A submitted plan whose references need attention: the Director of Libraries is told which plan, so they
+// look at it first. Counts only; the Reference view of the plan shows which titles and why.
+const warnDirectorOfFlaggedReferences = async ({ offeringId, people }) => {
+    const refs = await select(
+        `SELECT DISTINCT r.reference_id, r.type, r.isbn, r.link, r.publication_year, r.status, r.copies
+         FROM ILOReferences ir
+             INNER JOIN \`References\` r ON r.reference_id = ir.reference_id
+             INNER JOIN IntendedLearningOutcomes ilo ON ilo.ilo_id = ir.ilo_id
+             INNER JOIN CourseOutcomes co ON co.co_id = ilo.co_id
+         WHERE co.pc_offering_id = ?;`, [offeringId]);
+    if (refs.length === 0) return 0;
+    const years = await yearsRule();
+    const flagged = refs.filter(ref => needsAttention(flagsOf(ref, { years }))).length;
+    if (flagged === 0) return 0;
+    return notify(people.libraryDirectors, 'reference_flags', offeringId,
+        eventMessage(people.courseCode, `${flagged} of ${refs.length} references need a look`, null), null);
+};
+
 // ---- hooks
 
 // After a submit / return / accept was recorded. Reads the log itself (inside the guard), so
@@ -93,7 +112,12 @@ const onWorkflowAction = guarded(async ({ offeringId, actorUserId, actorRole, ac
     const logs = await effectiveLogs(db().sequelize, assignmentId);
     const event = planEvent({ actorRole, action, logsAfter: logs, people });
     if (!event) return 0;
-    return notify(withoutActor(event.recipients, actorUserId), event.type, offeringId, eventMessage(people.courseCode, event.text, actorRole), actorRole);
+    const written = await notify(withoutActor(event.recipients, actorUserId), event.type, offeringId, eventMessage(people.courseCode, event.text, actorRole), actorRole);
+    // Only when the plain notice was written: if notifications are failing, one logged failure is enough.
+    if (written > 0 && event.type === 'plan_submitted' && pendingReviewerRoles(logs).includes('LIBRARY_DIRECTOR')) {
+        await warnDirectorOfFlaggedReferences({ offeringId, people });
+    }
+    return written;
 });
 
 // A comment was added. A reviewer's (or consultant's) comment goes to the instructor; the

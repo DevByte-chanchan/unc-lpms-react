@@ -47,9 +47,14 @@ const isSendingHour = (clock) => clock.hour >= SEND_FROM_HOUR;
 
 const isDigestDay = (clock) => clock.weekday === DIGEST_WEEKDAY;
 
-const digestText = (notSubmitted, overdue) => {
+// extras: plans with no due date (so no automatic reminders go out) and plans whose instructor cannot be reminded.
+const digestText = (notSubmitted, overdue, { noDueDate = 0, noInstructor = 0 } = {}) => {
     const plans = `${notSubmitted} learning plan${notSubmitted === 1 ? '' : 's'} not submitted`;
-    return overdue > 0 ? `${plans}, ${overdue} overdue` : plans;
+    const parts = [plans];
+    if (overdue > 0) parts.push(`${overdue} overdue`);
+    if (noDueDate > 0) parts.push(`${noDueDate} with no due date, so no reminders`);
+    if (noInstructor > 0) parts.push(`${noInstructor} with no active instructor`);
+    return parts.join(', ');
 };
 
 // Days a plan may wait on a reviewer before they are reminded (and the gap between reminders).

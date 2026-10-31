@@ -144,6 +144,22 @@ is reset on every migration, and no tests.
 
 Dropped on the owner's instruction: a VPAA-set school calendar (start of classes and exam dates), because it is not this module. Left to the instructor side's owner: main faculty with contributors, COAP before a learning plan, the 18-week total and hours per CO, test papers due a week before each exam, AI-generated topics, TLAs and questions, and reading the course-offerings PDF.
 
+## 8c. More automatic jobs (nobody has to click)
+
+All run by the server, in-app, counts and course codes only, and a person still decides everything.
+
+| Job | What happens by itself |
+|---|---|
+| Instructor reminders (2.3) | 7, 3, 1 and 0 days before the due date, then every 3rd day overdue. |
+| Program Head weekly digest (2.4, extended) | Plans not submitted and overdue, plus **plans with no due date** (so no reminders go out) and **plans whose instructor account is deactivated**. |
+| Approver waiting reminders (3.2) | Director and Program Head after 3 days, Dean after 7; the Dean also hears of plans stalled with another reviewer. |
+| Director's weekly reference digest | Every Monday: how many active references need attention (not available, outdated by the Director's rule, no ISBN or link). Nothing is sent when all is well. |
+| Flagged references on submit | When a plan is submitted and some of its references need attention, the Director is told which plan and how many. |
+| Title became unavailable | When the Director marks a title lost or withdrawn, or its copies reach none, the Program Head of every program whose current plans use it is told which courses. |
+| Review record frozen at approval | When the Dean approves, a copy of what the record is built from (comments, outcome labels, titles) is saved. Renaming a reference or deleting a comment later no longer changes an approved record. Plans approved before this are frozen the first time their record is opened. |
+
+Not automated on purpose: approving, returning, rejecting, archiving a reference, and anything that changes a plan.
+
 ## 9. Not in this plan
 
 Borrowing, returns, fines, student accounts, uploads, a document repository, and anything on the instructor side.

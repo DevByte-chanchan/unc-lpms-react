@@ -18,6 +18,7 @@ const { QUIET_HOURS, CHECK_EVERY_MS } = require('../config/reminders');
 const rules = require('./reminderRules');
 const { findAwaiting, standing } = require('./missingSubmissions');
 const { findWaitingOnApprovers } = require('./approverWaiting');
+const { yearsRule, healthCounts, healthText } = require('./referenceHealth');
 
 const lazy = () => ({
     models: require('../models'),
@@ -79,12 +80,28 @@ const remindApprovers = async ({ deps, clock, timeZone, programIds, result }) =>
     }
 };
 
+// On the digest day the Director of Libraries gets one summary of the references that need attention
+// (unavailable, older than their recency rule, missing an ISBN or link). Nothing is sent when all is well.
+const remindDirectors = async ({ deps, clock, result }) => {
+    const { models, notify } = deps;
+    const { Reference, ReminderLog, User } = models;
+    const refs = await Reference.findAll({ where: { archived: false }, raw: true });
+    const counts = healthCounts(refs, { years: await yearsRule(models), currentYear: Number(clock.day.slice(0, 4)) });
+    if (counts.needAttention === 0) return;
+    const directors = await User.findAll({ where: { role: 'director-of-libraries', is_active: true }, attributes: ['user_id'], raw: true });
+    for (const { user_id: id } of directors) {
+        if (!(await claim(ReminderLog, `refhealth:${id}`, 'digest', clock.day))) continue;
+        await notify([id], 'reference_health', null, healthText(counts), null);
+        result.referenceDigests += 1;
+    }
+};
+
 // programIds limits the run to those programs (null = every program), for a manual run or a test.
 const runReminders = async ({ now = new Date(), env = process.env, deps = lazy(), log = () => {}, programIds = null } = {}) => {
     const { models, notify, mailer } = deps;
     const { sequelize, Notification, ReminderLog, ReminderPause, Program, User } = models;
     const clock = rules.schoolClock(now, rules.timezoneOf(env));
-    const result = { day: clock.day, sent: 0, alreadySent: 0, quiet: 0, paused: 0, digests: 0, approverReminders: 0, skipped: null };
+    const result = { day: clock.day, sent: 0, alreadySent: 0, quiet: 0, paused: 0, digests: 0, approverReminders: 0, referenceDigests: 0, skipped: null };
     if (!rules.isSendingHour(clock)) { result.skipped = 'before the school day starts'; return result; }
 
     const waiting = await findAwaiting({ sequelize, programIds });
@@ -121,18 +138,23 @@ const runReminders = async ({ now = new Date(), env = process.env, deps = lazy()
         for (const row of waiting) {
             const head = headOf.get(row.programId);
             if (!head) continue;
-            const entry = perHead.get(head) || { notSubmitted: 0, overdue: 0 };
+            const entry = perHead.get(head) || { notSubmitted: 0, overdue: 0, noDueDate: 0, noInstructor: 0 };
             entry.notSubmitted += 1;
-            if (standing(row, clock.day).status === 'overdue') entry.overdue += 1;
+            const where = standing(row, clock.day).status;
+            if (where === 'overdue') entry.overdue += 1;
+            if (where === 'no-deadline') entry.noDueDate += 1;
+            if (!row.instructorId || !row.instructorActive) entry.noInstructor += 1;
             perHead.set(head, entry);
         }
         for (const [head, counts] of perHead) {
             const user = await User.findByPk(head);
             if (!user || !user.is_active) continue;
             if (!(await claim(ReminderLog, `digest:${head}`, 'digest', clock.day))) continue;
-            await notify([head], 'missing_digest', null, rules.digestText(counts.notSubmitted, counts.overdue), null);
+            await notify([head], 'missing_digest', null, rules.digestText(counts.notSubmitted, counts.overdue, counts), null);
             result.digests += 1;
         }
+        // Not tied to a program: skipped when the run is limited to some programs (a test or a manual run).
+        if (!programIds) await remindDirectors({ deps, clock, result });
     }
     await remindApprovers({ deps, clock, timeZone: rules.timezoneOf(env), programIds, result });
     return result;
@@ -144,7 +166,7 @@ const startReminders = ({ env = process.env, log = console.log, setIntervalFn = 
     const run = async () => {
         try {
             const result = await runReminders({ env, log });
-            if (result.sent || result.digests || result.approverReminders) log(`Reminders sent: ${result.sent}, digests: ${result.digests}, approver reminders: ${result.approverReminders}.`);
+            if (result.sent || result.digests || result.approverReminders || result.referenceDigests) log(`Reminders sent: ${result.sent}, digests: ${result.digests}, approver reminders: ${result.approverReminders}, reference digests: ${result.referenceDigests}.`);
         } catch (error) {
             console.error(`Reminders did not run: ${error.message}`);
         }
@@ -155,4 +177,4 @@ const startReminders = ({ env = process.env, log = console.log, setIntervalFn = 
     return timer;
 };
 
-module.exports = { runReminders, startReminders, claim };
+module.exports = { runReminders, startReminders, claim, remindDirectors };
