@@ -171,7 +171,6 @@ select option
 .status
   justify-content: center
   align-items: center
-  //background: #ccccda
   border-width: 0 5px 2px 5px
   border-color: white
   border-style: solid
@@ -183,17 +182,13 @@ select option
   justify-content: end
   align-items: center
   gap: 5px
-  //min-width: 200px
   font-weight: 400 !important
-  //background: green
-
 
 .sub-column th
   font-weight: 300
   font-size: 14px
 
 .info
-  margin-left: 25px
   background: white
   border: none
   display: flex
@@ -207,9 +202,39 @@ select option
     color: #333
     background: rgba(0,0,0,0.04)
 
+// List Action Containers
+.listActionContainer
+  display: flex
+  flex-direction: column
+  align-items: flex-end
+  gap: 4px
+  padding: 2px 0
 
-.lighten
-  //background: #e0e0f1
+.listActionTopRow
+  display: flex
+  align-items: center
+  gap: 8px
+
+.listExportBtn
+  display: flex
+  justify-content: center
+  align-items: center
+  padding: 4px 8px
+  height: fit-content
+  width: fit-content
+  color: inherit !important
+  background: transparent
+  border: none
+  gap: 5px
+  cursor: pointer
+  border-radius: 6px
+  transition: background 0.2s ease, opacity 0.2s ease
+  outline: none
+  font-size: 15px
+
+  &:hover
+    background: rgba(0,0,0,0.04)
+    opacity: 0.8
 
 // Grid layout styles
 .gridContainer
@@ -272,6 +297,11 @@ select option
   align-items: center
   margin-top: auto
 
+.cardActionsGroup
+  display: flex
+  align-items: center
+  gap: 8px
+
 .gridActionBtn
   display: inline-flex
   align-items: center
@@ -285,6 +315,26 @@ select option
   color: #444 !important
   transition: all 0.2s
   cursor: pointer
+  outline: none
+
+  &:hover
+    background: #e9ecef
+    color: #000 !important
+
+.gridExportBtn
+  display: inline-flex
+  align-items: center
+  gap: 6px
+  background: #f8f9fa
+  border: 1px solid #e9ecef
+  padding: 6px 14px
+  border-radius: 20px
+  font-size: 13px
+  font-weight: 400
+  color: #444 !important
+  transition: all 0.2s
+  cursor: pointer
+  outline: none
 
   &:hover
     background: #e9ecef

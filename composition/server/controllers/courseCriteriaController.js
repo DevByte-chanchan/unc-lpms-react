@@ -2,8 +2,8 @@
 const {
     CourseOutcome,
     IntendedLearningOutcome,
-    ILOTopic,
-    TopicTLA,
+    Week,
+    TeachingAndLearningActivity,
     TLAAssessment
 } = require('../models');
 
@@ -48,21 +48,20 @@ async function getCourseCriteriaByPcOffering(req, res) {
         const gradingSystem = [];
 
         for (let coIndex = 0; coIndex < 4; coIndex++) {
-            const coLabel = 'CO' + (coIndex + 1);
             const coRecord = courseOutcomes[coIndex] || null;
 
             const allIlosForCo = coRecord
                 ? await IntendedLearningOutcome.findAll({
                     where: { co_id: coRecord.co_id },
-                    attributes: ['ilo_id', 'description'],
+                    attributes: ['ilo_id', 'description', 'is_orientation', 'assessment_tool'],
                     order: [['ilo_id', 'ASC']]
                 })
                 : [];
 
-            // Filter out Course Orientation
-            // If there are exactly 4 ILOs, the first one is the orientation.
-            // We slice it off to keep only the 3 graded ILOs.
-            const gradedIlos = allIlosForCo.length === 4 ? allIlosForCo.slice(1) : allIlosForCo;
+            // Filter out Course Orientation ILOs so only the 3 graded ILOs remain
+            const gradedIlos = allIlosForCo.some(ilo => ilo.is_orientation)
+                ? allIlosForCo.filter(ilo => !ilo.is_orientation)
+                : (allIlosForCo.length === 4 ? allIlosForCo.slice(1) : allIlosForCo);
 
             const ilos = [];
             for (let iloPos = 0; iloPos < 3; iloPos++) {
@@ -72,7 +71,7 @@ async function getCourseCriteriaByPcOffering(req, res) {
                 if (!iloRecord) {
                     ilos.push({
                         id: iloLabel,
-                        dbId: iloRecord ? iloRecord.ilo_id : null,
+                        dbId: null,
                         assessments: '',
                         weight: { prelim: '', midterm: '', semi: '', final: '' },
                         minPassing: 60
@@ -80,33 +79,13 @@ async function getCourseCriteriaByPcOffering(req, res) {
                     continue;
                 }
 
-                // Find the ilo_topic_id linked to this ILO
-                const iloTopics = await ILOTopic.findAll({
+                // Fetch TLAAssessments linked to this specific graded ILO via ilo_id
+                const assessments = await TLAAssessment.findAll({
                     where: { ilo_id: iloRecord.ilo_id },
-                    attributes: ['ilo_topic_id'],
+                    attributes: ['method_id', 'tla_id', 'ilo_id', 'name', 'period', 'weight', 'min_passing'],
+                    order: [['method_id', 'ASC']],
                     raw: true
                 });
-                const iloTopicIds = iloTopics.map(t => t.ilo_topic_id).filter(Boolean);
-
-                // Find TopicTLA rows for these ilo_topic_ids to get tla_ids
-                const topicTlaRows = iloTopicIds.length
-                    ? await TopicTLA.findAll({
-                        where: { ilo_topic_id: iloTopicIds },
-                        attributes: ['tla_id'],
-                        raw: true
-                    })
-                    : [];
-
-                const tlaIds = [...new Set(topicTlaRows.map(t => t.tla_id).filter(Boolean))];
-
-                // Fetch TLAAssessments for these tlaIds
-                const assessments = tlaIds.length
-                    ? await TLAAssessment.findAll({
-                        where: { tla_id: tlaIds },
-                        attributes: ['method_id', 'tla_id', 'name', 'period', 'weight', 'min_passing'],
-                        raw: true
-                    })
-                    : [];
 
                 const assessmentNames = [];
                 const weightAcc = { prelim: 0, midterm: 0, semi: 0, final: 0 };
@@ -131,7 +110,7 @@ async function getCourseCriteriaByPcOffering(req, res) {
 
                 ilos.push({
                     id: iloLabel,
-                    dbId: iloRecord ? iloRecord.ilo_id : null,
+                    dbId: iloRecord.ilo_id,
                     assessments: assessmentNames.length ? assessmentNames : '',
                     weight: weightForRender,
                     minPassing: minPassingValue
@@ -161,19 +140,46 @@ async function updateCourseCriteriaByPcOffering(req, res) {
                 const iloData = group.ilos[iloPos];
                 if (!iloData || !iloData.dbId) continue;
 
-                // Find TLA ids for this ILO
-                const iloTopics = await ILOTopic.findAll({ where: { ilo_id: iloData.dbId }, raw: true });
-                const iloTopicIds = iloTopics.map(t => t.ilo_topic_id);
-                
-                const topicTlaRows = await TopicTLA.findAll({ where: { ilo_topic_id: iloTopicIds }, raw: true });
-                const tlaIds = [...new Set(topicTlaRows.map(t => t.tla_id).filter(Boolean))];
-                
-                if (tlaIds.length === 0) continue; // No TLA to attach assessment to
+                // 1) Check existing TLAAssessments linked to this ILO to preserve tla_id and description
+                const existingAssessments = await TLAAssessment.findAll({
+                    where: { ilo_id: iloData.dbId },
+                    order: [['method_id', 'ASC']],
+                    raw: true
+                });
 
-                // Delete old assessments for these TLAs
-                await TLAAssessment.destroy({ where: { tla_id: tlaIds } });
+                let targetTlaId = existingAssessments.length > 0 ? existingAssessments[0].tla_id : null;
+                const existingDesc = existingAssessments.length > 0 ? existingAssessments[0].description : null;
 
-                // Create new assessments based on the edited weights
+                // 2) Fallback: if no assessment was previously linked to this ILO, find a TLA from the CO's Weeks
+                if (!targetTlaId) {
+                    const iloRecord = await IntendedLearningOutcome.findByPk(iloData.dbId, { raw: true });
+                    if (iloRecord) {
+                        const weeks = await Week.findAll({
+                            where: { co_id: iloRecord.co_id },
+                            attributes: ['week_id'],
+                            order: [['week_id', 'ASC']],
+                            raw: true
+                        });
+                        const weekIds = weeks.map(w => w.week_id);
+                        if (weekIds.length > 0) {
+                            const tlas = await TeachingAndLearningActivity.findAll({
+                                where: { week_id: weekIds },
+                                attributes: ['tla_id', 'class_phase'],
+                                order: [['tla_id', 'ASC']],
+                                raw: true
+                            });
+                            const inClassTla = tlas.find(t => t.class_phase === 'inclass');
+                            targetTlaId = inClassTla ? inClassTla.tla_id : (tlas[0] ? tlas[0].tla_id : null);
+                        }
+                    }
+                }
+
+                if (!targetTlaId) continue;
+
+                // 3) Remove old ILO-specific assessments (preserving formative assessments where ilo_id is null)
+                await TLAAssessment.destroy({ where: { ilo_id: iloData.dbId } });
+
+                // 4) Create updated ILO assessment(s) based on the edited weights
                 const periods = ['prelim', 'midterm', 'semi', 'final'];
                 for (const p of periods) {
                     const rawWeight = iloData.weight && iloData.weight[p];
@@ -185,11 +191,12 @@ async function updateCourseCriteriaByPcOffering(req, res) {
                                 ? rawAssess.filter(Boolean).join(', ')
                                 : (typeof rawAssess === 'string' ? rawAssess.trim() : '');
                             const finalName = (assessText || 'Assessment').slice(0, 70);
-                            const finalDesc = assessText || 'Assessment';
+                            const finalDesc = existingDesc || assessText || 'Assessment';
                             const periodChar = getPeriodChar(p);
 
                             await TLAAssessment.create({
-                                tla_id: tlaIds[0], // attach to first TLA
+                                tla_id: targetTlaId,
+                                ilo_id: iloData.dbId,
                                 name: finalName,
                                 description: finalDesc,
                                 period: periodChar,

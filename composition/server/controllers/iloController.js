@@ -1,5 +1,5 @@
 // controllers/iloController.js
-const { Course, ProgramCourseOffering, CourseOutcome, IntendedLearningOutcome } = require('../models');
+const { Course, ProgramCourseOffering, CourseOutcome, IntendedLearningOutcome, Week } = require('../models');
 
 async function getILOsByPcOffering(req, res) {
     try {
@@ -11,7 +11,7 @@ async function getILOsByPcOffering(req, res) {
         // 1) Find the program course offering version and include course configuration details
         const pco = await ProgramCourseOffering.findOne({
             where: { pc_offering_id: pcId, revision_number: revNum },
-            include: [{ model: Course, attributes: ['course_id', 'course_no', 'credit'] }]
+            include: [{ model: Course, attributes: ['course_id', 'course_no', 'credit', 'contact_hrs'] }]
         });
 
         if (!pco) {
@@ -19,7 +19,7 @@ async function getILOsByPcOffering(req, res) {
         }
         const course = pco.Course;
 
-        // 2) Parse Course Credits
+        // 2) Parse Course Credits & Contact Hours (e.g., credit: '2 LEC, 1 LAB', contact_hrs: '2 Hrs Lec, 3 Hrs Lab')
         let lecCredits = 0;
         let labCredits = 0;
         if (course.credit) {
@@ -30,13 +30,20 @@ async function getILOsByPcOffering(req, res) {
         }
         if (lecCredits === 0 && labCredits === 0) {
             // Default fallback if parse fails
-            lecCredits = 3; 
+            lecCredits = 3;
             labCredits = 0;
         }
 
-        // 3) Calculate Academic Term Distributions
-        const lecContactHours = lecCredits * 1;
-        const labContactHours = labCredits * 3;
+        // 3) Calculate Academic Term Distributions (18 fixed weeks - 2 exam weeks = 16 academic weeks)
+        let lecContactHours = lecCredits * 1;
+        let labContactHours = labCredits * 3;
+        if (course.contact_hrs) {
+            const lecHrsMatch = course.contact_hrs.match(/(\d+)\s*Hrs?\s*Lec/i);
+            const labHrsMatch = course.contact_hrs.match(/(\d+)\s*Hrs?\s*Lab/i);
+            if (lecHrsMatch) lecContactHours = parseInt(lecHrsMatch[1], 10);
+            if (labHrsMatch) labContactHours = parseInt(labHrsMatch[1], 10);
+        }
+
         const totalWeeklyContactHours = lecContactHours + labContactHours || 3;
         const totalSemesterWeeks = 18;
         const totalAcademicTermHours = totalWeeklyContactHours * totalSemesterWeeks;
@@ -44,107 +51,121 @@ async function getILOsByPcOffering(req, res) {
         const bufferHours = bufferWeeks * totalWeeklyContactHours;
         const netTeachingHours = totalAcademicTermHours - bufferHours;
 
+        // First session of Week 1 (Lecture contact hours, e.g., 2 hrs for '2 Hrs Lec, 3 Hrs Lab') is dedicated to Course Orientation
+        const defaultOrientationHours = lecContactHours > 0 ? lecContactHours : 2;
+
         // 4) Get course outcomes specifically bound to this pc_offering_id
         const courseOutcomes = await CourseOutcome.findAll({
             where: { pc_offering_id: pcId },
             attributes: ['co_id', 'pc_offering_id', 'co_description'],
             order: [['co_id', 'ASC']]
         });
-        
-        const hoursPerCO = courseOutcomes.length > 0 ? (netTeachingHours / courseOutcomes.length) : 0;
 
-        // 5) Get all ILOs for those course outcomes
         const coIds = courseOutcomes.map(co => co.co_id);
-        const ilos = await IntendedLearningOutcome.findAll({
-            where: { co_id: coIds },
-            attributes: ['ilo_id', 'co_id', 'description', 'is_orientation'],
-            order: [['co_id', 'ASC'], ['ilo_id', 'ASC']]
-        });
 
-        // 6) Get ILO Weights from Database via SQL Group By
-        let weightMap = {};
-        if (coIds.length > 0) {
-            const DB = pco.sequelize;
-            const iloWeightsRaw = await DB.query(`
-                SELECT 
-                    ilo.ilo_id, 
-                    MAX(CAST(a.weight AS UNSIGNED)) as explicit_weight 
-                FROM IntendedLearningOutcomes ilo
-                LEFT JOIN ILOTopics it ON ilo.ilo_id = it.ilo_id
-                LEFT JOIN TopicTLAs tt ON it.ilo_topic_id = tt.ilo_topic_id
-                LEFT JOIN TLAAssessments a ON tt.tla_id = a.tla_id
-                WHERE ilo.co_id IN (:coIds)
-                GROUP BY ilo.ilo_id
-            `, {
-                replacements: { coIds: coIds },
-                type: DB.QueryTypes.SELECT
-            });
+        // 5) Get all Weeks and ILOs for those course outcomes
+        const [weeks, ilos] = await Promise.all([
+            coIds.length > 0
+                ? Week.findAll({
+                      where: { co_id: coIds },
+                      attributes: ['week_id', 'co_id', 'hours'],
+                      order: [['co_id', 'ASC'], ['week_id', 'ASC']]
+                  })
+                : [],
+            coIds.length > 0
+                ? IntendedLearningOutcome.findAll({
+                      where: { co_id: coIds },
+                      attributes: ['ilo_id', 'co_id', 'description', 'is_orientation', 'hours', 'weeks'],
+                      order: [['co_id', 'ASC'], ['ilo_id', 'ASC']]
+                  })
+                : []
+        ]);
 
-            for (let row of iloWeightsRaw) {
-                weightMap[row.ilo_id] = row.explicit_weight || 0;
-            }
+        // Group weeks by Course Outcome
+        const weeksByCo = {};
+        for (const co of courseOutcomes) {
+            weeksByCo[co.co_id] = [];
+        }
+        for (const week of weeks) {
+            if (!weeksByCo[week.co_id]) weeksByCo[week.co_id] = [];
+            weeksByCo[week.co_id].push(week);
         }
 
-        // 7) Distribute hours sequentially per ILO
-        let currentWeekFloat = 0.0;
+        // Group ILOs by Course Outcome
         const ilosByCo = {};
-        
         for (const co of courseOutcomes) {
             ilosByCo[co.co_id] = [];
         }
-
         for (const ilo of ilos) {
-            let baseWeight = weightMap[ilo.ilo_id] || 0;
-            let weightPercentage = baseWeight;
-
-            let iloAllocatedHours = hoursPerCO * (weightPercentage / 100);
-            let iloDurationWeeks = iloAllocatedHours / totalWeeklyContactHours;
-            
-            let duration = parseFloat(iloDurationWeeks.toFixed(1));
-            
-            let startWeekFloat = currentWeekFloat;
-            let endWeekFloat = startWeekFloat + duration;
-            
-            let startWeek = Math.floor(startWeekFloat) + 1;
-            let endWeek = Math.ceil(endWeekFloat);
-            
-            if (duration === 0) endWeek = startWeek;
-            
-            let formattedWeekStr = '';
-            if (startWeek === endWeek) {
-                formattedWeekStr = `Week ${startWeek}`;
-            } else if (endWeek - startWeek === 1) {
-                formattedWeekStr = `Week ${startWeek} and ${endWeek}`;
-            } else {
-                formattedWeekStr = `Weeks ${startWeek} to ${endWeek}`;
-            }
-            
-            currentWeekFloat = endWeekFloat;
-
             if (!ilosByCo[ilo.co_id]) ilosByCo[ilo.co_id] = [];
+            const isOrientation = Boolean(ilo.is_orientation);
             ilosByCo[ilo.co_id].push({
                 id: ilo.ilo_id,
                 co_id: ilo.co_id,
                 description: ilo.description,
-                isOrientation: ilo.is_orientation,
-                hours: Math.round(iloAllocatedHours),
-                formattedWeekStr: formattedWeekStr
+                isOrientation: isOrientation,
+                hours: isOrientation ? (ilo.hours ? Number(ilo.hours) : defaultOrientationHours) : (ilo.hours ? Number(ilo.hours) : 0),
+                formattedWeekStr: isOrientation ? 'Week 1' : (ilo.weeks ? `Week ${ilo.weeks}` : '')
             });
         }
 
-        const resultCourseOutcomes = courseOutcomes.map(co => ({
-            co_id: co.co_id,
-            pc_offering_id: co.pc_offering_id,
-            description: co.co_description,
-            ilos: ilosByCo[co.co_id] || []
-        }));
+        // 6) Compute week span and total hours per Course Outcome based on Weeks table records
+        let currentWeek = 1;
+        const resultCourseOutcomes = courseOutcomes.map((co, coIndex) => {
+            const coWeeks = weeksByCo[co.co_id] || [];
+            const weekCount = coWeeks.length;
+            const coIlos = ilosByCo[co.co_id] || [];
+
+            let formattedWeekStr = '';
+            if (weekCount > 0) {
+                const startWeek = currentWeek;
+                const endWeek = currentWeek + weekCount - 1;
+                currentWeek = endWeek + 1;
+
+                formattedWeekStr = startWeek === endWeek
+                    ? `Week ${startWeek}`
+                    : `Week ${startWeek}-${endWeek}`;
+            }
+
+            // Special case for Course Outcome 1 (which shares Week 1 with Course Orientation):
+            // Week 1 has two sessions (e.g. 2 hrs Lecture for Orientation + 3 hrs Lab for CO1),
+            // so CO1's total hours is (weekCount * totalWeeklyContactHours) - orientationHours (e.g. 20 - 2 = 18 hrs).
+            const orientationIlo = coIlos.find(i => i.isOrientation);
+            const orientationDeduction = (coIndex === 0 || orientationIlo)
+                ? (orientationIlo ? Number(orientationIlo.hours) : defaultOrientationHours)
+                : 0;
+
+            const rawCoHours = weekCount * totalWeeklyContactHours;
+            const coHours = Math.max(0, rawCoHours - orientationDeduction);
+
+            return {
+                co_id: co.co_id,
+                pc_offering_id: co.pc_offering_id,
+                description: co.co_description,
+                weekCount: weekCount,
+                hours: coHours,
+                formattedWeekStr: formattedWeekStr,
+                weeks: coWeeks.map((w, wIdx) => ({
+                    week_id: w.week_id,
+                    co_id: w.co_id,
+                    hours: (wIdx === 0 && orientationDeduction > 0)
+                        ? Math.max(0, Number(w.hours) - orientationDeduction)
+                        : Number(w.hours)
+                })),
+                ilos: coIlos
+            };
+        });
 
         return res.json({
-            course: { 
-                course_id: course.course_id, 
+            course: {
+                course_id: course.course_id,
                 course_no: course.course_no,
                 lecCredits: lecCredits,
-                labCredits: labCredits
+                labCredits: labCredits,
+                lecContactHours: lecContactHours,
+                labContactHours: labContactHours,
+                weeklyContactHours: totalWeeklyContactHours,
+                netTeachingHours: netTeachingHours
             },
             courseOutcomes: resultCourseOutcomes
         });

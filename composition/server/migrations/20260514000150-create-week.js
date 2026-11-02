@@ -1,29 +1,25 @@
 'use strict';
-/**
- * Migration: create Course_Outcome table
- * NOTE: this table references ProgramCourseOfferings(pc_offering_id).
- * Ensure ProgramCourseOfferings migration has already run.
- */
+/** Migration: create Weeks table (references co_id) */
 module.exports = {
     async up(queryInterface, Sequelize) {
-        await queryInterface.createTable('CourseOutcomes', {
-            co_id: {
+        await queryInterface.createTable('Weeks', {
+            week_id: {
                 type: Sequelize.INTEGER,
                 primaryKey: true,
                 autoIncrement: true
             },
-            pc_offering_id: {
+            co_id: {
                 type: Sequelize.INTEGER,
                 allowNull: false,
                 references: {
-                    model: 'ProgramCourseOfferings',
-                    key: 'pc_offering_id'
+                    model: 'CourseOutcomes',
+                    key: 'co_id'
                 },
                 onUpdate: 'CASCADE',
-                onDelete: 'RESTRICT'
+                onDelete: 'CASCADE'
             },
-            co_description: {
-                type: Sequelize.TEXT,
+            hours: {
+                type: Sequelize.DECIMAL(4, 2),
                 allowNull: false
             },
             createdAt: {
@@ -40,6 +36,6 @@ module.exports = {
     },
 
     async down(queryInterface) {
-        await queryInterface.dropTable('CourseOutcomes');
+        await queryInterface.dropTable('Weeks');
     }
 };

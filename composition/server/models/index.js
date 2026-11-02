@@ -29,10 +29,6 @@ db.Sequelize = Sequelize;
 
 // --- KEEP THESE MANUAL ASSOCIATIONS ---
 db.Topic.hasMany(db.Subtopic, { foreignKey: 'topic_id', as: 'subtopics', onDelete: 'CASCADE' });
-db.Subtopic.belongsTo(db.Topic, { foreignKey: 'topic_id', as: 'topic' });
-db.ILOReference.belongsTo(db.IntendedLearningOutcome, { foreignKey: 'ilo_id' });
-db.IntendedLearningOutcome.hasMany(db.ILOReference, { foreignKey: 'ilo_id' });
-db.ILOReference.belongsTo(db.Reference, { foreignKey: 'reference_id', as: 'Reference' });
-db.Reference.hasMany(db.ILOReference, { foreignKey: 'reference_id', as: 'iloReferences' });
+db.Reference.hasMany(db.WeeklyReference, { foreignKey: 'reference_id', as: 'weeklyReferences' });
 
 module.exports = db;

@@ -2,7 +2,7 @@ import React, { useEffect, useState, forwardRef, useImperativeHandle } from 'rea
 import ReferencePicker from '../components/ReferencePicker.jsx';
 import TextField from '../components/TextField.jsx';
 import Dropdown from '../components/Dropdown.jsx';
-import { X, CheckCircle, MessageSquare } from 'react-feather';
+import { X } from 'react-feather';
 import { fetchJson } from "../utils/api.js";
 import styles from '../styles/Form.module.sass';
 
@@ -24,7 +24,7 @@ export function InlineModal({ isOpen, title, onClose, children, actions }) {
     );
 }
 
-const ReferenceForm = forwardRef(({ iloId, status, setUnresolvedCount }, ref) => {
+const ReferenceForm = forwardRef(({ iloId, isOrientation = false, status, setUnresolvedCount }, ref) => {
     const [allReferences, setAllReferences] = useState([]);
     const [selectedRefs, setSelectedRefs] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -45,8 +45,9 @@ const ReferenceForm = forwardRef(({ iloId, status, setUnresolvedCount }, ref) =>
 
         async function load() {
             try {
+                const orientParam = isOrientation ? 'true' : 'false';
                 const refsUrl = `/api/references`;
-                const assignedUrl = `/api/ilo-references/${encodeURIComponent(iloId)}`;
+                const assignedUrl = `/api/ilo-references/${encodeURIComponent(iloId)}?isOrientation=${orientParam}`;
                 const commentsUrl = `/api/comments/filter/${encodeURIComponent(iloId)}/references`;
 
                 const pRefs = fetchJson(refsUrl).catch(() => []);
@@ -98,7 +99,7 @@ const ReferenceForm = forwardRef(({ iloId, status, setUnresolvedCount }, ref) =>
 
         load();
         return () => { mounted = false; };
-    }, [iloId, status]);
+    }, [iloId, isOrientation, status]);
 
     // Update unresolved count for Master layout
     useEffect(() => {
@@ -193,7 +194,12 @@ const ReferenceForm = forwardRef(({ iloId, status, setUnresolvedCount }, ref) =>
             await fetchJson(`/api/ilo-references/assign`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ ilo_id: Number(iloId), reference_ids })
+                body: JSON.stringify({
+                    week_id: Number(iloId),
+                    ilo_id: Number(iloId),
+                    is_orientation: Boolean(isOrientation),
+                    reference_ids
+                })
             });
         },
         getCommentTargetLabel: (comment) => {

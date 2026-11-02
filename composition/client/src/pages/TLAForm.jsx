@@ -1,19 +1,16 @@
 import React, { useState, useEffect, forwardRef, useImperativeHandle, useRef } from "react";
 import TextField from "../components/TextField.jsx";
 import Dropdown from "../components/Dropdown.jsx";
-import DropdownMultiSelect from "../components/DropdownMultiSelect.jsx";
 import TextArea from "../components/TextArea.jsx";
-import { Plus, Award, Trash2, X, Edit2 } from "react-feather";
+import { Plus, Award, X, Edit2 } from "react-feather";
 import { fetchJson } from "../utils/api.js";
-import styles from "../styles/Form.module.sass"; 
-import tStyles from "../styles/TopicSelector.module.sass"; 
+import styles from "../styles/Form.module.sass";
+import tStyles from "../styles/TopicSelector.module.sass";
 
-const TLAForm = forwardRef(({ iloId, status, setUnresolvedCount, label }, ref) => {
+const TLAForm = forwardRef(({ iloId, isOrientation = false, status, setUnresolvedCount, label }, ref) => {
     const ALL_PHASES = ['Asynchronous', 'Synchronous', 'Pre-class', 'In-class', 'Post-class'];
 
     const [isLoading, setIsLoading] = useState(true);
-    const [availableTopics, setAvailableTopics] = useState([]);
-    const [topicIdMap, setTopicIdMap] = useState({});
     const [errors, setErrors] = useState({});
     const [tlas, setTlas] = useState([]);
     const [newestCardId, setNewestCardId] = useState(null);
@@ -35,7 +32,6 @@ const TLAForm = forwardRef(({ iloId, status, setUnresolvedCount, label }, ref) =
     const mapDbToUi = (tla) => {
         return {
             ...tla,
-            selectedTopics: Array.isArray(tla.selectedTopics) ? tla.selectedTopics : (tla.selectedTopics ? [tla.selectedTopics] : []),
             performedBy: tla.performedBy === 'T' ? 'Instructor' : tla.performedBy === 'S' ? 'Student' : tla.performedBy,
             classPhase: normalizeClassPhase(tla.classPhase),
             isLab: Boolean(tla.isLab || tla.is_lab || false)
@@ -48,19 +44,24 @@ const TLAForm = forwardRef(({ iloId, status, setUnresolvedCount, label }, ref) =
     });
 
     useEffect(() => {
+        if (!iloId) return;
+        let mounted = true;
+        setIsLoading(true);
+        setErrors({});
+
         const fetchTlaData = async () => {
             try {
-                const tlaUrl = `/api/tlas/ilo/${iloId}`;
+                const orientParam = isOrientation ? 'true' : 'false';
+                const tlaUrl = `/api/tlas/ilo/${iloId}?isOrientation=${orientParam}`;
                 const commentsUrl = `/api/comments/filter/${encodeURIComponent(iloId)}/tlas`;
 
                 const pData = fetchJson(tlaUrl).catch(() => ({}));
                 const pComments = status === 'returned' ? fetchJson(commentsUrl).catch(() => []) : Promise.resolve([]);
 
                 const [data, targetedComments] = await Promise.all([pData, pComments]);
-                const { availableTopics, topicIdMap, tlas: existingTlas } = data;
+                if (!mounted) return;
 
-                setAvailableTopics(availableTopics || []);
-                setTopicIdMap(topicIdMap || {});
+                const { tlas: existingTlas } = data || {};
 
                 const initialComments = (Array.isArray(targetedComments) ? targetedComments : []).map(c => ({
                     ...c,
@@ -73,7 +74,7 @@ const TLAForm = forwardRef(({ iloId, status, setUnresolvedCount, label }, ref) =
                     setTlas(mappedTlas);
                 } else {
                     setTlas([{
-                        id: Date.now(), selectedTopics: [], classPhase: '', performedBy: '',
+                        id: Date.now(), classPhase: '', performedBy: '',
                         tlaName: '', tlaDescription: '', laboratory: false, isLab: false,
                         assessmentType: '', assessmentDetail: ''
                     }]);
@@ -81,11 +82,12 @@ const TLAForm = forwardRef(({ iloId, status, setUnresolvedCount, label }, ref) =
             } catch (error) {
                 console.error("Error fetching TLA data components:", error);
             } finally {
-                setIsLoading(false);
+                if (mounted) setIsLoading(false);
             }
         };
-        if (iloId) fetchTlaData();
-    }, [iloId, status]);
+        fetchTlaData();
+        return () => { mounted = false; };
+    }, [iloId, isOrientation, status]);
 
     useEffect(() => {
         if (setUnresolvedCount) {
@@ -108,7 +110,7 @@ const TLAForm = forwardRef(({ iloId, status, setUnresolvedCount, label }, ref) =
         const generatedId = Date.now() + Math.random();
         setNewestCardId(generatedId);
         setTlas([...tlas, {
-            id: generatedId, selectedTopics: [], classPhase: '', performedBy: '',
+            id: generatedId, classPhase: '', performedBy: '',
             tlaName: '', tlaDescription: '', laboratory: false, isLab: false,
             assessmentType: '', assessmentDetail: ''
         }]);
@@ -131,7 +133,6 @@ const TLAForm = forwardRef(({ iloId, status, setUnresolvedCount, label }, ref) =
     const validateForm = () => {
         let newErrors = {};
         tlas.forEach((tla) => {
-            if (!tla.selectedTopics || tla.selectedTopics.length === 0) newErrors[`tla_${tla.id}_selectedTopics`] = "Required";
             if (!tla.classPhase) newErrors[`tla_${tla.id}_classPhase`] = "Required";
             if (!tla.performedBy) newErrors[`tla_${tla.id}_performedBy`] = "Required";
             if (!tla.tlaName.trim()) newErrors[`tla_${tla.id}_tlaName`] = "TLA Name required";
@@ -156,12 +157,34 @@ const TLAForm = forwardRef(({ iloId, status, setUnresolvedCount, label }, ref) =
             ));
         },
         save: async () => {
+            if (status === 'returned' && reviewComments.length > 0) {
+                const commentPayload = reviewComments.map(c => ({
+                    comment_id: c.comment_id,
+                    resolved_status: c.resolved_status ? 1 : 0
+                }));
+
+                await fetchJson(`/api/comments/update-resolution`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ updates: commentPayload })
+                });
+            }
+
             const payloadTlas = tlas.map(mapUiToDb);
             await fetchJson(`/api/tlas/ilo/${iloId}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ tlas: payloadTlas, topicIdMap })
+                body: JSON.stringify({
+                    week_id: Number(iloId),
+                    is_orientation: Boolean(isOrientation),
+                    tlas: payloadTlas
+                })
             });
+        },
+        getCommentTargetLabel: (comment) => {
+            if (comment.target_title) return comment.target_title;
+            const match = tlas.find(t => Number(t.id) === Number(comment.target_id) || Number(t.tla_id) === Number(comment.target_id));
+            return match ? (match.tlaName || match.tla_name) : `TLA Element ID: ${comment.target_id}`;
         }
     }));
 
@@ -197,7 +220,7 @@ const TLAForm = forwardRef(({ iloId, status, setUnresolvedCount, label }, ref) =
                         {tlas.map((item) => {
                             const isNewlyAdded = item.id === newestCardId;
                             const hasAssessmentData = Boolean(item.assessmentType || item.assessmentDetail);
-                            
+
                             return (
                                 <div key={item.id} className={`${styles.tlaCardCopycat} ${isNewlyAdded ? tStyles.newEntry : ''}`}>
                                     <div className={tStyles.topicHeaderCard}>
@@ -221,16 +244,6 @@ const TLAForm = forwardRef(({ iloId, status, setUnresolvedCount, label }, ref) =
                                     </div>
 
                                     <div className={styles.tlaBodyCopycat}>
-                                        
-                                        <div className={styles.tlaFieldSubtopicStyle}>
-                                            <DropdownMultiSelect
-                                                options={availableTopics}
-                                                label={'Topic Title(s)'}
-                                                value={item.selectedTopics}
-                                                onChange={(val) => handleTlaChange(item.id, 'selectedTopics', val)}
-                                                error={errors[`tla_${item.id}_selectedTopics`]}
-                                            />
-                                        </div>
 
                                         <div className={styles.fieldsGridTwo}>
                                             <div className={styles.tlaFieldSubtopicStyle}>

@@ -8,6 +8,16 @@ module.exports = {
                 primaryKey: true,
                 autoIncrement: true
             },
+            week_id: {
+                type: Sequelize.INTEGER,
+                allowNull: false,
+                references: {
+                    model: 'Weeks',
+                    key: 'week_id'
+                },
+                onUpdate: 'CASCADE',
+                onDelete: 'CASCADE'
+            },
             tla_name: {
                 type: Sequelize.STRING(200),
                 allowNull: false
@@ -25,6 +35,11 @@ module.exports = {
                 allowNull: false
             },
             is_lab: {
+                type: Sequelize.BOOLEAN,
+                allowNull: false,
+                defaultValue: false
+            },
+            is_orientation: {
                 type: Sequelize.BOOLEAN,
                 allowNull: false,
                 defaultValue: false

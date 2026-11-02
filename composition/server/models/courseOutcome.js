@@ -11,6 +11,8 @@ module.exports = (sequelize, DataTypes) => {
     CourseOutcome.associate = function(models) {
         CourseOutcome.belongsTo(models.ProgramCourseOffering, { foreignKey: 'pc_offering_id' });
         CourseOutcome.hasMany(models.ProgramOutcomeAlignment, { foreignKey: 'co_id' });
+        CourseOutcome.hasMany(models.IntendedLearningOutcome, { foreignKey: 'co_id', as: 'ilos', onDelete: 'CASCADE', onUpdate: 'CASCADE' });
+        CourseOutcome.hasMany(models.Week, { foreignKey: 'co_id', as: 'weeks', onDelete: 'CASCADE', onUpdate: 'CASCADE' });
     };
 
     return CourseOutcome;

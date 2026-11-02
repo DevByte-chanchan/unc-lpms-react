@@ -1,5 +1,5 @@
 'use strict';
-/** Migration: create TLA_ASSESSMENT table (references tla_id) */
+/** Migration: create TLA_ASSESSMENT table (references tla_id and nullable ilo_id) */
 module.exports = {
     async up(queryInterface, Sequelize) {
         await queryInterface.createTable('TLAAssessments', {
@@ -17,6 +17,16 @@ module.exports = {
                 },
                 onUpdate: 'CASCADE',
                 onDelete: 'CASCADE'
+            },
+            ilo_id: {
+                type: Sequelize.INTEGER,
+                allowNull: true,
+                references: {
+                    model: 'IntendedLearningOutcomes',
+                    key: 'ilo_id'
+                },
+                onUpdate: 'CASCADE',
+                onDelete: 'SET NULL'
             },
             name: {
                 type: Sequelize.STRING(70),

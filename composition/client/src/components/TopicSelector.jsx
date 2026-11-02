@@ -1,20 +1,39 @@
 import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import styles from '../styles/TopicSelector.module.sass';
-import { Search, Plus, Trash2, Copy, X, ChevronDown, List, Edit2 } from 'react-feather';
+import { Search, Plus, Trash2, Copy, X, ChevronDown, Edit2, CornerDownRight, Lock } from 'react-feather';
 import AiTopicSuggestModal, { GeminiStar } from './AiTopicSuggestModal.jsx';
 
-const TopicSelector = ({ label, options = [], value = [], onChange, error, disabled, iloId, courseCode }) => {
+const TopicSelector = ({
+    label,
+    options = [],
+    value = [],
+    onChange,
+    error,
+    disabled,
+    iloId,
+    courseCode,
+    weekNumber = 1,
+    previousWeekTopics = []
+}) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [isPickerOpen, setIsPickerOpen] = useState(false);
+    const [isContinueOpen, setIsContinueOpen] = useState(false);
     const [lastAddedId, setLastAddedId] = useState(null);
     const [isAiModalOpen, setIsAiModalOpen] = useState(false);
     const wrapperRef = useRef(null);
     const scrollContainerRef = useRef(null);
 
+    const canContinueTopic = Number(weekNumber) > 1;
+    const currentContinuedTopic = useMemo(
+        () => value.find(t => Boolean(t.isContinuation)),
+        [value]
+    );
+
     useEffect(() => {
         function handleClickOutside(event) {
             if (wrapperRef.current && !wrapperRef.current.contains(event.target)) {
                 setIsPickerOpen(false);
+                setIsContinueOpen(false);
             }
         }
         document.addEventListener("mousedown", handleClickOutside);
@@ -65,6 +84,7 @@ const TopicSelector = ({ label, options = [], value = [], onChange, error, disab
                 topic_id: topic.topic_id || null,
                 _temp_id: topic.topic_id ? null : tempId,
                 title: topic.title,
+                isContinuation: false,
                 subtopics: (topic.subtopics || []).map((s, idx) => ({
                     subtopic_id: s.subtopic_id || null,
                     _temp_id: s.subtopic_id ? null : `temp-sub-${Date.now()}-${idx}-${Math.random()}`,
@@ -84,6 +104,7 @@ const TopicSelector = ({ label, options = [], value = [], onChange, error, disab
             topic_id: null,
             _temp_id: tempId,
             title: searchTerm || "New Custom Topic",
+            isContinuation: false,
             subtopics: [{
                 subtopic_id: null,
                 _temp_id: `temp-sub-${Date.now()}`,
@@ -99,10 +120,50 @@ const TopicSelector = ({ label, options = [], value = [], onChange, error, disab
         scrollToMainBottom();
     };
 
+    const handleSelectContinueTopic = (prevTopic) => {
+        if (disabled || !prevTopic) return;
+        const isAlreadyContinued =
+            currentContinuedTopic &&
+            String(currentContinuedTopic.title).trim().toLowerCase() === String(prevTopic.title).trim().toLowerCase();
+
+        if (isAlreadyContinued) {
+            // Deselect if clicked again
+            onChange(value.filter(t => !t.isContinuation));
+            setIsContinueOpen(false);
+            return;
+        }
+
+        const tempId = `temp-cont-topic-${Date.now()}`;
+        const continuedTopicEntry = {
+            topic_id: prevTopic.topic_id || null,
+            _temp_id: prevTopic.topic_id ? null : tempId,
+            title: prevTopic.title,
+            isContinuation: true,
+            subtopics: [
+                {
+                    subtopic_id: null,
+                    _temp_id: `temp-sub-${Date.now()}`,
+                    title: "",
+                    sequence_order: 0
+                }
+            ]
+        };
+
+        // Allow only ONE continued topic from the previous week: replace any existing continuation or same-title topic
+        const remainingTopics = value.filter(
+            t =>
+                !t.isContinuation &&
+                String(t.title).trim().toLowerCase() !== String(prevTopic.title).trim().toLowerCase()
+        );
+
+        onChange([continuedTopicEntry, ...remainingTopics]);
+        setIsContinueOpen(false);
+        triggerAnimation(prevTopic.topic_id || tempId);
+    };
+
     const handleApplyAiTopics = (newAiTopics) => {
         if (!newAiTopics || newAiTopics.length === 0) return;
         onChange([...value, ...newAiTopics]);
-        // Trigger animation on the first new topic
         if (newAiTopics[0]) {
             triggerAnimation(newAiTopics[0]._temp_id || newAiTopics[0].topic_id);
         }
@@ -111,7 +172,7 @@ const TopicSelector = ({ label, options = [], value = [], onChange, error, disab
 
     const triggerAnimation = (id) => {
         setLastAddedId(id);
-        setTimeout(() => setLastAddedId(null), 1500); 
+        setTimeout(() => setLastAddedId(null), 1500);
     };
 
     const updateSubtopic = (topicTarget, subTarget, newTitle) => {
@@ -208,18 +269,80 @@ const TopicSelector = ({ label, options = [], value = [], onChange, error, disab
                                 type="text"
                                 placeholder="Search or type to add custom topic..."
                                 value={searchTerm}
-                                onFocus={() => setIsPickerOpen(true)}
+                                onFocus={() => {
+                                    setIsPickerOpen(true);
+                                    setIsContinueOpen(false);
+                                }}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                                 onKeyDown={(e) => {
-                                    if(e.key === 'Enter') handleAddManualTopic();
+                                    if (e.key === 'Enter') handleAddManualTopic();
                                 }}
                             />
                             <ChevronDown
                                 size={18}
                                 className={`${styles.chevron} ${isPickerOpen ? styles.up : ''}`}
-                                onClick={() => setIsPickerOpen(!isPickerOpen)}
+                                onClick={() => {
+                                    setIsPickerOpen(!isPickerOpen);
+                                    setIsContinueOpen(false);
+                                }}
                             />
                         </div>
+
+                        {canContinueTopic && (
+                            <div className={styles.continueTopicWrapper}>
+                                <button
+                                    type="button"
+                                    className={`${styles.continueTopicBtn} ${currentContinuedTopic ? styles.continueActive : ''}`}
+                                    onClick={() => {
+                                        setIsContinueOpen(!isContinueOpen);
+                                        setIsPickerOpen(false);
+                                    }}
+                                    title={`Continue one topic from Week ${weekNumber - 1} with new subtopics for Week ${weekNumber}`}
+                                >
+                                    <CornerDownRight size={15} className={styles.btnIcon} />
+                                    <span>Continue Previous Topic</span>
+                                    <ChevronDown size={14} className={`${styles.continueChevron} ${isContinueOpen ? styles.up : ''}`} />
+                                </button>
+
+                                {isContinueOpen && (
+                                    <div className={styles.continueDropdown}>
+                                        <div className={styles.continueDropdownHeader}>
+                                            <span>Select 1 Topic from Week {weekNumber - 1} to Continue</span>
+                                        </div>
+                                        <div className={styles.continueOptionsList}>
+                                            {previousWeekTopics && previousWeekTopics.length > 0 ? (
+                                                previousWeekTopics.map((prevTopic, idx) => {
+                                                    const isSelectedCont =
+                                                        currentContinuedTopic &&
+                                                        String(currentContinuedTopic.title).trim().toLowerCase() ===
+                                                            String(prevTopic.title).trim().toLowerCase();
+                                                    return (
+                                                        <div
+                                                            key={prevTopic.topic_id || prevTopic._temp_id || idx}
+                                                            className={`${styles.continueOptionItem} ${isSelectedCont ? styles.selectedContinueOpt : ''}`}
+                                                            onClick={() => handleSelectContinueTopic(prevTopic)}
+                                                        >
+                                                            <input type="radio" checked={Boolean(isSelectedCont)} readOnly />
+                                                            <div className={styles.continueOptText}>
+                                                                <span className={styles.continueOptTitle}>{prevTopic.title}</span>
+                                                                <span className={styles.continueOptMeta}>
+                                                                    {(prevTopic.subtopics || []).length} subtopics in Week {weekNumber - 1}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })
+                                            ) : (
+                                                <div className={styles.noResults}>
+                                                    No topics mapped in Week {weekNumber - 1} yet.
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
                         <button type="button" className={styles.mainAddBtn} onClick={handleAddManualTopic}>
                             <Plus size={16} className={styles.btnIcon} /> <span>Add Topic</span>
                         </button>
@@ -267,29 +390,42 @@ const TopicSelector = ({ label, options = [], value = [], onChange, error, disab
                         {value.map((topic) => {
                             const topicKey = getTopicKey(topic);
                             const isNewlyAdded = topicKey === lastAddedId;
+                            const isLockedContinuation = Boolean(topic.isContinuation);
 
                             return (
-                                <div key={topicKey} className={`${styles.topicCard} ${isNewlyAdded ? styles.newEntry : ''}`}>
+                                <div
+                                    key={topicKey}
+                                    className={`${styles.topicCard} ${isNewlyAdded ? styles.newEntry : ''} ${isLockedContinuation ? styles.continuedTopicCard : ''}`}
+                                >
                                     <div className={styles.topicHeaderCard}>
                                         <div className={styles.topicTitleGroup}>
                                             <div className={styles.inputWrapper}>
-                                                <Edit2 size={12} className={styles.editIcon} />
+                                                {isLockedContinuation ? (
+                                                    <Lock size={13} className={styles.lockIcon} title="Continued from previous week (Title locked)" />
+                                                ) : (
+                                                    <Edit2 size={12} className={styles.editIcon} />
+                                                )}
                                                 <input
-                                                    className={styles.topicTitleInput}
+                                                    className={`${styles.topicTitleInput} ${isLockedContinuation ? styles.lockedTitleInput : ''}`}
                                                     value={topic.title}
+                                                    readOnly={isLockedContinuation}
                                                     onChange={(e) => {
+                                                        if (isLockedContinuation) return;
                                                         const newTitle = e.target.value;
                                                         onChange(value.map(t => getTopicKey(t) === topicKey ? { ...t, title: newTitle } : t));
                                                     }}
                                                     placeholder="Enter Topic Title..."
                                                 />
+                                                {isLockedContinuation && (
+                                                    <span className={styles.continuedBadge}>Continued</span>
+                                                )}
                                             </div>
                                         </div>
                                         <button className={styles.removeTopicBtn} onClick={() => onChange(value.filter(t => getTopicKey(t) !== topicKey))}>
                                             <X color={"white"} size={16} />
                                         </button>
                                     </div>
-                                    
+
                                     <div className={styles.topicControls}>
                                         <button className={styles.addSubBtnSticky} onClick={() => addBlankSubtopic(topic)}>
                                             <Plus size={14} className={styles.btnIcon} /> <span>Add Subtopic</span>

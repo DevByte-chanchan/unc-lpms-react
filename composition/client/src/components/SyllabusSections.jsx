@@ -136,7 +136,7 @@ const SyllabusSections = () => {
                             </>
                         }
                         {(status === 'draft' || status === 'returned') &&
-                            <option value="Intended Learning Outcomes">Intended Learning Outcomes</option>
+                            <option value="Intended Learning Outcomes">Course Coverage</option>
                         }
                         <option value="Criteria for Grading">Criteria for Grading</option>
                     </select>

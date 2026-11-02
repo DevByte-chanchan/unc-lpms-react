@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import styles from '../styles/CoursesTable.module.sass';
-import { ChevronRight, Edit, XCircle, HelpCircle, List, Grid, ChevronDown, ChevronUp, Search } from 'react-feather';
+import { ChevronRight, Edit, XCircle, HelpCircle, List, Grid, ChevronDown, ChevronUp, Search, Download } from 'react-feather';
 import { fetchJson } from "../utils/api.js";
 
 // --- Custom Date Formatters to Ensure Global Consistency ---
@@ -319,7 +319,20 @@ const CoursesTable = () => {
                     </div>
                     <div className={styles.cardTitle}>{getName(row)}</div>
                     <div className={styles.cardFooter}>
-                        {actionElement}
+                        <div className={styles.cardActionsGroup}>
+                            {actionElement}
+                            {isApproved && (
+                                <button
+                                    type="button"
+                                    className={styles.gridExportBtn}
+                                    title="Export Learning Plan"
+                                    onClick={(e) => { e.preventDefault(); }}
+                                >
+                                    Export
+                                    <Download size={14} />
+                                </button>
+                            )}
+                        </div>
                         {hasDetails && (
                             <button 
                                 className={styles.toggleDetailsBtn} 
@@ -484,21 +497,44 @@ const CoursesTable = () => {
                                     <td width={350}>{getName(row)}</td>
                                     {selectedStatus === 'APPROVED' && <td width={200}>{formatDate(row.date_approved)}</td>}
                                     <td className={styles.fill}>
-                                        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                                            <Link
-                                                className={'actionLink'}
-                                                to={`/courses/${getOfferingID(row)}/${getRevNum(row)}/${selectedStatus.toLowerCase()}`}
-                                            >
-                                                {selectedStatus === 'DRAFT' ? 'Compose' : 'View'}
-                                                <ChevronRight size={18} />
-                                            </Link>
+                                        {selectedStatus === 'APPROVED' ? (
+                                            <div style={{ display: 'grid', gridTemplateColumns: 'auto auto', gap: '4px 8px', alignItems: 'center' }}>
+                                                <Link
+                                                    className="actionLink"
+                                                    style={{ margin: 0, justifyContent: 'flex-start' }}
+                                                    to={`/courses/${getOfferingID(row)}/${getRevNum(row)}/${selectedStatus.toLowerCase()}`}
+                                                >
+                                                    View
+                                                    <ChevronRight size={18} />
+                                                </Link>
 
-                                            {selectedStatus === 'APPROVED' &&
-                                                <button onClick={() => openPopup(row)} className={styles.info}>
+                                                <button onClick={() => openPopup(row)} className={styles.info} title="View workflow status">
                                                     <HelpCircle size={18} />
                                                 </button>
-                                            }
-                                        </div>
+
+                                                <button
+                                                    type="button"
+                                                    className="actionLink"
+                                                    style={{ border: 'none', background: 'transparent', margin: 0, padding: '4px 8px', fontSize: '15px', fontFamily: 'inherit', justifyContent: 'flex-start' }}
+                                                    title="Export Learning Plan"
+                                                    onClick={(e) => { e.preventDefault(); }}
+                                                >
+                                                    Export
+                                                    <Download size={18} />
+                                                </button>
+                                                <div></div>
+                                            </div>
+                                        ) : (
+                                            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                                                <Link
+                                                    className={'actionLink'}
+                                                    to={`/courses/${getOfferingID(row)}/${getRevNum(row)}/${selectedStatus.toLowerCase()}`}
+                                                >
+                                                    Compose
+                                                    <ChevronRight size={18} />
+                                                </Link>
+                                            </div>
+                                        )}
                                     </td>
                                     <td></td>
                                 </tr>

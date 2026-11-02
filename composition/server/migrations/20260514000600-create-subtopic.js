@@ -1,5 +1,5 @@
 'use strict';
-/** Migration: create Subtopic table (references topic_id) */
+/** Migration: create Subtopic table (references week_id and topic_id) */
 module.exports = {
     async up(queryInterface, Sequelize) {
         await queryInterface.createTable('Subtopics', {
@@ -7,6 +7,16 @@ module.exports = {
                 type: Sequelize.INTEGER,
                 primaryKey: true,
                 autoIncrement: true
+            },
+            week_id: {
+                type: Sequelize.INTEGER,
+                allowNull: false,
+                references: {
+                    model: 'Weeks',
+                    key: 'week_id'
+                },
+                onUpdate: 'CASCADE',
+                onDelete: 'CASCADE'
             },
             topic_id: {
                 type: Sequelize.INTEGER,
@@ -26,6 +36,11 @@ module.exports = {
                 type: Sequelize.INTEGER,
                 allowNull: false,
                 defaultValue: 0
+            },
+            is_orientation: {
+                type: Sequelize.BOOLEAN,
+                allowNull: false,
+                defaultValue: false
             },
             createdAt: {
                 type: Sequelize.DATE,

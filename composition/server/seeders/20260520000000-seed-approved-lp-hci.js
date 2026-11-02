@@ -64,17 +64,19 @@ module.exports = {
 
         const topicId = topicQuery[0].topic_id;
 
-        // Determine next sequence order dynamically
-        const subtopicCountQuery = await queryInterface.sequelize.query(
-            `SELECT COUNT(*) as count FROM Subtopics WHERE topic_id = ${topicId};`,
+        const existingSubtopicQuery = await queryInterface.sequelize.query(
+            `SELECT week_id, COUNT(*) as count FROM Subtopics WHERE topic_id = ${topicId} GROUP BY week_id;`,
             { type: queryInterface.sequelize.QueryTypes.SELECT }
         );
-        const nextSequence = (parseInt(subtopicCountQuery[0].count) || 0) + 1;
+        const weekId = existingSubtopicQuery[0].week_id;
+        const nextSequence = (parseInt(existingSubtopicQuery[0].count) || 0) + 1;
 
         await queryInterface.bulkInsert('Subtopics', [{
+            week_id: weekId,
             topic_id: topicId,
             title: 'Distributed Cognition and Activity Theory',
             sequence_order: nextSequence,
+            is_orientation: false,
             createdAt: now,
             updatedAt: now
         }], {});

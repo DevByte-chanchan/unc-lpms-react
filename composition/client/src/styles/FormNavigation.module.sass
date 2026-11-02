@@ -1,84 +1,535 @@
 .navi
   width: 100%
-  background: white
+  min-height: 58px
+  max-height: 58px
+  flex-shrink: 0
+  background: #ffffff
   display: flex
-  padding: 10px 15px
+  padding: 8px 16px
   justify-content: space-between
   align-items: center
+  gap: 14px
+  box-sizing: border-box
+  border-bottom: 1px solid #EDF2F7
+  transition: max-height 0.34s cubic-bezier(0.4, 0, 0.2, 1), gap 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease
+
+.naviExpanded
+  max-height: 34vh
+  align-items: stretch
+  gap: 0
+  padding: 8px 16px
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05)
 
 .return, .save
-  padding: 10px 20px
-  border-radius: 5px
+  height: 40px
+  max-width: 120px
+  padding: 0 18px
+  border-radius: 7px
+  border: none
   display: flex
-  background: #dbdfe3
+  background: #EDF2F7
+  color: #2D3748
   align-items: center
-  font-size: 14px
-  font-weight: 500
-  gap: 5px
+  justify-content: center
+  font-size: 13.5px
+  font-weight: 600
+  gap: 7px
   cursor: pointer
-  transition: all 0.2s
+  flex-shrink: 0
+  overflow: hidden
+  white-space: nowrap
+  opacity: 1
+  transform: scale(1) translateX(0)
+  transition: max-width 0.3s cubic-bezier(0.4, 0, 0.2, 1), padding 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.22s ease, transform 0.28s cubic-bezier(0.4, 0, 0.2, 1), background 0.18s ease
 
   &:hover
-    filter: brightness(0.95)
+    background: #E2E8F0
 
 .save
   background: #19282C
-  color: white
+  color: #ffffff
 
-.progressCenter
+  &:hover
+    background: #24383E
+
+.returnHidden
+  max-width: 0
+  padding-left: 0
+  padding-right: 0
+  opacity: 0
+  transform: scale(0.85) translateX(-12px)
+  pointer-events: none
+
+.saveHidden
+  max-width: 0
+  padding-left: 0
+  padding-right: 0
+  opacity: 0
+  transform: scale(0.85) translateX(12px)
+  pointer-events: none
+
+// Thin and wide calendar-looking flex-growing rectangular planner bar
+.plannerBar
+  flex: 1
+  min-width: 0
+  min-height: 42px
+  max-height: 42px
+  background: #F8FAFC
+  border: 1px solid #DCE2F0
+  border-radius: 8px
+  padding: 2px 12px
+  display: flex
+  flex-direction: column
+  justify-content: flex-start
+  box-sizing: border-box
+  overflow: hidden
+  transition: max-height 0.34s cubic-bezier(0.4, 0, 0.2, 1), padding 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease
+
+.plannerBarExpanded
+  width: 100%
+  max-height: calc(34vh - 16px)
+  padding: 6px 12px 12px 12px
+
+.plannerTopRow
+  width: 100%
+  height: 36px
+  min-height: 36px
   display: flex
   align-items: center
-  gap: 15px
-  
-.pNav
-  background: transparent
-  border: none
-  display: flex
-  align-items: center
-  justify-content: center
-  cursor: pointer
-  color: #6c757d
-  padding: 4px
-  border-radius: 50%
-  transition: all 0.2s
-  
-  &:disabled
-    opacity: 0.3
-    cursor: default
-    
-  &:not(:disabled):hover
-    background: #f0f0f0
-    color: #111827
+  justify-content: space-between
+  gap: 14px
+  flex-shrink: 0
 
-.progressTrack
+.calendarSection
   display: flex
   align-items: center
   gap: 8px
-  background: #f8f9fa
-  padding: 6px 16px
-  border-radius: 20px
-  border: 1px solid #e9ecef
+  flex-shrink: 0
 
-.stepNode
-  font-size: 13px
-  font-weight: 600
-  color: #8B999D
+// Recognizable Course Outcome Toggler Button
+.coToggleBtn
+  display: inline-flex
+  align-items: center
+  gap: 7px
+  height: 30px
+  padding: 0 8px 0 10px
+  background: #ffffff
+  border: 1px solid #94A3B8
+  border-radius: 6px
+  color: #1E293B
+  font-size: 11.5px
+  font-weight: 800
+  letter-spacing: 0.03em
+  text-transform: uppercase
   cursor: pointer
-  transition: all 0.2s
-  padding: 4px 10px
-  border-radius: 12px
-  
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06)
+  transition: all 0.2s ease
+
   &:hover
-    color: #4b5563
-    
-.activeNode
+    background: #F1F5F9
+    border-color: #3182CE
+    color: #1E40AF
+    transform: translateY(-1px)
+
+.coToggleBtnActive
+  background: #19282C
+  border-color: #19282C
+  color: #ffffff
+  box-shadow: 0 2px 5px rgba(25, 40, 44, 0.2)
+
+  .calendarIcon
+    color: #60A5FA
+
+  .coToggleChevron
+    background: rgba(255, 255, 255, 0.16)
+    color: #ffffff
+
+  &:hover
+    background: #24383E
+    border-color: #24383E
+    color: #ffffff
+
+.calendarIcon
+  color: #3182CE
+  flex-shrink: 0
+
+.coBadgeText
+  white-space: nowrap
+
+.coToggleChevron
+  display: inline-flex
+  align-items: center
+  justify-content: center
+  width: 18px
+  height: 18px
+  border-radius: 4px
+  background: #EDF2F7
+  color: #475569
+  transition: all 0.2s ease
+
+// Course Outcome Number Selector Group (visible in Expanded Mode)
+.coSelectorGroup
+  display: inline-flex
+  align-items: center
+  gap: 4px
+  padding: 2px 4px
+  background: #EDF2F7
+  border: 1px solid #CBD5E1
+  border-radius: 6px
+  animation: coGroupFadeIn 0.24s ease-out
+
+@keyframes coGroupFadeIn
+  from
+    opacity: 0
+    transform: translateX(-6px)
+  to
+    opacity: 1
+    transform: translateX(0)
+
+.coSwitchBtn
+  position: relative
+  display: inline-flex
+  align-items: center
+  justify-content: center
+  gap: 4px
+  height: 24px
+  padding: 0 9px
+  border-radius: 4px
+  border: 1px solid transparent
+  background: transparent
+  color: #475569
+  font-size: 11px
+  font-weight: 700
+  letter-spacing: 0.02em
+  cursor: pointer
+  white-space: nowrap
+  transition: all 0.16s ease
+
+  &:hover
+    background: #ffffff
+    color: #1E293B
+
+.coSwitchBtnActive
+  background: #3182CE
+  border-color: #2563EB
+  color: #ffffff
+  box-shadow: 0 1px 3px rgba(37, 99, 235, 0.25)
+
+  &:hover
+    background: #2563EB
+    color: #ffffff
+
+.coSwitchBtnHasComment
+  color: #B91C1C
+  border-color: #FCA5A5
+  background: #FEF2F2
+
+  &.coSwitchBtnActive
+    background: #DC2626
+    border-color: #B91C1C
+    color: #ffffff
+
+.coSwitchCommentDot
+  width: 6px
+  height: 6px
+  border-radius: 50%
+  background: #EF4444
+  flex-shrink: 0
+
+  .coSwitchBtnActive &
+    background: #ffffff
+
+// Calendar / Notepad style week buttons
+.weekNotepadGroup
+  display: flex
+  align-items: center
+  gap: 6px
+
+.weekNotepadBtn
+  position: relative
+  display: flex
+  align-items: baseline
+  justify-content: center
+  gap: 4px
+  height: 30px
+  padding: 6px 12px 4px 12px
+  background: #ffffff
+  border: 1px solid #CBD5E1
+  border-radius: 5px
+  cursor: pointer
+  color: #64748B
+  transition: all 0.18s ease
+  overflow: hidden
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04)
+
+  &:hover
+    border-color: #94A3B8
+    color: #1E293B
+    transform: translateY(-1px)
+
+.notepadBinding
+  position: absolute
+  top: 0
+  left: 0
+  right: 0
+  height: 3px
+  background: #CBD5E1
+  transition: background 0.18s ease
+
+.weekSmallTag
+  font-size: 9.5px
+  font-weight: 700
+  letter-spacing: 0.05em
+  text-transform: uppercase
+  opacity: 0.85
+
+.weekNumText
+  font-size: 13px
+  font-weight: 800
+  line-height: 1
+
+.activeWeekBtn
+  background: #EFF6FF
+  border-color: #3182CE
+  color: #1E40AF
+  box-shadow: 0 2px 6px rgba(49, 130, 206, 0.16)
+
+  .notepadBinding
+    background: #3182CE
+
+  &:hover
+    border-color: #2563EB
+    color: #1E3A8A
+
+// Red styling for Week buttons that have unresolved comments
+.hasCommentWeekBtn
+  background: #FEF2F2
+  border-color: #F87171
+  color: #B91C1C
+
+  .notepadBinding
+    background: #DC2626
+
+  &:hover
+    background: #FEE2E2
+    border-color: #DC2626
+    color: #991B1B
+
+  &.activeWeekBtn
+    background: #FEE2E2
+    border-color: #DC2626
+    color: #991B1B
+    box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.2), 0 2px 6px rgba(220, 38, 38, 0.18)
+
+    .notepadBinding
+      background: #B91C1C
+
+.weekCommentBadge
+  display: inline-flex
+  align-items: center
+  justify-content: center
+  min-width: 15px
+  height: 15px
+  padding: 0 4px
+  margin-left: 2px
+  border-radius: 999px
+  background: #DC2626
+  color: #ffffff
+  font-size: 9.5px
+  font-weight: 800
+  line-height: 1
+  align-self: center
+
+.barDivider
+  width: 1px
+  height: 24px
+  background: #DCE2F0
+  flex-shrink: 0
+
+// Non-sequential content selector tabs
+.contentSelectorGroup
+  display: flex
+  align-items: center
+  gap: 6px
+  flex: 1
+  justify-content: flex-end
+  min-width: 0
+
+.contentTabBtn
+  display: inline-flex
+  align-items: center
+  justify-content: center
+  gap: 6px
+  height: 30px
+  padding: 0 13px
+  border-radius: 6px
+  border: 1px solid transparent
+  background: transparent
+  color: #64748B
+  font-size: 12.5px
+  font-weight: 600
+  cursor: pointer
+  white-space: nowrap
+  transition: all 0.18s ease
+
+  &:hover
+    background: #EDF2F7
+    color: #1E293B
+
+.tabIcon
+  flex-shrink: 0
+  opacity: 0.8
+
+.activeContentTab
+  background: #ffffff
+  border-color: #CBD5E1
   color: #19282C
-  background: #e2e8f0
-  
-.completedNode
-  color: #10b981
-  
-.stepConnector
-  width: 20px
-  height: 2px
-  background: #cbd5e1
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06)
+
+  .tabIcon
+    color: #3182CE
+    opacity: 1
+
+  &:hover
+    background: #ffffff
+    color: #19282C
+
+.contentTabHasComment
+  color: #B91C1C
+
+  .tabIcon
+    color: #DC2626
+    opacity: 1
+
+  &.activeContentTab
+    border-color: #FCA5A5
+    background: #FFF5F5
+    color: #991B1B
+
+.contentCommentBadge
+  display: inline-flex
+  align-items: center
+  justify-content: center
+  min-width: 18px
+  height: 18px
+  padding: 0 5px
+  border-radius: 999px
+  background: #DC2626
+  color: #ffffff
+  font-size: 10.5px
+  font-weight: 700
+  line-height: 1
+  box-shadow: 0 1px 2px rgba(220, 38, 38, 0.25)
+
+// Smooth CSS Grid Collapse/Expand Wrapper for Course Outcome & ILO Details
+.expandableCollapseWrapper
+  display: grid
+  grid-template-rows: 0fr
+  opacity: 0
+  transform: translateY(-4px)
+  pointer-events: none
+  transition: grid-template-rows 0.34s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.26s ease, transform 0.28s cubic-bezier(0.4, 0, 0.2, 1)
+
+.expandableCollapseOpen
+  grid-template-rows: 1fr
+  opacity: 1
+  transform: translateY(0)
+  pointer-events: auto
+
+.expandableCollapseInner
+  overflow: hidden
+  min-height: 0
+  display: flex
+  flex-direction: column
+
+// Divider & Expanded Course Outcome + ILO Details Panel
+.expandedDivider
+  width: 100%
+  height: 1px
+  background: #DCE2F0
+  margin: 6px 0 8px 0
+  flex-shrink: 0
+
+.outcomesDetailsPanel
+  display: flex
+  flex-direction: column
+  gap: 8px
+  width: 100%
+  overflow-y: auto
+  padding-right: 2px
+
+.coSummaryBlock
+  display: flex
+  align-items: center
+  padding: 9px 12px
+  background: #ffffff
+  border: 1px solid #E2E8F0
+  border-radius: 6px
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03)
+  flex-shrink: 0
+
+.coSummaryText
+  margin: 0
+  font-size: 12.5px
+  font-weight: 600
+  color: #1E293B
+  line-height: 1.4
+
+.iloGridBlocks
+  display: grid
+  grid-template-columns: repeat(3, minmax(0, 1fr))
+  gap: 8px
+  width: 100%
+
+.iloDetailCard
+  display: flex
+  flex-direction: column
+  gap: 5px
+  padding: 9px 12px
+  background: #ffffff
+  border: 1px solid #E2E8F0
+  border-radius: 6px
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03)
+  min-width: 0
+
+.iloCardHeader
+  display: flex
+  align-items: center
+  justify-content: space-between
+  gap: 6px
+
+.iloBadgePill
+  display: inline-flex
+  align-items: center
+  padding: 2px 7px
+  background: #EFF6FF
+  border: 1px solid #BFDBFE
+  color: #1E40AF
+  border-radius: 4px
+  font-size: 10px
+  font-weight: 800
+  letter-spacing: 0.03em
+  white-space: nowrap
+  flex-shrink: 0
+
+.iloAssessmentTag
+  font-size: 10px
+  font-weight: 600
+  color: #64748B
+  background: #F1F5F9
+  padding: 2px 6px
+  border-radius: 4px
+  overflow: hidden
+  text-overflow: ellipsis
+  white-space: nowrap
+  max-width: 65%
+
+.iloDescriptionText
+  margin: 0
+  font-size: 11.5px
+  color: #334155
+  line-height: 1.4
+  display: -webkit-box
+  -webkit-line-clamp: 3
+  -webkit-box-orient: vertical
+  overflow: hidden
