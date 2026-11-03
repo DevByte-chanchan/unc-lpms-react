@@ -10,8 +10,6 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "cors": "^2.8.6",
-    "express": "^5.2.1",
     "html2canvas": "^1.4.1",
     "jspdf": "^4.2.1",
     "react": "^19.1.1",
