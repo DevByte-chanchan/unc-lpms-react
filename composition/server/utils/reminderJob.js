@@ -48,7 +48,7 @@ const emailFor = (courseCode, text) => ({
 // Plans waiting on an approver: each approver gets one in-app summary on a day when one of their plans
 // reaches its wait limit (3 days for the Director and Program Head, 7 for the Dean, then every multiple).
 // The Dean is also told of plans stalled with another reviewer for 7 days or more.
-const remindApprovers = async ({ deps, clock, timeZone, programIds, result }) => {
+const remindApprovers = async ({ deps, clock, timeZone, programIds, result, now = new Date() }) => {
     const { models, notify } = deps;
     const { sequelize, ReminderLog, User } = models;
     const waiting = await findWaitingOnApprovers({ sequelize, today: clock.day, timeZone, programIds });
@@ -75,14 +75,14 @@ const remindApprovers = async ({ deps, clock, timeZone, programIds, result }) =>
         const user = await User.findByPk(id);
         if (!user || !user.is_active) continue;
         if (!(await claim(ReminderLog, `waiting:${id}`, 'waiting', clock.day))) continue;
-        await notify([id], 'approval_waiting', null, rules.waitingText(e), null);
+        await notify([id], 'approval_waiting', null, rules.waitingText(e), null, now);
         result.approverReminders += 1;
     }
 };
 
 // On the digest day the Director of Libraries gets one summary of the references that need attention
 // (unavailable, older than their recency rule, missing an ISBN or link). Nothing is sent when all is well.
-const remindDirectors = async ({ deps, clock, result }) => {
+const remindDirectors = async ({ deps, clock, result, now = new Date() }) => {
     const { models, notify } = deps;
     const { Reference, ReminderLog, User } = models;
     const refs = await Reference.findAll({ where: { archived: false }, raw: true });
@@ -91,7 +91,7 @@ const remindDirectors = async ({ deps, clock, result }) => {
     const directors = await User.findAll({ where: { role: 'director-of-libraries', is_active: true }, attributes: ['user_id'], raw: true });
     for (const { user_id: id } of directors) {
         if (!(await claim(ReminderLog, `refhealth:${id}`, 'digest', clock.day))) continue;
-        await notify([id], 'reference_health', null, healthText(counts), null);
+        await notify([id], 'reference_health', null, healthText(counts), null, now);
         result.referenceDigests += 1;
     }
 };
@@ -122,7 +122,7 @@ const runReminders = async ({ now = new Date(), env = process.env, deps = lazy()
         if (!(await claim(ReminderLog, `offering:${row.offeringId}`, kind, clock.day))) { result.alreadySent += 1; continue; }
 
         const text = rules.reminderText(row.courseCode, days);
-        await notify([row.instructorId], 'reminder', row.offeringId, `${row.courseCode} — ${text}`, null);
+        await notify([row.instructorId], 'reminder', row.offeringId, `${row.courseCode} — ${text}`, null, now);
         result.sent += 1;
         if (mailer.configured() && row.instructorEmail) {
             const mail = emailFor(row.courseCode, text);
@@ -150,13 +150,13 @@ const runReminders = async ({ now = new Date(), env = process.env, deps = lazy()
             const user = await User.findByPk(head);
             if (!user || !user.is_active) continue;
             if (!(await claim(ReminderLog, `digest:${head}`, 'digest', clock.day))) continue;
-            await notify([head], 'missing_digest', null, rules.digestText(counts.notSubmitted, counts.overdue, counts), null);
+            await notify([head], 'missing_digest', null, rules.digestText(counts.notSubmitted, counts.overdue, counts), null, now);
             result.digests += 1;
         }
         // Not tied to a program: skipped when the run is limited to some programs (a test or a manual run).
-        if (!programIds) await remindDirectors({ deps, clock, result });
+        if (!programIds) await remindDirectors({ deps, clock, result, now });
     }
-    await remindApprovers({ deps, clock, timeZone: rules.timezoneOf(env), programIds, result });
+    await remindApprovers({ deps, clock, timeZone: rules.timezoneOf(env), programIds, result, now });
     return result;
 };
 

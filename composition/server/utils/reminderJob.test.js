@@ -107,7 +107,9 @@ test('running the job again the same day sends nothing twice', async () => {
     const before = (await reminders('A')).length;
     const again = await run('2026-11-02T10:30:00Z');
     assert.equal((await reminders('A')).length, before);
-    assert.ok(again.alreadySent >= 1);
+    // The reminder sent at 09:00 is inside the quiet window at 10:30, so the plan is skipped as quiet (or, past the
+    // window, as already sent today): either way nothing goes out twice.
+    assert.ok(again.alreadySent + again.quiet >= 1);
     assert.equal(emails.length, 1);
 });
 
