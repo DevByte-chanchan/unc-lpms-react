@@ -100,7 +100,6 @@ test('only the Program Head and the Dean may use these routes', async () => {
     for (const role of ['instructor', 'director-of-libraries', 'industry-consultant', 'vpaa']) {
         assert.equal((await call(`999:${role}`, 'GET', '/term-deadlines')).status, 403, `${role} deadlines`);
         assert.equal((await call(`999:${role}`, 'GET', '/missing-submissions')).status, 403, `${role} list`);
-        assert.equal((await call(`999:${role}`, 'POST', '/missing-submissions/remind', { offeringIds: [1] })).status, 403, `${role} remind`);
     }
 });
 
@@ -173,28 +172,7 @@ test('the list can be narrowed to one semester', async () => {
     assert.deepEqual(names((await call(HEAD_A(), 'GET', `/missing-submissions?school_year=${SCHOOL_YEAR}&semester=2nd`)).body), ['ZZMY']);
 });
 
-// ---- remind now and pause ----
-
-test('remind now writes one reminder to the instructor, and a second one within hours is refused', async () => {
-    const first = await call(HEAD_A(), 'POST', '/missing-submissions/remind', { offeringIds: [plan.X.offeringId] });
-    assert.equal(first.status, 200);
-    assert.equal(first.body.sent, 1);
-    const notice = await Notification.findOne({ where: { recipient_user_id: plan.X.instructorId, type: 'poke' }, raw: true });
-    assert.match(notice.message, /ZZMX — reminder: submit your learning plan by Program Head/);
-    const second = await call(HEAD_A(), 'POST', '/missing-submissions/remind', { offeringIds: [plan.X.offeringId] });
-    assert.deepEqual(second.body.results.map(r => r.status), ['limited']);
-    const listed = (await call(HEAD_A(), 'GET', `/missing-submissions?school_year=${SCHOOL_YEAR}&semester=1st`)).body.missing.find(m => m.courseCode === 'ZZMX');
-    assert.equal(listed.lastReminderBy, 'a person');
-    assert.ok(listed.lastReminderAt);
-});
-
-test('a plan that is submitted, or in another program, cannot be reminded', async () => {
-    const res = await call(HEAD_A(), 'POST', '/missing-submissions/remind', { offeringIds: [plan.S.offeringId, plan.W.offeringId] });
-    assert.deepEqual(res.body.results.map(r => r.status), ['not-waiting', 'not-waiting']);
-    assert.equal(res.body.sent, 0);
-    assert.equal((await call(HEAD_A(), 'POST', '/missing-submissions/remind', { offeringIds: [] })).status, 400);
-    assert.equal((await call(HEAD_A(), 'POST', '/missing-submissions/remind', { offeringIds: Array.from({ length: 101 }, (_, i) => i + 1) })).status, 400);
-});
+// ---- pause ----
 
 test('reminders for a plan can be paused and resumed, only by the person who heads its program', async () => {
     assert.equal((await call(HEAD_B(), 'PUT', `/missing-submissions/${plan.Y.offeringId}/pause`, { paused: true })).status, 404, "another head's plan");

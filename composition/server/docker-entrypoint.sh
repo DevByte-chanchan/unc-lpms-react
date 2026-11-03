@@ -16,7 +16,6 @@ set -e
 DATA_DIR=${LPMS_DATA_DIR:-/app/data}
 SEED_DIR=${LPMS_SEED_DIR:-/app/seed-data}
 APP_USER=${LPMS_APP_USER:-node}
-SIGNATURE_DIR=${LPMS_SIGNATURE_DIR:-/app/storage/signatures}
 
 seed_if_empty() {
     if [ -z "$(ls -A "$DATA_DIR" 2>/dev/null)" ] && [ -n "$(ls -A "$SEED_DIR" 2>/dev/null)" ]; then
@@ -66,9 +65,6 @@ if [ "$(id -u)" = "0" ]; then
     mkdir -p "$DATA_DIR"
     seed_if_empty
     chown -R "$APP_USER":"$APP_USER" "$DATA_DIR"
-    # A named volume starts out owned by root; the signature folder has to be writable by the app user.
-    mkdir -p "$SIGNATURE_DIR"
-    chown -R "$APP_USER":"$APP_USER" "$SIGNATURE_DIR"
     # As the app user, so the database and its WAL files stay owned by it.
     migrate_or_stop setpriv --reuid="$APP_USER" --regid="$APP_USER" --init-groups --
     seed_demo_if_empty setpriv --reuid="$APP_USER" --regid="$APP_USER" --init-groups --

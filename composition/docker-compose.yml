@@ -54,15 +54,6 @@ services:
       # Stated explicitly so the API is told to accept the origin the browser
       # actually loads the app from, whatever NODE_ENV ends up being.
       LPMS_ALLOWED_ORIGINS: "${LPMS_CLIENT_ORIGIN:-http://localhost:5174}"
-      # E-signature files (AES-256-GCM encrypted) live on their own named volume, so they survive
-      # image rebuilds and `docker compose down`. The key is NOT here: it comes from the .env file
-      # next to this one. An empty value means "not configured": the signature endpoints answer
-      # 503 and the server still starts. Generate a key with:
-      #   node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
-      # Losing or changing the key makes existing signatures unreadable (users upload them again).
-      LPMS_SIGNATURE_DIR: "/app/storage/signatures"
-      LPMS_SIGNATURE_KEY: "${LPMS_SIGNATURE_KEY:-}"
-      LPMS_SIGNATURE_KEY_VERSION: "${LPMS_SIGNATURE_KEY_VERSION:-}"
       # Outgoing mail for credentials and password-reset links. Leave LPMS_SMTP_HOST or
       # LPMS_SMTP_FROM empty and the temporary password is shown once to the superuser instead.
       LPMS_SMTP_HOST: "${LPMS_SMTP_HOST:-}"
@@ -117,6 +108,6 @@ volumes:
   # from the database in the image, which is a copy of the worktree taken when
   # the image was last built.
   lpms_data:
-  # Encrypted e-signature files. Survives `docker compose down` and rebuilds; only
-  # `docker compose down -v` deletes it.
+  # Old e-signature files. The e-signature feature is gone; the volume is kept so nothing is lost.
+  # Nothing reads it any more: remove it yourself with `docker volume rm` when you are sure.
   lpms_signatures:

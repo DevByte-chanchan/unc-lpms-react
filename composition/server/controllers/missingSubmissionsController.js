@@ -1,19 +1,16 @@
 'use strict';
 
 // The Program Head's (and the Dean's) list of plans not yet submitted: who, since when, against which due
-// date, when they were last reminded, and the controls to remind now or pause the automatic reminders.
+// date, when they were last reminded, and the control to pause the automatic reminders.
 // Everything is limited to the programs the person heads (deadline:manage).
 
-const { Op, Transaction } = require('sequelize');
+const { Op } = require('sequelize');
 const { sequelize, Notification, ReminderPause } = require('../models');
 const { programsFor } = require('./termDeadlineController');
 const { findAwaiting, standing } = require('../utils/missingSubmissions');
 const { schoolClock, timezoneOf, asDate, daysUntil } = require('../utils/reminderRules');
-const { eventMessage } = require('../utils/notify');
-const { POKE_WINDOW_MS } = require('./notificationController');
 const { record: audit } = require('../utils/audit');
 
-const MAX_BULK = 100;
 const asId = (value) => (/^[0-9]+$/.test(String(value ?? '')) ? Number(value) : null);
 
 const lastNotices = async (offeringIds) => {
@@ -72,45 +69,6 @@ const listMissing = async (req, res, next) => {
     }
 };
 
-// POST /api/missing-submissions/remind { offeringIds: [..] } — remind these instructors now (the same
-// per-plan limit as a poke, so nobody is reminded twice within a few hours)
-const remindNow = async (req, res, next) => {
-    try {
-        const ids = [...new Set((Array.isArray(req.body?.offeringIds) ? req.body.offeringIds : []).map(asId).filter(Boolean))];
-        if (ids.length === 0) return res.status(400).json({ error: 'Choose at least one plan.' });
-        if (ids.length > MAX_BULK) return res.status(400).json({ error: `At most ${MAX_BULK} plans at once.` });
-
-        const programs = await programsFor(req.user);
-        const waiting = new Map((await findAwaiting({ sequelize, programIds: programs.map(p => p.program_id) })).map(r => [r.offeringId, r]));
-
-        const results = [];
-        for (const id of ids) {
-            const row = waiting.get(id);
-            if (!row) { results.push({ offeringId: id, status: 'not-waiting' }); continue; }
-            if (!row.instructorId || !row.instructorActive) { results.push({ offeringId: id, status: 'no-instructor' }); continue; }
-            const outcome = await sequelize.transaction({ type: Transaction.TYPES.IMMEDIATE }, async (transaction) => {
-                const recent = await Notification.findOne({
-                    where: { recipient_user_id: row.instructorId, offering_id: id, type: { [Op.in]: ['poke', 'reminder'] }, created_at: { [Op.gte]: new Date(Date.now() - POKE_WINDOW_MS) } },
-                    transaction
-                });
-                if (recent) return 'limited';
-                await Notification.create({
-                    recipient_user_id: row.instructorId, type: 'poke', offering_id: id,
-                    message: eventMessage(row.courseCode, 'reminder: submit your learning plan', req.user.role),
-                    actor_role: req.user.role === 'dean' ? 'DEAN' : 'PROGRAM_HEAD', is_read: false
-                }, { transaction });
-                return 'sent';
-            });
-            results.push({ offeringId: id, status: outcome });
-        }
-        const sent = results.filter(r => r.status === 'sent').length;
-        if (sent) await audit({ actor: req.user, action: 'MISSING_SUBMISSIONS_REMINDED', entityType: 'notifications', entityId: null, details: { count: sent }, ip: req.ip });
-        return res.json({ sent, results });
-    } catch (error) {
-        return next(error);
-    }
-};
-
 // PUT /api/missing-submissions/:offeringId/pause { paused: true|false }
 const setPaused = async (req, res, next) => {
     try {
@@ -128,4 +86,4 @@ const setPaused = async (req, res, next) => {
     }
 };
 
-module.exports = { listMissing, remindNow, setPaused };
+module.exports = { listMissing, setPaused };
