@@ -76,7 +76,7 @@ const ChangePassword = () => {
             </div>
           )}
 
-          <button type="submit" className={styles.submit} disabled={busy}>{busy ? 'Saving…' : 'Change password'}</button>
+          <button type="submit" className="btn btn-primary" disabled={busy}>{busy ? 'Saving…' : 'Change password'}</button>
         </form>
 
         <button type="button" className={styles.switch}

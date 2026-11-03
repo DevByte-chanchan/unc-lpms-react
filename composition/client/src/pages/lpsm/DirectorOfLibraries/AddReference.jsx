@@ -56,9 +56,9 @@ const AddReference = () => {
       </div>
 
       <div className={styles['form-container']}>
-        <h2 className="app-page-title">Reference details</h2>
-        {(loadError || form.typesError) && <div role="alert" style={{ color: '#b91c1c', marginBottom: 12 }}>{loadError || form.typesError}</div>}
-        {saveError && <div role="alert" style={{ color: '#b91c1c', marginBottom: 12 }}>{saveError}</div>}
+        <h2 className="app-page-title">Reference Details</h2>
+        {(loadError || form.typesError) && <div role="alert" style={{ color: 'var(--danger)', marginBottom: 12 }}>{loadError || form.typesError}</div>}
+        {saveError && <div role="alert" style={{ color: 'var(--danger)', marginBottom: 12 }}>{saveError}</div>}
         {loaded && form.typesReady && !loadError && (
           <ReferenceFields value={form.values} errors={form.errors} onChange={form.change} />
         )}
@@ -68,7 +68,7 @@ const AddReference = () => {
         <div style={{
           position: 'fixed', bottom: 24, right: 24, zIndex: 9999,
           display: 'flex', alignItems: 'center', gap: 10,
-          background: '#047857', color: '#fff',
+          background: 'var(--good)', color: '#fff',
           padding: '14px 22px', borderRadius: 8, fontSize: 14, fontWeight: 500,
           boxShadow: '0 6px 20px rgba(0,0,0,0.15)', fontFamily: "'Poppins', sans-serif",
         }}>

@@ -33,17 +33,24 @@
     font-size: 14px
 
 .return
-  padding: 0 20px
-  border-radius: 5px
-  font-size: 14px
-  font-weight: 500
-  background: #dbdfe3
-  cursor: pointer
   display: flex
   align-items: center
-  gap: 5px
-  height: 40px
-  color: black
+  justify-content: center
+  flex: 0 0 auto
+  width: 36px
+  height: 36px
+  padding: 0
+  box-sizing: border-box
+  border: 1px solid var(--control-border)
+  border-radius: var(--control-radius)
+  background: #fff
+  color: var(--ink-soft)
+  cursor: pointer
+  transition: background var(--t-fast), color var(--t-fast)
+
+  &:hover
+    background: var(--hover-tint)
+    color: var(--ink)
 
 .reviewIdentity
   min-width: 0
@@ -65,10 +72,8 @@
     white-space: nowrap
 
 .section-select
-  border-radius: 5px
-  background: #F2F3F4
   flex-grow: 1
-  padding-right: 20px
+  min-width: 0
   display: flex
   align-items: center
   height: 100%
@@ -98,10 +103,29 @@
   flex-direction: column
   min-height: 200px
   position: relative
-  overflow-y: hidden
+  // The content scrolls here, under the title bar, so the page's one scrollbar is at the window's edge and the
+  // tables inside it do not carry scrollbars of their own across their headers.
+  overflow-y: auto
+  overflow-x: hidden
   -webkit-overflow-scrolling: touch
   // allow this flex item to shrink when sidebar expands
   min-width: 0
+
+  // A table is as tall as its rows, so this area scrolls up and down and the table has no vertical scrollbar of its
+  // own; a table wider than the area still scrolls sideways inside its own box.
+  [data-table-region]
+    max-height: none
+    flex: 0 0 auto
+    overflow-y: visible
+
+  // a sticky header loses its cell borders in a collapsed table, and these tables are short: the header scrolls with the rows
+  [data-table-region] thead
+    position: static
+
+  // Course Coverage fills the area, with its own header and scrolling rows (see HeadBodyTable.jsx)
+  > section:has(> [class*='ccContainer'])
+    flex: 1 1 0
+    min-height: 0
 
   &::-webkit-scrollbar
     width: 8px
@@ -134,16 +158,37 @@
   min-height: 0
   display: flex
 
+// The rail between the page and the comments panel: a quiet white strip with a chevron, tinted on hover like every
+// other control, with a focus ring for the keyboard.
 .comments-toggle
-  width: 26px
-  flex: 0 0 26px
+  width: 28px
+  flex: 0 0 28px
+  display: flex
+  align-items: center
+  justify-content: center
+  padding: 0
+  border: 0
   border-left: 1px solid #e2e8f0
-  background: #fafafa
-  color: #334155
+  border-radius: 0
+  background: #fff
+  color: var(--ink-muted)
+  cursor: pointer
+  transition: background var(--t-fast), color var(--t-fast)
 
   &:hover:not(:disabled)
-    background: #e8edf2
-    border-color: #e2e8f0
+    background: var(--hover-tint)
+    color: var(--ink)
+
+  &:focus-visible
+    outline: 2px solid var(--accent)
+    outline-offset: -2px
+
+.comments-toggle-icon
+  display: inline-flex
+  align-items: center
+  justify-content: center
+  width: 22px
+  height: 22px
 
 .comments-toggle-label
   display: none
@@ -232,12 +277,12 @@
   font-weight: 500
 
 .statusPending
-  color: #92400e
-  background: #fef3c7
+  color: var(--warn)
+  background: var(--warn-soft)
 
 .statusResolved
-  color: #166534
-  background: #dcfce7
+  color: var(--good)
+  background: var(--good-soft)
 
 .resolveCommentButton
   display: inline-flex
@@ -268,10 +313,10 @@
   padding: 9px 10px
   border: 1px solid #fde68a
   border-radius: 6px
-  background: #fffbeb
+  background: var(--warn-soft)
 
 .commentTargetLabel
-  color: #92400e
+  color: var(--warn)
   font-size: 11px
   font-weight: 600
   text-transform: uppercase
@@ -356,7 +401,7 @@
 
 .resolvedDate
   margin-left: auto
-  color: #166534
+  color: var(--good)
 
 @media (max-width: 1024px)
   .container
@@ -369,7 +414,7 @@
   .section-select
     order: 3
     flex: 1 0 100%
-    height: 40px
+    height: 36px
   .reviewIdentity
     flex: 1 1 140px
   .dynamic-sections
@@ -387,7 +432,7 @@
     flex-direction: column
   .comments-toggle
     width: 100%
-    min-height: 44px
+    min-height: 36px
     flex-basis: auto
     justify-content: center
     gap: 8px
@@ -441,7 +486,7 @@
   display: flex
   align-items: center
   gap: 5px
-  height: 40px
+  height: 36px
   color: black
   border: 0
   font-family: inherit
@@ -490,7 +535,7 @@
   font-size: 14px
   font-weight: 500
   background: #dbdfe3
-  height: 40px
+  height: 36px
   color: black
   transition: transform 0.3s ease
 
@@ -1140,6 +1185,8 @@
   // card. The 6px page gap from .container is what separates it from the bar
   // above, the same as every other band on this screen.
   width: 100%
+  // The page is a flex column: without this the band is squeezed shorter than its chips and clips them.
+  flex: 0 0 auto
   overflow-x: auto
   scrollbar-width: none
 
@@ -1177,10 +1224,12 @@
   display: inline-flex
   align-items: center
   gap: 6px
-  min-width: 0
-  height: var(--control-h-sm)
+  justify-content: center
+  width: min(300px, 100%)
+  height: 36px
   padding: 0 var(--sp-5)
-  border-radius: var(--radius-sm)
+  box-sizing: border-box
+  border-radius: var(--control-radius)
   font-family: var(--font-ui)
   font-size: var(--fs-sm)
   font-weight: var(--fw-medium)
@@ -1189,6 +1238,20 @@
   overflow: hidden
   text-overflow: ellipsis
   transition: background .15s ease, border-color .15s ease
+
+.section-nav-btn > span
+  min-width: 0
+  overflow: hidden
+  text-overflow: ellipsis
+
+.section-nav-btn [aria-hidden]
+  transition: transform var(--t-fast)
+
+.nav-prev:hover [aria-hidden]
+  transform: translateX(-3px)
+
+.nav-next:hover [aria-hidden]
+  transform: translateX(3px)
 
 .nav-prev
   justify-self: start
@@ -1261,6 +1324,10 @@
 // name stays in the tooltip and in each dot's aria-label.
 .nav-short
   display: none
+
+@media (max-width: 800px)
+  .section-nav-btn
+    width: 112px
 
 @media (max-width: 600px)
   .section-nav

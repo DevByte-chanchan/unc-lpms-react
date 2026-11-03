@@ -71,7 +71,7 @@
      40px matches the existing .draft / .submit buttons, so anything using
      --control-h lines up with them on the same row. */
   --control-h: 40px;
-  --control-h-sm: 30px;
+  --control-h-sm: 36px;
 
   /* --- surfaces and lines ---------------------------------------------- */
   --surface: #ffffff;
@@ -102,6 +102,10 @@
   --good-line: #86efac;
 
   --warn: #92400e;
+  /* Solid fills for bars and dots, one per status. */
+  --good-solid: #10b981;
+  --warn-solid: #f59e0b;
+  --danger-solid: #dc2626;
   --warn-soft: #fffbeb;
   --warn-line: #fde68a;
 
@@ -115,5 +119,12 @@
 
   /* --- motion ---------------------------------------------------------- */
   --t-fast: .15s ease;
+  /* The dim behind every window: dark, not blurred. */
+  --backdrop: rgba(0, 0, 0, 0.7);
+  /* One look for every control (buttons, icon buttons, inputs, selects, tabs): the same corner, the same border and
+     the same hover tint, on a white or a grey surface alike. */
+  --control-radius: 8px;
+  --control-border: #cbd5e1;
+  --hover-tint: rgba(15, 23, 42, 0.06);
   --t-med: .25s ease;
 }

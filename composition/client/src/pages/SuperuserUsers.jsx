@@ -1,9 +1,11 @@
+import Select from '../components/Select.jsx'
 import React from "react";
 import Skeleton from "../layouts/SkeletonA.jsx";
 import Header from "../components/HeaderA.jsx";
 import SideNavigation from "../components/SideNavigation.jsx";
 import TableScrollRegion from '../components/TableScrollRegion.jsx'
 import { usePageSearch } from '../utils/pageSearch.js'
+import PageSearch from '../components/PageSearch.jsx'
 import { UserPlus, X } from "react-feather";
 import styles from '../styles/CoursesTable.module.sass'
 import syllabusStyles from '../styles/SyllabusSections.module.sass'
@@ -124,28 +126,29 @@ const SuperuserUsers = () => {
     const pageContent = (
         <div className={pageStyles.managementPage}>
             <div className={pageStyles.pageHeader}>
-                <h2 className="app-page-title">User management</h2>
+                <h2 className="app-page-title">User Management</h2>
                 <div className={pageStyles.pageHeaderActions}>
-                    <button type="button" className={pageStyles.uploadButton} onClick={() => setCreateOpen(true)}>
+                    <button type="button" className="btn btn-primary" onClick={() => setCreateOpen(true)}>
                         <UserPlus size={18} color="#FFFFFF" /> Create user
                     </button>
                 </div>
             </div>
 
-            {error && <div role="alert" style={{ margin: '0 0 12px', color: '#b91c1c' }}>{error}</div>}
-            {notice && <div role="status" style={{ margin: '0 0 12px', color: '#166534' }}>{notice}</div>}
+            {error && <div role="alert" style={{ margin: '0 0 12px', color: 'var(--danger)' }}>{error}</div>}
+            {notice && <div role="status" style={{ margin: '0 0 12px', color: 'var(--good)' }}>{notice}</div>}
 
             <div className={`${syllabusStyles.header} ${pageStyles.dataToolbar}`}>
                 <div className={pageStyles.toolbarControls}>
-                    <select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)} aria-label="Filter by role">
+                    <PageSearch />
+                    <Select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)} aria-label="Filter by role">
                         <option value="">All roles</option>
                         {ROLES.map(r => <option key={r.key} value={r.key}>{r.label}</option>)}
-                    </select>
-                    <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} aria-label="Filter by status">
+                    </Select>
+                    <Select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} aria-label="Filter by status">
                         <option value="">All statuses</option>
                         <option value="active">Active</option>
                         <option value="inactive">Deactivated</option>
-                    </select>
+                    </Select>
                 </div>
             </div>
 
@@ -173,22 +176,26 @@ const SuperuserUsers = () => {
                                         <td>{user.name}{isMe ? ' (you)' : ''}</td>
                                         <td>{user.email}</td>
                                         <td>
-                                            <select value={user.role} disabled={isMe || busy} aria-label={`Role of ${user.name}`}
-                                                title={isMe ? 'You cannot change your own role.' : undefined}
-                                                onChange={(e) => changeRole(user, e.target.value)}>
+                                            <Select
+                                              value={user.role}
+                                              disabled={isMe || busy}
+                                              aria-label={`Role of ${user.name}`}
+                                              title={isMe ? 'You cannot change your own role.' : undefined}
+                                              onChange={(e) => changeRole(user, e.target.value)}
+                                            >
                                                 {ROLES.map(r => <option key={r.key} value={r.key}>{r.label}</option>)}
-                                            </select>
+                                            </Select>
                                         </td>
                                         <td>{user.isActive ? 'Active' : 'Deactivated'}</td>
                                         <td>{user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleString() : 'Never'}</td>
                                         <td className={styles.fill}>
-                                            <button type="button" className={styles.actionLink} disabled={busy || isMe || !user.isActive}
+                                            <button type="button" className="btn btn-secondary btn-sm" disabled={busy || isMe || !user.isActive}
                                                 title={isMe ? 'Use Change password for your own account.' : undefined}
                                                 onClick={() => resetPassword(user)}>
                                                 Reset password
                                             </button>
                                             {' '}
-                                            <button type="button" className={styles.actionLink} disabled={busy || (isMe && user.isActive)}
+                                            <button type="button" className={`btn btn-sm ${user.isActive ? 'btn-danger-outline' : 'btn-secondary'}`} disabled={busy || (isMe && user.isActive)}
                                                 title={isMe && user.isActive ? 'You cannot deactivate your own account.' : undefined}
                                                 onClick={() => toggleActive(user)}>
                                                 {user.isActive ? 'Deactivate' : 'Activate'}
@@ -209,7 +216,7 @@ const SuperuserUsers = () => {
 
             {createOpen && (
                 <div>
-                    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 30 }} onClick={closeCreate} />
+                    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 30 }} onClick={closeCreate} />
                     <div role="dialog" aria-modal="true" aria-label="Create user"
                         className={`${pageStyles.managementDialog} ${pageStyles.dialogNarrow} ${pageStyles.dialogElevated}`}>
                         <div className={pageStyles.dialogHeader}>
@@ -218,23 +225,23 @@ const SuperuserUsers = () => {
                         </div>
                         <div className={pageStyles.dialogContent} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                             <label>Full name<br />
-                                <input value={form.name} onChange={(e) => setForm(f => ({ ...f, name: e.target.value }))} placeholder="SURNAME, FIRSTNAME" style={{ width: '100%' }} />
+                                <input value={form.name} onChange={(e) => setForm(f => ({ ...f, name: e.target.value }))} placeholder="SURNAME, FIRSTNAME" className="app-input" />
                             </label>
                             <label>Email<br />
-                                <input type="email" value={form.email} onChange={(e) => setForm(f => ({ ...f, email: e.target.value }))} placeholder="name@unc.edu.ph" style={{ width: '100%' }} />
+                                <input type="email" value={form.email} onChange={(e) => setForm(f => ({ ...f, email: e.target.value }))} placeholder="name@unc.edu.ph" className="app-input" />
                             </label>
                             <label>Role<br />
-                                <select value={form.role} onChange={(e) => setForm(f => ({ ...f, role: e.target.value }))} style={{ width: '100%' }}>
+                                <Select value={form.role} onChange={(e) => setForm(f => ({ ...f, role: e.target.value }))} block>
                                     {ROLES.map(r => <option key={r.key} value={r.key}>{r.label}</option>)}
-                                </select>
+                                </Select>
                             </label>
                             <div style={{ color: '#6B7280', fontSize: 13 }}>A temporary password is generated, valid for 72 hours, and must be changed at first sign-in. It is emailed when mail is configured; otherwise it is shown once here.</div>
                         </div>
                         <div className={pageStyles.managementDialogActions}>
                             <button type="button" onClick={closeCreate}
-                                style={{ flex: 1, height: 40, background: '#FFFFFF', border: '1px solid #111827', borderRadius: 8, cursor: 'pointer' }}>Cancel</button>
+                                className="btn btn-secondary" style={{ flex: 1 }}>Cancel</button>
                             <button type="button" onClick={create} disabled={saving}
-                                style={{ flex: 1, height: 40, background: '#2C3744', color: '#FFFFFF', borderRadius: 8, border: 'none', cursor: 'pointer' }}>
+                                className="btn btn-primary" style={{ flex: 1 }}>
                                 {saving ? 'Creating…' : 'Create'}
                             </button>
                         </div>
@@ -244,7 +251,7 @@ const SuperuserUsers = () => {
 
             {created && (
                 <div>
-                    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 30 }} />
+                    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 30 }} />
                     <div role="dialog" aria-modal="true" aria-label="Temporary password"
                         className={`${pageStyles.managementDialog} ${pageStyles.dialogNarrow} ${pageStyles.dialogElevated}`}>
                         <div className={pageStyles.dialogHeader}>
@@ -258,7 +265,7 @@ const SuperuserUsers = () => {
                         </div>
                         <div className={pageStyles.managementDialogActions}>
                             <button type="button" onClick={() => setCreated(null)}
-                                style={{ flex: 1, height: 40, background: '#2C3744', color: '#FFFFFF', borderRadius: 8, border: 'none', cursor: 'pointer' }}>I have saved it</button>
+                                className="btn btn-primary" style={{ flex: 1 }}>I have saved it</button>
                         </div>
                     </div>
                 </div>

@@ -17,11 +17,13 @@ import styles from '../styles/SortableHeader.module.sass'
  * Two details that are easy to lose and hard to notice:
  *  - It is a real <button>, so it is reachable by keyboard and activates on
  *    Enter and Space without any of that being written here.
+ *  - `fill` (the approver lists): the button covers the whole header cell, so a click anywhere on it sorts and
+ *    the hover tint has room around the text; the arrow sits at the far end of the cell.
  *  - `overflow: visible` on the <th> overrides the global `th { overflow:
  *    hidden }` in index.css, which would otherwise clip the focus ring to
  *    nothing for the keyboard user who needs it.
  */
-const SortableTh = ({ col, sortKey, sortDir, onSort }) => {
+const SortableTh = ({ col, sortKey, sortDir, onSort, fill = false }) => {
     const active = col.key === sortKey
     const dir = sortDir === 'desc' ? 'desc' : 'asc'
     const ariaSort = active ? (dir === 'desc' ? 'descending' : 'ascending') : 'none'
@@ -37,10 +39,10 @@ const SortableTh = ({ col, sortKey, sortDir, onSort }) => {
     }
 
     return (
-        <th width={col.width} className={col.className} aria-sort={ariaSort} style={{ overflow: 'visible', ...(col.thStyle || {}) }}>
-            <button type="button" className={styles.btn} onClick={() => onSort(col.key)} aria-label={`Sort by ${col.label}`}>
+        <th width={col.width} className={col.className} aria-sort={ariaSort} style={{ overflow: 'visible', ...(fill ? { padding: 6 } : {}), ...(col.thStyle || {}) }}>
+            <button type="button" className={fill ? `${styles.btn} ${styles.btnFill}` : styles.btn} onClick={() => onSort(col.key)} aria-label={`Sort by ${col.label}`}>
                 <span className={styles.label}>{col.label}</span>
-                <span className={styles.arrow} style={{ opacity: active ? 1 : 0.35 }} aria-hidden="true">
+                <span className={styles.arrow} style={{ opacity: fill ? 0.6 : (active ? 1 : 0.35) }} aria-hidden="true">
                     {active && dir === 'desc' ? <ArrowDown size={13} /> : <ArrowUp size={13} />}
                 </span>
                 {/* The arrow is aria-hidden, so the state has to be said in

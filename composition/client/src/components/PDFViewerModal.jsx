@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { X, Download, FileText, User, Calendar, BookOpen, ZoomIn, ZoomOut, Maximize, Minimize2, Printer, ChevronLeft, ChevronRight } from 'react-feather';
+import { X, Download, FileText, File, Columns, ZoomIn, ZoomOut, Maximize, Minimize2, Printer, ChevronLeft, ChevronRight } from 'react-feather';
 import styles from '../styles/PDFViewerModal.module.sass';
 
 const ACCENT     = '#19282C';
@@ -12,36 +12,11 @@ const SLATE_200  = '#E2E8F0';
 const SLATE_100  = '#F1F5F9';
 const SLATE_50   = '#F8FAFC';
 
-const fmtDate = (s) => {
-  if (!s) return '\u2014';
-  const [y, m, d] = String(s).slice(0, 10).split('-').map(Number);
-  if (!y || !m || !d) return String(s);
-  const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-  return MONTHS[m - 1] + ' ' + d + ', ' + y;
-};
-
-const MetaRow = ({ icon, label, value }) => (
-  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '8px 0' }}>
-    <span style={{ color: SLATE_400, marginTop: 2 }}>{icon}</span>
-    <div style={{ minWidth: 0, flex: 1 }}>
-      <div style={{ fontSize: 11, fontWeight: 600, color: SLATE_500, letterSpacing: '0.04em', textTransform: 'uppercase' }}>{label}</div>
-      <div style={{ fontSize: 13, color: SLATE_900, marginTop: 2, fontWeight: 500, lineHeight: 1.4 }}>{value || '\u2014'}</div>
-    </div>
-  </div>
-);
-
-
-const btnBase = {
-  height: 32, width: 32, borderRadius: 6, cursor: 'pointer',
-  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-  border: '1px solid ' + SLATE_200, background: '#fff', color: SLATE_700,
-  padding: 0, lineHeight: 0, transition: 'all 0.15s ease',
-};
-
 const PAGE_W = 1247;
 const PAGE_H = 816;
 
-const PDFViewerModal = ({ file, kind, onClose, children }) => {
+// `layer` lifts the viewer above another window that is already open (the Revisions window sits at 1000).
+const PDFViewerModal = ({ file, kind, onClose, children, layer = 0 }) => {
   const [pdfSrc, setPdfSrc] = useState(null);
   const [zoom, setZoom] = useState(0.65);
   const [currentPage, setCurrentPage] = useState(1);
@@ -51,6 +26,11 @@ const PDFViewerModal = ({ file, kind, onClose, children }) => {
   const [iframeHeight, setIframeHeight] = useState(4000);
   const [exporting, setExporting] = useState(false);
   const paneRef = useRef(null);
+  // The file's details, on one line under the title (what the side panel used to list): course and term.
+  const detailLine = [
+    file?.course_id ? file.course_id + (file.course_name ? ' \u2014 ' + file.course_name : '') : '',
+    file?.period_label,
+  ].filter(Boolean).join(' \u00b7 ');
   const iframeRef = useRef(null);
 
   useEffect(() => {
@@ -202,16 +182,17 @@ const PDFViewerModal = ({ file, kind, onClose, children }) => {
   if (!file) return null;
 
   const hasRealUrl = file.file_url && /^(https?:\/\/|\/|blob:)/i.test(file.file_url);
-  const title = file.file_name || (kind || 'File') + ' Preview';
+  // The title shown in the header: a given title, else the file name without its extension and underscores.
+  const title = file.title || (file.file_name ? file.file_name.replace(/\.[a-z0-9]+$/i, '').replace(/_/g, ' ') : (kind || 'File') + ' Preview');
 
   const modalStyle = isFullscreen ? {
-    position: 'fixed', inset: 0, zIndex: 101,
+    position: 'fixed', inset: 0, zIndex: 101 + layer,
     background: '#FFFFFF',
     display: 'flex', flexDirection: 'column', overflow: 'hidden',
   } : {
     position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
-    width: 'min(1360px, 96vw)', height: 'min(920px, calc(100dvh - 24px))',
-    background: '#FFFFFF', borderRadius: 14, zIndex: 101,
+    width: '95vw', height: 'min(90vh, calc(100dvh - 24px))',
+    background: '#FFFFFF', borderRadius: 8, zIndex: 101 + layer,
     boxShadow: '0 24px 60px rgba(15,23,42,0.30)',
     display: 'flex', flexDirection: 'column', overflow: 'hidden',
   };
@@ -219,100 +200,61 @@ const PDFViewerModal = ({ file, kind, onClose, children }) => {
   return (
     <>
       {!isFullscreen && (
-        <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.55)', zIndex: 100, backdropFilter: 'blur(2px)' }} />
+        <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 100 + layer }} />
       )}
       <div className={styles.modal} style={modalStyle}>
         {/* Header */}
         <div className={styles.header} style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '10px 18px', borderBottom: '1px solid ' + SLATE_200, gap: 10, flexShrink: 0,
+          padding: '16px 24px', borderBottom: '1px solid #e5e7eb', gap: 12, flexShrink: 0,
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: 1 }}>
-            <div style={{
-              width: 34, height: 34, borderRadius: 9,
-              background: '#FEE2E2', color: ACCENT,
-              display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-            }}>
-              <FileText size={16} />
-            </div>
             <div style={{ minWidth: 0, flex: 1 }}>
               <div style={{ fontSize: 10, fontWeight: 600, color: SLATE_500, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
                 {kind || 'Document'}
               </div>
-              <div style={{ fontSize: 14, fontWeight: 600, color: SLATE_900, marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              <div style={{ fontSize: 16, fontWeight: 600, color: '#111827', marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={title}>
                 {title}
               </div>
+              {detailLine && (
+                <div style={{ fontSize: 12, color: SLATE_500, marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={detailLine}>
+                  {detailLine}
+                </div>
+              )}
             </div>
           </div>
 
           {/* Zoom controls */}
-          <div className={styles.toolGroup} style={{ flexShrink: 0, background: SLATE_50, borderRadius: 8, padding: '2px 4px', border: '1px solid ' + SLATE_200 }}>
-            <button type="button" onClick={zoomOut} title="Zoom out" style={btnBase}
-              onMouseEnter={e => { e.currentTarget.style.background = SLATE_100; e.currentTarget.style.borderColor = SLATE_300; }}
-              onMouseLeave={e => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.borderColor = SLATE_200; }}>
-              <ZoomOut size={14} />
-            </button>
-            <span style={{ fontSize: 11, fontWeight: 600, color: SLATE_700, minWidth: 40, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>
+          <div className={styles.toolGroup} style={{ flexShrink: 0 }}>
+            <button type="button" className="app-icon-btn" onClick={zoomOut} title="Zoom out"><ZoomOut size={16} /></button>
+            <span style={{ fontSize: 12, fontWeight: 600, color: SLATE_700, minWidth: 44, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>
               {Math.round(zoom * 100)}%
             </span>
-            <button type="button" onClick={zoomIn} title="Zoom in" style={btnBase}
-              onMouseEnter={e => { e.currentTarget.style.background = SLATE_100; e.currentTarget.style.borderColor = SLATE_300; }}
-              onMouseLeave={e => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.borderColor = SLATE_200; }}>
-              <ZoomIn size={14} />
-            </button>
-            <button type="button" onClick={toggleFitMode} title={fitMode === 'width' ? 'Fit to page' : 'Fit to width'} style={{
-              ...btnBase, background: fitMode === 'page' ? SLATE_200 : '#fff',
-            }}
-              onMouseEnter={e => { e.currentTarget.style.background = SLATE_100; }}
-              onMouseLeave={e => { e.currentTarget.style.background = fitMode === 'page' ? SLATE_200 : '#fff'; }}>
-              <Maximize size={14} />
+            <button type="button" className="app-icon-btn" onClick={zoomIn} title="Zoom in"><ZoomIn size={16} /></button>
+            <button type="button" className={`app-icon-btn ${fitMode === 'page' ? 'is-on' : ''}`} onClick={toggleFitMode} title={fitMode === 'width' ? 'Fit to page' : 'Fit to width'}>
+              {fitMode === 'width' ? <Columns size={16} /> : <File size={16} />}
             </button>
           </div>
 
           {/* Page navigation */}
           {pageCount > 0 && (
-            <div style={{ display: 'flex', gap: 4, alignItems: 'center', flexShrink: 0 }}>
-              <button type="button" onClick={() => goToPage(currentPage - 1)} disabled={currentPage <= 1} style={{ ...btnBase, opacity: currentPage <= 1 ? 0.3 : 1 }}
-                onMouseEnter={e => { e.currentTarget.style.background = SLATE_100; e.currentTarget.style.borderColor = SLATE_300; }}
-                onMouseLeave={e => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.borderColor = SLATE_200; }}>
-                <ChevronLeft size={14} />
-              </button>
-              <span style={{ fontSize: 11, fontWeight: 600, color: SLATE_700, whiteSpace: 'nowrap', minWidth: 60, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0 }}>
+              <button type="button" className="app-icon-btn" onClick={() => goToPage(currentPage - 1)} disabled={currentPage <= 1}><ChevronLeft size={16} /></button>
+              <span style={{ fontSize: 12, fontWeight: 600, color: SLATE_700, whiteSpace: 'nowrap', minWidth: 60, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>
                 {currentPage} / {pageCount}
               </span>
-              <button type="button" onClick={() => goToPage(currentPage + 1)} disabled={currentPage >= pageCount} style={{ ...btnBase, opacity: currentPage >= pageCount ? 0.3 : 1 }}
-                onMouseEnter={e => { e.currentTarget.style.background = SLATE_100; e.currentTarget.style.borderColor = SLATE_300; }}
-                onMouseLeave={e => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.borderColor = SLATE_200; }}>
-                <ChevronRight size={14} />
-              </button>
+              <button type="button" className="app-icon-btn" onClick={() => goToPage(currentPage + 1)} disabled={currentPage >= pageCount}><ChevronRight size={16} /></button>
             </div>
           )}
 
-          <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexShrink: 0 }}>
-            <button type="button" onClick={handlePrint} title="Print" style={btnBase}
-              onMouseEnter={e => { e.currentTarget.style.background = SLATE_100; e.currentTarget.style.borderColor = SLATE_300; }}
-              onMouseLeave={e => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.borderColor = SLATE_200; }}>
-              <Printer size={14} />
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0 }}>
+            <button type="button" className="app-icon-btn" onClick={handlePrint} title="Print"><Printer size={16} /></button>
+            <button type="button" className="btn btn-primary" onClick={handleExportPDF} disabled={exporting}
+              style={{ height: 32, minHeight: 32, padding: '0 14px', fontSize: 13 }}>
+              <Download size={16} /> {exporting ? 'Exporting…' : 'Download PDF'}
             </button>
-            <button type="button" onClick={toggleFullscreen} title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'} style={btnBase}
-              onMouseEnter={e => { e.currentTarget.style.background = SLATE_100; e.currentTarget.style.borderColor = SLATE_300; }}
-              onMouseLeave={e => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.borderColor = SLATE_200; }}>
-              {isFullscreen ? <Minimize2 size={14} /> : <Maximize size={14} />}
-            </button>
-            <button
-              type="button" onClick={handleExportPDF} disabled={exporting}
-              style={{
-                height: 32, padding: '0 12px', borderRadius: 7,
-                background: exporting ? '#94a3b8' : ACCENT, color: '#FFFFFF', border: 'none', cursor: exporting ? 'not-allowed' : 'pointer',
-                fontSize: 12, fontWeight: 600,
-                display: 'inline-flex', alignItems: 'center', gap: 5,
-                boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
-                transition: 'transform 0.2s ease, background 0.15s ease',
-              }}
-              onMouseEnter={e => { if (!exporting) e.currentTarget.style.transform = 'scale(1.04)' }}
-              onMouseLeave={e => { if (!exporting) e.currentTarget.style.transform = 'scale(1)' }}
-            >
-              <Download size={12} /> {exporting ? 'Exporting…' : 'Download PDF'}
+            <button type="button" className="app-icon-btn" onClick={toggleFullscreen} title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}>
+              {isFullscreen ? <Minimize2 size={16} /> : <Maximize size={16} />}
             </button>
             <button type="button" className="app-icon-close" onClick={onClose} aria-label="Close">
               <X size={16} strokeWidth={2.5} color="currentColor" />
@@ -322,17 +264,6 @@ const PDFViewerModal = ({ file, kind, onClose, children }) => {
 
         {/* Body: sidebar + preview */}
         <div className={styles.body}>
-          <div className={styles.metadata} style={{ borderRight: '1px solid ' + SLATE_200, background: SLATE_50, padding: '14px 16px' }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: SLATE_500, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 6 }}>
-              File details
-            </div>
-            <MetaRow icon={<User size={12} />}     label="Faculty"          value={file.instructor_name} />
-            <MetaRow icon={<BookOpen size={12} />} label="Course"           value={file.course_id + ' \u2014 ' + file.course_name} />
-            <MetaRow icon={<Calendar size={12} />} label="Submitted"        value={fmtDate(file.submission_date)} />
-            <MetaRow icon={<FileText size={12} />} label="Academic Period"  value={file.period_label} />
-            <MetaRow icon={<FileText size={12} />} label="File name"        value={file.file_name} />
-          </div>
-
           <div ref={paneRef} className={styles.previewPane} style={{ background: SLATE_100, position: 'relative' }}>
             {hasRealUrl ? (
               <div style={{ minHeight: '100%', display: 'flex', justifyContent: 'center', alignItems: 'flex-start', padding: '16px 12px' }}>

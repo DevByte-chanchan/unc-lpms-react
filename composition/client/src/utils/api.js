@@ -6,7 +6,24 @@ const configuredApiBase = (typeof import.meta !== 'undefined' && import.meta.env
 
 export const API_BASE = configuredApiBase || 'http://localhost:5000';
 
-export async function fetchJson(endpoint, opts = {}) {
+// The same GET asked for while it is still on its way is sent once and answered to everyone who asked. A page often has
+// several components that need the same list (the reference library, the plan itself), and React's development mode
+// runs every effect twice; without this each of those is a separate trip to the server. Only plain GETs are shared, and
+// each caller gets its own copy of the answer so one cannot change what another sees.
+const inFlight = new Map();
+
+export function fetchJson(endpoint, opts = {}) {
+    const method = String(opts.method || 'GET').toUpperCase();
+    if (method !== 'GET' || opts.body || opts.signal) return requestJson(endpoint, opts);
+    let pending = inFlight.get(endpoint);
+    if (!pending) {
+        pending = requestJson(endpoint, opts).finally(() => inFlight.delete(endpoint));
+        inFlight.set(endpoint, pending);
+    }
+    return pending.then(data => (data !== null && typeof data === 'object' ? structuredClone(data) : data));
+}
+
+async function requestJson(endpoint, opts = {}) {
     const url = endpoint.startsWith('http') ? endpoint : `${API_BASE}${endpoint}`;
 
     const res = await fetch(url, { ...opts, credentials: 'include' });

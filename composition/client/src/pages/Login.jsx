@@ -8,6 +8,7 @@ import {
 } from '../utils/session'
 import styles from '../styles/Login.module.sass'
 import unclogo from '../assets/unclogo.png'
+import Select from '../components/Select.jsx'
 
 // One focused screen with four modes: sign in, create an account, ask for a
 // reset, and finish a reset. Whoever signs in here is who the rest of the app
@@ -201,10 +202,10 @@ const Login = () => {
               <label className={styles.label} htmlFor="login-role">
                 {mode === 'login' ? 'Login as' : 'Register as'}
               </label>
-              <select id="login-role" className={styles.control} value={form.role} onChange={set('role')}>
+              <Select id="login-role" block value={form.role} onChange={set('role')}>
                 {(mode === 'signup' ? registrationRoles(DEMO_MODE) : ROLES.filter(r => r.key !== 'superuser'))
                   .map(r => <option key={r.key} value={r.key}>{r.label}</option>)}
-              </select>
+              </Select>
             </div>
           )}
 

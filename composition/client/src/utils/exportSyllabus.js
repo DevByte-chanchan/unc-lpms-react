@@ -95,6 +95,8 @@ export async function buildReviewRecordFile({ pcId, code }) {
   return {
     file_url: url,
     file_name: `ReviewRecord_${code || record?.course?.code || pcId}${revision == null ? '' : `_rev${revision}`}.html`,
+    // What the viewer shows as the title; the file name is only for the download.
+    title: `Review record \u2014 ${code || record?.course?.code || pcId}${revision == null ? '' : `, revision ${revision}`}`,
     instructor_name: '—',
     course_id: code || record?.course?.code || '',
     course_name: record?.course?.title || '',

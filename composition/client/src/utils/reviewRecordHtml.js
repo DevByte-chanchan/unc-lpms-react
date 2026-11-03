@@ -4,10 +4,13 @@
 // document from the clean syllabus export, which carries no comments.
 import { escapeHtml } from './sanitize.js'
 
+// The names of the comment sections, as the review record writes them (the server sends them in upper case).
+export const SECTION_NAMES = { REFERENCES: 'References', TOPICS: 'Topics', TLAS: 'Teaching & Learning Activities', TLA: 'Teaching & Learning Activities' }
+
 const esc = (value, fallback = '—') =>
   (value === null || value === undefined || value === '') ? fallback : escapeHtml(String(value))
 
-const fmt = (iso) => {
+export const fmt = (iso) => {
   if (!iso) return '—'
   const date = new Date(iso)
   return Number.isNaN(date.getTime())
@@ -15,11 +18,13 @@ const fmt = (iso) => {
     : date.toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: 'Asia/Manila' })
 }
 
-const CELL = 'border:1px solid #000; padding:4px 6px; vertical-align:top; font-size:9pt;'
-const HEAD = 'border:1px solid #000; padding:4px 6px; background:#e5e7eb; font-size:9pt; text-align:left;'
+const CELL = 'border:1px solid #000; padding:5px 8px; vertical-align:top; font-size:10pt;'
+const HEAD = 'border:1px solid #000; padding:5px 8px; background:#e5e7eb; font-size:10pt; text-align:left;'
 
-const table = (headers, rows, emptyText) => `<table style="width:100%; border-collapse:collapse; margin:4px 0 14px;">
-  <thead><tr>${headers.map(h => `<th style="${HEAD}">${esc(h)}</th>`).join('')}</tr></thead>
+// `widths` (percent per column) fixes the column sizes, so a short column such as a date or a name is never squeezed
+// until its words break in the middle.
+const table = (headers, rows, emptyText, widths) => `<table style="width:100%; border-collapse:collapse; margin:4px 0 14px;${widths ? ' table-layout:fixed;' : ''}">
+  ${widths ? `<colgroup>${widths.map(w => `<col style="width:${w}%">`).join('')}</colgroup>` : ''}<thead><tr>${headers.map(h => `<th style="${HEAD}">${esc(h)}</th>`).join('')}</tr></thead>
   <tbody>${rows.length
     ? rows.map(cells => `<tr>${cells.map(c => `<td style="${CELL}">${c}</td>`).join('')}</tr>`).join('')
     : `<tr><td colspan="${headers.length}" style="${CELL} color:#555;">${esc(emptyText)}</td></tr>`}</tbody>
@@ -60,7 +65,8 @@ export const buildReviewRecordHtml = (record) => {
       esc(c.message),
       c.resolved ? `Yes${c.resolvedDate ? ` (${esc(fmt(c.resolvedDate))})` : ''}` : 'No'
     ]),
-    'No comments were recorded for this revision.')
+    'No comments were recorded for this revision.',
+    [12, 13, 14, 15, 36, 10])
 
   const approvalLine = status.approved
     ? `Approved by the Dean on ${esc(fmt(status.approvedAt))}.`
@@ -71,13 +77,16 @@ export const buildReviewRecordHtml = (record) => {
 <style>
   body { font-family: Arial, Helvetica, sans-serif; color:#000; margin: 24px 32px; }
   h1 { font-size: 15pt; margin: 0 0 2px; } h2 { font-size: 11pt; margin: 14px 0 2px; }
-  p { font-size: 9.5pt; margin: 2px 0; } td, th { word-break: break-word; }
+  p { font-size: 10pt; margin: 2px 0; } td, th { overflow-wrap: break-word; }
   /* On screen the record is drawn as a paper sheet, like the other exports. */
   @media screen {
     html { background: transparent; }
-    body { background: #fff; box-sizing: border-box; width: 330mm; max-width: 100%; margin: 24px auto; padding: 42px 85px 32px; box-shadow: 0 2px 16px rgba(0,0,0,0.12); }
+    body { background: #fff; box-sizing: border-box; width: 330mm; max-width: 100%; margin: 24px auto; padding: 42px 85px 32px; }
   }
-  @media print { body { margin: 12mm; } tr { page-break-inside: avoid; } }
+  /* No page margin means the browser prints no header or footer (its title, address, page number, date); the
+     body's own margin keeps the text away from the paper's edge. */
+  @page { margin: 0; }
+  @media print { body { margin: 0; padding: 14mm 16mm; } tr { page-break-inside: avoid; } }
 </style></head><body>
   <h1>COURSE REVIEW RECORD</h1>
   <p><strong>University of Nueva Caceres</strong> — for accreditation. This record is separate from the approved syllabus.</p>

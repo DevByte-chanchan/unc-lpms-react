@@ -1,0 +1,125 @@
+// The date field and its calendar, in the app's look: white card, 8px corners, dark teal selection.
+.field
+  display: flex
+  align-items: center
+  justify-content: space-between
+  gap: 8px
+  width: 100%
+  height: 36px
+  padding: 0 12px
+  box-sizing: border-box
+  border: 1px solid var(--control-border)
+  border-radius: var(--control-radius)
+  background: #fff
+  color: var(--ink-muted)
+  font: var(--fw-normal) var(--fs-md) var(--font-ui)
+  text-align: left
+  cursor: pointer
+
+  &:hover
+    background: var(--hover-tint)
+
+  &:focus-visible
+    outline: 2px solid var(--accent)
+    outline-offset: 1px
+
+.value
+  color: var(--ink)
+
+.placeholder
+  color: var(--ink-faint)
+
+.popover
+  position: fixed
+  z-index: 3100
+  width: 296px
+  box-sizing: border-box
+  padding: 12px
+  background: #fff
+  border: 1px solid #e5e7eb
+  border-radius: var(--control-radius)
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18)
+  font-family: var(--font-ui)
+
+.head
+  display: flex
+  align-items: center
+  justify-content: space-between
+  gap: 8px
+  margin-bottom: 8px
+
+.title
+  font-size: 14px
+  font-weight: var(--fw-semibold)
+  color: var(--ink)
+
+.week
+  display: grid
+  grid-template-columns: repeat(7, 1fr)
+  margin-bottom: 4px
+
+  span
+    text-align: center
+    font-size: 12px
+    font-weight: var(--fw-medium)
+    color: var(--ink-muted)
+    line-height: 28px
+
+.grid
+  display: grid
+  grid-template-columns: repeat(7, 1fr)
+  gap: 2px
+
+.day
+  height: 36px
+  padding: 0
+  border: 1px solid transparent
+  border-radius: var(--control-radius)
+  background: transparent
+  color: var(--ink)
+  font: var(--fw-normal) 13px var(--font-ui)
+  cursor: pointer
+
+  &:hover
+    background: var(--hover-tint)
+
+  &:focus-visible
+    outline: 2px solid var(--accent)
+    outline-offset: -2px
+
+.day.outside
+  color: var(--ink-faint)
+
+.day.today
+  border-color: var(--control-border)
+  font-weight: var(--fw-semibold)
+
+.day.selected
+  background: #19282c
+  border-color: #19282c
+  color: #fff
+  font-weight: var(--fw-medium)
+
+.foot
+  display: flex
+  justify-content: space-between
+  margin-top: 8px
+  padding-top: 8px
+  border-top: 1px solid #e5e7eb
+
+.link
+  padding: 4px 8px
+  border: 0
+  border-radius: var(--control-radius)
+  background: transparent
+  color: var(--ink-soft)
+  font: var(--fw-medium) 13px var(--font-ui)
+  cursor: pointer
+
+  &:hover:not(:disabled)
+    background: var(--hover-tint)
+    color: var(--ink)
+
+  &:disabled
+    color: var(--ink-faint)
+    cursor: default

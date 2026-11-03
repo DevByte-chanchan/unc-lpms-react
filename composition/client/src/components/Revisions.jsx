@@ -1,9 +1,13 @@
+import Select from './Select.jsx'
 import { historyRevisionLabel } from "../utils/offeringLabels.js";
 import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
-import { Clock } from "react-feather";
+import { Clock, X, Maximize, Minimize2 } from "react-feather";
 import { fetchJson } from "../utils/api";
 import EmptyState from "./EmptyState.jsx";
+import PDFViewerModal from "./PDFViewerModal.jsx";
+import { buildReviewRecordFile } from "../utils/exportSyllabus.js";
+import { fmt as fmtMoment, SECTION_NAMES } from "../utils/reviewRecordHtml.js";
 import Spinner from "./Spinner.jsx";
 import styles from '../styles/Revisions.module.sass';
 import stylesB from "../styles/SyllabusPreview.module.sass";
@@ -24,7 +28,7 @@ import CriteriaForGrading from "./CriteriaForGrading";
 // guard now lives with the callers, which also means no revision history is
 // fetched while nobody is looking at it.
 const Revisions = ({ onClose, pcId: propPcId }) => {
-    const { status, pcId: paramPcId } = useParams();
+    const { status, pcId: paramPcId, code } = useParams();
 
     const currentPcId = propPcId || paramPcId;
     // Entries are keyed by offering id: a working copy has no revision number yet.
@@ -33,6 +37,45 @@ const Revisions = ({ onClose, pcId: propPcId }) => {
     const [selectedSection, setSelectedSection] = useState('Course Details');
 
     const [revisionsData, setRevisionsData] = useState([]);
+    // The review record of one revision, opened from its row in the history.
+    const [recordFile, setRecordFile] = useState(null);
+    // The window can be stretched to the whole screen.
+    const [expanded, setExpanded] = useState(false);
+    // Escape: leaves full screen first, then closes the window. While the review record is open on top of it, Escape
+    // belongs to that viewer, which closes itself.
+    useEffect(() => {
+        const onKey = (event) => {
+            if (event.key !== 'Escape' || recordFile) return;
+            if (expanded) setExpanded(false);
+            else onClose();
+        };
+        document.addEventListener('keydown', onKey);
+        return () => document.removeEventListener('keydown', onKey);
+    }, [recordFile, expanded, onClose]);
+    const [recordBusy, setRecordBusy] = useState(null);
+    const [commentCounts, setCommentCounts] = useState({});
+    useEffect(() => {
+        const rev = revisionsData.find(item => item.pcId === expandedAccordion);
+        if (!rev || rev.status !== 'Approved' || commentCounts[rev.pcId]) return undefined;
+        let live = true;
+        fetchJson(`/api/assignments/offering/${rev.pcId}/review-record`)
+            .then(record => {
+                const list = record?.comments || [];
+                if (live) setCommentCounts(current => ({ ...current, [rev.pcId]: { total: list.length, resolved: list.filter(c => c.resolved).length } }));
+            })
+            .catch(() => {});
+        return () => { live = false; };
+    }, [expandedAccordion, revisionsData, commentCounts]);
+    const openRecord = async (rev) => {
+        setRecordBusy(rev.pcId);
+        try {
+            setRecordFile(await buildReviewRecordFile({ pcId: rev.pcId, code }));
+        } catch (err) {
+            alert('Failed to generate the review record: ' + (err?.message || err));
+        } finally {
+            setRecordBusy(null);
+        }
+    };
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -56,6 +99,9 @@ const Revisions = ({ onClose, pcId: propPcId }) => {
         setExpandedAccordion(expandedAccordion === pcId ? null : pcId);
         if (pcId) setActivePcId(Number(pcId));
     };
+    // A carried-over term whose only record is its own assignment has no history of its own, so it is not listed
+    // (unless it is the one that is open).
+    const listed = revisionsData.filter(rev => !(rev.carriedOver && (rev.timeline || []).every(event => String(event.type || '').toUpperCase() === 'ASSIGNED') && rev.pcId !== Number(currentPcId)));
     const selectedRevNum = revisionsData.find(rev => rev.pcId === activePcId)?.revNum ?? null;
 
     const getIndicatorClass = (type) => {
@@ -70,29 +116,36 @@ const Revisions = ({ onClose, pcId: propPcId }) => {
         }
     };
 
-    const formatDate = (dateString) => {
-        if (!dateString) return "";
-        return new Date(dateString).toISOString().split('T')[0];
-    };
+    const formatDate = (dateString) => (dateString ? fmtMoment(dateString) : "");
 
     return (
-        <div className={styles.modalOverlay}>
-            <div className={styles.modalContent}>
-                <button type="button" className={`${styles.closeButton} app-icon-close`} onClick={onClose} aria-label="Close revisions">×</button>
-                <h2 className={styles.previewTitle}>Revisions Tracking</h2>
+        <div className={`${styles.modalOverlay} ${expanded ? styles.expanded : ''}`}>
+            <div className={`${styles.modalContent} ${expanded ? styles.expanded : ''}`}>
+                <div className="app-window-header">
+                    <h2 className="app-window-title">Revisions</h2>
+                    <div className="app-window-actions">
+                        <button type="button" className="app-icon-btn" onClick={() => setExpanded(value => !value)}
+                            title={expanded ? 'Exit full screen' : 'Full screen'} aria-label={expanded ? 'Exit full screen' : 'Full screen'}>
+                            {expanded ? <Minimize2 size={16} /> : <Maximize size={16} />}
+                        </button>
+                        <button type="button" className="app-icon-close" onClick={onClose} aria-label="Close revisions">
+                            <X size={16} strokeWidth={2.5} color="currentColor" />
+                        </button>
+                    </div>
+                </div>
 
                 <div className={styles.splitContainer}>
                     {/* LEFT SECTION */}
                     <div className={styles.leftPreviewPane}>
                         <div className={styles.navi} style={{ marginTop: '0.5rem', marginBottom: '1rem' }}>
                             <div className={styles['section-select']}>
-                                <select value={selectedSection} onChange={(e) => setSelectedSection(e.target.value)}>
+                                <Select value={selectedSection} onChange={(e) => setSelectedSection(e.target.value)} block>
                                     <option value="Course Details">Course Details</option>
                                     <option value="Course and Program Outcome Alignment">Course and Program Outcome Alignment</option>
                                     <option value="Course Coverage">Course Coverage</option>
                                     <option value="References Summary">References Summary</option>
                                     <option value="Criteria for Grading">Criteria for Grading</option>
-                                </select>
+                                </Select>
                             </div>
                         </div>
 
@@ -118,13 +171,13 @@ const Revisions = ({ onClose, pcId: propPcId }) => {
                     {/* RIGHT SECTION (TIMELINE) */}
                     <div className={styles.rightLedgerPane}>
                         <div className={styles.titleBorder}>
-                            <div className={styles.sidebarTitle}>Revision Logs</div>
+                            <div className={styles.sidebarTitle}>History</div>
                         </div>
 
                         <div className={styles.accordionStack}>
                             {loading ? (
                                 <Spinner label="Loading revision history…" minHeight={180} />
-                            ) : revisionsData.length === 0 ? (
+                            ) : listed.length === 0 ? (
                                 <EmptyState
                                     icon={<Clock size={22} strokeWidth={1.6} />}
                                     title="No revision history yet"
@@ -132,7 +185,7 @@ const Revisions = ({ onClose, pcId: propPcId }) => {
                                 />
 
                             ) : (
-                                revisionsData.map((rev) => {
+                                listed.map((rev) => {
                                     const isExpanded = expandedAccordion === rev.pcId;
                                     return (
                                         <div key={`rev-${rev.pcId}`} className={styles.accordionItem}>
@@ -143,11 +196,25 @@ const Revisions = ({ onClose, pcId: propPcId }) => {
                                                     <span className={styles.revLabelText}>{historyRevisionLabel(rev)}{rev.schoolYear ? ` · ${rev.schoolYear} ${rev.semester} sem` : ''}</span>
                                                     {/*<span className={`${styles.statusMiniTag} ${statusClass}`}>{revStatus}</span>*/}
                                                 </div>
-                                                <span className={styles.toggleArrow}>{isExpanded ? "▲" : "▼"}</span>
+                                                <span className={styles.headerEnd}>
+                                                    {rev.status === 'Approved' && <span className={styles.revStatus}>Approved</span>}
+                                                    <span className={styles.toggleArrow}>{isExpanded ? "▲" : "▼"}</span>
+                                                </span>
                                             </div>
 
                                             {/* Accordion Content */}
                                             <div className={`${styles.accordionContent} ${isExpanded ? styles.open : ""}`}>
+                                                {rev.status === 'Approved' && commentCounts[rev.pcId] && (
+                                                    <div className={styles.revCounts}>
+                                                        {commentCounts[rev.pcId].total} comment{commentCounts[rev.pcId].total === 1 ? '' : 's'} · {commentCounts[rev.pcId].resolved} resolved
+                                                    </div>
+                                                )}
+                                                {rev.status === 'Approved' && (
+                                                    <button type="button" className="btn btn-secondary btn-sm" style={{ margin: '4px 0 10px' }}
+                                                        disabled={recordBusy === rev.pcId} onClick={() => openRecord(rev)}>
+                                                        {recordBusy === rev.pcId ? 'Preparing…' : 'Review record'}
+                                                    </button>
+                                                )}
                                                 <div className={styles.timelineTrack}>
 
                                                     {(rev.timeline || []).map((event) => (
@@ -158,7 +225,8 @@ const Revisions = ({ onClose, pcId: propPcId }) => {
                                                                 <div className={styles.timelineNodeBody}>
                                                                     <span className={styles.timelineMessageText}>
                                                                         {/* Added semibold class applied directly to actor and date */}
-                                                                        <span className={styles.semiBoldText}>{event.actor}</span> {event.message.toLowerCase()} on <span className={styles.semiBoldText}>{formatDate(event.date)}</span>
+                                                                        <span className={styles.semiBoldText}>{event.actor}</span> {event.message.toLowerCase()}
+                                                                        <span className={styles.timelineDate}>{formatDate(event.date)}</span>
                                                                     </span>
                                                                 </div>
                                                             </div>
@@ -171,7 +239,7 @@ const Revisions = ({ onClose, pcId: propPcId }) => {
                                                                             <div key={`comment-${comment.id}`} className={styles.commentCardFrame}>
                                                                                 <div className={styles.commentCardMetaBar}>
                                                                                     <span className={`${styles.contextBadge} ${styles.warn}`}>
-                                                                                        {comment.targetType}
+                                                                                        {SECTION_NAMES[String(comment.targetType || '').toUpperCase()] || comment.targetType}
                                                                                     </span>
                                                                                     {/* Removed Target Text entirely */}
                                                                                     <span className={styles.highContrastEntityText}>{comment.targetName}</span>
@@ -197,6 +265,17 @@ const Revisions = ({ onClose, pcId: propPcId }) => {
                     </div>
                 </div>
             </div>
+            {recordFile && (
+                <PDFViewerModal
+                    file={recordFile}
+                    kind="Review record"
+                    layer={1000}
+                    onClose={() => {
+                        if (recordFile.file_url?.startsWith('blob:')) URL.revokeObjectURL(recordFile.file_url);
+                        setRecordFile(null);
+                    }}
+                />
+            )}
         </div>
     );
 };

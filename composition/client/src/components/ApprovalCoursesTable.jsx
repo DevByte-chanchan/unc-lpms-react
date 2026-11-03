@@ -1,7 +1,8 @@
+import Select from './Select.jsx'
 import React, { useCallback, useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import styles from '../styles/CoursesTable.module.sass';
-import { ChevronRight, XCircle, Download, Clock, RotateCcw, CheckCircle, HelpCircle } from 'react-feather';
+import { ChevronRight, XCircle, Download, Clock, RotateCcw, CheckCircle } from 'react-feather';
 import SortableTh from './SortableTh.jsx';
 import { sortRows, nextSort } from '../utils/tableSort.js';
 import { fetchJson } from "../utils/api.js";
@@ -13,9 +14,11 @@ import Spinner from "./Spinner.jsx";
 import { loadReviewAssignments } from '../utils/reviewAssignments.js';
 import unclogo from '../assets/unclogo.png';
 import TableScrollRegion from './TableScrollRegion.jsx';
-import PokeButton from './PokeButton.jsx';
 import { usePageSearch, matchesSearch } from '../utils/pageSearch.js';
-import { buildApproverStatus, canExportRow, computeOverallStatus, latestSubmissionAt } from '../utils/assignmentStatus.js';
+import PageSearch from './PageSearch.jsx';
+import NotSubmittedPanel from './NotSubmittedPanel.jsx';
+import { Loading, TableSkeleton } from './LoadingSkeleton.jsx';
+import { buildApproverStatus, canExportRow, computeOverallStatus } from '../utils/assignmentStatus.js';
 import { filterAssignmentsByCourse, readAssignedCourseFilters } from '../utils/referenceCourseNavigation.js';
 
 const EXPORT_ROLES = ['dean', 'vpaa', 'instructor', 'program-head', 'director-of-libraries'];
@@ -27,15 +30,48 @@ const formatDate = (dateString) => {
     return d.toISOString().split('T')[0];
 };
 
+// Where a plan stands, in the row: a short line and one bar segment per approver in review order (Library
+// Director, Program Head, Dean). Green = accepted, yellow = waiting on that person now, red = returned, grey =
+// not their turn yet. Hovering a segment
+// gives the name and the date, so the old details window is not needed.
+const SEG_CLASS = { Accepted: 'segDone', Returned: 'segReturned', Pending: 'segPending', Waiting: 'segWaiting' };
+const ApprovalProgress = ({ row }) => {
+    // Under review: the Director and the Program Head work in parallel, then the Dean. Whoever is next is "waiting".
+    const under = computeOverallStatus(row) === 'Pending';
+    const base = buildApproverStatus(row);
+    const firstTwoDone = base.slice(0, 2).every(step => step.status === 'Accepted');
+    const steps = base.map((step, i) => (under && step.status === 'Pending' && (i < 2 || firstTwoDone) ? { ...step, status: 'Waiting' } : step));
+    const done = steps.filter(step => step.status === 'Accepted').length;
+    const returned = steps.find(step => step.status === 'Returned');
+    const label = done === steps.length ? 'Approved' : returned ? `Returned by ${returned.title}` : `${done} of ${steps.length} approved`;
+    const when = (step) => {
+        const at = step.status === 'Accepted' ? step.acceptedAt : step.status === 'Returned' ? step.returnedAt : null;
+        return at ? ` · ${new Date(at).toLocaleString()}` : '';
+    };
+    return (
+        <div className={styles.progress}>
+            <div className={styles.progressLabel}>{label}</div>
+            <div className={styles.progressBar} role="img" aria-label={`${label}: ${steps.map(step => `${step.title} ${step.status.toLowerCase()}`).join(', ')}`}>
+                {steps.map(step => (
+                    <span key={step.title} className={`${styles.seg} ${styles[SEG_CLASS[step.status]]}`} title={`${step.title}: ${step.status}${when(step)}`} />
+                ))}
+            </div>
+        </div>
+    );
+};
+
 const ApprovalCoursesTable = ({ role = 'approver', styleHooks = {} }) => {
-    const currentYear = new Date().getFullYear();
-    const startYear = 2000;
+    // The school year starts in June, so from January to May the current one began last calendar year.
+    const today = new Date();
+    const currentYear = today.getMonth() >= 5 ? today.getFullYear() : today.getFullYear() - 1;
+    const startYear = currentYear - 8;
     const semOptions = ['1st Sem', '2nd Sem'];
     const [searchParams, setSearchParams] = useSearchParams();
     const linkedCourseFilters = readAssignedCourseFilters(searchParams, currentYear);
     const targetCourse = linkedCourseFilters.course;
     const yearOptions = [];
-    for (let i = currentYear; i >= startYear; i--) {
+    // One school year ahead is listed too: a carried-over plan can already be in next year's list.
+    for (let i = currentYear + 1; i >= startYear; i--) {
         const schoolYearLabel = `${i} - ${i + 1}`;
         yearOptions.push(
             <option key={i} value={i}>
@@ -48,10 +84,14 @@ const ApprovalCoursesTable = ({ role = 'approver', styleHooks = {} }) => {
     const [selectedYear, setSelectedYear] = useState(linkedCourseFilters.year);
     const [selectedSem, setSelectedSem] = useState(linkedCourseFilters.semester);
 
-    const statuses = role === 'vpaa' ? ["APPROVED"] : ["PENDING", "RETURNED", "APPROVED"];
+    // The Program Head's list also has the plans still waiting on their instructor, as its fourth tab.
+    const statuses = role === 'vpaa' ? ["APPROVED"] : role === 'program-head' ? ["PENDING", "RETURNED", "APPROVED", "NOT_SUBMITTED"] : ["PENDING", "RETURNED", "APPROVED"];
+    const STATUS_LABEL = { NOT_SUBMITTED: 'Not submitted' };
+    const statusLabel = (status) => STATUS_LABEL[status] || status.charAt(0) + status.slice(1).toLowerCase();
 
     const defaultStatus = role === 'vpaa' ? 'APPROVED' : 'PENDING';
     const [selectedStatus, setSelectedStatus] = useState(() => {
+        if (role === 'program-head' && searchParams.get('status') === 'not-submitted') return 'NOT_SUBMITTED';
         if (statuses.includes(linkedCourseFilters.status)) {
             return linkedCourseFilters.status;
         }
@@ -59,16 +99,24 @@ const ApprovalCoursesTable = ({ role = 'approver', styleHooks = {} }) => {
     });
     const updateStatus = (status) => {
         setSelectedStatus(status);
-        setSearchParams({ status: status.toLowerCase() }, { replace: true });
+        setSearchParams({ status: status.toLowerCase().replace('_', '-') }, { replace: true });
     };
+    const [notSubmittedCount, setNotSubmittedCount] = useState(null);
+    const notSubmitted = selectedStatus === 'NOT_SUBMITTED';
     const [assignments, setAssignments] = useState([]);
     const [loading, setLoading] = useState(false);
     const [loadError, setLoadError] = useState(false);
     // Newest first is the useful default for an approver: the plan that just
     // arrived is the one they have not seen.
     const [sort, setSort] = useState({ sortKey: 'date_assigned', sortDir: 'desc' });
-    const onSort = (key) => setSort(current => nextSort(current, key));
-    const [popup, setPopup] = useState({ open: false, data: null, pos: null });
+    // A column that is not the sort yet starts ascending, unless the list is already in that order: then it starts
+    // descending, so the first click always visibly moves something. The same column flips on every click after.
+    const onSort = (key) => setSort(current => {
+        if (current.sortKey === key) return nextSort(current, key);
+        const ascending = sortRows(filteredRows, COLUMNS, key, 'asc');
+        const sameAsNow = ascending.every((row, i) => row === sortedRows[i]);
+        return { sortKey: key, sortDir: sameAsNow ? 'desc' : 'asc' };
+    });
     const [exportFile, setExportFile] = useState(null);
     const [exporting, setExporting] = useState(false);
 
@@ -164,13 +212,14 @@ const ApprovalCoursesTable = ({ role = 'approver', styleHooks = {} }) => {
     // ProgramCourseOffering, so sorting on `row.code` would compare undefined
     // to undefined and appear to do nothing.
     const COLUMNS = [
-        { key: 'date_assigned', label: 'Date assigned', width: 200, type: 'date' },
-        { key: 'code', label: 'Code', width: 150, type: 'text', sortValue: (r) => getCode(r) },
-        { key: 'name', label: 'Course name', width: 350, type: 'text', sortValue: (r) => getName(r) },
+        { key: 'date_assigned', label: 'DATE ASSIGNED', width: 170, type: 'date' },
+        { key: 'code', label: 'CODE', width: 150, type: 'text', sortValue: (r) => getCode(r) },
+        { key: 'name', label: 'COURSE NAME', width: 200, className: styles.growCol, type: 'text', sortValue: (r) => getName(r) },
         ...(selectedStatus === 'APPROVED'
-            ? [{ key: 'date_approved', label: 'Date approved', width: 200, type: 'date' }]
+            ? [{ key: 'date_approved', label: 'DATE APPROVED', width: 170, type: 'date' }]
             : []),
-        { key: 'actions', label: 'Actions', className: styles.fill, sortable: false }
+        { key: 'approval', label: 'APPROVAL', width: 190, sortable: false },
+        { key: 'actions', label: 'ACTIONS', className: styles.actionsCol, sortable: false }
     ];
 
     const sortedRows = sortRows(filteredRows, COLUMNS, sort.sortKey, sort.sortDir);
@@ -188,31 +237,19 @@ const ApprovalCoursesTable = ({ role = 'approver', styleHooks = {} }) => {
     // cannot be middle-clicked or copied.
     const rowActions = (row) => (
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            <Link className={'actionLink'} to={getCourseLink(row)}
-                  style={{ minWidth: 90, display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+            <Link className={`actionLink ${styles.rowAction}`} to={getCourseLink(row)}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
                 View <ChevronRight size={16} />
             </Link>
 
             {(selectedStatus === 'APPROVED' || canExportRow(row)) && EXPORT_ROLES.includes(role) &&
-                <span className="actionLink"
-                      style={{ minWidth: 90, display: 'inline-flex', alignItems: 'center', gap: 5, cursor: exporting ? 'wait' : 'pointer', color: '#6b7280' }}
+                <span className={`actionLink ${styles.rowAction}`}
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: 5, cursor: exporting ? 'wait' : 'pointer', color: '#6b7280' }}
                       onClick={() => !exporting && handleExport(row)}>
                     {exporting ? 'Exporting…' : 'Export'} <Download size={16} />
                 </span>
             }
 
-            {/* A returned plan waits for its instructor: the Program Head can remind them to resubmit (rate limited by the server). */}
-            {selectedStatus === 'RETURNED' && role === 'program-head' &&
-                <PokeButton offeringId={getOfferingID(row)} />
-            }
-
-            {/* `title` and `aria-label` both: the icon alone says nothing to a
-                screen reader, and nothing on hover either. */}
-            <button type="button" className={styles.info} title="Approval details"
-                    aria-label="Approval details"
-                    onClick={(e) => openPopup(row, e)}>
-                <HelpCircle opacity={.8} size={18} />
-            </button>
         </div>
     );
 
@@ -255,23 +292,6 @@ const ApprovalCoursesTable = ({ role = 'approver', styleHooks = {} }) => {
         return <EmptyState colSpan={colSpan} icon={meta.icon} title={meta.title} hint={meta.hint} />;
     };
 
-    // `anchor` is normally the click event on the (?) button; a bare DOMRect is
-    // still accepted so a caller that has already dismissed its own UI (and so
-    // has no event left to pass) can say where the popup should point.
-    const openPopup = (row, anchor) => {
-        const rect = typeof anchor?.currentTarget?.getBoundingClientRect === 'function'
-            ? anchor.currentTarget.getBoundingClientRect()
-            : (typeof anchor?.bottom === 'number' ? anchor : null);
-        const submittedAt = latestSubmissionAt(row);
-        const approverStatuses = buildApproverStatus(row);
-
-        const popupH = 280;
-        const top = rect ? (rect.bottom + 4 + popupH > window.innerHeight ? rect.top - popupH - 4 : rect.bottom + 4) : 80;
-        setPopup({ open: true, data: { submittedAt, approverStatuses }, pos: rect ? { right: window.innerWidth - rect.right, top } : null });
-    };
-
-    const closePopup = () => setPopup({ open: false, data: null, pos: null });
-
     const getCourseLink = (row) => {
         const base = `/role/${role}/courses/${encodeURIComponent(getCode(row))}`;
         const offeringId = getOfferingID(row);
@@ -280,117 +300,71 @@ const ApprovalCoursesTable = ({ role = 'approver', styleHooks = {} }) => {
         return `${base}?status=${computeOverallStatus(row).toLowerCase()}&fromStatus=${selectedStatus.toLowerCase()}&pcId=${offeringId}${revNum ? `&revNum=${revNum}` : ''}`;
     };
 
-    const DetailsPopup = ({ data, onClose, pos }) => {
-        if (!data) return null;
-        const { submittedAt, approverStatuses } = data;
-        return (
-            <>
-                <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 1199 }} />
-                <div className={styles.detailsPopup} style={{
-                    '--details-popup-right': pos ? `${pos.right}px` : undefined,
-                    '--details-popup-top': pos ? `${pos.top}px` : undefined,
-                    background: '#fff',
-                    border: '1px solid #ddd',
-                    borderRadius: 6,
-                    boxShadow: '0 6px 18px rgba(0,0,0,0.12)',
-                    padding: 12
-                }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                        <strong style={{ color: '#666' }}>View details</strong>
-                        <button type="button" className="app-icon-close" onClick={onClose} aria-label="Close details">
-                            <XCircle size={18} />
-                        </button>
-                    </div>
-
-                    <div style={{ fontSize: 13, marginBottom: 10 }}>
-                        <div style={{ color: '#666', marginBottom: 8 }}>
-                            <strong>Submitted at:</strong> {submittedAt ? new Date(submittedAt).toLocaleString() : '-'}
-                        </div>
-
-                        {approverStatuses.map((a, idx) => {
-                            const doneLabel = a.title === 'Dean' ? 'Approved' : 'Accepted';
-                            return (
-                            <div key={idx} style={{ marginBottom: 10, paddingBottom: 8, borderBottom: '1px solid #f0f0f0' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                                    <div style={{ fontWeight: 600, color: '#666' }}>{a.title}</div>
-                                </div>
-                                {a.status === 'Accepted' && a.acceptedAt ? <div style={{ fontSize: 13, color: '#666' }}><strong>{doneLabel} at:</strong> {new Date(a.acceptedAt).toLocaleString()}</div> : null}
-                                {a.status === 'Accepted' && !a.acceptedAt ? <div style={{ fontSize: 13, color: '#047857' }}>{doneLabel}</div> : null}
-                                {a.status === 'Returned' && a.returnedAt ? <div style={{ fontSize: 13, color: '#666' }}><strong>Returned at:</strong> {new Date(a.returnedAt).toLocaleString()}</div> : null}
-                                {a.status === 'Pending' ? <div style={{ fontSize: 13, color: '#666' }}>Pending</div> : null}
-                            </div>
-                            );
-                        })}
-                    </div>
-                </div>
-            </>
-        );
-    };
 
     return (
         <div className={`${styles['courses-table']} ${styleHooks.root || ''}`.trim()}>
             <div className={`${styles.header} ${styleHooks.header || ''}`.trim()}>
-                <h2 className="app-page-title app-title-row">Assigned course offerings</h2>
+                <div className={styles.titleRow}>
+                    <h2 className="app-page-title">{role === 'vpaa' ? 'Approved Learning Plans' : 'Assigned Course Offerings'}</h2>
+                    {role !== 'vpaa' && (
+                    <div className={styles['filter-container']}>
+                        <div className={styles.pillTabs}>
+                            {statuses.map((status) => (
+                                <button
+                                    key={status}
+                                    type="button"
+                                    className={`${styles.pillTab} ${selectedStatus === status ? styles.pillTabActive : ''}`}
+                                    onClick={() => updateStatus(status)}
+                                    aria-pressed={selectedStatus === status}
+                                >
+                                    {statusLabel(status)}
+                                    {status === 'NOT_SUBMITTED'
+                                        ? (notSubmittedCount !== null && <span className={styles.pillCount}>{notSubmittedCount}</span>)
+                                        : (!loading && <span className={styles.pillCount}>{rowsFor(status).length}</span>)}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                    )}
+                </div>
 
                 <div className={`${styles.filterA} app-filter-bar ${styleHooks.filters || ''}`.trim()}>
-                    <select
-                        className="app-select"
-                        value={selectedYear}
-                        onChange={(e) => setSelectedYear(e.target.value)}
+                    <PageSearch />
+                    <Select
+                      value={selectedYear}
+                      onChange={(e) => setSelectedYear(e.target.value)}
                     >
                         {yearOptions}
-                    </select>
-                    <select
-                        className="app-select"
-                        value={selectedSem}
-                        onChange={(e) => setSelectedSem(e.target.value)}
+                    </Select>
+                    <Select
+                      value={selectedSem}
+                      onChange={(e) => setSelectedSem(e.target.value)}
                     >
                         {semOptions.map(sem => (
                             <option key={sem} value={sem}>{sem}</option>
                         ))}
-                    </select>
+                    </Select>
                 </div>
 
-                <div className={styles.fill}></div>
-
-                {role !== 'vpaa' && (
-                <div className={styles['filter-container']}>
-                    <div className={styles['segmented-control']}>
-                        {statuses.map((status) => {
-                            return (
-                                <button
-                                    key={status}
-                                    type="button"
-                                    className={`${styles['control-item']} ${selectedStatus === status ? styles['active'] : ''}`}
-                                    onClick={() => updateStatus(status)}
-                                    aria-pressed={selectedStatus === status}
-                                >
-                                    {status.charAt(0) + status.slice(1).toLowerCase()}
-                                </button>
-                            );
-                        })}
-                    </div>
-                </div>
-                )}
             </div>
 
-            <TableScrollRegion
-                label="Assigned course offerings"
+            {!notSubmitted && <TableScrollRegion
+                label="Assigned Course Offerings"
                 minWidth={900}
-                className={`${styles['table-container']} app-table`}
+                className={`${styles['table-container']}`}
             >
                 {/* While loading, show ONLY the spinner. Rendering it above the
                     table meant the empty state ("No learning plans waiting for
                     you") was on screen at the same time as "Loading…", which
                     tells the reader two contradictory things. */}
-                {loading && <Spinner label="Loading course offerings…" />}
+                {loading && <Loading label="Loading course offerings…"><TableSkeleton rows={6} cols={[200, 150, '1fr', 190, 210]} /></Loading>}
 
                 {!loading && loadError && (
                     <EmptyState
                         icon={<XCircle size={22} strokeWidth={1.6} />}
                         title="Could not load assigned course offerings"
                         hint="The course list could not be loaded. Try again; no sample records have been substituted for your assignments."
-                        action={<button type="button" className={styles.retryButton} onClick={loadAssignments}>Try again</button>}
+                        action={<button type="button" className="btn btn-secondary btn-sm" onClick={loadAssignments}>Try again</button>}
                     />
                 )}
 
@@ -399,25 +373,26 @@ const ApprovalCoursesTable = ({ role = 'approver', styleHooks = {} }) => {
                         <thead>
                         <tr>
                             {COLUMNS.map(col => (
-                                <SortableTh key={col.key} col={col} sortKey={sort.sortKey} sortDir={sort.sortDir} onSort={onSort} />
+                                <SortableTh key={col.key} col={col} sortKey={sort.sortKey} sortDir={sort.sortDir} onSort={onSort} fill />
                             ))}
                         </tr>
                         </thead>
                         <tbody>
                         {sortedRows.map((row, index) => (
                             <tr key={index}>
-                                <td width={200}>{formatDate(row.date_assigned)}</td>
+                                <td width={170}>{formatDate(row.date_assigned)}</td>
                                 <td width={150} title={getCode(row)}><span>{getCode(row)}</span></td>
                                 {/* The <span> is what makes the ellipsis appear
                                     (see .truncate), and `title` is not
                                     decoration: the cell clips now, so this is
                                     the only way to read a long name in full. */}
-                                <td width={350} title={getName(row)}><span>{getName(row)}</span></td>
-                                <td width={200}>{formatDate(row.date_approved)}</td>
-                                <td className={styles.fill}>{rowActions(row)}</td>
+                                <td width={200} className={styles.growCol} title={getName(row)}><span>{getName(row)}</span></td>
+                                <td width={170}>{formatDate(row.date_approved)}</td>
+                                <td width={190}><ApprovalProgress row={row} /></td>
+                                <td className={styles.actionsCol}>{rowActions(row)}</td>
                             </tr>
                         ))}
-                        {!loading && sortedRows.length === 0 && emptyRow(5)}
+                        {!loading && sortedRows.length === 0 && emptyRow(6)}
                         </tbody>
                     </table>
                 }
@@ -427,26 +402,36 @@ const ApprovalCoursesTable = ({ role = 'approver', styleHooks = {} }) => {
                         <thead>
                         <tr>
                             {COLUMNS.map(col => (
-                                <SortableTh key={col.key} col={col} sortKey={sort.sortKey} sortDir={sort.sortDir} onSort={onSort} />
+                                <SortableTh key={col.key} col={col} sortKey={sort.sortKey} sortDir={sort.sortDir} onSort={onSort} fill />
                             ))}
                         </tr>
                         </thead>
                         <tbody>
                         {sortedRows.map((row, index) => (
                             <tr key={index}>
-                                <td width={200}>{formatDate(row.date_assigned)}</td>
+                                <td width={170}>{formatDate(row.date_assigned)}</td>
                                 <td width={150} title={getCode(row)}><span>{getCode(row)}</span></td>
-                                <td width={350} title={getName(row)}><span>{getName(row)}</span></td>
-                                <td className={styles.fill}>{rowActions(row)}</td>
+                                <td width={200} className={styles.growCol} title={getName(row)}><span>{getName(row)}</span></td>
+                                <td width={190}><ApprovalProgress row={row} /></td>
+                                <td className={styles.actionsCol}>{rowActions(row)}</td>
                             </tr>
                         ))}
-                        {!loading && sortedRows.length === 0 && emptyRow(4)}
+                        {!loading && sortedRows.length === 0 && emptyRow(5)}
                         </tbody>
                     </table>
                 }
-            </TableScrollRegion>
+            </TableScrollRegion>}
 
-            {popup.open && popup.data && <DetailsPopup data={popup.data} onClose={closePopup} pos={popup.pos} />}
+            {role === 'program-head' && (
+                <NotSubmittedPanel
+                    active={notSubmitted}
+                    schoolYear={`${selectedYear}-${Number(selectedYear) + 1}`}
+                    semester={String(selectedSem).startsWith('2') ? '2nd' : '1st'}
+                    query={query}
+                    onCount={setNotSubmittedCount}
+                />
+            )}
+
 
             {exportFile && (
               <PDFViewerModal

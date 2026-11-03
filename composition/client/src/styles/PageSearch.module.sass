@@ -1,0 +1,29 @@
+.search
+  flex: 0 1 auto
+  width: 320px
+  max-width: 100%
+  min-width: 180px
+  height: 36px
+  display: flex
+  align-items: center
+  gap: 8px
+  padding: 0 12px
+  box-sizing: border-box
+  border: 1px solid var(--control-border)
+  border-radius: var(--control-radius)
+  background: var(--surface)
+  color: var(--ink-muted)
+
+  &:focus-within
+    border-color: var(--ink-faint)
+    outline: 2px solid var(--accent)
+    outline-offset: 1px
+
+  input
+    flex: 1
+    min-width: 0
+    border: 0
+    outline: none
+    background: transparent
+    color: var(--ink)
+    font: var(--fw-normal) var(--fs-sm) var(--font-ui)

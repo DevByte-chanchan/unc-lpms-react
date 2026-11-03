@@ -9,7 +9,7 @@
   height: 100%;
   min-width: 0;
   min-height: 200px;
-  gap: 10px;
+  gap: 0;
   padding: 20px 30px;
   background: #fff;
   font-family: 'Poppins', sans-serif;
@@ -37,9 +37,8 @@
   align-items: end;
   column-gap: 24px;
   flex: 0 0 auto;
-  padding: 10px 20px 10px 30px; /* the title lines up with the other screens' titles */
+  padding: 0 0 30px; /* the page's own 20px 30px padding is the only outer edge */
   background: #fff;
-  border-bottom: 1px solid #dfe5e7;
 }
 
 .header {
@@ -63,6 +62,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 24px;
+  min-height: 36px;
 }
 
 .pageTitle {
@@ -91,32 +91,29 @@
   flex-wrap: wrap;
   justify-content: flex-end;
   margin-left: auto;
+
+  .btn { height: 36px; } // the title row's height, like the status pills elsewhere
 }
 
 .searchForm {
   display: grid;
-  grid-template-columns: 150px minmax(260px, 1fr);
+  grid-template-columns: minmax(0, 1fr);
   align-items: center;
   justify-content: start;
   gap: 10px;
-  width: 100%;
-  margin-top: 12px;
+  width: 320px; // the same search box as the other lists
+  max-width: 100%;
+  margin-top: 15px;
 }
 
-.searchField,
 .searchInput {
   min-width: 0;
-  height: 40px;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
+  height: 36px;
+  border: 1px solid var(--control-border);
+  border-radius: var(--control-radius);
   background: #fff;
   color: #24383e;
   font: 400 13px 'Poppins', sans-serif;
-}
-
-.searchField {
-  padding: 0 12px;
-  font-weight: 500;
 }
 
 .searchInputWrap {
@@ -128,13 +125,13 @@
 
 .searchInput {
   width: 100%;
-  padding: 0 72px 0 14px;
+  padding: 0 40px 0 36px;
 }
 
 .clearSearch {
   position: absolute;
   top: 50%;
-  right: 40px;
+  right: 6px;
   transform: translateY(-50%);
   display: inline-flex;
   align-items: center;
@@ -149,33 +146,13 @@
   cursor: pointer;
 }
 
-.searchIconButton {
+.searchIcon {
   position: absolute;
   top: 50%;
-  right: 8px;
+  left: 12px;
   transform: translateY(-50%);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  padding: 0;
-  border: 0;
-  border-radius: 6px;
-  background: transparent;
-  color: #40555c;
-  cursor: pointer;
-  transition: background-color 0.15s ease, color 0.15s ease;
-
-  &:hover {
-    background: #edf1f2;
-    color: #19282C;
-  }
-
-  &:focus-visible {
-    outline: 2px solid #19282C;
-    outline-offset: 1px;
-  }
+  color: var(--ink-muted);
+  pointer-events: none;
 }
 
 .savedViews {
@@ -185,10 +162,15 @@
   gap: 8px;
   width: auto;
   max-width: 100%;
-  min-height: 38px;
-  margin-top: 12px;
+  min-height: 36px;
+  margin-top: 15px;
   padding: 0;
   background: transparent;
+}
+
+// one width whatever the chosen view's name, so the button never changes size
+.savedViews button[aria-haspopup] {
+  width: 200px;
 }
 
 .savedViewsLabel {
@@ -212,42 +194,12 @@
 }
 
 .viewChip,
-.saveViewButton {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  flex: 0 0 auto;
-  min-height: 30px;
-  padding: 5px 10px;
-  border: 0;
-  border-radius: 3px;
-  background: transparent;
-  color: #6b7280;
-  font: 500 12px 'Poppins', sans-serif;
-  cursor: pointer;
-}
 
 .viewChipActive {
   background: #fff;
   color: #333;
   box-shadow: 0 2px 8px rgba(0, 0, 0, .1);
   font-weight: 500;
-}
-
-.savedViewDelete {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 34px;
-  height: 34px;
-  padding: 0;
-  border: 1px solid #d6dfe2;
-  border-radius: 6px;
-  background: #fff;
-  color: #65777e;
-  cursor: pointer;
-
-  &:hover { background: #fef2f2; color: #b42318; }
 }
 
 .savedViewChip {
@@ -263,19 +215,6 @@
     border-radius: 3px 0 0 3px;
   }
 
-  .savedViewDelete {
-    width: 24px;
-    height: 28px;
-    margin-right: 3px;
-    border-radius: 3px;
-  }
-}
-
-.saveViewForm {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex: 0 0 auto;
 }
 
 .activeFilters {
@@ -316,35 +255,7 @@
   &:hover { border-color: #9eafb4; background: #edf2f2; }
 }
 
-.saveViewInput {
-  width: 170px;
-  height: 32px;
-  padding: 0 10px;
-  border: 1px solid #9eacb1;
-  border-radius: 8px;
-  font: 400 12px 'Poppins', sans-serif;
-}
-
 .saveViewSubmit,
-.saveViewCancel {
-  height: 32px;
-  border-radius: 8px;
-  padding: 0 10px;
-  font: 600 12px 'Poppins', sans-serif;
-  cursor: pointer;
-}
-
-.saveViewSubmit {
-  border: 0;
-  background: #192e34;
-  color: #fff;
-}
-
-.saveViewCancel {
-  border: 1px solid #cbd5d8;
-  background: #fff;
-  color: #42555c;
-}
 
 .mobileToolbar {
   display: none;
@@ -353,7 +264,7 @@
 .discoveryLayout {
   display: grid;
   grid-template-columns: 210px minmax(420px, 1fr) 285px;
-  gap: 10px;
+  gap: 24px;
   flex: 1 1 auto;
   height: auto;
   min-height: 0;
@@ -363,7 +274,7 @@
 
 .facetRail {
   min-width: 0;
-  padding: 14px 16px;
+  padding: 0 0 14px;
   overflow-y: auto;
   border-right: 0;
   background: #fff;
@@ -376,6 +287,10 @@
   align-items: center;
   justify-content: space-between;
   gap: 10px;
+}
+
+.resultsHeader {
+  justify-content: flex-end;
 }
 
 .facetHeaderActions {
@@ -423,7 +338,7 @@
   border-top: 1px solid #d9e0e2;
 }
 
-.facetGroup:first-of-type {
+.facetHeader + .facetGroup {
   border-top: 0;
 }
 
@@ -440,7 +355,8 @@
   justify-content: space-between;
   gap: 8px;
   width: 100%;
-  padding: 6px 8px;
+  height: 36px;
+  padding: 0 8px;
   border: 0;
   border-radius: 7px;
   background: transparent;
@@ -476,7 +392,7 @@
   display: flex;
   flex-direction: column;
   min-width: 0;
-  padding: 14px 16px;
+  padding: 0 0 14px;
   overflow: hidden;
 }
 
@@ -503,7 +419,7 @@
 }
 
 .sortSelect {
-  height: 34px;
+  height: 36px;
   padding: 0 8px;
   border: 1px solid #A4A9AF;
   border-radius: 6px;
@@ -516,7 +432,10 @@
   min-width: 0;
   padding: 14px 16px;
   overflow-y: auto;
-  border-left: 0;
+  align-self: start;
+  margin: 0;
+  border: 1px solid #e5e7eb;
+  border-radius: var(--control-radius);
   background: #fff;
 }
 
@@ -553,8 +472,8 @@ button.previewClose.previewClose {
   display: none;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   padding: 0;
   border: 1px solid #E81123;
   border-radius: 4px;
@@ -565,8 +484,8 @@ button.previewClose.previewClose {
 
   &:hover {
     background: #FFF1F2;
-    border-color: #B91C1C;
-    color: #B91C1C;
+    border-color: var(--danger);
+    color: var(--danger);
   }
 
   &:focus-visible {
@@ -637,33 +556,11 @@ button.previewClose.previewClose {
   display: flex;
   gap: 8px;
   margin-top: 16px;
-  flex-wrap: wrap;
+
+  > button { flex: 1 1 0; min-width: 0; justify-content: center; white-space: nowrap; }
 }
 
 .previewPrimary,
-.previewSecondary {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  min-height: 36px;
-  padding: 7px 12px;
-  border-radius: 6px;
-  font: 600 12px 'Poppins', sans-serif;
-  cursor: pointer;
-}
-
-.previewPrimary {
-  border: 0;
-  background: #192e34;
-  color: #fff;
-}
-
-.previewSecondary {
-  border: 1px solid #A4A9AF;
-  background: #fff;
-  color: #334950;
-}
 
 .filterBackdrop,
 .previewBackdrop {
@@ -703,11 +600,11 @@ button.previewClose.previewClose {
 }
 
 .statIconBlue { background: rgba(30,58,95,0.08); color: #1e3a5f; }
-.statIconGreen { background: #dcfce7; color: #047857; }
+.statIconGreen { background: var(--good-soft); color: var(--good); }
 .statIconTeal { background: #e0f2fe; color: #0284c7; }
 .statIconPurple { background: #f3e8ff; color: #7c3aed; }
-.statIconYellow { background: #fffbeb; color: #b45309; }
-.statIconRed { background: #fef2f2; color: #dc2626; }
+.statIconYellow { background: var(--warn-soft); color: #b45309; }
+.statIconRed { background: #fef2f2; color: var(--danger-solid); }
 
 .statContent {
   display: flex;
@@ -754,8 +651,8 @@ button.previewClose.previewClose {
   display: flex;
   align-items: center;
   gap: 5px;
-  padding: 10px 20px;
-  height: 40px;
+  padding: 0 20px;
+  height: 36px;
   background: transparent;
   border: 1px solid #A4A9AF;
   border-radius: 20px;
@@ -766,50 +663,6 @@ button.previewClose.previewClose {
   font-family: 'Poppins', sans-serif;
 
   &:hover { background: #f9fafb; }
-}
-
-.addBtn {
-  display: inline-flex;
-  background: #19282C;
-  padding: 10px 20px 10px 15px;
-  min-width: 150px;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  height: 40px;
-  font-size: 14px;
-  gap: 5px;
-  border-radius: 20px;
-  border: none;
-  cursor: pointer;
-  font-family: 'Poppins', sans-serif;
-  font-weight: 500;
-  white-space: nowrap;
-  transition: transform 0.2s ease;
-
-  &:hover { transform: scale(1.04); }
-}
-
-.bulkBtn {
-  display: inline-flex;
-  background: #fff;
-  padding: 10px 20px 10px 15px;
-  min-width: 150px;
-  align-items: center;
-  justify-content: center;
-  color: #24383e;
-  height: 40px;
-  font-size: 14px;
-  gap: 5px;
-  border-radius: 20px;
-  border: 1px solid #A4A9AF;
-  cursor: pointer;
-  font-family: 'Poppins', sans-serif;
-  font-weight: 500;
-  white-space: nowrap;
-  transition: transform 0.2s ease;
-
-  &:hover { transform: scale(1.04); }
 }
 
 /* ── Table ───────────────────────────────────────────────────────────── */
@@ -874,6 +727,7 @@ button.previewClose.previewClose {
   }
 
   thead th {
+    height: 52px; // the same header band as the approver course lists
     background: #EDEFF2;
   }
 
@@ -937,6 +791,14 @@ button.previewClose.previewClose {
     grid-column: 3;
     justify-self: end;
   }
+}
+
+// the header of the approver course lists: dark capitals, not the small grey headers of .app-table
+.tableWrapper.tableWrapper thead th {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--ink);
+  text-transform: uppercase;
 }
 
 .tableWrapper th[aria-sort='none'] svg {
@@ -1078,7 +940,7 @@ button.previewClose.previewClose {
 }
 
 .actionDelete {
-  color: #dc2626;
+  color: var(--danger-solid);
   background: none;
   border: none;
   cursor: pointer;
@@ -1098,11 +960,11 @@ button.previewClose.previewClose {
 }
 
 .rowDeprecated {
-  background: #fffbeb;
+  background: var(--warn-soft);
 }
 
 .rowBoth {
-  background: #fee2e2;
+  background: var(--danger-soft);
 }
 
 .cellNowrap {
@@ -1127,7 +989,7 @@ button.previewClose.previewClose {
   font-size: 12px;
   font-weight: 600;
   white-space: nowrap;
-  background: #fef3c7;
+  background: var(--warn-soft);
   color: #b45309;
 }
 
@@ -1139,7 +1001,7 @@ button.previewClose.previewClose {
   font-weight: 600;
   white-space: nowrap;
   background: #fef2f2;
-  color: #dc2626;
+  color: var(--danger-solid);
   margin-left: 4px;
 }
 
@@ -1150,14 +1012,14 @@ button.previewClose.previewClose {
   font-size: 12px;
   font-weight: 500;
   white-space: nowrap;
-  background: #f0fdf4;
-  color: #16a34a;
+  background: var(--good-soft);
+  color: var(--good);
 }
 
 /* ── Modal Banners ────────────────────────────────────────────────────── */
 
 .warningBanner {
-  background: #fffbeb;
+  background: var(--warn-soft);
   border: 1px solid #fde68a;
   border-radius: 8px;
   padding: 12px 16px;
@@ -1175,7 +1037,7 @@ button.previewClose.previewClose {
   border-radius: 8px;
   padding: 12px 16px;
   font-size: 13px;
-  color: #dc2626;
+  color: var(--danger-solid);
   font-weight: 500;
   display: flex;
   align-items: center;
@@ -1203,7 +1065,7 @@ button.previewClose.previewClose {
   input[type="checkbox"] {
     width: 18px;
     height: 18px;
-    accent-color: #dc2626;
+    accent-color: var(--danger-solid);
     cursor: pointer;
   }
 }
@@ -1280,12 +1142,11 @@ button.previewClose.previewClose {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.7);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
-  backdrop-filter: blur(2px);
 }
 
 /* ── View Modal ──────────────────────────────────────────────────────── */
@@ -1369,7 +1230,7 @@ button.previewClose.previewClose {
   font-size: 11px;
   font-weight: 600;
   white-space: nowrap;
-  background: #fef3c7;
+  background: var(--warn-soft);
   color: #b45309;
   font-family: 'Courier New', monospace;
 }
@@ -1553,7 +1414,7 @@ button.previewClose.previewClose {
 
 .deleteBtnConfirm {
   padding: 10px 24px;
-  background: #dc2626;
+  background: var(--danger-solid);
   color: white;
   border: none;
   border-radius: 20px;
@@ -1562,7 +1423,7 @@ button.previewClose.previewClose {
   cursor: pointer;
   font-family: 'Poppins', sans-serif;
 
-  &:hover { background: #b91c1c; }
+  &:hover { background: var(--danger); }
 }
 
 @media (max-width: 1400px) {
@@ -1743,19 +1604,11 @@ button.previewClose.previewClose {
 
   .searchForm {
     grid-template-columns: 1fr;
-  }
-
-  .searchField {
     width: 100%;
-    border-radius: 6px;
   }
 
   .searchInputWrap {
     max-width: none;
-  }
-
-  .searchInput {
-    border-radius: 6px;
   }
 
   .savedViews {
@@ -1770,15 +1623,6 @@ button.previewClose.previewClose {
 
   .viewSelect {
     flex: 1 1 210px;
-  }
-
-  .saveViewForm {
-    width: 100%;
-    flex-wrap: wrap;
-  }
-
-  .saveViewInput {
-    flex: 1 1 170px;
   }
 
   .resultsPane {

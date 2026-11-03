@@ -330,8 +330,8 @@ select.app-select.app-select {
     height: 36px;
     min-width: 0;
     padding: 0 36px 0 12px;
-    border: 1px solid var(--line);
-    border-radius: var(--radius-md);
+    border: 1px solid var(--control-border);
+    border-radius: var(--control-radius);
     background-color: var(--surface);
     color: var(--ink-soft);
     font: var(--fw-normal) var(--fs-sm) var(--font-ui);
@@ -374,17 +374,17 @@ button.app-icon-close.app-icon-close {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    flex: 0 0 32px;
-    width: 32px;
-    min-width: 32px;
-    max-width: 32px;
-    height: 32px;
-    min-height: 32px;
-    max-height: 32px;
+    flex: 0 0 36px;
+    width: 36px;
+    min-width: 36px;
+    max-width: 36px;
+    height: 36px;
+    min-height: 36px;
+    max-height: 36px;
     aspect-ratio: 1;
     padding: 0;
     border: 1px solid #E81123 !important;
-    border-radius: 7px;
+    border-radius: var(--control-radius);
     background: #fff;
     color: #E81123;
     box-shadow: none;
@@ -430,3 +430,123 @@ button.app-icon-close.app-icon-close:focus-visible {
         animation-iteration-count: 1 !important;
     }
 }
+
+/* One button family for the approver screens. primary = the main action (dark), secondary = everything
+   else (white, outlined), danger = a destructive confirm (red). The doubled selectors beat each page's own
+   button styles, so a page only picks a role and, when it needs to, a size. */
+button.btn.btn,
+a.btn.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: 36px;
+    padding: 0 18px;
+    border: 1px solid transparent;
+    border-radius: var(--control-radius);
+    font: var(--fw-medium) var(--fs-md) / 1.2 var(--font-ui);
+    white-space: nowrap;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background-color var(--t-fast), border-color var(--t-fast), color var(--t-fast);
+}
+
+button.btn.btn:disabled { cursor: not-allowed; opacity: 0.5; }
+
+button.btn-primary.btn-primary {
+    background: #19282c;
+    border-color: #19282c;
+    color: #fff;
+}
+button.btn-primary.btn-primary:hover:not(:disabled) { background: #263c43; border-color: #263c43; }
+
+button.btn-secondary.btn-secondary {
+    background: #fff;
+    border-color: var(--control-border);
+    color: #172b31;
+}
+button.btn-secondary.btn-secondary:hover:not(:disabled) { background: var(--hover-tint); border-color: var(--control-border); }
+
+button.btn-danger.btn-danger {
+    background: #dc2626;
+    border-color: #dc2626;
+    color: #fff;
+}
+button.btn-danger.btn-danger:hover:not(:disabled) { background: #b91c1c; border-color: #b91c1c; }
+
+/* A destructive action that is not the confirm itself (Deactivate in a list): red outline, so it stands apart. */
+button.btn-danger-outline.btn-danger-outline {
+    background: #fff;
+    border-color: #fca5a5;
+    color: #b91c1c;
+}
+button.btn-danger-outline.btn-danger-outline:hover:not(:disabled) { background: #fef2f2; border-color: #f87171; }
+
+button.btn-sm.btn-sm {
+    height: 36px;
+    padding: 0 14px;
+    font-size: var(--fs-sm);
+}
+
+/* The square icon button of every window toolbar (zoom, print, full screen, close): one size, one border, one
+   radius, so a row of them is level. The red close button (.app-icon-close) shares the 36px square. */
+button.app-icon-btn.app-icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    min-height: 0;
+    padding: 0;
+    border: 1px solid var(--control-border);
+    border-radius: var(--control-radius);
+    background: #fff;
+    color: #334155;
+    line-height: 0;
+    cursor: pointer;
+    transition: background-color var(--t-fast), border-color var(--t-fast);
+}
+button.app-icon-btn.app-icon-btn:hover:not(:disabled) { background: var(--hover-tint); border-color: var(--control-border); }
+button.app-icon-btn.app-icon-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+button.app-icon-btn.app-icon-btn.is-on { background: #e2e8f0; }
+
+/* The header bar of every large window (document viewer, Revisions, Add reference, Comments): the same padding,
+   the same title size and the same gap between its buttons, so the buttons sit the same distance from the edge. */
+.app-window-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 16px 24px;
+    border-bottom: 1px solid #e5e7eb;
+    flex-shrink: 0;
+    background: #fff;
+}
+.app-window-title {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    line-height: 1.3;
+    color: #111827;
+}
+.app-window-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+/* The one single-line text field: 36px, 12px of text space, the same border and radius as the buttons. */
+input.app-input.app-input {
+    width: 100%;
+    height: 36px;
+    padding: 0 12px;
+    box-sizing: border-box;
+    border: 1px solid var(--control-border);
+    border-radius: var(--control-radius);
+    background: #fff;
+    color: var(--ink);
+    font: var(--fw-normal) var(--fs-sm) var(--font-ui);
+}
+input.app-input.app-input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }

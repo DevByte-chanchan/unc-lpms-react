@@ -14,7 +14,7 @@
 
 .modalContent
   background: #FFFFFF
-  padding: 30px
+  padding: 0
   border-radius: 8px
   width: 95vw
   height: min(90vh, calc(100dvh - 24px))
@@ -25,19 +25,15 @@
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2)
   overflow: hidden
 
-.closeButton
-  position: absolute
-  top: 15px
-  right: 20px
-  background: none
-  border: none
-  font-size: 28px
-  cursor: pointer
-  color: #888
-  line-height: 1
-  outline: none
-  &:hover
-    color: #000
+// Full screen: the window covers the whole page, no margin and no rounded corners.
+.modalOverlay.expanded
+  padding: 0
+
+.modalContent.expanded
+  width: 100vw
+  height: 100dvh
+  max-height: 100dvh
+  border-radius: 0
     outline: none
 
 .previewTitle
@@ -49,11 +45,13 @@
 // Workspace Separation Architecture
 .splitContainer
   display: flex
+  flex: 1
   width: 100%
-  height: calc(100% - 40px)
+  min-height: 0
+  box-sizing: border-box
+  padding: 16px 24px 24px
   gap: 24px
   overflow: hidden
-  margin-top: 10px
 
 .leftPreviewPane
   width: 65%
@@ -152,7 +150,7 @@
   text-transform: uppercase
 
 .approved
-  background: #dcfce7
+  background: var(--good-soft)
   color: #15803d
 
 .archived
@@ -206,7 +204,7 @@
     box-shadow: 0 0 0 2px #dbeafe
   &.warn
     background: #ef4444
-    box-shadow: 0 0 0 2px #fee2e2
+    box-shadow: 0 0 0 2px var(--danger-soft)
   &.fix
     background: #10b981
     box-shadow: 0 0 0 2px #d1fae5
@@ -279,7 +277,7 @@
     background: #ccfbf1
     color: #0d9488
   &.tla
-    background: #fef3c7
+    background: var(--warn-soft)
     color: #d97706
 
 .commentBlockquoteBox
@@ -312,7 +310,7 @@
     box-shadow: 0 0 0 2px #dbeafe
   &.returned
     background: #ef4444 // Red
-    box-shadow: 0 0 0 2px #fee2e2
+    box-shadow: 0 0 0 2px var(--danger-soft)
   &.accepted
     background: #10b981 // Green
     box-shadow: 0 0 0 2px #d1fae5
@@ -331,6 +329,32 @@
 .semiBoldText
   font-weight: 600
   color: #111
+
+.revCounts
+  margin: 6px 0 2px
+  font-size: 12px
+  color: #888
+
+.headerEnd
+  display: flex
+  align-items: center
+  gap: 14px
+
+.revStatus
+  padding: 2px 10px
+  border: 1px solid var(--good-line)
+  border-radius: 999px
+  background: var(--good-soft)
+  color: var(--good)
+  font-size: 12px
+  font-weight: 500
+
+// The date sits under the sentence in a quiet tone instead of ending it.
+.timelineDate
+  display: block
+  margin-top: 2px
+  font-size: 12px
+  color: #888
 
 .highlightRole
   font-weight: 700

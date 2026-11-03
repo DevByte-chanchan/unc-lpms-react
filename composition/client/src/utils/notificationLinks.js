@@ -4,9 +4,18 @@
 // open the approval view of the same course. null when the course is unknown.
 const APPROVER_ROLES = ['program-head', 'dean', 'director-of-libraries', 'industry-consultant']
 
+// A notification about no single course (the daily digest of plans not yet submitted, a library summary) opens the
+// page it is about instead.
+const pageFor = (role, type) => {
+  if (type === 'missing_digest' && role === 'program-head') return '/role/program-head/approval-course-table?page=Syllabus&status=not-submitted'
+  if (String(type || '').startsWith('reference_') && role === 'director-of-libraries') return '/role/director-of-libraries/reference-library'
+  if (type === 'approval_waiting' && APPROVER_ROLES.includes(role)) return `/role/${role}`
+  return null
+}
+
 export const notificationPath = (role, notification = {}) => {
-  const { offeringId, courseCode, revisionNumber, state } = notification
-  if (!offeringId || !courseCode) return null
+  const { offeringId, courseCode, revisionNumber, state, type } = notification
+  if (!offeringId || !courseCode) return pageFor(role, type)
   const status = String(state || 'pending').toLowerCase()
   if (role === 'instructor') {
     return revisionNumber

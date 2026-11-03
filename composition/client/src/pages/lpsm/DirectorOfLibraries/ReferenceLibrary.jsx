@@ -1,16 +1,16 @@
+import Select from '../../../components/Select.jsx'
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Archive,
   BookOpen,
-  Bookmark,
   ChevronLeft,
+  Edit2,
   ChevronRight,
   Filter,
   Plus,
   RotateCcw,
   Search,
-  Trash2,
   Upload,
   X,
 } from 'react-feather';
@@ -18,7 +18,6 @@ import SkeletonA from '../../../layouts/SkeletonA.jsx';
 import HeaderA from '../../../components/HeaderA.jsx';
 import SideNavigation from '../../../components/SideNavigation.jsx';
 import AddReferenceModal from '../../../components/AddReferenceModal.jsx';
-import CatalogRulesPanel from '../../../components/CatalogRulesPanel.jsx';
 import EmptyState from '../../../components/EmptyState.jsx';
 import TableScrollRegion from '../../../components/TableScrollRegion.jsx';
 import SortableTh from '../../../components/SortableTh.jsx';
@@ -26,10 +25,10 @@ import styles from '../../../styles/ReferenceLibrary.module.scss';
 
 import ImportPreviewModal from '../../../components/ImportPreviewModal.jsx';
 import { loadLibrary, loadReferenceTypes, setArchived } from '../../../utils/referenceStore.js';
+import { Bone } from '../../../components/LoadingSkeleton.jsx';
 import { typeLabel, unavailableReason, getCatalogSettings, refreshCatalogSettings } from '../../../utils/referenceCatalog.js';
-import { healthSummary, toHealthCsv } from '../../../utils/referenceHealth.js';
-import { readLegacyReferences, clearLegacyReferences } from '../../../utils/legacyLocalReferences.js';
-import { csvRecordToRow, legacyReferenceToRow } from '../../../utils/referenceImportRows.js';
+import { healthSummary } from '../../../utils/referenceHealth.js';
+import { csvRecordToRow } from '../../../utils/referenceImportRows.js';
 import { fetchJson, apiErrorMessage } from '../../../utils/api.js';
 import { sanitizeUrl } from '../../../utils/sanitize.js';
 import { parseReferenceCsv, MAX_CSV_BYTES } from '../../../utils/csvImport.js';
@@ -41,24 +40,13 @@ import {
   getReferencePreview,
   getReferenceViewValue,
   isReferenceDeprecated,
-  loadReferenceSavedViews,
   paginateReferenceRecords,
   referencePageSizeForWidth,
-  storeReferenceSavedViews,
 } from '../../../utils/referenceDiscovery.js';
 
 const CURRENT_YEAR = new Date().getFullYear();
 
 const REFERENCE_LIBRARY_COLUMNS = referenceLibraryColumns().filter(column => column.key !== 'actions');
-
-const SEARCH_FIELDS = [
-  ['all', 'All fields'],
-  ['title', 'Title'],
-  ['authors', 'Author'],
-  ['id', 'Reference ID'],
-  ['isbn', 'ISBN'],
-  ['publisher', 'Publisher'],
-];
 
 const YEAR_LABELS = {
   recent: 'Last 3 years',
@@ -71,7 +59,6 @@ const ReferenceLibrary = () => {
   const [references, setReferencesState] = useState([]);
   const [loadState, setLoadState] = useState({ loading: true, error: '' });
   const [importSource, setImportSource] = useState(null);
-  const [legacyCount, setLegacyCount] = useState(() => readLegacyReferences().length);
   const [courseAssignments, setCourseAssignments] = useState(null);
   const [addRefOpen, setAddRefOpen] = useState(false);
   const [editRef, setEditRef] = useState(null);
@@ -88,28 +75,11 @@ const ReferenceLibrary = () => {
     typeof window === 'undefined' ? 0 : window.innerWidth
   ));
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [saveViewOpen, setSaveViewOpen] = useState(false);
-  const [savedViewName, setSavedViewName] = useState('');
-  const [savedViews, setSavedViews] = useState(() => (
-    typeof window === 'undefined' ? [] : loadReferenceSavedViews(window.localStorage)
-  ));
-  // The Director's rule for how recent a title must be, kept in step with the server.
   const [rules, setRules] = useState(getCatalogSettings);
   useEffect(() => { let on = true; refreshCatalogSettings(fetchJson).then(latest => { if (on) setRules(latest); }); return () => { on = false; }; }, []);
   const activeRefs = useMemo(() => references.filter(r => !r.archived), [references]);
   const health = useMemo(() => healthSummary(activeRefs, { years: rules.recencyYears, currentYear: CURRENT_YEAR }), [activeRefs, rules.recencyYears]);
 
-  const exportHealthReport = () => {
-    const blob = new Blob(['﻿', toHealthCsv(activeRefs, { years: rules.recencyYears, currentYear: CURRENT_YEAR })], { type: 'text/csv;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = 'reference-health-report.csv';
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    URL.revokeObjectURL(url);
-  };
   const archivedRefs = useMemo(() => references.filter(r => r.archived), [references]);
 
   /* ── The library is the server's: load the type definitions and the references ── */
@@ -155,19 +125,8 @@ const ReferenceLibrary = () => {
     }
   };
 
-  /* ── One-time upload of references saved by the old browser-only store ─ */
-  const startLegacyImport = () => {
-    const rows = readLegacyReferences().map(legacyReferenceToRow);
-    setImportSource({ title: 'Upload references saved on this browser', rows, kind: 'legacy' });
-  };
-
   const handleImported = (result) => {
     reload();
-    // The old store is emptied only when nothing was rejected, so a failed row is never lost.
-    if (importSource?.kind === 'legacy' && result.invalid === 0) {
-      clearLegacyReferences();
-      setLegacyCount(0);
-    }
     showPageToast(`Imported ${result.created} of ${result.total} row(s).`);
   };
 
@@ -208,12 +167,9 @@ const ReferenceLibrary = () => {
     sortDir: sort.sortDir,
   }), [criteria, sort]);
   const activeViewValue = useMemo(
-    () => getReferenceViewValue(currentViewCriteria, savedViews),
-    [currentViewCriteria, savedViews],
+    () => getReferenceViewValue(currentViewCriteria),
+    [currentViewCriteria],
   );
-  const selectedSavedView = activeViewValue.startsWith('saved:')
-    ? savedViews.find(savedView => `saved:${savedView.id}` === activeViewValue)
-    : null;
   const filtered = useMemo(() => {
     return filterReferenceRecords(references, criteria);
   }, [references, criteria]);
@@ -306,56 +262,9 @@ const ReferenceLibrary = () => {
     setViewRef(null);
   };
 
-  const applySavedView = (savedView) => {
-    const saved = savedView.criteria || {};
-    setQuery(saved.query || '');
-    setSearchField(saved.searchField || 'all');
-    setFilterDepartment(saved.department || '');
-    setFilterType(saved.type || '');
-    setFilterYear(saved.yearRange || '');
-    setTab(saved.tab || 'active');
-    setRecentOnly(Boolean(saved.recentOnly));
-    setSort({ sortKey: saved.sortKey || 'id', sortDir: saved.sortDir === 'desc' ? 'desc' : 'asc' });
-    setViewRef(null);
-  };
-
   const changeView = (event) => {
     const value = event.target.value;
-    if (value === 'active' || value === 'recent' || value === 'archived') {
-      selectBuiltInView(value);
-      return;
-    }
-    if (value.startsWith('saved:')) {
-      const savedView = savedViews.find(item => `saved:${item.id}` === value);
-      if (savedView) applySavedView(savedView);
-    }
-  };
-
-  const saveCurrentView = (event) => {
-    event.preventDefault();
-    const name = savedViewName.trim();
-    if (!name) return;
-    const nextViews = storeReferenceSavedViews(window.localStorage, [
-      {
-        id: `view-${Date.now()}`,
-        name,
-        criteria: currentViewCriteria,
-      },
-      ...savedViews,
-    ]);
-    setSavedViews(nextViews);
-    setSavedViewName('');
-    setSaveViewOpen(false);
-    showPageToast(`Saved view “${name}”.`);
-  };
-
-  const deleteSavedView = (event, id) => {
-    event.stopPropagation();
-    const nextViews = storeReferenceSavedViews(
-      window.localStorage,
-      savedViews.filter(savedView => savedView.id !== id),
-    );
-    setSavedViews(nextViews);
+    if (value === 'active' || value === 'recent' || value === 'archived') selectBuiltInView(value);
   };
 
   const showPageToast = (message, type = 'success') => {
@@ -409,25 +318,19 @@ const ReferenceLibrary = () => {
         <div className={styles.discoveryTop}>
           <div className={styles.pageHeader}>
             <div>
-              <h1 className={`${styles.pageTitle} app-page-title`}>Reference library</h1>
+              <h1 className={`${styles.pageTitle} app-page-title`}>Reference Library</h1>
             </div>
             <div className={styles.headerActions} data-collapsible-buttons>
-              <button className={styles.addBtn} type="button" onClick={() => { setEditRef(null); setAddRefOpen(true); }}>
-                <Plus size={16} /><span className="btn-label">Add Reference</span>
+              <button className="btn btn-primary" type="button" onClick={() => { setEditRef(null); setAddRefOpen(true); }}>
+                <Plus size={16} /><span className="btn-label">Add</span>
               </button>
-              <button className={styles.bulkBtn} type="button" onClick={() => fileInputRef.current?.click()}>
+              <button className="btn btn-secondary" type="button" onClick={() => fileInputRef.current?.click()}>
                 <Upload size={15} /> Bulk Upload
               </button>
-              <CatalogRulesPanel buttonClassName={styles.bulkBtn} onSaved={(message) => { setRules(getCatalogSettings()); showPageToast(message); }} />
-              {legacyCount > 0 && (
-                <button className={styles.bulkBtn} type="button" onClick={startLegacyImport} title="These references were saved only in this browser by the old version">
-                  <Upload size={15} /> Upload {legacyCount} saved on this browser
-                </button>
-              )}
             </div>
           </div>
 
-          {loadState.error && <div role="alert" style={{ color: '#b91c1c', margin: '8px 0' }}>{loadState.error}</div>}
+          {loadState.error && <div role="alert" style={{ color: 'var(--danger)', margin: '8px 0' }}>{loadState.error}</div>}
 
           <input
             ref={fileInputRef}
@@ -438,10 +341,6 @@ const ReferenceLibrary = () => {
           />
 
       <form className={styles.searchForm} role="search" onSubmit={(event) => event.preventDefault()}>
-        <label className={styles.visuallyHidden} htmlFor="reference-search-field">Search field</label>
-        <select id="reference-search-field" className={styles.searchField} value={searchField} onChange={(event) => setSearchField(event.target.value)}>
-          {SEARCH_FIELDS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-        </select>
         <div className={styles.searchInputWrap}>
           <label className={styles.visuallyHidden} htmlFor="reference-search">Search references</label>
           <input
@@ -456,42 +355,17 @@ const ReferenceLibrary = () => {
               <X size={15} />
             </button>
           )}
-          <button className={styles.searchIconButton} type="submit" aria-label="Search references" title="Search references">
-            <Search size={16} aria-hidden="true" />
-          </button>
+          <Search size={16} aria-hidden="true" className={styles.searchIcon} />
         </div>
       </form>
 
           <div className={styles.savedViews} aria-label="Reference views">
-        <label className={styles.savedViewsLabel} htmlFor="reference-library-view">View</label>
-        <select id="reference-library-view" className={styles.viewSelect} value={activeViewValue} onChange={changeView}>
+        <Select id="reference-library-view" aria-label="View" value={activeViewValue} onChange={changeView}>
           {activeViewValue === 'custom' && <option value="custom" disabled>Custom view</option>}
           <option value="active">All active · {activeRefs.length}</option>
           <option value="recent">Recent additions · {recentCount}</option>
           <option value="archived">Archived · {archivedRefs.length}</option>
-          {savedViews.length > 0 && (
-            <optgroup label="Saved views">
-              {savedViews.map(savedView => <option key={savedView.id} value={`saved:${savedView.id}`}>{savedView.name}</option>)}
-            </optgroup>
-          )}
-        </select>
-        {selectedSavedView && (
-          <button className={styles.savedViewDelete} type="button" aria-label={`Delete saved view ${selectedSavedView.name}`} title="Delete this saved view" onClick={(event) => deleteSavedView(event, selectedSavedView.id)}>
-            <Trash2 size={14} />
-          </button>
-        )}
-        {saveViewOpen && activeViewValue === 'custom' ? (
-          <form className={styles.saveViewForm} onSubmit={saveCurrentView}>
-            <label className={styles.visuallyHidden} htmlFor="saved-view-name">Saved view name</label>
-            <input id="saved-view-name" className={styles.saveViewInput} autoFocus maxLength={50} value={savedViewName} onChange={(event) => setSavedViewName(event.target.value)} placeholder="View name" />
-            <button className={styles.saveViewSubmit} type="submit" disabled={!savedViewName.trim()}>Save</button>
-            <button className={styles.saveViewCancel} type="button" onClick={() => { setSaveViewOpen(false); setSavedViewName(''); }}>Cancel</button>
-          </form>
-        ) : activeViewValue === 'custom' ? (
-          <button className={styles.saveViewButton} type="button" onClick={() => setSaveViewOpen(true)} title="Save the current search, filters, and sorting">
-            <Bookmark size={13} /> Save view
-          </button>
-        ) : null}
+        </Select>
           </div>
           {activeFilterChips.length > 0 && (
             <div className={styles.activeFilters} aria-label="Active filters">
@@ -501,6 +375,7 @@ const ReferenceLibrary = () => {
                   <span>{filter.label}</span><X size={12} />
                 </button>
               ))}
+              <button className={styles.resetButton} type="button" onClick={resetDiscovery}>Reset all</button>
             </div>
           )}
         </div>
@@ -511,11 +386,7 @@ const ReferenceLibrary = () => {
         <div className={styles.discoveryLayout}>
         <aside className={`${styles.facetRail} ${filtersOpen ? styles.filterDrawer : ''}`} aria-label="Reference filters">
           <div className={styles.facetHeader}>
-            <h2 className={styles.facetTitle}>Refine results</h2>
-            <div className={styles.facetHeaderActions}>
-              {hasDiscoveryCriteria && <button className={styles.resetButton} type="button" onClick={resetDiscovery}>Reset all</button>}
-              {filtersOpen && <button className={`${styles.drawerClose} app-icon-close`} type="button" onClick={() => setFiltersOpen(false)} aria-label="Close filters"><X size={15} /></button>}
-            </div>
+            {filtersOpen && <button className={`${styles.drawerClose} app-icon-close`} type="button" onClick={() => setFiltersOpen(false)} aria-label="Close filters"><X size={15} /></button>}
           </div>
 
           <div className={styles.facetGroup}>
@@ -546,30 +417,17 @@ const ReferenceLibrary = () => {
             {hasDiscoveryCriteria && <button className={styles.resetButton} type="button" onClick={resetDiscovery}><RotateCcw size={12} /> Reset</button>}
           </div>
           {health.total > 0 && (
-            <div role="status" style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center', margin: '0 0 8px', color: health.needAttention ? '#92400E' : '#166534' }}>
+            <div role="status" style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center', margin: '0 0 8px', color: health.needAttention ? 'var(--warn)' : 'var(--good)' }}>
               <strong>{health.needAttention === 0 ? 'Every active reference is in good order.' : `${health.needAttention} of ${health.total} active references need attention`}</strong>
               {health.needAttention > 0 && (
                 <span>{[health.unavailable && `${health.unavailable} not available`, health.outdated && `${health.outdated} outdated`, health.noYear && `${health.noYear} no year`, health.noIsbn && `${health.noIsbn} no ISBN`, health.noLink && `${health.noLink} no link`].filter(Boolean).join(' · ')}</span>
               )}
-              {health.needAttention > 0 && <button type="button" className="app-link-button" onClick={exportHealthReport}>Export report</button>}
             </div>
           )}
-          <div className={styles.resultsHeader}>
-            <div>
-              <h2 className={styles.resultsTitle}>{sortedReferences.length} {sortedReferences.length === 1 ? 'reference' : 'references'}</h2>
-              <span className={styles.resultsMeta}>{hasDiscoveryCriteria ? 'Matching the current search and filters' : 'All records in this view'}</span>
-              {sortedReferences.some(ref => isReferenceDeprecated(ref, CURRENT_YEAR, rules.recencyYears)) && (
-                <span className={styles.reviewLegend}><span className={styles.reviewLegendDot} aria-hidden="true" />May need review</span>
-              )}
-            </div>
-            <select className={styles.sortSelect} value={`${sort.sortKey}:${sort.sortDir}`} onChange={(event) => { const [sortKey, sortDir] = event.target.value.split(':'); setSort({ sortKey, sortDir }); }} aria-label="Sort references">
-              <option value="id:asc">ID: A to Z</option><option value="title:asc">Title: A to Z</option><option value="title:desc">Title: Z to A</option><option value="year:desc">Newest year</option><option value="year:asc">Oldest year</option>
-            </select>
-          </div>
 
-          <TableScrollRegion label="Reference library" minWidth={720} className={`${styles.tableWrapper} app-table`}>
+          <TableScrollRegion label="Reference Library" minWidth={520} className={`${styles.tableWrapper} app-table`}>
             <table>
-              <thead><tr>{REFERENCE_LIBRARY_COLUMNS.map(column => <SortableTh key={column.key} col={column} sortKey={sort.sortKey} sortDir={sort.sortDir} onSort={handleSort} />)}</tr></thead>
+              <thead><tr>{REFERENCE_LIBRARY_COLUMNS.map(column => <SortableTh key={column.key} col={column} sortKey={sort.sortKey} sortDir={sort.sortDir} onSort={handleSort} fill />)}</tr></thead>
               <tbody>
                 {pageResult.items.length > 0 ? pageResult.items.map(ref => (
                   <tr
@@ -586,7 +444,13 @@ const ReferenceLibrary = () => {
                     <td className={styles.cellNowrap}><span className={styles.typeBadge}>{typeLabel(ref.type)}</span></td>
                     <td className={`${styles.cellNowrap} ${styles.yearCell}`}><span className={styles.yearValue}>{ref.year || '—'}</span>{isReferenceDeprecated(ref, CURRENT_YEAR, rules.recencyYears) && <span className={styles.deprecatedMarker} role="img" title={`May need review — published ${rules.recencyYears} or more years ago`} aria-label={`May need review — published ${rules.recencyYears} or more years ago`} />}</td>
                   </tr>
-                )) : (
+                )) : loadState.loading ? (
+                  Array.from({ length: 8 }, (_, row) => (
+                    <tr key={`sk-${row}`} aria-hidden="true">
+                      {[70, 90, 60, 50, 40].map((w, col) => <td key={col}><Bone w={`${w}%`} h={14} /></td>)}
+                    </tr>
+                  ))
+                ) : (
                   <EmptyState colSpan={5} icon={<BookOpen size={22} strokeWidth={1.6} />} title={hasDiscoveryCriteria ? 'No references match this search' : tab === 'archived' ? 'Nothing has been archived' : loadState.loading ? 'Loading the library…' : 'No references in the library yet'} hint={hasDiscoveryCriteria ? 'Try a different search term, remove a filter, or reset the view.' : tab === 'archived' ? 'References you archive are kept here and can be restored later.' : 'Add a reference or use Bulk Upload to start the catalog.'} />
                 )}
               </tbody>
@@ -629,11 +493,11 @@ const ReferenceLibrary = () => {
                 {sanitizeUrl(previewReference.link) && <><dt>Link</dt><dd><a href={sanitizeUrl(previewReference.link)} target="_blank" rel="noopener noreferrer" className={styles.modalLink}>Open resource</a></dd></>}
               </dl>
               <div className={styles.previewActions}>
-                <button className={styles.previewPrimary} type="button" onClick={() => { setEditRef(previewReference); setAddRefOpen(true); }}>Edit record</button>
+                <button className="btn btn-primary" type="button" onClick={() => { setEditRef(previewReference); setAddRefOpen(true); }}><Edit2 size={13} /> Edit</button>
                 {previewReference.archived ? (
-                  <button className={styles.previewSecondary} type="button" onClick={() => confirmUnarchive(previewReference)}><RotateCcw size={13} /> Restore</button>
+                  <button className="btn btn-secondary" type="button" onClick={() => confirmUnarchive(previewReference)}><RotateCcw size={13} /> Restore</button>
                 ) : (
-                  <button className={`${styles.previewSecondary} ${styles.rowActionDanger}`} type="button" onClick={() => setArchiveRef(previewReference)}><Archive size={13} /> Archive record</button>
+                  <button className={`btn btn-secondary ${styles.rowActionDanger}`} type="button" onClick={() => setArchiveRef(previewReference)}><Archive size={13} /> Archive</button>
                 )}
               </div>
             </>
@@ -654,8 +518,8 @@ const ReferenceLibrary = () => {
             <h3 className={styles.deleteTitle}>Archive Reference</h3>
             <p className={styles.deleteText}>Are you sure you want to archive <strong>"{archiveRef.title}"</strong>? Archived references will only be visible to the Director of Libraries.</p>
             <div className={styles.deleteActions}>
-              <button className={styles.deleteBtnCancel} onClick={() => setArchiveRef(null)}>Cancel</button>
-              <button className={styles.deleteBtnConfirm} onClick={confirmArchive} style={{ background: '#b45309' }}>Archive</button>
+              <button className="btn btn-secondary" onClick={() => setArchiveRef(null)}>Cancel</button>
+              <button className="btn btn-primary" onClick={confirmArchive}>Archive</button>
             </div>
           </div>
         </div>
@@ -687,7 +551,7 @@ const ReferenceLibrary = () => {
         <div style={{
           position: 'fixed', bottom: 24, right: 24, zIndex: 9999,
           display: 'flex', alignItems: 'center', gap: 10,
-          background: toast.type === 'error' ? '#b91c1c' : '#047857',
+          background: toast.type === 'error' ? 'var(--danger)' : 'var(--good)',
           color: '#fff', padding: '14px 22px', borderRadius: 8,
           fontSize: 14, fontWeight: 500,
           boxShadow: '0 6px 20px rgba(0,0,0,0.15)',

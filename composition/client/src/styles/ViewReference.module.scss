@@ -90,25 +90,6 @@
   flex: 1;
 }
 
-.downloadBtn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 10px 20px;
-  background: black;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  font-family: 'Poppins', sans-serif;
-
-  &:hover {
-    background: #1f2937;
-  }
-}
-
 /* ── Actions ─────────────────────────────────────────────────────────── */
 
 .actions {
@@ -117,44 +98,6 @@
   margin-top: 32px;
   padding-top: 20px;
   border-top: 1px solid #f3f4f6;
-}
-
-.btnBack {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 10px 20px;
-  border: 1px solid #A4A9AF;
-  border-radius: 20px;
-  background: transparent;
-  color: black;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  font-family: 'Poppins', sans-serif;
-
-  &:hover {
-    background: #f9fafb;
-  }
-}
-
-.btnEdit {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 10px 20px;
-  border: none;
-  border-radius: 20px;
-  background: black;
-  color: white;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  font-family: 'Poppins', sans-serif;
-
-  &:hover {
-    background: #1f2937;
-  }
 }
 
 @media (max-width: 1024px) {

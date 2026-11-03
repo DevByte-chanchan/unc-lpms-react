@@ -1,0 +1,129 @@
+// The syllabus due date window: the shared header, a short form, a preview of the reminder dates, a footer.
+.backdrop
+  position: fixed
+  inset: 0
+  z-index: 2999
+  background: var(--backdrop)
+
+.window
+  position: fixed
+  top: 50%
+  left: 50%
+  transform: translate(-50%, -50%)
+  z-index: 3000
+  width: min(480px, calc(100vw - 24px))
+  max-height: min(90vh, calc(100dvh - 24px))
+  display: flex
+  flex-direction: column
+  overflow: hidden
+  background: #fff
+  border-radius: 8px
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25)
+  font-family: var(--font-ui)
+
+.sub
+  margin-top: 2px
+  font-size: 12px
+  color: var(--ink-muted)
+
+.body
+  flex: 1
+  min-height: 0
+  overflow-y: auto
+  display: flex
+  flex-direction: column
+  gap: 16px
+  padding: 20px 24px
+
+.chips
+  display: flex
+  flex-wrap: wrap
+  gap: 8px
+
+.chip
+  padding: 3px 10px
+  border: 1px solid var(--control-border)
+  border-radius: 999px
+  background: var(--surface-muted)
+  color: var(--ink-soft)
+  font-size: 12px
+  font-weight: var(--fw-medium)
+
+.field
+  display: flex
+  flex-direction: column
+  gap: 6px
+
+.label
+  font-size: 13px
+  font-weight: var(--fw-medium)
+  color: var(--ink)
+
+.control
+  width: 100%
+  height: 36px
+  padding: 0 12px
+  box-sizing: border-box
+  border: 1px solid var(--control-border)
+  border-radius: var(--control-radius)
+  background: #fff
+  color: var(--ink)
+  font: var(--fw-normal) var(--fs-md) var(--font-ui)
+
+  &:focus-visible
+    outline: 2px solid var(--accent)
+    outline-offset: 1px
+
+.hint
+  margin-top: -8px
+  font-size: 12px
+  color: var(--ink-muted)
+
+.schedule
+  padding: 12px 14px
+  border: 1px solid var(--line)
+  border-radius: var(--control-radius)
+  background: var(--surface-muted)
+
+  ul
+    margin: 8px 0 0
+    padding: 0
+    list-style: none
+    display: flex
+    flex-direction: column
+    gap: 6px
+
+  li
+    display: flex
+    justify-content: space-between
+    gap: 12px
+    font-size: 13px
+    color: var(--ink-soft)
+
+  strong
+    font-weight: var(--fw-medium)
+    color: var(--ink)
+
+.scheduleTitle
+  font-size: 12px
+  font-weight: var(--fw-medium)
+  letter-spacing: 0.04em
+  text-transform: uppercase
+  color: var(--ink-muted)
+
+.scheduleEmpty
+  margin-top: 8px
+  font-size: 13px
+  color: var(--ink-muted)
+
+.error
+  font-size: 13px
+  color: var(--danger)
+
+.actions
+  display: flex
+  justify-content: flex-end
+  gap: 12px
+  padding: 14px 24px
+  border-top: 1px solid #e5e7eb
+  flex-shrink: 0

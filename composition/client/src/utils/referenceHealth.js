@@ -2,7 +2,6 @@
 // older than the recency rule, or are missing what a reviewer looks for. Pure, so it runs under plain
 // node in the tests. The same wording is used on the screen and in the exported report.
 import { unavailableReason } from './referenceCatalog.js'
-import { csvCell } from './csvCell.js'
 
 const isTextbook = (record) => String(record?.type || '').toLowerCase().startsWith('textbook')
 
@@ -32,26 +31,4 @@ export const healthSummary = (records = [], options = {}) => {
     noIsbn: count(issue => issue === 'No ISBN'),
     noLink: count(issue => issue === 'No link')
   }
-}
-
-const COLUMNS = [
-  ['ID', r => r.id],
-  ['Title', r => r.title],
-  ['Authors', r => r.authors],
-  ['Type', r => r.type],
-  ['Year', r => r.year],
-  ['ISBN', r => r.isbn],
-  ['Copies', r => (r.copies == null ? '' : r.copies)],
-  ['Status', r => r.status],
-  ['Category', r => r.category],
-  ['Used in courses', r => (r.usedInCourses || []).join('; ')]
-]
-
-// The report: every record with at least one issue, one row each, the reasons in the last column.
-export const toHealthCsv = (records = [], options = {}) => {
-  const flagged = records.map(record => ({ record, issues: healthIssues(record, options) })).filter(row => row.issues.length)
-  return [
-    [...COLUMNS.map(([name]) => name), 'Issues'].map(csvCell).join(','),
-    ...flagged.map(({ record, issues }) => [...COLUMNS.map(([, read]) => read(record)), issues.join('; ')].map(csvCell).join(','))
-  ].join('\r\n')
 }

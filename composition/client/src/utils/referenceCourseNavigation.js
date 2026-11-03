@@ -68,7 +68,7 @@ export const readAssignedCourseFilters = (searchParams, currentYear) => {
 
   return {
     course: String(searchParams?.get('course') || '').trim(),
-    year: Number.isInteger(requestedYear) && requestedYear >= 2000 && requestedYear <= currentYear
+    year: Number.isInteger(requestedYear) && requestedYear >= 2000 && requestedYear <= currentYear + 1
       ? requestedYear
       : currentYear,
     semester: SEMESTERS.has(requestedSemester) ? requestedSemester : '1st Sem',

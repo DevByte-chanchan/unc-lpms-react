@@ -4,11 +4,8 @@ import * as discovery from './referenceDiscovery.js'
 import {
   buildReferenceFacets,
   filterReferenceRecords,
-  loadReferenceSavedViews,
   normalizeReferenceLibraryRows,
   paginateReferenceRecords,
-  sanitizeSavedViews,
-  storeReferenceSavedViews,
 } from './referenceDiscovery.js'
 
 const { getReferencePreview } = discovery
@@ -331,38 +328,6 @@ test('the workbench always previews a visible record and prefers the selected on
   equal(getReferencePreview(null, []), null, 'an empty result set should have no preview')
 })
 
-test('saved views discard malformed records, trim names, and retain at most ten', () => {
-  const mixed = [
-    null,
-    { id: '', name: 'Missing ID' },
-    ...Array.from({ length: 12 }, (_, index) => ({
-      id: `view-${index}`,
-      name: ` View ${index} `,
-      criteria: { query: `q${index}`, searchField: 'all', tab: 'active' },
-    })),
-  ]
-  const cleaned = sanitizeSavedViews(mixed)
-  assert(cleaned.length === 10, `expected ten saved views, received ${cleaned.length}`)
-  assert(cleaned[0].name === 'View 0', `expected a trimmed name, received ${cleaned[0].name}`)
-  assert(cleaned[0].criteria.searchField === 'all', 'expected validated discovery criteria to survive')
-})
-
-test('saved views load safely and store only validated values', () => {
-  const memory = new Map()
-  const storage = {
-    getItem: key => memory.get(key) ?? null,
-    setItem: (key, value) => memory.set(key, value),
-  }
-  memory.set('lpsm_reference_saved_views_v1', '{broken json')
-  equal(loadReferenceSavedViews(storage), [], 'invalid JSON should fall back to no saved views')
-
-  const stored = storeReferenceSavedViews(storage, [
-    { id: 'mine', name: ' My SCIS books ', criteria: { department: 'SCIS', type: 'Textbook', tab: 'active' } },
-  ])
-  assert(stored[0].name === 'My SCIS books', 'stored view names should be trimmed')
-  equal(loadReferenceSavedViews(storage), stored, 'stored views should round-trip through storage')
-})
-
 test('reference view selection distinguishes built-in and customized workbench states', () => {
   assert(typeof discovery.getReferenceViewValue === 'function', 'getReferenceViewValue must be exported')
   assert(discovery.getReferenceViewValue({}, []) === 'active', 'the untouched workbench should use All active')
@@ -375,23 +340,6 @@ test('reference view selection distinguishes built-in and customized workbench s
   assert(
     discovery.getReferenceViewValue({ sortKey: 'year', sortDir: 'desc' }, []) === 'custom',
     'a non-default sort must not be mistaken for the untouched view',
-  )
-})
-
-test('reference view selection recognizes a matching saved view', () => {
-  assert(typeof discovery.getReferenceViewValue === 'function', 'getReferenceViewValue must be exported')
-  const savedViews = [{
-    id: 'recent-textbooks',
-    name: 'Recent textbooks',
-    criteria: { type: 'Textbook', sortKey: 'year', sortDir: 'desc' },
-  }]
-  assert(
-    discovery.getReferenceViewValue({ type: 'Textbook', sortKey: 'year', sortDir: 'desc' }, savedViews) === 'saved:recent-textbooks',
-    'matching criteria should keep the saved view selected',
-  )
-  assert(
-    discovery.getReferenceViewValue({ type: 'Textbook', sortKey: 'year', sortDir: 'asc' }, savedViews) === 'custom',
-    'changing a saved view should mark it custom instead of mislabelling it',
   )
 })
 

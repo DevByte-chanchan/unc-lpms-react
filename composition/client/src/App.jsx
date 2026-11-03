@@ -1,5 +1,6 @@
 import './App.css'
 import {lazy, Suspense, useEffect, useState} from 'react'
+import { PageSkeleton } from './components/LoadingSkeleton.jsx'
 import {BrowserRouter as Router, Routes, Route, Navigate, useLocation} from 'react-router-dom'
 import { LEGACY_REDIRECTS } from "./utils/routes.js";
 import ErrorBoundary from "./components/ErrorBoundary.jsx";
@@ -31,8 +32,6 @@ const ApprovalCourses = lazy(() => import('./pages/ApprovalCourses.jsx'))
 const ProgramHead = lazy(() => import('./pages/ProgramHead.jsx'))
 const DirectorOfLibraries = lazy(() => import('./pages/DirectorOfLibraries.jsx'))
 const IndustryConsultant = lazy(() => import('./pages/IndustryConsultant.jsx'))
-const ProgramHeadIndustryConsultant = lazy(() => import('./pages/ProgramHeadIndustryConsultant.jsx'))
-const ProgramHeadMissing = lazy(() => import('./pages/ProgramHeadMissing.jsx'))
 const COAEPView = lazy(() => import('./pages/lpsm/ProgramHead/COAEPView.jsx'))
 const CoPoAlignment = lazy(() => import('./pages/lpsm/ProgramHead/CoPoAlignment.jsx'))
 const PoPeoAlignment = lazy(() => import('./pages/lpsm/ProgramHead/PoPeoAlignment.jsx'))
@@ -94,7 +93,7 @@ function App() {
                 <OverflowTooltip />
                 <ErrorBoundary>
                     <SessionGate>
-                    <Suspense fallback={<div className="routeLoading" role="status">Loading page…</div>}>
+                    <Suspense fallback={<PageSkeleton />}>
                     <Routes>
                         {/* --- INSTRUCTOR / DEFAULT ROUTES --- */}
                         <Route path={'/'} element={<ErrorBoundary><AssignedCourses /></ErrorBoundary>} />
@@ -132,8 +131,7 @@ function App() {
                         <Route path={'/role/director-of-libraries/add-reference'} element={<ErrorBoundary><DirectorAddReference /></ErrorBoundary>} />
                         <Route path={'/role/director-of-libraries/view-reference/:refId'} element={<ErrorBoundary><DirectorViewReference /></ErrorBoundary>} />
                         <Route path={'/role/director-of-libraries/edit-reference/:refId'} element={<ErrorBoundary><DirectorAddReference /></ErrorBoundary>} />
-                        <Route path={'/role/program-head/industry-consultant'} element={<ErrorBoundary><ProgramHeadIndustryConsultant /></ErrorBoundary>} />
-                        <Route path={'/role/program-head/missing-submissions'} element={<ErrorBoundary><ProgramHeadMissing /></ErrorBoundary>} />
+                        <Route path={'/role/program-head/missing-submissions'} element={<Navigate to="/role/program-head/approval-course-table?page=Syllabus&status=not-submitted" replace />} />
                         <Route path={'/role/dean'} element={<ErrorBoundary><Dean /></ErrorBoundary>} />
                         <Route path={'/role/vpaa'} element={<ErrorBoundary><VPAA /></ErrorBoundary>} />
                         <Route path={'/role/superuser'} element={<ErrorBoundary><SuperuserUsers /></ErrorBoundary>} />

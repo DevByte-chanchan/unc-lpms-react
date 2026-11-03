@@ -45,8 +45,8 @@ const SignOutDialog = ({ open, onConfirm, onCancel }) => {
         <h2 id={titleId}>Sign out?</h2>
         <p id={descriptionId}>Are you sure you want to sign out of the Learning Plan System?</p>
         <div className={styles.actions}>
-          <button ref={cancelRef} type="button" className={styles.cancel} onClick={onCancel}>Cancel</button>
-          <button type="button" className={styles.confirm} onClick={onConfirm}>Sign out</button>
+          <button ref={cancelRef} type="button" className="btn btn-secondary" onClick={onCancel}>Cancel</button>
+          <button type="button" className="btn btn-primary" onClick={onConfirm}>Sign out</button>
         </div>
       </div>
     </div>

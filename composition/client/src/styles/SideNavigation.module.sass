@@ -7,44 +7,131 @@
   background: var(--surface)
   color: var(--ink)
 
+// The brand card: logo, system name and the open / collapse button together in one container.
 .logo
-  width: 100%
-  padding: 10px 20px
+  margin: 14px 14px 12px
+  padding: 10px
   box-sizing: border-box
   display: flex
   align-items: center
-  justify-content: space-between
+  gap: 10px
+  border: 1px solid var(--line)
+  border-radius: var(--radius-md)
+  background: var(--surface)
 
 .logo img
-  width: 50px
+  flex: 0 0 auto
+  width: 32px
   display: block
 
-.lpms
+.brand
+  flex: 1 1 auto
+  min-width: 0
+  display: flex
+  flex-direction: column
+  font-size: 12px
   font-weight: var(--fw-semibold)
-  font-size: var(--fs-lg)
-  padding: 0 20px 40px 23px
-  margin-top: 10px
-  color: var(--ink-soft)
-  line-height: 1.4 // Comfortable spacing for the 3 lines
-  // white-space: nowrap // REMOVED: Must allow wrapping for <br/> to work
-  text-overflow: ellipsis
-  transition: opacity 0.2s ease
-  min-height: 24px
+  color: var(--ink)
+  line-height: 1.3
+
+  span
+    white-space: nowrap
+    overflow: hidden
+    text-overflow: ellipsis
+
+.searchWrap
+  position: relative
+  flex: 0 0 auto
+  margin: 0 14px 16px
+
+  .search
+    margin: 0
+
+.searchResults
+  position: absolute
+  z-index: 50
+  top: calc(100% + 4px)
+  left: 0
+  right: 0
+  margin: 0
+  padding: 4px
+  list-style: none
+  background: #fff
+  border: 1px solid #e5e7eb
+  border-radius: var(--control-radius)
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18)
+
+  button
+    width: 100%
+    height: 36px
+    padding: 0 10px
+    border: 0
+    border-radius: 6px
+    background: transparent
+    color: var(--ink)
+    font: var(--fw-normal) var(--fs-sm) var(--font-ui)
+    text-align: left
+    cursor: pointer
+
+    &:hover, &:focus-visible
+      background: var(--hover-tint)
+
+  li[aria-selected='true'] button
+    background: var(--hover-tint)
+
+.searchEmpty
+  padding: 8px 10px
+  color: var(--ink-muted)
+  font-size: var(--fs-sm)
+
+// Search box of the sidebar.
+.search
+  margin: 0
+  flex: 0 0 auto
+  height: 36px
+  padding: 0 12px
+  box-sizing: border-box
+  display: flex
+  align-items: center
+  gap: 8px
+  border: 1px solid var(--control-border)
+  border-radius: var(--control-radius)
+  background: var(--surface)
+  color: var(--ink-muted)
+
+  input
+    flex: 1
+    min-width: 0
+    border: 0
+    outline: none
+    background: transparent
+    color: var(--ink)
+    font: var(--fw-normal) var(--fs-sm) var(--font-ui)
+
+.menuLabel
+  margin: 0 26px 6px
+  font-size: 11px
+  font-weight: var(--fw-medium)
+  letter-spacing: 0.08em
+  text-transform: uppercase
+  color: var(--ink-faint)
 
 .nav-list
-  margin: 20px 20px 0 20px
+  margin: 0 14px
   height: 100%
   overflow: hidden
   display: flex
   flex-direction: column
-  gap: 10px
+  gap: 4px
 
 .list
-  padding: 10px 12px
+  height: 36px
+  padding: 0 12px
+  box-sizing: border-box
   border-radius: var(--radius-md)
   display: flex
   align-items: center
-  gap: 16px
+  gap: 12px
   cursor: pointer
   font-size: var(--fs-sm)
   font-weight: var(--fw-medium)
@@ -72,11 +159,13 @@
   white-space: nowrap
 
 .listB
-  padding: 10px 12px
+  height: 36px
+  padding: 0 12px
+  box-sizing: border-box
   border-radius: var(--radius-md)
   display: flex
   align-items: center
-  gap: 16px
+  gap: 12px
   cursor: pointer
   font-size: var(--fs-sm)
   font-weight: var(--fw-medium)
@@ -93,30 +182,41 @@
     outline: 3px solid rgba(232, 17, 35, 0.24)
     outline-offset: 2px
 
+// The bottom group: smaller, tighter rows than the main links, like a footer menu.
+.dock
+  display: flex
+  flex-direction: column
+  gap: 4px
+
+.dockItem
+  font-size: var(--fs-sm)
+
+  &[aria-disabled='true']
+    cursor: default
+    background: transparent
+
 .logoutWrapper
   position: relative
-  margin-top: auto
+  margin: auto 0 0
   display: flex
   flex-direction: column
   gap: 10px
-  padding-bottom: 30px
+  padding-bottom: 24px
 
 @media (max-width: 1024px)
   .logo
-    padding: 10px 0
+    margin: 12px 8px
+    padding: 8px 0
+    flex-direction: column
     justify-content: center
+    border: 0
+    background: transparent
 
-  .logo img
-    width: 44px
-
-  .lpms
-    padding: 0 0 20px
-    margin-top: 6px
-    font-size: 12px
-    text-align: center
+  .brand, .searchWrap, .menuLabel
+    display: none
 
   .nav-list
-    margin: 20px 8px 0
+    margin: 8px 8px 0
 
   .list, .listB
     justify-content: center
@@ -128,20 +228,19 @@
 
 // Collapsed to icons by the top bar's button (the layout sets data-nav-collapsed on the sidebar).
 :global([data-nav-collapsed='true']) .logo
-  padding: 10px 0
+  margin: 12px 8px
+  padding: 8px 0
+  flex-direction: column
   justify-content: center
+  gap: 10px
+  border: 0
+  background: transparent
 
-:global([data-nav-collapsed='true']) .logo img
-  width: 44px
-
-:global([data-nav-collapsed='true']) .lpms
-  padding: 0 0 20px
-  margin-top: 6px
-  font-size: 12px
-  text-align: center
+:global([data-nav-collapsed='true']) .brand, :global([data-nav-collapsed='true']) .searchWrap, :global([data-nav-collapsed='true']) .menuLabel
+  display: none
 
 :global([data-nav-collapsed='true']) .nav-list
-  margin: 20px 8px 0
+  margin: 8px 8px 0
 
 :global([data-nav-collapsed='true']) .list, :global([data-nav-collapsed='true']) .listB
   justify-content: center
@@ -154,8 +253,8 @@
 // The sidebar's own open / collapse button, beside the logo (under it when collapsed).
 .navToggle
   flex: 0 0 auto
-  width: 32px
-  height: 32px
+  width: 36px
+  height: 36px
   display: inline-flex
   align-items: center
   justify-content: center
@@ -174,12 +273,9 @@
     outline: 2px solid var(--accent)
     outline-offset: 2px
 
-:global([data-nav-collapsed='true']) .logo
-  flex-direction: column
-  gap: 10px
-
 // Who is signed in: an avatar with the name, role and e-mail, at the bottom of the sidebar.
 .account
+  cursor: pointer
   display: flex
   align-items: center
   gap: 10px
@@ -238,3 +334,4 @@
 
   .accountText
     display: none
+

@@ -37,7 +37,7 @@ const ViewReference = () => {
   const content = (
     <div className={styles.container}>
       <div className={styles.header}>
-        <h1 className="app-page-title">Reference details</h1>
+        <h1 className="app-page-title">Reference Details</h1>
       </div>
 
       <div className={styles.detailGrid}>
@@ -115,7 +115,7 @@ const ViewReference = () => {
           <div className={styles.fileCard}>
             <FileText size={20} />
             <span className={styles.fileName}>{ref.filename}</span>
-            <button className={styles.downloadBtn} type="button">
+            <button className="btn btn-secondary btn-sm" type="button">
               <Download size={16} />
               Download
             </button>
@@ -124,11 +124,11 @@ const ViewReference = () => {
       </div>
 
       <div className={styles.actions}>
-        <button className={styles.btnBack} type="button" onClick={() => navigate('/role/director-of-libraries/reference-library')}>
+        <button className="btn btn-secondary" type="button" onClick={() => navigate('/role/director-of-libraries/reference-library')}>
           <ArrowLeft size={16} />
           Back to Library
         </button>
-        <button className={styles.btnEdit} type="button" onClick={() => navigate(`/role/director-of-libraries/edit-reference/${ref.id}`)}>
+        <button className="btn btn-primary" type="button" onClick={() => navigate(`/role/director-of-libraries/edit-reference/${ref.id}`)}>
           Edit Reference
         </button>
       </div>

@@ -12,8 +12,7 @@ globalThis.localStorage = {
 }
 
 const { setReferenceTypes, hasReferenceType, referenceTypeLabel, shortTypeLabel, fieldsFor, missingRequired } = await import('./referenceTypes.js')
-const { csvRecordToRow, legacyReferenceToRow, typeKeyFromName } = await import('./referenceImportRows.js')
-const { readLegacyReferences, clearLegacyReferences } = await import('./legacyLocalReferences.js')
+const { csvRecordToRow, typeKeyFromName } = await import('./referenceImportRows.js')
 const { updateReference, setArchived, importReferences, toPayload, createReference, serverId } = await import('./referenceStore.js')
 
 // What GET /api/references/types returns (server/config/referenceTypes.js is the source).
@@ -56,31 +55,6 @@ test('CSV records map by column name and type name; unknown types pass through f
   assert.equal(csvRecordToRow({ Type: '' }).type, '')
   assert.deepEqual(Object.keys(csvRecordToRow({ Type: 'Textbook', Department: 'SCIS', Program: 'BSIT' })), ['type'], 'columns the library does not store are ignored')
   assert.equal(typeKeyFromName('Textbooks'), 'Textbooks', 'no fuzzy matching')
-})
-
-test('a reference from the old local store becomes an import row', () => {
-  assert.deepEqual(legacyReferenceToRow({ id: 'TB1', type: 'Online Resources', title: 'MDN', authors: 'Mozilla', year: 2024, link: 'https://x.org', isbn: '', departments: ['SCIS'], usedInCourses: ['BIT1'] }), {
-    type: 'Online Resource', title: 'MDN', authors: 'Mozilla', isbn: '', year: '2024', link: 'https://x.org', publisher: ''
-  })
-  assert.equal(legacyReferenceToRow({ type: 'Open Educational Resources', title: 'T' }).type, 'OER')
-  assert.equal(legacyReferenceToRow({ type: 'Textbook', title: 'T', year: '' }).year, '')
-})
-
-test('the old local store is read for the one-time upload, without server mirrors or demo placeholders, and then cleared', () => {
-  store.set('lpsm_reference_library_v1', JSON.stringify([
-    { id: 'TB1', title: 'Mine', type: 'Textbook' },
-    { id: 'srv-12', title: 'Mirror of the server', type: 'Textbook' },
-    { id: 'TB-DEP-001', title: 'Old demo', type: 'Textbook' },
-    { id: 'OR2', title: '', type: 'Online Resources' },
-    null
-  ]))
-  assert.deepEqual(readLegacyReferences().map(r => r.id), ['TB1'])
-  store.set('lpsm_ref_id_migrated_v1', '1')
-  clearLegacyReferences()
-  assert.deepEqual(readLegacyReferences(), [])
-  assert.equal(store.has('lpsm_ref_id_migrated_v1'), false)
-  store.set('lpsm_reference_library_v1', 'not json')
-  assert.deepEqual(readLegacyReferences(), [], 'a corrupt store reads as empty')
 })
 
 const withFetch = async (impl, run) => {

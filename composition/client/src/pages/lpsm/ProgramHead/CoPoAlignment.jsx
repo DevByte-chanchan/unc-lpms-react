@@ -1,3 +1,4 @@
+import Select from '../../../components/Select.jsx'
 import { useEffect, useMemo, useState } from 'react';
 import { ChevronRight } from 'react-feather';
 import SkeletonA from '../../../layouts/SkeletonA.jsx';
@@ -9,6 +10,7 @@ import { fetchJson, apiErrorMessage } from '../../../utils/api.js';
 import { computeOverallStatus } from '../../../utils/assignmentStatus.js';
 import { revisionLabel, termLabel } from '../../../utils/offeringLabels.js';
 import unclogo from '../../../assets/unclogo.png';
+import cc from '../../../styles/SyllabusPreview.module.sass';
 import tbl from '../../../styles/AlignmentTables.module.sass';
 import TableScrollRegion from '../../../components/TableScrollRegion.jsx';
 import pageStyles from '../../../styles/ProgramHeadWorkspace.module.sass';
@@ -79,70 +81,62 @@ const CoPoAlignment = () => {
   };
 
   const content = (
-    <div className={pageStyles.page}>
-      <div className={pageStyles.toolbar}>
-        <div className={pageStyles.titleBlock}>
-          <h2 className="app-page-title">Course outcomes &amp; PO alignment</h2>
-          <p className={pageStyles.pageSubtitle}>Review how each course outcome supports the program outcomes. The instructor sets these in the syllabus.</p>
-        </div>
-        <label className={pageStyles.controlGroup}>
-          <span className={pageStyles.controlLabel}>Course</span>
-          <select className={pageStyles.courseSelect} value={offeringId} onChange={event => setOfferingId(event.target.value)} aria-label="Select course">
-            {(offerings || []).map(item => <option key={item.id} value={item.id}>{item.label}</option>)}
-          </select>
-        </label>
-        <div className={pageStyles.actions}>
-          <button type="button" className={pageStyles.primaryButton} onClick={handleView} disabled={!outcomes.length}>
+    <div className={`${pageStyles.page} ${pageStyles.flowPage}`}>
+      <div className={pageStyles.pageHeader}>
+        <h2 className="app-page-title">Course Outcomes &amp; PO Alignment</h2>
+        <div className={pageStyles.pageHeaderActions}>
+          <button type="button" className="btn btn-primary" onClick={handleView} disabled={!outcomes.length}>
             <ChevronRight size={16} /> View / Export
           </button>
         </div>
       </div>
 
+      <div className={pageStyles.toolbarControls}>
+        <Select value={offeringId} onChange={event => setOfferingId(event.target.value)} aria-label="Select course">
+            {(offerings || []).map(item => <option key={item.id} value={item.id}>{item.label}</option>)}
+          </Select>
+      </div>
+
       {error && <div role="alert" className={styles.alert}>{error}</div>}
+
+      {current && (
+        <div className={`${cc.legend} ${pageStyles.legendRow}`}>
+          <span className={cc.legendTitle}>Legend:</span>
+          <div className={cc.legendItems}>
+            <span><strong>I</strong> – Introductory</span>
+            <span><strong>E</strong> – Enabling</span>
+            <span><strong>D</strong> – Demonstrative</span>
+          </div>
+        </div>
+      )}
 
       {offerings !== null && offerings.length === 0 && !error && (
         <div className={pageStyles.contextBar}><span>No course is assigned in your program yet.</span></div>
       )}
 
       {current && (
-        <div className={pageStyles.contextBar}>
-          <span><strong>Course:</strong> {current.code} — {current.name}</span>
-          <span><strong>Syllabus status:</strong> {current.status}</span>
-          <span className={pageStyles.contextMuted}>Request changes through the syllabus review comments.</span>
-        </div>
-      )}
-
-      <div className={tbl.legend}>
-        <span><strong>Legend:</strong></span>
-        <span><strong>I</strong> – Introductory</span>
-        <span><strong>E</strong> – Enabling</span>
-        <span><strong>D</strong> – Demonstrative</span>
-        <span style={{ marginLeft: 'auto', color: '#64748b' }}>ILO structure and assessment alignment remain in the syllabus.</span>
-      </div>
-
-      {current && (
-        <TableScrollRegion
+        <div style={{ minWidth: 0 }}><TableScrollRegion
           label="COURSE OUTCOMES & PO ALIGNMENT"
           minWidth={Math.max(640, 320 + programOutcomes.length * 52)}
-          className={`${pageStyles.tableRegion} ${pageStyles.compactTableRegion}`}
+          className={`${cc.tableScrollWrapper} ${tbl.plainWrap} ${pageStyles.flowTable}`}
         >
-          <table className={`${tbl.alignTable} ${tbl.compactRows}`}>
+          <table className={`${cc.alignmentTable} ${tbl.plain}`}>
             <colgroup>
               <col />
               {programOutcomes.map((po) => <col key={po.key} style={{ width: 52 }} />)}
             </colgroup>
             <thead>
               <tr>
-                <th>After completion of the course, the student should be able to:</th>
-                {programOutcomes.map((po) => <th key={po.key} className={tbl.center} title={po.description}>{po.key}</th>)}
+                <th className={cc.firstColHeader}>After completion of the course, the student should be able to:</th>
+                {programOutcomes.map((po) => <th key={po.key} className={cc.poHeader} title={po.description}>{po.key}</th>)}
               </tr>
             </thead>
             <tbody>
               {outcomes.map((outcome, outcomeIndex) => (
                 <tr key={outcome.id}>
-                  <td><strong>CO{outcomeIndex + 1}:</strong> {withoutNumber(outcome.description)}</td>
+                  <td className={cc.descCell}><strong>CO{outcomeIndex + 1}:</strong> {withoutNumber(outcome.description)}</td>
                   {programOutcomes.map((po, poIndex) => (
-                    <td key={po.key} className={tbl.center} style={{ fontWeight: outcome.poMappings?.[poIndex] ? 700 : 400 }}>
+                    <td key={po.key} className={cc.mappingCell}>
                       {outcome.poMappings?.[poIndex] || ''}
                     </td>
                   ))}
@@ -156,7 +150,7 @@ const CoPoAlignment = () => {
               )}
             </tbody>
           </table>
-        </TableScrollRegion>
+        </TableScrollRegion></div>
       )}
 
       {programOutcomes.length > 0 && (

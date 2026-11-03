@@ -41,9 +41,16 @@ const normalizeKey = (k) => String(k || '').toLowerCase().replace(/[^a-z]/g, '')
 const ApprovalChainStatus = ({ workflow, compact = false, activeRole = null, onActivate = null }) => {
     const status = consolidatedStatus(workflow || {})
 
+    // A returned plan is waiting for its instructor, not for the approvers, and an unsubmitted one is not in review
+    // yet: the line says who the plan is really with.
+    const returnedBy = status.steps.filter(step => step.status === 'returned' && !step.readOnly).map(step => step.label)
     const summary = status.isFullyApproved
         ? `Approved${status.dateApproved ? ` on ${shortDate(status.dateApproved)}` : ''}`
-        : `${status.approvedCount}/${status.approvedCount + status.pendingCount} approved — waiting on ${status.awaiting.join(', ')}`
+        : status.stage === 'returned'
+            ? `Returned${returnedBy.length ? ` by ${returnedBy.join(', ')}` : ''} — waiting for the instructor to resubmit`
+            : status.stage === 'draft'
+                ? 'Not submitted yet — waiting for the instructor'
+                : `${status.approvedCount}/${status.approvedCount + status.pendingCount} approved — waiting on ${status.awaiting.join(', ')}`
 
     return (
         <div className={`${styles.strip} ${compact ? styles.compact : ''}`}>

@@ -36,3 +36,11 @@ test('wait and age labels', () => {
   assert.equal(timeAgo('2026-10-07T10:00:00Z', now), '2 d ago')
   assert.equal(timeAgo('not a date', now), '')
 })
+
+test('a notification about no single course opens the page it is about', () => {
+  assert.equal(notificationPath('program-head', { type: 'missing_digest' }), '/role/program-head/approval-course-table?page=Syllabus&status=not-submitted')
+  assert.equal(notificationPath('director-of-libraries', { type: 'reference_health' }), '/role/director-of-libraries/reference-library')
+  assert.equal(notificationPath('dean', { type: 'approval_waiting' }), '/role/dean')
+  assert.equal(notificationPath('instructor', { type: 'missing_digest' }), null)
+  assert.equal(notificationPath('program-head', { type: 'reminder' }), null)
+})

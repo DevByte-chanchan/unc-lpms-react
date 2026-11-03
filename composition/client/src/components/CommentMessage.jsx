@@ -2,10 +2,10 @@ import React from 'react'
 import { parseCommentType } from '../utils/reviewGate.js'
 
 const TYPE_TONE = {
-  'revision': { background: '#fee2e2', color: '#b91c1c' },
+  'revision': { background: 'var(--danger-soft)', color: 'var(--danger)' },
   'suggest-topic': { background: '#e0f2fe', color: '#0369a1' },
   'suggest-tla': { background: '#ede9fe', color: '#6d28d9' },
-  'suggest-ai-tool': { background: '#dcfce7', color: '#047857' },
+  'suggest-ai-tool': { background: 'var(--good-soft)', color: 'var(--good)' },
   'note': { background: '#f1f5f9', color: '#475569' }
 }
 
@@ -41,10 +41,10 @@ const CommentMessage = ({ message, className }) => {
       {text && <p className={className} style={{ margin: 0 }}>{text}</p>}
       {suggestions.length > 0 && (
         <div style={{
-          padding: '6px 10px', background: '#fffbeb', border: '1px solid #fde68a',
+          padding: '6px 10px', background: 'var(--warn-soft)', border: '1px solid #fde68a',
           borderRadius: 4, fontSize: '0.78rem', marginTop: 6,
         }}>
-          <div style={{ fontWeight: 600, color: '#92400e', marginBottom: 2 }}>Suggested References:</div>
+          <div style={{ fontWeight: 600, color: 'var(--warn)', marginBottom: 2 }}>Suggested References:</div>
           {suggestions.map((s, i) => (
             <div key={i} style={{ color: '#78350f' }}>{s}</div>
           ))}

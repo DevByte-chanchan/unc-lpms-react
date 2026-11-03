@@ -11,14 +11,15 @@
   height: 100dvh
 
 .modal
-  width: min(1200px, 98%)
+  width: min(900px, calc(100vw - 24px))
+  max-height: min(90vh, calc(100dvh - 24px))
   max-width: 100%
   background: #fff
-  border-radius: 10px
-  padding: 12px
+  border-radius: 8px
+  padding: 0
   box-sizing: border-box
   box-shadow: 0 10px 30px rgba(0,0,0,0.25)
-  max-height: calc(100dvh - 32px)
+  max-height: calc(100dvh - 24px)
   display: flex
   flex-direction: column
   overflow: hidden
@@ -42,7 +43,7 @@
   border-radius: 6px
   cursor: pointer
   font-weight: 600
-  height: 44px
+  height: 36px
   min-width: 160px
   max-width: 320px
   text-align: center
@@ -51,7 +52,7 @@
   flex: 1
   min-height: 0
   overflow: auto
-  padding: 8px 4px
+  padding: 16px 24px
   display: flex
   flex-direction: column
 
@@ -131,8 +132,8 @@
   display: inline-flex
   align-items: center
   justify-content: center
-  width: 34px
-  height: 34px
+  width: 36px
+  height: 36px
   transition: opacity 0.2s
 
   &:hover
@@ -151,17 +152,6 @@
 .addCommentRow
   display: flex
   margin-top: 14px
-
-.addButton
-  width: 100%
-  background: transparent
-  border: 1px dashed #9aa4b2
-  padding: 8px 12px
-  border-radius: 6px
-  cursor: pointer
-  color: #374151
-  font-weight: 600
-  height: 40px
 
 .textarea
   width: 100%
@@ -182,7 +172,9 @@
   flex-direction: row
   justify-content: space-between
   gap: 12px
-  margin-top: 12px
+  padding: 14px 24px
+  border-top: 1px solid #e5e7eb
+  box-sizing: border-box
   width: 100%
 
 .cancel, .submit
@@ -193,22 +185,13 @@
   text-align: center
   font-weight: 600
   border-radius: 6px
-  height: 44px
+  height: 36px
 
 .cancel
   background: #f3f3f3
   color: #111
   cursor: pointer
   border: 1px solid rgba(0,0,0,0.06)
-
-.submit
-  background: #19282C
-  color: #fff
-  cursor: pointer
-
-.disabled
-  opacity: 0.6
-  cursor: not-allowed
 
 /* disable styles for selects / textarea when coverage not selected handled via disabled attribute */
 .addButton[disabled]
@@ -221,12 +204,32 @@
   color: #374151
 
 /* keep responsive behavior */
+.searchBox
+  display: flex
+  align-items: center
+  gap: 8px
+  height: 36px
+  margin-bottom: 12px
+  padding: 0 12px
+  box-sizing: border-box
+  border: 1px solid var(--control-border)
+  border-radius: var(--control-radius)
+  background: #fff
+  color: var(--ink-muted)
+
+  &:focus-within
+    border-color: var(--ink-faint)
+    outline: 2px solid var(--accent)
+    outline-offset: 1px
+
 .searchInput
+  flex: 1
+  min-width: 0
   border: none
   outline: none
-  width: 100%
-  font-size: 14px
-  border-radius: 6px
+  background: transparent
+  color: var(--ink)
+  font: var(--fw-normal) var(--fs-sm) var(--font-ui)
 
 .directorWorkspace
   display: grid

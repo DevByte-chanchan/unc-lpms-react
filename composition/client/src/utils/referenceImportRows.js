@@ -44,14 +44,3 @@ export const csvRecordToRow = (record = {}) => {
   row.type = typeKeyFromName(row.type)
   return row
 }
-
-// A reference saved by the old localStorage store (authors / year / publisher, display type names).
-export const legacyReferenceToRow = (reference = {}) => ({
-  type: typeKeyFromName(reference.type),
-  title: reference.title ?? '',
-  authors: reference.authors ?? reference.author ?? '',
-  isbn: reference.isbn ?? '',
-  year: reference.year ? String(reference.year) : '',
-  link: reference.link ?? '',
-  publisher: reference.publisher ?? ''
-})

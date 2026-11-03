@@ -1,5 +1,4 @@
-import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
-import { useEffect } from 'react';
+import { useParams } from 'react-router-dom';
 import Skeleton from "../layouts/SkeletonA.jsx";
 import Header from "../components/HeaderA.jsx";
 import SideNavigation from "../components/SideNavigation.jsx";
@@ -9,17 +8,6 @@ import CoursesTable from "../components/CoursesTable.jsx";
 const ApprovalCourses = ({ isEmbedded = false, roleOverride = null }) => {
     const { approver } = useParams(); // dynamically get role from URL
     const role = roleOverride || approver; // Use override if provided
-        const [searchParams] = useSearchParams();
-        const navigate = useNavigate();
-
-        useEffect(() => {
-            const page = searchParams.get('page');
-            if (!page) return;
-            if (role === 'program-head' && page === 'Industry Consultant') {
-                navigate('/role/program-head/industry-consultant', { replace: true });
-            }
-        }, [searchParams, role, navigate]);
-
     const roleNames = {
       'program-head': 'Program Head',
       'director-of-libraries': 'Director of Libraries',

@@ -1,4 +1,3 @@
-export const REFERENCE_SAVED_VIEWS_KEY = 'lpsm_reference_saved_views_v1'
 export const REFERENCE_PAGE_SIZE = 10
 export const referencePageSizeForWidth = width => Number(width) > 1024 ? 15 : REFERENCE_PAGE_SIZE
 
@@ -218,51 +217,10 @@ const cleanCriteria = value => {
 
 const criteriaSignature = value => JSON.stringify(cleanCriteria(value))
 
-export const getReferenceViewValue = (criteria, savedViews) => {
+export const getReferenceViewValue = (criteria) => {
   const currentSignature = criteriaSignature(criteria)
-  const matchingSavedView = sanitizeSavedViews(savedViews).find(
-    savedView => criteriaSignature(savedView.criteria) === currentSignature,
-  )
-
-  if (matchingSavedView) return `saved:${matchingSavedView.id}`
   if (currentSignature === criteriaSignature({})) return 'active'
   if (currentSignature === criteriaSignature({ recentOnly: true })) return 'recent'
   if (currentSignature === criteriaSignature({ tab: 'archived' })) return 'archived'
   return 'custom'
-}
-
-export const sanitizeSavedViews = value => {
-  if (!Array.isArray(value)) return []
-  const seen = new Set()
-  const cleaned = []
-
-  for (const item of value) {
-    if (!item || typeof item !== 'object') continue
-    const id = String(item.id || '').trim().slice(0, 80)
-    const name = String(item.name || '').trim().slice(0, 50)
-    if (!id || !name || seen.has(id)) continue
-    seen.add(id)
-    cleaned.push({ id, name, criteria: cleanCriteria(item.criteria) })
-    if (cleaned.length === 10) break
-  }
-  return cleaned
-}
-
-export const loadReferenceSavedViews = storage => {
-  try {
-    if (!storage?.getItem) return []
-    return sanitizeSavedViews(JSON.parse(storage.getItem(REFERENCE_SAVED_VIEWS_KEY) || '[]'))
-  } catch {
-    return []
-  }
-}
-
-export const storeReferenceSavedViews = (storage, views) => {
-  const cleaned = sanitizeSavedViews(views)
-  try {
-    storage?.setItem?.(REFERENCE_SAVED_VIEWS_KEY, JSON.stringify(cleaned))
-  } catch {
-    // The page still works when browser storage is unavailable or full.
-  }
-  return cleaned
 }

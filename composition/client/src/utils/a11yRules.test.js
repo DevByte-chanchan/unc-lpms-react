@@ -10,7 +10,7 @@ import { fileURLToPath } from 'node:url'
 const SRC = fileURLToPath(new URL('..', import.meta.url))
 
 const APPROVER_SIDE = [
-  /^components\/(Approval|CommentMessage|ReferencePicker|ReferenceSummary|AddReferenceModal|PokeButton|ConsultantsTable|FormSettingsPanel|SideNavigation)/,
+  /^components\/(Approval|CommentMessage|ReferencePicker|ReferenceSummary|AddReferenceModal|FormSettingsPanel|SideNavigation)/,
   /^pages\/(Approval|CommentRecorder|Dean|DirectorOfLibraries|IndustryConsultant|ProgramHead|VPAA)/,
   /^pages\/lpsm\//
 ]
@@ -23,11 +23,8 @@ const BASELINE = {
   'components/ApprovalCoursesTable.jsx': 1,
   'components/ApprovalSyllabusSections.jsx': 5,
   'components/ReferencePicker.jsx': 2,
-  'pages/DeanFaculty.jsx': 4,
-  'pages/DeanPrograms.jsx': 4,
   'pages/lpsm/DirectorOfLibraries/AddReference.jsx': 2,
   'pages/lpsm/DirectorOfLibraries/ReferenceLibrary.jsx': 3,
-  'pages/ProgramHeadIndustryConsultant.jsx': 2
 }
 
 function jsxFiles(dir) {

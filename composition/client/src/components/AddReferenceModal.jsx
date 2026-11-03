@@ -36,12 +36,6 @@ const AddReferenceModal = ({ show, onClose, refToEdit = null, onSaved, onError }
 
   const toggleFullscreen = () => setIsFullscreen(f => !f);
 
-  const headerBtn = {
-    width: 32, height: 32, borderRadius: 7, cursor: 'pointer',
-    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-    padding: 0, lineHeight: 0,
-  };
-
   return (
     <>
       {!isFullscreen && (
@@ -54,16 +48,13 @@ const AddReferenceModal = ({ show, onClose, refToEdit = null, onSaved, onError }
         className={`${styles.modal} ${isFullscreen ? styles.fullscreen : ''}`}
         onClick={event => event.stopPropagation()}
       >
-        <div className={styles.header}>
-          <h2 id="reference-dialog-title" style={{ margin: 0, fontSize: 18, fontWeight: 700, color: '#1f2937' }}>
+        <div className="app-window-header">
+          <h2 id="reference-dialog-title" className="app-window-title">
             {isEditMode ? 'Edit Reference' : 'Reference Details'}
           </h2>
-          <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-            <button type="button" onClick={toggleFullscreen} title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
-              style={{ ...headerBtn, background: '#fff', border: '1px solid #d1d5db' }}
-              onMouseEnter={e => { e.currentTarget.style.background = '#f3f4f6'; }}
-              onMouseLeave={e => { e.currentTarget.style.background = '#fff'; }}>
-              {isFullscreen ? <Minimize2 size={16} color="#6b7280" /> : <Maximize size={16} color="#6b7280" />}
+          <div className="app-window-actions">
+            <button type="button" className="app-icon-btn" onClick={toggleFullscreen} title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}>
+              {isFullscreen ? <Minimize2 size={16} /> : <Maximize size={16} />}
             </button>
             <button type="button" className="app-icon-close" onClick={onClose} aria-label="Close">
               <X size={16} strokeWidth={2.5} color="currentColor" />
@@ -74,13 +65,13 @@ const AddReferenceModal = ({ show, onClose, refToEdit = null, onSaved, onError }
         <div className={styles.body}>
           {form.typesError && <div role="alert" style={{ color: '#b91c1c' }}>{form.typesError}</div>}
           {form.typesReady && (
-            <ReferenceFields value={form.values} errors={form.errors} onChange={form.change} fieldStyle={{ padding: 0 }} gap={16} />
+            <ReferenceFields value={form.values} errors={form.errors} onChange={form.change} gap={16} />
           )}
         </div>
 
         <div className={styles.actions}>
-          <button onClick={onClose} style={{ padding: '10px 24px', border: '1px solid #d1d5db', borderRadius: 10, background: '#fff', color: '#374151', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: "'Poppins', sans-serif" }}>Cancel</button>
-          <button onClick={handleSave} disabled={form.saving || !form.typesReady} style={{ padding: '10px 24px', border: 'none', borderRadius: 10, background: '#1f2937', color: '#fff', fontSize: 14, fontWeight: 600, cursor: form.saving ? 'wait' : 'pointer', fontFamily: "'Poppins', sans-serif" }}>
+          <button onClick={onClose} className="btn btn-secondary">Cancel</button>
+          <button onClick={handleSave} disabled={form.saving || !form.typesReady} className="btn btn-primary">
             {form.saving ? 'Saving…' : (isEditMode ? 'Update' : 'Save')}
           </button>
         </div>

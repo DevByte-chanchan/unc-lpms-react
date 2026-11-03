@@ -51,7 +51,7 @@ const ImportPreviewModal = ({ source, onClose, onImported }) => {
         style={{ background: '#fff', borderRadius: 12, width: 'min(680px, 94vw)', maxHeight: '86vh', overflow: 'auto', padding: 24 }}>
         <h2 style={{ margin: '0 0 12px', fontSize: 18 }}>{source.title}</h2>
 
-        {error && <div role="alert" style={{ color: '#b91c1c', marginBottom: 12 }}>{error}</div>}
+        {error && <div role="alert" style={{ color: 'var(--danger)', marginBottom: 12 }}>{error}</div>}
         {!shown && !error && <p>Checking {source.rows.length} row(s)…</p>}
 
         {shown && (
@@ -59,14 +59,14 @@ const ImportPreviewModal = ({ source, onClose, onImported }) => {
             <div style={{ display: 'flex', gap: 24, marginBottom: 12 }}>
               {result ? (
                 <>
-                  <Stat label="Imported" value={result.created} color="#047857" />
+                  <Stat label="Imported" value={result.created} color="var(--good)" />
                   <Stat label="Skipped" value={result.total - result.created} color="#b45309" />
                 </>
               ) : (
                 <>
-                  <Stat label="Ready to import" value={preview.valid} color="#047857" />
+                  <Stat label="Ready to import" value={preview.valid} color="var(--good)" />
                   <Stat label="Already in library" value={preview.duplicates} color="#6b7280" />
-                  <Stat label="Invalid" value={preview.invalid} color="#b91c1c" />
+                  <Stat label="Invalid" value={preview.invalid} color="var(--danger)" />
                 </>
               )}
               <Stat label="Rows" value={shown.total} color="#111827" />

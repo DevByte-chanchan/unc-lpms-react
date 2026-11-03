@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { dayLabel, statusLabel, sortMissing, lastReminderLabel, schoolYearOptions, currentSchoolYear, remindSummary, toCsv, CSV_COLUMNS, assignedLabel, timeToPrepareLabel, shortDay, lastReminderShort, courseSubline, programCode, niceName } from './missingSubmissions.js'
+import { dayLabel, statusLabel, sortMissing, lastReminderLabel, schoolYearOptions, currentSchoolYear, assignedLabel, timeToPrepareLabel, shortDay, lastReminderShort, courseSubline, programCode, niceName } from './missingSubmissions.js'
 
 const row = (extra = {}) => ({
   courseCode: 'BIT313L', courseTitle: 'Human and Computer Interaction', programName: 'BSIT', schoolYear: '2026-2027', semester: '1st',
@@ -50,32 +50,6 @@ test('the current school year starts in June', () => {
   assert.equal(currentSchoolYear(''), '')
 })
 
-test('the result of remind selected is explained', () => {
-  assert.equal(remindSummary({ sent: 2, results: [] }), 'Reminded 2 instructors.')
-  assert.equal(remindSummary({ sent: 1, results: [{ status: 'sent' }, { status: 'limited' }, { status: 'not-waiting' }] }),
-    'Reminded 1 instructor. 1 reminded too recently, so skipped. 1 no longer waiting.')
-})
-
-test('the CSV has a header and one line per plan, in the same columns', () => {
-  const csv = toCsv([row(), row({ courseCode: 'MATH311L', state: 'Returned', status: 'overdue', daysLeft: -2, remindersPaused: true })])
-  const lines = csv.split('\r\n')
-  assert.equal(lines.length, 3)
-  assert.equal(lines[0].split(',').length, CSV_COLUMNS.length)
-  assert.match(lines[0], /^Course,Title,Program,School year,Semester,Assigned,Days to prepare,Instructor/)
-  assert.match(lines[1], /^BIT313L,Human and Computer Interaction,BSIT,2026-2027,1st/)
-  assert.match(lines[2], /"Returned, not resubmitted"/)
-  assert.match(lines[2], /2 days overdue/)
-  assert.match(lines[2], /Yes$/)
-})
-
-test('a value that could run as a spreadsheet formula, or break a line, is made safe', () => {
-  const csv = toCsv([row({ instructorName: '=HYPERLINK("http://evil.test")', courseTitle: 'Quote "this", and\nbreak', programName: '+SUM(A1)' })])
-  const body = csv.split('\r\n').slice(1).join('\r\n')
-  assert.ok(body.includes('"\'=HYPERLINK(""http://evil.test"")"'), 'a formula is turned into text, quotes doubled')
-  assert.ok(body.includes('"Quote ""this"", and\nbreak"'), 'quotes, comma and line break are escaped')
-  assert.ok(body.includes(",'+SUM(A1),"), 'a leading plus is turned into text')
-})
-
 test('when the course was assigned and how long the instructor had to prepare', () => {
   assert.equal(assignedLabel({ assignedDay: '2026-10-20' }), '20 Oct 2026')
   assert.equal(assignedLabel({}), '—')
@@ -84,12 +58,6 @@ test('when the course was assigned and how long the instructor had to prepare', 
   assert.equal(timeToPrepareLabel({ assignedDaysBeforeDue: 0 }), 'Assigned on the due date')
   assert.equal(timeToPrepareLabel({ assignedDaysBeforeDue: -3 }), 'Assigned after the due date')
   assert.equal(timeToPrepareLabel({ assignedDaysBeforeDue: null }), '')
-})
-
-test('the CSV carries the assigned day and the days to prepare', () => {
-  const csv = toCsv([{ courseCode: 'A', assignedDay: '2026-10-20', assignedDaysBeforeDue: 14 }]).split('\r\n')
-  assert.match(csv[0], /,Assigned,Days to prepare,/)
-  assert.match(csv[1], /,2026-10-20,14,/)
 })
 
 test('short forms: the year is dropped when it is this year, names and programs are shortened', () => {

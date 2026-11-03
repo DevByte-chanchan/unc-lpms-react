@@ -1,7 +1,7 @@
 .backdrop
   position: fixed
   inset: 0
-  background: rgba(0, 0, 0, 0.45)
+  background: rgba(0, 0, 0, 0.7)
   z-index: 2999
 
 .modal
@@ -11,9 +11,9 @@
   transform: translate(-50%, -50%)
   z-index: 3000
   width: min(800px, calc(100vw - 24px))
-  height: min(640px, calc(100dvh - 24px))
+  max-height: min(90vh, calc(100dvh - 24px))
   background: #fff
-  border-radius: 16px
+  border-radius: 8px
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15)
   font-family: 'Poppins', sans-serif
   display: flex
@@ -26,15 +26,6 @@
   height: 100dvh
   border-radius: 0
   transform: none
-
-.header
-  display: flex
-  align-items: center
-  justify-content: space-between
-  gap: 12px
-  padding: 14px 24px
-  border-bottom: 1px solid #e5e7eb
-  flex-shrink: 0
 
 .body
   flex: 1
@@ -51,7 +42,7 @@
   flex-shrink: 0
 
 @media (max-width: 720px)
-  .header, .body, .actions
+  .body, .actions
     padding-left: 14px
     padding-right: 14px
 

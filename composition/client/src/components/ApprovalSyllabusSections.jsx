@@ -1,7 +1,8 @@
+import Select from './Select.jsx'
 import React, { useEffect, useState, useRef } from 'react'
 import { offeringKey } from '../utils/offeringKey.js'
 import { Link, useSearchParams, useParams, useNavigate, useLocation } from 'react-router-dom'
-import { ChevronLeft, MessageSquare, Download, MoreVertical, Check, Clock, FileText } from 'react-feather'
+import { ChevronLeft, ChevronRight, MessageSquare, Download, MoreVertical, Check, Clock, FileText, UserPlus } from 'react-feather'
 import EmptyState from './EmptyState.jsx'
 import Spinner from './Spinner.jsx'
 import TableScrollRegion from './TableScrollRegion.jsx'
@@ -14,7 +15,7 @@ import { useServerWorkflow } from '../utils/useServerWorkflow.js'
 import { fetchFormInfo } from '../utils/formSettings.js'
 import { fetchProgramAlignment } from '../utils/programAlignment.js'
 import { buildReviewRecordFile } from '../utils/exportSyllabus.js'
-import { getSuggestions, addSuggestion, acceptSuggestion, rejectSuggestion, getSyllabus } from '../utils/dataStore'
+import { getSuggestions, addSuggestion, acceptSuggestion, rejectSuggestion } from '../utils/suggestions.js'
 import { loadLibrary } from '../utils/referenceStore.js'
 import { normalizeRoleKey } from '../utils/approvalHelpers.js'
 import { getSession, nameForRoleWithSession } from '../utils/session'
@@ -42,8 +43,8 @@ import ReferenceSummary from './ReferenceSummary'
 import EarlierConsultantNotes from './EarlierConsultantNotes'
 import OutcomeAlignment from './OutcomeAlignment'
 import CriteriaForGrading from './CriteriaForGrading'
-import PokeButton from './PokeButton.jsx'
 import { sectionsForRole, canSeeWholePlan } from '../utils/sectionAccess.js'
+import ConsultantDialog from './ConsultantDialog.jsx'
 
 
 
@@ -116,6 +117,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
   const [isOpen, setIsOpen] = useState(false)
   const dropdownRef = useRef(null)
   const [isRevisionsOpen, setIsRevisionsOpen] = useState(false)
+  const [isConsultantOpen, setIsConsultantOpen] = useState(false)
 
   const [showCommentModal, setShowCommentModal] = useState(false)
   const [readOnlyCommentModal, setReadOnlyCommentModal] = useState(false)
@@ -142,6 +144,13 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
   // Shared export routine so the Export action can live both as a standalone
   // button and inside the "more" dropdown stack (next to Revisions).
   // The accreditation review record: every comment, workflow action and the final approvers.
+  // Why a review action is not available right now: the plan is with the instructor, or it is not this role's turn.
+  const notYourTurnMessage = (verb) => {
+    if (workflowState.currentStage === 'returned') return `This plan was returned to the instructor. You can ${verb} again once it is resubmitted.`
+    if (workflowState.currentStage === 'draft') return 'The instructor has not submitted this plan yet.'
+    return `${verb.charAt(0).toUpperCase()}${verb.slice(1)} is not available until the workflow reaches your review stage.`
+  }
+
   const runReviewRecord = async () => {
     setExportingPdf(true)
     try {
@@ -507,10 +516,9 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
 
   // build a composite syllabus object for buildSyllabusHtml (PDF export)
   const syllabus = React.useMemo(() => {
-    const rawSyl = getSyllabus(codeToUse || '')
     return {
       ...resolvedCourse,
-      instructor: resolvedCourse?.instructor || rawSyl?.instructor || '',
+      instructor: resolvedCourse?.instructor || '',
       courseOutcomes: cpaData?.courseOutcomes || [],
       ilos: coverage?.ilos || [],
       topics: coverage?.topics || [],
@@ -978,14 +986,19 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
             <Clock strokeWidth={2} size={14} /> Revisions
           </button>
         )}
-        {(approved || exportInfo.allowed) && wholePlanAccess && (
-          <button type="button" disabled={exportingPdf} onClick={(e) => { e.stopPropagation(); setIsOpen(false); runExport(); }}>
-            <Download strokeWidth={2} size={14} /> {exportingPdf ? 'Exporting...' : (exportInfo.pendingDean ? 'Export (pending Dean approval)' : 'Export')}
+        {roleKey === 'program-head' && (
+          <button type="button" onClick={(e) => { e.stopPropagation(); setIsOpen(false); setIsConsultantOpen(true); }}>
+            <UserPlus strokeWidth={2} size={14} /> Industry consultant
           </button>
         )}
         <button type="button" disabled={exportingPdf} onClick={(e) => { e.stopPropagation(); setIsOpen(false); runReviewRecord(); }}>
           <Download strokeWidth={2} size={14} /> Review record
         </button>
+        {(approved || exportInfo.allowed) && wholePlanAccess && (
+          <button type="button" disabled={exportingPdf} onClick={(e) => { e.stopPropagation(); setIsOpen(false); runExport(); }}>
+            <Download strokeWidth={2} size={14} /> {exportingPdf ? 'Exporting...' : (exportInfo.pendingDean ? 'Export (pending Dean approval)' : 'Export')}
+          </button>
+        )}
       </div>
     </div>
   </>)
@@ -994,7 +1007,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
   if (workflowError && !workflowProp) {
     return (
       <div className={styles.container}>
-        <div role="alert" style={{ margin: 24, padding: '16px 20px', border: '1px solid #b91c1c', background: '#fef2f2', color: '#7f1d1d', borderRadius: 8 }}>
+        <div role="alert" style={{ margin: 24, padding: '16px 20px', border: '1px solid var(--danger)', background: '#fef2f2', color: '#7f1d1d', borderRadius: 8 }}>
           <strong>Approval status unavailable.</strong> {workflowError}
           <div style={{ marginTop: 10 }}>
             <Link to={backPath} className={'actionLink'}>Back to course list</Link>
@@ -1020,9 +1033,9 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
           </div>
 
           <div className={styles['section-select']}>
-            <select value={selectedSection} onChange={handleSectionChange} aria-label="Learning plan section">
+            <Select value={selectedSection} onChange={handleSectionChange} aria-label="Learning plan section" block>
               {visibleSections.map((s) => <option key={s} value={s}>{sectionLabels[s]}</option>)}
-            </select>
+            </Select>
           </div>
 
           {/* approval controls — direct children of .navi like instructor */}
@@ -1051,20 +1064,20 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
             if (effectiveStatus !== 'approved' && roleKey !== 'instructor') {
               return (<>
                 {/* The plan is with its instructor (not submitted, or returned): the Program Head can remind them. */}
-                {roleKey === 'program-head' && validPcId && ['draft', 'returned'].includes(workflowState.currentStage) && <PokeButton offeringId={validPcId} />}
-                <button type="button" className={`${styles.draft} ${(!reviewRecordAvailable || !(roleKey === 'industry-consultant' || isRoleActive() || hasRoleApproved())) ? styles['disabled-btn'] : ''}`} aria-disabled={!reviewRecordAvailable || !(roleKey === 'industry-consultant' || isRoleActive() || hasRoleApproved())} onClick={() => {
+                <button type="button" className={`btn btn-secondary ${(!reviewRecordAvailable || !(roleKey === 'industry-consultant' || isRoleActive() || hasRoleApproved())) ? styles['disabled-btn'] : ''}`} aria-disabled={!reviewRecordAvailable || !(roleKey === 'industry-consultant' || isRoleActive() || hasRoleApproved())} onClick={() => {
                   if (!reviewRecordAvailable) { showToastMsg('This course revision could not be loaded, so it cannot be reviewed.', 'warning'); return }
                   // Approvers can always ADD comments while the plan is in review —
                   // including in the returned stage or after their own approval.
                   if (roleKey === 'industry-consultant' || isRoleActive() || hasRoleApproved()) { setReadOnlyCommentModal(false); openComment() }
-                  else if (roleKey === 'dean') showToastMsg('Waiting for previous approvers to complete their review.', 'warning')
-                  else showToastMsg('Commenting is not available until the workflow reaches your review stage.', 'warning')
+                  else if (roleKey === 'dean' && workflowState.currentStage !== 'returned' && workflowState.currentStage !== 'draft') showToastMsg('Waiting for previous approvers to complete their review.', 'warning')
+                  else showToastMsg(notYourTurnMessage('comment'), 'warning')
                 }}><MessageSquare size={16} /> Add Comment</button>
-                {roleKey !== 'industry-consultant' && (<button type="button" className={`${styles.submit} ${(!reviewRecordAvailable || !isRoleActive() || hasRoleApproved()) ? styles['disabled-btn'] : ''}`} aria-disabled={!reviewRecordAvailable || !isRoleActive() || hasRoleApproved()} onClick={() => {
+                {roleKey !== 'industry-consultant' && (<button type="button" className={`btn btn-primary ${(!reviewRecordAvailable || !isRoleActive() || hasRoleApproved()) ? styles['disabled-btn'] : ''}`} aria-disabled={!reviewRecordAvailable || !isRoleActive() || hasRoleApproved()} onClick={() => {
                   if (!reviewRecordAvailable) { showToastMsg('This course revision could not be loaded, so it cannot be approved.', 'warning'); return }
                   if (hasRoleApproved()) showToastMsg('You have already approved this learning plan.', 'warning')
                   else if (isRoleActive()) startApprove()
-                  else if (roleKey === 'dean') showToastMsg('Waiting for previous approvers to complete their review.', 'warning')
+                  else if (roleKey === 'dean' && workflowState.currentStage !== 'returned' && workflowState.currentStage !== 'draft') showToastMsg('Waiting for previous approvers to complete their review.', 'warning')
+                  else showToastMsg(notYourTurnMessage('approve'), 'warning')
                 }}><Check size={16} /> Approve</button>)}
               </>)
             }
@@ -1157,7 +1170,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
 
             {activeSelectedSection === 'Course Details' && (resolvedCourse?.code || resolvedCourse?.name) && (
               <section ref={courseDetailsRef}>
-                <TableScrollRegion label="Course details" minWidth={720} className={stylesB.courseDetailsContainer}>
+                <TableScrollRegion label="Course details" minWidth={480} className={stylesB.courseDetailsContainer}>
                   <table className={stylesB.documentTable}>
                     <tbody>
                     <tr>
@@ -1243,8 +1256,8 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
 
             {/* Reference suggestions for instructor */}
             {roleKey === 'instructor' && activeSelectedSection === 'References Summary' && suggestions.filter(s => s.status === 'pending').length > 0 && (
-              <div style={{ marginTop: 24, padding: '16px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8 }}>
-                <h4 style={{ margin: '0 0 12px 0', fontSize: 15, fontWeight: 600, color: '#92400e' }}>
+              <div style={{ marginTop: 24, padding: '16px', background: 'var(--warn-soft)', border: '1px solid #fde68a', borderRadius: 8 }}>
+                <h4 style={{ margin: '0 0 12px 0', fontSize: 15, fontWeight: 600, color: 'var(--warn)' }}>
                   Suggested References from Director of Libraries
                 </h4>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -1255,8 +1268,8 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
                         <div style={{ fontSize: 13, color: '#6b7280' }}>{s.reference.authors} &middot; {s.reference.year || 'N/A'} &middot; Suggested by {s.suggestedBy} on {new Date(s.suggestedAt).toLocaleDateString()}</div>
                       </div>
                       <div style={{ display: 'flex', gap: 8, marginLeft: 16 }}>
-                        <button onClick={() => handleAcceptSuggestion(s.id)} style={{ padding: '6px 14px', background: '#047857', color: 'white', border: 'none', borderRadius: 4, fontSize: 13, fontWeight: 500, cursor: 'pointer' }}>Accept</button>
-                        <button onClick={() => handleRejectSuggestion(s.id)} style={{ padding: '6px 14px', background: '#ef4444', color: 'white', border: 'none', borderRadius: 4, fontSize: 13, fontWeight: 500, cursor: 'pointer' }}>Reject</button>
+                        <button onClick={() => handleAcceptSuggestion(s.id)} className="btn btn-primary btn-sm">Accept</button>
+                        <button onClick={() => handleRejectSuggestion(s.id)} className="btn btn-danger btn-sm">Reject</button>
                       </div>
                     </div>
                   ))}
@@ -1346,8 +1359,9 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
               }}
               aria-expanded={!sidebarCollapsed}
               aria-controls="approval-comments-panel"
+              title={sidebarCollapsed ? 'Show comments' : 'Hide comments'}
             >
-              <span aria-hidden="true">{sidebarCollapsed ? '<' : '>'}</span>
+              <span aria-hidden="true" className={styles['comments-toggle-icon']}>{sidebarCollapsed ? <ChevronLeft size={16} /> : <ChevronRight size={16} />}</span>
               <span className={styles['comments-toggle-label']}>
                 {sidebarCollapsed ? `Show comments (${visibleComments.length})` : 'Hide comments'}
               </span>
@@ -1517,7 +1531,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
                 </div>
               </div>
               <div className={subStyles.submitModalActionsFull}>
-                <button className={subStyles.btnUndoBlock} onClick={cancelApprove}>Cancel Approval</button>
+                <button className="btn btn-secondary" onClick={cancelApprove}>Cancel Approval</button>
               </div>
             </div>
           )}
@@ -1538,7 +1552,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
         const stage = workflowState.currentStage || 'submitted'
         const isReturned = stage === 'returned'
         return (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(2px)' }} onClick={() => setShowSubmitModal(false)}>
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }} onClick={() => setShowSubmitModal(false)}>
           <div style={{ background: 'white', borderRadius: 16, width: 420, maxWidth: '90vw', padding: 32, textAlign: 'center', boxShadow: '0 20px 60px rgba(0,0,0,0.15)', fontFamily: "'Poppins', sans-serif" }} onClick={(e) => e.stopPropagation()}>
             <div style={{ marginBottom: 16 }}>
               <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#1e3a5f" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></svg>
@@ -1550,13 +1564,15 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
                 : `Are you sure you want to submit ${codeToUse} for review? It will be sent to the Director of Libraries and Industry Consultant for parallel review.`}
             </p>
             <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
-              <button style={{ padding: '10px 24px', background: 'transparent', color: 'black', border: '1px solid #A4A9AF', borderRadius: 6, fontSize: 14, fontWeight: 500, cursor: 'pointer', fontFamily: "'Poppins', sans-serif" }} onClick={() => setShowSubmitModal(false)}>Cancel</button>
-              <button style={{ padding: '10px 24px', background: '#19282C', color: 'white', border: 'none', borderRadius: 6, fontSize: 14, fontWeight: 500, cursor: 'pointer', fontFamily: "'Poppins', sans-serif" }} onClick={handleSubmitForReview}>{isReturned ? 'Submit Revision' : 'Submit'}</button>
+              <button className="btn btn-secondary" onClick={() => setShowSubmitModal(false)}>Cancel</button>
+              <button className="btn btn-primary" onClick={handleSubmitForReview}>{isReturned ? 'Submit Revision' : 'Submit'}</button>
             </div>
           </div>
         </div>
         )
       })()}
+
+      <ConsultantDialog open={isConsultantOpen} onClose={() => setIsConsultantOpen(false)} courseCode={codeToUse} />
 
       {/* ── REVISIONS OVERLAY ──────────────────────────────────────────────── */}
       {isRevisionsOpen && (
@@ -1589,7 +1605,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
       {toast && (
         <div style={{
           position: 'fixed', bottom: 32, right: 32, zIndex: 1100,
-          background: toast.type === 'warning' ? '#dc2626' : '#047857',
+          background: toast.type === 'warning' ? 'var(--danger-solid)' : 'var(--good)',
           color: 'white', padding: '14px 24px',
           borderRadius: 12, boxShadow: '0 8px 30px rgba(0,0,0,0.15)',
           fontFamily: "'Poppins', sans-serif", fontSize: 14, fontWeight: 500,

@@ -31,16 +31,12 @@ const sassBlock = (css, selector, after = null) => {
 }
 
 const rolePages = [
-  ['pages/ProgramHeadIndustryConsultant.jsx', 'Search consultants'],
-  ['pages/DeanPrograms.jsx', 'Search programs'],
-  ['pages/DeanFaculty.jsx', 'Search faculty'],
 ]
 
 test('retained Program Head and Dean dialogs stay inside the dynamic viewport', () => {
   const css = read('styles/ProgramHeadWorkspace.module.sass')
   const dialog = sassBlock(css, '.managementDialog')
   const compactActions = sassBlock(css, '.managementDialogActions', '@media (max-width: 720px)')
-  const compactDetails = sassBlock(css, '.detailGrid', '@media (max-width: 720px)')
 
   assert.match(dialog, /max-width:\s*calc\(100vw - 24px\)/)
   assert.match(dialog, /max-height:\s*calc\(100dvh - 24px\)/)
@@ -48,7 +44,6 @@ test('retained Program Head and Dean dialogs stay inside the dynamic viewport', 
   assert.match(dialog, /overflow-y:\s*auto/)
   assert.match(sassBlock(css, '.dialogHeader'), /flex-wrap:\s*wrap/)
   assert.match(compactActions, /flex-wrap:\s*wrap/)
-  assert.match(compactDetails, /grid-template-columns:\s*1fr/)
 
   for (const [file] of rolePages) {
     const page = read(file)
@@ -64,14 +59,9 @@ test('populated role toolbars wrap without disconnecting their search inputs', (
   const css = read('styles/ProgramHeadWorkspace.module.sass')
   const compactToolbar = sassBlock(css, '.dataToolbar', '@media (max-width: 1024px)')
   const compactControls = sassBlock(css, '.toolbarControls', '@media (max-width: 1024px)')
-  const mobileSearch = sassBlock(css, '.searchShell', '@media (max-width: 720px)')
-  const searchInput = sassBlock(css, '.searchInput')
 
   assert.match(compactToolbar, /flex-wrap:\s*wrap/)
   assert.match(compactControls, /width:\s*100%/)
-  assert.match(mobileSearch, /width:\s*100%/)
-  assert.match(searchInput, /min-width:\s*0/)
-  assert.match(searchInput, /width:\s*100%/)
 
   for (const [file, placeholder] of rolePages) {
     const page = read(file)

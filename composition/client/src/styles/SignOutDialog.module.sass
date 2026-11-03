@@ -5,8 +5,7 @@
   display: grid
   place-items: center
   padding: 20px
-  background: rgba(15, 23, 42, 0.48)
-  backdrop-filter: blur(2px)
+  background: rgba(0, 0, 0, 0.7)
 
 .dialog
   width: min(100%, 390px)
@@ -35,8 +34,8 @@
   margin-top: 24px
 
 .cancel, .confirm
-  min-height: 42px
-  padding: 9px 16px
+  height: 36px
+  padding: 0 16px
   border-radius: 8px
   font: inherit
   font-weight: 600
@@ -45,23 +44,6 @@
   &:focus-visible
     outline: 3px solid rgba(37, 99, 235, 0.35)
     outline-offset: 2px
-
-.cancel
-  border: 1px solid #cbd5db
-  background: #fff
-  color: #263d46
-
-  &:hover
-    background: #f4f6f7
-
-.confirm
-  border: 1px solid #dc2626
-  background: #dc2626
-  color: #fff
-
-  &:hover
-    border-color: #b91c1c
-    background: #b91c1c
 
 @media (max-width: 480px)
   .dialog

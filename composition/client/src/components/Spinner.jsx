@@ -1,4 +1,5 @@
 import styles from '../styles/Spinner.module.sass'
+import { BlockSkeleton } from './LoadingSkeleton.jsx'
 
 /**
  * "We are fetching this." A ring, centred in whatever space it is given.
@@ -52,11 +53,9 @@ const Spinner = ({
     }
 
     return (
-        <div className={`${styles.wrap} ${className}`} style={{ minHeight }} role="status" aria-live="polite">
-            {ring}
-            {/* Visible, because "Loading…" under a spinner is what tells someone
-                the page is working rather than broken. */}
-            <span className={styles.label}>{label}</span>
+        <div className={`${styles.wrap} ${className}`} style={{ minHeight, justifyContent: 'flex-start', alignItems: 'stretch', padding: '24px 18px', boxSizing: 'border-box' }} role="status" aria-live="polite">
+            <span className={styles.srOnly}>{label}</span>
+            <BlockSkeleton rows={6} />
         </div>
     )
 }

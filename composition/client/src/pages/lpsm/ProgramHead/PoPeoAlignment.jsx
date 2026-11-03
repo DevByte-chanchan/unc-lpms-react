@@ -1,3 +1,4 @@
+import Select from '../../../components/Select.jsx'
 import { useState, useEffect, useCallback } from 'react';
 import { ChevronRight, Edit3, Check, X, Plus, Trash2 } from 'react-feather';
 import SkeletonA from '../../../layouts/SkeletonA.jsx';
@@ -7,6 +8,7 @@ import PDFViewerModal from '../../../components/PDFViewerModal.jsx';
 import { buildPoPeoHtml } from '../../../utils/syllabusPdfHtml.js';
 import { fetchJson, apiErrorMessage } from '../../../utils/api.js';
 import unclogo from '../../../assets/unclogo.png';
+import cc from '../../../styles/SyllabusPreview.module.sass';
 import tbl from '../../../styles/AlignmentTables.module.sass';
 import TableScrollRegion from '../../../components/TableScrollRegion.jsx';
 import pageStyles from '../../../styles/ProgramHeadWorkspace.module.sass';
@@ -110,48 +112,45 @@ const PoPeoAlignment = () => {
     setSelectedFile({ name: `${programName || 'Program'}_PO_PEO_Alignment.html`, file_url: url })
   }
 
-  const markCell = (on, canToggle, onClick) => (
-    <td className={`${tbl.center} ${canToggle ? tbl.clickable : ''}`} style={canToggle && on ? { background: '#DCFCE7' } : undefined} onClick={canToggle ? onClick : undefined}>
+  const markCell = (on, canToggle, onClick, key) => (
+    <td key={key} className={`${cc.mappingCell} ${canToggle ? tbl.clickable : ''}`} onClick={canToggle ? onClick : undefined}>
       {on ? '✔' : (canToggle ? '☐' : '')}
     </td>
   )
 
   const content = (
-    <div className={`${pageStyles.page} ${styles.scrollPage}`}>
-      <div className={pageStyles.toolbar}>
-        <div className={pageStyles.titleBlock}>
-          <h2 className="app-page-title">Program outcomes &amp; PEO alignment</h2>
-          <p className={pageStyles.pageSubtitle}>The program&apos;s educational objectives and outcomes. Instructors use them in their syllabus.</p>
-        </div>
-        <label className={pageStyles.controlGroup}>
-          <span className={pageStyles.controlLabel}>Program</span>
-          <select className={pageStyles.courseSelect} value={programId} onChange={event => { setNotice(''); setProgramId(event.target.value) }} disabled={editing} aria-label="Select program">
-            {(programs || []).map(program => <option key={program.id} value={program.id}>{program.name}</option>)}
-          </select>
-        </label>
-        <div className={pageStyles.actions}>
+    <div className={`${pageStyles.page} ${pageStyles.flowPage}`}>
+      <div className={pageStyles.pageHeader}>
+        <h2 className="app-page-title">Program Outcomes &amp; PEO Alignment</h2>
+        <div className={pageStyles.pageHeaderActions}>
           {!editing ? (
             <>
               {data?.canEdit && (
-                <button type="button" className={pageStyles.secondaryButton} onClick={startEdit}>
+                <button type="button" className="btn btn-secondary" onClick={startEdit}>
                   <Edit3 size={16} /> Edit
                 </button>
               )}
-              <button type="button" className={pageStyles.primaryButton} onClick={handleView} disabled={!data}>
+              <button type="button" className="btn btn-primary" onClick={handleView} disabled={!data}>
                 <ChevronRight size={16} /> View
               </button>
             </>
           ) : (
             <>
-              <button type="button" className={pageStyles.secondaryButton} onClick={cancelEdit} disabled={busy}>
+              <button type="button" className="btn btn-secondary" onClick={cancelEdit} disabled={busy}>
                 <X size={16} /> Cancel
               </button>
-              <button type="button" className={pageStyles.primaryButton} onClick={save} disabled={busy}>
+              <button type="button" className="btn btn-primary" onClick={save} disabled={busy}>
                 <Check size={16} /> {busy ? 'Saving…' : 'Save'}
               </button>
             </>
           )}
         </div>
+      </div>
+
+      <div className={pageStyles.toolbarControls}>
+        <Select value={programId} onChange={event => { setNotice(''); setProgramId(event.target.value) }} disabled={editing} aria-label="Select program">
+            {(programs || []).map(program => <option key={program.id} value={program.id}>{program.name}</option>)}
+          </Select>
       </div>
 
       {error && <div role="alert" className={styles.alert}>{error}</div>}
@@ -163,28 +162,23 @@ const PoPeoAlignment = () => {
 
       {data && (
         <>
-          <div className={pageStyles.contextBar}>
-            <span><strong>Program:</strong> {programName}</span>
-            <span className={pageStyles.contextMuted}>
-              {editing ? 'Save or cancel these changes before switching programs.' : data.canEdit ? 'You maintain this program.' : 'View only.'}
-            </span>
-          </div>
+          {editing && <p className={pageStyles.contextLine}>Save or cancel these changes before switching programs.</p>}
 
-          <h3 className={styles.sectionTitle}>Program Educational Objectives (PEOs) and the UNC Mission Statement</h3>
-          <TableScrollRegion label="PEOs and the UNC Mission Statement" minWidth={640} className={`${pageStyles.tableRegion} ${pageStyles.compactTableRegion}`}>
-            <table className={tbl.alignTable}>
+          <h3 className={styles.sectionTitle}>Program educational objectives (PEOs) and the UNC mission statement</h3>
+          <div style={{ minWidth: 0 }}><TableScrollRegion label="PEOs and the UNC Mission Statement" minWidth={640} className={`${cc.tableScrollWrapper} ${tbl.plainWrap} ${pageStyles.flowTable}`}>
+            <table className={`${cc.alignmentTable} ${tbl.plain}`}>
               <colgroup>
                 <col style={{ width: 56 }} />
                 <col />
                 <col style={{ width: 130 }} />
-                {editing && <col style={{ width: 48 }} />}
+                {editing && <col style={{ width: 56 }} />}
               </colgroup>
               <thead>
                 <tr>
-                  <th className={tbl.center}>#</th>
-                  <th>PROGRAM EDUCATIONAL OBJECTIVES (PEOs)</th>
-                  <th className={tbl.center} style={{ whiteSpace: 'normal' }}>UNC MISSION STATEMENT</th>
-                  {editing && <th aria-label="Remove" />}
+                  <th className={cc.poHeader}>#</th>
+                  <th className={cc.firstColHeader}>PROGRAM EDUCATIONAL OBJECTIVES (PEOs)</th>
+                  <th className={cc.poHeader} style={{ whiteSpace: 'normal', width: 130 }}>UNC MISSION STATEMENT</th>
+                  {editing && <th className={cc.poHeader} aria-label="Remove" style={{ width: 56, minWidth: 56, maxWidth: 56, padding: 0 }} />}
                 </tr>
               </thead>
               <tbody>
@@ -193,8 +187,8 @@ const PoPeoAlignment = () => {
                 )}
                 {peos.map((peo, i) => (
                   <tr key={i}>
-                    <td className={tbl.center} style={{ fontWeight: 700 }}>{i + 1}</td>
-                    <td>
+                    <td className={cc.mappingCell}>{i + 1}</td>
+                    <td className={cc.descCell}>
                       {editing
                         ? <textarea className={styles.textInput} rows={2} maxLength={MAX_PEO} value={peo.statement} aria-label={`PEO ${i + 1}`}
                             onChange={event => update(c => ({ ...c, peos: c.peos.map((p, k) => (k === i ? { ...p, statement: event.target.value } : p)) }))} />
@@ -202,7 +196,7 @@ const PoPeoAlignment = () => {
                     </td>
                     {markCell(peo.missionAligned, editing, () => update(c => ({ ...c, peos: c.peos.map((p, k) => (k === i ? { ...p, missionAligned: !p.missionAligned } : p)) })))}
                     {editing && (
-                      <td className={tbl.center}>
+                      <td className={cc.mappingCell} style={{ width: 56, minWidth: 56, maxWidth: 56, padding: 0 }}>
                         <button type="button" className={styles.iconButton} onClick={() => removePeo(i)} title={`Remove PEO ${i + 1}`} aria-label={`Remove PEO ${i + 1}`}><Trash2 size={16} /></button>
                       </td>
                     )}
@@ -210,37 +204,37 @@ const PoPeoAlignment = () => {
                 ))}
               </tbody>
             </table>
-          </TableScrollRegion>
+          </TableScrollRegion></div>
           {editing && (
             <button type="button" className={styles.addButton} onClick={() => update(c => ({ ...c, peos: [...c.peos, { statement: '', missionAligned: true }] }))}>
               <Plus size={16} /> Add PEO
             </button>
           )}
 
-          <h3 className={styles.sectionTitle}>Program Outcomes (POs)</h3>
-          <TableScrollRegion label="Program outcomes and PEO alignment" minWidth={960} className={`${pageStyles.tableRegion} ${pageStyles.compactTableRegion}`}>
-            <table className={tbl.alignTable}>
+          <h3 className={styles.sectionTitle}>Program outcomes (POs)</h3>
+          <div style={{ minWidth: 0 }}><TableScrollRegion label="Program outcomes and PEO alignment" minWidth={960} className={`${cc.tableScrollWrapper} ${tbl.plainWrap} ${pageStyles.flowTable}`}>
+            <table className={`${cc.alignmentTable} ${tbl.plain}`}>
               <colgroup>
                 {peos.map((_, i) => <col key={i} style={{ width: 40 }} />)}
                 <col style={{ width: 56 }} />
                 <col />
                 {gaLabels.map(label => <col key={label} style={{ width: 48 }} />)}
-                {editing && <col style={{ width: 48 }} />}
+                {editing && <col style={{ width: 56 }} />}
               </colgroup>
               <thead>
                 <tr>
-                  {peos.length > 0 && <th colSpan={peos.length} className={tbl.center}>PEOs</th>}
-                  <th colSpan={2}>PROGRAM OUTCOMES (POs)</th>
-                  <th colSpan={gaLabels.length} className={tbl.center}>GRADUATE ATTRIBUTES</th>
-                  {editing && <th aria-label="Remove" />}
+                  {peos.length > 0 && <th colSpan={peos.length} className={cc.poHeader}>PEOs</th>}
+                  <th colSpan={2} className={cc.firstColHeader}>PROGRAM OUTCOMES (POs)</th>
+                  <th colSpan={gaLabels.length} className={cc.poHeader}>GRADUATE ATTRIBUTES</th>
+                  {editing && <th className={cc.poHeader} aria-label="Remove" style={{ width: 56, minWidth: 56, maxWidth: 56, padding: 0 }} />}
                 </tr>
                 <tr>
-                  {peos.map((_, i) => <th key={i} className={tbl.center}>{i + 1}</th>)}
-                  <th colSpan={2} style={{ fontWeight: 400 }}>
+                  {peos.map((_, i) => <th key={i} className={cc.poHeader}>{i + 1}</th>)}
+                  <th colSpan={2} className={cc.firstColHeader} style={{ fontWeight: 400 }}>
                     By the time of graduation, the students of the <strong>{programName}</strong> program shall have the ability to:
                   </th>
-                  {gaLabels.map(label => <th key={label} className={tbl.center}>{label}</th>)}
-                  {editing && <th />}
+                  {gaLabels.map(label => <th key={label} className={cc.poHeader}>{label}</th>)}
+                  {editing && <th className={cc.poHeader} style={{ width: 56, minWidth: 56, maxWidth: 56, padding: 0 }} />}
                 </tr>
               </thead>
               <tbody>
@@ -249,17 +243,17 @@ const PoPeoAlignment = () => {
                 )}
                 {outcomes.map((po, i) => (
                   <tr key={po.id ?? `new-${i}`}>
-                    {peos.map((_, pi) => markCell(po.peos.includes(pi + 1), editing, () => update(c => ({ ...c, outcomes: c.outcomes.map((o, k) => (k === i ? { ...o, peos: toggle(o.peos, pi + 1) } : o)) }))))}
-                    <td className={tbl.center} style={{ fontWeight: 700 }}>PO{i + 1}</td>
-                    <td>
+                    {peos.map((_, pi) => markCell(po.peos.includes(pi + 1), editing, () => update(c => ({ ...c, outcomes: c.outcomes.map((o, k) => (k === i ? { ...o, peos: toggle(o.peos, pi + 1) } : o)) })), `peo-${pi}`))}
+                    <td className={cc.mappingCell}>PO{i + 1}</td>
+                    <td className={cc.descCell}>
                       {editing
                         ? <textarea className={styles.textInput} rows={2} maxLength={MAX_PO} value={po.text} aria-label={`PO ${i + 1}`}
                             onChange={event => update(c => ({ ...c, outcomes: c.outcomes.map((o, k) => (k === i ? { ...o, text: event.target.value } : o)) }))} />
                         : po.text}
                     </td>
-                    {gaLabels.map((label, gi) => markCell(po.gas.includes(gi + 1), editing, () => update(c => ({ ...c, outcomes: c.outcomes.map((o, k) => (k === i ? { ...o, gas: toggle(o.gas, gi + 1) } : o)) }))))}
+                    {gaLabels.map((label, gi) => markCell(po.gas.includes(gi + 1), editing, () => update(c => ({ ...c, outcomes: c.outcomes.map((o, k) => (k === i ? { ...o, gas: toggle(o.gas, gi + 1) } : o)) })), `ga-${gi}`))}
                     {editing && (
-                      <td className={tbl.center}>
+                      <td className={cc.mappingCell} style={{ width: 56, minWidth: 56, maxWidth: 56, padding: 0 }}>
                         <button type="button" className={styles.iconButton} onClick={() => update(c => ({ ...c, outcomes: c.outcomes.filter((_, k) => k !== i) }))} title={`Remove PO${i + 1}`} aria-label={`Remove PO${i + 1}`}><Trash2 size={16} /></button>
                       </td>
                     )}
@@ -267,7 +261,7 @@ const PoPeoAlignment = () => {
                 ))}
               </tbody>
             </table>
-          </TableScrollRegion>
+          </TableScrollRegion></div>
           {editing && (
             <button type="button" className={styles.addButton} onClick={() => update(c => ({ ...c, outcomes: [...c.outcomes, { text: '', peos: [], gas: [] }] }))}>
               <Plus size={16} /> Add program outcome

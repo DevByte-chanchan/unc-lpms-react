@@ -12,24 +12,9 @@
   padding: 20px 30px
   background: white
 
-// TWO RAILS, AND EVERYTHING SITS ON ONE OF THEM.
-//
-// Measured on the approver screen at 1690px before this: the page heading
-// started at x=130, the first column heading at x=148, and on the right the
-// segmented control ended at x=1660 while the row's actions ended at x=1635.
-// So the title was 18px left of the column under it and the tabs were 25px
-// right of the buttons under them — four edges, no two the same.
-//
-//   OUTER RAIL  130 / 1660   the table's own frame: the grey header band and
-//                            each row card. The top bar's contents share it.
-//   INNER RAIL  148 / 1642   everything READ as content: the page heading, the
-//                            filters, the tabs, every column heading, every
-//                            cell value, the row actions.
-//
-// The inner rail is just the outer rail plus $cell-inset, so the header row
-// gets that as horizontal padding and the actions cell uses it instead of its
-// own 25px. Change $cell-inset and all six edges move together; that is the
-// point of it being a variable rather than 18px written in three places.
+// ONE OUTER EDGE. The page heading, the filters, the tabs and the table's grey band and rows all start and
+// end on the same two lines. Only the text inside the table is pushed in by $cell-inset, so the values sit
+// inside their band instead of touching its edge.
 $cell-inset: 18px
 
 .header
@@ -42,10 +27,7 @@ $cell-inset: 18px
   align-items: center
   gap: 15px
   margin-bottom: 20px
-  // Puts the h2 and the status tabs on the same rail as the column headings
-  // below them, which carry this much padding from the shared table-region
-  // contract.
-  padding: 0 $cell-inset
+  padding: 0
   //background: yellow
 
 .header h2
@@ -109,6 +91,68 @@ $cell-inset: 18px
         font-size: 12px
         padding: 3px
 
+// The status tabs of the approver lists: a row of separate pills, each with its count. The chosen one is
+// filled with the app's dark teal.
+// The title and the status tabs share one row: the tabs sit at its right end, on the title's level.
+.titleRow
+  flex: 1 0 100%
+  display: flex
+  align-items: center
+  justify-content: space-between
+  flex-wrap: wrap
+  gap: 12px
+
+.pillTabs
+  display: flex
+  flex-wrap: wrap
+  gap: 8px
+
+.pillTab.pillTab
+  display: inline-flex
+  align-items: center
+  justify-content: center
+  gap: 8px
+  width: 156px
+  min-height: 36px
+  padding: 0 14px
+  border: 1px solid var(--control-border)
+  border-radius: var(--control-radius)
+  background: #fff
+  color: var(--ink-soft)
+  font: var(--fw-medium) var(--fs-sm) var(--font-ui)
+  cursor: pointer
+  transition: background var(--t-fast), color var(--t-fast), border-color var(--t-fast)
+
+  &:hover
+    background: var(--hover-tint)
+
+  &:focus-visible
+    outline: 2px solid #2563eb
+    outline-offset: 2px
+
+.pillTab.pillTabActive
+  background: #19282c
+  border-color: #19282c
+  color: #fff
+
+  &:hover
+    background: #263c43
+
+.pillCount
+  min-width: 22px
+  height: 20px
+  padding: 0 6px
+  border-radius: 6px
+  background: #eef0f2
+  color: var(--ink-soft)
+  font-size: 12px
+  line-height: 20px
+  text-align: center
+  box-sizing: border-box
+
+.pillTabActive .pillCount
+  background: rgba(255, 255, 255, 0.18)
+  color: #fff
 
 .header .header-select
   font-size: 14px
@@ -144,20 +188,6 @@ select option
   th, td
     padding: 12px $cell-inset
 
-.retryButton
-  min-height: 36px
-  padding: 6px 14px
-  border: 1px solid #19282c
-  border-radius: 5px
-  background: #19282c
-  color: #fff
-  cursor: pointer
-  font: 500 13px 'Poppins', sans-serif
-
-  &:focus-visible
-    outline: 2px solid #2563eb
-    outline-offset: 2px
-
 .status
   justify-content: center
   align-items: center
@@ -165,6 +195,72 @@ select option
   border-width: 0 5px 2px 5px
   border-color: white
   border-style: solid
+
+// The approver lists: the course name takes the spare width, the actions column is a fixed block whose
+// header and buttons both start at the same left edge.
+// The approval progress in a row: a line and a bar of one segment per approver.
+.progress
+  display: flex
+  flex-direction: column
+  gap: 4px
+  width: 100%
+  min-width: 0
+
+.progressLabel
+  font-size: 11px
+  color: var(--ink-soft)
+  white-space: nowrap
+  overflow: hidden
+  text-overflow: ellipsis
+
+.progressBar
+  display: flex
+  gap: 3px
+  width: 120px
+  max-width: 100%
+
+.seg
+  flex: 1 1 0
+  height: 4px
+  border-radius: 2px
+  background: #e5e7eb
+
+.segDone
+  background: var(--good-solid)
+
+.segReturned
+  background: var(--danger-solid)
+
+.segWaiting
+  background: var(--warn-solid)
+
+.segPending
+  background: #e5e7eb
+
+// View and Export in a row: hovering gives a tint tile like the sort headers, not an underline. The negative
+// left margin keeps the text on the column's edge, so the header above still lines up.
+.rowAction.rowAction
+  padding: 7px 10px
+  margin-left: -10px
+  text-decoration: none
+  transition: background var(--t-fast)
+
+  &:hover
+    background: var(--hover-tint)
+    text-decoration: none
+
+.growCol
+  flex-grow: 1
+
+.actionsCol
+  flex: 0 0 210px
+  width: 210px
+  box-sizing: border-box
+  display: flex
+  align-items: center
+  justify-content: flex-start
+  gap: 5px
+  font-weight: 500 !important
 
 .fill
   flex-grow: 1
@@ -178,7 +274,6 @@ select option
   //min-width: 200px
   font-weight: 500 !important
   //background: green
-
 
 // Long values stay on one line instead of making their row twice as tall.
 //
@@ -249,7 +344,6 @@ select option
   &:focus-visible
     outline: 3px solid rgba(37, 99, 235, 0.32)
     outline-offset: 2px
-
 
 .lighten
   //background: #e0e0f1

@@ -1,9 +1,14 @@
 // PO & PEO page: section headings, inline editors and notices around the alignment tables.
 .sectionTitle
-  margin: var(--sp-5) 0 var(--sp-3)
+  // The page already puts 10px between its blocks and 30px under the filters; a heading adds nothing to the top of
+  // the first section, 20px to the top of the next, and sits 12px above its own table.
+  margin: 0 0 2px
   font-size: var(--fs-lg)
   font-weight: var(--fw-semibold)
   color: var(--ink)
+
+.sectionTitle ~ .sectionTitle
+  margin-top: 20px
 
 .textInput
   width: 100%
@@ -16,43 +21,61 @@
   font-family: inherit
   font-size: var(--fs-md)
   resize: vertical
+  min-height: 84px
+  max-height: 320px
 
   &:focus-visible
     outline: 3px solid rgba(37, 99, 235, 0.28)
     outline-offset: 1px
 
-.iconButton
+.iconButton.iconButton
   display: inline-flex
   align-items: center
   justify-content: center
-  width: 30px
-  height: 30px
+  width: 36px
+  height: 36px
+  min-width: 36px
   padding: 0
-  border: 1px solid var(--line)
-  border-radius: var(--radius-sm)
-  background: var(--surface)
+  border: 1px solid transparent
+  border-radius: 8px
+  background: transparent
   color: var(--danger)
   cursor: pointer
+  transition: background var(--t-fast), border-color var(--t-fast)
 
   &:hover
     background: var(--danger-soft)
     border-color: var(--danger-line)
 
-.addButton
-  display: inline-flex
+  &:focus-visible
+    outline: 3px solid rgba(232, 17, 35, 0.24)
+    outline-offset: 1px
+
+.addButton.addButton
+  align-self: stretch
+  width: 100%
+  display: flex
   align-items: center
-  gap: var(--sp-2)
+  justify-content: center
+  gap: 8px
   margin-top: var(--sp-3)
-  padding: var(--sp-3) var(--sp-5)
-  border: 1px dashed var(--ink-faint)
-  border-radius: var(--radius-md)
-  background: var(--surface)
-  color: var(--ink-soft)
-  font-size: var(--fs-md)
+  padding: 0 16px
+  height: 36px
+  border: 1.5px dashed #19282c
+  border-radius: 8px
+  background: transparent
+  color: #19282c
+  font-size: var(--fs-sm)
+  font-weight: var(--fw-medium)
   cursor: pointer
+  transition: background var(--t-fast)
 
   &:hover
-    background: var(--surface-muted)
+    background: #f3f6f6
+
+  &:focus-visible
+    outline: 3px solid rgba(37, 99, 235, 0.28)
+    outline-offset: 1px
 
 .empty
   padding: var(--sp-5)
@@ -70,9 +93,9 @@
   color: var(--danger)
 
 .ok
-  background: #f0fdf4
+  background: var(--good-soft)
   border: 1px solid #bbf7d0
-  color: #166534
+  color: var(--good)
 
 // Collapsible list of the program outcomes under the CO-PO table.
 .legendList
@@ -102,11 +125,7 @@
   padding: var(--sp-4) var(--sp-5)
   border: 1px solid #b45309
   border-radius: var(--radius-md)
-  background: #fef3c7
+  background: var(--warn-soft)
   color: #78350f
   font-weight: var(--fw-semibold)
   font-size: var(--fs-sm)
-
-// Two tables stack on this page, so the page scrolls instead of clipping the second one.
-.scrollPage
-  overflow-y: auto !important

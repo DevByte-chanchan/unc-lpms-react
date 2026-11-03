@@ -54,7 +54,6 @@ export const PATTERNS = {
     coaepView: '/role/program-head/coaep',
     coPoAlignment: '/role/program-head/co-po-alignment',
     poPeoAlignment: '/role/program-head/po-peo-alignment',
-    industryConsultants: '/role/program-head/industry-consultant',
     userManagement: '/role/superuser',
 
     referenceLibrary: '/role/director-of-libraries/reference-library',
@@ -101,7 +100,6 @@ export const routes = {
     coaepView: () => '/role/program-head/coaep',
     coPoAlignment: () => '/role/program-head/co-po-alignment',
     poPeoAlignment: () => '/role/program-head/po-peo-alignment',
-    industryConsultants: () => '/role/program-head/industry-consultant',
     userManagement: () => '/role/superuser',
 
     referenceLibrary: () => '/role/director-of-libraries/reference-library',

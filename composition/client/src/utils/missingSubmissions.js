@@ -2,7 +2,6 @@
 // Pure (it imports only the CSV cell helper), so it runs under plain node in the tests. The server decides who is missing and
 // how late they are (GET /api/missing-submissions); this only presents it.
 
-import { csvCell as cell } from './csvCell.js'
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
@@ -95,36 +94,3 @@ export const currentSchoolYear = (todayDay) => {
   if (!year || !month) return ''
   return month >= 6 ? `${year}-${year + 1}` : `${year - 1}-${year}`
 }
-
-// A sentence for the result of "Remind selected".
-export const remindSummary = (response) => {
-  const results = response?.results || []
-  const count = (status) => results.filter(r => r.status === status).length
-  const parts = [`Reminded ${response?.sent || 0} instructor${response?.sent === 1 ? '' : 's'}.`]
-  if (count('limited')) parts.push(`${count('limited')} reminded too recently, so skipped.`)
-  if (count('no-instructor')) parts.push(`${count('no-instructor')} ha${count('no-instructor') === 1 ? 's' : 've'} no active instructor.`)
-  if (count('not-waiting')) parts.push(`${count('not-waiting')} no longer waiting.`)
-  return parts.join(' ')
-}
-
-export const CSV_COLUMNS = [
-  ['Course', r => r.courseCode],
-  ['Title', r => r.courseTitle],
-  ['Program', r => r.programName],
-  ['School year', r => r.schoolYear],
-  ['Semester', r => r.semester],
-  ['Assigned', r => r.assignedDay || ''],
-  ['Days to prepare', r => (r.assignedDaysBeforeDue == null ? '' : r.assignedDaysBeforeDue)],
-  ['Instructor', r => r.instructorName || ''],
-  ['Instructor e-mail', r => r.instructorEmail || ''],
-  ['Plan', r => (r.state === 'Returned' ? 'Returned, not resubmitted' : 'Not submitted')],
-  ['Due date', r => r.syllabusDue || ''],
-  ['Standing', r => statusLabel(r)],
-  ['Last reminder', r => lastReminderLabel(r)],
-  ['Reminders paused', r => (r.remindersPaused ? 'Yes' : 'No')]
-]
-
-export const toCsv = (rows) => [
-  CSV_COLUMNS.map(([name]) => cell(name)).join(','),
-  ...rows.map(row => CSV_COLUMNS.map(([, read]) => cell(read(row))).join(','))
-].join('\r\n')

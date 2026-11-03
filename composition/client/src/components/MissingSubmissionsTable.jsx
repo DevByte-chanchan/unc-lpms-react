@@ -30,48 +30,41 @@ const Switch = ({ on, disabled, label, onClick }) => (
   </button>
 )
 
-const MissingSubmissionsTable = ({ rows = [], selected, onToggle, onToggleAll, onPause, busyId = null, today = '' }) => {
-  const allTicked = rows.length > 0 && rows.every(row => selected.has(row.offeringId))
+const MissingSubmissionsTable = ({ rows = [], onPause, busyId = null, today = '' }) => {
   const showProgram = new Set(rows.map(row => row.programId)).size > 1
   return (
-    <TableScrollRegion label="Learning plans not yet submitted" minWidth={820} className={`${styles['table-container']} app-table`}>
+    <TableScrollRegion label="Learning plans not yet submitted" minWidth={1000} className={styles['table-container']}>
       <table>
-        <thead style={{ position: 'sticky', top: 0, background: '#FFFFFF', zIndex: 1 }}>
+        <thead style={{ position: 'sticky', top: 0, background: '#FFFFFF', zIndex: 1, whiteSpace: 'nowrap' }}>
           <tr>
-            <th width={44}>
-              <input type="checkbox" aria-label="Select all plans" checked={allTicked} onChange={() => onToggleAll(!allTicked)} />
-            </th>
-            <th width={270}>Course</th>
-            <th width={150}>Instructor</th>
-            {showProgram && <th width={80}>Program</th>}
-            <th width={80}>Due</th>
-            <th width={120}>Standing</th>
-            <th width={140}>Last reminder</th>
-            <th className={styles.fill}>Reminders</th>
+            <th width={330}>COURSE</th>
+            <th width={170}>INSTRUCTOR</th>
+            {showProgram && <th width={80}>PROGRAM</th>}
+            <th width={90}>DUE</th>
+            <th width={170}>STANDING</th>
+            <th width={170}>LAST REMINDER</th>
+            <th className={styles.fill}>REMINDERS</th>
           </tr>
         </thead>
         <tbody>
           {rows.map(row => (
             <tr key={row.offeringId}>
-              <td width={44}>
-                <input type="checkbox" aria-label={`Select ${row.courseCode}`} checked={selected.has(row.offeringId)} onChange={() => onToggle(row.offeringId)} />
-              </td>
-              <td width={270} style={{ minWidth: 0 }}>
+              <td width={330} style={{ minWidth: 0 }}>
                 <div style={{ minWidth: 0, width: '100%' }}>
                   <div style={clip} title={`${row.courseCode} — ${row.courseTitle}`}><strong>{row.courseCode}</strong> {row.courseTitle}</div>
                   <div style={{ ...clip, fontSize: 'var(--fs-2xs)', color: 'var(--ink-muted)' }} title={courseSubline(row, today)}>{courseSubline(row, today)}</div>
                 </div>
               </td>
-              <td width={150} style={{ minWidth: 0 }}>
+              <td width={170} style={{ minWidth: 0 }}>
                 <div style={{ minWidth: 0, width: '100%' }}>
                   <div style={clip} title={row.instructorName || ''}>{row.instructorName ? niceName(row.instructorName) : 'No instructor'}</div>
                   {row.instructorName && !row.instructorActive && <div style={{ fontSize: 'var(--fs-2xs)', color: 'var(--danger)' }}>Deactivated</div>}
                 </div>
               </td>
               {showProgram && <td width={80}><div title={row.programName}>{programCode(row.programName)}</div></td>}
-              <td width={80}><div style={{ whiteSpace: "nowrap" }}>{shortDay(row.syllabusDue, today)}</div></td>
-              <td width={120}><Standing row={row} /></td>
-              <td width={140}><div style={clip}>{lastReminderShort(row, today)}</div></td>
+              <td width={90}><div style={{ whiteSpace: "nowrap" }}>{shortDay(row.syllabusDue, today)}</div></td>
+              <td width={170}><Standing row={row} /></td>
+              <td width={170}><div style={clip}>{lastReminderShort(row, today)}</div></td>
               <td className={styles.fill}>
                 {row.status === 'no-deadline'
                   ? <span style={{ color: 'var(--ink-muted)', fontSize: 'var(--fs-xs)' }}>No due date</span>

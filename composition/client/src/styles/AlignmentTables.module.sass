@@ -54,19 +54,6 @@
   &:hover
     background: #eef7f1 !important
 
-.legend
-  font-family: 'Poppins', sans-serif
-  font-size: 13px
-  color: #334155
-  display: flex
-  gap: 18px
-  align-items: center
-  margin-top: 0
-  margin-bottom: 10px
-
-  strong
-    font-weight: 700
-
 .emptyCell
   height: 240px
   padding: 30px !important
@@ -75,27 +62,35 @@
 
 // CO-PO owns a compact matrix so its few outcome rows do not expand to fill
 // the entire available workspace. Other alignment tables keep their sizing.
-.compactRows
-  min-height: 0 !important
-  height: auto !important
-  flex: none
-
-  tbody tr
-    height: 84px
-
 @media (max-width: 1024px)
-  .legend
-    flex-wrap: wrap
-    gap: 10px 14px
-
 @media (max-width: 720px)
-  .legend
-    flex-wrap: wrap
-    align-items: flex-start
-    gap: 8px 12px
+// One even grid for the alignment pages, added next to the syllabus alignment table:
+//  - every line is exactly 1px and one colour, outer edges included: the table draws its own top and left edge and
+//    each cell its right and bottom edge (a collapsed border at the edge of a scrolling box is clipped to half);
+//  - the columns keep the widths given by the <colgroup>, so a page does not re-adjust itself when its content, or
+//    its edit mode, changes;
+//  - headers do not stick (a sticky header cell paints its own border), no row striping, every cell on white.
+.plain.plain
+  border-collapse: separate !important
+  border-spacing: 0 !important
+  table-layout: fixed !important
+  border-top: 1px solid #5f6f78
+  border-left: 1px solid #5f6f78
 
-    > span
-      flex: 1 1 140px
+  tr
+    background: transparent !important
 
-    > span:first-child
-      flex-basis: 100%
+  th, td
+    background: #fff !important
+    border: 0 !important
+    border-right: 1px solid #5f6f78 !important
+    border-bottom: 1px solid #5f6f78 !important
+    color: #000 !important
+
+  th
+    position: static !important
+    background: #efefef !important
+
+// The scrolling box around such a table has no border of its own: the table draws every line.
+.plainWrap.plainWrap
+  border: 0 !important

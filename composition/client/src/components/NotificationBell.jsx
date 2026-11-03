@@ -1,29 +1,36 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
-import { Bell } from 'react-feather'
+import { Bell, BookOpen, ChevronRight, Clock, Maximize, Minimize2, X } from 'react-feather'
 import { getSession } from '../utils/session.js'
 import { POLL_MS, loadUnreadCount, loadNotifications, markRead, markAllRead } from '../utils/notificationsApi.js'
 import { notificationPath, timeAgo } from '../utils/notificationLinks.js'
 import navStyles from '../styles/SideNavigation.module.sass'
-import headerStyles from '../styles/Header.module.sass'
+import styles from '../styles/NotificationPanel.module.sass'
 
-// Notifications, as a bell in the top bar (variant "topbar") or an item of the left navigation bar: a bell with an unread badge (polled every
-// 45 s while the tab is visible) that opens a panel of the latest items with read / unread state,
-// mark one or all read, and click to open the course. The panel is positioned with `fixed` from the
-// item's own position, so the narrow bar's overflow cannot clip it.
-const PANEL_WIDTH = 340
-const PANEL_MAX_HEIGHT = 420
+// Notifications: an item of the left navigation bar (a bell with an unread badge, polled every 45 s while the tab
+// is visible) that opens a window like the app's other large windows: a header with Mark all read, maximise and
+// close, an All / Unread switch, and the latest items. An item opens the page it is about (a course, the list of
+// plans not yet submitted, the Reference library) and is marked read on the way. Escape leaves full screen first,
+// then closes the window.
+const KIND = {
+  reminder: { Icon: Clock, tone: 'warn' },
+  missing_digest: { Icon: Clock, tone: 'warn' },
+  approval_waiting: { Icon: Clock, tone: 'warn' },
+  reference_health: { Icon: BookOpen, tone: 'info' },
+  reference_flags: { Icon: BookOpen, tone: 'info' },
+  reference_unavailable: { Icon: BookOpen, tone: 'info' }
+}
 
-const NotificationBell = ({ variant = 'nav' }) => {
-  const topbar = variant === 'topbar'
+const NotificationBell = () => {
   const navigate = useNavigate()
   const role = getSession()?.role
   const [count, setCount] = useState(0)
   const [open, setOpen] = useState(false)
+  const [expanded, setExpanded] = useState(false)
+  const [filter, setFilter] = useState('all')
   const [items, setItems] = useState([])
   const [failed, setFailed] = useState(false)
-  const [anchor, setAnchor] = useState({ left: 0, top: 0 })
-  const box = useRef(null)
   const trigger = useRef(null)
 
   const refreshCount = useCallback(async () => {
@@ -32,7 +39,7 @@ const NotificationBell = ({ variant = 'nav' }) => {
 
   const refreshList = useCallback(async () => {
     try {
-      const data = await loadNotifications(15)
+      const data = await loadNotifications(50)
       setItems(data.rows)
       setCount(data.unread)
       setFailed(false)
@@ -48,29 +55,26 @@ const NotificationBell = ({ variant = 'nav' }) => {
     return () => clearInterval(timer)
   }, [open, refreshCount, refreshList])
 
+  const close = useCallback(() => {
+    setOpen(false)
+    setExpanded(false)
+    trigger.current?.focus()
+  }, [])
+
   useEffect(() => {
     if (!open) return undefined
-    const onPointer = (event) => { if (box.current && !box.current.contains(event.target)) setOpen(false) }
-    const onKey = (event) => { if (event.key === 'Escape') { setOpen(false); trigger.current?.focus() } }
-    document.addEventListener('mousedown', onPointer)
+    const onKey = (event) => {
+      if (event.key !== 'Escape') return
+      if (expanded) setExpanded(false)
+      else close()
+    }
     document.addEventListener('keydown', onKey)
-    return () => { document.removeEventListener('mousedown', onPointer); document.removeEventListener('keydown', onKey) }
-  }, [open])
+    return () => document.removeEventListener('keydown', onKey)
+  }, [open, expanded, close])
 
   const toggle = () => {
-    const next = !open
-    if (next && trigger.current) {
-      const rect = trigger.current.getBoundingClientRect()
-      // In the top bar the panel opens under the bell, its right edge on the bell's; in the sidebar it opens beside the item.
-      setAnchor(topbar
-        ? { left: Math.max(8, Math.min(rect.right - PANEL_WIDTH, window.innerWidth - PANEL_WIDTH - 8)), top: rect.bottom + 8 }
-        : {
-          left: Math.min(rect.right + 10, window.innerWidth - PANEL_WIDTH - 8),
-          top: Math.max(8, Math.min(rect.top, window.innerHeight - PANEL_MAX_HEIGHT - 8))
-        })
-      refreshList()
-    }
-    setOpen(next)
+    if (!open) { setFilter('all'); refreshList() }
+    setOpen(!open)
   }
 
   const openItem = async (item) => {
@@ -80,7 +84,7 @@ const NotificationBell = ({ variant = 'nav' }) => {
       markRead(item.id).catch(refreshCount)
     }
     const target = notificationPath(role, item)
-    if (target) { setOpen(false); navigate(target) }
+    if (target) { close(); navigate(target) }
   }
 
   const readAll = async () => {
@@ -90,12 +94,13 @@ const NotificationBell = ({ variant = 'nav' }) => {
   }
 
   const label = count > 0 ? `Notifications, ${count} unread` : 'Notifications'
+  const shown = filter === 'unread' ? items.filter(item => !item.isRead) : items
 
   return (
-    <div ref={box}>
+    <div>
       <div
         ref={trigger}
-        className={topbar ? headerStyles.iconButton : navStyles.list}
+        className={navStyles.list}
         role="button"
         tabIndex={0}
         title="Notifications"
@@ -105,44 +110,72 @@ const NotificationBell = ({ variant = 'nav' }) => {
         onClick={toggle}
         onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); toggle() } }}
       >
-        <span style={{ position: 'relative', display: 'inline-flex' }}>
-          <Bell size={topbar ? 20 : 24} />
-          {count > 0 && (
-            <span aria-hidden="true" style={{ position: 'absolute', top: -6, right: -8, minWidth: 16, height: 16, padding: '0 4px', borderRadius: 8, background: '#dc2626', color: '#fff', fontSize: 11, fontWeight: 600, lineHeight: '16px', textAlign: 'center', boxSizing: 'border-box' }}>
-              {count > 99 ? '99+' : count}
-            </span>
-          )}
-        </span>
-        {!topbar && <span className={navStyles.listText}>Notifications</span>}
+        <Bell size={20} />
+        <span className={navStyles.listText}>Notifications</span>
+        {count > 0 && (
+          <span aria-hidden="true" className={navStyles.listText} style={{ marginLeft: 'auto', minWidth: 20, height: 20, padding: '0 6px', borderRadius: 10, background: 'var(--danger-solid)', color: '#fff', fontSize: 11, fontWeight: 600, lineHeight: '20px', textAlign: 'center', boxSizing: 'border-box' }}>
+            {count > 99 ? '99+' : count}
+          </span>
+        )}
       </div>
 
-      {open && (
-        <div role="dialog" aria-label="Notifications"
-          style={{ position: 'fixed', left: anchor.left, top: anchor.top, width: PANEL_WIDTH, maxWidth: 'calc(100vw - 16px)', maxHeight: PANEL_MAX_HEIGHT, overflowY: 'auto', background: '#fff', color: '#111827', border: '1px solid #e5e7eb', borderRadius: 10, boxShadow: '0 12px 32px rgba(15,23,42,.18)', zIndex: 1300 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', borderBottom: '1px solid #e5e7eb', position: 'sticky', top: 0, background: '#fff' }}>
-            <strong style={{ fontSize: 14 }}>Notifications</strong>
-            <button type="button" onClick={readAll} disabled={count === 0}
-              style={{ background: 'none', border: 'none', padding: '2px 4px', cursor: count ? 'pointer' : 'default', color: count ? '#2563eb' : '#9ca3af', fontSize: 12, opacity: 1 }}>
-              Mark all read
-            </button>
-          </div>
-          {failed && <div role="alert" style={{ padding: 14, color: '#b91c1c', fontSize: 13 }}>Notifications could not be loaded.</div>}
-          {!failed && items.length === 0 && <div style={{ padding: 18, color: '#6b7280', fontSize: 13 }}>No notifications.</div>}
-          <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
-            {items.map(item => (
-              <li key={item.id}>
-                <button type="button" onClick={() => openItem(item)}
-                  style={{ display: 'block', width: '100%', textAlign: 'left', padding: '10px 14px', border: 'none', borderBottom: '1px solid #f3f4f6', borderRadius: 0, background: item.isRead ? '#fff' : '#eff6ff', cursor: 'pointer', color: '#111827' }}>
-                  <div style={{ fontSize: 13, fontWeight: item.isRead ? 400 : 600, whiteSpace: 'normal' }}>
-                    {!item.isRead && <span aria-label="unread" style={{ display: 'inline-block', width: 8, height: 8, borderRadius: 4, background: '#2563eb', marginRight: 6 }} />}
-                    {item.type === 'poke' ? '🔔 ' : (item.type === 'reminder' || item.type === 'missing_digest' || item.type === 'approval_waiting' || item.type === 'reference_health') ? '⏰ ' : ''}{item.message}
-                  </div>
-                  <div style={{ fontSize: 11, color: '#6b7280', marginTop: 2 }}>{timeAgo(item.createdAt)}</div>
+      {open && createPortal(
+        <>
+          <div className={styles.backdrop} onClick={close} />
+          <div role="dialog" aria-modal="true" aria-label="Notifications" className={`${styles.window} ${expanded ? styles.expanded : ''}`}>
+            <div className="app-window-header">
+              <div>
+                <h2 className="app-window-title">Notifications</h2>
+                <div className={styles.sub}>{count > 0 ? `${count} unread` : 'You are all caught up'}</div>
+              </div>
+              <div className="app-window-actions">
+                <button type="button" className="btn btn-secondary btn-sm" onClick={readAll} disabled={count === 0}>Mark all read</button>
+                <button type="button" className="app-icon-btn" onClick={() => setExpanded(value => !value)}
+                  title={expanded ? 'Exit full screen' : 'Full screen'} aria-label={expanded ? 'Exit full screen' : 'Full screen'}>
+                  {expanded ? <Minimize2 size={16} /> : <Maximize size={16} />}
                 </button>
-              </li>
-            ))}
-          </ul>
-        </div>
+                <button type="button" className="app-icon-close" onClick={close} aria-label="Close notifications">
+                  <X size={16} strokeWidth={2.5} color="currentColor" />
+                </button>
+              </div>
+            </div>
+
+            <div className={styles.tabs} role="tablist" aria-label="Show">
+              <button type="button" role="tab" aria-selected={filter === 'all'} className={`${styles.tab} ${filter === 'all' ? styles.tabOn : ''}`} onClick={() => setFilter('all')}>All</button>
+              <button type="button" role="tab" aria-selected={filter === 'unread'} className={`${styles.tab} ${filter === 'unread' ? styles.tabOn : ''}`} onClick={() => setFilter('unread')}>
+                Unread{count > 0 && <span className={styles.tabCount}>{count}</span>}
+              </button>
+            </div>
+
+            <div className={styles.list}>
+              {failed && <div role="alert" className={styles.note} style={{ color: 'var(--danger)' }}>Notifications could not be loaded.</div>}
+              {!failed && shown.length === 0 && (
+                <div className={styles.empty}>
+                  <Bell size={22} strokeWidth={1.6} aria-hidden="true" />
+                  <strong>{filter === 'unread' ? 'Nothing unread' : 'No notifications yet'}</strong>
+                  <span>{filter === 'unread' ? 'Everything has been read.' : 'Reminders and updates about your plans appear here.'}</span>
+                </div>
+              )}
+              {shown.map(item => {
+                const kind = KIND[item.type] || { Icon: Bell, tone: 'plain' }
+                const target = notificationPath(role, item)
+                return (
+                  <button key={item.id} type="button" className={`${styles.item} ${item.isRead ? '' : styles.unread}`} onClick={() => openItem(item)}
+                    title={target ? 'Open' : undefined}>
+                    <span className={`${styles.kind} ${styles[kind.tone]}`}><kind.Icon size={16} aria-hidden="true" /></span>
+                    <span className={styles.body}>
+                      <span className={styles.message}>{item.message}</span>
+                      <span className={styles.time}>{timeAgo(item.createdAt)}</span>
+                    </span>
+                    {!item.isRead && <span className={styles.dot} aria-label="unread" />}
+                    {target && <span className={styles.open}>Open <ChevronRight size={14} aria-hidden="true" /></span>}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        </>,
+        document.body
       )}
     </div>
   )

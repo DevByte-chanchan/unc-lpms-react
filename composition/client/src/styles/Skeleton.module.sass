@@ -9,9 +9,9 @@
 
 .left
   // Open (labelled) by default; the top bar's button collapses it to icons. Narrow screens always use icons.
-  flex: 0 0 250px
-  width: 250px
-  min-width: 250px
+  flex: 0 0 268px
+  width: 268px
+  min-width: 268px
   height: 100%
   background: var(--surface)
   border-right: 1px solid var(--line)
@@ -47,6 +47,7 @@
   min-height: 0
   overflow-x: hidden
   overflow-y: auto
+  // The scrollbar's space is always kept, so a page that grows past the screen, or shrinks back, never shifts sideways.
 
 @media (max-width: 1024px)
   .main-layout

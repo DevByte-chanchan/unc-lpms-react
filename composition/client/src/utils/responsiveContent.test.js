@@ -72,7 +72,7 @@ test('approval comment modal includes its compact and fullscreen padding inside 
   const css = read('styles/ApprovalCommentBox.module.sass')
   const modal = sassBlock(css, '.modal')
   const compactModal = sassBlock(css, '.modal', '@media (max-width: 1024px)')
-  assert.match(modal, /padding:\s*12px/)
+  assert.match(modal, /padding:\s*0/)
   assert.match(modal, /box-sizing:\s*border-box/)
   assert.match(compactModal, /width:\s*calc\(100vw - 24px\)/)
   assert.match(compactModal, /max-height:\s*calc\(100dvh - 24px\)/)
@@ -157,12 +157,9 @@ test('reference discovery workbench becomes drawers and sheets on compact screen
   const compactWorkbench = sassBlock(css, '.discoveryWorkbench {', '@media (max-width: 1024px) {')
   const compactTop = sassBlock(css, '.discoveryTop {', '@media (max-width: 1024px) {')
   const pageHeader = sassBlock(css, '.pageHeader {')
-  const addButton = sassBlock(css, '.addBtn {')
-  const bulkButton = sassBlock(css, '.bulkBtn {')
   const searchForm = sassBlock(css, '.searchForm {')
-  const searchIconButton = sassBlock(css, '.searchIconButton {')
+  const searchIcon = sassBlock(css, '.searchIcon {')
   const searchInput = sassBlock(css, '.searchInput {')
-  const previewButtons = sassBlock(css, '.previewSecondary {')
   const tableWrapper = sassBlock(css, '.tableWrapper {')
   const paginationButton = sassBlock(css, '.paginationBtn {')
   const facetRail = sassBlock(css, '.facetRail {')
@@ -174,7 +171,7 @@ test('reference discovery workbench becomes drawers and sheets on compact screen
   const compactSearchForm = sassBlock(css, '.searchForm {', '@media (max-width: 720px) {')
   assert.match(page, /styles\.discoveryWorkbench/)
   assert.match(page, /styles\.discoveryTop/)
-  assert.match(page, />Reference library<\/h1>/)
+  assert.match(page, />Reference Library<\/h1>/)
   assert.match(page, /referenceLibraryColumns\(\)\.filter\(column => column\.key !== 'actions'\)/)
   assert.doesNotMatch(page, /<td className="fill">/)
   assert.match(desktopContainer, /background:\s*#fff/)
@@ -186,23 +183,13 @@ test('reference discovery workbench becomes drawers and sheets on compact screen
   assert.match(compactWorkbench, /border-radius:\s*0/)
   assert.match(compactTop, /border-radius:\s*0/)
   assert.match(pageHeader, /align-items:\s*center/)
-  for (const button of [addButton, bulkButton]) {
-    assert.match(button, /height:\s*40px/)
-    assert.match(button, /border-radius:\s*20px/)
-    assert.match(button, /font-weight:\s*500/)
-  }
-  assert.match(bulkButton, /border:\s*1px solid #A4A9AF/i)
-  assert.match(searchForm, /grid-template-columns:\s*150px minmax\(260px,\s*1fr\)/)
+  assert.match(searchForm, /width:\s*320px/)
   assert.match(searchForm, /justify-content:\s*start/)
   assert.match(searchForm, /gap:\s*10px/)
-  assert.match(searchIconButton, /position:\s*absolute/)
-  assert.match(searchIconButton, /right:\s*8px/)
-  assert.match(searchIconButton, /width:\s*28px/)
-  assert.match(searchIconButton, /height:\s*28px/)
-  assert.match(previewButtons, /border-radius:\s*6px/)
-  assert.match(previewButtons, /align-items:\s*center/)
-  assert.match(searchInput, /border:\s*1px solid #d1d5db/i)
-  assert.match(searchInput, /border-radius:\s*6px/)
+  assert.match(searchIcon, /position:\s*absolute/)
+  assert.match(searchIcon, /left:\s*12px/)
+  assert.match(searchInput, /border:\s*1px solid var\(--control-border\)/)
+  assert.match(searchInput, /border-radius:\s*var\(--control-radius\)/)
   assert.match(compactSearchForm, /grid-template-columns:\s*1fr/)
   assert.match(tableWrapper, /border:\s*(?:0|none)/)
   assert.match(tableWrapper, /border-radius:\s*0/)
@@ -260,22 +247,25 @@ test('reference discovery uses the available desktop space without crowding comp
   assert.match(container, /padding:\s*20px 30px/)
   assert.match(top, /display:\s*grid/)
   assert.match(top, /grid-template-columns:\s*minmax\(520px, 1fr\) auto/)
-  assert.match(top, /padding:\s*10px 20px/)
+  assert.match(top, /padding:\s*0 0 30px/)
   assert.match(pageHeader, /gap:\s*24px/)
   assert.match(pageHeader, /grid-column:\s*1 \/ -1/)
   assert.match(headerActions, /gap:\s*12px/)
-  assert.match(searchForm, /margin-top:\s*12px/)
-  assert.match(savedViews, /margin-top:\s*12px/)
+  assert.match(searchForm, /margin-top:\s*15px/)
+  assert.match(savedViews, /margin-top:\s*15px/)
   assert.match(savedViews, /justify-content:\s*flex-end/)
   assert.match(savedViews, /gap:\s*8px/)
-  for (const panel of [facetRail, resultsPane, previewPane]) {
-    assert.match(panel, /padding:\s*14px 16px/)
+  // the rail and results sit flush on the page's 30px edge; only the preview card keeps its own padding
+  for (const panel of [facetRail, resultsPane]) {
+    assert.match(panel, /padding:\s*0 0 14px/)
   }
+  assert.match(previewPane, /padding:\s*14px 16px/)
   assert.match(facetRail, /border-right:\s*0/)
-  assert.match(previewPane, /border-left:\s*0/)
+  assert.match(previewPane, /border:\s*1px solid/)
   assert.match(facetGroup, /padding:\s*14px 0/)
   assert.match(facetGroupTitle, /margin:\s*0 0 8px/)
-  assert.match(facetOption, /padding:\s*6px 8px/)
+  assert.match(facetOption, /height:\s*36px/)
+  assert.match(facetOption, /padding:\s*0 8px/)
   assert.match(tableWrapper, /margin-top:\s*10px/)
   assert.match(warningBanner, /margin-bottom:\s*16px/)
   assert.match(referenceTable, /td\s*\{[\s\S]*padding:\s*7px 16px/)
@@ -290,13 +280,13 @@ test('reference status choices and primary actions stay visually distinct', () =
   assert.doesNotMatch(page, /styles\.recordStatusGroup/)
   assert.doesNotMatch(page, /styles\.previewIcon/)
   assert.doesNotMatch(page, /styles\.searchButton/)
-  assert.match(page, /className=\{styles\.searchIconButton\}[\s\S]*type="submit"[\s\S]*aria-label="Search references"/)
+  assert.match(page, /className=\{styles\.searchIcon\}/)
   assert.match(page, /className=\{styles\.clearSearch\}[\s\S]*aria-label="Clear search"/)
   assert.match(css, /\.facetGroup\s*\{[^}]*gap:\s*4px/)
-  assert.match(css, /\.searchIconButton\s*\{[^}]*position:\s*absolute;[^}]*right:\s*8px;[^}]*width:\s*28px;[^}]*height:\s*28px;/)
-  assert.match(css, /\.clearSearch\s*\{[^}]*right:\s*40px;/)
-  assert.match(css, /\.previewClose\s*\{[^}]*width:\s*32px[^}]*height:\s*32px[^}]*border:\s*1px solid #E81123[^}]*border-radius:\s*4px[^}]*background:\s*#fff[^}]*color:\s*#E81123/)
-  assert.match(css, /\.previewClose:hover\s*\{[^}]*background:\s*#FFF1F2[^}]*border-color:\s*#B91C1C[^}]*color:\s*#B91C1C/)
+  assert.match(css, /\.searchIcon\s*\{[^}]*position:\s*absolute;[^}]*left:\s*12px;/)
+  assert.match(css, /\.clearSearch\s*\{[^}]*right:\s*6px;/)
+  assert.match(css, /\.previewClose\s*\{[^}]*width:\s*36px[^}]*height:\s*36px[^}]*border:\s*1px solid #E81123[^}]*border-radius:\s*4px[^}]*background:\s*#fff[^}]*color:\s*#E81123/)
+  assert.match(css, /\.previewClose:hover\s*\{[^}]*background:\s*#FFF1F2[^}]*border-color:\s*var\(--danger\)[^}]*color:\s*var\(--danger\)/)
   assert.match(css, /\.previewPane \.warningBanner\s*\{[^}]*margin-top:\s*14px/)
 })
 
@@ -396,35 +386,29 @@ test('role-specific workspaces declare compact and mobile contracts', () => {
   assert.doesNotMatch(libraryCss, /\.searchWrapper\s*\{/)
 })
 
-test('CO-PO alignment keeps outcome rows uniform without stretching the table vertically', () => {
+test('CO-PO alignment uses the syllabus alignment table inside a wrapper that does not stretch it vertically', () => {
   const page = read('pages/lpsm/ProgramHead/CoPoAlignment.jsx')
-  const tableCss = sass.compile(path.join(src, 'styles/AlignmentTables.module.sass')).css
-  const workspaceCss = sass.compile(path.join(src, 'styles/ProgramHeadWorkspace.module.sass')).css
 
-  assert.match(page, /className=\{`\$\{tbl\.alignTable\} \$\{tbl\.compactRows\}`\}/)
-  assert.match(page, /className=\{`\$\{pageStyles\.tableRegion\} \$\{pageStyles\.compactTableRegion\}`\}/)
-  assert.match(tableCss, /\.compactRows\s*\{[\s\S]*?min-height:\s*0\s*!important;[\s\S]*?height:\s*auto\s*!important;[\s\S]*?flex:\s*none;/)
-  assert.match(tableCss, /\.compactRows tbody tr\s*\{[\s\S]*?height:\s*84px;/)
-  assert.match(workspaceCss, /\.compactTableRegion\s*\{[\s\S]*?flex:\s*0 0 auto;[\s\S]*?height:\s*auto;[\s\S]*?overflow-y:\s*hidden;/)
+  assert.ok(page.includes('cc.alignmentTable'))
+  assert.ok(page.includes('<div style={{ minWidth: 0 }}><TableScrollRegion'))
+  assert.ok(page.includes('cc.tableScrollWrapper'))
 })
 
 test('icon-only surface close controls share the outlined red treatment', () => {
   const globalCss = read('index.css')
-  assert.match(globalCss, /button\.app-icon-close\.app-icon-close\s*\{[\s\S]*?width:\s*32px;[\s\S]*?min-width:\s*32px;[\s\S]*?max-width:\s*32px;[\s\S]*?height:\s*32px;[\s\S]*?min-height:\s*32px;[\s\S]*?max-height:\s*32px;[\s\S]*?aspect-ratio:\s*1;[\s\S]*?border:\s*1px solid #E81123 !important;[\s\S]*?border-radius:\s*7px;[\s\S]*?background:\s*#fff;[\s\S]*?color:\s*#E81123;/)
+  assert.match(globalCss, /button\.app-icon-close\.app-icon-close\s*\{[\s\S]*?width:\s*36px;[\s\S]*?min-width:\s*36px;[\s\S]*?max-width:\s*36px;[\s\S]*?height:\s*36px;[\s\S]*?min-height:\s*36px;[\s\S]*?max-height:\s*36px;[\s\S]*?aspect-ratio:\s*1;[\s\S]*?border:\s*1px solid #E81123 !important;[\s\S]*?border-radius:\s*var\(--control-radius\);[\s\S]*?background:\s*#fff;[\s\S]*?color:\s*#E81123;/)
   assert.match(globalCss, /button\.app-icon-close\.app-icon-close:hover\s*\{[\s\S]*?background:\s*#FFF1F2;[\s\S]*?border-color:\s*#B91C1C !important;[\s\S]*?color:\s*#B91C1C;/)
   assert.match(globalCss, /button\.app-icon-close\.app-icon-close:focus-visible\s*\{[\s\S]*?outline:\s*3px solid rgba\(232, 17, 35, 0\.24\) !important;/)
 
   for (const file of [
     'components/AddReferenceModal.jsx',
     'components/ApprovalCommentBox.jsx',
-    'components/ApprovalCoursesTable.jsx',
     'components/CoursesTable.jsx',
     'components/ILOs.jsx',
     'components/PDFViewerModal.jsx',
     'components/Revisions.jsx',
     'components/SpellCheckArea.jsx',
     'components/SyllabusPreview.jsx',
-    'pages/DeanFaculty.jsx',
     'pages/ILOForm.jsx',
     'pages/ReferenceForm.jsx',
     'pages/TLAForm.jsx',
@@ -450,9 +434,9 @@ test('reference library header uses the recovered subtitle space', () => {
   const css = read('styles/ReferenceLibrary.module.scss')
 
   assert.doesNotMatch(page, /Discover, inspect, and maintain reference records\./)
-  assert.match(css, /\.discoveryTop\s*\{[\s\S]*?padding:\s*10px 20px;/)
-  assert.match(css, /\.searchForm\s*\{[\s\S]*?margin-top:\s*12px;/)
-  assert.match(css, /\.savedViews\s*\{[\s\S]*?margin-top:\s*12px;/)
+  assert.match(css, /\.discoveryTop\s*\{[\s\S]*?padding:\s*0 0 30px;/)
+  assert.match(css, /\.searchForm\s*\{[\s\S]*?margin-top:\s*15px;/)
+  assert.match(css, /\.savedViews\s*\{[\s\S]*?margin-top:\s*15px;/)
   assert.match(css, /\.pageTitle\s*\{[^}]*font-size:\s*24px;[^}]*font-weight:\s*600;/)
 })
 

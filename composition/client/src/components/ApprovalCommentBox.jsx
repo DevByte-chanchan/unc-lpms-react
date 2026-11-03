@@ -1,3 +1,4 @@
+import Select from './Select.jsx'
 import React, { useState, useEffect, useRef } from 'react'
 import { Search, X, Maximize, Minimize2, CheckCircle, AlertCircle, MessageSquare } from 'react-feather'
 import styles from '../styles/ApprovalCommentBox.module.sass'
@@ -235,7 +236,7 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
 
   const getTypeBadgeStyle = (type) => {
     switch (type) {
-      case 'Textbook': return { background: '#dcfce7', color: '#047857' }
+      case 'Textbook': return { background: 'var(--good-soft)', color: 'var(--good)' }
       case 'Open Educational Resources': return { background: '#e0f2fe', color: '#0284c7' }
       case 'Online Resources': return { background: '#f3e8ff', color: '#7c3aed' }
       default: return { background: '#f3f4f6', color: '#374151' }
@@ -248,7 +249,7 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
     const issues = checkText(c.text || '')
     if (issues.length === 0) return null
     return (
-      <div style={{ marginTop: 6, padding: '8px 10px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 6, fontSize: 12, color: '#92400e' }}>
+      <div style={{ marginTop: 6, padding: '8px 10px', background: 'var(--warn-soft)', border: '1px solid #fde68a', borderRadius: 6, fontSize: 12, color: 'var(--warn)' }}>
         <div style={{ fontWeight: 600, marginBottom: 2, display: 'flex', alignItems: 'center', gap: 6 }}>
           <AlertCircle size={13} /> {issues.length} spelling / grammar {issues.length === 1 ? 'flag' : 'flags'}
         </div>
@@ -264,18 +265,18 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
   const renderRefBrowser = () => (
     <div style={{ border: '1px solid #e5e7eb', borderRadius: 6, padding: 16, background: '#fafafa', display: 'flex', flexDirection: 'column', overflow: 'hidden', ...(isFullscreen ? { flex: 1 } : { height: 480 }) }}>
       <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 12, color: '#111827' }}>Suggest References from Library</div>
-      <select
+      <Select
         value={refTypeFilter}
         onChange={(e) => setRefTypeFilter(e.target.value)}
-        style={{ width: '100%', padding: '8px 10px', borderRadius: 6, border: '1px solid #d1d5db', fontSize: 12, fontFamily: "'Poppins', sans-serif", background: '#fff', color: '#374151', marginBottom: 12, boxSizing: 'border-box' }}
+        block
       >
         <option value="">All Types</option>
         <option value="Textbook">Textbooks</option>
         <option value="Open Educational Resources">Open Educational Resources</option>
         <option value="Online Resources">Online Resources</option>
-      </select>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, border: '1px solid #A4A9AF', borderRadius: 6, padding: '10px 16px', marginBottom: 12, background: '#fff' }}>
-        <Search size={16} color="#9ca3af" />
+      </Select>
+      <div className={styles.searchBox}>
+        <Search size={16} aria-hidden="true" />
         <input
           type="text"
           placeholder="Search by title, author, or type..."
@@ -304,7 +305,7 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
                 </div>
                 <div style={{ fontSize: 13, color: '#6b7280' }}>{ref.authors} &middot; {ref.year || 'N/A'}</div>
                 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                  {deprecated && <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 99, background: '#fef3c7', color: '#b45309' }}>Deprecated</span>}
+                  {deprecated && <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 99, background: 'var(--warn-soft)', color: '#b45309' }}>Deprecated</span>}
                 </div>
               </div>
             </label>
@@ -316,7 +317,7 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
         )}
       </div>
       {selectedRefs.length > 0 && (
-        <div style={{ marginTop: 12, padding: '8px 12px', background: '#f0fdf4', borderRadius: 6, fontSize: 13, color: '#047857', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{ marginTop: 12, padding: '8px 12px', background: 'var(--good-soft)', borderRadius: 6, fontSize: 13, color: 'var(--good)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
           {selectedRefs.length} reference{selectedRefs.length > 1 ? 's' : ''} selected to suggest
         </div>
@@ -413,7 +414,7 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
       {!readOnly && toast && (
         <div style={{
           position: 'fixed', bottom: 32, right: 32, zIndex: 9999,
-          background: toast.type === 'warning' ? '#dc2626' : '#047857',
+          background: toast.type === 'warning' ? 'var(--danger-solid)' : 'var(--good)',
           color: 'white', padding: '14px 24px',
           borderRadius: 12, boxShadow: '0 8px 30px rgba(0,0,0,0.15)',
           fontFamily: "'Poppins', sans-serif", fontSize: 14, fontWeight: 500,
@@ -424,17 +425,16 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
           {toast.msg}
         </div>
       )}
-    {!isFullscreen && <div onClick={handleClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 2999 }} />}
+    {!isFullscreen && <div onClick={handleClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 2999 }} />}
     <div role="dialog" aria-modal="true" aria-label="Comments" style={isFullscreen ? { position: 'fixed', inset: 0, zIndex: 3000, background: '#fff', display: 'flex', flexDirection: 'column', overflow: 'hidden', width: '100%', maxHeight: '100%', borderRadius: 0 } : { position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: 3000 }} className={styles.modal}>
-      <div className={styles.header}>
-        <h3>{readOnly ? 'Previous Comments' : (isDirector ? 'Comment & Suggest References' : 'Comments')}</h3>
-        <div style={{ display: 'flex', gap: 6 }}>
-          <button onClick={() => setIsFullscreen(v => !v)} title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'} aria-label="Toggle fullscreen" style={{ background: '#fff', border: '1px solid #e2e8f0', cursor: 'pointer', color: '#334155', width: 32, height: 32, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: 6, padding: 0, lineHeight: 0, transition: 'all 0.15s' }}
-            onMouseEnter={e => { e.currentTarget.style.background = '#f1f5f9'; e.currentTarget.style.borderColor = '#cbd5e1'; }}
-            onMouseLeave={e => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.borderColor = '#e2e8f0'; }}
-          >{isFullscreen ? <Minimize2 size={14} /> : <Maximize size={14} />}</button>
+      <div className="app-window-header">
+        <h3 className="app-window-title">{readOnly ? 'Previous Comments' : (isDirector ? 'Comment & Suggest References' : 'Comments')}</h3>
+        <div className="app-window-actions">
+          <button type="button" className="app-icon-btn" onClick={() => setIsFullscreen(v => !v)} title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'} aria-label="Toggle fullscreen">
+            {isFullscreen ? <Minimize2 size={16} /> : <Maximize size={16} />}
+          </button>
           <button type="button" className="app-icon-close" onClick={handleClose} aria-label="Close">
-            <X size={14} />
+            <X size={16} strokeWidth={2.5} color="currentColor" />
           </button>
         </div>
       </div>
@@ -472,19 +472,19 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
                   {comments.map((c, idx) => (
                     <div key={c.id} style={{ marginBottom: idx < comments.length - 1 ? 12 : 0, paddingBottom: idx < comments.length - 1 ? 12 : 0, borderBottom: idx < comments.length - 1 ? '1px solid #e5e7eb' : 'none' }}>
                       <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
-                        <select
+                        <Select
                           value={c.commentedRefId}
                           onChange={(e) => updateComment(c.id, { commentedRefId: e.target.value })}
-                          style={{ flex: 1, padding: '8px 10px', borderRadius: 6, border: '1px solid #d1d5db', fontSize: 12, fontFamily: "'Poppins', sans-serif", background: '#fff', color: '#374151' }}
+                          block
                         >
                           <option value="">-- Select a reference --</option>
                           {syllabusReferences.map(ref => (
                             <option key={ref.id} value={ref.id}>{ref.title} ({ref.year || 'N/A'}){isDeprecated(ref) ? ' [Deprecated]' : ''}</option>
                           ))}
-                        </select>
+                        </Select>
                         {comments.length > 1 && (
                           <button onClick={() => removeCommentSection(c.id)} style={{ width: 32, height: 32, borderRadius: 6, border: '1px solid #E81123', background: '#E81123', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, padding: 0, transition: 'all 0.15s' }}
-                            onMouseEnter={e => { e.currentTarget.style.background = '#B91C1C'; e.currentTarget.style.borderColor = '#B91C1C'; }}
+                            onMouseEnter={e => { e.currentTarget.style.background = 'var(--danger)'; e.currentTarget.style.borderColor = 'var(--danger)'; }}
                             onMouseLeave={e => { e.currentTarget.style.background = '#E81123'; e.currentTarget.style.borderColor = '#E81123'; }}>
                             <X size={11} strokeWidth={2.5} color="currentColor" />
                           </button>
@@ -504,7 +504,7 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
                   ))}
                   </div>
                   <div className={styles.addCommentRow}>
-                    <button onClick={addCommentSection} className={styles.addButton}>
+                    <button onClick={addCommentSection} className="btn btn-secondary">
                       + Add another comment
                     </button>
                   </div>
@@ -543,7 +543,7 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
                             ? { background: '#e0f2fe', color: '#0369a1' }
                             : ct === 'TLA'
                               ? { background: '#ede9fe', color: '#6d28d9' }
-                              : { background: '#fef3c7', color: '#92400e' }
+                              : { background: 'var(--warn-soft)', color: 'var(--warn)' }
                           return (
                             <div style={{
                               display: 'flex', flexWrap: 'wrap', gap: 5, alignItems: 'center',
@@ -578,34 +578,34 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 14 }}>
                           <div className={styles.field}>
                             <label className={styles.label}>Course Outcome</label>
-                            <select className={styles.select} value={c.courseOutcome} onChange={(e) => updateCommentCourseOutcome(c.id, e.target.value)}>
+                            <Select value={c.courseOutcome} onChange={(e) => updateCommentCourseOutcome(c.id, e.target.value)} block>
                               <option value="">-- select course outcome --</option>
                               {resolvedCourseOutcomes.map((co, idx) => (
                                 <option key={co.id || co} value={co.id ? `CO${idx + 1}` : co}>
                                   {co.id ? `${co.id} — ${String(co.description || '').slice(0, 60)}` : co}
                                 </option>
                               ))}
-                            </select>
+                            </Select>
                           </div>
 
                           <div className={styles.field}>
                             <label className={styles.label}>Intended Learning Outcome (ILO)</label>
-                            <select className={styles.select} value={c.ilo} onChange={(e) => updateCommentIlo(c.id, e.target.value)} disabled={!c.courseOutcome}>
+                            <Select value={c.ilo} onChange={(e) => updateCommentIlo(c.id, e.target.value)} disabled={!c.courseOutcome} block>
                               <option value="">-- select ILO --</option>
                               {((c.courseOutcome && coToIlos[c.courseOutcome]) || resolvedIlos).map((i) => (
                                 <option key={i} value={i}>{i}</option>
                               ))}
-                            </select>
+                            </Select>
                           </div>
 
                           <div className={styles.field}>
                             <label className={styles.label}>Coverage Type</label>
-                            <select className={styles.select} value={c.coverageType} onChange={(e) => updateCommentCoverageType(c.id, e.target.value)} disabled={!c.ilo}>
+                            <Select value={c.coverageType} onChange={(e) => updateCommentCoverageType(c.id, e.target.value)} disabled={!c.ilo} block>
                               <option value="">-- select type --</option>
                               <option value="Topic">Topic</option>
                               <option value="References">References</option>
                               <option value="TLA">Teaching-Learning Activity (TLA)</option>
-                            </select>
+                            </Select>
                           </div>
 
                           <div className={styles.field}>
@@ -630,11 +630,11 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
 
                         <div className={styles.field} style={{ marginBottom: 14 }}>
                           <label className={styles.label}>Comment Type</label>
-                          <select className={styles.select} value={c.commentType || COMMENT_TYPES[0].key} onChange={(e) => updateComment(c.id, { commentType: e.target.value })}>
+                          <Select value={c.commentType || COMMENT_TYPES[0].key} onChange={(e) => updateComment(c.id, { commentType: e.target.value })} block>
                             {COMMENT_TYPES.map(t => (
                               <option key={t.key} value={t.key}>{t.label}</option>
                             ))}
-                          </select>
+                          </Select>
                           <span style={{ fontSize: 11, color: '#94a3b8' }}>{commentTypeMeta(c.commentType).hint}</span>
                         </div>
 
@@ -658,7 +658,7 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
               </div>
 
               <div className={styles.addCommentRow}>
-                <button onClick={addCommentSection} className={styles.addButton}>
+                <button onClick={addCommentSection} className="btn btn-secondary">
                   + Add another comment
                 </button>
               </div>
@@ -671,23 +671,23 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
             <button
               onClick={handleDirectorSubmit}
               disabled={(!comments[0]?.text?.trim() && selectedRefs.length === 0) || submitting}
-              className={`${styles.submit} ${(!comments[0]?.text?.trim() && selectedRefs.length === 0) || submitting ? styles.disabled : ''}`}
+              className="btn btn-primary"
             >
               {directorLabel}
             </button>
           ) : (
-            <button onClick={handleSubmit} disabled={saveDisabled || submitting} className={`${styles.submit} ${saveDisabled || submitting ? styles.disabled : ''}`}>{normalLabel}</button>
+            <button onClick={handleSubmit} disabled={saveDisabled || submitting} className="btn btn-primary">{normalLabel}</button>
           )}
         </div>}
       </div>
       {showDiscardConfirm && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000, backdropFilter: 'blur(2px)' }} onClick={cancelDiscard}>
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000 }} onClick={cancelDiscard}>
           <div style={{ background: 'white', borderRadius: 16, width: 380, maxWidth: '90vw', padding: 28, textAlign: 'center', boxShadow: '0 20px 60px rgba(0,0,0,0.15)', fontFamily: "'Poppins', sans-serif" }} onClick={(e) => e.stopPropagation()}>
             <div style={{ fontSize: 18, fontWeight: 600, color: '#1f2937', marginBottom: 8 }}>Discard unsaved changes?</div>
             <div style={{ fontSize: 14, color: '#6b7280', marginBottom: 24 }}>You have unsaved comments that will be lost.</div>
             <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
-              <button onClick={cancelDiscard} style={{ padding: '10px 24px', border: '1px solid #d1d5db', borderRadius: 10, background: 'white', color: '#374151', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: "'Poppins', sans-serif" }}>Cancel</button>
-              <button onClick={confirmDiscard} style={{ padding: '10px 24px', border: 'none', borderRadius: 10, background: '#dc2626', color: 'white', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: "'Poppins', sans-serif" }}>Discard</button>
+              <button onClick={cancelDiscard} className="btn btn-secondary">Cancel</button>
+              <button onClick={confirmDiscard} className="btn btn-danger">Discard</button>
             </div>
           </div>
         </div>

@@ -1,3 +1,4 @@
+import Select from '../components/Select.jsx'
 import React, { useEffect, useState } from 'react';
 import SpellCheckArea from '../components/SpellCheckArea.jsx';
 import { fetchJson } from '../utils/api.js';
@@ -162,12 +163,12 @@ export default function CommentRecorder() {
 
             <div className={styles.field}>
                 <span className={styles.label}>Learning plan</span>
-                <select className={styles.select} value={assignId} onChange={(e) => onAssignChange(e.target.value)} disabled={assignments.length === 0}>
+                <Select block value={assignId} onChange={(e) => onAssignChange(e.target.value)} disabled={assignments.length === 0}>
                     <option value="">{assignments.length === 0 ? '-- no learning plans assigned to you --' : '-- select a plan --'}</option>
                     {assignments.map(a => (
                         <option key={a.co_assign_id} value={a.co_assign_id}>{assignLabel(a)}</option>
                     ))}
-                </select>
+                </Select>
                 {/* A disabled, silently empty dropdown looks broken. Say why. */}
                 {assignments.length === 0 && (
                     <span style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>
@@ -178,18 +179,18 @@ export default function CommentRecorder() {
 
             <div className={styles.field}>
                 <span className={styles.label}>Intended Learning Outcome (ILO)</span>
-                <select className={styles.select} value={iloId} onChange={(e) => setIloId(e.target.value)} disabled={!assignId || ilos.length === 0}>
+                <Select block value={iloId} onChange={(e) => setIloId(e.target.value)} disabled={!assignId || ilos.length === 0}>
                     <option value="">-- select ILO --</option>
                     {ilos.map(i => <option key={i.id} value={i.id}>{i.label}</option>)}
-                </select>
+                </Select>
             </div>
 
             <div className={styles.field}>
                 <span className={styles.label}>Coverage type</span>
-                <select className={styles.select} value={commentFor} onChange={(e) => setCommentFor(e.target.value)} disabled={!iloId}>
+                <Select block value={commentFor} onChange={(e) => setCommentFor(e.target.value)} disabled={!iloId}>
                     <option value="">-- select type --</option>
                     {COVERAGE_OPTIONS.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
-                </select>
+                </Select>
             </div>
 
             <div className={styles.field}>
@@ -217,7 +218,7 @@ export default function CommentRecorder() {
                 <div style={{
                     marginBottom: 14, padding: '8px 12px', borderRadius: 6, fontSize: 13,
                     background: toast.type === 'success' ? '#ecfdf5' : '#fef2f2',
-                    color: toast.type === 'success' ? '#047857' : '#b91c1c',
+                    color: toast.type === 'success' ? 'var(--good)' : 'var(--danger)',
                     border: `1px solid ${toast.type === 'success' ? '#a7f3d0' : '#fecaca'}`,
                 }}>
                     {toast.msg}

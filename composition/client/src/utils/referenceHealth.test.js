@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { healthIssues, healthSummary, toHealthCsv } from './referenceHealth.js'
+import { healthIssues, healthSummary } from './referenceHealth.js'
 
 const options = { years: 5, currentYear: 2026 }
 const good = { id: 'srv-1', title: 'Clean Code', authors: 'Martin', type: 'Textbook', year: 2024, isbn: '9780132350884', status: 'available', copies: 3 }
@@ -28,11 +28,3 @@ test('the summary counts each kind once per record', () => {
   assert.deepEqual(healthSummary(records, options), { total: 3, needAttention: 2, unavailable: 1, outdated: 1, noYear: 0, noIsbn: 1, noLink: 0 })
 })
 
-test('the report lists only records with issues, safe to open in a spreadsheet', () => {
-  const records = [good, { ...good, id: 'srv-5', title: '=HYPERLINK("x")', status: 'lost', usedInCourses: ['BIT1', 'BIT2'] }]
-  const lines = toHealthCsv(records, options).split('\r\n')
-  assert.equal(lines.length, 2)
-  assert.match(lines[0], /^ID,Title,Authors,Type,Year,ISBN,Copies,Status,Category,Used in courses,Issues$/)
-  assert.match(lines[1], /srv-5,"'=HYPERLINK\(""x""\)"/)
-  assert.match(lines[1], /BIT1; BIT2,Not available: lost$/)
-})

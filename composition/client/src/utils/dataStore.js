@@ -2,7 +2,6 @@ import { syllabiData as staticSyllabi } from '../data/syllabiData.js'
 import { enrichSyllabi } from '../data/syllabiDataEnricher.js'
 
 const SYLLABI_KEY = 'lpms_syllabi_v2'
-const SUGGESTIONS_KEY = 'lpms_suggestions_v1'
 
 function safeStorage() {
   if (typeof window !== 'undefined' && window.localStorage) {
@@ -11,7 +10,11 @@ function safeStorage() {
   return null
 }
 
+// Parsed once per page load; updateSyllabus keeps it current. Re-parsing and re-saving ~230 KB on every read was wasted work.
+let cached = null
+
 function initSyllabi() {
+  if (cached) return cached
   const storage = safeStorage()
   try {
     const raw = storage ? storage.getItem(SYLLABI_KEY) : null
@@ -19,13 +22,13 @@ function initSyllabi() {
       const data = JSON.parse(raw)
       enrichSyllabi(data)
       if (storage) storage.setItem(SYLLABI_KEY, JSON.stringify(data))
-      return data
+      return (cached = data)
     }
   } catch (e) { console.warn('Failed to parse stored syllabi, reinitializing:', e) }
   const enriched = [...staticSyllabi]
   enrichSyllabi(enriched)
   if (storage) storage.setItem(SYLLABI_KEY, JSON.stringify(enriched))
-  return enriched
+  return (cached = enriched)
 }
 
 const normalizeInstructor = (s) => {
@@ -62,65 +65,4 @@ export function addReference(code, ref) {
   refs.push(newRef)
   updateSyllabus(code, { references: refs })
   return newRef
-}
-
-export function getSuggestions(courseCode) {
-  const storage = safeStorage()
-  try {
-    const raw = storage ? storage.getItem(SUGGESTIONS_KEY) : null
-    const all = raw ? JSON.parse(raw) : []
-    if (!Array.isArray(all)) return []
-    return courseCode ? all.filter(s => s.courseCode === courseCode) : all
-  } catch { return [] }
-}
-
-export function addSuggestion(courseCode, reference, suggestedBy) {
-  const storage = safeStorage()
-  const all = getSuggestions(null)
-  const suggestion = {
-    id: `SUG-${Date.now()}`,
-    courseCode,
-    reference: { ...reference },
-    suggestedBy,
-    suggestedAt: new Date().toISOString(),
-    status: 'pending'
-  }
-  all.push(suggestion)
-  if (storage) storage.setItem(SUGGESTIONS_KEY, JSON.stringify(all))
-  return suggestion
-}
-
-export function acceptSuggestion(suggestionId) {
-  const storage = safeStorage()
-  const all = getSuggestions(null)
-  const idx = all.findIndex(s => s.id === suggestionId)
-  if (idx === -1) return null
-  all[idx].status = 'accepted'
-  all[idx].acceptedAt = new Date().toISOString()
-  if (storage) storage.setItem(SUGGESTIONS_KEY, JSON.stringify(all))
-  const rawType = (all[idx].reference.type || '').toLowerCase()
-  const mappedType = rawType === 'book' ? 'Textbook'
-    : rawType.includes('online') ? 'Online Resources'
-    : rawType.includes('educational') || rawType === 'oer' ? 'Open Educational Resources'
-    : 'Textbook'
-  addReference(all[idx].courseCode, {
-    title: all[idx].reference.title,
-    authors: all[idx].reference.authors,
-    type: mappedType,
-    year: all[idx].reference.year,
-    isbn: all[idx].reference.isbn || '',
-    link: all[idx].reference.link || ''
-  })
-  return all[idx]
-}
-
-export function rejectSuggestion(suggestionId) {
-  const storage = safeStorage()
-  const all = getSuggestions(null)
-  const idx = all.findIndex(s => s.id === suggestionId)
-  if (idx === -1) return null
-  all[idx].status = 'rejected'
-  all[idx].rejectedAt = new Date().toISOString()
-  if (storage) storage.setItem(SUGGESTIONS_KEY, JSON.stringify(all))
-  return all[idx]
 }

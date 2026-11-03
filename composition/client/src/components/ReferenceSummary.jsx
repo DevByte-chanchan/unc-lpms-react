@@ -127,10 +127,10 @@ const ReferenceSummary = ({ offeringID, revisionNum, status, selectedSection, st
         <div className={stylesB.refContainer}>
             <div className={stylesB.refHeaderBar}>
                 <select
-                    aria-label="Reference category"
-                    value={viewType}
-                    onChange={(event) => setViewType(event.target.value)}
-                    className={stylesB.refSelect}
+                  aria-label="Reference category"
+                  value={viewType}
+                  onChange={(event) => setViewType(event.target.value)}
+                  className={stylesB.refSelect}
                 >
                     {REFERENCE_VIEWS.map(view => (
                         <option key={view.value} value={view.value}>{view.label}</option>
@@ -139,7 +139,7 @@ const ReferenceSummary = ({ offeringID, revisionNum, status, selectedSection, st
             </div>
 
             {referenceData && summary.tone !== 'none' && (
-                <div role="status" style={{ margin: '0 0 12px', padding: '8px 12px', borderRadius: 8, fontWeight: 600, ...(summary.tone === 'clean' ? { background: '#DCFCE7', color: '#166534' } : { background: '#FEF3C7', color: '#92400E' }) }}>
+                <div role="status" className={`${stylesB.refNotice} ${summary.tone === 'clean' ? stylesB.refNoticeClean : ''}`}>
                     {summary.text}
                 </div>
             )}
@@ -151,7 +151,7 @@ const ReferenceSummary = ({ offeringID, revisionNum, status, selectedSection, st
                 </div>
             )}
 
-            {(!referencesError || referenceData) && <TableScrollRegion label={`${activeView.label} table`} minWidth={760} className={stylesB.refScrollWrapper}>
+            {(!referencesError || referenceData) && <TableScrollRegion label={`${activeView.label} table`} minWidth={640} className={stylesB.refScrollWrapper}>
                 <table className={stylesB.refTable}>
                     <thead>
                         <tr><th>ID</th><th>TITLE</th><th>AUTHOR/S</th><th>{activeView.identifier}</th><th>YEAR</th><th>ISSUES</th></tr>
@@ -182,7 +182,7 @@ const ReferenceSummary = ({ offeringID, revisionNum, status, selectedSection, st
                                         ? (ref.isbn || '-')
                                         : (sanitizeUrl(ref.link) ? <a href={sanitizeUrl(ref.link)} target="_blank" rel="noreferrer">Open Resource</a> : '-')}</td>
                                     <td>{ref.year || '-'}</td>
-                                    <td>{issues.length === 0 ? <span style={{ color: '#6B7280' }}>None</span> : issues.map(issue => <div key={issue} style={{ color: '#92400E' }}>{issue}</div>)}</td>
+                                    <td>{issues.length === 0 ? <span style={{ color: '#6B7280' }}>None</span> : issues.map(issue => <div key={issue} style={{ color: 'var(--warn)' }}>{issue}</div>)}</td>
                                 </tr>
                             );
                         })}

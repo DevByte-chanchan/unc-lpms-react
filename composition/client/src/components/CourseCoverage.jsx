@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { offeringKey } from '../utils/offeringKey.js'
-import TableScrollRegion from './TableScrollRegion.jsx';
+import HeadBodyTable from './HeadBodyTable.jsx';
 import { AlertTriangle } from 'react-feather';
 import EmptyState from './EmptyState.jsx';
 import { describeCourseLoadError } from '../utils/courseLoadError.js';
@@ -157,19 +157,19 @@ const CourseCoverage = ({ offeringID, revisionNum, status, selectedSection, styl
 
     return (
         <div className={stylesB.ccContainer}>
-            <TableScrollRegion label="Course coverage" minWidth={1100} className={stylesB.ccScrollWrapper}>
-                <table className={stylesB.ccTable}>
-                    <thead>
+            <HeadBodyTable label="Course coverage" tableClass={stylesB.ccTable}
+                widths={[60, 220, 250, 100, 350, 220, 100]}
+                head={(
                     <tr>
-                        <th className={stylesB.ccHeader} style={{ width: colWidths.co }}>CO</th>
-                        <th className={stylesB.ccHeader} style={{ width: colWidths.ilo }}>ILO</th>
-                        <th className={stylesB.ccHeader} style={{ width: colWidths.topic }}>TOPIC</th>
-                        <th className={stylesB.ccHeader} style={{ width: colWidths.period }}>PERIOD</th>
-                        <th className={stylesB.ccHeader} style={{ width: colWidths.tla }}>TEACHING & LEARNING ACTIVITIES (TLAs)</th>
-                        <th className={stylesB.ccHeader} style={{ width: colWidths.assess }}>ASSESSMENT</th>
-                        <th className={stylesB.ccHeader} style={{ width: colWidths.ref }}>RESOURCES</th>
+                        <th className={stylesB.ccHeader}>CO</th>
+                        <th className={stylesB.ccHeader}>ILO</th>
+                        <th className={stylesB.ccHeader}>TOPIC</th>
+                        <th className={stylesB.ccHeader}>PERIOD</th>
+                        <th className={stylesB.ccHeader}>TEACHING & LEARNING ACTIVITIES (TLAs)</th>
+                        <th className={stylesB.ccHeader}>ASSESSMENT</th>
+                        <th className={stylesB.ccHeader}>RESOURCES</th>
                     </tr>
-                    </thead>
+                )}>
                     <tbody>
                     {(() => {
                         let lastCoPrefix = null;
@@ -314,10 +314,9 @@ const CourseCoverage = ({ offeringID, revisionNum, status, selectedSection, styl
                         }) : (
                             <tr><td colSpan={7} style={{ padding: '20px', textAlign: 'center' }}>No coverage data available.</td></tr>
                         );
-                    })()} {/* <-- Add this closing signature right before </tbody> */}
+                    })()}
                     </tbody>
-                </table>
-            </TableScrollRegion>
+            </HeadBodyTable>
         </div>
     );
 };
