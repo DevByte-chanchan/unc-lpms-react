@@ -320,12 +320,10 @@ exports.getCourseCommentsByCode = async (req, res) => {
             return res.status(403).json({ error: 'You do not have access to this course.' });
         }
 
-        let offeringFilter = '';
-        const replacements = [code];
-        if (pcId && !Number.isNaN(Number(pcId))) {
-            offeringFilter = ' AND pco.pc_offering_id = ?';
-            replacements.push(Number(pcId));
-        }
+        // Only the offering whose access was just checked: other offerings of the same course code belong to other
+        // programs, instructors and revisions, and their comments are not this caller's to read.
+        const offeringFilter = ' AND pco.pc_offering_id = ?';
+        const replacements = [code, accessRows[0].pc_offering_id];
 
         const comments = await sequelize.query(
             `SELECT

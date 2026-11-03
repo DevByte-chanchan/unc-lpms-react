@@ -4,19 +4,35 @@ const { sequelize, Sequelize, CourseConsultant, Course, User } = require('../mod
 
 const asInt = (value) => (Number.isSafeInteger(Number(value)) && Number(value) > 0 ? Number(value) : null);
 
+// Whether this user heads a program that offers the course: only they may assign or remove its consultant.
+async function headsProgramOffering(courseId, userId) {
+    const [headed] = await sequelize.query(
+        `SELECT 1 AS ok FROM ProgramCourseOfferings pco INNER JOIN Programs p ON p.program_id = pco.program_id
+         WHERE pco.course_id = ? AND p.stakeholder_id = ? LIMIT 1;`,
+        { replacements: [courseId, userId], type: Sequelize.QueryTypes.SELECT });
+    return Boolean(headed);
+}
+
 // GET /api/course-consultants?courseId= — Program Head / Dean list assignments; a consultant sees their own.
 async function listAssignments(req, res, next) {
     try {
         const courseId = req.query.courseId ? asInt(req.query.courseId) : null;
         const consultantId = req.user.role === 'industry-consultant' ? req.user.id : null;
+        // A Program Head sees only the courses of the programs they head, a Dean only those of their department.
+        const headId = req.user.role === 'program-head' ? req.user.id : null;
+        const deanId = req.user.role === 'dean' ? req.user.id : null;
         const rows = await sequelize.query(
             `SELECT cc.*, u.name AS consultant_name, c.course_no, c.course_title
              FROM CourseConsultants cc
                  INNER JOIN Courses c ON c.course_id = cc.course_id
                  LEFT JOIN Users u ON u.user_id = cc.consultant_user_id
              WHERE (? IS NULL OR cc.course_id = ?) AND (? IS NULL OR cc.consultant_user_id = ?)
+               AND (? IS NULL OR EXISTS (SELECT 1 FROM ProgramCourseOfferings pco INNER JOIN Programs p ON p.program_id = pco.program_id
+                                         WHERE pco.course_id = cc.course_id AND p.stakeholder_id = ?))
+               AND (? IS NULL OR EXISTS (SELECT 1 FROM ProgramCourseOfferings pco INNER JOIN Departments d ON d.dept_id = pco.dept_id
+                                         WHERE pco.course_id = cc.course_id AND d.stakeholder_id = ?))
              ORDER BY cc.is_active DESC, c.course_no ASC, cc.course_consultant_id ASC;`,
-            { replacements: [courseId, courseId, consultantId, consultantId], type: Sequelize.QueryTypes.SELECT });
+            { replacements: [courseId, courseId, consultantId, consultantId, headId, headId, deanId, deanId], type: Sequelize.QueryTypes.SELECT });
         return res.json(rows);
     } catch (err) {
         return next(err);
@@ -51,12 +67,7 @@ async function assignConsultant(req, res, next) {
         if (!courseId || !consultantId) return res.status(400).json({ message: 'course_id and consultant_user_id are required.' });
 
         if (!(await Course.findByPk(courseId))) return res.status(404).json({ message: 'Course not found.' });
-        // Only the head of a program that offers the course may assign its consultant.
-        const [headed] = await sequelize.query(
-            `SELECT 1 AS ok FROM ProgramCourseOfferings pco INNER JOIN Programs p ON p.program_id = pco.program_id
-             WHERE pco.course_id = ? AND p.stakeholder_id = ? LIMIT 1;`,
-            { replacements: [courseId, req.user.id], type: Sequelize.QueryTypes.SELECT });
-        if (!headed) return res.status(403).json({ message: 'Only the head of a program that offers this course can assign its consultant.' });
+        if (!(await headsProgramOffering(courseId, req.user.id))) return res.status(403).json({ message: 'Only the head of a program that offers this course can assign its consultant.' });
         const consultant = await User.findByPk(consultantId);
         if (!consultant || consultant.role !== 'industry-consultant' || consultant.is_active === false) {
             return res.status(400).json({ message: 'That account is not an active industry consultant.' });
@@ -82,6 +93,9 @@ async function deactivateAssignment(req, res, next) {
     try {
         const row = await CourseConsultant.findByPk(req.params.id);
         if (!row) return res.status(404).json({ message: 'Assignment not found.' });
+        if (!(await headsProgramOffering(row.course_id, req.user.id))) {
+            return res.status(403).json({ message: 'Only the head of a program that offers this course can remove its consultant.' });
+        }
         if (!row.is_active) return res.json(row);
         await row.update({ is_active: false, deactivated_at: new Date(), deactivated_by_user_id: req.user.id });
         return res.json(row);

@@ -458,7 +458,7 @@ function computeCoverageChunks(syllabus) {
       coSpan,
       iloText: safe(ilo.intendedLearningOutcome || ilo.description),
       topics: buildTopicsHtml(ilo),
-      period: (ilo.deliveryWeek + ' (' + (ilo.allocatedTime || '') + ')').trim(),
+      period: escapeHtml((ilo.deliveryWeek + ' (' + (ilo.allocatedTime || '') + ')').trim()),
       tlaHtml: tlaParts.join(''),
       tlaParts,
       assHtml: buildAssessmentsHtml(ilo),
@@ -860,7 +860,7 @@ function page14(syllabus, workflow, logo, pageNum, total) {
     }))
   }) : []
 
-  const extractInstructorName = () => { const n = syllabus.instructor || ''; return n || '—' }
+  const extractInstructorName = () => safe(syllabus.instructor)
   const extractDate = (d) => d ? fmtDate(d) : '_____________'
 
   // Who approved and when comes from the plan's workflow (derived from the server log): the
@@ -892,14 +892,14 @@ function page14(syllabus, workflow, logo, pageNum, total) {
   const rows = gradeRows.length > 0 ? gradeRows.map(r => {
     const w = r.weight
     return '<tr>\n' +
-      '<td class="center">' + r.co + '</td>\n' +
+      '<td class="center">' + safe(r.co, '') + '</td>\n' +
       '<td class="center">ILO ' + r.iloNum + '</td>\n' +
-      '<td style="text-align:left;">' + (r.assessment || '—') + '</td>\n' +
-      '<td class="center" style="' + bg(w.prelim) + '">' + (w.prelim || '') + '</td>\n' +
-      '<td class="center" style="' + bg(w.midterm) + '">' + (w.midterm || '') + '</td>\n' +
-      '<td class="center" style="' + bg(w.semi) + '">' + (w.semi || '') + '</td>\n' +
-      '<td class="center" style="' + bg(w.final) + '">' + (w.final || '') + '</td>\n' +
-      '<td class="center">' + (r.minPassing || '') + '</td>\n' +
+      '<td style="text-align:left;">' + safe(r.assessment) + '</td>\n' +
+      '<td class="center" style="' + bg(w.prelim) + '">' + safe(w.prelim || '', '') + '</td>\n' +
+      '<td class="center" style="' + bg(w.midterm) + '">' + safe(w.midterm || '', '') + '</td>\n' +
+      '<td class="center" style="' + bg(w.semi) + '">' + safe(w.semi || '', '') + '</td>\n' +
+      '<td class="center" style="' + bg(w.final) + '">' + safe(w.final || '', '') + '</td>\n' +
+      '<td class="center">' + safe(r.minPassing, '') + '</td>\n' +
     '</tr>'
   }).join('\n      ') : '<tr><td colspan="8" style="text-align:center;color:#888;">No grading criteria available.</td></tr>'
 
