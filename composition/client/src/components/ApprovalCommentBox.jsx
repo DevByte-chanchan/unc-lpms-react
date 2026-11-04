@@ -12,7 +12,7 @@ import DropdownMultiSelect from './DropdownMultiSelect.jsx'
 // coverageDetail may be an array (multi-select) or a legacy string — this reports whether anything is selected
 const hasCoverageDetail = (c) => Array.isArray(c.coverageDetail) ? c.coverageDetail.length > 0 : !!c.coverageDetail
 
-const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = [], ilos = [], approverRole = null, syllabusTopics = [], syllabusReferences = [], readOnly = false, previousComments: previousCommentsProp = [], coToIlosProp }) => {
+const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = [], ilos = [], approverRole = null, syllabusTopics = [], syllabusReferences = [], readOnly = false, previousComments: previousCommentsProp = [], coToIlosProp, iloLabels = {}, coverageEntries = [] }) => {
   const defaultComment = () => ({
     id: (crypto.randomUUID && crypto.randomUUID()) || `fallback-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
     components: { references: false, topics: false, tlas: false },
@@ -70,6 +70,24 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
   const coToIlos = coToIlosProp && Object.keys(coToIlosProp).length ? coToIlosProp : fallbackCoToIlos
 
   const resolvedIlos = (ilos && ilos.length) ? ilos : []
+  const iloLabel = (id) => iloLabels[id] || id
+
+  // What a comment can target: only the topics, TLAs or references of the chosen ILO (all of the plan's when the
+  // ILO's own list is not known).
+  const targetOptions = (c) => {
+    const entry = coverageEntries.find(e => e.id === c.ilo)
+    const iloTopics = entry?.topics?.length ? new Set(entry.topics) : null
+    const topics = iloTopics ? syllabusTopics.filter(t => iloTopics.has(t.title)) : syllabusTopics
+    if (c.coverageType === 'Topic') return topics.map(t => t.title)
+    if (c.coverageType === 'TLA') return [...new Set(topics.flatMap(t => (t.tlas || []).map(tla => tla.tlaName)))]
+    if (c.coverageType === 'References') {
+      const own = (entry?.references || []).map(r => String(r).split(' - ').slice(1).join(' - ') || String(r))
+      return own.length ? own : syllabusReferences.map(r => r.title)
+    }
+    return []
+  }
+  // "CO1 — Implement the core concepts…": the number once, not "1 — CO1: Implement…".
+  const courseOutcomeLabel = (co, idx) => `CO${idx + 1} — ${String(co.description || '').replace(/^\s*CO\s*\d+\s*[:.\-–]\s*/i, '').slice(0, 70)}`
 
   useEffect(() => {
     let live = true
@@ -557,7 +575,7 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
                               )}
                               {c.ilo && (
                                 <span style={{ ...chipBase, background: '#f1f5f9', color: '#475569' }}>
-                                  [ILO: {c.ilo}]
+                                  [ILO: {iloLabel(c.ilo)}]
                                 </span>
                               )}
                               {details.length > 0 ? details.map((d, di) => (
@@ -572,14 +590,14 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
                             </div>
                           )
                         })()}
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 14 }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 16, marginBottom: 14 }}>
                           <div className={styles.field}>
                             <label className={styles.label}>Course Outcome</label>
                             <Select value={c.courseOutcome} onChange={(e) => updateCommentCourseOutcome(c.id, e.target.value)} block>
                               <option value="">Select a course outcome</option>
                               {resolvedCourseOutcomes.map((co, idx) => (
                                 <option key={co.id || co} value={co.id ? `CO${idx + 1}` : co}>
-                                  {co.id ? `${co.id} — ${String(co.description || '').slice(0, 60)}` : co}
+                                  {co.id ? courseOutcomeLabel(co, idx) : co}
                                 </option>
                               ))}
                             </Select>
@@ -590,7 +608,7 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
                             <Select value={c.ilo} onChange={(e) => updateCommentIlo(c.id, e.target.value)} disabled={!c.courseOutcome} block>
                               <option value="">Select an ILO</option>
                               {((c.courseOutcome && coToIlos[c.courseOutcome]) || resolvedIlos).map((i) => (
-                                <option key={i} value={i}>{i}</option>
+                                <option key={i} value={i}>{iloLabel(i)}</option>
                               ))}
                             </Select>
                             {!c.courseOutcome && <span className={styles.fieldHint}>Pick a course outcome first.</span>}
@@ -615,15 +633,7 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
                               disabled={!c.coverageType}
                               value={Array.isArray(c.coverageDetail) ? c.coverageDetail : (c.coverageDetail ? [c.coverageDetail] : [])}
                               onChange={(vals) => updateCommentCoverageDetail(c.id, vals)}
-                              options={
-                                c.coverageType === 'Topic'
-                                  ? syllabusTopics.map((t) => t.title)
-                                  : c.coverageType === 'References'
-                                    ? syllabusReferences.map((r) => r.title)
-                                    : c.coverageType === 'TLA'
-                                      ? syllabusTopics.flatMap((t) => (t.tlas || []).map((tla) => tla.tlaName))
-                                      : []
-                              }
+                              options={targetOptions(c)}
                             />
                             {!c.coverageType && <span className={styles.fieldHint}>Pick a coverage type first.</span>}
                           </div>

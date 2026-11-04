@@ -361,7 +361,16 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
 
         // Upsert: replace this course's previous server- entries so resolution
         // status changes made by the instructor stay in sync on reload.
-        const others = list.filter(c => !(c.courseCode === codeToUse && String(c.id || '').startsWith('server-')))
+        // A comment this browser posted is kept as its local copy (with its full target), and the server row with the
+        // same text is skipped above; the server is still the truth for whether it was resolved, so copy that over.
+        const serverResolved = new Map(rows.map(r => [untagged(r.message), Boolean(r.resolved_status)]))
+        const others = list
+          .filter(c => !(c.courseCode === codeToUse && String(c.id || '').startsWith('server-')))
+          .map(c => {
+            if (c.courseCode !== codeToUse || !serverResolved.has(untagged(c.comment))) return c
+            const resolved = serverResolved.get(untagged(c.comment))
+            return resolved === Boolean(c.resolved) ? c : { ...c, resolved, status: resolved ? 'resolved' : 'pending' }
+          })
         const merged = [...others, ...converted]
         localStorage.setItem('approval_comments_v1', JSON.stringify(merged))
 
@@ -722,6 +731,22 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
     })
     return map
   }, [coverage, cpaData.courseOutcomes])
+
+  // The ILO ids from Course Coverage ("CO1-ILO1") count the orientation ILO, but the plan does not number it: it
+  // shows the orientation ILO unnumbered and the next one as ILO1. Label every ILO the way the plan does, so a
+  // reviewer picks (and later reads) the same ILO the instructor sees. The id stays the value sent to the server.
+  const iloLabels = React.useMemo(() => {
+    const labels = {}
+    const seen = {}
+    for (const ilo of coverage?.ilos || []) {
+      if (!ilo?.id) continue
+      const co = String(ilo.id).split('-')[0]
+      if (ilo.isOrientation) { labels[ilo.id] = `${co} · Orientation`; continue }
+      seen[co] = (seen[co] || 0) + 1
+      labels[ilo.id] = `${co}-ILO${seen[co]}`
+    }
+    return labels
+  }, [coverage])
 
   const handleSubmitComment = (payload) => {
     if (import.meta.env.DEV) console.log('Submitted approval comment', { ...payload, role: roleKey })
@@ -1458,7 +1483,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
                         ? comment.coverageDetail.filter(Boolean)
                         : (comment.coverageDetail ? [comment.coverageDetail] : [])
                       const display = parseApprovalCommentDisplay(comment.comment, comment.suggestedRefs)
-                      const compactIlo = compactCommentIlo(comment.ilo, comment.courseOutcome)
+                      const compactIlo = compactCommentIlo(iloLabels[comment.ilo] || comment.ilo, comment.courseOutcome)
                       const roleLabel = reviewerRoleLabel(comment.role)
                       const submittedAt = comment.createdAt || comment.submittedAt
                       return (
@@ -1568,6 +1593,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
         readOnly={readOnlyCommentModal}
         previousComments={previousComments}
         coToIlosProp={Object.keys(realCoToIlos).length ? realCoToIlos : undefined}
+        iloLabels={iloLabels}
       />
 
       {/* ── APPROVE CONFIRMATION (matches instructor submit modal, with undo countdown) ── */}

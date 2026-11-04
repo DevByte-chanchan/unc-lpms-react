@@ -314,3 +314,14 @@
   margin-right: auto
   font-size: 12px
   color: var(--ink-muted)
+
+// The Target list (DropdownMultiSelect) opens inside the comment card: keep it as wide as its field and let long
+// names wrap, so it never widens the window or adds a sideways scrollbar.
+.field [class*='optionsMenu']
+  width: 100%
+  max-width: 100%
+  box-sizing: border-box
+
+.field [class*='menuOptionItem']
+  white-space: normal
+  overflow-wrap: anywhere

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { offeringKey } from '../utils/offeringKey.js'
 import { BookOpen } from 'react-feather';
-import { unresolvedCountsByReference, iloIdsFromCourse } from '../utils/referenceComments.js';
+import { unresolvedCountsByReference } from '../utils/referenceComments.js';
 import EmptyState from './EmptyState.jsx';
 import TableScrollRegion from './TableScrollRegion.jsx';
 import { sanitizeUrl } from '../utils/sanitize.js';
@@ -69,20 +69,12 @@ const ReferenceSummary = ({ offeringID, revisionNum, status, selectedSection, st
 
         async function gatherReferenceCommentCounts() {
             try {
-                const course = await fetchJson(`/api/ilos/${offeringKey(offeringID, revisionNum)}`);
-                const iloIds = iloIdsFromCourse(course);
-                if (iloIds.length === 0) return;
-
-                const rows = await Promise.all(iloIds.map(iloId =>
-                    fetchJson(`/api/comments/filter/${iloId}/references`)
-                        .catch(err => {
-                            console.error(`Failed to gather reference feedback metrics for ILO ${iloId}:`, err);
-                            return [];
-                        })
-                ));
-
+                // The plan's comments in one call, which every reviewer of the plan may read. (The ILO list this
+                // used to go through is not open to the Director of Libraries, so their badges never loaded.)
+                const rows = await fetchJson(`/api/comments/course/${offeringKey(offeringID, revisionNum)}`);
                 if (!mounted) return;
-                setReferenceCommentCounts(unresolvedCountsByReference(rows.flat()));
+                const referenceRows = (Array.isArray(rows) ? rows : []).filter(row => row.comment_for === 'references');
+                setReferenceCommentCounts(unresolvedCountsByReference(referenceRows));
             } catch (error) {
                 console.error("Error tracking runtime item feedback counts:", error);
             }
