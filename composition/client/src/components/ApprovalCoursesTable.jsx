@@ -65,7 +65,7 @@ const ApprovalCoursesTable = ({ role = 'approver', styleHooks = {} }) => {
     const today = new Date();
     const currentYear = today.getMonth() >= 5 ? today.getFullYear() : today.getFullYear() - 1;
     const startYear = currentYear - 8;
-    const semOptions = ['1st Sem', '2nd Sem'];
+    const semOptions = ['1st Sem', '2nd Sem', 'Summer'];
     const [searchParams, setSearchParams] = useSearchParams();
     const linkedCourseFilters = readAssignedCourseFilters(searchParams, currentYear);
     const targetCourse = linkedCourseFilters.course;
@@ -435,7 +435,7 @@ const ApprovalCoursesTable = ({ role = 'approver', styleHooks = {} }) => {
                 <NotSubmittedPanel
                     active={notSubmitted}
                     schoolYear={`${selectedYear}-${Number(selectedYear) + 1}`}
-                    semester={String(selectedSem).startsWith('2') ? '2nd' : '1st'}
+                    semester={selectedSem === 'Summer' ? 'Summer' : String(selectedSem).startsWith('2') ? '2nd' : '1st'}
                     query={query}
                     onCount={setNotSubmittedCount}
                 />

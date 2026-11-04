@@ -2,7 +2,7 @@ import { computeOverallStatus } from './assignmentStatus.js'
 import { routes } from './routes.js'
 
 const REVIEWABLE_STATUSES = new Set(['PENDING', 'RETURNED', 'APPROVED'])
-const SEMESTERS = new Set(['1st Sem', '2nd Sem'])
+const SEMESTERS = new Set(['1st Sem', '2nd Sem', 'Summer'])
 
 export const getAssignmentCourseCode = (row = {}) => {
   const offering = row.ProgramCourseOffering || {}

@@ -54,31 +54,35 @@ const listAssignments = async (req, res, next) => {
             whereAssignment.stakeholder_id = stakeholder;
         }
 
-        // --- Academic Term Filtering Logic ---
+        // --- Academic term ---
+        // A plan belongs to the school year and semester written on its offering, not to the day it was assigned (a
+        // plan for next year is often assigned this year). Only an offering with no school year falls back to the
+        // assignment date.
+        let termOfferingIds = null;
         if (year && semester) {
             const startYear = parseInt(year, 10);
-            let startDate, endDate;
-
-            if (semester === '1st Sem') {
-                // First Semester: July 20 to Nov 25 of the given year
-                startDate = new Date(`${startYear}-06-01T00:00:00.000Z`);
-                endDate = new Date(`${startYear}-11-25T23:59:59.999Z`);
-            } else if (semester === '2nd Sem') {
-                // Second Semester: Dec 9 of the given year to April 27 of the NEXT calendar year
-                startDate = new Date(`${startYear}-12-09T00:00:00.000Z`);
-                endDate = new Date(`${startYear + 1}-04-27T23:59:59.999Z`);
-            }
-
-            if (startDate && endDate) {
-                // Filter by date_assigned falling within the academic term
-                whereAssignment.date_assigned = {
-                    [Op.between]: [startDate, endDate]
+            const SEMESTER_OF = { '1st Sem': '1st', '2nd Sem': '2nd', Summer: 'Summer' };
+            const termSemester = SEMESTER_OF[semester];
+            if (Number.isSafeInteger(startYear) && termSemester) {
+                const RANGES = {
+                    '1st': [`${startYear}-06-01T00:00:00.000Z`, `${startYear}-11-25T23:59:59.999Z`],
+                    '2nd': [`${startYear}-12-09T00:00:00.000Z`, `${startYear + 1}-04-27T23:59:59.999Z`],
+                    Summer: [`${startYear + 1}-04-28T00:00:00.000Z`, `${startYear + 1}-05-31T23:59:59.999Z`]
                 };
+                const [from, to] = RANGES[termSemester];
+                const rows = await sequelize.query(
+                    `SELECT DISTINCT pco.pc_offering_id AS id
+                     FROM ProgramCourseOfferings pco
+                         LEFT JOIN CourseOfferingAssignments coa ON coa.pc_offering_id = pco.pc_offering_id
+                     WHERE (pco.school_year = ? AND pco.semester = ?)
+                        OR (pco.school_year IS NULL AND coa.date_assigned BETWEEN ? AND ?);`,
+                    { replacements: [`${startYear}-${startYear + 1}`, termSemester, new Date(from), new Date(to)], type: sequelize.QueryTypes.SELECT });
+                termOfferingIds = rows.map(row => row.id);
             }
         }
-        // ------------------------------------
 
         const whereOffering = {};
+        if (termOfferingIds) whereOffering.pc_offering_id = { [Op.in]: termOfferingIds.length ? termOfferingIds : [0] };
         if (programId) whereOffering.program_id = programId;
         if (courseId) whereOffering.course_id = courseId;
         if (req.user?.role === 'industry-consultant') {
