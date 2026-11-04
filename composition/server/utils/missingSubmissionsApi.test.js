@@ -129,8 +129,11 @@ test('a deadline can be set, changed and removed, only for a program the person 
     assert.equal((await call(HEAD_A(), 'PUT', '/term-deadlines', { program_id: ids.progB, school_year: SCHOOL_YEAR, semester: '1st', syllabus_due: due })).status, 403, "another head's program");
     assert.equal((await call(HEAD_A(), 'DELETE', `/term-deadlines/${set.body.id}`)).status, 403);
     assert.equal((await call(DEAN_A(), 'PUT', '/term-deadlines', { program_id: ids.progB, school_year: SCHOOL_YEAR, semester: '1st', syllabus_due: due })).status, 403, "another department's program");
+    // The Dean oversees: reads the due dates (above) but does not set them, not even for their own department.
     const dean = await call(`${ids.deanB}:dean`, 'PUT', '/term-deadlines', { program_id: ids.progB, school_year: SCHOOL_YEAR, semester: '2nd', syllabus_due: addDays(today, 90) });
-    assert.equal(dean.status, 201, 'a Dean sets one for their department');
+    assert.equal(dean.status, 403, 'only the Program Head sets a due date');
+    assert.equal((await call(`${ids.deanB}:dean`, 'DELETE', `/term-deadlines/${set.body.id}`)).status, 403, 'nor removes one');
+    assert.equal((await call(`${ids.deanB}:dean`, 'PUT', `/missing-submissions/${plan.W.offeringId}/pause`, { paused: true })).status, 403, 'nor pauses reminders');
 
     assert.equal((await call(HEAD_B(), 'DELETE', `/term-deadlines/${set.body.id}`)).status, 200);
     assert.equal((await call(HEAD_B(), 'DELETE', `/term-deadlines/${set.body.id}`)).status, 404);
