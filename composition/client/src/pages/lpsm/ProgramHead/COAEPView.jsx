@@ -18,7 +18,6 @@ import cc from '../../../styles/SyllabusPreview.module.sass';
 import pageStyles from '../../../styles/ProgramHeadWorkspace.module.sass';
 import styles from '../../../styles/PoPeoAlignment.module.sass';
 
-const PHASES = [['pre-class', 'PRE-CLASS'], ['in-class', 'IN-CLASS'], ['post-class', 'POST-CLASS']];
 
 const COAEPView = () => {
   const session = getSession();
@@ -70,10 +69,6 @@ const COAEPView = () => {
     courseName: course?.name,
     payload: serverCoaep || null,
   });
-
-  // One target for every row reads better above the table than repeated in a column.
-  const targets = new Set((generatedRecord?.cos || []).flatMap(co => (co.ilos || []).map(ilo => ilo.performanceTarget || generatedRecord.performanceTarget)));
-  const sharedTarget = targets.size === 1 ? [...targets][0] : null;
 
   const viewGeneratedCoaep = async () => {
     if (!generatedRecord) return;
@@ -135,69 +130,37 @@ const COAEPView = () => {
 
           {generatedRecord ? (
             <div style={{ minWidth: 0, minHeight: 0, flex: 1, display: 'flex', flexDirection: 'column' }}><HeadBodyTable label="COURSE ASSESSMENT & EVALUATION PLAN (COAEP)" tableClass={cc.ccTable}
-              widths={sharedTarget ? [60, 220, 220, 120, 250, 300, 220] : [60, 220, 220, 120, 250, 300, 220, 200]}
+              widths={[40, 250, 300, 260, 220]}
               head={(
+                // The official form's columns (UNC-FM-VPAA-02): the CO number shares the statement's header.
                 <tr>
-                  <th className={cc.ccHeader}>CO</th>
-                  <th className={cc.ccHeader}>Course outcome statement</th>
-                  <th className={cc.ccHeader}>ILO</th>
-                  <th className={cc.ccHeader}>Level / weight</th>
-                  <th className={cc.ccHeader}>Topics</th>
-                  <th className={cc.ccHeader}>Teaching &amp; learning activities (TLAs)</th>
-                  <th className={cc.ccHeader}>Assessment tool</th>
-                  {!sharedTarget && <th className={cc.ccHeader}>Performance target</th>}
+                  <th className={cc.ccHeader} colSpan={2}>Course Outcome Statement</th>
+                  <th className={cc.ccHeader}>Intended Learning Outcome</th>
+                  <th className={cc.ccHeader}>Assessment Tool</th>
+                  <th className={cc.ccHeader}>Performance Target</th>
                 </tr>
               )}>
                 <tbody>
                   {generatedRecord.cos.map((co, courseOutcomeIndex) => {
-                    const ilos = co.ilos?.length ? co.ilos : [{ outcome: '', topics: [], tlas: [], assessments: [] }];
+                    const ilos = co.ilos?.length ? co.ilos : [{ outcome: '', assessments: [] }];
                     return ilos.map((ilo, iloIndex) => (
                       <tr key={`${courseOutcomeIndex}-${iloIndex}`}>
-                        {iloIndex === 0 && <td className={`${cc.ccCell} ${cc.centerText} ${cc.boldText}`} rowSpan={ilos.length}>{courseOutcomeIndex + 1}</td>}
+                        {iloIndex === 0 && <td className={`${cc.ccCell} ${cc.boldText}`} rowSpan={ilos.length}>{courseOutcomeIndex + 1}</td>}
                         {iloIndex === 0 && <td className={cc.ccCell} rowSpan={ilos.length}>{co.statement}</td>}
-                        <td className={cc.ccCell}>
-                          <div className={cc.boldText} style={{ marginBottom: 5 }}>ILO{iloIndex + 1}</div>
-                          {ilo.outcome}
-                        </td>
-                        <td className={`${cc.ccCell} ${cc.centerText}`}>
-                          {ilo.level ? <><div className={cc.boldText}>{ilo.levelName} ({ilo.level})</div><div>{ilo.levelWeight}% of course</div></> : '—'}
-                        </td>
-                        <td className={cc.ccCell}>
-                          {ilo.topics?.length ? <ul className={cc.subtopicList}>{ilo.topics.map(topic => <li key={topic}>{topic}</li>)}</ul> : '—'}
-                        </td>
-                        <td className={cc.ccCell}>
-                          {PHASES.map(([phase, title]) => {
-                            const inPhase = (ilo.tlas || []).filter(tla => String(tla.phase || '').toLowerCase() === phase);
-                            return inPhase.length > 0 && (
-                              <div key={phase} className={cc.tlaGroupBlock}>
-                                <div className={cc.tlaPhaseHeader}>{title}</div>
-                                {inPhase.map(tla => <div key={tla.name} className={cc.tlaItem}><span className={cc.boldText}>{tla.name}</span></div>)}
-                              </div>
-                            );
-                          })}
-                          {(ilo.tlas || []).filter(tla => !PHASES.some(([phase]) => phase === String(tla.phase || '').toLowerCase())).map(tla => (
-                            <div key={tla.name} className={cc.tlaItem}><span className={cc.boldText}>{tla.name}</span></div>
-                          ))}
-                          {!ilo.tlas?.length && '—'}
-                        </td>
+                        <td className={cc.ccCell}>{ilo.outcome || '—'}</td>
                         <td className={cc.ccCell}>
                           {ilo.assessments?.length
-                            ? ilo.assessments.map(item => (
-                              <div key={item.name} className={cc.assessItem}>
-                                <div className={cc.boldText}>{item.name}</div>
-                                <div className={cc.descText}>{[item.periodLabel, `${item.weight}%`].filter(Boolean).join(', ')}</div>
-                              </div>
-                            ))
+                            ? ilo.assessments.map(item => <div key={item.name} className={cc.assessItem}>{item.name}</div>)
                             : '—'}
                         </td>
-                        {!sharedTarget && <td className={cc.ccCell}>{ilo.performanceTarget || generatedRecord.performanceTarget}</td>}
+                        <td className={cc.ccCell}>{ilo.performanceTarget || generatedRecord.performanceTarget}</td>
                       </tr>
                     ));
                   })}
                 </tbody>
             </HeadBodyTable></div>
           ) : serverCoaep === undefined && courseCode ? (
-            <Loading label="Loading the plan…"><TableSkeleton rows={5} cols={[60, 220, 220, 120, 250, '1fr', 220]} rowHeight={80} /></Loading>
+            <Loading label="Loading the plan…"><TableSkeleton rows={5} cols={[40, 250, '1fr', 260, 220]} rowHeight={80} /></Loading>
           ) : courses !== null && courses.length === 0 ? (
             <EmptyState
               icon={<FileText size={22} strokeWidth={1.6} />}

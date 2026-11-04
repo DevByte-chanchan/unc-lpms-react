@@ -1394,29 +1394,19 @@ export function buildCoaepHtml(coaepData, logoBase64, options = {}) {
     </tr>
   </table>`
 
-  // One row per ILO. Its level, topics, TLAs and assessments are listed inside the
-  // row, so the list columns use a smaller type than the form's 9.5pt body.
+  // One row per ILO, in the official form's four columns (UNC-FM-VPAA-02): statement, ILO, assessment tool, target.
   const cell = 'border:1px solid #000; padding:5px 6px; vertical-align:top; line-height:1.3;'
   const list = (items) => items.length
     ? `<ul style="margin:0; padding-left:11px;">${items.map(item => `<li>${item}</li>`).join('')}</ul>`
     : '—'
   const iloCells = (ilo) => {
-    const level = ilo.level
-      ? `${safe(ilo.levelName)} (${safe(ilo.level)})<br>${safe(ilo.levelWeight)}% of course`
-      : '—'
-    const topics = list((ilo.topics || []).map(t => safe(t)))
-    const tlas = list((ilo.tlas || []).map(t => safe(t.name) + (t.phase ? ` (${safe(t.phase)})` : '')))
-    const assessments = list((ilo.assessments || []).map(a =>
-      `${safe(a.name)} — ${a.periodLabel ? safe(a.periodLabel) + ', ' : ''}${safe(a.weight)}%`))
+    const assessments = list((ilo.assessments || []).map(a => safe(a.name)))
     return `<td style="${cell} font-size:9pt;">${safe(ilo.outcome)}</td>
-      <td style="${cell} font-size:8.5pt;">${level}</td>
-      <td style="${cell} font-size:8.5pt;">${topics}</td>
-      <td style="${cell} font-size:8.5pt;">${tlas}</td>
-      <td style="${cell} font-size:8.5pt;">${assessments}</td>
-      <td style="${cell} font-size:8.5pt;">${target(ilo)}</td>`
+      <td style="${cell} font-size:9pt;">${assessments}</td>
+      <td style="${cell} font-size:9pt;">${target(ilo)}</td>`
   }
   const coBlock = (co, idx) => {
-    const ilos = (co.ilos || []).length ? co.ilos : [{ outcome: '', topics: [], tlas: [], assessments: [] }]
+    const ilos = (co.ilos || []).length ? co.ilos : [{ outcome: '', assessments: [] }]
     const rest = ilos.slice(1).map(ilo => `<tr>
       ${iloCells(ilo)}
     </tr>`).join('\n      ')
@@ -1429,14 +1419,10 @@ export function buildCoaepHtml(coaepData, logoBase64, options = {}) {
 
   const th = 'border:1px solid #000; padding:5px 6px; font-size:9pt;'
   const tableHead = `<tr>
-        <th style="border:1px solid #000; padding:5px 3px; width:3%; font-size:9pt;"></th>
-        <th style="${th} width:12%;">Course Outcome Statement</th>
-        <th style="${th} width:17%;">Intended Learning Outcome</th>
-        <th style="${th} width:9%;">Level / Weight</th>
-        <th style="${th} width:13%;">Topics</th>
-        <th style="${th} width:14%;">TLAs</th>
-        <th style="${th} width:15%;">Assessment Tool</th>
-        <th style="${th} width:17%;">Performance Target</th>
+        <th style="${th} width:24%;" colspan="2">Course Outcome Statement</th>
+        <th style="${th} width:31%;">Intended Learning Outcome</th>
+        <th style="${th} width:24%;">Assessment Tool</th>
+        <th style="${th} width:21%;">Performance Target</th>
       </tr>`
 
   const metaBlock = `<table style="width:100%; border-collapse:collapse; font-size:9.5pt; margin-bottom:8px;">
