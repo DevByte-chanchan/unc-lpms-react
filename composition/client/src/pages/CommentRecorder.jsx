@@ -128,6 +128,7 @@ export default function CommentRecorder() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     code,
+                    pcId: row?.ProgramCourseOffering?.pc_offering_id,
                     commenter_role: role,
                     message: message.trim(),
                     comment_for: commentFor,

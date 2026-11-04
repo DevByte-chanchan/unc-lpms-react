@@ -78,3 +78,19 @@ test('comments by course code come only from the offering that passed the access
     assert.ok(messages.includes(`ZZ mine ${stamp}`), 'their own offering\'s comment is returned');
     assert.ok(!messages.includes(`ZZ other ${stamp}`), 'another program\'s offering of the same course is not');
 });
+
+test('a comment is saved on the plan being reviewed, not the newest plan with that course code', async () => {
+    const otherOffering = made.offerings[1];
+    const res = await fetch(`${base}/comments/by-course`, {
+        method: 'POST',
+        headers: { 'x-user': `${ids.dean}:dean`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code, pcId: otherOffering, commenter_role: 'DEAN', message: `ZZ posted ${stamp}`, co_index: 1, ilo_index: 1 })
+    });
+    assert.equal(res.status, 201);
+    const [row] = await sequelize.query(
+        `SELECT c.comment_id, co.pc_offering_id FROM Comments c JOIN IntendedLearningOutcomes i ON i.ilo_id = c.ilo_id
+         JOIN CourseOutcomes co ON co.co_id = i.co_id WHERE c.message = ?;`,
+        { replacements: [`ZZ posted ${stamp}`], type: Sequelize.QueryTypes.SELECT });
+    made.comments.push(row.comment_id);
+    assert.equal(row.pc_offering_id, otherOffering);
+});

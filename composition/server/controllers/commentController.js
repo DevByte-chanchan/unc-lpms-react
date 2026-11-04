@@ -147,13 +147,16 @@ exports.createCourseComment = async (req, res) => {
             return res.status(400).json({ message: 'Provide co_index+ilo_index, or comment_for so the comment can be attached.' });
         }
 
+        // The plan being reviewed (pcId), when the client sends it: one course code can have several plans (programs,
+        // terms, revisions) and the newest revision is not necessarily the one on screen. It must be a plan of this code.
+        const requestedPcId = /^[0-9]+$/.test(String(req.body?.pcId ?? '')) ? Number(req.body.pcId) : null;
         const offering = await sequelize.query(
             `SELECT pco.pc_offering_id
              FROM ProgramCourseOfferings pco
                  INNER JOIN Courses c ON c.course_id = pco.course_id
-             WHERE c.course_no = ?
-             ORDER BY pco.revision_number DESC LIMIT 1;`,
-            { replacements: [code], type: Sequelize.QueryTypes.SELECT }
+             WHERE c.course_no = ?${requestedPcId ? ' AND pco.pc_offering_id = ?' : ''}
+             ORDER BY pco.revision_number DESC, pco.pc_offering_id DESC LIMIT 1;`,
+            { replacements: requestedPcId ? [code, requestedPcId] : [code], type: Sequelize.QueryTypes.SELECT }
         );
         if (offering.length === 0) return res.status(404).json({ message: 'Course not found.' });
         const pcId = offering[0].pc_offering_id;
