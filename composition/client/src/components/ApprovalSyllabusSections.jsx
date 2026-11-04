@@ -2,7 +2,7 @@ import Select from './Select.jsx'
 import React, { useEffect, useState, useRef } from 'react'
 import { offeringKey } from '../utils/offeringKey.js'
 import { Link, useSearchParams, useParams, useNavigate, useLocation } from 'react-router-dom'
-import { ChevronLeft, ChevronRight, MessageSquare, Download, MoreVertical, Check, Clock, FileText, UserPlus } from 'react-feather'
+import { ChevronLeft, ChevronRight, MessageSquare, Download, MoreVertical, Check, Clock, FileText, UserPlus, Lock, AlertTriangle, X } from 'react-feather'
 import EmptyState from './EmptyState.jsx'
 import Spinner from './Spinner.jsx'
 import TableScrollRegion from './TableScrollRegion.jsx'
@@ -10,6 +10,7 @@ import styles from '../styles/ApprovalSyllabusSections.module.sass'
 import subStyles from '../styles/SyllabusSections.module.sass'
 import stylesB from '../styles/SyllabusPreview.module.sass'
 import stylesC from '../styles/SyllabusSections.module.sass'
+import dialogStyles from '../styles/DueDateDialog.module.sass'
 import ApprovalCommentBox from './ApprovalCommentBox.jsx'
 import { useServerWorkflow } from '../utils/useServerWorkflow.js'
 import { fetchFormInfo } from '../utils/formSettings.js'
@@ -839,6 +840,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             code,
+            pcId: validPcId,
             commenter_role: COMMENT_ROLE_MAP[roleKey] || roleKey.toUpperCase(),
             // The type rides along in the message — the server stores one
             // string, and the instructor's forms parse the tag back into a
@@ -874,6 +876,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               code,
+              pcId: validPcId,
               commenter_role: 'LIBRARY_DIRECTOR',
               message,
               comment_for: 'references',
@@ -1003,14 +1006,36 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
     </div>
   </>)
 
-  // No offering, or the log could not be read: say so instead of showing the plan as a draft.
+  // No offering, or the log could not be read: say so in a window instead of showing the plan as a draft. The only way
+  // out is back to the course list.
   if (workflowError && !workflowProp) {
+    const noAccess = /do not have access/i.test(workflowError)
     return (
       <div className={styles.container}>
-        <div role="alert" style={{ margin: 24, padding: '16px 20px', border: '1px solid var(--danger)', background: '#fef2f2', color: '#7f1d1d', borderRadius: 8 }}>
-          <strong>Approval status unavailable.</strong> {workflowError}
-          <div style={{ marginTop: 10 }}>
-            <Link to={backPath} className={'actionLink'}>Back to course list</Link>
+        <div role="presentation" className={dialogStyles.backdrop} />
+        <div role="alertdialog" aria-modal="true" aria-labelledby="plan-unavailable-title" className={dialogStyles.window}
+          onKeyDown={(event) => { if (event.key === 'Escape') navigate(backPath) }}>
+          <div className="app-window-header">
+            <h2 id="plan-unavailable-title" className="app-window-title">{noAccess ? 'No access to this learning plan' : 'Learning plan unavailable'}</h2>
+            <button type="button" className="app-icon-close" aria-label="Close and go back to the course list" onClick={() => navigate(backPath)}>
+              <X size={16} strokeWidth={2.5} color="currentColor" />
+            </button>
+          </div>
+          <div className={dialogStyles.body}>
+            <div className={dialogStyles.notice}>
+              <span className={`${dialogStyles.noticeIcon} ${noAccess ? '' : dialogStyles.noticeIconWarn}`} aria-hidden="true">
+                {noAccess ? <Lock size={18} /> : <AlertTriangle size={18} />}
+              </span>
+              <div>
+                {codeToUse && <div className={dialogStyles.noticeCourse}>{codeToUse}{resolvedCourse?.name ? ` · ${resolvedCourse.name}` : ''}</div>}
+                <div className={dialogStyles.noticeText}>{noAccess
+                  ? 'You are no longer assigned to review this course, or this link is out of date. Your current learning plans are in your course list.'
+                  : workflowError}</div>
+              </div>
+            </div>
+          </div>
+          <div className={dialogStyles.actions}>
+            <button type="button" className="btn btn-primary" autoFocus onClick={() => navigate(backPath)}>Back to course list</button>
           </div>
         </div>
       </div>

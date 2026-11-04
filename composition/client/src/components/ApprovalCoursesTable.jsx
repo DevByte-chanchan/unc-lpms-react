@@ -97,6 +97,15 @@ const ApprovalCoursesTable = ({ role = 'approver', styleHooks = {} }) => {
         }
         return defaultStatus;
     });
+    // A link to this page with another ?status= (a notification, while the list is already open) switches the tab:
+    // the state above is only read from the address once, when the page first loads.
+    const urlStatus = searchParams.get('status');
+    useEffect(() => {
+        if (!urlStatus) return;
+        const wanted = urlStatus === 'not-submitted' ? 'NOT_SUBMITTED' : urlStatus.toUpperCase();
+        const allowed = role === 'vpaa' ? ['APPROVED'] : role === 'program-head' ? ['PENDING', 'RETURNED', 'APPROVED', 'NOT_SUBMITTED'] : ['PENDING', 'RETURNED', 'APPROVED'];
+        if (allowed.includes(wanted)) setSelectedStatus(wanted);
+    }, [urlStatus, role]);
     const updateStatus = (status) => {
         setSelectedStatus(status);
         setSearchParams({ status: status.toLowerCase().replace('_', '-') }, { replace: true });
