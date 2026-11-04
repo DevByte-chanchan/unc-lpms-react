@@ -7,7 +7,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const express = require('express');
 const { Op } = require('sequelize');
-const { sequelize, Sequelize, User, CourseConsultant } = require('../models');
+const { sequelize, Sequelize, User, CourseConsultant, Notification } = require('../models');
 
 const insert = async (sql, replacements) => (await sequelize.query(sql, { replacements, type: Sequelize.QueryTypes.INSERT }))[0];
 const stamp = Date.now();
@@ -50,6 +50,7 @@ test.before(async () => {
 test.after(async () => {
     server.close();
     const list = (a) => (a.length ? a.join(', ') : '0');
+    await Notification.destroy({ where: { recipient_user_id: { [Op.in]: made.users } } });
     await CourseConsultant.destroy({ where: { course_id: { [Op.in]: made.courses } } });
     await sequelize.query(`DELETE FROM ProgramCourseOfferings WHERE pc_offering_id IN (${list(made.offerings)})`);
     await sequelize.query(`DELETE FROM Courses WHERE course_id IN (${list(made.courses)})`);
@@ -68,6 +69,10 @@ const HEAD_B = () => `${ids.headB}:program-head`;
 test('another program head can neither see nor remove a consultant assignment', async () => {
     const assigned = await call(HEAD_B(), 'POST', '/course-consultants', { course_id: ids.course, consultant_user_id: ids.consultant });
     assert.equal(assigned.status, 201);
+    const told = await Notification.findAll({ where: { recipient_user_id: ids.consultant, type: 'course_assigned' }, raw: true });
+    assert.equal(told.length, 1, 'the consultant is told they were assigned');
+    assert.match(told[0].message, /assigned as the industry consultant/);
+    assert.equal(told[0].offering_id, made.offerings[0]);
     const id = assigned.body.course_consultant_id;
 
     const seenByA = await call(HEAD_A(), 'GET', `/course-consultants?courseId=${ids.course}`);
@@ -84,4 +89,7 @@ test('another program head can neither see nor remove a consultant assignment', 
     const removed = await call(HEAD_B(), 'PUT', `/course-consultants/${id}/deactivate`);
     assert.equal(removed.status, 200);
     assert.equal((await CourseConsultant.findByPk(id)).is_active, false);
+    const gone = await Notification.findAll({ where: { recipient_user_id: ids.consultant, type: 'course_unassigned' }, raw: true });
+    assert.equal(gone.length, 1, 'the consultant is told they were removed');
+    assert.match(gone[0].message, /removed as the industry consultant/);
 });

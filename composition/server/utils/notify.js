@@ -9,7 +9,7 @@
 
 const TYPES = Object.freeze([
     'plan_submitted', 'plan_returned', 'plan_ready_for_dean', 'plan_approved',
-    'comment_added', 'comment_resolved', 'course_assigned', 'revision_started', 'poke',
+    'comment_added', 'comment_resolved', 'course_assigned', 'course_unassigned', 'revision_started', 'poke',
     'reminder', 'missing_digest', 'approval_waiting', 'reference_health', 'reference_flags', 'reference_unavailable'
 ]);
 

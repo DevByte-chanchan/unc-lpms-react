@@ -1,6 +1,7 @@
 'use strict';
 
 const { sequelize, Sequelize, CourseConsultant, Course, User } = require('../models');
+const { notify, eventMessage } = require('../utils/notify');
 
 const asInt = (value) => (Number.isSafeInteger(Number(value)) && Number(value) > 0 ? Number(value) : null);
 
@@ -66,22 +67,35 @@ async function assignConsultant(req, res, next) {
         const consultantId = asInt(req.body?.consultant_user_id);
         if (!courseId || !consultantId) return res.status(400).json({ message: 'course_id and consultant_user_id are required.' });
 
-        if (!(await Course.findByPk(courseId))) return res.status(404).json({ message: 'Course not found.' });
+        const course = await Course.findByPk(courseId);
+        if (!course) return res.status(404).json({ message: 'Course not found.' });
         if (!(await headsProgramOffering(courseId, req.user.id))) return res.status(403).json({ message: 'Only the head of a program that offers this course can assign its consultant.' });
         const consultant = await User.findByPk(consultantId);
         if (!consultant || consultant.role !== 'industry-consultant' || consultant.is_active === false) {
             return res.status(400).json({ message: 'That account is not an active industry consultant.' });
         }
 
+        // Tell the consultant, linked to the newest offering of the course in the head's programs.
+        const tellConsultant = async () => {
+            const [offering] = await sequelize.query(
+                `SELECT pco.pc_offering_id FROM ProgramCourseOfferings pco INNER JOIN Programs p ON p.program_id = pco.program_id
+                 WHERE pco.course_id = ? AND p.stakeholder_id = ? ORDER BY pco.revision_number DESC, pco.pc_offering_id DESC LIMIT 1;`,
+                { replacements: [courseId, req.user.id], type: Sequelize.QueryTypes.SELECT });
+            await notify([consultantId], 'course_assigned', offering?.pc_offering_id ?? null,
+                eventMessage(course.course_no, 'you were assigned as the industry consultant', 'program-head'), 'PROGRAM_HEAD');
+        };
+
         const existing = await CourseConsultant.findOne({ where: { course_id: courseId, consultant_user_id: consultantId } });
         if (existing) {
             if (existing.is_active) return res.status(409).json({ message: 'This consultant is already assigned to the course.' });
             await existing.update({ is_active: true, deactivated_at: null, deactivated_by_user_id: null, assigned_by_user_id: req.user.id });
+            await tellConsultant();
             return res.json(existing);
         }
         const created = await CourseConsultant.create({
             course_id: courseId, consultant_user_id: consultantId, assigned_by_user_id: req.user.id, is_active: true
         });
+        await tellConsultant();
         return res.status(201).json(created);
     } catch (err) {
         return next(err);
@@ -98,6 +112,10 @@ async function deactivateAssignment(req, res, next) {
         }
         if (!row.is_active) return res.json(row);
         await row.update({ is_active: false, deactivated_at: new Date(), deactivated_by_user_id: req.user.id });
+        // Tell the consultant; no link, since they can no longer open the course.
+        const course = await Course.findByPk(row.course_id, { attributes: ['course_no'] });
+        await notify([row.consultant_user_id], 'course_unassigned', null,
+            eventMessage(course?.course_no, 'you were removed as the industry consultant', 'program-head'), 'PROGRAM_HEAD');
         return res.json(row);
     } catch (err) {
         return next(err);
