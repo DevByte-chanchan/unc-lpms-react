@@ -231,9 +231,14 @@
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04)
   color: #334155
 
+// A resolved comment steps back: lighter, and below the open ones.
 .commentCardResolved
   background: #fbfdfb
-  border-color: #d7e8da
+  border-color: #e3ece4
+  opacity: 0.72
+
+  &:hover, &:focus-within
+    opacity: 1
 
 .commentCardHeader
   display: flex
@@ -304,34 +309,35 @@
     border-color: #94a3b8
     background: #f8fafc
 
+// What the comment is about, on one line: a small type tag, then the item names.
 .commentTarget
-  display: grid
-  grid-template-columns: 78px minmax(0, 1fr)
+  display: flex
+  align-items: center
   gap: 8px
-  align-items: start
-  margin-bottom: 12px
-  padding: 9px 10px
-  border: 1px solid #fde68a
-  border-radius: 6px
-  background: var(--warn-soft)
+  min-width: 0
+  margin-bottom: 10px
 
 .commentTargetLabel
+  flex: 0 0 auto
+  padding: 2px 6px
+  border-radius: 4px
+  background: var(--warn-soft)
   color: var(--warn)
-  font-size: 11px
+  font-size: 10px
   font-weight: 600
   text-transform: uppercase
 
 .commentTargetValues
-  display: flex
-  flex-direction: column
-  gap: 4px
   min-width: 0
+  overflow: hidden
   color: #78350f
   font-size: 12px
-  line-height: 1.45
+  font-weight: var(--fw-medium)
+  white-space: nowrap
+  text-overflow: ellipsis
 
-  span
-    overflow-wrap: anywhere
+  span + span::before
+    content: ', '
 
 .commentMessage
   margin-bottom: 12px
@@ -461,8 +467,7 @@
     justify-content: flex-start
 
   .commentTarget
-    grid-template-columns: 1fr
-    gap: 3px
+    gap: 6px
 
 .container section
   width: 100%
@@ -1365,3 +1370,46 @@
 
   .nav-short
     display: inline
+
+// The comments panel's All / Open / Resolved switch, under its title.
+.commentFilter
+  display: flex
+  gap: 6px
+  padding: 10px 20px 0
+
+.commentFilterBtn
+  height: 28px
+  padding: 0 12px
+  border: 1px solid var(--control-border)
+  border-radius: 999px
+  background: #fff
+  color: var(--ink-soft)
+  font: var(--fw-medium) 12px var(--font-ui)
+  cursor: pointer
+
+  &:hover
+    background: var(--hover-tint)
+
+.commentFilterOn
+  border-color: #19282c
+  background: #19282c
+  color: #fff
+
+  &:hover
+    background: #263c43
+
+// "Show in plan" at the end of a comment's footer: opens the section the comment is about.
+.commentJump
+  display: inline-flex
+  align-items: center
+  gap: 2px
+  margin-left: auto
+  padding: 0
+  border: 0
+  background: transparent
+  color: var(--ink)
+  font: var(--fw-medium) 11px var(--font-ui)
+  cursor: pointer
+
+  &:hover
+    text-decoration: underline

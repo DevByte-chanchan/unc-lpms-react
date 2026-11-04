@@ -119,6 +119,8 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
   const dropdownRef = useRef(null)
   const [isRevisionsOpen, setIsRevisionsOpen] = useState(false)
   const [isConsultantOpen, setIsConsultantOpen] = useState(false)
+  // The comments panel's Open / Resolved / All switch.
+  const [commentFilter, setCommentFilter] = useState('all')
 
   const [showCommentModal, setShowCommentModal] = useState(false)
   const [readOnlyCommentModal, setReadOnlyCommentModal] = useState(false)
@@ -1006,6 +1008,16 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
     </div>
   </>)
 
+  // Comments panel: open ones first (newest first within each group), filtered by the switch.
+  const resolvedCount = visibleComments.filter(c => c.resolved).length
+  const listedComments = visibleComments
+    .filter(c => commentFilter === 'all' || (commentFilter === 'open' ? !c.resolved : c.resolved))
+    .slice()
+    .sort((a, b) => (Number(Boolean(a.resolved)) - Number(Boolean(b.resolved)))
+      || (new Date(b.createdAt || b.submittedAt || 0) - new Date(a.createdAt || a.submittedAt || 0)))
+  // The section a comment is about, for its "Show in plan" link.
+  const sectionOfComment = (comment) => (comment.coverageType === 'References' ? 'References Summary' : comment.coverageType ? 'Course Coverage' : null)
+
   // No offering, or the log could not be read: say so in a window instead of showing the plan as a draft. The only way
   // out is back to the course list.
   if (workflowError && !workflowProp) {
@@ -1409,8 +1421,18 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
                 </h4>
                 <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 500 }}>
                   {visibleComments.length} {visibleComments.length === 1 ? 'comment' : 'comments'}
+                  {resolvedCount > 0 && ` · ${resolvedCount} resolved`}
                 </span>
               </div>
+              {visibleComments.length > 0 && (
+                <div className={styles.commentFilter} role="group" aria-label="Show comments">
+                  {[['all', 'All'], ['open', 'Open'], ['resolved', 'Resolved']].map(([key, label]) => (
+                    <button key={key} type="button" aria-pressed={commentFilter === key}
+                      className={`${styles.commentFilterBtn} ${commentFilter === key ? styles.commentFilterOn : ''}`}
+                      onClick={() => setCommentFilter(key)}>{label}</button>
+                  ))}
+                </div>
+              )}
 
               <div className={styles.commentsScroller}>
                 {visibleComments.length === 0 ? (
@@ -1421,9 +1443,15 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
                       ? 'Comments from your reviewers will appear here once they have looked at this section.'
                       : 'Use Add Comment above to raise a revision, suggest a topic, a TLA or an AI tool.'}
                   />
+                ) : listedComments.length === 0 ? (
+                  <EmptyState
+                    icon={<Check size={22} strokeWidth={1.6} />}
+                    title={commentFilter === 'open' ? 'No open comments' : 'No resolved comments'}
+                    hint="Change the switch above to see the others."
+                  />
                 ) : (
                   <div className={styles.commentsList}>
-                    {visibleComments.map((comment) => {
+                    {listedComments.map((comment) => {
                       const isRecipient = ({ 'instructor': 'instructor', 'program-head': 'program_head' }[roleKey]) === comment.recipientRole
                       const coverageType = comment.coverageType || ''
                       const details = Array.isArray(comment.coverageDetail)
@@ -1474,7 +1502,6 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
                           )}
 
                           <div className={styles.commentMessage}>
-                            <span className={styles.commentSectionLabel}>Reviewer comment</span>
                             <p>{display.body || 'No written comment provided.'}</p>
                           </div>
 
@@ -1508,6 +1535,11 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
                               <span className={styles.resolvedDate}>
                                 Fixed {new Date(comment.resolvedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                               </span>
+                            )}
+                            {sectionOfComment(comment) && visibleSections.includes(sectionOfComment(comment)) && (
+                              <button type="button" className={styles.commentJump} onClick={() => setSelectedSection(sectionOfComment(comment))}>
+                                Show in plan <ChevronRight size={13} aria-hidden="true" />
+                              </button>
                             )}
                           </footer>
                         </article>

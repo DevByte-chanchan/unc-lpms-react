@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import styles from '../styles/DropdownMultiSelect.module.sass';
 import { ChevronDown, X } from 'react-feather';
 
-const DropdownMultiSelect = ({ label, disabled, value = [], onChange, options = [], inline = false, error, style }) => {
+const DropdownMultiSelect = ({ label, disabled, value = [], onChange, options = [], inline = false, error, style, placeholder = 'Select options...' }) => {
     const [isOpen, setIsOpen] = useState(false);
     const dropdownRef = useRef(null);
 
@@ -39,7 +39,7 @@ const DropdownMultiSelect = ({ label, disabled, value = [], onChange, options = 
         >
             <div className={styles.pillsContainer}>
                 {value.length === 0 ? (
-                    <span className={styles.placeholder}>Select options...</span>
+                    <span className={styles.placeholder}>{placeholder}</span>
                 ) : (
                     value.map((item, index) => (
                         <div key={index} className={styles.pill}>

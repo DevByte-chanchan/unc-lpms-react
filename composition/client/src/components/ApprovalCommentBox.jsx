@@ -1,6 +1,6 @@
 import Select from './Select.jsx'
 import React, { useState, useEffect, useRef } from 'react'
-import { Search, X, Maximize, Minimize2, CheckCircle, AlertCircle, MessageSquare } from 'react-feather'
+import { Search, X, Maximize, Minimize2, CheckCircle, AlertCircle, MessageSquare, Plus } from 'react-feather'
 import styles from '../styles/ApprovalCommentBox.module.sass'
 import EmptyState from './EmptyState.jsx'
 import SpellCheckArea from './SpellCheckArea.jsx'
@@ -428,7 +428,7 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
     {!isFullscreen && <div onClick={handleClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 2999 }} />}
     <div role="dialog" aria-modal="true" aria-label="Comments" style={isFullscreen ? { position: 'fixed', inset: 0, zIndex: 3000, background: '#fff', display: 'flex', flexDirection: 'column', overflow: 'hidden', width: '100%', maxHeight: '100%', borderRadius: 0 } : { position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: 3000 }} className={styles.modal}>
       <div className="app-window-header">
-        <h3 className="app-window-title">{readOnly ? 'Previous Comments' : (isDirector ? 'Comment & Suggest References' : 'Comments')}</h3>
+        <h3 className="app-window-title">{readOnly ? 'Previous Comments' : (isDirector ? 'Return with Comments & References' : 'Return with Comments')}</h3>
         <div className="app-window-actions">
           <button type="button" className="app-icon-btn" onClick={() => setIsFullscreen(v => !v)} title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'} aria-label="Toggle fullscreen">
             {isFullscreen ? <Minimize2 size={16} /> : <Maximize size={16} />}
@@ -477,16 +477,14 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
                           onChange={(e) => updateComment(c.id, { commentedRefId: e.target.value })}
                           block
                         >
-                          <option value="">-- Select a reference --</option>
+                          <option value="">Select a reference</option>
                           {syllabusReferences.map(ref => (
                             <option key={ref.id} value={ref.id}>{ref.title} ({ref.year || 'N/A'}){isDeprecated(ref) ? ' [Deprecated]' : ''}</option>
                           ))}
                         </Select>
                         {comments.length > 1 && (
-                          <button onClick={() => removeCommentSection(c.id)} style={{ width: 32, height: 32, borderRadius: 6, border: '1px solid #E81123', background: '#E81123', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, padding: 0, transition: 'all 0.15s' }}
-                            onMouseEnter={e => { e.currentTarget.style.background = 'var(--danger)'; e.currentTarget.style.borderColor = 'var(--danger)'; }}
-                            onMouseLeave={e => { e.currentTarget.style.background = '#E81123'; e.currentTarget.style.borderColor = '#E81123'; }}>
-                            <X size={11} strokeWidth={2.5} color="currentColor" />
+                          <button type="button" className="app-icon-close" onClick={() => removeCommentSection(c.id)} aria-label={`Remove comment ${idx + 1}`} title="Remove this comment">
+                            <X size={16} strokeWidth={2.5} color="currentColor" />
                           </button>
                         )}
                       </div>
@@ -504,8 +502,8 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
                   ))}
                   </div>
                   <div className={styles.addCommentRow}>
-                    <button onClick={addCommentSection} className="btn btn-secondary">
-                      + Add another comment
+                    <button type="button" onClick={addCommentSection} className={styles.addCommentBtn}>
+                      <Plus size={16} aria-hidden="true" /> Add another comment
                     </button>
                   </div>
                 </div>
@@ -521,16 +519,15 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
           ) : (
             <div className={styles.commentListWrapper}>
               <div className={styles.commentList}>
-                {comments.map((c) => {
+                {comments.map((c, idx) => {
                   return (
                     <div key={c.id} className={styles.commentItem}>
                       {comments.length > 1 && (
                         <div className={styles.commentHeader}>
-                          <div className={styles.commentControls} style={{ marginLeft: 'auto' }}>
-                            <button className={styles.removeBtn} onClick={() => removeCommentSection(c.id)} aria-label="Delete comment" title="Delete comment">
-                              <X size={16} />
-                            </button>
-                          </div>
+                          <span>Comment {idx + 1}</span>
+                          <button type="button" className="app-icon-close" onClick={() => removeCommentSection(c.id)} aria-label={`Remove comment ${idx + 1}`} title="Remove this comment">
+                            <X size={16} strokeWidth={2.5} color="currentColor" />
+                          </button>
                         </div>
                       )}
 
@@ -579,7 +576,7 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
                           <div className={styles.field}>
                             <label className={styles.label}>Course Outcome</label>
                             <Select value={c.courseOutcome} onChange={(e) => updateCommentCourseOutcome(c.id, e.target.value)} block>
-                              <option value="">-- select course outcome --</option>
+                              <option value="">Select a course outcome</option>
                               {resolvedCourseOutcomes.map((co, idx) => (
                                 <option key={co.id || co} value={co.id ? `CO${idx + 1}` : co}>
                                   {co.id ? `${co.id} — ${String(co.description || '').slice(0, 60)}` : co}
@@ -591,27 +588,30 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
                           <div className={styles.field}>
                             <label className={styles.label}>Intended Learning Outcome (ILO)</label>
                             <Select value={c.ilo} onChange={(e) => updateCommentIlo(c.id, e.target.value)} disabled={!c.courseOutcome} block>
-                              <option value="">-- select ILO --</option>
+                              <option value="">Select an ILO</option>
                               {((c.courseOutcome && coToIlos[c.courseOutcome]) || resolvedIlos).map((i) => (
                                 <option key={i} value={i}>{i}</option>
                               ))}
                             </Select>
+                            {!c.courseOutcome && <span className={styles.fieldHint}>Pick a course outcome first.</span>}
                           </div>
 
                           <div className={styles.field}>
                             <label className={styles.label}>Coverage Type</label>
                             <Select value={c.coverageType} onChange={(e) => updateCommentCoverageType(c.id, e.target.value)} disabled={!c.ilo} block>
-                              <option value="">-- select type --</option>
+                              <option value="">Select a type</option>
                               <option value="Topic">Topic</option>
                               <option value="References">References</option>
                               <option value="TLA">Teaching-Learning Activity (TLA)</option>
                             </Select>
+                            {!c.ilo && <span className={styles.fieldHint}>Pick an ILO first.</span>}
                           </div>
 
                           <div className={styles.field}>
                             <label className={styles.label}>Target</label>
                             <DropdownMultiSelect
                               style={{ padding: 0, width: '100%' }}
+                              placeholder="Select the items"
                               disabled={!c.coverageType}
                               value={Array.isArray(c.coverageDetail) ? c.coverageDetail : (c.coverageDetail ? [c.coverageDetail] : [])}
                               onChange={(vals) => updateCommentCoverageDetail(c.id, vals)}
@@ -625,6 +625,7 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
                                       : []
                               }
                             />
+                            {!c.coverageType && <span className={styles.fieldHint}>Pick a coverage type first.</span>}
                           </div>
                         </div>
 
@@ -648,6 +649,7 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
                             rows={4}
                             padding="14px 10px"
                           />
+                          <span className={styles.charCount}>{(c.text || '').trim().length} characters</span>
                           {renderTextIssues(c)}
                         </div>
 
@@ -658,27 +660,29 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
               </div>
 
               <div className={styles.addCommentRow}>
-                <button onClick={addCommentSection} className="btn btn-secondary">
-                  + Add another comment
+                <button type="button" onClick={addCommentSection} className={styles.addCommentBtn}>
+                  <Plus size={16} aria-hidden="true" /> Add another comment
                 </button>
               </div>
             </div>
           )}
         </div>
 
-        {!readOnly && <div className={styles.actions}>
-          {isDirector ? (
-            <button
-              onClick={handleDirectorSubmit}
-              disabled={(!comments[0]?.text?.trim() && selectedRefs.length === 0) || submitting}
-              className="btn btn-primary"
-            >
-              {directorLabel}
-            </button>
-          ) : (
-            <button onClick={handleSubmit} disabled={saveDisabled || submitting} className="btn btn-primary">{normalLabel}</button>
-          )}
-        </div>}
+        {!readOnly && (() => {
+          const blocked = isDirector ? (!comments[0]?.text?.trim() && selectedRefs.length === 0) : saveDisabled
+          const why = isDirector
+            ? 'Write a comment on a reference, or pick a reference to suggest, to return the plan.'
+            : 'Fill in a comment, with its course outcome, ILO, type and target, to return the plan.'
+          return (
+            <div className={styles.actions}>
+              {blocked && <span className={styles.actionsHint}>{why}</span>}
+              <button type="button" onClick={handleClose} className="btn btn-secondary">Cancel</button>
+              <button type="button" onClick={isDirector ? handleDirectorSubmit : handleSubmit} disabled={blocked || submitting} className="btn btn-primary">
+                {isDirector ? directorLabel : normalLabel}
+              </button>
+            </div>
+          )
+        })()}
       </div>
       {showDiscardConfirm && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000 }} onClick={cancelDiscard}>

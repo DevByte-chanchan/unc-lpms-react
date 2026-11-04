@@ -65,10 +65,10 @@
 .field
   display: flex
   flex-direction: column
+  gap: 6px
 
 .label
   font-size: 13px
-  margin-bottom: 6px
   white-space: nowrap
 
 .select
@@ -109,13 +109,15 @@
   padding: 12px
   box-shadow: 0 1px 2px rgba(0,0,0,0.06)
 
+// "Comment 2" on the left, its remove button on the right, on one line.
 .commentHeader
   display: flex
   justify-content: space-between
   align-items: center
-  margin-bottom: 8px
-  font-weight: 600
-  font-size: 14px
+  margin-bottom: 12px
+  color: var(--ink)
+  font-weight: var(--fw-semibold)
+  font-size: 13px
 
 .commentControls
   display: flex
@@ -153,6 +155,36 @@
   display: flex
   margin-top: 14px
 
+// The full-width dashed "add" button, like Add PEO on the PO & PEO page.
+.addCommentBtn
+  display: inline-flex
+  align-items: center
+  justify-content: center
+  gap: 8px
+  width: 100%
+  height: 36px
+  padding: 0 16px
+  border: 1.5px dashed #19282c
+  border-radius: var(--control-radius)
+  background: transparent
+  color: #19282c
+  font: var(--fw-medium) var(--fs-sm) var(--font-ui)
+  cursor: pointer
+  transition: background var(--t-fast)
+
+  &:hover
+    background: var(--hover-tint)
+
+// Why a field is not available yet, under it.
+.fieldHint
+  font-size: 11px
+  color: var(--ink-muted)
+
+.charCount
+  align-self: flex-end
+  font-size: 11px
+  color: var(--ink-muted)
+
 .textarea
   width: 100%
   padding: 14px 10px
@@ -170,7 +202,8 @@
 .actions
   display: flex
   flex-direction: row
-  justify-content: space-between
+  justify-content: flex-end
+  align-items: center
   gap: 12px
   padding: 14px 24px
   border-top: 1px solid #e5e7eb
@@ -275,3 +308,9 @@
     min-width: 120px
 
 /* removed unused Course Coverage CSS */
+
+// Why the return button is disabled, on the left of the footer.
+.actionsHint
+  margin-right: auto
+  font-size: 12px
+  color: var(--ink-muted)
