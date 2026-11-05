@@ -1016,7 +1016,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
             <Clock strokeWidth={2} size={14} /> Revisions
           </button>
         )}
-        {roleKey === 'program-head' && (
+        {roleKey === 'program-head' && !approved && (
           <button type="button" onClick={(e) => { e.stopPropagation(); setIsOpen(false); setIsConsultantOpen(true); }}>
             <UserPlus strokeWidth={2} size={14} /> Industry consultant
           </button>

@@ -245,6 +245,8 @@
   border: 1px solid #e2e8f0
   border-radius: 6px
   padding: 10px 12px
+  min-width: 0
+  overflow: hidden
 
 .commentCardMetaBar
   display: flex
@@ -288,6 +290,8 @@
   font-style: italic
   color: #555
   line-height: 1.4
+  // a long word or a pasted line with no spaces wraps inside the card instead of running past it
+  overflow-wrap: anywhere
 
 
 .circleIndicator
@@ -374,6 +378,8 @@
   border: 1px solid #e2e8f0
   border-radius: 6px
   padding: 10px 12px
+  min-width: 0
+  overflow: hidden
 
 .commentCardMetaBar
   display: flex
