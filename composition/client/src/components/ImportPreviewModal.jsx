@@ -80,7 +80,7 @@ const ImportPreviewModal = ({ source, onClose, onImported }) => {
                     <tr key={row.row}>
                       <td style={cell}>{row.row}</td>
                       <td style={cell}>{STATUS_LABEL[row.status]}</td>
-                      <td style={cell}>{row.errors ? Object.values(row.errors).join(' ') : 'Same title and authors as an existing reference.'}</td>
+                      <td style={cell}>{row.errors ? Object.values(row.errors).join(' ') : (row.reason === 'isbn' ? 'Same ISBN as an existing reference.' : 'Same title and authors as an existing reference.')}</td>
                     </tr>
                   ))}
                 </tbody>

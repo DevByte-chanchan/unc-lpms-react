@@ -132,4 +132,10 @@ test('a bulk import marks a row with an existing ISBN as a duplicate', async () 
     const report = await send('POST', '/refs-import', { dryRun: true, rows: [good(9, { isbn: '9789990000008' }), good(10)] });
     assert.equal(report.status, 200);
     assert.deepEqual(report.body.rows.map(r => r.status), ['duplicate', 'ok']);
+    assert.equal(report.body.rows[0].reason, 'isbn', 'a row skipped for its ISBN says so');
+
+    // The same title and authors is reported as that, whatever the ISBN.
+    const byTitle = await send('POST', '/refs-import', { dryRun: true, rows: [good(8, { isbn: '978-9990-000-9-99' })] });
+    assert.equal(byTitle.body.rows[0].status, 'duplicate');
+    assert.equal(byTitle.body.rows[0].reason, 'title');
 });

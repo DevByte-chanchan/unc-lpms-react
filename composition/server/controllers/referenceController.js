@@ -155,7 +155,10 @@ async function importReferences(req, res) {
             if (!result.ok) return report.push({ row: index + 1, status: 'invalid', errors: result.errors });
             const key = duplicateKey(result.values.title, result.values.author);
             const isbn = isbnKey(result.values.isbn);
-            if (seen.has(key) || (isbn && seenIsbn.has(isbn))) return report.push({ row: index + 1, status: 'duplicate' });
+            if (seen.has(key) || (isbn && seenIsbn.has(isbn))) {
+                // Which rule matched, so the screen can say why the row is skipped.
+                return report.push({ row: index + 1, status: 'duplicate', reason: seen.has(key) ? 'title' : 'isbn' });
+            }
             seen.add(key);
             if (isbn) seenIsbn.add(isbn);
             toCreate.push({ index, values: result.values });
