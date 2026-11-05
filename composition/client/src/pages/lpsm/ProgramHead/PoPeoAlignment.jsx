@@ -27,7 +27,8 @@ const toggle = (list, value) => (list.includes(value) ? list.filter(v => v !== v
 // The program's master data, kept by its Program Head and read from the database: the program
 // educational objectives (PEOs) with their relationship to the UNC mission statement, and the
 // program outcomes (POs) with the PEOs and graduate attributes each supports.
-const PoPeoAlignment = () => {
+// `tabs`: shown as the page header when this page is a tab of Outcomes Alignment.
+const PoPeoAlignment = ({ tabs = null }) => {
   const [programs, setPrograms] = useState(null)
   const [programId, setProgramId] = useState('')
   const [data, setData] = useState(null)
@@ -121,7 +122,7 @@ const PoPeoAlignment = () => {
   const content = (
     <div className={`${pageStyles.page} ${pageStyles.flowPage}`}>
       <div className={pageStyles.pageHeader}>
-        <h2 className="app-page-title">Program Outcomes &amp; PEO Alignment</h2>
+        {tabs || <h2 className="app-page-title">Program Outcomes &amp; PEO Alignment</h2>}
         <div className={pageStyles.pageHeaderActions}>
           {!editing ? (
             <>

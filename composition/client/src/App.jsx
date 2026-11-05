@@ -33,8 +33,7 @@ const ProgramHead = lazy(() => import('./pages/ProgramHead.jsx'))
 const DirectorOfLibraries = lazy(() => import('./pages/DirectorOfLibraries.jsx'))
 const IndustryConsultant = lazy(() => import('./pages/IndustryConsultant.jsx'))
 const COAEPView = lazy(() => import('./pages/lpsm/ProgramHead/COAEPView.jsx'))
-const CoPoAlignment = lazy(() => import('./pages/lpsm/ProgramHead/CoPoAlignment.jsx'))
-const PoPeoAlignment = lazy(() => import('./pages/lpsm/ProgramHead/PoPeoAlignment.jsx'))
+const OutcomesAlignment = lazy(() => import('./pages/lpsm/ProgramHead/OutcomesAlignment.jsx'))
 const DirectorReferenceLibrary = lazy(() => import('./pages/lpsm/DirectorOfLibraries/ReferenceLibrary.jsx'))
 const DirectorAddReference = lazy(() => import('./pages/lpsm/DirectorOfLibraries/AddReference.jsx'))
 const DirectorViewReference = lazy(() => import('./pages/lpsm/DirectorOfLibraries/ViewReference.jsx'))
@@ -124,8 +123,9 @@ function App() {
                         <Route path={'/role/industry-consultant'} element={<ErrorBoundary><IndustryConsultant /></ErrorBoundary>} />
                         <Route path={'/role/program-head'} element={<ErrorBoundary><ProgramHead /></ErrorBoundary>} />
                         <Route path={'/role/program-head/coaep'} element={<ErrorBoundary><COAEPView /></ErrorBoundary>} />
-                        <Route path={'/role/program-head/co-po-alignment'} element={<ErrorBoundary><CoPoAlignment /></ErrorBoundary>} />
-                        <Route path={'/role/program-head/po-peo-alignment'} element={<ErrorBoundary><PoPeoAlignment /></ErrorBoundary>} />
+                        <Route path={'/role/program-head/outcomes-alignment'} element={<ErrorBoundary><OutcomesAlignment /></ErrorBoundary>} />
+                        <Route path={'/role/program-head/co-po-alignment'} element={<Navigate to="/role/program-head/outcomes-alignment?tab=course" replace />} />
+                        <Route path={'/role/program-head/po-peo-alignment'} element={<Navigate to="/role/program-head/outcomes-alignment" replace />} />
                         <Route path={'/role/director-of-libraries'} element={<ErrorBoundary><DirectorOfLibraries /></ErrorBoundary>} />
                         <Route path={'/role/director-of-libraries/reference-library'} element={<ErrorBoundary><DirectorReferenceLibrary /></ErrorBoundary>} />
                         <Route path={'/role/director-of-libraries/add-reference'} element={<ErrorBoundary><DirectorAddReference /></ErrorBoundary>} />

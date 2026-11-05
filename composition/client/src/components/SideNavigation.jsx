@@ -47,11 +47,8 @@ const SideNavigation = ({ mode = 'instructor' }) => {
     if (location.pathname.startsWith(routes.coaepView())) {
         selected = 'COAEP';
     }
-    if (location.pathname.startsWith('/role/program-head/co-po-alignment')) {
-        selected = 'CO & PO Alignment';
-    }
-    if (location.pathname.startsWith('/role/program-head/po-peo-alignment')) {
-        selected = 'PO & PEO Alignment';
+    if (location.pathname.startsWith('/role/program-head/outcomes-alignment')) {
+        selected = 'Outcomes Alignment';
     }
 
     // LPSM Director of Libraries pages
@@ -219,12 +216,8 @@ const SideNavigation = ({ mode = 'instructor' }) => {
 
                 {mode === 'program-head' && (
                     <>
-                        <div onClick={() => { navigate('/role/program-head/po-peo-alignment') }} className={`${styles.list} ${selected === 'PO & PEO Alignment' ? styles.selected : ''}`} role="link" tabIndex={0} title="PO & PEO Alignment" aria-label="PO & PEO Alignment" onKeyDown={(event) => activateWithKeyboard(event, () => navigate('/role/program-head/po-peo-alignment'))}>
-                            <NavigationIcon label="PO & PEO Alignment" /> <span className={styles.listText}>PO & PEO Alignment</span>
-                        </div>
-
-                        <div onClick={() => { navigate('/role/program-head/co-po-alignment') }} className={`${styles.list} ${selected === 'CO & PO Alignment' ? styles.selected : ''}`} role="link" tabIndex={0} title="CO & PO Alignment" aria-label="CO & PO Alignment" onKeyDown={(event) => activateWithKeyboard(event, () => navigate('/role/program-head/co-po-alignment'))}>
-                            <NavigationIcon label="CO & PO Alignment" /> <span className={styles.listText}>CO & PO Alignment</span>
+                        <div onClick={() => { navigate('/role/program-head/outcomes-alignment') }} className={`${styles.list} ${selected === 'Outcomes Alignment' ? styles.selected : ''}`} role="link" tabIndex={0} title="Outcomes Alignment" aria-label="Outcomes Alignment" onKeyDown={(event) => activateWithKeyboard(event, () => navigate('/role/program-head/outcomes-alignment'))}>
+                            <NavigationIcon label="Outcomes Alignment" /> <span className={styles.listText}>Outcomes Alignment</span>
                         </div>
 
                         <div onClick={() => { navigate(routes.coaepView()) }} className={`${styles.list} ${selected === 'COAEP' ? styles.selected : ''}`} role="link" tabIndex={0} title="COAEP" aria-label="COAEP" onKeyDown={(event) => activateWithKeyboard(event, () => navigate(routes.coaepView()))}>

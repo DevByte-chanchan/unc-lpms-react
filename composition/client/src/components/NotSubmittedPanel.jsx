@@ -1,16 +1,23 @@
 import React from 'react'
-import { X, Calendar, CheckCircle } from 'react-feather'
+import { X, Calendar, CheckCircle, Plus, AlertTriangle } from 'react-feather'
 import MissingSubmissionsTable from './MissingSubmissionsTable.jsx'
 import EmptyState from './EmptyState.jsx'
 import DatePicker from './DatePicker.jsx'
 import { Loading, TableSkeleton } from './LoadingSkeleton.jsx'
 import styles from '../styles/DueDateDialog.module.sass'
+import dueStyles from '../styles/DueDates.module.sass'
 import { fetchJson, apiErrorMessage } from '../utils/api.js'
 import { dayLabel, programCode, sortMissing } from '../utils/missingSubmissions.js'
 
 // When the system reminds the instructors for a due date: 7, 3 and 1 days before, on the day, then every third day.
 const REMINDER_OFFSETS = [[-7, '7 days before'], [-3, '3 days before'], [-1, '1 day before'], [0, 'On the day']]
-const shiftDay = (iso, days) => {
+// Whole days from `from` to `to` (both YYYY-MM-DD); null when either is missing.
+const daysFrom = (from, to) => {
+  const a = Date.parse(`${String(from || '').slice(0, 10)}T00:00:00Z`)
+  const b = Date.parse(`${String(to || '').slice(0, 10)}T00:00:00Z`)
+  return Number.isNaN(a) || Number.isNaN(b) ? null : Math.round((b - a) / 86400000)
+}
+const shiftDay =(iso, days) => {
   const [y, m, d] = String(iso).slice(0, 10).split('-').map(Number)
   if (!y || !m || !d) return ''
   return new Date(Date.UTC(y, m - 1, d + days)).toISOString().slice(0, 10)
@@ -109,27 +116,49 @@ const NotSubmittedPanel = ({ active, schoolYear, semester, query = '', onCount }
     <div style={{ display: active ? 'flex' : 'none', flexDirection: 'column', flex: '1 1 auto', minHeight: 0, gap: 10 }}>
       {error && <div role="alert" style={{ color: 'var(--danger)' }}>{error} <button type="button" className="btn btn-secondary btn-sm" onClick={load} style={{ marginLeft: 8 }}>Try again</button></div>}
 
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap', justifyContent: 'space-between', fontSize: 'var(--fs-sm)' }}>
-        <div>
-          {deadlines.programs.length === 0 ? (
-            <div style={{ color: 'var(--ink-muted)' }}>You do not head a program yet.</div>
-          ) : deadlines.programs.map(program => {
-            const found = termDeadline(program)
-            return (
-              <div key={program.program_id} style={{ display: 'flex', gap: 12, alignItems: 'center', padding: '2px 0', flexWrap: 'wrap' }}>
-                <Calendar size={13} aria-hidden="true" style={{ color: 'var(--ink-muted)' }} />
-                <span title={program.name}>Due date{deadlines.programs.length > 1 ? ` · ${programCode(program.name)}` : ''}</span>
-                {found ? <strong>{dayLabel(found.syllabus_due)}</strong> : <span style={{ color: 'var(--warn)' }}>No due date, so no automatic reminders</span>}
-                <button type="button" className="app-link-button" onClick={() => openDialog(program)}>{found ? 'Change' : 'Set due date'}</button>
-                {found && <button type="button" className="app-link-button" onClick={() => removeDeadline(program)}>Remove</button>}
+      {(() => {
+        const unset = deadlines.programs.filter(program => !termDeadline(program))
+        const warn = unset.length > 0
+        return (
+          <div className={`${dueStyles.bar} ${warn ? dueStyles.barWarn : dueStyles.barOk}`} role="group" aria-label={`Due dates for ${semester} semester, ${schoolYear}`}>
+            <div className={dueStyles.message}>
+              {warn ? <AlertTriangle size={16} aria-hidden="true" /> : <CheckCircle size={16} aria-hidden="true" />}
+              <span>
+                {deadlines.programs.length === 0
+                  ? 'You do not head a program yet.'
+                  : warn
+                    ? `${unset.length} of ${deadlines.programs.length} program${deadlines.programs.length === 1 ? ' has' : 's have'} no due date. Instructors are not reminded until you set one.`
+                    : 'Every program has a due date. Instructors are reminded automatically.'}
+              </span>
+              <span className={dueStyles.note} role="status">
+                {[`${visible.length} not submitted`, count('overdue') ? `${count('overdue')} overdue` : '', count('due-soon') ? `${count('due-soon')} due soon` : ''].filter(Boolean).join(' · ')}
+              </span>
+            </div>
+            {deadlines.programs.length > 0 && (
+              <div className={dueStyles.chips}>
+                {deadlines.programs.map(program => {
+                  const found = termDeadline(program)
+                  const away = found ? daysFrom(data?.today, found.syllabus_due) : null
+                  const when = away === null ? '' : away > 0 ? `in ${away} day${away === 1 ? '' : 's'}` : away === 0 ? 'today' : `${-away} day${away === -1 ? '' : 's'} ago`
+                  return (
+                    <button
+                      key={program.program_id}
+                      type="button"
+                      className={`${dueStyles.chip} ${found ? dueStyles.chipSet : dueStyles.chipUnset}`}
+                      onClick={() => openDialog(program)}
+                      title={found ? `${program.name}: due ${dayLabel(found.syllabus_due)}${when ? ` (${when})` : ''}. Click to change.` : `${program.name}: no due date. Click to set one.`}
+                    >
+                      {found ? <Calendar size={14} aria-hidden="true" /> : <Plus size={14} aria-hidden="true" />}
+                      <strong>{programCode(program.name)}</strong>
+                      <span>{found ? `${dayLabel(found.syllabus_due)}${when ? ` · ${when}` : ''}` : 'Set due date'}</span>
+                    </button>
+                  )
+                })}
               </div>
-            )
-          })}
-        </div>
-        <span role="status" style={{ fontSize: 'var(--fs-xs)', color: 'var(--ink-muted)' }}>
-          {[`${visible.length} not submitted`, count('overdue') ? `${count('overdue')} overdue` : '', count('due-soon') ? `${count('due-soon')} due soon` : '', count('no-deadline') ? `${count('no-deadline')} with no due date` : ''].filter(Boolean).join(' · ')}
-        </span>
-      </div>
+            )}
+          </div>
+        )
+      })()}
 
       {loading ? (
         <Loading label="Loading the list…"><TableSkeleton rows={5} cols={[330, 170, 90, 170, 170, '1fr']} /></Loading>
@@ -186,6 +215,9 @@ const NotSubmittedPanel = ({ active, schoolYear, semester, query = '', onCount }
             </div>
 
             <div className={styles.actions}>
+              {termDeadline(dialog) && (
+                <button type="button" className="btn btn-danger-outline" style={{ marginRight: 'auto' }} onClick={async () => { await removeDeadline(dialog); closeDialog() }}>Remove due date</button>
+              )}
               <button type="button" onClick={closeDialog} className="btn btn-secondary">Cancel</button>
               <button type="button" onClick={saveDeadline} disabled={saving || !dueText} className="btn btn-primary">{saving ? 'Saving…' : 'Save due date'}</button>
             </div>

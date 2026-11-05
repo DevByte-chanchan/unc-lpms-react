@@ -34,7 +34,8 @@ const describe = (row) => {
   };
 };
 
-const CoPoAlignment = () => {
+// `tabs`: shown as the page header when this page is a tab of Outcomes Alignment.
+const CoPoAlignment = ({ tabs = null }) => {
   const [offerings, setOfferings] = useState(null);
   const [offeringId, setOfferingId] = useState('');
   const [data, setData] = useState(null);
@@ -83,7 +84,7 @@ const CoPoAlignment = () => {
   const content = (
     <div className={`${pageStyles.page} ${pageStyles.flowPage}`}>
       <div className={pageStyles.pageHeader}>
-        <h2 className="app-page-title">Course Outcomes &amp; PO Alignment</h2>
+        {tabs || <h2 className="app-page-title">Course Outcomes &amp; PO Alignment</h2>}
         <div className={pageStyles.pageHeaderActions}>
           <button type="button" className="btn btn-primary" onClick={handleView} disabled={!outcomes.length}>
             <ChevronRight size={16} /> View / Export

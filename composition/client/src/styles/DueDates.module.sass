@@ -1,0 +1,85 @@
+// The due dates of the Program Head's programs, above the Not submitted list: a message and one button per program.
+// Amber while some program has no date (nothing is reminded for it), calm once all are set.
+.bar
+  display: flex
+  flex-direction: column
+  gap: 10px
+  width: 100%
+  box-sizing: border-box
+  padding: 10px 14px
+  border: 1px solid
+  border-radius: 8px
+
+.barWarn
+  background: #fff
+  border-color: var(--control-border)
+  color: var(--ink)
+
+  .message svg
+    color: #d97706
+
+.barOk
+  background: #fff
+  border-color: var(--control-border)
+  color: var(--ink)
+
+  .message svg
+    color: #16a34a
+
+.message
+  display: flex
+  align-items: center
+  gap: 8px
+  flex-wrap: wrap
+  font: var(--fw-medium, 500) 13px var(--font-ui)
+
+  svg
+    flex: none
+
+.note
+  margin-left: auto
+  font: var(--fw-regular, 400) 12px var(--font-ui)
+  opacity: 0.8
+
+.chips
+  display: flex
+  align-items: center
+  gap: 8px
+  flex-wrap: wrap
+  min-width: 0
+
+// Same height, radius and font as the other controls on the page.
+.chip
+  display: inline-flex
+  align-items: center
+  gap: 6px
+  height: var(--control-h-sm, 36px)
+  padding: 0 12px
+  border: 1px solid var(--control-border)
+  border-radius: 6px
+  background: #fff
+  color: #172b31
+  font: var(--fw-medium, 500) 13px var(--font-ui)
+  cursor: pointer
+  white-space: nowrap
+
+  svg
+    flex: none
+
+  strong
+    font-weight: 700
+
+  &:hover
+    background: var(--hover-tint)
+
+.chipSet svg
+  color: #16a34a
+
+// No date yet: amber outline and text, the thing to do next.
+.chipUnset
+  border-color: #f59e0b
+  background: #fffbeb
+  color: #b45309
+
+  &:hover
+    background: #fef3c7
