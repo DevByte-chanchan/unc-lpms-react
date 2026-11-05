@@ -31,7 +31,7 @@ const cors = require('cors');
 app.use(cors({
     origin: [
         // 'http://localhost:8081',
-        'http://192.168.254.104:8081',
+        'http://192.168.254.106:8081',
         // 'http://100.74.215.45:8081',
     ]
 }));

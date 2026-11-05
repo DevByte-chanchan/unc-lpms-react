@@ -116,20 +116,27 @@ const FormNavigation = ({
                         </button>
 
                         {/* Course Outcome Number Selector (in Expanded Mode for switching COs) */}
-                        {isExpanded && !isOrientation && courseOutcomes.length > 1 && (
+                        {isExpanded && courseOutcomes.length > 1 && (
                             <div className={styles.coSelectorGroup} role="group" aria-label="Select Course Outcome">
                                 {courseOutcomes.map((co) => {
-                                    const isCurrentCo = Number(co.coNumber) === Number(coNumber);
+                                    const coIsOrientation = Boolean(co.isOrientation || Number(co.coNumber) === 0);
+                                    const isCurrentCo = coIsOrientation
+                                        ? Boolean(isOrientation)
+                                        : (!isOrientation && Number(co.coNumber) === Number(coNumber));
                                     const coUnresolved = getCoUnresolvedCount(co);
                                     return (
                                         <button
-                                            key={co.co_id || co.coNumber}
+                                            key={coIsOrientation ? "co-orientation" : (co.co_id || co.coNumber)}
                                             type="button"
                                             className={`${styles.coSwitchBtn} ${isCurrentCo ? styles.coSwitchBtnActive : ""} ${coUnresolved > 0 ? styles.coSwitchBtnHasComment : ""}`}
                                             onClick={() => onSelectCourseOutcome && onSelectCourseOutcome(co)}
-                                            title={`Switch to Course Outcome ${co.coNumber}${coUnresolved > 0 ? ` (${coUnresolved} unresolved comment${coUnresolved > 1 ? 's' : ''})` : ''}`}
+                                            title={
+                                                coIsOrientation
+                                                    ? `Switch to Course Orientation${coUnresolved > 0 ? ` (${coUnresolved} unresolved comment${coUnresolved > 1 ? 's' : ''})` : ''}`
+                                                    : `Switch to Course Outcome ${co.coNumber}${coUnresolved > 0 ? ` (${coUnresolved} unresolved comment${coUnresolved > 1 ? 's' : ''})` : ''}`
+                                            }
                                         >
-                                            <span>CO {co.coNumber}</span>
+                                            <span>{coIsOrientation ? "CO0" : `CO ${co.coNumber}`}</span>
                                             {coUnresolved > 0 && <span className={styles.coSwitchCommentDot} />}
                                         </button>
                                     );

@@ -122,7 +122,7 @@ const SyllabusSections = () => {
         <div className={styles.container}>
             <div className={styles.navi}>
                 <Link to={`/`} className={styles.return}>
-                    <ChevronLeft size={22}/>
+                    <ChevronLeft size={20}/>
                 </Link>
 
                 <div className={styles['section-select']}>

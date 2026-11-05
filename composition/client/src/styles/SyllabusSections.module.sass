@@ -17,18 +17,29 @@
   z-index: 2
 
 .return
-  padding: 0 14px // Changed vertical padding to math other buttons
-  border-radius: 5px
+  height: 40px
+  max-width: 120px
+  padding: 0 18px
+  border-radius: 7px
+  border: none
   display: flex
-  background: #8B999D
+  background: #EDF2F7
+  color: #2D3748
   align-items: center
-  justify-content: center // centered icon
-  height: 40px // Consistent with other buttons
-  font-size: 14px
-  font-weight: 500
-  gap: 5px
+  justify-content: center
+  font-size: 13.5px
+  font-weight: 600
+  gap: 7px
   cursor: pointer
-  color: white
+  flex-shrink: 0
+  overflow: hidden
+  white-space: nowrap
+  text-decoration: none
+  transition: background 0.18s ease, color 0.18s ease
+
+  &:hover
+    background: #E2E8F0
+    color: #2D3748
 
 .divider
   width: 24px
@@ -127,14 +138,12 @@ section
 
 .draft,
 .submit,
-.more,
-.return
+.more
   transition: transform 0.3s ease, filter 0.3s ease
 
 .draft:hover,
 .submit:hover,
-.more:hover,
-.return:hover
+.more:hover
   transform: none // Remove scale effect
   filter: brightness(0.9) // Adds subtle hover effect instead of scaling up
 

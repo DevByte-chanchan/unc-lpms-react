@@ -137,7 +137,7 @@ async function getWeekContext(req, res) {
         }
 
         const coIndex = allCos.findIndex(c => c.co_id === currentCo.co_id);
-        const coNumber = coIndex >= 0 ? coIndex + 1 : 1;
+        const coNumber = isOrientation ? 0 : (coIndex >= 0 ? coIndex + 1 : 1);
 
         // Build structured weeks and ILOs per Course Outcome
         let globalCounter = 1;
@@ -152,7 +152,7 @@ async function getWeekContext(req, res) {
             const cNum = cIdx >= 0 ? cIdx + 1 : 1;
 
             const effectiveHours = (cNum === 1 && weekNumberInCo === 1)
-                ? (isOrientation ? orientationHours : Math.max(0, rawWeekHours - orientationHours))
+                ? Math.max(0, rawWeekHours - orientationHours)
                 : rawWeekHours;
 
             const weekComments = commentCountsByWeek[Number(w.week_id)] || { topics: 0, tlas: 0, references: 0, total: 0 };
@@ -186,7 +186,29 @@ async function getWeekContext(req, res) {
             }
         }
 
-        const courseOutcomes = allCos.map((c, idx) => {
+        const orientationDescription = 'Introduce students to the University and College Vision, Mission, and Objectives (VMO), course expectations, grading system, and ethical AI guidelines.';
+        const firstCo = allCos[0] || currentCo;
+        const firstCoId = Number(firstCo.co_id);
+        const firstCoWeeks = weeksByCo[firstCoId] || [];
+        const orientationWeeks = firstCoWeeks.length > 0
+            ? [{
+                ...firstCoWeeks[0],
+                hours: orientationHours
+            }]
+            : [];
+
+        const orientationOutcomeItem = {
+            co_id: firstCoId,
+            coNumber: 0,
+            isOrientation: true,
+            coDescription: orientationDescription,
+            ilos: orientationIlos,
+            weeks: orientationWeeks,
+            firstWeekId: orientationWeeks.length > 0 ? orientationWeeks[0].week_id : null,
+            unresolvedTotal: orientationWeeks.reduce((sum, w) => sum + (w.unresolvedComments?.total || 0), 0)
+        };
+
+        const regularCourseOutcomes = allCos.map((c, idx) => {
             const cid = Number(c.co_id);
             const cWeeks = weeksByCo[cid] || [];
             const cIlos = ilosByCo[cid] || [];
@@ -194,6 +216,7 @@ async function getWeekContext(req, res) {
             return {
                 co_id: cid,
                 coNumber: idx + 1,
+                isOrientation: false,
                 coDescription: (c.co_description || '').replace(/^CO\s*\d+\s*:\s*/i, '').trim(),
                 ilos: cIlos,
                 weeks: cWeeks,
@@ -202,13 +225,15 @@ async function getWeekContext(req, res) {
             };
         });
 
+        const courseOutcomes = [orientationOutcomeItem, ...regularCourseOutcomes];
+
         const coWeeks = weeksByCo[Number(currentCo.co_id)] || [];
         const currentCoIlos = isOrientation
             ? orientationIlos
             : (ilosByCo[Number(currentCo.co_id)] || []);
 
         // Course Orientation form contains ONLY Week 1, whereas Course Outcome 1 form contains all weeks (Weeks 1-4)
-        const returnedWeeks = isOrientation ? coWeeks.slice(0, 1) : coWeeks;
+        const returnedWeeks = isOrientation ? orientationWeeks : coWeeks;
         const activeWeekId = isOrientation && returnedWeeks.length > 0
             ? returnedWeeks[0].week_id
             : week.week_id;

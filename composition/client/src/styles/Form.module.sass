@@ -534,7 +534,7 @@
   transition: all 0.3s ease
   display: flex
   flex-direction: column
-  height: 500px
+  height: auto
 
 .tlaBodyCopycat
   padding: 15px
@@ -603,11 +603,10 @@
     background: transparent !important
     
 .tlaDescriptionHigh
-  flex: 1
   display: flex
   flex-direction: column
   textarea, :global(.textfield), :global(.generic-field-input)
-    height: 100% !important
+    height: auto !important
     min-height: 80px !important
     resize: none
 
@@ -666,7 +665,6 @@
 .tlaAssessmentSection
   border-top: 1px dashed #E2E8F0
   padding-top: 12px
-  margin-top: auto
 
 .assessmentCopycatBox
   background-color: #F8FAFC
@@ -705,7 +703,8 @@
     color: #E53E3E
 
 .tlaPlaceholderScale
-  height: 500px !important
+  height: auto !important
+  min-height: 380px !important
 
 // =============================================
 .rightContCollapsible

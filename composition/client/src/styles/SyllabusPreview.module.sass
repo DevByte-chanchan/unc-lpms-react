@@ -579,6 +579,9 @@ section
   min-width: 100%
   border-collapse: collapse !important
   display: table !important
+  flex-direction: unset !important
+  gap: unset !important
+  overflow: visible !important
 
   thead
     display: table-header-group !important
@@ -589,18 +592,29 @@ section
     tr
       display: table-row !important
       background: #EFEFEF !important
+      box-shadow: none !important
+      border: none !important
 
   tbody
     display: table-row-group !important
+    gap: unset !important
+    padding: unset !important
+    overflow: visible !important
+    box-shadow: none !important
 
   tr
     display: table-row !important
     background: transparent !important
-    border-bottom: 1px solid #000 !important
+    box-shadow: none !important
+    border: none !important
+    &:hover
+      background: transparent !important
+      box-shadow: none !important
 
   th, td
     display: table-cell !important
     border: 1px solid #000 !important
+    box-shadow: none !important
     padding: 10px 8px !important
     vertical-align: top
     font-size: 14px
@@ -617,6 +631,11 @@ section
 
 .ccCell
   background-color: #fff
+
+.ccDividerCell
+  background-color: #EFEFEF !important
+  padding: 5px 12px !important
+  vertical-align: middle !important
 
 // --- CONTENT STYLING ---
 .centerText

@@ -263,7 +263,8 @@ const TopicForm = () => {
     const navigate = useNavigate();
     const { courseCode, iloId, status } = useParams();
     const [searchParams] = useSearchParams();
-    const isOrientation = searchParams.get('orientation') === 'true' || searchParams.get('orientation') === '1';
+    const initialIsOrientation = searchParams.get('orientation') === 'true' || searchParams.get('orientation') === '1';
+    const [isOrientation, setIsOrientation] = useState(initialIsOrientation);
 
     const [currentStep, setCurrentStep] = useState(0);
     const steps = ['Topics', 'Teaching & Learning Activities', 'References'];
@@ -341,24 +342,68 @@ const TopicForm = () => {
     const [showSuccessModal, setShowSuccessModal] = useState(false);
 
     useEffect(() => {
+        setIsOrientation(initialIsOrientation);
+    }, [iloId, initialIsOrientation]);
+
+    useEffect(() => {
         if (!iloId) return;
         let mounted = true;
 
         async function loadWeekContext() {
             try {
-                const orientParam = isOrientation ? 'true' : 'false';
+                const orientParam = initialIsOrientation ? 'true' : 'false';
                 const ctx = await fetchJson(`/api/topics/week-context/${encodeURIComponent(iloId)}?isOrientation=${orientParam}`);
                 if (!mounted || !ctx) return;
+
+                let resolvedCourseOutcomes = Array.isArray(ctx.courseOutcomes) ? [...ctx.courseOutcomes] : [];
+                const hasOrientationOption = resolvedCourseOutcomes.some(
+                    c => Boolean(c.isOrientation) || Number(c.coNumber) === 0
+                );
+
+                if (!hasOrientationOption && resolvedCourseOutcomes.length > 0) {
+                    const firstCo = resolvedCourseOutcomes[0];
+                    const firstWeekObj = Array.isArray(firstCo.weeks) && firstCo.weeks.length > 0 ? firstCo.weeks[0] : null;
+                    const firstWeekId = firstCo.firstWeekId || firstWeekObj?.week_id || iloId;
+                    let orientIlos = initialIsOrientation && Array.isArray(ctx.ilos) ? ctx.ilos : [];
+                    let orientDesc = 'Introduce students to the University and College Vision, Mission, and Objectives (VMO), course expectations, grading system, and ethical AI guidelines.';
+
+                    if (!initialIsOrientation && firstWeekId) {
+                        const orientCtx = await fetchJson(`/api/topics/week-context/${encodeURIComponent(firstWeekId)}?isOrientation=true`).catch(() => null);
+                        if (!mounted) return;
+                        if (orientCtx) {
+                            if (Array.isArray(orientCtx.ilos)) orientIlos = orientCtx.ilos;
+                            if (orientCtx.coDescription) orientDesc = orientCtx.coDescription;
+                        }
+                    }
+
+                    const orientWeeks = firstWeekObj
+                        ? [{ ...firstWeekObj, hours: 2 }]
+                        : (Array.isArray(ctx.weeks) ? ctx.weeks.slice(0, 1) : []);
+
+                    resolvedCourseOutcomes = [
+                        {
+                            co_id: firstCo.co_id,
+                            coNumber: 0,
+                            isOrientation: true,
+                            coDescription: orientDesc,
+                            ilos: orientIlos,
+                            weeks: orientWeeks,
+                            firstWeekId: firstWeekId,
+                            unresolvedTotal: firstWeekObj?.unresolvedComments?.total || 0
+                        },
+                        ...resolvedCourseOutcomes
+                    ];
+                }
 
                 setWeekContext({
                     co_id: ctx.co_id || null,
                     pc_offering_id: ctx.pc_offering_id || null,
                     revision_number: ctx.revision_number || 1,
-                    coNumber: ctx.coNumber || 1,
+                    coNumber: initialIsOrientation ? 0 : (ctx.coNumber ?? 1),
                     coDescription: ctx.coDescription || '',
                     ilos: Array.isArray(ctx.ilos) ? ctx.ilos : [],
                     weeks: Array.isArray(ctx.weeks) ? ctx.weeks : [],
-                    courseOutcomes: Array.isArray(ctx.courseOutcomes) ? ctx.courseOutcomes : [],
+                    courseOutcomes: resolvedCourseOutcomes,
                     commentCountsByWeek: ctx.commentCountsByWeek || {}
                 });
 
@@ -375,7 +420,7 @@ const TopicForm = () => {
 
         loadWeekContext();
         return () => { mounted = false; };
-    }, [iloId, isOrientation]);
+    }, [iloId, initialIsOrientation]);
 
     const activeWeekIndex = weekContext.weeks.findIndex(
         w => Number(w.week_id) === Number(activeWeekId)
@@ -400,7 +445,11 @@ const TopicForm = () => {
     };
 
     const handleSelectCourseOutcome = async (targetCo) => {
-        if (!targetCo || isOrientation || Number(targetCo.coNumber) === Number(weekContext.coNumber)) return;
+        if (!targetCo) return;
+        const targetIsOrientation = Boolean(targetCo.isOrientation || Number(targetCo.coNumber) === 0);
+        if (targetIsOrientation && isOrientation) return;
+        if (!targetIsOrientation && !isOrientation && Number(targetCo.coNumber) === Number(weekContext.coNumber)) return;
+
         try {
             if (topicRef.current) await topicRef.current.save();
             if (tlaRef.current) await tlaRef.current.save();
@@ -412,6 +461,7 @@ const TopicForm = () => {
         const nextWeeks = Array.isArray(targetCo.weeks) ? targetCo.weeks : [];
         const nextWeekId = targetCo.firstWeekId || (nextWeeks[0] ? nextWeeks[0].week_id : null);
 
+        setIsOrientation(targetIsOrientation);
         setWeekContext(prev => ({
             ...prev,
             co_id: targetCo.co_id,
