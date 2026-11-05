@@ -117,6 +117,10 @@ test('submit route: a valid plan is submitted and the reviewers are notified, no
     const res = await submit(f);
     assert.equal(res.code, 200, JSON.stringify(res.body));
     assert.equal(await submittedLogs(f), 1);
+    // The submission names who submitted it, so the review record does not read "Name not recorded".
+    const [logged] = await q(`SELECT actor_name, actor_user_id FROM AssignmentWorkflowLogs WHERE co_assign_id = ? AND action_type = 'SUBMITTED'`, [f.assignmentId]);
+    assert.equal(logged.actor_user_id, f.instructor.user_id);
+    assert.equal(logged.actor_name, f.instructor.name.slice(0, 100));
     for (const reviewer of [f.ph, f.ld]) {
         const [n] = await inbox(reviewer, 'plan_submitted');
         assert.equal(n.message, `${f.code} — submitted for review by Instructor`);

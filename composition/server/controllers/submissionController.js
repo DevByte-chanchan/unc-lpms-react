@@ -79,6 +79,10 @@ async function submitLearningPlan(req, res) {
         await AssignmentWorkflowLog.create({
             co_assign_id: assignment.co_assign_id,
             actor_role: actorRole,
+            // Who submitted, so the review record and the revision history can name them (the workflow action
+            // endpoint records the same two fields for every other step).
+            actor_name: String(req.user?.name || '').slice(0, 100) || null,
+            actor_user_id: req.user?.id ?? null,
             action_type: 'SUBMITTED',
             createdAt: now,
             updatedAt: now
