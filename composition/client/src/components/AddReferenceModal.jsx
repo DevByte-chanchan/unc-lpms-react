@@ -6,10 +6,12 @@ import styles from '../styles/AddReferenceModal.module.sass';
 
 // Add / edit one reference in a dialog. The fields come from the server's type definitions and the
 // save goes to the server (Director of Libraries only). `refToEdit` is a library record.
-const AddReferenceModal = ({ show, onClose, refToEdit = null, onSaved, onError }) => {
+const AddReferenceModal = ({ show, onClose, refToEdit = null, onSaved }) => {
   const isEditMode = !!refToEdit;
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [saveError, setSaveError] = useState('');
   const form = useReferenceForm(refToEdit, show);
+  useEffect(() => { if (!show) setSaveError(''); }, [show]);
 
   useEffect(() => {
     if (!show) return;
@@ -25,9 +27,10 @@ const AddReferenceModal = ({ show, onClose, refToEdit = null, onSaved, onError }
   if (!show) return null;
 
   const handleSave = async () => {
+    setSaveError('');
     const result = await form.save();
     if (!result.ok) {
-      onError?.({ message: result.message, type: 'error' });
+      setSaveError(result.message); // stays in the dialog until the next try
       return;
     }
     onSaved?.({ message: isEditMode ? 'Reference updated successfully!' : 'Reference added successfully!', type: 'success' });
@@ -69,6 +72,7 @@ const AddReferenceModal = ({ show, onClose, refToEdit = null, onSaved, onError }
           )}
         </div>
 
+        {saveError && <div role="alert" style={{ color: 'var(--danger)', fontSize: 13, padding: '8px 20px 0' }}>{saveError}</div>}
         <div className={styles.actions}>
           <button onClick={onClose} className="btn btn-secondary">Cancel</button>
           <button onClick={handleSave} disabled={form.saving || !form.typesReady} className="btn btn-primary">

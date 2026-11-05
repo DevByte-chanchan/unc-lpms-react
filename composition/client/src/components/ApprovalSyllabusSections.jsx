@@ -2,7 +2,7 @@ import Select from './Select.jsx'
 import React, { useEffect, useState, useRef } from 'react'
 import { offeringKey } from '../utils/offeringKey.js'
 import { Link, useSearchParams, useParams, useNavigate, useLocation } from 'react-router-dom'
-import { ChevronLeft, ChevronRight, MessageSquare, Download, MoreVertical, Check, Clock, FileText, UserPlus, Lock, AlertTriangle, X } from 'react-feather'
+import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, MessageSquare, Download, MoreVertical, Check, Clock, FileText, UserPlus, Lock, AlertTriangle, X } from 'react-feather'
 import EmptyState from './EmptyState.jsx'
 import Spinner from './Spinner.jsx'
 import TableScrollRegion from './TableScrollRegion.jsx'
@@ -121,6 +121,9 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
   const [isConsultantOpen, setIsConsultantOpen] = useState(false)
   // The comments panel's Open / Resolved / All switch.
   const [commentFilter, setCommentFilter] = useState('all')
+  // Comment cards are one size; a long one is cut short until its reader opens it.
+  const [expandedComments, setExpandedComments] = useState(() => new Set())
+  const toggleComment = (id) => setExpandedComments(prev => { const next = new Set(prev); if (next.has(id)) next.delete(id); else next.add(id); return next })
 
   const [showCommentModal, setShowCommentModal] = useState(false)
   const [readOnlyCommentModal, setReadOnlyCommentModal] = useState(false)
@@ -627,6 +630,51 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
       el.scrollIntoView({ behavior: 'smooth', block: 'start' })
     }
   }, [selectedSection, externalSelectedSection])
+
+  // "Show in plan": open the section, then scroll to the exact row the comment is about and flash it.
+  const [focusTarget, setFocusTarget] = useState(null)
+  const showCommentInPlan = (comment) => {
+    const section = sectionOfComment(comment)
+    if (!section) return
+    setSelectedSection(section)
+    const details = Array.isArray(comment.coverageDetail) ? comment.coverageDetail : (comment.coverageDetail ? [comment.coverageDetail] : [])
+    setFocusTarget({ section, ilo: comment.ilo, details, nonce: Date.now() })
+  }
+  useEffect(() => {
+    if (!focusTarget || selectedSection !== focusTarget.section) return undefined
+    let tries = 0
+    let timer
+    // The exact items the comment names (a topic, a TLA, a reference), in the comment's own ILO row when it is
+    // there; the ILO row itself when the items are not found.
+    const find = () => {
+      const iloRow = document.querySelector(`[data-ilo-id="${CSS.escape(String(focusTarget.ilo || ''))}"]`)
+      const wanted = focusTarget.details.map(detail => String(detail).trim()).filter(Boolean)
+      const match = (scope) => wanted.flatMap(detail => [...scope.querySelectorAll('[data-target]')]
+        .filter(el => el.dataset.target === detail || detail.includes(el.dataset.target)))
+      const exact = (iloRow && match(iloRow)).length ? match(iloRow) : match(document)
+      if (exact.length) return exact
+      return iloRow ? [iloRow] : []
+    }
+    const attempt = () => {
+      const found = find()
+      if (found.length) {
+        found[0].scrollIntoView({ behavior: 'smooth', block: 'center' })
+        found.forEach(el => {
+          el.removeAttribute('data-flash')
+          void el.offsetWidth // restart the animation if it is the same item again
+          el.setAttribute('data-flash', '')
+          window.setTimeout(() => el.removeAttribute('data-flash'), 2600)
+        })
+        setFocusTarget(null)
+      } else if (tries++ < 15) {
+        timer = window.setTimeout(attempt, 120) // the section is still loading its rows
+      } else {
+        setFocusTarget(null) // no row to point at: the section itself is already open
+      }
+    }
+    timer = window.setTimeout(attempt, 350) // after the section's own scroll has started
+    return () => window.clearTimeout(timer)
+  }, [focusTarget, selectedSection])
 
   const openComment = () => setShowCommentModal(true)
   const closeComment = () => setShowCommentModal(false)
@@ -1526,9 +1574,21 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
                             </div>
                           )}
 
-                          <div className={styles.commentMessage}>
-                            <p>{display.body || 'No written comment provided.'}</p>
-                          </div>
+                          {(() => {
+                            const text = display.body || 'No written comment provided.'
+                            const isLong = text.length > 140 || text.split('\n').length > 3
+                            const open = expandedComments.has(comment.id)
+                            return (
+                              <div className={styles.commentMessage}>
+                                <p className={isLong && !open ? styles.commentClamped : isLong ? styles.commentOpen : undefined}>{text}</p>
+                                {isLong && (
+                                  <button type="button" className={styles.commentToggle} aria-expanded={open} onClick={() => toggleComment(comment.id)}>
+                                    {open ? <>Show less <ChevronUp size={13} aria-hidden="true" /></> : <>Show more <ChevronDown size={13} aria-hidden="true" /></>}
+                                  </button>
+                                )}
+                              </div>
+                            )
+                          })()}
 
                           {display.suggestions.length > 0 && (
                             <div className={styles.commentSuggestions}>
@@ -1562,7 +1622,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
                               </span>
                             )}
                             {sectionOfComment(comment) && visibleSections.includes(sectionOfComment(comment)) && (
-                              <button type="button" className={styles.commentJump} onClick={() => setSelectedSection(sectionOfComment(comment))}>
+                              <button type="button" className={styles.commentJump} onClick={() => showCommentInPlan(comment)}>
                                 Show in plan <ChevronRight size={13} aria-hidden="true" />
                               </button>
                             )}

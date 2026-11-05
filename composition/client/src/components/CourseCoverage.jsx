@@ -11,7 +11,7 @@ const TlaGroup = ({ title, tlas, stylesB }) => {
         <div className={stylesB.tlaGroupBlock}>
             <div className={stylesB.tlaPhaseHeader}>{title}</div>
             {tlas.map(tla => (
-                <div key={tla.id} className={stylesB.tlaItem}>
+                <div key={tla.id} className={stylesB.tlaItem} data-target-kind="TLA" data-target={tla.tlaName}>
                     <div className={stylesB.tlaNameLine}>
                         <span className={stylesB.perfTag}>
                             {tla.performedBy === 'Instructor' ? '[I]' : '[S]'}
@@ -236,7 +236,7 @@ const CourseCoverage = ({ offeringID, revisionNum, status, selectedSection, styl
                             const totalRowUnresolved = refCount + topicCount + tlaCount;
 
                             return (
-                                <tr key={ilo.id}>
+                                <tr key={ilo.id} data-ilo-id={ilo.id}>
                                 {/* CO COLUMN */}
                                 {isFirstOfCO && (
                                     <td
@@ -264,7 +264,7 @@ const CourseCoverage = ({ offeringID, revisionNum, status, selectedSection, styl
                                 {/* TOPIC COLUMN */}
                                 <td className={stylesB.ccCell} style={{ width: colWidths.topic }}>
                                     {rowTopics.map(t => (
-                                        <div key={t.id} className={stylesB.topicBlock}>
+                                        <div key={t.id} className={stylesB.topicBlock} data-target-kind="Topic" data-target={t.title}>
                                             <div className={stylesB.topicTitle}>{t.title}</div>
                                             <ul className={stylesB.subtopicList}>
                                                 {t.subtopics && t.subtopics.map(sub => (

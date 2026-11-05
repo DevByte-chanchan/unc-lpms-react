@@ -550,3 +550,16 @@ input.app-input.app-input {
     font: var(--fw-normal) var(--fs-sm) var(--font-ui);
 }
 input.app-input.app-input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+/* "Show in plan": the item a comment points at flashes once after the page scrolls to it. */
+@keyframes row-flash {
+  0%, 60% { background-color: #fef3c7; box-shadow: inset 3px 0 0 #d97706; }
+  100% { background-color: transparent; box-shadow: inset 3px 0 0 transparent; }
+}
+@keyframes item-flash {
+  0%, 60% { background-color: #fde68a; outline: 2px solid #d97706; outline-offset: 3px; }
+  100% { background-color: transparent; outline: 2px solid transparent; outline-offset: 3px; }
+}
+tr[data-flash] > td { animation: row-flash 2.6s ease-out; }
+div[data-flash], tr[data-target][data-flash] > td { border-radius: 4px; animation: item-flash 2.6s ease-out; }
+@media (prefers-reduced-motion: reduce) { [data-flash], [data-flash] > td { animation: none !important; background-color: #fde68a; } }

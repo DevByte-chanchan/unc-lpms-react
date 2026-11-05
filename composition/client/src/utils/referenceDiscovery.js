@@ -191,9 +191,10 @@ export const paginateReferenceRecords = (records, requestedPage = 1, requestedPa
 
 export const getReferencePreview = (selectedReference, visibleRecords) => {
   const visible = Array.isArray(visibleRecords) ? visibleRecords : []
-  if (selectedReference && visible.some(record => record?.id === selectedReference.id)) {
-    return selectedReference
-  }
+  // The fresh record from the list, not the copy that was clicked: after an edit the list reloads
+  // and the preview must show the new values.
+  const current = selectedReference && visible.find(record => record?.id === selectedReference.id)
+  if (current) return current
   return visible[0] || null
 }
 

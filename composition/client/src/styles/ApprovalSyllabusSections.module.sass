@@ -137,6 +137,8 @@
     border-radius: 4px
   &::-webkit-scrollbar-thumb:hover
     background: #999
+  &::-webkit-scrollbar-thumb:active
+    background: #777
 
 .review-workspace
   display: flex
@@ -215,8 +217,10 @@
   overflow: auto
   padding: 12px
   background: #f8fafc
+  // Solid track and thumb that stay visible while dragged (a transparent track let the bar vanish under the pointer).
+  scrollbar-gutter: stable
   scrollbar-width: thin
-  scrollbar-color: #cbd5e1 transparent
+  scrollbar-color: #94a3b8 #e2e8f0
 
 .commentsList
   display: flex
@@ -350,6 +354,34 @@
     line-height: 1.55
     overflow-wrap: anywhere
     white-space: pre-wrap
+
+// A comment card is the same height whatever it says: three lines, then "Show more".
+.commentClamped
+  display: -webkit-box
+  -webkit-box-orient: vertical
+  -webkit-line-clamp: 3
+  line-clamp: 3
+  overflow: hidden
+
+// Opened, a very long comment scrolls inside the card instead of stretching the panel.
+.commentOpen
+  max-height: 220px
+  overflow-y: auto
+
+.commentToggle
+  display: inline-flex
+  align-items: center
+  gap: 2px
+  margin-top: 4px
+  padding: 0
+  border: 0
+  background: transparent
+  color: var(--ink)
+  font: var(--fw-medium) 12px var(--font-ui)
+  cursor: pointer
+
+  &:hover
+    text-decoration: underline
 
 .commentSectionLabel
   display: block

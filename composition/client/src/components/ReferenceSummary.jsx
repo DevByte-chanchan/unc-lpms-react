@@ -159,7 +159,7 @@ const ReferenceSummary = ({ offeringID, revisionNum, status, selectedSection, st
                         ) : reviewed.map(({ ref, issues }, index) => {
                             const unresolvedCount = referenceCommentCounts[ref.id] || 0;
                             return (
-                                <tr key={ref.id || `${activeView.prefix}${index + 1}`}>
+                                <tr key={ref.id || `${activeView.prefix}${index + 1}`} data-target-kind="References" data-target={ref.title}>
                                     <td>{activeView.prefix}{index + 1}</td>
                                     <td>
                                         <div className={stylesB.refTitleCell}>
