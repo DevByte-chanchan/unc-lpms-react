@@ -15,7 +15,11 @@ test('no link when the course is unknown or the role has no course view', () => 
   assert.equal(notificationPath('dean', { offeringId: 15 }), null)
   assert.equal(notificationPath('dean', {}), null)
   assert.equal(notificationPath('superuser', n), null)
-  assert.equal(notificationPath('vpaa', n), null)
+  assert.equal(notificationPath('vpaa', n), null, 'the VPAA has no view of a plan under review')
+})
+
+test('the VPAA opens an approved plan from its notification', () => {
+  assert.equal(notificationPath('vpaa', { ...n, state: 'approved' }), '/role/vpaa/courses/BIT%20321L?status=approved&fromStatus=approved&pcId=15')
 })
 
 test('a reviewer can be poked unless the server says when they next can be', () => {

@@ -22,7 +22,8 @@ export const notificationPath = (role, notification = {}) => {
       ? `/courses/${offeringId}/${revisionNumber}/${status}`
       : `/offerings/${offeringId}/${status}`
   }
-  if (APPROVER_ROLES.includes(role)) {
+  // The VPAA reads approved plans only, through the same course view.
+  if (APPROVER_ROLES.includes(role) || (role === 'vpaa' && status === 'approved')) {
     const rev = revisionNumber ? `&revNum=${revisionNumber}` : ''
     return `/role/${role}/courses/${encodeURIComponent(courseCode)}?status=${status}&fromStatus=${status}&pcId=${offeringId}${rev}`
   }
