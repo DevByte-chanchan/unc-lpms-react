@@ -27,3 +27,13 @@
   // the header's bottom line is the first row's top line
   tbody tr:first-child td
     border-top-width: 0 !important
+
+// As tall as its rows; the page scrolls (like the other Program Head tables). Sideways scrolling stays.
+.flow
+  flex: 0 0 auto
+  min-height: 0
+
+  .body
+    flex: 0 0 auto
+    overflow-x: auto
+    overflow-y: visible

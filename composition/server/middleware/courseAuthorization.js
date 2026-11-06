@@ -162,8 +162,9 @@ const createCourseAccessMiddleware = resolver => async (req, res, next) => {
 const requireOfferingAccess = createCourseAccessMiddleware(req =>
     loadOfferingCourseRows(req.params.pcId, req.params.revNum)
 );
+// ?pcId picks one offering of the course (a term or revision); without it, the newest one.
 const requireCourseCodeAccess = createCourseAccessMiddleware(req =>
-    loadCourseCodeRows(req.params.code)
+    loadCourseCodeRows(req.params.code, /^\d+$/.test(String(req.query?.pcId ?? '')) ? Number(req.query.pcId) : null)
 );
 const requireIloParamAccess = param => createCourseAccessMiddleware(req =>
     loadIloCourseRows(req.params[param])

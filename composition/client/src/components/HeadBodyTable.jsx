@@ -8,7 +8,8 @@ import styles from '../styles/HeadBodyTable.module.sass'
 //   widths   the column widths in px (their sum is the narrowest the table gets)
 //   head     the header row: <tr><th>…</th></tr>
 //   children the body rows: <tbody>…</tbody>
-const HeadBodyTable = ({ label, widths, head, children, tableClass = '', className = '' }) => {
+//   flow     the rows do not scroll up and down by themselves: the table is as tall as its rows and the page scrolls
+const HeadBodyTable = ({ label, widths, head, children, tableClass = '', className = '', flow = false }) => {
   const headRef = useRef(null)
   const bodyRef = useRef(null)
   const total = widths.reduce((sum, width) => sum + width, 0)
@@ -33,7 +34,7 @@ const HeadBodyTable = ({ label, widths, head, children, tableClass = '', classNa
   const cols = <colgroup>{widths.map((width, index) => <col key={index} style={{ width }} />)}</colgroup>
 
   return (
-    <div className={`${styles.shell} ${className}`.trim()} role="region" aria-label={label}>
+    <div className={`${styles.shell} ${flow ? styles.flow : ''} ${className}`.trim()} role="region" aria-label={label}>
       <div ref={headRef} className={styles.head}>
         <table className={tableClass} style={tableStyle}>{cols}<thead>{head}</thead></table>
       </div>

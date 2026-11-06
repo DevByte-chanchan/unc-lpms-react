@@ -193,7 +193,6 @@ const SideNavigation = ({ mode = 'instructor' }) => {
                 )}
             </div>
 
-            <div className={styles.menuLabel}>Menu</div>
 
             <div className={styles['nav-list']}>
                 {account && account.role !== 'superuser' && <NotificationBell />}

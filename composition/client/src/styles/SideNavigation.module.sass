@@ -219,8 +219,12 @@
     margin: 8px 8px 0
 
   .list, .listB
+    width: 36px
+    height: 36px
+    margin-left: auto
+    margin-right: auto
     justify-content: center
-    padding: 10px 8px
+    padding: 0
     gap: 0
 
   .listText
@@ -243,8 +247,13 @@
   margin: 8px 8px 0
 
 :global([data-nav-collapsed='true']) .list, :global([data-nav-collapsed='true']) .listB
+  // a 36px square, centred, like the collapse button above it
+  width: 36px
+  height: 36px
+  margin-left: auto
+  margin-right: auto
   justify-content: center
-  padding: 10px 8px
+  padding: 0
   gap: 0
 
 :global([data-nav-collapsed='true']) .listText

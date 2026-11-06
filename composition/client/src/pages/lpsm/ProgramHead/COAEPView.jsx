@@ -9,6 +9,7 @@ import EmptyState from '../../../components/EmptyState.jsx';
 import HeadBodyTable from '../../../components/HeadBodyTable.jsx';
 import { Loading, TableSkeleton } from '../../../components/LoadingSkeleton.jsx';
 import { buildCoaepHtml } from '../../../utils/syllabusPdfHtml.js';
+import { revisionLabel, termLabel } from '../../../utils/offeringLabels.js';
 import { fetchJson, apiErrorMessage } from '../../../utils/api.js';
 import { getSession } from '../../../utils/session.js';
 import { fetchFormInfo } from '../../../utils/formSettings.js';
@@ -21,38 +22,50 @@ import styles from '../../../styles/PoPeoAlignment.module.sass';
 
 const COAEPView = () => {
   const session = getSession();
-  const [courseCode, setCourseCode] = useState('');
+  const [offeringId, setOfferingId] = useState('');
   const [courses, setCourses] = useState(null);
   const [serverCoaep, setServerCoaep] = useState(undefined);
   const [error, setError] = useState('');
   const [selectedFile, setSelectedFile] = useState(null);
 
-  // The Program Head's real assigned courses, one entry per course code.
+  // The Program Head's assigned offerings, one entry per term and revision (like the CO and PO tab),
+  // so the COAEP of an older term can be opened too.
   useEffect(() => {
     let active = true;
     fetchJson('/api/assignments?limit=500')
       .then(response => {
         if (!active) return;
         const rows = Array.isArray(response) ? response : (response.data || []);
-        const byCode = new Map();
+        const byOffering = new Map();
         rows.forEach(row => {
-          const course = row.ProgramCourseOffering?.Course;
-          if (course?.course_no && !byCode.has(course.course_no)) byCode.set(course.course_no, { code: course.course_no, name: course.course_title || '' });
+          const offering = row.ProgramCourseOffering;
+          const course = offering?.Course;
+          if (!course?.course_no || !offering.pc_offering_id || byOffering.has(offering.pc_offering_id)) return;
+          const parts = [termLabel(offering), revisionLabel(offering)].filter(Boolean);
+          byOffering.set(offering.pc_offering_id, {
+            id: String(offering.pc_offering_id),
+            code: course.course_no,
+            name: course.course_title || '',
+            label: `${course.course_no} — ${course.course_title || ''}${parts.length ? ` (${parts.join(', ')})` : ''}`,
+          });
         });
-        const list = [...byCode.values()].sort((left, right) => left.code.localeCompare(right.code));
+        const list = [...byOffering.values()].sort((left, right) => left.code.localeCompare(right.code) || left.label.localeCompare(right.label));
         setCourses(list);
-        setCourseCode(list[0]?.code || '');
+        setOfferingId(list[0]?.id || '');
       })
       .catch(err => { if (active) { setCourses([]); setError(apiErrorMessage(err, 'Could not load your courses.')); } });
     return () => { active = false; };
   }, []);
+
+  const course = (courses || []).find(item => item.id === offeringId);
+  const courseCode = course?.code || '';
 
   // undefined = loading, null = this course has no plan content yet.
   useEffect(() => {
     if (!courseCode) return undefined;
     let active = true;
     setServerCoaep(undefined);
-    fetchJson(`/api/coaep/${encodeURIComponent(courseCode)}`)
+    fetchJson(`/api/coaep/${encodeURIComponent(courseCode)}?pcId=${encodeURIComponent(offeringId)}`)
       .then(payload => { if (active) { setServerCoaep(payload); setError(''); } })
       .catch(err => {
         if (!active) return;
@@ -61,9 +74,8 @@ const COAEPView = () => {
         if (err.status !== 404) setError(apiErrorMessage(err, 'Could not load the COAEP.'));
       });
     return () => { active = false; };
-  }, [courseCode]);
+  }, [courseCode, offeringId]);
 
-  const course = (courses || []).find(item => item.code === courseCode);
   const generatedRecord = buildGeneratedCoaepRecord({
     courseCode,
     courseName: course?.name,
@@ -98,7 +110,7 @@ const COAEPView = () => {
       header={<HeaderA role={session?.roleLabel || 'Program Head'} name={session?.name || ''} />}
       nav={<SideNavigation mode="program-head" />}
       content={(
-        <div className={pageStyles.page}>
+        <div className={`${pageStyles.page} ${pageStyles.flowPage}`}>
           <div className={pageStyles.pageHeader}>
             <h2 className="app-page-title">Course Assessment &amp; Evaluation Plan (COAEP)</h2>
             {generatedRecord && (
@@ -112,11 +124,11 @@ const COAEPView = () => {
 
           <div className={pageStyles.toolbarControls}>
             <Select
-              value={courseCode}
-              onChange={event => setCourseCode(event.target.value)}
+              value={offeringId}
+              onChange={event => setOfferingId(event.target.value)}
               aria-label="Select course"
             >
-              {(courses || []).map(item => <option key={item.code} value={item.code}>{item.code} — {item.name}</option>)}
+              {(courses || []).map(item => <option key={item.id} value={item.id}>{item.label}</option>)}
             </Select>
           </div>
 
@@ -129,7 +141,7 @@ const COAEPView = () => {
           )}
 
           {generatedRecord ? (
-            <div style={{ minWidth: 0, minHeight: 0, flex: 1, display: 'flex', flexDirection: 'column' }}><HeadBodyTable label="COURSE ASSESSMENT & EVALUATION PLAN (COAEP)" tableClass={cc.ccTable}
+            <div style={{ minWidth: 0 }}><HeadBodyTable flow label="COURSE ASSESSMENT & EVALUATION PLAN (COAEP)" tableClass={cc.ccTable}
               widths={[40, 250, 300, 260, 220]}
               head={(
                 // The official form's columns (UNC-FM-VPAA-02): the CO number shares the statement's header.

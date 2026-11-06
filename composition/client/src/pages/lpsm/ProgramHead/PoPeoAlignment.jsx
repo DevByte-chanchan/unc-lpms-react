@@ -207,7 +207,7 @@ const PoPeoAlignment = ({ tabs = null }) => {
             </table>
           </TableScrollRegion></div>
           {editing && (
-            <button type="button" className={styles.addButton} onClick={() => update(c => ({ ...c, peos: [...c.peos, { statement: '', missionAligned: true }] }))}>
+            <button type="button" className={styles.addButton} onClick={() => update(c => ({ ...c, peos: [...c.peos, { statement: '', missionAligned: false }] }))}>
               <Plus size={16} /> Add PEO
             </button>
           )}
