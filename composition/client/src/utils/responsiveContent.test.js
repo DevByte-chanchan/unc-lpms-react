@@ -193,7 +193,7 @@ test('reference discovery workbench becomes drawers and sheets on compact screen
   assert.match(compactSearchForm, /grid-template-columns:\s*1fr/)
   assert.match(tableWrapper, /border:\s*(?:0|none)/)
   assert.match(tableWrapper, /border-radius:\s*0/)
-  assert.match(paginationButton, /border-radius:\s*6px/)
+  assert.match(paginationButton, /border-radius:\s*var\(--control-radius\)/)
   assert.match(facetRail, /background:\s*#fff/)
   assert.match(previewPane, /background:\s*#fff/)
   assert.match(selectedRow, /box-shadow:\s*inset 3px 0 #19282C/i)

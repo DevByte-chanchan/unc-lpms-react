@@ -187,7 +187,7 @@
   height: 36px;
   padding: 0 10px;
   border: 1px solid #c5d0d4;
-  border-radius: 6px;
+  border-radius: var(--control-radius);
   background: #fff;
   color: #34494f;
   font: 500 12px 'Poppins', sans-serif;
@@ -359,7 +359,7 @@
   height: 36px;
   padding: 0 8px;
   border: 0;
-  border-radius: 7px;
+  border-radius: var(--control-radius);
   background: transparent;
   color: #52666d;
   text-align: left;
@@ -423,7 +423,7 @@
   height: 36px;
   padding: 0 8px;
   border: 1px solid #A4A9AF;
-  border-radius: 6px;
+  border-radius: var(--control-radius);
   background: #fff;
   color: #34494f;
   font: 400 12px 'Poppins', sans-serif;
@@ -753,10 +753,10 @@ button.previewClose.previewClose {
     text-overflow: ellipsis;
   }
 
-  th:nth-child(1), td:nth-child(1) { width: 12%; }
-  th:nth-child(2), td:nth-child(2) { width: 33%; }
-  th:nth-child(3), td:nth-child(3) { width: 20%; }
-  th:nth-child(4), td:nth-child(4) { width: 24%; }
+  th:nth-child(1), td:nth-child(1) { width: 10%; }
+  th:nth-child(2), td:nth-child(2) { width: 40%; }
+  th:nth-child(3), td:nth-child(3) { width: 22%; }
+  th:nth-child(4), td:nth-child(4) { width: 17%; }
   th:nth-child(5), td:nth-child(5) {
     width: 11%;
     padding-right: 8px;
@@ -1109,7 +1109,7 @@ button.previewClose.previewClose {
   padding: 0;
   box-sizing: border-box;
   flex: 0 0 36px;
-  border-radius: 6px;
+  border-radius: var(--control-radius);
   border: 1px solid #e5e7eb;
   background: white;
   color: #374151;

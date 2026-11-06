@@ -227,13 +227,13 @@ const ApprovalCoursesTable = ({ role = 'approver', styleHooks = {} }) => {
     // ProgramCourseOffering, so sorting on `row.code` would compare undefined
     // to undefined and appear to do nothing.
     const COLUMNS = [
-        { key: 'date_assigned', label: 'DATE ASSIGNED', width: 170, type: 'date' },
-        { key: 'code', label: 'CODE', width: 150, type: 'text', sortValue: (r) => getCode(r) },
+        { key: 'date_assigned', label: 'DATE ASSIGNED', width: 165, type: 'date' },
+        { key: 'code', label: 'CODE', width: 130, type: 'text', sortValue: (r) => getCode(r) },
         { key: 'name', label: 'COURSE NAME', width: 200, className: styles.growCol, type: 'text', sortValue: (r) => getName(r) },
         ...(selectedStatus === 'APPROVED'
-            ? [{ key: 'date_approved', label: 'DATE APPROVED', width: 170, type: 'date' }]
+            ? [{ key: 'date_approved', label: 'DATE APPROVED', width: 165, type: 'date' }]
             : []),
-        { key: 'approval', label: 'APPROVAL', width: 190, sortable: false },
+        { key: 'approval', label: 'APPROVAL', width: 170, sortable: false },
         { key: 'actions', label: 'ACTIONS', className: styles.actionsCol, sortable: false }
     ];
 
@@ -365,14 +365,14 @@ const ApprovalCoursesTable = ({ role = 'approver', styleHooks = {} }) => {
 
             {!notSubmitted && <TableScrollRegion
                 label="Assigned Course Offerings"
-                minWidth={900}
+                minWidth={760}
                 className={`${styles['table-container']} ${styles.approvalRegion}`}
             >
                 {/* While loading, show ONLY the spinner. Rendering it above the
                     table meant the empty state ("No learning plans waiting for
                     you") was on screen at the same time as "Loading…", which
                     tells the reader two contradictory things. */}
-                {loading && <Loading label="Loading course offerings…"><TableSkeleton rows={6} cols={[200, 150, '1fr', 190, 210]} /></Loading>}
+                {loading && <Loading label="Loading course offerings…"><TableSkeleton rows={6} cols={[165, 130, '1fr', 170, 190]} /></Loading>}
 
                 {!loading && loadError && (
                     <EmptyState
@@ -395,15 +395,15 @@ const ApprovalCoursesTable = ({ role = 'approver', styleHooks = {} }) => {
                         <tbody>
                         {sortedRows.map((row, index) => (
                             <tr key={index}>
-                                <td width={170}>{formatDate(row.date_assigned)}</td>
-                                <td width={150} title={getCode(row)}><span>{getCode(row)}</span></td>
+                                <td width={165}>{formatDate(row.date_assigned)}</td>
+                                <td width={130} title={getCode(row)}><span>{getCode(row)}</span></td>
                                 {/* The <span> is what makes the ellipsis appear
                                     (see .truncate), and `title` is not
                                     decoration: the cell clips now, so this is
                                     the only way to read a long name in full. */}
                                 <td width={200} className={styles.growCol} title={getName(row)}><span>{getName(row)}</span></td>
-                                <td width={170}>{formatDate(row.date_approved)}</td>
-                                <td width={190}><ApprovalProgress row={row} role={role} /></td>
+                                <td width={165}>{formatDate(row.date_approved)}</td>
+                                <td width={170}><ApprovalProgress row={row} role={role} /></td>
                                 <td className={styles.actionsCol}>{rowActions(row)}</td>
                             </tr>
                         ))}
@@ -424,10 +424,10 @@ const ApprovalCoursesTable = ({ role = 'approver', styleHooks = {} }) => {
                         <tbody>
                         {sortedRows.map((row, index) => (
                             <tr key={index}>
-                                <td width={170}>{formatDate(row.date_assigned)}</td>
-                                <td width={150} title={getCode(row)}><span>{getCode(row)}</span></td>
+                                <td width={165}>{formatDate(row.date_assigned)}</td>
+                                <td width={130} title={getCode(row)}><span>{getCode(row)}</span></td>
                                 <td width={200} className={styles.growCol} title={getName(row)}><span>{getName(row)}</span></td>
-                                <td width={190}><ApprovalProgress row={row} role={role} /></td>
+                                <td width={170}><ApprovalProgress row={row} role={role} /></td>
                                 <td className={styles.actionsCol}>{rowActions(row)}</td>
                             </tr>
                         ))}

@@ -39,11 +39,12 @@
     border-radius: 4px
 
 // The whole header cell is the button: padding on the button (not the cell) so the hover tint and the
-// click target are roomy, with the arrow at the cell's far end.
+// click target are roomy. The arrow follows its label: at the cell's far end it drifted 600px from a wide
+// "Course name" label while a narrow "Date assigned" kept it close, so the header row read as uneven.
 .btnFill
   display: flex
   width: 100%
-  justify-content: space-between
+  justify-content: flex-start
   padding: 8px 12px
   border-radius: 0
   text-align: left

@@ -252,9 +252,10 @@ select option
 .growCol
   flex-grow: 1
 
+// 190px: View + Export measure 152px plus the cell inset. The spare 20px goes to the course name.
 .actionsCol
-  flex: 0 0 210px
-  width: 210px
+  flex: 0 0 190px
+  width: 190px
   box-sizing: border-box
   display: flex
   align-items: center
@@ -382,12 +383,18 @@ select option
     width: auto
     max-height: calc(100dvh - 24px)
 
+// The approvers' course lists. index.css gives tables `min-width: fit-content`, so the fixed column widths (about
+// 920px) pushed past the scroll canvas and every list scrolled sideways at 1024px. Letting the table shrink to its
+// canvas makes the columns give way instead.
+table.approvalTable
+  min-width: 0
+
 // The approvers' course lists at phone width. The desktop columns add up to about 1,090px, so on a phone only the
 // date and the code showed and View / Export sat off-screen. Here each row becomes a small card: code and actions on
 // top, then the name, then the approval bar. The header row goes (sorting stays on wider screens) and the date
 // columns go, since the list is already in date order.
 @media (max-width: 600px)
-  // TableScrollRegion sets the 900px desktop width inline; the card rows do not need it.
+  // TableScrollRegion sets the 760px desktop width inline; the card rows do not need it.
   .approvalRegion > div
     min-width: 0 !important
 

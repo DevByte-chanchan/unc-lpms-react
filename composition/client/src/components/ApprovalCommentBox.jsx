@@ -434,19 +434,19 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
   const directorFilled = comments.filter(c => c.text?.trim() && c.commentedRefId).length
   const directorSuggested = selectedRefs.length
   const directorParts = []
-  if (directorFilled > 0) directorParts.push(`Comment${directorFilled > 1 ? 's' : ''}`)
-  if (directorSuggested > 0) directorParts.push(`Suggestion${directorSuggested > 1 ? 's' : ''}`)
-  const directorLabel = `${verb} ${directorParts.length > 0 ? directorParts.join(' and ') : 'Comments'}`
+  if (directorFilled > 0) directorParts.push(`comment${directorFilled > 1 ? 's' : ''}`)
+  if (directorSuggested > 0) directorParts.push(`suggestion${directorSuggested > 1 ? 's' : ''}`)
+  const directorLabel = `${verb} ${directorParts.length > 0 ? directorParts.join(' and ') : 'comments'}`
 
   const normalFilled = comments.filter(c => c.text?.trim() && c.courseOutcome && c.ilo && c.coverageType && hasCoverageDetail(c)).length
   const normalSuggested = selectedRefs.length
   const normalParts = []
-  if (normalFilled > 0) normalParts.push(`Comment${normalFilled > 1 ? 's' : ''}`)
-  if (normalSuggested > 0) normalParts.push(`Suggestion${normalSuggested > 1 ? 's' : ''}`)
-  const normalLabel = `${verb} ${normalParts.length > 0 ? normalParts.join(' and ') : (mode === 'suggest' ? 'Suggestion' : 'Comments')}`
-  const dialogTitle = readOnly ? 'Previous Comments'
-    : mode === 'suggest' ? 'Add Suggestion'
-    : `${verb} Comments${isDirector ? ' & References' : ''}`
+  if (normalFilled > 0) normalParts.push(`comment${normalFilled > 1 ? 's' : ''}`)
+  if (normalSuggested > 0) normalParts.push(`suggestion${normalSuggested > 1 ? 's' : ''}`)
+  const normalLabel = `${verb} ${normalParts.length > 0 ? normalParts.join(' and ') : (mode === 'suggest' ? 'suggestion' : 'comments')}`
+  const dialogTitle = readOnly ? 'Previous comments'
+    : mode === 'suggest' ? 'Add suggestion'
+    : `${verb} comments${isDirector ? ' & references' : ''}`
 
   return (
     <>

@@ -566,25 +566,30 @@
   align-items: center
   justify-content: center
   cursor: pointer
-  border-radius: 4px
-  padding: 0 14px
-  border-radius: 5px
+  padding: 0
+  border-radius: var(--control-radius)
   font-size: 14px
   font-weight: 500
   background: #dbdfe3
   height: 36px
   color: black
-  transition: transform 0.3s ease
+  transition: background var(--t-fast)
 
+// A tint like every other button, not a 5% grow that nudged the buttons beside it.
 .more:hover
-  transform: scale(1.05)
+  background: #cfd4d9
 
 .more.active
   .dropdownMenu
     display: flex
 
+// The button fills the 36px grey tile, so the whole tile is the click target, not just the 16px icon.
 .more .moreIcon
   padding: 0
+  width: 36px
+  height: 36px
+  align-items: center
+  justify-content: center
   display: flex
   border: 0
   background: transparent
@@ -1240,13 +1245,18 @@
   align-items: center
   gap: 6px
   margin: 0
-  padding: 6px 12px 8px
+  // The same side inset as the approval strip above, so the notice starts on the legend's edge.
+  padding: 0 var(--sp-5) var(--sp-4)
   background: white
   color: var(--ink-soft)
   font-size: 12px
   line-height: 1.4
 
 /* --------------------------------------------------- wider viewports --- */
+
+@media (min-width: 768px)
+  .waitingNotice
+    padding: 0 var(--sp-7) var(--sp-4)
 
 // Below this the navi wraps instead of squeezing its controls to nothing.
 @media (max-width: 600px)
@@ -1301,7 +1311,9 @@
   align-items: center
   gap: 6px
   justify-content: center
-  width: min(300px, 100%)
+  // Sized to its label: a fixed 300px cut "Next: Course and Program Outcome Alignment" to "Next: Course and…".
+  width: auto
+  max-width: 100%
   height: 36px
   padding: 0 var(--sp-5)
   box-sizing: border-box
@@ -1338,16 +1350,16 @@
   &:hover
     background: var(--surface-muted)
 
-// The forward action is the site's primary dark, the same as Approve, so the
-// eye is pulled through the plan rather than back up to the dropdown.
+// Next is an outline button like Back, with darker text. As a dark fill it was a second primary on the screen,
+// pulling the eye away from Approve, the one action that decides the plan.
 .nav-next
   justify-self: end
-  background: var(--primary)
-  color: var(--primary-ink)
-  border: 1px solid var(--primary)
+  background: var(--surface)
+  color: var(--ink)
+  border: 1px solid var(--line)
 
   &:hover
-    background: var(--primary-hover)
+    background: var(--surface-muted)
 
 /* --------------------------------------------------------------- dots --- */
 

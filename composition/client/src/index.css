@@ -536,6 +536,16 @@ button.app-icon-btn.app-icon-btn.is-on { background: #e2e8f0; }
     gap: 8px;
     flex-shrink: 0;
 }
+/* The title gives way to the buttons, never the other way round. On a phone the 24px sides pushed the close button
+   past the window's edge (Notifications: 5px clipped), so they tighten to 16px there. */
+.app-window-header > :first-child {
+    min-width: 0;
+}
+@media (max-width: 480px) {
+    .app-window-header {
+        padding: 12px 16px;
+    }
+}
 
 /* The one single-line text field: 36px, 12px of text space, the same border and radius as the buttons. */
 input.app-input.app-input {

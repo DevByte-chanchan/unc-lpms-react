@@ -89,21 +89,16 @@
 // "0/4 approved — waiting on ..." can run long with five approvers, so it
 // truncates rather than pushing the chips onto another line. The full text
 // stays in the title attribute.
+// Its own line under the chips, on the same left edge as the legend and the "your review opens…" notice. Pushed
+// right with margin-left: auto it wrapped at 1440px anyway and ended up alone at the right, under nothing.
 .summary
-  margin-left: auto
+  flex-basis: 100%
   min-width: 0
-  max-width: 46%
   overflow: hidden
   text-overflow: ellipsis
   white-space: nowrap
   font-size: var(--fs-xs)
   color: var(--ink-muted)
-
-@media (max-width: 900px)
-  .summary
-    margin-left: 0
-    max-width: 100%
-    flex-basis: 100%
 
 // On a phone the strip tightens its own spacing and lets the chips wrap, but
 // the chips themselves keep --control-h-sm / --fs-sm. Shrinking them here is

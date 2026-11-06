@@ -14,7 +14,8 @@
   margin: 0
   padding: var(--sp-3) var(--sp-4)
   border: 1px solid #d5d9dd
-  border-radius: var(--radius-sm)
+  // The control radius, so the comment box matches the selects above it (it was 6px against their 8px).
+  border-radius: var(--control-radius)
   font-family: var(--font-ui)
   font-size: var(--fs-md)
   line-height: 1.55
@@ -137,11 +138,11 @@
   height: var(--control-h-sm)
   padding: 0 var(--sp-3)
   border: 1px solid var(--line)
-  border-radius: var(--radius-sm)
+  border-radius: var(--control-radius)
   background: var(--surface)
   color: var(--ink-muted)
   font-family: inherit
-  font-size: var(--fs-2xs)
+  font-size: var(--fs-sm)
   cursor: pointer
   transition: background var(--t-fast), border-color var(--t-fast)
 

@@ -1417,7 +1417,8 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
               same `selectedSection`, so they cannot disagree about where you
               are. A button that could never do anything here is not rendered
               at all, rather than sitting permanently greyed out. */}
-          {!embedded && (() => {
+          {/* One section (the Director of Libraries sees References only) has nowhere to go: no lone dot. */}
+          {!embedded && visibleSections.length > 1 && (() => {
             const idx = visibleSections.indexOf(activeSelectedSection)
             const prev = idx > 0 ? visibleSections[idx - 1] : null
             const next = idx >= 0 && idx < visibleSections.length - 1 ? visibleSections[idx + 1] : null
