@@ -13,6 +13,7 @@ const { planEvent, onComment, onCommentsResolved, onCourseAssigned, onRevisionSt
 const { createNotifier, eventMessage, TYPES } = require('./notify');
 const { purgeReadNotifications, startRetention } = require('./notificationRetention');
 const { recordWorkflowAction } = require('../controllers/assignmentController');
+const { createCourseComment } = require('../controllers/commentController');
 const { submitLearningPlan } = require('../controllers/submissionController');
 const { cloneOfferingContent, assignCourseForTerm } = require('../services/offeringService');
 const { issueSession, createRequireAuth, COOKIE_NAME } = require('../middleware/auth');
@@ -538,4 +539,18 @@ test('a refused course assignment commits its empty transaction instead of rolli
         sequelize.transaction = original;
     }
     assert.equal(threwInside, false, 'the refusal left the transaction without a rollback');
+});
+
+test('an approved plan takes no new reviewer comments', async () => {
+    const f = await fixture();
+    for (const [who, role, action] of [['instructor', 'INSTRUCTOR', 'SUBMITTED'], ['ph', 'PROGRAM_HEAD', 'ACCEPTED'], ['ld', 'LIBRARY_DIRECTOR', 'ACCEPTED'], ['dean', 'DEAN', 'ACCEPTED']]) {
+        assert.equal((await act(f, who, role, action)).code, 201, `${role} ${action}`);
+    }
+    const res = { code: 200, body: null, status(c) { this.code = c; return this; }, json(b) { this.body = b; return this; } };
+    await createCourseComment({
+        body: { code: f.code, pcId: f.offeringId, commenter_role: 'PROGRAM_HEAD', message: 'too late', comment_for: 'topics', target_titles: [] },
+        user: { id: f.ph.user_id, name: f.ph.name, role: 'program-head' }
+    }, res);
+    assert.equal(res.code, 409);
+    assert.match(res.body.error, /already approved/);
 });

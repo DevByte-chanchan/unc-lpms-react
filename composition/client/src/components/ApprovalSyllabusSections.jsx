@@ -760,7 +760,11 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
 
   // What the comment box does for this reviewer right now: a required reviewer's comments return the plan
   // (handleSubmitComment), unless it is already returned; the consultant's are suggestions only.
-  const commentMode = roleKey === 'industry-consultant' ? 'suggest' : workflowState.currentStage === 'returned' ? 'comment' : 'return'
+  // After their own approval a reviewer may still add comments, but no longer return the plan (the server refuses it).
+  const commentMode = roleKey === 'industry-consultant' ? 'suggest' : (workflowState.currentStage === 'returned' || hasRoleApproved()) ? 'comment' : 'return'
+  // An approved plan takes no new comments (the server refuses them); changes go into a new revision.
+  const planClosed = workflowState.currentStage === 'approved'
+  const canComment = !planClosed && (roleKey === 'industry-consultant' || isRoleActive() || hasRoleApproved())
   const commentButtonLabel = commentMode === 'return' ? 'Return with comments' : commentMode === 'suggest' ? 'Add suggestion' : 'Add comment'
 
   // Said on the page, not only in a toast after a click: why this approver cannot act on the plan yet.
@@ -994,7 +998,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
       setRefreshKey(k => k + 1)
 
       // Only a required reviewer's comments return the plan; the consultant's are documentation.
-      if (roleKey !== 'industry-consultant' && workflowState.currentStage !== 'returned') {
+      if (commentMode === 'return') {
         recordWorkflowAction('RETURNED').then(() => {
           reloadWorkflow()
         }).catch(e => alert(apiErrorMessage(e, 'Could not record the return.')))
@@ -1191,11 +1195,12 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
             if (effectiveStatus !== 'approved' && roleKey !== 'instructor') {
               return (<>
                 {/* The plan is with its instructor (not submitted, or returned): the Program Head can remind them. */}
-                <button type="button" className={`btn btn-secondary ${(!reviewRecordAvailable || !(roleKey === 'industry-consultant' || isRoleActive() || hasRoleApproved())) ? styles['disabled-btn'] : ''}`} aria-disabled={!reviewRecordAvailable || !(roleKey === 'industry-consultant' || isRoleActive() || hasRoleApproved())} onClick={() => {
+                <button type="button" className={`btn btn-secondary ${(!reviewRecordAvailable || !canComment) ? styles['disabled-btn'] : ''}`} aria-disabled={!reviewRecordAvailable || !canComment} onClick={() => {
                   if (!reviewRecordAvailable) { showToastMsg('This course revision could not be loaded, so it cannot be reviewed.', 'warning'); return }
+                  if (planClosed) { showToastMsg('This plan is already approved, so it no longer takes comments.', 'warning'); return }
                   // Approvers can always ADD comments while the plan is in review —
                   // including in the returned stage or after their own approval.
-                  if (roleKey === 'industry-consultant' || isRoleActive() || hasRoleApproved()) { setReadOnlyCommentModal(false); openComment() }
+                  if (canComment) { setReadOnlyCommentModal(false); openComment() }
                   else if (roleKey === 'dean' && workflowState.currentStage !== 'returned' && workflowState.currentStage !== 'draft') showToastMsg('Waiting for previous approvers to complete their review.', 'warning')
                   else showToastMsg(notYourTurnMessage('comment'), 'warning')
                 }}><MessageSquare size={16} /> {commentButtonLabel}</button>

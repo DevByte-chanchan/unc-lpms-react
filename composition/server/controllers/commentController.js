@@ -11,6 +11,8 @@ const {
 const { canViewComment, canViewSection, sectionOfComment } = require('../config/sectionAccess');
 const { COMMENT_ROLE_BY_ACCOUNT, isApprover, filterComments } = require('../utils/commentVisibility');
 const { earlierConsultantComments } = require('../utils/earlierConsultantComments');
+const { effectiveLogs } = require('../utils/effectiveLogs');
+const { planEditState } = require('../utils/workflowRules');
 
 
 // An approver sees only the comments they wrote, and only those about the part of the plan their role
@@ -172,6 +174,11 @@ exports.createCourseComment = async (req, res) => {
             { replacements: [pcId], type: Sequelize.QueryTypes.SELECT }
         );
         const coAssignId = assign.length > 0 ? assign[0].co_assign_id : null;
+        // An approved plan is closed: a new comment would sit open with nothing the instructor can do about it.
+        // Changes go through a new revision instead.
+        if (coAssignId && planEditState(await effectiveLogs(sequelize, coAssignId)).state === 'Approved') {
+            return res.status(409).json({ error: 'This learning plan is already approved, so it no longer takes comments. Changes go into a new revision.' });
+        }
 
         // Resolve target titles → ids, scoped to THIS course's offering —
         // titles are duplicated across courses (each seeder inserts its own
