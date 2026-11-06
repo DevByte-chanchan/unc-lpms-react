@@ -60,7 +60,8 @@ test('the COAEP header and Prepared by line come from the term and the submittin
       cos: [{ statement: 'x', ilos: [] }],
       status: { approved: false, state: 'Pending' },
       term: { schoolYear: '2026-2027', semester: '1st' },
-      preparedBy: { name: 'NORTON, MONICA', submittedAt: '2026-11-06T08:00:00.000Z' }
+      preparedBy: { name: 'NORTON, MONICA', submittedAt: '2026-11-06T08:00:00.000Z' },
+      approvedBy: { name: 'DANILA, JUNAR', approvedAt: '2026-11-07T08:00:00.000Z' }
     }
   })
   assert.equal(record.header.facultyName, 'NORTON, MONICA')
@@ -68,4 +69,6 @@ test('the COAEP header and Prepared by line come from the term and the submittin
   assert.equal(record.header.semester, '1st')
   assert.equal(record.preparedBy, 'NORTON, MONICA')
   assert.match(record.dateSubmitted, /November 6, 2026/)
+  assert.equal(record.approvedBy, 'DANILA, JUNAR', 'the Program Head approves the COAEP')
+  assert.match(record.approvedByDate, /November 7, 2026/)
 })

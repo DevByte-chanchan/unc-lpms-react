@@ -564,3 +564,12 @@ test('workflow logs are read in real time order even when their offsets differ',
     const order = (await effectiveLogs(sequelize, f.assignmentId)).map(l => l.action_type);
     assert.deepEqual(order.slice(-2), ['SUBMITTED', 'RETURNED']);
 });
+
+test('poke: a returned plan is asked to be resubmitted', async () => {
+    const f = await fixture();
+    assert.equal((await act(f, 'instructor', 'INSTRUCTOR', 'SUBMITTED')).code, 201);
+    assert.equal((await act(f, 'ph', 'PROGRAM_HEAD', 'RETURNED')).code, 201);
+    assert.equal((await poke(f.ph, f.offeringId, f.instructor.user_id)).status, 201);
+    const [n] = await inbox(f.instructor, 'poke');
+    assert.equal(n.message, `${f.code} — reminder: resubmit your learning plan by Program Head`);
+});

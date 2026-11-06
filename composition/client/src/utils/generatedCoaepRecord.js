@@ -37,6 +37,9 @@ export const buildGeneratedCoaepRecord = ({ courseCode, courseName, payload }) =
     },
     preparedBy: payload?.preparedBy?.name || '',
     dateSubmitted: payload?.preparedBy?.submittedAt ? formatDate(payload.preparedBy.submittedAt) : '',
+    // The form's "Approved by" is the Program Head, with the date of their acceptance.
+    approvedBy: payload?.approvedBy?.name || '',
+    approvedByDate: payload?.approvedBy?.approvedAt ? formatDate(payload.approvedBy.approvedAt) : '',
     cos,
     performanceTarget: DEFAULT_PERFORMANCE_TARGET,
     approved,

@@ -3,6 +3,7 @@
 const { sequelize, Sequelize } = require('../models');
 const { effectiveLogs } = require('../utils/effectiveLogs');
 const { planEditState } = require('../utils/editLock');
+const { deriveReviewState } = require('../utils/workflowRules');
 const { assembleCoaep } = require('../utils/coaepAssembly');
 
 const select = (sql, replacements) =>
@@ -71,11 +72,16 @@ async function getCoaepByCourse(req, res) {
         // The form's header and "Prepared by" line: the term of this offering and the instructor who last submitted it.
         const [term] = await select('SELECT school_year, semester FROM ProgramCourseOfferings WHERE pc_offering_id = ?;', [authorizedOfferingId]);
         const submission = [...logs].reverse().find(entry => entry.actor_role === 'INSTRUCTOR' && entry.action_type === 'SUBMITTED');
+        // "Approved by" on the COAEP form is the Program Head: their acceptance, while it still counts.
+        const headAcceptance = deriveReviewState(logs).accepted.has('PROGRAM_HEAD')
+            ? [...logs].reverse().find(entry => entry.actor_role === 'PROGRAM_HEAD' && ['ACCEPTED', 'APPROVED'].includes(entry.action_type))
+            : null;
 
         return res.json({
             course: { code, title: baseRows[0].course_title || '' },
             term: { schoolYear: term?.school_year || null, semester: term?.semester || null },
             preparedBy: submission ? { name: submission.actor_name || null, submittedAt: new Date(submission.createdAt).toISOString() } : null,
+            approvedBy: headAcceptance ? { name: headAcceptance.actor_name || null, approvedAt: new Date(headAcceptance.createdAt).toISOString() } : null,
             status: {
                 state,
                 approved: state === 'Approved',

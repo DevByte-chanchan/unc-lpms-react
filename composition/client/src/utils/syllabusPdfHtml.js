@@ -1459,7 +1459,7 @@ export function buildCoaepHtml(coaepData, logoBase64, options = {}) {
         <td style="padding:2px 4px;">${safe(coaepData.dateSubmitted, '')}</td>
         <td></td>
         <td style="white-space:nowrap; padding:2px 4px 2px 0; font-weight:bold;">Date:</td>
-        <td style="padding:2px 4px;">${safe(coaepData.approvalDate, '')}</td>
+        <td style="padding:2px 4px;">${safe(coaepData.approvedByDate, '')}</td>
       </tr>
     </table>
     <div style="font-size:9pt; font-style:italic; margin-top:12px; line-height:1.45;">

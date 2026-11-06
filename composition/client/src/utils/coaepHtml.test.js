@@ -19,9 +19,10 @@ const record = (extra) => ({
   ...extra
 })
 
-test('an approved COAEP has no draft banner or watermark and shows the approval date', () => {
-  const html = buildCoaepHtml(record({ approved: true, approvalDate: 'June 28, 2026' }), null)
+test('an approved COAEP has no draft banner or watermark and shows the Program Head as approver', () => {
+  const html = buildCoaepHtml(record({ approved: true, approvedBy: 'DANILA, JUNAR', approvedByDate: 'June 28, 2026' }), null)
   assert.doesNotMatch(html, /DRAFT/)
+  assert.match(html, /DANILA, JUNAR/)
   assert.match(html, /June 28, 2026/)
   assert.match(html, /BIT313L - HCI \(Revision 2\)/)
 })

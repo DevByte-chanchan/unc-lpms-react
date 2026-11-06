@@ -120,7 +120,7 @@ const runReminders = async ({ now = new Date(), env = process.env, deps = lazy()
         if (pausedIds.has(row.offeringId)) { result.paused += 1; continue; }
 
         const subject = `offering:${row.offeringId}`;
-        const text = rules.reminderText(row.courseCode, days);
+        const text = rules.reminderText(row.courseCode, days, row.state === 'Returned');
         const wantsEmail = mailer.configured() && row.instructorEmail;
         // The e-mail is recorded as sent only once it really went (its own ReminderLog row, "email:offering:12"),
         // so a mail server that was down is tried again at the next hourly check, the same day only.

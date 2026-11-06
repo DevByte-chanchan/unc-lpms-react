@@ -105,7 +105,8 @@ const loadPokeContext = async (req, res, offeringId) => {
     if (!canAccessCourseRows(req.user, rows)) { res.status(403).json({ error: 'You do not have access to this course.' }); return null; }
     const people = await peopleFor(offeringId);
     const logs = people?.assignmentId ? await effectiveLogs(sequelize, people.assignmentId) : [];
-    return { people, awaitingInstructor: !!people?.assignmentId && planEditState(logs).editable };
+    const { state, editable } = planEditState(logs);
+    return { people, awaitingInstructor: !!people?.assignmentId && editable, returned: state === 'Returned' };
 };
 
 const lastPoke = (userId, offeringId, transaction) => Notification.findOne({
@@ -164,7 +165,7 @@ const poke = async (req, res, next) => {
                 recipient_user_id: targetUserId,
                 type: 'poke',
                 offering_id: offeringId,
-                message: eventMessage(context.people.courseCode, 'reminder: submit your learning plan', req.user.role),
+                message: eventMessage(context.people.courseCode, context.returned ? 'reminder: resubmit your learning plan' : 'reminder: submit your learning plan', req.user.role),
                 actor_role: WORKFLOW_ROLE_BY_ACCOUNT[req.user.role] || null,
                 is_read: false
             }, { transaction });

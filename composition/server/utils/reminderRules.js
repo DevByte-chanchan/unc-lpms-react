@@ -34,12 +34,13 @@ const reminderKindFor = (days) => {
 };
 
 // The words of a reminder: the course, how long is left, and what to do. No names, no personal data.
-const reminderText = (courseCode, days) => {
+// returned: the plan came back to the instructor, so the ask is to resubmit it.
+const reminderText = (courseCode, days, returned = false) => {
     const when = days > 1 ? `due in ${days} days`
         : days === 1 ? 'due tomorrow'
             : days === 0 ? 'due today'
                 : `${-days} day${days === -1 ? '' : 's'} overdue`;
-    return `reminder: submit your learning plan (${when})`;
+    return `reminder: ${returned ? 'resubmit' : 'submit'} your learning plan (${when})`;
 };
 
 // May the job send anything yet today? Not before the school day starts.
