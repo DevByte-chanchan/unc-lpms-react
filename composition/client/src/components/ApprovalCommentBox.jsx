@@ -13,33 +13,38 @@ import useDialogFocus from '../utils/useDialogFocus.js'
 // coverageDetail may be an array (multi-select) or a legacy string — this reports whether anything is selected
 const hasCoverageDetail = (c) => Array.isArray(c.coverageDetail) ? c.coverageDetail.length > 0 : !!c.coverageDetail
 
+// A consultant cannot block approval, so "Requested revision" is not theirs to pick.
+const typesFor = mode => mode === 'suggest' ? COMMENT_TYPES.filter(t => t.key !== 'revision') : COMMENT_TYPES
+
+const defaultComment = (mode) => ({
+  id: (crypto.randomUUID && crypto.randomUUID()) || `fallback-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+  components: { references: false, topics: false, tlas: false },
+  text: '',
+  comment: '',
+  createdAt: new Date().toISOString(),
+  reviewer: '',
+  role: '',
+  recipientRole: '',
+  coverageType: '',
+  courseOutcome: '',
+  ilo: '',
+  coverageDetail: [],
+  commentedRefId: '',
+  // "pwede syang mag-suggest ng TLA... ng topic... ng AI tools" [48:30] — the
+  // instructor gets a labelled, actionable suggestion, not free text only.
+  commentType: typesFor(mode)[0].key
+})
+
 const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = [], ilos = [], approverRole = null, syllabusTopics = [], syllabusReferences = [], readOnly = false, previousComments: previousCommentsProp = [], coToIlosProp, iloLabels = {}, coverageEntries = [], mode = 'return' }) => {
   // mode: 'return' sends the plan back to the instructor, 'comment' only adds comments (plan is already
   // returned), 'suggest' is the Industry Consultant, whose notes never return the plan.
   const verb = mode === 'return' ? 'Return with' : mode === 'suggest' ? 'Post' : 'Add'
   const outcome = mode === 'return' ? 'to return the plan' : mode === 'suggest' ? 'to post it' : 'to add it'
+  const commentTypes = typesFor(mode)
   const dialogRef = useRef(null)
   useDialogFocus(dialogRef, show)
-  const defaultComment = () => ({
-    id: (crypto.randomUUID && crypto.randomUUID()) || `fallback-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
-    components: { references: false, topics: false, tlas: false },
-    text: '',
-    comment: '',
-    createdAt: new Date().toISOString(),
-    reviewer: '',
-    role: '',
-    recipientRole: '',
-    coverageType: '',
-    courseOutcome: '',
-    ilo: '',
-    coverageDetail: [],
-    commentedRefId: '',
-    // "pwede syang mag-suggest ng TLA... ng topic... ng AI tools" [48:30] — the
-    // instructor gets a labelled, actionable suggestion, not free text only.
-    commentType: COMMENT_TYPES[0].key
-  })
 
-  const [comments, setComments] = useState([defaultComment()])
+  const [comments, setComments] = useState([defaultComment(mode)])
   const [searchTerm, setSearchTerm] = useState('')
   const [refTypeFilter, setRefTypeFilter] = useState('')
   const [selectedRefs, setSelectedRefs] = useState([])
@@ -126,7 +131,7 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
     if (!show) return
     setSelectedRefs([])
     const isDir = approverRole && (String(approverRole).toLowerCase().includes('library') || String(approverRole).toLowerCase().includes('libraries'))
-    if (isDir) setComments([defaultComment()])
+    if (isDir) setComments([defaultComment(mode)])
     try {
       const raw = localStorage.getItem('approval_comment_draft_v1')
       if (!raw) return
@@ -136,7 +141,7 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
         const normalized = parsed.comments.map((c, idx) => {
           const seedData = approver || getReviewerSeedData(idx)
           return {
-            ...defaultComment(),
+            ...defaultComment(mode),
             ...c,
             comment: c.comment || c.text || '',
             createdAt: c.createdAt || new Date().toISOString(),
@@ -153,7 +158,7 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
       if (!isDir && parsed.commentedRefIds) setCommentedRefIds(parsed.commentedRefIds)
       if (parsed.searchTerm) setSearchTerm(parsed.searchTerm)
     } catch (e) { console.warn('Failed to restore draft', e) }
-  }, [show, approverRole])
+  }, [show, approverRole, mode])
 
   const clearDraft = () => {
     try { localStorage.removeItem('approval_comment_draft_v1') } catch (e) { console.warn('Failed to clear draft', e) }
@@ -195,7 +200,7 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
     setComments((prev) => [
       ...prev,
       {
-        ...defaultComment(),
+        ...defaultComment(mode),
     id: crypto.randomUUID?.() || Math.random().toString(36).substr(2, 9) + Date.now().toString(36),
         reviewer: seedData.name,
         role: seedData.role,
@@ -651,8 +656,8 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
 
                         <div className={styles.field} style={{ marginBottom: 14 }}>
                           <label className={styles.label}>Comment Type</label>
-                          <Select value={c.commentType || COMMENT_TYPES[0].key} onChange={(e) => updateComment(c.id, { commentType: e.target.value })} block>
-                            {COMMENT_TYPES.map(t => (
+                          <Select value={c.commentType || commentTypes[0].key} onChange={(e) => updateComment(c.id, { commentType: e.target.value })} block>
+                            {commentTypes.map(t => (
                               <option key={t.key} value={t.key}>{t.label}</option>
                             ))}
                           </Select>

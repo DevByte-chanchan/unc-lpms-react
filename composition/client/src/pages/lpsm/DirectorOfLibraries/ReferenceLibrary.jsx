@@ -229,6 +229,8 @@ const ReferenceLibrary = () => {
       await setArchived(record, false);
       await reload();
       if (viewRef?.id === record.id) setViewRef(null);
+      // Restoring the last archived one would leave an empty tab: go back to Active.
+      if (archivedRefs.length <= 1) setTab('active');
     } catch (err) {
       showPageToast(apiErrorMessage(err, 'The reference was not restored.'), 'error');
     }
