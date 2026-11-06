@@ -62,7 +62,7 @@ test.before(async () => {
 test.after(async () => {
     const offerings = made.offerings.length ? made.offerings : [0];
     await Notification.destroy({ where: { [Op.or]: [{ offering_id: { [Op.in]: offerings } }, { recipient_user_id: { [Op.in]: made.users.length ? made.users : [0] } }] } });
-    await ReminderLog.destroy({ where: { [Op.or]: [{ subject: { [Op.in]: offerings.map(id => `offering:${id}`) } }, { subject: { [Op.in]: made.users.map(id => `digest:${id}`) } }] } });
+    await ReminderLog.destroy({ where: { [Op.or]: [{ subject: { [Op.in]: offerings.flatMap(id => [`offering:${id}`, `email:offering:${id}`]) } }, { subject: { [Op.in]: made.users.map(id => `digest:${id}`) } }] } });
     await ReminderPause.destroy({ where: { offering_id: { [Op.in]: offerings } } });
     await TermDeadline.destroy({ where: { program_id: { [Op.in]: made.programs.length ? made.programs : [0] } } });
     const list = (ids) => (ids.length ? ids.join(', ') : '0');
@@ -162,6 +162,40 @@ test('a failing e-mail never stops the reminder', async () => {
     await runReminders({ now: new Date('2026-11-13T09:00:00Z'), env: ENV, deps: { models, notify, mailer: failing }, log: (line) => logged.push(line), programIds: [withDeadline, withoutDeadline] }); // 7 days before
     assert.equal((await reminders('A')).length, before + 1);
     assert.ok(logged.some(line => /SMTP down/.test(line)));
+});
+
+test('an e-mail that failed is tried again at the next check the same day, once, without a second in-app reminder', async () => {
+    const inApp = (await reminders('A')).length;
+    const before = emails.length;
+    const toA = () => emails.slice(before).filter(mail => /zz\.a\./.test(mail.to)).length;
+    const retry = await run('2026-11-13T10:00:00Z');
+    assert.equal(retry.emailRetries, 2, 'A and D both missed their e-mail at 09:00');
+    assert.equal(toA(), 1);
+    assert.equal((await reminders('A')).length, inApp);
+    const sentSoFar = emails.length;
+    await run('2026-11-13T11:00:00Z');
+    assert.equal(emails.length, sentSoFar, 'not again once it went');
+});
+
+test('a check that starts while the last one is still running is skipped', async () => {
+    const { startReminders } = require('./reminderJob');
+    const logged = [];
+    let calls = 0;
+    let finish;
+    let tick;
+    startReminders({
+        env: {}, log: (line) => logged.push(line),
+        setIntervalFn: (fn) => { tick = fn; return null; },
+        runFn: () => { calls += 1; return new Promise(resolve => { finish = resolve; }); }
+    });
+    await tick(); // the first run has not finished
+    assert.equal(calls, 1);
+    assert.ok(logged.some(line => /still running/.test(line)));
+    finish({});
+    await new Promise(resolve => setImmediate(resolve));
+    tick(); // finished: the next check runs
+    assert.equal(calls, 2);
+    finish({});
 });
 
 test('a program with no due date, or with reminders turned off in the environment, gets nothing from the scheduler', async () => {

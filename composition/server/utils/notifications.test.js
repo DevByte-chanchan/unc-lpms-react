@@ -195,6 +195,23 @@ test('messages carry only the course code, the action and the actor role', () =>
 
 // -------------------------------------------------------------- workflow hooks
 
+test('a refused workflow action (a double Accept) never opens a transaction, so its refusal cannot roll back anyone else\'s write', async () => {
+    const f = await fixture();
+    assert.equal((await act(f, 'instructor', 'INSTRUCTOR', 'SUBMITTED')).code, 201);
+    assert.equal((await act(f, 'ph', 'PROGRAM_HEAD', 'ACCEPTED')).code, 201);
+    const original = sequelize.transaction;
+    let opened = 0;
+    sequelize.transaction = function (...args) { opened += 1; return original.apply(this, args); };
+    try {
+        const again = await act(f, 'ph', 'PROGRAM_HEAD', 'ACCEPTED');
+        assert.equal(again.code, 409);
+        assert.match(again.body.error, /already accepted/);
+    } finally {
+        sequelize.transaction = original;
+    }
+    assert.equal(opened, 0);
+});
+
 test('the workflow notifies the right people at each step, and never the actor', async () => {
     const f = await fixture();
     const other = await makeUser('instructor');

@@ -101,7 +101,7 @@ const runReminders = async ({ now = new Date(), env = process.env, deps = lazy()
     const { models, notify, mailer } = deps;
     const { sequelize, Notification, ReminderLog, ReminderPause, Program, User } = models;
     const clock = rules.schoolClock(now, rules.timezoneOf(env));
-    const result = { day: clock.day, sent: 0, alreadySent: 0, quiet: 0, paused: 0, digests: 0, approverReminders: 0, referenceDigests: 0, skipped: null };
+    const result = { day: clock.day, sent: 0, emailRetries: 0, alreadySent: 0, quiet: 0, paused: 0, digests: 0, approverReminders: 0, referenceDigests: 0, skipped: null };
     if (!rules.isSendingHour(clock)) { result.skipped = 'before the school day starts'; return result; }
 
     const waiting = await findAwaiting({ sequelize, programIds });
@@ -118,17 +118,34 @@ const runReminders = async ({ now = new Date(), env = process.env, deps = lazy()
         const kind = rules.reminderKindFor(days);
         if (!kind) continue;
         if (pausedIds.has(row.offeringId)) { result.paused += 1; continue; }
-        if (recent.has(row.offeringId)) { result.quiet += 1; continue; }
-        if (!(await claim(ReminderLog, `offering:${row.offeringId}`, kind, clock.day))) { result.alreadySent += 1; continue; }
 
+        const subject = `offering:${row.offeringId}`;
         const text = rules.reminderText(row.courseCode, days);
+        const wantsEmail = mailer.configured() && row.instructorEmail;
+        // The e-mail is recorded as sent only once it really went (its own ReminderLog row, "email:offering:12"),
+        // so a mail server that was down is tried again at the next hourly check, the same day only.
+        const sendEmail = async () => {
+            const sent = await mailer.send({ to: row.instructorEmail, ...emailFor(row.courseCode, text) });
+            if (sent.ok) await claim(ReminderLog, `email:${subject}`, kind, clock.day);
+            else log(`Reminder e-mail for offering ${row.offeringId} was not sent: ${sent.error}`);
+        };
+
+        // Today's in-app reminder already went out but its e-mail did not: retry only the e-mail.
+        // Checked before the quiet window, because that reminder is itself what makes the plan "recent".
+        if (wantsEmail
+            && await ReminderLog.findOne({ where: { subject, kind, day: clock.day }, attributes: ['id'], raw: true })
+            && !(await ReminderLog.findOne({ where: { subject: `email:${subject}`, kind, day: clock.day }, attributes: ['id'], raw: true }))) {
+            await sendEmail();
+            result.emailRetries += 1;
+            continue;
+        }
+
+        if (recent.has(row.offeringId)) { result.quiet += 1; continue; }
+        if (!(await claim(ReminderLog, subject, kind, clock.day))) { result.alreadySent += 1; continue; }
+
         await notify([row.instructorId], 'reminder', row.offeringId, `${row.courseCode} — ${text}`, null, now);
         result.sent += 1;
-        if (mailer.configured() && row.instructorEmail) {
-            const mail = emailFor(row.courseCode, text);
-            const sent = await mailer.send({ to: row.instructorEmail, ...mail });
-            if (!sent.ok) log(`Reminder e-mail for offering ${row.offeringId} was not sent: ${sent.error}`);
-        }
+        if (wantsEmail) await sendEmail();
     }
 
     if (rules.isDigestDay(clock)) {
@@ -161,14 +178,20 @@ const runReminders = async ({ now = new Date(), env = process.env, deps = lazy()
 };
 
 // Runs once now and then every hour. Off when LPMS_REMINDERS=0.
-const startReminders = ({ env = process.env, log = console.log, setIntervalFn = setInterval } = {}) => {
+const startReminders = ({ env = process.env, log = console.log, setIntervalFn = setInterval, runFn = runReminders } = {}) => {
     if (String(env.LPMS_REMINDERS || '').trim() === '0') { log('Automatic reminders are off (LPMS_REMINDERS=0).'); return null; }
+    // A run that is still going (a slow mail server) is not joined by the next hourly one.
+    let running = false;
     const run = async () => {
+        if (running) { log('Reminders are still running from the last check; this check is skipped.'); return; }
+        running = true;
         try {
-            const result = await runReminders({ env, log });
+            const result = await runFn({ env, log });
             if (result.sent || result.digests || result.approverReminders || result.referenceDigests) log(`Reminders sent: ${result.sent}, digests: ${result.digests}, approver reminders: ${result.approverReminders}, reference digests: ${result.referenceDigests}.`);
         } catch (error) {
             console.error(`Reminders did not run: ${error.message}`);
+        } finally {
+            running = false;
         }
     };
     run();

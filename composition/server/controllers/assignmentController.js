@@ -273,35 +273,27 @@ const recordWorkflowAction = async (req, res, next) => {
         }
 
         return await withWorkflowLock(offeringId, async () => {
-            let log;
-            try {
-                const transactionOptions = sequelize.getDialect() === 'sqlite'
-                    ? { type: Transaction.TYPES.IMMEDIATE }
-                    : {};
-                log = await sequelize.transaction(transactionOptions, async transaction => {
-                const assignment = await CourseOfferingAssignment.findOne({
-                    where: { pc_offering_id: offeringId },
-                    transaction,
-                    lock: transaction.LOCK.UPDATE
-                });
-                if (!assignment) {
-                    const notFound = new Error('No course assignment found for this course.');
-                    notFound.statusCode = 404;
-                    throw notFound;
-                }
-                const accessRows = await loadAssignmentCourseRows(assignment.co_assign_id, transaction);
-                if (!canAccessCourseRows(req.user, accessRows)) {
-                    const forbidden = new Error('You do not have access to this course.');
-                    forbidden.statusCode = 403;
-                    throw forbidden;
-                }
-                const history = await effectiveLogs(sequelize, assignment.co_assign_id, transaction);
-                const transition = validateWorkflowTransition(history, actor_role, action_type);
-                if (!transition.allowed) {
-                    const conflict = new Error(transition.error || 'This workflow action is not allowed right now.');
-                    conflict.statusCode = 409;
-                    throw conflict;
-                }
+            // Every refusal is decided BEFORE the transaction opens. The server shares one SQLite connection, so a
+            // rollback also undoes any other request's write made while the transaction was open: refusing a
+            // double-click by throwing inside the transaction used to discard someone else's edit.
+            // ponytail: the in-process lock above is what keeps the history unchanged until the insert; a second
+            // server process recording workflow actions would need the check repeated inside the transaction.
+            const assignment = await CourseOfferingAssignment.findOne({ where: { pc_offering_id: offeringId } });
+            if (!assignment) return res.status(404).json({ error: 'No course assignment found for this course.' });
+            const accessRows = await loadAssignmentCourseRows(assignment.co_assign_id);
+            if (!canAccessCourseRows(req.user, accessRows)) {
+                return res.status(403).json({ error: 'You do not have access to this course.' });
+            }
+            const history = await effectiveLogs(sequelize, assignment.co_assign_id);
+            const transition = validateWorkflowTransition(history, actor_role, action_type);
+            if (!transition.allowed) {
+                return res.status(409).json({ error: transition.error || 'This workflow action is not allowed right now.' });
+            }
+
+            const transactionOptions = sequelize.getDialect() === 'sqlite'
+                ? { type: Transaction.TYPES.IMMEDIATE }
+                : {};
+            const log = await sequelize.transaction(transactionOptions, async transaction => {
                 const created = await AssignmentWorkflowLog.create({
                     co_assign_id: assignment.co_assign_id,
                     actor_role,
@@ -314,13 +306,7 @@ const recordWorkflowAction = async (req, res, next) => {
                     await assignRevisionOnApproval(offeringId, new Date(), transaction);
                 }
                 return created;
-                });
-            } catch (error) {
-                if ([403, 404, 409].includes(error?.statusCode)) {
-                    return res.status(error.statusCode).json({ error: error.message });
-                }
-                throw error;
-            }
+            });
 
             // Tell whoever acts next. Never fails the action (see utils/notificationEvents.js).
             await notifyWorkflowAction({

@@ -28,7 +28,12 @@ const createMailer = ({ getEnv = () => process.env, createTransport } = {}) => {
     const transportFor = (config) => {
         if (injected) return injected;
         const factory = createTransport || require('nodemailer').createTransport;
-        return factory({ host: config.host, port: config.port, secure: config.secure, auth: config.auth });
+        // nodemailer waits up to 2 minutes to connect and 10 minutes on a stalled socket by default; a mail server
+        // that hangs must fail in seconds, not hold the hourly reminder run for an hour.
+        return factory({
+            host: config.host, port: config.port, secure: config.secure, auth: config.auth,
+            connectionTimeout: 10000, greetingTimeout: 10000, socketTimeout: 20000
+        });
     };
 
     return {
