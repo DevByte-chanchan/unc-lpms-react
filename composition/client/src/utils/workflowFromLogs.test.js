@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { workflowFromLogs } from './workflowFromLogs.js'
-import { consolidatedStatus, canActOnStage, verifySignature, exportEligibility } from './reviewGate.js'
+import { consolidatedStatus, canActOnStage, canAcceptOnStage, verifySignature, exportEligibility } from './reviewGate.js'
 
 let tick = 0
 const log = (actor_role, action_type, actor_name = null) => ({
@@ -47,22 +47,24 @@ test('old industry consultant entries are ignored', () => {
   assert.equal(stage(logs), 'submitted')
 })
 
-test('after a return, only the reviewer who returned it decides again; the other acceptance still counts', () => {
+test('a reviewer return clears every acceptance: after the resubmit both reviewers decide again', () => {
   const returned = [log('INSTRUCTOR', 'SUBMITTED'), log('PROGRAM_HEAD', 'ACCEPTED'), log('LIBRARY_DIRECTOR', 'RETURNED')]
   const back = wf(returned)
   assert.equal(back.currentStage, 'returned')
   assert.deepEqual(back.returnedBy, ['director-of-libraries'])
   assert.equal(canActOnStage('instructor', back), true)
   assert.equal(canActOnStage('director-of-libraries', back), false, 'the returner waits for the instructor')
+  assert.equal(canAcceptOnStage('program-head', back), false, 'nobody accepts a plan waiting on the instructor')
 
   const resubmitted = wf([...returned, log('INSTRUCTOR', 'SUBMITTED')])
-  assert.equal(resubmitted.currentStage, 'parallel_review')
-  assert.equal(resubmitted.parallelReview.program_head.status, 'done', 'the program head\'s acceptance still counts')
+  assert.equal(resubmitted.currentStage, 'submitted', 'back to a fresh review')
+  assert.equal(resubmitted.parallelReview.program_head.status, 'pending', 'the earlier acceptance no longer counts')
   assert.equal(resubmitted.parallelReview.library_director.status, 'pending')
-  assert.equal(canActOnStage('director-of-libraries', resubmitted), true, 'the returner reviews again')
-  assert.equal(canActOnStage('program-head', resubmitted), false, 'the other reviewer is not asked again')
+  assert.equal(canAcceptOnStage('director-of-libraries', resubmitted), true)
+  assert.equal(canAcceptOnStage('program-head', resubmitted), true, 'the other reviewer approves this version too')
   assert.equal(canActOnStage('dean', resubmitted), false)
-  assert.equal(stage([...returned, log('INSTRUCTOR', 'SUBMITTED'), log('LIBRARY_DIRECTOR', 'ACCEPTED')]), 'dean')
+  assert.equal(stage([...returned, log('INSTRUCTOR', 'SUBMITTED'), log('LIBRARY_DIRECTOR', 'ACCEPTED')]), 'parallel_review')
+  assert.equal(stage([...returned, log('INSTRUCTOR', 'SUBMITTED'), log('LIBRARY_DIRECTOR', 'ACCEPTED'), log('PROGRAM_HEAD', 'ACCEPTED')]), 'dean')
 })
 
 test('if the dean returned it, it goes back to the dean only', () => {
@@ -90,7 +92,7 @@ test('chain chips: approved / returned / pending per required approver; consulta
   const steps = Object.fromEntries(consolidatedStatus(wf([
     log('INSTRUCTOR', 'SUBMITTED'), log('PROGRAM_HEAD', 'ACCEPTED'), log('LIBRARY_DIRECTOR', 'RETURNED')
   ])).steps.map(s => [s.role, s.status]))
-  assert.equal(steps['program-head'], 'approved')
+  assert.equal(steps['program-head'], 'pending', 'the return cleared the acceptance')
   assert.equal(steps['director-of-libraries'], 'returned')
   assert.equal(steps.dean, 'pending')
   assert.equal(steps['industry-consultant'], 'pending')

@@ -84,8 +84,10 @@ test('planEvent: resubmission, return, partial acceptance, ready for Dean, appro
     const ev = (actorRole, action, logsAfter) => planEvent({ actorRole, action, logsAfter, people });
 
     assert.deepEqual(ev('INSTRUCTOR', 'SUBMITTED', [sub]).recipients, [3, 4, 2]);
-    // The Library Director had accepted, the Program Head returned: only the Program Head hears about the resubmission.
-    assert.deepEqual(ev('INSTRUCTOR', 'SUBMITTED', [sub, L('LIBRARY_DIRECTOR', 'ACCEPTED'), L('PROGRAM_HEAD', 'RETURNED'), sub]).recipients, [2]);
+    // The Library Director had accepted, the Program Head returned: the return cleared that acceptance, so both hear about the resubmission.
+    assert.deepEqual(ev('INSTRUCTOR', 'SUBMITTED', [sub, L('LIBRARY_DIRECTOR', 'ACCEPTED'), L('PROGRAM_HEAD', 'RETURNED'), sub]).recipients, [3, 4, 2]);
+    // After a Dean return only the Dean hears about the resubmission.
+    assert.deepEqual(ev('INSTRUCTOR', 'SUBMITTED', [sub, L('LIBRARY_DIRECTOR', 'ACCEPTED'), L('PROGRAM_HEAD', 'ACCEPTED'), L('DEAN', 'RETURNED'), sub]).recipients, [5]);
     assert.deepEqual([ev('PROGRAM_HEAD', 'RETURNED', [sub, L('PROGRAM_HEAD', 'RETURNED')]).type, ev('DEAN', 'RETURNED', []).recipients], ['plan_returned', [1]]);
     assert.equal(ev('LIBRARY_DIRECTOR', 'ACCEPTED', [sub, L('LIBRARY_DIRECTOR', 'ACCEPTED')]), null, 'the first of two reviewers accepting tells nobody');
     const ready = ev('PROGRAM_HEAD', 'ACCEPTED', [sub, L('LIBRARY_DIRECTOR', 'ACCEPTED'), L('PROGRAM_HEAD', 'ACCEPTED')]);
@@ -233,15 +235,16 @@ test('the workflow notifies the right people at each step, and never the actor',
     assert.equal((await inbox(f.instructor, 'plan_returned')).length, 1);
     assert.equal((await inbox(f.ph, 'plan_returned')).length, 0);
 
-    // Resubmission after the return: only the returner (the Program Head) is asked again.
+    // Nobody accepts a plan that waits on the instructor. After the resubmission both reviewers are asked again.
+    assert.equal((await act(f, 'ld', 'LIBRARY_DIRECTOR', 'ACCEPTED')).code, 409);
     const phBefore = (await inbox(f.ph, 'plan_submitted')).length;
     const ldBefore = (await inbox(f.ld, 'plan_submitted')).length;
-    await act(f, 'ld', 'LIBRARY_DIRECTOR', 'ACCEPTED');
     assert.equal((await act(f, 'instructor', 'INSTRUCTOR', 'SUBMITTED')).code, 201);
     assert.equal((await inbox(f.ph, 'plan_submitted')).length, phBefore + 1);
-    assert.equal((await inbox(f.ld, 'plan_submitted')).length, ldBefore, 'the Director of Libraries had already accepted');
+    assert.equal((await inbox(f.ld, 'plan_submitted')).length, ldBefore + 1);
 
-    // Second acceptance: now the Dean is told.
+    // Both acceptances: now the Dean is told.
+    await act(f, 'ld', 'LIBRARY_DIRECTOR', 'ACCEPTED');
     assert.equal((await inbox(f.dean)).length, 0);
     await act(f, 'ph', 'PROGRAM_HEAD', 'ACCEPTED');
     const [ready] = await inbox(f.dean, 'plan_ready_for_dean');

@@ -1,6 +1,6 @@
 import React from 'react'
 import { Check, Clock, RotateCcw, Eye, PenTool } from 'react-feather'
-import { consolidatedStatus, verifySignature, canActOnStage } from '../utils/reviewGate.js'
+import { consolidatedStatus, verifySignature, canAcceptOnStage } from '../utils/reviewGate.js'
 import styles from '../styles/ApprovalChainStatus.module.sass'
 
 /**
@@ -62,7 +62,7 @@ const ApprovalChainStatus = ({ workflow, compact = false, activeRole = null, onA
                 // The chip is a live control only when it is the caller's stage
                 // AND the workflow has actually reached them. Others stay badges.
                 const actionable = mine && !step.readOnly && !!onActivate &&
-                    step.status !== 'approved' && canActOnStage(activeRole, workflow || {})
+                    step.status !== 'approved' && canAcceptOnStage(activeRole, workflow || {})
 
                 const title = [
                     step.readOnly ? 'Read-only access to approved plans' : `${step.label}: ${step.status}`,

@@ -24,6 +24,7 @@ import ApprovalChainStatus from './ApprovalChainStatus.jsx'
 import {
   validateReturn,
   canActOnStage,
+  canAcceptOnStage,
   exportEligibility,
   encodeCommentType,
   parseApprovalCommentDisplay,
@@ -1196,10 +1197,11 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
                   else if (roleKey === 'dean' && workflowState.currentStage !== 'returned' && workflowState.currentStage !== 'draft') showToastMsg('Waiting for previous approvers to complete their review.', 'warning')
                   else showToastMsg(notYourTurnMessage('comment'), 'warning')
                 }}><MessageSquare size={16} /> {commentButtonLabel}</button>
-                {roleKey !== 'industry-consultant' && (<button type="button" className={`btn btn-primary ${(!reviewRecordAvailable || !isRoleActive() || hasRoleApproved()) ? styles['disabled-btn'] : ''}`} aria-disabled={!reviewRecordAvailable || !isRoleActive() || hasRoleApproved()} onClick={() => {
+                {roleKey !== 'industry-consultant' && (<button type="button" className={`btn btn-primary ${(!reviewRecordAvailable || !canAcceptOnStage(roleKey, workflowState) || hasRoleApproved()) ? styles['disabled-btn'] : ''}`} aria-disabled={!reviewRecordAvailable || !canAcceptOnStage(roleKey, workflowState) || hasRoleApproved()} onClick={() => {
                   if (!reviewRecordAvailable) { showToastMsg('This course revision could not be loaded, so it cannot be approved.', 'warning'); return }
                   if (hasRoleApproved()) showToastMsg('You have already approved this learning plan.', 'warning')
-                  else if (isRoleActive()) startApprove()
+                  else if (canAcceptOnStage(roleKey, workflowState)) startApprove()
+                  else if (workflowState.currentStage === 'returned') showToastMsg('This plan was returned to the instructor. You can approve it after the instructor resubmits it.', 'warning')
                   else if (roleKey === 'dean' && workflowState.currentStage !== 'returned' && workflowState.currentStage !== 'draft') showToastMsg('Waiting for previous approvers to complete their review.', 'warning')
                   else showToastMsg(notYourTurnMessage('approve'), 'warning')
                 }}><Check size={16} /> Approve</button>)}
@@ -1257,7 +1259,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
                 showToastMsg('This course revision could not be loaded, so it cannot be approved.', 'warning')
               } else if (hasRoleApproved()) {
                 showToastMsg('You have already approved this learning plan.', 'warning')
-              } else if (isRoleActive()) {
+              } else if (canAcceptOnStage(roleKey, workflowState)) {
                 startApprove()
               } else {
                 showToastMsg('Waiting for previous approvers to complete their review.', 'warning')

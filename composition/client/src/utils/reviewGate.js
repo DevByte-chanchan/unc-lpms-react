@@ -299,6 +299,11 @@ export const canActOnStage = (roleKey, workflow = {}) => {
     return step.status !== 'returned'
 }
 
+// Approving needs more than a turn: a plan waiting on the instructor cannot be accepted (the server refuses it),
+// though a reviewer may still add comments to it. Mirrors validateWorkflowTransition in server/utils/workflowRules.js.
+export const canAcceptOnStage = (roleKey, workflow = {}) =>
+    workflow.currentStage !== 'returned' && canActOnStage(roleKey, workflow)
+
 // The syllabus may be exported once the Director of Libraries and the Program Head have both
 // accepted, even before the Dean. Until the Dean accepts, the export is marked
 // "Pending Dean approval".

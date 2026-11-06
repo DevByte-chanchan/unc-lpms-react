@@ -7,9 +7,9 @@
 //                      -> the Dean acts only after BOTH have accepted.
 //
 // The Industry Consultant is not in the chain (read and comment only); old log entries by
-// them are ignored. A return goes back to the instructor and resumes at the step that
-// returned it: on resubmit only the reviewer(s) who returned it decide again, acceptances
-// already given still count, and if the Dean returned it, it goes back to the Dean only.
+// them are ignored. A return goes back to the instructor. A return by the Library Director
+// or the Program Head clears every acceptance, so both accept again after the resubmission;
+// if the Dean returned it, the reviewers' acceptances stay and it goes back to the Dean only.
 //
 // Stages: draft (never submitted) -> submitted -> parallel_review -> dean -> approved,
 // or returned.
@@ -41,15 +41,18 @@ export const workflowFromLogs = (logs = [], courseCode = '') => {
   for (const log of history) {
     if (log.actor_role === 'INSTRUCTOR' && log.action_type === 'SUBMITTED') {
       if (!submitted) { submitted = true; accepted.clear() }
-      returned.clear()           // whoever returned it decides again; nobody else's decision is lost
+      returned.clear()           // the returning reviewer(s) decide again; see the RETURNED rule below
       lastSubmission = log
     } else if (DECIDING.has(log.actor_role)) {
       if (['ACCEPTED', 'APPROVED'].includes(log.action_type)) {
+        if (returned.size > 0) continue   // an old acceptance given while the plan waited on the instructor never counts
         accepted.set(log.actor_role, log)
         returned.delete(log.actor_role)
       } else if (log.action_type === 'RETURNED') {
         returned.add(log.actor_role)
-        accepted.delete(log.actor_role)
+        // Same rule as the server: a reviewer's return clears every acceptance; a Dean return keeps the reviewers'.
+        if (log.actor_role === 'DEAN') accepted.delete('DEAN')
+        else accepted.clear()
       }
     }
   }

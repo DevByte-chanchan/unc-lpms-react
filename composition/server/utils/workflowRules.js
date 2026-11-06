@@ -8,10 +8,10 @@
 // The Industry Consultant is not part of the chain: they may read and comment, but never
 // accept or return, so any consultant entry in an old log is ignored here.
 //
-// A return goes back to the instructor and resumes at the step that returned it. When the
-// instructor resubmits, only the reviewer(s) who returned the plan review it again;
-// acceptances already given still count. If the Dean returned it, it goes back to the Dean
-// only. The same rules are mirrored on the client in utils/workflowFromLogs.js.
+// A return goes back to the instructor. While it waits there, nobody can accept it. A return by
+// the Library Director or the Program Head clears every acceptance, so after the resubmission
+// both reviewers accept again (the instructor may have changed any section). If the Dean
+// returned it, the reviewers' acceptances stay and it goes back to the Dean only. The same rules are mirrored on the client in utils/workflowFromLogs.js.
 
 const REQUIRED_REVIEWERS = ['LIBRARY_DIRECTOR', 'PROGRAM_HEAD'];
 const DECIDING_ROLES = new Set([...REQUIRED_REVIEWERS, 'DEAN']);
@@ -28,15 +28,21 @@ const deriveReviewState = (logs = []) => {
                 submitted = true;
                 accepted.clear();
             }
-            // Resubmission: whoever returned it must decide again; nobody else's decision is lost.
+            // Resubmission: the plan is back with the reviewers (see the RETURNED rule below).
             returned.clear();
         } else if (DECIDING_ROLES.has(entry.actor_role)) {
             if (['ACCEPTED', 'APPROVED'].includes(entry.action_type)) {
+                // Older logs may hold an acceptance given while the plan waited on the instructor; it never counts.
+                if (returned.size > 0) continue;
                 accepted.add(entry.actor_role);
                 returned.delete(entry.actor_role);
             } else if (entry.action_type === 'RETURNED') {
                 returned.add(entry.actor_role);
-                accepted.delete(entry.actor_role);
+                // A reviewer's return unlocks the whole plan, so every acceptance so far no longer matches
+                // what will be resubmitted: both reviewers approve again. A Dean return keeps the reviewers'
+                // acceptances and only the Dean reviews again.
+                if (entry.actor_role === 'DEAN') accepted.delete('DEAN');
+                else accepted.clear();
             }
         }
     }
@@ -101,6 +107,9 @@ const validateWorkflowTransition = (logs = [], actorRole, actionType) => {
         return { allowed: true };
     }
 
+    if (actionType === 'ACCEPTED' && state.returned.size > 0) {
+        return { allowed: false, error: 'This plan was returned to the instructor. It can be accepted after the instructor resubmits it.' };
+    }
     if (state.accepted.has(actorRole)) {
         return { allowed: false, error: 'This reviewer has already accepted the current submission.' };
     }

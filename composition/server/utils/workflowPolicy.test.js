@@ -46,15 +46,27 @@ test('a return lets the other pending reviewer respond, blocks the dean and lets
     assert.equal(decision(returned, 'LIBRARY_DIRECTOR', 'ACCEPTED').allowed, false, 'the returner waits for the instructor');
 });
 
-test('after a resubmit only the reviewer who returned it reviews again; the other acceptance still counts', () => {
+test('nobody can accept a plan that waits on the instructor; the other reviewer may still return it', () => {
+    const returned = [log('INSTRUCTOR', 'SUBMITTED'), log('LIBRARY_DIRECTOR', 'RETURNED')];
+    assert.equal(decision(returned, 'PROGRAM_HEAD', 'ACCEPTED').allowed, false);
+    assert.equal(decision(returned, 'PROGRAM_HEAD', 'RETURNED').allowed, true, 'can add its own return in the same round');
+});
+
+test('an old acceptance recorded while the plan was returned does not count', () => {
+    const logs = [log('INSTRUCTOR', 'SUBMITTED'), log('LIBRARY_DIRECTOR', 'RETURNED'), log('PROGRAM_HEAD', 'ACCEPTED'), log('INSTRUCTOR', 'SUBMITTED')];
+    assert.equal(decision(logs, 'PROGRAM_HEAD', 'ACCEPTED').allowed, true);
+});
+
+test('a reviewer return clears every acceptance: both reviewers accept again after the resubmit', () => {
     const resubmitted = [
         log('INSTRUCTOR', 'SUBMITTED'), log('PROGRAM_HEAD', 'ACCEPTED'), log('LIBRARY_DIRECTOR', 'RETURNED'),
         log('INSTRUCTOR', 'SUBMITTED')
     ];
     assert.equal(decision(resubmitted, 'LIBRARY_DIRECTOR', 'ACCEPTED').allowed, true);
-    assert.equal(decision(resubmitted, 'PROGRAM_HEAD', 'ACCEPTED').allowed, false, 'already accepted; not asked again');
-    assert.equal(decision(resubmitted, 'DEAN', 'ACCEPTED').allowed, false, 'the returner has not re-accepted yet');
-    assert.equal(decision([...resubmitted, log('LIBRARY_DIRECTOR', 'ACCEPTED')], 'DEAN', 'ACCEPTED').allowed, true);
+    assert.equal(decision(resubmitted, 'PROGRAM_HEAD', 'ACCEPTED').allowed, true, 'the earlier acceptance no longer counts');
+    const directorOnly = [...resubmitted, log('LIBRARY_DIRECTOR', 'ACCEPTED')];
+    assert.equal(decision(directorOnly, 'DEAN', 'ACCEPTED').allowed, false, 'the Program Head has not accepted this version');
+    assert.equal(decision([...directorOnly, log('PROGRAM_HEAD', 'ACCEPTED')], 'DEAN', 'ACCEPTED').allowed, true);
 });
 
 test('if the dean returned it, it goes back to the dean only', () => {

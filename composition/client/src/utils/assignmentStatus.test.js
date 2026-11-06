@@ -16,9 +16,9 @@ test('approval details use the latest resubmission date', () => {
   )
 })
 
-test('after a resubmission only the reviewer who returned it is pending; the other acceptance stands', () => {
+test('after a resubmission both reviewers are pending: the return cleared the earlier acceptance', () => {
   assert.deepEqual(statusModel.buildApproverStatus({ logs: history }), [
-    { title: 'Director of Libraries', status: 'Accepted', acceptedAt: '2026-08-02T08:00:00.000Z' },
+    { title: 'Director of Libraries', status: 'Pending' },
     { title: 'Program Head', status: 'Pending' },
     { title: 'Dean', status: 'Pending' }
   ])
