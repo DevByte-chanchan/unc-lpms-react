@@ -6,7 +6,7 @@ import { exportEligibility } from './reviewGate.js'
 // Display label and workflow-log role for each REQUIRED approver, in review order. The
 // Industry Consultant is not listed: they are not part of the approval chain.
 const REVIEWERS = [
-  { label: 'Library Director', roleKey: 'LIBRARY_DIRECTOR', node: ['parallelReview', 'library_director'], accountRole: 'director-of-libraries' },
+  { label: 'Director of Libraries', roleKey: 'LIBRARY_DIRECTOR', node: ['parallelReview', 'library_director'], accountRole: 'director-of-libraries' },
   { label: 'Program Head', roleKey: 'PROGRAM_HEAD', node: ['parallelReview', 'program_head'], accountRole: 'program-head' },
   { label: 'Dean', roleKey: 'DEAN', node: ['dean'], accountRole: 'dean' }
 ]

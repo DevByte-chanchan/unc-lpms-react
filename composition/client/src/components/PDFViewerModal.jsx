@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { X, Download, FileText, File, Columns, ZoomIn, ZoomOut, Maximize, Minimize2, Printer, ChevronLeft, ChevronRight } from 'react-feather';
 import styles from '../styles/PDFViewerModal.module.sass';
+import useDialogFocus from '../utils/useDialogFocus.js';
 
 const ACCENT     = '#19282C';
 const SLATE_900  = '#0F172A';
@@ -26,6 +27,8 @@ const PDFViewerModal = ({ file, kind, onClose, children, layer = 0 }) => {
   const [iframeHeight, setIframeHeight] = useState(4000);
   const [exporting, setExporting] = useState(false);
   const paneRef = useRef(null);
+  const dialogRef = useRef(null);
+  useDialogFocus(dialogRef, true);
   // The file's details, on one line under the title (what the side panel used to list): course and term.
   const detailLine = [
     file?.course_id ? file.course_id + (file.course_name ? ' \u2014 ' + file.course_name : '') : '',
@@ -202,7 +205,7 @@ const PDFViewerModal = ({ file, kind, onClose, children, layer = 0 }) => {
       {!isFullscreen && (
         <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 100 + layer }} />
       )}
-      <div className={styles.modal} style={modalStyle}>
+      <div ref={dialogRef} role="dialog" aria-modal="true" aria-label={`${kind || 'Document'} preview: ${title}`} className={styles.modal} style={modalStyle}>
         {/* Header */}
         <div className={styles.header} style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -239,18 +242,18 @@ const PDFViewerModal = ({ file, kind, onClose, children, layer = 0 }) => {
           {/* Page navigation */}
           {pageCount > 0 && (
             <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0 }}>
-              <button type="button" className="app-icon-btn" onClick={() => goToPage(currentPage - 1)} disabled={currentPage <= 1}><ChevronLeft size={16} /></button>
+              <button type="button" className="app-icon-btn" onClick={() => goToPage(currentPage - 1)} disabled={currentPage <= 1} title="Previous page" aria-label="Previous page"><ChevronLeft size={16} /></button>
               <span style={{ fontSize: 12, fontWeight: 600, color: SLATE_700, whiteSpace: 'nowrap', minWidth: 60, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>
                 {currentPage} / {pageCount}
               </span>
-              <button type="button" className="app-icon-btn" onClick={() => goToPage(currentPage + 1)} disabled={currentPage >= pageCount}><ChevronRight size={16} /></button>
+              <button type="button" className="app-icon-btn" onClick={() => goToPage(currentPage + 1)} disabled={currentPage >= pageCount} title="Next page" aria-label="Next page"><ChevronRight size={16} /></button>
             </div>
           )}
 
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0 }}>
             <button type="button" className="app-icon-btn" onClick={handlePrint} title="Print"><Printer size={16} /></button>
             <button type="button" className="btn btn-primary" onClick={handleExportPDF} disabled={exporting}
-              style={{ height: 32, minHeight: 32, padding: '0 14px', fontSize: 13 }}>
+              style={{ padding: '0 14px', fontSize: 13 }}>
               <Download size={16} /> {exporting ? 'Exporting…' : 'Download PDF'}
             </button>
             <button type="button" className="app-icon-btn" onClick={toggleFullscreen} title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}>

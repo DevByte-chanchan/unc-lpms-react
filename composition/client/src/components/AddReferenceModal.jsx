@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import useDialogFocus from '../utils/useDialogFocus.js';
 import { X, Maximize, Minimize2 } from 'react-feather';
 import ReferenceFields from './ReferenceFields.jsx';
 import { useReferenceForm } from './useReferenceForm.js';
@@ -11,6 +12,8 @@ const AddReferenceModal = ({ show, onClose, refToEdit = null, onSaved }) => {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [saveError, setSaveError] = useState('');
   const form = useReferenceForm(refToEdit, show);
+  const dialogRef = useRef(null);
+  useDialogFocus(dialogRef, show);
   useEffect(() => { if (!show) setSaveError(''); }, [show]);
 
   useEffect(() => {
@@ -45,6 +48,7 @@ const AddReferenceModal = ({ show, onClose, refToEdit = null, onSaved }) => {
         <div onClick={onClose} className={styles.backdrop} />
       )}
       <div
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="reference-dialog-title"
@@ -53,10 +57,10 @@ const AddReferenceModal = ({ show, onClose, refToEdit = null, onSaved }) => {
       >
         <div className="app-window-header">
           <h2 id="reference-dialog-title" className="app-window-title">
-            {isEditMode ? 'Edit Reference' : 'Reference Details'}
+            {isEditMode ? 'Edit Reference' : 'Add Reference'}
           </h2>
           <div className="app-window-actions">
-            <button type="button" className="app-icon-btn" onClick={toggleFullscreen} title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}>
+            <button type="button" className="app-icon-btn" onClick={toggleFullscreen} title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'} aria-label={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}>
               {isFullscreen ? <Minimize2 size={16} /> : <Maximize size={16} />}
             </button>
             <button type="button" className="app-icon-close" onClick={onClose} aria-label="Close">
@@ -75,7 +79,7 @@ const AddReferenceModal = ({ show, onClose, refToEdit = null, onSaved }) => {
         {saveError && <div role="alert" style={{ color: 'var(--danger)', fontSize: 13, padding: '8px 20px 0' }}>{saveError}</div>}
         <div className={styles.actions}>
           <button onClick={onClose} className="btn btn-secondary">Cancel</button>
-          <button onClick={handleSave} disabled={form.saving || !form.typesReady} className="btn btn-primary">
+          <button onClick={handleSave} disabled={form.saving || !form.typesReady || !form.values?.type} className="btn btn-primary">
             {form.saving ? 'Saving…' : (isEditMode ? 'Update' : 'Save')}
           </button>
         </div>

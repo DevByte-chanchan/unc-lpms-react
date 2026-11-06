@@ -18,7 +18,7 @@ test('reference rows use readable normal-weight text without oversized padding',
   const cells = rule('.tableWrapper table td')
   assert.match(cells, /font-size:\s*15px/)
   assert.match(cells, /font-weight:\s*400/)
-  assert.match(cells, /padding:\s*7px 16px/)
+  assert.match(cells, /padding:\s*7px 12px/)
 })
 
 test('the publication-review marker sits beside the year rather than at the edge', () => {

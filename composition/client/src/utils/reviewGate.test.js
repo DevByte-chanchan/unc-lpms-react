@@ -154,6 +154,8 @@ test('the consolidated view shows every stage and who has not approved', () => {
   const mid = consolidatedStatus(READY_FOR_DEAN);
   eq(mid.approvedCount, 2, 'the Director of Libraries and the Program Head have approved');
   eq(mid.awaiting.join(','), 'Dean', 'only the Dean is left');
+  eq(fresh.waitingNow.join(','), 'Director of Libraries,Program Head', 'the Dean is not waited on before the parallel pair approve');
+  eq(mid.waitingNow.join(','), 'Dean', 'then it is the Dean');
   eq(mid.dateApproved, null, 'no date until the Dean signs');
 
   const approved = consolidatedStatus({ ...READY_FOR_DEAN, currentStage: 'approved', dean: done('2026-08-01T00:00:00Z') });

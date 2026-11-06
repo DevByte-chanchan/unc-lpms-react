@@ -439,9 +439,9 @@ const ReferenceLibrary = () => {
                     onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setViewRef(ref); } }}
                   >
                     <td className={styles.cellNowrap}>{ref.id}</td>
-                    <td><div className={styles.titleCell}><div className={styles.titleLine}><span className={styles.refTitle}>{ref.title}</span>{unavailableReason(ref) && <span className={styles.issueBadge} title="Cannot be attached to a new plan">{unavailableReason(ref) === 'no copies left' ? 'No copies' : unavailableReason(ref).charAt(0).toUpperCase() + unavailableReason(ref).slice(1)}</span>}</div>{ref.filename && <span className={styles.refFilename}>{ref.filename}</span>}</div></td>
-                    <td><span className={styles.cellEllipsis}>{ref.authors || '—'}</span></td>
-                    <td className={styles.cellNowrap}><span className={styles.typeBadge}>{typeLabel(ref.type)}</span></td>
+                    <td><div className={styles.titleCell}><div className={styles.titleLine}><span className={styles.refTitle} title={ref.title}>{ref.title}</span>{unavailableReason(ref) && <span className={styles.issueBadge} title="Cannot be attached to a new plan">{unavailableReason(ref) === 'no copies left' ? 'No copies' : unavailableReason(ref).charAt(0).toUpperCase() + unavailableReason(ref).slice(1)}</span>}</div>{ref.filename && <span className={styles.refFilename}>{ref.filename}</span>}</div></td>
+                    <td><span className={styles.cellEllipsis} title={ref.authors || undefined}>{ref.authors || '—'}</span></td>
+                    <td className={styles.cellNowrap}><span className={styles.typeBadge} title={typeLabel(ref.type)}>{typeLabel(ref.type)}</span></td>
                     <td className={`${styles.cellNowrap} ${styles.yearCell}`}><span className={styles.yearValue}>{ref.year || '—'}</span>{isReferenceDeprecated(ref, CURRENT_YEAR, rules.recencyYears) && <span className={styles.deprecatedMarker} role="img" title={`May need review — published ${rules.recencyYears} or more years ago`} aria-label={`May need review — published ${rules.recencyYears} or more years ago`} />}</td>
                   </tr>
                 )) : loadState.loading ? (

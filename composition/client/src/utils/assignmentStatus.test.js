@@ -18,7 +18,7 @@ test('approval details use the latest resubmission date', () => {
 
 test('after a resubmission only the reviewer who returned it is pending; the other acceptance stands', () => {
   assert.deepEqual(statusModel.buildApproverStatus({ logs: history }), [
-    { title: 'Library Director', status: 'Accepted', acceptedAt: '2026-08-02T08:00:00.000Z' },
+    { title: 'Director of Libraries', status: 'Accepted', acceptedAt: '2026-08-02T08:00:00.000Z' },
     { title: 'Program Head', status: 'Pending' },
     { title: 'Dean', status: 'Pending' }
   ])
@@ -32,7 +32,7 @@ test('a returned plan shows who returned it and when', () => {
 
 test('the industry consultant never appears in the chain and never changes the status', () => {
   const logs = [...history.slice(0, 2), { actor_role: 'INDUSTRY_CONSULTANT', action_type: 'RETURNED', createdAt: '2026-08-06T08:00:00.000Z' }]
-  assert.deepEqual(statusModel.buildApproverStatus({ logs }).map(s => s.title), ['Library Director', 'Program Head', 'Dean'])
+  assert.deepEqual(statusModel.buildApproverStatus({ logs }).map(s => s.title), ['Director of Libraries', 'Program Head', 'Dean'])
   assert.equal(statusModel.computeOverallStatus({ logs }), 'Pending')
 })
 

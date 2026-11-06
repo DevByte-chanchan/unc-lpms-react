@@ -1,6 +1,6 @@
 import Select from '../../../components/Select.jsx'
 import { useEffect, useState } from 'react';
-import { ChevronRight, FileText } from 'react-feather';
+import { Eye, FileText } from 'react-feather';
 import SkeletonA from '../../../layouts/SkeletonA.jsx';
 import HeaderA from '../../../components/HeaderA.jsx';
 import SideNavigation from '../../../components/SideNavigation.jsx';
@@ -116,7 +116,7 @@ const COAEPView = () => {
             {generatedRecord && (
               <div className={pageStyles.pageHeaderActions}>
                 <button type="button" className="btn btn-primary" onClick={viewGeneratedCoaep}>
-                  <ChevronRight size={16} /> View Generated COAEP
+                  <Eye size={16} /> Preview / Export
                 </button>
               </div>
             )}

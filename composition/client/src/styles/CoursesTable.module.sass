@@ -381,3 +381,57 @@ select option
     bottom: 12px
     width: auto
     max-height: calc(100dvh - 24px)
+
+// The approvers' course lists at phone width. The desktop columns add up to about 1,090px, so on a phone only the
+// date and the code showed and View / Export sat off-screen. Here each row becomes a small card: code and actions on
+// top, then the name, then the approval bar. The header row goes (sorting stays on wider screens) and the date
+// columns go, since the list is already in date order.
+@media (max-width: 600px)
+  // TableScrollRegion sets the 900px desktop width inline; the card rows do not need it.
+  .approvalRegion > div
+    min-width: 0 !important
+
+  table.approvalTable
+    min-width: 0
+
+    thead
+      display: none
+
+    tbody tr
+      flex-wrap: wrap
+      row-gap: 0
+
+    td
+      width: auto
+      flex: 1 1 auto
+      font-size: 14px
+
+    td:first-child
+      display: none
+
+    td:nth-child(2)
+      order: 1
+      font-weight: 600
+
+    .actionsCol
+      order: 2
+      flex: 0 0 auto
+      width: auto
+      justify-content: flex-end
+
+    .growCol
+      order: 3
+      flex: 1 0 100%
+      padding-top: 0
+
+      > span
+        white-space: normal
+
+    td:nth-last-child(2)
+      order: 4
+      flex: 1 0 100%
+      padding-top: 0
+
+  table.approvedTable
+    td:nth-child(4)
+      display: none

@@ -586,6 +586,10 @@
 .more .moreIcon
   padding: 0
   display: flex
+  border: 0
+  background: transparent
+  color: inherit
+  cursor: pointer
 
 .more .dropdownMenu
   display: none
@@ -1230,17 +1234,52 @@
   &::-webkit-scrollbar
     display: none
 
+// Why this approver cannot act yet, under the chain. Plain text, not a banner: it informs, it does not alarm.
+.waitingNotice
+  display: flex
+  align-items: center
+  gap: 6px
+  margin: 0
+  padding: 6px 12px 8px
+  background: white
+  color: var(--ink-soft)
+  font-size: 12px
+  line-height: 1.4
+
 /* --------------------------------------------------- wider viewports --- */
 
 // Below this the navi wraps instead of squeezing its controls to nothing.
 @media (max-width: 600px)
+  // Phone order: back + course, then the section picker, then the actions on one row. `height: auto` because a
+  // wrapped bar sized to max-content came out shorter than its rows and let the picker spill over the chips below.
   .navi
     flex-wrap: wrap
     padding: 8px
+    height: auto
+
+  .reviewIdentity
+    flex: 1 1 0
+    max-width: none
 
   .section-select
+    order: 2
+    flex: 1 0 100%
+    height: 36px
+
+  .navi > :global(.btn)
     order: 3
+    flex: 1 1 0
+    min-width: 0
+
+  // "Return with comments" does not fit beside Approve at phone width: it gets its own row.
+  .navi > :global(.btn-secondary)
     flex-basis: 100%
+
+  .divider
+    display: none
+
+  .more
+    order: 3
 
 /* ------------------------------------- section reading-order navigation --- */
 

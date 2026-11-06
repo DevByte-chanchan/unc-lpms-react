@@ -1,6 +1,6 @@
 import Select from '../../../components/Select.jsx'
 import { useState, useEffect, useCallback } from 'react';
-import { ChevronRight, Edit3, Check, X, Plus, Trash2 } from 'react-feather';
+import { Eye, Edit3, Check, X, Plus, Trash2 } from 'react-feather';
 import SkeletonA from '../../../layouts/SkeletonA.jsx';
 import HeaderA from '../../../components/HeaderA.jsx';
 import SideNavigation from '../../../components/SideNavigation.jsx';
@@ -132,7 +132,7 @@ const PoPeoAlignment = ({ tabs = null }) => {
                 </button>
               )}
               <button type="button" className="btn btn-primary" onClick={handleView} disabled={!data}>
-                <ChevronRight size={16} /> View
+                <Eye size={16} /> Preview / Export
               </button>
             </>
           ) : (

@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import { Bell, BookOpen, ChevronRight, Clock, Maximize, Minimize2, X } from 'react-feather'
 import { getSession } from '../utils/session.js'
+import useDialogFocus from '../utils/useDialogFocus.js'
 import { POLL_MS, loadUnreadCount, loadNotifications, markRead, markAllRead } from '../utils/notificationsApi.js'
 import { notificationPath, timeAgo } from '../utils/notificationLinks.js'
 import navStyles from '../styles/SideNavigation.module.sass'
@@ -54,6 +55,9 @@ const NotificationBell = () => {
     }, POLL_MS)
     return () => clearInterval(timer)
   }, [open, refreshCount, refreshList])
+
+  const windowRef = useRef(null)
+  useDialogFocus(windowRef, open)
 
   const close = useCallback(() => {
     setOpen(false)
@@ -122,11 +126,11 @@ const NotificationBell = () => {
       {open && createPortal(
         <>
           <div className={styles.backdrop} onClick={close} />
-          <div role="dialog" aria-modal="true" aria-label="Notifications" className={`${styles.window} ${expanded ? styles.expanded : ''}`}>
+          <div ref={windowRef} role="dialog" aria-modal="true" aria-label="Notifications" className={`${styles.window} ${expanded ? styles.expanded : ''}`}>
             <div className="app-window-header">
               <div>
                 <h2 className="app-window-title">Notifications</h2>
-                <div className={styles.sub}>{count > 0 ? `${count} unread` : 'You are all caught up'}</div>
+                <div className={styles.sub}>{count > 0 ? `${count} unread` : items.length > 0 ? 'No unread notifications' : 'You are all caught up'}</div>
               </div>
               <div className="app-window-actions">
                 <button type="button" className="btn btn-secondary btn-sm" onClick={readAll} disabled={count === 0}>Mark all read</button>

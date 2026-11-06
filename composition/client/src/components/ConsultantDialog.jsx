@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { X } from 'react-feather'
 import Select from './Select.jsx'
 import { fetchJson, apiErrorMessage } from '../utils/api.js'
 import styles from '../styles/DueDateDialog.module.sass'
+import useDialogFocus from '../utils/useDialogFocus.js'
 
 // The Program Head's window for this course's industry consultant: who is assigned, assign another, remove one.
 // The server allows it only for the head of a program that offers the course.
@@ -27,6 +28,9 @@ const ConsultantDialog = ({ open, onClose, courseCode }) => {
       setError(apiErrorMessage(err, 'Could not load the consultants.'))
     }
   }, [courseCode])
+
+  const windowRef = useRef(null)
+  useDialogFocus(windowRef, open)
 
   useEffect(() => { if (open) { setPick(''); load() } }, [open, load])
 
@@ -54,7 +58,7 @@ const ConsultantDialog = ({ open, onClose, courseCode }) => {
   return createPortal(
     <>
       <div role="presentation" className={styles.backdrop} onClick={onClose} />
-      <div role="dialog" aria-modal="true" aria-label="Industry consultant" className={styles.window}>
+      <div ref={windowRef} role="dialog" aria-modal="true" aria-label="Industry consultant" className={styles.window}>
         <div className="app-window-header">
           <div>
             <h2 className="app-window-title">Industry Consultant</h2>

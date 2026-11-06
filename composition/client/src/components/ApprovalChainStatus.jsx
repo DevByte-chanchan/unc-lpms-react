@@ -50,7 +50,7 @@ const ApprovalChainStatus = ({ workflow, compact = false, activeRole = null, onA
             ? `Returned${returnedBy.length ? ` by ${returnedBy.join(', ')}` : ''} — waiting for the instructor to resubmit`
             : status.stage === 'draft'
                 ? 'Not submitted yet — waiting for the instructor'
-                : `${status.approvedCount}/${status.approvedCount + status.pendingCount} approved — waiting on ${status.awaiting.join(', ')}`
+                : `${status.approvedCount}/${status.approvedCount + status.pendingCount} approved — waiting on ${status.waitingNow.join(' and ')}`
 
     return (
         <div className={`${styles.strip} ${compact ? styles.compact : ''}`}>

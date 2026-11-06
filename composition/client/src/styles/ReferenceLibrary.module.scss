@@ -263,7 +263,8 @@
 
 .discoveryLayout {
   display: grid;
-  grid-template-columns: 210px minmax(420px, 1fr) 285px;
+  // Narrower rails so the results table fits its pane at 1440px instead of scrolling sideways.
+  grid-template-columns: 190px minmax(420px, 1fr) 260px;
   gap: 24px;
   flex: 1 1 auto;
   height: auto;
@@ -688,7 +689,7 @@ button.previewClose.previewClose {
 
 .tableWrapper table {
   width: 100%;
-  min-width: 720px;
+  min-width: 0; // TableScrollRegion's 520px canvas is the floor; 720px here forced a sideways scroll at 1440px
   border-collapse: collapse;
   table-layout: fixed;
   overflow: hidden;
@@ -732,7 +733,7 @@ button.previewClose.previewClose {
   }
 
   th {
-    padding: 12px 18px;
+    padding: 12px 12px;
     text-align: left;
     border-bottom: 2px solid #e5e7eb;
     font-size: 14px;
@@ -742,7 +743,7 @@ button.previewClose.previewClose {
   }
 
   td {
-    padding: 7px 16px;
+    padding: 7px 12px;
     border-bottom: 1px solid #d9e1e4;
     font-size: 15px;
     font-weight: 400;
@@ -754,10 +755,10 @@ button.previewClose.previewClose {
 
   th:nth-child(1), td:nth-child(1) { width: 12%; }
   th:nth-child(2), td:nth-child(2) { width: 33%; }
-  th:nth-child(3), td:nth-child(3) { width: 25%; }
-  th:nth-child(4), td:nth-child(4) { width: 20%; }
+  th:nth-child(3), td:nth-child(3) { width: 20%; }
+  th:nth-child(4), td:nth-child(4) { width: 24%; }
   th:nth-child(5), td:nth-child(5) {
-    width: 10%;
+    width: 11%;
     padding-right: 8px;
     padding-left: 8px;
     text-align: center;
@@ -826,7 +827,8 @@ button.previewClose.previewClose {
 
 .typeBadge {
   display: inline-block;
-  max-width: 190px;
+  max-width: 100%;
+  box-sizing: border-box;
   padding: 4px 8px;
   overflow: hidden;
   border-radius: 999px;

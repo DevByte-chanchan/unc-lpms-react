@@ -35,7 +35,7 @@ const formatDate = (dateString) => {
 // not their turn yet. Hovering a segment
 // gives the name and the date, so the old details window is not needed.
 const SEG_CLASS = { Accepted: 'segDone', Returned: 'segReturned', Pending: 'segPending', Waiting: 'segWaiting' };
-const ApprovalProgress = ({ row }) => {
+const ApprovalProgress = ({ row, role }) => {
     // Under review: the Director and the Program Head work in parallel, then the Dean. Whoever is next is "waiting".
     const under = computeOverallStatus(row) === 'Pending';
     const base = buildApproverStatus(row);
@@ -43,7 +43,11 @@ const ApprovalProgress = ({ row }) => {
     const steps = base.map((step, i) => (under && step.status === 'Pending' && (i < 2 || firstTwoDone) ? { ...step, status: 'Waiting' } : step));
     const done = steps.filter(step => step.status === 'Accepted').length;
     const returned = steps.find(step => step.status === 'Returned');
-    const label = done === steps.length ? 'Approved' : returned ? `Returned by ${returned.title}` : `${done} of ${steps.length} approved`;
+    // The Dean's turn comes last: until then the row says whom the plan is waiting on, not just a count.
+    const deanWaitingOnOthers = role === 'dean' && under && !returned && steps[2]?.status === 'Pending';
+    const waitingOn = steps.filter(step => step.status === 'Waiting').map(step => step.title).join(' and ');
+    const label = done === steps.length ? 'Approved' : returned ? `Returned by ${returned.title}`
+        : deanWaitingOnOthers && waitingOn ? `Waiting on ${waitingOn}` : `${done} of ${steps.length} approved`;
     const when = (step) => {
         const at = step.status === 'Accepted' ? step.acceptedAt : step.status === 'Returned' ? step.returnedAt : null;
         return at ? ` · ${new Date(at).toLocaleString()}` : '';
@@ -360,7 +364,7 @@ const ApprovalCoursesTable = ({ role = 'approver', styleHooks = {} }) => {
             {!notSubmitted && <TableScrollRegion
                 label="Assigned Course Offerings"
                 minWidth={900}
-                className={`${styles['table-container']}`}
+                className={`${styles['table-container']} ${styles.approvalRegion}`}
             >
                 {/* While loading, show ONLY the spinner. Rendering it above the
                     table meant the empty state ("No learning plans waiting for
@@ -378,7 +382,7 @@ const ApprovalCoursesTable = ({ role = 'approver', styleHooks = {} }) => {
                 )}
 
                 {!loading && !loadError && selectedStatus === 'APPROVED' &&
-                    <table className={styles.truncate}>
+                    <table className={`${styles.truncate} ${styles.approvalTable} ${styles.approvedTable}`}>
                         <thead>
                         <tr>
                             {COLUMNS.map(col => (
@@ -397,7 +401,7 @@ const ApprovalCoursesTable = ({ role = 'approver', styleHooks = {} }) => {
                                     the only way to read a long name in full. */}
                                 <td width={200} className={styles.growCol} title={getName(row)}><span>{getName(row)}</span></td>
                                 <td width={170}>{formatDate(row.date_approved)}</td>
-                                <td width={190}><ApprovalProgress row={row} /></td>
+                                <td width={190}><ApprovalProgress row={row} role={role} /></td>
                                 <td className={styles.actionsCol}>{rowActions(row)}</td>
                             </tr>
                         ))}
@@ -407,7 +411,7 @@ const ApprovalCoursesTable = ({ role = 'approver', styleHooks = {} }) => {
                 }
 
                 {!loading && !loadError && (selectedStatus === 'PENDING' || selectedStatus === 'RETURNED') &&
-                    <table className={styles.truncate}>
+                    <table className={`${styles.truncate} ${styles.approvalTable}`}>
                         <thead>
                         <tr>
                             {COLUMNS.map(col => (
@@ -421,7 +425,7 @@ const ApprovalCoursesTable = ({ role = 'approver', styleHooks = {} }) => {
                                 <td width={170}>{formatDate(row.date_assigned)}</td>
                                 <td width={150} title={getCode(row)}><span>{getCode(row)}</span></td>
                                 <td width={200} className={styles.growCol} title={getName(row)}><span>{getName(row)}</span></td>
-                                <td width={190}><ApprovalProgress row={row} /></td>
+                                <td width={190}><ApprovalProgress row={row} role={role} /></td>
                                 <td className={styles.actionsCol}>{rowActions(row)}</td>
                             </tr>
                         ))}

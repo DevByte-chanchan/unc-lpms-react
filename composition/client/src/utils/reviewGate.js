@@ -258,12 +258,16 @@ export const consolidatedStatus = (workflow = {}) => {
 
     const approvers = steps.filter(s => !s.readOnly)
     const approved = approvers.filter(s => s.status === 'approved')
+    // Whose turn it is now: the parallel pair first, the Dean only once both of them have approved.
+    const parallelDone = approvers.filter(s => !s.final).every(s => s.status === 'approved')
+    const waitingNow = approvers.filter(s => s.status !== 'approved' && (s.final ? parallelDone : true)).map(s => s.label)
     return {
         stage,
         steps,
         approvedCount: approved.length,
         pendingCount: approvers.length - approved.length,
         awaiting: approvers.filter(s => s.status !== 'approved').map(s => s.label),
+        waitingNow,
         isFullyApproved: stage === 'approved' || approvers.every(s => s.status === 'approved'),
         dateApproved: steps.find(s => s.final)?.completedAt || null
     }

@@ -8,11 +8,18 @@ import { loadLibrary } from '../utils/referenceStore.js'
 import { getReviewerByRole, getReviewerSeedData, normalizeRoleKey, isDeprecated } from '../utils/approvalHelpers.js'
 import { COMMENT_TYPES, commentTypeMeta, checkText } from '../utils/reviewGate.js'
 import DropdownMultiSelect from './DropdownMultiSelect.jsx'
+import useDialogFocus from '../utils/useDialogFocus.js'
 
 // coverageDetail may be an array (multi-select) or a legacy string — this reports whether anything is selected
 const hasCoverageDetail = (c) => Array.isArray(c.coverageDetail) ? c.coverageDetail.length > 0 : !!c.coverageDetail
 
-const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = [], ilos = [], approverRole = null, syllabusTopics = [], syllabusReferences = [], readOnly = false, previousComments: previousCommentsProp = [], coToIlosProp, iloLabels = {}, coverageEntries = [] }) => {
+const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = [], ilos = [], approverRole = null, syllabusTopics = [], syllabusReferences = [], readOnly = false, previousComments: previousCommentsProp = [], coToIlosProp, iloLabels = {}, coverageEntries = [], mode = 'return' }) => {
+  // mode: 'return' sends the plan back to the instructor, 'comment' only adds comments (plan is already
+  // returned), 'suggest' is the Industry Consultant, whose notes never return the plan.
+  const verb = mode === 'return' ? 'Return with' : mode === 'suggest' ? 'Post' : 'Add'
+  const outcome = mode === 'return' ? 'to return the plan' : mode === 'suggest' ? 'to post it' : 'to add it'
+  const dialogRef = useRef(null)
+  useDialogFocus(dialogRef, show)
   const defaultComment = () => ({
     id: (crypto.randomUUID && crypto.randomUUID()) || `fallback-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
     components: { references: false, topics: false, tlas: false },
@@ -418,14 +425,17 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
   const directorParts = []
   if (directorFilled > 0) directorParts.push(`Comment${directorFilled > 1 ? 's' : ''}`)
   if (directorSuggested > 0) directorParts.push(`Suggestion${directorSuggested > 1 ? 's' : ''}`)
-  const directorLabel = directorParts.length > 0 ? `Return with ${directorParts.join(' and ')}` : 'Return with Comments'
+  const directorLabel = `${verb} ${directorParts.length > 0 ? directorParts.join(' and ') : 'Comments'}`
 
   const normalFilled = comments.filter(c => c.text?.trim() && c.courseOutcome && c.ilo && c.coverageType && hasCoverageDetail(c)).length
   const normalSuggested = selectedRefs.length
   const normalParts = []
   if (normalFilled > 0) normalParts.push(`Comment${normalFilled > 1 ? 's' : ''}`)
   if (normalSuggested > 0) normalParts.push(`Suggestion${normalSuggested > 1 ? 's' : ''}`)
-  const normalLabel = normalParts.length > 0 ? `Return with ${normalParts.join(' and ')}` : 'Return with Comments'
+  const normalLabel = `${verb} ${normalParts.length > 0 ? normalParts.join(' and ') : (mode === 'suggest' ? 'Suggestion' : 'Comments')}`
+  const dialogTitle = readOnly ? 'Previous Comments'
+    : mode === 'suggest' ? 'Add Suggestion'
+    : `${verb} Comments${isDirector ? ' & References' : ''}`
 
   return (
     <>
@@ -444,9 +454,9 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
         </div>
       )}
     {!isFullscreen && <div onClick={handleClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 2999 }} />}
-    <div role="dialog" aria-modal="true" aria-label="Comments" style={isFullscreen ? { position: 'fixed', inset: 0, zIndex: 3000, background: '#fff', display: 'flex', flexDirection: 'column', overflow: 'hidden', width: '100%', maxHeight: '100%', borderRadius: 0 } : { position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: 3000 }} className={styles.modal}>
+    <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="approval-comment-title" style={isFullscreen ? { position: 'fixed', inset: 0, zIndex: 3000, background: '#fff', display: 'flex', flexDirection: 'column', overflow: 'hidden', width: '100%', maxHeight: '100%', borderRadius: 0 } : { position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: 3000 }} className={styles.modal}>
       <div className="app-window-header">
-        <h3 className="app-window-title">{readOnly ? 'Previous Comments' : (isDirector ? 'Return with Comments & References' : 'Return with Comments')}</h3>
+        <h3 id="approval-comment-title" className="app-window-title">{dialogTitle}</h3>
         <div className="app-window-actions">
           <button type="button" className="app-icon-btn" onClick={() => setIsFullscreen(v => !v)} title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'} aria-label="Toggle fullscreen">
             {isFullscreen ? <Minimize2 size={16} /> : <Maximize size={16} />}
@@ -681,8 +691,8 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
         {!readOnly && (() => {
           const blocked = isDirector ? (!comments[0]?.text?.trim() && selectedRefs.length === 0) : saveDisabled
           const why = isDirector
-            ? 'Write a comment on a reference, or pick a reference to suggest, to return the plan.'
-            : 'Fill in a comment, with its course outcome, ILO, type and target, to return the plan.'
+            ? `Write a comment on a reference, or pick a reference to suggest, ${outcome}.`
+            : `Fill in a comment, with its course outcome, ILO, type and target, ${outcome}.`
           return (
             <div className={styles.actions}>
               {blocked && <span className={styles.actionsHint}>{why}</span>}

@@ -755,6 +755,19 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
     return false
   }
 
+  // What the comment box does for this reviewer right now: a required reviewer's comments return the plan
+  // (handleSubmitComment), unless it is already returned; the consultant's are suggestions only.
+  const commentMode = roleKey === 'industry-consultant' ? 'suggest' : workflowState.currentStage === 'returned' ? 'comment' : 'return'
+  const commentButtonLabel = commentMode === 'return' ? 'Return with comments' : commentMode === 'suggest' ? 'Add suggestion' : 'Add comment'
+
+  // Said on the page, not only in a toast after a click: why this approver cannot act on the plan yet.
+  const isApprover = ['director-of-libraries', 'program-head', 'dean'].includes(roleKey)
+  const waitingNotice = (isApprover && effectiveStatus !== 'approved' && reviewRecordAvailable && !isRoleActive() && !hasRoleApproved())
+    ? (roleKey === 'dean' && !['returned', 'draft'].includes(workflowState.currentStage)
+      ? 'Your review opens once the Director of Libraries and the Program Head have approved this plan.'
+      : notYourTurnMessage('review'))
+    : null
+
   // COURSE & PROGRAM ALIGNMENT data — use API/fetched data
   const courseOutcomes = cpaData.courseOutcomes.length > 0
     ? cpaData.courseOutcomes
@@ -1054,11 +1067,12 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
     <div className={styles.divider}>
       <div className={styles.line}></div>
     </div>
-    <div onClick={toggleMenu} ref={dropdownRef} className={`${styles.more} ${isOpen ? styles.active : ''}`}>
-      <div className={styles.moreIcon}>
+    <div onClick={toggleMenu} ref={dropdownRef} className={`${styles.more} ${isOpen ? styles.active : ''}`}
+      onKeyDown={(e) => { if (e.key === 'Escape' && isOpen) { e.stopPropagation(); setIsOpen(false); dropdownRef.current?.querySelector('button')?.focus() } }}>
+      <button type="button" className={styles.moreIcon} aria-label="More actions" aria-haspopup="menu" aria-expanded={isOpen}>
         <MoreVertical strokeWidth={2} size={16} />
-      </div>
-      <div className={styles.dropdownMenu}>
+      </button>
+      <div className={styles.dropdownMenu} role="menu">
         {approved && wholePlanAccess && (
           <button type="button" onClick={(e) => { e.stopPropagation(); setIsRevisionsOpen(true); setIsOpen(false); }}>
             <Clock strokeWidth={2} size={14} /> Revisions
@@ -1181,7 +1195,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
                   if (roleKey === 'industry-consultant' || isRoleActive() || hasRoleApproved()) { setReadOnlyCommentModal(false); openComment() }
                   else if (roleKey === 'dean' && workflowState.currentStage !== 'returned' && workflowState.currentStage !== 'draft') showToastMsg('Waiting for previous approvers to complete their review.', 'warning')
                   else showToastMsg(notYourTurnMessage('comment'), 'warning')
-                }}><MessageSquare size={16} /> Add Comment</button>
+                }}><MessageSquare size={16} /> {commentButtonLabel}</button>
                 {roleKey !== 'industry-consultant' && (<button type="button" className={`btn btn-primary ${(!reviewRecordAvailable || !isRoleActive() || hasRoleApproved()) ? styles['disabled-btn'] : ''}`} aria-disabled={!reviewRecordAvailable || !isRoleActive() || hasRoleApproved()} onClick={() => {
                   if (!reviewRecordAvailable) { showToastMsg('This course revision could not be loaded, so it cannot be approved.', 'warning'); return }
                   if (hasRoleApproved()) showToastMsg('You have already approved this learning plan.', 'warning')
@@ -1250,6 +1264,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
               }
             }}
           />
+          {waitingNotice && <p className={styles.waitingNotice} role="status"><Clock size={14} /> {waitingNotice}</p>}
         </div>
       )}
 
@@ -1514,7 +1529,11 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
                     title="No comments yet"
                     hint={roleKey === 'instructor'
                       ? 'Comments from your reviewers will appear here once they have looked at this section.'
-                      : 'Use Add Comment above to raise a revision, suggest a topic, a TLA or an AI tool.'}
+                      : waitingNotice
+                        ? 'Comments open when the plan reaches your review.'
+                        : roleKey === 'industry-consultant'
+                          ? 'Use Add suggestion above to suggest a topic, a TLA or an AI tool.'
+                          : `Use ${commentButtonLabel} above to raise a revision, suggest a topic, a TLA or an AI tool.`}
                   />
                 ) : listedComments.length === 0 ? (
                   <EmptyState
@@ -1547,7 +1566,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
                             </div>
                             <div className={styles.commentStatusArea}>
                               <span className={`${styles.commentStatus} ${comment.resolved ? styles.statusResolved : styles.statusPending}`}>
-                                {comment.resolved ? 'Resolved' : 'Pending'}
+                                {comment.resolved ? 'Resolved' : 'Open'}
                               </span>
                               {!comment.resolved && isRecipient && (
                                 <button
@@ -1654,6 +1673,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
         previousComments={previousComments}
         coToIlosProp={Object.keys(realCoToIlos).length ? realCoToIlos : undefined}
         iloLabels={iloLabels}
+        mode={commentMode}
       />
 
       {/* ── APPROVE CONFIRMATION (matches instructor submit modal, with undo countdown) ── */}
