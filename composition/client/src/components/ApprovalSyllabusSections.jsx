@@ -78,7 +78,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
   const effectiveFromUrl = (statusParam || status || '').toLowerCase()
   // A plan's stage and who may act come from the server workflow log, never from local storage.
   const validPcId = pcId && !Number.isNaN(Number(pcId)) && String(Number(pcId)) === String(pcId) ? pcId : null
-  const { workflow: serverWorkflow, error: workflowError, reload: reloadWorkflow } = useServerWorkflow(validPcId, courseCode)
+  const { workflow: serverWorkflow, plan: workflowPlan, error: workflowError, reload: reloadWorkflow } = useServerWorkflow(validPcId, courseCode)
   const workflowState = workflowProp || serverWorkflow
   // Exportable once the Director of Libraries and the Program Head have accepted, even before the Dean.
   const exportInfo = exportEligibility(workflowState)
@@ -227,8 +227,10 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
     pcId: validPcId,
     revNum: validRevNum,
     code: codeToUse,
-    details: courseDetails,
-    error: courseDetailsError,
+    // A role whose sections leave out Course Details (the Director of Libraries) never loads it; the workflow
+    // endpoint names the same plan, so check against that instead.
+    details: visibleSections.includes('Course Details') ? courseDetails : workflowPlan,
+    error: visibleSections.includes('Course Details') ? courseDetailsError : workflowError,
   })
 
   // A SPINNER MUST HAVE SOMETHING TO WAIT FOR.

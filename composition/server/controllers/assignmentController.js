@@ -176,13 +176,18 @@ const listAssignments = async (req, res, next) => {
 // The approval screens derive a plan's stage and who may act from this, and from nothing else.
 const getWorkflowByOffering = async (req, res, next) => {
     try {
-        const assignmentId = req.courseAccess?.co_assign_id;
+        const access = req.courseAccess || {};
+        // Which plan this is (course code and revision), for reviewers whose sections leave out Course Details:
+        // the page checks it matches the address before anyone can act on it.
+        const course = access.course_id ? await Course.findByPk(access.course_id, { attributes: ['course_no'] }) : null;
+        const plan = { code: course?.course_no ?? null, revision: access.revision_number > 0 ? access.revision_number : null };
+        const assignmentId = access.co_assign_id;
         if (!assignmentId) {
-            return res.json({ co_assign_id: null, pc_offering_id: req.courseAccess?.pc_offering_id ?? null, logs: [] });
+            return res.json({ co_assign_id: null, pc_offering_id: access.pc_offering_id ?? null, logs: [], plan });
         }
         const logs = (await effectiveLogs(sequelize, assignmentId))
             .map(({ actor_role, actor_name, action_type, createdAt }) => ({ actor_role, actor_name, action_type, createdAt }));
-        return res.json({ co_assign_id: assignmentId, pc_offering_id: req.courseAccess.pc_offering_id, logs });
+        return res.json({ co_assign_id: assignmentId, pc_offering_id: access.pc_offering_id, logs, plan });
     } catch (err) {
         return next(err);
     }

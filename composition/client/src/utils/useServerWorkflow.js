@@ -12,6 +12,7 @@ export const MISSING_OFFERING_MESSAGE =
 
 export const useServerWorkflow = (pcId, courseCode = '') => {
   const [logs, setLogs] = useState(null)
+  const [plan, setPlan] = useState(null)   // { code, revision } of the offering, as the server reads it
   const [error, setError] = useState('')
   const [version, setVersion] = useState(0)
 
@@ -19,16 +20,16 @@ export const useServerWorkflow = (pcId, courseCode = '') => {
     if (!pcId) { setLogs([]); setError(MISSING_OFFERING_MESSAGE); return undefined }
     let live = true
     fetchJson(`/api/assignments/offering/${encodeURIComponent(pcId)}`)
-      .then(data => { if (live) { setLogs(data?.logs || []); setError('') } })
+      .then(data => { if (live) { setLogs(data?.logs || []); setPlan(data?.plan || null); setError('') } })
       .catch(err => {
-        if (live) { setLogs([]); setError(`The approval status could not be loaded: ${apiErrorMessage(err, 'request failed')}`) }
+        if (live) { setLogs([]); setPlan(null); setError(`The approval status could not be loaded: ${apiErrorMessage(err, 'request failed')}`) }
       })
     return () => { live = false }
   }, [pcId, version])
 
   const workflow = useMemo(() => workflowFromLogs(logs || [], courseCode), [logs, courseCode])
   const reload = useCallback(() => setVersion(v => v + 1), [])
-  return { workflow, loaded: logs !== null, error, reload }
+  return { workflow, plan, loaded: logs !== null, error, reload }
 }
 
 export default useServerWorkflow

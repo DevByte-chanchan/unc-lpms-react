@@ -16,6 +16,20 @@ const DropdownMultiSelect = ({ label, disabled, value = [], onChange, options = 
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
+    // Escape closes an open list first. Listening in the capture phase keeps it from also reaching a dialog's
+    // Escape handler, which would close the whole dialog.
+    useEffect(() => {
+        if (!isOpen) return undefined;
+        const onKey = (event) => {
+            if (event.key !== 'Escape') return;
+            event.preventDefault();
+            event.stopPropagation();
+            setIsOpen(false);
+        };
+        document.addEventListener('keydown', onKey, true);
+        return () => document.removeEventListener('keydown', onKey, true);
+    }, [isOpen]);
+
     const handleToggleOption = (option) => {
         if (disabled) return;
         const isSelected = value.includes(option);
