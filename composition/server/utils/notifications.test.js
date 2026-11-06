@@ -14,7 +14,7 @@ const { createNotifier, eventMessage, TYPES } = require('./notify');
 const { purgeReadNotifications, startRetention } = require('./notificationRetention');
 const { recordWorkflowAction } = require('../controllers/assignmentController');
 const { submitLearningPlan } = require('../controllers/submissionController');
-const { cloneOfferingContent } = require('../services/offeringService');
+const { cloneOfferingContent, assignCourseForTerm } = require('../services/offeringService');
 const { issueSession, createRequireAuth, COOKIE_NAME } = require('../middleware/auth');
 
 const stamp = Date.now();
@@ -47,7 +47,7 @@ const fixture = async () => {
     });
     const assignmentId = await insert('CourseOfferingAssignments', { pc_offering_id: offeringId, stakeholder_id: String(instructor.user_id), date_assigned: now, ...stamps });
     await insert('AssignmentWorkflowLogs', { co_assign_id: assignmentId, actor_role: 'PROGRAM_HEAD', action_type: 'ASSIGNED', ...stamps });
-    return { instructor, ph, dean, ld, vpaa, offeringId, assignmentId, code };
+    return { instructor, ph, dean, ld, vpaa, offeringId, assignmentId, code, courseId, programId };
 };
 
 const ACCOUNT = { INSTRUCTOR: 'instructor', LIBRARY_DIRECTOR: 'director-of-libraries', PROGRAM_HEAD: 'program-head', DEAN: 'dean' };
@@ -518,4 +518,24 @@ test('the migration removes the old reviewer reminders and nothing else', async 
     assert.equal(await Notification.findByPk(oldPoke.id), null, 'the old reviewer reminder is gone');
     assert.ok(await Notification.findByPk(newPoke.id), 'the new instructor reminder stays');
     assert.ok(await Notification.findByPk(other.id), 'other notifications stay');
+});
+
+test('a refused course assignment commits its empty transaction instead of rolling back the shared connection', async () => {
+    const f = await fixture();
+    const original = sequelize.transaction;
+    let threwInside = false;
+    sequelize.transaction = function (options, callback) {
+        return original.call(this, options, async t => {
+            try { return await callback(t); } catch (error) { threwInside = true; throw error; }
+        });
+    };
+    try {
+        // The same course and term the fixture already holds: refused with 409.
+        await assert.rejects(
+            assignCourseForTerm({ courseId: f.courseId, programId: f.programId, schoolYear: '2098-2099', semester: '1st', instructorUserId: f.instructor.user_id, user: { id: f.ph.user_id, name: 'PH' } }),
+            error => error.statusCode === 409);
+    } finally {
+        sequelize.transaction = original;
+    }
+    assert.equal(threwInside, false, 'the refusal left the transaction without a rollback');
 });

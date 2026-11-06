@@ -131,51 +131,65 @@ const termLabel = (offering) => `${offering.school_year} ${offering.semester} se
 const assignCourseForTerm = async ({ courseId, programId, schoolYear, semester, instructorUserId, user }) => {
     validTerm(schoolYear, semester);
     const now = new Date();
-    return sequelize.transaction({ type: 'IMMEDIATE' }, async (transaction) => {
-        const [program] = await select('SELECT * FROM Programs WHERE program_id = ?', [programId], transaction);
-        const [course] = await select('SELECT * FROM Courses WHERE course_id = ?', [courseId], transaction);
-        if (!program || !course) throw new ServiceError(404, 'Course or program not found.');
-        if (String(program.stakeholder_id) !== String(user.id)) {
-            throw new ServiceError(403, 'Only the head of this program can assign its courses.');
+    // A refusal commits the (still empty) transaction and is thrown after it: throwing inside would roll back
+    // the shared SQLite connection, and with it another request's write made in the meantime. Every refusal
+    // below comes before the first insert, so nothing partial is ever committed.
+    const outcome = await sequelize.transaction({ type: 'IMMEDIATE' }, async (transaction) => {
+        try {
+            return { value: await assignInTransaction({ courseId, programId, schoolYear, semester, instructorUserId, user, now, transaction }) };
+        } catch (error) {
+            if (error instanceof ServiceError) return { refused: error };
+            throw error;
         }
-        const [instructor] = await select('SELECT user_id, name, role, is_active FROM Users WHERE user_id = ?', [instructorUserId], transaction);
-        if (!instructor || instructor.role !== 'instructor' || instructor.is_active === 0) {
-            throw new ServiceError(400, 'The lead instructor must be an active instructor account.');
-        }
-
-        const [sameTerm] = await select(
-            `SELECT pc_offering_id FROM ProgramCourseOfferings
-             WHERE course_id = ? AND program_id = ? AND school_year = ? AND semester = ?`,
-            [courseId, programId, schoolYear, semester], transaction);
-        if (sameTerm) throw new ServiceError(409, `This course is already assigned for ${schoolYear} ${semester} semester (offering ${sameTerm.pc_offering_id}).`);
-
-        const source = await latestApproved(courseId, programId, transaction);
-        if (!source) {
-            const working = await workingCopyOf(courseId, programId, transaction);
-            if (working) throw new ServiceError(409, `This course already has a working copy (offering ${working.pc_offering_id}); only one at a time.`);
-        }
-
-        const offeringId = await insert('ProgramCourseOfferings', {
-            revision_number: source ? source.revision_number : 0,
-            course_id: courseId,
-            program_id: programId,
-            dept_id: source ? source.dept_id : program.dept_id,
-            course_description: source ? source.course_description : course.course_title,
-            school_year: schoolYear,
-            semester,
-            carried_from_offering_id: source ? source.pc_offering_id : null,
-            createdAt: now, updatedAt: now,
-        }, transaction);
-        const assignmentId = await insert('CourseOfferingAssignments', {
-            pc_offering_id: offeringId, stakeholder_id: String(instructorUserId), date_assigned: now, createdAt: now, updatedAt: now,
-        }, transaction);
-        await insert('AssignmentWorkflowLogs', {
-            co_assign_id: assignmentId, actor_role: 'PROGRAM_HEAD', actor_name: user.name || null, action_type: 'ASSIGNED', createdAt: now, updatedAt: now,
-        }, transaction);
-        if (source) await cloneOfferingContent(source.pc_offering_id, offeringId, now, transaction);
-
-        return { offeringId, assignmentId, carriedOver: !!source, revision: source ? source.revision_number : null };
     });
+    if (outcome.refused) throw outcome.refused;
+    return outcome.value;
+};
+
+const assignInTransaction = async ({ courseId, programId, schoolYear, semester, instructorUserId, user, now, transaction }) => {
+    const [program] = await select('SELECT * FROM Programs WHERE program_id = ?', [programId], transaction);
+    const [course] = await select('SELECT * FROM Courses WHERE course_id = ?', [courseId], transaction);
+    if (!program || !course) throw new ServiceError(404, 'Course or program not found.');
+    if (String(program.stakeholder_id) !== String(user.id)) {
+        throw new ServiceError(403, 'Only the head of this program can assign its courses.');
+    }
+    const [instructor] = await select('SELECT user_id, name, role, is_active FROM Users WHERE user_id = ?', [instructorUserId], transaction);
+    if (!instructor || instructor.role !== 'instructor' || instructor.is_active === 0) {
+        throw new ServiceError(400, 'The lead instructor must be an active instructor account.');
+    }
+
+    const [sameTerm] = await select(
+        `SELECT pc_offering_id FROM ProgramCourseOfferings
+         WHERE course_id = ? AND program_id = ? AND school_year = ? AND semester = ?`,
+        [courseId, programId, schoolYear, semester], transaction);
+    if (sameTerm) throw new ServiceError(409, `This course is already assigned for ${schoolYear} ${semester} semester (offering ${sameTerm.pc_offering_id}).`);
+
+    const source = await latestApproved(courseId, programId, transaction);
+    if (!source) {
+        const working = await workingCopyOf(courseId, programId, transaction);
+        if (working) throw new ServiceError(409, `This course already has a working copy (offering ${working.pc_offering_id}); only one at a time.`);
+    }
+
+    const offeringId = await insert('ProgramCourseOfferings', {
+        revision_number: source ? source.revision_number : 0,
+        course_id: courseId,
+        program_id: programId,
+        dept_id: source ? source.dept_id : program.dept_id,
+        course_description: source ? source.course_description : course.course_title,
+        school_year: schoolYear,
+        semester,
+        carried_from_offering_id: source ? source.pc_offering_id : null,
+        createdAt: now, updatedAt: now,
+    }, transaction);
+    const assignmentId = await insert('CourseOfferingAssignments', {
+        pc_offering_id: offeringId, stakeholder_id: String(instructorUserId), date_assigned: now, createdAt: now, updatedAt: now,
+    }, transaction);
+    await insert('AssignmentWorkflowLogs', {
+        co_assign_id: assignmentId, actor_role: 'PROGRAM_HEAD', actor_name: user.name || null, action_type: 'ASSIGNED', createdAt: now, updatedAt: now,
+    }, transaction);
+    if (source) await cloneOfferingContent(source.pc_offering_id, offeringId, now, transaction);
+
+    return { offeringId, assignmentId, carriedOver: !!source, revision: source ? source.revision_number : null };
 };
 
 // ---- lead instructor: start a revision --------------------------------------------------
