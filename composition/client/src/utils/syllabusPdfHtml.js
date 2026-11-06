@@ -860,7 +860,8 @@ function page14(syllabus, workflow, logo, pageNum, total) {
     }))
   }) : []
 
-  const extractInstructorName = () => safe(syllabus.instructor)
+  // Course details carry no instructor; the submitting instructor's name comes from the workflow log.
+  const extractInstructorName = () => safe(syllabus.instructor || workflow?.submittedBy)
   const extractDate = (d) => d ? fmtDate(d) : '_____________'
 
   // Who approved and when comes from the plan's workflow (derived from the server log): the

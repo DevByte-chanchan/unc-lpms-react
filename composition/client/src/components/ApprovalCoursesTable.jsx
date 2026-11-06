@@ -21,7 +21,9 @@ import { Loading, TableSkeleton } from './LoadingSkeleton.jsx';
 import { buildApproverStatus, canExportRow, computeOverallStatus } from '../utils/assignmentStatus.js';
 import { filterAssignmentsByCourse, readAssignedCourseFilters } from '../utils/referenceCourseNavigation.js';
 
-const EXPORT_ROLES = ['dean', 'vpaa', 'instructor', 'program-head', 'director-of-libraries'];
+// Roles that read the whole plan. The Director of Libraries sees References only, so a syllabus export would
+// come out empty apart from them (the plan page hides its Export button the same way).
+const EXPORT_ROLES = ['dean', 'vpaa', 'instructor', 'program-head'];
 
 const formatDate = (dateString) => {
     if (!dateString) return '-';

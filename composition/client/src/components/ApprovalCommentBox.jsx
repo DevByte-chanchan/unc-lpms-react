@@ -5,12 +5,17 @@ import styles from '../styles/ApprovalCommentBox.module.sass'
 import EmptyState from './EmptyState.jsx'
 import SpellCheckArea from './SpellCheckArea.jsx'
 import { loadLibrary } from '../utils/referenceStore.js'
-import { getReviewerByRole, getReviewerSeedData, normalizeRoleKey, isDeprecated } from '../utils/approvalHelpers.js'
+import { getReviewerByRole, getReviewerSeedData, normalizeRoleKey } from '../utils/approvalHelpers.js'
+import { isReferenceDeprecated } from '../utils/referenceDiscovery.js'
+import { getCatalogSettings } from '../utils/referenceCatalog.js'
 import { COMMENT_TYPES, commentTypeMeta, checkText } from '../utils/reviewGate.js'
 import DropdownMultiSelect from './DropdownMultiSelect.jsx'
 import useDialogFocus from '../utils/useDialogFocus.js'
 
 // coverageDetail may be an array (multi-select) or a legacy string — this reports whether anything is selected
+// Deprecated follows the Director's recency rule (Reference Library settings), like the library page does.
+const isDeprecated = (ref) => isReferenceDeprecated(ref, new Date().getFullYear(), getCatalogSettings().recencyYears)
+
 const hasCoverageDetail = (c) => Array.isArray(c.coverageDetail) ? c.coverageDetail.length > 0 : !!c.coverageDetail
 
 // A consultant cannot block approval, so "Requested revision" is not theirs to pick.
@@ -247,6 +252,9 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
 
   const CURRENT_YEAR = new Date().getFullYear()
 
+  // The type filter lists the types the library actually holds (a fixed list used to name types that do not exist).
+  const libraryTypes = [...new Set(libraryRefs.map(ref => ref.type).filter(Boolean))].sort()
+  // Current references first, newest first: the ones worth suggesting come before the deprecated ones.
   const filteredLibraryRefs = libraryRefs.filter(ref => {
     if (refTypeFilter && ref.type !== refTypeFilter) return false
     if (!searchTerm) return true
@@ -254,7 +262,7 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
     return ref.title?.toLowerCase().includes(q)
       || ref.authors?.toLowerCase().includes(q)
       || ref.type?.toLowerCase().includes(q)
-  })
+  }).sort((a, b) => (isDeprecated(a) - isDeprecated(b)) || ((Number(b.year) || 0) - (Number(a.year) || 0)))
 
   const toggleRefSelection = (ref) => {
     setSelectedRefs(prev =>
@@ -301,9 +309,7 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
         block
       >
         <option value="">All Types</option>
-        <option value="Textbook">Textbooks</option>
-        <option value="Open Educational Resources">Open Educational Resources</option>
-        <option value="Online Resources">Online Resources</option>
+        {libraryTypes.map(type => <option key={type} value={type}>{type}</option>)}
       </Select>
       <div className={styles.searchBox}>
         <Search size={16} aria-hidden="true" />

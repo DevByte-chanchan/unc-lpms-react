@@ -80,6 +80,8 @@ export const workflowFromLogs = (logs = [], courseCode = '') => {
     courseCode,
     currentStage,
     submittedAt: lastSubmission ? lastSubmission.createdAt : null,
+    // Who submitted it (the instructor's name from the log), for the "Prepared by" line of an export.
+    submittedBy: lastSubmission?.actor_name || null,
     // Which roles returned the plan and have not yet decided again (account role keys).
     returnedBy: [...returned].map(role => ROLE_KEY[role]),
     parallelReview: {

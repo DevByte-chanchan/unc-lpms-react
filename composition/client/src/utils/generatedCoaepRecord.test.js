@@ -52,3 +52,20 @@ test('a payload without a status is treated as a draft, never as final', () => {
 test('approved is only trusted when it is exactly true', () => {
   assert.equal(build({ state: 'Approved', approved: 'yes' }).approved, false)
 })
+
+test('the COAEP header and Prepared by line come from the term and the submitting instructor', () => {
+  const record = buildGeneratedCoaepRecord({
+    courseCode: 'BIT311L',
+    payload: {
+      cos: [{ statement: 'x', ilos: [] }],
+      status: { approved: false, state: 'Pending' },
+      term: { schoolYear: '2026-2027', semester: '1st' },
+      preparedBy: { name: 'NORTON, MONICA', submittedAt: '2026-11-06T08:00:00.000Z' }
+    }
+  })
+  assert.equal(record.header.facultyName, 'NORTON, MONICA')
+  assert.equal(record.header.schoolYear, '2026-2027')
+  assert.equal(record.header.semester, '1st')
+  assert.equal(record.preparedBy, 'NORTON, MONICA')
+  assert.match(record.dateSubmitted, /November 6, 2026/)
+})

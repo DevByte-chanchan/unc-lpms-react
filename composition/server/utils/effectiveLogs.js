@@ -28,6 +28,8 @@ const assignmentChain = async (sequelize, assignmentId, transaction) => {
     return chain;
 };
 
+// Ordered by the real instant: rows written through raw SQL carry the server's local offset (+08:00) while
+// Sequelize writes +00:00, so sorting the text would put a local-time row hours out of place.
 const effectiveLogs = async (sequelize, assignmentId, transaction) => {
     if (!assignmentId) return [];
     const chain = await assignmentChain(sequelize, assignmentId, transaction);
@@ -35,7 +37,7 @@ const effectiveLogs = async (sequelize, assignmentId, transaction) => {
     for (const id of chain) {
         logs.push(...await select(sequelize,
             `SELECT log_id, co_assign_id, actor_role, actor_name, actor_user_id, action_type, createdAt
-             FROM AssignmentWorkflowLogs WHERE co_assign_id = ? ORDER BY createdAt ASC, log_id ASC;`, [id], transaction));
+             FROM AssignmentWorkflowLogs WHERE co_assign_id = ? ORDER BY julianday(createdAt) ASC, log_id ASC;`, [id], transaction));
     }
     return logs;
 };

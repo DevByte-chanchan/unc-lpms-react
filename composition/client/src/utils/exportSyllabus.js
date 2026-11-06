@@ -75,7 +75,7 @@ export async function buildSyllabusExportFile({ pcId, revNum, code, workflow = n
   return {
     file_url: url,
     file_name: `Syllabus_${code}${eligibility.pendingDean ? '_PENDING_DEAN_APPROVAL' : ''}.html`,
-    instructor_name: syllabus?.instructor || '—',
+    instructor_name: syllabus?.instructor || workflow?.submittedBy || '—',
     course_id: code,
     course_name: syllabus?.name || '',
     submission_date: syllabus?.update || '',

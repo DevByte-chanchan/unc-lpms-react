@@ -9,6 +9,7 @@ const express = require('express');
 const { Op } = require('sequelize');
 const { sequelize, Sequelize, User, Notification, AuditLog } = require('../models');
 const { pendingReviewerRoles } = require('./workflowRules');
+const { effectiveLogs } = require('./effectiveLogs');
 const { planEvent, onComment, onCommentsResolved, onCourseAssigned, onRevisionStarted } = require('./notificationEvents');
 const { createNotifier, eventMessage, TYPES } = require('./notify');
 const { purgeReadNotifications, startRetention } = require('./notificationRetention');
@@ -553,4 +554,13 @@ test('an approved plan takes no new reviewer comments', async () => {
     }, res);
     assert.equal(res.code, 409);
     assert.match(res.body.error, /already approved/);
+});
+
+test('workflow logs are read in real time order even when their offsets differ', async () => {
+    const f = await fixture();
+    // 16:05 UTC written as local +08:00 text, then 16:06 UTC written as +00:00 text.
+    await sequelize.query(`INSERT INTO AssignmentWorkflowLogs (co_assign_id, actor_role, action_type, createdAt, updatedAt) VALUES (?, 'INSTRUCTOR', 'SUBMITTED', '2099-01-02 00:05:00.000 +08:00', '2099-01-02 00:05:00.000 +08:00')`, { replacements: [f.assignmentId] });
+    await sequelize.query(`INSERT INTO AssignmentWorkflowLogs (co_assign_id, actor_role, action_type, createdAt, updatedAt) VALUES (?, 'PROGRAM_HEAD', 'RETURNED', '2099-01-01 16:06:00.000 +00:00', '2099-01-01 16:06:00.000 +00:00')`, { replacements: [f.assignmentId] });
+    const order = (await effectiveLogs(sequelize, f.assignmentId)).map(l => l.action_type);
+    assert.deepEqual(order.slice(-2), ['SUBMITTED', 'RETURNED']);
 });

@@ -68,8 +68,14 @@ async function getCoaepByCourse(req, res) {
             ? [...logs].reverse().find(entry => entry.actor_role === 'DEAN' && ['ACCEPTED', 'APPROVED'].includes(entry.action_type))
             : null;
 
+        // The form's header and "Prepared by" line: the term of this offering and the instructor who last submitted it.
+        const [term] = await select('SELECT school_year, semester FROM ProgramCourseOfferings WHERE pc_offering_id = ?;', [authorizedOfferingId]);
+        const submission = [...logs].reverse().find(entry => entry.actor_role === 'INSTRUCTOR' && entry.action_type === 'SUBMITTED');
+
         return res.json({
             course: { code, title: baseRows[0].course_title || '' },
+            term: { schoolYear: term?.school_year || null, semester: term?.semester || null },
+            preparedBy: submission ? { name: submission.actor_name || null, submittedAt: new Date(submission.createdAt).toISOString() } : null,
             status: {
                 state,
                 approved: state === 'Approved',

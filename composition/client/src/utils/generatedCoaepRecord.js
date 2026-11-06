@@ -31,7 +31,12 @@ export const buildGeneratedCoaepRecord = ({ courseCode, courseName, payload }) =
   return {
     header: {
       course: `${code} - ${title}${revisionText ? ` (${revisionText})` : ''}`,
+      facultyName: payload?.preparedBy?.name || '',
+      schoolYear: payload?.term?.schoolYear || '',
+      semester: payload?.term?.semester || '',
     },
+    preparedBy: payload?.preparedBy?.name || '',
+    dateSubmitted: payload?.preparedBy?.submittedAt ? formatDate(payload.preparedBy.submittedAt) : '',
     cos,
     performanceTarget: DEFAULT_PERFORMANCE_TARGET,
     approved,

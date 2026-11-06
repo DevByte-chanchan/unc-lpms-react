@@ -17,7 +17,7 @@ import { fetchFormInfo } from '../utils/formSettings.js'
 import { fetchProgramAlignment } from '../utils/programAlignment.js'
 import { buildReviewRecordFile } from '../utils/exportSyllabus.js'
 import { getSuggestions, addSuggestion, acceptSuggestion, rejectSuggestion } from '../utils/suggestions.js'
-import { loadLibrary } from '../utils/referenceStore.js'
+import { loadLibrary, serverId } from '../utils/referenceStore.js'
 import { normalizeRoleKey } from '../utils/approvalHelpers.js'
 import { getSession, nameForRoleWithSession } from '../utils/session'
 import ApprovalChainStatus from './ApprovalChainStatus.jsx'
@@ -603,12 +603,10 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
       .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
   }, [globalComments, roleKey])
 
-  const enrichRef = (ref) => {
-    const libRef = libraryRefs.find(r => r.id === ref.id)
-    return libRef ? { ...ref, ...libRef } : ref
-  }
-  // ponytail: displayRefs uses API data only, no mock refPool
-  const displayRefs = allReferences.map(enrichRef)
+  // Library records are keyed "srv-48", a plan's references by the bare number 48: compare them as numbers.
+  const libraryRefById = (id) => libraryRefs.find(r => serverId(r.id) === serverId(id))
+  // The plan's references as the server returns them (the library's copy differs only in how it names types).
+  const displayRefs = allReferences
 
   // scroll to selected section when it changes (respect externalSelectedSection when embedded)
   useEffect(() => {
@@ -909,7 +907,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
       // DOL comments target references directly — attach the reference titles
       // so the sidebar shows [REFERENCES: ...] chips like other roles' comments.
       const dolRefTitles = roleKey === 'director-of-libraries'
-        ? (payload.commentedReferences || []).map(id => libraryRefs.find(ref => String(ref.id) === String(id))?.title).filter(Boolean)
+        ? (payload.commentedReferences || []).map(id => libraryRefById(id)?.title).filter(Boolean)
         : []
       if (dolRefTitles.length > 0) {
         prepared.forEach(p => {
@@ -979,7 +977,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
             })
           }).catch(e => { if (import.meta.env.DEV) console.warn('DOL comment not persisted to server:', e?.message) })
 
-          const targetTitles = commentedRefIds.map(id => libraryRefs.find(ref => String(ref.id) === String(id))?.title).filter(Boolean)
+          const targetTitles = commentedRefIds.map(id => libraryRefById(id)?.title).filter(Boolean)
           if (targetTitles.length > 0) targetTitles.forEach(t => postToServer([t]))
           else postToServer([]) // suggestion-only — server attaches to the course's first reference ILO
         }
@@ -1542,7 +1540,9 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
                         ? 'Comments open when the plan reaches your review.'
                         : roleKey === 'industry-consultant'
                           ? 'Use Add suggestion above to suggest a topic, a TLA or an AI tool.'
-                          : `Use ${commentButtonLabel} above to raise a revision, suggest a topic, a TLA or an AI tool.`}
+                          : roleKey === 'director-of-libraries'
+                            ? `Use ${commentButtonLabel} above to comment on a reference or suggest one from the library.`
+                            : `Use ${commentButtonLabel} above to raise a revision, suggest a topic, a TLA or an AI tool.`}
                   />
                 ) : listedComments.length === 0 ? (
                   <EmptyState
@@ -1712,7 +1712,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
             <div className={subStyles.submitModal}>
               <div className={subStyles.waitingBodyCenter}>
                 <div className={subStyles.successIcon}>✓</div>
-                <div className={subStyles.waitingTextSmall}>Learning Plan Approved!</div>
+                <div className={subStyles.waitingTextSmall}>{roleKey === 'dean' ? 'Learning Plan Approved!' : 'Your approval is recorded.'}</div>
               </div>
             </div>
           )}
