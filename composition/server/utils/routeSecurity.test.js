@@ -10,7 +10,6 @@ const { spawn } = require('node:child_process');
 const assignmentRoutes = require('../routes/assignments');
 const authRoutes = require('../routes/auth');
 const commentRoutes = require('../routes/comments');
-const exportRoutes = require('../routes/exportPdf');
 const iloRoutes = require('../routes/ilos');
 const courseDetailsRoutes = require('../routes/courseDetails');
 const courseCriteriaRoutes = require('../routes/courseCriteria');
@@ -83,7 +82,6 @@ const start = async () => {
     app.use('/api/assignments', assignmentRoutes);
     app.use('/api/comments', commentRoutes);
     app.use('/api/ilos', iloRoutes);
-    app.use('/api', exportRoutes);
 
     const server = await new Promise((resolve) => {
         const listening = app.listen(0, '127.0.0.1', () => resolve(listening));
@@ -368,20 +366,17 @@ test('an instructor cannot resolve a comment from another instructor assignment'
     }
 });
 
-test('server-side browser PDF rendering is disabled instead of processing caller HTML', async () => {
+test('there is no server-side PDF rendering: the old endpoint does not exist', async () => {
+    // It used to render caller HTML in a server-side browser. The client exports in the browser, so the route is gone.
     const server = await start();
     try {
         const token = issueActiveSession({ id: 16, name: 'EXPORT, USER', role: 'instructor' });
         const response = await fetch(`${server.baseUrl}/api/export-pdf`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', Cookie: `lpms_session=${token}` },
-            body: JSON.stringify({})
+            body: JSON.stringify({ html: '<h1>x</h1>' })
         });
-
-        assert.equal(response.status, 501);
-        assert.deepEqual(await response.json(), {
-            error: 'Server PDF rendering is disabled. Use the browser PDF export.'
-        });
+        assert.equal(response.status, 404);
     } finally {
         await server.close();
     }

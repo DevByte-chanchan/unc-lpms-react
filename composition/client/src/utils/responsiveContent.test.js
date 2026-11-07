@@ -78,12 +78,6 @@ test('approval comment modal includes its compact and fullscreen padding inside 
   assert.match(compactModal, /max-height:\s*calc\(100dvh - 24px\)/)
 })
 
-test('standalone comment recorder owns a responsive page class', () => {
-  const page = read('pages/CommentRecorder.jsx')
-  assert.match(page, /CommentRecorder\.module\.sass/)
-  assert.match(page, /className=\{styles\.page\}/)
-})
-
 test('custom dropdown menus cannot exceed their mobile field width', () => {
   for (const file of ['styles/DropdownMultiSelect.module.sass', 'styles/TypeableDropdown.module.sass']) {
     const css = read(file)

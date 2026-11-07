@@ -29,7 +29,6 @@
 /** Path patterns, exactly as they are declared to react-router. */
 export const PATTERNS = {
     instructorHome: '/',
-    recordComments: '/record-comments',
     changePassword: '/change-password',
 
     syllabusByRevision: '/courses/:pcId/:revNum/:status',
@@ -75,7 +74,6 @@ const withQuery = (path, query) => {
 /** Builders. Use these instead of writing a path literal. */
 export const routes = {
     instructorHome: () => '/',
-    recordComments: () => '/record-comments',
     changePassword: () => '/change-password',
 
     syllabusByRevision: (pcId, revNum, status) => `/courses/${enc(pcId)}/${enc(revNum)}/${enc(status)}`,

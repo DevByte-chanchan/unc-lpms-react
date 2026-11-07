@@ -188,7 +188,6 @@ test('the instructor\'s own screens are the instructor\'s', async () => {
     '/courses/1/1/draft',             // composing a plan
     '/courses/BSCS511',
     '/revisions/BSCS511',
-    '/record-comments',
     '/ilos/form/BSCS511/1',
     '/topics/form/1/draft',
     '/tlas/form/1/draft',

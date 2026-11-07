@@ -11,7 +11,7 @@ const SRC = fileURLToPath(new URL('..', import.meta.url))
 
 const APPROVER_SIDE = [
   /^components\/(Approval|CommentMessage|ReferencePicker|ReferenceSummary|AddReferenceModal|FormSettingsPanel|SideNavigation)/,
-  /^pages\/(Approval|CommentRecorder|Dean|DirectorOfLibraries|IndustryConsultant|ProgramHead|VPAA)/,
+  /^pages\/(Approval|Dean|DirectorOfLibraries|IndustryConsultant|ProgramHead|VPAA)/,
   /^pages\/lpsm\//
 ]
 

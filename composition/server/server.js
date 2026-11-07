@@ -116,7 +116,6 @@ app.use('/api/users', require('./routes/users'));
 app.use('/api/notifications', require('./routes/notifications'));
 app.use('/api/term-deadlines', require('./routes/termDeadlines'));
 app.use('/api/missing-submissions', require('./routes/missingSubmissions'));
-app.use('/api', require('./routes/exportPdf'));
 
 // global error handler
 app.use((err, req, res, next) => {

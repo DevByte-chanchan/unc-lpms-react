@@ -25,7 +25,6 @@ const Syllabus = lazy(() => import('./pages/Syllabus.jsx'))
 const ReferenceForm = lazy(() => import('./pages/ReferenceForm.jsx'))
 const TopicForm = lazy(() => import('./pages/TopicForm.jsx'))
 const TLAForm = lazy(() => import('./pages/TLAForm.jsx'))
-const CommentRecorder = lazy(() => import('./pages/CommentRecorder.jsx'))
 const ILOForm = lazy(() => import('./pages/ILOForm.jsx'))
 const SyllabusRevisions = lazy(() => import('./pages/SyllabusRevisions.jsx'))
 const ApprovalCourses = lazy(() => import('./pages/ApprovalCourses.jsx'))
@@ -99,7 +98,6 @@ function App() {
                         {/* The Profile page is gone; old links and bookmarks land on Change password. */}
                         <Route path={'/profile'} element={<Navigate to={'/change-password'} replace />} />
                         <Route path={'/change-password'} element={<ErrorBoundary><ChangePassword /></ErrorBoundary>} />
-                        <Route path={'/record-comments'} element={<ErrorBoundary><CommentRecorder /></ErrorBoundary>} />
 
                         {/* --- COURSE EDITING ROUTES --- */}
                         <Route path={'/courses/:pcId/:revNum/:status'} element={<ErrorBoundary><Syllabus /></ErrorBoundary>} />

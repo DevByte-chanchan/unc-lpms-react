@@ -559,7 +559,6 @@ export const roleFromPath = (pathname = '') => {
 // and everything in this list belongs to the instructor. No approver screen
 // links to any of these paths — checked — so nothing legitimate is caught.
 const INSTRUCTOR_PATHS = [
-  '/record-comments',
   '/courses',
   '/offerings',
   '/revisions',
