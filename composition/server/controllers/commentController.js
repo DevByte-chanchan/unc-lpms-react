@@ -340,6 +340,7 @@ exports.getCourseCommentsByCode = async (req, res) => {
                  c.comment_id,
                  c.commenter_role,
                  c.commenter_user_id,
+                 c.commenter_name,
                  c.message,
                  c.resolved_status,
                  c.ilo_id,

@@ -19,7 +19,7 @@ import { buildReviewRecordFile } from '../utils/exportSyllabus.js'
 import { getSuggestions, addSuggestion, acceptSuggestion, rejectSuggestion } from '../utils/suggestions.js'
 import { loadLibrary, serverId } from '../utils/referenceStore.js'
 import { normalizeRoleKey } from '../utils/approvalHelpers.js'
-import { getSession, nameForRoleWithSession } from '../utils/session'
+import { getSession } from '../utils/session'
 import ApprovalChainStatus from './ApprovalChainStatus.jsx'
 import {
   validateReturn,
@@ -34,7 +34,7 @@ import {
 import { fetchJson, apiErrorMessage } from "../utils/api.js"
 import { describeCourseLoadError } from '../utils/courseLoadError.js'
 import { canReviewLoadedCourse } from '../utils/reviewAssignments.js'
-import { seedDummyComments } from "../utils/seedDummyComments.js"
+import { toPanelComments, isDuplicateComment, LEGACY_STORAGE_KEY } from "../utils/serverComments.js"
 
 import Revisions from './Revisions.jsx'
 import PDFViewerModal from './PDFViewerModal'
@@ -267,128 +267,23 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
     }
   }, [isOpen])
 
+  // The comments come from the server only, for this exact plan (pcId): the server decides who may see which,
+  // and names their authors. Nothing is kept in this browser, so the next person signed in here sees only their own.
   useEffect(() => {
-    try {
-      // Sweep any leftover demo seed comments (all courses), then load real ones
-      seedDummyComments()
+    try { localStorage.removeItem(LEGACY_STORAGE_KEY) } catch { /* storage unavailable: nothing to clear */ }
+  }, [])
 
-      const refreshed = JSON.parse(localStorage.getItem('approval_comments_v1') || '[]')
-      const courseComments = (Array.isArray(refreshed) ? refreshed : []).filter(c => c.courseCode === codeToUse)
-      setGlobalComments(courseComments)
-    } catch {
-      setGlobalComments([])
-    }
-  }, [codeToUse, refreshKey])
-
-  // Merge server-side comments into localStorage so approvers see the same comments as the instructor.
-  // Fetches by course code (works even without pcId/revNum in the URL) and keeps
-  // CO/ILO/target connections from the enriched endpoint.
   useEffect(() => {
-    if (!codeToUse) return
+    if (!codeToUse) { setGlobalComments([]); return undefined }
     let mounted = true
-
-    const roleToLabel = {
-      'INDUSTRY_CONSULTANT': 'Industry Consultant',
-      'DIRECTOR_OF_LIBRARIES': 'Director of Libraries',
-      'PROGRAM_HEAD': 'Program Head',
-      'DEAN': 'Dean',
-      'INSTRUCTOR': 'Instructor',
-    }
-    const roleToName = {
-      'INDUSTRY_CONSULTANT': 'CRUZ, ROBERTO',
-      'DIRECTOR_OF_LIBRARIES': 'SANTOS, MARIA',
-      'LIBRARY_DIRECTOR': 'SANTOS, MARIA',
-      'PROGRAM_HEAD': 'DANILA, JUNAR',
-      'DEAN': 'REYES, AGNES',
-      'INSTRUCTOR': 'CASIMERO, DANNY',
-    }
-    const coverageMap = { 'references': 'References', 'topics': 'Topic', 'tlas': 'TLA' }
-    // The server copy of a comment carries its type as a leading "[Requested revision]" tag; the local
-    // copy does not. Compare without the tag so one comment is never listed twice.
-    const untagged = (text) => String(text || '').replace(/^\s*\[[^\]]+\]\s*/, '').trim().toLowerCase()
-
-    // A row written by whoever is signed in must keep showing their name, not the
-    // demo name for that role — re-labelling it on reload is the account switch
-    // the panel flagged [45:27].
-    const nameForRole = (rawRole) =>
-      nameForRoleWithSession(getSession(), rawRole, roleToName[rawRole] || rawRole)
-
-    async function syncServerComments() {
-      try {
-        const qs = validPcId ? `?pcId=${validPcId}` : ''
-        const rows = await fetchJson(`/api/comments/by-course/${encodeURIComponent(codeToUse)}${qs}`)
-        if (!mounted || !Array.isArray(rows) || rows.length === 0) return
-
-        const raw = localStorage.getItem('approval_comments_v1') || '[]'
-        const all = JSON.parse(raw)
-        const list = Array.isArray(all) ? all : []
-        // Content-based dedup: skip server rows whose text already exists as a
-        // seed/manual comment for this course so the sidebar never shows duplicates.
-        const existingTexts = new Set(
-          list
-            .filter(c => c.courseCode === codeToUse && !String(c.id || '').startsWith('server-'))
-            .map(c => untagged(c.comment))
-        )
-
-        const converted = rows
-          .filter(r => {
-            const full = untagged(r.message)
-            // server copies of DOL comments carry an appended suggestion line —
-            // compare the base text too so they don't duplicate in the sidebar
-            const base = untagged((r.message || '').split('\n\nSuggested reference')[0])
-            return !existingTexts.has(full) && !existingTexts.has(base)
-          })
-          .map(r => {
-            const co = r.co_no ? `CO${r.co_no}` : null
-            const ilo = r.co_no && r.ilo_no ? `CO${r.co_no}-ILO${r.ilo_no}` : null
-            return {
-              id: `server-${r.comment_id}`,
-              courseCode: codeToUse,
-              section: 'Course Coverage',
-              submissionId: `server-${codeToUse}`,
-              submissionLabel: 'Review Corrections',
-              submittedAt: r.createdAt,
-              createdAt: r.createdAt,
-              reviewer: nameForRole(r.commenter_role),
-              role: roleToLabel[r.commenter_role] || r.commenter_role,
-              recipientRole: r.commenter_role === 'INSTRUCTOR' ? 'industry-consultant' : 'instructor',
-              components: {},
-              comment: r.message,
-              courseOutcome: co,
-              ilo,
-              coverageType: coverageMap[r.comment_for] || null,
-              coverageDetail: r.target_title || null,
-              suggestedRefs: [],
-              status: r.resolved_status ? 'resolved' : 'pending',
-              resolved: !!r.resolved_status,
-              resolvedAt: null,
-            }
-          })
-
-        // Upsert: replace this course's previous server- entries so resolution
-        // status changes made by the instructor stay in sync on reload.
-        // A comment this browser posted is kept as its local copy (with its full target), and the server row with the
-        // same text is skipped above; the server is still the truth for whether it was resolved, so copy that over.
-        const serverResolved = new Map(rows.map(r => [untagged(r.message), Boolean(r.resolved_status)]))
-        const others = list
-          .filter(c => !(c.courseCode === codeToUse && String(c.id || '').startsWith('server-')))
-          .map(c => {
-            if (c.courseCode !== codeToUse || !serverResolved.has(untagged(c.comment))) return c
-            const resolved = serverResolved.get(untagged(c.comment))
-            return resolved === Boolean(c.resolved) ? c : { ...c, resolved, status: resolved ? 'resolved' : 'pending' }
-          })
-        const merged = [...others, ...converted]
-        localStorage.setItem('approval_comments_v1', JSON.stringify(merged))
-
-        if (mounted) {
-          setGlobalComments(merged.filter(c => c.courseCode === codeToUse))
-        }
-      } catch (e) {
-        if (import.meta.env.DEV) console.warn('Server comment sync skipped:', e.message)
-      }
-    }
-
-    syncServerComments()
+    const qs = validPcId ? `?pcId=${validPcId}` : ''
+    fetchJson(`/api/comments/by-course/${encodeURIComponent(codeToUse)}${qs}`)
+      .then(rows => { if (mounted) setGlobalComments(toPanelComments(rows, codeToUse)) })
+      .catch(err => {
+        if (!mounted) return
+        setGlobalComments([])
+        if (import.meta.env.DEV) console.warn('Comments could not be loaded:', err?.message)
+      })
     return () => { mounted = false }
   }, [validPcId, codeToUse, refreshKey])
 
@@ -814,196 +709,106 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
     return labels
   }, [coverage])
 
-  const handleSubmitComment = (payload) => {
-    if (import.meta.env.DEV) console.log('Submitted approval comment', { ...payload, role: roleKey })
-
+  // Saves the comments on the server, then (for a required reviewer) returns the plan. Resolves to true when it all
+  // went through, false when it did not: the dialog then stays open with the draft, and the plan is NOT returned,
+  // because a return the instructor cannot read the reason for is worse than no return.
+  const handleSubmitComment = async (payload) => {
     // Returning to sender is a disapproval, and a disapproval has to say why
     // [1:23:33] [1:23:40]. Suggested references on their own are not a reason.
     const gate = validateReturn(payload)
     if (!gate.ok) {
-      showToastMsg(gate.error, 'warning')
-      return
+      return gate.error
+    }
+    const code = codeToUse
+    if (!code) {
+      return 'This course could not be identified, so the comment was not saved.'
+    }
+
+    const incoming = (payload.comments || []).filter(c => c.text?.trim())
+    if (incoming.some(inc => isDuplicateComment(globalComments, inc))) {
+      return 'Duplicate comment: identical content already exists for this target.'
+    }
+
+    // What to send: one request per comment.
+    const forMap = { 'Topic': 'topics', 'References': 'references', 'TLA': 'tlas' }
+    const commenterRole = COMMENT_ROLE_MAP[roleKey] || roleKey.toUpperCase()
+    const bodies = []
+    if (roleKey === 'director-of-libraries') {
+      // The Director comments on a reference (the server finds its ILO); suggested library titles ride along on
+      // the first comment, or make a comment of their own when there is no text.
+      const suggested = payload.suggestedReferences || []
+      const suggestionLine = suggested.length > 0
+        ? `Suggested reference${suggested.length > 1 ? 's' : ''}: ` + suggested.map(r => `${r.title}${r.authors ? ' — ' + r.authors : ''}`).join('; ')
+        : ''
+      incoming.forEach((c, index) => {
+        const title = libraryRefById(c.commentedRefId)?.title
+        const text = c.text.trim()
+        bodies.push({
+          message: index === 0 && suggestionLine ? `${text}
+
+${suggestionLine}` : text,
+          comment_for: 'references',
+          target_titles: title ? [title] : []
+        })
+      })
+      if (incoming.length === 0 && suggestionLine) bodies.push({ message: suggestionLine, comment_for: 'references', target_titles: [] })
+    } else {
+      for (const c of incoming) {
+        const coIndex = c.courseOutcome ? parseInt(String(c.courseOutcome).replace(/\D/g, ''), 10) : null
+        const iloIndex = c.ilo && String(c.ilo).includes('ILO') ? parseInt(String(c.ilo).split('ILO')[1], 10) : null
+        if (!coIndex || !iloIndex) {
+          return 'Pick a course outcome and an ILO for every comment.'
+        }
+        bodies.push({
+          // The type rides along in the message — the server stores one string, and the instructor's forms parse
+          // the tag back into a labelled, actionable suggestion [48:30].
+          message: encodeCommentType(c.commentType, c.text),
+          co_index: coIndex,
+          ilo_index: iloIndex,
+          comment_for: forMap[c.coverageType] || null,
+          target_titles: Array.isArray(c.coverageDetail) ? c.coverageDetail : (c.coverageDetail ? [c.coverageDetail] : [])
+        })
+      }
+    }
+
+    // One at a time, stopping at the first failure, so it is clear what was saved.
+    let saved = 0
+    try {
+      for (const body of bodies) {
+        await fetchJson('/api/comments/by-course', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code, pcId: validPcId, commenter_role: commenterRole, ...body })
+        })
+        saved += 1
+      }
+    } catch (e) {
+      setRefreshKey(k => k + 1)
+      const reason = apiErrorMessage(e, 'The comment could not be saved.')
+      return saved > 0
+        ? `${saved} of ${bodies.length} comments were saved; the rest were not: ${reason} The plan was not returned.`
+        : `${reason}${commentMode === 'return' ? ' The plan was not returned.' : ''}`
+    }
+
+    // Suggested references are also kept for the instructor's suggestion list.
+    if (payload.suggestedReferences && payload.suggestedReferences.length > 0) {
+      const reviewer = getSession()?.name || 'Reviewer'
+      payload.suggestedReferences.forEach(ref => addSuggestion(codeToUse, ref, reviewer))
     }
 
     setSidebarCollapsed(false)
+    setRefreshKey(k => k + 1)
 
-    try {
-      const storageKey = 'approval_comments_v1'
-      const raw = localStorage.getItem(storageKey)
-      const all = raw ? JSON.parse(raw) : []
-      const allArray = Array.isArray(all) ? all : []
-
-      const code = codeToUse
-      if (!code) {
-        console.warn('No syllabus code available to attach comment')
-        return
+    // Only a required reviewer's comments return the plan; the consultant's are documentation.
+    if (commentMode === 'return') {
+      try {
+        await recordWorkflowAction('RETURNED')
+        reloadWorkflow()
+      } catch (e) {
+        return apiErrorMessage(e, 'Your comments were saved, but the plan could not be returned.')
       }
-
-      // ── Duplicate check: same content + same target ──
-      const incoming = (payload.comments || []).filter(c => c.text?.trim())
-      for (const inc of incoming) {
-        const dup = allArray.find(ex =>
-          ex.courseCode === code &&
-          ex.courseOutcome === (inc.courseOutcome || null) &&
-          ex.ilo === (inc.ilo || null) &&
-          ex.coverageType === (inc.coverageType || null) &&
-          (Array.isArray(ex.coverageDetail) ? ex.coverageDetail.join('|') : (ex.coverageDetail || '')) === (Array.isArray(inc.coverageDetail) ? inc.coverageDetail.join('|') : (inc.coverageDetail || '')) &&
-          (ex.comment || '').trim().toLowerCase() === (inc.text || '').trim().toLowerCase()
-        )
-        if (dup) {
-          showToastMsg('Duplicate comment: identical content already exists for this target.', 'warning')
-          return
-        }
-      }
-
-      // create a submission id shared by all comments being submitted now
-      const now = new Date()
-      const submissionId = `${code}-${now.getTime()}`
-      const submittedAt = payload.createdAt || now.toISOString()
-      const submissionLabel = 'Submission'
-
-      const reviewerNames = { 'instructor': 'CASIMERO, DANNY', 'program-head': 'DANILA, JUNAR', 'dean': 'REYES, AGNES', 'director-of-libraries': 'SANTOS, MARIA', 'industry-consultant': 'CRUZ, ROBERTO' }
-      // The signed-in user is the one acting, so their name wins; the demo names
-      // are only a fallback for a build with no session.
-      const reviewer = nameForRoleWithSession(getSession(), roleKey, reviewerNames[roleKey] || 'Approver')
-      const roleLabel = roleKey === 'program-head' ? 'Program Head'
-        : roleKey === 'dean' ? 'Dean'
-        : roleKey === 'industry-consultant' ? 'Industry Consultant'
-        : roleKey === 'director-of-libraries' ? 'Director of Libraries'
-        : roleKey === 'instructor' ? 'Instructor'
-        : 'Department Head'
-
-      const sectionToSave = externalSelectedSection || selectedSection
-      const prepared = (payload.comments || []).map((c) => ({
-        id: `${submissionId}-${c.id}`,
-        courseCode: code,
-        section: sectionToSave,
-        submissionId,
-        submissionLabel,
-        submittedAt,
-        createdAt: new Date().toISOString(),
-        reviewer,
-        role: roleLabel,
-        recipientRole: roleKey === 'dean' ? 'program_head' : 'instructor',
-        components: c.components || {},
-        comment: c.text || '',
-        commentType: c.commentType || null,
-        courseOutcome: c.courseOutcome || null,
-        ilo: c.ilo || null,
-        coverageType: c.coverageType || null,
-        coverageDetail: (Array.isArray(c.coverageDetail) ? (c.coverageDetail.length ? c.coverageDetail : null) : (c.coverageDetail || null)),
-        status: 'pending',
-        resolved: false,
-        suggestedRefs: (payload.suggestedReferences || []).map(r => ({
-          title: r.title || '',
-          authors: r.authors || '',
-          type: r.type || '',
-          year: r.year || '',
-          isbn: r.isbn || '',
-          link: r.link || ''
-        }))
-      }))
-
-      // DOL comments target references directly — attach the reference titles
-      // so the sidebar shows [REFERENCES: ...] chips like other roles' comments.
-      const dolRefTitles = roleKey === 'director-of-libraries'
-        ? (payload.commentedReferences || []).map(id => libraryRefById(id)?.title).filter(Boolean)
-        : []
-      if (dolRefTitles.length > 0) {
-        prepared.forEach(p => {
-          if (!p.coverageType) p.coverageType = 'References'
-          if (!p.coverageDetail || (Array.isArray(p.coverageDetail) && p.coverageDetail.length === 0)) p.coverageDetail = dolRefTitles
-        })
-      }
-
-      const newComments = [...allArray, ...prepared]
-      localStorage.setItem(storageKey, JSON.stringify(newComments))
-
-      // Persist each comment to the SERVER too, so the instructor sees it in
-      // Review Corrections and the notif badges count it. CO/ILO labels are
-      // resolved to real ids server-side.
-      const forMap = { 'Topic': 'topics', 'References': 'references', 'TLA': 'tlas' }
-      prepared.forEach(c => {
-        const coIndex = c.courseOutcome ? parseInt(String(c.courseOutcome).replace(/\D/g, ''), 10) : null
-        const iloIndex = c.ilo && String(c.ilo).includes('ILO') ? parseInt(String(c.ilo).split('ILO')[1], 10) : null
-        if (!coIndex || !iloIndex) return // untargeted comments stay local-only
-        const targetTitles = Array.isArray(c.coverageDetail) ? c.coverageDetail : (c.coverageDetail ? [c.coverageDetail] : [])
-        fetchJson('/api/comments/by-course', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            code,
-            pcId: validPcId,
-            commenter_role: COMMENT_ROLE_MAP[roleKey] || roleKey.toUpperCase(),
-            // The type rides along in the message — the server stores one
-            // string, and the instructor's forms parse the tag back into a
-            // labelled, actionable suggestion [48:30].
-            message: encodeCommentType(c.commentType, c.comment),
-            co_index: coIndex,
-            ilo_index: iloIndex,
-            comment_for: forMap[c.coverageType] || null,
-            target_titles: targetTitles,
-          })
-        }).catch(e => { if (import.meta.env.DEV) console.warn('Comment not persisted to server:', e?.message) })
-      })
-
-      // Director of Libraries flow: no CO/ILO pickers — the comment targets a
-      // reference directly, and the server resolves the ILO from that reference.
-      // Suggested references are appended to the message so the instructor
-      // sees them in Review Corrections too.
-      const commentedRefIds = (payload.commentedReferences || []).filter(Boolean)
-      const suggested = payload.suggestedReferences || []
-      if (roleKey === 'director-of-libraries' && (commentedRefIds.length > 0 || suggested.length > 0)) {
-        const text = (payload.comments || []).map(c => c.text).filter(t => t && t.trim()).join('\n')
-        const suggestionLine = suggested.length > 0
-          ? `Suggested reference${suggested.length > 1 ? 's' : ''}: ` +
-            suggested.map(r => `${r.title}${r.authors ? ' — ' + r.authors : ''}`).join('; ')
-          : ''
-        // Message = comment text (+ suggestions), or the suggestions alone
-        const message = text
-          ? (suggestionLine ? `${text}\n\n${suggestionLine}` : text)
-          : suggestionLine
-        if (message) {
-          const postToServer = (targetTitles) => fetchJson('/api/comments/by-course', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              code,
-              pcId: validPcId,
-              commenter_role: 'LIBRARY_DIRECTOR',
-              message,
-              comment_for: 'references',
-              target_titles: targetTitles,
-            })
-          }).catch(e => { if (import.meta.env.DEV) console.warn('DOL comment not persisted to server:', e?.message) })
-
-          const targetTitles = commentedRefIds.map(id => libraryRefById(id)?.title).filter(Boolean)
-          if (targetTitles.length > 0) targetTitles.forEach(t => postToServer([t]))
-          else postToServer([]) // suggestion-only — server attaches to the course's first reference ILO
-        }
-      }
-
-      console.debug('Saved approver comments', { code, section: selectedSection, count: prepared.length })
-
-      // Save suggested references from payload
-      if (payload.suggestedReferences && payload.suggestedReferences.length > 0) {
-        payload.suggestedReferences.forEach(ref => {
-          addSuggestion(codeToUse, ref, reviewer)
-        })
-        console.debug('Saved suggestions', { code, count: payload.suggestedReferences.length })
-      }
-
-      setRefreshKey(k => k + 1)
-
-      // Only a required reviewer's comments return the plan; the consultant's are documentation.
-      if (commentMode === 'return') {
-        recordWorkflowAction('RETURNED').then(() => {
-          reloadWorkflow()
-        }).catch(e => alert(apiErrorMessage(e, 'Could not record the return.')))
-      }
-    } catch (e) {
-      console.error('Failed to persist approval comment', e)
     }
+    return true
   }
 
   const handleAcceptSuggestion = (id) => {
@@ -1031,25 +836,9 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
 
   // getRoleColor, getComponentTags, isRecent imported from approvalHelpers
 
-  const saveGlobalCommentsToStorage = (updatedGlobalComments) => {
-    try {
-      const raw = localStorage.getItem('approval_comments_v1')
-      const all = raw ? JSON.parse(raw) : []
-      const commentsArray = Array.isArray(all) ? all : []
-      const newAll = commentsArray.map(c => {
-        const updated = updatedGlobalComments.find(u => u.id === c.id)
-        return updated || c
-      })
-      localStorage.setItem('approval_comments_v1', JSON.stringify(newAll))
-    } catch (e) {
-      console.error('Failed to persist global comments', e)
-    }
-  }
-
   const markCommentResolved = (commentId) => {
     const updated = (globalComments || []).map(c => c.id === commentId ? { ...c, resolved: true, status: 'resolved', resolvedAt: new Date().toISOString() } : c)
     setGlobalComments(updated)
-    saveGlobalCommentsToStorage(updated)
     // Server-synced comment: persist the resolution to the database too, so the
     // approver sees the check from any session (and the next sync doesn't revert it).
     const idStr = String(commentId)

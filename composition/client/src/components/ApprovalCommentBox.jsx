@@ -344,8 +344,14 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
 
   const previousComments = previousCommentsProp
 
-  const submitComments = (payload) => {
-    onSubmit && onSubmit(payload)
+  // The page saves the comments; it answers true, or the reason they were not saved. On failure the window stays
+  // open with the draft, so nothing typed is lost and nothing looks posted that is not.
+  const submitComments = async (payload) => {
+    const result = onSubmit ? await onSubmit(payload) : true
+    if (result !== true) {
+      showToast(typeof result === 'string' ? result : 'The comments were not saved. Try again.', 'warning')
+      return
+    }
     clearDraft()
     showToast('Comments submitted successfully')
     setTimeout(() => onClose(), 1500)
@@ -356,20 +362,6 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
     const filledComments = comments.filter((c) => c.text?.trim() && c.courseOutcome && c.ilo && c.coverageType && hasCoverageDetail(c))
     if (filledComments.length === 0 && selectedRefs.length === 0) return
 
-    const lastText = filledComments[filledComments.length - 1]?.text?.trim()
-    if (lastText) {
-      try {
-        const raw = localStorage.getItem('approval_comments_v1')
-        const all = raw ? JSON.parse(raw) : []
-        const currentRole = normalizeRoleKey(approverRole || localStorage.getItem('approver_role') || '')
-        const roleComments = (Array.isArray(all) ? all : []).filter(c => normalizeRoleKey(c.role) === currentRole).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-        if (roleComments[0] && roleComments[0].text?.trim() === lastText) {
-          showToast('This comment is identical to your last comment.', 'warning')
-          return
-        }
-      } catch (e) { console.warn('Failed to check duplicate', e) }
-    }
-
     setSubmitting(true)
     submitComments({
       courseOutcome: filledComments.find((c) => c.courseOutcome)?.courseOutcome || null,
@@ -378,28 +370,13 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
       commentedReferences: commentedRefIds,
       suggestedReferences: selectedRefs,
       createdAt: new Date().toISOString()
-    })
-    setSubmitting(false)
+    }).finally(() => setSubmitting(false))
   }
 
   const handleDirectorSubmit = () => {
     if (submitting) return
     const filledComments = comments.filter(c => c.text?.trim() && c.commentedRefId)
     if (filledComments.length === 0 && selectedRefs.length === 0) return
-
-    try {
-      const raw = localStorage.getItem('approval_comments_v1')
-      const all = raw ? JSON.parse(raw) : []
-      const currentRole = normalizeRoleKey(approverRole || localStorage.getItem('approver_role') || '')
-      const roleComments = (Array.isArray(all) ? all : []).filter(c => normalizeRoleKey(c.role) === currentRole).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-      if (filledComments.length > 0) {
-        const lastComment = roleComments[0]
-        if (lastComment && lastComment.text?.trim() === filledComments[0].text) {
-          showToast('This comment is identical to your last comment.', 'warning')
-          return
-        }
-      }
-    } catch (e) { console.warn('Failed to check duplicate', e) }
 
     setSubmitting(true)
 
@@ -408,8 +385,7 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
       commentedReferences: filledComments.map(c => c.commentedRefId),
       suggestedReferences: selectedRefs,
       createdAt: new Date().toISOString()
-    })
-    setSubmitting(false)
+    }).finally(() => setSubmitting(false))
   }
 
   const directorFilled = comments.filter(c => c.text?.trim() && c.commentedRefId).length

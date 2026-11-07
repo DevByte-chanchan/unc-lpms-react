@@ -14,7 +14,7 @@ const { planEvent, onComment, onCommentsResolved, onCourseAssigned, onRevisionSt
 const { createNotifier, eventMessage, TYPES } = require('./notify');
 const { purgeReadNotifications, startRetention } = require('./notificationRetention');
 const { recordWorkflowAction } = require('../controllers/assignmentController');
-const { createCourseComment } = require('../controllers/commentController');
+const { createCourseComment, getCourseCommentsByCode } = require('../controllers/commentController');
 const { submitLearningPlan } = require('../controllers/submissionController');
 const { cloneOfferingContent, assignCourseForTerm } = require('../services/offeringService');
 const { issueSession, createRequireAuth, COOKIE_NAME } = require('../middleware/auth');
@@ -572,4 +572,22 @@ test('poke: a returned plan is asked to be resubmitted', async () => {
     assert.equal((await poke(f.ph, f.offeringId, f.instructor.user_id)).status, 201);
     const [n] = await inbox(f.instructor, 'poke');
     assert.equal(n.message, `${f.code} — reminder: resubmit your learning plan by Program Head`);
+});
+
+test('the comment list names the author of each comment, as recorded', async () => {
+    const f = await withValidPlan(await fixture());
+    assert.ok((await submit(f)).code < 300);
+    const res = () => ({ code: 200, body: null, status(c) { this.code = c; return this; }, json(b) { this.body = b; return this; } });
+    const posted = res();
+    await createCourseComment({
+        body: { code: f.code, pcId: f.offeringId, commenter_role: 'PROGRAM_HEAD', message: 'Name me', co_index: 1, ilo_index: 1, comment_for: 'topics', target_titles: [] },
+        user: { id: f.ph.user_id, name: f.ph.name, role: 'program-head' }
+    }, posted);
+    assert.equal(posted.code, 201, JSON.stringify(posted.body));
+    const listed = res();
+    await getCourseCommentsByCode({ params: { code: f.code }, query: { pcId: String(f.offeringId) }, user: { id: f.ph.user_id, name: f.ph.name, role: 'program-head' } }, listed);
+    assert.equal(listed.code, 200);
+    const mine = listed.body.find(c => c.message === 'Name me');
+    assert.equal(mine.commenter_name, f.ph.name);
+    assert.equal('commenter_user_id' in mine, false, 'the account id is still not sent');
 });
