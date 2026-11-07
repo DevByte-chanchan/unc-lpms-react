@@ -8,7 +8,7 @@ import { loadLibrary } from '../utils/referenceStore.js'
 import { getReviewerByRole, getReviewerSeedData, normalizeRoleKey } from '../utils/approvalHelpers.js'
 import { isReferenceDeprecated } from '../utils/referenceDiscovery.js'
 import { getCatalogSettings } from '../utils/referenceCatalog.js'
-import { COMMENT_TYPES, commentTypeMeta, checkText } from '../utils/reviewGate.js'
+import { COMMENT_TYPES, commentTypeMeta } from '../utils/reviewGate.js'
 import DropdownMultiSelect from './DropdownMultiSelect.jsx'
 import useDialogFocus from '../utils/useDialogFocus.js'
 
@@ -281,25 +281,6 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
     }
   }
 
-  // Spelling / grammar caught at entry, so a typo never reaches the instructor
-  // or the program head [46:58] [49:25]. Advisory: it flags, it does not block.
-  const renderTextIssues = (c) => {
-    const issues = checkText(c.text || '')
-    if (issues.length === 0) return null
-    return (
-      <div style={{ marginTop: 6, padding: '8px 10px', background: 'var(--warn-soft)', border: '1px solid #fde68a', borderRadius: 6, fontSize: 12, color: 'var(--warn)' }}>
-        <div style={{ fontWeight: 600, marginBottom: 2, display: 'flex', alignItems: 'center', gap: 6 }}>
-          <AlertCircle size={13} /> {issues.length} spelling / grammar {issues.length === 1 ? 'flag' : 'flags'}
-        </div>
-        {issues.map((issue, i) => (
-          <div key={i} style={{ color: '#78350f' }}>
-            {issue.message}{issue.suggestion ? ` → “${issue.suggestion}”` : ''}
-          </div>
-        ))}
-      </div>
-    )
-  }
-
   const renderRefBrowser = () => (
     <div style={{ border: '1px solid #e5e7eb', borderRadius: 6, padding: 16, background: '#fafafa', display: 'flex', flexDirection: 'column', overflow: 'hidden', ...(isFullscreen ? { flex: 1 } : { height: 480 }) }}>
       <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 12, color: '#111827' }}>Suggest References from Library</div>
@@ -536,7 +517,6 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
                         padding="14px 10px"
                         minHeight={140}
                       />
-                      {renderTextIssues(c)}
                     </div>
                   ))}
                   </div>
@@ -681,8 +661,7 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
                             padding="14px 10px"
                           />
                           <span className={styles.charCount}>{(c.text || '').trim().length} characters</span>
-                          {renderTextIssues(c)}
-                        </div>
+                            </div>
 
                       </div>
                     </div>

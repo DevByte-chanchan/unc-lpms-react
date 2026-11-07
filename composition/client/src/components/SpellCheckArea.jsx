@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react'
 import { Zap, Check, AlertCircle, X } from 'react-feather'
 import { findIssues, mergeIssues, segmentText, applySuggestion, issueAt, isReady, loadWordList } from '../utils/spellSuggest.js'
 import { autoCorrect, ATTRIBUTION_URL, ONLINE_SERVICE_CONFIG } from '../utils/autoCorrect.js'
+import { findGrammarIssues } from '../utils/grammarRules.js'
 import Spinner from './Spinner.jsx'
 import styles from '../styles/SpellCheckArea.module.sass'
 
@@ -35,6 +36,17 @@ import styles from '../styles/SpellCheckArea.module.sass'
  * squiggles on the same word looks broken. Pass `nativeSpellCheck` to keep the
  * browser's as well.
  */
+// Spelling (when the dictionary is loaded) and grammar, in text order. Where both mark the same characters the
+// spelling one wins: a misspelt word is the first thing to fix.
+const localCheck = (text) => {
+    const spelling = findIssues(text)
+    const taken = (g) => spelling.some(s => g.offset < s.offset + s.length && s.offset < g.offset + g.length)
+    return [...spelling, ...findGrammarIssues(text).filter(g => !taken(g))].sort((a, b) => a.offset - b.offset)
+}
+
+// A fix that removes text or only changes spaces has nothing to show as its label.
+const suggestionLabel = (s) => (s.trim() ? s : s === '' ? 'Remove' : 'One space')
+
 const SpellCheckArea = ({
     value = '',
     onChange,
@@ -69,7 +81,9 @@ const SpellCheckArea = ({
     const backdropRef = useRef(null)
     const wrapRef = useRef(null)
     const alive = useRef(true)
-    useEffect(() => () => { alive.current = false }, [])
+    // Set on mount, not only at creation: React mounts twice in development, and a flag left false by the
+    // first unmount used to throw the loaded dictionary away (the box stayed on "Loading dictionary…").
+    useEffect(() => { alive.current = true; return () => { alive.current = false } }, [])
 
     useEffect(() => {
         if (ready) return
@@ -84,10 +98,10 @@ const SpellCheckArea = ({
     // the underline appears to keep up without ever running mid-word.
     // `ready` is in the dependencies so the first pass runs the moment the
     // dictionary arrives, without waiting for another keystroke.
+    // Grammar needs no dictionary, so it runs even before the word list has arrived.
     useEffect(() => {
-        if (!ready) return undefined
         const handle = setTimeout(() => {
-            if (alive.current) setLocalIssues(findIssues(value))
+            if (alive.current) setLocalIssues(localCheck(value))
         }, 400)
         return () => clearTimeout(handle)
     }, [value, ready])
@@ -176,14 +190,34 @@ const SpellCheckArea = ({
         if (!consent) return
         setBusy(true)
         setNotice(null)
-        const res = await autoCorrect(value, { consent: ONLINE_SERVICE_CONFIG.enabled })
+        // First every underlined problem whose fix is certain (exactly one suggestion), right to left so the
+        // offsets still hold. The rest stay underlined for the reviewer to pick from.
+        const found = localCheck(value)
+        const sure = found.filter(i => i.suggestions.length === 1).sort((a, b) => b.offset - a.offset)
+        const fixedLocally = sure.reduce((t, i) => applySuggestion(t, i, i.suggestions[0]), value)
+        const left = found.length - sure.length
+
+        if (!ONLINE_SERVICE_CONFIG.enabled) {
+            // Marked as checked, so the text change below does not clear the message it is about.
+            checkedText.current = fixedLocally
+            if (sure.length && typeof onChange === 'function') onChange(fixedLocally)
+            const fixedWords = sure.slice().reverse().map(i => `“${i.word.trim() || i.word}” → “${suggestionLabel(i.suggestions[0])}”`)
+            setNotice({
+                notice: [
+                    sure.length ? `Fixed ${sure.length}: ${fixedWords.slice(0, 5).join(', ')}${sure.length > 5 ? ', …' : ''}.` : 'Nothing to fix automatically.',
+                    left ? `${left} left to choose: click the underlined ${left === 1 ? 'word' : 'words'}.` : ''
+                ].filter(Boolean).join(' ')
+            })
+            setBusy(false)
+            return
+        }
+
+        const res = await autoCorrect(fixedLocally, { consent: ONLINE_SERVICE_CONFIG.enabled })
         if (!alive.current) return
 
-        let text = value
-        if (res.changed && typeof onChange === 'function') {
-            text = res.text
-            onChange(res.text)
-        }
+        let text = fixedLocally
+        if (res.changed) text = res.text
+        if (text !== value && typeof onChange === 'function') onChange(text)
         // Only keep matches that still line up with the text we now hold —
         // auto-applying some of them moved everything after the first edit.
         checkedText.current = text
@@ -196,7 +230,7 @@ const SpellCheckArea = ({
     const hasText = !!String(value || '').trim()
     const boxStyle = padding ? { padding } : undefined
     const buttonLabel = !ONLINE_SERVICE_CONFIG.enabled && label === 'Check grammar'
-        ? 'Check spelling'
+        ? 'Fix spelling & grammar'
         : label
 
     return (
@@ -208,7 +242,7 @@ const SpellCheckArea = ({
                             <mark
                                 key={i}
                                 data-issue={seg.issue.offset}
-                                className={seg.issue.source === 'service' ? styles.markGrammar : styles.markSpelling}
+                                className={seg.issue.source === 'local' ? styles.markSpelling : styles.markGrammar}
                             >
                                 {seg.text}
                             </mark>
@@ -261,7 +295,7 @@ const SpellCheckArea = ({
                     </button>
                 )}
                 {count === 0 && hasText && ready && (
-                    <span className={`${styles.count} ${styles.clean}`}><Check size={13} /> No spelling problems</span>
+                    <span className={`${styles.count} ${styles.clean}`}><Check size={13} /> No spelling or grammar problems</span>
                 )}
                 {/* Said plainly rather than passed off as "no problems". If the
                     chunk never arrives this is what stays on screen, which is
@@ -281,7 +315,7 @@ const SpellCheckArea = ({
                         disabled={disabled || busy || !hasText}
                         title={ONLINE_SERVICE_CONFIG.enabled
                             ? 'Check grammar online (the full text is sent only after confirmation)'
-                            : 'Check spelling with the built-in offline dictionary'}
+                            : 'Fix every underlined problem that has only one possible fix'}
                     >
                         {busy ? <Spinner inline size={13} label="Working…" /> : <Zap size={13} />}
                         {busy ? 'Checking…' : buttonLabel}
@@ -310,7 +344,7 @@ const SpellCheckArea = ({
                     {open.issue.suggestions.length > 0
                         ? open.issue.suggestions.map(s => (
                             <button key={s} type="button" className={styles.suggestion} onClick={() => apply(open.issue, s)}>
-                                {s}
+                                {suggestionLabel(s)}
                             </button>
                         ))
                         : <div className={styles.popupEmpty}>No suggestion for this one.</div>}

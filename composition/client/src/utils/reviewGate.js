@@ -133,7 +133,7 @@ export const reviewerRoleLabel = (role = '') => {
 // service is unreachable — one list of misspellings for the whole module,
 // which is the point of it living here.
 export const MISSPELLINGS = {
-    teh: 'the', adn: 'and', recieve: 'receive', seperate: 'separate', occured: 'occurred',
+    teh: 'the', adn: 'and', shoud: 'should', coud: 'could', woud: 'would', recieve: 'receive', seperate: 'separate', occured: 'occurred',
     definately: 'definitely', accomodate: 'accommodate', neccessary: 'necessary',
     refrence: 'reference', refrences: 'references', sylabus: 'syllabus', sylabbus: 'syllabus',
     curriculam: 'curriculum', assesment: 'assessment', assesments: 'assessments',
