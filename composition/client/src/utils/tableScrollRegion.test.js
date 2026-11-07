@@ -41,11 +41,27 @@ test('TableScrollRegion owns overflow and exposes an accessible label', () => {
 test('narrow tables keep a visible horizontal scrollbar even when consumer styles conflict', () => {
   const styles = read('styles/TableScrollRegion.module.sass')
   assert.match(styles, /overflow-x:\s*auto\s*!important/)
-  assert.match(styles, /scrollbar-width:\s*thin/)
-  assert.match(styles, /scrollbar-color:\s*#5f6f78\s+#e5e9ec/)
-  assert.match(styles, /&::-webkit-scrollbar[\s\S]*height:\s*7px/)
-  assert.match(styles, /&::-webkit-scrollbar-track[\s\S]*background:\s*#e5e9ec/)
-  assert.match(styles, /&::-webkit-scrollbar-thumb[\s\S]*background:\s*#5f6f78/)
+  // The bar itself is the app's one scrollbar (index.css), not a style of its own.
+  assert.doesNotMatch(styles, /scrollbar-color|::-webkit-scrollbar/)
+})
+
+test('every scrollbar is the same thin bar, set once in index.css', () => {
+  const css = read('index.css')
+  assert.match(css, /--scrollbar-thumb:\s*#5f6f78/)
+  assert.match(css, /--scrollbar-track:\s*#e5e9ec/)
+  assert.match(css, /\*::-webkit-scrollbar-button\s*\{\s*display:\s*none/, 'no arrow buttons')
+  assert.match(css, /\*::-webkit-scrollbar-thumb:active\s*\{\s*background:\s*var\(--scrollbar-thumb-active\)/, 'the bar stays visible while dragged')
+  // The standard properties only for Firefox: in Chrome they would replace the 8px bar with a wider one with arrows.
+  assert.match(css, /@supports \(-moz-appearance: none\)\s*\{\s*\*\s*\{\s*scrollbar-width:\s*thin;\s*scrollbar-color:\s*var\(--scrollbar-thumb\) var\(--scrollbar-track\)/)
+  assert.doesNotMatch(css.replace(/@supports \(-moz-appearance: none\)[\s\S]*$/, ''), /scrollbar-(width|color)\s*:/)
+  assert.match(css, /\*::-webkit-scrollbar\s*\{\s*width:\s*8px;\s*height:\s*8px/)
+  // No screen keeps a coloured scrollbar of its own (hiding one, with transparent or none, is still allowed).
+  for (const file of fs.readdirSync(path.join(src, 'styles'))) {
+    const text = read(`styles/${file}`)
+    for (const line of text.split(/\r?\n/).filter(l => /scrollbar-color/.test(l))) {
+      assert.match(line, /transparent/, `${file}: ${line.trim()}`)
+    }
+  }
 })
 
 test('table empty states center in the available region without guessing viewport height', () => {

@@ -107,6 +107,9 @@ test('after 3 days the Director and the Program Head are told once; the Dean is 
     assert.deepEqual(await inbox(ids.dean), [], 'plan B has waited 4 days on the Dean, under his 7');
     await run('2031-03-05');
     assert.equal((await inbox(ids.head)).length, 1, 'not twice the same day');
+    // About one plan, so it names that plan and opens it directly.
+    const [row] = await Notification.findAll({ where: { recipient_user_id: ids.director, type: 'approval_waiting' }, raw: true });
+    assert.equal(row.offering_id, made.offerings[0]);
 });
 
 test('a day that is not a multiple of the limit sends nothing', async () => {
@@ -126,4 +129,6 @@ test('the Dean is also told when a plan has stalled with another reviewer for 7 
     const dean = await inbox(ids.dean);
     assert.equal(dean.length, 2);
     assert.equal(dean[1], '1 learning plan is waiting for your review, 1 for 7 days or more; 1 learning plan stalled with another reviewer for 7 days or more');
+    const rows = await Notification.findAll({ where: { recipient_user_id: ids.dean, type: 'approval_waiting' }, order: [['id', 'ASC']], raw: true });
+    assert.equal(rows[1].offering_id, null, 'two plans: it opens the list');
 });

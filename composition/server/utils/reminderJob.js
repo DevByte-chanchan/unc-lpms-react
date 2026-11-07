@@ -54,19 +54,21 @@ const remindApprovers = async ({ deps, clock, timeZone, programIds, result, now 
     const waiting = await findWaitingOnApprovers({ sequelize, today: clock.day, timeZone, programIds });
     const directors = (await User.findAll({ where: { role: 'director-of-libraries', is_active: true }, attributes: ['user_id'], raw: true })).map(u => u.user_id);
     const perPerson = new Map();
-    const entry = (id) => { if (!perPerson.has(id)) perPerson.set(id, { waiting: 0, long: 0, stalled: 0, stalledPlans: new Set(), trigger: false }); return perPerson.get(id); };
+    const entry = (id) => { if (!perPerson.has(id)) perPerson.set(id, { waiting: 0, long: 0, stalled: 0, stalledPlans: new Set(), plans: new Set(), trigger: false }); return perPerson.get(id); };
     for (const row of waiting) {
         const people = row.role === 'LIBRARY_DIRECTOR' ? directors : [row.role === 'PROGRAM_HEAD' ? row.programHeadId : row.deanId];
         for (const id of people.filter(Boolean)) {
             const e = entry(id);
             if (row.waitedDays < rules.waitLimitFor(row.role)) continue;
             e.waiting += 1;
+            e.plans.add(row.offeringId);
             if (row.waitedDays >= rules.waitLimitFor('DEAN')) e.long += 1;
             if (rules.isWaitingTrigger(row.waitedDays, row.role)) e.trigger = true;
         }
         if (row.role !== 'DEAN' && row.deanId && row.waitedDays >= rules.waitLimitFor('DEAN')) {
             const e = entry(row.deanId);
             if (!e.stalledPlans.has(row.offeringId)) { e.stalledPlans.add(row.offeringId); e.stalled += 1; }
+            e.plans.add(row.offeringId);
             if (rules.isWaitingTrigger(row.waitedDays, 'DEAN')) e.trigger = true;
         }
     }
@@ -75,7 +77,9 @@ const remindApprovers = async ({ deps, clock, timeZone, programIds, result, now 
         const user = await User.findByPk(id);
         if (!user || !user.is_active) continue;
         if (!(await claim(ReminderLog, `waiting:${id}`, 'waiting', clock.day))) continue;
-        await notify([id], 'approval_waiting', null, rules.waitingText(e), null, now);
+        // About exactly one plan: name it, so the notification opens that plan instead of the list.
+        const onlyPlan = e.plans.size === 1 ? [...e.plans][0] : null;
+        await notify([id], 'approval_waiting', onlyPlan, rules.waitingText(e), null, now);
         result.approverReminders += 1;
     }
 };

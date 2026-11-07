@@ -11,6 +11,8 @@ const { canAccessCourseRows, loadOfferingCourseRows } = require('../middleware/c
 const { peopleFor, usersForRole } = require('../utils/notificationEvents');
 const { eventMessage, ROLE_LABEL } = require('../utils/notify');
 const { record: audit } = require('../utils/audit');
+const { findWaitingOnApprovers } = require('../utils/approverWaiting');
+const { timezoneOf, schoolClock } = require('../utils/reminderRules');
 
 const POKE_WINDOW_MS = 4 * 60 * 60 * 1000;
 const WORKFLOW_ROLE_BY_ACCOUNT = { 'director-of-libraries': 'LIBRARY_DIRECTOR', 'program-head': 'PROGRAM_HEAD', dean: 'DEAN' };
@@ -34,7 +36,20 @@ const describeOfferings = async (offeringIds) => {
     return described;
 };
 
-const toApi = (n, described) => ({
+// The one plan waiting on this approver's decision right now, or null when there are none or several.
+const onlyPlanWaitingOn = async (user) => {
+    const role = { 'program-head': 'PROGRAM_HEAD', 'director-of-libraries': 'LIBRARY_DIRECTOR', dean: 'DEAN' }[user?.role];
+    if (!role) return null;
+    const tz = timezoneOf(process.env);
+    const waiting = await findWaitingOnApprovers({ sequelize, today: schoolClock(new Date(), tz).day, timeZone: tz });
+    const mine = new Set(waiting
+        .filter(w => w.role === role && (role === 'LIBRARY_DIRECTOR'
+            || String(role === 'PROGRAM_HEAD' ? w.programHeadId : w.deanId) === String(user.id)))
+        .map(w => w.offeringId));
+    return mine.size === 1 ? [...mine][0] : null;
+};
+
+const toApi = (n, described, offeringId = n.offering_id) => ({
     id: n.id,
     type: n.type,
     message: n.message,
@@ -42,8 +57,8 @@ const toApi = (n, described) => ({
     isRead: Boolean(n.is_read),
     createdAt: n.created_at,
     readAt: n.read_at,
-    offeringId: n.offering_id,
-    ...(described.get(n.offering_id) || {})
+    offeringId,
+    ...(described.get(offeringId) || {})
 });
 
 // GET /api/notifications?unread=1&limit=20&offset=0  — newest first
@@ -54,9 +69,13 @@ const listNotifications = async (req, res, next) => {
         const where = { recipient_user_id: req.user.id };
         if (['1', 'true'].includes(String(req.query.unread))) where.is_read = false;
         const { rows, count } = await Notification.findAndCountAll({ where, order: [['created_at', 'DESC'], ['id', 'DESC']], limit, offset });
-        const described = await describeOfferings([...new Set(rows.map(n => n.offering_id).filter(Boolean))]);
+        // A "plans waiting for your review" summary made before it named its plan: when exactly one plan waits on
+        // this person now, point it there, so Open goes to the plan and not only to the list.
+        const fallback = rows.some(n => n.type === 'approval_waiting' && !n.offering_id) ? await onlyPlanWaitingOn(req.user) : null;
+        const offeringOf = (n) => n.offering_id || (n.type === 'approval_waiting' ? fallback : null);
+        const described = await describeOfferings([...new Set(rows.map(offeringOf).filter(Boolean))]);
         const unread = await Notification.count({ where: { recipient_user_id: req.user.id, is_read: false } });
-        return res.json({ total: count, unread, rows: rows.map(n => toApi(n, described)) });
+        return res.json({ total: count, unread, rows: rows.map(n => toApi(n, described, offeringOf(n))) });
     } catch (err) {
         return next(err);
     }

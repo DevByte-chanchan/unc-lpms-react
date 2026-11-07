@@ -573,3 +573,49 @@ input.app-input.app-input:focus-visible { outline: 2px solid var(--accent); outl
 tr[data-flash] > td { animation: row-flash 2.6s ease-out; }
 div[data-flash], tr[data-target][data-flash] > td { border-radius: 4px; animation: item-flash 2.6s ease-out; }
 @media (prefers-reduced-motion: reduce) { [data-flash], [data-flash] > td { animation: none !important; background-color: #fde68a; } }
+
+/* One scrollbar everywhere: 8px, rounded, the same grey on the same light track, no arrow buttons. Set here only,
+   so no screen drifts to its own size or colour.
+   Chrome, Edge and Safari draw it from the ::-webkit-scrollbar rules. The standard scrollbar-width/-color are
+   for Firefox ONLY: once an element has them, Chrome ignores the ::-webkit rules and draws its own wider bar
+   with arrows, which is exactly the mismatch this replaces. A part that must hide its bar still can. */
+:root {
+  --scrollbar-thumb: #5f6f78;
+  --scrollbar-thumb-hover: #46555e;
+  --scrollbar-thumb-active: #34454f;
+  --scrollbar-track: #e5e9ec;
+}
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-button {
+  display: none;
+  width: 0;
+  height: 0;
+}
+*::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+  border-radius: 999px;
+}
+*::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 999px;
+}
+/* Darker on hover and while dragged. Without these the pressed state can come out with no colour, so the bar
+   seemed to vanish while it was being dragged. */
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
+}
+*::-webkit-scrollbar-thumb:active {
+  background: var(--scrollbar-thumb-active);
+}
+*::-webkit-scrollbar-corner {
+  background: transparent;
+}
+@supports (-moz-appearance: none) {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+  }
+}

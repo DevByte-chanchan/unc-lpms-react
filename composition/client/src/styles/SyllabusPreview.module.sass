@@ -109,17 +109,6 @@
   flex: 1                 // Take up remaining height
   overflow-y: auto        // Scroll vertically if content is long
   //border-radius: 5px
-  // Scrollbar styling for cleanliness
-  &::-webkit-scrollbar
-    width: 8px
-  &::-webkit-scrollbar-track
-    background: #f1f1f1
-    border-radius: 4px
-  &::-webkit-scrollbar-thumb
-    background: #ccc
-    border-radius: 4px
-  &::-webkit-scrollbar-thumb:hover
-    background: #999
 
 section
   width: 100%
@@ -234,13 +223,6 @@ section
   border: 1px solid #000 // Outer border for the table area
   max-height: 60vh // Adjust based on your modal height
 
-  // styled scrollbar
-  &::-webkit-scrollbar
-    width: 10px
-    height: 10px
-  &::-webkit-scrollbar-thumb
-    background: #ccc
-    border-radius: 5px
 
 // --- Strict Table Override ---
 .alignmentTable
@@ -341,13 +323,6 @@ section
   max-height: 70vh
 
 
-  // Custom scrollbar
-  &::-webkit-scrollbar
-    width: 10px
-    height: 10px
-  &::-webkit-scrollbar-thumb
-    background: #ccc
-    border-radius: 5px
 
 // --- Strict Table Override (Document Style) ---
 .criteriaTable
@@ -504,13 +479,6 @@ section
   overflow: auto // Enables X and Y scroll
   max-height: 60vh // Matches your example height constraint
 
-  // Custom scrollbar (Optional, matches your example)
-  &::-webkit-scrollbar
-    width: 10px
-    height: 10px
-  &::-webkit-scrollbar-thumb
-    background: #ccc
-    border-radius: 5px
 
 .refErrorBanner
   flex: 0 0 auto
@@ -622,12 +590,6 @@ section
   max-height: 70vh
   background: #fff
 
-  &::-webkit-scrollbar
-    width: 10px
-    height: 10px
-  &::-webkit-scrollbar-thumb
-    background: #ccc
-    border-radius: 5px
 
 .ccTable
   width: max-content

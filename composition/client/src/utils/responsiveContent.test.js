@@ -303,9 +303,9 @@ test('reference table scrolls only its data rows while the header stays outside 
 
   assert.match(css, /\.tableWrapper\s*\{[^}]*overflow-y:\s*hidden;/i)
   assert.match(css, /\.tableWrapper table tbody\s*\{[^}]*flex:\s*1 1 auto;[^}]*min-height:\s*0;[^}]*overflow-y:\s*auto;/i)
-  assert.match(css, /\.tableWrapper table thead\s*\{[^}]*flex:\s*0 0 auto;[^}]*overflow-y:\s*scroll;[^}]*scrollbar-gutter:\s*stable;[^}]*scrollbar-width:\s*thin;/i)
+  assert.match(css, /\.tableWrapper table thead\s*\{[^}]*flex:\s*0 0 auto;[^}]*overflow-y:\s*scroll;[^}]*scrollbar-gutter:\s*stable;/i)
   assert.match(css, /\.tableWrapper table thead\s*\{[^}]*background:\s*#EDEFF2;/i)
-  assert.match(css, /\.tableWrapper table thead::-webkit-scrollbar\s*\{[^}]*width:\s*5px;/i)
+  assert.match(css, /\.tableWrapper table thead::-webkit-scrollbar\s*\{[^}]*width:\s*8px;/i)
   assert.match(css, /\.tableWrapper table thead th\s*\{[^}]*background:\s*#EDEFF2;/i)
 })
 
@@ -322,11 +322,9 @@ test('reference controls, year column, age badge, and scrollbar stay visually al
   assert.match(css, /\.tableWrapper table td:nth-child\(5\)\s*\{[^}]*justify-content:\s*center;/)
   assert.match(css, /\.tableWrapper table th:nth-child\(5\) button\s*\{[^}]*display:\s*grid;[^}]*grid-template-columns:\s*minmax\(0, 1fr\) auto minmax\(0, 1fr\);[^}]*width:\s*100%;/)
   assert.match(css, /\.tableWrapper table th:nth-child\(5\) button\s*>\s*span:nth-child\(2\)[\s\S]*grid-column:\s*3[\s\S]*justify-self:\s*end/)
-  assert.match(css, /\.tableWrapper table tbody::-webkit-scrollbar\s*\{[^}]*width:\s*5px;/)
   assert.match(css, /\.titleCell\s*\{[^}]*width:\s*100%;[^}]*min-width:\s*0;/)
   assert.match(css, /\.titleLine\s*\{[^}]*width:\s*100%;/)
   assert.match(css, /\.titleLine \.refTitle\s*\{[^}]*flex:\s*1 1 auto;/)
-  assert.match(css, /\.tableWrapper::-webkit-scrollbar[\s\S]*width:\s*5px[\s\S]*height:\s*5px/)
   assert.match(syllabusCss, /\.selectWrapper::after\s*\{[\s\S]*display:\s*none/)
 })
 

@@ -678,13 +678,6 @@ button.previewClose.previewClose {
   margin-top: 10px;
   border: 0;
   border-radius: 0;
-  scrollbar-width: thin;
-  scrollbar-color: #5f6f78 #e5e9ec;
-}
-
-.tableWrapper::-webkit-scrollbar {
-  width: 5px !important;
-  height: 5px !important;
 }
 
 .tableWrapper table {
@@ -700,12 +693,6 @@ button.previewClose.previewClose {
     overflow-x: hidden;
     overflow-y: auto;
     scrollbar-gutter: stable;
-    scrollbar-width: thin;
-    scrollbar-color: #5f6f78 #e5e9ec;
-  }
-
-  tbody::-webkit-scrollbar {
-    width: 5px;
   }
 
   thead {
@@ -713,13 +700,18 @@ button.previewClose.previewClose {
     overflow-x: hidden;
     overflow-y: scroll;
     scrollbar-gutter: stable;
-    scrollbar-width: thin;
-    scrollbar-color: transparent transparent;
     background: #EDEFF2;
   }
 
+  // The header keeps an invisible bar as wide as the body's, so the columns line up (8px, as in index.css).
   thead::-webkit-scrollbar {
-    width: 5px;
+    width: 8px;
+  }
+
+  @supports (-moz-appearance: none) {
+    thead {
+      scrollbar-color: transparent transparent;
+    }
   }
 
   thead::-webkit-scrollbar-track,
