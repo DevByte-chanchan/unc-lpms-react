@@ -1,6 +1,6 @@
 'use strict';
 
-// Notifications: recipients, safety, endpoints, poke, retention.
+// Notifications: recipients, safety, endpoints, retention.
 // Runs against the test database (node run-tests.js). Each test builds its own department,
 // program, course and users so it never touches (or is disturbed by) the seeded plans.
 const test = require('node:test');
@@ -376,10 +376,10 @@ test('endpoints are scoped to the signed-in user: list, count, paging, mark read
     assert.equal((await (await call(b, 'GET', '/unread-count')).json()).count, 3, 'read-all leaves other users alone');
 });
 
-test('no route takes a user id, and the only user-id input is the poke target', () => {
+test('no notification route takes a user id', () => {
     const router = require('../routes/notifications');
     const paths = router.stack.map(layer => layer.route?.path).filter(Boolean);
-    assert.ok(paths.length >= 6);
+    assert.ok(paths.length >= 4);
     assert.ok(paths.every(p => !/user/i.test(p)), paths.join(', '));
 });
 
@@ -400,76 +400,6 @@ test('the forced-password gate also covers notifications', async () => {
         await User.update({ must_change_password: false, temp_password_expires_at: null }, { where: { user_id: user.user_id } });
         assert.equal((await fetch(url, { headers })).status, 200);
     } finally { gate.close(); }
-});
-
-// ------------------------------------------------------------------------ poke
-
-const poke = (as, offeringId, targetUserId) => call(as, 'POST', '/poke', { offeringId, targetUserId });
-
-test('poke permissions: Program Head and Dean only, and only for the assigned instructor', async () => {
-    const f = await fixture(); // assigned, not yet submitted
-
-    for (const nobody of [f.instructor, f.ld, { user_id: f.instructor.user_id, role: 'industry-consultant' }, { user_id: f.instructor.user_id, role: 'vpaa' }]) {
-        assert.equal((await poke(nobody, f.offeringId, f.instructor.user_id)).status, 403, nobody.role);
-    }
-    assert.equal((await call(f.ld, 'GET', `/poke-targets/${f.offeringId}`)).status, 403);
-
-    assert.equal((await poke(f.ph, f.offeringId, f.ph.user_id)).status, 400, 'not yourself');
-    assert.equal((await poke(f.ph, 'x', f.instructor.user_id)).status, 400);
-    assert.equal((await poke(f.ph, f.offeringId, undefined)).status, 400);
-    assert.equal((await poke(f.ph, 999999, f.instructor.user_id)).status, 404, 'unknown offering');
-    assert.equal((await poke({ user_id: 999999, role: 'program-head' }, f.offeringId, f.instructor.user_id)).status, 403, 'a Program Head of another program has no access');
-    assert.equal((await poke(f.ph, f.offeringId, f.ld.user_id)).status, 409, 'a reviewer is not the instructor');
-    assert.equal((await poke(f.ph, f.offeringId, f.dean.user_id)).status, 409, 'the Dean is not the instructor');
-    assert.equal((await poke(f.ph, f.offeringId, 999999)).status, 409, 'unknown person');
-    const other = await makeUser('instructor'); // an instructor, but not the one assigned here
-    assert.equal((await poke(f.ph, f.offeringId, other.user_id)).status, 409, 'an instructor of another course');
-    other.is_active = false;
-    await other.save();
-    assert.equal((await poke(f.ph, f.offeringId, other.user_id)).status, 409, 'inactive account');
-    assert.equal((await Notification.count({ where: { type: 'poke', offering_id: f.offeringId } })), 0, 'nothing was sent by the refusals');
-});
-
-test('poke: delivered, audited, and limited to one per instructor per offering per 4 hours', async () => {
-    const f = await fixture();
-
-    const first = await poke(f.ph, f.offeringId, f.instructor.user_id);
-    assert.equal(first.status, 201);
-    const [n] = await inbox(f.instructor, 'poke');
-    assert.equal(n.message, `${f.code} — reminder: submit your learning plan by Program Head`);
-    assert.equal(n.actor_role, 'PROGRAM_HEAD');
-    assert.equal(n.offering_id, f.offeringId);
-
-    const audit = await AuditLog.findAll({ where: { action: 'NOTIFICATION_POKE', entity_id: String(f.offeringId) } });
-    assert.equal(audit.length, 1);
-    assert.deepEqual(JSON.parse(audit[0].details), { target_user_id: f.instructor.user_id, offering_id: f.offeringId });
-    assert.equal(audit[0].actor_user_id, f.ph.user_id);
-
-    const again = await poke(f.ph, f.offeringId, f.instructor.user_id);
-    assert.equal(again.status, 429);
-    const body = await again.json();
-    assert.ok(body.retryAfterSeconds > 4 * 3600 - 60 && body.retryAfterSeconds <= 4 * 3600);
-    assert.equal(again.headers.get('retry-after'), String(body.retryAfterSeconds));
-    assert.equal((await poke(f.dean, f.offeringId, f.instructor.user_id)).status, 429, 'the limit is per target and offering, whoever pokes');
-    assert.equal((await Notification.count({ where: { type: 'poke', recipient_user_id: f.instructor.user_id } })), 1);
-
-    const targets = await (await call(f.ph, 'GET', `/poke-targets/${f.offeringId}`)).json();
-    assert.deepEqual(targets.targets.map(t => t.userId), [f.instructor.user_id], 'the instructor is the only target');
-    assert.ok(targets.targets[0].nextPokeAt, 'the poked instructor shows when they can be poked again');
-
-    // After the window the same pair can be poked again.
-    await Notification.update({ created_at: new Date(Date.now() - 5 * 3600 * 1000) }, { where: { id: n.id } }); // via the model, so it is stored in the same UTC format
-    assert.equal((await poke(f.ph, f.offeringId, f.instructor.user_id)).status, 201);
-});
-
-test('poke only while the plan is unsubmitted or returned', async () => {
-    const f = await fixture();
-    await act(f, 'instructor', 'INSTRUCTOR', 'SUBMITTED');
-    assert.equal((await poke(f.ph, f.offeringId, f.instructor.user_id)).status, 409, 'submitted: nothing to remind');
-    assert.deepEqual((await (await call(f.ph, 'GET', `/poke-targets/${f.offeringId}`)).json()).targets, []);
-
-    await act(f, 'ph', 'PROGRAM_HEAD', 'RETURNED');
-    assert.equal((await poke(f.ph, f.offeringId, f.instructor.user_id)).status, 201, 'returned: waiting for the instructor again');
 });
 
 // ------------------------------------------------------------------ retention
@@ -563,15 +493,6 @@ test('workflow logs are read in real time order even when their offsets differ',
     await sequelize.query(`INSERT INTO AssignmentWorkflowLogs (co_assign_id, actor_role, action_type, createdAt, updatedAt) VALUES (?, 'PROGRAM_HEAD', 'RETURNED', '2099-01-01 16:06:00.000 +00:00', '2099-01-01 16:06:00.000 +00:00')`, { replacements: [f.assignmentId] });
     const order = (await effectiveLogs(sequelize, f.assignmentId)).map(l => l.action_type);
     assert.deepEqual(order.slice(-2), ['SUBMITTED', 'RETURNED']);
-});
-
-test('poke: a returned plan is asked to be resubmitted', async () => {
-    const f = await fixture();
-    assert.equal((await act(f, 'instructor', 'INSTRUCTOR', 'SUBMITTED')).code, 201);
-    assert.equal((await act(f, 'ph', 'PROGRAM_HEAD', 'RETURNED')).code, 201);
-    assert.equal((await poke(f.ph, f.offeringId, f.instructor.user_id)).status, 201);
-    const [n] = await inbox(f.instructor, 'poke');
-    assert.equal(n.message, `${f.code} — reminder: resubmit your learning plan by Program Head`);
 });
 
 test('the comment list names the author of each comment, as recorded', async () => {

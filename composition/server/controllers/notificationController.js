@@ -1,21 +1,12 @@
 'use strict';
 
-// A user's own notifications. Every query is scoped to req.user; no endpoint takes a user id
-// except the poke target, which is validated as the instructor assigned to the offering.
+// A user's own notifications. Every query is scoped to req.user; no endpoint takes a user id.
 
-const { Op, Transaction } = require('sequelize');
-const { sequelize, Sequelize, Notification, User } = require('../models');
+const { sequelize, Sequelize, Notification } = require('../models');
 const { effectiveLogs } = require('../utils/effectiveLogs');
 const { planEditState } = require('../utils/workflowRules');
-const { canAccessCourseRows, loadOfferingCourseRows } = require('../middleware/courseAuthorization');
-const { peopleFor, usersForRole } = require('../utils/notificationEvents');
-const { eventMessage, ROLE_LABEL } = require('../utils/notify');
-const { record: audit } = require('../utils/audit');
 const { findWaitingOnApprovers } = require('../utils/approverWaiting');
 const { timezoneOf, schoolClock } = require('../utils/reminderRules');
-
-const POKE_WINDOW_MS = 4 * 60 * 60 * 1000;
-const WORKFLOW_ROLE_BY_ACCOUNT = { 'director-of-libraries': 'LIBRARY_DIRECTOR', 'program-head': 'PROGRAM_HEAD', dean: 'DEAN' };
 
 const select = (sql, replacements = []) => sequelize.query(sql, { replacements, type: Sequelize.QueryTypes.SELECT });
 const asInt = (value) => (/^\d+$/.test(String(value ?? '')) ? Number(value) : null);
@@ -113,98 +104,4 @@ const markAllRead = async (req, res, next) => {
     }
 };
 
-// ---- poke ---------------------------------------------------------------------------------
-// A poke reminds the instructor assigned to an offering to submit their learning plan. It is only
-// possible while the plan is still the instructor's to submit (never submitted, or returned).
-
-// Loads what a poke needs: the offering's people and the plan's edit state, or an error reply.
-const loadPokeContext = async (req, res, offeringId) => {
-    const rows = await loadOfferingCourseRows(offeringId);
-    if (rows.length === 0) { res.status(404).json({ error: 'Course offering not found.' }); return null; }
-    if (!canAccessCourseRows(req.user, rows)) { res.status(403).json({ error: 'You do not have access to this course.' }); return null; }
-    const people = await peopleFor(offeringId);
-    const logs = people?.assignmentId ? await effectiveLogs(sequelize, people.assignmentId) : [];
-    const { state, editable } = planEditState(logs);
-    return { people, awaitingInstructor: !!people?.assignmentId && editable, returned: state === 'Returned' };
-};
-
-const lastPoke = (userId, offeringId, transaction) => Notification.findOne({
-    where: { recipient_user_id: userId, offering_id: offeringId, type: 'poke', created_at: { [Op.gte]: new Date(Date.now() - POKE_WINDOW_MS) } },
-    order: [['created_at', 'DESC']],
-    ...(transaction ? { transaction } : {})
-});
-const nextPokeAt = (poke) => (poke ? new Date(new Date(poke.created_at).getTime() + POKE_WINDOW_MS) : null);
-
-// GET /api/notifications/poke-targets/:offeringId — the instructor, when their plan is not submitted, and when they may be poked again
-const pokeTargets = async (req, res, next) => {
-    try {
-        const offeringId = asInt(req.params.offeringId);
-        if (!offeringId) return res.status(400).json({ error: 'A valid offering id is required.' });
-        const context = await loadPokeContext(req, res, offeringId);
-        if (!context) return undefined;
-
-        const targets = [];
-        if (context.awaitingInstructor) {
-            for (const userId of usersForRole(context.people, 'INSTRUCTOR')) {
-                if (!userId || String(userId) === String(req.user.id)) continue;
-                const user = await User.findByPk(userId);
-                if (!user || !user.is_active) continue;
-                const next = nextPokeAt(await lastPoke(user.user_id, offeringId));
-                targets.push({ userId: user.user_id, name: user.name, role: user.role, roleLabel: ROLE_LABEL[user.role], nextPokeAt: next });
-            }
-        }
-        return res.json({ targets });
-    } catch (err) {
-        return next(err);
-    }
-};
-
-// POST /api/notifications/poke { offeringId, targetUserId }
-const poke = async (req, res, next) => {
-    try {
-        const offeringId = asInt(req.body?.offeringId);
-        const targetUserId = asInt(req.body?.targetUserId);
-        if (!offeringId || !targetUserId) return res.status(400).json({ error: 'offeringId and targetUserId are required.' });
-        if (targetUserId === req.user.id) return res.status(400).json({ error: 'You cannot poke yourself.' });
-
-        const context = await loadPokeContext(req, res, offeringId);
-        if (!context) return undefined;
-
-        const target = await User.findByPk(targetUserId);
-        const isInstructor = target && target.is_active
-            && usersForRole(context.people, 'INSTRUCTOR').some(id => String(id) === String(targetUserId));
-        if (!isInstructor) return res.status(409).json({ error: 'Only the instructor assigned to this course can be poked.' });
-        if (!context.awaitingInstructor) return res.status(409).json({ error: 'This learning plan is already submitted, so there is nothing to remind the instructor about.' });
-
-        // Check and insert under one write lock, so two simultaneous pokes cannot both pass.
-        const outcome = await sequelize.transaction({ type: Transaction.TYPES.IMMEDIATE }, async (transaction) => {
-            const recent = await lastPoke(targetUserId, offeringId, transaction);
-            if (recent) return { limited: true, next: nextPokeAt(recent) };
-            await Notification.create({
-                recipient_user_id: targetUserId,
-                type: 'poke',
-                offering_id: offeringId,
-                message: eventMessage(context.people.courseCode, context.returned ? 'reminder: resubmit your learning plan' : 'reminder: submit your learning plan', req.user.role),
-                actor_role: WORKFLOW_ROLE_BY_ACCOUNT[req.user.role] || null,
-                is_read: false
-            }, { transaction });
-            return { limited: false, next: new Date(Date.now() + POKE_WINDOW_MS) };
-        });
-
-        if (outcome.limited) {
-            const retryAfterSeconds = Math.max(1, Math.ceil((outcome.next.getTime() - Date.now()) / 1000));
-            res.set('Retry-After', String(retryAfterSeconds));
-            return res.status(429).json({ error: 'This instructor was already reminded about this course. Try again later.', retryAfterSeconds, nextPokeAt: outcome.next });
-        }
-
-        await audit({
-            actor: req.user, action: 'NOTIFICATION_POKE', entityType: 'notifications', entityId: offeringId,
-            details: { target_user_id: targetUserId, offering_id: offeringId }, ip: req.ip
-        });
-        return res.status(201).json({ ok: true, nextPokeAt: outcome.next });
-    } catch (err) {
-        return next(err);
-    }
-};
-
-module.exports = { listNotifications, unreadCount, markRead, markAllRead, pokeTargets, poke, POKE_WINDOW_MS };
+module.exports = { listNotifications, unreadCount, markRead, markAllRead };

@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { notificationPath, canPoke, waitLabel, timeAgo } from './notificationLinks.js'
+import { notificationPath, timeAgo } from './notificationLinks.js'
 
 const n = { offeringId: 15, courseCode: 'BIT 321L', revisionNumber: null, state: 'Pending' }
 
@@ -22,18 +22,8 @@ test('the VPAA opens an approved plan from its notification', () => {
   assert.equal(notificationPath('vpaa', { ...n, state: 'approved' }), '/role/vpaa/courses/BIT%20321L?status=approved&fromStatus=approved&pcId=15')
 })
 
-test('a reviewer can be poked unless the server says when they next can be', () => {
+test('age labels', () => {
   const now = Date.parse('2026-10-09T10:00:00Z')
-  assert.equal(canPoke({ nextPokeAt: null }, now), true)
-  assert.equal(canPoke({}, now), true)
-  assert.equal(canPoke({ nextPokeAt: '2026-10-09T12:00:00Z' }, now), false)
-  assert.equal(canPoke({ nextPokeAt: '2026-10-09T09:59:00Z' }, now), true)
-})
-
-test('wait and age labels', () => {
-  const now = Date.parse('2026-10-09T10:00:00Z')
-  assert.equal(waitLabel('2026-10-09T13:20:00Z', now), 'in 3 h 20 min')
-  assert.equal(waitLabel('2026-10-09T10:12:00Z', now), 'in 12 min')
   assert.equal(timeAgo('2026-10-09T09:59:40Z', now), 'just now')
   assert.equal(timeAgo('2026-10-09T09:55:00Z', now), '5 min ago')
   assert.equal(timeAgo('2026-10-09T07:00:00Z', now), '3 h ago')

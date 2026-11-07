@@ -17,7 +17,6 @@ const PERMISSIONS = Object.freeze({
     'plan:comment': 'Comment on a learning plan',
     'plan:view-approved': 'Read approved learning plans and export them',
     'reference:manage': 'Maintain the reference library',
-    'notification:poke': 'Remind an instructor to submit a learning plan',
     'deadline:view': 'See the syllabus due dates and who has not submitted, for the programs in reach',
     'deadline:manage': 'Set or remove the syllabus due date of a term, and pause or resume its reminders'
 });
@@ -25,11 +24,11 @@ const PERMISSIONS = Object.freeze({
 const ROLE_PERMISSIONS = Object.freeze({
     superuser: ['users:manage', 'audit:read'],
     instructor: ['plan:edit', 'plan:comment', 'plan:view-approved'],
-    'program-head': ['course:assign', 'consultant:manage', 'alignment:manage', 'coaep:generate', 'plan:review', 'plan:comment', 'plan:view-approved', 'notification:poke', 'deadline:view', 'deadline:manage'],
+    'program-head': ['course:assign', 'consultant:manage', 'alignment:manage', 'coaep:generate', 'plan:review', 'plan:comment', 'plan:view-approved', 'deadline:view', 'deadline:manage'],
     'director-of-libraries': ['reference:manage', 'plan:review', 'plan:comment', 'plan:view-approved'],
     'industry-consultant': ['plan:comment'],
     // The Dean oversees the due dates of the department's programs; the Program Head sets them.
-    dean: ['plan:review', 'plan:comment', 'plan:view-approved', 'notification:poke', 'deadline:view'],
+    dean: ['plan:review', 'plan:comment', 'plan:view-approved', 'deadline:view'],
     vpaa: ['plan:view-approved']
 });
 
