@@ -26,6 +26,10 @@ const DEFAULT_TIMEZONE = 'Asia/Manila';
 const APPROVER_WAIT_DAYS = 3;
 const DEAN_WAIT_DAYS = 7;
 
+// A plan returned to its instructor and not resubmitted: the instructor is reminded, and their Program Head
+// told, this many days after the return (plan 3.3).
+const RETURNED_REMIND_DAYS = Object.freeze([3, 7]);
+
 // How often the job wakes up. It is idempotent, so running more often only means a reminder goes
 // out sooner after the day starts.
 const CHECK_EVERY_MS = 60 * 60 * 1000;
@@ -33,4 +37,4 @@ const CHECK_EVERY_MS = 60 * 60 * 1000;
 // Reminders go out at or after this hour of the school's day, not at midnight.
 const SEND_FROM_HOUR = 8;
 
-module.exports = { BEFORE_DUE, OVERDUE_EVERY_DAYS, QUIET_HOURS, DIGEST_WEEKDAY, APPROVER_WAIT_DAYS, DEAN_WAIT_DAYS, DEFAULT_TIMEZONE, CHECK_EVERY_MS, SEND_FROM_HOUR };
+module.exports = { BEFORE_DUE, OVERDUE_EVERY_DAYS, QUIET_HOURS, DIGEST_WEEKDAY, APPROVER_WAIT_DAYS, DEAN_WAIT_DAYS, RETURNED_REMIND_DAYS, DEFAULT_TIMEZONE, CHECK_EVERY_MS, SEND_FROM_HOUR };

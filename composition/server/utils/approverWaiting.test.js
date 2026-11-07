@@ -34,6 +34,7 @@ test.before(async () => {
     ids.head = await user('head', 'program-head');
     ids.director = await user('director', 'director-of-libraries');
     const instructor = await user('ins', 'instructor');
+    ids.instructor = instructor;
     const dept = await insert('INSERT INTO Departments (name, code, stakeholder_id, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?)', [`ZZ wait dept ${stamp}`, 'ZZW', ids.dean, new Date(), new Date()]);
     made.depts.push(dept);
     programId = await insert('INSERT INTO Programs (dept_id, name, stakeholder_id, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?)', [dept, `ZZ wait program ${stamp}`, ids.head, new Date(), new Date()]);
@@ -54,12 +55,13 @@ test.before(async () => {
     await offering('B', [['INSTRUCTOR', 'SUBMITTED', '2031-02-20'], ['LIBRARY_DIRECTOR', 'ACCEPTED', '2031-02-28'], ['PROGRAM_HEAD', 'ACCEPTED', '2031-03-01']]); // waits on the Dean since 1 March
     await offering('C', [['INSTRUCTOR', 'SUBMITTED', '2031-02-01'], ['PROGRAM_HEAD', 'RETURNED', '2031-02-05']]);   // returned: with the instructor
     await offering('D', []);                                                                  // not submitted
+    await offering('E', [['INSTRUCTOR', 'SUBMITTED', '2031-02-25'], ['LIBRARY_DIRECTOR', 'RETURNED', '2031-03-02']]); // returned on 2 March, not resubmitted
 });
 
 test.after(async () => {
     const list = (a) => (a.length ? a.join(', ') : '0');
     await Notification.destroy({ where: { [Op.or]: [{ recipient_user_id: { [Op.in]: made.users } }, { type: 'approval_waiting', created_at: { [Op.gte]: startedAt } }] } });
-    await ReminderLog.destroy({ where: { kind: 'waiting', day: { [Op.in]: DAYS } } });
+    await ReminderLog.destroy({ where: { kind: { [Op.in]: ['waiting', 'returned-3', 'returned-7'] }, day: { [Op.in]: DAYS } } });
     await sequelize.query(`DELETE FROM AssignmentWorkflowLogs WHERE co_assign_id IN (${list(made.assignments)})`);
     await sequelize.query(`DELETE FROM CourseOfferingAssignments WHERE co_assign_id IN (${list(made.assignments)})`);
     await sequelize.query(`DELETE FROM ProgramCourseOfferings WHERE pc_offering_id IN (${list(made.offerings)})`);
@@ -131,4 +133,19 @@ test('the Dean is also told when a plan has stalled with another reviewer for 7 
     assert.equal(dean[1], '1 learning plan is waiting for your review, 1 for 7 days or more; 1 learning plan stalled with another reviewer for 7 days or more');
     const rows = await Notification.findAll({ where: { recipient_user_id: ids.dean, type: 'approval_waiting' }, order: [['id', 'ASC']], raw: true });
     assert.equal(rows[1].offering_id, null, 'two plans: it opens the list');
+});
+
+test('a returned plan not resubmitted: on day 3 and day 7 the instructor is reminded and the Program Head told, once each', async () => {
+    const of = async (id, type) => (await Notification.findAll({ where: { recipient_user_id: id, type }, order: [['id', 'ASC']], raw: true })).map(n => n.message);
+    const instructorReminders = (await of(ids.instructor, 'reminder')).filter(m => /ZZWE/.test(m));
+    const headNotes = await of(ids.head, 'returned_waiting');
+    // The earlier tests already ran 5 March (day 3 for E) and 9 March (day 7); 6 and 8 March sent nothing for it.
+    assert.deepEqual(instructorReminders, [
+        'ZZWE — reminder: resubmit your learning plan (returned 3 days ago)',
+        'ZZWE — reminder: resubmit your learning plan (returned 7 days ago)'
+    ]);
+    assert.deepEqual(headNotes.filter(m => /ZZWE/.test(m)), ['ZZWE — returned 3 days ago and not resubmitted yet', 'ZZWE — returned 7 days ago and not resubmitted yet']);
+    assert.ok(!headNotes.some(m => /ZZWC/.test(m)), 'plan C was returned weeks ago: no day 3 or 7 in this run');
+    await run('2031-03-09');
+    assert.equal((await of(ids.head, 'returned_waiting')).length, headNotes.length, 'not twice the same day');
 });

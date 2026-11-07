@@ -44,14 +44,18 @@ const findAwaiting = async ({ sequelize, programIds = null, schoolYear = null, s
 
     const waiting = [];
     for (const row of rows) {
-        const state = planEditState(await effectiveLogs(sequelize, row.assignmentId));
+        const logs = await effectiveLogs(sequelize, row.assignmentId);
+        const state = planEditState(logs);
         if (!state.editable) continue;
+        // When a returned plan was returned (its latest return), for the "returned and not resubmitted" reminders.
+        const lastReturn = state.state === 'Returned' ? [...logs].reverse().find(l => l.action_type === 'RETURNED') : null;
         waiting.push({
             ...row,
             instructorId: row.instructorId == null ? null : Number(row.instructorId),
             instructorActive: row.instructorActive == null ? false : Boolean(row.instructorActive),
             isRevision: row.baseOfferingId != null,
-            state: state.state
+            state: state.state,
+            returnedAt: lastReturn ? lastReturn.createdAt : null
         });
     }
     return waiting;

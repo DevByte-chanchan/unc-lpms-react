@@ -18,6 +18,7 @@ const KIND = {
   reminder: { Icon: Clock, tone: 'warn' },
   missing_digest: { Icon: Clock, tone: 'warn' },
   approval_waiting: { Icon: Clock, tone: 'warn' },
+  returned_waiting: { Icon: Clock, tone: 'warn' },
   reference_health: { Icon: BookOpen, tone: 'info' },
   reference_flags: { Icon: BookOpen, tone: 'info' },
   reference_unavailable: { Icon: BookOpen, tone: 'info' }

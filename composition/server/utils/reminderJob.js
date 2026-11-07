@@ -4,7 +4,8 @@
 // instructor, against the due date its program set for the term, and sends the reminder that is due
 // today (7, 3 and 1 days before, on the day, then every 3rd day overdue; see config/reminders.js).
 // On the Program Head's digest day it also sends them a summary of what is still missing, and it
-// reminds the approvers (Director, Program Head, Dean) of plans that have waited on them too long.
+// reminds the approvers (Director, Program Head, Dean) of plans that have waited on them too long, and the
+// instructor and Program Head of a returned plan not resubmitted 3 and 7 days after the return.
 //
 // It is built so that running it twice, or after a restart, changes nothing:
 //   * every reminder is written to ReminderLog under (plan, kind, day) first, and the unique key
@@ -14,7 +15,7 @@
 // A person always decides what happens to a plan; the job only reminds.
 
 const { Op } = require('sequelize');
-const { QUIET_HOURS, CHECK_EVERY_MS } = require('../config/reminders');
+const { QUIET_HOURS, CHECK_EVERY_MS, RETURNED_REMIND_DAYS } = require('../config/reminders');
 const rules = require('./reminderRules');
 const { findAwaiting, standing } = require('./missingSubmissions');
 const { findWaitingOnApprovers } = require('./approverWaiting');
@@ -84,6 +85,36 @@ const remindApprovers = async ({ deps, clock, timeZone, programIds, result, now 
     }
 };
 
+// A plan returned to its instructor and not resubmitted: on day 3 and day 7 after the return (config/reminders.js)
+// the instructor is reminded to resubmit, and their Program Head is told. Once per plan and day, through ReminderLog;
+// a paused plan is left alone, like the due-date reminders.
+const remindReturned = async ({ deps, clock, timeZone, waiting, pausedIds, result, now = new Date() }) => {
+    const { models, notify, mailer } = deps;
+    const { ReminderLog, Program, User } = models;
+    const returned = waiting.filter(row => row.state === 'Returned' && row.returnedAt);
+    if (returned.length === 0) return;
+    const programs = await Program.findAll({ attributes: ['program_id', 'stakeholder_id'], raw: true });
+    const headOf = new Map(programs.filter(p => p.stakeholder_id).map(p => [p.program_id, Number(p.stakeholder_id)]));
+    for (const row of returned) {
+        const days = rules.daysUntil(clock.day, rules.schoolClock(rules.asDate(row.returnedAt), timeZone).day);
+        if (!RETURNED_REMIND_DAYS.includes(days)) continue;
+        if (pausedIds.has(row.offeringId)) { result.paused += 1; continue; }
+        if (!(await claim(ReminderLog, `returned:${row.offeringId}`, `returned-${days}`, clock.day))) { result.alreadySent += 1; continue; }
+
+        if (row.instructorId && row.instructorActive) {
+            const text = rules.returnedText(days);
+            await notify([row.instructorId], 'reminder', row.offeringId, `${row.courseCode} — ${text}`, null, now);
+            if (mailer.configured() && row.instructorEmail) await mailer.send({ to: row.instructorEmail, ...emailFor(row.courseCode, text) });
+        }
+        const head = headOf.get(row.programId);
+        const headUser = head ? await User.findByPk(head) : null;
+        if (headUser && headUser.is_active) {
+            await notify([head], 'returned_waiting', row.offeringId, `${row.courseCode} — ${rules.returnedHeadText(days)}`, null, now);
+        }
+        result.returnedReminders += 1;
+    }
+};
+
 // On the digest day the Director of Libraries gets one summary of the references that need attention
 // (unavailable, older than their recency rule, missing an ISBN or link). Nothing is sent when all is well.
 const remindDirectors = async ({ deps, clock, result, now = new Date() }) => {
@@ -105,7 +136,7 @@ const runReminders = async ({ now = new Date(), env = process.env, deps = lazy()
     const { models, notify, mailer } = deps;
     const { sequelize, Notification, ReminderLog, ReminderPause, Program, User } = models;
     const clock = rules.schoolClock(now, rules.timezoneOf(env));
-    const result = { day: clock.day, sent: 0, emailRetries: 0, alreadySent: 0, quiet: 0, paused: 0, digests: 0, approverReminders: 0, referenceDigests: 0, skipped: null };
+    const result = { day: clock.day, sent: 0, emailRetries: 0, alreadySent: 0, quiet: 0, paused: 0, digests: 0, approverReminders: 0, referenceDigests: 0, returnedReminders: 0, skipped: null };
     if (!rules.isSendingHour(clock)) { result.skipped = 'before the school day starts'; return result; }
 
     const waiting = await findAwaiting({ sequelize, programIds });
@@ -177,6 +208,7 @@ const runReminders = async ({ now = new Date(), env = process.env, deps = lazy()
         // Not tied to a program: skipped when the run is limited to some programs (a test or a manual run).
         if (!programIds) await remindDirectors({ deps, clock, result, now });
     }
+    await remindReturned({ deps, clock, timeZone: rules.timezoneOf(env), waiting, pausedIds, result, now });
     await remindApprovers({ deps, clock, timeZone: rules.timezoneOf(env), programIds, result, now });
     return result;
 };
@@ -191,7 +223,7 @@ const startReminders = ({ env = process.env, log = console.log, setIntervalFn = 
         running = true;
         try {
             const result = await runFn({ env, log });
-            if (result.sent || result.digests || result.approverReminders || result.referenceDigests) log(`Reminders sent: ${result.sent}, digests: ${result.digests}, approver reminders: ${result.approverReminders}, reference digests: ${result.referenceDigests}.`);
+            if (result.sent || result.digests || result.approverReminders || result.referenceDigests || result.returnedReminders) log(`Reminders sent: ${result.sent}, digests: ${result.digests}, approver reminders: ${result.approverReminders}, reference digests: ${result.referenceDigests}, returned-plan reminders: ${result.returnedReminders}.`);
         } catch (error) {
             console.error(`Reminders did not run: ${error.message}`);
         } finally {

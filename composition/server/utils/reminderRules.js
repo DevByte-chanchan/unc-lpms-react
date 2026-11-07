@@ -43,6 +43,10 @@ const reminderText = (courseCode, days, returned = false) => {
     return `reminder: ${returned ? 'resubmit' : 'submit'} your learning plan (${when})`;
 };
 
+// A returned plan not resubmitted: what the instructor and their Program Head read. Course code in front, no names.
+const returnedText = (days) => `reminder: resubmit your learning plan (returned ${days} days ago)`;
+const returnedHeadText = (days) => `returned ${days} days ago and not resubmitted yet`;
+
 // May the job send anything yet today? Not before the school day starts.
 const isSendingHour = (clock) => clock.hour >= SEND_FROM_HOUR;
 
@@ -80,4 +84,4 @@ const waitingText = ({ waiting, long, stalled = 0 }) => {
     return parts.join('; ');
 };
 
-module.exports = { waitLimitFor, isWaitingTrigger, asDate, waitingText, timezoneOf, schoolClock, daysUntil, reminderKindFor, reminderText, isSendingHour, isDigestDay, digestText };
+module.exports = { returnedText, returnedHeadText, waitLimitFor, isWaitingTrigger, asDate, waitingText, timezoneOf, schoolClock, daysUntil, reminderKindFor, reminderText, isSendingHour, isDigestDay, digestText };
