@@ -3,7 +3,7 @@ import {ChevronLeft, ChevronUp, Loader, Trash2, CheckCircle, RotateCcw, Download
 import React, {useCallback, useEffect, useRef, useState} from "react";
 import {useNavigate, useSearchParams, useLocation, useParams} from "react-router-dom";
 import layout from "../styles/TosSections.module.sass";
-import previewLayout from "../styles/TOSPreview.module.sass";
+import previewLayout from "../styles/TosPreview.module.sass";
 import TOSPreview from "../pages/TosPreview.jsx";
 import TOSSummary from "../pages/TosSummary.jsx";
 import AssessmentsStep, { AutoResizeTextarea } from "../pages/AssessmentsStep.jsx";

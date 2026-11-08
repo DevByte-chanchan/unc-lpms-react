@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import layout from "../styles/TOSPreview.module.sass";
+import layout from "../styles/TosPreview.module.sass";
 import { useNavigate } from "react-router-dom";
 import { updateStatus, saveOutcomes, saveItems, updateCourse, ACTIVE_PERIOD } from '../services/api.js';
 import AssessmentOutput from "../components/AssessmentOutput.jsx";
