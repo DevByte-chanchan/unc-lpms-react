@@ -49,7 +49,7 @@ export const buildReviewRecordHtml = (record) => {
     ['Date', 'Action', 'By', 'Role'],
     (record?.actions || []).map(a => [
       esc(fmt(a.date)),
-      esc(a.action),
+      esc(a.action) + (a.note ? ` — “${esc(a.note)}”` : ''),
       esc(a.name, 'Name not recorded'),
       esc(a.roleLabel) + (a.inChain === false ? ' <em>(not part of the approval chain)</em>' : '')
     ]),

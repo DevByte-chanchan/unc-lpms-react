@@ -157,6 +157,11 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
   // The accreditation review record: every comment, workflow action and the final approvers.
   // Why a review action is not available right now: the plan is with the instructor, or it is not this role's turn.
   const notYourTurnMessage = (verb) => {
+    if (workflowState.currentStage === 'with_program_head') {
+      return roleKey === 'dean'
+        ? 'You returned this plan. It is with the Program Head, who forwards it to the instructor or sends it back to you.'
+        : 'The Dean returned this plan to the Program Head, who forwards it to the instructor or sends it back to the Dean.'
+    }
     if (workflowState.currentStage === 'returned') return `This plan was returned to the instructor. You can ${verb} again once it is resubmitted.`
     if (workflowState.currentStage === 'draft') return 'The instructor has not submitted this plan yet.'
     return `${verb.charAt(0).toUpperCase()}${verb.slice(1)} is not available until the workflow reaches your review stage.`
@@ -670,7 +675,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
   // Said on the page, not only in a toast after a click: why this approver cannot act on the plan yet.
   const isApprover = ['director-of-libraries', 'program-head', 'dean'].includes(roleKey)
   const waitingNotice = (isApprover && effectiveStatus !== 'approved' && reviewRecordAvailable && !isRoleActive() && !hasRoleApproved())
-    ? (roleKey === 'dean' && !['returned', 'draft'].includes(workflowState.currentStage)
+    ? (roleKey === 'dean' && !['returned', 'draft', 'with_program_head'].includes(workflowState.currentStage)
       ? 'Your review opens once the Director of Libraries and the Program Head have approved this plan.'
       : notYourTurnMessage('review'))
     : null

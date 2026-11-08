@@ -48,12 +48,20 @@ const canSeeRecordComment = (user, comment, { approved = false } = {}) => {
     return approved || !isApprover(user.role) || seesEveryComment(user.role) ? true : isOwnComment(user, comment);
 };
 
-// While a Dean return waits on the Program Head, the instructor does not see the Dean's new comments yet: they
-// reach the instructor with the forward. `state` is deriveReviewState(logs); `lastForwardAt` the latest FORWARDED.
-const withoutHeldDeanComments = (user, rows, state, lastForwardAt = null) => {
+// While a Dean return waits on the Program Head, the instructor does not see it yet: the Dean's new comments, and
+// the Program Head's comments added since that return, reach the instructor with the forward.
+// `state` is deriveReviewState(logs); `times` the latest FORWARDED and the latest Dean RETURNED.
+const withoutHeldDeanComments = (user, rows, state, { lastForwardAt = null, lastDeanReturnAt = null } = {}) => {
     if (user?.role !== 'instructor' || !state?.withProgramHead) return rows;
-    const cutoff = lastForwardAt ? new Date(lastForwardAt).getTime() : -Infinity;
-    return rows.filter(row => row.commenter_role !== 'DEAN' || new Date(row.createdAt).getTime() <= cutoff);
+    const at = (value) => (value ? new Date(value).getTime() : -Infinity);
+    const forward = at(lastForwardAt);
+    const deanReturn = at(lastDeanReturnAt);
+    return rows.filter(row => {
+        const when = new Date(row.createdAt).getTime();
+        if (row.commenter_role === 'DEAN') return when <= forward;
+        if (row.commenter_role === 'PROGRAM_HEAD') return when <= deanReturn;
+        return true;
+    });
 };
 
 module.exports = { COMMENT_ROLE_BY_ACCOUNT, isApprover, seesEveryComment, withoutHeldDeanComments, isOwnComment, canSeeComment, canSeeRecordComment, filterComments };

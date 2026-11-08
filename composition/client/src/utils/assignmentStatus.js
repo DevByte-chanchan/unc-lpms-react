@@ -29,6 +29,9 @@ export const computeOverallStatus = (row = {}) => {
   return 'Pending'
 }
 
+// A Dean return still with the Program Head (who forwards it to the instructor or sends it back to the Dean).
+export const isWithProgramHead = (row = {}) => workflowFromLogs(row.logs || []).currentStage === 'with_program_head'
+
 export const buildApproverStatus = (row = {}) => {
   const workflow = workflowFromLogs(row.logs || [])
   return REVIEWERS.map(reviewer => {
@@ -49,6 +52,7 @@ export const buildApproverStatus = (row = {}) => {
 export const canExportRow = (row = {}) => exportEligibility(workflowFromLogs(row.logs || [])).allowed
 
 export default {
+  isWithProgramHead,
   canExportRow,
   computeOverallStatus,
   latestSubmissionAt,

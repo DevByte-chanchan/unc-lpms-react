@@ -28,8 +28,11 @@ const forInstructorTiming = async (req, rows, offeringId) => {
         { replacements: [offeringId], type: Sequelize.QueryTypes.SELECT });
     if (!assignment) return rows;
     const logs = await effectiveLogs(sequelize, assignment.co_assign_id);
-    const forwards = logs.filter(entry => entry.action_type === 'FORWARDED');
-    return withoutHeldDeanComments(req.user, rows, deriveReviewState(logs), forwards.length ? forwards[forwards.length - 1].createdAt : null);
+    const latest = (match) => { const hits = logs.filter(match); return hits.length ? hits[hits.length - 1].createdAt : null; };
+    return withoutHeldDeanComments(req.user, rows, deriveReviewState(logs), {
+        lastForwardAt: latest(entry => entry.action_type === 'FORWARDED'),
+        lastDeanReturnAt: latest(entry => entry.actor_role === 'DEAN' && entry.action_type === 'RETURNED')
+    });
 };
 
 

@@ -89,7 +89,8 @@ exports.getRevisionsByOffering = async (req, res) => {
                     actionMessage = `Initialized and Routed the learning plan for Peer Evaluation`;
                 }
                 else if (type === 'RETURNED') {
-                    actionMessage = `Returned the learning plan for revision`;
+                    // A Dean return goes to the Program Head first, who forwards it or sends it back.
+                    actionMessage = rawRole === 'DEAN' ? 'Returned the learning plan to the Program Head' : `Returned the learning plan for revision`;
                     pendingReviewers.add(role);
 
                     // Check for comments by this role up to 5 minutes AFTER the log
@@ -119,6 +120,10 @@ exports.getRevisionsByOffering = async (req, res) => {
                     } else {
                         actionMessage = `Accepted the learning plan`;
                     }
+                } else if (type === 'FORWARDED') {
+                    actionMessage = "Forwarded the Dean's return to the instructor";
+                } else if (type === 'COUNTERED') {
+                    actionMessage = `Sent the plan back to the Dean${log.note ? `: “${log.note}”` : ''}`;
                 } else {
                     actionMessage = `performed ${type}`;
                 }

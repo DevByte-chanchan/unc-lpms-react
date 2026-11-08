@@ -88,16 +88,17 @@ test('the Dean reads the whole review record while the plan is under review', ()
     assert.deepEqual(recordIds(user(5, 'dean'), false), [1, 2, 3, 4, 5, 6, 7]);
 });
 
-test('while a Dean return is with the Program Head, the instructor does not see the new Dean comments', () => {
+test('while a Dean return is with the Program Head, the instructor does not see it yet', () => {
     const rows = [
-        { commenter_role: 'DEAN', createdAt: '2026-11-01T00:00:00Z', comment_id: 'old' },
-        { commenter_role: 'DEAN', createdAt: '2026-11-05T00:00:00Z', comment_id: 'new' },
-        { commenter_role: 'PROGRAM_HEAD', createdAt: '2026-11-05T00:00:00Z', comment_id: 'ph' }
+        { commenter_role: 'DEAN', createdAt: '2026-11-01T00:00:00Z', comment_id: 'dean-old' },
+        { commenter_role: 'DEAN', createdAt: '2026-11-05T00:00:00Z', comment_id: 'dean-new' },
+        { commenter_role: 'PROGRAM_HEAD', createdAt: '2026-11-04T00:00:00Z', comment_id: 'ph-before' },
+        { commenter_role: 'PROGRAM_HEAD', createdAt: '2026-11-07T00:00:00Z', comment_id: 'ph-while-held' }
     ];
     const held = { withProgramHead: true };
-    const ids = (u, state, forwardAt) => withoutHeldDeanComments(u, rows, state, forwardAt).map(r => r.comment_id);
-    assert.deepEqual(ids(user(1, 'instructor'), held, '2026-11-02T00:00:00Z'), ['old', 'ph'], 'the earlier, already forwarded Dean comment stays');
-    assert.deepEqual(ids(user(1, 'instructor'), held, null), ['ph']);
-    assert.deepEqual(ids(user(1, 'instructor'), { withProgramHead: false }, null), ['old', 'new', 'ph'], 'once forwarded, all of them');
-    assert.deepEqual(ids(user(2, 'program-head'), held, null), ['old', 'new', 'ph'], 'nobody else is affected');
+    const times = { lastForwardAt: '2026-11-02T00:00:00Z', lastDeanReturnAt: '2026-11-06T00:00:00Z' };
+    const ids = (u, state, t = times) => withoutHeldDeanComments(u, rows, state, t).map(r => r.comment_id);
+    assert.deepEqual(ids(user(1, 'instructor'), held), ['dean-old', 'ph-before'], 'the new Dean comment and the Program Head’s note wait for the forward');
+    assert.deepEqual(ids(user(1, 'instructor'), { withProgramHead: false }), ['dean-old', 'dean-new', 'ph-before', 'ph-while-held'], 'once forwarded, all of them');
+    assert.deepEqual(ids(user(2, 'program-head'), held), ['dean-old', 'dean-new', 'ph-before', 'ph-while-held'], 'nobody else is affected');
 });

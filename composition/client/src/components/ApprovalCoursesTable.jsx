@@ -18,7 +18,7 @@ import { usePageSearch, matchesSearch } from '../utils/pageSearch.js';
 import PageSearch from './PageSearch.jsx';
 import NotSubmittedPanel from './NotSubmittedPanel.jsx';
 import { Loading, TableSkeleton } from './LoadingSkeleton.jsx';
-import { buildApproverStatus, canExportRow, computeOverallStatus } from '../utils/assignmentStatus.js';
+import { buildApproverStatus, canExportRow, computeOverallStatus, isWithProgramHead } from '../utils/assignmentStatus.js';
 import { filterAssignmentsByCourse, readAssignedCourseFilters } from '../utils/referenceCourseNavigation.js';
 
 // Roles that read the whole plan. The Director of Libraries sees References only, so a syllabus export would
@@ -48,7 +48,9 @@ const ApprovalProgress = ({ row, role }) => {
     // The Dean's turn comes last: until then the row says whom the plan is waiting on, not just a count.
     const deanWaitingOnOthers = role === 'dean' && under && !returned && steps[2]?.status === 'Pending';
     const waitingOn = steps.filter(step => step.status === 'Waiting').map(step => step.title).join(' and ');
-    const label = done === steps.length ? 'Approved' : returned ? `Returned by ${returned.title}`
+    const label = done === steps.length ? 'Approved'
+        : isWithProgramHead(row) ? 'Returned by Dean · with the Program Head'
+        : returned ? `Returned by ${returned.title}`
         : deanWaitingOnOthers && waitingOn ? `Waiting on ${waitingOn}` : `${done} of ${steps.length} approved`;
     const when = (step) => {
         const at = step.status === 'Accepted' ? step.acceptedAt : step.status === 'Returned' ? step.returnedAt : null;
