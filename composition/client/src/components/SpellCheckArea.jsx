@@ -73,6 +73,8 @@ const SpellCheckArea = ({
     label = 'Check grammar',
     // Names the text is about (a plan's topics, TLAs, references): their words are never flagged as misspelled.
     knownWords = [],
+    // A one-line field (a title): no resize handle, and Enter does not start a new line.
+    singleLine = false,
     ...rest
 }) => {
     const [serviceMatches, setServiceMatches] = useState([])
@@ -278,7 +280,7 @@ const SpellCheckArea = ({
                     {...rest}
                     ref={areaRef}
                     className={`${styles.area} ${className}`}
-                    style={{ ...(boxStyle || {}), ...(minHeight ? { minHeight } : {}) }}
+                    style={{ ...(boxStyle || {}), ...(minHeight ? { minHeight } : {}), ...(singleLine ? { resize: 'none' } : {}) }}
                     value={value}
                     rows={rows}
                     placeholder={placeholder}
@@ -288,6 +290,7 @@ const SpellCheckArea = ({
                     onScroll={syncScroll}
                     onClick={openAtCaret}
                     onKeyUp={(e) => { if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') openAtCaret() }}
+                    onKeyDown={singleLine ? (e) => { if (e.key === 'Enter') e.preventDefault() } : undefined}
                 />
             </div>
 

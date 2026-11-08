@@ -1,6 +1,6 @@
 import React from 'react';
 import Select from './Select.jsx';
-import AutoCorrectButton from './AutoCorrectButton.jsx';
+import SpellCheckArea from './SpellCheckArea.jsx';
 import styles from '../styles/ReferenceFields.module.sass';
 import { getReferenceTypes, fieldsFor, referenceTypeLabel } from '../utils/referenceTypes.js';
 
@@ -12,8 +12,12 @@ import { getReferenceTypes, fieldsFor, referenceTypeLabel } from '../utils/refer
 //        onChange(field, value)
 const PLACEHOLDERS = { year: 'YYYY', link: 'https://...', copies: 'Leave empty if not known', received: 'YYYY-MM-DD' };
 
-// One labelled control: a themed dropdown (`options`) or a text input.
-const Field = ({ label, error, value, onChange, options, placeholder }) => (
+// Text fields checked as you type, with the same checker as the comment boxes. Not the authors: surnames are not
+// dictionary words, and a checker that underlines every name is one people learn to ignore.
+const CHECKED_FIELDS = ['title', 'publisher', 'category'];
+
+// One labelled control: a themed dropdown (`options`), a checked one-line text box (`checked`), or a text input.
+const Field = ({ label, error, value, onChange, options, placeholder, checked = false }) => (
   <div className={styles.field}>
     <div className={styles.label}>{label}</div>
     {options ? (
@@ -21,6 +25,10 @@ const Field = ({ label, error, value, onChange, options, placeholder }) => (
         <option value="">Select an option</option>
         {options.map(option => <option key={option} value={option}>{option}</option>)}
       </Select>
+    ) : checked ? (
+      // One line: a pasted line break becomes a space.
+      <SpellCheckArea singleLine showButton={false} value={value} rows={1} minHeight={36} padding="7px 12px" placeholder={placeholder} aria-label={label}
+        className={error ? styles.invalid : ''} onChange={(next) => onChange(next.replace(/\s*[\r\n]+\s*/g, ' '))} />
     ) : (
       <input className={`app-input ${error ? styles.invalid : ''}`} type="text" value={value} placeholder={placeholder}
         aria-label={label} onChange={(event) => onChange(event.target.value)} />
@@ -62,15 +70,8 @@ const ReferenceFields = ({ value, errors = {}, onChange, gap = 0 }) => {
             onChange={(next) => onChange(field.key, next)}
             error={errors[field.key]}
             placeholder={PLACEHOLDERS[field.key]}
+            checked={CHECKED_FIELDS.includes(field.key)}
           />
-          )}
-          {['title', 'authors'].includes(field.key) && (
-            <AutoCorrectButton
-              value={value[field.key] || ''}
-              onChange={(next) => onChange(field.key, next)}
-              label={field.key === 'title' ? 'Check title' : 'Check author names'}
-              compact
-            />
           )}
           {spacer}
         </React.Fragment>
