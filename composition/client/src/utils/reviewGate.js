@@ -260,7 +260,10 @@ export const consolidatedStatus = (workflow = {}) => {
     const approved = approvers.filter(s => s.status === 'approved')
     // Whose turn it is now: the parallel pair first, the Dean only once both of them have approved.
     const parallelDone = approvers.filter(s => !s.final).every(s => s.status === 'approved')
-    const waitingNow = approvers.filter(s => s.status !== 'approved' && (s.final ? parallelDone : true)).map(s => s.label)
+    // A Dean return waits on the Program Head alone, to forward it to the instructor or send it back.
+    const waitingNow = stage === 'with_program_head'
+        ? ['Program Head']
+        : approvers.filter(s => s.status !== 'approved' && (s.final ? parallelDone : true)).map(s => s.label)
     return {
         stage,
         steps,
@@ -279,6 +282,8 @@ export const canActOnStage = (roleKey, workflow = {}) => {
     const role = normalizeRoleKey(roleKey)
     const stage = workflow.currentStage || 'submitted'
     if (role === 'vpaa') return false                       // read access only
+    // A Dean return is the Program Head's to forward or send back; nobody else acts on it meanwhile.
+    if (stage === 'with_program_head') return role === 'program-head'
     const status = consolidatedStatus(workflow)
     if (role === 'instructor') {
         // The plan is the instructor's before the first submission and again once a reviewer
@@ -302,7 +307,7 @@ export const canActOnStage = (roleKey, workflow = {}) => {
 // Approving needs more than a turn: a plan waiting on the instructor cannot be accepted (the server refuses it),
 // though a reviewer may still add comments to it. Mirrors validateWorkflowTransition in server/utils/workflowRules.js.
 export const canAcceptOnStage = (roleKey, workflow = {}) =>
-    workflow.currentStage !== 'returned' && canActOnStage(roleKey, workflow)
+    !['returned', 'with_program_head'].includes(workflow.currentStage) && canActOnStage(roleKey, workflow)
 
 // The syllabus may be exported once the Director of Libraries and the Program Head have both
 // accepted, even before the Dean. Until the Dean accepts, the export is marked

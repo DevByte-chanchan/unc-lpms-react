@@ -48,7 +48,8 @@ const findAwaiting = async ({ sequelize, programIds = null, schoolYear = null, s
         const state = planEditState(logs);
         if (!state.editable) continue;
         // When a returned plan was returned (its latest return), for the "returned and not resubmitted" reminders.
-        const lastReturn = state.state === 'Returned' ? [...logs].reverse().find(l => l.action_type === 'RETURNED') : null;
+        // (A Dean return reaches the instructor when the Program Head forwards it, so that counts as the return.)
+        const lastReturn = state.state === 'Returned' ? [...logs].reverse().find(l => ['RETURNED', 'FORWARDED'].includes(l.action_type)) : null;
         waiting.push({
             ...row,
             instructorId: row.instructorId == null ? null : Number(row.instructorId),

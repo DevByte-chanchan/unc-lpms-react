@@ -21,6 +21,7 @@ import { loadLibrary, serverId } from '../utils/referenceStore.js'
 import { normalizeRoleKey } from '../utils/approvalHelpers.js'
 import { getSession } from '../utils/session'
 import ApprovalChainStatus from './ApprovalChainStatus.jsx'
+import SendBackDialog from './SendBackDialog.jsx'
 import {
   validateReturn,
   canActOnStage,
@@ -128,6 +129,9 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
 
   const [showCommentModal, setShowCommentModal] = useState(false)
   const [readOnlyCommentModal, setReadOnlyCommentModal] = useState(false)
+  // The Program Head sending a Dean return back to the Dean (with a reason).
+  const [sendBackOpen, setSendBackOpen] = useState(false)
+  const closeSendBack = React.useCallback(() => setSendBackOpen(false), [])
   // Approve confirmation flow (matches the instructor's submit modal):
   // IDLE → CONFIRM → WAITING (undo countdown) → DONE
   const [approvePhase, setApprovePhase] = useState('IDLE')
@@ -478,18 +482,11 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
   const backPath = defaultBack
 
 
+  // The server decides who sees which comment (utils/commentVisibility.js): each approver their own, the Dean all
+  // of them, the Program Head also the Dean's. The panel shows exactly what it was sent.
   const visibleComments = React.useMemo(() => {
     if (roleKey === 'instructor') {
       return globalComments.filter(c => !(c.recipientRole === 'program_head' && !c.resolved))
-    }
-    // The Dean decides last and reads every approver's comments (the server sends them all to the Dean).
-    if (roleKey === 'dean') return globalComments
-    // Other approvers see their own comments + comments addressed to them (instructor responses)
-    const approverRoles = ['program-head', 'industry-consultant', 'director-of-libraries']
-    if (approverRoles.includes(roleKey)) {
-      return globalComments.filter(c =>
-        normalizeRoleKey(c.role) === roleKey || c.recipientRole === roleKey
-      )
     }
     return globalComments
   }, [globalComments, roleKey])
@@ -587,13 +584,13 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
   // The server's workflow log is the single source of truth for a plan's status,
   // so callers update their local view only after this resolves. Rejects when the
   // server refuses the action (e.g. the plan is not at this reviewer's stage).
-  const recordWorkflowAction = React.useCallback((actionType) => {
+  const recordWorkflowAction = React.useCallback((actionType, note) => {
     const actor = ACTOR_ROLE_MAP[roleKey]
     if (!actor || !codeToUse) return Promise.reject(new Error('This role cannot record a workflow action for this course.'))
     return fetchJson('/api/assignments/action', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ actor_role: actor, action_type: actionType, pcId: validPcId, code: codeToUse })
+      body: JSON.stringify({ actor_role: actor, action_type: actionType, pcId: validPcId, code: codeToUse, ...(note ? { note } : {}) })
     })
   }, [codeToUse, roleKey, validPcId])
 
@@ -656,7 +653,15 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
   // What the comment box does for this reviewer right now: a required reviewer's comments return the plan
   // (handleSubmitComment), unless it is already returned; the consultant's are suggestions only.
   // After their own approval a reviewer may still add comments, but no longer return the plan (the server refuses it).
-  const commentMode = roleKey === 'industry-consultant' ? 'suggest' : (workflowState.currentStage === 'returned' || hasRoleApproved()) ? 'comment' : 'return'
+  const commentMode = roleKey === 'industry-consultant' ? 'suggest' : (['returned', 'with_program_head'].includes(workflowState.currentStage) || hasRoleApproved()) ? 'comment' : 'return'
+  // A Dean return waiting on this Program Head: they forward it to the instructor or send it back to the Dean.
+  const deanReturnWithMe = roleKey === 'program-head' && workflowState.currentStage === 'with_program_head'
+  const forwardToInstructor = () => recordWorkflowAction('FORWARDED')
+    .then(() => { reloadWorkflow(); setRefreshKey(k => k + 1); showToastMsg('Forwarded to the instructor, with the Dean’s comments.') })
+    .catch(e => showToastMsg(apiErrorMessage(e, 'The plan could not be forwarded.'), 'error'))
+  const sendBackToDean = (note) => recordWorkflowAction('COUNTERED', note)
+    .then(() => { reloadWorkflow(); setRefreshKey(k => k + 1); showToastMsg('Sent back to the Dean.'); return true })
+    .catch(e => apiErrorMessage(e, 'The plan could not be sent back.'))
   // An approved plan takes no new comments (the server refuses them); changes go into a new revision.
   const planClosed = workflowState.currentStage === 'approved'
   const canComment = !planClosed && (roleKey === 'industry-consultant' || isRoleActive() || hasRoleApproved())
@@ -981,6 +986,15 @@ ${suggestionLine}` : text,
                 </div>
               )
             }
+            if (deanReturnWithMe) {
+              return (<>
+                <button type="button" className="btn btn-secondary" onClick={() => { setReadOnlyCommentModal(false); openComment() }}>
+                  <MessageSquare size={16} /> Add comment
+                </button>
+                <button type="button" className="btn btn-secondary" onClick={() => setSendBackOpen(true)}>Send back to the Dean</button>
+                <button type="button" className="btn btn-primary" onClick={forwardToInstructor}>Forward to instructor</button>
+              </>)
+            }
             if (effectiveStatus !== 'approved' && roleKey !== 'instructor') {
               return (<>
                 {/* The plan is with its instructor (not submitted, or returned): the Program Head can remind them. */}
@@ -1063,6 +1077,10 @@ ${suggestionLine}` : text,
             }}
           />
           {waitingNotice && <p className={styles.waitingNotice} role="status"><Clock size={14} /> {waitingNotice}</p>}
+          {deanReturnWithMe && <p className={styles.waitingNotice} role="status"><Clock size={14} /> The Dean returned this plan to you. Read the Dean&apos;s comments, then forward it to the instructor or send it back to the Dean.</p>}
+          {roleKey === 'dean' && workflowState.counterNote && workflowState.currentStage !== 'approved' && (
+            <p className={styles.waitingNotice} role="status"><Clock size={14} /> Sent back by the Program Head: &ldquo;{workflowState.counterNote}&rdquo;</p>
+          )}
         </div>
       )}
 
@@ -1460,6 +1478,7 @@ ${suggestionLine}` : text,
       </div>
 
       {/* Approval comment box (preserved) */}
+      <SendBackDialog open={sendBackOpen} onClose={closeSendBack} onSend={sendBackToDean} courseCode={codeToUse} />
       <ApprovalCommentBox
         show={showCommentModal}
         onClose={closeComment}

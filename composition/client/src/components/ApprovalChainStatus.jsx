@@ -46,6 +46,8 @@ const ApprovalChainStatus = ({ workflow, compact = false, activeRole = null, onA
     const returnedBy = status.steps.filter(step => step.status === 'returned' && !step.readOnly).map(step => step.label)
     const summary = status.isFullyApproved
         ? `Approved${status.dateApproved ? ` on ${shortDate(status.dateApproved)}` : ''}`
+        : status.stage === 'with_program_head'
+            ? 'Returned by the Dean — with the Program Head, to forward to the instructor or send back'
         : status.stage === 'returned'
             ? `Returned${returnedBy.length ? ` by ${returnedBy.join(', ')}` : ''} — waiting for the instructor to resubmit`
             : status.stage === 'draft'

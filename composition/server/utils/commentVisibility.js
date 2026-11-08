@@ -33,6 +33,8 @@ const canSeeComment = (user, comment) => {
     if (!user) return false;
     if (!canViewComment(user.role, comment)) return false;
     if (seesEveryComment(user.role)) return true;
+    // A Dean return goes to the Program Head first, so the Program Head reads the Dean's comments.
+    if (user.role === 'program-head' && comment.commenter_role === 'DEAN') return true;
     return isApprover(user.role) ? isOwnComment(user, comment) : true;
 };
 
@@ -46,4 +48,12 @@ const canSeeRecordComment = (user, comment, { approved = false } = {}) => {
     return approved || !isApprover(user.role) || seesEveryComment(user.role) ? true : isOwnComment(user, comment);
 };
 
-module.exports = { COMMENT_ROLE_BY_ACCOUNT, isApprover, seesEveryComment, isOwnComment, canSeeComment, canSeeRecordComment, filterComments };
+// While a Dean return waits on the Program Head, the instructor does not see the Dean's new comments yet: they
+// reach the instructor with the forward. `state` is deriveReviewState(logs); `lastForwardAt` the latest FORWARDED.
+const withoutHeldDeanComments = (user, rows, state, lastForwardAt = null) => {
+    if (user?.role !== 'instructor' || !state?.withProgramHead) return rows;
+    const cutoff = lastForwardAt ? new Date(lastForwardAt).getTime() : -Infinity;
+    return rows.filter(row => row.commenter_role !== 'DEAN' || new Date(row.createdAt).getTime() <= cutoff);
+};
+
+module.exports = { COMMENT_ROLE_BY_ACCOUNT, isApprover, seesEveryComment, withoutHeldDeanComments, isOwnComment, canSeeComment, canSeeRecordComment, filterComments };

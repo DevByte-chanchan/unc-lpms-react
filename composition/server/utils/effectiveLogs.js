@@ -36,7 +36,7 @@ const effectiveLogs = async (sequelize, assignmentId, transaction) => {
     const logs = [];
     for (const id of chain) {
         logs.push(...await select(sequelize,
-            `SELECT log_id, co_assign_id, actor_role, actor_name, actor_user_id, action_type, createdAt
+            `SELECT log_id, co_assign_id, actor_role, actor_name, actor_user_id, action_type, note, createdAt
              FROM AssignmentWorkflowLogs WHERE co_assign_id = ? ORDER BY julianday(createdAt) ASC, log_id ASC;`, [id], transaction));
     }
     return logs;

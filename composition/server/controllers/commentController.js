@@ -9,16 +9,28 @@ const {
     loadCommentCourseRows
 } = require('../middleware/courseAuthorization');
 const { canViewComment, canViewSection, sectionOfComment } = require('../config/sectionAccess');
-const { COMMENT_ROLE_BY_ACCOUNT, isApprover, seesEveryComment, filterComments } = require('../utils/commentVisibility');
+const { COMMENT_ROLE_BY_ACCOUNT, isApprover, seesEveryComment, filterComments, withoutHeldDeanComments } = require('../utils/commentVisibility');
 const { earlierConsultantComments } = require('../utils/earlierConsultantComments');
 const { effectiveLogs } = require('../utils/effectiveLogs');
-const { planEditState } = require('../utils/workflowRules');
+const { planEditState, deriveReviewState } = require('../utils/workflowRules');
 
 
 // An approver sees only the comments they wrote, and only those about the part of the plan their role
 // covers (utils/commentVisibility.js, config/sectionAccess.js). The instructor and the VPAA see them all.
 // The author's account id is used here to decide, and is not sent on.
 const visibleComments = (req, rows) => filterComments(req.user, rows).map(({ commenter_user_id: _author, ...row }) => row);
+
+// For the instructor, a Dean return still with the Program Head keeps its new Dean comments back (see
+// commentVisibility.withoutHeldDeanComments). Everyone else is unaffected.
+const forInstructorTiming = async (req, rows, offeringId) => {
+    if (req.user?.role !== 'instructor' || !offeringId) return rows;
+    const [assignment] = await sequelize.query('SELECT co_assign_id FROM CourseOfferingAssignments WHERE pc_offering_id = ? ORDER BY co_assign_id DESC LIMIT 1;',
+        { replacements: [offeringId], type: Sequelize.QueryTypes.SELECT });
+    if (!assignment) return rows;
+    const logs = await effectiveLogs(sequelize, assignment.co_assign_id);
+    const forwards = logs.filter(entry => entry.action_type === 'FORWARDED');
+    return withoutHeldDeanComments(req.user, rows, deriveReviewState(logs), forwards.length ? forwards[forwards.length - 1].createdAt : null);
+};
 
 
 /**
@@ -110,7 +122,9 @@ exports.getCommentsByTarget = async (req, res) => {
             }
         );
 
-        return res.status(200).json(visibleComments(req, comments));
+        const [plan] = await sequelize.query('SELECT co.pc_offering_id FROM IntendedLearningOutcomes ilo INNER JOIN CourseOutcomes co ON co.co_id = ilo.co_id WHERE ilo.ilo_id = ?;',
+            { replacements: [iloId], type: Sequelize.QueryTypes.SELECT });
+        return res.status(200).json(visibleComments(req, await forInstructorTiming(req, comments, plan?.pc_offering_id)));
     } catch (error) {
         console.error('Error fetching context targeted comments:', error);
         return res.status(500).json({ message: 'Internal server error processing review items.' });
@@ -378,7 +392,7 @@ exports.getCourseCommentsByCode = async (req, res) => {
             }
         );
 
-        return res.status(200).json(visibleComments(req, comments));
+        return res.status(200).json(visibleComments(req, await forInstructorTiming(req, comments, accessRows[0].pc_offering_id)));
     } catch (error) {
         console.error('Error fetching course comments by code:', error);
         return res.status(500).json({ message: 'Internal server error fetching course comments.' });
@@ -423,7 +437,7 @@ exports.getCourseComments = async (req, res) => {
             }
         );
 
-        return res.status(200).json(visibleComments(req, comments));
+        return res.status(200).json(visibleComments(req, await forInstructorTiming(req, comments, Number(pcId))));
     } catch (error) {
         console.error('Error fetching course comments:', error);
         return res.status(500).json({ message: 'Internal server error fetching course comments.' });

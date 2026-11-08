@@ -118,3 +118,22 @@ test('logs in any order are read chronologically', () => {
   const b = log('PROGRAM_HEAD', 'ACCEPTED')
   assert.equal(workflowFromLogs([b, a], 'X').currentStage, 'parallel_review')
 })
+
+test('a Dean return waits on the Program Head, who forwards it or sends it back', () => {
+  const toDean = [log('INSTRUCTOR', 'SUBMITTED'), log('PROGRAM_HEAD', 'ACCEPTED'), log('LIBRARY_DIRECTOR', 'ACCEPTED')]
+  const withHead = wf([...toDean, log('DEAN', 'RETURNED')])
+  assert.equal(withHead.currentStage, 'with_program_head')
+  assert.equal(canActOnStage('program-head', withHead), true)
+  for (const role of ['instructor', 'dean', 'director-of-libraries']) assert.equal(canActOnStage(role, withHead), false, role)
+  assert.equal(canAcceptOnStage('program-head', withHead), false, 'forward or send back, not approve')
+  assert.deepEqual(consolidatedStatus(withHead).waitingNow, ['Program Head'])
+
+  const forwarded = wf([...toDean, log('DEAN', 'RETURNED'), log('PROGRAM_HEAD', 'FORWARDED')])
+  assert.equal(forwarded.currentStage, 'returned')
+  assert.equal(canActOnStage('instructor', forwarded), true)
+
+  const countered = wf([...toDean, log('DEAN', 'RETURNED'), { ...log('PROGRAM_HEAD', 'COUNTERED'), note: 'Already covered in CO2.' }])
+  assert.equal(countered.currentStage, 'dean')
+  assert.equal(countered.counterNote, 'Already covered in CO2.')
+  assert.equal(canAcceptOnStage('dean', countered), true)
+})

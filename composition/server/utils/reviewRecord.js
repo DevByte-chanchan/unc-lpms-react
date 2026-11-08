@@ -13,7 +13,7 @@ const ROLE_LABEL = {
     DEAN: 'Dean',
     INDUSTRY_CONSULTANT: 'Industry Consultant',
 };
-const ACTION_LABEL = { ASSIGNED: 'Assigned', SUBMITTED: 'Submitted', RETURNED: 'Returned', ACCEPTED: 'Accepted', APPROVED: 'Accepted' };
+const ACTION_LABEL = { ASSIGNED: 'Assigned', SUBMITTED: 'Submitted', RETURNED: 'Returned', ACCEPTED: 'Accepted', APPROVED: 'Accepted', FORWARDED: 'Forwarded to the instructor', COUNTERED: 'Sent back to the Dean' };
 const SECTION_LABEL = { references: 'References', topics: 'Topics', tlas: 'Teaching & Learning Activities' };
 
 const iso = (value) => (value ? new Date(value).toISOString() : null);
@@ -49,6 +49,7 @@ const assembleReviewRecord = ({ course, logs = [], comments = [], iloLabels = ne
             role: entry.actor_role,
             roleLabel: ROLE_LABEL[entry.actor_role] || entry.actor_role,
             action: ACTION_LABEL[entry.action_type] || entry.action_type,
+            note: entry.note || null,
             date: iso(entry.createdAt),
             // The Industry Consultant is not part of the approval chain; any old entry is history only.
             inChain: entry.actor_role !== 'INDUSTRY_CONSULTANT',

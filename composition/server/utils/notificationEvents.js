@@ -60,8 +60,15 @@ const planEvent = ({ actorRole, action, logsAfter, people }) => {
             recipients: pendingReviewerRoles(logsAfter).flatMap(role => usersForRole(people, role))
         };
     }
-    if (action === 'RETURNED') {
+    // A Dean return goes to the Program Head first; the instructor hears when it is forwarded.
+    if (action === 'RETURNED' && actorRole === 'DEAN') {
+        return { type: 'plan_returned', text: 'returned to the Program Head', recipients: usersForRole(people, 'PROGRAM_HEAD') };
+    }
+    if (action === 'RETURNED' || action === 'FORWARDED') {
         return { type: 'plan_returned', text: 'returned for revision', recipients: usersForRole(people, 'INSTRUCTOR') };
+    }
+    if (action === 'COUNTERED') {
+        return { type: 'plan_ready_for_dean', text: 'sent back to the Dean', recipients: usersForRole(people, 'DEAN') };
     }
     if (action === 'ACCEPTED') {
         if (actorRole === 'DEAN') {

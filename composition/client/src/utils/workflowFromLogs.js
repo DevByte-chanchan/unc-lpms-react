@@ -37,22 +37,40 @@ export const workflowFromLogs = (logs = [], courseCode = '') => {
   const returned = new Set()
   let submitted = false
   let lastSubmission = null
+  // A Dean return waiting on the Program Head to forward it or send it back (same rule as the server).
+  let withProgramHead = false
+  // The Program Head's reason when they last sent a Dean return back, for the Dean to read.
+  let counterNote = null
 
   for (const log of history) {
     if (log.actor_role === 'INSTRUCTOR' && log.action_type === 'SUBMITTED') {
       if (!submitted) { submitted = true; accepted.clear() }
       returned.clear()           // the returning reviewer(s) decide again; see the RETURNED rule below
+      withProgramHead = false
+      counterNote = null
       lastSubmission = log
+    } else if (log.actor_role === 'PROGRAM_HEAD' && ['FORWARDED', 'COUNTERED'].includes(log.action_type)) {
+      if (!withProgramHead) continue
+      withProgramHead = false
+      if (log.action_type === 'FORWARDED') returned.add('DEAN')
+      else counterNote = log.note || ''
     } else if (DECIDING.has(log.actor_role)) {
       if (['ACCEPTED', 'APPROVED'].includes(log.action_type)) {
-        if (returned.size > 0) continue   // an old acceptance given while the plan waited on the instructor never counts
+        // an old acceptance given while the plan waited on the instructor (or the Program Head) never counts
+        if (returned.size > 0 || withProgramHead) continue
         accepted.set(log.actor_role, log)
         returned.delete(log.actor_role)
       } else if (log.action_type === 'RETURNED') {
+        // Same rule as the server: a Dean return goes to the Program Head first and keeps the reviewers'
+        // acceptances; a reviewer's return clears every acceptance.
+        if (log.actor_role === 'DEAN') {
+          accepted.delete('DEAN')
+          withProgramHead = true
+          counterNote = null
+          continue
+        }
         returned.add(log.actor_role)
-        // Same rule as the server: a reviewer's return clears every acceptance; a Dean return keeps the reviewers'.
-        if (log.actor_role === 'DEAN') accepted.delete('DEAN')
-        else accepted.clear()
+        accepted.clear()
       }
     }
   }
@@ -65,6 +83,7 @@ export const workflowFromLogs = (logs = [], courseCode = '') => {
 
   let currentStage = 'draft'
   if (done('DEAN')) currentStage = 'approved'
+  else if (withProgramHead) currentStage = 'with_program_head'
   else if (returned.size > 0) currentStage = 'returned'
   else if (submitted && reviewersDone) currentStage = 'dean'
   else if (submitted && REQUIRED.some(done)) currentStage = 'parallel_review'
@@ -83,7 +102,10 @@ export const workflowFromLogs = (logs = [], courseCode = '') => {
     // Who submitted it (the instructor's name from the log), for the "Prepared by" line of an export.
     submittedBy: lastSubmission?.actor_name || null,
     // Which roles returned the plan and have not yet decided again (account role keys).
-    returnedBy: [...returned].map(role => ROLE_KEY[role]),
+    returnedBy: withProgramHead ? ['dean'] : [...returned].map(role => ROLE_KEY[role]),
+    // A Dean return waiting on the Program Head, and the Program Head's reason when they last sent one back.
+    withProgramHead,
+    counterNote,
     parallelReview: {
       library_director: node('LIBRARY_DIRECTOR'),
       program_head: node('PROGRAM_HEAD')

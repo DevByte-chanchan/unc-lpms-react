@@ -10,6 +10,8 @@ const { Op } = require('sequelize');
 const { sequelize, Sequelize, User, Notification, AuditLog } = require('../models');
 const { pendingReviewerRoles } = require('./workflowRules');
 const { effectiveLogs } = require('./effectiveLogs');
+const { planEditState: planEditStateOf } = require('./workflowRules');
+const logsOf = (f) => effectiveLogs(sequelize, f.assignmentId);
 const { planEvent, onComment, onCommentsResolved, onCourseAssigned, onRevisionStarted } = require('./notificationEvents');
 const { createNotifier, eventMessage, TYPES } = require('./notify');
 const { purgeReadNotifications, startRetention } = require('./notificationRetention');
@@ -54,11 +56,11 @@ const fixture = async () => {
 
 const ACCOUNT = { INSTRUCTOR: 'instructor', LIBRARY_DIRECTOR: 'director-of-libraries', PROGRAM_HEAD: 'program-head', DEAN: 'dean' };
 // Drives the real workflow controller as the given person.
-const act = async (f, who, role, action) => {
+const act = async (f, who, role, action, note) => {
     const user = f[who];
     const res = { code: 200, body: null, status(c) { this.code = c; return this; }, json(b) { this.body = b; return this; } };
     await recordWorkflowAction({
-        body: { actor_role: role, action_type: action, pcId: f.offeringId },
+        body: { actor_role: role, action_type: action, pcId: f.offeringId, ...(note === undefined ? {} : { note }) },
         user: { id: user.user_id, name: user.name, role: ACCOUNT[role] }, ip: '::1'
     }, res, err => { throw err; });
     return res;
@@ -90,7 +92,9 @@ test('planEvent: resubmission, return, partial acceptance, ready for Dean, appro
     assert.deepEqual(ev('INSTRUCTOR', 'SUBMITTED', [sub, L('LIBRARY_DIRECTOR', 'ACCEPTED'), L('PROGRAM_HEAD', 'RETURNED'), sub]).recipients, [3, 4, 2]);
     // After a Dean return only the Dean hears about the resubmission.
     assert.deepEqual(ev('INSTRUCTOR', 'SUBMITTED', [sub, L('LIBRARY_DIRECTOR', 'ACCEPTED'), L('PROGRAM_HEAD', 'ACCEPTED'), L('DEAN', 'RETURNED'), sub]).recipients, [5]);
-    assert.deepEqual([ev('PROGRAM_HEAD', 'RETURNED', [sub, L('PROGRAM_HEAD', 'RETURNED')]).type, ev('DEAN', 'RETURNED', []).recipients], ['plan_returned', [1]]);
+    assert.deepEqual([ev('PROGRAM_HEAD', 'RETURNED', [sub, L('PROGRAM_HEAD', 'RETURNED')]).type, ev('DEAN', 'RETURNED', []).recipients], ['plan_returned', [2]], 'a Dean return goes to the Program Head');
+    assert.deepEqual(ev('PROGRAM_HEAD', 'FORWARDED', []).recipients, [1], 'the forward tells the instructor');
+    assert.deepEqual([ev('PROGRAM_HEAD', 'COUNTERED', []).type, ev('PROGRAM_HEAD', 'COUNTERED', []).recipients], ['plan_ready_for_dean', [5]], 'sending it back tells the Dean');
     assert.equal(ev('LIBRARY_DIRECTOR', 'ACCEPTED', [sub, L('LIBRARY_DIRECTOR', 'ACCEPTED')]), null, 'the first of two reviewers accepting tells nobody');
     const ready = ev('PROGRAM_HEAD', 'ACCEPTED', [sub, L('LIBRARY_DIRECTOR', 'ACCEPTED'), L('PROGRAM_HEAD', 'ACCEPTED')]);
     assert.deepEqual([ready.type, ready.recipients], ['plan_ready_for_dean', [5]]);
@@ -511,4 +515,41 @@ test('the comment list names the author of each comment, as recorded', async () 
     const mine = listed.body.find(c => c.message === 'Name me');
     assert.equal(mine.commenter_name, f.ph.name);
     assert.equal('commenter_user_id' in mine, false, 'the account id is still not sent');
+});
+
+test('a Dean return: to the Program Head, sent back with a reason, returned again, forwarded to the instructor', async () => {
+    const f = await fixture();
+    for (const [who, role, action] of [['instructor', 'INSTRUCTOR', 'SUBMITTED'], ['ph', 'PROGRAM_HEAD', 'ACCEPTED'], ['ld', 'LIBRARY_DIRECTOR', 'ACCEPTED'], ['dean', 'DEAN', 'RETURNED']]) {
+        assert.equal((await act(f, who, role, action)).code, 201, `${role} ${action}`);
+    }
+    assert.equal((await inbox(f.ph, 'plan_returned')).length, 1, 'the Program Head hears of the Dean return');
+    assert.equal((await inbox(f.instructor, 'plan_returned')).length, 0, 'the instructor does not, yet');
+    assert.equal((await act(f, 'instructor', 'INSTRUCTOR', 'SUBMITTED')).code, 409, 'not the instructor’s yet');
+    assert.equal((await act(f, 'ld', 'LIBRARY_DIRECTOR', 'FORWARDED')).code, 403, 'only the Program Head forwards');
+
+    assert.equal((await act(f, 'ph', 'PROGRAM_HEAD', 'COUNTERED')).code, 400, 'a reason is required');
+    assert.equal((await act(f, 'ph', 'PROGRAM_HEAD', 'COUNTERED', 'The ILOs already cover this; see CO2.')).code, 201);
+    const [note] = await q(`SELECT note FROM AssignmentWorkflowLogs WHERE co_assign_id = ? AND action_type = 'COUNTERED'`, [f.assignmentId]);
+    assert.equal(note.note, 'The ILOs already cover this; see CO2.');
+    assert.equal((await inbox(f.dean, 'plan_ready_for_dean')).length >= 1, true, 'the Dean hears it came back');
+
+    assert.equal((await act(f, 'dean', 'DEAN', 'RETURNED')).code, 201, 'the Dean returns it again');
+    assert.equal((await act(f, 'ph', 'PROGRAM_HEAD', 'FORWARDED')).code, 201);
+    assert.equal((await inbox(f.instructor, 'plan_returned')).length, 1, 'now the instructor is told');
+    assert.equal((await act(f, 'instructor', 'INSTRUCTOR', 'SUBMITTED')).code, 201);
+    assert.equal((await act(f, 'dean', 'DEAN', 'ACCEPTED')).code, 201, 'straight back to the Dean');
+});
+
+test('the migration keeps a plan the Dean returned under the old rule with its instructor', async () => {
+    const f = await fixture();
+    for (const [who, role, action] of [['instructor', 'INSTRUCTOR', 'SUBMITTED'], ['ph', 'PROGRAM_HEAD', 'ACCEPTED'], ['ld', 'LIBRARY_DIRECTOR', 'ACCEPTED'], ['dean', 'DEAN', 'RETURNED']]) {
+        assert.equal((await act(f, who, role, action)).code, 201);
+    }
+    assert.equal(planEditStateOf(await logsOf(f)).editable, false, 'under the new rule it is with the Program Head');
+    await require('../migrations/20261108000000-dean-returns-through-program-head').up(sequelize.getQueryInterface());
+    const logs = await logsOf(f);
+    assert.equal(logs[logs.length - 1].action_type, 'FORWARDED');
+    assert.equal(planEditStateOf(logs).state, 'Returned', 'the instructor keeps it');
+    await require('../migrations/20261108000000-dean-returns-through-program-head').up(sequelize.getQueryInterface());
+    assert.equal((await logsOf(f)).filter(l => l.action_type === 'FORWARDED').length, 1, 'running it again adds nothing');
 });

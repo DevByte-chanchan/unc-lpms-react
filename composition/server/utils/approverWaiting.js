@@ -19,10 +19,18 @@ const REVIEWERS = ['LIBRARY_DIRECTOR', 'PROGRAM_HEAD'];
 const waitingSince = (logs, role) => {
     const last = logs.map(entry => entry.actor_role === 'INSTRUCTOR' && entry.action_type === 'SUBMITTED').lastIndexOf(true);
     if (last < 0) return null;
+    const since = logs.slice(last);
+    const latest = (match) => { const hits = since.filter(match); return hits.length ? hits[hits.length - 1].createdAt : null; };
+    // A Dean return waits on the Program Head from that return.
+    if (role === 'PROGRAM_HEAD') {
+        const deanReturn = latest(entry => entry.actor_role === 'DEAN' && entry.action_type === 'RETURNED');
+        if (deanReturn) return deanReturn;
+    }
     if (role !== 'DEAN') return logs[last].createdAt;
-    // The Dean waits from the later of the two acceptances given since that submission.
-    const accepted = logs.slice(last).filter(entry => REVIEWERS.includes(entry.actor_role) && ['ACCEPTED', 'APPROVED'].includes(entry.action_type));
-    return accepted.length ? accepted[accepted.length - 1].createdAt : logs[last].createdAt;
+    // The Dean waits from the later of the two acceptances given since that submission, or from the Program
+    // Head sending a return back.
+    return latest(entry => (REVIEWERS.includes(entry.actor_role) && ['ACCEPTED', 'APPROVED'].includes(entry.action_type))
+        || (entry.actor_role === 'PROGRAM_HEAD' && entry.action_type === 'COUNTERED')) || logs[last].createdAt;
 };
 
 // One row per (plan, role it waits on): { offeringId, role, programHeadId, deanId, waitedDays }.

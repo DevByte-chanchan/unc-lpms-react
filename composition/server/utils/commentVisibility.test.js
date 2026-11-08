@@ -4,7 +4,7 @@
 // their part of the plan), except the Dean; the Dean, the instructor and the VPAA see them all. See utils/commentVisibility.js.
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { COMMENT_ROLE_BY_ACCOUNT, isApprover, isOwnComment, canSeeComment, canSeeRecordComment, filterComments } = require('./commentVisibility');
+const { COMMENT_ROLE_BY_ACCOUNT, isApprover, isOwnComment, canSeeComment, canSeeRecordComment, filterComments, withoutHeldDeanComments } = require('./commentVisibility');
 
 const user = (id, role) => ({ id, role });
 const comment = (id, commenter_role, commenter_user_id, comment_for = 'topics') => ({ comment_id: id, commenter_role, commenter_user_id, comment_for });
@@ -20,9 +20,10 @@ const comments = [
 ];
 const idsFor = (u) => filterComments(u, comments).map(c => c.comment_id);
 
-test('a Program Head sees only their own comments, and an untraceable one of their role', () => {
-    assert.deepEqual(idsFor(user(2, 'program-head')), [1, 7]);
-    assert.deepEqual(idsFor(user(22, 'program-head')), [2, 7]);
+test('a Program Head sees their own comments, an untraceable one of their role, and the Dean’s', () => {
+    // The Dean's comments reach the Program Head, who forwards a Dean return (or sends it back).
+    assert.deepEqual(idsFor(user(2, 'program-head')), [1, 3, 7]);
+    assert.deepEqual(idsFor(user(22, 'program-head')), [2, 3, 7]);
 });
 
 test('the Dean sees every approver comment, to decide with all of them in view', () => {
@@ -85,4 +86,18 @@ test('no user sees any record comment', () => {
 
 test('the Dean reads the whole review record while the plan is under review', () => {
     assert.deepEqual(recordIds(user(5, 'dean'), false), [1, 2, 3, 4, 5, 6, 7]);
+});
+
+test('while a Dean return is with the Program Head, the instructor does not see the new Dean comments', () => {
+    const rows = [
+        { commenter_role: 'DEAN', createdAt: '2026-11-01T00:00:00Z', comment_id: 'old' },
+        { commenter_role: 'DEAN', createdAt: '2026-11-05T00:00:00Z', comment_id: 'new' },
+        { commenter_role: 'PROGRAM_HEAD', createdAt: '2026-11-05T00:00:00Z', comment_id: 'ph' }
+    ];
+    const held = { withProgramHead: true };
+    const ids = (u, state, forwardAt) => withoutHeldDeanComments(u, rows, state, forwardAt).map(r => r.comment_id);
+    assert.deepEqual(ids(user(1, 'instructor'), held, '2026-11-02T00:00:00Z'), ['old', 'ph'], 'the earlier, already forwarded Dean comment stays');
+    assert.deepEqual(ids(user(1, 'instructor'), held, null), ['ph']);
+    assert.deepEqual(ids(user(1, 'instructor'), { withProgramHead: false }, null), ['old', 'new', 'ph'], 'once forwarded, all of them');
+    assert.deepEqual(ids(user(2, 'program-head'), held, null), ['old', 'new', 'ph'], 'nobody else is affected');
 });

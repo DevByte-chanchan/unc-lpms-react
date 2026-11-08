@@ -10,8 +10,12 @@
 //
 // A return goes back to the instructor. While it waits there, nobody can accept it. A return by
 // the Library Director or the Program Head clears every acceptance, so after the resubmission
-// both reviewers accept again (the instructor may have changed any section). If the Dean
-// returned it, the reviewers' acceptances stay and it goes back to the Dean only. The same rules are mirrored on the client in utils/workflowFromLogs.js.
+// both reviewers accept again (the instructor may have changed any section).
+//
+// A Dean return goes to the Program Head first (owner's decision, Nov 2026): the plan stays locked
+// "with the Program Head", who either FORWARDS it to the instructor or, disagreeing, COUNTERS it
+// back to the Dean with a note. After a forward the instructor edits and resubmits, and it goes back
+// to the Dean only: the reviewers' acceptances stay. The same rules are mirrored on the client in utils/workflowFromLogs.js.
 
 const REQUIRED_REVIEWERS = ['LIBRARY_DIRECTOR', 'PROGRAM_HEAD'];
 const DECIDING_ROLES = new Set([...REQUIRED_REVIEWERS, 'DEAN']);
@@ -21,6 +25,8 @@ const deriveReviewState = (logs = []) => {
     const accepted = new Set();
     const returned = new Set();
     let submitted = false;
+    // A Dean return waiting on the Program Head to forward it or counter it.
+    let withProgramHead = false;
 
     for (const entry of Array.isArray(logs) ? logs : []) {
         if (entry.actor_role === 'INSTRUCTOR' && entry.action_type === 'SUBMITTED') {
@@ -30,19 +36,31 @@ const deriveReviewState = (logs = []) => {
             }
             // Resubmission: the plan is back with the reviewers (see the RETURNED rule below).
             returned.clear();
+            withProgramHead = false;
+        } else if (entry.actor_role === 'PROGRAM_HEAD' && ['FORWARDED', 'COUNTERED'].includes(entry.action_type)) {
+            if (!withProgramHead) continue;
+            withProgramHead = false;
+            // Forwarded: it is the instructor's, as a Dean return. Countered: back with the Dean.
+            if (entry.action_type === 'FORWARDED') returned.add('DEAN');
         } else if (DECIDING_ROLES.has(entry.actor_role)) {
             if (['ACCEPTED', 'APPROVED'].includes(entry.action_type)) {
-                // Older logs may hold an acceptance given while the plan waited on the instructor; it never counts.
-                if (returned.size > 0) continue;
+                // Older logs may hold an acceptance given while the plan waited on the instructor (or on the Program
+                // Head after a Dean return); it never counts.
+                if (returned.size > 0 || withProgramHead) continue;
                 accepted.add(entry.actor_role);
                 returned.delete(entry.actor_role);
             } else if (entry.action_type === 'RETURNED') {
+                if (entry.actor_role === 'DEAN') {
+                    // To the Program Head first; the instructor gets it only when forwarded.
+                    accepted.delete('DEAN');
+                    withProgramHead = true;
+                    continue;
+                }
                 returned.add(entry.actor_role);
                 // A reviewer's return unlocks the whole plan, so every acceptance so far no longer matches
                 // what will be resubmitted: both reviewers approve again. A Dean return keeps the reviewers'
                 // acceptances and only the Dean reviews again.
-                if (entry.actor_role === 'DEAN') accepted.delete('DEAN');
-                else accepted.clear();
+                accepted.clear();
             }
         }
     }
@@ -51,6 +69,7 @@ const deriveReviewState = (logs = []) => {
         submitted,
         accepted,
         returned,
+        withProgramHead,
         approved: accepted.has('DEAN'),
         reviewersDone: REQUIRED_REVIEWERS.every(role => accepted.has(role)),
     };
@@ -72,6 +91,7 @@ const planEditState = (logs = []) => {
 const pendingReviewerRoles = (logs = []) => {
     const state = deriveReviewState(logs);
     if (!state.submitted || state.approved || state.returned.size > 0) return [];
+    if (state.withProgramHead) return ['PROGRAM_HEAD'];
     const waiting = REQUIRED_REVIEWERS.filter(role => !state.accepted.has(role));
     return waiting.length > 0 ? waiting : ['DEAN'];
 };
@@ -81,6 +101,16 @@ const validateWorkflowTransition = (logs = [], actorRole, actionType) => {
     const state = deriveReviewState(logs);
     if (state.approved) {
         return { allowed: false, error: 'This learning plan is already fully approved.' };
+    }
+
+    // A Dean return waiting on the Program Head: only the Program Head forwards it or counters it.
+    if (state.withProgramHead) {
+        return actorRole === 'PROGRAM_HEAD' && ['FORWARDED', 'COUNTERED'].includes(actionType)
+            ? { allowed: true }
+            : { allowed: false, error: 'The Dean returned this plan to the Program Head, who forwards it to the instructor or sends it back to the Dean.' };
+    }
+    if (['FORWARDED', 'COUNTERED'].includes(actionType)) {
+        return { allowed: false, error: 'There is no Dean return waiting for the Program Head.' };
     }
 
     if (actorRole === 'INSTRUCTOR') {

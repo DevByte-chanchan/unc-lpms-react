@@ -186,7 +186,7 @@ const getWorkflowByOffering = async (req, res, next) => {
             return res.json({ co_assign_id: null, pc_offering_id: access.pc_offering_id ?? null, logs: [], plan });
         }
         const logs = (await effectiveLogs(sequelize, assignmentId))
-            .map(({ actor_role, actor_name, action_type, createdAt }) => ({ actor_role, actor_name, action_type, createdAt }));
+            .map(({ actor_role, actor_name, action_type, note, createdAt }) => ({ actor_role, actor_name, action_type, note: note || null, createdAt }));
         return res.json({ co_assign_id: assignmentId, pc_offering_id: access.pc_offering_id, logs, plan });
     } catch (err) {
         return next(err);
@@ -247,13 +247,14 @@ const getAssignmentById = async (req, res, next) => {
  * POST /api/assignments/action
  * Module 2 integration: records a workflow action (submit / return / approve)
  * as an AssignmentWorkflowLog row so course-table statuses reflect real state.
- * Body: { actor_role, action_type, pcId } — workflow mutations require the
+ * Body: { actor_role, action_type, pcId, note? } — note is required when the Program Head sends a Dean
+ * return back to the Dean (COUNTERED). Workflow mutations require the
  * exact offering id so duplicate course codes cannot select another program.
  */
 const recordWorkflowAction = async (req, res, next) => {
     try {
         const { actor_role, action_type, pcId } = req.body || {};
-        const VALID_ACTIONS = ['SUBMITTED', 'RETURNED', 'ACCEPTED'];
+        const VALID_ACTIONS = ['SUBMITTED', 'RETURNED', 'ACCEPTED', 'FORWARDED', 'COUNTERED'];
         const VALID_ROLES = ['INSTRUCTOR', 'LIBRARY_DIRECTOR', 'PROGRAM_HEAD', 'DEAN'];
         const authenticatedActor = WORKFLOW_ROLE_BY_ACCOUNT[req.user?.role];
 
@@ -262,7 +263,9 @@ const recordWorkflowAction = async (req, res, next) => {
         }
         const instructorAction = action_type === 'SUBMITTED' && authenticatedActor === 'INSTRUCTOR';
         const reviewerAction = ['RETURNED', 'ACCEPTED'].includes(action_type) && authenticatedActor !== 'INSTRUCTOR';
-        if (!instructorAction && !reviewerAction) {
+        // Forwarding a Dean return to the instructor, or countering it back to the Dean, is the Program Head's alone.
+        const headAction = ['FORWARDED', 'COUNTERED'].includes(action_type) && authenticatedActor === 'PROGRAM_HEAD';
+        if (!instructorAction && !reviewerAction && !headAction) {
             return res.status(403).json({ error: 'Your account cannot perform this workflow action.' });
         }
 
@@ -272,6 +275,12 @@ const recordWorkflowAction = async (req, res, next) => {
         if (!VALID_ROLES.includes(actor_role)) {
             return res.status(400).json({ error: `actor_role must be one of: ${VALID_ROLES.join(', ')}` });
         }
+        // The Dean is told why their return came back, so the reason is required.
+        const note = String(req.body?.note ?? '').trim();
+        if (action_type === 'COUNTERED' && note.length < 5) {
+            return res.status(400).json({ error: 'Say why the plan goes back to the Dean (at least a few words).' });
+        }
+        if (note.length > 1000) return res.status(400).json({ error: 'The note is longer than 1,000 characters.' });
         const offeringId = Number(pcId);
         if (!Number.isSafeInteger(offeringId) || offeringId <= 0) {
             return res.status(400).json({ error: 'Provide a valid pcId to identify the course assignment.' });
@@ -304,7 +313,8 @@ const recordWorkflowAction = async (req, res, next) => {
                     actor_role,
                     actor_name: String(req.user?.name || '').slice(0, 100) || null,
                     actor_user_id: req.user?.id ?? null,
-                    action_type
+                    action_type,
+                    note: action_type === 'COUNTERED' ? note : null
                 }, { transaction });
                 // The revision number is assigned only now, when the Dean accepts.
                 if (actor_role === 'DEAN' && action_type === 'ACCEPTED') {

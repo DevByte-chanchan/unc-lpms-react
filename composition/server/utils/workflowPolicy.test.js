@@ -4,6 +4,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { _internals } = require('../controllers/assignmentController');
 const { CourseOfferingAssignment } = require('../models');
+const { pendingReviewerRoles, planEditState } = require('./workflowRules');
 
 const decision = (logs, actorRole, actionType) =>
     _internals?.validateWorkflowTransition?.(logs, actorRole, actionType);
@@ -103,4 +104,29 @@ test('simultaneous actions for one assignment are serialized before transition c
 
 test('one offering resolves to exactly one workflow assignment', () => {
     assert.equal(CourseOfferingAssignment.rawAttributes.pc_offering_id.unique, true);
+});
+
+test('a Dean return goes to the Program Head, who forwards it or sends it back', () => {
+    const toDean = [log('INSTRUCTOR', 'SUBMITTED'), log('LIBRARY_DIRECTOR', 'ACCEPTED'), log('PROGRAM_HEAD', 'ACCEPTED')];
+    const withHead = [...toDean, log('DEAN', 'RETURNED')];
+    assert.deepEqual(pendingReviewerRoles(withHead), ['PROGRAM_HEAD']);
+    assert.equal(planEditState(withHead).editable, false, 'the instructor cannot edit it yet');
+    assert.equal(decision(withHead, 'INSTRUCTOR', 'SUBMITTED').allowed, false);
+    assert.equal(decision(withHead, 'DEAN', 'ACCEPTED').allowed, false);
+    assert.equal(decision(withHead, 'LIBRARY_DIRECTOR', 'RETURNED').allowed, false);
+    assert.equal(decision(withHead, 'PROGRAM_HEAD', 'ACCEPTED').allowed, false, 'only forward or send back');
+    assert.equal(decision(withHead, 'PROGRAM_HEAD', 'FORWARDED').allowed, true);
+    assert.equal(decision(withHead, 'PROGRAM_HEAD', 'COUNTERED').allowed, true);
+
+    const forwarded = [...withHead, log('PROGRAM_HEAD', 'FORWARDED')];
+    assert.equal(planEditState(forwarded).state, 'Returned');
+    assert.equal(decision(forwarded, 'INSTRUCTOR', 'SUBMITTED').allowed, true);
+    const resubmitted = [...forwarded, log('INSTRUCTOR', 'SUBMITTED')];
+    assert.deepEqual(pendingReviewerRoles(resubmitted), ['DEAN'], 'back to the Dean only: the reviewers’ approvals stay');
+
+    const countered = [...withHead, log('PROGRAM_HEAD', 'COUNTERED')];
+    assert.deepEqual(pendingReviewerRoles(countered), ['DEAN']);
+    assert.equal(decision(countered, 'DEAN', 'ACCEPTED').allowed, true);
+    assert.equal(decision(countered, 'DEAN', 'RETURNED').allowed, true, 'the Dean may return it again');
+    assert.equal(decision(toDean, 'PROGRAM_HEAD', 'FORWARDED').allowed, false, 'nothing to forward without a Dean return');
 });
