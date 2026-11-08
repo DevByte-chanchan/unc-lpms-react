@@ -20,3 +20,13 @@ test('the text box offers Ignore and passes the plan terms through', async () =>
   assert.match(box, /localCheck\(value, skip\)/)
   assert.equal((dialog.match(/knownWords=\{planTerms\}/g) || []).length, 2)
 })
+
+test('Filipino, Taglish and Naga Bikol words are not flagged; English typos still are', () => {
+  setWordList(WORDS)
+  const text = 'Maray na halimbawa kasi kailangan pa ng dagdag na paliwanag sa estudyante, salamat. The studnets need more.'
+  const flagged = findIssues(text).map(i => i.word.toLowerCase())
+  for (const word of ['maray', 'halimbawa', 'kasi', 'kailangan', 'dagdag', 'paliwanag', 'estudyante', 'salamat']) {
+    assert.ok(!flagged.includes(word), `${word} is not flagged`)
+  }
+  assert.ok(flagged.includes('studnets'))
+})

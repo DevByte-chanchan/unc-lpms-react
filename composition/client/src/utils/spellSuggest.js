@@ -36,6 +36,7 @@
 
 import { MISSPELLINGS } from './reviewGate.js'
 import { isProtectedToken } from './autoCorrect.js'
+import { LOCAL_WORDS } from './localWords.js'
 
 export const MAX_DISTANCE = 2
 
@@ -204,6 +205,8 @@ export const isKnownWord = (word = '') => {
     // of it — this check has to come first.
     if (KNOWN_BAD.has(w)) return false
     if (DICTIONARY.has(w)) return true
+    // Filipino, Taglish and Naga Bikol words people write in their comments (utils/localWords.js).
+    if (LOCAL_WORDS.has(w)) return true
     // Possessives and contractions: "student's" is "student" plus punctuation.
     if (w.endsWith("'s") && inDictionary(w.slice(0, -2))) return true
     if (hasKnownStem(w)) return true
