@@ -17,7 +17,7 @@ test('the text box offers Ignore and passes the plan terms through', async () =>
   const box = fs.readFileSync(new URL('../components/SpellCheckArea.jsx', import.meta.url), 'utf8')
   const dialog = fs.readFileSync(new URL('../components/ApprovalCommentBox.jsx', import.meta.url), 'utf8')
   assert.match(box, /onClick=\{\(\) => ignore\(open\.issue\)\}/)
-  assert.match(box, /localCheck\(value, skip\)/)
+  assert.match(box, /localCheck\(value, skip, checkCapitals\)/)
   assert.equal((dialog.match(/knownWords=\{planTerms\}/g) || []).length, 2)
 })
 
@@ -29,4 +29,20 @@ test('Filipino, Taglish and Naga Bikol words are not flagged; English typos stil
     assert.ok(!flagged.includes(word), `${word} is not flagged`)
   }
   assert.ok(flagged.includes('studnets'))
+})
+
+test('academic words are known, code tokens are skipped, and the slips the rules used to excuse are caught', () => {
+  setWordList(WORDS)
+  const flagged = (text, options) => findIssues(text, options).map(i => i.word.toLowerCase())
+  assert.deepEqual(flagged('Statistical inference over relational and declarative models is idempotent.'), [])
+  assert.deepEqual(flagged('Configure the vCPU, the vSwitch and GraphQL, then run t-tests.'), [])
+  for (const typo of ['progam', 'langauge', 'teh', 'adn']) assert.deepEqual(flagged(`the ${typo} here`), [typo], typo)
+  assert.deepEqual(flagged('It explores lifecycles and deployments.'), [], 'endings are not slips')
+})
+
+test('a title checks its capitalised words; prose leaves them as names', () => {
+  setWordList(WORDS)
+  const title = 'Introduction to Softwere Architecture'
+  assert.deepEqual(findIssues(title).map(i => i.word), [], 'mid-sentence capitals are names in prose')
+  assert.deepEqual(findIssues(title, { checkCapitals: true }).map(i => i.word), ['Softwere'])
 })

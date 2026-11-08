@@ -37,6 +37,7 @@
 import { MISSPELLINGS } from './reviewGate.js'
 import { isProtectedToken } from './autoCorrect.js'
 import { LOCAL_WORDS } from './localWords.js'
+import { ACADEMIC_WORDS } from './academicWords.js'
 
 export const MAX_DISTANCE = 2
 
@@ -75,7 +76,8 @@ export const isReady = () => DICTIONARY.size > 0
 
 /** Injectable, so the tests can load the list synchronously. */
 export const setWordList = (words = []) => {
-    WORDS = Array.isArray(words) ? words : []
+    // The general list plus the academic and IT words plans use (utils/academicWords.js).
+    WORDS = Array.isArray(words) && words.length ? [...new Set([...words, ...ACADEMIC_WORDS])] : []
     DICTIONARY = new Set(WORDS)
     SUGGESTION_CACHE.clear()
     return isReady()
@@ -198,6 +200,24 @@ const isCompound = (w) => {
     return false
 }
 
+// One adjacent swap, one missing letter or one extra letter away from a dictionary word (not a substituted letter:
+// endings like "assessed"/"assesses" differ by exactly that, and are real). Only for longer words, and a missing or
+// extra letter only before the last two, where endings are ("lifecycles" is "lifecycle" + s, not a slip).
+const LETTERS = 'abcdefghijklmnopqrstuvwxyz'
+const isNearMiss = (w) => {
+    if (w.length < 6) return false
+    for (let i = 0; i < w.length - 1; i++) {
+        if (w[i] !== w[i + 1] && inDictionary(w.slice(0, i) + w[i + 1] + w[i] + w.slice(i + 2))) return true
+    }
+    for (let i = 0; i < w.length - 2; i++) {
+        if (inDictionary(w.slice(0, i) + w.slice(i + 1))) return true
+    }
+    for (let i = 0; i <= w.length - 2; i++) {
+        for (const letter of LETTERS) if (inDictionary(w.slice(0, i) + letter + w.slice(i))) return true
+    }
+    return false
+}
+
 export const isKnownWord = (word = '') => {
     const w = String(word).toLowerCase()
     if (!w) return false
@@ -209,10 +229,12 @@ export const isKnownWord = (word = '') => {
     if (LOCAL_WORDS.has(w)) return true
     // Possessives and contractions: "student's" is "student" plus punctuation.
     if (w.endsWith("'s") && inDictionary(w.slice(0, -2))) return true
+    // Known only by its parts (an ending, a prefix, two glued words)? Not when it is one slip away from a real
+    // word: "progam" is not "pro" + "gam", it is "program" with a letter missing.
+    // A word known by its ending ("explores", "deployments") is trusted as it is.
     if (hasKnownStem(w)) return true
-    if (hasKnownRoot(w)) return true
-    if (isCompound(w)) return true
-    return false
+    const byParts = hasKnownRoot(w) || isCompound(w)
+    return byParts && !isNearMiss(w)
 }
 
 /**
@@ -361,7 +383,9 @@ const cachedSuggest = (word) => {
 export const termWords = (terms = []) =>
     new Set((Array.isArray(terms) ? terms : []).flatMap(term => String(term || '').toLowerCase().match(/[a-z][a-z'-]*/g) || []))
 
-export const findIssues = (text = '') => {
+// options.checkCapitals: also check capitalised words in mid-sentence. Off for prose, where they are mostly names;
+// on for a title, where every word is capitalised and would otherwise never be checked.
+export const findIssues = (text = '', { checkCapitals = false } = {}) => {
     // No dictionary, no opinion. Returning [] here is what makes `isReady()`
     // the component's business rather than this function's.
     if (!isReady()) return []
@@ -378,12 +402,15 @@ export const findIssues = (text = '') => {
         if (!word) continue
         if (isProtectedToken(word)) continue
         if (isProtectedToken(m[0])) continue
-        if (word.length < MIN_WORD_LENGTH) continue
-
+        // Code and product names with a capital inside ("vCPU", "GraphQL") and letter-hyphen forms ("t-tests").
+        if (/[a-z][A-Z]/.test(word) || /^[A-Za-z]-/.test(m[0])) continue
         const key = word.toLowerCase()
+        // Short words are not checked, except the known misspellings among them ("teh", "adn").
+        if (word.length < MIN_WORD_LENGTH && !KNOWN_BAD.has(key)) continue
+
         if (isKnownWord(key)) continue
         // A known misspelling is still a known misspelling even capitalised.
-        if (!KNOWN_BAD.has(key) && isMidSentenceCapital(source, m.index, word)) continue
+        if (!checkCapitals && !KNOWN_BAD.has(key) && isMidSentenceCapital(source, m.index, word)) continue
 
         const suggestions = cachedSuggest(key).map(s => matchCase(word, s))
         // THE CONSERVATIVE RULE: no near neighbour, no complaint.

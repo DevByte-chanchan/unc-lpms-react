@@ -41,8 +41,8 @@ import styles from '../styles/SpellCheckArea.module.sass'
 // Words someone chose to "Ignore" this session, in any box (not kept after a reload).
 const IGNORED = new Set()
 
-const localCheck = (text, skip = new Set()) => {
-    const spelling = findIssues(text).filter(i => {
+const localCheck = (text, skip = new Set(), checkCapitals = false) => {
+    const spelling = findIssues(text, { checkCapitals }).filter(i => {
         const word = i.word.toLowerCase()
         return !skip.has(word) && !IGNORED.has(word)
     })
@@ -75,6 +75,8 @@ const SpellCheckArea = ({
     knownWords = [],
     // A one-line field (a title): no resize handle, and Enter does not start a new line.
     singleLine = false,
+    // Also check capitalised words (a title, where every word is capitalised); prose skips them as names.
+    checkCapitals = false,
     ...rest
 }) => {
     const [serviceMatches, setServiceMatches] = useState([])
@@ -114,10 +116,10 @@ const SpellCheckArea = ({
     // Grammar needs no dictionary, so it runs even before the word list has arrived.
     useEffect(() => {
         const handle = setTimeout(() => {
-            if (alive.current) setLocalIssues(localCheck(value, skip))
+            if (alive.current) setLocalIssues(localCheck(value, skip, checkCapitals))
         }, 400)
         return () => clearTimeout(handle)
-    }, [value, ready, skip])
+    }, [value, ready, skip, checkCapitals])
 
     // The service's findings are about the text it was given. The moment the
     // text changes they are about nothing, and their offsets point at the
@@ -184,7 +186,7 @@ const SpellCheckArea = ({
     const ignore = (issue) => {
         IGNORED.add(issue.word.toLowerCase())
         setOpen(null)
-        setLocalIssues(localCheck(value, skip))
+        setLocalIssues(localCheck(value, skip, checkCapitals))
         areaRef.current?.focus()
     }
 
@@ -213,7 +215,7 @@ const SpellCheckArea = ({
         setNotice(null)
         // First every underlined problem whose fix is certain (exactly one suggestion), right to left so the
         // offsets still hold. The rest stay underlined for the reviewer to pick from.
-        const found = localCheck(value, skip)
+        const found = localCheck(value, skip, checkCapitals)
         const sure = found.filter(i => i.suggestions.length === 1).sort((a, b) => b.offset - a.offset)
         const fixedLocally = sure.reduce((t, i) => applySuggestion(t, i, i.suggestions[0]), value)
         const left = found.length - sure.length

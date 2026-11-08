@@ -27,7 +27,7 @@ const Field = ({ label, error, value, onChange, options, placeholder, checked = 
       </Select>
     ) : checked ? (
       // One line: a pasted line break becomes a space.
-      <SpellCheckArea singleLine showButton={false} value={value} rows={1} minHeight={36} padding="7px 12px" placeholder={placeholder} aria-label={label}
+      <SpellCheckArea singleLine checkCapitals showButton={false} value={value} rows={1} minHeight={36} padding="7px 12px" placeholder={placeholder} aria-label={label}
         className={error ? styles.invalid : ''} onChange={(next) => onChange(next.replace(/\s*[\r\n]+\s*/g, ' '))} />
     ) : (
       <input className={`app-input ${error ? styles.invalid : ''}`} type="text" value={value} placeholder={placeholder}
