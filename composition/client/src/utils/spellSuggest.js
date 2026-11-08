@@ -353,6 +353,11 @@ const cachedSuggest = (word) => {
     return value
 }
 
+// The words of some names (a plan's topics, TLAs, reference titles and authors), lowercased, so a checker can leave
+// them alone: "Kubernetes" in a topic title is not a typo in a comment about that topic.
+export const termWords = (terms = []) =>
+    new Set((Array.isArray(terms) ? terms : []).flatMap(term => String(term || '').toLowerCase().match(/[a-z][a-z'-]*/g) || []))
+
 export const findIssues = (text = '') => {
     // No dictionary, no opinion. Returning [] here is what makes `isReady()`
     // the component's business rather than this function's.

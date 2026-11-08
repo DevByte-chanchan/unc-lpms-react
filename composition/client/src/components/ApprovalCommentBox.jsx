@@ -103,6 +103,13 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
     }
     return []
   }
+  // The plan's own names (topics, TLAs, reference titles and authors): the spell checker never flags their words.
+  const planTerms = React.useMemo(() => [
+    ...syllabusTopics.map(t => t.title),
+    ...syllabusTopics.flatMap(t => (t.tlas || []).map(tla => tla.tlaName)),
+    ...syllabusReferences.flatMap(r => [r.title, r.authors])
+  ].filter(Boolean), [syllabusTopics, syllabusReferences])
+
   // "CO1 — Implement the core concepts…": the number once, not "1 — CO1: Implement…".
   const courseOutcomeLabel = (co, idx) => `CO${idx + 1} — ${String(co.description || '').replace(/^\s*CO\s*\d+\s*[:.\-–]\s*/i, '').slice(0, 70)}`
 
@@ -485,6 +492,7 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
                         )}
                       </div>
                       <SpellCheckArea
+                        knownWords={planTerms}
                         value={c.text || ''}
                         onChange={(next) => updateCommentText(c.id, next)}
                         onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleDirectorSubmit() } }}
@@ -629,6 +637,7 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
                         <div className={styles.field}>
                           <label className={styles.label}>Comment</label>
                           <SpellCheckArea
+                            knownWords={planTerms}
                             value={c.text || ''}
                             onChange={(next) => updateCommentText(c.id, next)}
                             placeholder={'Describe the issue or suggestion...'}

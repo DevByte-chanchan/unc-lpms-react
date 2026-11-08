@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react'
 import { Zap, Check, AlertCircle, X } from 'react-feather'
-import { findIssues, mergeIssues, segmentText, applySuggestion, issueAt, isReady, loadWordList } from '../utils/spellSuggest.js'
+import { findIssues, mergeIssues, segmentText, applySuggestion, issueAt, isReady, loadWordList, termWords } from '../utils/spellSuggest.js'
 import { autoCorrect, ATTRIBUTION_URL, ONLINE_SERVICE_CONFIG } from '../utils/autoCorrect.js'
 import { findGrammarIssues } from '../utils/grammarRules.js'
 import Spinner from './Spinner.jsx'
@@ -38,8 +38,14 @@ import styles from '../styles/SpellCheckArea.module.sass'
  */
 // Spelling (when the dictionary is loaded) and grammar, in text order. Where both mark the same characters the
 // spelling one wins: a misspelt word is the first thing to fix.
-const localCheck = (text) => {
-    const spelling = findIssues(text)
+// Words someone chose to "Ignore" this session, in any box (not kept after a reload).
+const IGNORED = new Set()
+
+const localCheck = (text, skip = new Set()) => {
+    const spelling = findIssues(text).filter(i => {
+        const word = i.word.toLowerCase()
+        return !skip.has(word) && !IGNORED.has(word)
+    })
     const taken = (g) => spelling.some(s => g.offset < s.offset + s.length && s.offset < g.offset + g.length)
     return [...spelling, ...findGrammarIssues(text).filter(g => !taken(g))].sort((a, b) => a.offset - b.offset)
 }
@@ -65,6 +71,8 @@ const SpellCheckArea = ({
     // and asks callers not to automate them, so grammar goes behind a button.
     showButton = true,
     label = 'Check grammar',
+    // Names the text is about (a plan's topics, TLAs, references): their words are never flagged as misspelled.
+    knownWords = [],
     ...rest
 }) => {
     const [serviceMatches, setServiceMatches] = useState([])
@@ -76,6 +84,9 @@ const SpellCheckArea = ({
     // one of these is mounted. Until it lands there is no checker, and the bar
     // must not claim a clean bill of health it has not earned.
     const [ready, setReady] = useState(isReady())
+    const knownKey = (Array.isArray(knownWords) ? knownWords : []).join('')
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    const skip = useMemo(() => termWords(knownWords), [knownKey])
 
     const areaRef = useRef(null)
     const backdropRef = useRef(null)
@@ -101,10 +112,10 @@ const SpellCheckArea = ({
     // Grammar needs no dictionary, so it runs even before the word list has arrived.
     useEffect(() => {
         const handle = setTimeout(() => {
-            if (alive.current) setLocalIssues(localCheck(value))
+            if (alive.current) setLocalIssues(localCheck(value, skip))
         }, 400)
         return () => clearTimeout(handle)
-    }, [value, ready])
+    }, [value, ready, skip])
 
     // The service's findings are about the text it was given. The moment the
     // text changes they are about nothing, and their offsets point at the
@@ -167,6 +178,14 @@ const SpellCheckArea = ({
         }
     }, [open])
 
+    // Leave this word alone, here and in every other box, until the page is reloaded.
+    const ignore = (issue) => {
+        IGNORED.add(issue.word.toLowerCase())
+        setOpen(null)
+        setLocalIssues(localCheck(value, skip))
+        areaRef.current?.focus()
+    }
+
     const apply = (issue, replacement) => {
         const next = applySuggestion(value, issue, replacement)
         setOpen(null)
@@ -192,7 +211,7 @@ const SpellCheckArea = ({
         setNotice(null)
         // First every underlined problem whose fix is certain (exactly one suggestion), right to left so the
         // offsets still hold. The rest stay underlined for the reviewer to pick from.
-        const found = localCheck(value)
+        const found = localCheck(value, skip)
         const sure = found.filter(i => i.suggestions.length === 1).sort((a, b) => b.offset - a.offset)
         const fixedLocally = sure.reduce((t, i) => applySuggestion(t, i, i.suggestions[0]), value)
         const left = found.length - sure.length
@@ -348,6 +367,11 @@ const SpellCheckArea = ({
                             </button>
                         ))
                         : <div className={styles.popupEmpty}>No suggestion for this one.</div>}
+                    {open.issue.source === 'local' && (
+                        <button type="button" className={`${styles.suggestion} ${styles.ignore}`} onClick={() => ignore(open.issue)}>
+                            Ignore
+                        </button>
+                    )}
                 </div>
             )}
         </div>
