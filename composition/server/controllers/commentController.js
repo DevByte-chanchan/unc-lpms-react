@@ -9,7 +9,7 @@ const {
     loadCommentCourseRows
 } = require('../middleware/courseAuthorization');
 const { canViewComment, canViewSection, sectionOfComment } = require('../config/sectionAccess');
-const { COMMENT_ROLE_BY_ACCOUNT, isApprover, filterComments } = require('../utils/commentVisibility');
+const { COMMENT_ROLE_BY_ACCOUNT, isApprover, seesEveryComment, filterComments } = require('../utils/commentVisibility');
 const { earlierConsultantComments } = require('../utils/earlierConsultantComments');
 const { effectiveLogs } = require('../utils/effectiveLogs');
 const { planEditState } = require('../utils/workflowRules');
@@ -34,7 +34,7 @@ exports.getUnresolvedCommentCounts = async (req, res) => {
             return res.status(400).json({ message: 'Course offering ID and revision number are required.' });
         }
 
-        const ownOnly = isApprover(req.user?.role)
+        const ownOnly = isApprover(req.user?.role) && !seesEveryComment(req.user?.role)
             ? ' AND (c.commenter_user_id = ? OR (c.commenter_user_id IS NULL AND c.commenter_role = ?))' : '';
         const ownParams = ownOnly ? [req.user.id, COMMENT_ROLE_BY_ACCOUNT[req.user.role]] : [];
         const counts = await sequelize.query(

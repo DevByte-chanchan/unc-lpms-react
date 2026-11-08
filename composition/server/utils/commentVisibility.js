@@ -17,6 +17,10 @@ const COMMENT_ROLE_BY_ACCOUNT = Object.freeze({
 
 const isApprover = (role) => Object.hasOwn(COMMENT_ROLE_BY_ACCOUNT, role);
 
+// The Dean decides last, and reads the other approvers' comments before deciding (owner's decision, Nov 2026).
+// Every other approver sees only their own while the plan is under review.
+const seesEveryComment = (role) => role === 'dean';
+
 // Who wrote it: the account when it was recorded, otherwise (older rows that only kept a role,
 // and that could not be traced to one account) anyone holding that role.
 const isOwnComment = (user, comment) => {
@@ -28,6 +32,7 @@ const isOwnComment = (user, comment) => {
 const canSeeComment = (user, comment) => {
     if (!user) return false;
     if (!canViewComment(user.role, comment)) return false;
+    if (seesEveryComment(user.role)) return true;
     return isApprover(user.role) ? isOwnComment(user, comment) : true;
 };
 
@@ -38,7 +43,7 @@ const filterComments = (user, comments) => comments.filter(comment => canSeeComm
 // (or is the carry-over of an approved plan) an approver gets the whole record of the part they cover.
 const canSeeRecordComment = (user, comment, { approved = false } = {}) => {
     if (!user || !canViewComment(user.role, comment)) return false;
-    return approved || !isApprover(user.role) ? true : isOwnComment(user, comment);
+    return approved || !isApprover(user.role) || seesEveryComment(user.role) ? true : isOwnComment(user, comment);
 };
 
-module.exports = { COMMENT_ROLE_BY_ACCOUNT, isApprover, isOwnComment, canSeeComment, canSeeRecordComment, filterComments };
+module.exports = { COMMENT_ROLE_BY_ACCOUNT, isApprover, seesEveryComment, isOwnComment, canSeeComment, canSeeRecordComment, filterComments };

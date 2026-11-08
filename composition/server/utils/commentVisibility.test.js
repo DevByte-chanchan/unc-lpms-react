@@ -1,7 +1,7 @@
 'use strict';
 
 // Each approver sees only the comments they wrote (and, for the two partial roles, only those about
-// their part of the plan); the instructor and the VPAA see them all. See utils/commentVisibility.js.
+// their part of the plan), except the Dean; the Dean, the instructor and the VPAA see them all. See utils/commentVisibility.js.
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { COMMENT_ROLE_BY_ACCOUNT, isApprover, isOwnComment, canSeeComment, canSeeRecordComment, filterComments } = require('./commentVisibility');
@@ -25,9 +25,9 @@ test('a Program Head sees only their own comments, and an untraceable one of the
     assert.deepEqual(idsFor(user(22, 'program-head')), [2, 7]);
 });
 
-test('the Dean sees only their own comments', () => {
-    assert.deepEqual(idsFor(user(5, 'dean')), [3]);
-    assert.deepEqual(idsFor(user(55, 'dean')), []);
+test('the Dean sees every approver comment, to decide with all of them in view', () => {
+    assert.deepEqual(idsFor(user(5, 'dean')), [1, 2, 3, 4, 5, 6, 7]);
+    assert.deepEqual(idsFor(user(55, 'dean')), [1, 2, 3, 4, 5, 6, 7], 'any Dean, not only the author of one');
 });
 
 test('the Director of Libraries sees only their own comments on the references', () => {
@@ -68,7 +68,6 @@ const recordIds = (u, approved) => comments.filter(c => canSeeRecordComment(u, c
 
 test('the review record under review follows the same own-comments rule', () => {
     assert.deepEqual(recordIds(user(2, 'program-head'), false), [1, 7]);
-    assert.deepEqual(recordIds(user(5, 'dean'), false), [3]);
     assert.deepEqual(recordIds(user(1, 'instructor'), false), [1, 2, 3, 4, 5, 6, 7]);
     assert.deepEqual(recordIds(user(9, 'vpaa'), false), [1, 2, 3, 4, 5, 6, 7]);
 });
@@ -82,4 +81,8 @@ test('once the plan is approved, an approver gets the whole record of the part t
 
 test('no user sees any record comment', () => {
     assert.equal(canSeeRecordComment(undefined, comments[0], { approved: true }), false);
+});
+
+test('the Dean reads the whole review record while the plan is under review', () => {
+    assert.deepEqual(recordIds(user(5, 'dean'), false), [1, 2, 3, 4, 5, 6, 7]);
 });

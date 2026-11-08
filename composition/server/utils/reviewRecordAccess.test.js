@@ -112,10 +112,10 @@ test('the VPAA can open the record of an approved plan only', async () => {
 
 const ALL = ['consultant on topics', 'dean on activities', 'director on references', 'program head on topics'];
 
-test('under review, an approver gets only their own comments; the instructor gets them all', async () => {
+test('under review, an approver gets only their own comments; the Dean and the instructor get them all', async () => {
     assert.deepEqual((await open(`${ID.instructor}:instructor`, pending)).messages, ALL);
     assert.deepEqual((await open(`${ID.programHead}:program-head`, pending)).messages, ['program head on topics']);
-    assert.deepEqual((await open(`${ID.dean}:dean`, pending)).messages, ['dean on activities']);
+    assert.deepEqual((await open(`${ID.dean}:dean`, pending)).messages, ALL, 'the Dean decides with every comment in view');
     assert.deepEqual((await open(`${ID.director}:director-of-libraries`, pending)).messages, ['director on references']);
     assert.deepEqual((await open(`${ID.consultant}:industry-consultant`, pending)).messages, ['consultant on topics']);
 });

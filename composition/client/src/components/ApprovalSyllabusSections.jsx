@@ -482,8 +482,10 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
     if (roleKey === 'instructor') {
       return globalComments.filter(c => !(c.recipientRole === 'program_head' && !c.resolved))
     }
-    // Approvers see their own comments + comments addressed to them (instructor responses)
-    const approverRoles = ['program-head', 'dean', 'industry-consultant', 'director-of-libraries']
+    // The Dean decides last and reads every approver's comments (the server sends them all to the Dean).
+    if (roleKey === 'dean') return globalComments
+    // Other approvers see their own comments + comments addressed to them (instructor responses)
+    const approverRoles = ['program-head', 'industry-consultant', 'director-of-libraries']
     if (approverRoles.includes(roleKey)) {
       return globalComments.filter(c =>
         normalizeRoleKey(c.role) === roleKey || c.recipientRole === roleKey
