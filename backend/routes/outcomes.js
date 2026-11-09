@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { CourseOutcome, IloItem } from '../models/index.js';
+import { lockGuard } from '../middleware/lockGuard.js';
 
 const router = Router();
 
@@ -12,7 +13,7 @@ router.get('/:code/outcomes', async (req, res) => {
     res.json(outcomes);
 });
 
-router.put('/:code/outcomes', async (req, res) => {
+router.put('/:code/outcomes', lockGuard, async (req, res) => {
     const { code } = req.params;
     const outcomes = req.body;
 
