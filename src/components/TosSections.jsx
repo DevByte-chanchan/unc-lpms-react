@@ -822,6 +822,8 @@ const TosSections = ({role = 'instructor'}) => {
     };
 
     const handleStartReturn = () => {
+        const hasCurrentRoundComments = comments.some(c => (c.scope?.returnNumber || c.returnNumber) === returnCount + 1);
+        if (!hasCurrentRoundComments) return;
         setReturnLoading(true);
         preReturnTimerRef.current = setTimeout(() => {
             setReturnLoading(false);
@@ -1348,7 +1350,7 @@ const items = aggregatedData[co.co][ilo.id][level];
                                     )}
                                 </div>
                                 {!isReturnedView && !showResolvedPH && <div className={layout.commentPanelFooter}>
-                                    <button className={layout.commentReturnBtn} disabled={comments.length === 0 || returnLoading} onClick={handleStartReturn}>
+                                    <button className={layout.commentReturnBtn} disabled={!comments.some(c => (c.scope?.returnNumber || c.returnNumber) === returnCount + 1) || returnLoading} onClick={handleStartReturn}>
                                         {returnLoading ? <Loader size={16} className={layout.spinner} /> : null}
                                         {returnLoading ? 'Returning…' : 'Return'}
                                     </button>

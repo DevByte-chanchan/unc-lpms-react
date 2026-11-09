@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { TosStatus } from '../models/index.js';
+import { TosStatus, Comment } from '../models/index.js';
 import { lockGuard } from '../middleware/lockGuard.js';
 
 const router = Router();
@@ -37,6 +37,22 @@ router.put('/:code/:period/status', lockGuard, async (req, res) => {
         if (!allowed.includes(newStatus)) {
             return res.status(400).json({
                 error: `Invalid status transition from ${currentStatus} to ${newStatus}`
+            });
+        }
+    }
+
+    if (newStatus === 'returned') {
+        const targetRound = (status ? (status.returnCount || 0) : 0) + 1;
+        const currentRoundComments = await Comment.count({
+            where: {
+                courseCode: req.params.code,
+                examPeriod: req.params.period,
+                returnNumber: targetRound
+            }
+        });
+        if (currentRoundComments === 0) {
+            return res.status(400).json({
+                error: 'Cannot return TOS without at least one comment in the current review round'
             });
         }
     }
