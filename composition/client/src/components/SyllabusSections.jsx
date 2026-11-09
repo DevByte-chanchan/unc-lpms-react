@@ -13,6 +13,7 @@ import { fetchFormInfo } from '../utils/formSettings.js'
 import { fetchProgramAlignment } from '../utils/programAlignment.js'
 import { buildReviewRecordFile } from '../utils/exportSyllabus.js'
 import { validateSubmission } from '../utils/submissionGate'
+import { weekRowsOf } from '../utils/weeklyCoverage.js'
 import PDFViewerModal from './PDFViewerModal'
 import { buildSyllabusHtml } from '../utils/syllabusPdfHtml.js'
 import unclogo from '../assets/unclogo.png'
@@ -103,7 +104,7 @@ const SyllabusSections = () => {
             const syllabus = {
                 ...(courseRes || {}),
                 courseOutcomes: coaRes?.courseOutcomes || [],
-                ilos: covRes?.ilos || [],
+                ilos: weekRowsOf(covRes),
                 topics: covRes?.topics || [],
                 assessments: covRes?.assessments || [],
                 gradingSystem: critRes?.gradingSystem || [],

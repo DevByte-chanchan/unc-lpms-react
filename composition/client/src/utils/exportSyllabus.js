@@ -6,6 +6,7 @@ import { fetchFormInfo } from './formSettings.js'
 import { fetchProgramAlignment } from './programAlignment.js'
 import { workflowFromLogs } from './workflowFromLogs.js'
 import { exportEligibility } from './reviewGate.js'
+import { weekRowsOf } from './weeklyCoverage.js'
 
 export const NOT_EXPORTABLE_MESSAGE =
   'The syllabus can be exported once the Director of Libraries and the Program Head have both accepted it.'
@@ -57,7 +58,7 @@ export async function buildSyllabusExportFile({ pcId, revNum, code, workflow = n
   const syllabus = {
     ...(courseRes || {}),
     courseOutcomes: coaRes?.courseOutcomes || [],
-    ilos: covRes?.ilos || [],
+    ilos: weekRowsOf(covRes),
     topics: covRes?.topics || [],
     assessments: covRes?.assessments || [],
     gradingSystem: critRes?.gradingSystem || [],

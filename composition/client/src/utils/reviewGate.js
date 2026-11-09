@@ -107,6 +107,10 @@ export const compactCommentIlo = (ilo = '', courseOutcome = '') => {
     if (co && value.toLowerCase().startsWith(`${co.toLowerCase()}-`)) {
         return value.slice(co.length + 1)
     }
+    // A week label: 'CO2 · Week 5' under CO2 reads 'Week 5'.
+    if (co && value.toLowerCase().startsWith(`${co.toLowerCase()} · `)) {
+        return value.slice(co.length + 3)
+    }
     const terminalIlo = /(ILO\d+)$/i.exec(value)
     return terminalIlo ? terminalIlo[1].toUpperCase() : value
 }

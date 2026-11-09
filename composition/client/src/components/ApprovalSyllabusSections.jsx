@@ -36,6 +36,7 @@ import { fetchJson, apiErrorMessage } from "../utils/api.js"
 import { describeCourseLoadError } from '../utils/courseLoadError.js'
 import { canReviewLoadedCourse } from '../utils/reviewAssignments.js'
 import { toPanelComments, isDuplicateComment, LEGACY_STORAGE_KEY } from "../utils/serverComments.js"
+import { withWeekRows, parseCommentPlace } from "../utils/weeklyCoverage.js"
 
 import Revisions from './Revisions.jsx'
 import PDFViewerModal from './PDFViewerModal'
@@ -409,7 +410,8 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
   // resolve data: API first, fall back to empty
   const resolvedCourse = courseDetails
   const coverage = React.useMemo(
-    () => coverageData || { ilos: [], topics: [], assessments: [] },
+    // The weekly planner's coverage, with one row per week as `ilos` (the rows the comment form and export read).
+    () => withWeekRows(coverageData) || { ilos: [], topics: [], assessments: [] },
     [coverageData]
   )
   const criteria = React.useMemo(
@@ -713,6 +715,8 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
     const seen = {}
     for (const ilo of coverage?.ilos || []) {
       if (!ilo?.id) continue
+      // A weekly-planner row names itself ('CO2 · Week 5').
+      if (ilo.label) { labels[ilo.id] = ilo.label; continue }
       const co = String(ilo.id).split('-')[0]
       if (ilo.isOrientation) { labels[ilo.id] = `${co} · Orientation`; continue }
       seen[co] = (seen[co] || 0) + 1
@@ -766,17 +770,18 @@ ${suggestionLine}` : text,
       if (incoming.length === 0 && suggestionLine) bodies.push({ message: suggestionLine, comment_for: 'references', target_titles: [] })
     } else {
       for (const c of incoming) {
+        // The place is a week of the course outcome ('CO2-W3'; 'CO1-O' is the orientation, in week 1).
         const coIndex = c.courseOutcome ? parseInt(String(c.courseOutcome).replace(/\D/g, ''), 10) : null
-        const iloIndex = c.ilo && String(c.ilo).includes('ILO') ? parseInt(String(c.ilo).split('ILO')[1], 10) : null
-        if (!coIndex || !iloIndex) {
-          return 'Pick a course outcome and an ILO for every comment.'
+        const place = parseCommentPlace(c.ilo)
+        if (!coIndex || !place || place.coIndex !== coIndex) {
+          return 'Pick a course outcome and a week for every comment.'
         }
         bodies.push({
           // The type rides along in the message — the server stores one string, and the instructor's forms parse
           // the tag back into a labelled, actionable suggestion [48:30].
           message: encodeCommentType(c.commentType, c.text),
           co_index: coIndex,
-          ilo_index: iloIndex,
+          ...(place.weekIndex ? { week_index: place.weekIndex } : { ilo_index: place.iloIndex }),
           comment_for: forMap[c.coverageType] || null,
           target_titles: Array.isArray(c.coverageDetail) ? c.coverageDetail : (c.coverageDetail ? [c.coverageDetail] : [])
         })

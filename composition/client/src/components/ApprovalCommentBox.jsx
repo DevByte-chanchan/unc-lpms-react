@@ -89,14 +89,15 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
   const resolvedIlos = (ilos && ilos.length) ? ilos : []
   const iloLabel = (id) => iloLabels[id] || id
 
-  // What a comment can target: only the topics, TLAs or references of the chosen ILO (all of the plan's when the
-  // ILO's own list is not known).
+  // What a comment can target: only the topics, TLAs or references of the chosen week (all of the plan's when the
+  // week's own list is not known).
   const targetOptions = (c) => {
     const entry = coverageEntries.find(e => e.id === c.ilo)
     const iloTopics = entry?.topics?.length ? new Set(entry.topics) : null
     const topics = iloTopics ? syllabusTopics.filter(t => iloTopics.has(t.title)) : syllabusTopics
     if (c.coverageType === 'Topic') return topics.map(t => t.title)
-    if (c.coverageType === 'TLA') return [...new Set(topics.flatMap(t => (t.tlas || []).map(tla => tla.tlaName)))]
+    // A weekly-planner row lists its own activities; otherwise they come through its topics.
+    if (c.coverageType === 'TLA') return entry?.tlas?.length ? [...new Set(entry.tlas)] : [...new Set(topics.flatMap(t => (t.tlas || []).map(tla => tla.tlaName)))]
     if (c.coverageType === 'References') {
       const own = (entry?.references || []).map(r => String(r).split(' - ').slice(1).join(' - ') || String(r))
       return own.length ? own : syllabusReferences.map(r => r.title)
@@ -560,7 +561,7 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
                               )}
                               {c.ilo && (
                                 <span style={{ ...chipBase, background: '#f1f5f9', color: '#475569' }}>
-                                  [ILO: {iloLabel(c.ilo)}]
+                                  [{iloLabel(c.ilo)}]
                                 </span>
                               )}
                               {details.length > 0 ? details.map((d, di) => (
@@ -589,9 +590,9 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
                           </div>
 
                           <div className={styles.field}>
-                            <label className={styles.label}>Intended Learning Outcome (ILO)</label>
+                            <label className={styles.label}>Week</label>
                             <Select value={c.ilo} onChange={(e) => updateCommentIlo(c.id, e.target.value)} disabled={!c.courseOutcome} block>
-                              <option value="">Select an ILO</option>
+                              <option value="">Select a week</option>
                               {((c.courseOutcome && coToIlos[c.courseOutcome]) || resolvedIlos).map((i) => (
                                 <option key={i} value={i}>{iloLabel(i)}</option>
                               ))}
@@ -607,7 +608,7 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
                               <option value="References">References</option>
                               <option value="TLA">Teaching-Learning Activity (TLA)</option>
                             </Select>
-                            {!c.ilo && <span className={styles.fieldHint}>Pick an ILO first.</span>}
+                            {!c.ilo && <span className={styles.fieldHint}>Pick a week first.</span>}
                           </div>
 
                           <div className={styles.field}>
