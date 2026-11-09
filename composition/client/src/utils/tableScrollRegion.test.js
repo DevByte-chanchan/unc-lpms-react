@@ -15,7 +15,6 @@ const tableConsumers = [
   'components/FacultyTable.jsx',
   'components/ProgramsTable.jsx',
   'components/CourseDetails.jsx',
-  'components/ILOs.jsx',
   'components/OutcomeAlignment.jsx',
   'components/CriteriaForGrading.jsx',
   'components/ReferenceSummary.jsx',

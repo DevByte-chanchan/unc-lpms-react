@@ -9,7 +9,8 @@
 // Nothing here picks a TLA by position in an inserted-rows array.
 
 const { IED_LEVELS, IED_WEIGHTS, findIedProblems } = require('./iedRule');
-const { periodForWeek, startWeekOfIlo, formatWeight, findWeightProblems } = require('./assessmentWeights');
+const { formatWeight, findWeightProblems } = require('./assessmentWeights');
+const { TERM_PERIODS } = require('../config/termPeriods');
 const { loadOfferingAssessments } = require('./offeringAssessments');
 
 // Assessment names by level: Introductory = quiz / identification, Enabling = guided
@@ -74,16 +75,20 @@ const seedAssessments = async (queryInterface, { offeringId, now = new Date(), n
     const coOrder = [...new Set(ilos.map(ilo => ilo.co_id))];
     const graded = ilos.filter(ilo => !ilo.is_orientation);
 
-    const perLevel = { I: [], E: [], D: [] };
+    // Grading is per period, one course outcome per period in order (Prelim, Midterm, Semi-final, Final;
+    // any further outcome falls in Final). Within a period each level's weight is split evenly over that
+    // level's ILOs; the last takes the rounding remainder so each period totals exactly 20 / 30 / 50.
+    const periodOf = (ilo) => (TERM_PERIODS[coOrder.indexOf(ilo.co_id)] || TERM_PERIODS[TERM_PERIODS.length - 1]).code;
+    const groups = new Map();
     for (const ilo of graded) {
-        if (!perLevel[ilo.ied_level]) throw new Error(`ILO ${ilo.ilo_id} has no IED level; set it before seeding assessments.`);
-        perLevel[ilo.ied_level].push(ilo);
+        if (!IED_WEIGHTS[ilo.ied_level]) throw new Error(`ILO ${ilo.ilo_id} has no IED level; set it before seeding assessments.`);
+        const key = `${periodOf(ilo)}:${ilo.ied_level}`;
+        if (!groups.has(key)) groups.set(key, []);
+        groups.get(key).push(ilo);
     }
-
-    // Course-wide level weight split evenly over that level's ILOs; the last takes the
-    // rounding remainder so each level totals exactly 20 / 30 / 50.
     const weightOf = new Map();
-    for (const [level, group] of Object.entries(perLevel)) {
+    for (const group of groups.values()) {
+        const level = group[0].ied_level;
         const base = Math.floor((IED_WEIGHTS[level] / group.length) * 100) / 100;
         group.forEach((ilo, index) => {
             weightOf.set(ilo.ilo_id, index === group.length - 1 ? IED_WEIGHTS[level] - base * (group.length - 1) : base);
@@ -115,7 +120,7 @@ const seedAssessments = async (queryInterface, { offeringId, now = new Date(), n
             ilo_id: ilo.ilo_id,
             name: choices[coIndex % choices.length],
             description: DETAIL_BY_LEVEL[ilo.ied_level](target.topic_title || 'the week\'s topics'),
-            period: periodForWeek(startWeekOfIlo(ilos, ilo.ilo_id)) || 'f',
+            period: periodOf(ilo),
             weight: formatWeight(weightOf.get(ilo.ilo_id)),
             min_passing: 60,
             createdAt: now,
@@ -127,7 +132,7 @@ const seedAssessments = async (queryInterface, { offeringId, now = new Date(), n
 };
 
 // Throws unless the plan passes what the server checks on submit (every CO has an I, an E
-// and a D; course-wide assessment weights total 20 / 30 / 50) and every graded ILO is named by
+// and a D; within each period assessment weights total 20 / 30 / 50) and every graded ILO is named by
 // exactly one assessment.
 const assertPlanValid = async (queryInterface, offeringId) => {
     const ilos = await loadOfferingIlos(queryInterface, offeringId);

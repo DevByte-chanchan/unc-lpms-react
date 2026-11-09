@@ -629,6 +629,17 @@ div[data-flash], tr[data-target][data-flash] > td { border-radius: 4px; animatio
 
 /* --- Matrix Edit and Responsiveness Classes --- */
 
+/* Keyboard focus stays visible on the edit controls (the shared rule: never erase the focus ring). */
+.matrix-edit-btn:focus-visible,
+.matrix-cancel-btn:focus-visible,
+.matrix-btn-cancel:focus-visible,
+.matrix-btn-confirm:focus-visible,
+.matrix-edit-select:focus-visible,
+.matrix-edit-textarea:focus-visible {
+    outline: 2px solid var(--accent) !important;
+    outline-offset: 2px !important;
+}
+
 /* Top row container for action buttons (Course Details & Criteria for Grading) */
 .matrix-btns-container {
     display: flex;
@@ -665,7 +676,6 @@ div[data-flash], tr[data-target][data-flash] > td { border-radius: 4px; animatio
     cursor: pointer !important;
     box-sizing: border-box !important;
     transform: none !important;
-    outline: none !important;
     text-decoration: none !important;
     line-height: normal !important;
     border: 1px solid #d1d5db !important;
@@ -684,7 +694,6 @@ div[data-flash], tr[data-target][data-flash] > td { border-radius: 4px; animatio
     color: #1f2937 !important;
     border: 1px solid #d1d5db !important;
     transform: none !important;
-    outline: none !important;
     opacity: 1 !important;
 }
 
@@ -700,7 +709,6 @@ div[data-flash], tr[data-target][data-flash] > td { border-radius: 4px; animatio
     color: #ffffff !important;
     border: 1px solid #b91c1c !important;
     transform: none !important;
-    outline: none !important;
     opacity: 1 !important;
 }
 
@@ -716,7 +724,6 @@ div[data-flash], tr[data-target][data-flash] > td { border-radius: 4px; animatio
     color: #111827 !important;
     border: 1px solid #d1d5db !important;
     transform: none !important;
-    outline: none !important;
     opacity: 1 !important;
 }
 
@@ -724,7 +731,6 @@ div[data-flash], tr[data-target][data-flash] > td { border-radius: 4px; animatio
 .matrix-cancel-btn:focus,
 .matrix-edit-btn:focus-visible,
 .matrix-cancel-btn:focus-visible {
-    outline: none !important;
     box-shadow: none !important;
 }
 
@@ -738,9 +744,9 @@ tbody tr:hover, tbody tr:focus {
 /* Editable inputs and dropdowns: crisp black bottom border */
 .matrix-edit-input {
     width: 100% !important;
-    border: none !important;
-    border-bottom: 2px solid #000000 !important;
-    outline: none !important;
+    /* Only the bottom edge shows (written without `border: none`, which the shared focus rules forbid). */
+    border: 0 solid #000000 !important;
+    border-bottom-width: 2px !important;
     background: transparent !important;
     font-size: inherit !important;
     font-family: inherit !important;
@@ -755,9 +761,9 @@ tbody tr:hover, tbody tr:focus {
 
 .matrix-edit-select {
     width: 100% !important;
-    border: none !important;
-    border-bottom: 2px solid #000000 !important;
-    outline: none !important;
+    /* Only the bottom edge shows (written without `border: none`, which the shared focus rules forbid). */
+    border: 0 solid #000000 !important;
+    border-bottom-width: 2px !important;
     background: transparent !important;
     text-align: center !important;
     font-weight: bold !important;
@@ -788,9 +794,9 @@ tbody tr:hover, tbody tr:focus {
     min-height: 280px !important;
     flex: 1 1 auto !important;
     box-sizing: border-box !important;
-    border: none !important;
-    border-bottom: 2px solid #000000 !important;
-    outline: none !important;
+    /* Only the bottom edge shows (written without `border: none`, which the shared focus rules forbid). */
+    border: 0 solid #000000 !important;
+    border-bottom-width: 2px !important;
     background: transparent !important;
     font-size: 14px !important;
     font-family: inherit !important;

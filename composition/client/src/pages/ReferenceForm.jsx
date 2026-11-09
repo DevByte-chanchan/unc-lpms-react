@@ -8,6 +8,7 @@ import { offeringKey } from '../utils/offeringKey.js';
 import { normalizeReference } from "../utils/referenceCatalog.js";
 import { loadReferenceTypes } from "../utils/referenceStore.js";
 import { getReferenceTypes } from "../utils/referenceTypes.js";
+import { getSession } from "../utils/session.js";
 import styles from '../styles/Form.module.sass';
 
 export function InlineModal({ isOpen, title, onClose, children, actions }) {
@@ -274,7 +275,8 @@ const ReferenceForm = forwardRef(({ iloId, isOrientation = false, status, setUnr
                 onChange={(val) => setSelectedRefs(val)}
                 error={validationError}
                 disabled={loading}
-                onAddReference={handleOpenAdd}
+                // Only the Director of Libraries adds titles to the library (the server refuses anyone else).
+                onAddReference={getSession()?.role === 'director-of-libraries' ? handleOpenAdd : undefined}
                 courseCode={course.code}
                 courseTitle={course.name}
                 topics={weekTopics}

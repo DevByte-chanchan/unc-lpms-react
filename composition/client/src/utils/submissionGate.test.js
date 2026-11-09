@@ -29,13 +29,19 @@ const ilo = (id, hours, topics = ['t'], references = ['r']) => {
   };
 };
 
-// 20 / 30 / 50 across the course, split over several assessments.
+// 20 / 30 / 50 within each period, the Prelim split over several assessments.
+const period = (code) => [
+  { iedLevel: 'I', weight: '20', isOrientation: false, period: code },
+  { iedLevel: 'E', weight: '30', isOrientation: false, period: code },
+  { iedLevel: 'D', weight: '50', isOrientation: false, period: code }
+];
 const alignedAssessments = () => [
-  { iedLevel: 'I', weight: '8', isOrientation: false },
-  { iedLevel: 'I', weight: '12', isOrientation: false },
-  { iedLevel: 'E', weight: '30', isOrientation: false },
-  { iedLevel: 'D', weight: '20', isOrientation: false },
-  { iedLevel: 'D', weight: '30', isOrientation: false }
+  { iedLevel: 'I', weight: '8', isOrientation: false, period: 'p' },
+  { iedLevel: 'I', weight: '12', isOrientation: false, period: 'p' },
+  { iedLevel: 'E', weight: '30', isOrientation: false, period: 'p' },
+  { iedLevel: 'D', weight: '20', isOrientation: false, period: 'p' },
+  { iedLevel: 'D', weight: '30', isOrientation: false, period: 'p' },
+  ...period('m'), ...period('s'), ...period('f')
 ];
 
 const alignedCoverage = () => ({
@@ -117,23 +123,23 @@ test('an ILO with no IED level blocks submission, an orientation ILO does not', 
   if (result.blockers.some(b => b.includes('CO1'))) throw new Error('Orientation ILO must not be flagged');
 });
 
-test('assessment weights that miss 20 / 30 / 50 block submission and name the level', () => {
+test('assessment weights that miss 20 / 30 / 50 in a period block submission and name the period and level', () => {
   const coverage = alignedCoverage();
-  coverage.assessments[4].weight = '25'; // Demonstrative now totals 45
+  coverage.assessments[4].weight = '25'; // Prelim Demonstrative now totals 45
   const result = validateSubmission({ courseDetails, coverage });
   if (result.ok) throw new Error('Expected the gate to block');
-  if (!result.blockers.includes('Demonstrative assessment weights total 45%, but must total 50%.')) {
+  if (!result.blockers.includes('Prelim: Demonstrative assessment weights total 45%, but must total 50%.')) {
     throw new Error(`Unexpected blockers: ${result.blockers.join(' | ')}`);
   }
   if (result.blockers.length !== 1) throw new Error('Only the Demonstrative level should be flagged');
 });
 
-test('a plan with no assessments at all is blocked on every level', () => {
+test('a plan with no assessments at all is blocked on every level of every period', () => {
   const coverage = alignedCoverage();
   coverage.assessments = [];
   const result = validateSubmission({ courseDetails, coverage });
-  if (result.blockers.filter(b => b.includes('assessment weights total')).length !== 3) {
-    throw new Error('Expected a blocker per level');
+  if (result.blockers.filter(b => b.includes('assessment weights total')).length !== 12) {
+    throw new Error('Expected a blocker per level and period');
   }
 });
 
@@ -152,4 +158,32 @@ test('the term length is configurable, not hard-coded', () => {
   const result = validateSubmission({ courseDetails, coverage: alignedCoverage(), config: { weeksPerTerm: 16 } });
   if (result.ok) throw new Error('16-week term should flag the same plan');
   if (result.expectedHours !== 80) throw new Error('Expected the configured term length to be used');
+});
+
+// The weekly planner's coverage: course outcomes hold their ILOs and weeks; 16 teaching weeks
+// (the 2 exam weeks carry none), the orientation taking 2 of week 1's 5 hours.
+const weeklyCoverage = () => {
+  const week = (n, hours) => ({ computedWeekNumber: n, weekNumberInCo: ((n - 1) % 4) + 1, allocatedTime: `(${hours} hrs)`, topics: ['t'], references: ['r'] });
+  return {
+    orientation: { allocatedTime: '(2 hrs)', topics: ['t'], references: ['r'] },
+    courseOutcomes: [1, 2, 3, 4].map(co => ({
+      coNumber: co,
+      ilos: ['I', 'E', 'D'].map((level, i) => ({ iloNumber: i + 1, iedLevel: level, isOrientation: false })),
+      weeks: [1, 2, 3, 4].map(w => week((co - 1) * 4 + w, co === 1 && w === 1 ? 3 : 5))
+    })),
+    assessments: alignedAssessments()
+  };
+};
+
+test('a weekly plan with every week filled and the term covered passes', () => {
+  const result = validateSubmission({ courseDetails, coverage: weeklyCoverage() });
+  if (!result.ok) throw new Error(`Expected pass, blocked by: ${result.blockers.join(' | ')}`);
+  if (result.expectedHours !== 80 || result.totalAllocatedHours !== 80) throw new Error(`Hours ${result.totalAllocatedHours}/${result.expectedHours}`);
+});
+
+test('a week with no reference blocks a weekly plan and is named', () => {
+  const coverage = weeklyCoverage();
+  coverage.courseOutcomes[1].weeks[2].references = [];
+  const result = validateSubmission({ courseDetails, coverage });
+  if (!result.blockers.includes('No reference attached to: Week 7 (CO2).')) throw new Error(`Unexpected blockers: ${result.blockers.join(' | ')}`);
 });

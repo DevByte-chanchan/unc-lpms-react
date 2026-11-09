@@ -42,19 +42,20 @@ const WEIGHT_TOLERANCE = 0.05;
 
 const formatWeight = (number) => String(Math.round(number * 100) / 100);
 
-// Faculty split each level's weight among its assessments however they like;
-// across the whole course the Introductory ones must total 20%, Enabling 30% and
-// Demonstrative 50%. assessments: { ied_level, is_orientation, weight } (orientation
-// ILOs sit outside the scheme). Returns human-readable problems; empty = valid.
+// Grading is per period (Prelim, Midterm, Semi-final, Final): within each period the Introductory
+// assessments total 20%, Enabling 30% and Demonstrative 50%, split among them however faculty like.
+// assessments: { period, ied_level, is_orientation, weight }. Orientation and ungraded (no level, or weight 0)
+// rows sit outside the scheme. Returns human-readable problems, period by period; empty = valid.
 const findWeightProblems = (assessments = []) => {
-    const totals = { I: 0, E: 0, D: 0 };
+    const totals = Object.fromEntries(TERM_PERIODS.map(period => [period.code, { I: 0, E: 0, D: 0 }]));
     for (const assessment of assessments) {
-        if (assessment.is_orientation || !(assessment.ied_level in totals)) continue;
-        totals[assessment.ied_level] += parseWeight(assessment.weight) ?? 0;
+        const inPeriod = totals[assessment.period];
+        if (!inPeriod || assessment.is_orientation || !(assessment.ied_level in inPeriod)) continue;
+        inPeriod[assessment.ied_level] += parseWeight(assessment.weight) ?? 0;
     }
-    return Object.keys(IED_WEIGHTS)
-        .filter(level => Math.abs(totals[level] - IED_WEIGHTS[level]) > WEIGHT_TOLERANCE)
-        .map(level => `${IED_NAMES[level]} assessment weights total ${formatWeight(totals[level])}%, but must total ${IED_WEIGHTS[level]}%.`);
+    return TERM_PERIODS.flatMap(period => Object.keys(IED_WEIGHTS)
+        .filter(level => Math.abs(totals[period.code][level] - IED_WEIGHTS[level]) > WEIGHT_TOLERANCE)
+        .map(level => `${period.label}: ${IED_NAMES[level]} assessment weights total ${formatWeight(totals[period.code][level])}%, but must total ${IED_WEIGHTS[level]}%.`));
 };
 
 module.exports = { PERIOD_LABELS, periodForWeek, startWeekOfIlo, parseWeight, formatWeight, findWeightProblems };

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { offeringKey } from '../utils/offeringKey.js'
+import HeadBodyTable from './HeadBodyTable.jsx';
 import { AlertTriangle } from 'react-feather';
 import EmptyState from './EmptyState.jsx';
 import { describeCourseLoadError } from '../utils/courseLoadError.js';
@@ -159,9 +160,10 @@ const CourseCoverage = ({ offeringID, revisionNum, status, selectedSection, styl
 
     return (
         <div className={stylesB.ccContainer}>
-            <div className={stylesB.ccScrollWrapper}>
-                <table className={stylesB.ccTable}>
-                    <thead>
+            {/* The header stays put while the weekly rows scroll (HeadBodyTable). */}
+            <HeadBodyTable label="Course coverage" tableClass={stylesB.ccTable}
+                widths={[60, 220, 250, 100, 350, 220, 100]}
+                head={(
                     <tr>
                         <th className={stylesB.ccHeader} style={{ width: colWidths.co }}>CO</th>
                         <th className={stylesB.ccHeader} style={{ width: colWidths.ilo }}>ILO</th>
@@ -171,7 +173,7 @@ const CourseCoverage = ({ offeringID, revisionNum, status, selectedSection, styl
                         <th className={stylesB.ccHeader} style={{ width: colWidths.assess }}>ASSESSMENT</th>
                         <th className={stylesB.ccHeader} style={{ width: colWidths.ref }}>RESOURCES</th>
                     </tr>
-                    </thead>
+                )}>
                     <tbody>
                     {hasData ? (
                         <>
@@ -394,8 +396,7 @@ const CourseCoverage = ({ offeringID, revisionNum, status, selectedSection, styl
                         <tr><td colSpan={7} style={{ padding: '20px', textAlign: 'center' }}>No coverage data available.</td></tr>
                     )}
                     </tbody>
-                </table>
-            </div>
+            </HeadBodyTable>
         </div>
     );
 };

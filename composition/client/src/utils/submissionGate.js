@@ -18,6 +18,8 @@ import { weightProblems } from './assessmentWeights.js'
 export const DEFAULT_GATE_CONFIG = {
   // Contact hours in `course-details.contact` are per week; a term is this long.
   weeksPerTerm: 18,
+  // Of those, the exam weeks carry no planned teaching in the weekly planner.
+  examWeeks: 2,
   // Allocated hours may fall this far short of the term total before the plan
   // is considered under-allocated (over-allocation is never allowed).
   minHoursCoverageRatio: 0.9
@@ -61,12 +63,29 @@ export const iedProblems = (ilos = []) => {
   return problems
 }
 
+// The weekly planner's coverage ({ orientation, courseOutcomes: [{ ilos, weeks }] }): ILOs for the IED check,
+// and the weeks (plus orientation) as the rows that need time, topics and references.
+const weeklyRows = (coverage) => {
+  const outcomes = coverage.courseOutcomes || []
+  const ilos = outcomes.flatMap(co => (co.ilos || []).map(i => ({
+    ...i, id: `CO${co.coNumber}-ILO${i.iloNumber}`, coNumber: co.coNumber
+  })))
+  const weeks = outcomes.flatMap(co => (co.weeks || []).map(w => ({
+    ...w, id: `Week ${w.computedWeekNumber ?? w.weekNumberInCo} (CO${co.coNumber})`
+  })))
+  const orientation = coverage.orientation ? [{ ...coverage.orientation, id: 'Course Orientation' }] : []
+  return { ilos, rows: [...orientation, ...weeks] }
+}
+
 export const validateSubmission = ({ courseDetails = null, coverage = null, textFields = null, config = DEFAULT_GATE_CONFIG } = {}) => {
   const cfg = { ...DEFAULT_GATE_CONFIG, ...(config || {}) }
   const blockers = []
   const warnings = []
 
-  const ilos = Array.isArray(coverage?.ilos) ? coverage.ilos : []
+  const weekly = Array.isArray(coverage?.courseOutcomes)
+  const { ilos, rows } = weekly
+    ? weeklyRows(coverage)
+    : { ilos: Array.isArray(coverage?.ilos) ? coverage.ilos : [], rows: Array.isArray(coverage?.ilos) ? coverage.ilos : [] }
 
   if (ilos.length === 0) {
     blockers.push('The learning plan has no intended learning outcomes yet.')
@@ -75,27 +94,29 @@ export const validateSubmission = ({ courseDetails = null, coverage = null, text
 
   const label = (ilo, index) => ilo?.id || `ILO ${index + 1}`
 
-  const missingHours = ilos.filter(i => parseHours(i.allocatedTime) <= 0).map(label)
+  const missingHours = rows.filter(i => parseHours(i.allocatedTime) <= 0).map(label)
   if (missingHours.length) {
     blockers.push(`No allocated time on: ${missingHours.join(', ')}.`)
   }
 
-  const missingTopics = ilos.filter(i => !(Array.isArray(i.topics) && i.topics.length)).map(label)
+  const missingTopics = rows.filter(i => !(Array.isArray(i.topics) && i.topics.length)).map(label)
   if (missingTopics.length) {
     blockers.push(`No topic aligned to: ${missingTopics.join(', ')}.`)
   }
 
-  const missingRefs = ilos.filter(i => !(Array.isArray(i.references) && i.references.length)).map(label)
+  const missingRefs = rows.filter(i => !(Array.isArray(i.references) && i.references.length)).map(label)
   if (missingRefs.length) {
     blockers.push(`No reference attached to: ${missingRefs.join(', ')}.`)
   }
 
   blockers.push(...iedProblems(ilos))
-  // Faculty split each level's weight as they like; across the course I = 20%, E = 30%, D = 50%.
+  // Faculty split each level's weight as they like; within each period I = 20%, E = 30%, D = 50%.
   blockers.push(...weightProblems(Array.isArray(coverage?.assessments) ? coverage.assessments : []))
 
-  const totalAllocatedHours = ilos.reduce((sum, i) => sum + parseHours(i.allocatedTime), 0)
-  const expectedHours = expectedTermHours(courseDetails?.contact, cfg)
+  const totalAllocatedHours = rows.reduce((sum, i) => sum + parseHours(i.allocatedTime), 0)
+  // The weekly planner leaves the exam weeks out, so its weeks cover the term minus those.
+  const expectedHours = expectedTermHours(courseDetails?.contact,
+    weekly ? { ...cfg, weeksPerTerm: cfg.weeksPerTerm - cfg.examWeeks } : cfg)
 
   if (expectedHours === null) {
     warnings.push('Contact hours are missing from the course details, so the hours total could not be checked.')

@@ -22,7 +22,6 @@ const arraFiles = [
   'pages/TosSummary.jsx',
   'pages/QuestionCognitiveMapping.jsx',
   'pages/AssessmentForm.jsx',
-  'pages/CriteriaForGradingForm.jsx',
   'components/TosSections.jsx',
   'components/TOSCoursesTable.jsx',
   'styles/TosSections.module.sass',

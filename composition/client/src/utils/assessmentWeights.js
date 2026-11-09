@@ -26,16 +26,17 @@ const WEIGHT_TOLERANCE = 0.05
 
 const formatWeight = (number) => String(Math.round(number * 100) / 100)
 
-// Across the whole course the Introductory assessments must total 20%, Enabling
-// 30% and Demonstrative 50%; faculty choose how to split each level's share.
-// assessments: { iedLevel, isOrientation, weight } (orientation ILOs are outside the scheme).
+// Grading is per period: within each period the Introductory assessments total 20%, Enabling 30% and
+// Demonstrative 50%; faculty choose how to split each level's share.
+// assessments: { period, iedLevel, isOrientation, weight } (orientation and ungraded rows are outside the scheme).
 export const weightProblems = (assessments = []) => {
-  const totals = { I: 0, E: 0, D: 0 }
+  const totals = Object.fromEntries(PERIODS.map(period => [period.code, { I: 0, E: 0, D: 0 }]))
   for (const assessment of assessments) {
-    if (assessment.isOrientation || !(assessment.iedLevel in totals)) continue
-    totals[assessment.iedLevel] += parseWeight(assessment.weight) ?? 0
+    const inPeriod = totals[assessment.period]
+    if (!inPeriod || assessment.isOrientation || !(assessment.iedLevel in inPeriod)) continue
+    inPeriod[assessment.iedLevel] += parseWeight(assessment.weight) ?? 0
   }
-  return IED_LEVELS
-    .filter(level => Math.abs(totals[level.code] - level.weight) > WEIGHT_TOLERANCE)
-    .map(level => `${level.name} assessment weights total ${formatWeight(totals[level.code])}%, but must total ${level.weight}%.`)
+  return PERIODS.flatMap(period => IED_LEVELS
+    .filter(level => Math.abs(totals[period.code][level.code] - level.weight) > WEIGHT_TOLERANCE)
+    .map(level => `${period.label}: ${level.name} assessment weights total ${formatWeight(totals[period.code][level.code])}%, but must total ${level.weight}%.`))
 }

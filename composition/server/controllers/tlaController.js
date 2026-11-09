@@ -133,20 +133,22 @@ async function getTlasForIlo(req, res) {
             }
         });
 
-        // Context for the assessment fields: the period this week falls in, the ILOs an
-        // assessment can name, and how much of each level's course-wide weight the
-        // assessments outside this form already use.
+        // Context for the assessment fields: the period this week falls in, the ILOs an assessment can
+        // name, and, per period and level, how much of the level's share the assessments outside this
+        // form already use. levelWeights: { p: { I: { level, target, usedElsewhere }, ... }, m: ..., ... }.
         const { weekNumber, ilos, offeringId } = await loadWeekContext(week);
         const editedTlaIds = new Set(tlaIds.map(Number));
-        const usedElsewhere = { I: 0, E: 0, D: 0 };
+        const usedElsewhere = Object.fromEntries(Object.keys(PERIOD_LABELS).map(code => [code, { I: 0, E: 0, D: 0 }]));
         if (offeringId) {
             for (const row of await loadOfferingAssessments(offeringId)) {
-                if (editedTlaIds.has(Number(row.tla_id)) || row.is_orientation || !(row.ied_level in usedElsewhere)) continue;
-                usedElsewhere[row.ied_level] += parseWeight(row.weight) ?? 0;
+                const inPeriod = usedElsewhere[row.period];
+                if (!inPeriod || editedTlaIds.has(Number(row.tla_id)) || row.is_orientation || !(row.ied_level in inPeriod)) continue;
+                inPeriod[row.ied_level] += parseWeight(row.weight) ?? 0;
             }
         }
-        const levelWeights = Object.fromEntries(Object.keys(IED_WEIGHTS).map(level =>
-            [level, { level, target: IED_WEIGHTS[level], usedElsewhere: Number(formatWeight(usedElsewhere[level])) }]));
+        const levelWeights = Object.fromEntries(Object.entries(usedElsewhere).map(([code, used]) => [code,
+            Object.fromEntries(Object.keys(IED_WEIGHTS).map(level =>
+                [level, { level, target: IED_WEIGHTS[level], usedElsewhere: Number(formatWeight(used[level])) }]))]));
 
         return res.json({
             week_id: weekId,

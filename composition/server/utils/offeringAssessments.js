@@ -9,7 +9,7 @@ const loadOfferingAssessments = async (offeringId) => {
     return sequelize.query(
         `SELECT ta.ilo_id, ilo.ied_level,
                 CASE WHEN tla.is_orientation = 1 OR ilo.is_orientation = 1 THEN 1 ELSE 0 END AS is_orientation,
-                ta.method_id, ta.tla_id, tla.week_id, ta.weight
+                ta.method_id, ta.tla_id, tla.week_id, ta.period, ta.weight
          FROM CourseOutcomes co
              INNER JOIN Weeks w ON w.co_id = co.co_id
              INNER JOIN TeachingAndLearningActivities tla ON tla.week_id = w.week_id

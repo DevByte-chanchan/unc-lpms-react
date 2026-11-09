@@ -20,7 +20,7 @@ export function InlineModal({ isOpen, title, onClose, children, actions }) {
             <div className={styles.modal}>
                 <div className={styles.modalHeader}>
                     <h3>{title}</h3>
-                    <button type="button" onClick={onClose} style={{ background: 'transparent', border: 'none', padding: 6 }}>
+                    <button type="button" className="app-icon-close" onClick={onClose} aria-label="Close">
                         <X size={16} />
                     </button>
                 </div>

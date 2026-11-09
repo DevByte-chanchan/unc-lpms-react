@@ -374,7 +374,7 @@ const TLAForm = forwardRef(({ iloId, isOrientation = false, status, setUnresolve
                                                             </div>
                                                             <div className={styles.tlaFieldSubtopicStyle}>
                                                                 <TextField
-                                                                    label={'Weight (% of the whole course; 0 = practice)'}
+                                                                    label={'Weight (% of the period; 0 = practice)'}
                                                                     value={item.assessmentWeight}
                                                                     onChange={(val) => handleTlaChange(item.id, 'assessmentWeight', val)}
                                                                     error={errors[`tla_${item.id}_assessmentWeight`]}
@@ -398,12 +398,12 @@ const TLAForm = forwardRef(({ iloId, isOrientation = false, status, setUnresolve
                                                         )}
                                                         {(() => {
                                                             const ilo = weekIlos.find(x => Number(x.id) === Number(item.assessmentIloId)) || (weekIlos.length === 1 ? weekIlos[0] : null);
-                                                            const budget = ilo?.iedLevel && levelWeights ? levelWeights[ilo.iedLevel] : null;
+                                                            const budget = ilo?.iedLevel && levelWeights?.[item.assessmentPeriod] ? levelWeights[item.assessmentPeriod][ilo.iedLevel] : null;
                                                             if (!budget) return null;
                                                             return (
                                                                 <p className={styles.assessmentHint}>
-                                                                    {IED_LEVELS.find(level => level.code === budget.level)?.name} assessments must total {budget.target}% of the course;
-                                                                    the assessments outside this week use {budget.usedElsewhere}%.
+                                                                    In {periodLabel(item.assessmentPeriod)}, {IED_LEVELS.find(level => level.code === budget.level)?.name} assessments must total {budget.target}%;
+                                                                    the ones outside this week use {budget.usedElsewhere}%.
                                                                 </p>
                                                             );
                                                         })()}
