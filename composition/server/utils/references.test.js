@@ -248,7 +248,7 @@ const insertRow = async (table, row) => {
     return id;
 };
 
-// An isolated plan whose content (outcomes, ILOs) is copied from a seeded plan.
+// An isolated plan whose content (outcomes, ILOs, weeks) is copied from a seeded plan; returns its second week.
 const planWithIlo = async () => {
     const now = new Date();
     const stamps = { createdAt: now, updatedAt: now };
@@ -257,18 +257,18 @@ const planWithIlo = async () => {
     const courseId = await insertRow('Courses', { course_no: `RF${counter}${String(stamp).slice(-4)}`, course_title: 'Ref test', credit: 3, contact_hrs: 3, classification: 'Core', cmo: 'CMO', year_lvl: 1, term: '1st', ...stamps });
     const offeringId = await insertRow('ProgramCourseOfferings', { revision_number: 0, course_id: courseId, program_id: programId, dept_id: deptId, course_description: 'x', school_year: '2097-2098', semester: '1st', ...stamps });
     await sequelize.transaction(t => cloneOfferingContent(1, offeringId, now, t));
-    const [ilo] = await sequelize.query(
-        `SELECT i.ilo_id FROM IntendedLearningOutcomes i INNER JOIN CourseOutcomes co ON co.co_id = i.co_id WHERE co.pc_offering_id = ? ORDER BY i.ilo_id LIMIT 1`,
+    const [week] = await sequelize.query(
+        `SELECT w.week_id FROM Weeks w INNER JOIN CourseOutcomes co ON co.co_id = w.co_id WHERE co.pc_offering_id = ? ORDER BY co.co_id, w.week_id LIMIT 1 OFFSET 1`,
         { replacements: [offeringId], type: Sequelize.QueryTypes.SELECT });
     planWithIlo.lastOffering = offeringId;
-    return ilo.ilo_id;
+    return week.week_id;
 };
 const assign = async (iloId, referenceIds) => {
     const res = { code: 200, body: null, status(c) { this.code = c; return this; }, json(b) { this.body = b; return this; } };
-    await assignReferencesToILO({ body: { ilo_id: iloId, reference_ids: referenceIds } }, res);
+    await assignReferencesToILO({ body: { week_id: iloId, reference_ids: referenceIds }, query: {} }, res);
     return res;
 };
-const linked = async (iloId) => (await sequelize.query('SELECT reference_id FROM ILOReferences WHERE ilo_id = ?', { replacements: [iloId], type: Sequelize.QueryTypes.SELECT })).map(r => r.reference_id);
+const linked = async (weekId) => (await sequelize.query('SELECT reference_id FROM WeeklyReferences WHERE week_id = ? AND is_orientation = 0 ORDER BY weekly_reference_id', { replacements: [weekId], type: Sequelize.QueryTypes.SELECT })).map(r => r.reference_id);
 
 test('an archived reference stays on plans that use it but cannot be linked anew', async () => {
     const iloId = await planWithIlo();
@@ -330,21 +330,23 @@ test('import: dry run previews every row, commit creates the valid ones, duplica
     // Row 6 duplicates a reference that already exists (case and spacing do not matter).
     rows[5] = { ...rows[5], title: rows[5].title.toUpperCase() };
 
-    const before = await Reference.count();
+    // Only this test's titles: other test files add references at the same time.
+    const mineCount = () => Reference.count({ where: { title: [...new Set(rows.map(r => r.title).filter(Boolean))] } });
+    const before = await mineCount();
     const preview = await (await call(DIRECTOR, 'POST', '/import', { rows, dryRun: true })).json();
     assert.equal(preview.dryRun, true);
     assert.deepEqual(preview.rows.map(r => r.status), ['ok', 'invalid', 'invalid', 'duplicate', 'ok', 'duplicate']);
     assert.deepEqual(Object.keys(preview.rows[1].errors), ['link']);
     assert.deepEqual(preview.rows[2].errors, { type: 'Unknown reference type.' });
     assert.deepEqual([preview.total, preview.valid, preview.invalid, preview.duplicates, preview.created], [6, 2, 2, 2, 0]);
-    assert.equal(await Reference.count(), before, 'a dry run writes nothing');
+    assert.equal(await mineCount(), before, 'a dry run writes nothing');
 
     const response = await call(DIRECTOR, 'POST', '/import', { rows });
     assert.equal(response.status, 201);
     const result = await response.json();
     assert.deepEqual(result.rows.map(r => r.status), ['created', 'invalid', 'invalid', 'duplicate', 'created', 'duplicate']);
     assert.equal(result.created, 2);
-    assert.equal(await Reference.count(), before + 2);
+    assert.equal(await mineCount(), before + 2);
     const createdIds = result.rows.filter(r => r.referenceId).map(r => r.referenceId);
     for (const id of createdIds) {
         const [entry] = await auditFor('REFERENCE_CREATED', id);
@@ -354,7 +356,7 @@ test('import: dry run previews every row, commit creates the valid ones, duplica
     // Running it again changes nothing: everything valid is now a duplicate.
     const again = await (await call(DIRECTOR, 'POST', '/import', { rows })).json();
     assert.equal(again.created, 0);
-    assert.equal(await Reference.count(), before + 2);
+    assert.equal(await mineCount(), before + 2);
 });
 
 test('import limits: rows must be a non-empty array of at most 1000', async () => {

@@ -12,11 +12,11 @@ const { freezeReviewRecord, approvedOrigin } = require('./reviewRecordInputs');
 const { requireOfferingAccess } = require('../middleware/courseAuthorization');
 const { getReviewRecord } = require('../controllers/reviewRecordController');
 
-const { sequelize, Sequelize, User, Comment, CommentTarget, CourseOutcome, IntendedLearningOutcome, Reference, ILOReference, ReviewRecordSnapshot } = models;
+const { sequelize, Sequelize, User, Comment, CommentTarget, CourseOutcome, Week, Reference, WeeklyReference, ReviewRecordSnapshot } = models;
 const insert = async (sql, replacements) => (await sequelize.query(sql, { replacements, type: Sequelize.QueryTypes.INSERT }))[0];
 const stamp = Date.now();
 const now = () => new Date();
-const made = { users: [], courses: [], programs: [], depts: [], offerings: [], assignments: [], references: [], outcomes: [], ilos: [] };
+const made = { users: [], courses: [], programs: [], depts: [], offerings: [], assignments: [], references: [], outcomes: [], weeks: [] };
 const ids = {};
 let server;
 let base;
@@ -50,15 +50,15 @@ test.before(async () => {
     ids.carried = await offering(1, false, { school_year: '2032-2033', carried_from_offering_id: ids.approved.id });
 
     const outcome = await CourseOutcome.create({ pc_offering_id: ids.approved.id, co_description: 'Outcome' });
-    const ilo = await IntendedLearningOutcome.create({ co_id: outcome.co_id, description: 'ILO' });
-    made.outcomes.push(outcome.co_id); made.ilos.push(ilo.ilo_id);
+    const week = await Week.create({ co_id: outcome.co_id, hours: 5 });
+    made.outcomes.push(outcome.co_id); made.weeks.push(week.week_id);
     const reference = await Reference.create({ title: `ZZ original title ${stamp}`, type: 'Textbook', author: 'ZZ', isbn: `978${String(stamp).slice(-9)}9`, publication_year: new Date('2025-01-01'), status: 'available' });
     made.references.push(reference.reference_id);
     ids.reference = reference.reference_id;
-    await ILOReference.create({ ilo_id: ilo.ilo_id, reference_id: reference.reference_id });
+    const link = await WeeklyReference.create({ week_id: week.week_id, reference_id: reference.reference_id });
 
-    const comment = await Comment.create({ co_assign_id: ids.approved.assignment, commenter_role: 'PROGRAM_HEAD', commenter_user_id: ids.head, message: 'Please replace this title', resolved_status: false, ilo_id: ilo.ilo_id, comment_for: 'references' });
-    await CommentTarget.create({ comment_id: comment.comment_id, target_id: reference.reference_id });
+    const comment = await Comment.create({ co_assign_id: ids.approved.assignment, commenter_role: 'PROGRAM_HEAD', commenter_user_id: ids.head, message: 'Please replace this title', resolved_status: false, week_id: week.week_id, comment_for: 'references' });
+    await CommentTarget.create({ comment_id: comment.comment_id, target_id: link.weekly_reference_id });
     ids.comment = comment.comment_id;
     for (const [role, action] of [['INSTRUCTOR', 'SUBMITTED'], ['LIBRARY_DIRECTOR', 'ACCEPTED'], ['PROGRAM_HEAD', 'ACCEPTED'], ['DEAN', 'ACCEPTED']]) {
         await insert('INSERT INTO AssignmentWorkflowLogs (co_assign_id, actor_role, action_type, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?)', [ids.approved.assignment, role, action, now(), now()]);
@@ -79,9 +79,9 @@ test.after(async () => {
     await ReviewRecordSnapshot.destroy({ where: { offering_id: { [Op.in]: made.offerings } } });
     await sequelize.query(`DELETE FROM CommentTargets WHERE comment_id IN (SELECT comment_id FROM Comments WHERE co_assign_id IN (${list(made.assignments)}))`);
     await sequelize.query(`DELETE FROM Comments WHERE co_assign_id IN (${list(made.assignments)})`);
-    await ILOReference.destroy({ where: { ilo_id: { [Op.in]: made.ilos } } });
+    await WeeklyReference.destroy({ where: { week_id: { [Op.in]: made.weeks } } });
     await Reference.destroy({ where: { reference_id: { [Op.in]: made.references } } });
-    await IntendedLearningOutcome.destroy({ where: { ilo_id: { [Op.in]: made.ilos } } });
+    await Week.destroy({ where: { week_id: { [Op.in]: made.weeks } } });
     await CourseOutcome.destroy({ where: { co_id: { [Op.in]: made.outcomes } } });
     await sequelize.query(`DELETE FROM AssignmentWorkflowLogs WHERE co_assign_id IN (${list(made.assignments)})`);
     await sequelize.query(`DELETE FROM CourseOfferingAssignments WHERE co_assign_id IN (${list(made.assignments)})`);

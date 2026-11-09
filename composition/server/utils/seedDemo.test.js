@@ -67,16 +67,17 @@ test('an empty database is seeded through the command line, and the six accounts
 
     const run = cli(file);
     assert.equal(run.status, 0, run.stderr);
-    assert.equal((run.stdout.match(/^Seeded /gm) || []).length, 12, 'all 12 seeders');
-    const order = ['20260512030000', '20260812000000', '20260901000000'].map(prefix => run.stdout.indexOf(`Seeded ${prefix}`));
-    assert.ok(order.every(position => position >= 0) && order[0] < order[1] && order[1] < order[2], 'in filename order');
+    assert.equal((run.stdout.match(/^Seeded /gm) || []).length, 13, 'all 13 seeders');
+    const order = ['20260512030000', '20260811000000', '20260812000000', '20260901000000'].map(prefix => run.stdout.indexOf(`Seeded ${prefix}`));
+    assert.ok(order.every((position, i) => position >= 0 && (i === 0 || order[i - 1] < position)), 'in filename order');
     assert.match(run.stdout, /password "demo1234"/);
     for (const email of ['monica.norton', 'junar.danila', 'maria.santos', 'roberto.cruz', 'agnes.reyes', 'carlos.garcia']) {
         assert.ok(run.stdout.includes(`${email}@unc.edu.ph`), email);
     }
 
     const rows = dataRows(file);
-    assert.deepEqual([rows.Departments, rows.Programs, rows.Courses, rows.Users], [5, 2, 14, 6]);
+    // The weekly-planner demo data (feature/learning-plan-composition) plus the six accounts.
+    assert.deepEqual([rows.Departments, rows.Programs, rows.Courses, rows.Users], [5, 6, 13, 6]);
     for (const table of ['ProgramCourseOfferings', 'IntendedLearningOutcomes', 'References', 'Comments', 'AssignmentWorkflowLogs']) {
         assert.ok(rows[table] > 0, `${table} has demo rows`);
     }
@@ -89,7 +90,7 @@ test('a populated database is refused and not one row changes', () => {
     assert.equal(cli(file).status, 0);
     // The groupmate's own work on top of the demo data.
     withDb(file, db => {
-        db.prepare("INSERT INTO Comments (commenter_role, message, resolved_status, co_assign_id, ilo_id, comment_for, createdAt, updatedAt) VALUES ('PROGRAM_HEAD', 'MY OWN COMMENT', 0, 1, 1, 'references', datetime('now'), datetime('now'))").run();
+        db.prepare("INSERT INTO Comments (commenter_role, message, resolved_status, co_assign_id, week_id, comment_for, createdAt, updatedAt) VALUES ('PROGRAM_HEAD', 'MY OWN COMMENT', 0, 1, 1, 'references', datetime('now'), datetime('now'))").run();
         db.prepare("UPDATE IntendedLearningOutcomes SET description = 'EDITED BY ME' WHERE ilo_id = 1").run();
     });
     const before = snapshot(file);

@@ -10,13 +10,14 @@ const { mergeDuplicateReferences } = require('./mergeDuplicateReferences');
 const { sequelize, Sequelize, Reference } = models;
 const stamp = Date.now();
 const select = (sql, replacements = []) => sequelize.query(sql, { replacements, type: Sequelize.QueryTypes.SELECT });
-const link = (referenceId, iloId) => sequelize.query(
-    'INSERT INTO ILOReferences (reference_id, ilo_id) VALUES (?, ?);', { replacements: [referenceId, iloId] }
+// A reference is linked to a week of a plan (weekly planner).
+const link = (referenceId, weekId) => sequelize.query(
+    'INSERT INTO WeeklyReferences (reference_id, week_id, is_orientation, createdAt, updatedAt) VALUES (?, ?, 0, ?, ?);', { replacements: [referenceId, weekId, new Date(), new Date()] }
 );
-const linksOf = async (referenceId) => (await select('SELECT ilo_id FROM ILOReferences WHERE reference_id = ? ORDER BY ilo_id;', [referenceId])).map(r => r.ilo_id);
+const linksOf = async (referenceId) => (await select('SELECT week_id FROM WeeklyReferences WHERE reference_id = ? ORDER BY week_id;', [referenceId])).map(r => r.week_id);
 
 test('exact duplicates merge into the lowest id; links move once; different ones stay; dry run changes nothing', async () => {
-    const [x, y] = (await select('SELECT ilo_id FROM IntendedLearningOutcomes ORDER BY ilo_id LIMIT 2;')).map(r => r.ilo_id);
+    const [x, y] = (await select('SELECT week_id FROM Weeks ORDER BY week_id LIMIT 2;')).map(r => r.week_id);
     const title = `Merge Test ${stamp}`;
     const base = { title, author: 'A. Author', type: 'Textbook', publication_year: '2020-01-01 00:00:00.000 +00:00' };
     const first = await Reference.create(base);

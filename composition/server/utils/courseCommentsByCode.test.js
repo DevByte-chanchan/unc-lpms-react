@@ -7,12 +7,12 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const express = require('express');
 const { Op } = require('sequelize');
-const { sequelize, Sequelize, User, Comment, CourseOutcome, IntendedLearningOutcome } = require('../models');
+const { sequelize, Sequelize, User, Comment, CourseOutcome, Week } = require('../models');
 
 const insert = async (sql, replacements) => (await sequelize.query(sql, { replacements, type: Sequelize.QueryTypes.INSERT }))[0];
 const stamp = Date.now();
 const now = () => new Date();
-const made = { users: [], depts: [], programs: [], courses: [], offerings: [], assignments: [], outcomes: [], ilos: [], comments: [] };
+const made = { users: [], depts: [], programs: [], courses: [], offerings: [], assignments: [], outcomes: [], weeks: [], comments: [] };
 const ids = {};
 const code = `ZZBC${stamp}`.slice(0, 20);
 let server;
@@ -40,9 +40,9 @@ test.before(async () => {
         made.offerings.push(id); made.assignments.push(assignment);
         const outcome = await CourseOutcome.create({ pc_offering_id: id, co_description: 'Outcome' });
         made.outcomes.push(outcome.co_id);
-        const ilo = await IntendedLearningOutcome.create({ co_id: outcome.co_id, description: 'An ILO for the by-code test' });
-        made.ilos.push(ilo.ilo_id);
-        const comment = await Comment.create({ co_assign_id: assignment, commenter_role: 'DEAN', commenter_user_id: ids.dean, message, resolved_status: false, ilo_id: ilo.ilo_id });
+        const week = await Week.create({ co_id: outcome.co_id, hours: 5 });
+        made.weeks.push(week.week_id);
+        const comment = await Comment.create({ co_assign_id: assignment, commenter_role: 'DEAN', commenter_user_id: ids.dean, message, resolved_status: false, week_id: week.week_id });
         made.comments.push(comment.comment_id);
     };
     // The newest revision is the one the access check picks when no pcId is given.
@@ -61,7 +61,7 @@ test.after(async () => {
     server.close();
     const list = (a) => (a.length ? a.join(', ') : '0');
     await Comment.destroy({ where: { comment_id: { [Op.in]: made.comments } } });
-    await IntendedLearningOutcome.destroy({ where: { ilo_id: { [Op.in]: made.ilos } } });
+    await Week.destroy({ where: { week_id: { [Op.in]: made.weeks } } });
     await CourseOutcome.destroy({ where: { co_id: { [Op.in]: made.outcomes } } });
     await sequelize.query(`DELETE FROM CourseOfferingAssignments WHERE co_assign_id IN (${list(made.assignments)})`);
     await sequelize.query(`DELETE FROM ProgramCourseOfferings WHERE pc_offering_id IN (${list(made.offerings)})`);
@@ -84,12 +84,12 @@ test('a comment is saved on the plan being reviewed, not the newest plan with th
     const res = await fetch(`${base}/comments/by-course`, {
         method: 'POST',
         headers: { 'x-user': `${ids.dean}:dean`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code, pcId: otherOffering, commenter_role: 'DEAN', message: `ZZ posted ${stamp}`, co_index: 1, ilo_index: 1 })
+        body: JSON.stringify({ code, pcId: otherOffering, commenter_role: 'DEAN', message: `ZZ posted ${stamp}`, co_index: 1, week_index: 1 })
     });
     assert.equal(res.status, 201);
     const [row] = await sequelize.query(
-        `SELECT c.comment_id, co.pc_offering_id FROM Comments c JOIN IntendedLearningOutcomes i ON i.ilo_id = c.ilo_id
-         JOIN CourseOutcomes co ON co.co_id = i.co_id WHERE c.message = ?;`,
+        `SELECT c.comment_id, co.pc_offering_id FROM Comments c JOIN Weeks w ON w.week_id = c.week_id
+         JOIN CourseOutcomes co ON co.co_id = w.co_id WHERE c.message = ?;`,
         { replacements: [`ZZ posted ${stamp}`], type: Sequelize.QueryTypes.SELECT });
     made.comments.push(row.comment_id);
     assert.equal(row.pc_offering_id, otherOffering);

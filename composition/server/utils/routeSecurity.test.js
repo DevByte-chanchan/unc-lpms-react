@@ -279,9 +279,9 @@ test('an instructor cannot act on or read another instructor course', async () =
         const action = await fetch(`${server.baseUrl}/api/assignments/action`, {
             method: 'POST',
             headers,
-            body: JSON.stringify({ actor_role: 'INSTRUCTOR', action_type: 'SUBMITTED', pcId: 9 })
+            body: JSON.stringify({ actor_role: 'INSTRUCTOR', action_type: 'SUBMITTED', pcId: 2 })
         });
-        const ilos = await fetch(`${server.baseUrl}/api/ilos/9`, { headers });
+        const ilos = await fetch(`${server.baseUrl}/api/ilos/2`, { headers });
 
         assert.equal(action.status, 403);
         assert.deepEqual(await action.json(), { error: 'You do not have access to this course.' });
@@ -297,20 +297,20 @@ test('all course-scoped read endpoints reject a foreign instructor', async () =>
         `SELECT c.course_no
          FROM ProgramCourseOfferings pco
          INNER JOIN Courses c ON c.course_id = pco.course_id
-         WHERE pco.pc_offering_id = 9`,
+         WHERE pco.pc_offering_id = 2`,
         { type: db.Sequelize.QueryTypes.SELECT }
     );
-    assert.ok(course?.course_no, 'the sample database must contain offering 9');
+    assert.ok(course?.course_no, 'the sample database must contain offering 2');
 
     const server = await startCourseReadServer({ id: 999, role: 'instructor' });
     try {
         const paths = [
-            '/api/course-details/9',
-            '/api/course-criteria/9',
-            '/api/course-coverage/9',
-            '/api/course-outcome-alignment/9',
-            '/api/revisions/9',
-            '/api/courses/9/references',
+            '/api/course-details/2',
+            '/api/course-criteria/2',
+            '/api/course-coverage/2',
+            '/api/course-outcome-alignment/2',
+            '/api/revisions/2',
+            '/api/courses/2/references',
             `/api/coaep/${encodeURIComponent(course.course_no)}`
         ];
         for (const path of paths) {
@@ -424,5 +424,40 @@ test('the authentication API does not publish an account email directory', async
         assert.deepEqual(await response.json(), { error: 'Authentication required.' });
     } finally {
         await server.close();
+    }
+});
+
+// Weekly planner: the week-scoped endpoints check the week's plan the same way.
+test('the weekly planner endpoints reject a foreign instructor', async () => {
+    const [week] = await db.sequelize.query(
+        `SELECT w.week_id FROM Weeks w INNER JOIN CourseOutcomes co ON co.co_id = w.co_id WHERE co.pc_offering_id = 2 LIMIT 1`,
+        { type: db.Sequelize.QueryTypes.SELECT }
+    );
+    assert.ok(week?.week_id, 'the sample database must contain a week of offering 2');
+    const app = express();
+    app.use(express.json());
+    app.use((req, _res, next) => { req.user = { id: 999, role: 'instructor' }; next(); });
+    app.use('/api/topics', require('../routes/topics'));
+    app.use('/api/tlas', require('../routes/tlaRoutes'));
+    app.use('/api/ilo-references', require('../routes/iloReferences'));
+    app.use('/api/comments', require('../routes/comments'));
+    const server = await new Promise(resolve => { const s = app.listen(0, () => resolve(s)); });
+    const baseUrl = `http://127.0.0.1:${server.address().port}`;
+    try {
+        const id = week.week_id;
+        const reads = [`/api/topics/week-context/${id}`, `/api/topics/assigned/${id}`, `/api/topics/available?weekId=${id}`,
+            `/api/tlas/week/${id}`, `/api/tlas/ilo/${id}`, `/api/ilo-references/${id}`, `/api/comments/filter/${id}/topics`];
+        for (const path of reads) {
+            const response = await fetch(`${baseUrl}${path}`);
+            assert.equal(response.status, 403, `${path} must reject a foreign instructor`);
+        }
+        const writes = [['/api/topics/assign', { week_id: id, topics: [] }], [`/api/tlas/week/${id}`, { tlas: [] }],
+            ['/api/ilo-references/assign', { week_id: id, reference_ids: [] }]];
+        for (const [path, body] of writes) {
+            const response = await fetch(`${baseUrl}${path}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+            assert.equal(response.status, 403, `${path} must reject a foreign instructor`);
+        }
+    } finally {
+        server.close();
     }
 });

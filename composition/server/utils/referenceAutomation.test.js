@@ -14,12 +14,12 @@ const { onReferenceEdited } = require('./referenceAlerts');
 const { notify } = require('./notify');
 const health = require('./referenceHealth');
 
-const { sequelize, Sequelize, User, Notification, ReminderLog, Reference, CourseOutcome, IntendedLearningOutcome, ILOReference } = models;
+const { sequelize, Sequelize, User, Notification, ReminderLog, Reference, CourseOutcome, Week, WeeklyReference } = models;
 const insert = async (sql, replacements) => (await sequelize.query(sql, { replacements, type: Sequelize.QueryTypes.INSERT }))[0];
 const stamp = Date.now();
 const now = () => new Date();
 const DAYS = ['2031-04-07', '2031-04-08', '2031-04-14'];
-const made = { users: [], references: [], courses: [], programs: [], depts: [], offerings: [], assignments: [], outcomes: [], ilos: [] };
+const made = { users: [], references: [], courses: [], programs: [], depts: [], offerings: [], assignments: [], outcomes: [], weeks: [] };
 const ids = {};
 
 const makeUser = async (label, role) => {
@@ -48,12 +48,12 @@ test.before(async () => {
     await insert('INSERT INTO AssignmentWorkflowLogs (co_assign_id, actor_role, action_type, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?)', [ids.assignment, 'INSTRUCTOR', 'SUBMITTED', now(), now()]);
 
     const outcome = await CourseOutcome.create({ pc_offering_id: ids.offering, co_description: 'Test outcome' });
-    const ilo = await IntendedLearningOutcome.create({ co_id: outcome.co_id, description: 'Test ILO' });
-    made.outcomes.push(outcome.co_id); made.ilos.push(ilo.ilo_id);
+    const week = await Week.create({ co_id: outcome.co_id, hours: 5 });
+    made.outcomes.push(outcome.co_id); made.weeks.push(week.week_id);
     const reference = async (title, fields) => {
         const row = await Reference.create({ title: `ZZ ${title} ${stamp}`, type: 'Textbook', author: 'ZZ Author', isbn: `978${String(stamp).slice(-9)}${made.references.length}`, publication_year: new Date('2025-01-01'), status: 'available', ...fields });
         made.references.push(row.reference_id);
-        await ILOReference.create({ ilo_id: ilo.ilo_id, reference_id: row.reference_id });
+        await WeeklyReference.create({ week_id: week.week_id, reference_id: row.reference_id });
         return row;
     };
     ids.good = await reference('good', {});
@@ -64,9 +64,9 @@ test.after(async () => {
     const list = (a) => (a.length ? a.join(', ') : '0');
     await Notification.destroy({ where: { [Op.or]: [{ offering_id: { [Op.in]: made.offerings } }, { recipient_user_id: { [Op.in]: made.users } }, { type: 'reference_health', created_at: { [Op.gte]: new Date(Date.now() - 600000) } }] } });
     await ReminderLog.destroy({ where: { kind: 'digest', subject: { [Op.like]: 'refhealth:%' }, day: { [Op.in]: DAYS } } });
-    await ILOReference.destroy({ where: { ilo_id: { [Op.in]: made.ilos } } });
+    await WeeklyReference.destroy({ where: { week_id: { [Op.in]: made.weeks } } });
     await Reference.destroy({ where: { reference_id: { [Op.in]: made.references } } });
-    await IntendedLearningOutcome.destroy({ where: { ilo_id: { [Op.in]: made.ilos } } });
+    await Week.destroy({ where: { week_id: { [Op.in]: made.weeks } } });
     await CourseOutcome.destroy({ where: { co_id: { [Op.in]: made.outcomes } } });
     await sequelize.query(`DELETE FROM AssignmentWorkflowLogs WHERE co_assign_id IN (${list(made.assignments)})`);
     await sequelize.query(`DELETE FROM CourseOfferingAssignments WHERE co_assign_id IN (${list(made.assignments)})`);
