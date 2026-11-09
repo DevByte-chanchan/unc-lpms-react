@@ -15,7 +15,7 @@ const courses = [
     { code: 'BSCS111L', name: 'Fundamentals of Programming', assessmentName: 'Written Exam', instructor: 'NORTON, MONICA' },
     { code: 'BSCS214L', name: 'Data Structures and Algorithms', assessmentName: 'Written Exam', instructor: 'NORTON, MONICA' },
     { code: 'BSCS315L', name: 'Operating Systems', assessmentName: 'Periodic Exam', instructor: 'DIAZ, ROSA' },
-    { code: 'BSCS321L', name: 'Database Management Systems', instructor: 'NORTON, MONICA' },
+    { code: 'BSCS321L', name: 'Database Management Systems', instructor: 'NORTON, MONICA', learningPlanApproved: false },
     { code: 'BSCS322L', name: 'Software Engineering', assessmentName: 'Midterm Exam', instructor: 'DIAZ, ROSA' },
     { code: 'BSCS331L', name: 'Computer Networks', assessmentName: 'Periodic Exam', instructor: 'JEFFORDS, TERRY' },
     { code: 'BSCS341L', name: 'Artificial Intelligence', assessmentName: 'Written Exam', instructor: 'NORTON, MONICA' },
@@ -31,7 +31,7 @@ const statuses = [
     { courseCode: 'BSCS321L', examPeriod: 'Midterm', status: 'draft' },
     { courseCode: 'BSCS322L', examPeriod: 'Midterm', status: 'draft' },
     { courseCode: 'BSCS331L', examPeriod: 'Midterm', status: 'pending', submittedAt: new Date('2026-10-10') },
-    { courseCode: 'BSCS341L', examPeriod: 'Midterm', status: 'pending', returnCount: 1, returnDates: JSON.stringify([new Date('2026-10-20').toISOString()]), submittedAt: new Date('2026-10-11'), returnedAt: new Date('2026-10-20') },
+    { courseCode: 'BSCS341L', examPeriod: 'Midterm', status: 'pending', returnCount: 1, returnDates: JSON.stringify([new Date('2026-10-20').toISOString()]), submittedAt: new Date('2026-10-24'), returnedAt: new Date('2026-10-20') },
     { courseCode: 'BSCS351L', examPeriod: 'Midterm', status: 'draft' }
 ];const courseData = [
     {

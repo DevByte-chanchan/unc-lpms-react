@@ -534,8 +534,8 @@ export async function seedReturnedComments() {
             const is222 = st.courseCode === 'BSCS222L';
             st.returnCount = is222 ? 2 : 1;
             st.returnDates = is222
-                ? JSON.stringify([new Date('2026-06-10').toISOString(), new Date('2026-06-20').toISOString()])
-                : JSON.stringify([new Date().toISOString()]);
+                ? JSON.stringify(['2026-10-12T00:00:00.000Z', '2026-10-19T00:00:00.000Z'])
+                : JSON.stringify(['2026-10-19T00:00:00.000Z']);
             await st.save();
         }
     }
