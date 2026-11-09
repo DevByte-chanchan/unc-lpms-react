@@ -18,11 +18,28 @@ router.get('/:code/:period/status', async (req, res) => {
     res.json(status);
 });
 
+const ALLOWED_TRANSITIONS = {
+    draft: ['pending'],
+    pending: ['returned', 'approved'],
+    returned: ['pending'],
+    approved: []
+};
+
 router.put('/:code/:period/status', lockGuard, async (req, res) => {
     const { status: newStatus } = req.body;
     let status = await TosStatus.findOne({
         where: { courseCode: req.params.code, examPeriod: req.params.period }
     });
+
+    const currentStatus = status ? (status.status || 'draft') : 'draft';
+    if (newStatus && newStatus !== currentStatus) {
+        const allowed = ALLOWED_TRANSITIONS[currentStatus] || [];
+        if (!allowed.includes(newStatus)) {
+            return res.status(400).json({
+                error: `Invalid status transition from ${currentStatus} to ${newStatus}`
+            });
+        }
+    }
     const now = new Date();
     if (status) {
         status.status = newStatus || 'draft';
