@@ -33,6 +33,20 @@ router.put('/:code/:period/status', lockGuard, async (req, res) => {
     });
 
     const currentStatus = status ? (status.status || 'draft') : 'draft';
+
+    // Same-status requests are a harmless no-op success (preserves timestamps and returnCount)
+    if (status && newStatus === currentStatus) {
+        return res.json({ ...status.toJSON(), deadline: getCourseDeadline(req.params.code, req.params.period) });
+    }
+    if (!status && (!newStatus || newStatus === 'draft')) {
+        status = await TosStatus.create({
+            courseCode: req.params.code,
+            examPeriod: req.params.period,
+            status: 'draft'
+        });
+        return res.json({ ...status.toJSON(), deadline: getCourseDeadline(req.params.code, req.params.period) });
+    }
+
     if (newStatus && newStatus !== currentStatus) {
         const allowed = ALLOWED_TRANSITIONS[currentStatus] || [];
         if (!allowed.includes(newStatus)) {
