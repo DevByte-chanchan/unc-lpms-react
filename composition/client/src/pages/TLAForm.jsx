@@ -1,191 +1,141 @@
-import React, { useState, useEffect, useRef } from "react";
-import SkeletonA from "../layouts/Skeleton.jsx";
-import HeaderA from "../components/Header.jsx";
-import FormNavigation from "../components/FormNavigation.jsx";
-import styles from "../styles/Form.module.sass";
-import { useNavigate, useParams } from "react-router-dom";
+import React, { useState, useEffect, forwardRef, useImperativeHandle, useRef } from "react";
 import TextField from "../components/TextField.jsx";
 import Dropdown from "../components/Dropdown.jsx";
-import DropdownMultiSelect from "../components/DropdownMultiSelect.jsx";
-import TypeableDropdown from "../components/TypeableDropdown";
 import TextArea from "../components/TextArea.jsx";
-import Duplicator from "../components/Duplicator.jsx";
-import { X, CheckCircle, MessageSquare, Plus, Award, Trash2 } from "react-feather";
-import SideNavigation from "../components/SideNavigation.jsx";
-
-// Imported universal API client utility
-import { fetchJson, apiErrorMessage } from "../utils/api.js";
-import CommentMessage from "../components/CommentMessage.jsx";
+import { Plus, Award, X, Edit2 } from "react-feather";
+import { fetchJson } from "../utils/api.js";
 import { PERIODS, periodLabel, periodCode, parseWeight } from "../utils/assessmentWeights.js";
 import { IED_LEVELS } from "../utils/iedLevels.js";
 
-const FLIPPED_OPTIONS = ['Pre-class', 'In-class', 'Post-class'];
-const STANDARD_OPTIONS = ['Asynchronous', 'Synchronous'];
+// 0 is an ungraded (practice) assessment; otherwise parseWeight (0 < w <= 100). Mirrors the server.
+const weightOf = (value) => (/^\s*0+(\.0+)?\s*%?\s*$/.test(String(value ?? '')) ? 0 : parseWeight(value));
+import styles from "../styles/Form.module.sass";
+import tStyles from "../styles/TopicSelector.module.sass";
 
-const normalizeClassPhase = (val) => {
-    if (!val) return '';
-    const v = val.toString().toLowerCase();
-    if (v.includes('pre')) return 'Pre-class';
-    if (v.includes('in')) return 'In-class';
-    if (v.includes('post')) return 'Post-class';
-    if (v.includes('async')) return 'Asynchronous';
-    if (v.includes('sync')) return 'Synchronous';
-    return val;
-};
+const ILO_LABEL_OF = (weekIlos) => (ilo) => `ILO ${weekIlos.indexOf(ilo) + 1}${ilo.iedLevel ? ` (${IED_LEVELS.find(level => level.code === ilo.iedLevel)?.name || ilo.iedLevel})` : ''}`;
 
-const mapDbToUi = (tla) => {
-    const hasExistingAssessment = Boolean(tla.assessmentType || tla.assessmentDetail);
-    return {
-        ...tla,
-        performedBy: tla.performedBy === 'T' ? 'Instructor' : tla.performedBy === 'S' ? 'Student' : tla.performedBy,
-        classPhase: normalizeClassPhase(tla.classPhase),
-        isLab: Boolean(tla.isLab || tla.is_lab || false),
-        hasAssessment: hasExistingAssessment
-    };
-};
-
-/* Inline modal component */
-function InlineModal({ isOpen, title, onClose, children, actions }) {
-    if (!isOpen) return null;
-    return (
-        <div className={styles.modalOverlay} role="dialog" aria-modal="true" aria-labelledby="modal-title">
-            <div className={styles.modal}>
-                <div className={styles.modalHeader}>
-                    <h3 id="modal-title">{title}</h3>
-                    <button type="button" aria-label="Close" onClick={onClose} className={`${styles.closeIcon} app-icon-close`}>
-                        <X size={16} />
-                    </button>
-                </div>
-                <div className={styles.modalBody}>{children}</div>
-                {actions && <div className={styles.modalActions}>{actions}</div>}
-            </div>
-        </div>
-    );
-}
-
-const TLAForm = () => {
-    const navigate = useNavigate();
-    const { iloId, status } = useParams();
+const TLAForm = forwardRef(({ iloId, isOrientation = false, status, setUnresolvedCount, label }, ref) => {
+    const ALL_PHASES = ['Asynchronous', 'Synchronous', 'Pre-class', 'In-class', 'Post-class'];
 
     const [isLoading, setIsLoading] = useState(true);
-    const [flipped, setFlipped] = useState(false);
-    const [availableTopics, setAvailableTopics] = useState([]);
-    const [topicIdMap, setTopicIdMap] = useState({});
-    const [assessmentSuggestions, setAssessmentSuggestions] = useState([]);
-    // Period this ILO's weeks fall in, and its level's course-wide weight budget.
-    const [suggestedPeriod, setSuggestedPeriod] = useState('');
-    const [levelWeight, setLevelWeight] = useState(null);
     const [errors, setErrors] = useState({});
     const [tlas, setTlas] = useState([]);
-    const [showConfirm, setShowConfirm] = useState(false);
     const [newestCardId, setNewestCardId] = useState(null);
+    const scrollContainerRef = useRef(null);
 
-    // Checklist State for TLA Reviews
     const [reviewComments, setReviewComments] = useState([]);
-    const workspaceContainerRef = useRef(null);
+    // The period this week falls in, the ILOs of its course outcome (a graded assessment names one),
+    // and how much of each level's course-wide weight the other assessments already use.
+    const [suggestedPeriod, setSuggestedPeriod] = useState('');
+    const [weekIlos, setWeekIlos] = useState([]);
+    const [levelWeights, setLevelWeights] = useState(null);
+    const ILO_LABEL = ILO_LABEL_OF(weekIlos);
 
-    // --- Data Normalization Helpers ---
+    const normalizeClassPhase = (val) => {
+        if (!val) return '';
+        const v = val.toString().toLowerCase();
+        if (v.includes('pre')) return 'Pre-class';
+        if (v.includes('in')) return 'In-class';
+        if (v.includes('post')) return 'Post-class';
+        if (v.includes('async')) return 'Asynchronous';
+        if (v.includes('sync')) return 'Synchronous';
+        return val;
+    };
+
+    const mapDbToUi = (tla) => {
+        return {
+            ...tla,
+            assessmentPeriod: tla.assessmentPeriod || '',
+            assessmentWeight: tla.assessmentWeight ?? '',
+            assessmentIloId: tla.assessmentIloId ?? '',
+            performedBy: tla.performedBy === 'T' ? 'Instructor' : tla.performedBy === 'S' ? 'Student' : tla.performedBy,
+            classPhase: normalizeClassPhase(tla.classPhase),
+            isLab: Boolean(tla.isLab || tla.is_lab || false)
+        };
+    };
+
     const mapUiToDb = (tla) => ({
         ...tla,
-        performedBy: tla.performedBy === 'Instructor' ? 'T' : tla.performedBy === 'Student' ? 'S' : tla.performedBy,
-        assessmentType: tla.hasAssessment ? tla.assessmentType : '',
-        assessmentDetail: tla.hasAssessment ? tla.assessmentDetail : '',
-        assessmentPeriod: tla.hasAssessment ? tla.assessmentPeriod : '',
-        assessmentWeight: tla.hasAssessment ? tla.assessmentWeight : ''
+        performedBy: tla.performedBy === 'Instructor' ? 'T' : tla.performedBy === 'Student' ? 'S' : tla.performedBy
     });
 
-    // Fetch Core Data & Filtered TLA Review Comments
     useEffect(() => {
+        if (!iloId) return;
+        let mounted = true;
+        setIsLoading(true);
+        setErrors({});
+
         const fetchTlaData = async () => {
             try {
-                const tlaUrl = `/api/tlas/ilo/${iloId}`;
+                const orientParam = isOrientation ? 'true' : 'false';
+                const tlaUrl = `/api/tlas/ilo/${iloId}?isOrientation=${orientParam}`;
                 const commentsUrl = `/api/comments/filter/${encodeURIComponent(iloId)}/tlas`;
 
-                const fetchPromises = [fetchJson(tlaUrl)];
-                if (status === 'returned') {
-                    fetchPromises.push(fetchJson(commentsUrl));
-                }
+                const pData = fetchJson(tlaUrl).catch(() => ({}));
+                const pComments = status === 'returned' ? fetchJson(commentsUrl).catch(() => []) : Promise.resolve([]);
 
-                const results = await Promise.all(fetchPromises);
-                const data = results[0];
-                const targetedComments = results[1] || [];
+                const [data, targetedComments] = await Promise.all([pData, pComments]);
+                if (!mounted) return;
 
-                const { availableTopics, topicIdMap, tlas: existingTlas, assessmentTypeSuggestions } = data;
+                const { tlas: existingTlas } = data || {};
+                setSuggestedPeriod(data?.suggestedPeriod || '');
+                setWeekIlos(Array.isArray(data?.ilos) ? data.ilos.filter(ilo => !ilo.isOrientation) : []);
+                setLevelWeights(data?.levelWeights || null);
 
-                setAvailableTopics(availableTopics || []);
-                setTopicIdMap(topicIdMap || {});
-                setAssessmentSuggestions(assessmentTypeSuggestions || ['Case Study', 'Presentation', 'Exam', 'Report', 'Lab Exercise']);
-                setSuggestedPeriod(data.suggestedPeriod || '');
-                setLevelWeight(data.levelWeight || null);
-
-                // Normalize comments data states
-                setReviewComments(targetedComments.map(c => ({
+                const initialComments = (Array.isArray(targetedComments) ? targetedComments : []).map(c => ({
                     ...c,
                     resolved_status: c.resolved_status === 1 || c.resolved_status === true
-                })));
+                }));
+                setReviewComments(initialComments);
 
                 if (existingTlas && existingTlas.length > 0) {
                     const mappedTlas = existingTlas.map(mapDbToUi);
                     setTlas(mappedTlas);
-
-                    const isFlipped = mappedTlas.some(t => FLIPPED_OPTIONS.includes(t.classPhase));
-                    setFlipped(isFlipped);
                 } else {
                     setTlas([{
-                        id: Date.now(), selectedTopics: [], classPhase: '', performedBy: '',
+                        id: Date.now(), classPhase: '', performedBy: '',
                         tlaName: '', tlaDescription: '', laboratory: false, isLab: false,
-                        hasAssessment: false, assessmentType: '', assessmentDetail: '', assessmentPeriod: '', assessmentWeight: ''
+                        assessmentType: '', assessmentDetail: '', assessmentPeriod: '', assessmentWeight: '', assessmentIloId: ''
                     }]);
                 }
             } catch (error) {
                 console.error("Error fetching TLA data components:", error);
             } finally {
-                setIsLoading(false);
+                if (mounted) setIsLoading(false);
             }
         };
-        if (iloId) fetchTlaData();
-    }, [iloId, status]);
+        fetchTlaData();
+        return () => { mounted = false; };
+    }, [iloId, isOrientation, status]);
 
-    // Handle checklist interactions — persists immediately so approvers see the check
-    const handleToggleCommentResolution = (commentId) => {
-        const current = reviewComments.find(c => c.comment_id === commentId);
-        const nextStatus = !(current?.resolved_status);
-        setReviewComments(prev => prev.map(c =>
-            c.comment_id === commentId ? { ...c, resolved_status: nextStatus } : c
-        ));
-        fetchJson(`/api/comments/update-resolution`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ updates: [{ comment_id: commentId, resolved_status: nextStatus ? 1 : 0 }] })
-        }).catch(err => console.warn('Failed to persist comment resolution:', err?.message));
-    };
+    useEffect(() => {
+        if (setUnresolvedCount) {
+            setUnresolvedCount(reviewComments.filter(c => !c.resolved_status).length);
+        }
+    }, [reviewComments, setUnresolvedCount]);
 
-    const getAvailableOptionsForTla = () => {
-        // Return all available topics to allow repeating ILO topics across multiple TLAs
-        return availableTopics;
-    };
-
-    const goBackHandler = () => navigate(-1);
-
-    const handleFlippedChange = (e) => {
-        const isChecked = e.target.checked;
-        setFlipped(isChecked);
-        setTlas(prevTlas => prevTlas.map(tla => ({ ...tla, classPhase: '' })));
+    const scrollToBottom = () => {
+        setTimeout(() => {
+            if (scrollContainerRef.current) {
+                scrollContainerRef.current.scrollTo({
+                    top: scrollContainerRef.current.scrollHeight,
+                    behavior: 'smooth'
+                });
+            }
+        }, 100);
     };
 
     const handleTlaAdd = () => {
         const generatedId = Date.now() + Math.random();
         setNewestCardId(generatedId);
         setTlas([...tlas, {
-            id: generatedId, selectedTopics: [], classPhase: '', performedBy: '',
+            id: generatedId, classPhase: '', performedBy: '',
             tlaName: '', tlaDescription: '', laboratory: false, isLab: false,
-            hasAssessment: false, assessmentType: '', assessmentDetail: '', assessmentPeriod: '', assessmentWeight: ''
+            assessmentType: '', assessmentDetail: '', assessmentPeriod: '', assessmentWeight: '', assessmentIloId: ''
         }]);
 
-        // Clear highlight flash after 1.2 seconds
-        setTimeout(() => {
-            setNewestCardId(null);
-        }, 1200);
+        setTimeout(() => setNewestCardId(null), 1500);
+        scrollToBottom();
     };
 
     const handleTlaDelete = (idToDelete) => {
@@ -202,29 +152,34 @@ const TLAForm = () => {
     const validateForm = () => {
         let newErrors = {};
         tlas.forEach((tla) => {
-            if (!tla.selectedTopics || tla.selectedTopics.length === 0) newErrors[`tla_${tla.id}_selectedTopics`] = "Required";
             if (!tla.classPhase) newErrors[`tla_${tla.id}_classPhase`] = "Required";
             if (!tla.performedBy) newErrors[`tla_${tla.id}_performedBy`] = "Required";
             if (!tla.tlaName.trim()) newErrors[`tla_${tla.id}_tlaName`] = "TLA Name required";
             if (!tla.tlaDescription.trim()) newErrors[`tla_${tla.id}_tlaDescription`] = "Description required";
 
-            if (tla.hasAssessment) {
+            const hasAssessment = Boolean(tla.assessmentType || tla.assessmentDetail);
+            if (hasAssessment) {
                 if (!tla.assessmentType.trim()) newErrors[`tla_${tla.id}_assessmentType`] = "Required";
                 if (!tla.assessmentDetail.trim()) newErrors[`tla_${tla.id}_assessmentDetail`] = "Detail required";
                 if (!tla.assessmentPeriod) newErrors[`tla_${tla.id}_assessmentPeriod`] = "Choose a period";
-                if (parseWeight(tla.assessmentWeight) === null) newErrors[`tla_${tla.id}_assessmentWeight`] = "Enter a weight from 0 to 100";
+                const weight = weightOf(tla.assessmentWeight);
+                if (weight === null) newErrors[`tla_${tla.id}_assessmentWeight`] = "Enter a weight from 0 to 100";
+                if (weight > 0 && weekIlos.length > 1 && !tla.assessmentIloId) newErrors[`tla_${tla.id}_assessmentIloId`] = "Choose the ILO it assesses";
             }
         });
         setErrors(newErrors);
-        return Object.keys(newErrors).length === 0;
+        return Object.keys(newErrors).length === 0 ? null : "TLAs contain missing required fields.";
     };
 
-    const handleSaveClick = async () => {
-        if (!validateForm()) return;
-
-        const payloadTlas = tlas.map(mapUiToDb);
-
-        try {
+    useImperativeHandle(ref, () => ({
+        validate: validateForm,
+        getComments: () => reviewComments,
+        toggleComment: (commentId) => {
+            setReviewComments(prev => prev.map(c =>
+                c.comment_id === commentId ? { ...c, resolved_status: !c.resolved_status } : c
+            ));
+        },
+        save: async () => {
             if (status === 'returned' && reviewComments.length > 0) {
                 const commentPayload = reviewComments.map(c => ({
                     comment_id: c.comment_id,
@@ -238,327 +193,235 @@ const TLAForm = () => {
                 });
             }
 
+            const payloadTlas = tlas.map(mapUiToDb);
             await fetchJson(`/api/tlas/ilo/${iloId}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    tlas: payloadTlas,
-                    topicIdMap
+                    week_id: Number(iloId),
+                    is_orientation: Boolean(isOrientation),
+                    tlas: payloadTlas
                 })
             });
-            setShowConfirm(true);
-        } catch (error) {
-            console.error("Error saving TLAs details profile:", error);
-            alert(apiErrorMessage(error, "Failed to save changes. Please view logs."));
+        },
+        getCommentTargetLabel: (comment) => {
+            if (comment.target_title) return comment.target_title;
+            const match = tlas.find(t => Number(t.id) === Number(comment.target_id) || Number(t.tla_id) === Number(comment.target_id));
+            return match ? (match.tlaName || match.tla_name) : `TLA Element ID: ${comment.target_id}`;
         }
-    };
+    }));
 
-    const getCommentTargetLabel = (comment) => {
-        if (comment.target_title) return comment.target_title;
-        const match = tlas.find(t =>
-            Number(t.topic_tla_id) === Number(comment.target_id) || Number(t.id) === Number(comment.target_id)
-        );
-        return match ? match.tlaName : `TLA Element ID: ${comment.target_id}`;
-    };
+    if (isLoading) return <div className={styles.emptyChecklist}>Loading TLA Configurations...</div>;
 
-    if (isLoading) return <div className={styles.emptyChecklist}>Loading Workspace Environments...</div>;
+    const emptySpots = Math.max(4, tlas.length + (tlas.length % 2 === 1 ? 1 : 0)) - tlas.length;
+    const placeholderCards = Array.from({ length: emptySpots }).map((_, i) => (
+        <div key={`placeholder-${i}`} className={`${tStyles.placeholderCard} ${styles.tlaPlaceholderScale}`}>
+            <div className={tStyles.placeholderHeader} />
+            <div className={tStyles.placeholderBody} style={{ padding: '20px' }}>
+                <div className={tStyles.placeholderLine} style={{ height: '38px', marginBottom: '8px' }} />
+                <div className={tStyles.placeholderLine} style={{ height: '38px', marginBottom: '8px' }} />
+                <div className={tStyles.placeholderLine} style={{ height: '90px' }} />
+            </div>
+        </div>
+    ));
 
     return (
-        <SkeletonA
-            header={<HeaderA role={'Instructor'} />}
-            nav={<SideNavigation />}
-            content={
-                <div className={styles.container}>
-                    <FormNavigation goBack={goBackHandler} onSave={handleSaveClick} />
+        <div className={tStyles.container} style={{ display: "flex", flexDirection: "column", height: "100%", flexGrow: 1, minHeight: 0 }}>
+            {label && <label className={tStyles.label}>{label}</label>}
 
-                    <div className={styles.mainCont}>
-                        <div className={styles.leftCont}>
-                            <div className={styles['form-container']}>
+            <div className={tStyles.mainWrapper}>
+                <div className={tStyles.stickyHeader}>
+                    <div className={tStyles.headerRow} style={{ justifyContent: 'flex-end' }}>
+                        <button className={tStyles.mainAddBtn} onClick={handleTlaAdd}>
+                            <Plus size={16} className={tStyles.btnIcon} /> <span>Add TLA</span>
+                        </button>
+                    </div>
+                </div>
 
-                                {/* Dynamic Workspace Dashboard Header Segment */}
-                                <div className={styles.workspaceHeader}>
-                                    <div className={styles.workspaceTitleBlock}>
-                                        <h2 className={styles.workspaceTitle}>Teaching & Learning Activities</h2>
+                <div className={tStyles.scrollContainer} ref={scrollContainerRef}>
+                    <div className={tStyles.configArea}>
+                        {tlas.map((item) => {
+                            const isNewlyAdded = item.id === newestCardId;
+                            const hasAssessmentData = Boolean(item.assessmentType || item.assessmentDetail);
+
+                            return (
+                                <div key={item.id} className={`${styles.tlaCardCopycat} ${isNewlyAdded ? tStyles.newEntry : ''}`}>
+                                    <div className={tStyles.topicHeaderCard}>
+                                        <div className={tStyles.topicTitleGroup}>
+                                            <div className={`${styles.tlaLabDot} ${item.isLab ? styles.activeLabDot : ''}`} title={item.isLab ? "Laboratory" : "Standard"} />
+                                            <div className={tStyles.inputWrapper}>
+                                                <Edit2 size={12} className={tStyles.editIcon} />
+                                                <input
+                                                    className={tStyles.topicTitleInput}
+                                                    value={item.tlaName}
+                                                    onChange={(e) => handleTlaChange(item.id, 'tlaName', e.target.value)}
+                                                    placeholder="Enter TLA Name..."
+                                                />
+                                            </div>
+                                        </div>
+                                        {tlas.length > 1 && (
+                                            <button className={tStyles.removeTopicBtn} onClick={() => handleTlaDelete(item.id)}>
+                                                <X color={"white"} size={16} />
+                                            </button>
+                                        )}
                                     </div>
-                                    <div className={styles.flippedBadgeContainer}>
-                                        <input
-                                            checked={flipped}
-                                            onChange={handleFlippedChange}
-                                            type="checkbox"
-                                            id="flippedCheck"
-                                            className={styles.flippedCheckbox}
-                                        />
-                                        <label htmlFor="flippedCheck" className={styles.flippedLabel}>Flipped Approach</label>
-                                    </div>
-                                </div>
 
-                                {/* Main Workspace Cards Deck Map */}
-                                <div ref={workspaceContainerRef} className={styles.tlaWorkspaceCardsDeck}>
-                                    {tlas.map((item, index) => {
-                                        const isNewlyAdded = item.id === newestCardId;
-                                        return (
-                                            <div
-                                                key={item.id}
-                                                className={`${styles.tlaCard} ${isNewlyAdded ? styles.newlyAddedCard : ''}`}
-                                            >
-                                                {/* Top Accent Striping Decor */}
-                                                <div className={`${styles.cardAccentStrip} ${item.isLab ? styles.isLabAccent : ''}`} />
+                                    <div className={styles.tlaBodyCopycat}>
 
-                                                {/* Card Header contextual menu controls */}
-                                                <div className={styles.cardHeaderTop}>
-                                                    <div className={styles.cardHeaderLeft}>
-                                                        <div className={`${styles.cardHeaderIndex} ${item.isLab ? styles.isLabIndex : ''}`}>
-                                                            {index + 1}
-                                                        </div>
-                                                        {/*<span className={styles.cardHeaderTitle}>*/}
-                                                        {/*    {item.tlaName ? item.tlaName : "New Unnamed Activity Instance"}*/}
-                                                        {/*</span>*/}
+                                        <div className={styles.fieldsGridTwo}>
+                                            <div className={styles.tlaFieldSubtopicStyle}>
+                                                <Dropdown
+                                                    options={['Student', 'Instructor']}
+                                                    label={'Performed By'}
+                                                    value={item.performedBy}
+                                                    onChange={(val) => handleTlaChange(item.id, 'performedBy', val)}
+                                                    error={errors[`tla_${item.id}_performedBy`]}
+                                                />
+                                            </div>
+                                            <div className={styles.tlaFieldSubtopicStyle}>
+                                                <Dropdown
+                                                    options={ALL_PHASES}
+                                                    label={'Class Phase'}
+                                                    value={item.classPhase}
+                                                    onChange={(val) => handleTlaChange(item.id, 'classPhase', val)}
+                                                    error={errors[`tla_${item.id}_classPhase`]}
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div className={styles.fieldsGridOne}>
+                                            <div className={styles.tlaFieldSubtopicStyle}>
+                                                <div className="generic-field-container">
+                                                    <div className="generic-field-label" style={{ fontWeight: 600, fontSize: 11, marginBottom: 4, color: '#4A5568' }}>Setting Focus</div>
+                                                    <div className={`${styles.labCheckboxWrapper} ${item.isLab ? styles.isLabActive : ''}`}>
+                                                        <input
+                                                            type="checkbox"
+                                                            id={`lab_check_${item.id}`}
+                                                            checked={item.isLab}
+                                                            onChange={(e) => handleTlaChange(item.id, 'isLab', e.target.checked)}
+                                                            className={styles.labCheckboxInput}
+                                                        />
+                                                        <label htmlFor={`lab_check_${item.id}`} className={`${styles.labCheckboxLabel} ${item.isLab ? styles.isLabActiveLabel : ''}`}>
+                                                            Laboratory Activity
+                                                        </label>
                                                     </div>
+                                                </div>
+                                            </div>
+                                        </div>
 
-                                                    {tlas.length > 1 && (
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => handleTlaDelete(item.id)}
-                                                            className={styles.cardRemoveBtn}
-                                                            title="Delete Activity Node"
-                                                        >
-                                                            <Trash2 size={15} />
-                                                            <span>Remove</span>
+                                        <div className={`${styles.tlaFieldSubtopicStyle} ${styles.tlaDescriptionHigh}`}>
+                                            <TextArea
+                                                label={'TLA Description'}
+                                                value={item.tlaDescription}
+                                                onChange={(val) => handleTlaChange(item.id, 'tlaDescription', val)}
+                                                error={errors[`tla_${item.id}_tlaDescription`]}
+                                                rows={5}
+                                                placeholder="Describe the activity..."
+                                            />
+                                        </div>
+
+                                        <div className={styles.tlaAssessmentSection}>
+                                            <div className={`${styles.assessmentCopycatBox} ${hasAssessmentData ? styles.filledAssessment : styles.emptyAssessment}`}>
+                                                <div className={styles.assessmentBoxHeader}>
+                                                    <div className={`${styles.assessmentBoxTitle} ${hasAssessmentData ? styles.filledAssessmentTitle : ''}`}>
+                                                        <Award size={14} /><span>Assessment</span>
+                                                    </div>
+                                                    {hasAssessmentData && (
+                                                        <button type="button" onClick={() => {
+                                                            handleTlaChange(item.id, 'assessmentType', '');
+                                                            handleTlaChange(item.id, 'assessmentDetail', '');
+                                                            handleTlaChange(item.id, 'assessmentPeriod', '');
+                                                            handleTlaChange(item.id, 'assessmentWeight', '');
+                                                            handleTlaChange(item.id, 'assessmentIloId', '');
+                                                        }} className={styles.removeAssessmentBtn}>
+                                                            <X size={14} />
                                                         </button>
                                                     )}
                                                 </div>
 
-                                                {/* Core Configuration Layout Fields Grid */}
-                                                <div className={styles.cardBodyContent}>
-                                                    <div className={styles.fieldsGridTwo}>
+                                                <div className={styles.fieldsGridTwo}>
+                                                    <div className={styles.tlaFieldSubtopicStyle}>
                                                         <TextField
-                                                            label={'TLA Name'}
-                                                            value={item.tlaName}
-                                                            onChange={(val) => handleTlaChange(item.id, 'tlaName', val)}
-                                                            error={errors[`tla_${item.id}_tlaName`]}
-                                                            placeholder="e.g., Interactive Code Demo..."
+                                                            label={'Type'}
+                                                            value={item.assessmentType}
+                                                            onChange={(val) => {
+                                                                handleTlaChange(item.id, 'assessmentType', val);
+                                                                if (!item.assessmentPeriod && suggestedPeriod) handleTlaChange(item.id, 'assessmentPeriod', suggestedPeriod);
+                                                            }}
+                                                            placeholder="e.g. Case Study"
                                                         />
-                                                        <Dropdown
-                                                            options={['Student', 'Instructor']}
-                                                            label={'Performed By'}
-                                                            value={item.performedBy}
-                                                            onChange={(val) => handleTlaChange(item.id, 'performedBy', val)}
-                                                            error={errors[`tla_${item.id}_performedBy`]}
-                                                        />
-
                                                     </div>
-
-                                                    <div className={styles.fieldsGridTwo}>
-                                                        <Dropdown
-                                                            options={flipped ? FLIPPED_OPTIONS : STANDARD_OPTIONS}
-                                                            label={'Class Phase'}
-                                                            value={item.classPhase}
-                                                            onChange={(val) => handleTlaChange(item.id, 'classPhase', val)}
-                                                            error={errors[`tla_${item.id}_classPhase`]}
+                                                    <div className={styles.tlaFieldSubtopicStyle}>
+                                                        <TextField
+                                                            label={'Detail'}
+                                                            value={item.assessmentDetail}
+                                                            onChange={(val) => handleTlaChange(item.id, 'assessmentDetail', val)}
+                                                            placeholder="e.g. 50% Group Rubrics"
                                                         />
-
-                                                        {/* Modernized Laboratory Toggle Configuration Field */}
-                                                        <div className={`${styles.labCheckboxWrapper} ${item.isLab ? styles.isLabActive : ''}`}>
-                                                            <input
-                                                                type="checkbox"
-                                                                id={`lab_check_${item.id}`}
-                                                                checked={item.isLab}
-                                                                onChange={(e) => handleTlaChange(item.id, 'isLab', e.target.checked)}
-                                                                className={styles.labCheckboxInput}
-                                                            />
-                                                            <label htmlFor={`lab_check_${item.id}`} className={`${styles.labCheckboxLabel} ${item.isLab ? styles.isLabActiveLabel : ''}`}>
-                                                                Laboratory
-                                                            </label>
+                                                    </div>
+                                                </div>
+                                                {hasAssessmentData && (
+                                                    <>
+                                                        <div className={styles.fieldsGridTwo}>
+                                                            <div className={styles.tlaFieldSubtopicStyle}>
+                                                                <Dropdown
+                                                                    label={'Period'}
+                                                                    options={PERIODS.map(period => period.label)}
+                                                                    value={periodLabel(item.assessmentPeriod)}
+                                                                    onChange={(label) => handleTlaChange(item.id, 'assessmentPeriod', periodCode(label))}
+                                                                    error={errors[`tla_${item.id}_assessmentPeriod`]}
+                                                                />
+                                                            </div>
+                                                            <div className={styles.tlaFieldSubtopicStyle}>
+                                                                <TextField
+                                                                    label={'Weight (% of the whole course; 0 = practice)'}
+                                                                    value={item.assessmentWeight}
+                                                                    onChange={(val) => handleTlaChange(item.id, 'assessmentWeight', val)}
+                                                                    error={errors[`tla_${item.id}_assessmentWeight`]}
+                                                                    placeholder="e.g., 12.5"
+                                                                />
+                                                            </div>
                                                         </div>
-                                                    </div>
-
-
-                                                        <DropdownMultiSelect
-                                                            options={getAvailableOptionsForTla(item.id)}
-                                                            label={'Topic Title(s)'}
-                                                            value={item.selectedTopics}
-                                                            onChange={(val) => handleTlaChange(item.id, 'selectedTopics', val)}
-                                                            error={errors[`tla_${item.id}_selectedTopics`]}
-                                                        />
-
-
-
-                                                    <TextArea
-                                                        label={'TLA Description'}
-                                                        value={item.tlaDescription}
-                                                        onChange={(val) => handleTlaChange(item.id, 'tlaDescription', val)}
-                                                        error={errors[`tla_${item.id}_tlaDescription`]}
-                                                        rows={3}
-                                                        placeholder="Describe the activity procedures and expected outputs..."
-                                                    />
-
-                                                    {/* Optional Assessment Framework Wrapper */}
-                                                    <div className={styles.assessmentSectionWrapper}>
-                                                        {!item.hasAssessment ? (
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => {
-                                                                    handleTlaChange(item.id, 'hasAssessment', true);
-                                                                    if (!item.assessmentPeriod && suggestedPeriod) handleTlaChange(item.id, 'assessmentPeriod', suggestedPeriod);
-                                                                }}
-                                                                className={styles.addAssessmentBtn}
-                                                            >
-                                                                <Plus size={15} />
-                                                                Add Assessment
-                                                            </button>
-                                                        ) : (
-                                                            <div className={styles.assessmentBox}>
-                                                                <div className={styles.assessmentBoxHeader}>
-                                                                    <div className={styles.assessmentBoxTitle}>
-                                                                        <Award size={15} />
-                                                                        <span>Linked Assessment Matrix (Optional)</span>
-                                                                    </div>
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() => {
-                                                                            handleTlaChange(item.id, 'hasAssessment', false);
-                                                                            handleTlaChange(item.id, 'assessmentType', '');
-                                                                            handleTlaChange(item.id, 'assessmentDetail', '');
-                                                                            handleTlaChange(item.id, 'assessmentPeriod', '');
-                                                                            handleTlaChange(item.id, 'assessmentWeight', '');
-                                                                        }}
-                                                                        className={styles.removeAssessmentBtn}
-                                                                        title="Remove Assessment"
-                                                                    >
-                                                                        <X size={16} />
-                                                                    </button>
-                                                                </div>
-
-                                                                <div className={styles.fieldsGridTwo}>
-                                                                    <TypeableDropdown
-                                                                        options={assessmentSuggestions}
-                                                                        label={'Assessment Type'}
-                                                                        value={item.assessmentType}
-                                                                        onChange={(val) => handleTlaChange(item.id, 'assessmentType', val)}
-                                                                        error={errors[`tla_${item.id}_assessmentType`]}
-                                                                    />
-                                                                    <TextField
-                                                                        label={'Assessment Detail'}
-                                                                        value={item.assessmentDetail}
-                                                                        onChange={(val) => handleTlaChange(item.id, 'assessmentDetail', val)}
-                                                                        error={errors[`tla_${item.id}_assessmentDetail`]}
-                                                                        placeholder="e.g., Usability Metrics and KPIs"
-                                                                    />
-                                                                </div>
-
-                                                                <div className={styles.fieldsGridTwo}>
-                                                                    <Dropdown
-                                                                        label={'Period'}
-                                                                        options={PERIODS.map(period => period.label)}
-                                                                        value={periodLabel(item.assessmentPeriod)}
-                                                                        onChange={(label) => handleTlaChange(item.id, 'assessmentPeriod', periodCode(label))}
-                                                                        error={errors[`tla_${item.id}_assessmentPeriod`]}
-                                                                    />
-                                                                    <TextField
-                                                                        label={'Weight (% of the whole course)'}
-                                                                        value={item.assessmentWeight}
-                                                                        onChange={(val) => handleTlaChange(item.id, 'assessmentWeight', val)}
-                                                                        error={errors[`tla_${item.id}_assessmentWeight`]}
-                                                                        placeholder="e.g., 12.5"
-                                                                    />
-                                                                </div>
-                                                                {levelWeight && (
-                                                                    <p>
-                                                                        {IED_LEVELS.find(level => level.code === levelWeight.level)?.name} assessments must total {levelWeight.target}% across the course;
-                                                                        the other ILOs at this level use {levelWeight.usedElsewhere}%.
-                                                                    </p>
-                                                                )}
+                                                        {weekIlos.length > 0 && (
+                                                            <div className={styles.tlaFieldSubtopicStyle}>
+                                                                <Dropdown
+                                                                    label={'ILO assessed'}
+                                                                    options={weekIlos.map(ILO_LABEL)}
+                                                                    value={(() => { const ilo = weekIlos.find(x => Number(x.id) === Number(item.assessmentIloId)); return ilo ? ILO_LABEL(ilo) : ''; })()}
+                                                                    onChange={(label) => {
+                                                                        const ilo = weekIlos.find(x => ILO_LABEL(x) === label);
+                                                                        handleTlaChange(item.id, 'assessmentIloId', ilo ? ilo.id : '');
+                                                                    }}
+                                                                    error={errors[`tla_${item.id}_assessmentIloId`]}
+                                                                />
                                                             </div>
                                                         )}
-                                                    </div>
-
-                                                </div>
+                                                        {(() => {
+                                                            const ilo = weekIlos.find(x => Number(x.id) === Number(item.assessmentIloId)) || (weekIlos.length === 1 ? weekIlos[0] : null);
+                                                            const budget = ilo?.iedLevel && levelWeights ? levelWeights[ilo.iedLevel] : null;
+                                                            if (!budget) return null;
+                                                            return (
+                                                                <p className={styles.assessmentHint}>
+                                                                    {IED_LEVELS.find(level => level.code === budget.level)?.name} assessments must total {budget.target}% of the course;
+                                                                    the assessments outside this week use {budget.usedElsewhere}%.
+                                                                </p>
+                                                            );
+                                                        })()}
+                                                    </>
+                                                )}
                                             </div>
-                                        );
-                                    })}
-                                </div>
-
-                                <div className={styles.duplicatorContainerWrapper}>
-                                    <Duplicator onAdd={handleTlaAdd} name={'TLA'} />
-                                </div>
-
-                                <InlineModal
-                                    isOpen={showConfirm}
-                                    title="Saved"
-                                    onClose={() => setShowConfirm(false)}
-                                >
-                                    <div className={styles.list}>
-                                        <div className={styles.modalSuccessIconWrapper}>
-                                            <CheckCircle size={24} color="#10b981" />
-                                        </div>
-                                        <div>
-                                            <div className={styles.modalSuccessTitle}>Saved Successfully</div>
-                                            <div className={styles.modalSuccessText}>TLAs data elements synchronized successfully.</div>
                                         </div>
                                     </div>
-                                </InlineModal>
-                            </div>
-                        </div>
-
-                        {/* Interactive Dynamic TLA Review Corrections Card Container */}
-                        {status === 'returned' && (
-                            <div className={styles.rightCont}>
-                                <div className={styles.checklistCard}>
-                                    <div className={styles.checklistHeader}>
-                                        <MessageSquare size={18} className={styles.headerIcon} />
-                                        <h3>Review Corrections</h3>
-                                    </div>
-
-                                    {reviewComments.length === 0 ? (
-                                        <div className={styles.emptyChecklist}>
-                                            <p>No unresolved activity layout notes found for this entry.</p>
-                                        </div>
-                                    ) : (
-                                        <div className={styles.checklistWrapper}>
-                                            {reviewComments.map((comment) => (
-                                                <label
-                                                    key={comment.comment_id}
-                                                    className={`${styles.checklistItem} ${comment.resolved_status ? styles.itemResolved : ''}`}
-                                                >
-                                                    <div className={styles.checkboxControl}>
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={comment.resolved_status}
-                                                            onChange={() => handleToggleCommentResolution(comment.comment_id)}
-                                                        />
-                                                        <span className={styles.customCheckmark}></span>
-                                                    </div>
-
-                                                    <div className={styles.commentContent}>
-                                                        <div className={styles.targetContextBadge}>
-                                                            {/*<span className={styles.targetPrefix}>Target:</span>*/}
-                                                            <span className={styles.targetText}>{getCommentTargetLabel(comment)}</span>
-                                                        </div>
-
-                                                        <CommentMessage className={styles.commentMessage} message={comment.message} />
-
-                                                        <div className={styles.commentMetadata}>
-                                                            <span className={styles.metaRole}>{comment.commenter_role.replace(/_/g, ' ')}</span>
-                                                            <span className={styles.metaDivider}>•</span>
-                                                            <span className={styles.metaDate}>
-                                                                {new Date(comment.createdAt).toLocaleDateString(undefined, {
-                                                                    month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
-                                                                })}
-                                                            </span>
-                                                        </div>
-                                                    </div>
-                                                </label>
-                                            ))}
-                                        </div>
-                                    )}
                                 </div>
-                            </div>
-                        )}
+                            );
+                        })}
+                        {placeholderCards}
                     </div>
                 </div>
-            }
-        />
+            </div>
+            {Object.keys(errors).length > 0 && <div className={tStyles.errorText}>Please complete required fields.</div>}
+        </div>
     );
-};
+});
 
 export default TLAForm;

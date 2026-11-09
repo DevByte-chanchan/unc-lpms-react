@@ -259,6 +259,13 @@ textarea {
     padding: 0;
     color: inherit !important;
     cursor: pointer;
+    border-radius: 6px;
+    transition: background 0.2s ease, opacity 0.2s ease;
+}
+
+.actionLink:hover {
+    background: rgba(0,0,0,0.04);
+    opacity: 0.8;
 }
 
 .x {
@@ -618,4 +625,258 @@ div[data-flash], tr[data-target][data-flash] > td { border-radius: 4px; animatio
     scrollbar-width: thin;
     scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
   }
+}
+
+/* --- Matrix Edit and Responsiveness Classes --- */
+
+/* Top row container for action buttons (Course Details & Criteria for Grading) */
+.matrix-btns-container {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+    width: 100%;
+}
+
+/* Flex header for Outcome Alignment: legend on left, buttons on right */
+.matrix-flex-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 12px;
+    width: 100%;
+}
+
+/* Edit & Cancel Buttons: perfectly rounded pills with fixed sizing and no hover shrink */
+.matrix-edit-btn,
+.matrix-cancel-btn {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 6px !important;
+    height: 36px !important;
+    padding: 0 18px !important;
+    border-radius: 9999px !important;
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    cursor: pointer !important;
+    box-sizing: border-box !important;
+    transform: none !important;
+    outline: none !important;
+    text-decoration: none !important;
+    line-height: normal !important;
+    border: 1px solid #d1d5db !important;
+    transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease !important;
+}
+
+/* Default state: Gray background matching label cells */
+.matrix-edit-btn {
+    background-color: #EFEFEF !important;
+    color: #374151 !important;
+    border: 1px solid #d1d5db !important;
+}
+
+.matrix-edit-btn:hover {
+    background-color: #e2e4e8 !important;
+    color: #1f2937 !important;
+    border: 1px solid #d1d5db !important;
+    transform: none !important;
+    outline: none !important;
+    opacity: 1 !important;
+}
+
+/* Save Mode: Red background */
+.matrix-edit-btn.save-mode {
+    background-color: #dc2626 !important;
+    color: #ffffff !important;
+    border: 1px solid #dc2626 !important;
+}
+
+.matrix-edit-btn.save-mode:hover {
+    background-color: #b91c1c !important;
+    color: #ffffff !important;
+    border: 1px solid #b91c1c !important;
+    transform: none !important;
+    outline: none !important;
+    opacity: 1 !important;
+}
+
+/* Cancel Button: subtle outline */
+.matrix-cancel-btn {
+    background-color: transparent !important;
+    color: #4b5563 !important;
+    border: 1px solid #d1d5db !important;
+}
+
+.matrix-cancel-btn:hover {
+    background-color: #f3f4f6 !important;
+    color: #111827 !important;
+    border: 1px solid #d1d5db !important;
+    transform: none !important;
+    outline: none !important;
+    opacity: 1 !important;
+}
+
+.matrix-edit-btn:focus,
+.matrix-cancel-btn:focus,
+.matrix-edit-btn:focus-visible,
+.matrix-cancel-btn:focus-visible {
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+/* Stop all row moving hovers and reflows */
+table, tbody, tr, th, td,
+table:hover, tbody:hover, tr:hover, th:hover, td:hover,
+tbody tr:hover, tbody tr:focus {
+    transform: none !important;
+}
+
+/* Editable inputs and dropdowns: crisp black bottom border */
+.matrix-edit-input {
+    width: 100% !important;
+    border: none !important;
+    border-bottom: 2px solid #000000 !important;
+    outline: none !important;
+    background: transparent !important;
+    font-size: inherit !important;
+    font-family: inherit !important;
+    color: #000000 !important;
+    padding: 4px 0 !important;
+    box-sizing: border-box !important;
+}
+
+.matrix-edit-center {
+    text-align: center !important;
+}
+
+.matrix-edit-select {
+    width: 100% !important;
+    border: none !important;
+    border-bottom: 2px solid #000000 !important;
+    outline: none !important;
+    background: transparent !important;
+    text-align: center !important;
+    font-weight: bold !important;
+    cursor: pointer !important;
+    padding: 4px 0 !important;
+    box-sizing: border-box !important;
+    color: #000000 !important;
+}
+
+/* Course Description: fills full remaining cell height with matching styling */
+.matrix-desc-cell {
+    height: 100% !important;
+    vertical-align: top !important;
+}
+
+.matrix-edit-desc-wrapper {
+    width: 100% !important;
+    height: 100% !important;
+    min-height: 280px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    box-sizing: border-box !important;
+}
+
+.matrix-edit-textarea {
+    width: 100% !important;
+    height: 100% !important;
+    min-height: 280px !important;
+    flex: 1 1 auto !important;
+    box-sizing: border-box !important;
+    border: none !important;
+    border-bottom: 2px solid #000000 !important;
+    outline: none !important;
+    background: transparent !important;
+    font-size: 14px !important;
+    font-family: inherit !important;
+    line-height: 1.6 !important;
+    color: #000000 !important;
+    padding: 4px 0 !important;
+    resize: vertical !important;
+    display: block !important;
+}
+
+/* Modals */
+.matrix-modal-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(17, 24, 39, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+}
+
+.matrix-modal-content {
+    background: white;
+    padding: 24px;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 460px;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15);
+}
+
+.matrix-modal-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: #111827;
+    margin-bottom: 12px;
+}
+
+.matrix-modal-text {
+    font-size: 14px;
+    color: #4b5563;
+    margin-bottom: 20px;
+    line-height: 1.6;
+}
+
+.matrix-modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+}
+
+.matrix-btn-cancel {
+    padding: 8px 18px !important;
+    background: #f3f4f6 !important;
+    color: #374151 !important;
+    border: 1px solid #d1d5db !important;
+    border-radius: 9999px !important;
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    cursor: pointer !important;
+}
+
+.matrix-btn-cancel:hover {
+    background: #e5e7eb !important;
+}
+
+.matrix-btn-confirm {
+    padding: 8px 18px !important;
+    background: #dc2626 !important;
+    color: #ffffff !important;
+    border: 1px solid #dc2626 !important;
+    border-radius: 9999px !important;
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    cursor: pointer !important;
+}
+
+.matrix-btn-confirm:hover {
+    background: #b91c1c !important;
+}
+
+/* Viewport scrolling support */
+.cfg-table-wrapper {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.mobile-grading-table {
+    min-width: 800px;
 }

@@ -24,7 +24,7 @@ module.exports = {
              FROM CourseOfferingAssignments coa
                       JOIN ProgramCourseOfferings pco ON coa.pc_offering_id = pco.pc_offering_id
                       JOIN Courses c ON pco.course_id = c.course_id
-             WHERE c.course_no = 'BIT313L'
+             WHERE c.course_no = 'BIT313L' AND pco.revision_number = 1
              ORDER BY coa.co_assign_id DESC LIMIT 1;`,
             { type: queryInterface.sequelize.QueryTypes.SELECT }
         );
@@ -64,17 +64,19 @@ module.exports = {
 
         const topicId = topicQuery[0].topic_id;
 
-        // Determine next sequence order dynamically
-        const subtopicCountQuery = await queryInterface.sequelize.query(
-            `SELECT COUNT(*) as count FROM Subtopics WHERE topic_id = ${topicId};`,
+        const existingSubtopicQuery = await queryInterface.sequelize.query(
+            `SELECT week_id, COUNT(*) as count FROM Subtopics WHERE topic_id = ${topicId} GROUP BY week_id;`,
             { type: queryInterface.sequelize.QueryTypes.SELECT }
         );
-        const nextSequence = (parseInt(subtopicCountQuery[0].count) || 0) + 1;
+        const weekId = existingSubtopicQuery[0].week_id;
+        const nextSequence = (parseInt(existingSubtopicQuery[0].count) || 0) + 1;
 
         await queryInterface.bulkInsert('Subtopics', [{
+            week_id: weekId,
             topic_id: topicId,
             title: 'Distributed Cognition and Activity Theory',
             sequence_order: nextSequence,
+            is_orientation: false,
             createdAt: now,
             updatedAt: now
         }], {});
@@ -138,6 +140,13 @@ module.exports = {
             },
             {
                 co_assign_id: assignId,
+                actor_role: 'INDUSTRY_CONSULTANT',
+                action_type: 'ACCEPTED',
+                createdAt: new Date('2026-06-24 13:00:00'),
+                updatedAt: new Date('2026-06-24 13:00:00')
+            },
+            {
+                co_assign_id: assignId,
                 actor_role: 'PROGRAM_HEAD',
                 action_type: 'ACCEPTED',
                 createdAt: new Date('2026-06-25 09:45:00'),
@@ -162,7 +171,7 @@ module.exports = {
              FROM CourseOfferingAssignments coa
                       JOIN ProgramCourseOfferings pco ON coa.pc_offering_id = pco.pc_offering_id
                       JOIN Courses c ON pco.course_id = c.course_id
-             WHERE c.course_no = 'BIT313L'
+             WHERE c.course_no = 'BIT313L' AND pco.revision_number = 1
              ORDER BY coa.co_assign_id DESC LIMIT 1;`,
             { type: queryInterface.sequelize.QueryTypes.SELECT }
         );

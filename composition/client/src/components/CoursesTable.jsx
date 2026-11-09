@@ -3,7 +3,7 @@ import { offeringPath } from '../utils/offeringKey.js'
 import Spinner from './Spinner.jsx';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import styles from '../styles/CoursesTable.module.sass';
-import { ChevronRight, Edit, XCircle, HelpCircle, Download, FileText, Clock, RotateCcw, CheckCircle } from 'react-feather';
+import { ChevronRight, Edit, XCircle, HelpCircle, Download, FileText, Clock, RotateCcw, CheckCircle, List, Grid, ChevronDown, ChevronUp, Search } from 'react-feather';
 import EmptyState from './EmptyState.jsx';
 import { fetchJson, apiErrorMessage } from "../utils/api.js";
 import { revisionLabel } from '../utils/offeringLabels.js';
@@ -75,6 +75,9 @@ const CoursesTable = () => {
     const [loading, setLoading] = useState(false);
     const [popup, setPopup] = useState({ open: false, data: null });
     const [sort, setSort] = useState({ sortKey: 'date_assigned', sortDir: 'desc' });
+    // Card (grid) or table (list) view, and the code/name search (weekly-planner branch).
+    const [layoutMode, setLayoutMode] = useState('grid');
+    const [searchTerm, setSearchTerm] = useState('');
 
     // Handle Status Constraints based on Year Selection
     useEffect(() => {
@@ -190,9 +193,12 @@ const CoursesTable = () => {
 
     const closePopup = () => setPopup({ open: false, data: null });
 
+    const lowerSearch = searchTerm.trim().toLowerCase();
     const filteredRows = assignments.filter(row => {
         const overall = computeOverallStatus(row);
-        return overall.toUpperCase() === selectedStatus;
+        if (overall.toUpperCase() !== selectedStatus) return false;
+        if (!lowerSearch) return true;
+        return getCode(row).toLowerCase().includes(lowerSearch) || getName(row).toLowerCase().includes(lowerSearch);
     });
     const columns = instructorCourseColumns({
         approved: selectedStatus === 'APPROVED',
@@ -235,6 +241,105 @@ const CoursesTable = () => {
     const emptyRow = (colSpan) => {
         const meta = EMPTY_BY_STATUS[selectedStatus] || EMPTY_BY_STATUS.DRAFT;
         return <EmptyState colSpan={colSpan} icon={meta.icon} title={meta.title} hint={meta.hint} />;
+    };
+
+    // One course as a card (grid view). Same actions as the table row: compose / update / view, export,
+    // start a revision, and the reviewers' progress folded under the card.
+    const CourseCard = ({ row }) => {
+        const [expanded, setExpanded] = useState(false);
+        const overallStatus = computeOverallStatus(row);
+        const isDraft = selectedStatus === 'DRAFT';
+        const isApproved = selectedStatus === 'APPROVED';
+        const approverStatuses = isDraft ? [] : buildApproverStatus(row);
+        const submittedAt = latestSubmissionAt(row);
+        const to = offeringPath(getOfferingID(row), getRevNum(row), selectedStatus.toLowerCase());
+        const label = isDraft ? 'Compose' : (overallStatus === 'Returned' ? 'Update' : 'View');
+        const revision = revisionLabel(row.ProgramCourseOffering || row);
+
+        return (
+            <div className={styles.gridCard}>
+                <div className={styles.cardMain}>
+                    <div className={styles.cardHeader}>
+                        <span className={styles.cardCode}>{getCode(row)}</span>
+                        <span className={styles.cardDate}>{formatDate(row.date_assigned)}</span>
+                    </div>
+                    <div className={styles.cardTitle}>{getName(row)}</div>
+                    {revision && <div className={styles.cardDate}>{revision}</div>}
+                    <div className={styles.cardFooter}>
+                        <div className={styles.cardActionsGroup}>
+                            <Link className={styles.gridActionBtn} to={to}>
+                                {label}
+                                {label === 'Update' ? <Edit size={16} /> : <ChevronRight size={16} />}
+                            </Link>
+                            {(isApproved || canExportRow(row)) && (
+                                <button
+                                    type="button"
+                                    className={styles.gridExportBtn}
+                                    title="Export Learning Plan"
+                                    disabled={exporting}
+                                    onClick={() => !exporting && handleExport(row)}
+                                >
+                                    Export
+                                    <Download size={14} />
+                                </button>
+                            )}
+                            {isApproved && (
+                                <button
+                                    type="button"
+                                    className={styles.gridExportBtn}
+                                    title="Start a revision of this approved learning plan"
+                                    disabled={!!startingId}
+                                    onClick={() => !startingId && startRevision(row)}
+                                >
+                                    Revise
+                                </button>
+                            )}
+                        </div>
+                        {!isDraft && (
+                            <button
+                                type="button"
+                                className={styles.toggleDetailsBtn}
+                                onClick={() => setExpanded(!expanded)}
+                                title={expanded ? 'Hide details' : 'Show details'}
+                                aria-expanded={expanded}
+                            >
+                                {expanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                            </button>
+                        )}
+                    </div>
+                </div>
+
+                {!isDraft && expanded && (
+                    <div className={styles.cardDetails}>
+                        <div className={styles.detailsContent}>
+                            {!isApproved && (
+                                <div className={styles.detailRow}>
+                                    <span style={{ fontWeight: 400 }}>Submitted</span>
+                                    <span>{formatDate(submittedAt)}</span>
+                                </div>
+                            )}
+                            {approverStatuses.map((a, idx) => (
+                                <div key={idx} className={styles.detailRowApprover}>
+                                    <div className={styles.approverTitle}>{a.title}</div>
+                                    <div className={styles.approverDates}>
+                                        {a.status === 'Accepted' && <div>Approved: {formatDate(a.acceptedAt)}</div>}
+                                        {a.status === 'Returned' && (
+                                            <>
+                                                <div>Returned: {formatDate(a.returnedAt)}</div>
+                                                {a.updatedAt && <div>Resubmitted: {formatDate(a.updatedAt)}</div>}
+                                            </>
+                                        )}
+                                        {a.status !== 'Accepted' && a.status !== 'Returned' && (
+                                            <div className={styles.pendingText}>Pending</div>
+                                        )}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+            </div>
+        );
     };
 
     const DetailsPopup = ({ data, onClose }) => {
@@ -324,6 +429,53 @@ const CoursesTable = () => {
                 </div>
             </div>
 
+            <div className={styles.tableControlsOuter}>
+                <div className={styles.searchContainer}>
+                    <Search color="#A4A9AF" size={18} />
+                    <input
+                        type="text"
+                        placeholder="Search course code or name..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        aria-label="Search course code or name"
+                    />
+                </div>
+
+                <div className={styles.layoutToggles}>
+                    <button
+                        type="button"
+                        className={`${styles.toggleBtn} ${layoutMode === 'list' ? styles.active : ''}`}
+                        onClick={() => setLayoutMode('list')}
+                        title="List view"
+                        aria-pressed={layoutMode === 'list'}
+                    >
+                        <List size={18} />
+                    </button>
+                    <button
+                        type="button"
+                        className={`${styles.toggleBtn} ${layoutMode === 'grid' ? styles.active : ''}`}
+                        onClick={() => setLayoutMode('grid')}
+                        title="Grid view"
+                        aria-pressed={layoutMode === 'grid'}
+                    >
+                        <Grid size={18} />
+                    </button>
+                </div>
+            </div>
+
+            {layoutMode === 'grid' && (
+                loading
+                    ? <Spinner label="Loading course offerings…" />
+                    : filteredRows.length === 0
+                        ? <table><tbody>{emptyRow(1)}</tbody></table>
+                        : (
+                            <div className={styles.gridContainer}>
+                                {sortedRows.map((row) => <CourseCard key={getOfferingID(row)} row={row} />)}
+                            </div>
+                        )
+            )}
+
+            {layoutMode === 'list' && (
             <TableScrollRegion
                 label="Assigned course offerings"
                 minWidth={900}
@@ -461,6 +613,7 @@ const CoursesTable = () => {
                     </table>
                 }
             </TableScrollRegion>
+            )}
 
             {popup.open && <DetailsPopup data={popup.data} onClose={closePopup} />}
 

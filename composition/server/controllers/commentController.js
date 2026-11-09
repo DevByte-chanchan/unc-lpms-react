@@ -38,11 +38,11 @@ const forInstructorTiming = async (req, rows, offeringId) => {
 
 /**
  * 1. GET /api/comments/unresolved-counts/:pcId/:revNum
- * Used by the main syllabus screen to get counts for red notification badges.
+ * Used by the main syllabus screen to get counts for red notification badges, per week and type.
+ * ilo_id repeats week_id: the planner screens still call the week id iloId.
  */
 exports.getUnresolvedCommentCounts = async (req, res) => {
     try {
-        // Fixed: Mapped to the actual router parameters
         const { pcId, revNum } = req.params;
 
         if (!pcId) {
@@ -54,23 +54,26 @@ exports.getUnresolvedCommentCounts = async (req, res) => {
         const ownParams = ownOnly ? [req.user.id, COMMENT_ROLE_BY_ACCOUNT[req.user.role]] : [];
         const counts = await sequelize.query(
             `SELECT
-                 c.ilo_id,
+                 c.week_id,
+                 c.week_id AS ilo_id,
                  c.comment_for,
-                 COUNT(c.comment_id) AS count
+                 COUNT(DISTINCT c.comment_id) AS count
              FROM Comments c
-                 INNER JOIN IntendedLearningOutcomes ilo ON ilo.ilo_id = c.ilo_id
-                 INNER JOIN CourseOutcomes co ON co.co_id = ilo.co_id
+                 INNER JOIN Weeks w ON w.week_id = c.week_id
+                 INNER JOIN CourseOutcomes co ON co.co_id = w.co_id
                  INNER JOIN ProgramCourseOfferings pco ON pco.pc_offering_id = co.pc_offering_id
-             WHERE pco.pc_offering_id = ? AND (? IS NULL OR pco.revision_number = ?) AND c.resolved_status = false
+             WHERE pco.pc_offering_id = ? AND (? IS NULL OR pco.revision_number = ?) AND c.resolved_status = 0
                AND c.commenter_role <> 'INDUSTRY_CONSULTANT'${ownOnly}
-             GROUP BY c.ilo_id, c.comment_for;`,
+             GROUP BY c.week_id, c.comment_for;`,
             {
                 replacements: [pcId, revNum || null, revNum || null, ...ownParams],
                 type: Sequelize.QueryTypes.SELECT
             }
         );
 
-        return res.status(200).json(counts.filter(row => canViewComment(req.user?.role, row)));
+        return res.status(200).json(counts
+            .filter(row => canViewComment(req.user?.role, row))
+            .map(row => ({ ...row, unresolved_count: row.count })));
     } catch (error) {
         console.error('Error fetching comment counts:', error);
         return res.status(500).json({ message: 'Internal server error working with comment statistics.' });
@@ -92,59 +95,279 @@ exports.getEarlierConsultantComments = async (req, res, next) => {
 };
 
 /**
- * 2. GET /api/comments/filter/:iloId/:commentFor
- * Retrieves comments utilizing a JOIN with the new CommentTargets table.
+ * 2. GET /api/comments/filter/:iloId/:commentFor   (:iloId is the week id)
  */
+// 2. Fetch specific comments for a Week + Target Type (Topics, TLAs, or References)
+// Supports multi-select subtopic targets and resolves parent Topic title + Subtopic title(s)
 exports.getCommentsByTarget = async (req, res) => {
-    try {
-        const { iloId, commentFor } = req.params;
+    const { iloId, commentFor } = req.params;
+    const weekId = Number(iloId);
+    if (!weekId || !commentFor) {
+        return res.status(400).json({ message: 'Missing required routing parameters (weekId, commentFor).' });
+    }
 
-        if (!iloId || !commentFor) {
-            return res.status(400).json({ message: 'Missing required routing parameters (iloId, commentFor).' });
+    try {
+        const [rows] = await sequelize.query(`
+            SELECT 
+                c.comment_id,
+                c.co_assign_id,
+                c.commenter_role,
+                c.commenter_user_id,
+                c.commenter_name,
+                c.message,
+                c.resolved_status,
+                c.resolved_date,
+                c.week_id,
+                c.week_id AS ilo_id,
+                c.comment_for,
+                c.createdAt,
+                ct.comment_target_id,
+                ct.target_id,
+                st.subtopic_id AS resolved_subtopic_id,
+                st.title AS subtopic_title,
+                t_sub.topic_id AS parent_topic_id,
+                t_sub.title AS parent_topic_title,
+                t_direct.topic_id AS direct_topic_id,
+                t_direct.title AS direct_topic_title,
+                tla.tla_id AS resolved_tla_id,
+                tla.tla_name AS tla_title,
+                wr.weekly_reference_id AS resolved_wr_id,
+                r_wr.title AS wr_ref_title,
+                r_direct.title AS direct_ref_title
+            FROM Comments c
+            LEFT JOIN CommentTargets ct ON c.comment_id = ct.comment_id
+            LEFT JOIN Subtopics st ON c.comment_for = 'topics' AND st.subtopic_id = ct.target_id
+            LEFT JOIN Topics t_sub ON st.topic_id = t_sub.topic_id
+            LEFT JOIN Topics t_direct ON c.comment_for = 'topics' AND st.subtopic_id IS NULL AND t_direct.topic_id = ct.target_id
+            LEFT JOIN TeachingAndLearningActivities tla ON c.comment_for = 'tlas' AND tla.tla_id = ct.target_id
+            LEFT JOIN WeeklyReferences wr ON c.comment_for = 'references' AND wr.weekly_reference_id = ct.target_id
+            LEFT JOIN \`References\` r_wr ON wr.reference_id = r_wr.reference_id
+            LEFT JOIN \`References\` r_direct ON c.comment_for = 'references' AND wr.weekly_reference_id IS NULL AND r_direct.reference_id = ct.target_id
+            WHERE c.week_id = ? AND c.comment_for = ?
+            ORDER BY c.createdAt ASC, ct.comment_target_id ASC
+        `, {
+            replacements: [weekId, String(commentFor).toLowerCase().trim()]
+        });
+
+        // Preload week subtopics / references / tlas as fallback in case a target_id was re-created previously
+        let weekSubtopicsFallback = null;
+        let weekRefsFallback = null;
+        let weekTlasFallback = null;
+
+        const getWeekSubtopics = async () => {
+            if (weekSubtopicsFallback !== null) return weekSubtopicsFallback;
+            const [subs] = await sequelize.query(`
+                SELECT st.subtopic_id, st.title AS subtopic_title, st.topic_id, t.title AS topic_title
+                FROM Subtopics st
+                JOIN Topics t ON st.topic_id = t.topic_id
+                WHERE st.week_id = ?
+                ORDER BY st.is_orientation ASC, st.subtopic_id ASC, st.sequence_order ASC
+            `, { replacements: [weekId] });
+            weekSubtopicsFallback = subs;
+            return subs;
+        };
+
+        const getWeekRefs = async () => {
+            if (weekRefsFallback !== null) return weekRefsFallback;
+            const [refs] = await sequelize.query(`
+                SELECT wr.weekly_reference_id, r.title AS ref_title
+                FROM WeeklyReferences wr
+                JOIN \`References\` r ON wr.reference_id = r.reference_id
+                WHERE wr.week_id = ?
+                ORDER BY wr.is_orientation ASC, wr.weekly_reference_id ASC
+            `, { replacements: [weekId] });
+            weekRefsFallback = refs;
+            return refs;
+        };
+
+        const getWeekTlas = async () => {
+            if (weekTlasFallback !== null) return weekTlasFallback;
+            const [tlas] = await sequelize.query(`
+                SELECT tla_id, tla_name
+                FROM TeachingAndLearningActivities
+                WHERE week_id = ?
+                ORDER BY is_orientation ASC, tla_id ASC
+            `, { replacements: [weekId] });
+            weekTlasFallback = tlas;
+            return tlas;
+        };
+
+        // Group rows by comment_id to support multiple targets per comment (e.g., multi-selected subtopics)
+        const commentsMap = new Map();
+
+        for (const row of rows) {
+            const cid = Number(row.comment_id);
+            if (!commentsMap.has(cid)) {
+                commentsMap.set(cid, {
+                    comment_id: cid,
+                    co_assign_id: row.co_assign_id,
+                    commenter_role: row.commenter_role,
+                    commenter_user_id: row.commenter_user_id,
+                    commenter_name: row.commenter_name,
+                    message: row.message,
+                    resolved_status: row.resolved_status,
+                    resolved_date: row.resolved_date,
+                    week_id: row.week_id,
+                    ilo_id: row.ilo_id,
+                    comment_for: row.comment_for,
+                    createdAt: row.createdAt,
+                    target_id: row.target_id,
+                    target_ids: [],
+                    topic_groups: [],
+                    topic_title: null,
+                    subtopic_titles: [],
+                    target_titles: [],
+                    target_title: null
+                });
+            }
+
+            const commentObj = commentsMap.get(cid);
+            if (row.target_id != null && !commentObj.target_ids.includes(Number(row.target_id))) {
+                commentObj.target_ids.push(Number(row.target_id));
+            }
+
+            if (row.comment_for === 'topics') {
+                let topicId = row.parent_topic_id || row.direct_topic_id || null;
+                let topicTitle = row.parent_topic_title || row.direct_topic_title || null;
+                let subtopicId = row.resolved_subtopic_id || null;
+                let subtopicTitle = row.subtopic_title || null;
+
+                // If target_id was orphaned (e.g., from an earlier Subtopic destroy/recreate), heal & resolve from the week's subtopics
+                if (!topicTitle && !subtopicTitle) {
+                    const weekSubs = await getWeekSubtopics();
+                    if (weekSubs.length > 0) {
+                        const fallbackSub = weekSubs[0];
+                        topicId = fallbackSub.topic_id;
+                        topicTitle = fallbackSub.topic_title;
+                        subtopicId = fallbackSub.subtopic_id;
+                        subtopicTitle = fallbackSub.subtopic_title;
+
+                        if (row.comment_target_id) {
+                            await sequelize.query(
+                                `UPDATE CommentTargets SET target_id = ? WHERE comment_target_id = ?`,
+                                { replacements: [subtopicId, row.comment_target_id] }
+                            ).catch(() => {});
+                        }
+                    }
+                }
+
+                if (topicTitle || subtopicTitle) {
+                    const effectiveTopicTitle = topicTitle || 'Topic';
+                    let group = commentObj.topic_groups.find(
+                        g => (topicId && Number(g.topic_id) === Number(topicId)) || g.topic_title === effectiveTopicTitle
+                    );
+                    if (!group) {
+                        group = {
+                            topic_id: topicId,
+                            topic_title: effectiveTopicTitle,
+                            subtopics: []
+                        };
+                        commentObj.topic_groups.push(group);
+                    }
+                    if (subtopicTitle && !group.subtopics.some(s => s.title === subtopicTitle)) {
+                        group.subtopics.push({
+                            subtopic_id: subtopicId || row.target_id,
+                            title: subtopicTitle
+                        });
+                    }
+                    if (subtopicTitle && !commentObj.subtopic_titles.includes(subtopicTitle)) {
+                        commentObj.subtopic_titles.push(subtopicTitle);
+                    }
+                }
+            } else if (row.comment_for === 'tlas') {
+                let tlaTitle = row.tla_title || null;
+                if (!tlaTitle) {
+                    const weekTlas = await getWeekTlas();
+                    if (weekTlas.length > 0) {
+                        tlaTitle = weekTlas[0].tla_name;
+                    }
+                }
+                if (tlaTitle && !commentObj.target_titles.includes(tlaTitle)) {
+                    commentObj.target_titles.push(tlaTitle);
+                }
+            } else if (row.comment_for === 'references') {
+                let refTitle = row.wr_ref_title || row.direct_ref_title || null;
+                if (!refTitle) {
+                    const weekRefs = await getWeekRefs();
+                    if (weekRefs.length > 0) {
+                        refTitle = weekRefs[0].ref_title;
+                        if (row.comment_target_id) {
+                            await sequelize.query(
+                                `UPDATE CommentTargets SET target_id = ? WHERE comment_target_id = ?`,
+                                { replacements: [weekRefs[0].weekly_reference_id, row.comment_target_id] }
+                            ).catch(() => {});
+                        }
+                    }
+                }
+                if (refTitle && !commentObj.target_titles.includes(refTitle)) {
+                    commentObj.target_titles.push(refTitle);
+                }
+            }
         }
 
-        // Fixed: Added a LEFT JOIN to pull target_id from the new CommentTargets table
-        const comments = await sequelize.query(
-            `SELECT
-                 c.comment_id,
-                 c.commenter_role,
-                 c.commenter_user_id,
-                 c.message,
-                 c.resolved_status,
-                 c.ilo_id,
-                 c.comment_for,
-                 ct.target_id,
-                 c.createdAt
-             FROM Comments c
-                      LEFT JOIN CommentTargets ct ON c.comment_id = ct.comment_id
-             WHERE c.ilo_id = ? AND c.comment_for = ?
-             ORDER BY c.createdAt DESC;`,
-            {
-                replacements: [iloId, commentFor.toLowerCase().trim()],
-                type: Sequelize.QueryTypes.SELECT
+        // Finalize formatted target_title and topic_title on each grouped comment
+        const finalComments = Array.from(commentsMap.values()).map(c => {
+            if (c.comment_for === 'topics' && c.topic_groups.length > 0) {
+                c.topic_title = c.topic_groups.map(g => g.topic_title).join(' / ');
+                c.target_title = c.topic_groups
+                    .map(g => g.subtopics.length > 0
+                        ? `${g.topic_title}: ${g.subtopics.map(s => s.title).join('; ')}`
+                        : g.topic_title
+                    )
+                    .join(' | ');
+            } else if (c.target_titles.length > 0) {
+                c.target_title = c.target_titles.join(', ');
             }
-        );
+            return c;
+        });
 
-        const [plan] = await sequelize.query('SELECT co.pc_offering_id FROM IntendedLearningOutcomes ilo INNER JOIN CourseOutcomes co ON co.co_id = ilo.co_id WHERE ilo.ilo_id = ?;',
-            { replacements: [iloId], type: Sequelize.QueryTypes.SELECT });
-        return res.status(200).json(visibleComments(req, await forInstructorTiming(req, comments, plan?.pc_offering_id)));
-    } catch (error) {
-        console.error('Error fetching context targeted comments:', error);
-        return res.status(500).json({ message: 'Internal server error processing review items.' });
+        // Who may read which comment, and the Dean-return timing for the instructor (see the top of this file).
+        const [plan] = await sequelize.query('SELECT co.pc_offering_id FROM Weeks w INNER JOIN CourseOutcomes co ON co.co_id = w.co_id WHERE w.week_id = ?;',
+            { replacements: [weekId], type: Sequelize.QueryTypes.SELECT });
+        res.json(visibleComments(req, await forInstructorTiming(req, finalComments, plan?.pc_offering_id)));
+    } catch (err) {
+        console.error('Error fetching targeted comments:', err);
+        res.status(500).json({ error: 'Database error fetching targeted comments.' });
     }
 };
 
 /**
  * POST /api/comments/by-course
- * Creates an approver comment from the approval sidebar. The client only knows
- * labels (CO2, CO2-ILO1, target titles) — this resolves them against the
- * course's latest offering so the comment lands on real ilo_id / target ids,
- * making it visible in the instructor's Review Corrections + notif badges.
- * Body: { code, commenter_role, message, co_index, ilo_index, comment_for, target_titles: [] }
+ * Creates an approver comment from the approval sidebar. The client only knows labels
+ * (CO2, Week 3, target titles); this resolves them against the plan so the comment lands
+ * on a real week and real targets, and shows in the instructor's planner and badges.
+ * Body: { code, pcId?, commenter_role, message, co_index, week_index | ilo_index, comment_for, target_titles: [] }
+ * Targets (CommentTargets.target_id): a subtopic for topics, a TLA, or a weekly reference.
  */
+const TARGET_LOOKUPS = {
+    // a topic title or a subtopic title; every subtopic row of a matching topic in that scope
+    topics: `SELECT st.subtopic_id AS id, st.week_id FROM Subtopics st
+                 INNER JOIN Topics t ON t.topic_id = st.topic_id
+                 INNER JOIN Weeks w ON w.week_id = st.week_id
+                 INNER JOIN CourseOutcomes co ON co.co_id = w.co_id
+             WHERE (t.title = ? OR st.title = ?) AND co.pc_offering_id = ?
+             ORDER BY st.week_id ASC, st.subtopic_id ASC;`,
+    tlas: `SELECT tla.tla_id AS id, tla.week_id FROM TeachingAndLearningActivities tla
+               INNER JOIN Weeks w ON w.week_id = tla.week_id
+               INNER JOIN CourseOutcomes co ON co.co_id = w.co_id
+           WHERE (tla.tla_name = ? OR tla.tla_name = ?) AND co.pc_offering_id = ?
+           ORDER BY tla.week_id ASC, tla.tla_id ASC;`,
+    references: `SELECT wr.weekly_reference_id AS id, wr.week_id FROM WeeklyReferences wr
+                     INNER JOIN \`References\` r ON r.reference_id = wr.reference_id
+                     INNER JOIN Weeks w ON w.week_id = wr.week_id
+                     INNER JOIN CourseOutcomes co ON co.co_id = w.co_id
+                 WHERE (r.title = ? OR r.title = ?) AND co.pc_offering_id = ?
+                 ORDER BY wr.week_id ASC, wr.weekly_reference_id ASC;`
+};
+const FIRST_WEEK_WITH = {
+    topics: 'SELECT st.week_id FROM Subtopics st',
+    tlas: 'SELECT tla.week_id FROM TeachingAndLearningActivities tla',
+    references: 'SELECT wr.week_id FROM WeeklyReferences wr'
+};
+
 exports.createCourseComment = async (req, res) => {
     try {
-        const { code, commenter_role, message, co_index, ilo_index, comment_for, target_titles } = req.body || {};
+        const { code, commenter_role, message, co_index, week_index, comment_for, target_titles } = req.body || {};
 
         if (commenter_role !== COMMENT_ROLE_BY_ACCOUNT[req.user?.role]) {
             return res.status(403).json({ error: 'Comment attribution must match the signed-in account.' });
@@ -161,9 +384,8 @@ exports.createCourseComment = async (req, res) => {
         if (!code || !commenter_role || !message || !String(message).trim()) {
             return res.status(400).json({ message: 'code, commenter_role and message are required.' });
         }
-        const hasIndices = co_index && ilo_index;
-        if (!hasIndices && !normalizedFor) {
-            return res.status(400).json({ message: 'Provide co_index+ilo_index, or comment_for so the comment can be attached.' });
+        if (!co_index && !normalizedFor) {
+            return res.status(400).json({ message: 'Provide co_index (and week_index), or comment_for so the comment can be attached.' });
         }
 
         // The plan being reviewed (pcId), when the client sends it: one course code can have several plans (programs,
@@ -191,116 +413,77 @@ exports.createCourseComment = async (req, res) => {
             { replacements: [pcId], type: Sequelize.QueryTypes.SELECT }
         );
         const coAssignId = assign.length > 0 ? assign[0].co_assign_id : null;
+        if (!coAssignId) {
+            return res.status(409).json({ error: 'This learning plan has no instructor assigned yet, so it takes no comments.' });
+        }
         // An approved plan is closed: a new comment would sit open with nothing the instructor can do about it.
         // Changes go through a new revision instead.
-        if (coAssignId && planEditState(await effectiveLogs(sequelize, coAssignId)).state === 'Approved') {
+        if (planEditState(await effectiveLogs(sequelize, coAssignId)).state === 'Approved') {
             return res.status(409).json({ error: 'This learning plan is already approved, so it no longer takes comments. Changes go into a new revision.' });
         }
 
-        // Resolve target titles → ids, scoped to THIS course's offering —
-        // titles are duplicated across courses (each seeder inserts its own
-        // copy), so a global title lookup can match another course's row.
-        const targetIds = [];
-        if (normalizedFor && titles.length > 0) {
-            const scopedLookups = {
-                references: `SELECT r.reference_id AS id FROM \`References\` r
-                             INNER JOIN ILOReferences ir ON ir.reference_id = r.reference_id
-                             INNER JOIN IntendedLearningOutcomes i ON i.ilo_id = ir.ilo_id
-                             INNER JOIN CourseOutcomes co ON co.co_id = i.co_id
-                             WHERE r.title = ? AND co.pc_offering_id = ? LIMIT 1;`,
-                topics: `SELECT t.topic_id AS id FROM Topics t
-                         INNER JOIN ILOTopics it ON it.topic_id = t.topic_id
-                         INNER JOIN IntendedLearningOutcomes i ON i.ilo_id = it.ilo_id
-                         INNER JOIN CourseOutcomes co ON co.co_id = i.co_id
-                         WHERE t.title = ? AND co.pc_offering_id = ? LIMIT 1;`,
-                tlas: `SELECT tla.tla_id AS id FROM TeachingAndLearningActivities tla
-                       INNER JOIN TopicTLAs tt ON tt.tla_id = tla.tla_id
-                       INNER JOIN ILOTopics it ON it.ilo_topic_id = tt.ilo_topic_id
-                       INNER JOIN IntendedLearningOutcomes i ON i.ilo_id = it.ilo_id
-                       INNER JOIN CourseOutcomes co ON co.co_id = i.co_id
-                       WHERE tla.tla_name = ? AND co.pc_offering_id = ? LIMIT 1;`,
-            };
-            const lookup = scopedLookups[normalizedFor] || scopedLookups.references;
-            for (const t of titles) {
-                const r = await sequelize.query(lookup,
-                    { replacements: [t, pcId], type: Sequelize.QueryTypes.SELECT });
-                if (r.length > 0) targetIds.push(r[0].id);
-            }
-        }
-
-        // Resolve the ILO: from CO/ILO indices when given (full approver form),
-        // otherwise from the first target itself (Director of Libraries flow,
-        // which comments on a reference without picking a CO/ILO).
-        let iloId = null;
-        if (hasIndices) {
+        // The week: from CO + week indices when given (the full approver form). An older client sends an
+        // ILO index instead; ILOs no longer own content, so that comment goes on the course outcome's first week.
+        let weekId = null;
+        if (co_index) {
             const cos = await sequelize.query(
                 `SELECT co_id FROM CourseOutcomes WHERE pc_offering_id = ? ORDER BY co_id ASC;`,
                 { replacements: [pcId], type: Sequelize.QueryTypes.SELECT }
             );
             const co = cos[Number(co_index) - 1];
             if (!co) return res.status(404).json({ message: `Course outcome CO${co_index} not found.` });
-            const ilos = await sequelize.query(
-                `SELECT ilo_id FROM IntendedLearningOutcomes WHERE co_id = ? ORDER BY ilo_id ASC;`,
+            const weeks = await sequelize.query(
+                `SELECT week_id FROM Weeks WHERE co_id = ? ORDER BY week_id ASC;`,
                 { replacements: [co.co_id], type: Sequelize.QueryTypes.SELECT }
             );
-            const ilo = ilos[Number(ilo_index) - 1];
-            if (!ilo) return res.status(404).json({ message: `ILO ${ilo_index} of CO${co_index} not found.` });
-            iloId = ilo.ilo_id;
-        } else {
-            if (targetIds.length > 0) {
-                const joins = {
-                    references: `SELECT ir.ilo_id AS ilo_id FROM ILOReferences ir
-                                 INNER JOIN IntendedLearningOutcomes i ON i.ilo_id = ir.ilo_id
-                                 INNER JOIN CourseOutcomes co ON co.co_id = i.co_id
-                                 WHERE ir.reference_id = ? AND co.pc_offering_id = ? LIMIT 1;`,
-                    topics: `SELECT it.ilo_id AS ilo_id FROM ILOTopics it
-                             INNER JOIN IntendedLearningOutcomes i ON i.ilo_id = it.ilo_id
-                             INNER JOIN CourseOutcomes co ON co.co_id = i.co_id
-                             WHERE it.topic_id = ? AND co.pc_offering_id = ? LIMIT 1;`,
-                    tlas: `SELECT it.ilo_id AS ilo_id FROM TopicTLAs tt
-                           INNER JOIN ILOTopics it ON it.ilo_topic_id = tt.ilo_topic_id
-                           INNER JOIN IntendedLearningOutcomes i ON i.ilo_id = it.ilo_id
-                           INNER JOIN CourseOutcomes co ON co.co_id = i.co_id
-                           WHERE tt.tla_id = ? AND co.pc_offering_id = ? LIMIT 1;`,
-                };
-                const found = await sequelize.query(joins[normalizedFor] || joins.references,
-                    { replacements: [targetIds[0], pcId], type: Sequelize.QueryTypes.SELECT });
-                if (found.length > 0) iloId = found[0].ilo_id;
-            }
-            if (!iloId) {
-                // No specific target (e.g. DOL suggestion-only submission) —
-                // attach to the first ILO of this offering that has entries of
-                // this type, so it still reaches Review Corrections + badges.
-                const fallbacks = {
-                    references: `SELECT ir.ilo_id AS ilo_id FROM ILOReferences ir
-                                 INNER JOIN IntendedLearningOutcomes i ON i.ilo_id = ir.ilo_id
-                                 INNER JOIN CourseOutcomes co ON co.co_id = i.co_id
-                                 WHERE co.pc_offering_id = ? ORDER BY ir.ilo_id ASC LIMIT 1;`,
-                    topics: `SELECT it.ilo_id AS ilo_id FROM ILOTopics it
-                             INNER JOIN IntendedLearningOutcomes i ON i.ilo_id = it.ilo_id
-                             INNER JOIN CourseOutcomes co ON co.co_id = i.co_id
-                             WHERE co.pc_offering_id = ? ORDER BY it.ilo_id ASC LIMIT 1;`,
-                    tlas: `SELECT it.ilo_id AS ilo_id FROM TopicTLAs tt
-                           INNER JOIN ILOTopics it ON it.ilo_topic_id = tt.ilo_topic_id
-                           INNER JOIN IntendedLearningOutcomes i ON i.ilo_id = it.ilo_id
-                           INNER JOIN CourseOutcomes co ON co.co_id = i.co_id
-                           WHERE co.pc_offering_id = ? ORDER BY it.ilo_id ASC LIMIT 1;`,
-                };
-                const fb = await sequelize.query(fallbacks[normalizedFor] || fallbacks.references,
-                    { replacements: [pcId], type: Sequelize.QueryTypes.SELECT });
-                if (fb.length === 0) {
-                    return res.status(404).json({ message: 'No suitable ILO found in this course to attach the comment.' });
+            const position = week_index ? Number(week_index) : 1;
+            const week = weeks[position - 1];
+            if (!week) return res.status(404).json({ message: `Week ${position} of CO${co_index} not found.` });
+            weekId = week.week_id;
+        }
+
+        // Resolve target titles to ids, scoped to THIS plan (and to the week when one was picked):
+        // titles repeat across courses and weeks.
+        const targetIds = [];
+        let firstTargetWeek = null;
+        if (normalizedFor && titles.length > 0) {
+            const lookup = TARGET_LOOKUPS[normalizedFor] || TARGET_LOOKUPS.references;
+            for (const title of titles) {
+                const rows = (await sequelize.query(lookup,
+                    { replacements: [title, title, pcId], type: Sequelize.QueryTypes.SELECT }))
+                    .filter(row => weekId == null || Number(row.week_id) === Number(weekId));
+                const picked = normalizedFor === 'topics' ? rows.filter(row => Number(row.week_id) === Number(rows[0]?.week_id)) : rows.slice(0, 1);
+                for (const row of picked) {
+                    if (!targetIds.includes(row.id)) targetIds.push(row.id);
+                    if (firstTargetWeek == null) firstTargetWeek = row.week_id;
                 }
-                iloId = fb[0].ilo_id;
             }
+        }
+
+        if (weekId == null) weekId = firstTargetWeek;
+        if (weekId == null) {
+            // No specific target (e.g. a Director of Libraries suggestion with nothing picked): the first
+            // week of this plan that has entries of this type, so it still reaches the planner and badges.
+            const base = FIRST_WEEK_WITH[normalizedFor] || FIRST_WEEK_WITH.references;
+            const alias = base.split(' ').pop();
+            const fallback = await sequelize.query(
+                `${base}
+                     INNER JOIN Weeks w ON w.week_id = ${alias}.week_id
+                     INNER JOIN CourseOutcomes co ON co.co_id = w.co_id
+                 WHERE co.pc_offering_id = ? ORDER BY co.co_id ASC, w.week_id ASC LIMIT 1;`,
+                { replacements: [pcId], type: Sequelize.QueryTypes.SELECT });
+            if (fallback.length === 0) {
+                return res.status(404).json({ message: 'No suitable week found in this course to attach the comment.' });
+            }
+            weekId = fallback[0].week_id;
         }
 
         const now = new Date();
         const [commentId] = await sequelize.query(
-            `INSERT INTO Comments (commenter_role, commenter_user_id, commenter_name, message, resolved_status, co_assign_id, ilo_id, comment_for, createdAt, updatedAt)
+            `INSERT INTO Comments (commenter_role, commenter_user_id, commenter_name, message, resolved_status, co_assign_id, week_id, comment_for, createdAt, updatedAt)
              VALUES (?, ?, ?, ?, 0, ?, ?, ?, ?, ?);`,
             {
-                replacements: [commenter_role, req.user?.id ?? null, req.user?.name || null, message, coAssignId, iloId, normalizedFor, now, now],
+                replacements: [commenter_role, req.user?.id ?? null, req.user?.name || null, message, coAssignId, weekId, normalizedFor, now, now],
                 type: Sequelize.QueryTypes.INSERT
             }
         );
@@ -316,7 +499,7 @@ exports.createCourseComment = async (req, res) => {
             offeringId: pcId, actorUserId: req.user?.id, commenterRole: commenter_role, assignmentId: coAssignId
         });
 
-        return res.status(201).json({ comment_id: commentId, ilo_id: iloId, comment_for: normalizedFor, target_ids: targetIds });
+        return res.status(201).json({ comment_id: commentId, week_id: weekId, ilo_id: weekId, comment_for: normalizedFor, target_ids: targetIds });
     } catch (error) {
         console.error('Error creating course comment:', error);
         return res.status(500).json({ message: 'Internal server error creating comment.' });
@@ -325,10 +508,8 @@ exports.createCourseComment = async (req, res) => {
 
 /**
  * GET /api/comments/by-course/:code?pcId=<optional>
- * Returns ALL comments for a course looked up by course_no, enriched with computed
- * CO/ILO labels (co_no, ilo_no) and the resolved target title so the approver
- * sidebar can show comments fully connected to their targets — even when the
- * page URL has no pcId/revNum params.
+ * Returns ALL comments for a course looked up by course_no, with computed labels (co_no, week_no)
+ * and the resolved target title, so the approver sidebar can show each comment against its target.
  */
 exports.getCourseCommentsByCode = async (req, res) => {
     try {
@@ -349,9 +530,6 @@ exports.getCourseCommentsByCode = async (req, res) => {
 
         // Only the offering whose access was just checked: other offerings of the same course code belong to other
         // programs, instructors and revisions, and their comments are not this caller's to read.
-        const offeringFilter = ' AND pco.pc_offering_id = ?';
-        const replacements = [code, accessRows[0].pc_offering_id];
-
         const comments = await sequelize.query(
             `SELECT
                  c.comment_id,
@@ -360,37 +538,44 @@ exports.getCourseCommentsByCode = async (req, res) => {
                  c.commenter_name,
                  c.message,
                  c.resolved_status,
-                 c.ilo_id,
+                 c.week_id,
+                 c.week_id AS ilo_id,
                  c.comment_for,
                  ct.target_id,
                  c.createdAt,
-                 ilo.description AS ilo_description,
+                 c.updatedAt,
                  co.co_description,
                  (SELECT COUNT(*) FROM CourseOutcomes co2
                   WHERE co2.pc_offering_id = co.pc_offering_id AND co2.co_id <= co.co_id) AS co_no,
-                 (SELECT COUNT(*) FROM IntendedLearningOutcomes i2
-                  WHERE i2.co_id = ilo.co_id AND i2.ilo_id <= ilo.ilo_id) AS ilo_no,
+                 (SELECT COUNT(*) FROM Weeks w2
+                  WHERE w2.co_id = w.co_id AND w2.week_id <= w.week_id) AS week_no_in_co,
+                 (SELECT COUNT(*) FROM Weeks w3 INNER JOIN CourseOutcomes co3 ON co3.co_id = w3.co_id
+                  WHERE co3.pc_offering_id = co.pc_offering_id
+                    AND (co3.co_id < co.co_id OR (co3.co_id = co.co_id AND w3.week_id <= w.week_id))) AS week_no,
                  CASE c.comment_for
-                     WHEN 'topics'     THEN top.title
+                     WHEN 'topics'     THEN COALESCE(top.title || CASE WHEN st.title IS NOT NULL AND st.title <> '' THEN ': ' || st.title ELSE '' END, top_direct.title)
                      WHEN 'references' THEN ref.title
                      WHEN 'tlas'       THEN tla.tla_name
                  END AS target_title
              FROM Comments c
                  LEFT JOIN CommentTargets ct ON ct.comment_id = c.comment_id
-                 INNER JOIN IntendedLearningOutcomes ilo ON ilo.ilo_id = c.ilo_id
-                 INNER JOIN CourseOutcomes co ON co.co_id = ilo.co_id
+                 INNER JOIN Weeks w ON w.week_id = c.week_id
+                 INNER JOIN CourseOutcomes co ON co.co_id = w.co_id
                  INNER JOIN ProgramCourseOfferings pco ON pco.pc_offering_id = co.pc_offering_id
-                 INNER JOIN Courses crs ON crs.course_id = pco.course_id
-                 LEFT JOIN Topics top
-                     ON c.comment_for = 'topics' AND top.topic_id = ct.target_id
-                 LEFT JOIN \`References\` ref
-                     ON c.comment_for = 'references' AND ref.reference_id = ct.target_id
+                 LEFT JOIN Subtopics st
+                     ON c.comment_for = 'topics' AND st.subtopic_id = ct.target_id
+                 LEFT JOIN Topics top ON top.topic_id = st.topic_id
+                 LEFT JOIN Topics top_direct
+                     ON c.comment_for = 'topics' AND st.subtopic_id IS NULL AND top_direct.topic_id = ct.target_id
+                 LEFT JOIN WeeklyReferences wr
+                     ON c.comment_for = 'references' AND wr.weekly_reference_id = ct.target_id
+                 LEFT JOIN \`References\` ref ON ref.reference_id = wr.reference_id
                  LEFT JOIN TeachingAndLearningActivities tla
                      ON c.comment_for = 'tlas' AND tla.tla_id = ct.target_id
-             WHERE crs.course_no = ?${offeringFilter}
+             WHERE pco.pc_offering_id = ?
              ORDER BY c.createdAt DESC;`,
             {
-                replacements,
+                replacements: [accessRows[0].pc_offering_id],
                 type: Sequelize.QueryTypes.SELECT
             }
         );
@@ -404,8 +589,7 @@ exports.getCourseCommentsByCode = async (req, res) => {
 
 /**
  * 3. GET /api/comments/course/:pcId/:revNum
- * Returns ALL comments for a course offering + revision number, across all ILOs and types.
- * Used by the approver view to merge server-side comments with localStorage comments.
+ * Returns ALL comments for a course offering (and revision number, when given), across all weeks and types.
  */
 exports.getCourseComments = async (req, res) => {
     try {
@@ -420,18 +604,43 @@ exports.getCourseComments = async (req, res) => {
                  c.comment_id,
                  c.commenter_role,
                  c.commenter_user_id,
+                 c.commenter_name,
                  c.message,
                  c.resolved_status,
-                 c.ilo_id,
+                 c.week_id,
+                 c.week_id AS ilo_id,
                  c.comment_for,
                  ct.target_id,
                  c.createdAt,
-                 c.updatedAt
+                 c.updatedAt,
+                 co.co_description,
+                 (SELECT COUNT(*) FROM CourseOutcomes co2
+                  WHERE co2.pc_offering_id = co.pc_offering_id AND co2.co_id <= co.co_id) AS co_no,
+                 (SELECT COUNT(*) FROM Weeks w2
+                  WHERE w2.co_id = w.co_id AND w2.week_id <= w.week_id) AS week_no_in_co,
+                 (SELECT COUNT(*) FROM Weeks w3 INNER JOIN CourseOutcomes co3 ON co3.co_id = w3.co_id
+                  WHERE co3.pc_offering_id = co.pc_offering_id
+                    AND (co3.co_id < co.co_id OR (co3.co_id = co.co_id AND w3.week_id <= w.week_id))) AS week_no,
+                 CASE c.comment_for
+                     WHEN 'topics'     THEN COALESCE(top.title || CASE WHEN st.title IS NOT NULL AND st.title <> '' THEN ': ' || st.title ELSE '' END, top_direct.title)
+                     WHEN 'references' THEN ref.title
+                     WHEN 'tlas'       THEN tla.tla_name
+                 END AS target_title
              FROM Comments c
-                      LEFT JOIN CommentTargets ct ON c.comment_id = ct.comment_id
-                      INNER JOIN IntendedLearningOutcomes ilo ON ilo.ilo_id = c.ilo_id
-                      INNER JOIN CourseOutcomes co ON co.co_id = ilo.co_id
-                      INNER JOIN ProgramCourseOfferings pco ON pco.pc_offering_id = co.pc_offering_id
+                 LEFT JOIN CommentTargets ct ON ct.comment_id = c.comment_id
+                 INNER JOIN Weeks w ON w.week_id = c.week_id
+                 INNER JOIN CourseOutcomes co ON co.co_id = w.co_id
+                 INNER JOIN ProgramCourseOfferings pco ON pco.pc_offering_id = co.pc_offering_id
+                 LEFT JOIN Subtopics st
+                     ON c.comment_for = 'topics' AND st.subtopic_id = ct.target_id
+                 LEFT JOIN Topics top ON top.topic_id = st.topic_id
+                 LEFT JOIN Topics top_direct
+                     ON c.comment_for = 'topics' AND st.subtopic_id IS NULL AND top_direct.topic_id = ct.target_id
+                 LEFT JOIN WeeklyReferences wr
+                     ON c.comment_for = 'references' AND wr.weekly_reference_id = ct.target_id
+                 LEFT JOIN \`References\` ref ON ref.reference_id = wr.reference_id
+                 LEFT JOIN TeachingAndLearningActivities tla
+                     ON c.comment_for = 'tlas' AND tla.tla_id = ct.target_id
              WHERE pco.pc_offering_id = ? AND (? IS NULL OR pco.revision_number = ?)
              ORDER BY c.createdAt DESC;`,
             {
@@ -490,14 +699,15 @@ exports.updateResolutionStatuses = async (req, res) => {
              WHERE c.resolved_status = 0 AND c.comment_id IN (${newlyResolvedIds.map(() => '?').join(', ')});`,
             { replacements: newlyResolvedIds, type: Sequelize.QueryTypes.SELECT });
 
+        const now = new Date();
         await sequelize.transaction(async (t) => {
             for (const item of updates) {
                 await sequelize.query(
                     `UPDATE Comments
-                     SET resolved_status = ?
+                     SET resolved_status = ?, resolved_date = ?, updatedAt = ?
                      WHERE comment_id = ?;`,
                     {
-                        replacements: [item.resolved_status ? 1 : 0, item.comment_id],
+                        replacements: [item.resolved_status ? 1 : 0, item.resolved_status ? now : null, now, item.comment_id],
                         transaction: t
                     }
                 );
@@ -514,3 +724,5 @@ exports.updateResolutionStatuses = async (req, res) => {
         return res.status(500).json({ message: 'Internal database transaction failure updating checkpoints.' });
     }
 };
+
+exports.updateCommentResolutions = exports.updateResolutionStatuses;

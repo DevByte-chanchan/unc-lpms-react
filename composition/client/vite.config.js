@@ -11,5 +11,11 @@ export default defineConfig({
   plugins: [react()],
   server: {
     watch: inContainer ? { usePolling: true } : undefined,
+    proxy: {
+      '/api': {
+        target: 'http://localhost:5000',
+        changeOrigin: true
+      }
+    }
   },
 })

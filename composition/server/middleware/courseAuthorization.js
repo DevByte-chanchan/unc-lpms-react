@@ -111,17 +111,30 @@ const loadIloCourseRows = async (iloId) => selectRows(
     [iloId]
 );
 
-const loadIloReferenceCourseRows = async (iloReferenceId) => selectRows(
+// A week belongs to a course outcome, like an ILO.
+const loadWeekCourseRows = async (weekId) => selectRows(
     `SELECT DISTINCT ${CONTEXT_COLUMNS}
      FROM (
          SELECT co.pc_offering_id
-         FROM ILOReferences ir
-         INNER JOIN IntendedLearningOutcomes ilo ON ilo.ilo_id = ir.ilo_id
-         INNER JOIN CourseOutcomes co ON co.co_id = ilo.co_id
-         WHERE ir.ilo_reference_id = ?
+         FROM Weeks w
+         INNER JOIN CourseOutcomes co ON co.co_id = w.co_id
+         WHERE w.week_id = ?
      ) scope
      ${CONTEXT_JOINS};`,
-    [iloReferenceId]
+    [weekId]
+);
+
+const loadWeeklyReferenceCourseRows = async (weeklyReferenceId) => selectRows(
+    `SELECT DISTINCT ${CONTEXT_COLUMNS}
+     FROM (
+         SELECT co.pc_offering_id
+         FROM WeeklyReferences wr
+         INNER JOIN Weeks w ON w.week_id = wr.week_id
+         INNER JOIN CourseOutcomes co ON co.co_id = w.co_id
+         WHERE wr.weekly_reference_id = ?
+     ) scope
+     ${CONTEXT_JOINS};`,
+    [weeklyReferenceId]
 );
 
 const loadCommentCourseRows = async (commentIds) => {
@@ -131,10 +144,9 @@ const loadCommentCourseRows = async (commentIds) => {
     return selectRows(
         `SELECT DISTINCT c.comment_id, ${CONTEXT_COLUMNS}
          FROM (
-             SELECT DISTINCT co.pc_offering_id, c.comment_id
+             SELECT DISTINCT coa.pc_offering_id, c.comment_id
              FROM Comments c
-             INNER JOIN IntendedLearningOutcomes ilo ON ilo.ilo_id = c.ilo_id
-             INNER JOIN CourseOutcomes co ON co.co_id = ilo.co_id
+             INNER JOIN CourseOfferingAssignments coa ON coa.co_assign_id = c.co_assign_id
              WHERE c.comment_id IN (${placeholders})
          ) scope
          INNER JOIN Comments c ON c.comment_id = scope.comment_id
@@ -175,8 +187,19 @@ const requireIloBodyAccess = field => createCourseAccessMiddleware(req =>
 const requireIloQueryAccess = field => createCourseAccessMiddleware(req =>
     loadIloCourseRows(req.query?.[field])
 );
-const requireIloReferenceParamAccess = param => createCourseAccessMiddleware(req =>
-    loadIloReferenceCourseRows(req.params[param])
+// Each takes one or more names; the first one present wins (his routes accept weekId or the older iloId).
+const firstPresent = (source, names) => names.map(name => source?.[name]).find(value => value != null && value !== '');
+const requireWeekParamAccess = (...params) => createCourseAccessMiddleware(req =>
+    loadWeekCourseRows(firstPresent(req.params, params))
+);
+const requireWeekBodyAccess = (...fields) => createCourseAccessMiddleware(req =>
+    loadWeekCourseRows(firstPresent(req.body, fields))
+);
+const requireWeekQueryAccess = (...fields) => createCourseAccessMiddleware(req =>
+    loadWeekCourseRows(firstPresent(req.query, fields))
+);
+const requireWeeklyReferenceParamAccess = param => createCourseAccessMiddleware(req =>
+    loadWeeklyReferenceCourseRows(req.params[param])
 );
 
 module.exports = {
@@ -187,12 +210,16 @@ module.exports = {
     loadAssignmentCourseRows,
     loadCourseCodeRows,
     loadIloCourseRows,
-    loadIloReferenceCourseRows,
+    loadWeekCourseRows,
+    loadWeeklyReferenceCourseRows,
     loadCommentCourseRows,
     requireOfferingAccess,
     requireCourseCodeAccess,
     requireIloParamAccess,
     requireIloBodyAccess,
     requireIloQueryAccess,
-    requireIloReferenceParamAccess
+    requireWeekParamAccess,
+    requireWeekBodyAccess,
+    requireWeekQueryAccess,
+    requireWeeklyReferenceParamAccess
 };

@@ -11,7 +11,7 @@
 //   - Per course and program: one working copy at a time, and at most one new approved
 //     revision per term (a carry-over is not a new revision).
 //
-// A carried-over or revised offering gets its own full copy of the content (outcomes, ILOs,
+// A carried-over or revised offering gets its own full copy of the content (outcomes, ILOs, weeks,
 // topics, TLAs, assessments, references), so it can never be edited through the approved
 // original; the original and the carry-over stay locked, and a change goes through a revision.
 
@@ -72,39 +72,36 @@ const cloneOfferingContent = async (sourceId, targetId, now, transaction) => {
 
     const ilos = await select(`SELECT * FROM IntendedLearningOutcomes WHERE co_id IN (${marks(coList)}) ORDER BY ilo_id`, coList, transaction);
     const iloIds = await copyRows('IntendedLearningOutcomes', 'ilo_id', ilos, r => ({ co_id: coIds.get(r.co_id) }), now, transaction);
-    if (ilos.length === 0) return;
-    const iloList = ilos.map(ilo => ilo.ilo_id);
+
+    // Weekly planner: each course outcome's weeks hold the subtopics, TLAs and reference links.
+    const weeks = await select(`SELECT * FROM Weeks WHERE co_id IN (${marks(coList)}) ORDER BY week_id`, coList, transaction);
+    const weekIds = await copyRows('Weeks', 'week_id', weeks, r => ({ co_id: coIds.get(r.co_id) }), now, transaction);
+    if (weeks.length === 0) return;
+    const weekList = weeks.map(w => w.week_id);
 
     // Topics are copied too, so editing a revision's topic never changes the approved original.
-    const iloTopics = await select(`SELECT * FROM ILOTopics WHERE ilo_id IN (${marks(iloList)}) ORDER BY ilo_topic_id`, iloList, transaction);
-    const topicList = [...new Set(iloTopics.map(it => it.topic_id))];
+    const subtopics = await select(`SELECT * FROM Subtopics WHERE week_id IN (${marks(weekList)}) ORDER BY subtopic_id`, weekList, transaction);
+    const topicList = [...new Set(subtopics.map(st => st.topic_id).filter(id => id != null))];
     let topicIds = new Map();
     if (topicList.length) {
         const topics = await select(`SELECT * FROM Topics WHERE topic_id IN (${marks(topicList)}) ORDER BY topic_id`, topicList, transaction);
         topicIds = await copyRows('Topics', 'topic_id', topics, () => ({}), now, transaction);
-        const subtopics = await select(`SELECT * FROM Subtopics WHERE topic_id IN (${marks(topicList)}) ORDER BY subtopic_id`, topicList, transaction);
-        await copyRows('Subtopics', 'subtopic_id', subtopics, r => ({ topic_id: topicIds.get(r.topic_id) }), now, transaction);
     }
-    const iloTopicIds = await copyRows('ILOTopics', 'ilo_topic_id', iloTopics,
-        r => ({ ilo_id: iloIds.get(r.ilo_id), topic_id: topicIds.get(r.topic_id) }), now, transaction);
+    await copyRows('Subtopics', 'subtopic_id', subtopics,
+        r => ({ week_id: weekIds.get(r.week_id), topic_id: r.topic_id == null ? null : topicIds.get(r.topic_id) }), now, transaction);
 
-    const iloTopicList = iloTopics.map(it => it.ilo_topic_id);
-    if (iloTopicList.length) {
-        const topicTlas = await select(`SELECT * FROM TopicTLAs WHERE ilo_topic_id IN (${marks(iloTopicList)}) ORDER BY topic_tla_id`, iloTopicList, transaction);
-        const tlaList = [...new Set(topicTlas.map(tt => tt.tla_id))];
-        if (tlaList.length) {
-            const tlas = await select(`SELECT * FROM TeachingAndLearningActivities WHERE tla_id IN (${marks(tlaList)}) ORDER BY tla_id`, tlaList, transaction);
-            const tlaIds = await copyRows('TeachingAndLearningActivities', 'tla_id', tlas, () => ({}), now, transaction);
-            const assessments = await select(`SELECT * FROM TLAAssessments WHERE tla_id IN (${marks(tlaList)}) ORDER BY method_id`, tlaList, transaction);
-            await copyRows('TLAAssessments', 'method_id', assessments, r => ({ tla_id: tlaIds.get(r.tla_id) }), now, transaction);
-            await copyRows('TopicTLAs', 'topic_tla_id', topicTlas,
-                r => ({ ilo_topic_id: iloTopicIds.get(r.ilo_topic_id), tla_id: tlaIds.get(r.tla_id) }), now, transaction);
-        }
+    const tlas = await select(`SELECT * FROM TeachingAndLearningActivities WHERE week_id IN (${marks(weekList)}) ORDER BY tla_id`, weekList, transaction);
+    const tlaIds = await copyRows('TeachingAndLearningActivities', 'tla_id', tlas, r => ({ week_id: weekIds.get(r.week_id) }), now, transaction);
+    const tlaList = tlas.map(t => t.tla_id);
+    if (tlaList.length) {
+        const assessments = await select(`SELECT * FROM TLAAssessments WHERE tla_id IN (${marks(tlaList)}) ORDER BY method_id`, tlaList, transaction);
+        await copyRows('TLAAssessments', 'method_id', assessments,
+            r => ({ tla_id: tlaIds.get(r.tla_id), ilo_id: r.ilo_id == null ? null : (iloIds.get(r.ilo_id) ?? null) }), now, transaction);
     }
 
-    // References live in the shared library; only the link to each ILO is copied.
-    const references = await select(`SELECT * FROM ILOReferences WHERE ilo_id IN (${marks(iloList)}) ORDER BY ilo_reference_id`, iloList, transaction);
-    await copyRows('ILOReferences', 'ilo_reference_id', references, r => ({ ilo_id: iloIds.get(r.ilo_id) }), now, transaction);
+    // References live in the shared library; only the link to each week is copied.
+    const references = await select(`SELECT * FROM WeeklyReferences WHERE week_id IN (${marks(weekList)}) ORDER BY weekly_reference_id`, weekList, transaction);
+    await copyRows('WeeklyReferences', 'weekly_reference_id', references, r => ({ week_id: weekIds.get(r.week_id) }), now, transaction);
 };
 
 // ---- queries -------------------------------------------------------------------------

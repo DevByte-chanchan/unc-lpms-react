@@ -81,6 +81,7 @@ const listAssignments = async (req, res, next) => {
             }
         }
 
+
         const whereOffering = {};
         if (termOfferingIds) whereOffering.pc_offering_id = { [Op.in]: termOfferingIds.length ? termOfferingIds : [0] };
         if (programId) whereOffering.program_id = programId;

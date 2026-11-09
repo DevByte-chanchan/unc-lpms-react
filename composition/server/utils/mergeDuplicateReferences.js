@@ -32,12 +32,12 @@ const mergeDuplicateReferences = async ({ apply = false, models = require('../mo
         await sequelize.transaction(async (transaction) => {
             for (const { keep, drop } of merges) {
                 for (const id of drop) {
-                    // Move this duplicate's links to the kept reference, unless that outcome already has it.
+                    // Move this duplicate's links to the kept reference, unless that week (and orientation slot) already has it.
                     await run(
-                        'UPDATE ILOReferences SET reference_id = ? WHERE reference_id = ? AND ilo_id NOT IN (SELECT ilo_id FROM ILOReferences WHERE reference_id = ?);',
+                        'UPDATE WeeklyReferences SET reference_id = ? WHERE reference_id = ? AND NOT EXISTS (SELECT 1 FROM WeeklyReferences k WHERE k.reference_id = ? AND k.week_id = WeeklyReferences.week_id AND k.is_orientation = WeeklyReferences.is_orientation);',
                         [keep, id, keep], transaction
                     );
-                    await run('DELETE FROM ILOReferences WHERE reference_id = ?;', [id], transaction);
+                    await run('DELETE FROM WeeklyReferences WHERE reference_id = ?;', [id], transaction);
                     await run('DELETE FROM "References" WHERE reference_id = ?;', [id], transaction);
                 }
             }

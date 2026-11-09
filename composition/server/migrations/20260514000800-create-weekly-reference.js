@@ -1,32 +1,37 @@
 'use strict';
-/** Migration: create ILO_Topic join table (ilo_id <-> topic_id) */
+/** Migration: create WeeklyReferences join table (week_id <-> reference_id) */
 module.exports = {
     async up(queryInterface, Sequelize) {
-        await queryInterface.createTable('ILOTopics', {
-            ilo_topic_id: {
+        await queryInterface.createTable('WeeklyReferences', {
+            weekly_reference_id: {
                 type: Sequelize.INTEGER,
                 primaryKey: true,
                 autoIncrement: true
             },
-            ilo_id: {
+            week_id: {
                 type: Sequelize.INTEGER,
                 allowNull: false,
                 references: {
-                    model: 'IntendedLearningOutcomes',
-                    key: 'ilo_id'
+                    model: 'Weeks',
+                    key: 'week_id'
                 },
                 onUpdate: 'CASCADE',
                 onDelete: 'CASCADE'
             },
-            topic_id: {
+            reference_id: {
                 type: Sequelize.INTEGER,
                 allowNull: false,
                 references: {
-                    model: 'Topics',
-                    key: 'topic_id'
+                    model: 'References',
+                    key: 'reference_id'
                 },
                 onUpdate: 'CASCADE',
                 onDelete: 'CASCADE'
+            },
+            is_orientation: {
+                type: Sequelize.BOOLEAN,
+                allowNull: false,
+                defaultValue: false
             },
             createdAt: {
                 type: Sequelize.DATE,
@@ -42,6 +47,6 @@ module.exports = {
     },
 
     async down(queryInterface) {
-        await queryInterface.dropTable('ILOTopics');
+        await queryInterface.dropTable('WeeklyReferences');
     }
 };

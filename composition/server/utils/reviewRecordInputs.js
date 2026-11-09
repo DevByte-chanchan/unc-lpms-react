@@ -1,7 +1,7 @@
 'use strict';
 
-// What a review record is built from besides the workflow log: the comments, the label of the outcome each
-// one refers to (CO2-ILO3), and the title of each reference, topic or activity it points at. For an approved
+// What a review record is built from besides the workflow log: the comments, the label of the week each
+// one refers to (CO2 · Week 5), and the title of each reference, topic or activity it points at. For an approved
 // plan these are frozen when the Dean approves (ReviewRecordSnapshots), so a later rename or renumbering
 // cannot change what was approved. Plans still under review are always read live.
 
@@ -11,29 +11,30 @@ const { assignmentChain } = require('./effectiveLogs');
 const select = (sql, replacements = []) =>
     sequelize.query(sql, { replacements, type: Sequelize.QueryTypes.SELECT });
 
-// Same numbering the syllabus screens use: CO n, ILO k within it; an orientation ILO has no number.
+// Comments sit on a week (weekly planner). Label: CO n and the week's number across the plan, the
+// same running count the planner shows. Map(week_id -> 'CO2 · Week 5').
 const buildIloLabels = async (offeringId) => {
     const rows = await select(
-        `SELECT co.co_id, ilo.ilo_id, ilo.is_orientation
+        `SELECT co.co_id, w.week_id
          FROM CourseOutcomes co
-             INNER JOIN IntendedLearningOutcomes ilo ON ilo.co_id = co.co_id
+             INNER JOIN Weeks w ON w.co_id = co.co_id
          WHERE co.pc_offering_id = ?
-         ORDER BY co.co_id ASC, ilo.ilo_id ASC;`, [offeringId]);
+         ORDER BY co.co_id ASC, w.week_id ASC;`, [offeringId]);
     const labels = new Map();
     const coNumbers = new Map();
-    const counters = new Map();
+    let weekNumber = 0;
     for (const row of rows) {
         if (!coNumbers.has(row.co_id)) coNumbers.set(row.co_id, coNumbers.size + 1);
-        if (row.is_orientation) { labels.set(row.ilo_id, 'Course Orientation'); continue; }
-        counters.set(row.co_id, (counters.get(row.co_id) || 0) + 1);
-        labels.set(row.ilo_id, `CO${coNumbers.get(row.co_id)}-ILO${counters.get(row.co_id)}`);
+        weekNumber += 1;
+        labels.set(row.week_id, `CO${coNumbers.get(row.co_id)} · Week ${weekNumber}`);
     }
     return labels;
 };
 
+// CommentTargets.target_id: a weekly reference, a subtopic, or a TLA.
 const TITLE_SQL = {
-    references: 'SELECT reference_id AS id, title FROM `References` WHERE reference_id IN',
-    topics: 'SELECT topic_id AS id, title FROM Topics WHERE topic_id IN',
+    references: 'SELECT wr.weekly_reference_id AS id, r.title FROM WeeklyReferences wr INNER JOIN `References` r ON r.reference_id = wr.reference_id WHERE wr.weekly_reference_id IN',
+    topics: "SELECT st.subtopic_id AS id, CASE WHEN st.title IS NULL OR st.title = '' THEN tp.title ELSE tp.title || ': ' || st.title END AS title FROM Subtopics st INNER JOIN Topics tp ON tp.topic_id = st.topic_id WHERE st.subtopic_id IN",
     tlas: 'SELECT tla_id AS id, tla_name AS title FROM TeachingAndLearningActivities WHERE tla_id IN',
 };
 

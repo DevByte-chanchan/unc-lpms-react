@@ -9,14 +9,10 @@ const { assembleCoaep } = require('../utils/coaepAssembly');
 const select = (sql, replacements) =>
     sequelize.query(sql, { replacements, type: Sequelize.QueryTypes.SELECT });
 
-// ILO -> topic -> TLA -> assessment, the chain the syllabus forms build.
-const FROM_TOPICS = `FROM ILOTopics it
-        INNER JOIN Topics tp ON tp.topic_id = it.topic_id`;
-const FROM_TLAS = `FROM ILOTopics it
-        INNER JOIN TopicTLAs tt ON tt.ilo_topic_id = it.ilo_topic_id
-        INNER JOIN TeachingAndLearningActivities tla ON tla.tla_id = tt.tla_id`;
-const FROM_ASSESSMENTS = `${FROM_TLAS}
-        INNER JOIN TLAAssessments ta ON ta.tla_id = tla.tla_id`;
+// Weekly planner: an assessment names the ILO it assesses (TLAAssessments.ilo_id). An ILO's
+// TLAs and topics are those of the weeks (and orientation slot) where it is assessed.
+const FROM_ASSESSED_WEEKS = `FROM TLAAssessments ta
+        INNER JOIN TeachingAndLearningActivities assessed ON assessed.tla_id = ta.tla_id`;
 
 /**
  * GET /api/coaep/:code
@@ -53,12 +49,16 @@ async function getCoaepByCourse(req, res) {
         const iloIds = baseRows.map(row => row.ilo_id);
         const marks = iloIds.map(() => '?').join(', ');
         const [topicRows, tlaRows, assessmentRows] = await Promise.all([
-            select(`SELECT DISTINCT it.ilo_id, tp.title, it.ilo_topic_id ${FROM_TOPICS}
-                    WHERE it.ilo_id IN (${marks}) ORDER BY it.ilo_topic_id ASC;`, iloIds),
-            select(`SELECT DISTINCT it.ilo_id, tla.tla_id, tla.tla_name, tla.class_phase ${FROM_TLAS}
-                    WHERE it.ilo_id IN (${marks}) ORDER BY tla.tla_id ASC;`, iloIds),
-            select(`SELECT DISTINCT it.ilo_id, ta.method_id, ta.name, ta.period, ta.weight ${FROM_ASSESSMENTS}
-                    WHERE it.ilo_id IN (${marks}) ORDER BY ta.method_id ASC;`, iloIds),
+            select(`SELECT ta.ilo_id, tp.title, MIN(st.subtopic_id) AS first_subtopic_id ${FROM_ASSESSED_WEEKS}
+                        INNER JOIN Subtopics st ON st.week_id = assessed.week_id AND st.is_orientation = assessed.is_orientation
+                        INNER JOIN Topics tp ON tp.topic_id = st.topic_id
+                    WHERE ta.ilo_id IN (${marks})
+                    GROUP BY ta.ilo_id, tp.topic_id, tp.title ORDER BY first_subtopic_id ASC;`, iloIds),
+            select(`SELECT DISTINCT ta.ilo_id, tla.tla_id, tla.tla_name, tla.class_phase ${FROM_ASSESSED_WEEKS}
+                        INNER JOIN TeachingAndLearningActivities tla ON tla.week_id = assessed.week_id AND tla.is_orientation = assessed.is_orientation
+                    WHERE ta.ilo_id IN (${marks}) ORDER BY tla.tla_id ASC;`, iloIds),
+            select(`SELECT DISTINCT ta.ilo_id, ta.method_id, ta.name, ta.period, ta.weight FROM TLAAssessments ta
+                    WHERE ta.ilo_id IN (${marks}) ORDER BY ta.method_id ASC;`, iloIds),
         ]);
 
         // Status comes from the workflow log, the single source of truth for a plan.

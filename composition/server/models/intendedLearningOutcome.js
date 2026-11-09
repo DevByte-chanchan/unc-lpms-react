@@ -15,11 +15,11 @@ module.exports = (sequelize, DataTypes) => {
         },
         hours: {
             type: DataTypes.INTEGER,
-            allowNull: true // Changed to nullable
+            allowNull: true
         },
         weeks: {
             type: DataTypes.DECIMAL(4, 2),
-            allowNull: true // Added weeks
+            allowNull: true
         },
         // Introductory / Enabling / Demonstrative; null for orientation ILOs.
         ied_level: {
@@ -37,7 +37,11 @@ module.exports = (sequelize, DataTypes) => {
             allowNull: false,
             defaultValue: 60
         },
-        is_orientation:{
+        assessment_tool: {
+            type: DataTypes.STRING(200),
+            allowNull: true
+        },
+        is_orientation: {
             type: DataTypes.BOOLEAN,
             defaultValue: false,
             allowNull: true,
@@ -45,6 +49,11 @@ module.exports = (sequelize, DataTypes) => {
     }, {
         tableName: 'IntendedLearningOutcomes'
     });
+
+    IntendedLearningOutcome.associate = function(models) {
+        IntendedLearningOutcome.belongsTo(models.CourseOutcome, { foreignKey: 'co_id', onDelete: 'CASCADE', onUpdate: 'CASCADE' });
+        IntendedLearningOutcome.hasMany(models.TLAAssessment, { foreignKey: 'ilo_id', as: 'tlaAssessments', onDelete: 'SET NULL', onUpdate: 'CASCADE' });
+    };
 
     return IntendedLearningOutcome;
 };

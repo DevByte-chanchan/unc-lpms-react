@@ -6,8 +6,8 @@ const TextArea = ({ label, disabled, value, initialValue, onChange, error, rows 
     const actualValue = value !== undefined ? value : initialValue;
 
     return (
-        <div className={styles.container}>
-            <div className={styles.label}>{label}</div>
+        <div className={`${styles.container} generic-field-container`}>
+            <div className={`${styles.label} generic-field-label`}>{label}</div>
 
             {/* Wrapper holds the border.
                 Added height: 'auto' so it wraps around the multi-line text area properly

@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const commentController = require('../controllers/commentController');
 const { requireRole } = require('../middleware/auth');
-const { requireOfferingAccess, requireIloParamAccess } = require('../middleware/courseAuthorization');
+const { requireOfferingAccess, requireWeekParamAccess } = require('../middleware/courseAuthorization');
 
 // Main badge metrics dashboard calculation route - Updated for Version Control tracking
 router.get('/unresolved-counts/:pcId/:revNum', requireOfferingAccess, commentController.getUnresolvedCommentCounts);
@@ -12,7 +12,7 @@ router.get('/unresolved-counts/:pcId', requireOfferingAccess, commentController.
 router.get('/earlier-consultant/:pcId', requireRole('program-head', 'industry-consultant'), requireOfferingAccess, commentController.getEarlierConsultantComments);
 
 // REUSABLE: Target retrieval filter used by ReferenceForm, TopicForm, TLAForm
-router.get('/filter/:iloId/:commentFor', requireIloParamAccess('iloId'), commentController.getCommentsByTarget);
+router.get('/filter/:iloId/:commentFor', requireWeekParamAccess('iloId'), commentController.getCommentsByTarget);
 
 // REUSABLE: Batch update handler to save state changes
 router.put('/update-resolution', requireRole('instructor'), commentController.updateResolutionStatuses);

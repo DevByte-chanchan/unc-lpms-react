@@ -40,8 +40,8 @@ const earlierConsultantComments = async (sequelize, offeringId, user) => {
         `SELECT DISTINCT c.comment_id, c.message, c.comment_for, c.createdAt, pco.pc_offering_id AS offeringId,
                 pco.school_year AS schoolYear, pco.semester, pco.revision_number AS revision
          FROM Comments c
-             LEFT JOIN IntendedLearningOutcomes ilo ON ilo.ilo_id = c.ilo_id
-             LEFT JOIN CourseOutcomes co ON co.co_id = ilo.co_id
+             LEFT JOIN Weeks w ON w.week_id = c.week_id
+             LEFT JOIN CourseOutcomes co ON co.co_id = w.co_id
              LEFT JOIN CourseOfferingAssignments a ON a.co_assign_id = c.co_assign_id
              INNER JOIN ProgramCourseOfferings pco ON pco.pc_offering_id = COALESCE(co.pc_offering_id, a.pc_offering_id)
          WHERE c.commenter_role = 'INDUSTRY_CONSULTANT' AND pco.pc_offering_id IN (${marks})${own}

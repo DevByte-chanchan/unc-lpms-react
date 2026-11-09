@@ -1,0 +1,126 @@
+.refModalBodyContent
+  display: flex
+  flex-direction: column
+  gap: 10px
+
+  :global(.generic-field-container)
+    padding: 0 !important
+    margin: 0 !important
+    width: 100%
+
+  :global(.label), :global(.generic-field-label)
+    font-size: 11px !important
+    font-weight: 600 !important
+    color: #4A5568 !important
+    margin-bottom: 4px !important
+    font-family: inherit
+  
+  :global(.textfield), :global(.dropdown), :global(.generic-field-input), :global(.dropdownContainer)
+    background: #fff !important
+    border: 1px solid #E2E8F0 !important
+    border-radius: 6px !important
+    width: 100%
+    box-sizing: border-box
+    height: 34px !important
+    min-height: 34px !important
+    &:focus, &:focus-within
+      border-color: #3182CE !important
+
+  input, select, textarea
+    background: transparent !important
+    border: none !important
+    box-shadow: none !important
+    padding: 5px 10px !important
+    font-size: 12px !important
+    color: #2D3748 !important
+    outline: none !important
+    width: 100%
+    height: 100% !important
+    box-sizing: border-box
+
+  .modalError
+    color: #E53E3E
+    font-size: 12px
+    font-weight: 500
+    margin-top: 2px
+
+
+// =============================================
+// --- ADDED TLA WORKSPACE SET STYLES ---
+// =============================================
+
+.tlaCardCopycat
+  border: 1px solid #E2E8F0
+  border-radius: 8px
+  background: white
+  overflow: hidden
+  transition: all 0.3s ease
+  display: flex
+  flex-direction: column
+  height: 500px
+
+.tlaBodyCopycat
+  padding: 15px
+  display: flex
+  flex-direction: column
+  gap: 15px
+  flex: 1
+  overflow-y: auto
+  box-sizing: border-box
+
+
+.tlaFieldSubtopicStyle
+  :global(.generic-field-container)
+    padding: 0 !important
+    margin: 0 !important
+
+  :global(.label)
+    font-size: 11px !important
+    font-weight: 600 !important
+    color: #4A5568 !important
+    margin-bottom: 4px !important
+    font-family: inherit
+  
+  :global(.generic-field-label)
+    font-size: 11px !important
+    font-weight: 600 !important
+    color: #4A5568 !important
+    margin-bottom: 4px !important
+
+  :global(.textfield), :global(.dropdown), :global(.generic-field-input), :global(.dropdownContainer)
+    background: #fff !important
+    border: 1px solid #EDF2F7 !important
+    border-radius: 6px !important
+    width: 100%
+    box-sizing: border-box
+    &:focus, &:focus-within
+      border-color: #3182CE !important
+
+  input, select, textarea
+    background: transparent !important
+    border: none !important
+    box-shadow: none !important
+    padding: 5px 10px !important
+    font-size: 12px !important
+    color: #4A5568 !important
+    outline: none !important
+    width: 100%
+    box-sizing: border-box
+
+  :global(.dropdownContainer)
+    padding: 0 !important
+    
+  :global(.optionCheckbox)
+    width: 14px !important
+    height: 14px !important
+    padding: 0 !important
+    border: none !important
+    background: transparent !important
+    box-shadow: none !important
+
+  input[type="checkbox"]
+    width: auto !important
+    height: auto !important
+    padding: 0 !important
+    border: none !important
+    background: transparent !important

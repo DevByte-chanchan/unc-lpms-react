@@ -96,10 +96,10 @@ const guarded = (fn) => async (...args) => {
 const warnDirectorOfFlaggedReferences = async ({ offeringId, people }) => {
     const refs = await select(
         `SELECT DISTINCT r.reference_id, r.type, r.isbn, r.link, r.publication_year, r.status, r.copies
-         FROM ILOReferences ir
-             INNER JOIN \`References\` r ON r.reference_id = ir.reference_id
-             INNER JOIN IntendedLearningOutcomes ilo ON ilo.ilo_id = ir.ilo_id
-             INNER JOIN CourseOutcomes co ON co.co_id = ilo.co_id
+         FROM WeeklyReferences wr
+             INNER JOIN \`References\` r ON r.reference_id = wr.reference_id
+             INNER JOIN Weeks w ON w.week_id = wr.week_id
+             INNER JOIN CourseOutcomes co ON co.co_id = w.co_id
          WHERE co.pc_offering_id = ?;`, [offeringId]);
     if (refs.length === 0) return 0;
     const years = await yearsRule();

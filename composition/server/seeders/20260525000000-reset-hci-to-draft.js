@@ -24,7 +24,7 @@ module.exports = {
              FROM CourseOfferingAssignments coa
                       JOIN ProgramCourseOfferings pco ON coa.pc_offering_id = pco.pc_offering_id
                       JOIN Courses c ON pco.course_id = c.course_id
-             WHERE c.course_no = 'BIT313L'
+             WHERE c.course_no = 'BIT313L' AND pco.revision_number = 1
              ORDER BY coa.co_assign_id DESC LIMIT 1;`,
             { type: queryInterface.sequelize.QueryTypes.SELECT }
         );
@@ -52,15 +52,6 @@ module.exports = {
         // ============================================================================
         await queryInterface.sequelize.query(
             `DELETE FROM AssignmentWorkflowLogs WHERE co_assign_id = ${assignId};`
-        );
-
-        // Keep the ASSIGNED event so the Revisions timeline still opens with
-        // "Program Head initialized and routed the learning plan..."
-        // (ASSIGNED alone does not change the Draft status computation.)
-        await queryInterface.sequelize.query(
-            `INSERT INTO AssignmentWorkflowLogs (co_assign_id, actor_role, action_type, createdAt, updatedAt)
-             SELECT co_assign_id, 'PROGRAM_HEAD', 'ASSIGNED', COALESCE(date_assigned, CURRENT_TIMESTAMP), COALESCE(date_assigned, CURRENT_TIMESTAMP)
-             FROM CourseOfferingAssignments WHERE co_assign_id = ${assignId};`
         );
 
         // ============================================================================

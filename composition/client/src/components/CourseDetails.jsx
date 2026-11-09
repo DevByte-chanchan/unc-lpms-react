@@ -5,15 +5,22 @@ import EmptyState from './EmptyState.jsx';
 import Spinner from './Spinner.jsx';
 import TableScrollRegion from './TableScrollRegion.jsx';
 import { describeCourseLoadError } from '../utils/courseLoadError.js';
+import { fetchJson as defaultFetchJson } from '../utils/api';
 
-
-const CourseDetails = ({ offeringID, revisionNum, stylesB, fetchJson }) => {
+const CourseDetails = ({ offeringID, revisionNum, stylesB, fetchJson = defaultFetchJson, isReadOnly = false }) => {
     const [courseDetailsData, setCourseDetailsData] = useState({
         code: '', name: '', description: '', credits: '', contact: '',
         prerequisites: '', class: '', cmo: '', revision: 0, year: '', sem: ''
     });
+    const [editData, setEditData] = useState({ description: '' });
+    const [isEditing, setIsEditing] = useState(false);
+    const [showConfirm, setShowConfirm] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
+    
     const [courseDetailsLoading, setCourseDetailsLoading] = useState(false);
     const [courseDetailsError, setCourseDetailsError] = useState(null);
+
+    const apiFetch = fetchJson || defaultFetchJson;
 
     useEffect(() => {
         if (!offeringID) return;
@@ -23,10 +30,9 @@ const CourseDetails = ({ offeringID, revisionNum, stylesB, fetchJson }) => {
             setCourseDetailsLoading(true);
             setCourseDetailsError(null);
             try {
-                const data = await fetchJson(`/api/course-details/${offeringKey(offeringID, revisionNum)}`);
+                const data = await apiFetch(`/api/course-details/${offeringKey(offeringID, revisionNum)}`);
 
                 if (!mounted) return;
-
                 setCourseDetailsData({
                     code: data.code ?? '',
                     name: data.name ?? '',
@@ -51,7 +57,42 @@ const CourseDetails = ({ offeringID, revisionNum, stylesB, fetchJson }) => {
 
         fetchCourseDetails();
         return () => { mounted = false; };
-    }, [offeringID, revisionNum, fetchJson]);
+    }, [offeringID, revisionNum, apiFetch]);
+
+    const handleEditToggle = () => {
+        if (isEditing) {
+            setShowConfirm(true);
+        } else {
+            setEditData({ description: courseDetailsData.description || '' });
+            setIsEditing(true);
+        }
+    };
+
+    const handleDescriptionChange = (e) => {
+        setEditData({ description: e.target.value });
+    };
+
+    const handleSaveConfirm = async () => {
+        setIsSaving(true);
+        try {
+            await apiFetch(`/api/course-details/${offeringKey(offeringID, revisionNum)}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ description: editData.description })
+            });
+            setCourseDetailsData(prev => ({
+                ...prev,
+                description: editData.description
+            }));
+            setIsEditing(false);
+            setShowConfirm(false);
+        } catch (e) {
+            console.error('Failed to save course description', e);
+            alert(`Failed to save course description: ${e.message}`);
+        } finally {
+            setIsSaving(false);
+        }
+    };
 
     if (courseDetailsLoading) {
         return <Spinner label="Loading course details…" minHeight={280} />;
@@ -79,68 +120,140 @@ const CourseDetails = ({ offeringID, revisionNum, stylesB, fetchJson }) => {
         );
     }
 
+    // In edit mode, all course detail rows remain static text
+    const renderCell = (field, isBold = false) => {
+        const val = courseDetailsData[field] ?? '';
+        return isBold ? <strong>{val}</strong> : val;
+    };
+
+    // Only Course Description turns into an editable textarea field
+    const renderTextArea = () => {
+        if (isEditing) {
+            return (
+                <div className="matrix-edit-desc-wrapper">
+                    <textarea 
+                        className="matrix-edit-textarea"
+                        value={editData.description ?? ''} 
+                        onChange={handleDescriptionChange} 
+                        placeholder="Enter course description..."
+                    />
+                </div>
+            );
+        }
+        return courseDetailsData.description || '';
+    };
+
     return (
-        <section>
+        <div style={{ width: '100%' }}>
+            {!isReadOnly && (
+                <div className="matrix-btns-container">
+                    {isEditing && (
+                        <button 
+                            type="button"
+                            className="matrix-cancel-btn" 
+                            onClick={() => { setIsEditing(false); setShowConfirm(false); }}
+                        >
+                            Cancel
+                        </button>
+                    )}
+                    <button 
+                        type="button"
+                        className={"matrix-edit-btn " + (isEditing ? "save-mode" : "")} 
+                        onClick={handleEditToggle}
+                        disabled={isEditing && (!editData.description || editData.description.trim() === "" || editData.description === (courseDetailsData.description || ""))}
+                    >
+                        {isEditing ? (
+                            <>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+                                Save Description
+                            </>
+                        ) : (
+                            <>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                                Edit Description
+                            </>
+                        )}
+                    </button>
+                </div>
+            )}
+
             <TableScrollRegion label="Course details" minWidth={720} className={stylesB.courseDetailsContainer}>
-                <table className={stylesB.documentTable}>
+                <table className={stylesB.documentTable} style={{ width: '100%', tableLayout: 'fixed' }}>
                     <tbody>
                     <tr>
-                        <th className={stylesB.labelCell}>Course No.</th>
-                        <td className={stylesB.valueCell}>{courseDetailsData?.code || ''}</td>
-                        <th className={stylesB.descHeader}>Course Description</th>
+                        <th className={stylesB.labelCell} style={{ width: '25%' }}>Course No.</th>
+                        <td className={stylesB.valueCell} style={{ width: '30%' }}>{renderCell('code')}</td>
+                        <th className={stylesB.descHeader} style={{ width: '45%' }}>Course Description</th>
                     </tr>
 
                     <tr>
                         <th className={stylesB.labelCell}>Course Title</th>
-                        <td className={stylesB.valueCell}><strong>{courseDetailsData?.name || ''}</strong></td>
-                        <td rowSpan="9" className={stylesB.descCell}>
-                            {courseDetailsData?.description || ''}
+                        <td className={stylesB.valueCell}>{renderCell('name', true)}</td>
+                        <td rowSpan="9" className={`${stylesB.descCell} matrix-desc-cell`}>
+                            {renderTextArea()}
                         </td>
                     </tr>
 
                     <tr>
                         <th className={stylesB.labelCell}>Credit</th>
-                        <td className={stylesB.valueCell}>{courseDetailsData?.credits || ''}</td>
+                        <td className={stylesB.valueCell}>{renderCell('credits')}</td>
                     </tr>
 
                     <tr>
                         <th className={stylesB.labelCell}>Contact Hours/Week</th>
-                        <td className={stylesB.valueCell}>{courseDetailsData?.contact || ''}</td>
+                        <td className={stylesB.valueCell}>{renderCell('contact')}</td>
                     </tr>
 
                     <tr>
                         <th className={stylesB.labelCell}>Pre-requisites</th>
-                        <td className={stylesB.valueCell}>{courseDetailsData?.prerequisites || ''}</td>
+                        <td className={stylesB.valueCell}>{renderCell('prerequisites')}</td>
                     </tr>
 
                     <tr>
                         <th className={stylesB.labelCell}>Classification/Field</th>
-                        <td className={stylesB.valueCell}>{courseDetailsData?.class || ''}</td>
+                        <td className={stylesB.valueCell}>{renderCell('class')}</td>
                     </tr>
 
                     <tr>
                         <th className={stylesB.labelCell}>CMO</th>
-                        <td className={stylesB.valueCell}>{courseDetailsData?.cmo || ''}</td>
+                        <td className={stylesB.valueCell}>{renderCell('cmo')}</td>
                     </tr>
 
                     <tr>
                         <th className={stylesB.labelCell}>Syllabus Revision No.</th>
-                        <td className={stylesB.valueCell}>{courseDetailsData?.revision ?? 0}</td>
+                        <td className={stylesB.valueCell}>{renderCell('revision')}</td>
                     </tr>
 
                     <tr>
                         <th className={stylesB.labelCell}>Year Level</th>
-                        <td className={stylesB.valueCell}>{courseDetailsData?.year || ''}</td>
+                        <td className={stylesB.valueCell}>{renderCell('year')}</td>
                     </tr>
 
                     <tr>
                         <th className={stylesB.labelCell}>Term</th>
-                        <td className={stylesB.valueCell}>{courseDetailsData?.sem || ''}</td>
+                        <td className={stylesB.valueCell}>{renderCell('sem')}</td>
                     </tr>
                     </tbody>
                 </table>
             </TableScrollRegion>
-        </section>
+
+            {showConfirm && (
+                <div className="matrix-modal-overlay">
+                    <div className="matrix-modal-content">
+                        <div className="matrix-modal-title">Confirm Changes</div>
+                        <div className="matrix-modal-text">
+                            Are you sure you want to update the course description for this syllabus? Once saved, this change will be recorded in the database.
+                        </div>
+                        <div className="matrix-modal-actions">
+                            <button className="matrix-btn-cancel" onClick={() => setShowConfirm(false)} disabled={isSaving}>Cancel</button>
+                            <button className="matrix-btn-confirm" onClick={handleSaveConfirm} disabled={isSaving}>
+                                {isSaving ? 'Saving...' : 'Yes, Save Description'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
     );
 };
 

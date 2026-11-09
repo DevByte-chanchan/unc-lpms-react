@@ -92,7 +92,7 @@ const TypeableDropdown = ({ label, disabled, value, initialValue, options = [], 
     if (inline) {
         return (
             <div ref={dropdownRef} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <div className={styles.label} style={{ fontWeight: 600 }}>{label}</div>
+                <div className={`${styles.label} generic-field-label`} style={{ fontWeight: 600 }}>{label}</div>
                 <div
                     className={`${styles.dropdown} ${error ? styles.error : ''}`}
                     style={{ minWidth: 260, height: 44, position: 'relative' }}
@@ -104,8 +104,8 @@ const TypeableDropdown = ({ label, disabled, value, initialValue, options = [], 
     }
 
     return (
-        <div ref={dropdownRef} className={styles.container}>
-            <div className={styles.label}>{label}</div>
+        <div ref={dropdownRef} className={`${styles.container} generic-field-container`}>
+            <div className={`${styles.label} generic-field-label`}>{label}</div>
             <div className={`${styles.dropdown} ${error ? styles.error : ''}`} style={{ position: 'relative' }}>
                 {renderInput()}
             </div>

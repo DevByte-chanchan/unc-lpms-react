@@ -1,3 +1,28 @@
+// Load .env file automatically if present
+const fs = require('fs');
+const path = require('path');
+const envPath = path.join(__dirname, '.env');
+if (fs.existsSync(envPath)) {
+    try {
+        const envLines = fs.readFileSync(envPath, 'utf8').split('\n');
+        for (const line of envLines) {
+            const trimmed = line.trim();
+            if (trimmed && !trimmed.startsWith('#')) {
+                const eqIdx = trimmed.indexOf('=');
+                if (eqIdx > 0) {
+                    const key = trimmed.slice(0, eqIdx).trim();
+                    const val = trimmed.slice(eqIdx + 1).trim().replace(/^["']|["']$/g, '');
+                    if (!process.env[key]) {
+                        process.env[key] = val;
+                    }
+                }
+            }
+        }
+    } catch (e) {
+        console.warn('Could not parse .env file:', e.message);
+    }
+}
+
 const express = require('express');
 const app = express();
 const port = process.env.PORT || 5000;

@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { offeringKey } from '../utils/offeringKey.js'
-import HeadBodyTable from './HeadBodyTable.jsx';
 import { AlertTriangle } from 'react-feather';
 import EmptyState from './EmptyState.jsx';
 import { describeCourseLoadError } from '../utils/courseLoadError.js';
@@ -27,10 +26,15 @@ const TlaGroup = ({ title, tlas, stylesB }) => {
 };
 
 const CourseCoverage = ({ offeringID, revisionNum, status, selectedSection, styles, stylesB, fetchJson }) => {
-    const [coverageData, setCoverageData] = useState({ ilos: [], topics: [], assessments: [] });
+    const [coverageData, setCoverageData] = useState({
+        orientation: null,
+        courseOutcomes: [],
+        topics: [],
+        assessments: []
+    });
     const [isMatrixLoading, setIsMatrixLoading] = useState(true);
-    const [coverageError, setCoverageError] = useState('');
     const [coverageCommentCounts, setCoverageCommentCounts] = useState({});
+    const [coverageError, setCoverageError] = useState('');
 
     // 1. Fetch live coverage database records
     useEffect(() => {
@@ -43,7 +47,7 @@ const CourseCoverage = ({ offeringID, revisionNum, status, selectedSection, styl
                 setCoverageError('');
                 const data = await fetchJson(`/api/course-coverage/${offeringKey(offeringID, revisionNum)}`);
                 if (!mounted) return;
-                setCoverageData(data);
+                setCoverageData(data || { orientation: null, courseOutcomes: [], topics: [], assessments: [] });
             } catch (err) {
                 console.error("Error communicating with dynamic course coverage components:", err);
                 if (mounted) setCoverageError(describeCourseLoadError(err));
@@ -56,36 +60,43 @@ const CourseCoverage = ({ offeringID, revisionNum, status, selectedSection, styl
         return () => { mounted = false; };
     }, [offeringID, revisionNum, selectedSection, fetchJson]);
 
-    // 2. Fetch related workflow resolution badges
+    // 2. Fetch related workflow resolution badges per Week
     useEffect(() => {
-        if (status !== 'returned' || selectedSection !== 'Course Coverage' || !coverageData.ilos || coverageData.ilos.length === 0) return;
+        if (
+            status !== 'returned' ||
+            selectedSection !== 'Course Coverage' ||
+            !coverageData.courseOutcomes ||
+            coverageData.courseOutcomes.length === 0
+        ) return;
+
         let mounted = true;
 
         async function gatherCoverageCommentCounts() {
             const localCountsMap = {};
             const commentSubGroups = ['references', 'topics', 'tlas'];
+            const allWeeks = coverageData.courseOutcomes.flatMap(co => co.weeks || []);
 
             try {
                 const fetchPromises = [];
 
-                coverageData.ilos.forEach(ilo => {
-                    // Normalize standard relational reference keys
-                    const targetIloId = ilo.db_id || ilo.ilo_id || ilo.id;
+                allWeeks.forEach(w => {
+                    const targetWeekId = w.week_id;
+                    if (!targetWeekId) return;
 
                     commentSubGroups.forEach(type => {
-                        const promise = fetchJson(`/api/comments/filter/${targetIloId}/${type}`)
+                        const promise = fetchJson(`/api/comments/filter/${targetWeekId}/${type}`)
                             .then(comments => {
-                                if (!mounted) return;
+                                if (!mounted || !Array.isArray(comments)) return;
 
                                 const unresolvedCount = comments.filter(c => {
                                     return c.resolved_status === false || c.resolved_status === 0 || String(c.resolved_status).toLowerCase() === 'false';
                                 }).length;
 
                                 if (unresolvedCount > 0) {
-                                    localCountsMap[`${targetIloId}_${type}`] = unresolvedCount;
+                                    localCountsMap[`${targetWeekId}_${type}`] = unresolvedCount;
                                 }
                             })
-                            .catch(err => console.error(`Coverage comment mismatch on ILO ${targetIloId}:`, err));
+                            .catch(err => console.error(`Coverage comment mismatch on Week ${targetWeekId}:`, err));
 
                         fetchPromises.push(promise);
                     });
@@ -100,7 +111,7 @@ const CourseCoverage = ({ offeringID, revisionNum, status, selectedSection, styl
 
         gatherCoverageCommentCounts();
         return () => { mounted = false; };
-    }, [coverageData.ilos, status, selectedSection, fetchJson]);
+    }, [coverageData.courseOutcomes, status, selectedSection, fetchJson]);
 
     if (isMatrixLoading) {
         return (
@@ -116,9 +127,8 @@ const CourseCoverage = ({ offeringID, revisionNum, status, selectedSection, styl
         return <EmptyState icon={<AlertTriangle size={22} strokeWidth={1.6} />} title="Could not load course coverage" hint={coverageError} />;
     }
 
-    const ilos = coverageData.ilos || [];
-    const allTopics = coverageData.topics || [];
-    const allAssessments = coverageData.assessments || [];
+    const orientation = coverageData.orientation || null;
+    const courseOutcomes = coverageData.courseOutcomes || [];
 
     const colWidths = {
         co: '60px',
@@ -130,193 +140,262 @@ const CourseCoverage = ({ offeringID, revisionNum, status, selectedSection, styl
         ref: '100px'
     };
 
-    const getILOTopics = (ilo) => {
-        return ilo.topics.map(topicTitle =>
-            allTopics.find(t => t.title === topicTitle)
-        ).filter(Boolean);
+    const filterTLAsByPhase = (tlas, phase) => {
+        if (!Array.isArray(tlas)) return [];
+        return tlas.filter(t => t.classPhase && t.classPhase.toLowerCase() === phase.toLowerCase());
     };
 
-    const getTLAsByPhase = (topics, phase) => {
-        let tlas = [];
-        topics.forEach(topic => {
-            if (topic.tlas) {
-                const filtered = topic.tlas.filter(t => t.classPhase && t.classPhase.toLowerCase() === phase.toLowerCase());
-                tlas = [...tlas, ...filtered];
-            }
-        });
-        return tlas;
+    const getRefId = (refString) => (refString || '').split(' - ')[0];
+
+    const getWeekUnresolvedTotal = (weekId) => {
+        if (!weekId) return 0;
+        const refCount = coverageCommentCounts[`${weekId}_references`] || 0;
+        const topicCount = coverageCommentCounts[`${weekId}_topics`] || 0;
+        const tlaCount = coverageCommentCounts[`${weekId}_tlas`] || 0;
+        return refCount + topicCount + tlaCount;
     };
 
-    const getAssessmentsForTLAs = (tlas) => {
-        return tlas.flatMap(tla =>
-            allAssessments.filter(a => a.tlaId === tla.tlaId)
-        );
-    };
-
-    const getRefId = (refString) => refString.split(' - ')[0];
+    const hasData = Boolean(orientation) || courseOutcomes.length > 0;
 
     return (
         <div className={stylesB.ccContainer}>
-            <HeadBodyTable label="Course coverage" tableClass={stylesB.ccTable}
-                widths={[60, 220, 250, 100, 350, 220, 100]}
-                head={(
+            <div className={stylesB.ccScrollWrapper}>
+                <table className={stylesB.ccTable}>
+                    <thead>
                     <tr>
-                        <th className={stylesB.ccHeader}>CO</th>
-                        <th className={stylesB.ccHeader}>ILO</th>
-                        <th className={stylesB.ccHeader}>TOPIC</th>
-                        <th className={stylesB.ccHeader}>PERIOD</th>
-                        <th className={stylesB.ccHeader}>TEACHING & LEARNING ACTIVITIES (TLAs)</th>
-                        <th className={stylesB.ccHeader}>ASSESSMENT</th>
-                        <th className={stylesB.ccHeader}>RESOURCES</th>
+                        <th className={stylesB.ccHeader} style={{ width: colWidths.co }}>CO</th>
+                        <th className={stylesB.ccHeader} style={{ width: colWidths.ilo }}>ILO</th>
+                        <th className={stylesB.ccHeader} style={{ width: colWidths.topic }}>TOPIC</th>
+                        <th className={stylesB.ccHeader} style={{ width: colWidths.period }}>PERIOD</th>
+                        <th className={stylesB.ccHeader} style={{ width: colWidths.tla }}>TEACHING & LEARNING ACTIVITIES (TLAs)</th>
+                        <th className={stylesB.ccHeader} style={{ width: colWidths.assess }}>ASSESSMENT</th>
+                        <th className={stylesB.ccHeader} style={{ width: colWidths.ref }}>RESOURCES</th>
                     </tr>
-                )}>
+                    </thead>
                     <tbody>
-                    {(() => {
-                        let lastCoPrefix = null;
-                        let iloDisplaySequence = 0;
-                        let coItemIndex = 0; // Tracks the element's position within its current CO group
+                    {hasData ? (
+                        <>
+                            {/* 1. COURSE ORIENTATION ROW (1 Row) */}
+                            {orientation && (() => {
+                                const orientPreTLAs = filterTLAsByPhase(orientation.tlas, 'Pre-class');
+                                const orientInTLAs = filterTLAsByPhase(orientation.tlas, 'In-class');
+                                const orientPostTLAs = filterTLAsByPhase(orientation.tlas, 'Post-class');
+                                const allOrientTLAs = [...orientPreTLAs, ...orientInTLAs, ...orientPostTLAs];
+                                const orientAssessments = orientation.assessments || [];
+                                const orientTopics = orientation.topics || [];
+                                const orientRefs = orientation.references || [];
 
-                        return ilos.length > 0 ? ilos.map((ilo, index) => {
-                            const rowTopics = getILOTopics(ilo);
+                                return (
+                                    <tr key={orientation.id || 'course-orientation-row'}>
+                                        {/* CO COLUMN */}
+                                        <td
+                                            className={`${stylesB.ccCell} ${stylesB.centerText} ${stylesB.boldText}`}
+                                            style={{ width: colWidths.co }}
+                                        ></td>
 
-                            const preTLAs = getTLAsByPhase(rowTopics, 'Pre-class');
-                            const inTLAs = getTLAsByPhase(rowTopics, 'In-class');
-                            const postTLAs = getTLAsByPhase(rowTopics, 'Post-class');
+                                        {/* ILO COLUMN */}
+                                        <td className={stylesB.ccCell} style={{ width: colWidths.ilo }}>
+                                            {orientation.intendedLearningOutcome}
+                                        </td>
 
-                            const allRowTLAs = [...preTLAs, ...inTLAs, ...postTLAs];
-                            const rawAssessments = getAssessmentsForTLAs(allRowTLAs);
+                                        {/* TOPIC COLUMN */}
+                                        <td className={stylesB.ccCell} style={{ width: colWidths.topic }}>
+                                            {orientTopics.map(t => (
+                                                <div key={t.id} className={stylesB.topicBlock} data-target-kind="Topic" data-target={t.title}>
+                                                    <div className={stylesB.topicTitle}>{t.title}</div>
+                                                    <ul className={stylesB.subtopicList}>
+                                                        {t.subtopics && t.subtopics.map(sub => (
+                                                            <li key={sub.id}>{sub.value}</li>
+                                                        ))}
+                                                    </ul>
+                                                </div>
+                                            ))}
+                                        </td>
 
-                            const uniqueAssessments = [];
-                            const seenAssessKeys = new Set();
+                                        {/* PERIOD COLUMN */}
+                                        <td className={`${stylesB.ccCell} ${stylesB.centerText}`} style={{ width: colWidths.period }}>
+                                            <div className={stylesB.boldText}>{orientation.deliveryWeek}</div>
+                                            <div>{orientation.allocatedTime}</div>
+                                        </td>
 
-                            rawAssessments.forEach(assess => {
-                                const key = `${assess.id}-${assess.assessmentName}`.toLowerCase();
-                                if (!seenAssessKeys.has(key)) {
-                                    seenAssessKeys.add(key);
-                                    uniqueAssessments.push(assess);
-                                }
-                            });
+                                        {/* TEACHING & LEARNING ACTIVITIES (TLAs) COLUMN */}
+                                        <td className={stylesB.ccCell} style={{ width: colWidths.tla }}>
+                                            <TlaGroup title="PRE-CLASS" tlas={orientPreTLAs} stylesB={stylesB} />
+                                            <TlaGroup title="IN-CLASS" tlas={orientInTLAs} stylesB={stylesB} />
+                                            <TlaGroup title="POST-CLASS" tlas={orientPostTLAs} stylesB={stylesB} />
+                                            {allOrientTLAs.length === 0 && <span className={stylesB.descText}>No activities listed.</span>}
+                                        </td>
 
-                            const currentCoPrefix = ilo.id.split('-')[0];
+                                        {/* ASSESSMENT COLUMN */}
+                                        <td className={stylesB.ccCell} style={{ width: colWidths.assess }}>
+                                            {orientAssessments.map((assess, i) => (
+                                                <div key={assess.id || i} className={stylesB.assessItem}>
+                                                    <div className={stylesB.boldText}>{assess.assessmentMethod}</div>
+                                                    {assess.description && (
+                                                        <div className={stylesB.descText}>{assess.description}</div>
+                                                    )}
+                                                </div>
+                                            ))}
+                                            {orientAssessments.length === 0 && <span className={stylesB.descText}>No assessments listed.</span>}
+                                        </td>
 
-                            // 1. Reset or increment the inner position index when crossing CO boundaries
-                            if (currentCoPrefix !== lastCoPrefix) {
-                                lastCoPrefix = currentCoPrefix;
-                                coItemIndex = 0;
-                            } else {
-                                coItemIndex++;
-                            }
+                                        {/* RESOURCES COLUMN */}
+                                        <td className={`${stylesB.ccCell} ${stylesB.centerText}`} style={{ width: colWidths.ref }}>
+                                            {orientRefs.map((ref, i) => (
+                                                <div key={i}>{getRefId(ref)}</div>
+                                            ))}
+                                        </td>
+                                    </tr>
+                                );
+                            })()}
 
-                            // 2. Count the total number of ILOs assigned to this specific CO prefix
-                            const totalIlosInCo = ilos.filter(item => item.id.startsWith(currentCoPrefix + '-')).length;
+                            {/* 2. 4 COURSE OUTCOME BLOCKS (Tall CO cell + Tall ILO cell + Weekly Sub-Rows + Period Divider Row) */}
+                            {courseOutcomes.map((co) => {
+                                const coWeeks = co.weeks && co.weeks.length > 0 ? co.weeks : [{
+                                    week_id: `empty-${co.co_id}`,
+                                    deliveryWeek: '',
+                                    allocatedTime: '',
+                                    topics: [],
+                                    tlas: [],
+                                    assessments: [],
+                                    references: []
+                                }];
+                                const coRowSpan = coWeeks.length;
+                                const coIlos = co.ilos || [];
 
-                            // 3. Condition: If there are exactly 4 rows in this CO, automatically flag the 1st one (index 0)
-                            const isCourseOrientation = (totalIlosInCo === 4 && coItemIndex === 0);
+                                return (
+                                    <React.Fragment key={`co-block-${co.co_id}`}>
+                                        {coWeeks.map((week, wIdx) => {
+                                            const preTLAs = filterTLAsByPhase(week.tlas, 'Pre-class');
+                                            const inTLAs = filterTLAsByPhase(week.tlas, 'In-class');
+                                            const postTLAs = filterTLAsByPhase(week.tlas, 'Post-class');
+                                            const allWeekTLAs = [...preTLAs, ...inTLAs, ...postTLAs];
+                                            const weekAssessments = week.assessments || [];
+                                            const weekTopics = week.topics || [];
+                                            const weekRefs = week.references || [];
+                                            const totalWeekUnresolved = getWeekUnresolvedTotal(week.week_id);
 
-                            // 4. Handle sequential numbering shifts based on the flag
-                            if (coItemIndex === 0) {
-                                iloDisplaySequence = isCourseOrientation ? 0 : 1;
-                            } else {
-                                if (!isCourseOrientation) {
-                                    iloDisplaySequence++;
-                                }
-                            }
+                                            return (
+                                                <tr key={`co-${co.co_id}-week-${week.week_id}`} data-week-id={week.week_id}>
+                                                    {/* TALL 1-ROW CO COLUMN */}
+                                                    {wIdx === 0 && (
+                                                        <td
+                                                            rowSpan={coRowSpan}
+                                                            className={`${stylesB.ccCell} ${stylesB.boldText}`}
+                                                            style={{ width: colWidths.co, textAlign: 'center', verticalAlign: 'top' }}
+                                                        >
+                                                            {co.coLabel || `CO${co.coNumber}`}
+                                                        </td>
+                                                    )}
 
-                            // 5. Build dynamic cleanILOId or leave blank if it matches Course Orientation
-                            const cleanILOId = isCourseOrientation ? "" : `ILO${iloDisplaySequence}`;
+                                                    {/* TALL 1-ROW ILO COLUMN (All 3 ILOs in 1 Spanned Cell) */}
+                                                    {wIdx === 0 && (
+                                                        <td
+                                                            rowSpan={coRowSpan}
+                                                            className={stylesB.ccCell}
+                                                            style={{ width: colWidths.ilo }}
+                                                        >
+                                                            {coIlos.map((iloItem, idx) => (
+                                                                <div
+                                                                    key={iloItem.id || idx}
+                                                                    style={{ marginBottom: idx < coIlos.length - 1 ? '16px' : '0' }}
+                                                                >
+                                                                    <div className={stylesB.boldText} style={{ marginBottom: '4px' }}>
+                                                                        {iloItem.label || `ILO${idx + 1}`}
+                                                                    </div>
+                                                                    <div>{iloItem.description}</div>
+                                                                </div>
+                                                            ))}
+                                                        </td>
+                                                    )}
 
-                            const isFirstOfCO = index === ilos.findIndex(item => item.id.startsWith(currentCoPrefix + '-'));
-                            const coRowCount = totalIlosInCo;
+                                                    {/* WEEKLY SUB-ROW: TOPIC COLUMN */}
+                                                    <td className={stylesB.ccCell} style={{ width: colWidths.topic }}>
+                                                        {weekTopics.map(t => (
+                                                            <div key={t.id} className={stylesB.topicBlock} data-target-kind="Topic" data-target={t.title}>
+                                                                <div className={stylesB.topicTitle}>{t.title}</div>
+                                                                <ul className={stylesB.subtopicList}>
+                                                                    {t.subtopics && t.subtopics.map(sub => (
+                                                                        <li key={sub.id}>{sub.value}</li>
+                                                                    ))}
+                                                                </ul>
+                                                            </div>
+                                                        ))}
+                                                    </td>
 
-                            // Target identifier calculations for badge logic
-                            const targetIloId = ilo.db_id || ilo.ilo_id || ilo.id;
-                            const refCount = coverageCommentCounts[`${targetIloId}_references`] || 0;
-                            const topicCount = coverageCommentCounts[`${targetIloId}_topics`] || 0;
-                            const tlaCount = coverageCommentCounts[`${targetIloId}_tlas`] || 0;
-                            const totalRowUnresolved = refCount + topicCount + tlaCount;
+                                                    {/* WEEKLY SUB-ROW: PERIOD COLUMN */}
+                                                    <td className={`${stylesB.ccCell} ${stylesB.centerText}`} style={{ width: colWidths.period }}>
+                                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                                                            <span className={stylesB.boldText}>{week.deliveryWeek}</span>
+                                                            {status === 'returned' && totalWeekUnresolved > 0 && (
+                                                                <span className={styles['comment-badge']}>
+                                                                    {totalWeekUnresolved}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        <div>{week.allocatedTime}</div>
+                                                    </td>
 
-                            return (
-                                <tr key={ilo.id} data-ilo-id={ilo.id}>
-                                {/* CO COLUMN */}
-                                {isFirstOfCO && (
-                                    <td
-                                        rowSpan={coRowCount}
-                                        className={`${stylesB.ccCell} ${stylesB.centerText} ${stylesB.boldText}`}
-                                        style={{ width: colWidths.co }}
-                                    >
-                                        {currentCoPrefix}
-                                    </td>
-                                )}
+                                                    {/* WEEKLY SUB-ROW: TEACHING & LEARNING ACTIVITIES (TLAs) COLUMN */}
+                                                    <td className={stylesB.ccCell} style={{ width: colWidths.tla }}>
+                                                        <TlaGroup title="PRE-CLASS" tlas={preTLAs} stylesB={stylesB} />
+                                                        <TlaGroup title="IN-CLASS" tlas={inTLAs} stylesB={stylesB} />
+                                                        <TlaGroup title="POST-CLASS" tlas={postTLAs} stylesB={stylesB} />
+                                                        {allWeekTLAs.length === 0 && <span className={stylesB.descText}>No activities listed.</span>}
+                                                    </td>
 
-                                {/* ILO COLUMN */}
-                                <td className={stylesB.ccCell} style={{ width: colWidths.ilo }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '5px' }}>
-                                        <span className={stylesB.boldText}>{cleanILOId}</span>
-                                        {status === 'returned' && totalRowUnresolved > 0 && (
-                                            <span className={styles['comment-badge']}>
-                                                {totalRowUnresolved}
-                                            </span>
+                                                    {/* WEEKLY SUB-ROW: ASSESSMENT COLUMN */}
+                                                    <td className={stylesB.ccCell} style={{ width: colWidths.assess }}>
+                                                        {weekAssessments.map((assess, i) => (
+                                                            <div key={assess.id || i} className={stylesB.assessItem}>
+                                                                <div className={stylesB.boldText}>{assess.assessmentMethod}</div>
+                                                                {assess.description && (
+                                                                    <div className={stylesB.descText}>{assess.description}</div>
+                                                                )}
+                                                            </div>
+                                                        ))}
+                                                        {weekAssessments.length === 0 && <span className={stylesB.descText}>No assessments listed.</span>}
+                                                    </td>
+
+                                                    {/* WEEKLY SUB-ROW: RESOURCES COLUMN */}
+                                                    <td className={`${stylesB.ccCell} ${stylesB.centerText}`} style={{ width: colWidths.ref }}>
+                                                        {weekRefs.map((ref, i) => (
+                                                            <div key={i}>{getRefId(ref)}</div>
+                                                        ))}
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+
+                                        {/* 3. THIN EXAMINATION PERIOD DIVIDER ROW (PRELIM, MIDTERM, SEMIFINAL, FINAL) */}
+                                        {co.examDivider && (
+                                            <tr key={`exam-divider-${co.examDivider.id}`}>
+                                                <td colSpan={7} className={stylesB.ccDividerCell}>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                                                        <span className={stylesB.boldText} style={{ textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                                            {co.examDivider.label}
+                                                        </span>
+                                                        {(co.examDivider.deliveryWeek || co.examDivider.allocatedTime) && (
+                                                            <span className={stylesB.boldText} style={{ fontSize: '13px' }}>
+                                                                {co.examDivider.deliveryWeek}
+                                                                {co.examDivider.deliveryWeek && co.examDivider.allocatedTime ? ' ' : ''}
+                                                                {co.examDivider.allocatedTime}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </td>
+                                            </tr>
                                         )}
-                                    </div>
-                                    {ilo.intendedLearningOutcome}
-                                </td>
-
-                                {/* TOPIC COLUMN */}
-                                <td className={stylesB.ccCell} style={{ width: colWidths.topic }}>
-                                    {rowTopics.map(t => (
-                                        <div key={t.id} className={stylesB.topicBlock} data-target-kind="Topic" data-target={t.title}>
-                                            <div className={stylesB.topicTitle}>{t.title}</div>
-                                            <ul className={stylesB.subtopicList}>
-                                                {t.subtopics && t.subtopics.map(sub => (
-                                                    <li key={sub.id}>{sub.value}</li>
-                                                ))}
-                                            </ul>
-                                        </div>
-                                    ))}
-                                </td>
-
-                                {/* PERIOD COLUMN */}
-                                <td className={`${stylesB.ccCell} ${stylesB.centerText}`} style={{ width: colWidths.period }}>
-                                    <div className={stylesB.boldText}>{ilo.deliveryWeek}</div>
-                                    <div>{ilo.allocatedTime}</div>
-                                </td>
-
-                                {/* MERGED TLA COLUMN */}
-                                <td className={stylesB.ccCell} style={{ width: colWidths.tla }}>
-                                    <TlaGroup title="PRE-CLASS" tlas={preTLAs} stylesB={stylesB} />
-                                    <TlaGroup title="IN-CLASS" tlas={inTLAs} stylesB={stylesB} />
-                                    <TlaGroup title="POST-CLASS" tlas={postTLAs} stylesB={stylesB} />
-
-                                    {allRowTLAs.length === 0 && <span className={stylesB.descText}>No activities listed.</span>}
-                                </td>
-
-                                {/* ASSESSMENT COLUMN */}
-                                <td className={stylesB.ccCell} style={{ width: colWidths.assess }}>
-                                    {uniqueAssessments.map((assess, i) => (
-                                        <div key={i} className={stylesB.assessItem}>
-                                            <div className={stylesB.boldText}>{assess.assessmentMethod}</div>
-                                            {assess.description && (
-                                                <div className={stylesB.descText}>{assess.description}</div>
-                                            )}
-                                        </div>
-                                    ))}
-                                    {uniqueAssessments.length === 0 && <span className={stylesB.descText}>No assessments listed.</span>}
-                                </td>
-
-                                {/* RESOURCES COLUMN */}
-                                <td className={`${stylesB.ccCell} ${stylesB.centerText}`} style={{ width: colWidths.ref }}>
-                                    {ilo.references.map((ref, i) => (
-                                        <div key={i}>{getRefId(ref)}</div>
-                                    ))}
-                                </td>
-                            </tr>
-                            );
-                        }) : (
-                            <tr><td colSpan={7} style={{ padding: '20px', textAlign: 'center' }}>No coverage data available.</td></tr>
-                        );
-                    })()}
+                                    </React.Fragment>
+                                );
+                            })}
+                        </>
+                    ) : (
+                        <tr><td colSpan={7} style={{ padding: '20px', textAlign: 'center' }}>No coverage data available.</td></tr>
+                    )}
                     </tbody>
-            </HeadBodyTable>
+                </table>
+            </div>
         </div>
     );
 };

@@ -20,7 +20,7 @@ const iso = (value) => (value ? new Date(value).toISOString() : null);
 
 // course: { code, title, term, revisionNumber }
 // logs: workflow log rows, oldest first. comments: Comment rows, oldest first.
-// iloLabels: Map(ilo_id -> 'CO2-ILO3' | 'Course Orientation'). targetTitles: Map(comment_id -> [title]).
+// iloLabels: Map(week_id -> 'CO2 · Week 5'). targetTitles: Map(comment_id -> [title]).
 const assembleReviewRecord = ({ course, logs = [], comments = [], iloLabels = new Map(), targetTitles = new Map() }) => {
     const { state } = planEditState(logs);
     const reviewState = deriveReviewState(logs);
@@ -59,7 +59,7 @@ const assembleReviewRecord = ({ course, logs = [], comments = [], iloLabels = ne
             role: comment.commenter_role,
             roleLabel: ROLE_LABEL[comment.commenter_role] || comment.commenter_role,
             section: SECTION_LABEL[comment.comment_for] || 'General',
-            location: iloLabels.get(comment.ilo_id) || '',
+            location: iloLabels.get(comment.week_id ?? comment.ilo_id) || '',
             targets: targetTitles.get(comment.comment_id) || [],
             message: comment.message,
             date: iso(comment.createdAt),

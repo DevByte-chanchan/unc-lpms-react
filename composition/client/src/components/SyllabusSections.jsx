@@ -281,7 +281,7 @@ const SyllabusSections = () => {
                             </>
                         }
                         {(status === 'draft' || status === 'returned') &&
-                            <option value="Intended Learning Outcomes">Intended Learning Outcomes</option>
+                            <option value="Intended Learning Outcomes">Course Coverage</option>
                         }
                         <option value="Criteria for Grading">Criteria for Grading</option>
                     </select>
@@ -341,11 +341,11 @@ const SyllabusSections = () => {
                 ) : (
                     <>
                         {selectedSection === 'Course Details' &&
-                            <CourseDetails offeringID={offeringID} revisionNum={revisionNum} stylesB={stylesB} fetchJson={fetchJson} />
+                            <CourseDetails offeringID={offeringID} revisionNum={revisionNum} stylesB={stylesB} fetchJson={fetchJson} isReadOnly={!(status === 'draft' || status === 'returned')} />
                         }
 
                         {selectedSection === 'Course and Program Outcome Alignment' &&
-                            <OutcomeAlignment offeringID={offeringID} revisionNum={revisionNum} styles={styles} stylesB={stylesB} fetchJson={fetchJson} />
+                            <OutcomeAlignment offeringID={offeringID} revisionNum={revisionNum} styles={styles} stylesB={stylesB} fetchJson={fetchJson} isReadOnly={!(status === 'draft' || status === 'returned')} />
                         }
 
                         {selectedSection === 'Intended Learning Outcomes' && (
@@ -353,7 +353,7 @@ const SyllabusSections = () => {
                         )}
 
                         {selectedSection === 'Criteria for Grading' && (
-                            <CriteriaForGrading offeringID={offeringID} revisionNum={revisionNum} status={status} styles={styles} stylesB={stylesB} fetchJson={fetchJson} />
+                            <CriteriaForGrading offeringID={offeringID} revisionNum={revisionNum} status={status} styles={styles} stylesB={stylesB} fetchJson={fetchJson} isReadOnly={!(status === 'draft' || status === 'returned')} />
                         )}
 
                         {selectedSection === 'Course Coverage' && (
@@ -364,10 +364,7 @@ const SyllabusSections = () => {
                             <ReferenceSummary offeringID={offeringID} revisionNum={revisionNum} status={status} selectedSection={selectedSection} styles={styles} stylesB={stylesB} fetchJson={fetchJson} />
                         )}
 
-                        <SyllabusPreview
-                            isOpen={isPreviewOpen}
-                            onClose={() => setIsPreviewOpen(false)}
-                        />
+                        <SyllabusPreview isOpen={isPreviewOpen} onClose={() => setIsPreviewOpen(false)} />
 
                         {isRevisionsOpen && (
                             <Revisions

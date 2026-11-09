@@ -191,7 +191,7 @@ async function importReferences(req, res) {
 /**
  * GET /api/references/library
  * Reference Library source of truth: every reference in the database (archived ones flagged) plus
- * the list of courses that actually use it (via ILOReferences → ILO → CO → Offering).
+ * the list of courses that actually use it (via WeeklyReferences → week → CO → Offering).
  */
 async function getReferenceLibrary(req, res) {
     try {
@@ -216,9 +216,9 @@ async function getReferenceLibrary(req, res) {
                  GROUP_CONCAT(DISTINCT p.name) AS programs,
                  GROUP_CONCAT(DISTINCT d.name) AS departments
              FROM \`References\` r
-                 LEFT JOIN ILOReferences ir ON ir.reference_id = r.reference_id
-                 LEFT JOIN IntendedLearningOutcomes ilo ON ilo.ilo_id = ir.ilo_id
-                 LEFT JOIN CourseOutcomes co ON co.co_id = ilo.co_id
+                 LEFT JOIN WeeklyReferences wr ON wr.reference_id = r.reference_id
+                 LEFT JOIN Weeks w ON w.week_id = wr.week_id
+                 LEFT JOIN CourseOutcomes co ON co.co_id = w.co_id
                  LEFT JOIN ProgramCourseOfferings pco ON pco.pc_offering_id = co.pc_offering_id
                  LEFT JOIN Courses crs ON crs.course_id = pco.course_id
                  LEFT JOIN Programs p ON p.program_id = pco.program_id

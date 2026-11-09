@@ -151,10 +151,10 @@ const Revisions = ({ onClose, pcId: propPcId }) => {
 
                         <div className={styles['dynamic-sections']} style={{ overflowY: 'auto', maxHeight: '72vh', paddingRight: '4px' }}>
                             {selectedSection === 'Course Details' && (
-                                <CourseDetails offeringID={activePcId} revisionNum={selectedRevNum} stylesB={stylesB} fetchJson={fetchJson} />
+                                <CourseDetails isReadOnly={true} offeringID={activePcId} revisionNum={selectedRevNum} stylesB={stylesB} fetchJson={fetchJson} />
                             )}
                             {selectedSection === 'Course and Program Outcome Alignment' && (
-                                <OutcomeAlignment offeringID={activePcId} revisionNum={selectedRevNum} styles={styles} stylesB={stylesB} fetchJson={fetchJson} />
+                                <OutcomeAlignment isReadOnly={true} offeringID={activePcId} revisionNum={selectedRevNum} styles={styles} stylesB={stylesB} fetchJson={fetchJson} />
                             )}
                             {selectedSection === 'Course Coverage' && (
                                 <CourseCoverage offeringID={activePcId} revisionNum={selectedRevNum} status={status} selectedSection={selectedSection} styles={styles} stylesB={stylesB} fetchJson={fetchJson} />
@@ -163,7 +163,7 @@ const Revisions = ({ onClose, pcId: propPcId }) => {
                                 <ReferenceSummary offeringID={activePcId} revisionNum={selectedRevNum} status={status} selectedSection={selectedSection} styles={styles} stylesB={stylesB} fetchJson={fetchJson} />
                             )}
                             {selectedSection === 'Criteria for Grading' && (
-                                <CriteriaForGrading offeringID={activePcId} revisionNum={selectedRevNum} status={status} styles={styles} stylesB={stylesB} fetchJson={fetchJson} />
+                                <CriteriaForGrading isReadOnly={true} offeringID={activePcId} revisionNum={selectedRevNum} status={status} styles={styles} stylesB={stylesB} fetchJson={fetchJson} />
                             )}
                         </div>
                     </div>

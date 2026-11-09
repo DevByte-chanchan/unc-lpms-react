@@ -78,4 +78,52 @@ async function getCourseProgramOutcomeAlignment(req, res) {
     }
 }
 
-module.exports = { getCourseProgramOutcomeAlignment };
+module.exports = { getCourseProgramOutcomeAlignment, updateCourseProgramOutcomeAlignment };
+async function updateCourseProgramOutcomeAlignment(req, res) {
+    try {
+        const { pcId, revNum } = req.params;
+        const { courseOutcomes, programOutcomes } = req.body;
+
+        if (!pcId || !Array.isArray(courseOutcomes) || !Array.isArray(programOutcomes))
+            return res.status(400).json({ message: 'Missing parameters' });
+        void revNum;
+
+        // Only this plan's course outcomes may be written (the ids come from the request body).
+        const ownCoIds = new Set((await CourseOutcome.findAll({ where: { pc_offering_id: pcId }, attributes: ['co_id'], raw: true })).map(co => Number(co.co_id)));
+        if (courseOutcomes.some(co => !ownCoIds.has(Number(co?.id)) || !Array.isArray(co?.poMappings))) {
+            return res.status(403).json({ message: 'A course outcome in this request is not part of this learning plan.' });
+        }
+        if (courseOutcomes.some(co => co.poMappings.some((level, i) => (level && !['I', 'E', 'D'].includes(level)) || !programOutcomes[i]?.po_id))) {
+            return res.status(400).json({ message: 'Each alignment is I, E, D or empty, against a listed program outcome.' });
+        }
+
+        // Iterate through all courseOutcomes and perform an upsert on ProgramOutcomeAlignment
+        for (const co of courseOutcomes) {
+            for (let i = 0; i < co.poMappings.length; i++) {
+                const attainLevel = co.poMappings[i] || null;
+                const poId = programOutcomes[i].po_id;
+
+                if (attainLevel) {
+                    const existing = await ProgramOutcomeAlignment.findOne({ where: { co_id: co.id, po_id: poId } });
+                    if (existing) {
+                        existing.attainment_level = attainLevel;
+                        await existing.save();
+                    } else {
+                        await ProgramOutcomeAlignment.create({
+                            co_id: co.id,
+                            po_id: poId,
+                            attainment_level: attainLevel
+                        });
+                    }
+                } else {
+                    // Destroy if empty
+                    await ProgramOutcomeAlignment.destroy({ where: { co_id: co.id, po_id: poId } });
+                }
+            }
+        }
+        return res.json({ message: 'Successfully updated' });
+    } catch (err) {
+        console.error('updateCourseProgramOutcomeAlignment error', err);
+        return res.status(500).json({ message: 'Internal server error' });
+    }
+}

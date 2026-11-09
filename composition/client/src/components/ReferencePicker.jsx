@@ -167,9 +167,9 @@ const ReferencePicker = ({
     };
 
     return (
-        <div className={styles.container}>
-            <div className={styles.pickerWrapper + (error ? ` ${styles.error}` : '')}>
-                {/* Header: search + filters */}
+        <div className={styles.container} style={{ display: "flex", flexDirection: "column", flex: 1, minHeight: 0 }}>
+            <div className={styles.pickerWrapper + (error ? ` ${styles.error}` : '')} style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+                {/* Header: filter buttons (left) + search (center) + Add Reference button (right) */}
                 <div className={styles.header}>
                     <div className={styles.headerRow}>
                         <div className={styles.searchBar} style={{ flex: 1 }}>

@@ -13,13 +13,13 @@ const MAX_CODES = 3;
 // The newest offering of each course and program that links this reference, with the program's head.
 const plansUsing = async (sequelize, referenceId) => sequelize.query(
     `SELECT pco.pc_offering_id AS offeringId, c.course_no AS courseCode, p.stakeholder_id AS headId
-     FROM ILOReferences ir
-         INNER JOIN IntendedLearningOutcomes ilo ON ilo.ilo_id = ir.ilo_id
-         INNER JOIN CourseOutcomes co ON co.co_id = ilo.co_id
+     FROM WeeklyReferences wr
+         INNER JOIN Weeks w ON w.week_id = wr.week_id
+         INNER JOIN CourseOutcomes co ON co.co_id = w.co_id
          INNER JOIN ProgramCourseOfferings pco ON pco.pc_offering_id = co.pc_offering_id
          INNER JOIN Courses c ON c.course_id = pco.course_id
          INNER JOIN Programs p ON p.program_id = pco.program_id
-     WHERE ir.reference_id = ?
+     WHERE wr.reference_id = ?
        AND pco.pc_offering_id = (SELECT MAX(x.pc_offering_id) FROM ProgramCourseOfferings x WHERE x.course_id = pco.course_id AND x.program_id = pco.program_id)
      GROUP BY pco.pc_offering_id;`,
     { replacements: [referenceId], type: Sequelize.QueryTypes.SELECT });

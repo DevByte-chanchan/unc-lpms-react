@@ -8,8 +8,8 @@ const TextField = ({ label, disabled, value, initialValue, onChange, error, plac
     return (
         // style prop lets callers align this field with DropdownA / DropdownMultiSelect
         // (all three have a default 20px left padding in their sass containers)
-        <div className={styles.container} style={style}>
-            <div className={styles.label}>{label}</div>
+        <div className={`${styles.container} generic-field-container`} style={style}>
+            <div className={`${styles.label} generic-field-label`}>{label}</div>
 
             {/* Wrapper holds the border */}
             <div className={`${styles.textfield} ${error ? styles.error : ''}`}>

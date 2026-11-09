@@ -4,7 +4,7 @@
  * Seeder: Update Foundation Course to RETURNED Status
  * Target: Human and Computer Interaction (BIT313L)
  * Actions: Updates submission date, injects workflow logs (Assigned -> Submitted -> Returned),
- * and attaches UNRESOLVED, actionable comments to existing Topics and TLAs.
+ * and attaches UNRESOLVED, actionable comments to existing Topics/Subtopics and TLAs.
  * Run: npx sequelize-cli db:seed --seed 20260515000000-seed-returned-lp-hci.js
  */
 
@@ -20,7 +20,7 @@ module.exports = {
              FROM CourseOfferingAssignments coa
                       JOIN ProgramCourseOfferings pco ON coa.pc_offering_id = pco.pc_offering_id
                       JOIN Courses c ON pco.course_id = c.course_id
-             WHERE c.course_no = 'BIT313L'
+             WHERE c.course_no = 'BIT313L' AND pco.revision_number = 1
              ORDER BY coa.co_assign_id DESC LIMIT 1;`,
             { type: queryInterface.sequelize.QueryTypes.SELECT }
         );
@@ -61,6 +61,7 @@ module.exports = {
             { co_assign_id: assignId, actor_role: 'PROGRAM_HEAD', action_type: 'ASSIGNED', createdAt: new Date('2026-06-01 09:00:00'), updatedAt: new Date('2026-06-01 09:00:00') },
             { co_assign_id: assignId, actor_role: 'INSTRUCTOR', action_type: 'SUBMITTED', createdAt: new Date('2026-06-15 10:00:00'), updatedAt: new Date('2026-06-15 10:00:00') },
             // Rejected by Stakeholders
+            { co_assign_id: assignId, actor_role: 'INDUSTRY_CONSULTANT', action_type: 'RETURNED', createdAt: new Date('2026-06-18 14:00:00'), updatedAt: new Date('2026-06-18 14:00:00') },
             { co_assign_id: assignId, actor_role: 'PROGRAM_HEAD', action_type: 'RETURNED', createdAt: new Date('2026-06-19 11:30:00'), updatedAt: new Date('2026-06-19 11:30:00') }
         ], {});
 
@@ -73,29 +74,29 @@ module.exports = {
         );
         const topic1Id = topic1Query[0].topic_id;
 
-        const iloTopic1Query = await queryInterface.sequelize.query(
-            `SELECT ilo_id FROM ILOTopics WHERE topic_id = ${topic1Id} LIMIT 1;`,
+        const subtopic1Query = await queryInterface.sequelize.query(
+            `SELECT subtopic_id, week_id FROM Subtopics WHERE topic_id = ${topic1Id} ORDER BY sequence_order ASC LIMIT 1;`,
             { type: queryInterface.sequelize.QueryTypes.SELECT }
         );
-        const ilo1Id = iloTopic1Query[0].ilo_id;
-
-        const tlaQuery = await queryInterface.sequelize.query(
-            `SELECT tla_id FROM TeachingAndLearningActivities
-             WHERE tla_name LIKE '%Moderated Usability Testing%' AND class_phase = 'postclass' LIMIT 1;`,
-            { type: queryInterface.sequelize.QueryTypes.SELECT }
-        );
-        const tlaId = tlaQuery[0].tla_id;
+        const subtopic1Id = subtopic1Query[0].subtopic_id;
+        const week1Id = subtopic1Query[0].week_id;
 
         const topic2Query = await queryInterface.sequelize.query(
             `SELECT topic_id FROM Topics WHERE title = 'Moderated Usability Testing Execution and Data Synthesis' LIMIT 1;`,
             { type: queryInterface.sequelize.QueryTypes.SELECT }
         );
 
-        const iloTopic2Query = await queryInterface.sequelize.query(
-            `SELECT ilo_id FROM ILOTopics WHERE topic_id = ${topic2Query[0].topic_id} LIMIT 1;`,
+        const subtopic2Query = await queryInterface.sequelize.query(
+            `SELECT week_id FROM Subtopics WHERE topic_id = ${topic2Query[0].topic_id} LIMIT 1;`,
             { type: queryInterface.sequelize.QueryTypes.SELECT }
         );
-        const ilo2Id = iloTopic2Query[0].ilo_id;
+        const week2Id = subtopic2Query[0].week_id;
+
+        const tlaQuery = await queryInterface.sequelize.query(
+            `SELECT tla_id FROM TeachingAndLearningActivities WHERE week_id = ${week2Id} AND class_phase = 'postclass' LIMIT 1;`,
+            { type: queryInterface.sequelize.QueryTypes.SELECT }
+        );
+        const tlaId = tlaQuery[0].tla_id;
 
         // ============================================================================
         // 5. COMMENTS & COMMENT TARGETS (ACTIONABLE & UNRESOLVED)
@@ -110,9 +111,9 @@ module.exports = {
                 message: "The 'Cognitive Models in HCI' topic outline is missing modern contextual theories. You must explicitly add 'Distributed Cognition and Activity Theory' as a core subtopic, as this is a strict requirement for evaluating collaborative enterprise interfaces in today's industry.",
                 resolved_status: false,
                 resolved_date: null,
-                ilo_id: ilo1Id,
+                week_id: week1Id,
                 comment_for: 'topics',
-                target_id: topic1Id,
+                target_id: subtopic1Id,
                 createdAt: icReturnDate,
                 updatedAt: icReturnDate
             },
@@ -122,7 +123,7 @@ module.exports = {
                 message: "Your 'Design Review & Implementation' post-class lab for 'Moderated Usability Testing' lacks strict ethical compliance checks. Update the TLA description to explicitly mandate that students secure and submit signed Informed Consent and NDA forms before conducting any live user tests.",
                 resolved_status: false,
                 resolved_date: null,
-                ilo_id: ilo2Id,
+                week_id: week2Id,
                 comment_for: 'tlas',
                 target_id: tlaId,
                 createdAt: phReturnDate,
@@ -137,7 +138,7 @@ module.exports = {
             message: c.message,
             resolved_status: c.resolved_status,
             resolved_date: c.resolved_date,
-            ilo_id: c.ilo_id,
+            week_id: c.week_id,
             comment_for: c.comment_for,
             createdAt: c.createdAt,
             updatedAt: c.updatedAt
@@ -165,13 +166,12 @@ module.exports = {
     },
 
     async down(queryInterface, Sequelize) {
-        // [Unchanged down block...]
         const assignmentQuery = await queryInterface.sequelize.query(
             `SELECT coa.co_assign_id
              FROM CourseOfferingAssignments coa
                       JOIN ProgramCourseOfferings pco ON coa.pc_offering_id = pco.pc_offering_id
                       JOIN Courses c ON pco.course_id = c.course_id
-             WHERE c.course_no = 'BIT313L'
+             WHERE c.course_no = 'BIT313L' AND pco.revision_number = 1
              ORDER BY coa.co_assign_id DESC LIMIT 1;`,
             { type: queryInterface.sequelize.QueryTypes.SELECT }
         );
