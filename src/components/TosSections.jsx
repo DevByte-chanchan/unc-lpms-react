@@ -139,7 +139,9 @@ const TosSections = ({role = 'instructor'}) => {
         fetchCourse(courseCode).then(course => {
             if (course?.name && !courseNameState) setCourseName(course.name);
             if (course?.assessmentName) setAssessmentName(course.assessmentName);
-            if (course?.tosStatus?.status) setEffectiveStatus(course.tosStatus.status);
+            const periodTos = fromExamType === 'Finals' ? course?.finalsTos : course?.midtermTos;
+            if (periodTos?.status) setEffectiveStatus(periodTos.status);
+            else if (course?.tosStatus?.status) setEffectiveStatus(course.tosStatus.status);
         }).catch(() => {});
 
         fetchOutcomes(courseCode).then(data => {
@@ -219,6 +221,7 @@ const TosSections = ({role = 'instructor'}) => {
         }).catch(() => {});
         fetchStatus(courseCode, fromExamType).then(s => {
             if (s) {
+                if (s.status) setEffectiveStatus(s.status);
                 setReturnCount(s.returnCount || 0);
                 try { setReturnDates(JSON.parse(s.returnDates || '[]')); } catch { /* ignore */ }
             }
@@ -1005,7 +1008,7 @@ const TosSections = ({role = 'instructor'}) => {
                                         <Download size={16} /> Export
                                     </button>
                                 </>
-                            ) : (
+                            ) : effectiveStatus === 'pending' ? (
                                 <>
                                     <div ref={commentBtnRef} className={`${styles.draft} ${layout.commentBtn} ${showComment ? layout.commentBtnActive : ''}`} onClick={toggleCommentPanel}>
                                         Add Comment
@@ -1015,6 +1018,8 @@ const TosSections = ({role = 'instructor'}) => {
                                         {approveLoading ? 'Approving…' : 'Approve'}
                                     </button>
                                 </>
+                            ) : (
+                                <span className={styles.draft} style={{ color: '#999', cursor: 'default' }}>Draft (Not Submitted)</span>
                             )
                         ) : readOnly ? (
                             effectiveStatus === 'approved' && historyData[courseCode] ? (
