@@ -70,7 +70,7 @@ const TOSCoursesTable = () => {
             dateAssigned: fmt(c.created_at) || '',
             update: fmt(c.updated_at) || '',
             dateSubmitted: tos ? fmt(tos.submittedAt) : '',
-            dateStatus: tos ? fmt(tos.returnedAt || tos.approvedAt) : ''
+            dateStatus: tos ? fmt(tos.status === 'approved' ? tos.approvedAt : tos.returnedAt) : ''
         };
     }).filter(c => {
         if (selectedStatus === 'draft' && c.status !== 'draft') return false;

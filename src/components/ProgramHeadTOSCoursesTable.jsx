@@ -27,7 +27,7 @@ const ProgramHeadTOSCoursesTable = () => {
                 
                 if (navUpdate) {
                     result = result.map(c => {
-                        if (c.name === navUpdate.courseName) {
+                        if (c.code === navUpdate.courseCode || c.name === navUpdate.courseName) {
                             const newTos = { ...c.midtermTos, status: navUpdate.newStatus };
                             return { ...c, midtermTos: newTos };
                         }
@@ -57,7 +57,7 @@ const ProgramHeadTOSCoursesTable = () => {
                 ...row,
                 status: tos ? tos.status : 'draft',
                 dateSubmitted: tos ? fmt(tos.submittedAt) : '',
-                dateStatus: tos ? fmt(tos.returnedAt || tos.approvedAt) : ''
+                dateStatus: tos ? fmt(tos.status === 'approved' ? tos.approvedAt : tos.returnedAt) : ''
             };
         })
         .filter(row => row.status === selectedStatus);
