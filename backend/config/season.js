@@ -8,6 +8,9 @@ export const getSeasonConfig = () => {
 // eslint-disable-next-line no-unused-vars
 export const isLocked = (period, currentSeason, learningPlanApproved, midtermApproved) => {
     if (period === 'Midterm') {
+        if (!learningPlanApproved) {
+            return { locked: true, reason: 'Locked: Learning Plan not approved' };
+        }
         return { locked: false };
     } else if (period === 'Finals') {
         if (!learningPlanApproved) {
