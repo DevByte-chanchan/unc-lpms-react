@@ -14,6 +14,8 @@ import { fetchProgramAlignment } from '../utils/programAlignment.js'
 import { buildReviewRecordFile } from '../utils/exportSyllabus.js'
 import { validateSubmission } from '../utils/submissionGate'
 import { weekRowsOf } from '../utils/weeklyCoverage.js'
+import { toPanelComments } from '../utils/serverComments.js'
+import CommentsSidebar from './CommentsSidebar.jsx'
 import PDFViewerModal from './PDFViewerModal'
 import { buildSyllabusHtml } from '../utils/syllabusPdfHtml.js'
 import unclogo from '../assets/unclogo.png'
@@ -56,6 +58,34 @@ const SyllabusSections = () => {
             .catch(err => console.warn('Could not resolve the course code for this offering:', err))
         return () => { cancelled = true }
     }, [courseCode, offeringID, revisionNum])
+
+    // The reviewers' comments on this plan, from the server (which decides what the instructor may read; a Dean
+    // return still with the Program Head keeps the Dean's new ones back). Shown in the sidebar on every section.
+    const [planComments, setPlanComments] = useState([])
+    const [commentsCollapsed, setCommentsCollapsed] = useState(
+        () => typeof window !== 'undefined' && window.innerWidth <= 1024
+    )
+    useEffect(() => {
+        if (!offeringID) return
+        let cancelled = false
+        fetchJson(`/api/comments/course/${offeringKey(offeringID, revisionNum)}`)
+            .then(rows => { if (!cancelled) setPlanComments(toPanelComments(rows, resolvedCode)) })
+            .catch(err => { if (!cancelled) { console.warn('Could not load the comments for this plan:', err); setPlanComments([]) } })
+        return () => { cancelled = true }
+    }, [offeringID, revisionNum, resolvedCode])
+    // The instructor marks a comment resolved while the plan is back with them; the server records it at once.
+    const resolvePlanComment = (id) => {
+        const serverId = Number(String(id).replace('server-', ''))
+        setPlanComments(list => list.map(c => c.id === id ? { ...c, resolved: true, status: 'resolved', resolvedAt: new Date().toISOString() } : c))
+        fetchJson('/api/comments/update-resolution', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ updates: [{ comment_id: serverId, resolved_status: true }] })
+        }).catch(err => {
+            console.warn('Could not save the resolution:', err)
+            setPlanComments(list => list.map(c => c.id === id ? { ...c, resolved: false, status: 'pending', resolvedAt: null } : c))
+        })
+    }
 
     // The export's approval block reads the server workflow log; nothing is kept locally.
     const { workflow } = useServerWorkflow(offeringID, resolvedCode)
@@ -336,6 +366,7 @@ const SyllabusSections = () => {
 
             </div>
 
+            <div className={styles['plan-with-comments']}>
             <div className={styles['dynamic-sections']}>
                 {isLoading ? (
                     <Spinner label="Loading the learning plan…" minHeight={320} />
@@ -384,6 +415,16 @@ const SyllabusSections = () => {
 
                     </>
                 )}
+            </div>
+            <CommentsSidebar
+                panelId="plan-comments-panel"
+                comments={planComments.filter(c => !(c.recipientRole === 'program_head' && !c.resolved))}
+                collapsed={commentsCollapsed}
+                onToggle={() => setCommentsCollapsed(value => !value)}
+                emptyHint="Comments from your reviewers will appear here once they have looked at your plan."
+                canResolve={(comment) => status === 'returned' && comment.recipientRole === 'instructor'}
+                onResolve={resolvePlanComment}
+            />
             </div>
 
             {/* --- Custom Submission Modals --- */}

@@ -815,3 +815,17 @@ section
 
   section
     min-width: 0
+
+// The plan's sections and the reviewers' comments side by side (CommentsSidebar.jsx folds to a rail);
+// stacked on a narrow screen, the comments under the plan.
+.plan-with-comments
+  flex: 1 1 auto
+  min-width: 0
+  min-height: 0
+  display: flex
+  overflow: hidden
+
+@media (max-width: 1024px)
+  .plan-with-comments
+    flex-direction: column
+    overflow: auto

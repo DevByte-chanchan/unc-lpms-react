@@ -46,6 +46,7 @@ export const toPanelComments = (rows = [], courseCode = '') => {
       courseOutcome: r.co_no ? `CO${r.co_no}` : null,
       // The week the comment sits on ('CO2-W3', matching the comment form's rows); an old row has an ILO number.
       ilo: r.co_no && r.week_no_in_co ? `CO${r.co_no}-W${r.week_no_in_co}` : (r.co_no && r.ilo_no ? `CO${r.co_no}-ILO${r.ilo_no}` : null),
+      iloLabel: r.co_no && r.week_no ? `CO${r.co_no} · Week ${r.week_no}` : null,
       coverageType: COVERAGE[r.comment_for] || null,
       targets: r.target_title ? [r.target_title] : [],
       suggestedRefs: [],

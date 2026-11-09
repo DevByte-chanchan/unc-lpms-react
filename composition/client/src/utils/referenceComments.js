@@ -25,7 +25,9 @@ export const unresolvedCountsByReference = (commentRows = []) => {
 
     commentRows.forEach(row => {
         if (!row || !isUnresolved(row)) return
-        const target = row.target_id
+        // Weekly planner: a reference comment targets the week's link to the reference; the list endpoint sends
+        // the reference itself as target_reference_id.
+        const target = row.target_reference_id ?? row.target_id
         if (target == null || target === '') return
         const key = String(target)
         if (!seen.has(key)) seen.set(key, new Set())
