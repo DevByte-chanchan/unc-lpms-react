@@ -1,16 +1,18 @@
 # Approver module: finalized plan
 
-Written 2026-10-27. This joins everything we found: the transcript review, the code review, the tests, the
-notes taken from three GitHub repos (Plexus, Syllus, Library-Management-System), and the new goal of
-automating the Program Head's chasing. Nothing in this plan is built yet unless it says "done".
+Written 2026-10-27, brought up to date 2026-11-08. This joins everything we found: the transcript review, the
+code review, the tests, the notes taken from three GitHub repos (Plexus, Syllus, Library-Management-System), and
+the goal of automating the Program Head's chasing. Nothing in this plan is built yet unless it says "done".
+Section 8d lists what changed since the first version.
 
 ## 1. Scope and rules
 
 - **The module:** the approvers (Program Head, Director of Libraries, Industry Consultant, Dean, VPAA), the
   Reference Library, comments, and exporting. The instructor side is read-only for us: we look at it, we do
   not change it. Anything an instructor must do is written as a request to its owner.
-- **Decided not to build:** upload pages, a document repository, forwarding Dean comments, an endorse
-  button, consultant approval, and the Dean's vision, mission and indicators (waiting on the group).
+- **Decided not to build:** upload pages, a document repository, an endorse button, consultant approval, and the
+  Dean's vision, mission and indicators (waiting on the group). (Forwarding a Dean return through the Program
+  Head was later decided and built; see 8d.)
 - **Ground rules:** no new dependency without asking; tests run with `node composition/server/run-tests.js`
   from the project root; nothing is pushed until the owner says so; never commit `.env`, data or `.sqlite`.
 - **Principle for every automation: the system chases, people decide.** A reminder can be sent
@@ -21,13 +23,14 @@ automating the Program Head's chasing. Nothing in this plan is built yet unless 
 - The approval chain works end to end: the Director and Program Head review in parallel, then the Dean.
   A 41-check walk over the real API passed.
 - Each approver sees only their own part of a plan (the Director: references; the Consultant: content and
-  coverage) and only their own comments. The server enforces both. The review record follows the same rule
+  coverage) and only their own comments, except the Dean, who reads every approver's comments, and the Program
+  Head, who also reads the Dean's. The server enforces both. The review record follows the same rule
   while a plan is under review; once approved, approvers get the whole record of their part.
 - The VPAA reads approved plans only, including carry-overs, and the VPAA list is filtered the same way.
 - A role named like an Object member (`__proto__`) gets no permissions, and the role matrix is frozen.
-- Export, the review record, notifications, poke (4-hour limit), a daily notification clean-up job, and
-  optional e-mail (SMTP) already exist. The new automations reuse these.
-- 271 server tests and all client tests pass.
+- Export, the review record, notifications, a daily notification clean-up job, and optional e-mail (SMTP)
+  exist. The manual reminder (poke) was removed with its button; the automatic reminders cover it.
+- 361 server tests and 236 client tests pass (2026-11-08).
 
 ## 3. The plan, in phases
 
@@ -37,8 +40,8 @@ Effort: S = under half a day, M = one to two days, L = three days or more.
 
 | # | Task | Why | Effort |
 |---|---|---|---|
-| 1.1 | Add an **Industry Consultants** item to the Program Head's sidebar. | The page exists but only a typed URL reaches it. | S |
-| 1.2 | **Decide what to do with the two hidden Dean pages** (`DeanFaculty`, `DeanPrograms`), after the user-management decision. Do not delete them yet. | Corrected on checking: they are routed (`/role/dean?page=Faculty` and `?page=Programs`) but have no sidebar link, show hard-coded sample data and a fake upload button, and four tests depend on them. If the Dean owns user management they are the starting point; if not, remove them together with their tests. | S |
+| 1.1 | ~~Add an **Industry Consultants** item to the Program Head's sidebar.~~ The separate page was replaced by an **Industry consultant** window on the plan page (assign or remove). | The page was reachable only by a typed URL. | done differently |
+| 1.2 | ~~Decide what to do with the two hidden Dean pages~~ (`DeanFaculty`, `DeanPrograms`). Removed with their tests in the UI cleanup (`40a031e`). | They showed hard-coded sample data and a fake upload button. | done (removed) |
 | 1.3 | **Plan list scope: checked, nothing to fix.** Added a two-program database test proving it. | I had reported that the Program Head's list showed every program. That was wrong: the demo data has one program with one head, so every plan looked "theirs". The code already limits the list for Program Heads, Deans, instructors, consultants and the VPAA. | done |
 | 1.4 | **No duplicate references:** the same title and authors, or the same ISBN written any way, is refused on create, edit and import (409, naming the existing one; an archived one says to restore it). Done in the application, not as a database index, because the live data may already hold duplicates. | Single create accepted an exact duplicate in testing. (Idea: Plexus.) | done |
 | 1.5 | Reference fields: **copies, status** (available, lost, withdrawn), **category**, **date received**. The picker uses the status. Done: the form, the library list (red Lost and No copies badges), the details panel, and the picker, which never attaches a lost, withdrawn or zero-copy title. A request to the instructor module: enforce the same rule when a reference is attached (today only the picker checks). | Closes the "available in library" gap. (Ideas: Plexus, Library-Management-System.) | done |
@@ -51,13 +54,13 @@ Today the Program Head has a poke button but no list of who is missing, and remi
 | # | Task | What it does | Effort |
 |---|---|---|---|
 | 2.1 | **Term deadlines.** New table: school year, semester, optional program, syllabus due date. The Program Head and Dean set it. | One place for the due date that every reminder reads. (Idea: Syllus deadlines.) | done |
-| 2.2 | **Missing submissions page** for the Program Head (the Dean sees it read-only). | Lists every assigned course not yet submitted: course, instructor, assigned date, days left or overdue, last reminder, last edit. Filters, CSV export, and "remind selected". (Idea: Syllus missing-syllabi report.) | done |
-| 2.3 | **Automatic reminders**, a daily job in the same style as the existing clean-up job, with no new dependency. | Sends an in-app notification to the instructor at 7, 3 and 1 days before the due date, on the due date, then every 3 days overdue. Sends e-mail too when SMTP is set up. A log table stops duplicates after a restart. It stops the moment the plan is submitted, and a manual poke counts as a reminder. | done |
+| 2.2 | **Missing submissions** for the Program Head (the Dean sees it read-only). | Lists every assigned course not yet submitted: course, instructor, assigned date, days left or overdue, last reminder, last edit, and a pause per plan. Now the **Not submitted** tab of the course list. The CSV export and "remind selected" were removed in the UI cleanup. (Idea: Syllus missing-syllabi report.) | done |
+| 2.3 | **Automatic reminders**, a daily job in the same style as the existing clean-up job, with no new dependency. | Sends an in-app notification to the instructor at 7, 3 and 1 days before the due date, on the due date, then every 3 days overdue (a returned plan is asked to *resubmit*). Sends e-mail too when SMTP is set up. A log table stops duplicates after a restart. It stops the moment the plan is submitted. | done |
 | 2.4 | **Program Head digest.** | A weekly in-app summary: "N plans not submitted, M overdue", plus a flag when many are overdue. | done |
 | 2.5 | ~~Course assignment screen with a "roll over from last term" button.~~ **Not our module** (it is the Program Head's and instructor's side). Dropped on the owner's instruction; a prototype is kept outside the repo. | | dropped |
 | 2.6 | ~~Consultant roll-over.~~ Dropped with 2.5. | | dropped |
 
-Status of 2.1 to 2.4: built and checked in the real UI. The page is **Not Yet Submitted** in the Program Head's sidebar. A program with no due date gets no automatic reminders. The Dean can use the same API (deadline:manage) but has no page for it yet, because the Dean's sidebar has no items. 2.5 and 2.6 are dropped: they belong to the Program Head and instructor side, not to the approver module.
+Status of 2.1 to 2.4: built and checked in the real UI. The list is the **Not submitted** tab of the Program Head's course list. A program with no due date gets no automatic reminders. The Dean can use the same API (deadline:manage) but has no page for it yet, because the Dean's sidebar has no items. 2.5 and 2.6 are dropped: they belong to the Program Head and instructor side, not to the approver module.
 
 ### Phase 3: less work for the approvers
 
@@ -65,7 +68,7 @@ Status of 2.1 to 2.4: built and checked in the real UI. The page is **Not Yet Su
 |---|---|---|---|
 | 3.1 | **Review by exception** for the Director. | The References view of a plan lists flagged titles first, with the reason (lost, withdrawn or no copies, outside the recency window, no year, no ISBN or link, listed twice) and a line at the top: "N of M references need a look" or "No issues found". A person still clicks accept. Done on the screen, from the data the plan already loads (`utils/referenceReview.js`). | done |
 | 3.2 | **Waiting-on-you reminders** for approvers. | One in-app summary per approver on the day a plan reaches 3 days waiting (the Dean: 7), then every multiple. The Dean is also told of plans stalled with another reviewer for 7 days. Counts only, no course names. Rules in `config/reminders.js`; the job is `utils/reminderJob.js`. | done |
-| 3.3 | **Returned and not resubmitted.** | Reminds the instructor at 3 and 7 days and tells the Program Head. | S |
+| 3.3 | **Returned and not resubmitted.** | On day 3 and day 7 after the return (or after the Program Head forwards a Dean return) the instructor is reminded to resubmit and the Program Head is told; the notification opens the plan. Days in `config/reminders.js` (`RETURNED_REMIND_DAYS`). | done |
 | 3.4 | **When the Dean approves:** the instructor, Program Head, Director of Libraries and now the VPAA are notified. (The clean PDF and review record are already available on an approved plan; a term archive waits for 4.5.) | No manual follow-up. | done |
 | 3.5 | **Reference health.** | Done on the Reference Library screen instead of a nightly job: the library is small and the check is instant, so it is always current. Flags unavailable, outdated (by the Director's rule), no year, no ISBN or link. Duplicates are already refused on entry (1.4). | done |
 
@@ -74,17 +77,17 @@ Status of 2.1 to 2.4: built and checked in the real UI. The page is **Not Yet Su
 | # | Task | Notes | Effort |
 |---|---|---|---|
 | 4.1 | **Director dashboard:** plans waiting, references by type, outdated, unavailable, no ISBN, duplicates. | The reference counts are done as a summary line on the Reference Library. A separate page for plans waiting is not built; the approvals list already shows them. | partly done |
-| 4.2 | **Reference health report** with export. | Done: "Export report" on the Reference Library (CSV of every flagged title and why). | done |
-| 4.3 | **Real catalog settings:** one server-side settings row for the recency years and the two rules, edited by the Director from a "Rules" button on the Reference Library. | Done. Before, they could not be edited at all and lived only in each browser. Everyone reads them after signing in; reviewers' flags (3.1) use them. The instructor's picker reads the same saved copy, but is not changed. | done |
+| 4.2 | **Reference health report** with export. | Built, then removed in the UI cleanup (`40a031e`) on the owner's choice. The health summary line stays. | removed |
+| 4.3 | **Real catalog settings:** one server-side settings row for the recency years and the two rules. | The server row and `PUT /api/catalog-settings` stay, and everyone reads them (currently 5 years). The Director's **Rules** button was removed in the UI cleanup on the owner's choice, so the values cannot be changed from the app until a screen for it comes back. | partly (no editor) |
 | 4.4 | **Title request queue** (Director side): approve and add, or reject with a reason. | After the Director interview. The instructor's "request" button belongs to the instructor module. | M |
 | 4.5 | **VPAA term archive:** approved plans by semester and program. | Only if the OVPAA interview says it is needed. (Idea: Syllus archive.) | M |
 
 ### Phase 5: decisions we still need (nothing to build until answered)
 
-- Who manages users: the Dean, the Program Head, or the superuser. The transcripts disagree.
+- Who manages users: the Dean, the Program Head, or the superuser. The transcripts disagree. (Today: the superuser.)
 - ~~Does the Consultant comment only, or also approve?~~ Answered in the third interview: comment only, outside the approval flow; their comments are kept as the basis for the next version of the syllabus.
-- When the Dean returns a plan, does it go straight to the instructor or through the Program Head?
-- Whether the Dean may read the other approvers' comments before deciding.
+- ~~When the Dean returns a plan, does it go straight to the instructor or through the Program Head?~~ Answered by the owner: **through the Program Head**, who forwards it to the instructor or sends it back to the Dean with a reason. Built (8d).
+- ~~Whether the Dean may read the other approvers' comments before deciding.~~ Answered by the owner: **yes, all of them.** Built (8d).
 
 ## 4. Defaults used until the interviews answer
 
@@ -97,12 +100,12 @@ These come from the panel feedback and the transcripts, so we can build without 
 
 ## 5. Questions still worth asking (only what the transcripts have not answered)
 
-- **Dean Agnes:** who manages users; return path; whether the Dean sees others' comments.
+- **Dean Agnes:** who manages users. (Return path and comment visibility were decided by the owner, 8d.)
 - **Sir June:** deadlines for assigning courses and for composing a syllabus; the course offerings file.
 - **Director of Libraries:** copies and status per title; age limit; who updates suggested books each term;
   whether instructors should request a missing title; review time.
 - **Program Head:** how non-submitters are chased today; how often outcomes change.
-- **Industry Consultant:** comment or approve; review time.
+- **Industry Consultant:** review time. (Comment only: answered.)
 - **OVPAA:** what the role does with approved plans (nothing in the transcripts covers it).
 
 ## 6. How each automation avoids the usual traps
@@ -159,6 +162,21 @@ All run by the server, in-app, counts and course codes only, and a person still 
 | Review record frozen at approval | When the Dean approves, a copy of what the record is built from (comments, outcome labels, titles) is saved. Renaming a reference or deleting a comment later no longer changes an approved record. Plans approved before this are frozen the first time their record is opened. |
 
 Not automated on purpose: approving, returning, rejecting, archiving a reference, and anything that changes a plan.
+
+## 8d. Since the first version (October to November 2026)
+
+| Change | Notes |
+|---|---|
+| **A Dean return goes through the Program Head** | The plan is locked "with the Program Head", who reads the Dean's comments and **forwards** it to the instructor or **sends it back** to the Dean with a required reason (stored on the log, shown to the Dean and in the review record). The instructor sees the Dean's comments only after the forward. After the resubmission it goes to the Dean only. Migration `20261108000000-dean-returns-through-program-head` keeps plans returned under the old rule with their instructor. |
+| **The Dean reads all approvers' comments** | Plan page, counts and review record, while under review. |
+| **A reviewer return clears every approval; nobody approves a returned plan** | A Director or Program Head return means both review again after the resubmission; a Dean return keeps their approvals. |
+| **Comments come from the server only** | The panel no longer keeps a copy in the browser (it leaked between accounts and showed refused comments). Real author names; a plan is returned only after its comments save; approved plans take no new comments. |
+| **Spelling and grammar checker** | Underlines as you type in the comment boxes and the Reference Library title, publisher and subject fields; click to fix or Ignore; the plan's own terms, Filipino/Taglish and Naga Bikol words, and an academic/IT word list are never flagged; simple grammar rules. Plan: `docs/grammar-spelling-plan.md`. |
+| **The Director of Libraries can review** | Approve and comment were blocked by a check that needed Course Details, which the Director cannot read. |
+| **Summaries open their plan** | "Waiting for your review" with one plan opens it. COAEP shows the faculty, term, Prepared by, and the Program Head as Approved by. |
+| **Removed in the UI cleanup (`40a031e`, owner's choice)** | Poke and its server code, the missing-list CSV, the reference health report, the Rules button, the Dean's sample pages and the separate consultants page; later also the dead `/record-comments` page and the `export-pdf` stub. |
+
+Issues found in modules we do not own are in `docs/issues-for-other-owners.md`.
 
 ## 9. Not in this plan
 
