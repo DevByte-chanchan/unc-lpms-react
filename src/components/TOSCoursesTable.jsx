@@ -63,10 +63,13 @@ const TOSCoursesTable = () => {
 
         const displayedCourses = courses.map(c => {
         const tos = examType === 'Midterm' ? c.midtermTos : c.finalsTos;
+        const deadline = examType === 'Midterm' ? c.midtermDeadline : c.finalsDeadline;
+        const isOverdue = tos ? (tos.status !== 'approved' && deadline && new Date(deadline) < new Date()) : (deadline && new Date(deadline) < new Date());
         const fmt = (ts) => ts ? new Date(ts).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }) : '';
         return {
             ...c,
             status: tos ? tos.status : 'draft',
+            isOverdue,
             dateAssigned: fmt(c.created_at) || '',
             update: fmt(c.updated_at) || '',
             dateSubmitted: tos ? fmt(tos.submittedAt) : '',

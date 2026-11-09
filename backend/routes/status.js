@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { TosStatus, Comment } from '../models/index.js';
 import { lockGuard } from '../middleware/lockGuard.js';
+import { getCourseDeadline } from '../config/season.js';
 
 const router = Router();
 
@@ -15,7 +16,7 @@ router.get('/:code/:period/status', async (req, res) => {
             status: 'draft'
         });
     }
-    res.json(status);
+    res.json({ ...status.toJSON(), deadline: getCourseDeadline(req.params.code, req.params.period) });
 });
 
 const ALLOWED_TRANSITIONS = {
@@ -75,7 +76,7 @@ router.put('/:code/:period/status', lockGuard, async (req, res) => {
             ...extra
         });
     }
-    res.json(status);
+    res.json({ ...status.toJSON(), deadline: getCourseDeadline(req.params.code, req.params.period) });
 });
 
 export default router;

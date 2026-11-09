@@ -52,10 +52,13 @@ const ProgramHeadTOSCoursesTable = () => {
         const displayedCourses = courses
         .map(row => {
             const tos = examType === 'Midterm' ? row.midtermTos : row.finalsTos;
+            const deadline = examType === 'Midterm' ? row.midtermDeadline : row.finalsDeadline;
+            const isOverdue = tos ? (tos.status !== 'approved' && deadline && new Date(deadline) < new Date()) : (deadline && new Date(deadline) < new Date());
             const fmt = (ts) => ts ? new Date(ts).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }) : '';
             return {
                 ...row,
                 status: tos ? tos.status : 'draft',
+                isOverdue,
                 dateSubmitted: tos ? fmt(tos.submittedAt) : '',
                 dateStatus: tos ? fmt(tos.status === 'approved' ? tos.approvedAt : tos.returnedAt) : ''
             };
@@ -135,7 +138,14 @@ const ProgramHeadTOSCoursesTable = () => {
                         .map((row, index) => (
                             <tr key={index}>
                                 <td width={200}>{selectedStatus === 'pending' ? row.dateSubmitted : row.dateStatus}</td>
-                                <td width={130}>{row.code}</td>
+                                <td width={130}>
+                                    {row.code}
+                                    {row.isOverdue && (
+                                        <span style={{ marginLeft: 8, padding: '2px 6px', fontSize: 11, fontWeight: 600, color: '#DC2626', background: '#FEE2E2', borderRadius: 4 }}>
+                                            Overdue
+                                        </span>
+                                    )}
+                                </td>
                                 <td width={300}>{row.name}</td>
                                 <td width={200}>{row.instructor}</td>
                                 <td className={styles.fill}>

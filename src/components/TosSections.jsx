@@ -33,9 +33,11 @@ const TosSections = ({role = 'instructor'}) => {
     const location = useLocation();
     const { code: courseCode } = useParams();
     const [effectiveStatus, setEffectiveStatus] = useState(location.state?.tosStatus || 'draft');
+    const [deadline, setDeadline] = useState(null);
     const readOnly = !isProgramHead && (effectiveStatus === 'pending' || effectiveStatus === 'approved');
     const isReturnedView = isProgramHead && effectiveStatus === 'returned';
     const isInstructorReturned = !isProgramHead && effectiveStatus === 'returned';
+    const isOverdue = effectiveStatus !== 'approved' && deadline && new Date(deadline) < new Date();
     const defaultSection = isProgramHead || effectiveStatus === 'pending' || effectiveStatus === 'approved' ? 'Table of Specifications Report' : 'Outcome Overview';
     const selectedSection = isProgramHead ? phSection : (searchParams.get('section') || defaultSection);
     const getDefaultOutlines = () => [
@@ -142,6 +144,8 @@ const TosSections = ({role = 'instructor'}) => {
             const periodTos = fromExamType === 'Finals' ? course?.finalsTos : course?.midtermTos;
             if (periodTos?.status) setEffectiveStatus(periodTos.status);
             else if (course?.tosStatus?.status) setEffectiveStatus(course.tosStatus.status);
+            const d = fromExamType === 'Finals' ? course?.finalsDeadline : course?.midtermDeadline;
+            if (d) setDeadline(d);
         }).catch(() => {});
 
         fetchOutcomes(courseCode).then(data => {
@@ -222,6 +226,7 @@ const TosSections = ({role = 'instructor'}) => {
         fetchStatus(courseCode, fromExamType).then(s => {
             if (s) {
                 if (s.status) setEffectiveStatus(s.status);
+                if (s.deadline) setDeadline(s.deadline);
                 setReturnCount(s.returnCount || 0);
                 try { setReturnDates(JSON.parse(s.returnDates || '[]')); } catch { /* ignore */ }
             }
@@ -991,6 +996,11 @@ const TosSections = ({role = 'instructor'}) => {
                                 )}
                             </select>
                         </div>
+                        {isOverdue && (
+                            <span style={{ display: 'inline-flex', alignItems: 'center', padding: '4px 8px', fontSize: 12, fontWeight: 600, color: '#DC2626', background: '#FEE2E2', border: '1px solid #FCA5A5', borderRadius: 4, marginLeft: 8 }}>
+                                Overdue
+                            </span>
+                        )}
 
                         {isReturnedView ? (
                             <span className={styles.draft} style={{ color: '#999', cursor: 'default' }}>View Only</span>
