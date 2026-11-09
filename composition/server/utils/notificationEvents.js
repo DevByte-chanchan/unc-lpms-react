@@ -132,9 +132,13 @@ const onWorkflowAction = guarded(async ({ offeringId, actorUserId, actorRole, ac
 const onComment = guarded(async ({ offeringId, actorUserId, commenterRole, assignmentId }) => {
     const people = await peopleFor(offeringId);
     if (!people) return 0;
+    // The Dean's comments reach the instructor through the Program Head (who forwards a Dean return or sends it
+    // back), and the instructor cannot read them before that: the Program Head is told, not the instructor.
     const recipients = commenterRole === 'INSTRUCTOR'
         ? pendingReviewerRoles(await effectiveLogs(db().sequelize, assignmentId)).flatMap(role => usersForRole(people, role))
-        : usersForRole(people, 'INSTRUCTOR');
+        : commenterRole === 'DEAN'
+            ? usersForRole(people, 'PROGRAM_HEAD')
+            : usersForRole(people, 'INSTRUCTOR');
     return notify(withoutActor(recipients, actorUserId), 'comment_added', offeringId, eventMessage(people.courseCode, 'comment added', commenterRole), commenterRole);
 });
 

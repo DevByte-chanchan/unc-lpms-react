@@ -298,6 +298,11 @@ test('comments, resolved comments, assignments and revisions reach the right per
     assert.equal(comment.message, `${f.code} — comment added by Program Head`);
     assert.equal((await inbox(f.ph, 'comment_added')).length, 0);
 
+    // A Dean comment goes to the Program Head: the instructor reads it only once the Program Head forwards it.
+    await onComment({ offeringId: f.offeringId, actorUserId: f.dean.user_id, commenterRole: 'DEAN' });
+    assert.equal((await inbox(f.ph, 'comment_added')).length, 1);
+    assert.equal((await inbox(f.instructor, 'comment_added')).length, 1, 'the instructor is not told of the Dean comment');
+
     // The instructor resolves two of the author's comments on one plan: one notification, to the author.
     await onCommentsResolved({
         resolved: [{ authorUserId: author.user_id, offeringId: f.offeringId }, { authorUserId: author.user_id, offeringId: f.offeringId }, { authorUserId: null, offeringId: f.offeringId }],
