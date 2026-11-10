@@ -4,6 +4,12 @@ import styles from '../styles/CoursesTable.module.sass';
 import { ChevronRight, Download } from 'react-feather';
 import { fetchCourses } from '../services/api.js';
 
+const OverdueBadge = () => (
+    <span style={{ padding: '2px 6px', fontSize: 11, fontWeight: 600, color: '#DC2626', background: '#FEE2E2', borderRadius: 4, whiteSpace: 'nowrap' }}>
+        Overdue
+    </span>
+);
+
 const ProgramHeadTOSCoursesTable = () => {
     const currentYear = new Date().getFullYear();
     const startYear = 2000;
@@ -129,6 +135,7 @@ const ProgramHeadTOSCoursesTable = () => {
                         <th width={130}>CODE</th>
                         <th width={300}>COURSE NAME</th>
                         <th width={200}>INSTRUCTOR</th>
+                        <th width={90} style={{ width: 90, minWidth: 90 }}></th>
                         <th className={styles.fill}></th>
                     </tr>
                     </thead>
@@ -138,16 +145,12 @@ const ProgramHeadTOSCoursesTable = () => {
                         .map((row, index) => (
                             <tr key={index}>
                                 <td width={200}>{selectedStatus === 'pending' ? row.dateSubmitted : row.dateStatus}</td>
-                                <td width={130}>
-                                    {row.code}
-                                    {row.isOverdue && (
-                                        <span style={{ marginLeft: 8, padding: '2px 6px', fontSize: 11, fontWeight: 600, color: '#DC2626', background: '#FEE2E2', borderRadius: 4 }}>
-                                            Overdue
-                                        </span>
-                                    )}
-                                </td>
+                                <td width={130}>{row.code}</td>
                                 <td width={300}>{row.name}</td>
                                 <td width={200}>{row.instructor}</td>
+                                <td width={90} style={{ width: 90, minWidth: 90, justifyContent: 'flex-end' }}>
+                                    {row.isOverdue && <OverdueBadge />}
+                                </td>
                                 <td className={styles.fill}>
                                     {selectedStatus === 'approved' && (
                                         <button className={styles.exportBtn} onClick={() => handleExportDemoPdf(row.code, row.name)}>

@@ -3,6 +3,12 @@ import {Link, useLocation} from 'react-router-dom'
 import styles from '../styles/CoursesTable.module.sass';
 import { ChevronRight, Download } from 'react-feather';
 import { fetchCourses } from '../services/api.js';
+const OverdueBadge = () => (
+    <span style={{ padding: '2px 6px', fontSize: 11, fontWeight: 600, color: '#DC2626', background: '#FEE2E2', borderRadius: 4, whiteSpace: 'nowrap' }}>
+        Overdue
+    </span>
+);
+
 const TOSCoursesTable = () => {
 
     const currentYear = new Date().getFullYear();
@@ -150,6 +156,7 @@ const TOSCoursesTable = () => {
                         <th width={320}>COURSE NAME</th>
                         {nonDraft && selectedStatus !== 'pending' && <th width={200}>{statusHeader}</th>}
                         {!nonDraft && <th width={200}>LAST UPDATED</th>}
+                        <th width={90} style={{ width: 90, minWidth: 90 }}></th>
                         <th className={styles.fill}></th>
                     </tr>
                     </thead>
@@ -163,6 +170,9 @@ const TOSCoursesTable = () => {
                                 <td width={320}>{row.name}</td>
                                 {nonDraft && selectedStatus !== 'pending' && <td width={200}>{row.dateStatus || row.dateSubmitted}</td>}
                                 {!nonDraft && <td width={200}>{row.update}</td>}
+                                <td width={90} style={{ width: 90, minWidth: 90, justifyContent: 'flex-end' }}>
+                                    {row.isOverdue && <OverdueBadge />}
+                                </td>
                                 <td className={styles.fill}>
                                     {selectedStatus === 'approved' && (
                                         <button className={styles.exportBtn} onClick={() => handleExportDemoPdf(row.code, row.name)}>
