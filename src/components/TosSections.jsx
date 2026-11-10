@@ -1,5 +1,5 @@
 import styles from '../styles/SyllabusSections.module.sass'
-import {ChevronLeft, ChevronUp, Loader, Trash2, CheckCircle, RotateCcw, Download, Clock} from 'react-feather';
+import {ChevronLeft, ChevronUp, Loader, Trash2, CheckCircle, RotateCcw, Download, Clock, AlertTriangle} from 'react-feather';
 import React, {useCallback, useEffect, useRef, useState} from "react";
 import {useNavigate, useSearchParams, useLocation, useParams} from "react-router-dom";
 import layout from "../styles/TosSections.module.sass";
@@ -997,7 +997,8 @@ const TosSections = ({role = 'instructor'}) => {
                             </select>
                         </div>
                         {isOverdue && (
-                            <span style={{ display: 'inline-flex', alignItems: 'center', padding: '4px 8px', fontSize: 12, fontWeight: 600, color: '#DC2626', background: '#FEE2E2', border: '1px solid #FCA5A5', borderRadius: 4, marginLeft: 8 }}>
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '4px 8px', fontSize: 12, fontWeight: 600, color: '#DC2626', background: '#FEE2E2', border: '1px solid #FCA5A5', borderRadius: 4, marginLeft: 8 }}>
+                                <AlertTriangle size={12} color="#DC2626" aria-hidden="true" />
                                 Overdue
                             </span>
                         )}
