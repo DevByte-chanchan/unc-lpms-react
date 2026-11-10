@@ -170,9 +170,7 @@ const TOSCoursesTable = () => {
                         <th width={320}>COURSE NAME</th>
                         {nonDraft && selectedStatus !== 'pending' && <th width={200}>{statusHeader}</th>}
                         {!nonDraft && <th width={200}>LAST UPDATED</th>}
-                        <th className={styles.fill} style={{ minWidth: 20, padding: 0 }}></th>
-                        <th style={{ width: 85, minWidth: 85, padding: 0 }}></th>
-                        <th style={{ width: 125, minWidth: 125, paddingRight: 25 }}></th>
+                        <th className={styles.fill}></th>
                     </tr>
                     </thead>
 
@@ -185,11 +183,8 @@ const TOSCoursesTable = () => {
                                 <td width={320}>{row.name}</td>
                                 {nonDraft && selectedStatus !== 'pending' && <td width={200}>{row.dateStatus || row.dateSubmitted}</td>}
                                 {!nonDraft && <td width={200}>{row.update}</td>}
-                                <td className={styles.fill} style={{ minWidth: 20, padding: 0 }}></td>
-                                <td style={{ width: 85, minWidth: 85, padding: 0, justifyContent: 'flex-end', whiteSpace: 'nowrap' }}>
+                                <td className={styles.fill} style={{ gap: 20 }}>
                                     {row.isOverdue && <OverdueBadge />}
-                                </td>
-                                <td style={{ width: 125, minWidth: 125, paddingLeft: 12, paddingRight: 25, justifyContent: 'flex-end', whiteSpace: 'nowrap' }}>
                                     {selectedStatus === 'approved' && (
                                         <button className={styles.exportBtn} onClick={() => handleExportDemoPdf(row.code, row.name)}>
                                             Export <Download size={16} />

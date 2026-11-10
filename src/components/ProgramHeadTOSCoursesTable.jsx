@@ -149,9 +149,7 @@ const ProgramHeadTOSCoursesTable = () => {
                         <th width={130}>CODE</th>
                         <th width={300}>COURSE NAME</th>
                         <th width={200}>INSTRUCTOR</th>
-                        <th className={styles.fill} style={{ minWidth: 20, padding: 0 }}></th>
-                        <th style={{ width: 85, minWidth: 85, padding: 0 }}></th>
-                        <th style={{ width: 125, minWidth: 125, paddingRight: 25 }}></th>
+                        <th className={styles.fill}></th>
                     </tr>
                     </thead>
 
@@ -163,11 +161,8 @@ const ProgramHeadTOSCoursesTable = () => {
                                 <td width={130}>{row.code}</td>
                                 <td width={300}>{row.name}</td>
                                 <td width={200}>{row.instructor}</td>
-                                <td className={styles.fill} style={{ minWidth: 20, padding: 0 }}></td>
-                                <td style={{ width: 85, minWidth: 85, padding: 0, justifyContent: 'flex-end', whiteSpace: 'nowrap' }}>
+                                <td className={styles.fill} style={{ gap: 20 }}>
                                     {row.isOverdue && <OverdueBadge />}
-                                </td>
-                                <td style={{ width: 125, minWidth: 125, paddingLeft: 12, paddingRight: 25, justifyContent: 'flex-end', whiteSpace: 'nowrap' }}>
                                     {selectedStatus === 'approved' && (
                                         <button className={styles.exportBtn} onClick={() => handleExportDemoPdf(row.code, row.name)}>
                                             Export <Download size={16} />
