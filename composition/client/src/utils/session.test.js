@@ -816,5 +816,22 @@ test('the superuser lands on user management and cannot open another role pages'
   if (routeGuardRedirect({ id: 1, role: 'dean' }, '/role/superuser') !== '/role/dean') throw new Error('a Dean must not open the superuser page');
 });
 
+test('a multi-role account: "/" never switches the role; a page of the other role does', () => {
+  const { roleToActivate, routeGuardRedirect } = sessionModule
+  const equal = (a, b, what) => { if (a !== b) throw new Error(`${what || 'value'}: expected ${b}, got ${a}`) }
+  const head = { role: 'program-head', roles: ['program-head', 'instructor'] }
+  equal(roleToActivate(head, '/'), '', 'the landing page keeps the acting role')
+  equal(routeGuardRedirect(head, '/'), '/role/program-head', 'and sends it to its own home')
+  equal(roleToActivate(head, '/offerings/2/pending'), 'instructor', 'a plan page of the instructor role switches')
+  equal(routeGuardRedirect(head, '/offerings/2/pending'), null)
+  const teacher = { role: 'instructor', roles: ['program-head', 'instructor'] }
+  equal(routeGuardRedirect(teacher, '/'), null)
+  equal(roleToActivate(teacher, '/role/program-head'), 'program-head')
+  // Requests ask as the role their own page needs, whatever the stored role says (two tabs, two roles).
+  equal(sessionModule.actingRole(teacher, '/role/program-head/program-documents'), 'program-head', 'a Program Head page')
+  equal(sessionModule.actingRole(head, '/offerings/2/pending'), 'instructor', 'an instructor page')
+  equal(sessionModule.actingRole(head, '/role/dean'), 'program-head', 'a role not held falls back to the stored one')
+})
+
 await run();
 console.log('\nAll session checks passed.');

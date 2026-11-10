@@ -19,7 +19,7 @@
 //   * a role change, a disabled account or a new password signs that person out everywhere (utils/jwtSession.js)
 // Every change goes to the audit trail with ids and old / new values only.
 
-const { User } = require('../models');
+const { User, sequelize, Sequelize } = require('../models');
 const { sortRoles, validRoles } = require('../models/user');
 const { helpers } = require('./userController');
 const links = require('../utils/accountLinks');
@@ -55,7 +55,42 @@ const cleanName = (value) => String(value || '').trim().replace(/\s+/g, ' ');
 const isSuperuser = (req) => req.user?.role === 'superuser';
 const rolesMessage = () => `Roles must be one or more of: ${ROLE_KEYS.filter(k => k !== 'superuser').map(k => ROLE_LABEL[k]).join(', ')} (or Superuser on its own).`;
 
-const present = (user, invitation = null) => ({
+// ---------------------------------------------------------------- links to the school's records
+//
+// Programs.stakeholder_id is the Program Head, Departments.stakeholder_id the Dean, CourseOfferingAssignments the
+// lead instructor, CourseConsultants the industry consultant. A role is not removed, and an account not disabled,
+// while one of these still points at it: the program, course or link would be left with nobody able to act.
+const select = (sql, r = []) => sequelize.query(sql, { replacements: r, type: Sequelize.QueryTypes.SELECT });
+
+const linksOf = async (userId) => {
+    const [programs, departments, courses, consults] = await Promise.all([
+        select('SELECT program_id AS id, name FROM Programs WHERE stakeholder_id = ? ORDER BY name', [userId]),
+        select('SELECT dept_id AS id, name FROM Departments WHERE stakeholder_id = ? ORDER BY name', [userId]),
+        // Courses still in progress (not approved): an approved plan stays its author's record.
+        select(`SELECT DISTINCT c.course_no FROM CourseOfferingAssignments a
+                    INNER JOIN ProgramCourseOfferings pco ON pco.pc_offering_id = a.pc_offering_id
+                    INNER JOIN Courses c ON c.course_id = pco.course_id
+                WHERE a.stakeholder_id = ? AND pco.approved_at IS NULL ORDER BY c.course_no`, [String(userId)]),
+        select(`SELECT DISTINCT c.course_no FROM CourseConsultants cc INNER JOIN Courses c ON c.course_id = cc.course_id
+                WHERE cc.consultant_user_id = ? ORDER BY c.course_no`, [userId]),
+    ]);
+    return { programs, departments, courses: courses.map(c => c.course_no), consults: consults.map(c => c.course_no) };
+};
+
+// The links that need a role the account would no longer hold (or any, when it is being disabled). '' when none.
+const strandedMessage = (links, roles, active) => {
+    const keeps = (role) => active && roles.includes(role);
+    const problems = [];
+    if (links.programs.length && !keeps('program-head')) problems.push(`heads ${links.programs.map(p => p.name).join(', ')} — give the program another Program Head first (tick it on that account)`);
+    if (links.departments.length && !keeps('dean')) problems.push(`is Dean of ${links.departments.map(d => d.name).join(', ')} — give the department another Dean first`);
+    if (links.courses.length && !keeps('instructor')) problems.push(`leads ${links.courses.join(', ')} — reassign them in Course Assignment first`);
+    if (links.consults.length && !keeps('industry-consultant')) problems.push(`is the industry consultant of ${links.consults.join(', ')} — remove those links first`);
+    return problems.length ? `This account ${problems.join('; it ')}.` : '';
+};
+
+const asIds = (list) => (Array.isArray(list) ? [...new Set(list.map(Number).filter(n => Number.isInteger(n) && n > 0))] : null);
+
+const present = (user, invitation = null, links = null) => ({
     id: user.user_id,
     name: user.name,
     email: user.email,
@@ -65,7 +100,8 @@ const present = (user, invitation = null) => ({
     locked: Boolean(user.locked_until) && new Date(user.locked_until) > new Date(),
     lastLoginAt: user.last_login_at,
     createdAt: user.createdAt,
-    invitation
+    invitation,
+    heads: links ? { programs: links.programs, departments: links.departments } : undefined,
 });
 
 const loadTarget = async (req, res) => {
@@ -95,8 +131,15 @@ const listAccounts = async (req, res, next) => {
         const users = await User.findAll({ order: [['name', 'ASC']] });
         const invitations = await links.invitationSummaries(users.map(u => u.user_id));
         const visible = isSuperuser(req) ? users : users.filter(u => !u.roles.includes('superuser'));
+        const [programs, departments] = await Promise.all([
+            select('SELECT program_id AS id, name, stakeholder_id AS headId FROM Programs ORDER BY name'),
+            select('SELECT dept_id AS id, name, stakeholder_id AS headId FROM Departments ORDER BY name'),
+        ]);
+        const headed = (list, userId) => list.filter(x => String(x.headId) === String(userId)).map(({ id, name }) => ({ id, name }));
         return res.json({
-            accounts: visible.map(u => present(u, invitations[u.user_id] || null)),
+            accounts: visible.map(u => present(u, invitations[u.user_id] || null, { programs: headed(programs, u.user_id), departments: headed(departments, u.user_id) })),
+            programs,
+            departments,
             roles: ROLE_KEYS.filter(key => key !== 'superuser' || isSuperuser(req)).map(key => ({ key, label: ROLE_LABEL[key] })),
             domain: allowedDomain()
         });
@@ -183,13 +226,58 @@ const updateAccount = async (req, res, next) => {
             target.is_active = active;
         }
 
-        await target.save();
+        const current = await linksOf(target.user_id);
+        const wanted = {
+            programs: body.programs === undefined ? current.programs.map(p => p.id) : asIds(body.programs),
+            departments: body.departments === undefined ? current.departments.map(d => d.id) : asIds(body.departments),
+        };
+        if (!wanted.programs || !wanted.departments) return res.status(400).json({ error: 'programs and departments must be lists of ids.' });
+        // Unticking alone would leave the program / department with nobody at its head: it is moved, not dropped.
+        const dropped = [
+            ...current.programs.filter(p => !wanted.programs.includes(p.id)).map(p => p.name),
+            ...current.departments.filter(d => !wanted.departments.includes(d.id)).map(d => d.name),
+        ];
+        if (dropped.length) {
+            return res.status(409).json({ error: `${dropped.join(', ')} would have no head. Tick it on the account that takes it over instead.`, field: 'heads' });
+        }
+        if (wanted.programs.length > current.programs.length && !target.roles.includes('program-head')) {
+            return res.status(400).json({ error: 'Only a Program Head can head a program: give this account the Program Head role.', field: 'heads' });
+        }
+        if (wanted.departments.length > current.departments.length && !target.roles.includes('dean')) {
+            return res.status(400).json({ error: 'Only a Dean can lead a department: give this account the Dean role.', field: 'heads' });
+        }
+        const [knownPrograms, knownDepartments] = await Promise.all([
+            wanted.programs.length ? select('SELECT program_id AS id FROM Programs WHERE program_id IN (?)', [wanted.programs]) : [],
+            wanted.departments.length ? select('SELECT dept_id AS id FROM Departments WHERE dept_id IN (?)', [wanted.departments]) : [],
+        ]);
+        if (knownPrograms.length !== wanted.programs.length || knownDepartments.length !== wanted.departments.length) {
+            return res.status(404).json({ error: 'A program or department does not exist.', field: 'heads' });
+        }
+        const stranded = strandedMessage(
+            { ...current, programs: wanted.programs, departments: wanted.departments },
+            target.roles, target.is_active
+        );
+        if (stranded) return res.status(409).json({ error: stranded, field: 'roles' });
+
+        await sequelize.transaction(async (transaction) => {
+            await target.save({ transaction });
+            const take = async (table, key, ids) => {
+                if (ids.length) await sequelize.query(`UPDATE ${table} SET stakeholder_id = ? WHERE ${key} IN (?)`, { replacements: [target.user_id, ids], transaction });
+            };
+            await take('Programs', 'program_id', wanted.programs);
+            await take('Departments', 'dept_id', wanted.departments);
+        });
+        const added = {
+            programs: wanted.programs.filter(id => !current.programs.some(p => p.id === id)),
+            departments: wanted.departments.filter(id => !current.departments.some(d => d.id === id)),
+        };
+        if (added.programs.length || added.departments.length) await auditChange(req, 'USER_HEADS_CHANGED', target, { new_programs: added.programs, new_departments: added.departments });
         const after = { name: target.name, email: target.email, roles: target.roles, status: target.is_active ? 'Active' : 'Disabled' };
         const changed = Object.keys(after).filter(key => JSON.stringify(before[key]) !== JSON.stringify(after[key]));
         if (changed.length) {
             await auditChange(req, 'USER_UPDATED', target, Object.fromEntries(changed.flatMap(key => [[`old_${key}`, before[key]], [`new_${key}`, after[key]]])));
         }
-        return res.json({ account: present(target) });
+        return res.json({ account: present(target, null, await linksOf(target.user_id)) });
     } catch (err) {
         return next(err);
     }

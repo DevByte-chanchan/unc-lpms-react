@@ -62,44 +62,56 @@ if (config.dialect === 'sqlite') {
     { value: { name: 'Statement' }, configurable: true }
   );
 
+  // The node-sqlite3 calling convention Sequelize uses: (sql, ...params, callback). Every failure, including one
+  // while PREPARING the statement (a missing table, a syntax error), goes to the callback and is not also thrown:
+  // a throw there escaped Sequelize's promise as an unhandled rejection and the request never got an answer.
+  // Without a callback (a direct call) the error is thrown as before. The callback itself runs outside the try,
+  // so an error inside Sequelize's own handler is never reported back to it as a query error.
+  const call = (args, work) => {
+    if (args.length > 0 && args[args.length - 1] == null) args.pop();
+    const cb = typeof args[args.length - 1] === 'function' ? args.pop() : null;
+    let done;
+    try {
+      done = work(args);
+    } catch (e) {
+      if (!cb) throw e;
+      cb.call({}, e);
+      return undefined;
+    }
+    cb?.call(done.context, null, ...done.callbackArgs);
+    return done.value;
+  };
+
   wrapConnection = {
     run(sql, ...args) {
-      if (args.length > 0 && args[args.length - 1] == null) args.pop();
-      const cb = typeof args[args.length - 1] === 'function' ? args.pop() : null;
-      const prepared = prep(sql);
-      const stmt = prepared.statement;
-      const p = toArgs(args, prepared.positions);
-      try { const r = stmt.run(...p); const s = makeStatement(r); cb?.call(s, null); return s; }
-      catch (e) { cb?.call({}, e); throw e; }
+      return call(args, (params) => {
+        const prepared = prep(sql);
+        const s = makeStatement(prepared.statement.run(...toArgs(params, prepared.positions)));
+        return { context: s, callbackArgs: [], value: s };
+      });
     },
     get(sql, ...args) {
-      if (args.length > 0 && args[args.length - 1] == null) args.pop();
-      const cb = typeof args[args.length - 1] === 'function' ? args.pop() : null;
-      const prepared = prep(sql);
-      const stmt = prepared.statement;
-      const p = toArgs(args, prepared.positions);
-      try { const r = stmt.get(...p); cb?.call(makeStatement(), null, r ?? undefined); return r ?? undefined; }
-      catch (e) { cb?.call({}, e); throw e; }
+      return call(args, (params) => {
+        const prepared = prep(sql);
+        const r = prepared.statement.get(...toArgs(params, prepared.positions)) ?? undefined;
+        return { context: makeStatement(), callbackArgs: [r], value: r };
+      });
     },
     all(sql, ...args) {
-      if (args.length > 0 && args[args.length - 1] == null) args.pop();
-      const cb = typeof args[args.length - 1] === 'function' ? args.pop() : null;
-      const prepared = prep(sql);
-      const stmt = prepared.statement;
-      const p = toArgs(args, prepared.positions);
-      try {
-        const r = stmt.all(...p);
-        cb?.call(makeStatement(), null, r);
-        return r;
-      } catch (e) {
-        if (e.message?.includes('does not return data')) {
+      return call(args, (params) => {
+        const prepared = prep(sql);
+        const stmt = prepared.statement;
+        const p = toArgs(params, prepared.positions);
+        let r;
+        try {
+          r = stmt.all(...p);
+        } catch (e) {
+          if (!e.message?.includes('does not return data')) throw e;
           stmt.run(...p);
-          cb?.call(makeStatement(), null, []);
-          return [];
+          r = [];
         }
-        cb?.call({}, e);
-        throw e;
-      }
+        return { context: makeStatement(), callbackArgs: [r], value: r };
+      });
     },
     prepare(sql) {
       const prepared = prep(sql);

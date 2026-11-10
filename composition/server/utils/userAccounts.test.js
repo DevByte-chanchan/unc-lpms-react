@@ -5,7 +5,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const express = require('express');
-const { User } = require('../models');
+const { User, sequelize, Sequelize } = require('../models');
 const { requireAuth } = require('../middleware/auth');
 const { hashPassword } = require('./password');
 const { PRIVACY_NOTICE_VERSION } = require('../config/privacy');
@@ -112,4 +112,49 @@ test('an invitation link: needs the Privacy Notice, signs the person in, and wor
     assert.equal(accepted.status, 200);
     assert.equal((await api('GET', '/api/whoami', { cookie: accepted.cookie })).status, 200);
     assert.equal((await api('GET', `/api/auth/invitation?token=${encodeURIComponent(token)}`)).status, 410, 'used up');
+});
+
+test('heads: a program moves by ticking it on its new Program Head; nothing is left without a head', async () => {
+    const vpaa = await makeUser(['vpaa']);
+    const oldHead = await makeUser(['program-head']);
+    const newHead = await makeUser(['program-head']);
+    const dean = await makeUser(['dean']);
+    const now = new Date();
+    await sequelize.getQueryInterface().bulkInsert('Programs', [{ dept_id: 3, name: `Heads Program ${stamp}`, stakeholder_id: oldHead.user_id, createdAt: now, updatedAt: now }]);
+    const [program] = await sequelize.query('SELECT program_id FROM Programs WHERE stakeholder_id = ?', { replacements: [oldHead.user_id], type: Sequelize.QueryTypes.SELECT });
+    const cookie = await signIn(vpaa);
+    const patch = (user, body) => api('PATCH', `/api/user-accounts/${user.user_id}`, { cookie, body });
+
+    const list = await api('GET', '/api/user-accounts', { cookie });
+    assert.ok(list.data.programs.some(p => p.id === program.program_id && p.headId === oldHead.user_id));
+    assert.deepEqual(list.data.accounts.find(a => a.id === oldHead.user_id).heads.programs.map(p => p.id), [program.program_id]);
+
+    assert.equal((await patch(oldHead, { roles: ['instructor'] })).status, 409, 'cannot drop the role while heading a program');
+    assert.equal((await patch(oldHead, { status: 'Disabled' })).status, 409, 'nor be disabled');
+    assert.equal((await patch(oldHead, { programs: [] })).status, 409, 'unticking would leave it without a head');
+    assert.equal((await patch(dean, { programs: [program.program_id] })).status, 400, 'only a Program Head heads a program');
+
+    const moved = await patch(newHead, { programs: [program.program_id] });
+    assert.equal(moved.status, 200);
+    assert.deepEqual(moved.data.account.heads.programs.map(p => p.id), [program.program_id]);
+    const [row] = await sequelize.query('SELECT stakeholder_id FROM Programs WHERE program_id = ?', { replacements: [program.program_id], type: Sequelize.QueryTypes.SELECT });
+    assert.equal(row.stakeholder_id, newHead.user_id);
+    assert.equal((await patch(oldHead, { roles: ['instructor'] })).status, 200, 'free to change once it heads nothing');
+});
+
+test('an instructor still leading a course in progress keeps the role until the course is reassigned', async () => {
+    const vpaa = await makeUser(['vpaa']);
+    const teacher = await makeUser(['instructor']);
+    const now = new Date();
+    const [course] = await sequelize.query('SELECT course_id FROM Courses LIMIT 1', { type: Sequelize.QueryTypes.SELECT });
+    await sequelize.getQueryInterface().bulkInsert('Programs', [{ dept_id: 3, name: `Lead Program ${stamp}`, stakeholder_id: null, createdAt: now, updatedAt: now }]);
+    const [program] = await sequelize.query('SELECT program_id FROM Programs WHERE name = ?', { replacements: [`Lead Program ${stamp}`], type: Sequelize.QueryTypes.SELECT });
+    await sequelize.getQueryInterface().bulkInsert('ProgramCourseOfferings', [{ revision_number: 0, course_id: course.course_id, program_id: program.program_id, dept_id: 3, course_description: `lead ${stamp}`, createdAt: now, updatedAt: now }]);
+    const [pco] = await sequelize.query('SELECT pc_offering_id FROM ProgramCourseOfferings WHERE course_description = ?', { replacements: [`lead ${stamp}`], type: Sequelize.QueryTypes.SELECT });
+    await sequelize.getQueryInterface().bulkInsert('CourseOfferingAssignments', [{ pc_offering_id: pco.pc_offering_id, stakeholder_id: String(teacher.user_id), date_assigned: now, createdAt: now, updatedAt: now }]);
+    const cookie = await signIn(vpaa);
+    const refused = await api('PATCH', `/api/user-accounts/${teacher.user_id}`, { cookie, body: { roles: ['dean'] } });
+    assert.equal(refused.status, 409);
+    assert.match(refused.data.error, /reassign them in Course Assignment/);
+    assert.equal((await api('PATCH', `/api/user-accounts/${teacher.user_id}`, { cookie, body: { roles: ['instructor', 'dean'] } })).status, 200, 'adding a role is fine');
 });

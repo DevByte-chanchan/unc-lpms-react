@@ -8,7 +8,7 @@ import PDFViewerModal from '../../../components/PDFViewerModal.jsx';
 import { buildPoPeoHtml } from '../../../utils/syllabusPdfHtml.js';
 import { fetchJson, apiErrorMessage, API_BASE } from '../../../utils/api.js';
 import { fetchFrontPages, countPdfPages } from '../../../utils/frontPages.js';
-import { getSession } from '../../../utils/session.js';
+import { actingRole } from '../../../utils/session.js';
 import unclogo from '../../../assets/unclogo.png';
 import cc from '../../../styles/SyllabusPreview.module.sass';
 import tbl from '../../../styles/AlignmentTables.module.sass';
@@ -162,7 +162,7 @@ const PoPeoAlignment = ({ tabs = null, view = 'outcomes' }) => {
 
   const downloadTemplate = async () => {
     try {
-      const role = getSession()?.role
+      const role = actingRole()
       const res = await fetch(`${API_BASE}/api/program-outcomes/template.xlsx`, { credentials: 'include', headers: role ? { 'X-LPMS-Role': role } : {} })
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const link = document.createElement('a')

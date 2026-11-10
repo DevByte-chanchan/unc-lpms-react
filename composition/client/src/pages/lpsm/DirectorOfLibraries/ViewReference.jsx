@@ -10,7 +10,7 @@ import { typeLabel } from '../../../utils/referenceCatalog.js';
 
 
 const ViewReference = () => {
-  const { id } = useParams();
+  const { refId: id } = useParams();
   const navigate = useNavigate();
   const [ref, setRef] = useState(null);
   const [state, setState] = useState('loading');

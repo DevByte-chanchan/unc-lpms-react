@@ -22,7 +22,7 @@ const {
   parseYear, recencyWindow, isWithinRecency, chapterInfo, collapseChaptersToBooks,
   availabilityOf, isAttachable, isInCourseCatalog, relevanceScore, typeLabel,
   externalSearchLinks, citationFor, buildCatalogView, DEFAULT_CATALOG_SETTINGS,
-  countUnclassified, UNCLASSIFIED_TYPE, normalizeTypeKey, isUnclassifiedType
+  countUnclassified, UNCLASSIFIED_TYPE, normalizeTypeKey, isUnclassifiedType, courseCodesForReference
 } = await import('./referenceCatalog.js');
 
 const test = (name, fn) => {
@@ -206,3 +206,11 @@ test('a blank or off-vocabulary type stays reachable now that "All" is gone', ()
 });
 
 console.log('\nAll reference catalog checks passed.');
+
+test('a reference the Director filed under a course is in that course catalog before any plan uses it', () => {
+    const filed = { title: 'Filed only', used_in_courses: null, filed_courses: 'BIT313L,BIT321L' }
+    eq(isInCourseCatalog(filed, 'BIT313L'), true, 'filed course')
+    eq(isInCourseCatalog(filed, 'bit321l'), true, 'any case')
+    eq(isInCourseCatalog(filed, 'MATH311L'), false, 'another course')
+    eq(JSON.stringify(courseCodesForReference({ used_in_courses: 'BIT313L', filed_courses: 'BIT313L' })), '["BIT313L"]', 'one code once')
+})

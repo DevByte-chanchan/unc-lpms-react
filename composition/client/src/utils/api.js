@@ -1,4 +1,4 @@
-import { expireSession, getSession, setSession } from './session.js';
+import { actingRole, expireSession, getSession, setSession } from './session.js';
 
 const configuredApiBase = (typeof import.meta !== 'undefined' && import.meta.env)
     ? import.meta.env.VITE_API_BASE
@@ -27,7 +27,7 @@ async function requestJson(endpoint, opts = {}) {
     const url = endpoint.startsWith('http') ? endpoint : `${API_BASE}${endpoint}`;
 
     // The role the signed-in person is acting as (multi-role accounts); the server checks the account holds it.
-    const role = getSession()?.role;
+    const role = actingRole();
     const headers = role ? { ...(opts.headers || {}), 'X-LPMS-Role': role } : opts.headers;
     const res = await fetch(url, { ...opts, ...(headers ? { headers } : {}), credentials: 'include' });
     if (!res.ok) {

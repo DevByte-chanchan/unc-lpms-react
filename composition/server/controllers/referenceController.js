@@ -214,7 +214,11 @@ async function getReferenceLibrary(req, res) {
                  r.createdAt,
                  GROUP_CONCAT(DISTINCT crs.course_no) AS used_in_courses,
                  GROUP_CONCAT(DISTINCT p.name) AS programs,
-                 GROUP_CONCAT(DISTINCT d.name) AS departments
+                 GROUP_CONCAT(DISTINCT d.name) AS departments,
+                 -- The courses the Director of Libraries filed it under (CourseReferences): part of those courses'
+                 -- catalog even before a plan uses it.
+                 (SELECT GROUP_CONCAT(fc.course_no) FROM CourseReferences cr2 INNER JOIN Courses fc ON fc.course_id = cr2.course_id
+                   WHERE cr2.reference_id = r.reference_id) AS filed_courses
              FROM \`References\` r
                  LEFT JOIN WeeklyReferences wr ON wr.reference_id = r.reference_id
                  LEFT JOIN Weeks w ON w.week_id = wr.week_id

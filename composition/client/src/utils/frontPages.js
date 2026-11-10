@@ -1,5 +1,5 @@
 import { API_BASE } from './api.js'
-import { getSession } from './session.js'
+import { actingRole } from './session.js'
 
 // A program's uploaded front pages (University; Department / Program and PEOs; POs and PEOs) and the PDF joining
 // that puts them in front of the generated learning plan. Server: /api/program-outcomes/:programId/front-pages.
@@ -9,11 +9,11 @@ const pdfLib = () => import('pdf-lib')
 // The uploaded PDF as bytes, or null when the program has none.
 export const fetchFrontPages = async (programId) => {
   if (!programId) return null
-  const role = getSession()?.role
+  const role = actingRole()
   const res = await fetch(`${API_BASE}/api/program-outcomes/${encodeURIComponent(programId)}/front-pages`, {
     credentials: 'include', headers: role ? { 'X-LPMS-Role': role } : {},
   })
-  if (res.status === 404) return null
+  if (res.status === 204 || res.status === 404) return null
   if (!res.ok) throw new Error(`Could not load the program's front pages (HTTP ${res.status}).`)
   return res.arrayBuffer()
 }

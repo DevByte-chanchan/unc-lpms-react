@@ -1,10 +1,10 @@
 import { API_BASE } from './api.js'
-import { getSession } from './session.js'
+import { actingRole } from './session.js'
 
 // The Program Head's uploaded CO-PO / COAEP file of a course offering (server: /api/course-documents).
 
 const roleHeaders = () => {
-  const role = getSession()?.role
+  const role = actingRole()
   return role ? { 'X-LPMS-Role': role } : {}
 }
 

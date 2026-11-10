@@ -2,7 +2,7 @@
 
 // The Program Head's program documents:
 //
-//   GET    /api/program-outcomes/:programId/front-pages      the uploaded front pages (PDF), for the export
+//   GET    /api/program-outcomes/:programId/front-pages      the uploaded front pages (PDF), for the export; 204 if none
 //   PUT    /api/program-outcomes/:programId/front-pages      body: the PDF as raw bytes (Program Head of the program)
 //   DELETE /api/program-outcomes/:programId/front-pages
 //   GET    /api/program-outcomes/template.xlsx               the PO / PEO spreadsheet layout to fill in
@@ -33,7 +33,8 @@ const ownProgram = async (req, res) => {
 const getFrontPages = async (req, res, next) => {
     try {
         const [row] = await select('SELECT pdf, file_name, updatedAt FROM ProgramFrontPages WHERE program_id = ?', [asInt(req.params.programId)]);
-        if (!row) return res.status(404).json({ error: 'No front pages uploaded for this program.' });
+        // None uploaded is a normal answer, not an error: 204, so the export simply uses the generated pages.
+        if (!row) return res.status(204).end();
         res.set('Content-Type', 'application/pdf');
         res.set('X-File-Name', encodeURIComponent(row.file_name || 'front-pages.pdf'));
         res.set('Last-Modified', new Date(row.updatedAt).toUTCString());

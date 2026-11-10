@@ -50,7 +50,7 @@ test('front pages: only the program\'s head uploads, only a PDF, and anyone can 
     assert.equal(back.headers.get('content-type'), 'application/pdf');
     assert.deepEqual(Buffer.from(await back.arrayBuffer()), pdf);
     assert.equal((await call(head, 'DELETE', `/program-outcomes/${programId}/front-pages`)).status, 200);
-    assert.equal((await call(head, 'GET', `/program-outcomes/${programId}/front-pages`)).status, 404);
+    assert.equal((await call(head, 'GET', `/program-outcomes/${programId}/front-pages`)).status, 204, 'none uploaded');
 });
 
 test('PO / PEO import: the downloadable template reads back as PEOs and POs, without saving', async () => {

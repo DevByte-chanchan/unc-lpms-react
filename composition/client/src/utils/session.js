@@ -642,6 +642,8 @@ const INSTRUCTOR_PATHS = [
 ]
 
 /** Is this one of the instructor's own screens? `/` is their home. */
+const isRootPath = (pathname = '') => (String(pathname).split(/[?#]/)[0].replace(/\/+$/, '') || '/') === '/'
+
 export const isInstructorPath = (pathname = '') => {
   const path = String(pathname).split(/[?#]/)[0].replace(/\/+$/, '') || '/'
   if (path === '/') return true
@@ -666,6 +668,8 @@ export const routeGuardRedirect = (session, pathname = '') => {
     // Not /role/-scoped: it is the instructor's, or it is neither (/login).
     if (!isInstructorPath(pathname)) return null
     if (normalizeRoleKey(session.role) === 'instructor') return null
+    // "/" is also where sign-in and every "go home" lands: it is the acting role's home, never a role switch.
+    if (isRootPath(pathname)) return homeRouteForRole(session.role)
     if ((session.roles || []).includes('instructor')) return null
     return homeRouteForRole(session.role)
   }
@@ -677,10 +681,19 @@ export const routeGuardRedirect = (session, pathname = '') => {
   return homeRouteForRole(session.role)
 }
 
+// The role a request acts as: the one the current page needs when the account holds it, else the stored active
+// role. Per page, not per browser: with a Program Head page in one tab and an instructor page in another, each tab
+// asks as its own role even though the stored role follows whichever tab moved last.
+export const actingRole = (session = getSession(), pathname = (typeof window === 'undefined' ? '' : window.location?.pathname || '')) => {
+  if (!session?.role) return ''
+  return roleToActivate(session, pathname) || session.role
+}
+
 // The role a path needs when it is one of the account's OTHER roles, so opening it acts as that role (as
 // feature/course-assignment does): '' when nothing has to change.
 export const roleToActivate = (session, pathname = '') => {
   if (!session?.role || !(session.roles || []).length) return ''
+  if (isRootPath(pathname)) return ''
   const urlRole = roleFromPath(pathname)
   const needed = urlRole ? (roleMeta(urlRole) ? urlRole : '') : (isInstructorPath(pathname) ? 'instructor' : '')
   return needed && needed !== session.role && session.roles.includes(needed) ? needed : ''

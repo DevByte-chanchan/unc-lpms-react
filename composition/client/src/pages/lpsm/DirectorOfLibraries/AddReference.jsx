@@ -15,7 +15,7 @@ import { apiErrorMessage } from '../../../utils/api.js';
 // server's type definitions; saving goes to the server, which validates the same rules again.
 const AddReference = () => {
   const navigate = useNavigate();
-  const { id } = useParams();
+  const { refId: id } = useParams();
   const isEditMode = !!id;
 
   // When editing, the record is loaded from the server before the form is shown.

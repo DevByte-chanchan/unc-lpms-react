@@ -216,8 +216,11 @@ const splitCodes = (value) => String(value || '')
     .map(s => s.trim().toUpperCase().replace(/\s+/g, ''))
     .filter(Boolean)
 
-export const courseCodesForReference = (ref) =>
-    splitCodes(ref?.used_in_courses ?? ref?.courses ?? ref?.course_no)
+// The courses a reference belongs to: those whose plans use it, and those the Director filed it under.
+export const courseCodesForReference = (ref) => [...new Set([
+    ...splitCodes(ref?.used_in_courses ?? ref?.courses ?? ref?.course_no),
+    ...splitCodes(ref?.filed_courses),
+])]
 
 const sameCode = (a, b) =>
     String(a || '').toUpperCase().replace(/\s+/g, '') === String(b || '').toUpperCase().replace(/\s+/g, '')

@@ -52,6 +52,8 @@ export const UserAccountsPanel = () => {
   const [accounts, setAccounts] = React.useState([])
   const [roles, setRoles] = React.useState([])
   const [domain, setDomain] = React.useState('unc.edu.ph')
+  // Every program and department, with who heads it now (server: Programs / Departments.stakeholder_id).
+  const [units, setUnits] = React.useState({ programs: [], departments: [] })
   const [loading, setLoading] = React.useState(true)
   const [error, setError] = React.useState('')
   const [notice, setNotice] = React.useState('')
@@ -70,6 +72,7 @@ export const UserAccountsPanel = () => {
       setAccounts(Array.isArray(data?.accounts) ? data.accounts : [])
       setRoles(Array.isArray(data?.roles) ? data.roles : [])
       if (data?.domain) setDomain(data.domain)
+      setUnits({ programs: data?.programs || [], departments: data?.departments || [] })
     } catch (err) {
       setError(apiErrorMessage(err, 'Could not load the accounts.'))
     } finally {
@@ -143,6 +146,7 @@ export const UserAccountsPanel = () => {
     setSaving(true); setError('')
     try {
       const body = { name: form.name, email: form.email, roles: form.roles }
+      if (form.id) Object.assign(body, { programs: form.programs, departments: form.departments })
       if (form.id) {
         await fetchJson(`/api/user-accounts/${form.id}`, json('PATCH', body))
         setNotice(`${form.name} was updated. A role change signs them out.`)
@@ -207,12 +211,19 @@ export const UserAccountsPanel = () => {
                   <tr key={account.id}>
                     <td>{account.name}{isMe ? ' (you)' : ''}</td>
                     <td>{account.email}</td>
-                    <td>{account.roles.map(roleLabel).join(', ')}</td>
+                    <td>
+                      {account.roles.map(roleLabel).join(', ')}
+                      {[...(account.heads?.programs || []), ...(account.heads?.departments || [])].length > 0 && (
+                        <div style={{ fontSize: 12, color: 'var(--ink-muted)' }}>
+                          Heads {[...(account.heads?.programs || []), ...(account.heads?.departments || [])].map(x => x.name).join(', ')}
+                        </div>
+                      )}
+                    </td>
                     <td>{active ? (account.locked ? 'Locked' : 'Active') : 'Disabled'}</td>
                     <td>{invitationLabel(account.invitation)}</td>
                     <td className={styles.fill} style={{ whiteSpace: 'nowrap' }}>
                       <button type="button" className="btn btn-secondary btn-sm" disabled={busy}
-                        onClick={() => { setError(''); setForm({ id: account.id, name: account.name, email: account.email, roles: account.roles }) }}>
+                        onClick={() => { setError(''); setForm({ id: account.id, name: account.name, email: account.email, roles: account.roles, programs: (account.heads?.programs || []).map(p => p.id), departments: (account.heads?.departments || []).map(d => d.id) }) }}>
                         Edit
                       </button>{' '}
                       {invitable ? (
@@ -270,6 +281,26 @@ export const UserAccountsPanel = () => {
               </label>
             ))}
           </fieldset>
+          {form.id && [
+            { key: 'programs', role: 'program-head', legend: 'Programs this account heads', list: units.programs },
+            { key: 'departments', role: 'dean', legend: 'Departments this account leads as Dean', list: units.departments },
+          ].filter(g => form.roles.includes(g.role) || form[g.key].length > 0).map(g => (
+            <fieldset key={g.key} style={{ border: 0, padding: 0, margin: 0 }}>
+              <legend>{g.legend}</legend>
+              {g.list.map(unit => {
+                const mine = form[g.key].includes(unit.id)
+                const holder = unit.headId && String(unit.headId) !== String(form.id) ? accounts.find(a => String(a.id) === String(unit.headId))?.name : ''
+                return (
+                  <label key={unit.id} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                    <input type="checkbox" checked={mine}
+                      onChange={() => setForm(f => ({ ...f, [g.key]: mine ? f[g.key].filter(id => id !== unit.id) : [...f[g.key], unit.id] }))} />
+                    {unit.name}
+                    {holder && !mine && <span style={{ color: 'var(--ink-muted)', fontSize: 12 }}>(now {holder}; ticking moves it here)</span>}
+                  </label>
+                )
+              })}
+            </fieldset>
+          ))}
           {!form.id && <div style={{ color: '#6B7280', fontSize: 13 }}>A temporary password is made, valid for 72 hours, and must be changed at first sign-in. It is e-mailed when mail is set up, otherwise shown once here. You can also send a set-password invitation afterwards.</div>}
         </Dialog>
       )}

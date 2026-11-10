@@ -72,8 +72,9 @@ function SessionGate({ children }) {
     }, [])
 
     // The Reference Library rules are the Director's, set once for everyone: fetch them once signed in.
-    const signedIn = Boolean(session)
-    useEffect(() => { if (signedIn) void refreshCatalogSettings(fetchJson) }, [signedIn])
+    // The superuser administers accounts only and has no access to them.
+    const needsCatalog = Boolean(session) && !(session.roles || [session.role]).every(role => role === 'superuser')
+    useEffect(() => { if (needsCatalog) void refreshCatalogSettings(fetchJson) }, [needsCatalog])
 
     // Opening a page of another role the account holds acts as that role (multi-role accounts). Switched before
     // the page renders, so its requests already carry the right role.
