@@ -20,7 +20,7 @@ module.exports = {
         await queryInterface.bulkInsert('Departments', [
             { dept_id: 1, stakeholder_id: null, name: 'School of Business and Accountancy', code: 'SBA', createdAt: now, updatedAt: now },
             { dept_id: 2, stakeholder_id: null, name: 'College of Engineering and Architecture', code: 'CEA', createdAt: now, updatedAt: now },
-            { dept_id: 3, stakeholder_id: null, name: 'School of Computer and Information Sciences', code: 'SCIS', createdAt: now, updatedAt: now },
+            { dept_id: 3, stakeholder_id: 5, name: 'School of Computer and Information Sciences', code: 'SCIS', createdAt: now, updatedAt: now },
             { dept_id: 4, stakeholder_id: null, name: 'College of Nursing', code: 'CON', createdAt: now, updatedAt: now },
             { dept_id: 5, stakeholder_id: null, name: 'Criminal Justice Education', code: 'CJE', createdAt: now, updatedAt: now }
         ], {});
@@ -29,7 +29,7 @@ module.exports = {
         // 2) Programs
         // ============================================================================
         await queryInterface.bulkInsert('Programs', [
-            { program_id: 1, dept_id: 3, name: 'Bachelor of Science in Information Technology', stakeholder_id: null, createdAt: now, updatedAt: now },
+            { program_id: 1, dept_id: 3, name: 'Bachelor of Science in Information Technology', stakeholder_id: 2, createdAt: now, updatedAt: now },
             { program_id: 2, dept_id: 3, name: 'Bachelor of Science in Computer Science', stakeholder_id: null, createdAt: now, updatedAt: now },
             { program_id: 3, dept_id: 3, name: 'Associate in Computer Technology', stakeholder_id: null, createdAt: now, updatedAt: now },
             { program_id: 4, dept_id: 3, name: 'Bachelor of Library and Information Science', stakeholder_id: null, createdAt: now, updatedAt: now },
@@ -217,7 +217,7 @@ Through lectures, hands-on projects, and usability testing, learners will develo
         await queryInterface.bulkInsert('CourseOfferingAssignments', [
             {
                 pc_offering_id: 1,
-                stakeholder_id: null,
+                stakeholder_id: '1',
                 date_assigned: now,
                 date_submitted: null,
                 date_updated: null,
@@ -225,6 +225,23 @@ Through lectures, hands-on projects, and usability testing, learners will develo
                 updatedAt: now
             }
         ], {});
+
+        const foundationAssign = await queryInterface.sequelize.query(
+            `SELECT co_assign_id FROM CourseOfferingAssignments WHERE pc_offering_id = 1 ORDER BY co_assign_id DESC LIMIT 1;`,
+            { type: queryInterface.sequelize.QueryTypes.SELECT }
+        );
+        if (foundationAssign.length > 0) {
+            await queryInterface.bulkInsert('AssignmentWorkflowLogs', [
+                {
+                    co_assign_id: foundationAssign[0].co_assign_id,
+                    stakeholder_id: '2',
+                    actor_role: 'PROGRAM_HEAD',
+                    action_type: 'ASSIGNED',
+                    createdAt: now,
+                    updatedAt: now
+                }
+            ], {});
+        }
 
         // ============================================================================
         // 10) References (Curated & Real-world Aligned)

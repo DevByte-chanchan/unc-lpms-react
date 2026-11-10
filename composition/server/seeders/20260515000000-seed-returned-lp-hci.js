@@ -48,6 +48,7 @@ module.exports = {
         await queryInterface.bulkUpdate(
             'CourseOfferingAssignments',
             {
+                stakeholder_id: '1',
                 date_submitted: new Date('2026-06-15 10:00:00'),
                 updatedAt: now
             },
@@ -58,11 +59,11 @@ module.exports = {
         // 3. ASSIGNMENT WORKFLOW LOGS (The Return Trail)
         // ============================================================================
         await queryInterface.bulkInsert('AssignmentWorkflowLogs', [
-            { co_assign_id: assignId, actor_role: 'PROGRAM_HEAD', action_type: 'ASSIGNED', createdAt: new Date('2026-06-01 09:00:00'), updatedAt: new Date('2026-06-01 09:00:00') },
-            { co_assign_id: assignId, actor_role: 'INSTRUCTOR', action_type: 'SUBMITTED', createdAt: new Date('2026-06-15 10:00:00'), updatedAt: new Date('2026-06-15 10:00:00') },
+            { co_assign_id: assignId, stakeholder_id: '2', actor_role: 'PROGRAM_HEAD', action_type: 'ASSIGNED', createdAt: new Date('2026-06-01 09:00:00'), updatedAt: new Date('2026-06-01 09:00:00') },
+            { co_assign_id: assignId, stakeholder_id: '1', actor_role: 'INSTRUCTOR', action_type: 'SUBMITTED', createdAt: new Date('2026-06-15 10:00:00'), updatedAt: new Date('2026-06-15 10:00:00') },
             // Rejected by Stakeholders
-            { co_assign_id: assignId, actor_role: 'INDUSTRY_CONSULTANT', action_type: 'RETURNED', createdAt: new Date('2026-06-18 14:00:00'), updatedAt: new Date('2026-06-18 14:00:00') },
-            { co_assign_id: assignId, actor_role: 'PROGRAM_HEAD', action_type: 'RETURNED', createdAt: new Date('2026-06-19 11:30:00'), updatedAt: new Date('2026-06-19 11:30:00') }
+            { co_assign_id: assignId, stakeholder_id: '4', actor_role: 'INDUSTRY_CONSULTANT', action_type: 'RETURNED', createdAt: new Date('2026-06-18 14:00:00'), updatedAt: new Date('2026-06-18 14:00:00') },
+            { co_assign_id: assignId, stakeholder_id: '2', actor_role: 'PROGRAM_HEAD', action_type: 'RETURNED', createdAt: new Date('2026-06-19 11:30:00'), updatedAt: new Date('2026-06-19 11:30:00') }
         ], {});
 
         // ============================================================================
@@ -134,6 +135,7 @@ module.exports = {
         // Insert Comments
         await queryInterface.bulkInsert('Comments', rawCommentsData.map(c => ({
             co_assign_id: c.co_assign_id,
+            stakeholder_id: c.commenter_role === 'INDUSTRY_CONSULTANT' ? '4' : '2',
             commenter_role: c.commenter_role,
             message: c.message,
             resolved_status: c.resolved_status,

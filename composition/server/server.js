@@ -24,21 +24,30 @@ if (fs.existsSync(envPath)) {
 }
 
 const express = require('express');
+const cookieParser = require('cookie-parser');
 const app = express();
 const port = process.env.PORT || 5000;
 const cors = require('cors');
+const { attachUser } = require('./middleware/auth');
 
 app.use(cors({
     origin: [
-        // 'http://localhost:8081',
-        'http://192.168.254.106:8081',
-        // 'http://100.74.215.45:8081',
-    ]
+        'http://localhost:8081',
+        'http://localhost:5173',
+        'http://192.168.254.107:8081',
+        'http://100.74.215.45:8081',
+    ],
+    credentials: true
 }));
 
 app.use(express.json());
+app.use(cookieParser());
+app.use(attachUser);
 
 // routes
+const authRoutes = require('./routes/auth');
+app.use('/api/auth', authRoutes);
+
 const assignmentRoutes = require('./routes/assignments');
 app.use('/api/assignments', assignmentRoutes);
 

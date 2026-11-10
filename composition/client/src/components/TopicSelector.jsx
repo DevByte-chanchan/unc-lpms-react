@@ -1,7 +1,8 @@
 import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import styles from '../styles/TopicSelector.module.sass';
 import { Search, Plus, Trash2, Copy, X, ChevronDown, Edit2, CornerDownRight, Lock } from 'react-feather';
-import AiTopicSuggestModal, { GeminiStar } from './AiTopicSuggestModal.jsx';
+import { GeminiStar } from './AiTopicSuggestModal.jsx';
+import SpellCheckInput from './SpellCheckInput.jsx';
 
 const TopicSelector = ({
     label,
@@ -10,16 +11,14 @@ const TopicSelector = ({
     onChange,
     error,
     disabled,
-    iloId,
-    courseCode,
     weekNumber = 1,
-    previousWeekTopics = []
+    previousWeekTopics = [],
+    onOpenAiSuggest
 }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [isPickerOpen, setIsPickerOpen] = useState(false);
     const [isContinueOpen, setIsContinueOpen] = useState(false);
     const [lastAddedId, setLastAddedId] = useState(null);
-    const [isAiModalOpen, setIsAiModalOpen] = useState(false);
     const wrapperRef = useRef(null);
     const scrollContainerRef = useRef(null);
 
@@ -161,15 +160,6 @@ const TopicSelector = ({
         triggerAnimation(prevTopic.topic_id || tempId);
     };
 
-    const handleApplyAiTopics = (newAiTopics) => {
-        if (!newAiTopics || newAiTopics.length === 0) return;
-        onChange([...value, ...newAiTopics]);
-        if (newAiTopics[0]) {
-            triggerAnimation(newAiTopics[0]._temp_id || newAiTopics[0].topic_id);
-        }
-        scrollToMainBottom();
-    };
-
     const triggerAnimation = (id) => {
         setLastAddedId(id);
         setTimeout(() => setLastAddedId(null), 1500);
@@ -265,7 +255,7 @@ const TopicSelector = ({
                     <div className={styles.headerRow}>
                         <div className={styles.searchBar}>
                             <Search size={16} className={styles.searchIcon} />
-                            <input
+                            <SpellCheckInput
                                 type="text"
                                 placeholder="Search or type to add custom topic..."
                                 value={searchTerm}
@@ -346,17 +336,20 @@ const TopicSelector = ({
                         <button type="button" className={styles.mainAddBtn} onClick={handleAddManualTopic}>
                             <Plus size={16} className={styles.btnIcon} /> <span>Add Topic</span>
                         </button>
-                        <button
-                            type="button"
-                            className={styles.aiSuggestBtn}
-                            onClick={() => setIsAiModalOpen(true)}
-                            title="Generate intelligent course topics with Google Gemini AI"
-                        >
-                            <span className={styles.geminiSparkleIcon}>
-                                <GeminiStar size={15} />
-                            </span>
-                            <span className={styles.aiBtnText}>AI Suggest</span>
-                        </button>
+
+                        {onOpenAiSuggest && (
+                            <button
+                                type="button"
+                                className={styles.aiSuggestBtn}
+                                onClick={onOpenAiSuggest}
+                                title="AI Suggest sequential topics & subtopics aligned to Course Outcomes, ILOs, and weekly hours"
+                            >
+                                <span className={styles.geminiSparkleIcon}>
+                                    <GeminiStar size={16} />
+                                </span>
+                                <span className={styles.aiBtnText}>AI Suggest</span>
+                            </button>
+                        )}
                     </div>
 
                     {isPickerOpen && (
@@ -391,11 +384,12 @@ const TopicSelector = ({
                             const topicKey = getTopicKey(topic);
                             const isNewlyAdded = topicKey === lastAddedId;
                             const isLockedContinuation = Boolean(topic.isContinuation);
+                            const isAiSuggested = Boolean(topic.isAiSuggested);
 
                             return (
                                 <div
                                     key={topicKey}
-                                    className={`${styles.topicCard} ${isNewlyAdded ? styles.newEntry : ''} ${isLockedContinuation ? styles.continuedTopicCard : ''}`}
+                                    className={`${styles.topicCard} ${isNewlyAdded ? styles.newEntry : ''} ${isLockedContinuation ? styles.continuedTopicCard : ''} ${isAiSuggested ? styles.aiSuggestedTopicCard : ''}`}
                                 >
                                     <div className={styles.topicHeaderCard}>
                                         <div className={styles.topicTitleGroup}>
@@ -405,7 +399,7 @@ const TopicSelector = ({
                                                 ) : (
                                                     <Edit2 size={12} className={styles.editIcon} />
                                                 )}
-                                                <input
+                                                <SpellCheckInput
                                                     className={`${styles.topicTitleInput} ${isLockedContinuation ? styles.lockedTitleInput : ''}`}
                                                     value={topic.title}
                                                     readOnly={isLockedContinuation}
@@ -438,7 +432,7 @@ const TopicSelector = ({
                                             return (
                                                 <div key={subKey} className={styles.subtopicRow}>
                                                     <div className={styles.bullet}>•</div>
-                                                    <input
+                                                    <SpellCheckInput
                                                         type="text"
                                                         placeholder="Enter subtopic detail..."
                                                         value={sub.title}
@@ -464,16 +458,6 @@ const TopicSelector = ({
                 </div>
             </div>
             {error && <div className={styles.errorText}>{error}</div>}
-
-            {/* AI Topic Suggestion Modal */}
-            <AiTopicSuggestModal
-                isOpen={isAiModalOpen}
-                onClose={() => setIsAiModalOpen(false)}
-                onApplyTopics={handleApplyAiTopics}
-                iloId={iloId}
-                courseCode={courseCode}
-                currentTopics={value}
-            />
         </div>
     );
 };

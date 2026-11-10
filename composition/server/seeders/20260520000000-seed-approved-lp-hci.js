@@ -125,6 +125,7 @@ module.exports = {
             // Resubmission
             {
                 co_assign_id: assignId,
+                stakeholder_id: '1',
                 actor_role: 'INSTRUCTOR',
                 action_type: 'SUBMITTED',
                 createdAt: resubmissionDate,
@@ -133,6 +134,7 @@ module.exports = {
             // Stakeholder Acceptance Pipeline
             {
                 co_assign_id: assignId,
+                stakeholder_id: '3',
                 actor_role: 'LIBRARY_DIRECTOR',
                 action_type: 'ACCEPTED',
                 createdAt: new Date('2026-06-23 10:00:00'),
@@ -140,6 +142,7 @@ module.exports = {
             },
             {
                 co_assign_id: assignId,
+                stakeholder_id: '4',
                 actor_role: 'INDUSTRY_CONSULTANT',
                 action_type: 'ACCEPTED',
                 createdAt: new Date('2026-06-24 13:00:00'),
@@ -147,6 +150,7 @@ module.exports = {
             },
             {
                 co_assign_id: assignId,
+                stakeholder_id: '2',
                 actor_role: 'PROGRAM_HEAD',
                 action_type: 'ACCEPTED',
                 createdAt: new Date('2026-06-25 09:45:00'),
@@ -155,6 +159,7 @@ module.exports = {
             // Dean Approval transitions the plan to APPROVED
             {
                 co_assign_id: assignId,
+                stakeholder_id: '5',
                 actor_role: 'DEAN',
                 action_type: 'ACCEPTED',
                 createdAt: new Date('2026-06-28 15:00:00'),

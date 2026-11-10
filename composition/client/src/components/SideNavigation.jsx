@@ -3,11 +3,14 @@ import unclogo from '../assets/unclogo.png'
 import { FileText, LogOut, Users, BookOpen } from 'react-feather'
 import { useSearchParams, useNavigate, useLocation } from 'react-router-dom'
 import { useEffect, useRef, useState } from 'react'
+import { useCurrentUser } from '../services/currentUser.jsx'
+import ConfirmModal from './ConfirmModal.jsx'
 
 const SideNavigation = ({ mode = 'instructor' }) => {
     const navigate = useNavigate()
     const location = useLocation()
     const [searchParams, setSearchParams] = useSearchParams()
+    const { user, logout } = useCurrentUser()
 
     // --- MERGED SELECTION LOGIC ---
     let selected = searchParams.get('page') || 'Syllabus';
@@ -16,7 +19,7 @@ const SideNavigation = ({ mode = 'instructor' }) => {
         selected = 'TOS';
     }
 
-    const [showPopup, setShowPopup] = useState(false)
+    const [confirmLogoutOpen, setConfirmLogoutOpen] = useState(false)
     const [isExpanded, setIsExpanded] = useState(false)
     const logoutRef = useRef(null)
     const navRef = useRef(null)
@@ -36,26 +39,13 @@ const SideNavigation = ({ mode = 'instructor' }) => {
         }
     }
 
-    const onLogoutClick = () => setShowPopup((prev) => !prev)
+    const onLogoutClick = () => setConfirmLogoutOpen(true)
 
-    const gotoRole = (path) => {
-        setShowPopup(false)
-        navigate(path)
+    const handleConfirmLogout = async () => {
+        setConfirmLogoutOpen(false)
+        await logout()
+        navigate('/login', { replace: true })
     }
-
-    // --- POPUP & RESIZE LOGIC ---
-    useEffect(() => {
-        const handler = (e) => {
-            if (!showPopup) return
-            if (logoutRef.current && !logoutRef.current.contains(e.target)) setShowPopup(false)
-        }
-        document.addEventListener('mousedown', handler)
-        return () => document.removeEventListener('mousedown', handler)
-    }, [showPopup])
-
-    useEffect(() => {
-        if (showPopup) setShowPopup(false)
-    }, [selected])
 
     useEffect(() => {
         if (!navRef.current) return
@@ -65,15 +55,12 @@ const SideNavigation = ({ mode = 'instructor' }) => {
                 for (const entry of entries) {
                     const w = entry.contentRect.width
                     setIsExpanded(w > 120)
-                    if (w < 100 && showPopup) {
-                        setShowPopup(false)
-                    }
                 }
             })
             ro.observe(navRef.current)
         } catch (e) {}
         return () => { if (ro && navRef.current) ro.disconnect() }
-    }, [showPopup])
+    }, [])
 
     useEffect(() => {
         const el = navRef.current
@@ -181,20 +168,19 @@ const SideNavigation = ({ mode = 'instructor' }) => {
                     <div className={styles.listB} onClick={onLogoutClick}>
                         <LogOut size={24} color={'#F94545'} /> <span className={styles.listText}>Log Out</span>
                     </div>
-
-                    {showPopup && (
-                        <div className={styles.rolePopup}>
-                            <div className={styles.popupTitle}>Select role</div>
-                            <button className={styles.popupItem} onClick={() => { setShowPopup(false); navigate('/') }}>Instructor</button>
-                            <button className={styles.popupItem} onClick={() => gotoRole('/role/program-head/approval-course-table')}>Program head</button>
-                            <button className={styles.popupItem} onClick={() => gotoRole('/role/director-of-libraries/approval-course-table')}>Director of Libraries</button>
-                            <button className={styles.popupItem} onClick={() => gotoRole('/role/industry-consultant/approval-course-table')}>Industry Consultant</button>
-                            <button className={styles.popupItem} onClick={() => gotoRole('/role/dean')}>Dean</button>
-                            <button className={styles.popupItem} onClick={() => gotoRole('/role/hr-staff')}>HR staff</button>
-                        </div>
-                    )}
                 </div>
             </div>
+
+            <ConfirmModal
+                open={confirmLogoutOpen}
+                title="Sign out of LPMS?"
+                message={`You are currently signed in as ${user?.name || user?.email || 'this account'}. Do you want to end your session?`}
+                confirmLabel="Sign Out"
+                cancelLabel="Stay Signed In"
+                danger={true}
+                onConfirm={handleConfirmLogout}
+                onCancel={() => setConfirmLogoutOpen(false)}
+            />
         </div>
     )
 }

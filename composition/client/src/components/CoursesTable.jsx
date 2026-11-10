@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import styles from '../styles/CoursesTable.module.sass';
 import { ChevronRight, Edit, XCircle, HelpCircle, List, Grid, ChevronDown, ChevronUp, Search, Download } from 'react-feather';
 import { fetchJson } from "../utils/api.js";
+import { useCurrentUser } from "../services/currentUser.jsx";
 
 // --- Custom Date Formatters to Ensure Global Consistency ---
 const formatDate = (dateString) => {
@@ -31,6 +32,7 @@ const formatDateTime = (dateString) => {
 };
 
 const CoursesTable = () => {
+    const { user } = useCurrentUser();
     const currentYear = new Date().getFullYear();
     const startYear = 2000;
     const semOptions = ['1st Sem', '2nd Sem'];
@@ -68,10 +70,10 @@ const CoursesTable = () => {
         }
     }, [selectedYear, currentYear]);
 
-    // Fetch data whenever Year or Semester changes
+    // Fetch data whenever Year, Semester, or logged-in user changes
     useEffect(() => {
         loadAssignments();
-    }, [selectedYear, selectedSem]);
+    }, [selectedYear, selectedSem, user?.id]);
 
     const handleStatusChange = (e) => setSelectedStatus(e.target.value);
 
@@ -79,7 +81,8 @@ const CoursesTable = () => {
         setLoading(true);
         try {
             // Append the filter query parameters to the URL
-            const url = `/api/assignments?year=${selectedYear}&semester=${encodeURIComponent(selectedSem)}`;
+            const stakeholderParam = user?.id ? `&stakeholder=${encodeURIComponent(user.id)}` : '';
+            const url = `/api/assignments?year=${selectedYear}&semester=${encodeURIComponent(selectedSem)}${stakeholderParam}`;
             const data = await fetchJson(url);
             const rows = Array.isArray(data) ? data : (data.data || data.rows || []);
             setAssignments(rows);

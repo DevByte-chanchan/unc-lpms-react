@@ -7,7 +7,10 @@ const listAssignments = async (req, res, next) => {
         const offset = (page - 1) * limit;
 
         const whereAssignment = {};
-        if (stakeholder) whereAssignment.stakeholder_id = stakeholder;
+        const effectiveStakeholder = stakeholder || (req.user?.id ? String(req.user.id) : null);
+        if (effectiveStakeholder) {
+            whereAssignment.stakeholder_id = String(effectiveStakeholder);
+        }
 
         // --- Academic Term Filtering Logic ---
         if (year && semester) {
@@ -53,7 +56,7 @@ const listAssignments = async (req, res, next) => {
                 {
                     model: AssignmentWorkflowLog,
                     as: 'workflowLogs', // Uses correct DB alias
-                    attributes: ['actor_role', 'action_type', 'createdAt']
+                    attributes: ['stakeholder_id', 'actor_role', 'action_type', 'createdAt']
                 }
             ],
             distinct: true,

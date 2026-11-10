@@ -57,13 +57,23 @@ module.exports = {
         // ============================================================================
         await queryInterface.bulkInsert('CourseOfferingAssignments', [{
             pc_offering_id: offeringId,
-            stakeholder_id: null,
+            stakeholder_id: '1',
             date_assigned: new Date('2026-06-01'),
             date_submitted: null,
             date_updated: null,
             createdAt: now,
             updatedAt: now
         }], {});
+
+        const intProgAssign = await queryInterface.sequelize.query(
+            `SELECT co_assign_id FROM CourseOfferingAssignments WHERE pc_offering_id = ${offeringId} ORDER BY co_assign_id DESC LIMIT 1;`,
+            { type: queryInterface.sequelize.QueryTypes.SELECT }
+        );
+        if (intProgAssign.length > 0) {
+            await queryInterface.bulkInsert('AssignmentWorkflowLogs', [
+                { co_assign_id: intProgAssign[0].co_assign_id, stakeholder_id: '2', actor_role: 'PROGRAM_HEAD', action_type: 'ASSIGNED', createdAt: new Date('2026-06-01 09:00:00'), updatedAt: new Date('2026-06-01 09:00:00') }
+            ], {});
+        }
 
         // ============================================================================
         // 4. COURSE OUTCOMES (4 records)

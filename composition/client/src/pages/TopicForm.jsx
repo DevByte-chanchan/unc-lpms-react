@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef, useCallback, forwardRef, useImperativeHandle } from "react";
+import React, { useEffect, useState, useRef, useCallback, forwardRef, useImperativeHandle, useMemo } from "react";
 import Skeleton from "../layouts/Skeleton.jsx";
 import Header from "../components/Header.jsx";
 import FormNavigation from "../components/FormNavigation.jsx";
@@ -6,11 +6,52 @@ import styles from "../styles/Form.module.sass";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import SideNavigation from "../components/SideNavigation.jsx";
 import TopicSelector from "../components/TopicSelector.jsx";
-import { X, CheckCircle, MessageSquare, AlertCircle, ChevronsRight } from 'react-feather';
+import AiTopicSuggestModal from "../components/AiTopicSuggestModal.jsx";
+import { checkSpelling } from "../utils/spellChecker.js";
+import { X, CheckCircle, MessageSquare, AlertCircle, ChevronsRight, ChevronDown } from 'react-feather';
 import { fetchJson } from "../utils/api.js";
 
 import TLAForm from "./TLAForm.jsx";
 import ReferenceForm from "./ReferenceForm.jsx";
+
+const formatApproverRoleLabel = (rawRole) => {
+    const map = {
+        INDUSTRY_CONSULTANT: 'Industry Consultant',
+        PROGRAM_HEAD: 'Program Head',
+        LIBRARY_DIRECTOR: 'Director of Libraries',
+        DEAN: 'Dean',
+        VPAA: 'VPAA',
+        INSTRUCTOR: 'Instructor'
+    };
+    if (map[rawRole]) return map[rawRole];
+    return String(rawRole || 'Approver')
+        .toLowerCase()
+        .replace(/_/g, ' ')
+        .split(' ')
+        .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+        .join(' ');
+};
+
+const STAKEHOLDER_NAME_BY_ID = {
+    '1': 'Monica Norton',
+    '2': 'Olivia Vance',
+    '3': 'Maria Santos',
+    '4': 'Roberto Cruz',
+    '5': 'Sophia Sterling',
+    '6': 'Carlos Garcia',
+    '7': 'Juan Dela Cruz',
+    '8': 'Elena Reyes',
+    '9': 'Marco Villanueva'
+};
+
+const STAKEHOLDER_NAME_BY_ROLE = {
+    INDUSTRY_CONSULTANT: 'Roberto Cruz',
+    PROGRAM_HEAD: 'Olivia Vance',
+    LIBRARY_DIRECTOR: 'Maria Santos',
+    DEAN: 'Sophia Sterling',
+    VPAA: 'Carlos Garcia',
+    INSTRUCTOR: 'Monica Norton'
+};
 
 export function InlineModal({ isOpen, title, onClose, children, actions }) {
     if (!isOpen) return null;
@@ -30,15 +71,120 @@ export function InlineModal({ isOpen, title, onClose, children, actions }) {
     );
 }
 
+// Custom Approver Role Filter Dropdown with Returned Comment Badges
+function RoleFilterDropdown({ options, value, onChange }) {
+    const [isOpen, setIsOpen] = useState(false);
+    const dropdownRef = useRef(null);
+
+    useEffect(() => {
+        if (!isOpen) return;
+        const handleClickOutside = (event) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+                setIsOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [isOpen]);
+
+    const selectedOption = options.find(opt => opt.value === value) || options[0];
+
+    return (
+        <div className={styles.roleFilterDropdownContainer} ref={dropdownRef}>
+            <button
+                type="button"
+                className={`${styles.roleFilterTrigger} ${isOpen ? styles.roleFilterTriggerOpen : ''}`}
+                onClick={() => setIsOpen(prev => !prev)}
+                aria-haspopup="listbox"
+                aria-expanded={isOpen}
+            >
+                <span className={styles.roleFilterTriggerLabel}>
+                    {selectedOption?.label || 'All Approver Roles'}
+                </span>
+                <span className={styles.roleFilterTriggerRight}>
+                    {selectedOption && selectedOption.totalCount > 0 && (
+                        <span
+                            className={`${styles.roleOptionBadge} ${
+                                selectedOption.unresolvedCount === 0 ? styles.roleOptionBadgeResolved : ''
+                            }`}
+                        >
+                            {selectedOption.unresolvedCount > 0
+                                ? selectedOption.unresolvedCount
+                                : selectedOption.totalCount}
+                        </span>
+                    )}
+                    <ChevronDown
+                        size={15}
+                        className={`${styles.roleFilterChevron} ${isOpen ? styles.roleFilterChevronOpen : ''}`}
+                    />
+                </span>
+            </button>
+
+            {isOpen && (
+                <div className={styles.roleFilterMenu} role="listbox">
+                    {options.map(opt => {
+                        const isSelected = opt.value === value;
+                        const badgeCount = opt.unresolvedCount > 0 ? opt.unresolvedCount : opt.totalCount;
+                        return (
+                            <button
+                                key={opt.value}
+                                type="button"
+                                role="option"
+                                aria-selected={isSelected}
+                                className={`${styles.roleFilterOption} ${isSelected ? styles.roleFilterOptionSelected : ''}`}
+                                onClick={() => {
+                                    onChange(opt.value);
+                                    setIsOpen(false);
+                                }}
+                            >
+                                <span className={styles.roleFilterOptionLabel}>{opt.label}</span>
+                                {opt.totalCount > 0 && (
+                                    <span
+                                        className={`${styles.roleOptionBadge} ${
+                                            opt.unresolvedCount === 0 ? styles.roleOptionBadgeResolved : ''
+                                        }`}
+                                    >
+                                        {badgeCount}
+                                    </span>
+                                )}
+                            </button>
+                        );
+                    })}
+                </div>
+            )}
+        </div>
+    );
+}
+
 // ==========================================
 // 1. TOPICS SUB-FORM
 // ==========================================
-const TopicSubForm = forwardRef(({ iloId, previousWeekId, weekNumber = 1, isOrientation = false, status, setUnresolvedCount, courseCode }, ref) => {
+const TopicSubForm = forwardRef(({
+    iloId,
+    previousWeekId,
+    weekNumber = 1,
+    isOrientation = false,
+    status,
+    setUnresolvedCount,
+    onCommentsChange,
+    courseCode,
+    cachedWeekTopics,
+    previousWeekFrontendTopics,
+    onTopicsChangeForWeek,
+    onOpenAiSuggest
+}, ref) => {
     const [availableTopics, setAvailableTopics] = useState([]);
     const [selectedTopics, setSelectedTopics] = useState([]);
     const [previousWeekTopics, setPreviousWeekTopics] = useState([]);
     const [loading, setLoading] = useState(false);
     const [reviewComments, setReviewComments] = useState([]);
+
+    const updateTopicsState = useCallback((nextTopics) => {
+        setSelectedTopics(nextTopics);
+        if (onTopicsChangeForWeek && iloId) {
+            onTopicsChangeForWeek(iloId, isOrientation, nextTopics);
+        }
+    }, [onTopicsChangeForWeek, iloId, isOrientation]);
 
     useEffect(() => {
         if (!iloId) return;
@@ -68,13 +214,29 @@ const TopicSubForm = forwardRef(({ iloId, previousWeekId, weekNumber = 1, isOrie
                 if (!mounted) return;
 
                 setAvailableTopics(Array.isArray(resAvailable) ? resAvailable : []);
-                setSelectedTopics(Array.isArray(resAssigned) ? resAssigned : []);
-                setPreviousWeekTopics(Array.isArray(resPrevTopics) ? resPrevTopics : []);
+
+                // Prefer in-memory frontend topics if the user already modified this week during the current session (including AI-suggested border flag)
+                const initialTopics = Array.isArray(cachedWeekTopics)
+                    ? cachedWeekTopics
+                    : (Array.isArray(resAssigned) ? resAssigned : []);
+
+                setSelectedTopics(initialTopics);
+                if (onTopicsChangeForWeek) {
+                    onTopicsChangeForWeek(iloId, isOrientation, initialTopics);
+                }
+
+                setPreviousWeekTopics(
+                    Array.isArray(previousWeekFrontendTopics)
+                        ? previousWeekFrontendTopics
+                        : (Array.isArray(resPrevTopics) ? resPrevTopics : [])
+                );
 
                 if (status === 'returned' && Array.isArray(resComments)) {
                     setReviewComments(resComments.map(c => ({
                         ...c,
-                        resolved_status: c.resolved_status === 1 || c.resolved_status === true
+                        resolved_status: c.resolved_status === 1 || c.resolved_status === true,
+                        return_number: Number(c.return_number) || 1,
+                        return_date: c.return_date || c.createdAt
                     })));
                 } else {
                     setReviewComments([]);
@@ -88,13 +250,24 @@ const TopicSubForm = forwardRef(({ iloId, previousWeekId, weekNumber = 1, isOrie
 
         loadData();
         return () => { mounted = false; };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [iloId, previousWeekId, isOrientation, status]);
+
+    // Keep previousWeekTopics synced if frontend cache for previous week updates
+    useEffect(() => {
+        if (Array.isArray(previousWeekFrontendTopics)) {
+            setPreviousWeekTopics(previousWeekFrontendTopics);
+        }
+    }, [previousWeekFrontendTopics]);
 
     useEffect(() => {
         if (setUnresolvedCount) {
             setUnresolvedCount(reviewComments.filter(c => !c.resolved_status).length);
         }
-    }, [reviewComments, setUnresolvedCount]);
+        if (onCommentsChange) {
+            onCommentsChange(reviewComments);
+        }
+    }, [reviewComments, setUnresolvedCount, onCommentsChange]);
 
     // Resolves parent Topic title and one or multiple Subtopic titles for a comment
     const resolveTopicGroupsForComment = useCallback((comment) => {
@@ -184,12 +357,54 @@ const TopicSubForm = forwardRef(({ iloId, previousWeekId, weekNumber = 1, isOrie
         return [];
     }, [selectedTopics, availableTopics]);
 
+    const collectTopicSpellWarnings = useCallback(() => {
+        const warnings = [];
+        selectedTopics.forEach((topic, tIdx) => {
+            const topicLabel = `Topic #${tIdx + 1}${topic.title ? ` (${topic.title})` : ''}`;
+
+            if (!topic.isContinuation) {
+                const titleWords = checkSpelling(topic.title || '');
+                if (titleWords.length > 0) {
+                    warnings.push({
+                        section: 'Topics',
+                        field: `${topicLabel} — Topic Title`,
+                        words: titleWords
+                    });
+                }
+            }
+
+            (topic.subtopics || []).forEach((sub, sIdx) => {
+                const subWords = checkSpelling(sub.title || '');
+                if (subWords.length > 0) {
+                    warnings.push({
+                        section: 'Topics',
+                        field: `${topicLabel} — Subtopic #${sIdx + 1}`,
+                        words: subWords
+                    });
+                }
+            });
+        });
+        return warnings;
+    }, [selectedTopics]);
+
     useImperativeHandle(ref, () => ({
         validate: () => {
             if (!selectedTopics || selectedTopics.length === 0) {
                 return "Please select or create at least one mapping entry.";
             }
             return null;
+        },
+        getSpellWarnings: collectTopicSpellWarnings,
+        getSelectedTopics: () => selectedTopics,
+        applyAiTopics: (newAiTopics) => {
+            if (!Array.isArray(newAiTopics)) return;
+            // Keep manual/continued topics; replace previously imported AI topics with the updated selection
+            const nonAiTopics = selectedTopics.filter(t => !t.isAiSuggested);
+            const taggedNewAiTopics = newAiTopics.map(t => ({
+                ...t,
+                isAiSuggested: true
+            }));
+            updateTopicsState([...nonAiTopics, ...taggedNewAiTopics]);
         },
         getComments: () => reviewComments,
         toggleComment: (commentId) => {
@@ -244,12 +459,13 @@ const TopicSubForm = forwardRef(({ iloId, previousWeekId, weekNumber = 1, isOrie
             <TopicSelector
                 options={availableTopics}
                 value={selectedTopics}
-                onChange={setSelectedTopics}
+                onChange={updateTopicsState}
                 disabled={loading}
                 iloId={iloId}
                 courseCode={courseCode}
                 weekNumber={isOrientation ? 1 : weekNumber}
                 previousWeekTopics={isOrientation ? [] : previousWeekTopics}
+                onOpenAiSuggest={onOpenAiSuggest}
             />
         </div>
     );
@@ -274,6 +490,12 @@ const TopicForm = () => {
         co_id: null,
         pc_offering_id: null,
         revision_number: 1,
+        courseNo: '',
+        courseTitle: '',
+        courseDescription: '',
+        courseCredit: '',
+        courseContactHrs: '',
+        totalWeeklyHours: 5,
         coNumber: null,
         coDescription: '',
         ilos: [],
@@ -283,6 +505,26 @@ const TopicForm = () => {
     });
     const [activeWeekId, setActiveWeekId] = useState(iloId ? Number(iloId) : null);
 
+    // Frontend in-memory map of topics per week key (`${isOrientation ? 'orient' : 'reg'}-${weekId}`)
+    // Ensures unsaved frontend topics added in Week 1, Week 2, etc. are immediately available to subsequent weeks and AI Suggest
+    const [weekTopicsMap, setWeekTopicsMap] = useState({});
+    // Per-week cache of generated AI suggestions so reopening the modal skips regeneration
+    const [weekAiCacheMap, setWeekAiCacheMap] = useState({});
+    const [isAiModalOpen, setIsAiModalOpen] = useState(false);
+
+    const getWeekCacheKey = useCallback((wId, orientFlag) => {
+        return `${orientFlag ? 'orient' : 'reg'}-${Number(wId)}`;
+    }, []);
+
+    const handleTopicsChangeForWeek = useCallback((wId, orientFlag, nextTopics) => {
+        if (!wId) return;
+        const key = getWeekCacheKey(wId, orientFlag);
+        setWeekTopicsMap(prev => ({
+            ...prev,
+            [key]: Array.isArray(nextTopics) ? nextTopics : []
+        }));
+    }, [getWeekCacheKey]);
+
     // Refs for sub-forms
     const topicRef = useRef();
     const tlaRef = useRef();
@@ -290,6 +532,12 @@ const TopicForm = () => {
 
     // Floating Comment State logic
     const [isCommentsOpen, setIsCommentsOpen] = useState(true);
+    const [selectedRoleFilter, setSelectedRoleFilter] = useState('ALL');
+    const [stepComments, setStepComments] = useState({ 0: [], 1: [], 2: [] });
+    const [revisionReturnMeta, setRevisionReturnMeta] = useState({
+        byCommentId: {},
+        byRole: {}
+    });
 
     // Track unresolved comment counts per content tab for the currently active week
     const [stepCommentCounts, setStepCommentCounts] = useState([0, 0, 0]);
@@ -333,12 +581,24 @@ const TopicForm = () => {
     const handleTlaUnresolved = useCallback((c) => updateStepCount(1, 'tlas', c), [updateStepCount]);
     const handleRefUnresolved = useCallback((c) => updateStepCount(2, 'references', c), [updateStepCount]);
 
+    const handleTopicCommentsChange = useCallback((list) => {
+        setStepComments(prev => ({ ...prev, 0: Array.isArray(list) ? list : [] }));
+    }, []);
+    const handleTlaCommentsChange = useCallback((list) => {
+        setStepComments(prev => ({ ...prev, 1: Array.isArray(list) ? list : [] }));
+    }, []);
+    const handleRefCommentsChange = useCallback((list) => {
+        setStepComments(prev => ({ ...prev, 2: Array.isArray(list) ? list : [] }));
+    }, []);
+
     const unresolvedCount = stepCommentCounts[currentStep] || 0;
 
-    // Main Operation / Global Validations States
+    // Main Operation / Global Validations & Spell Check States
     const [isSaving, setIsSaving] = useState(false);
     const [showValidationModal, setShowValidationModal] = useState(false);
     const [validationErrors, setValidationErrors] = useState({});
+    const [showSpellCheckModal, setShowSpellCheckModal] = useState(false);
+    const [spellCheckWarnings, setSpellCheckWarnings] = useState([]);
     const [showSuccessModal, setShowSuccessModal] = useState(false);
 
     useEffect(() => {
@@ -399,6 +659,12 @@ const TopicForm = () => {
                     co_id: ctx.co_id || null,
                     pc_offering_id: ctx.pc_offering_id || null,
                     revision_number: ctx.revision_number || 1,
+                    courseNo: ctx.courseNo || courseCode || '',
+                    courseTitle: ctx.courseTitle || '',
+                    courseDescription: ctx.courseDescription || '',
+                    courseCredit: ctx.courseCredit || '',
+                    courseContactHrs: ctx.courseContactHrs || '',
+                    totalWeeklyHours: ctx.totalWeeklyHours || 5,
                     coNumber: initialIsOrientation ? 0 : (ctx.coNumber ?? 1),
                     coDescription: ctx.coDescription || '',
                     ilos: Array.isArray(ctx.ilos) ? ctx.ilos : [],
@@ -420,43 +686,153 @@ const TopicForm = () => {
 
         loadWeekContext();
         return () => { mounted = false; };
-    }, [iloId, initialIsOrientation]);
+    }, [iloId, initialIsOrientation, courseCode]);
+
+    // Pre-populate frontend weekTopicsMap for all weeks of the active Course Outcome (without overwriting any unsaved edits already in weekTopicsMap)
+    useEffect(() => {
+        if (isOrientation || !Array.isArray(weekContext.weeks) || weekContext.weeks.length === 0) return;
+        let mounted = true;
+
+        weekContext.weeks.forEach(w => {
+            const wid = Number(w.week_id);
+            const key = getWeekCacheKey(wid, false);
+            fetchJson(`/api/topics/assigned/${encodeURIComponent(wid)}?isOrientation=false`)
+                .then(data => {
+                    if (!mounted || !Array.isArray(data)) return;
+                    setWeekTopicsMap(prev => {
+                        if (prev[key] !== undefined) return prev;
+                        return {
+                            ...prev,
+                            [key]: data
+                        };
+                    });
+                })
+                .catch(() => {});
+        });
+
+        return () => { mounted = false; };
+    }, [weekContext.co_id, weekContext.weeks, isOrientation, getWeekCacheKey]);
+
+    // Fetch revision timeline metadata to enrich return numbers, dates, and stakeholder names
+    useEffect(() => {
+        if (status !== 'returned' || !weekContext.pc_offering_id) return;
+        let mounted = true;
+
+        fetchJson(`/api/revisions/${encodeURIComponent(weekContext.pc_offering_id)}`)
+            .then(data => {
+                if (!mounted || !data || !Array.isArray(data.revisions)) return;
+                const currentRev = data.revisions.find(
+                    r => Number(r.pcId) === Number(weekContext.pc_offering_id)
+                ) || data.revisions[0];
+
+                if (!currentRev || !Array.isArray(currentRev.timeline)) return;
+
+                const byCommentId = {};
+                const byRole = {};
+                let returnIdx = 0;
+
+                currentRev.timeline.forEach(event => {
+                    if (event.type === 'RETURNED') {
+                        returnIdx += 1;
+                        const entry = {
+                            returnNumber: returnIdx,
+                            returnDate: event.date,
+                            actorName: event.actorName,
+                            actorRole: event.actorRole,
+                            stakeholderId: event.stakeholderId
+                        };
+                        if (event.actorRole) {
+                            byRole[event.actorRole.toUpperCase().replace(/\s+/g, '_')] = entry;
+                            if (event.actorRole === 'Director of Libraries') {
+                                byRole['LIBRARY_DIRECTOR'] = entry;
+                            } else if (event.actorRole === 'Program Head') {
+                                byRole['PROGRAM_HEAD'] = entry;
+                            } else if (event.actorRole === 'Industry Consultant') {
+                                byRole['INDUSTRY_CONSULTANT'] = entry;
+                            } else if (event.actorRole === 'Dean') {
+                                byRole['DEAN'] = entry;
+                            }
+                        }
+                        if (Array.isArray(event.comments)) {
+                            event.comments.forEach(c => {
+                                if (c && c.id != null) {
+                                    byCommentId[Number(c.id)] = entry;
+                                }
+                            });
+                        }
+                    }
+                });
+
+                setRevisionReturnMeta({ byCommentId, byRole });
+            })
+            .catch(() => {});
+
+        return () => { mounted = false; };
+    }, [status, weekContext.pc_offering_id]);
 
     const activeWeekIndex = weekContext.weeks.findIndex(
         w => Number(w.week_id) === Number(activeWeekId)
     );
-    const activeWeekNumber = activeWeekIndex >= 0
-        ? (weekContext.weeks[activeWeekIndex].weekNumber || activeWeekIndex + 1)
+    const activeWeekObj = activeWeekIndex >= 0 ? weekContext.weeks[activeWeekIndex] : null;
+    const activeWeekNumber = activeWeekObj
+        ? (activeWeekObj.weekNumber || activeWeekIndex + 1)
         : 1;
+    const activeWeekHours = activeWeekObj?.hours
+        ? Number(activeWeekObj.hours)
+        : (isOrientation ? 2 : (weekContext.totalWeeklyHours || 5));
     const previousWeekId = (!isOrientation && activeWeekIndex > 0)
         ? weekContext.weeks[activeWeekIndex - 1]?.week_id
         : null;
 
-    const handleSelectWeek = async (nextWeekId) => {
-        if (isOrientation || Number(nextWeekId) === Number(activeWeekId)) return;
-        try {
-            if (topicRef.current) await topicRef.current.save();
-            if (tlaRef.current) await tlaRef.current.save();
-            if (refRef.current) await refRef.current.save();
-        } catch (err) {
-            console.warn("Auto-saving current week before switching encountered an issue:", err);
+    // Frontend-cached topics for the current week and previous weeks (used directly without needing DB save first)
+    const currentWeekCachedTopics = weekTopicsMap[getWeekCacheKey(effectiveWeekId, isOrientation)];
+    const previousWeekCachedTopics = previousWeekId
+        ? weekTopicsMap[getWeekCacheKey(previousWeekId, false)]
+        : undefined;
+
+    // Build array of all earlier weeks' topics (Weeks 1 .. activeWeekNumber - 1) from frontend state for AI Suggest
+    const previousWeeksTopicsForAi = useMemo(() => {
+        if (isOrientation || activeWeekIndex <= 0) return [];
+        const list = [];
+        for (let i = 0; i < activeWeekIndex; i++) {
+            const w = weekContext.weeks[i];
+            if (!w) continue;
+            const wNum = w.weekNumber || (i + 1);
+            const wKey = getWeekCacheKey(w.week_id, false);
+            const wTopics = weekTopicsMap[wKey] || [];
+            list.push({
+                weekId: w.week_id,
+                weekNumber: wNum,
+                topics: wTopics.map(t => ({
+                    title: t.title,
+                    subtopics: (t.subtopics || []).map(s => (typeof s === 'string' ? s : s.title)).filter(Boolean)
+                }))
+            });
         }
+        return list;
+    }, [isOrientation, activeWeekIndex, weekContext.weeks, getWeekCacheKey, weekTopicsMap]);
+
+    // Sync current week's live topics into weekTopicsMap before switching weeks or opening AI Suggest
+    const syncLiveTopicsToFrontendMap = useCallback(() => {
+        if (topicRef.current?.getSelectedTopics && effectiveWeekId) {
+            const liveTopics = topicRef.current.getSelectedTopics();
+            handleTopicsChangeForWeek(effectiveWeekId, isOrientation, liveTopics);
+        }
+    }, [effectiveWeekId, isOrientation, handleTopicsChangeForWeek]);
+
+    const handleSelectWeek = (nextWeekId) => {
+        if (isOrientation || Number(nextWeekId) === Number(activeWeekId)) return;
+        syncLiveTopicsToFrontendMap();
         setActiveWeekId(Number(nextWeekId));
     };
 
-    const handleSelectCourseOutcome = async (targetCo) => {
+    const handleSelectCourseOutcome = (targetCo) => {
         if (!targetCo) return;
         const targetIsOrientation = Boolean(targetCo.isOrientation || Number(targetCo.coNumber) === 0);
         if (targetIsOrientation && isOrientation) return;
         if (!targetIsOrientation && !isOrientation && Number(targetCo.coNumber) === Number(weekContext.coNumber)) return;
 
-        try {
-            if (topicRef.current) await topicRef.current.save();
-            if (tlaRef.current) await tlaRef.current.save();
-            if (refRef.current) await refRef.current.save();
-        } catch (err) {
-            console.warn("Auto-saving current week before switching Course Outcome encountered an issue:", err);
-        }
+        syncLiveTopicsToFrontendMap();
 
         const nextWeeks = Array.isArray(targetCo.weeks) ? targetCo.weeks : [];
         const nextWeekId = targetCo.firstWeekId || (nextWeeks[0] ? nextWeeks[0].week_id : null);
@@ -476,12 +852,49 @@ const TopicForm = () => {
         }
     };
 
+    const handleUpdateWeekAiCache = useCallback((nextCacheObj) => {
+        if (!effectiveWeekId) return;
+        const key = getWeekCacheKey(effectiveWeekId, isOrientation);
+        setWeekAiCacheMap(prev => ({
+            ...prev,
+            [key]: nextCacheObj
+        }));
+    }, [effectiveWeekId, isOrientation, getWeekCacheKey]);
+
+    const handleOpenAiSuggest = () => {
+        syncLiveTopicsToFrontendMap();
+        if (currentStep !== 0) {
+            setCurrentStep(0);
+        }
+        setIsAiModalOpen(true);
+    };
+
+    const handleApplyAiTopicsFromModal = (newAiTopics) => {
+        if (topicRef.current?.applyAiTopics) {
+            topicRef.current.applyAiTopics(newAiTopics);
+        }
+    };
+
     const goBackHandler = () => navigate(-1);
 
     const getActiveRef = () => {
         if (currentStep === 0) return topicRef.current;
         if (currentStep === 1) return tlaRef.current;
         return refRef.current;
+    };
+
+    const collectAllSpellWarnings = () => {
+        const allWarnings = [];
+        if (topicRef.current?.getSpellWarnings) {
+            allWarnings.push(...topicRef.current.getSpellWarnings());
+        }
+        if (tlaRef.current?.getSpellWarnings) {
+            allWarnings.push(...tlaRef.current.getSpellWarnings());
+        }
+        if (refRef.current?.getSpellWarnings) {
+            allWarnings.push(...refRef.current.getSpellWarnings());
+        }
+        return allWarnings;
     };
 
     const handleSaveClick = async () => {
@@ -504,16 +917,61 @@ const TopicForm = () => {
         if (Object.keys(errors).length > 0) {
             setValidationErrors(errors);
             setShowValidationModal(true);
-        } else {
-            // Clean Save
-            await executeGlobalSave();
+            return;
         }
+
+        // 2. Soft-Warning Pre-Save Spell Check across Topics, TLAs, and References
+        const warnings = collectAllSpellWarnings();
+        if (warnings.length > 0) {
+            setSpellCheckWarnings(warnings);
+            setShowSpellCheckModal(true);
+            return;
+        }
+
+        // 3. Clean Save
+        await executeGlobalSave();
+    };
+
+    const handleProceedFromValidation = async () => {
+        setShowValidationModal(false);
+        const warnings = collectAllSpellWarnings();
+        if (warnings.length > 0) {
+            setSpellCheckWarnings(warnings);
+            setShowSpellCheckModal(true);
+            return;
+        }
+        await executeGlobalSave();
     };
 
     const executeGlobalSave = async () => {
         setShowValidationModal(false);
+        setShowSpellCheckModal(false);
         setIsSaving(true);
         try {
+            // Sync live topics to frontend cache first
+            syncLiveTopicsToFrontendMap();
+
+            // Save all modified weeks in weekTopicsMap so topics added across multiple weeks in the session are persisted
+            const savedActiveKey = getWeekCacheKey(effectiveWeekId, isOrientation);
+            const entries = Object.entries(weekTopicsMap);
+            for (const [key, topicsArr] of entries) {
+                if (key === savedActiveKey) continue;
+                const [prefix, rawWid] = key.split('-');
+                const wid = Number(rawWid);
+                if (wid && Array.isArray(topicsArr)) {
+                    await fetchJson(`/api/topics/assign`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            week_id: wid,
+                            ilo_id: wid,
+                            is_orientation: prefix === 'orient',
+                            topics: topicsArr
+                        })
+                    }).catch(() => {});
+                }
+            }
+
             // Execute physical batch savings on rendered forms explicitly
             if (topicRef.current) await topicRef.current.save();
             if (tlaRef.current) await tlaRef.current.save();
@@ -533,86 +991,259 @@ const TopicForm = () => {
         }
     };
 
+    // Helper to resolve complete return + stakeholder details for a comment
+    const resolveCommentDetails = (comment) => {
+        const cid = Number(comment.comment_id);
+        const rawRole = comment.commenter_role || 'APPROVER';
+        const roleLabel = comment.commenter_role_label || formatApproverRoleLabel(rawRole);
+        const revMeta = revisionReturnMeta.byCommentId[cid] || revisionReturnMeta.byRole[rawRole] || null;
+
+        // Resolve actual stakeholder full name (never falling back to role label if stakeholder is known)
+        let commenterName = comment.commenter_name;
+        if (!commenterName || commenterName.toLowerCase() === roleLabel.toLowerCase()) {
+            commenterName =
+                revMeta?.actorName ||
+                (comment.stakeholder_id ? STAKEHOLDER_NAME_BY_ID[String(comment.stakeholder_id)] : null) ||
+                STAKEHOLDER_NAME_BY_ROLE[rawRole] ||
+                roleLabel;
+        }
+
+        let returnNumber = Number(comment.return_number) || 0;
+        if (revMeta?.returnNumber) {
+            returnNumber = revMeta.returnNumber;
+        } else if (!comment.return_number || returnNumber <= 1) {
+            if (rawRole === 'INDUSTRY_CONSULTANT') returnNumber = 1;
+            else if (rawRole === 'PROGRAM_HEAD') returnNumber = 2;
+            else if (rawRole === 'LIBRARY_DIRECTOR') returnNumber = 3;
+            else if (rawRole === 'DEAN') returnNumber = 4;
+            else returnNumber = 1;
+        }
+
+        const returnDate = revMeta?.returnDate || comment.return_date || comment.createdAt;
+
+        return {
+            commenterName,
+            commenterRoleLabel: roleLabel,
+            returnNumber,
+            returnDate
+        };
+    };
+
     const renderActiveCommentsList = () => {
         const activeRef = getActiveRef();
-        if (!activeRef) return null;
+        const refComments = (activeRef && activeRef.getComments) ? activeRef.getComments() : [];
+        const stateComments = stepComments[currentStep] || [];
+        const comments = stateComments.length > 0 ? stateComments : refComments;
 
-        const comments = activeRef.getComments ? activeRef.getComments() : [];
+        // Build Approver Role options (standard approver roles + any role dynamically present in comments)
+        const roleOptionsMap = new Map([
+            ['ALL', 'All Approver Roles'],
+            ['INDUSTRY_CONSULTANT', 'Industry Consultant'],
+            ['PROGRAM_HEAD', 'Program Head'],
+            ['LIBRARY_DIRECTOR', 'Director of Libraries'],
+            ['DEAN', 'Dean']
+        ]);
 
-        if (comments.length === 0) {
-            return (
-                <div className={styles.emptyChecklist}>
-                    <p style={{textAlign: 'center', paddingTop: '40px', color: '#888'}}>
-                        No unresolved notes for {steps[currentStep]}.
-                    </p>
-                </div>
-            );
-        }
+        const allWeekComments = [
+            ...(stepComments[0] || []),
+            ...(stepComments[1] || []),
+            ...(stepComments[2] || []),
+            ...comments
+        ];
+
+        allWeekComments.forEach(c => {
+            if (c?.commenter_role && !roleOptionsMap.has(c.commenter_role)) {
+                roleOptionsMap.set(
+                    c.commenter_role,
+                    c.commenter_role_label || formatApproverRoleLabel(c.commenter_role)
+                );
+            }
+            if (Array.isArray(c?.available_returns)) {
+                c.available_returns.forEach(ret => {
+                    if (ret?.actor_role && !roleOptionsMap.has(ret.actor_role)) {
+                        roleOptionsMap.set(
+                            ret.actor_role,
+                            ret.actor_role_label || formatApproverRoleLabel(ret.actor_role)
+                        );
+                    }
+                });
+            }
+        });
+
+        // Compute returned comment counts (total & unresolved) per role option for the active tab
+        const roleOptions = Array.from(roleOptionsMap.entries()).map(([value, label]) => {
+            const matchingComments = value === 'ALL'
+                ? comments
+                : comments.filter(c => c.commenter_role === value);
+            const totalCount = matchingComments.length;
+            const unresolvedRoleCount = matchingComments.filter(c => !c.resolved_status).length;
+            return {
+                value,
+                label,
+                totalCount,
+                unresolvedCount: unresolvedRoleCount
+            };
+        });
+
+        const filteredComments = selectedRoleFilter === 'ALL'
+            ? comments
+            : comments.filter(c => c.commenter_role === selectedRoleFilter);
+
+        // Group filtered comments per Return (Return 1, Return 2, ...)
+        const groupedByReturn = {};
+        const returnDatesByNum = {};
+
+        filteredComments.forEach(comment => {
+            const { returnNumber, returnDate } = resolveCommentDetails(comment);
+            if (!groupedByReturn[returnNumber]) {
+                groupedByReturn[returnNumber] = [];
+            }
+            groupedByReturn[returnNumber].push(comment);
+            if (!returnDatesByNum[returnNumber] && returnDate) {
+                returnDatesByNum[returnNumber] = returnDate;
+            }
+        });
+
+        const sortedReturnNumbers = Object.keys(groupedByReturn)
+            .map(Number)
+            .sort((a, b) => a - b);
 
         return (
             <div className={styles.checklistWrapper}>
-                {comments.map((comment) => {
-                    const topicGroups = (currentStep === 0 && activeRef.getCommentTargetDetails)
-                        ? activeRef.getCommentTargetDetails(comment)
-                        : [];
+                {/* Custom Approver Role Filter Dropdown with Returned Comment Badges */}
+                <div className={styles.commentFilterBar}>
+                    <RoleFilterDropdown
+                        options={roleOptions}
+                        value={selectedRoleFilter}
+                        onChange={setSelectedRoleFilter}
+                    />
+                </div>
 
-                    return (
-                        <label
-                            key={comment.comment_id}
-                            className={`${styles.checklistItem} ${comment.resolved_status ? styles.itemResolved : ''}`}
-                        >
-                            <div className={styles.checkboxControl}>
-                                <input
-                                    type="checkbox"
-                                    checked={comment.resolved_status}
-                                    onChange={() => activeRef.toggleComment(comment.comment_id)}
-                                />
-                                <span className={styles.customCheckmark}></span>
-                            </div>
+                {comments.length === 0 ? (
+                    <div className={styles.emptyChecklist}>
+                        <p style={{ textAlign: 'center', paddingTop: '28px', color: '#888', margin: 0 }}>
+                            No unresolved notes for {steps[currentStep]}.
+                        </p>
+                    </div>
+                ) : filteredComments.length === 0 ? (
+                    <div className={styles.emptyChecklist}>
+                        <p style={{ textAlign: 'center', paddingTop: '28px', color: '#888', margin: 0 }}>
+                            No comments from {roleOptionsMap.get(selectedRoleFilter) || 'selected role'} for {steps[currentStep]}.
+                        </p>
+                    </div>
+                ) : (
+                    sortedReturnNumbers.map((rNum) => {
+                        const groupComments = groupedByReturn[rNum] || [];
+                        const rawReturnDate = returnDatesByNum[rNum];
+                        const formattedReturnDate = rawReturnDate
+                            ? new Date(rawReturnDate).toLocaleDateString('en-US', {
+                                month: 'long',
+                                day: 'numeric',
+                                year: 'numeric'
+                            })
+                            : '';
 
-                            <div className={styles.commentContent}>
-                                {currentStep === 0 && topicGroups.length > 0 ? (
-                                    <div className={styles.topicTargetContainer}>
-                                        {topicGroups.map((group, gIdx) => (
-                                            <div key={group.topic_id || gIdx} className={styles.topicTargetGroup}>
-                                                <div className={styles.topicTargetParent}>
-                                                    <span className={styles.topicTargetPrefix}>TOPIC:</span>
-                                                    <span className={styles.topicTargetTitle}>{group.topic_title}</span>
-                                                </div>
-                                                {Array.isArray(group.subtopics) && group.subtopics.length > 0 && (
-                                                    <div className={styles.subtopicTargetList}>
-                                                        {group.subtopics.map((sub, sIdx) => (
-                                                            <div key={sub.subtopic_id || sIdx} className={styles.subtopicTargetPill}>
-                                                                <span className={styles.subtopicBullet}>•</span>
-                                                                <span className={styles.subtopicTargetText}>{sub.title}</span>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        ))}
-                                    </div>
-                                ) : (
-                                    <div className={styles.targetContextBadge}>
-                                        <span className={styles.targetText}>{activeRef.getCommentTargetLabel(comment)}</span>
-                                    </div>
-                                )}
-
-                                <p className={styles.commentMessage}>{comment.message}</p>
-
-                                <div className={styles.commentMetadata}>
-                                    <span className={styles.metaRole}>{comment.commenter_role.replace(/_/g, ' ')}</span>
-                                    <span className={styles.metaDivider}>•</span>
-                                    <span className={styles.metaDate}>
-                                        {new Date(comment.createdAt).toLocaleDateString(undefined, {
-                                            month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
-                                        })}
+                        return (
+                            <div key={`return-group-${rNum}`} className={styles.returnGroupSection}>
+                                <div className={styles.returnGroupHeader}>
+                                    <span className={styles.returnGroupTitle}>
+                                        Return {rNum}{formattedReturnDate ? ` - ${formattedReturnDate}` : ''}
                                     </span>
                                 </div>
+
+                                <div className={styles.returnGroupCards}>
+                                    {groupComments.map((comment) => {
+                                        const topicGroups = (currentStep === 0 && activeRef?.getCommentTargetDetails)
+                                            ? activeRef.getCommentTargetDetails(comment)
+                                            : (Array.isArray(comment.topic_groups) ? comment.topic_groups : []);
+
+                                        const {
+                                            commenterName,
+                                            commenterRoleLabel,
+                                            returnDate
+                                        } = resolveCommentDetails(comment);
+
+                                        const commentTimestamp = comment.createdAt || returnDate;
+
+                                        return (
+                                            <label
+                                                key={comment.comment_id}
+                                                className={`${styles.checklistItem} ${comment.resolved_status ? styles.itemResolved : ''}`}
+                                            >
+                                                <div className={styles.commentContent}>
+                                                    {/* 1. Top Header: Stakeholder Name + Role subtext on Left, Checkbox on Top-Right */}
+                                                    <div className={styles.commentItemHeader}>
+                                                        <div className={styles.commenterIdentity}>
+                                                            <span className={styles.commenterName}>{commenterName}</span>
+                                                            <span className={styles.commenterRole}>{commenterRoleLabel}</span>
+                                                        </div>
+
+                                                        <div className={styles.checkboxControl}>
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={comment.resolved_status}
+                                                                onChange={() => activeRef?.toggleComment && activeRef.toggleComment(comment.comment_id)}
+                                                            />
+                                                            <span className={styles.customCheckmark}></span>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* 2. Target Context Block */}
+                                                    {currentStep === 0 && topicGroups.length > 0 ? (
+                                                        <div className={styles.topicTargetContainer}>
+                                                            {topicGroups.map((group, gIdx) => (
+                                                                <div key={group.topic_id || gIdx} className={styles.topicTargetGroup}>
+                                                                    <div className={styles.topicTargetParent}>
+                                                                        <span className={styles.topicTargetPrefix}>TOPIC:</span>
+                                                                        <span className={styles.topicTargetTitle}>{group.topic_title}</span>
+                                                                    </div>
+                                                                    {Array.isArray(group.subtopics) && group.subtopics.length > 0 && (
+                                                                        <div className={styles.subtopicTargetList}>
+                                                                            {group.subtopics.map((sub, sIdx) => (
+                                                                                <div key={sub.subtopic_id || sIdx} className={styles.subtopicTargetPill}>
+                                                                                    <span className={styles.subtopicBullet}>•</span>
+                                                                                    <span className={styles.subtopicTargetText}>{sub.title}</span>
+                                                                                </div>
+                                                                            ))}
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    ) : (
+                                                        <div className={styles.targetContextBadge}>
+                                                            <span className={styles.targetPrefix}>
+                                                                {currentStep === 1 ? 'TLA:' : currentStep === 2 ? 'REF:' : 'TARGET:'}
+                                                            </span>
+                                                            <span className={styles.targetText}>
+                                                                {activeRef?.getCommentTargetLabel
+                                                                    ? activeRef.getCommentTargetLabel(comment)
+                                                                    : (comment.target_title || 'General Item')}
+                                                            </span>
+                                                        </div>
+                                                    )}
+
+                                                    {/* 3. Feedback Message Body */}
+                                                    <p className={styles.commentMessage}>{comment.message}</p>
+
+                                                    {/* 4. Bottom-Left Time-Only Footer (Date is shown in Return Group Header) */}
+                                                    <div className={styles.commentMetadata}>
+                                                        <span className={styles.metaDate}>
+                                                            {new Date(commentTimestamp).toLocaleTimeString('en-US', {
+                                                                hour: '2-digit',
+                                                                minute: '2-digit'
+                                                            })}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </label>
+                                        );
+                                    })}
+                                </div>
                             </div>
-                        </label>
-                    );
-                })}
+                        );
+                    })
+                )}
             </div>
         );
     };
@@ -659,7 +1290,12 @@ const TopicForm = () => {
                                          isOrientation={isOrientation}
                                          status={status}
                                          setUnresolvedCount={handleTopicUnresolved}
-                                         courseCode={courseCode}
+                                         onCommentsChange={handleTopicCommentsChange}
+                                         courseCode={weekContext.courseNo || courseCode}
+                                         cachedWeekTopics={currentWeekCachedTopics}
+                                         previousWeekFrontendTopics={previousWeekCachedTopics}
+                                         onTopicsChangeForWeek={handleTopicsChangeForWeek}
+                                         onOpenAiSuggest={handleOpenAiSuggest}
                                      />
                                  </div>
                                  <div style={{ display: currentStep === 1 ? 'flex' : 'none', flexDirection: 'column', flex: 1, minHeight: 0 }}>
@@ -669,6 +1305,7 @@ const TopicForm = () => {
                                          isOrientation={isOrientation}
                                          status={status}
                                          setUnresolvedCount={handleTlaUnresolved}
+                                         onCommentsChange={handleTlaCommentsChange}
                                      />
                                  </div>
                                  <div style={{ display: currentStep === 2 ? 'flex' : 'none', flexDirection: 'column', flex: 1, minHeight: 0 }}>
@@ -678,6 +1315,7 @@ const TopicForm = () => {
                                          isOrientation={isOrientation}
                                          status={status}
                                          setUnresolvedCount={handleRefUnresolved}
+                                         onCommentsChange={handleRefCommentsChange}
                                      />
                                  </div>
                              </div>
@@ -686,38 +1324,59 @@ const TopicForm = () => {
 
                         {/* -------------------- Interactive Review Sidebar UX -------------------- */}
                         {status === 'returned' && (
-      <div className={isCommentsOpen ? styles.rightContCollapsible : styles.rightContCollapsed}>
-          {isCommentsOpen ? (
-              <div className={styles.checklistCard}>
-                  <div className={styles.checklistHeaderCollapsible}>
-                      <div style={{display: 'flex', gap: '8px', alignItems: 'center'}}>
-                          <MessageSquare size={18} className={styles.headerIcon} />
-                          <h3 style={{fontSize: '14px', margin: 0, fontWeight: 500}}>Review Feedback</h3>
-                      </div>
-                      <div style={{display: 'flex', alignItems: 'center', gap: '10px'}}>
-                          {unresolvedCount > 0 && <span className={styles.floatingBadge} style={{position: 'relative', top: 0, right: 0}}>{unresolvedCount}</span>}
-                          <button onClick={() => setIsCommentsOpen(false)} className={styles.closeCollapse}>
-                              <ChevronsRight size={20} />
-                          </button>
-                      </div>
-                  </div>
-                  {renderActiveCommentsList()}
-              </div>
-          ) : (
-              <button
-                  className={styles.sidebarToggle}
-                  onClick={() => setIsCommentsOpen(true)}
-                  title={`View Review Feedback for ${steps[currentStep]}`}
-              >
-                  <MessageSquare size={20} className={styles.headerIcon} />
-                  {unresolvedCount > 0 && <span className={styles.collapsedBadge}>{unresolvedCount}</span>}
-              </button>
-          )}
-      </div>
-)}
+                            <div className={isCommentsOpen ? styles.rightContCollapsible : styles.rightContCollapsed}>
+                                {isCommentsOpen ? (
+                                    <div className={styles.checklistCard}>
+                                        <div className={styles.checklistHeaderCollapsible}>
+                                            <div style={{display: 'flex', gap: '8px', alignItems: 'center'}}>
+                                                <MessageSquare size={18} className={styles.headerIcon} />
+                                                <h3 style={{fontSize: '14px', margin: 0, fontWeight: 500}}>Review Feedback</h3>
+                                            </div>
+                                            <div style={{display: 'flex', alignItems: 'center', gap: '10px'}}>
+                                                {unresolvedCount > 0 && <span className={styles.floatingBadge} style={{position: 'relative', top: 0, right: 0}}>{unresolvedCount}</span>}
+                                                <button onClick={() => setIsCommentsOpen(false)} className={styles.closeCollapse}>
+                                                    <ChevronsRight size={20} />
+                                                </button>
+                                            </div>
+                                        </div>
+                                        {renderActiveCommentsList()}
+                                    </div>
+                                ) : (
+                                    <button
+                                        className={styles.sidebarToggle}
+                                        onClick={() => setIsCommentsOpen(true)}
+                                        title={`View Review Feedback for ${steps[currentStep]}`}
+                                    >
+                                        <MessageSquare size={20} className={styles.headerIcon} />
+                                        {unresolvedCount > 0 && <span className={styles.collapsedBadge}>{unresolvedCount}</span>}
+                                    </button>
+                                )}
+                            </div>
+                        )}
 
 
                     </div>
+
+                    {/* --- AI Topic & Subtopic Suggestion Modal --- */}
+                    <AiTopicSuggestModal
+                        isOpen={isAiModalOpen}
+                        onClose={() => setIsAiModalOpen(false)}
+                        onApplyTopics={handleApplyAiTopicsFromModal}
+                        iloId={effectiveWeekId}
+                        courseCode={weekContext.courseNo || courseCode}
+                        courseTitle={weekContext.courseTitle}
+                        courseDescription={weekContext.courseDescription}
+                        coNumber={weekContext.coNumber}
+                        coDescription={weekContext.coDescription}
+                        ilos={weekContext.ilos}
+                        weekNumber={isOrientation ? 1 : activeWeekNumber}
+                        weeklyHours={activeWeekHours}
+                        isOrientation={isOrientation}
+                        previousWeeksTopics={previousWeeksTopicsForAi}
+                        currentTopics={currentWeekCachedTopics || []}
+                        weekAiCache={weekAiCacheMap[getWeekCacheKey(effectiveWeekId, isOrientation)]}
+                        onUpdateWeekAiCache={handleUpdateWeekAiCache}
+                    />
 
                     {/* --- Validation Enforcement Core Logic Modal --- */}
                     <InlineModal
@@ -726,39 +1385,93 @@ const TopicForm = () => {
                         onClose={() => setShowValidationModal(false)}
                         actions={
                             <>
-                                <button className={styles.modalCancelBtn} onClick={() => setShowValidationModal(false)}>Return to Fix</button>
-                                <button className={styles.modalConfirmBtn} onClick={executeGlobalSave}>Save Progress Anyway</button>
+                                <button type="button" className={styles.modalCancelBtn} onClick={() => setShowValidationModal(false)}>
+                                    Return to Form
+                                </button>
+                                <button type="button" className={styles.modalConfirmBtn} onClick={handleProceedFromValidation}>
+                                    Proceed Save Anyway
+                                </button>
                             </>
                         }
                     >
-                        <div style={{ textAlign: 'left' }}>
-                            <div style={{display: 'flex', gap: '10px', alignItems: 'center', marginBottom: '15px', color: '#c62828'}}>
-                                <AlertCircle size={24} />
-                                <span style={{fontWeight: 600}}>Some forms are missing required information.</span>
+                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+                            <AlertCircle size={22} color="#E53E3E" style={{ flexShrink: 0, marginTop: '2px' }} />
+                            <div>
+                                <p style={{ margin: '0 0 8px 0', fontSize: '13.5px', fontWeight: 600, color: '#1E293B' }}>
+                                    Incomplete Fields Detected
+                                </p>
+                                <p style={{ margin: 0, fontSize: '12.5px', color: '#64748B', lineHeight: 1.5 }}>
+                                    The following sections have missing or incomplete fields:
+                                </p>
+                                <ul className={styles.errorList}>
+                                    {Object.entries(validationErrors).map(([section, msg]) => (
+                                        <li key={section}><strong>{section}:</strong> {msg}</li>
+                                    ))}
+                                </ul>
                             </div>
-                            <ul style={{ background: '#fff5f5', padding: '15px 15px 15px 30px', borderRadius: '6px', margin: 0, fontSize: '13px', color: '#b71c1c' }}>
-                                {Object.entries(validationErrors).map(([key, problem]) => (
-                                    <li key={key} style={{marginBottom: '5px'}}>
-                                        <strong>{key}:</strong> {problem}
-                                    </li>
-                                ))}
-                            </ul>
                         </div>
                     </InlineModal>
 
+                    {/* --- Soft-Warning Pre-Save Spell Check Confirmation Modal --- */}
                     <InlineModal
-                        isOpen={isSaving || showSuccessModal}
-                        title={showSuccessModal ? "Saved" : "Synchronizing"}
-                        onClose={() => {}}
+                        isOpen={showSpellCheckModal}
+                        title="Spelling Check Warning"
+                        onClose={() => setShowSpellCheckModal(false)}
+                        actions={
+                            <>
+                                <button type="button" className={styles.modalCancelBtn} onClick={() => setShowSpellCheckModal(false)}>
+                                    Review & Edit
+                                </button>
+                                <button type="button" className={styles.modalConfirmBtn} onClick={executeGlobalSave}>
+                                    Save Anyway
+                                </button>
+                            </>
+                        }
                     >
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, padding: '20px 0' }}>
-                            {showSuccessModal ? (
-                                <><CheckCircle size={24} color="#10b981" /> <span>Updates formally stored!</span></>
-                            ) : (
-                                <><div className={styles.spinnerDark} /> <span>Executing batch save mechanics...</span></>
-                            )}
+                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+                            <AlertCircle size={22} color="#D97706" style={{ flexShrink: 0, marginTop: '2px' }} />
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                                <p style={{ margin: '0 0 6px 0', fontSize: '13.5px', fontWeight: 600, color: '#1E293B' }}>
+                                    Potential Misspellings Detected
+                                </p>
+                                <p style={{ margin: '0 0 10px 0', fontSize: '12.5px', color: '#64748B', lineHeight: 1.45 }}>
+                                    The following words were flagged across your form fields. Right-click any underlined word to view suggestions or add it to your whitelist:
+                                </p>
+                                <div className={styles.spellWarningList}>
+                                    {spellCheckWarnings.map((item, idx) => (
+                                        <div key={idx} className={styles.spellWarningCategory}>
+                                            <div className={styles.spellWarningHeaderRow}>
+                                                <span className={styles.spellWarningSectionTag}>{item.section}</span>
+                                                <span className={styles.spellWarningFieldTitle}>{item.field}</span>
+                                            </div>
+                                            <div className={styles.spellWarningWordPills}>
+                                                {item.words.map((w, wIdx) => (
+                                                    <span key={`${w}-${wIdx}`} className={styles.spellWarningWordBadge}>
+                                                        {w}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
                         </div>
                     </InlineModal>
+
+                    {/* --- Clean Global Save Success Feedback Modal --- */}
+                    <InlineModal
+                        isOpen={showSuccessModal}
+                        title="Saved Successfully"
+                        onClose={() => setShowSuccessModal(false)}
+                    >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '6px 0' }}>
+                            <CheckCircle size={22} color="#10B981" style={{ flexShrink: 0 }} />
+                            <p style={{ margin: 0, fontSize: '13.5px', fontWeight: 500, color: '#1E293B' }}>
+                                Weekly content changes and comment resolutions have been saved.
+                            </p>
+                        </div>
+                    </InlineModal>
+
                 </div>
             }
         />

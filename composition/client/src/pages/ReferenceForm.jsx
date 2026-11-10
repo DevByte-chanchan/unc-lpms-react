@@ -2,7 +2,8 @@ import React, { useEffect, useState, forwardRef, useImperativeHandle } from 'rea
 import ReferencePicker from '../components/ReferencePicker.jsx';
 import TextField from '../components/TextField.jsx';
 import Dropdown from '../components/Dropdown.jsx';
-import { X } from 'react-feather';
+import { checkSpelling } from '../utils/spellChecker.js';
+import { X, AlertCircle } from 'react-feather';
 import { fetchJson } from "../utils/api.js";
 import styles from '../styles/Form.module.sass';
 
@@ -24,7 +25,7 @@ export function InlineModal({ isOpen, title, onClose, children, actions }) {
     );
 }
 
-const ReferenceForm = forwardRef(({ iloId, isOrientation = false, status, setUnresolvedCount }, ref) => {
+const ReferenceForm = forwardRef(({ iloId, isOrientation = false, status, setUnresolvedCount, onCommentsChange }, ref) => {
     const [allReferences, setAllReferences] = useState([]);
     const [selectedRefs, setSelectedRefs] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -37,6 +38,8 @@ const ReferenceForm = forwardRef(({ iloId, isOrientation = false, status, setUnr
     const [newRefDraft, setNewRefDraft] = useState({
         title: '', type: 'Textbook', author: '', isbn: '', link: '', publication_year: ''
     });
+    const [refSpellWarnings, setRefSpellWarnings] = useState([]);
+    const [showRefSpellModal, setShowRefSpellModal] = useState(false);
 
     useEffect(() => {
         if (!iloId) return;
@@ -60,7 +63,9 @@ const ReferenceForm = forwardRef(({ iloId, isOrientation = false, status, setUnr
 
                 const initialComments = (Array.isArray(targetedComments) ? targetedComments : []).map(c => ({
                     ...c,
-                    resolved_status: c.resolved_status === 1 || c.resolved_status === true
+                    resolved_status: c.resolved_status === 1 || c.resolved_status === true,
+                    return_number: Number(c.return_number) || 1,
+                    return_date: c.return_date || c.createdAt
                 }));
                 setReviewComments(initialComments);
 
@@ -101,25 +106,54 @@ const ReferenceForm = forwardRef(({ iloId, isOrientation = false, status, setUnr
         return () => { mounted = false; };
     }, [iloId, isOrientation, status]);
 
-    // Update unresolved count for Master layout
+    // Update unresolved count and sync comment list for Master layout
     useEffect(() => {
         if (setUnresolvedCount) {
             setUnresolvedCount(reviewComments.filter(c => !c.resolved_status).length);
         }
-    }, [reviewComments, setUnresolvedCount]);
+        if (onCommentsChange) {
+            onCommentsChange(reviewComments);
+        }
+    }, [reviewComments, setUnresolvedCount, onCommentsChange]);
 
     const handleOpenAdd = () => {
         setNewRefDraft({ title: '', type: 'Textbook', author: '', isbn: '', link: '', publication_year: '' });
         setValidationError(null);
+        setRefSpellWarnings([]);
+        setShowRefSpellModal(false);
         setIsAddOpen(true);
     };
 
-    const handleSaveNewRefLocal = () => {
-        if (!newRefDraft.title || !newRefDraft.type) {
-            setValidationError('Title and Type are required for the new reference.');
-            return;
+    const getDraftSpellWarnings = (draft, labelPrefix = 'New Reference') => {
+        const warnings = [];
+        const titleWords = checkSpelling(draft.title || '');
+        if (titleWords.length > 0) {
+            warnings.push({
+                section: 'References',
+                field: `${labelPrefix} — Title`,
+                words: titleWords
+            });
         }
 
+        const authorLabel =
+            draft.type === 'Open Educational Resources'
+                ? 'Author / Source'
+                : draft.type === 'Online Resources'
+                    ? 'Author / Publisher'
+                    : 'Author(s)';
+        const authorWords = checkSpelling(draft.author || '');
+        if (authorWords.length > 0) {
+            warnings.push({
+                section: 'References',
+                field: `${labelPrefix} — ${authorLabel}`,
+                words: authorWords
+            });
+        }
+
+        return warnings;
+    };
+
+    const commitNewRefLocal = () => {
         const tempId = `temp-${Date.now()}`;
         const newOption = {
             reference_id: null,
@@ -134,8 +168,42 @@ const ReferenceForm = forwardRef(({ iloId, isOrientation = false, status, setUnr
 
         setAllReferences(prev => [newOption, ...prev]);
         setSelectedRefs(prev => [newOption, ...prev]);
+        setShowRefSpellModal(false);
         setIsAddOpen(false);
         setValidationError(null);
+    };
+
+    const handleSaveNewRefLocal = () => {
+        if (!newRefDraft.title || !newRefDraft.type) {
+            setValidationError('Title and Type are required for the new reference.');
+            return;
+        }
+
+        const warnings = getDraftSpellWarnings(newRefDraft, 'Reference Pop-up');
+        if (warnings.length > 0) {
+            setRefSpellWarnings(warnings);
+            setShowRefSpellModal(true);
+            return;
+        }
+
+        commitNewRefLocal();
+    };
+
+    const collectSpellWarnings = () => {
+        const warnings = [];
+        // Check any newly added references in selectedRefs
+        const newlyAddedRefs = selectedRefs.filter(r => !r.reference_id);
+        newlyAddedRefs.forEach((r, idx) => {
+            const prefix = `Added Reference #${idx + 1}${r.title ? ` (${r.title})` : ''}`;
+            warnings.push(...getDraftSpellWarnings(r, prefix));
+        });
+
+        // Also include draft if the Add Reference modal happens to be open
+        if (isAddOpen && (newRefDraft.title || newRefDraft.author)) {
+            warnings.push(...getDraftSpellWarnings(newRefDraft, 'Reference Pop-up Draft'));
+        }
+
+        return warnings;
     };
 
     useImperativeHandle(ref, () => ({
@@ -145,6 +213,7 @@ const ReferenceForm = forwardRef(({ iloId, isOrientation = false, status, setUnr
             }
             return null;
         },
+        getSpellWarnings: collectSpellWarnings,
         getComments: () => reviewComments,
         toggleComment: (commentId) => {
             setReviewComments(prev => prev.map(c =>
@@ -217,21 +286,21 @@ const ReferenceForm = forwardRef(({ iloId, isOrientation = false, status, setUnr
                 {type === 'Textbook' && (
                     <>
                         <TextField label="Author(s)" value={newRefDraft.author} onChange={(v) => setNewRefDraft(prev => ({ ...prev, author: v }))} />
-                        <TextField label="ISBN" value={newRefDraft.isbn} onChange={(v) => setNewRefDraft(prev => ({ ...prev, isbn: v }))} />
-                        <TextField label="Publication Year" value={newRefDraft.publication_year} onChange={(v) => setNewRefDraft(prev => ({ ...prev, publication_year: v }))} />
-                        <TextField label="Link (optional)" value={newRefDraft.link} onChange={(v) => setNewRefDraft(prev => ({ ...prev, link: v }))} />
+                        <TextField label="ISBN" value={newRefDraft.isbn} onChange={(v) => setNewRefDraft(prev => ({ ...prev, isbn: v }))} spellCheckEnabled={false} />
+                        <TextField label="Publication Year" value={newRefDraft.publication_year} onChange={(v) => setNewRefDraft(prev => ({ ...prev, publication_year: v }))} spellCheckEnabled={false} />
+                        <TextField label="Link (optional)" value={newRefDraft.link} onChange={(v) => setNewRefDraft(prev => ({ ...prev, link: v }))} spellCheckEnabled={false} />
                     </>
                 )}
                 {type === 'Open Educational Resources' && (
                     <>
                         <TextField label="Author / Source" value={newRefDraft.author} onChange={(v) => setNewRefDraft(prev => ({ ...prev, author: v }))} />
-                        <TextField label="Link" value={newRefDraft.link} onChange={(v) => setNewRefDraft(prev => ({ ...prev, link: v }))} />
+                        <TextField label="Link" value={newRefDraft.link} onChange={(v) => setNewRefDraft(prev => ({ ...prev, link: v }))} spellCheckEnabled={false} />
                     </>
                 )}
                 {type === 'Online Resources' && (
                     <>
                         <TextField label="Author / Publisher" value={newRefDraft.author} onChange={(v) => setNewRefDraft(prev => ({ ...prev, author: v }))} />
-                        <TextField label="Link" value={newRefDraft.link} onChange={(v) => setNewRefDraft(prev => ({ ...prev, link: v }))} />
+                        <TextField label="Link" value={newRefDraft.link} onChange={(v) => setNewRefDraft(prev => ({ ...prev, link: v }))} spellCheckEnabled={false} />
                     </>
                 )}
             </>
@@ -271,6 +340,49 @@ const ReferenceForm = forwardRef(({ iloId, isOrientation = false, status, setUnr
                     />
                     {renderDynamicFields()}
                     {validationError && <div className={styles.modalError}>{validationError}</div>}
+                </div>
+            </InlineModal>
+
+            {/* Soft-Warning Pre-Save Spell Check Modal for Reference Pop-up */}
+            <InlineModal
+                isOpen={showRefSpellModal}
+                title="Spelling Check Warning"
+                onClose={() => setShowRefSpellModal(false)}
+                actions={
+                    <>
+                        <button type="button" className={styles.modalCancelBtn} onClick={() => setShowRefSpellModal(false)}>
+                            Review & Edit
+                        </button>
+                        <button type="button" className={styles.modalConfirmBtn} onClick={commitNewRefLocal}>
+                            Save Anyway
+                        </button>
+                    </>
+                }
+            >
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+                    <AlertCircle size={22} color="#D97706" style={{ flexShrink: 0, marginTop: '2px' }} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{ margin: '0 0 6px 0', fontSize: '13.5px', fontWeight: 600, color: '#1E293B' }}>
+                            Potential Misspellings Detected
+                        </p>
+                        <p style={{ margin: '0 0 10px 0', fontSize: '12.5px', color: '#64748B', lineHeight: 1.45 }}>
+                            The following words were flagged by the spell checker. You can right-click underlined words to replace or whitelist them, or proceed anyway:
+                        </p>
+                        <div className={styles.spellWarningList}>
+                            {refSpellWarnings.map((item, idx) => (
+                                <div key={idx} className={styles.spellWarningCategory}>
+                                    <div className={styles.spellWarningFieldTitle}>{item.field}</div>
+                                    <div className={styles.spellWarningWordPills}>
+                                        {item.words.map((w, wIdx) => (
+                                            <span key={`${w}-${wIdx}`} className={styles.spellWarningWordBadge}>
+                                                {w}
+                                            </span>
+                                        ))}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
                 </div>
             </InlineModal>
         </div>

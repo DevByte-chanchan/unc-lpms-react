@@ -63,7 +63,13 @@ const Revisions = ({ isOpen, onClose, pcId: propPcId, revNum: propRevNum }) => {
 
     const formatDate = (dateString) => {
         if (!dateString) return "";
-        return new Date(dateString).toISOString().split('T')[0];
+        const d = new Date(dateString);
+        if (isNaN(d.getTime())) return "";
+        return d.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric'
+        });
     };
 
     return (
@@ -145,10 +151,33 @@ const Revisions = ({ isOpen, onClose, pcId: propPcId, revNum: propRevNum }) => {
                                                             <div className={styles.timelineNode}>
                                                                 <div className={`${styles.circleIndicator} ${getIndicatorClass(event.type)}`}></div>
                                                                 <div className={styles.timelineNodeBody}>
-                                                                    <span className={styles.timelineMessageText}>
-                                                                        {/* Added semibold class applied directly to actor and date */}
-                                                                        <span className={styles.semiBoldText}>{event.actor}</span> {event.message.toLowerCase()} on <span className={styles.semiBoldText}>{formatDate(event.date)}</span>
-                                                                    </span>
+                                                                    <div className={styles.eventCard}>
+                                                                        <div className={styles.eventHeaderRow}>
+                                                                            <div className={styles.actorMetaGroup}>
+                                                                                <span className={styles.actorNameText}>
+                                                                                    {event.actorName || event.actor}
+                                                                                </span>
+                                                                                {event.actorRole && (
+                                                                                    <span className={styles.actorRoleSubtext}>
+                                                                                        {event.actorRole}
+                                                                                    </span>
+                                                                                )}
+                                                                            </div>
+                                                                            {event.actionLabel && (
+                                                                                <span className={`${styles.actionStatusPill} ${getIndicatorClass(event.type)}`}>
+                                                                                    {event.actionLabel}
+                                                                                </span>
+                                                                            )}
+                                                                        </div>
+                                                                        <p className={styles.timelineMessageText}>
+                                                                            {event.message}
+                                                                        </p>
+                                                                        <div className={styles.eventFooterRow}>
+                                                                            <span className={styles.eventDateText}>
+                                                                                {formatDate(event.date)}
+                                                                            </span>
+                                                                        </div>
+                                                                    </div>
                                                                 </div>
                                                             </div>
 
@@ -159,11 +188,10 @@ const Revisions = ({ isOpen, onClose, pcId: propPcId, revNum: propRevNum }) => {
                                                                         {event.comments.map((comment) => (
                                                                             <div key={`comment-${comment.id}`} className={styles.commentCardFrame}>
                                                                                 <div className={styles.commentCardMetaBar}>
+                                                                                    <span className={styles.highContrastEntityText}>{comment.targetName}</span>
                                                                                     <span className={`${styles.contextBadge} ${styles.warn}`}>
                                                                                         {comment.targetType}
                                                                                     </span>
-                                                                                    {/* Removed Target Text entirely */}
-                                                                                    <span className={styles.highContrastEntityText}>{comment.targetName}</span>
                                                                                 </div>
                                                                                 <blockquote className={styles.commentBlockquoteBox}>
                                                                                     "{comment.text}"

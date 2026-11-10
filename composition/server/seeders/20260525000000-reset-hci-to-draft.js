@@ -53,6 +53,16 @@ module.exports = {
         await queryInterface.sequelize.query(
             `DELETE FROM AssignmentWorkflowLogs WHERE co_assign_id = ${assignId};`
         );
+        await queryInterface.bulkInsert('AssignmentWorkflowLogs', [
+            {
+                co_assign_id: assignId,
+                stakeholder_id: '2',
+                actor_role: 'PROGRAM_HEAD',
+                action_type: 'ASSIGNED',
+                createdAt: new Date('2026-06-01 09:00:00'),
+                updatedAt: new Date('2026-06-01 09:00:00')
+            }
+        ], {});
 
         // ============================================================================
         // 4. REMOVE THE ADDED SUBTOPIC
@@ -101,6 +111,7 @@ module.exports = {
         await queryInterface.bulkUpdate(
             'CourseOfferingAssignments',
             {
+                stakeholder_id: '1',
                 date_submitted: null,
                 date_updated: null,
                 updatedAt: now

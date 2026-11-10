@@ -5,21 +5,74 @@ import Syllabus from "./pages/Syllabus.jsx";
 import ReferenceForm from "./pages/ReferenceForm.jsx";
 import TopicForm from "./pages/TopicForm.jsx";
 import TLAForm from "./pages/TLAForm.jsx";
+import Login from "./pages/Login.jsx";
+import ForgotPassword from "./pages/ForgotPassword.jsx";
+import ChangePassword from "./pages/ChangePassword.jsx";
+import RequireAuth from "./components/RequireAuth.jsx";
+import { CurrentUserProvider } from "./services/currentUser.jsx";
 
 
 function App() {
 
     return (
         <Router>
-            <div className="appPage">
-                <Routes>
-                    <Route path={'/'} element={<AssignedCourses />} />
-                    <Route path={'/courses/:pcId/:revNum/:status'} element={<Syllabus />} />
-                    <Route path={'/references/form/:iloId/:status'} element={<ReferenceForm />} />
-                    <Route path={'/topics/form/:iloId/:status'} element={<TopicForm />} />
-                    <Route path={'/tlas/form/:iloId/:status'} element={<TLAForm />} />
-                </Routes>
-            </div>
+            <CurrentUserProvider>
+                <div className="appPage">
+                    <Routes>
+                        <Route path={'/login'} element={<Login />} />
+                        <Route path={'/forgot-password'} element={<ForgotPassword />} />
+                        <Route
+                            path={'/change-password'}
+                            element={
+                                <RequireAuth allowMustChangePassword>
+                                    <ChangePassword />
+                                </RequireAuth>
+                            }
+                        />
+                        <Route
+                            path={'/'}
+                            element={
+                                <RequireAuth>
+                                    <AssignedCourses />
+                                </RequireAuth>
+                            }
+                        />
+                        <Route
+                            path={'/courses/:pcId/:revNum/:status'}
+                            element={
+                                <RequireAuth>
+                                    <Syllabus />
+                                </RequireAuth>
+                            }
+                        />
+                        <Route
+                            path={'/references/form/:iloId/:status'}
+                            element={
+                                <RequireAuth>
+                                    <ReferenceForm />
+                                </RequireAuth>
+                            }
+                        />
+                        <Route
+                            path={'/topics/form/:iloId/:status'}
+                            element={
+                                <RequireAuth>
+                                    <TopicForm />
+                                </RequireAuth>
+                            }
+                        />
+                        <Route
+                            path={'/tlas/form/:iloId/:status'}
+                            element={
+                                <RequireAuth>
+                                    <TLAForm />
+                                </RequireAuth>
+                            }
+                        />
+                        <Route path={'*'} element={<Navigate to={'/'} replace />} />
+                    </Routes>
+                </div>
+            </CurrentUserProvider>
         </Router>
 
     )

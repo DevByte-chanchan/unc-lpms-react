@@ -20,6 +20,10 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.INTEGER,
       allowNull: false
     },
+    stakeholder_id: {
+      type: DataTypes.STRING(20),
+      allowNull: true
+    },
     commenter_role: {
       type: DataTypes.STRING(50),
       allowNull: false

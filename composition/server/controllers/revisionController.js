@@ -3,12 +3,34 @@ const {
     CourseOfferingAssignment,
     AssignmentWorkflowLog,
     Comment,
-    CommentTarget
+    CommentTarget,
+    UserAccount,
+    Faculty,
+    IndustryConsultant,
+    Subtopic,
+    Topic,
+    TeachingAndLearningActivity,
+    WeeklyReference,
+    Reference
 } = require('../models');
 
 // Helper to format roles neatly
-const toTitleCase = (str) => {
-    return str.toLowerCase().split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+const formatRoleLabel = (rawRole) => {
+    const map = {
+        INSTRUCTOR: 'Instructor',
+        PROGRAM_HEAD: 'Program Head',
+        LIBRARY_DIRECTOR: 'Director of Libraries',
+        INDUSTRY_CONSULTANT: 'Industry Consultant',
+        DEAN: 'Dean',
+        VPAA: 'VPAA'
+    };
+    if (map[rawRole]) return map[rawRole];
+    return String(rawRole || 'User')
+        .toLowerCase()
+        .replace(/_/g, ' ')
+        .split(' ')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
 };
 
 exports.getRevisionsByOffering = async (req, res) => {
@@ -20,6 +42,73 @@ exports.getRevisionsByOffering = async (req, res) => {
         if (!targetOffering) {
             return res.status(404).json({ message: "Offering not found" });
         }
+
+        // Build Stakeholder Lookup Maps (by stakeholder_id and by role)
+        const userById = {};
+        const userByRole = {};
+
+        if (UserAccount) {
+            const accounts = await UserAccount.findAll({
+                include: [
+                    Faculty ? { model: Faculty, as: 'faculty', required: false } : null,
+                    IndustryConsultant ? { model: IndustryConsultant, as: 'consultant', required: false } : null
+                ].filter(Boolean)
+            });
+
+            for (const acc of accounts) {
+                const fullName = acc.full_name || acc.faculty?.name || acc.consultant?.name;
+                const idKey = String(acc.id);
+                userById[idKey] = {
+                    id: idKey,
+                    name: fullName,
+                    activeRole: acc.active_role
+                };
+
+                const rolesList = Array.isArray(acc.roles) ? acc.roles : [];
+                if (acc.active_role === 'Instructor' && !userByRole['INSTRUCTOR']) {
+                    userByRole['INSTRUCTOR'] = fullName;
+                }
+                if ((acc.active_role === 'Program Head' || rolesList.includes('Program Head')) && !userByRole['PROGRAM_HEAD']) {
+                    userByRole['PROGRAM_HEAD'] = fullName;
+                }
+                if ((acc.active_role === 'Director of Libraries' || rolesList.includes('Director of Libraries')) && !userByRole['LIBRARY_DIRECTOR']) {
+                    userByRole['LIBRARY_DIRECTOR'] = fullName;
+                }
+                if ((acc.active_role === 'Industry Consultant' || rolesList.includes('Industry Consultant')) && !userByRole['INDUSTRY_CONSULTANT']) {
+                    userByRole['INDUSTRY_CONSULTANT'] = fullName;
+                }
+                if ((acc.active_role === 'Dean' || rolesList.includes('Dean')) && !userByRole['DEAN']) {
+                    userByRole['DEAN'] = fullName;
+                }
+                if ((acc.active_role === 'VPAA' || rolesList.includes('VPAA')) && !userByRole['VPAA']) {
+                    userByRole['VPAA'] = fullName;
+                }
+            }
+        }
+
+        const resolveActorInfo = (stakeholderId, rawRole, fallbackAssignmentStakeholderId = null) => {
+            const roleLabel = formatRoleLabel(rawRole);
+            const lookupId = stakeholderId
+                ? String(stakeholderId)
+                : (rawRole === 'INSTRUCTOR' && fallbackAssignmentStakeholderId
+                    ? String(fallbackAssignmentStakeholderId)
+                    : null);
+
+            if (lookupId && userById[lookupId]?.name) {
+                return {
+                    stakeholderId: lookupId,
+                    actorName: userById[lookupId].name,
+                    actorRole: roleLabel
+                };
+            }
+
+            const roleFallbackName = userByRole[rawRole] || null;
+            return {
+                stakeholderId: lookupId,
+                actorName: roleFallbackName || roleLabel,
+                actorRole: roleLabel
+            };
+        };
 
         // 2. Fetch ALL revisions that share this exact Course and Program
         const offerings = await ProgramCourseOffering.findAll({
@@ -60,20 +149,27 @@ exports.getRevisionsByOffering = async (req, res) => {
 
             for (const log of sortedLogs) {
                 const rawRole = log.actor_role || 'USER';
-                const role = toTitleCase(rawRole.replace(/_/g, ' '));
+                const role = formatRoleLabel(rawRole);
                 const type = log.action_type;
                 const logTime = new Date(log.createdAt).getTime();
 
+                const { stakeholderId, actorName, actorRole } = resolveActorInfo(
+                    log.stakeholder_id,
+                    rawRole,
+                    assignment.stakeholder_id
+                );
+
                 let actionMessage = "";
-                let actor = role;
+                let actionLabel = type;
                 let eventComments = [];
 
                 if (type === 'ASSIGNED') {
-                    actionMessage = `Initialized and Routed the learning plan for Peer Evaluation`;
-                }
-                else if (type === 'RETURNED') {
-                    actionMessage = `Returned the learning plan for revision`;
-                    pendingReviewers.add(role);
+                    actionLabel = 'Assigned';
+                    actionMessage = `Assigned the course learning plan for preparation and composition.`;
+                } else if (type === 'RETURNED') {
+                    actionLabel = 'Returned for Revision';
+                    actionMessage = `Returned the course learning plan with review comments requiring revision.`;
+                    pendingReviewers.add(`${actorName} (${actorRole})`);
 
                     // Check for comments by this role up to 5 minutes AFTER the log
                     eventComments = unassignedComments.filter(c =>
@@ -85,25 +181,26 @@ exports.getRevisionsByOffering = async (req, res) => {
                     }
 
                     unassignedComments = unassignedComments.filter(c => !eventComments.includes(c));
-                }
-                else if (type === 'SUBMITTED') {
-                    actor = 'Instructor';
+                } else if (type === 'SUBMITTED') {
                     if (pendingReviewers.size > 0) {
                         const reviewersList = Array.from(pendingReviewers).join(' & ');
-                        actionMessage = `Resubmitted the learning plan to ${reviewersList}`;
+                        actionLabel = 'Resubmitted';
+                        actionMessage = `Addressed review feedback and resubmitted the revised learning plan to ${reviewersList}.`;
                         pendingReviewers.clear();
                     } else {
-                        actionMessage = `Submitted the learning plan`;
+                        actionLabel = 'Submitted';
+                        actionMessage = `Submitted the course learning plan for multi-stakeholder evaluation.`;
                     }
-                }
-                else if (type === 'ACCEPTED' || type === 'APPROVED') {
+                } else if (type === 'ACCEPTED' || type === 'APPROVED') {
                     if (rawRole === 'DEAN' || type === 'APPROVED') {
-                        actionMessage = `Approved the learning plan`;
+                        actionLabel = 'Approved';
+                        actionMessage = `Granted final institutional approval for the course learning plan.`;
                     } else {
-                        actionMessage = `Accepted the learning plan`;
+                        actionLabel = 'Endorsed';
+                        actionMessage = `Reviewed and endorsed the course learning plan for the next approval stage.`;
                     }
                 } else {
-                    actionMessage = `performed ${type}`;
+                    actionMessage = `Performed ${type}.`;
                 }
 
                 // Map comments and resolve specific target names asynchronously
@@ -115,27 +212,31 @@ exports.getRevisionsByOffering = async (req, res) => {
 
                     if (target?.target_id && c.comment_for) {
                         targetName = `Target ID: ${target.target_id}`;
-                        const models = require('../models');
-
                         try {
                             const commentForLower = c.comment_for.toLowerCase();
                             if (commentForLower.includes('topic')) {
-                                const mKey = Object.keys(models).find(k => k.toLowerCase() === 'topic');
-                                if (mKey) {
-                                    const match = await models[mKey].findByPk(target.target_id);
+                                if (Subtopic) {
+                                    const subMatch = await Subtopic.findByPk(target.target_id);
+                                    if (subMatch?.title) targetName = subMatch.title;
+                                }
+                                if (targetName.startsWith('Target ID:') && Topic) {
+                                    const match = await Topic.findByPk(target.target_id);
                                     if (match) targetName = match.topic_title || match.title || match.name || targetName;
                                 }
                             } else if (commentForLower.includes('tla')) {
-                                // FIXED: Search the correct TeachingAndLearningActivity model to pull the tla_name
-                                const mKey = Object.keys(models).find(k => k.toLowerCase() === 'teachingandlearningactivity');
-                                if (mKey) {
-                                    const match = await models[mKey].findByPk(target.target_id);
+                                if (TeachingAndLearningActivity) {
+                                    const match = await TeachingAndLearningActivity.findByPk(target.target_id);
                                     if (match) targetName = match.tla_name || match.name || match.title || targetName;
                                 }
                             } else if (commentForLower.includes('reference')) {
-                                const mKey = Object.keys(models).find(k => k.toLowerCase() === 'reference');
-                                if (mKey) {
-                                    const match = await models[mKey].findByPk(target.target_id);
+                                if (WeeklyReference && Reference) {
+                                    const wrMatch = await WeeklyReference.findByPk(target.target_id, {
+                                        include: [{ model: Reference, as: 'reference' }]
+                                    });
+                                    if (wrMatch?.reference?.title) targetName = wrMatch.reference.title;
+                                }
+                                if (targetName.startsWith('Target ID:') && Reference) {
+                                    const match = await Reference.findByPk(target.target_id);
                                     if (match) targetName = match.reference_title || match.title || match.text || targetName;
                                 }
                             }
@@ -148,15 +249,20 @@ exports.getRevisionsByOffering = async (req, res) => {
                         id: c.comment_id,
                         text: c.message,
                         targetType,
-                        targetName
+                        targetName,
+                        resolvedStatus: Boolean(c.resolved_status)
                     });
                 }
 
                 timeline.push({
                     id: log.log_id,
-                    type: type,
+                    type: (type === 'ACCEPTED' && rawRole === 'DEAN') ? 'APPROVED' : type,
                     date: log.createdAt,
-                    actor: actor,
+                    stakeholderId,
+                    actorName,
+                    actorRole,
+                    actionLabel,
+                    actor: `${actorName} (${actorRole})`,
                     message: actionMessage,
                     comments: mappedComments
                 });

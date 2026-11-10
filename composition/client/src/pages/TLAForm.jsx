@@ -2,12 +2,14 @@ import React, { useState, useEffect, forwardRef, useImperativeHandle, useRef } f
 import TextField from "../components/TextField.jsx";
 import Dropdown from "../components/Dropdown.jsx";
 import TextArea from "../components/TextArea.jsx";
+import SpellCheckInput from "../components/SpellCheckInput.jsx";
+import { checkSpelling } from "../utils/spellChecker.js";
 import { Plus, Award, X, Edit2 } from "react-feather";
 import { fetchJson } from "../utils/api.js";
 import styles from "../styles/Form.module.sass";
 import tStyles from "../styles/TopicSelector.module.sass";
 
-const TLAForm = forwardRef(({ iloId, isOrientation = false, status, setUnresolvedCount, label }, ref) => {
+const TLAForm = forwardRef(({ iloId, isOrientation = false, status, setUnresolvedCount, onCommentsChange, label }, ref) => {
     const ALL_PHASES = ['Asynchronous', 'Synchronous', 'Pre-class', 'In-class', 'Post-class'];
 
     const [isLoading, setIsLoading] = useState(true);
@@ -65,7 +67,9 @@ const TLAForm = forwardRef(({ iloId, isOrientation = false, status, setUnresolve
 
                 const initialComments = (Array.isArray(targetedComments) ? targetedComments : []).map(c => ({
                     ...c,
-                    resolved_status: c.resolved_status === 1 || c.resolved_status === true
+                    resolved_status: c.resolved_status === 1 || c.resolved_status === true,
+                    return_number: Number(c.return_number) || 1,
+                    return_date: c.return_date || c.createdAt
                 }));
                 setReviewComments(initialComments);
 
@@ -93,7 +97,10 @@ const TLAForm = forwardRef(({ iloId, isOrientation = false, status, setUnresolve
         if (setUnresolvedCount) {
             setUnresolvedCount(reviewComments.filter(c => !c.resolved_status).length);
         }
-    }, [reviewComments, setUnresolvedCount]);
+        if (onCommentsChange) {
+            onCommentsChange(reviewComments);
+        }
+    }, [reviewComments, setUnresolvedCount, onCommentsChange]);
 
     const scrollToBottom = () => {
         setTimeout(() => {
@@ -148,8 +155,53 @@ const TLAForm = forwardRef(({ iloId, isOrientation = false, status, setUnresolve
         return Object.keys(newErrors).length === 0 ? null : "TLAs contain missing required fields.";
     };
 
+    const collectSpellWarnings = () => {
+        const warnings = [];
+        tlas.forEach((tla, idx) => {
+            const labelPrefix = `TLA #${idx + 1}${tla.tlaName ? ` (${tla.tlaName})` : ''}`;
+
+            const nameMisspelled = checkSpelling(tla.tlaName || '');
+            if (nameMisspelled.length > 0) {
+                warnings.push({
+                    section: 'Teaching & Learning Activities',
+                    field: `${labelPrefix} — TLA Name`,
+                    words: nameMisspelled
+                });
+            }
+
+            const descMisspelled = checkSpelling(tla.tlaDescription || '');
+            if (descMisspelled.length > 0) {
+                warnings.push({
+                    section: 'Teaching & Learning Activities',
+                    field: `${labelPrefix} — TLA Description`,
+                    words: descMisspelled
+                });
+            }
+
+            const typeMisspelled = checkSpelling(tla.assessmentType || '');
+            if (typeMisspelled.length > 0) {
+                warnings.push({
+                    section: 'Teaching & Learning Activities',
+                    field: `${labelPrefix} — Assessment Type`,
+                    words: typeMisspelled
+                });
+            }
+
+            const detailMisspelled = checkSpelling(tla.assessmentDetail || '');
+            if (detailMisspelled.length > 0) {
+                warnings.push({
+                    section: 'Teaching & Learning Activities',
+                    field: `${labelPrefix} — Assessment Detail`,
+                    words: detailMisspelled
+                });
+            }
+        });
+        return warnings;
+    };
+
     useImperativeHandle(ref, () => ({
         validate: validateForm,
+        getSpellWarnings: collectSpellWarnings,
         getComments: () => reviewComments,
         toggleComment: (commentId) => {
             setReviewComments(prev => prev.map(c =>
@@ -228,7 +280,7 @@ const TLAForm = forwardRef(({ iloId, isOrientation = false, status, setUnresolve
                                             <div className={`${styles.tlaLabDot} ${item.isLab ? styles.activeLabDot : ''}`} title={item.isLab ? "Laboratory" : "Standard"} />
                                             <div className={tStyles.inputWrapper}>
                                                 <Edit2 size={12} className={tStyles.editIcon} />
-                                                <input
+                                                <SpellCheckInput
                                                     className={tStyles.topicTitleInput}
                                                     value={item.tlaName}
                                                     onChange={(e) => handleTlaChange(item.id, 'tlaName', e.target.value)}

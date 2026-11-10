@@ -39,6 +39,9 @@ async function submitLearningPlan(req, res) {
         // ----------------------------------------------------
 
         const now = new Date();
+        const stakeholderId = req.user?.id
+            ? String(req.user.id)
+            : (assignment.stakeholder_id ? String(assignment.stakeholder_id) : '1');
 
         // 3. Update the CourseOfferingAssignment to mark it as submitted
         await assignment.update({
@@ -49,6 +52,7 @@ async function submitLearningPlan(req, res) {
         // 4. Log the action in AssignmentWorkflowLog
         await AssignmentWorkflowLog.create({
             co_assign_id: assignment.co_assign_id,
+            stakeholder_id: stakeholderId,
             actor_role: actorRole,
             action_type: 'SUBMITTED',
             createdAt: now,

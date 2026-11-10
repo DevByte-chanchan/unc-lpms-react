@@ -1,6 +1,7 @@
 import styles from '../styles/Fields.module.sass'
+import SpellCheckInput from './SpellCheckInput.jsx'
 
-const TextArea = ({ label, disabled, value, initialValue, onChange, error, rows = 3, placeholder }) => {
+const TextArea = ({ label, disabled, value, initialValue, onChange, error, rows = 3, placeholder, spellCheckEnabled = true }) => {
 
     // Logic: Use 'value' if provided (controlled), otherwise fallback to 'initialValue'
     const actualValue = value !== undefined ? value : initialValue;
@@ -16,17 +17,17 @@ const TextArea = ({ label, disabled, value, initialValue, onChange, error, rows 
                 className={`${styles.textfield} ${error ? styles.error : ''}`}
                 style={{ height: 'auto' }}
             >
-                <textarea
+                <SpellCheckInput
+                    multiline={true}
                     rows={rows}
                     className={`${disabled ? styles['disabled-style'] : ''}`}
                     disabled={disabled}
                     value={actualValue || ''}
                     onChange={(e) => onChange && onChange(e.target.value)}
                     placeholder={placeholder}
-                    // Basic styling overrides to ensure it behaves well inside the flex container
                     style={{ resize: 'vertical', display: 'block' }}
-                >
-                </textarea>
+                    spellCheckEnabled={spellCheckEnabled}
+                />
             </div>
 
             {/* Red error text below */}

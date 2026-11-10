@@ -1,23 +1,18 @@
-import { useEffect, useState } from 'react';
 import styles from '../styles/Header.module.sass';
+import { useCurrentUser } from '../services/currentUser.jsx';
+import { ROLE_DISPLAY } from '../services/roles.js';
 
-const Header = ({department, name: propName, role: propRole}) => {
-    const [user, setUser] = useState({ name: propName || 'NORTON, MONICA', role: propRole || 'Instructor' });
+const Header = ({ department, name: propName, role: propRole }) => {
+    const { user, activeRole } = useCurrentUser();
 
-    useEffect(() => {
-        try {
-            const userData = localStorage.getItem('user');
-            if(userData) {
-                const parsed = JSON.parse(userData);
-                setUser({ 
-                    name: `${parsed.first_name || ''} ${parsed.last_name || ''}`.trim() || parsed.stakeholder_id,
-                    role: parsed.role || propRole || 'Instructor' 
-                });
-            }
-        } catch(e){
-            console.error(e);
-        }
-    }, [propName, propRole]);
+    const meta = (activeRole && ROLE_DISPLAY[activeRole]) || {};
+    const displayName = user
+        ? user.lastName && user.firstName
+            ? `${user.lastName.toUpperCase()}, ${user.firstName.toUpperCase()}`
+            : (user.name || user.email || 'USER').toUpperCase()
+        : propName || 'NORTON, MONICA';
+
+    const displayRole = activeRole ? meta.title || activeRole : propRole || 'Instructor';
 
     return (
         <div className={styles.header}>
@@ -25,11 +20,11 @@ const Header = ({department, name: propName, role: propRole}) => {
                 {department}
             </div>
             <div className={styles.info}>
-                <div className={styles.name}> {user.name} </div>
-                <div className={styles.role}> {user.role} </div>
+                <div className={styles.name}> {displayName} </div>
+                <div className={styles.role}> {displayRole} </div>
             </div>
         </div>
-    )
-}
+    );
+};
 
 export default Header;

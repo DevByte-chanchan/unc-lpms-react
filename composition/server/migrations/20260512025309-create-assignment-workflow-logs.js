@@ -14,6 +14,10 @@ module.exports = {
                 onUpdate: 'CASCADE',
                 onDelete: 'CASCADE'
             },
+            stakeholder_id: {
+                type: Sequelize.STRING(20),
+                allowNull: true
+            },
             actor_role: {
                 type: Sequelize.STRING(30),
                 allowNull: false // e.g., 'PROGRAM_HEAD', 'DEAN', 'INSTRUCTOR'

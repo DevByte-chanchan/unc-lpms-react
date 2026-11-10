@@ -1,4 +1,22 @@
-const { sequelize } = require('../models');
+const { sequelize, UserAccount, Faculty, IndustryConsultant } = require('../models');
+
+const formatRoleLabel = (rawRole) => {
+    const map = {
+        INSTRUCTOR: 'Instructor',
+        PROGRAM_HEAD: 'Program Head',
+        LIBRARY_DIRECTOR: 'Director of Libraries',
+        INDUSTRY_CONSULTANT: 'Industry Consultant',
+        DEAN: 'Dean',
+        VPAA: 'VPAA'
+    };
+    if (map[rawRole]) return map[rawRole];
+    return String(rawRole || 'Approver')
+        .toLowerCase()
+        .replace(/_/g, ' ')
+        .split(' ')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
+};
 
 // 1. Fetch unread counts grouped by Week and Type (for the red notification badges)
 exports.getUnresolvedCommentCounts = async (req, res) => {
@@ -31,7 +49,8 @@ exports.getUnresolvedCommentCounts = async (req, res) => {
 };
 
 // 2. Fetch specific comments for a Week + Target Type (Topics, TLAs, or References)
-// Supports multi-select subtopic targets and resolves parent Topic title + Subtopic title(s)
+// Supports multi-select subtopic targets, resolves parent Topic title + Subtopic title(s),
+// and enriches comments with stakeholder name, role label, and return grouping metadata.
 exports.getCommentsByTarget = async (req, res) => {
     const { iloId, commentFor } = req.params;
     const weekId = Number(iloId);
@@ -41,6 +60,7 @@ exports.getCommentsByTarget = async (req, res) => {
             SELECT 
                 c.comment_id,
                 c.co_assign_id,
+                c.stakeholder_id,
                 c.commenter_role,
                 c.message,
                 c.resolved_status,
@@ -72,10 +92,101 @@ exports.getCommentsByTarget = async (req, res) => {
             LEFT JOIN \`References\` r_wr ON wr.reference_id = r_wr.reference_id
             LEFT JOIN \`References\` r_direct ON c.comment_for = 'references' AND wr.weekly_reference_id IS NULL AND r_direct.reference_id = ct.target_id
             WHERE c.week_id = ? AND c.comment_for = ?
-            ORDER BY c.createdAt ASC, ct.comment_target_id ASC
+            ORDER BY c.createdAt ASC, c.comment_id ASC, ct.comment_target_id ASC
         `, {
             replacements: [weekId, commentFor]
         });
+
+        // Build Stakeholder Lookup Maps (by stakeholder_id and by role)
+        const userById = {};
+        const userByRole = {};
+
+        try {
+            if (UserAccount) {
+                const accounts = await UserAccount.findAll({
+                    include: [
+                        Faculty ? { model: Faculty, as: 'faculty', required: false } : null,
+                        IndustryConsultant ? { model: IndustryConsultant, as: 'consultant', required: false } : null
+                    ].filter(Boolean)
+                });
+
+                for (const acc of accounts) {
+                    const fullName = acc.full_name || acc.faculty?.name || acc.consultant?.name;
+                    const idKey = String(acc.id);
+                    userById[idKey] = {
+                        id: idKey,
+                        name: fullName,
+                        activeRole: acc.active_role
+                    };
+
+                    const rolesList = Array.isArray(acc.roles) ? acc.roles : [];
+                    if ((acc.active_role === 'Instructor' || rolesList.includes('Instructor')) && !userByRole['INSTRUCTOR']) {
+                        userByRole['INSTRUCTOR'] = fullName;
+                    }
+                    if ((acc.active_role === 'Program Head' || rolesList.includes('Program Head')) && !userByRole['PROGRAM_HEAD']) {
+                        userByRole['PROGRAM_HEAD'] = fullName;
+                    }
+                    if ((acc.active_role === 'Director of Libraries' || rolesList.includes('Director of Libraries')) && !userByRole['LIBRARY_DIRECTOR']) {
+                        userByRole['LIBRARY_DIRECTOR'] = fullName;
+                    }
+                    if ((acc.active_role === 'Industry Consultant' || rolesList.includes('Industry Consultant')) && !userByRole['INDUSTRY_CONSULTANT']) {
+                        userByRole['INDUSTRY_CONSULTANT'] = fullName;
+                    }
+                    if ((acc.active_role === 'Dean' || rolesList.includes('Dean')) && !userByRole['DEAN']) {
+                        userByRole['DEAN'] = fullName;
+                    }
+                    if ((acc.active_role === 'VPAA' || rolesList.includes('VPAA')) && !userByRole['VPAA']) {
+                        userByRole['VPAA'] = fullName;
+                    }
+                }
+            }
+        } catch (userLookupErr) {
+            console.warn('Unable to load user_accounts for comment enrichment:', userLookupErr.message);
+        }
+
+        const resolveCommenterName = (stakeholderId, rawRole) => {
+            if (stakeholderId && userById[String(stakeholderId)]?.name) {
+                return userById[String(stakeholderId)].name;
+            }
+            if (rawRole && userByRole[rawRole]) {
+                return userByRole[rawRole];
+            }
+            return formatRoleLabel(rawRole);
+        };
+
+        // Load RETURNED workflow logs for any co_assign_id present in rows
+        const assignIds = [...new Set(rows.map(r => r.co_assign_id).filter(Boolean))];
+        const returnLogsByAssign = {};
+
+        if (assignIds.length > 0) {
+            try {
+                const [retLogs] = await sequelize.query(`
+                    SELECT log_id, co_assign_id, stakeholder_id, actor_role, action_type, createdAt
+                    FROM AssignmentWorkflowLogs
+                    WHERE co_assign_id IN (?) AND action_type = 'RETURNED'
+                    ORDER BY createdAt ASC, log_id ASC
+                `, {
+                    replacements: [assignIds]
+                });
+
+                for (const log of retLogs) {
+                    const aid = Number(log.co_assign_id);
+                    if (!returnLogsByAssign[aid]) returnLogsByAssign[aid] = [];
+                    const returnNumber = returnLogsByAssign[aid].length + 1;
+                    returnLogsByAssign[aid].push({
+                        log_id: log.log_id,
+                        return_number: returnNumber,
+                        return_date: log.createdAt,
+                        stakeholder_id: log.stakeholder_id,
+                        actor_role: log.actor_role,
+                        actor_role_label: formatRoleLabel(log.actor_role),
+                        actor_name: resolveCommenterName(log.stakeholder_id, log.actor_role)
+                    });
+                }
+            } catch (logErr) {
+                console.warn('Unable to load AssignmentWorkflowLogs for return grouping:', logErr.message);
+            }
+        }
 
         // Preload week subtopics / references / tlas as fallback in case a target_id was re-created previously
         let weekSubtopicsFallback = null;
@@ -126,17 +237,54 @@ exports.getCommentsByTarget = async (req, res) => {
         for (const row of rows) {
             const cid = Number(row.comment_id);
             if (!commentsMap.has(cid)) {
+                const aid = Number(row.co_assign_id);
+                const assignReturns = returnLogsByAssign[aid] || [];
+
+                // Match comment to its corresponding RETURNED workflow log
+                let matchedReturn = null;
+                const roleMatches = assignReturns.filter(r => r.actor_role === row.commenter_role);
+                if (roleMatches.length === 1) {
+                    matchedReturn = roleMatches[0];
+                } else if (roleMatches.length > 1) {
+                    const commentTime = new Date(row.createdAt).getTime();
+                    matchedReturn = roleMatches.reduce((best, curr) => {
+                        const bestDiff = Math.abs(new Date(best.return_date).getTime() - commentTime);
+                        const currDiff = Math.abs(new Date(curr.return_date).getTime() - commentTime);
+                        return currDiff < bestDiff ? curr : best;
+                    }, roleMatches[0]);
+                } else if (assignReturns.length > 0) {
+                    const commentTime = new Date(row.createdAt).getTime();
+                    matchedReturn = assignReturns.reduce((best, curr) => {
+                        const bestDiff = Math.abs(new Date(best.return_date).getTime() - commentTime);
+                        const currDiff = Math.abs(new Date(curr.return_date).getTime() - commentTime);
+                        return currDiff < bestDiff ? curr : best;
+                    }, assignReturns[0]);
+                }
+
+                const effectiveStakeholderId = row.stakeholder_id || matchedReturn?.stakeholder_id || null;
+                const commenterName = resolveCommenterName(effectiveStakeholderId, row.commenter_role);
+                const commenterRoleLabel = formatRoleLabel(row.commenter_role);
+                const returnNumber = matchedReturn ? matchedReturn.return_number : 1;
+                const returnDate = matchedReturn ? matchedReturn.return_date : row.createdAt;
+
                 commentsMap.set(cid, {
                     comment_id: cid,
                     co_assign_id: row.co_assign_id,
+                    stakeholder_id: effectiveStakeholderId,
+                    commenter_name: commenterName,
                     commenter_role: row.commenter_role,
+                    commenter_role_label: commenterRoleLabel,
+                    return_number: returnNumber,
+                    return_date: returnDate,
+                    total_returns: assignReturns.length || 1,
+                    available_returns: assignReturns,
                     message: row.message,
                     resolved_status: row.resolved_status,
                     resolved_date: row.resolved_date,
                     week_id: row.week_id,
                     ilo_id: row.ilo_id,
                     comment_for: row.comment_for,
-                    createdAt: row.createdAt,
+                    createdAt: matchedReturn ? matchedReturn.return_date : row.createdAt,
                     target_id: row.target_id,
                     target_ids: [],
                     topic_groups: [],
@@ -232,20 +380,27 @@ exports.getCommentsByTarget = async (req, res) => {
         }
 
         // Finalize formatted target_title and topic_title on each grouped comment
-        const finalComments = Array.from(commentsMap.values()).map(c => {
-            if (c.comment_for === 'topics' && c.topic_groups.length > 0) {
-                c.topic_title = c.topic_groups.map(g => g.topic_title).join(' / ');
-                c.target_title = c.topic_groups
-                    .map(g => g.subtopics.length > 0
-                        ? `${g.topic_title}: ${g.subtopics.map(s => s.title).join('; ')}`
-                        : g.topic_title
-                    )
-                    .join(' | ');
-            } else if (c.target_titles.length > 0) {
-                c.target_title = c.target_titles.join(', ');
-            }
-            return c;
-        });
+        const finalComments = Array.from(commentsMap.values())
+            .map(c => {
+                if (c.comment_for === 'topics' && c.topic_groups.length > 0) {
+                    c.topic_title = c.topic_groups.map(g => g.topic_title).join(' / ');
+                    c.target_title = c.topic_groups
+                        .map(g => g.subtopics.length > 0
+                            ? `${g.topic_title}: ${g.subtopics.map(s => s.title).join('; ')}`
+                            : g.topic_title
+                        )
+                        .join(' | ');
+                } else if (c.target_titles.length > 0) {
+                    c.target_title = c.target_titles.join(', ');
+                }
+                return c;
+            })
+            .sort((a, b) => {
+                if ((a.return_number || 1) !== (b.return_number || 1)) {
+                    return (a.return_number || 1) - (b.return_number || 1);
+                }
+                return a.comment_id - b.comment_id;
+            });
 
         res.json(finalComments);
     } catch (err) {

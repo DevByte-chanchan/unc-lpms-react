@@ -58,7 +58,7 @@ module.exports = {
         // ============================================================================
         await queryInterface.bulkInsert('CourseOfferingAssignments', [{
             pc_offering_id: offeringId,
-            stakeholder_id: null,
+            stakeholder_id: '1',
             date_assigned: new Date('2026-06-01'),
             date_submitted: new Date('2026-06-10'),
             date_updated: null,
@@ -77,9 +77,10 @@ module.exports = {
         // Simulate Assigned -> Submitted -> Returned by Industry Consultant
         // ============================================================================
         await queryInterface.bulkInsert('AssignmentWorkflowLogs', [
-            { co_assign_id: assignId, actor_role: 'PROGRAM_HEAD', action_type: 'ASSIGNED', createdAt: new Date('2026-06-01 09:00:00'), updatedAt: new Date('2026-06-01 09:00:00') },
-            { co_assign_id: assignId, actor_role: 'INSTRUCTOR', action_type: 'SUBMITTED', createdAt: new Date('2026-06-10 14:30:00'), updatedAt: new Date('2026-06-10 14:30:00') },
-            { co_assign_id: assignId, actor_role: 'INDUSTRY_CONSULTANT', action_type: 'RETURNED', createdAt: new Date('2026-06-15 10:15:00'), updatedAt: new Date('2026-06-15 10:15:00') }
+            { co_assign_id: assignId, stakeholder_id: '2', actor_role: 'PROGRAM_HEAD', action_type: 'ASSIGNED', createdAt: new Date('2026-06-01 09:00:00'), updatedAt: new Date('2026-06-01 09:00:00') },
+            { co_assign_id: assignId, stakeholder_id: '1', actor_role: 'INSTRUCTOR', action_type: 'SUBMITTED', createdAt: new Date('2026-06-10 14:30:00'), updatedAt: new Date('2026-06-10 14:30:00') },
+            { co_assign_id: assignId, stakeholder_id: '4', actor_role: 'INDUSTRY_CONSULTANT', action_type: 'RETURNED', createdAt: new Date('2026-06-15 10:15:00'), updatedAt: new Date('2026-06-15 10:15:00') },
+            { co_assign_id: assignId, stakeholder_id: '2', actor_role: 'PROGRAM_HEAD', action_type: 'RETURNED', createdAt: new Date('2026-06-16 14:20:00'), updatedAt: new Date('2026-06-16 14:20:00') }
         ], {});
 
         // ============================================================================
@@ -1015,19 +1016,62 @@ module.exports = {
                 comment_for: 'tlas',
                 target_id: insertedTlasByWeek[15][3].tla_id,
                 message: 'Capstone project rubric should weight data provenance, reproducibility, and ethical considerations; require a short reproducible appendix.'
+            },
+            // Return 2 (PROGRAM_HEAD) Comments
+            {
+                co_assign_id: assignId,
+                commenter_role: 'PROGRAM_HEAD',
+                resolved_status: false,
+                week_id: weeks[1].week_id,
+                comment_for: 'topics',
+                target_id: subtopicsByWeek[1][4].subtopic_id,
+                message: 'Include diagnostic sensitivity, specificity, and confusion matrix interpretation under the Bayes Theorem subtopic to align with downstream machine learning courses.'
+            },
+            {
+                co_assign_id: assignId,
+                commenter_role: 'PROGRAM_HEAD',
+                resolved_status: false,
+                week_id: weeks[2].week_id,
+                comment_for: 'tlas',
+                target_id: insertedTlasByWeek[2][2].tla_id,
+                message: 'Provide a standardized Quarto/Jupyter template for the distribution simulation lab so student submissions follow uniform academic formatting.'
+            },
+            {
+                co_assign_id: assignId,
+                commenter_role: 'PROGRAM_HEAD',
+                resolved_status: false,
+                week_id: weeks[5].week_id,
+                comment_for: 'topics',
+                target_id: subtopicsByWeek[5][1].subtopic_id,
+                message: 'Ensure power analysis and sample size calculation examples use realistic software engineering A/B testing scenarios.'
+            },
+            {
+                co_assign_id: assignId,
+                commenter_role: 'PROGRAM_HEAD',
+                resolved_status: false,
+                week_id: weeks[9].week_id,
+                comment_for: 'tlas',
+                target_id: insertedTlasByWeek[9][4].tla_id,
+                message: 'Require students to include variance inflation factor (VIF) tables alongside residual plots in their post-class regression diagnostic report.'
             }
         ];
 
-        await queryInterface.bulkInsert('Comments', rawCommentsData.map(c => ({
-            co_assign_id: c.co_assign_id,
-            commenter_role: c.commenter_role,
-            message: c.message,
-            resolved_status: c.resolved_status,
-            week_id: c.week_id,
-            comment_for: c.comment_for,
-            createdAt: now,
-            updatedAt: now
-        })), {});
+        await queryInterface.bulkInsert('Comments', rawCommentsData.map(c => {
+            const roleDate = c.commenter_role === 'INDUSTRY_CONSULTANT'
+                ? new Date('2026-06-15 10:15:00')
+                : new Date('2026-06-16 14:20:00');
+            return {
+                co_assign_id: c.co_assign_id,
+                stakeholder_id: c.commenter_role === 'INDUSTRY_CONSULTANT' ? '4' : '2',
+                commenter_role: c.commenter_role,
+                message: c.message,
+                resolved_status: c.resolved_status,
+                week_id: c.week_id,
+                comment_for: c.comment_for,
+                createdAt: roleDate,
+                updatedAt: roleDate
+            };
+        }), {});
 
         const insertedComments = await queryInterface.sequelize.query(
             `SELECT comment_id, message FROM Comments WHERE co_assign_id = ${assignId} ORDER BY comment_id ASC;`,
