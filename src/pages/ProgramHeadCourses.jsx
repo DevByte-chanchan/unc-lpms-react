@@ -284,7 +284,7 @@ const ProgramHeadCourses = () => {
   const [editing, setEditing] = React.useState(null); // course being edited (hours/credit) — also hosts Archive
 
   // The signed-in Program Head (stubbed in CurrentUser until real auth).
-  const { name: userName, facultyId, facultyLoaded } = useCurrentUser();
+  const { facultyId, facultyLoaded } = useCurrentUser();
 
   // Bumped on every successful upload so the Undo button re-reads its batch.
   const [uploadCount, setUploadCount]         = React.useState(0);
@@ -308,7 +308,7 @@ const ProgramHeadCourses = () => {
   }, [periodId]);
 
   // "My program(s)" — the program(s) the signed-in user heads in the active
-  // term, resolved by the Dean's assignment (program_head_id / head name). No
+  // term, resolved by the Dean's assignment (program_head_id). No
   // hardcoded program code: a Dean reassignment flows straight through.
   const [myPrograms, setMyPrograms] = React.useState([]);
   const [programsLoaded, setProgramsLoaded] = React.useState(false);
@@ -318,11 +318,11 @@ const ProgramHeadCourses = () => {
     if (!periodId || !facultyLoaded) { setMyPrograms([]); setProgramsLoaded(false); return undefined; }
     let cancelled = false;
     setProgramsLoaded(false);
-    ProgramsAPI.listForHead(periodId, { headId: facultyId, headName: userName })
+    ProgramsAPI.listForHead(periodId, { headId: facultyId })
       .then((rows) => { if (!cancelled) { setMyPrograms(Array.isArray(rows) ? rows : []); setProgramsLoaded(true); } })
       .catch(() => { if (!cancelled) { setMyPrograms([]); setProgramsLoaded(true); } });
     return () => { cancelled = true; };
-  }, [periodId, facultyLoaded, facultyId, userName]);
+  }, [periodId, facultyLoaded, facultyId]);
 
   // Keep a valid selection as the program set changes (default to the first).
   React.useEffect(() => {

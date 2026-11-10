@@ -9,15 +9,14 @@
  *   2. deliverDueNotices      dirty account_notices past their send_after: the
  *                             bell + one update email or first invitation
  *   3. sendDueReminders       day-3 / day-6 reminders to people not signed in
- *   4. once a day             deadline notifications, and the clean-up of read
- *                             notifications older than 90 days
+ *   4. once a day             the clean-up of read notifications older than 90 days
  *
  * One tick at a time — a slow SMTP server never stacks ticks up — and each
  * row is claimed atomically, so a second API process can't send it twice.
  * Everything pending lives in the database, so a restart loses nothing.
  */
 import { deliverDueInvitations, sendDueReminders } from '../services/invitations.js';
-import { deliverDueNotices, deadlineNotifications, cleanupNotifications } from '../services/notices.js';
+import { deliverDueNotices, cleanupNotifications } from '../services/notices.js';
 
 export const POLL_MS = 15 * 1000;
 
@@ -42,12 +41,9 @@ export async function runWorkerTick({ now = new Date() } = {}) {
 
 /** The once-a-day step, on its own for tests. */
 export async function runDailyTasks({ now = new Date() } = {}) {
-  const deadlines = await deadlineNotifications({ now });
   const cleaned = await cleanupNotifications({ now });
-  if (deadlines.created || cleaned) {
-    console.log(`[email-worker] daily: ${deadlines.created} deadline notifications (${deadlines.emailed} emailed), ${cleaned} old notifications removed`);
-  }
-  return { deadlines, cleaned };
+  if (cleaned) console.log(`[email-worker] daily: ${cleaned} old notifications removed`);
+  return { cleaned };
 }
 
 async function tick() {

@@ -24,7 +24,7 @@ import { isAllowedEmail, normalizeEmail, domainMessage, validRoles } from './rol
 // Dev-only passwords, deliberately in source: these accounts never exist in production.
 export const DEMO_ACCOUNTS = Object.freeze([
   { email: 'monica.norton@unc.edu.ph',   display_name: 'Monica Norton',   roles: ['Instructor'],                 password: 'Instructor@2026' },
-  { email: 'olivia.vance@unc.edu.ph',    display_name: 'Olivia Vance',    roles: ['Program Head', 'Instructor'], password: 'ProgramHead@2026' },
+  { email: 'kristine.sanlorenzo@unc.edu.ph', display_name: 'Kristine San Lorenzo', roles: ['Program Head', 'Instructor'], password: 'ProgramHead@2026' },
   { email: 'maria.santos@unc.edu.ph',    display_name: 'Maria Santos',    roles: ['Director of Libraries'],      password: 'Library@2026' },
   { email: 'roberto.cruz@unc.edu.ph',    display_name: 'Roberto Cruz',    roles: ['Industry Consultant'],        password: 'Consultant@2026' },
   { email: 'sophia.sterling@unc.edu.ph', display_name: 'Sophia Sterling', roles: ['Dean'],                       password: 'Dean@2026' },
@@ -32,7 +32,7 @@ export const DEMO_ACCOUNTS = Object.freeze([
 ].map((d) => Object.freeze({ ...d, roles: Object.freeze([...d.roles]) })));
 
 // Demo accounts from an earlier version of this list. --reset-demo removes them.
-export const RETIRED_DEMO_EMAILS = Object.freeze(['junar.danila@unc.edu.ph', 'agnes.reyes@unc.edu.ph']);
+export const RETIRED_DEMO_EMAILS = Object.freeze(['junar.danila@unc.edu.ph', 'agnes.reyes@unc.edu.ph', 'olivia.vance@unc.edu.ph']);
 
 // A bad edit to the list above fails loudly at import (and so in the tests).
 for (const d of DEMO_ACCOUNTS) {

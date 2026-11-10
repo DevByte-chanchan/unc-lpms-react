@@ -23,7 +23,12 @@ import {
   looksLikeSubjectOfferings,
   parseSubjectOfferings,
   extractProgramAssignments,
+  filterOfferingsForProgram,
+  yearLevelFromCode,
 } from '../utils/teachingAssignmentParser.js';
+import {
+  buildOfficialCourses, compareWithOfficial, sectionsOf, nameMatches, samePeople,
+} from '../utils/officialMatch.js';
 import { programCoursePrefixes, programKeyFromPrefixes } from '../utils/courseCodeRules.js';
 import { getPeriodId, safeWhereForPeriod } from '../utils/periodScope.js';
 import { filterOneToExistingColumns, safeDestroyByPeriod, safeWhere } from '../utils/dbHelpers.js';
@@ -34,8 +39,12 @@ import { beginImportBatch, beginManualBatch, completeImportBatch } from './impor
 import { courseSemesterOf, periodSemesterOf } from '../utils/courseSemester.js';
 import { offeringIndexForPeriod } from '../utils/offeringLink.js';
 import { markDirty, accountsInvolved, accountsOnRow } from '../services/notices.js';
+import { recordChange, recordEvent, recordListChanges, historyFor, latestChanges } from '../services/assignmentHistory.js';
+import { courseKey, sameLead, stateOf, programKey as programIdKey } from '../utils/assignmentDiff.js';
 
 const { CourseOfferingAssignment, Course, Faculty, AcademicPeriod, Program } = db;
+
+const actorOf = (req) => (req && req.user ? req.user.id : null);
 
 // Every write here hands the people it touched to the notice worker
 // (services/notices.js): after the undo window they get ONE email listing
@@ -263,11 +272,46 @@ export async function listCourseOfferingAssignments(req, res, next) {
       const { updated } = await syncAssignmentsAgainstCatalog(rows, lists, period_id);
       // Only when a row really moved (e.g. a faculty member uploaded later now
       // matches it). A plain page load with nothing changed queues nothing.
-      if (updated > 0) await tell(await accountsInvolved(period_id), period_id, req);
+      // The viewer didn't make this change, so it isn't signed with their name.
+      if (updated > 0) await tell(await accountsInvolved(period_id), period_id, null);
     }
 
-    res.json(rows);
+    if (!period_id) return res.json(rows);
+    // Each row also carries the newest history entry ("Last updated").
+    const latest = await latestChanges(period_id).catch((err) => { console.error('[history] latest failed:', err.message); return new Map(); });
+    res.json(rows.map((r) => {
+      const plain = typeof r.get === 'function' ? r.get({ plain: true }) : { ...r };
+      return { ...plain, last_change: latest.get(courseKey(plain)) || null };
+    }));
   } catch (err) { next(err); }
+}
+
+/**
+ * The row for a per-row endpoint, after the same checks the edit uses: it
+ * exists, and belongs to the caller's period (when one is given). `writable`
+ * also requires the current term (enforceLatestPeriod). Sends the error and
+ * returns null when a check fails.
+ */
+async function rowForRequest(req, res, { writable }) {
+  const row = await CourseOfferingAssignment.findByPk(req.params.id);
+  if (!row) { res.status(404).json({ message: 'Course assignment not found' }); return null; }
+  const callerPeriod = getPeriodId(req);
+  if (callerPeriod && row.period_id && Number(row.period_id) !== callerPeriod) {
+    res.status(403).json({ message: 'This assignment belongs to a different period; switch periods to see it.' });
+    return null;
+  }
+  if (writable && !(await enforceLatestPeriod(res, row.period_id || callerPeriod))) return null;
+  return row;
+}
+
+/** GET /:id/history — every change to this course this term, newest first. */
+export async function getCourseOfferingAssignmentHistory(req, res, next) {
+  try {
+    const row = await rowForRequest(req, res, { writable: false });
+    if (!row) return undefined;
+    const entries = await historyFor({ periodId: row.period_id, programId: row.program_id, courseCode: row.course_code });
+    return res.json({ course_code: row.course_code, entries });
+  } catch (err) { return next(err); }
 }
 
 export async function getCourseOfferingAssignment(req, res, next) {
@@ -310,6 +354,7 @@ export async function createCourseOfferingAssignment(req, res) {
     const batch = await beginManualBatch('course_offering_assignments', period_id, course_code, req.user);
     const created = await CourseOfferingAssignment.create(safe);
     await completeImportBatch(batch, { added: 1 });
+    await recordChange(null, created, { source: 'manual', actorId: actorOf(req) });
     // The Lead and Contributors hear about it after the undo window.
     await tell(await accountsOnRow(created), period_id, req);
 
@@ -334,9 +379,12 @@ export async function updateCourseOfferingAssignment(req, res) {
       if (req.body[k] !== undefined) patch[k] = req.body[k] === '' ? null : req.body[k];
     }
 
-    // Re-stamp the assignment date whenever the faculty (stakeholder) is
-    // (re)assigned via the edit form; clear it if the faculty is removed.
-    if (req.body.faculty_name !== undefined) {
+    // date_assigned is when the CURRENT Lead was assigned: re-stamp it only
+    // when the Lead really changes (re-sending the same name keeps the date),
+    // and clear it when the Lead is removed.
+    // Earlier Leads and their dates stay in the history.
+    if (req.body.faculty_name !== undefined
+        && !sameLead({ faculty_name: row.faculty_name }, { faculty_name: patch.faculty_name })) {
       patch.date_assigned = patch.faculty_name ? new Date() : null;
     }
 
@@ -380,8 +428,12 @@ export async function updateCourseOfferingAssignment(req, res) {
     // The OLD Lead and Contributors, before the patch lands — whoever comes
     // off the course is told too ("removed from …").
     const before = await accountsOnRow(row);
+    const beforeState = stateOf(row);
     const safe = await filterOneToExistingColumns(CourseOfferingAssignment, patch);
     await row.update(safe);
+    // lead_changed / contributors_changed / course_changed / removed (Archived) /
+    // restored (un-archived) — or nothing, when only the year level moved.
+    await recordChange(beforeState, row, { source: 'manual', actorId: actorOf(req) });
     await tell([...before, ...(await accountsOnRow(row))], row.period_id || callerPeriod, req);
     res.json(row);
   } catch (err) {
@@ -396,6 +448,7 @@ export async function deleteCourseOfferingAssignment(req, res, next) {
     if (!(await enforceLatestPeriod(res, row.period_id))) return;
     const people = await accountsOnRow(row);
     await CourseOfferingAssignment.destroy({ where: { id: req.params.id } });
+    await recordChange(row, null, { source: 'manual', actorId: actorOf(req) });
     await tell(people, row.period_id, req);
     res.status(204).end();
   } catch (err) { next(err); }
@@ -683,10 +736,38 @@ export async function uploadCourseOfferingAssignments(req, res) {
     let involved = [];
     try { involved = await accountsInvolved(period_id); } catch (err) { console.error('[assignments] could not list accounts:', err.message); }
 
+    // The list as it stands, by course, before the destroy below wipes it —
+    // what the history compares against, and where an unchanged Lead's
+    // date_assigned is carried over from.
+    const previous = await CourseOfferingAssignment.findAll({ where: { period_id } });
+    const previousByCourse = new Map();
+    const anyPreviousByCourse = new Map();
+    for (const old of previous) {
+      if (old.status !== 'Archived') previousByCourse.set(courseKey(old), old);
+      if (!anyPreviousByCourse.has(courseKey(old)) || old.status !== 'Archived') anyPreviousByCourse.set(courseKey(old), old);
+    }
+    for (const rec of records) {
+      // Same course, same Lead → still the same assignment: keep WHEN that Lead
+      // was assigned (re-uploading must not make everyone look newly assigned).
+      const old = previousByCourse.get(courseKey(rec));
+      if (old && rec.faculty_name && old.date_assigned && sameLead(old, rec)) rec.date_assigned = old.date_assigned;
+      // The official match (when it last matched the registrar, who teaches
+      // which sections) belongs to the course, not the row: carry it across.
+      const prev = anyPreviousByCourse.get(courseKey(rec));
+      if (prev) {
+        rec.official_confirmed_at = prev.official_confirmed_at || null;
+        rec.sections = prev.sections || null;
+      }
+    }
+
     const removed = await safeDestroyByPeriod(CourseOfferingAssignment, period_id);
     const created = await CourseOfferingAssignment.bulkCreate(records);
 
     await completeImportBatch(batch, { inserted: created.length, replaced: removed });
+    // Only the real changes: a new course (assigned), a different Lead
+    // (lead_changed), different Contributors, a course that's gone (removed).
+    // The same file again writes nothing.
+    await recordListChanges(previous, created, { source: 'upload', actorId: actorOf(req), note: req.file.originalname });
     try { involved = [...involved, ...(await accountsInvolved(period_id))]; } catch (err) { console.error('[assignments] could not list accounts:', err.message); }
     await tell(involved, period_id, req);
 
@@ -701,6 +782,208 @@ export async function uploadCourseOfferingAssignments(req, res) {
     });
   } catch (err) {
     res.status(400).json({ message: describeSequelizeError(err) });
+  } finally {
+    safeUnlink(req.file && req.file.path);
+  }
+}
+
+/**
+ * POST /compare-official — compare this program's pre-assignment with the
+ * registrar's SUBJECT OFFERINGS export (the official assignment, out at the end
+ * of enrollment). multipart: file, period_id, program_id; ?preview=1 for the
+ * dry run. utils/officialMatch.js does the comparison:
+ *
+ *   confirmed    Lead + Contributors = the official set
+ *   differs      Accept → the official set (adds / removes people; a Lead who
+ *                isn't official must be replaced by one picked from the set)
+ *   not_offered  keep (default) or archive
+ *   new          Accept → added with the official faculty as Contributors, Lead empty
+ *
+ * The commit takes `decisions` (JSON): [{ course_code, action, lead_name? }],
+ * action accept | skip for differs / new, keep | archive for not_offered. It
+ * re-parses the file itself (never trusts the client's copy of the
+ * suggestions) and writes everything as ONE undoable batch. Confirmed and
+ * updated courses get official_confirmed_at = now and their `sections`; the
+ * history records official_confirmed / official_updated (source official_match).
+ */
+export async function compareOfficialOfferings(req, res) {
+  if (!req.file) return res.status(400).json({ message: 'No file uploaded.' });
+  const period_id = getPeriodId(req);
+  if (!period_id) { safeUnlink(req.file.path); return res.status(400).json({ message: 'period_id is required.' }); }
+  if (!(await enforceLatestPeriod(res, period_id))) { safeUnlink(req.file.path); return undefined; }
+
+  try {
+    const program_id = req.body && req.body.program_id ? Number(req.body.program_id) : null;
+    const program = program_id ? await Program.findByPk(program_id, { attributes: ['id', 'code'] }) : null;
+    if (!program) return res.status(400).json({ message: 'Pick the program to compare (program_id).' });
+    if (!looksLikeSubjectOfferings(req.file.path)) {
+      return res.status(400).json({ message: "This isn't the registrar's SUBJECT OFFERINGS export (CODE | COURSE NO | … | FACULTY). Download it from the registrar and try again." });
+    }
+
+    // The same reading the Course Assignment upload uses, filtered to the program.
+    const prefixes = programCoursePrefixes(program.code);
+    const progKey = programKeyFromPrefixes(prefixes);
+    const parsed = parseSubjectOfferings(req.file.path);
+    const extracted = extractProgramAssignments(parsed, prefixes, { programKey: progKey });
+    const offerings = filterOfferingsForProgram(parsed.offerings, { prefixes, programKey: progKey });
+    const facultyList = await Faculty.findAll({ where: await safeWhere(Faculty, { period_id }), attributes: ['id', 'name', 'status'] });
+    const official = buildOfficialCourses(extracted, offerings, facultyList);
+    const officialOf = (code) => official.find((c) => String(c.course_code).toUpperCase() === String(code).toUpperCase()) || null;
+
+    const programRows = (await CourseOfferingAssignment.findAll({ where: { period_id } }))
+      .filter((r) => programIdKey(r.program_id) === programIdKey(program.id));
+    const live = programRows.filter((r) => r.status !== 'Archived');
+    const comparison = compareWithOfficial(live.map((r) => r.get({ plain: true })), official);
+
+    const counts = { confirmed: 0, differs: 0, not_offered: 0, new: 0 };
+    comparison.forEach((r) => { counts[r.case] += 1; });
+
+    if (isPreviewRequest(req)) {
+      // A file for the other semester would make every course "not offered".
+      const period = await AcademicPeriod.findByPk(period_id, { attributes: ['label', 'semester'] });
+      const termSem = period ? periodSemesterOf(period) : null;
+      const term_mismatch = !!(parsed.termSemester && termSem && Number(parsed.termSemester) !== termSem)
+        ? 'This file is for "' + parsed.term + '" but the current term is ' + period.label + '.'
+        : null;
+      return res.json({
+        preview: true,
+        filename: req.file.originalname,
+        term_mismatch,
+        term: parsed.term || null,
+        program: program.code,
+        counts,
+        // Registrar names that matched no one in this term's faculty list.
+        unmatched: [...new Set(official.flatMap((c) => c.people.filter((p) => !p.matched).map((p) => p.registrar_name)))],
+        rows: comparison,
+      });
+    }
+
+    // ---------- COMMIT ----------
+    let decisions = req.body && req.body.decisions;
+    try { decisions = typeof decisions === 'string' ? JSON.parse(decisions) : decisions; } catch { decisions = null; }
+    const decisionBy = new Map((Array.isArray(decisions) ? decisions : [])
+      .filter((d) => d && d.course_code)
+      .map((d) => [String(d.course_code).trim().toUpperCase(), d]));
+    const decide = (row) => decisionBy.get(String(row.course_code).toUpperCase()) || {};
+
+    // Validate everything BEFORE the batch: a Lead pick must be someone official.
+    const errors = [];
+    const plan = [];
+    for (const row of comparison) {
+      const d = decide(row);
+      if (row.case === 'confirmed') { plan.push({ row, op: 'confirm' }); continue; }
+      if (row.case === 'not_offered') { if (d.action === 'archive') plan.push({ row, op: 'archive' }); continue; }
+      if (d.action !== 'accept') continue;   // differs / new: skipped unless accepted
+      if (row.no_official_faculty) continue; // nobody named by the registrar yet: nothing to apply
+      const officialPeople = (officialOf(row.course_code) || { people: [] }).people;
+      let lead = row.proposed ? row.proposed.lead : null;
+      if (d.lead_name) {
+        const pick = officialPeople.find((p) => nameMatches(p.faculty_name, d.lead_name) || nameMatches(p.registrar_name, d.lead_name));
+        if (!pick) { errors.push({ course_code: row.course_code, message: d.lead_name + ' is not teaching ' + row.course_code + ' in the official list.' }); continue; }
+        lead = { faculty_id: pick.faculty_id, faculty_name: pick.faculty_name };
+      }
+      if (row.case === 'differs' && !lead) {
+        errors.push({ course_code: row.course_code, message: 'Pick a Lead for ' + row.course_code + ' from the official faculty.' });
+        continue;
+      }
+      plan.push({ row, op: row.case === 'new' ? 'add' : 'update', lead, people: officialPeople });
+    }
+    if (errors.length) {
+      return res.status(400).json({ message: errors.map((e) => e.message).join(' '), errors });
+    }
+
+    // One snapshot for the whole compare, so one Undo takes it all back.
+    const batch = await beginImportBatch('course_offering_assignments', period_id, req.file.originalname, req.user);
+    const lists = await loadMasterLists(period_id);
+    const now = new Date();
+    const opts = { source: 'official_match', actorId: actorOf(req), note: req.file.originalname };
+    const byId = new Map(programRows.map((r) => [r.id, r]));
+    const touched = [];
+    const applied = { confirmed: 0, updated: 0, added: 0, archived: 0 };
+
+    // People already on a row, as { faculty_id, faculty_name } — whose spelling wins.
+    const peopleOn = (r) => (r ? [
+      ...(r.faculty_name ? [{ faculty_id: r.faculty_id, faculty_name: r.faculty_name }] : []),
+      ...(Array.isArray(r.contributors) ? r.contributors : []),
+    ] : []);
+    // `sections` under the names the table shows (the row's own spelling, not the registrar's).
+    const sectionsFor = (code, r) => sectionsOf(officialOf(code)).map((s) => {
+      const same = peopleOn(r).find((a) => samePeople(a, s));
+      return same ? { ...s, faculty_name: same.faculty_name, faculty_id: same.faculty_id ?? s.faculty_id } : s;
+    });
+
+    for (const step of plan) {
+      const { row } = step;
+      const existing = row.assignment_id ? byId.get(row.assignment_id) : null;
+      const sections = sectionsFor(row.course_code, existing);
+
+      if (step.op === 'confirm') {
+        const wasConfirmed = !!existing.official_confirmed_at;
+        await existing.update({ official_confirmed_at: now, sections });
+        if (!wasConfirmed) await recordEvent(existing, 'official_confirmed', opts);
+        applied.confirmed += 1;
+        continue;
+      }
+      if (step.op === 'archive') {
+        touched.push(...(await accountsOnRow(existing)));
+        const before = stateOf(existing);
+        await existing.update({ status: 'Archived' });
+        await recordChange(before, existing, opts);
+        applied.archived += 1;
+        continue;
+      }
+
+      // An archived row for the course comes back, rather than colliding with it.
+      const target = existing || programRows.find((r) => r.status === 'Archived'
+        && String(r.course_code).toUpperCase() === String(row.course_code).toUpperCase()) || null;
+      // Someone already on the course keeps the spelling they have; only new
+      // people come in as the faculty list (or, unmatched, the registrar) writes them.
+      const already = peopleOn(target);
+      const spelled = (p) => (already.find((a) => samePeople(a, p)) || p).faculty_name;
+      // update / add: the Lead, and everyone else official as Contributors.
+      const leadName = step.lead ? spelled(step.lead) : null;
+      const contributorNames = step.people
+        .filter((p) => !(step.lead && samePeople(step.lead, p)))
+        .map(spelled);
+      const resolved = resolveAssignment(row.course_code, leadName, lists, program.id);
+      if (resolved.year_level == null) delete resolved.year_level;
+      const fields = {
+        faculty_name: leadName,
+        ...resolved,
+        contributors: normalizeContributors(contributorNames, leadName, resolved.faculty_id, lists),
+        official_confirmed_at: now,
+        sections: sectionsFor(row.course_code, target),
+      };
+
+      if (target) {
+        if (!sameLead(target, { faculty_name: leadName })) fields.date_assigned = leadName ? now : null;
+        touched.push(...(await accountsOnRow(target)));
+        const before = stateOf(target);
+        await target.update(await filterOneToExistingColumns(CourseOfferingAssignment, fields));
+        await recordChange(before, target, { ...opts, action: 'official_updated' });
+        touched.push(...(await accountsOnRow(target)));
+        applied[existing ? 'updated' : 'added'] += 1;
+      } else {
+        const off = officialOf(row.course_code);
+        const created = await CourseOfferingAssignment.create(await filterOneToExistingColumns(CourseOfferingAssignment, {
+          course_code: String(row.course_code).trim(),
+          course_name: row.course_name || (off && off.course_name) || null,
+          year_level: yearLevelFromCode(row.course_code) || null,
+          ...fields,
+          date_assigned: leadName ? now : null,
+          period_id,
+        }));
+        await recordChange(null, created, { ...opts, action: 'official_updated', note: 'Added from the official Subject Offerings (' + req.file.originalname + ')' });
+        touched.push(...(await accountsOnRow(created)));
+        applied.added += 1;
+      }
+    }
+
+    await completeImportBatch(batch, { ...applied, source: 'official_match' });
+    await tell(touched, period_id, req);
+    return res.status(201).json({ applied, skipped: comparison.length - plan.length, counts });
+  } catch (err) {
+    return res.status(400).json({ message: describeSequelizeError(err) });
   } finally {
     safeUnlink(req.file && req.file.path);
   }

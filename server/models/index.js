@@ -28,6 +28,7 @@ import AccountInvitationFactory from './accountInvitation.js';
 import PasswordResetFactory   from './passwordReset.js';
 import AccountNoticeFactory   from './accountNotice.js';
 import NotificationFactory    from './notification.js';
+import CourseAssignmentHistoryFactory from './courseAssignmentHistory.js';
 
 // --- Mirror tables (data sourced from other modules) ---
 // Faculty and Department records that originate from the HR / Dean
@@ -65,6 +66,9 @@ const db = {
   // there is news to send (services/notices.js); the in-app bell. No FKs.
   AccountNotice:          AccountNoticeFactory(sequelize, DataTypes),
   Notification:           NotificationFactory(sequelize, DataTypes),
+  // Course Assignment history, keyed by (period, program, course_code) so it
+  // survives re-uploads (row ids don't). No FKs and outside every undo snapshot.
+  CourseAssignmentHistory: CourseAssignmentHistoryFactory(sequelize, DataTypes),
   sequelize,
 };
 

@@ -7,7 +7,9 @@ import { cloneFromPriorPeriod } from '../utils/periodClone.js';
 import { enforceLatestPeriod } from '../utils/latestPeriod.js';
 import { isPreviewRequest, PreviewRows, previewResponse } from '../utils/importPreview.js';
 import { beginImportBatch, beginManualBatch, completeImportBatch } from './importController.js';
-import { headsOf, syncProgramHeadRoles, unmatchedHeadMessage } from '../services/programHeadAccess.js';
+import {
+  headsOf, syncProgramHeadRoles, unmatchedHeadMessage, changesOwnHeadship, OWN_PROGRAM_HEAD_MESSAGE,
+} from '../services/programHeadAccess.js';
 
 const { Program, Faculty } = db;
 
@@ -148,6 +150,9 @@ export async function createProgram(req, res, next) {
     if (!period_id)     return res.status(400).json({ message: 'period_id is required' });
     if (!(await enforceLatestPeriod(res, period_id))) return;
     const program_head_id = await resolveHeadId(program_head, period_id);
+    if (await changesOwnHeadship(req.user, period_id, [], [program_head_id])) {
+      return res.status(403).json({ message: OWN_PROGRAM_HEAD_MESSAGE });
+    }
     const safe = await filterOneToExistingColumns(Program, { code, name, program_head, program_head_id, status: status || 'Active', period_id });
     // Snapshot first, so a row added by hand is undoable the same way an
     // uploaded one is.
@@ -181,6 +186,9 @@ export async function updateProgram(req, res) {
     // When the head NAME changes, re-resolve its faculty.id (same period).
     if (patch.program_head !== undefined) {
       patch.program_head_id = await resolveHeadId(patch.program_head, row.period_id);
+      if (await changesOwnHeadship(req.user, row.period_id, [row.program_head_id], [patch.program_head_id])) {
+        return res.status(403).json({ message: OWN_PROGRAM_HEAD_MESSAGE });
+      }
     }
     const safe = await filterOneToExistingColumns(Program, patch);
     const before = await headIdsOf(row.period_id);
@@ -197,6 +205,9 @@ export async function deleteProgram(req, res, next) {
     const row = await Program.findByPk(req.params.id);
     if (!row) return res.status(404).json({ message: 'Program not found' });
     if (!(await enforceLatestPeriod(res, row.period_id))) return;
+    if (await changesOwnHeadship(req.user, row.period_id, [row.program_head_id], [])) {
+      return res.status(403).json({ message: OWN_PROGRAM_HEAD_MESSAGE });
+    }
     const before = await headIdsOf(row.period_id);
     const n = await Program.destroy({ where: { id: req.params.id } });
     if (!n) return res.status(404).json({ message: 'Program not found' });
@@ -290,6 +301,13 @@ export async function uploadPrograms(req, res) {
 
     if (records.length === 0) {
       return res.status(400).json({ message: 'No valid rows found.', headers, errors });
+    }
+
+    // This upload replaces the whole list, so check it BEFORE anything is written.
+    const heading = (rows_) => rows_.filter((p) => !['Unlisted', 'Archived'].includes(p.status)).map((p) => p.program_head_id);
+    const current = await Program.findAll({ where: await safeWhere(Program, { period_id }), attributes: ['program_head_id', 'status'] });
+    if (await changesOwnHeadship(req.user, period_id, heading(current), heading(records))) {
+      return res.status(403).json({ message: OWN_PROGRAM_HEAD_MESSAGE });
     }
 
     // Photograph the period BEFORE the destroy below — this upload replaces

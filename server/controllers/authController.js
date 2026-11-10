@@ -101,9 +101,10 @@ const words = (s) => String(s || '')
 const nameKey = (s) => words(s).sort().join(' ');
 
 /**
- * The period's row for this account: same email first, then the same name.
- * Prefers an Active row when several match. Models without an email column
- * (industry_consultants) go straight to the name.
+ * The period's row for this account. Where the table has emails (faculty) only
+ * the email counts: two people can share a name. Models without an email column
+ * (industry_consultants) can only go by name. Prefers an Active row when several
+ * match.
  */
 async function linkRow(Model, periodId, account) {
   if (!Model || !periodId) return null;
@@ -115,7 +116,7 @@ async function linkRow(Model, periodId, account) {
       attributes: attrs,
       where: { period_id: periodId, [Op.and]: [sqlWhere(fn('LOWER', fn('TRIM', col('email'))), account.email)] },
     });
-    if (byEmail.length) return pick(byEmail);
+    return pick(byEmail);
   }
   const key = nameKey(account.display_name);
   if (!key) return null;

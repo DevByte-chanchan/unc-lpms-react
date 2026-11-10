@@ -66,8 +66,17 @@ export async function getActiveTermId() {
   }
 }
 
+// Tests only (like mailer.setMailSinkForTests): a test's own scratch terms —
+// created Closed so they can never become the app's current term — may be
+// written through the guarded endpoints. Empty in production; nothing else sets it.
+let writableForTests = new Set();
+export function setWritableTermsForTests(ids) {
+  writableForTests = new Set((ids || []).map(Number).filter(Boolean));
+}
+
 export async function isActiveTermId(periodId) {
   if (!periodId) return true; // falsy ids are handled by the caller's own validation
+  if (writableForTests.has(Number(periodId))) return true;
   try {
     const row = await AcademicPeriod.findByPk(periodId, { attributes: ['status'], raw: true });
     if (!row) return true; // unknown period — let downstream raise a clearer error

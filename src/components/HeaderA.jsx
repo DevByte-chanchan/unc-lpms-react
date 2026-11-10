@@ -6,26 +6,39 @@
  * someone with more than one role) and Change password. This is the ONE place
  * roles are switched. Signing out lives in ONE place too: the sidebar's Log Out.
  *
- * To its left sits the bell: the unread count (polled every 60 s, on load and
- * when the tab regains focus) and a dropdown of the latest notifications.
- * Clicking one marks it read and goes to its link — switching the active role
- * first when the link belongs to another of this person's roles.
+ * To its right, at the header's far end, sits the bell: the server's unread count (polled every 60 s, on
+ * load and when the tab regains focus) and a dropdown of the latest
+ * notifications. Clicking one marks it read, closes the dropdown and opens what
+ * it is about (services/notificationTarget.js). The same poll re-reads the
+ * user, so the role switcher follows the roles the server holds, whatever the
+ * notifications say.
  */
 import React from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ChevronDown, Key, Check, Bell } from 'react-feather'
 import { useCurrentUser } from '../services/currentUser.jsx'
-import { homeFor, ROLE_DESCRIPTIONS, roleForPath } from '../services/roles.js'
+import { homeFor, ROLE_DESCRIPTIONS } from '../services/roles.js'
 import { NotificationsAPI } from '../services/api.js'
+import { resolveTarget } from '../services/notificationTarget.js'
+import { APP_TOAST_EVENT, showToast } from '../services/appToast.js'
 import styles from '../styles/HeaderA.module.sass'
 
 const POLL_MS = 60 * 1000
+const TICK_MS = 30 * 1000
+const TOAST_MS = 5000
+const DROPDOWN_LIMIT = 10
+const VIEW_ALL_LIMIT = 100
+
+// Words that open a surname: "Kristine San Lorenzo" is K + San Lorenzo, so "KS".
+const SURNAME_PARTICLES = new Set(['san', 'sta', 'de', 'del', 'dela', 'delos', 'la', 'los'])
 
 const initialsOf = (name) => {
     const words = String(name || '').trim().split(/\s+/).filter(Boolean)
     if (!words.length) return '?'
     const first = words[0][0] || ''
-    const last = words.length > 1 ? words[words.length - 1][0] : ''
+    let surname = words.length - 1
+    while (surname > 1 && SURNAME_PARTICLES.has(words[surname - 1].toLowerCase())) surname -= 1
+    const last = words.length > 1 ? words[surname][0] : ''
     return (first + last).toUpperCase()
 }
 
@@ -44,19 +57,39 @@ export const relativeTime = (value, now = Date.now()) => {
     return new Date(t).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
 }
 
+const AppToast = () => {
+    const [message, setMessage] = React.useState(null)
+    React.useEffect(() => {
+        let timer = null
+        const onToast = (e) => {
+            setMessage(e.detail && e.detail.message)
+            clearTimeout(timer)
+            timer = setTimeout(() => setMessage(null), TOAST_MS)
+        }
+        window.addEventListener(APP_TOAST_EVENT, onToast)
+        return () => { clearTimeout(timer); window.removeEventListener(APP_TOAST_EVENT, onToast) }
+    }, [])
+    return <div className={styles.appToast} role="status" aria-live="polite" hidden={!message}>{message}</div>
+}
+
 const NotificationBell = () => {
-    const { roles = [], activeRole, setActiveRole, user } = useCurrentUser()
+    const { activeRole, setActiveRole, user, refreshUser } = useCurrentUser()
     const navigate = useNavigate()
     const [open, setOpen] = React.useState(false)
     const [unread, setUnread] = React.useState(0)
+    const [total, setTotal] = React.useState(0)
     const [items, setItems] = React.useState(null)   // null = not loaded yet
+    const [showAll, setShowAll] = React.useState(false)
     const [error, setError] = React.useState(null)
+    const [now, setNow] = React.useState(() => Date.now())
     const ref = React.useRef(null)
+    const bellRef = React.useRef(null)
 
     const refreshCount = React.useCallback(() => {
         if (!user) return
         NotificationsAPI.unreadCount().then((r) => setUnread(r && r.unread ? r.unread : 0)).catch(() => {})
-    }, [user])
+        refreshUser()
+    }, [user, refreshUser])
 
     // On load, every minute, and when the tab comes back.
     React.useEffect(() => {
@@ -74,21 +107,34 @@ const NotificationBell = () => {
         }
     }, [user, refreshCount])
 
-    const load = React.useCallback(() => {
+    const load = React.useCallback((limit) => {
         setError(null)
-        NotificationsAPI.list(20)
-            .then((r) => { setItems(Array.isArray(r.items) ? r.items : []); setUnread(r.unread || 0) })
+        NotificationsAPI.list(limit)
+            .then((r) => {
+                setItems(Array.isArray(r.items) ? r.items : [])
+                setUnread(r.unread || 0)
+                setTotal(r.total || 0)
+            })
             .catch((err) => setError(err.message || 'Could not load notifications.'))
     }, [])
 
     React.useEffect(() => {
         if (!open) return undefined
-        load()
+        setShowAll(false)
+        setNow(Date.now())
+        load(DROPDOWN_LIMIT)
+        // "8 min ago" keeps moving while the dropdown is open.
+        const tick = setInterval(() => setNow(Date.now()), TICK_MS)
         const onDown = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }
-        const onKey = (e) => { if (e.key === 'Escape') setOpen(false) }
+        const onKey = (e) => {
+            if (e.key !== 'Escape') return
+            setOpen(false)
+            if (bellRef.current) bellRef.current.focus()
+        }
         document.addEventListener('mousedown', onDown)
         document.addEventListener('keydown', onKey)
         return () => {
+            clearInterval(tick)
             document.removeEventListener('mousedown', onDown)
             document.removeEventListener('keydown', onKey)
         }
@@ -98,20 +144,29 @@ const NotificationBell = () => {
         setOpen(false)
         if (!n.read_at) {
             setItems((prev) => (prev || []).map((x) => (x.id === n.id ? { ...x, read_at: new Date().toISOString() } : x)))
-            setUnread((u) => Math.max(0, u - 1))
-            NotificationsAPI.markRead(n.id).catch(() => {})
+            NotificationsAPI.markRead(n.id).then((r) => setUnread(r.unread || 0)).catch(() => {})
         }
-        const link = n.link || '/'
-        // A link for another of this person's roles switches to that role first.
-        const needed = roleForPath(link.split(/[?#]/)[0])
-        if (needed && needed !== activeRole && roles.includes(needed)) setActiveRole(needed)
-        navigate(roles.includes(needed) || needed === null ? link : homeFor(activeRole))
+        if (!n.target) return
+        // Decide on the roles the server holds now, not the ones loaded earlier.
+        const fresh = await refreshUser()
+        const roles = fresh && Array.isArray(fresh.roles) ? fresh.roles : []
+        const stillActive = roles.includes(activeRole) ? activeRole : (roles[0] || null)
+        const { role, path, toast } = resolveTarget(n, { roles, activeRole: stillActive })
+        if (role && role !== activeRole) setActiveRole(role)
+        if (toast) showToast(toast)
+        if (path) navigate(path)
     }
 
     const markAll = () => {
         setItems((prev) => (prev || []).map((x) => (x.read_at ? x : { ...x, read_at: new Date().toISOString() })))
-        setUnread(0)
-        NotificationsAPI.markAllRead().catch(() => {})
+        NotificationsAPI.markAllRead()
+            .then((r) => setUnread(r.unread || 0))
+            .catch(() => { refreshCount(); load(showAll ? VIEW_ALL_LIMIT : DROPDOWN_LIMIT) })
+    }
+
+    const viewAll = () => {
+        setShowAll(true)
+        load(VIEW_ALL_LIMIT)
     }
 
     if (!user) return null
@@ -121,9 +176,9 @@ const NotificationBell = () => {
         <div className={styles.bellWrap} ref={ref}>
             <button
                 type="button"
+                ref={bellRef}
                 className={`${styles.bell} ${open ? styles.bellOpen : ''}`}
                 onClick={() => setOpen((o) => !o)}
-                aria-haspopup="menu"
                 aria-expanded={open}
                 aria-label={unread ? `Notifications, ${unread} unread` : 'Notifications'}
                 title="Notifications"
@@ -133,7 +188,7 @@ const NotificationBell = () => {
             </button>
 
             {open && (
-                <div className={styles.bellMenu} role="menu" aria-label="Notifications">
+                <div className={styles.bellMenu} role="group" aria-label="Notifications">
                     <div className={styles.bellHead}>
                         <span className={styles.bellTitle}>Notifications</span>
                         <button type="button" className={styles.markAll} onClick={markAll} disabled={!unread}>
@@ -147,7 +202,7 @@ const NotificationBell = () => {
                         {!error && items && items.map((n) => {
                             const isUnread = !n.read_at
                             return (
-                                <button key={n.id} type="button" role="menuitem"
+                                <button key={n.id} type="button"
                                     className={`${styles.item} ${isUnread ? styles.itemUnread : ''}`}
                                     onClick={() => openItem(n)}>
                                     <span className={`${styles.dot} ${isUnread ? '' : styles.dotRead}`} aria-hidden="true" />
@@ -155,13 +210,16 @@ const NotificationBell = () => {
                                         <span className={`${styles.itemTitle} ${isUnread ? styles.itemTitleUnread : ''}`}>{n.title}</span>
                                         {n.body && <span className={styles.itemBody}>{n.body}</span>}
                                         <span className={styles.itemMeta}>
-                                            {n.from ? 'from ' + n.from + ' · ' : ''}{relativeTime(n.created_at)}
+                                            {n.from ? 'from ' + n.from + ' · ' : ''}{relativeTime(n.created_at, now)}
                                         </span>
                                     </span>
                                 </button>
                             )
                         })}
                     </div>
+                    {!showAll && total > DROPDOWN_LIMIT && (
+                        <button type="button" className={styles.viewAll} onClick={viewAll}>View all ({total})</button>
+                    )}
                 </div>
             )}
         </div>
@@ -200,7 +258,7 @@ const HeaderA = () => {
             <div className={styles.department}>
 
             </div>
-            <NotificationBell />
+            <AppToast />
             <div className={styles.userMenu} ref={ref}>
                 <button
                     type="button"
@@ -258,6 +316,7 @@ const HeaderA = () => {
                     </div>
                 )}
             </div>
+            <NotificationBell />
         </div>
     )
 }

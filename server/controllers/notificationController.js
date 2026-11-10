@@ -1,7 +1,7 @@
 /**
  * The bell — a user's own notifications, and nobody else's.
  *
- *   GET  /api/notifications?limit=20&before=<id>   { items, unread }, newest first
+ *   GET  /api/notifications?limit=20&before=<id>   { items, unread, total }, newest first
  *   GET  /api/notifications/unread-count           { unread }  (cheap; the header polls it)
  *   POST /api/notifications/:id/read
  *   POST /api/notifications/read-all
@@ -21,7 +21,11 @@ const present = (n, senders) => ({
   body: n.body,
   link: n.link,
   period_id: n.period_id,
-  from: n.sent_by_account_id ? (senders.get(n.sent_by_account_id) || null) : null,
+  target: n.target_type
+    ? { type: n.target_type, entityId: n.target_id, termId: n.period_id, programId: n.target_program_id }
+    : null,
+  // The real actor; older rows may name the recipient, which is never "from" anyone.
+  from: n.sent_by_account_id && n.sent_by_account_id !== n.user_account_id ? (senders.get(n.sent_by_account_id) || null) : null,
   read_at: n.read_at,
   emailed_at: n.emailed_at,
   created_at: n.createdAt,
@@ -40,7 +44,8 @@ export async function listNotifications(req, res, next) {
     if (senderIds.length) {
       for (const a of await UserAccount.findAll({ where: { id: senderIds }, attributes: ['id', 'display_name'] })) senders.set(a.id, a.display_name);
     }
-    return res.json({ items: rows.map((r) => present(r, senders)), unread: await unreadCount(req.user.id) });
+    const total = await Notification.count({ where: { user_account_id: req.user.id } });
+    return res.json({ items: rows.map((r) => present(r, senders)), unread: await unreadCount(req.user.id), total });
   } catch (err) {
     return next(err);
   }

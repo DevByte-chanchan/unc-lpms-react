@@ -94,15 +94,21 @@ export default (sequelize, DataTypes) =>
         allowNull: true,
         comment: 'When the course offering was assigned to the faculty (stakeholder). Stamped whenever a faculty is assigned.',
       },
-      date_submitted: {
+      // The registrar's Subject Offerings (the OFFICIAL assignment, end of
+      // enrollment) compared with this pre-assignment — see
+      // POST /course-offering-assignments/compare-official.
+      official_confirmed_at: {
         type: DataTypes.DATE,
         allowNull: true,
-        comment: 'When the assigned faculty submitted their requirement for this course.',
+        comment: "When this pre-assignment last matched the registrar's Subject Offerings (null = pre-assigned only).",
       },
-      date_updated: {
-        type: DataTypes.DATE,
+      sections: {
+        type: DataTypes.JSON,
         allowNull: true,
-        comment: 'When the submission was last revised.',
+        defaultValue: null,
+        comment:
+          'From the official list: [{ faculty_name, faculty_id, sections: ["BIT213L-OBa", …] }]. ' +
+          'Information only — never makes extra rows.',
       },
       period_id: { type: DataTypes.INTEGER.UNSIGNED, allowNull: true, field: 'academic_period_id' },
     },

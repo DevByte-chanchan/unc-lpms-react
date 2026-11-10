@@ -32,8 +32,32 @@ import DialogShell from "../components/DialogShell.jsx";
 import RowActionsMenu from "../components/RowActionsMenu.jsx";
 import CoursePicker from "../components/CoursePicker.jsx";
 import ContributorsPicker from "../components/ContributorsPicker.jsx";
-import { DateCell } from "../components/RecordTimestamps.jsx";
-import { Search, Upload, Plus, Clipboard, Edit3, ChevronDown, Check, AlertTriangle, RefreshCw } from "react-feather";
+import { DateCell, formatTimestamp } from "../components/RecordTimestamps.jsx";
+import { useSearchParams } from 'react-router-dom';
+import { showToast } from '../services/appToast.js';
+import { REMOVED_MESSAGE } from '../services/notificationTarget.js';
+import { HistoryTimeline } from "../components/AssignmentTracking.jsx";
+import { lastUpdatedText, fmtDay } from "../services/assignmentTracking.js";
+import OfficialCompareModal from "../components/OfficialCompareModal.jsx";
+
+// The sections this person handles on the course, from the official list
+// (row.sections = [{ faculty_id, faculty_name, sections }]) — matched by id, else name.
+const sectionsFor = (row, person) => {
+  const list = Array.isArray(row && row.sections) ? row.sections : [];
+  if (!person) return [];
+  const pid = person.faculty_id != null ? Number(person.faculty_id) : null;
+  const pname = String(person.faculty_name || '').trim().toLowerCase();
+  const hit = list.find((s) => (pid != null && s.faculty_id != null && Number(s.faculty_id) === pid)
+    || (pname && String(s.faculty_name || '').trim().toLowerCase() === pname));
+  return hit && Array.isArray(hit.sections) ? hit.sections : [];
+};
+
+const SectionsLine = ({ sections }) => (sections && sections.length ? (
+  <span title={sections.join(', ')} style={{ display: 'block', fontSize: 11, color: '#6B7280', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100%' }}>
+    {sections.join(', ')}
+  </span>
+) : null);
+import { Search, Upload, Plus, Clipboard, Edit3, ChevronDown, Check, AlertTriangle, RefreshCw, GitPullRequest } from "react-feather";
 import styles from '../styles/CoursesTable.module.sass';
 import syllabusStyles from '../styles/SyllabusSections.module.sass';
 import { CourseOfferingAssignmentsAPI, CoursesAPI, FacultyAPI } from '../services/api.js';
@@ -92,14 +116,20 @@ const ProgramHeadCourseAssignment = () => {
   const [pendingFile, setPendingFile]         = React.useState(null);
   const [uploadReview, setUploadReview]       = React.useState(null);   // { inserted, warnings: [] }
   const [revalidating, setRevalidating]       = React.useState(false);
+  const [showCompare, setShowCompare]         = React.useState(false);
   const fileInputRef = React.useRef(null);
 
   // Bumped on every successful upload so the Undo button re-reads its batch.
   const [uploadCount, setUploadCount]         = React.useState(0);
 
+  // A notification's link: ?course=<code>&program=<id>&term=<id> opens that row.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [assignmentsPeriod, setAssignmentsPeriod] = React.useState(null);
+  const [highlightCode, setHighlightCode] = React.useState(null);
+
   const refresh = React.useCallback(() => {
-    if (!periodId) { setAssignments([]); setCourses([]); setFaculty([]); return; }
-    CourseOfferingAssignmentsAPI.list(periodId).then((rows) => setAssignments(Array.isArray(rows) ? rows : [])).catch(() => setAssignments([]));
+    if (!periodId) { setAssignments([]); setCourses([]); setFaculty([]); setAssignmentsPeriod(null); return; }
+    CourseOfferingAssignmentsAPI.list(periodId).then((rows) => { setAssignments(Array.isArray(rows) ? rows : []); setAssignmentsPeriod(periodId); }).catch(() => setAssignments([]));
     // Courses come from the period-scoped curriculum catalog (the Courses
     // page), filtered to those that actually belong to THIS term's semester
     // (a 1st-Sem assignment must not offer a 2nd-Sem course), then normalised
@@ -113,6 +143,42 @@ const ProgramHeadCourseAssignment = () => {
   }, [periodId, currentPeriod]);
 
   React.useEffect(() => { refresh(); }, [refresh]);
+
+  // Open what the link names, once this term's rows are in. Editing needs a
+  // writable term; a past term's row is only highlighted.
+  const linkedCourse = searchParams.get('course');
+  const linkedProgram = Number(searchParams.get('program')) || null;
+  const linkedTerm = Number(searchParams.get('term')) || null;
+  React.useEffect(() => {
+    if (!linkedCourse || !periodId || assignmentsPeriod !== periodId) return;
+    if (linkedTerm && linkedTerm !== periodId) return;   // the term switch is on its way
+    if (linkedProgram && myPrograms.some((p) => p.id === linkedProgram)) setSelectedProgramId(linkedProgram);
+    const wanted = linkedCourse.trim().toLowerCase();
+    const row = partitionByArchive(assignments, 'courseassign').main
+      .find((a) => String(a.course_code || '').trim().toLowerCase() === wanted);
+    if (row) {
+      setSearchQuery('');
+      setYearFilter('all');
+      setHighlightCode(row.course_code);
+      if (isCurrentTermActive) setEditingAssignment(row);
+    } else {
+      showToast(REMOVED_MESSAGE);
+    }
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      ['course', 'program', 'term'].forEach((k) => next.delete(k));
+      return next;
+    }, { replace: true });
+  }, [linkedCourse, linkedProgram, linkedTerm, periodId, assignmentsPeriod, assignments, myPrograms, setSelectedProgramId, isCurrentTermActive, setSearchParams]);
+
+  // Bring the linked row into view, briefly marked.
+  React.useEffect(() => {
+    if (!highlightCode) return undefined;
+    const el = document.querySelector('[data-course-row="' + CSS.escape(highlightCode) + '"]');
+    if (el) el.scrollIntoView({ block: 'center' });
+    const timer = setTimeout(() => setHighlightCode(null), 4000);
+    return () => clearTimeout(timer);
+  }, [highlightCode]);
 
   const showTable = assignments.length > 0;
 
@@ -262,7 +328,11 @@ const ProgramHeadCourseAssignment = () => {
     { key: 'year_level',    label: 'YEAR LEVEL',       width: 150, type: 'number', sortValue: (r) => yearLevelNum(r.year_level) || 99 },
     { key: 'faculty_name',  label: 'LEAD FACULTY',     width: 170, type: 'text', thStyle: { flex: '1 1 auto', minWidth: 140 } },
     { key: 'contributors',  label: 'CONTRIBUTORS',     width: 150, type: 'text', sortable: false, thStyle: { flex: '1 1 auto', minWidth: 120 } },
+    // When the CURRENT Lead was assigned (earlier Leads are in the History tab).
     { key: 'date_assigned', label: 'DATE ASSIGNED',    width: 180, type: 'date' },
+    { key: 'last_change',   label: 'LAST UPDATED',     width: 210, type: 'date', sortValue: (r) => (r.last_change ? r.last_change.at : null) },
+    // Pre-assigned until the registrar's Subject Offerings confirm it.
+    { key: 'official_confirmed_at', label: 'OFFICIAL',  width: 170, type: 'date' },
     { key: 'status',        label: 'STATUS',           width: 140, type: 'number', sortValue: (r) => statusRank('courseassign', r.status) },
   ];
   const [assignSort, setAssignSort] = React.useState({ sortKey: 'course_code', sortDir: 'asc' });
@@ -388,7 +458,7 @@ const ProgramHeadCourseAssignment = () => {
           {hasMultiplePrograms && programSwitcher}
         </div>
         {!noProgramAssigned && (
-          <div style={{ display: 'flex', gap: 10 }}>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
             {showTable && (
               <button
                 onClick={onRevalidate}
@@ -399,6 +469,10 @@ const ProgramHeadCourseAssignment = () => {
               >
                 <RefreshCw size={18} />
               </button>
+            )}
+            {showTable && (
+              <ActionBtn variant="white" onClick={() => setShowCompare(true)} disabled={!periodId || !isCurrentTermActive || !selectedProgramId}
+                icon={<GitPullRequest size={18} color="#374151" />} label="Compare with official offerings" />
             )}
             <UndoUploadButton entity="course_offering_assignments" periodId={periodId} disabled={!periodId || !isCurrentTermActive} refreshKey={uploadCount} onUndone={refresh} />
             <ActionBtn variant="white" onClick={() => { if (assignments.length > 0) { setConfirmUpload(true); } else { setShowModal(true); } }} disabled={!periodId || !isCurrentTermActive} icon={<Upload size={18} color="#374151" />} label="Upload Course Assignment" />
@@ -466,7 +540,7 @@ const ProgramHeadCourseAssignment = () => {
             </thead>
             <tbody>
               {sortedAssignments.map((row) => (
-                <tr key={row.id}>
+                <tr key={row.id} data-course-row={row.course_code} style={highlightCode === row.course_code ? { background: '#FEF9C3' } : undefined}>
                   <td width={160}>{row.course_code}</td>
                   <td width={280} style={{ flex: '1 1 auto', minWidth: 240 }}>
                     <span title={row.course_name || ''} style={{ minWidth: 0, flex: '1 1 auto', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -476,8 +550,11 @@ const ProgramHeadCourseAssignment = () => {
                   <td width={150}>{(() => { const n = yearLevelNum(row.year_level); return n ? (YEAR_ORDINAL[n] + ' Year') : (row.year_level || <span style={{ color: '#9CA3AF' }}>—</span>); })()}</td>
                   <td width={170} style={{ flex: '1 1 auto', minWidth: 140 }}>
                     {row.faculty_name ? (
-                      <span title={row.faculty_name} style={{ display: 'inline-flex', alignItems: 'center', maxWidth: '100%', padding: '2px 9px', borderRadius: 9999, fontSize: 12, color: '#0F172A', background: '#F1F5F9', border: '1px solid #E2E8F0' }}>
-                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.faculty_name}</span>
+                      <span style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'flex-start', minWidth: 0, maxWidth: '100%' }}>
+                        <span title={row.faculty_name} style={{ display: 'inline-flex', alignItems: 'center', maxWidth: '100%', padding: '2px 9px', borderRadius: 9999, fontSize: 12, color: '#0F172A', background: '#F1F5F9', border: '1px solid #E2E8F0' }}>
+                          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.faculty_name}</span>
+                        </span>
+                        <SectionsLine sections={sectionsFor(row, { faculty_id: row.faculty_id, faculty_name: row.faculty_name })} />
                       </span>
                     ) : (
                       <span style={{ color: '#9CA3AF' }}>— Unassigned —</span>
@@ -493,8 +570,11 @@ const ProgramHeadCourseAssignment = () => {
                       return (
                         <span style={{ display: 'inline-flex', flexWrap: 'wrap', gap: 4, alignItems: 'center' }}>
                           {shown.map((c, i) => (
-                            <span key={(c && c.faculty_id) || c.faculty_name || i} title={c.faculty_name} style={chip}>
-                              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.faculty_name}</span>
+                            <span key={(c && c.faculty_id) || c.faculty_name || i} style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'flex-start', minWidth: 0, maxWidth: 130 }}>
+                              <span title={c.faculty_name} style={chip}>
+                                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.faculty_name}</span>
+                              </span>
+                              <SectionsLine sections={sectionsFor(row, c)} />
                             </span>
                           ))}
                           {extra > 0 && (
@@ -506,6 +586,26 @@ const ProgramHeadCourseAssignment = () => {
                   </td>
                   <td width={180} style={{ whiteSpace: 'nowrap' }}>
                     <DateCell value={row.date_assigned} />
+                  </td>
+                  <td width={210}>
+                    {row.last_change ? (
+                      <span title={formatTimestamp(row.last_change.at)} style={{ fontSize: 13, color: '#374151', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', cursor: 'help' }}>
+                        {lastUpdatedText(row.last_change)}
+                      </span>
+                    ) : <span style={{ color: '#9CA3AF' }}>—</span>}
+                  </td>
+                  <td width={170} style={{ whiteSpace: 'nowrap' }}>
+                    {row.official_confirmed_at ? (
+                      <span title={'Matched the registrar’s Subject Offerings ' + formatTimestamp(row.official_confirmed_at)}
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 8px', borderRadius: 4, fontSize: 12, fontWeight: 600, background: '#DCFCE7', color: '#15803D', border: '1px solid #BBF7D0', cursor: 'help' }}>
+                        Confirmed (official) · {fmtDay(row.official_confirmed_at)}
+                      </span>
+                    ) : (
+                      <span title="Not yet matched against the registrar’s Subject Offerings"
+                        style={{ display: 'inline-flex', padding: '2px 8px', borderRadius: 4, fontSize: 12, fontWeight: 600, background: '#F3F4F6', color: '#6B7280', border: '1px solid #E5E7EB' }}>
+                        Pre-assigned
+                      </span>
+                    )}
                   </td>
                   <td width={140}>
                     <span style={{ ...statusPillStyle('courseassign', row.status), padding: '4px 10px', borderRadius: 4, fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap' }}>
@@ -592,6 +692,13 @@ const ProgramHeadCourseAssignment = () => {
           onClose={() => setEditingAssignment(null)}
           onRemove={onArchiveAssignment}
           removeLabel="Remove"
+          width="min(620px, 94vw)"
+          tabs={[
+            {
+              key: 'history', label: 'History',
+              render: () => <HistoryTimeline assignmentId={editingAssignment.id} periodId={periodId} />,
+            },
+          ]}
         />
         );
       })()}
@@ -655,6 +762,16 @@ const ProgramHeadCourseAssignment = () => {
               <button disabled={!selectedFile} onClick={handleReviewFile} style={{ flex: 1, height: 40, background: '#18191A', border: 'none', borderRadius: 8, color: '#FFFFFF', cursor: selectedFile ? 'pointer' : 'not-allowed', fontWeight: 500, opacity: selectedFile ? 1 : 0.6 }}>Review file</button>
             </div>
       </DialogShell>
+
+      <OfficialCompareModal
+        open={showCompare}
+        onClose={() => setShowCompare(false)}
+        periodId={periodId}
+        programId={selectedProgramId}
+        programCode={programCode}
+        // One undoable batch: bump the Undo button so it offers it.
+        onCommitted={async () => { await refresh(); setUploadCount((n) => n + 1); }}
+      />
 
       {/* Preview & Confirm, then the 30-second undo toast.
           `key` on the program id is load-bearing: the overlay only re-runs its dry

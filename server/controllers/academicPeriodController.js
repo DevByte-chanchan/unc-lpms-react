@@ -15,8 +15,23 @@
  */
 import { Op } from 'sequelize';
 import db from '../models/index.js';
+import { calendarOrderError, CALENDAR_FIELDS } from '../utils/schoolCalendar.js';
 
 const { AcademicPeriod } = db;
+
+// Dates the VPAA sets on a term. The school calendar (CALENDAR_FIELDS) can be
+// edited at any time: it changes during the term.
+const DATE_FIELDS = ['start_date', 'end_date', ...CALENDAR_FIELDS];
+
+/** '' / undefined → null for every date field present in `body`. */
+const datesFrom = (body, { onlyPresent = false } = {}) => {
+  const out = {};
+  for (const k of DATE_FIELDS) {
+    if (onlyPresent && body[k] === undefined) continue;
+    out[k] = body[k] === undefined || body[k] === '' ? null : body[k];
+  }
+  return out;
+};
 
 // Lazy auto-close engine: any Active period whose end_date has already
 // passed gets flipped to Closed on the next list() call. No cron needed.
@@ -140,20 +155,19 @@ export async function listPeriods(_req, res, _next) {
 
 export async function createPeriod(req, res, next) {
   try {
-    const { label, school_year, semester, is_active, sort_order,
-            start_date, end_date, midterm_deadline, finals_deadline } = req.body;
+    const { label, school_year, semester, is_active, sort_order } = req.body;
     if (!label || !school_year || !semester) {
       return res.status(400).json({ message: 'label, school_year, and semester are required' });
     }
+    const dates = datesFrom(req.body);
+    const orderError = calendarOrderError(dates);
+    if (orderError) return res.status(400).json({ message: orderError });
     const created = await AcademicPeriod.create({
       label, school_year, semester,
       is_active: Boolean(is_active),
       sort_order: Number(sort_order || 0),
       status: 'Active',
-      start_date:       start_date       || null,
-      end_date:         end_date         || null,
-      midterm_deadline: midterm_deadline || null,
-      finals_deadline:  finals_deadline  || null,
+      ...dates,
     });
     res.status(201).json(created);
   } catch (err) { next(err); }
@@ -163,12 +177,18 @@ export async function updatePeriod(req, res, next) {
   try {
     const row = await AcademicPeriod.findByPk(req.params.id);
     if (!row) return res.status(404).json({ message: 'Period not found' });
-    const editable = ['label', 'school_year', 'semester', 'sort_order',
-                      'start_date', 'end_date', 'midterm_deadline', 'finals_deadline'];
+    // Same endpoint edits the current term and the most recent past one.
+    const editable = ['label', 'school_year', 'semester', 'sort_order'];
     const patch = {};
     for (const k of editable) {
       if (req.body[k] !== undefined) patch[k] = req.body[k] === '' ? null : req.body[k];
     }
+    Object.assign(patch, datesFrom(req.body, { onlyPresent: true }));
+    // Check the order of the dates as they will be after the patch.
+    const merged = {};
+    for (const k of DATE_FIELDS) merged[k] = patch[k] !== undefined ? patch[k] : row[k];
+    const orderError = calendarOrderError(merged);
+    if (orderError) return res.status(400).json({ message: orderError });
     await row.update(patch);
     res.json(row);
   } catch (err) { next(err); }

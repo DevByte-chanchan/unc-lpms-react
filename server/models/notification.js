@@ -7,7 +7,7 @@
  * when the same news went out in an email.
  *
  * kind: role_added · role_removed · lead_added · contributor_added ·
- *       course_removed · consultant_added · consultant_removed · deadline
+ *       course_removed · consultant_added · consultant_removed
  *
  * Deliberately no foreign keys (a record that outlives what it points at).
  */
@@ -27,11 +27,10 @@ export default (sequelize, DataTypes) => sequelize.define(
     body:            { type: DataTypes.STRING(255), allowNull: true },
     link:            { type: DataTypes.STRING(255), allowNull: true },
     sent_by_account_id: { type: DataTypes.INTEGER.UNSIGNED, allowNull: true },
-    dedupe_key: {
-      type: DataTypes.STRING(64),
-      allowNull: true,
-      comment: 'Deadline reminders: kind + period + deadline + days, so the daily step never adds one twice.',
-    },
+    // Where clicking it leads; the term is period_id. Null on older rows.
+    target_type: { type: DataTypes.STRING(16), allowNull: true, comment: 'assignment | role | consultant; null = nowhere to go.' },
+    target_id:   { type: DataTypes.STRING(64), allowNull: true, comment: 'Course code or role name.' },
+    target_program_id: { type: DataTypes.INTEGER.UNSIGNED, allowNull: true },
     read_at:    { type: DataTypes.DATE, allowNull: true },
     emailed_at: { type: DataTypes.DATE, allowNull: true },
   },
@@ -41,7 +40,6 @@ export default (sequelize, DataTypes) => sequelize.define(
     updatedAt: false,
     indexes: [
       { name: 'notifications_account_read', fields: ['user_account_id', 'read_at'] },
-      { name: 'notifications_account_dedupe', fields: ['user_account_id', 'dedupe_key'] },
     ],
   }
 );

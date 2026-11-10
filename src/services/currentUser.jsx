@@ -8,8 +8,8 @@
  * Exposes (the first four are the original stub's shape, kept for consumers):
  *   - name           display name (HeaderA, "my programs" name fallback)
  *   - role           = activeRole
- *   - facultyId      this user's faculty.id IN THE ACTIVE PERIOD — the server
- *                    links the account by email, falling back to the name
+ *   - facultyId      this user's faculty.id IN THE ACTIVE PERIOD — the server links
+ *                    the account by email, never by name
  *   - facultyLoaded  true once that resolution has settled for the period
  *   - user           { id, email, display_name, roles, must_change_password, facultyId, consultantId } | null
  *   - roles          the roles this user holds
@@ -18,6 +18,7 @@
  *   - loading        true until the first /auth/me answers
  *   - signIn(user)   adopt the user a login / password change returned
  *   - logout()       ends the session and clears everything
+ *   - refreshUser()  re-reads the user (and so the roles) from the server
  */
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -39,7 +40,7 @@ const storeRole = (role) => {
 const CurrentUserContext = React.createContext({
   name: '', role: '', facultyId: null, facultyLoaded: false,
   user: null, roles: [], activeRole: null, setActiveRole: () => {}, loading: true,
-  signIn: () => {}, logout: async () => {},
+  signIn: () => {}, logout: async () => {}, refreshUser: async () => null,
 });
 
 const PUBLIC_PAGES = ['/set-password', '/reset-password', '/forgot-password'];
@@ -89,6 +90,14 @@ export const CurrentUserProvider = ({ children }) => {
     setStoredRole(role);
   }, []);
 
+  // Roles can change while someone is signed in; the server is the only truth
+  // for them. Resolves to the fresh user (null if the request failed).
+  const refreshUser = React.useCallback(() => (
+    AuthAPI.me(periodId)
+      .then(({ user: u }) => { setUser(u); return u; })
+      .catch(() => null)
+  ), [periodId]);
+
   const signIn = React.useCallback((u) => {
     adopt(u);
     setFacultyLoaded(true);
@@ -137,7 +146,8 @@ export const CurrentUserProvider = ({ children }) => {
     loading,
     signIn,
     logout,
-  }), [user, activeRole, facultyLoaded, roles, setActiveRole, loading, signIn, logout]);
+    refreshUser,
+  }), [user, activeRole, facultyLoaded, roles, setActiveRole, loading, signIn, logout, refreshUser]);
 
   return <CurrentUserContext.Provider value={value}>{children}</CurrentUserContext.Provider>;
 };

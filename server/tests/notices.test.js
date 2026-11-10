@@ -20,7 +20,7 @@ import {
 } from '../services/invitations.js';
 import {
   currentState, markDirty, accountsInvolved, diff, isEmpty, deliverDueNotices, recordTold,
-  baselineNotices, deadlineNotifications, facultyLeft, notificationsFor,
+  baselineNotices, facultyLeft, notificationsFor, accountForPerson,
 } from '../services/notices.js';
 import { syncProgramHeadRoles } from '../services/programHeadAccess.js';
 import { grantConsultantAccess } from '../services/consultantAccess.js';
@@ -106,13 +106,13 @@ test('update email: subject follows the content, only non-empty lines, no token'
   const m = updateEmail({
     name: 'Kristine San Lorenzo', termLabel: '1st Semester SY 2026–2027',
     lead: [{ code: 'BIT215L', name: 'Web Systems' }], contributor: [{ code: 'BIT412L', name: 'Capstone' }],
-    deadlines: { midterm: '2026-12-15', finals: '2027-04-30' }, link: 'http://localhost:5173/login',
+    link: 'http://localhost:5173/login',
     sender: { name: 'Kristine San Lorenzo', title: 'Program Head, BSIT' },
   });
   assert.equal(m.subject, 'Your LPMS courses for 1st Semester SY 2026–2027');
   assert.match(m.text, /Kristine San Lorenzo has assigned you as Lead Faculty for: BIT215L — Web Systems\./);
   assert.match(m.text, /added you as a Contributor to: BIT412L — Capstone\./);
-  assert.match(m.text, /Midterm deadline: 15 Dec 2026 · Finals deadline: 30 Apr 2027/);
+  assert.doesNotMatch(m.text, /deadline/i);
   assert.match(m.text, /Sign in: http:\/\/localhost:5173\/login/);
   assert.match(m.text, /— Kristine San Lorenzo\nProgram Head, BSIT/);
   assert.doesNotMatch(m.text + m.html, /token=/);
@@ -122,14 +122,13 @@ test('update email: subject follows the content, only non-empty lines, no token'
   assert.match(roleOnly.text, /You no longer have the Program Head role\./);
 });
 
-test('invitation email: the course lines and deadlines, omitted when empty', () => {
+test('invitation email: the course lines, omitted when empty', () => {
   const m = invitationEmail({
     name: 'Monica Norton', roles: ['Instructor'], link: 'http://x/set-password?token=abc',
     courses: { lead: ['BIT111L'], contributor: ['BIT313L'], consultant: [] },
-    deadlines: { midterm: '2026-12-15', finals: null },
   });
-  assert.match(m.text, /You lead: BIT111L\nYou contribute to: BIT313L\nMidterm deadline: 15 Dec 2026/);
-  assert.doesNotMatch(m.text, /You consult on|Finals deadline/);
+  assert.match(m.text, /You lead: BIT111L\nYou contribute to: BIT313L/);
+  assert.doesNotMatch(m.text, /You consult on|deadline/i);
   assert.match(m.html, /You lead: <strong[^>]*>BIT111L<\/strong>/);
   const plain = invitationEmail({ name: 'A', roles: ['Dean (SCIS)'], link: 'http://x' });
   assert.doesNotMatch(plain.text, /You lead|deadline/);
@@ -236,7 +235,7 @@ test('notices flow', { skip }, async (t) => {
     assert.ok(involved.includes(kris.id) && involved.includes((await account('monica')).id) && involved.includes((await account('alex')).id));
 
     const mark = sent.length;
-    await markDirty(involved, { periodId: pid, senderId: kris.id });
+    await markDirty(involved, { periodId: pid, senderId: dean.id });
     const row = await db.AccountNotice.findOne({ where: { user_account_id: kris.id, period_id: pid } });
     assert.equal(row.dirty, true);
     assert.ok(new Date(row.send_after) > new Date(), 'waits out the undo window');
@@ -251,7 +250,7 @@ test('notices flow', { skip }, async (t) => {
     assert.match(k.subject, /^Your LPMS courses for NTC test/);
     assert.match(k.text, /Lead Faculty for: BIT215L — Web Systems\./);
     assert.match(k.text, /Contributor to: BIT412L — Capstone\./);
-    assert.match(k.text, new RegExp('— ' + names.kris + '\\nProgram Head, NTC'));
+    assert.match(k.text, new RegExp('— ' + names.dean));
     const m = inbox(emailFor('monica')).slice(-1)[0];
     assert.match(m.subject, /account/, "Monica's email IS her invitation");
     assert.match(m.text, /You lead: BIT111L, BIT412L\nYou contribute to: BIT215L, BIT313L/);
@@ -448,19 +447,6 @@ test('notices flow', { skip }, async (t) => {
     assert.equal(since(mark).length, 0);
   });
 
-  await t.test('16. deadline 7 days away: one notification per Lead / Contributor, none on a second run', async () => {
-    const soon = new Date(Date.now() + 7 * DAY).toISOString().slice(0, 10);
-    await period.update({ midterm_deadline: soon });
-    const first = await deadlineNotifications({ periodId: pid });
-    assert.ok(first.created >= 2, 'bea and monica at least');
-    const again = await deadlineNotifications({ periodId: pid });
-    assert.equal(again.created, 0);
-    const bea = await account('bea');
-    const rows = await db.Notification.findAll({ where: { user_account_id: bea.id, kind: 'deadline' } });
-    assert.equal(rows.length, 1);
-    assert.match(rows[0].title, /Midterm deadline in 7 days/);
-  });
-
   await t.test('17. privacy: another user\'s notification is a 404', async () => {
     const bea = await account('bea');
     const monica = await account('monica');
@@ -489,4 +475,12 @@ test('notices flow', { skip }, async (t) => {
     const row = await db.AccountNotice.findOne({ where: { user_account_id: bea.id, period_id: pid } });
     assert.ok(isEmpty(diff({ roles: row.told_roles, lead: row.told_lead, contributor: row.told_contributor, consultant: row.told_consultant }, state)));
   });
+});
+
+test('a faculty row reaches the account with its email from the database, whatever the name says', () => {
+  const accounts = [
+    { id: 1, email: 'kristine.sanlorenzo@unc.edu.ph', display_name: 'Kristine San Lorenzo' },
+    { id: 2, email: 'other@unc.edu.ph', display_name: 'Other Person' },
+  ];
+  assert.equal(accountForPerson(accounts, { name: 'Other Person', email: 'Kristine.SanLorenzo@unc.edu.ph ' }).id, 1);
 });

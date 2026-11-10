@@ -21,6 +21,8 @@ import {
   createInvitation, sendInvitation, invitationSummaries, heldWithoutAccount,
 } from '../services/invitations.js';
 import { sendPasswordReset } from '../services/passwordResets.js';
+import { markDirty } from '../services/notices.js';
+import { OWN_PROGRAM_HEAD_MESSAGE } from '../services/programHeadAccess.js';
 import {
   ROLES, validRoles, sortRoles, isAllowedEmail, normalizeEmail, domainMessage,
 } from '../utils/roles.js';
@@ -175,6 +177,9 @@ export async function updateAccount(req, res, next) {
       if (self && !body.roles.includes('VPAA')) {
         return res.status(400).json({ message: "You can't remove your own VPAA role.", field: 'roles' });
       }
+      if (self && (account.roles || []).includes('Program Head') !== body.roles.includes('Program Head')) {
+        return res.status(403).json({ message: OWN_PROGRAM_HEAD_MESSAGE, field: 'roles' });
+      }
       patch.roles = sortRoles(body.roles);
     }
     if (body.status !== undefined) {
@@ -184,6 +189,8 @@ export async function updateAccount(req, res, next) {
     }
 
     await account.update(patch);
+    // The person hears about a role change, signed by whoever made it.
+    if (patch.roles) await markDirty([account.id], { senderId: req.user.id });
     return res.json(account);
   } catch (err) {
     return next(err);

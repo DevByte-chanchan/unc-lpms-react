@@ -3,9 +3,9 @@
  * assigned to in a given period (the same resolution the Course Offerings page
  * uses), so any page can show "which program am I in" and scope to it.
  *
- * Resolves via the Dean's assignment: ProgramsAPI.listForHead(period, {
- * headId, headName }), where headId/headName come from CurrentUser (stubbed
- * until real auth). Also resolves the program's department code for a subtitle.
+ * Resolves via the Dean's assignment: ProgramsAPI.listForHead(period, { headId }),
+ * where headId is the faculty row CurrentUser linked by email. Also resolves the
+ * program's department code for a subtitle.
  *
  * Returns:
  *   myPrograms          Program[] the user heads this term
@@ -35,11 +35,11 @@ export function useHeadProgram(periodId) {
     if (!periodId || !facultyLoaded) { setMyPrograms([]); setProgramsLoaded(false); return undefined; }
     let cancelled = false;
     setProgramsLoaded(false);
-    ProgramsAPI.listForHead(periodId, { headId: facultyId, headName: userName })
+    ProgramsAPI.listForHead(periodId, { headId: facultyId })
       .then((rows) => { if (!cancelled) { setMyPrograms(Array.isArray(rows) ? rows : []); setProgramsLoaded(true); } })
       .catch(() => { if (!cancelled) { setMyPrograms([]); setProgramsLoaded(true); } });
     return () => { cancelled = true; };
-  }, [periodId, facultyLoaded, facultyId, userName]);
+  }, [periodId, facultyLoaded, facultyId]);
 
   // Keep a valid selection as the program set changes (default to the first).
   React.useEffect(() => {

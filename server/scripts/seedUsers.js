@@ -6,12 +6,12 @@
  * npm run db:seed:users -- --reset-demo    (Docker: docker exec ca-api npm run db:seed:users -- --reset-demo)
  *   Development only. Brings an existing database's demo accounts in line with
  *   the list (name, roles, password, unlocked), creates missing ones, and
- *   retires the old Junar Danila / Agnes Reyes accounts (deleted if never used,
+ *   retires the old Junar Danila / Agnes Reyes / Olivia Vance accounts (deleted if never used,
  *   else disabled). Accounts with any other email are never touched.
  *
  * Demo accounts (development only; source of truth: utils/seedUsers.js):
  *   Instructor             monica.norton@unc.edu.ph    Instructor@2026
- *   Program Head (+Instr.) olivia.vance@unc.edu.ph     ProgramHead@2026
+ *   Program Head (+Instr.) kristine.sanlorenzo@unc.edu.ph  ProgramHead@2026
  *   Director of Libraries  maria.santos@unc.edu.ph     Library@2026
  *   Industry Consultant    roberto.cruz@unc.edu.ph     Consultant@2026
  *   Dean                   sophia.sterling@unc.edu.ph  Dean@2026

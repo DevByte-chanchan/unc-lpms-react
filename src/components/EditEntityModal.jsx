@@ -51,7 +51,12 @@ const arraysDiffer = (a, b) => {
   return x.length !== y.length || x.some((v) => !y.includes(v)) || y.some((v) => !x.includes(v));
 };
 
-const EditEntityModal = ({ title, termLabel, record, fields = [], onSave, onClose, onBack, onRemove, removeLabel = 'Remove', columns = 1, width = 'min(460px, 94vw)', validate, notice }) => {
+const EditEntityModal = ({ title, termLabel, record, fields = [], onSave, onClose, onBack, onRemove, removeLabel = 'Remove', columns = 1, width = 'min(460px, 94vw)', validate, notice, tabs }) => {
+  // Optional extra tabs beside the fields ("Details"): [{ key, label, render }].
+  // Edits on Details are kept while another tab is open; Save/Remove show on Details only.
+  const extraTabs = Array.isArray(tabs) ? tabs.filter(Boolean) : [];
+  const [tab, setTab] = React.useState('details');
+  const activeExtra = extraTabs.find((t) => t.key === tab) || null;
   const initialValues = React.useMemo(() => {
     const v = {};
     fields.forEach((f) => {
@@ -320,8 +325,40 @@ const EditEntityModal = ({ title, termLabel, record, fields = [], onSave, onClos
               <span>{notice}</span>
             </div>
           )}
+
+          {extraTabs.length > 0 && (
+            <div role="tablist" aria-label="Sections" style={{ display: 'flex', gap: 4, marginTop: created || notice ? 0 : 12 }}>
+              {[{ key: 'details', label: 'Details' }, ...extraTabs].map((t) => {
+                const on = t.key === tab;
+                return (
+                  <button key={t.key} role="tab" aria-selected={on} onClick={() => setTab(t.key)} disabled={busy}
+                    style={{ background: 'transparent', border: 'none', borderBottom: '2px solid ' + (on ? C.primary : 'transparent'),
+                      padding: '8px 10px', marginBottom: -1, fontSize: 13, fontWeight: on ? 600 : 500,
+                      color: on ? C.text : C.textMuted, cursor: busy ? 'not-allowed' : 'pointer' }}>
+                    {t.label}
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
 
+        {activeExtra && (
+          <>
+            <div role="tabpanel" style={{ flex: '1 1 auto', minHeight: 0, overflowY: 'auto', padding: '14px 20px', borderTop: '1px solid ' + C.border }}>
+              {activeExtra.render()}
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '14px 20px', borderTop: '1px solid ' + C.border }}>
+              <button onClick={() => !busy && onClose()} disabled={busy}
+                style={{ height: 40, padding: '0 16px', borderRadius: 6, fontSize: 14, fontWeight: 500, background: C.bg, color: C.textSec,
+                  border: '1px solid ' + C.inputBorder, cursor: busy ? 'not-allowed' : 'pointer' }}>
+                Close
+              </button>
+            </div>
+          </>
+        )}
+
+        {!activeExtra && (<>
         {/* Fields */}
         <div ref={bodyRef} style={{ flex: '1 1 auto', minHeight: 0, overflowY: 'auto', padding: '14px 20px 4px', borderTop: '1px solid ' + C.border }}>
           <div style={{ display: 'grid', gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`, columnGap: 16 }}>
@@ -365,6 +402,7 @@ const EditEntityModal = ({ title, termLabel, record, fields = [], onSave, onClos
             </button>
           </div>
         </div>
+        </>)}
       </div>
     </>
   );

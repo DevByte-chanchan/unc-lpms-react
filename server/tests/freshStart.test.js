@@ -36,7 +36,7 @@ const ENV = {
   ADMIN_EMAIL: 'fresh.admin@unc.edu.ph',
   ADMIN_PASSWORD: 'Admin-Pass-1',
 };
-const UPLOADED_PEOPLE = ['kristine.sanlorenzo@unc.edu.ph', 'edrian.lait@unc.edu.ph'];
+const UPLOADED_PEOPLE = ['alan.turing@unc.edu.ph', 'edrian.lait@unc.edu.ph'];
 
 // ---------------------------------------------------------------------------
 // Guard and plan (no database)

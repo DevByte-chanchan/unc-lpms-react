@@ -41,6 +41,13 @@
   overflow: hidden
   //background: white
 
+// A phone is narrower than the rail + the 300px minimum: let the content shrink
+// instead of pushing its right edge off the screen.
+@media (max-width: 480px)
+  .right
+    min-width: 0
+    flex-basis: 0
+
 //.popup
 //  display: flex
 //  width: 100%

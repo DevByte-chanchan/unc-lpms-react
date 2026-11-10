@@ -28,3 +28,6 @@ _tmpverify/
 *.njsproj
 *.sln
 *.sw?
+
+# Database exports (contain personal data), never committed
+backups/

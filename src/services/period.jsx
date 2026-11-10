@@ -19,6 +19,7 @@
  *   3. the first period returned
  */
 import React from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { prettifyLabel } from './periodLabel.js';
 import { AUTH_SIGNED_IN_EVENT } from './api.js';
 
@@ -182,8 +183,14 @@ export const PeriodProvider = ({ children }) => {
 export const ScopedPeriodProvider = ({ children }) => {
   const parent = React.useContext(PeriodContext);
   const [scopedId, setScopedId] = React.useState(null); // null → follow the default (Active term)
-
   const periods = parent.periods;
+
+  // A link can name the term (?term=<id>, from a notification): open it, if it exists.
+  const [searchParams] = useSearchParams();
+  const linkedTerm = Number(searchParams.get('term')) || null;
+  React.useEffect(() => {
+    if (linkedTerm && (Array.isArray(periods) ? periods : []).some((p) => p.id === linkedTerm)) setScopedId(linkedTerm);
+  }, [linkedTerm, periods]);
 
   const activeTerm = React.useMemo(() => currentTermOf(periods), [periods]);
 

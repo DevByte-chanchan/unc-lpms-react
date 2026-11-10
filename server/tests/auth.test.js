@@ -20,7 +20,7 @@ import db from '../models/index.js';
 import api from '../routes/index.js';
 import { errorHandler } from '../middleware/errorHandler.js';
 import UserAccountFactory from '../models/userAccount.js';
-import { hashPassword, verifyLogin, passwordProblems, MESSAGES } from '../controllers/authController.js';
+import { hashPassword, verifyLogin, passwordProblems, MESSAGES, resolveLinks } from '../controllers/authController.js';
 import { seedUsers, DEMO_ACCOUNTS, RETIRED_DEMO_EMAILS, SeedError } from '../utils/seedUsers.js';
 import { ROLES, ROLE_HOMES, isAllowedEmail } from '../utils/roles.js';
 
@@ -377,7 +377,7 @@ const SEED_ENV = {
 
 const FINAL_DEMO = {
   'monica.norton@unc.edu.ph':   ['Monica Norton',   ['Instructor'],                 'Instructor@2026',  '/'],
-  'olivia.vance@unc.edu.ph':    ['Olivia Vance',    ['Program Head', 'Instructor'], 'ProgramHead@2026', '/role/program-head/course-offerings?page=Course%20Offerings'],
+  'kristine.sanlorenzo@unc.edu.ph': ['Kristine San Lorenzo', ['Program Head', 'Instructor'], 'ProgramHead@2026', '/role/program-head/course-offerings?page=Course%20Offerings'],
   'maria.santos@unc.edu.ph':    ['Maria Santos',    ['Director of Libraries'],      'Library@2026',     '/role/director-of-libraries/approval-course-table'],
   'roberto.cruz@unc.edu.ph':    ['Roberto Cruz',    ['Industry Consultant'],        'Consultant@2026',  '/role/industry-consultant/approval-course-table'],
   'sophia.sterling@unc.edu.ph': ['Sophia Sterling', ['Dean'],                       'Dean@2026',        '/role/dean?page=Faculty'],
@@ -408,7 +408,7 @@ test('demo list: the six final accounts, each with its own password that passes 
     assert.deepEqual(passwordProblems(d.password, { email: d.email }), [], d.email);
   }
   assert.equal(new Set(DEMO_ACCOUNTS.map((d) => d.password)).size, DEMO_ACCOUNTS.length, 'no shared passwords');
-  assert.deepEqual([...RETIRED_DEMO_EMAILS], ['junar.danila@unc.edu.ph', 'agnes.reyes@unc.edu.ph']);
+  assert.deepEqual([...RETIRED_DEMO_EMAILS], ['junar.danila@unc.edu.ph', 'agnes.reyes@unc.edu.ph', 'olivia.vance@unc.edu.ph']);
 });
 
 test('seed: fresh dev database — admin + the six, each signs in with its own password only', { skip }, async (t) => {
@@ -459,6 +459,7 @@ async function oldDatabase(Model) {
   await mk('carlos.garcia@unc.edu.ph', 'Carlos Garcia', ['VPAA'], { must_change_password: true });
   await mk('junar.danila@unc.edu.ph', 'Junar Danila', ['Program Head', 'Instructor']);                      // never signed in
   await mk('agnes.reyes@unc.edu.ph', 'Agnes Reyes', ['Dean'], { last_login_at: new Date('2026-10-01') });  // has signed in
+  await mk('olivia.vance@unc.edu.ph', 'Olivia Vance', ['Program Head', 'Instructor'], { last_login_at: new Date('2026-11-01') });  // has signed in
   await mk('someone.else@unc.edu.ph', 'Someone Else', ['Instructor', 'Dean']);                              // not a demo account
   await Model.create({
     email: SEED_ENV.ADMIN_EMAIL, display_name: 'The Admin', roles: ['VPAA'],
@@ -472,7 +473,7 @@ test('seed: old database, plain seed — retired and existing accounts are left 
   const before = await Model.scope('withHash').findAll({ raw: true, order: [['id', 'ASC']] });
 
   const res = await seedUsers({ Model, env: SEED_ENV });
-  assert.deepEqual(res.created.map((c) => c.email).sort(), ['olivia.vance@unc.edu.ph', 'sophia.sterling@unc.edu.ph']);
+  assert.deepEqual(res.created.map((c) => c.email).sort(), ['kristine.sanlorenzo@unc.edu.ph', 'sophia.sterling@unc.edu.ph']);
   assert.equal(res.demo.length, 0);
 
   const after = await Model.scope('withHash').findAll({ raw: true, order: [['id', 'ASC']] });
@@ -489,13 +490,14 @@ test('seed: old database, resetDemo — demo accounts reset, retired ones delete
   const action = Object.fromEntries(res.demo.map((r) => [r.email, r.action]));
   assert.deepEqual(action, {
     'monica.norton@unc.edu.ph': 'updated',
-    'olivia.vance@unc.edu.ph': 'created',
+    'kristine.sanlorenzo@unc.edu.ph': 'created',
     'maria.santos@unc.edu.ph': 'updated',
     'roberto.cruz@unc.edu.ph': 'updated',
     'sophia.sterling@unc.edu.ph': 'created',
     'carlos.garcia@unc.edu.ph': 'updated',
     'junar.danila@unc.edu.ph': 'deleted',
     'agnes.reyes@unc.edu.ph': 'disabled',
+    'olivia.vance@unc.edu.ph': 'disabled',
   });
   res.demo.filter((r) => !['deleted', 'disabled'].includes(r.action))
     .forEach((r) => assert.equal(r.password, FINAL_DEMO[r.email][2]));
@@ -525,7 +527,7 @@ test('seed: old database, resetDemo — demo accounts reset, retired ones delete
 
   // Running it again: the six 'updated', the kept retired one disabled again, nothing created.
   const again = await seedUsers({ Model, env: SEED_ENV, resetDemo: true });
-  assert.deepEqual(again.demo.map((r) => r.action).sort(), ['disabled', ...Array(6).fill('updated')].sort());
+  assert.deepEqual(again.demo.map((r) => r.action).sort(), ['disabled', 'disabled', ...Array(6).fill('updated')].sort());
 });
 
 test('seed: production — resetDemo refuses, the plain seed creates only the admin', { skip }, async (t) => {
@@ -560,3 +562,21 @@ test('seed CLI fails fast with a non-UNC ADMIN_EMAIL', { skip }, () => {
 });
 
 test.after(async () => { if (reachable) await sequelize.close(); });
+
+test('links: an account finds its faculty row by email, never by a shared name', { skip }, async (t) => {
+  const stamp = Date.now();
+  const tag = 'link-test-' + stamp;
+  const email = tag + '@unc.edu.ph';
+  const period = await db.AcademicPeriod.create({ label: 'Link test ' + stamp, school_year: '1998-1999', semester: '1', status: 'Closed' });
+  t.after(async () => {
+    await db.Faculty.destroy({ where: { period_id: period.id } });
+    await period.destroy();
+  });
+  const mine = await db.Faculty.create({ name: 'Someone Else Entirely', role: 'Instructor', email, status: 'Active', period_id: period.id });
+  await db.Faculty.create({ name: 'Same Name', role: 'Instructor', email: tag + '-other@unc.edu.ph', status: 'Active', period_id: period.id });
+
+  const linked = await resolveLinks({ email, display_name: 'Same Name' }, period.id);
+  assert.equal(linked.facultyId, mine.id, 'the row with the email, whatever its name');
+  const unlinked = await resolveLinks({ email: tag + '-nobody@unc.edu.ph', display_name: 'Same Name' }, period.id);
+  assert.equal(unlinked.facultyId, null, 'a matching name alone links nothing');
+});

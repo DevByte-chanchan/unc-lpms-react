@@ -2,7 +2,7 @@
 
 ## The VPAA needs to manage academic terms before any other module can be used.
 - The system shall allow the VPAA to view the Current Term and Past Terms on a dashboard.
-- The system shall allow the VPAA to create a new term by entering the year, semester, start of semester, end of semester, midterm deadline, and finals deadline.
+- The system shall allow the VPAA to create a new term by entering the year, semester, start of semester, end of semester, and the school calendar dates (start of classes and exams).
 - The system shall normalize every term label to a canonical ordinal form (e.g., "1st Semester SY 2027–2028") and re-apply it on each fetch.
 - The system shall provide a context-aware shortcut that reads **Update Sem** during 1st semester (opening the next semester in the same school year) and **Update Term** during 2nd semester (opening a new school year).
 - The system shall allow the VPAA to edit the dates of the current term.

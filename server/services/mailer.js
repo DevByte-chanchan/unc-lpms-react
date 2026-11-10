@@ -136,8 +136,8 @@ export async function sendMail({ to, subject, text, html, attachments } = {}) {
     // messages it caused without a Mailpit. Never installed outside tests.
     const info = testSink ? await testSink(message) || { messageId: 'test-' + Date.now() } : await transportFor(mode).sendMail(message);
     const status = mode === 'capture' || testSink ? 'captured' : 'sent';
-    log(allowed, status);
-    return { status, messageId: info.messageId, skipped };
+    log(allowed, status + (info.response ? ` · ${info.messageId} · ${info.response}` : ''));
+    return { status, messageId: info.messageId, response: info.response, accepted: info.accepted, skipped };
   } catch (err) {
     const reason = explainMailError(err, mode);
     log(allowed, 'failed: ' + reason);

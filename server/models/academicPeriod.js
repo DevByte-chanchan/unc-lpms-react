@@ -38,8 +38,12 @@ export default (sequelize, DataTypes) =>
       closed_at:   { type: DataTypes.DATE, allowNull: true },
       start_date:  { type: DataTypes.DATEONLY, allowNull: true, comment: 'First day of the semester (dd/mm/yy).' },
       end_date:    { type: DataTypes.DATEONLY, allowNull: true, comment: 'Last day of the semester — auto-close trigger.' },
-      midterm_deadline: { type: DataTypes.DATEONLY, allowNull: true, comment: 'Midterm submission deadline.' },
-      finals_deadline:  { type: DataTypes.DATEONLY, allowNull: true, comment: 'Finals submission deadline.' },
+      // School calendar (owned by the VPAA, editable any time).
+      classes_start:  { type: DataTypes.DATEONLY, allowNull: true, comment: 'First day of classes.' },
+      prelim_exam:    { type: DataTypes.DATEONLY, allowNull: true, comment: 'Prelim exam.' },
+      midterm_exam:   { type: DataTypes.DATEONLY, allowNull: true, comment: 'Midterm exam.' },
+      semifinal_exam: { type: DataTypes.DATEONLY, allowNull: true, comment: 'Semi-final exam.' },
+      final_exam:     { type: DataTypes.DATEONLY, allowNull: true, comment: 'Final exam.' },
     },
     {
       tableName: 'academic_periods',

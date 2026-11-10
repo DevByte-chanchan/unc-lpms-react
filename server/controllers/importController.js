@@ -23,8 +23,13 @@ import {
   captureSnapshot, restoreSnapshot, isKnownEntity, isExpired, msRemaining,
   LABELS, UNDO_WINDOW_MS, primaryTable,
 } from '../utils/importUndo.js';
+import { recordListChanges } from '../services/assignmentHistory.js';
 
-const { ImportBatch } = db;
+const { ImportBatch, CourseOfferingAssignment } = db;
+
+// Entities whose snapshot includes course_offering_assignments (see GROUPS in
+// utils/importUndo.js): undoing them can change who teaches a course.
+const ASSIGNMENT_ENTITIES = ['course_offering_assignments', 'courses'];
 
 /** The account that made the batch, or a VPAA. Batches from before creators were recorded: VPAA only. */
 const canUndo = (user, batch) => !!user && (
@@ -157,8 +162,28 @@ export async function undoBatch(req, res, next) {
     const snapshot = parseJson(batch.snapshot, null);
     if (!snapshot) return res.status(500).json({ message: 'The saved snapshot for this upload is unreadable.' });
 
+    // Assignments as they are before the restore, so the history can record
+    // every course the undo puts back (the history itself is never restored —
+    // it must outlive the undo).
+    const touchesAssignments = ASSIGNMENT_ENTITIES.includes(batch.entity);
+    const assignmentsBefore = touchesAssignments
+      ? await CourseOfferingAssignment.findAll({ where: { period_id: batch.period_id } }).catch(() => null)
+      : null;
+
     const { restored, removed } = await restoreSnapshot(batch.entity, batch.period_id, snapshot);
     await batch.update({ status: 'undone', undone_at: new Date() });
+
+    if (assignmentsBefore) {
+      try {
+        const assignmentsAfter = await CourseOfferingAssignment.findAll({ where: { period_id: batch.period_id } });
+        await recordListChanges(assignmentsBefore, assignmentsAfter, {
+          source: 'undo', action: 'upload_undone', actorId: req.user.id,
+          note: 'Undid ' + (batch.filename || batch.subject || LABELS[batch.entity] || batch.entity),
+        });
+      } catch (err) {
+        console.error('[import] undo could not record history for batch ' + batch.id + ':', err.message);
+      }
+    }
     // The upload's invitations haven't gone out yet (they wait out this same
     // window): cancel them, and remove the accounts it created that are unused.
     let invitations = null;

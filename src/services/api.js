@@ -157,10 +157,11 @@ export const CoursesAPI = {
 
 export const ProgramsAPI = {
   list:   (periodId) => request('/programs', { query: { period_id: periodId } }),
-  // "My program(s)" for a Program Head — filter by resolved faculty id and/or
-  // head name (the backend ORs them, so either alone resolves a match).
-  listForHead: (periodId, { headId, headName } = {}) =>
-    request('/programs', { query: { period_id: periodId, head_id: headId, head_name: headName } }),
+  // "My program(s)" for a Program Head, by the faculty row their email links to.
+  // No link means no programs: without head_id the route returns all of them.
+  listForHead: (periodId, { headId } = {}) => (headId
+    ? request('/programs', { query: { period_id: periodId, head_id: headId } })
+    : Promise.resolve([])),
   get:    (id) => request(idPath('/programs', id)),
   create: (data, periodId) => request('/programs', { method: 'POST', body: { ...data, period_id: periodId } }),
   update: (id, patch) => request(idPath('/programs', id), { method: 'PATCH', body: patch }),
@@ -224,6 +225,20 @@ export const CourseOfferingAssignmentsAPI = {
   uploadPreview: (file, periodId, programId) =>
     uploadPreview('/course-offering-assignments/upload', file, periodId, { program_id: programId }),
   revalidate: (periodId) => request('/course-offering-assignments/revalidate', { method: 'POST', query: { period_id: periodId } }),
+  // { course_code, entries: [...] } newest first — kept across re-uploads and undo.
+  history: (id, periodId) => request(idPath('/course-offering-assignments', id) + '/history', { query: { period_id: periodId } }),
+  // The registrar's Subject Offerings vs. the pre-assignment. `decisions` absent → dry run
+  // (rows grouped by case); present → the commit: [{ course_code, action, lead_name? }].
+  compareOfficial: (file, periodId, programId, decisions) => {
+    const fd = new FormData();
+    fd.append('file', file);
+    if (periodId)  fd.append('period_id', String(periodId));
+    if (programId) fd.append('program_id', String(programId));
+    if (decisions) fd.append('decisions', JSON.stringify(decisions));
+    return request('/course-offering-assignments/compare-official', {
+      method: 'POST', body: fd, query: decisions ? undefined : { preview: 1 },
+    });
+  },
 };
 
 // Undo for the bulk-upload buttons. The backend snapshots the affected tables
@@ -329,7 +344,7 @@ export const AuthAPI = {
 
 // The bell. Every call returns only the signed-in user's own rows.
 export const NotificationsAPI = {
-  // { items: [{ id, kind, title, body, link, from, read_at, emailed_at, created_at }], unread }
+  // { items: [{ id, kind, title, body, link, target, from, read_at, emailed_at, created_at }], unread, total }
   list:        (limit = 20, before) => request('/notifications', { query: { limit, before } }),
   // { unread } — cheap; the header polls it.
   unreadCount: () => request('/notifications/unread-count'),

@@ -26,10 +26,16 @@
  * ends naturally moves the row into the Past list.
  */
 import React from 'react';
-import { Plus, Lock, AlertTriangle, ChevronRight, ChevronDown, ChevronUp, Edit2, RefreshCw, X, Save, Calendar, Clock, FileText, Check } from 'react-feather';
+import { Plus, Lock, AlertTriangle, ChevronRight, ChevronDown, ChevronUp, Edit2, RefreshCw, X, Save, Calendar, Check } from 'react-feather';
 import { PeriodsAPI } from '../services/api.js';
 import { usePeriod } from '../services/period.jsx';
 import { formatSemester, formatPeriodLabel } from '../services/periodLabel.js';
+import {
+  BLANK_TERM_DATES, calendarOrderIssue, termDatesOf, termDatesPayload,
+} from '../services/schoolCalendar.js';
+import {
+  calendarChecks, calendarRows, manilaToday, nextCalendarDate, progressText, termProgress, termWeeks,
+} from '../services/termCalendar.js';
 
 const thisYear = new Date().getFullYear();
 const YEARS = Array.from({ length: 16 }, (_, i) => thisYear - 5 + i);
@@ -124,12 +130,18 @@ const fmtMMDDYYYY = (d) => {
   return pad2(m) + '/' + pad2(day) + '/' + y;
 };
 
+// Two date fields side by side, one per line when the form is too narrow.
+const FIELD_GRID = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 14 };
+
+// The cards size to their content and the page scrolls: none of them has a
+// fixed height or clips what's inside, so no button can end up out of reach.
+
 // White card shell.
 const whiteCard = {
   background: '#FFFFFF', border: '1px solid ' + SLATE_200, borderRadius: 12,
-  padding: 18, display: 'flex', flexDirection: 'column', minHeight: 0,
+  padding: 18, display: 'flex', flexDirection: 'column',
   boxShadow: '0 1px 2px rgba(15,23,42,0.04), 0 1px 3px rgba(15,23,42,0.04)',
-  position: 'relative', overflow: 'hidden',
+  position: 'relative',
 };
 
 // Current Term card — a white card with black type, wearing the SAME border as
@@ -139,17 +151,17 @@ const whiteCard = {
 // Edit / Update modes morph to formCard so the dense form reads cleanly.
 const displayCard = {
   background: '#FFFFFF', color: SLATE_900, borderRadius: 12,
-  padding: '12px 20px 28px', display: 'flex', flexDirection: 'column', minHeight: 0,
+  padding: '12px 20px 28px', display: 'flex', flexDirection: 'column',
   border: '1px solid ' + SLATE_200,
   boxShadow: '0 1px 2px rgba(15,23,42,0.04), 0 1px 3px rgba(15,23,42,0.04)',
-  position: 'relative', overflow: 'hidden',
+  position: 'relative',
 };
 const formCard = {
   background: '#FFFFFF', color: SLATE_700, borderRadius: 16,
-  padding: 24, display: 'flex', flexDirection: 'column', minHeight: 0,
+  padding: 24, display: 'flex', flexDirection: 'column',
   border: '1px solid ' + SLATE_200,
   boxShadow: '0 1px 2px rgba(15,23,42,0.04), 0 1px 3px rgba(15,23,42,0.06)',
-  position: 'relative', overflow: 'hidden',
+  position: 'relative',
 };
 
 const eyebrow = (color = SLATE_400) => ({
@@ -399,6 +411,147 @@ const DateField = ({ label, value, onChange, disabled, surface = 'light', min, m
   );
 };
 
+/**
+ * The School calendar group, shared by the three term forms (edit current,
+ * start new, edit past). The VPAA can change these at any time.
+ *
+ *   buf / setBuf  the form buffer (BLANK_TERM_DATES keys)
+ *   checks        fieldChecks(buf) — carries the order issue
+ *   min / max     the school-year window for the pickers
+ */
+const TermCalendarFields = ({ buf, setBuf, checks, min, max, disabled }) => {
+  const set = (key) => (v) => setBuf((b) => ({ ...b, [key]: v }));
+  const issue = checks.orderIssue;
+  const orderHint = (key) => (issue && issue.key === key ? issue.message : undefined);
+  const field = (key, label) => (
+    <DateField surface="edit" label={label}
+      value={buf[key]}
+      min={buf.start_date || min}
+      max={buf.end_date || max}
+      invalid={!!orderHint(key)}
+      hint={orderHint(key)}
+      onChange={set(key)}
+      disabled={disabled} />
+  );
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div style={{ ...eyebrow(SLATE_500), textAlign: 'left' }}>School calendar</div>
+      <div style={FIELD_GRID}>
+        {field('classes_start', 'Start of classes')}
+        {field('prelim_exam', 'Prelim exam')}
+        {field('midterm_exam', 'Midterm exam')}
+        {field('semifinal_exam', 'Semi-final exam')}
+        {field('final_exam', 'Final exam')}
+      </div>
+    </div>
+  );
+};
+
+// ── Read-only term summary (the expanded Current Term card, past terms) ──
+
+// The 13px grey label with a small icon that every detail row on the card uses.
+const DetailLabel = ({ children }) => (
+  <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: SLATE_500, fontSize: 13, fontWeight: 500 }}>
+    <Calendar size={12} /> {children}
+  </div>
+);
+
+// "Week 3 of 17 · 82 days left" over a thin bar for start → end of semester.
+const ProgressStrip = ({ term, today }) => {
+  const p = termProgress(term, today);
+  const text = progressText(p);
+  if (!p) return null;
+  const pct = Math.round(p.ratio * 100);
+  return (
+    <div style={{ marginBottom: 12 }}>
+      <div style={{ fontSize: 13, color: SLATE_600 }}>
+        <strong style={{ color: SLATE_900, fontWeight: 600 }}>{text.strong}</strong>
+        {text.rest && <> {p.phase === 'ended' ? '—' : '·'} {text.rest}</>}
+      </div>
+      <div role="progressbar" aria-label="Semester progress" aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct}
+        style={{ marginTop: 6, height: 6, borderRadius: 9999, background: SLATE_200, overflow: 'hidden' }}>
+        <div style={{ width: pct + '%', height: '100%', borderRadius: 9999, background: SLATE_900, transition: 'width 0.3s ease' }} />
+      </div>
+    </div>
+  );
+};
+
+// The five calendar dates as a vertical timeline. `past` greys everything and
+// drops the chips and Add links: closed terms are read-only.
+const CalendarTimeline = ({ term, today, past = false, onAdd }) => {
+  const rows = calendarRows(term, today);
+  return (
+    <ol aria-label="School calendar" style={{ listStyle: 'none', margin: '6px 0 0', padding: 0 }}>
+      {rows.map((r, i) => {
+        const isNext = !past && r.state === 'next';
+        const muted = past || r.state === 'done' || r.state === 'unset';
+        const dotColor = isNext ? SLATE_900 : (r.state === 'upcoming' && !past) ? SLATE_500 : SLATE_300;
+        return (
+          <li key={r.key} style={{ position: 'relative', display: 'flex', alignItems: 'flex-start', gap: 10, padding: '4px 0' }}>
+            {i < rows.length - 1 && (
+              <span aria-hidden="true" style={{ position: 'absolute', left: 3.5, top: 16, bottom: -6, width: 1, background: SLATE_200 }} />
+            )}
+            <span aria-hidden="true" style={{
+              flexShrink: 0, width: 8, height: 8, marginTop: 6, borderRadius: '50%', background: dotColor,
+              boxShadow: isNext ? '0 0 0 3px ' + SLATE_200 : 'none', position: 'relative',
+            }} />
+            <div style={{ flex: 1, minWidth: 0, display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', columnGap: 10, rowGap: 0 }}>
+              <span style={{ flex: '1 1 110px', fontSize: 13, fontWeight: isNext ? 700 : 500, color: muted ? SLATE_500 : SLATE_900 }}>
+                {r.label}
+                {isNext && (
+                  <span style={{ marginLeft: 6, padding: '1px 7px', borderRadius: 9999, background: SLATE_900, color: '#FFFFFF', fontSize: 10.5, fontWeight: 600, verticalAlign: 1 }}>
+                    Next
+                  </span>
+                )}
+              </span>
+              {r.state === 'unset' ? (
+                <span style={{ fontSize: 13, color: SLATE_400, fontStyle: 'italic' }}>
+                  Not set
+                  {!past && onAdd && (
+                    <>
+                      {' · '}
+                      <button type="button" onClick={onAdd} aria-label={'Add ' + r.label}
+                        style={{ padding: 0, border: 'none', background: 'transparent', font: 'inherit', fontStyle: 'normal', fontWeight: 600, color: SLATE_900, textDecoration: 'underline', cursor: 'pointer' }}>
+                        Add
+                      </button>
+                    </>
+                  )}
+                </span>
+              ) : (
+                <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: 10, fontSize: 13 }}>
+                  <span style={{ fontWeight: isNext ? 700 : 500, color: muted ? SLATE_500 : SLATE_900, whiteSpace: 'nowrap' }}>{fmtDate(r.day)}</span>
+                  {!past && (
+                    <span title={r.hint} style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 12, color: r.state === 'done' ? SLATE_400 : SLATE_600, whiteSpace: 'nowrap' }}>
+                      {r.state === 'done' && <Check size={11} aria-hidden="true" />}
+                      {r.hint}
+                    </span>
+                  )}
+                </span>
+              )}
+            </div>
+          </li>
+        );
+      })}
+    </ol>
+  );
+};
+
+// Amber note, only when the calendar has something to say.
+const CalendarChecks = ({ term }) => {
+  const lines = calendarChecks(term);
+  if (lines.length === 0) return null;
+  return (
+    <div role="note" style={{
+      marginTop: 12, padding: '8px 12px', borderRadius: 10,
+      background: '#FFFBEB', border: '1px solid #FDE68A', color: '#92400E',
+      fontSize: 12.5, lineHeight: 1.45, display: 'flex', gap: 8,
+    }}>
+      <AlertTriangle size={13} style={{ flexShrink: 0, marginTop: 2 }} />
+      <div>{lines.map((l) => <div key={l}>{l}</div>)}</div>
+    </div>
+  );
+};
+
 // SVG bar chart — thick pill-shaped bars in a muted crimson, light
 // diagonal hatched fill, faint dashed gridlines, and a floating value
 // pill crowning the top-performing department.
@@ -427,8 +580,10 @@ const MockChart = ({ title, data }) => {
   return (
     <>
       <h3 style={{ ...chartTitleStyle, marginBottom: 10 }}>{title}</h3>
-      <div style={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'stretch' }}>
-        <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid meet" style={{ width: '100%', height: '100%' }}>
+      {/* Absolutely placed so the SVG takes the room its grid row offers and never
+          sets that row's height: the row follows the Current Term card beside it. */}
+      <div style={{ flex: 1, minHeight: 160, position: 'relative' }}>
+        <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid meet" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
           <defs>
             {/* Vertical gradient — RED at the top of the pill, fading to white at the
                 base. Inverted from the original (which was light-topped and deepened
@@ -503,6 +658,18 @@ const MockChart = ({ title, data }) => {
 
 // ────────────────────────────── page ──────────────────────────────
 
+const useMediaQuery = (query) => {
+  const [matches, setMatches] = React.useState(() => window.matchMedia(query).matches);
+  React.useEffect(() => {
+    const mq = window.matchMedia(query);
+    const onChange = () => setMatches(mq.matches);
+    onChange();
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, [query]);
+  return matches;
+};
+
 const AcademicTerms = () => {
   const { periods, refreshPeriods, setCurrentPeriodId, apiReachable } = usePeriod();
 
@@ -512,31 +679,46 @@ const AcademicTerms = () => {
 
   // Collapsed/expanded toggle for the Current Term card's details panel.
   const [isExpanded, setIsExpanded] = React.useState(false);
+  // Past terms whose calendar is shown (the Show calendar toggle).
+  const [pastCalendars, setPastCalendars] = React.useState(() => new Set());
+  const togglePastCalendar = (id) => setPastCalendars((s) => {
+    const n = new Set(s);
+    if (n.has(id)) n.delete(id); else n.add(id);
+    return n;
+  });
+
+  // Today in Manila; re-read each minute so the page rolls over at midnight.
+  const [today, setToday] = React.useState(() => manilaToday());
+  React.useEffect(() => {
+    const t = setInterval(() => setToday(manilaToday()), 60 * 1000);
+    return () => clearInterval(t);
+  }, []);
+
+  // Below this the two-column grid has no room: stack the cards.
+  const isNarrow = useMediaQuery('(max-width: 900px)');
 
 
-  const [editBuf,     setEditBuf]     = React.useState({ semester: '1', start_date: '', end_date: '', midterm_deadline: '', finals_deadline: '' });
-  const [updateBuf,   setUpdateBuf]   = React.useState({ mode: 'term', year_from: thisYear, year_to: thisYear + 1, semester: '1', start_date: '', end_date: '', midterm_deadline: '', finals_deadline: '' });
-  const [pastEditBuf, setPastEditBuf] = React.useState({ semester: '1', start_date: '', end_date: '', midterm_deadline: '', finals_deadline: '' });
+  const [editBuf,     setEditBuf]     = React.useState({ semester: '1', ...BLANK_TERM_DATES });
+  const [updateBuf,   setUpdateBuf]   = React.useState({ mode: 'term', year_from: thisYear, year_to: thisYear + 1, semester: '1', ...BLANK_TERM_DATES });
+  const [pastEditBuf, setPastEditBuf] = React.useState({ semester: '1', ...BLANK_TERM_DATES });
   const [saving, setSaving] = React.useState(false);
   const [error,  setError]  = React.useState(null);
 
-  // Date-range validity. Bound-checked piecewise so each field can be
-  // flagged individually; lexicographic compare works on YYYY-MM-DD.
+  // Date-range validity; lexicographic compare works on YYYY-MM-DD.
   const fieldChecks = (buf) => {
     const s = buf.start_date || '';
     const e = buf.end_date   || '';
-    const m = buf.midterm_deadline || '';
-    const f = buf.finals_deadline  || '';
-    const endBadOrder      = !!(s && e && e < s);
-    const midtermOutOfRange = !!(m && ((s && m < s) || (e && m > e)));
-    const finalsOutOfRange  = !!(f && ((s && f < s) || (e && f > e)));
-    const finalsBeforeMid   = !!(m && f && f < m);
-    return { endBadOrder, midtermOutOfRange, finalsOutOfRange, finalsBeforeMid };
+    const endBadOrder = !!(s && e && e < s);
+    // start ≤ classes ≤ prelim ≤ midterm ≤ semi-final ≤ final ≤ end (blanks skipped).
+    const orderIssue  = calendarOrderIssue(buf);
+    return { endBadOrder, orderIssue };
   };
   const datesValid = (buf) => {
     const c = fieldChecks(buf);
-    return !c.endBadOrder && !c.midtermOutOfRange && !c.finalsOutOfRange && !c.finalsBeforeMid;
+    return !c.endBadOrder && !c.orderIssue;
   };
+  // The order message when it's the End of Semester that's out of place.
+  const endOrderHint  = (c) => (c.orderIssue && c.orderIssue.key === 'end_date' ? c.orderIssue.message : undefined);
   const editChecks    = fieldChecks(editBuf);
   const updateChecks  = fieldChecks(updateBuf);
   const pastChecks    = fieldChecks(pastEditBuf);
@@ -570,10 +752,9 @@ const AcademicTerms = () => {
   // True while the current term hasn't ended yet (today ≤ end_date).
   const isWithinTerm = React.useMemo(() => {
     if (!currentTerm || !currentTerm.end_date) return false;
-    const today = new Date().toISOString().slice(0, 10);
     const end   = String(currentTerm.end_date).slice(0, 10);
     return today <= end;
-  }, [currentTerm]);
+  }, [currentTerm, today]);
 
   // Next action the user can take:
   //   'sem'  → there's still room in this school year (current term is
@@ -592,13 +773,7 @@ const AcademicTerms = () => {
   // ── Current term: Edit ───────────────────────────────────────────
   const startEdit = () => {
     if (!currentTerm) return;
-    setEditBuf({
-      semester:         currentTerm.semester || '1',
-      start_date:       currentTerm.start_date       ? String(currentTerm.start_date).slice(0, 10)       : '',
-      end_date:         currentTerm.end_date         ? String(currentTerm.end_date).slice(0, 10)         : '',
-      midterm_deadline: currentTerm.midterm_deadline ? String(currentTerm.midterm_deadline).slice(0, 10) : '',
-      finals_deadline:  currentTerm.finals_deadline  ? String(currentTerm.finals_deadline).slice(0, 10)  : '',
-    });
+    setEditBuf({ semester: currentTerm.semester || '1', ...termDatesOf(currentTerm) });
     setError(null);
     setFocus('current-edit');
   };
@@ -607,16 +782,12 @@ const AcademicTerms = () => {
     if (editBuf.start_date && editBuf.end_date && editBuf.end_date < editBuf.start_date) {
       setError('End date must be on or after start date.'); return;
     }
+    if (editChecks.orderIssue) { setError(editChecks.orderIssue.message); return; }
     setSaving(true); setError(null);
     try {
-      // Edit only adjusts the current sem's dates — semester/year are
-      // left as-is so the period's identity (and label) stay stable.
-      await PeriodsAPI.update(currentTerm.id, {
-        start_date:       editBuf.start_date       || null,
-        end_date:         editBuf.end_date         || null,
-        midterm_deadline: editBuf.midterm_deadline || null,
-        finals_deadline:  editBuf.finals_deadline  || null,
-      });
+      // Edit only adjusts the current sem's dates (incl. the school calendar) —
+      // semester/year are left as-is so the period's identity (and label) stay stable.
+      await PeriodsAPI.update(currentTerm.id, termDatesPayload(editBuf));
       await refreshPeriods();
       setFocus(null);
     } catch (err) { setError(err.message || 'Save failed'); }
@@ -641,7 +812,7 @@ const AcademicTerms = () => {
       }
       else { semester = '1'; }
     }
-    setUpdateBuf({ mode, year_from: yFrom, year_to: yTo, semester, start_date: '', end_date: '', midterm_deadline: '', finals_deadline: '' });
+    setUpdateBuf({ mode, year_from: yFrom, year_to: yTo, semester, ...BLANK_TERM_DATES });
     setError(null);
     setFocus('current-update');
   };
@@ -663,22 +834,20 @@ const AcademicTerms = () => {
   }, [currentTerm]);
 
   const saveUpdate = async () => {
-    const { year_from, year_to, semester, start_date, end_date, midterm_deadline, finals_deadline } = updateBuf;
+    const { year_from, year_to, semester, start_date, end_date } = updateBuf;
     if (!year_from || !year_to || year_to <= year_from) { setError('End year must be after start year.'); return; }
     if (!start_date)                                    { setError('Pick a Start of Semester date.'); return; }
     if (!end_date)                                      { setError('Pick an End of Semester date.'); return; }
     if (start_date && end_date && end_date < start_date) { setError('End date must be on or after start date.'); return; }
     if (!semester)                                      { setError('Pick a Semester.'); return; }
+    if (updateChecks.orderIssue)                        { setError(updateChecks.orderIssue.message); return; }
     setSaving(true); setError(null);
     try {
       const school_year = year_from + '-' + year_to;
       const label = formatPeriodLabel({ school_year, semester });
       const created = await PeriodsAPI.create({
         label, school_year, semester, sort_order: 50,
-        start_date,
-        end_date,
-        midterm_deadline: midterm_deadline || null,
-        finals_deadline:  finals_deadline  || null,
+        ...termDatesPayload(updateBuf),
       });
       // Move the prior current term into the Past Academic Terms list
       // by closing it. Done after the new term is successfully created
@@ -696,17 +865,12 @@ const AcademicTerms = () => {
 
   // ── Past term: Edit (most recent only) / View ────────────────────
   const startPastEdit = (p) => {
-    setPastEditBuf({
-      semester:         p.semester         || '1',
-      start_date:       p.start_date       ? String(p.start_date).slice(0, 10)       : '',
-      end_date:         p.end_date         ? String(p.end_date).slice(0, 10)         : '',
-      midterm_deadline: p.midterm_deadline ? String(p.midterm_deadline).slice(0, 10) : '',
-      finals_deadline:  p.finals_deadline  ? String(p.finals_deadline).slice(0, 10)  : '',
-    });
+    setPastEditBuf({ semester: p.semester || '1', ...termDatesOf(p) });
     setError(null);
     setFocus('past-edit-' + p.id);
   };
   const savePastEdit = async (p) => {
+    if (pastChecks.orderIssue) { setError(pastChecks.orderIssue.message); return; }
     setSaving(true); setError(null);
     try {
       const newSem   = pastEditBuf.semester || p.semester;
@@ -714,10 +878,7 @@ const AcademicTerms = () => {
       await PeriodsAPI.update(p.id, {
         semester:         newSem,
         label:            newLabel,
-        start_date:       pastEditBuf.start_date       || null,
-        end_date:         pastEditBuf.end_date         || null,
-        midterm_deadline: pastEditBuf.midterm_deadline || null,
-        finals_deadline:  pastEditBuf.finals_deadline  || null,
+        ...termDatesPayload(pastEditBuf),
       });
       await refreshPeriods();
       setFocus(null);
@@ -735,7 +896,9 @@ const AcademicTerms = () => {
 
   // ─────────────────────────── render ───────────────────────────
   return (
-    <div style={{ padding: 20, background: '#FFFFFF', height: '100%', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+    // The page scrolls here: SkeletonA's content slot clips its overflow, so a
+    // card taller than the slot would otherwise be cut off with no way to reach it.
+    <div style={{ padding: 20, boxSizing: 'border-box', background: '#FFFFFF', height: '100%', overflowX: 'hidden', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
         <div>
           <h2 style={{ margin: 0 }}>Dashboard</h2>
@@ -752,9 +915,10 @@ const AcademicTerms = () => {
       )}
 
       <div style={{
-        flex: 1, minHeight: 0,
+        // Grows past the viewport instead of squeezing the cards; the page scrolls.
+        flex: '1 0 auto',
         display: 'grid',
-        gridTemplateColumns: 'minmax(280px, 1fr) minmax(0, 1.7fr)',
+        gridTemplateColumns: isNarrow ? 'minmax(0, 1fr)' : 'minmax(280px, 1fr) minmax(0, 1.7fr)',
         // Row ratio adapts to which panel is the focus, so the active
         // panel always has room and the inactive one stays visible.
         //   current-edit  → Current grows, Past shrinks but visible
@@ -763,9 +927,13 @@ const AcademicTerms = () => {
         // (current-update + past-edit both span both rows on their own
         //  panel via gridRow:'1/span 2' and hide the sibling — handled
         //  per-panel, so this row-template stays neutral for them.)
-        gridTemplateRows: isFocused('current-edit') ? '1.55fr 0.45fr'
-                        : (focus && focus.startsWith('past-view-')) ? '0.55fr 1.45fr'
-                        : '1fr 1fr',
+        // The first row never goes below its content, so the Current Term card
+        // always shows its buttons. The second has a fixed floor rather than a
+        // content one: Past Terms scrolls its own list, however long it gets.
+        gridTemplateRows: isNarrow ? 'none'
+                        : isFocused('current-edit') ? 'minmax(max-content, 1.55fr) minmax(200px, 0.45fr)'
+                        : (focus && focus.startsWith('past-view-')) ? 'minmax(max-content, 0.55fr) minmax(280px, 1.45fr)'
+                        : 'minmax(max-content, 1fr) minmax(240px, 1fr)',
         gap: 14,
         transition: 'grid-template-rows 0.3s ease',
       }}>
@@ -780,8 +948,7 @@ const AcademicTerms = () => {
           ...(isFocused('current-edit') || isFocused('current-update') ? formCard : displayCard),
           // Update New Term still spans both rows (lots of fields).
           // Edit form stays in row 1 — the row ratio above expands it.
-          ...(isFocused('current-update') ? { gridRow: '1 / span 2', overflowY: 'auto' } : null),
-          ...(isFocused('current-edit') ? { overflowY: 'auto' } : null),
+          ...(isFocused('current-update') ? { gridRow: '1 / span 2' } : null),
           // Hide the Current Term card while the user is editing a past
           // term — the Past Academic Terms card expands to fill both rows.
           ...(focus && focus.startsWith('past-edit-') ? { display: 'none' } : null),
@@ -830,6 +997,16 @@ const AcademicTerms = () => {
                     }}>
                       {formatSemester(currentTerm.semester)}
                     </div>
+                    {(() => {
+                      const next = nextCalendarDate(currentTerm, today);
+                      if (!next) return null;
+                      return (
+                        <div style={{ fontSize: 13, color: SLATE_500, lineHeight: 1.4 }}>
+                          Next: <strong style={{ color: SLATE_700, fontWeight: 600 }}>{next.label}</strong>
+                          {' · '}{fmtDate(next.day)} <span title={next.hint}>({next.hint})</span>
+                        </div>
+                      );
+                    })()}
                   </div>
                   <button
                     type="button"
@@ -879,34 +1056,29 @@ const AcademicTerms = () => {
                   {/* Subtle divider — clear breathing room under the up-arrow */}
                   <div style={{ borderTop: '1px solid ' + SLATE_200, margin: '0 0 12px' }} />
 
-                  {/* Semester Duration */}
-                  <div style={{ marginBottom: 10 }}>
-                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: SLATE_500, fontSize: 13, fontWeight: 500 }}>
-                      <Calendar size={12} /> Semester Duration
-                    </div>
-                    <div style={{ marginTop: 4, fontSize: 14, fontWeight: 500, color: SLATE_900 }}>
-                      {fmtDate(currentTerm.start_date)} &nbsp;—&nbsp; {fmtDate(currentTerm.end_date)}
-                    </div>
-                  </div>
+                  {/* Details scroll inside the card when they outgrow it, so the
+                      action row below always stays in view. */}
+                  <div style={{ maxHeight: isNarrow ? 'none' : 'min(56vh, 460px)', overflowY: 'auto', minHeight: 0, paddingRight: 2 }}>
+                    <ProgressStrip term={currentTerm} today={today} />
 
-                  {/* Midterm + Finals deadlines */}
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', columnGap: 16 }}>
-                    <div>
-                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: SLATE_500, fontSize: 13, fontWeight: 500 }}>
-                        <Clock size={12} /> Midterm Deadline
-                      </div>
+                    {/* Semester Duration */}
+                    <div style={{ marginBottom: 10 }}>
+                      <DetailLabel>Semester Duration</DetailLabel>
                       <div style={{ marginTop: 4, fontSize: 14, fontWeight: 500, color: SLATE_900 }}>
-                        {fmtDate(currentTerm.midterm_deadline)}
+                        {fmtDate(currentTerm.start_date)} &nbsp;—&nbsp; {fmtDate(currentTerm.end_date)}
+                        {termWeeks(currentTerm) != null && (
+                          <span style={{ color: SLATE_500, fontWeight: 400 }}> · {termWeeks(currentTerm)} weeks</span>
+                        )}
                       </div>
                     </div>
-                    <div>
-                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: SLATE_500, fontSize: 13, fontWeight: 500 }}>
-                        <FileText size={12} /> Finals Deadline
-                      </div>
-                      <div style={{ marginTop: 4, fontSize: 14, fontWeight: 500, color: SLATE_900 }}>
-                        {fmtDate(currentTerm.finals_deadline)}
-                      </div>
+
+                    {/* School calendar */}
+                    <div style={{ marginBottom: 4 }}>
+                      <DetailLabel>School Calendar</DetailLabel>
+                      <CalendarTimeline term={currentTerm} today={today} onAdd={startEdit} />
                     </div>
+
+                    <CalendarChecks term={currentTerm} />
                   </div>
 
                   {/* Push buttons to the bottom */}
@@ -921,7 +1093,7 @@ const AcademicTerms = () => {
                         the current term has ended (you're moving to the
                         next school year). Both go to startUpdate. */}
                   <div style={{
-                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                    display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center',
                     gap: 10, marginTop: 10, paddingTop: 10,
                     borderTop: '1px solid ' + SLATE_100,
                   }}>
@@ -976,7 +1148,7 @@ const AcademicTerms = () => {
                   </div>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                <div style={FIELD_GRID}>
                   <DateField surface="edit" label="Start of Semester"
                     value={editBuf.start_date}
                     min={editYearBounds.min}
@@ -987,29 +1159,14 @@ const AcademicTerms = () => {
                     value={editBuf.end_date}
                     min={editBuf.start_date || editYearBounds.min}
                     max={editYearBounds.max}
-                    invalid={!editValid}
-                    hint={!editValid ? 'End date must be on or after start date' : undefined}
+                    invalid={editChecks.endBadOrder || endOrderHint(editChecks) != null}
+                    hint={editChecks.endBadOrder ? 'End date must be on or after start date' : endOrderHint(editChecks)}
                     onChange={(v) => setEditBuf((b) => ({ ...b, end_date: v }))}
                     disabled={saving} />
-                  <DateField surface="edit" label="Midterm Deadline"
-                    value={editBuf.midterm_deadline}
-                    min={editBuf.start_date || editYearBounds.min}
-                    max={editBuf.end_date   || editYearBounds.max}
-                    invalid={editChecks.midtermOutOfRange}
-                    hint={editChecks.midtermOutOfRange ? 'Must fall within Start and End of Semester' : undefined}
-                    onChange={(v) => setEditBuf((b) => ({ ...b, midterm_deadline: v }))}
-                    disabled={saving} />
-                  <DateField surface="edit" label="Finals Deadline"
-                    value={editBuf.finals_deadline}
-                    min={editBuf.midterm_deadline || editBuf.start_date || editYearBounds.min}
-                    max={editBuf.end_date         || editYearBounds.max}
-                    invalid={editChecks.finalsOutOfRange || editChecks.finalsBeforeMid}
-                    hint={editChecks.finalsOutOfRange ? 'Must fall within Start and End of Semester'
-                          : editChecks.finalsBeforeMid ? 'Must be on or after Midterm Deadline'
-                          : undefined}
-                    onChange={(v) => setEditBuf((b) => ({ ...b, finals_deadline: v }))}
-                    disabled={saving} />
                 </div>
+
+                <TermCalendarFields buf={editBuf} setBuf={setEditBuf} checks={editChecks}
+                  min={editYearBounds.min} max={editYearBounds.max} disabled={saving} />
 
                 {error && (
                   <div style={{ fontSize: 12, color: ACCENT, background: '#F9FAFB', border: '1px solid #E5E7EB', padding: '10px 12px', borderRadius: 10, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
@@ -1074,7 +1231,7 @@ const AcademicTerms = () => {
                       <SelectField
                         label="School Year"
                         value={updateBuf.year_from}
-                        onChange={(v) => setUpdateBuf((b) => ({ ...b, year_from: Number(v), year_to: Number(v) + 1, start_date: '', end_date: '', midterm_deadline: '', finals_deadline: '' }))}
+                        onChange={(v) => setUpdateBuf((b) => ({ ...b, year_from: Number(v), year_to: Number(v) + 1, ...BLANK_TERM_DATES }))}
                         disabled={saving}
                       >
                         {YEARS.map((y) => <option key={y} value={y}>{y}</option>)}
@@ -1084,7 +1241,7 @@ const AcademicTerms = () => {
                         label="School Year"
                         hideLabel
                         value={updateBuf.year_to}
-                        onChange={(v) => setUpdateBuf((b) => ({ ...b, year_to: Number(v), start_date: '', end_date: '', midterm_deadline: '', finals_deadline: '' }))}
+                        onChange={(v) => setUpdateBuf((b) => ({ ...b, year_to: Number(v), ...BLANK_TERM_DATES }))}
                         disabled={saving}
                       >
                         {YEARS.filter((y) => y > updateBuf.year_from).map((y) => <option key={y} value={y}>{y}</option>)}
@@ -1099,7 +1256,7 @@ const AcademicTerms = () => {
                     onChange={(v) => setUpdateBuf((b) => (
                       v === b.semester
                         ? b
-                        : { ...b, semester: v, start_date: '', end_date: '', midterm_deadline: '', finals_deadline: '' }
+                        : { ...b, semester: v, ...BLANK_TERM_DATES }
                     ))}
                     disabled={saving}
                   >
@@ -1108,7 +1265,7 @@ const AcademicTerms = () => {
                   </SelectField>
 
                   {/* 2. Start + End — strictly bounded by the school year window */}
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                  <div style={FIELD_GRID}>
                     <DateField surface="edit" label="Start of Semester"
                       value={updateBuf.start_date}
                       min={yearBounds.min}
@@ -1119,33 +1276,15 @@ const AcademicTerms = () => {
                       value={updateBuf.end_date}
                       min={updateBuf.start_date || yearBounds.min}
                       max={yearBounds.max}
-                      invalid={updateChecks.endBadOrder}
-                      hint={updateChecks.endBadOrder ? 'End date must be on or after start date' : undefined}
+                      invalid={updateChecks.endBadOrder || endOrderHint(updateChecks) != null}
+                      hint={updateChecks.endBadOrder ? 'End date must be on or after start date' : endOrderHint(updateChecks)}
                       onChange={(v) => setUpdateBuf((b) => ({ ...b, end_date: v }))}
                       disabled={saving} />
                   </div>
 
-                  {/* 3. Midterm + Finals — bounded by the picked semester window */}
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-                    <DateField surface="edit" label="Midterm Deadline"
-                      value={updateBuf.midterm_deadline}
-                      min={updateBuf.start_date || yearBounds.min}
-                      max={updateBuf.end_date   || yearBounds.max}
-                      invalid={updateChecks.midtermOutOfRange}
-                      hint={updateChecks.midtermOutOfRange ? 'Must fall within Start and End of Semester' : undefined}
-                      onChange={(v) => setUpdateBuf((b) => ({ ...b, midterm_deadline: v }))}
-                      disabled={saving} />
-                    <DateField surface="edit" label="Finals Deadline"
-                      value={updateBuf.finals_deadline}
-                      min={updateBuf.midterm_deadline || updateBuf.start_date || yearBounds.min}
-                      max={updateBuf.end_date         || yearBounds.max}
-                      invalid={updateChecks.finalsOutOfRange || updateChecks.finalsBeforeMid}
-                      hint={updateChecks.finalsOutOfRange ? 'Must fall within Start and End of Semester'
-                            : updateChecks.finalsBeforeMid ? 'Must be on or after Midterm Deadline'
-                            : undefined}
-                      onChange={(v) => setUpdateBuf((b) => ({ ...b, finals_deadline: v }))}
-                      disabled={saving} />
-                  </div>
+                  {/* 3. School calendar — bounded by the picked semester window */}
+                  <TermCalendarFields buf={updateBuf} setBuf={setUpdateBuf} checks={updateChecks}
+                    min={yearBounds.min} max={yearBounds.max} disabled={saving} />
 
                   {error && (
                     <div style={{ fontSize: 12, color: ACCENT, background: '#F9FAFB', border: '1px solid #E5E7EB', padding: '10px 12px', borderRadius: 10, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
@@ -1206,7 +1345,7 @@ const AcademicTerms = () => {
           // Past Terms stays visible during current-edit (just smaller).
           // It only hides when the Update New Term form takes both rows.
           ...(isFocused('current-update') ? { display: 'none' } : null),
-          ...(focus && focus.startsWith('past-edit-') ? { gridRow: '1 / span 2', overflowY: 'auto' } : null),
+          ...(focus && focus.startsWith('past-edit-') ? { gridRow: '1 / span 2' } : null),
         }}>
           <div style={eyebrow(SLATE_400)}>History</div>
           <h3 style={{ margin: '4px 0 12px', fontSize: 16, fontWeight: 700, color: SLATE_900 }}>Past Academic Terms</h3>
@@ -1232,7 +1371,7 @@ const AcademicTerms = () => {
                     onChange={(v) => setPastEditBuf((b) => (
                       v === b.semester
                         ? b
-                        : { ...b, semester: v, start_date: '', end_date: '', midterm_deadline: '', finals_deadline: '' }
+                        : { ...b, semester: v, ...BLANK_TERM_DATES }
                     ))}
                     disabled={saving}
                   >
@@ -1240,7 +1379,7 @@ const AcademicTerms = () => {
                     <option value="2">2nd Semester</option>
                   </SelectField>
 
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                  <div style={FIELD_GRID}>
                     <DateField surface="edit" label="Start of Semester"
                       value={pastEditBuf.start_date}
                       max={pastEditBuf.end_date || undefined}
@@ -1249,29 +1388,14 @@ const AcademicTerms = () => {
                     <DateField surface="edit" label="End of Semester"
                       value={pastEditBuf.end_date}
                       min={pastEditBuf.start_date || undefined}
-                      invalid={pastChecks.endBadOrder}
-                      hint={pastChecks.endBadOrder ? 'End date must be on or after start date' : undefined}
+                      invalid={pastChecks.endBadOrder || endOrderHint(pastChecks) != null}
+                      hint={pastChecks.endBadOrder ? 'End date must be on or after start date' : endOrderHint(pastChecks)}
                       onChange={(v) => setPastEditBuf((b) => ({ ...b, end_date: v }))}
                       disabled={saving} />
-                    <DateField surface="edit" label="Midterm Deadline"
-                      value={pastEditBuf.midterm_deadline}
-                      min={pastEditBuf.start_date || undefined}
-                      max={pastEditBuf.end_date   || undefined}
-                      invalid={pastChecks.midtermOutOfRange}
-                      hint={pastChecks.midtermOutOfRange ? 'Must fall within Start and End of Semester' : undefined}
-                      onChange={(v) => setPastEditBuf((b) => ({ ...b, midterm_deadline: v }))}
-                      disabled={saving} />
-                    <DateField surface="edit" label="Finals Deadline"
-                      value={pastEditBuf.finals_deadline}
-                      min={pastEditBuf.midterm_deadline || pastEditBuf.start_date || undefined}
-                      max={pastEditBuf.end_date         || undefined}
-                      invalid={pastChecks.finalsOutOfRange || pastChecks.finalsBeforeMid}
-                      hint={pastChecks.finalsOutOfRange ? 'Must fall within Start and End of Semester'
-                            : pastChecks.finalsBeforeMid ? 'Must be on or after Midterm Deadline'
-                            : undefined}
-                      onChange={(v) => setPastEditBuf((b) => ({ ...b, finals_deadline: v }))}
-                      disabled={saving} />
                   </div>
+
+                  <TermCalendarFields buf={pastEditBuf} setBuf={setPastEditBuf} checks={pastChecks}
+                    disabled={saving} />
 
                   {error && (
                     <div style={{ fontSize: 12, color: ACCENT, background: '#F9FAFB', border: '1px solid #E5E7EB', padding: '10px 12px', borderRadius: 10, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
@@ -1335,7 +1459,7 @@ const AcademicTerms = () => {
               // THE MOST RECENT PAST TERM IS ALWAYS EDITABLE — the rest are locked.
               //
               // The term that just ended is the one the OVPAA most often needs to
-              // correct (a wrong end date, a missed deadline), and the backend is
+              // correct (a wrong end date), and the backend is
               // built around exactly that: autoCloseSupersededTerms spares the term
               // immediately before the current one, and updatePeriod imposes no
               // status check, so a Closed period can still be patched.
@@ -1422,30 +1546,19 @@ const AcademicTerms = () => {
                         </div>
                         <div style={{ marginTop: 4, fontSize: 12, fontWeight: 500, color: SLATE_500 }}>
                           Semester Duration
+                          {termWeeks(p) != null && <> · {termWeeks(p)} weeks</>}
                         </div>
-                      </div>
-
-                      {/* Deadlines grid */}
-                      <div style={{
-                        display: 'grid', gridTemplateColumns: '1fr 1fr', columnGap: 8,
-                        paddingTop: 10, borderTop: '1px solid ' + SLATE_100,
-                      }}>
-                        <div>
-                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, color: '#6B7280', fontSize: 13, fontWeight: 500 }}>
-                            <Clock size={11} /> Midterm
-                          </div>
-                          <div style={{ marginTop: 2, fontSize: 12, fontWeight: 500, color: SLATE_700 }}>
-                            {fmtDate(p.midterm_deadline)}
-                          </div>
-                        </div>
-                        <div>
-                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, color: '#6B7280', fontSize: 13, fontWeight: 500 }}>
-                            <FileText size={11} /> Finals
-                          </div>
-                          <div style={{ marginTop: 2, fontSize: 12, fontWeight: 500, color: SLATE_700 }}>
-                            {fmtDate(p.finals_deadline)}
-                          </div>
-                        </div>
+                        <button type="button" onClick={() => togglePastCalendar(p.id)}
+                          aria-expanded={pastCalendars.has(p.id)}
+                          style={{
+                            marginTop: 8, padding: 0, border: 'none', background: 'transparent',
+                            fontFamily: 'inherit', fontSize: 12.5, fontWeight: 600, color: SLATE_700,
+                            cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4,
+                          }}>
+                          {pastCalendars.has(p.id) ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+                          {pastCalendars.has(p.id) ? 'Hide calendar' : 'Show calendar'}
+                        </button>
+                        {pastCalendars.has(p.id) && <CalendarTimeline term={p} today={today} past />}
                       </div>
 
                       {/* Footer actions — Edit only for the previous term, and only

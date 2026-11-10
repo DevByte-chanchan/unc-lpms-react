@@ -216,7 +216,7 @@
   position: relative
   display: flex
   align-items: center
-  margin-right: 6px
+  margin-left: 6px
 
 .bell
   position: relative
@@ -225,6 +225,8 @@
   justify-content: center
   width: 40px
   height: 40px
+  // The global button padding would leave the icon no width at all.
+  padding: 0
   border: 1px solid transparent
   border-radius: 12px
   background: transparent
@@ -236,23 +238,26 @@
     background: #F3F4F6
     outline: none
 
+  svg
+    flex-shrink: 0
+
 .bellOpen
   background: #F3F4F6
   border-color: #E5E7EB
 
 .badge
   position: absolute
-  top: 4px
-  right: 4px
-  min-width: 18px
-  height: 18px
-  padding: 0 5px
+  top: -2px
+  right: -4px
+  min-width: 10px
+  height: 14px
+  padding: 0 3px
   border-radius: 9999px
   background: #DC2626
   color: #FFFFFF
-  font-size: 11px
+  font-size: 10px
   font-weight: 700
-  line-height: 18px
+  line-height: 14px
   text-align: center
   border: 2px solid #FFFFFF
   box-sizing: content-box
@@ -323,9 +328,46 @@
   text-align: left
   cursor: pointer
 
-  &:hover, &:focus-visible
+  &:hover
     background: #F9FAFB
-    outline: none
+
+  &:focus-visible
+    background: #F9FAFB
+    outline: 2px solid #2563EB
+    outline-offset: -2px
+
+.viewAll
+  padding: 10px 14px
+  border: none
+  border-top: 1px solid #F3F4F6
+  background: transparent
+  font-family: inherit
+  font-size: 12.5px
+  font-weight: 600
+  color: #374151
+  cursor: pointer
+  border-radius: 0 0 12px 12px
+
+  &:hover
+    background: #F9FAFB
+
+  &:focus-visible
+    outline: 2px solid #2563EB
+    outline-offset: -2px
+
+.appToast
+  position: fixed
+  left: 50%
+  bottom: 24px
+  transform: translateX(-50%)
+  z-index: 200
+  max-width: calc(100vw - 32px)
+  padding: 10px 16px
+  border-radius: 10px
+  background: #18191A
+  color: #FFFFFF
+  font-size: 13.5px
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2)
 
 .itemUnread
   background: #FAFAFA

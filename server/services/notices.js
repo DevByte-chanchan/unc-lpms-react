@@ -9,7 +9,6 @@
  *   deliverDueNotices()                  the email worker's tick, after the invitations
  *   recordTold(accountId, periodId, now) an invitation just told them everything
  *   baselineNotices()                    at boot: existing data is "already told"
- *   deadlineNotifications()              daily: the 7-day and 1-day deadline notices
  *   cleanupNotifications()               daily: read notifications older than 90 days
  *   facultyLeft({ faculty, … })          a faculty row left the active term
  *
@@ -38,7 +37,7 @@ import {
 
 const {
   AccountNotice, Notification, UserAccount, Faculty, IndustryConsultant, ConsultantCourse,
-  CourseOfferingAssignment, AcademicPeriod, AccountInvitation, Course,
+  CourseOfferingAssignment, AcademicPeriod, AccountInvitation, Course, CourseAssignmentHistory,
 } = db;
 
 // A burst of changes keeps pushing the email later — but never past this.
@@ -114,20 +113,21 @@ async function consultantRowsFor(periodId, account) {
  */
 export async function currentState(account, periodId) {
   const pid = await periodOr(periodId);
-  const state = { roles: [...(account.roles || [])], lead: [], contributor: [], consultant: [], names: {} };
+  const state = { roles: [...(account.roles || [])], lead: [], contributor: [], consultant: [], names: {}, programs: {} };
   if (!pid) return state;
 
   const fac = await facultyRowFor(pid, { name: account.display_name, email: account.email });
   if (fac) {
     const rows = await CourseOfferingAssignment.findAll({
       where: { period_id: pid, status: COUNTED },
-      attributes: ['course_code', 'course_name', 'faculty_id', 'contributors'],
+      attributes: ['course_code', 'course_name', 'faculty_id', 'contributors', 'program_id'],
     });
     const lead = [];
     const contributor = [];
     for (const r of rows) {
       if (!r.course_code) continue;
       if (r.course_name) state.names[String(r.course_code).trim()] = r.course_name;
+      if (r.program_id) state.programs[String(r.course_code).trim()] = r.program_id;
       if (Number(r.faculty_id) === Number(fac.id)) lead.push(r.course_code);
       else if ((Array.isArray(r.contributors) ? r.contributors : []).some((c) => c && Number(c.faculty_id) === Number(fac.id))) contributor.push(r.course_code);
     }
@@ -151,14 +151,6 @@ export async function currentState(account, periodId) {
     state.consultant = sortCodes(codes);
   }
   return state;
-}
-
-/** { midterm, finals } as YYYY-MM-DD strings (or null) for the term. */
-export async function deadlinesFor(periodId) {
-  const pid = await periodOr(periodId);
-  if (!pid) return { midterm: null, finals: null };
-  const p = await AcademicPeriod.findByPk(pid, { attributes: ['midterm_deadline', 'finals_deadline'] });
-  return { midterm: p ? p.midterm_deadline || null : null, finals: p ? p.finals_deadline || null : null };
 }
 
 // --- Marking ---------------------------------------------------------------------
@@ -197,7 +189,9 @@ export async function markDirty(accountIds, { periodId, senderId = null, delayMs
         dirty: true,
         send_after: sendAfter,
         first_dirty_at: firstDirty,
-        sent_by_account_id: senderId || row.sent_by_account_id || null,
+        // Within a burst the latest named actor stands; a new burst starts clean,
+        // so a system change is never signed by whoever acted last time.
+        sent_by_account_id: senderId || (row.dirty ? row.sent_by_account_id : null) || null,
       });
       marked += 1;
     } catch (err) {
@@ -314,25 +308,74 @@ const bodyFor = (state, code, period) => {
 /** The notifications rows one diff turns into (not yet written). */
 export function notificationsFor(d, { state, period, roleLabels = {}, remainingRoles = [] }) {
   const items = [];
-  const push = (kind, title, body, link) => items.push({ kind, title: short(title, 150), body, link: short(link, 255) });
-  for (const role of d.rolesAdded) push('role_added', `You're now a ${roleLabels[role] || role}`, termLabelOf(period) || null, ROLE_HOMES[role] || '/');
+  // target_* says what the item is about, so a click can open it.
+  const push = (kind, title, body, link, target_type, target_id) => items.push({
+    kind, title: short(title, 150), body, link: short(link, 255),
+    target_type,
+    target_id: short(target_id, 64),
+    target_program_id: target_type === 'assignment' ? ((state.programs && state.programs[String(target_id).trim()]) || null) : null,
+  });
+  for (const role of d.rolesAdded) push('role_added', `You're now a ${roleLabels[role] || role}`, termLabelOf(period) || null, ROLE_HOMES[role] || '/', 'role', role);
   for (const role of d.rolesRemoved) {
     const home = ROLE_HOMES[remainingRoles[0]] || '/login';
-    push('role_removed', `You no longer have the ${role} role`, termLabelOf(period) || null, home);
+    push('role_removed', `You no longer have the ${role} role`, termLabelOf(period) || null, home, 'role', role);
   }
-  for (const code of d.leadAdded) push('lead_added', `You're the Lead Faculty for ${code}`, bodyFor(state, code, period), ASSIGNED_COURSES_LINK);
-  for (const code of d.contributorAdded) push('contributor_added', `You're a Contributor to ${code}`, bodyFor(state, code, period), ASSIGNED_COURSES_LINK);
-  for (const code of d.removed) push('course_removed', `You've been removed from ${code}`, termLabelOf(period) || null, ASSIGNED_COURSES_LINK);
-  for (const code of d.consultantAdded) push('consultant_added', `You're the Industry Consultant for ${code}`, bodyFor(state, code, period), CONSULTANT_LINK);
-  for (const code of d.consultantRemoved) push('consultant_removed', `You're no longer the consultant for ${code}`, termLabelOf(period) || null, CONSULTANT_LINK);
+  for (const code of d.leadAdded) push('lead_added', `You're the Lead Faculty for ${code}`, bodyFor(state, code, period), ASSIGNED_COURSES_LINK, 'assignment', code);
+  for (const code of d.contributorAdded) push('contributor_added', `You're a Contributor to ${code}`, bodyFor(state, code, period), ASSIGNED_COURSES_LINK, 'assignment', code);
+  for (const code of d.removed) push('course_removed', `You've been removed from ${code}`, termLabelOf(period) || null, ASSIGNED_COURSES_LINK, 'assignment', code);
+  for (const code of d.consultantAdded) push('consultant_added', `You're the Industry Consultant for ${code}`, bodyFor(state, code, period), CONSULTANT_LINK, 'consultant', code);
+  for (const code of d.consultantRemoved) push('consultant_removed', `You're no longer the consultant for ${code}`, termLabelOf(period) || null, CONSULTANT_LINK, 'consultant', code);
   return items;
 }
 
-async function writeNotifications(accountId, periodId, senderId, items) {
+async function writeNotifications(accountId, periodId, items) {
   if (!items.length) return [];
-  return Notification.bulkCreate(items.map((n) => ({
-    ...n, user_account_id: accountId, period_id: periodId, sent_by_account_id: senderId || null,
+  return Notification.bulkCreate(items.map(({ actorId, ...n }) => ({
+    ...n, user_account_id: accountId, period_id: periodId, sent_by_account_id: actorId || null,
   })));
+}
+
+// History is written just before markDirty; this covers the gap between them.
+const HISTORY_MARGIN_MS = 60 * 1000;
+
+/**
+ * Who did each item. A burst can mix people (a Dean assigns one course, the
+ * recipient assigns themselves another), so a course item goes by its own
+ * history entry from this burst; anything else by the burst's latest actor.
+ */
+async function withActors(items, row, periodId) {
+  const codes = items.filter((i) => i.target_type === 'assignment').map((i) => i.target_id);
+  const byCode = new Map();
+  if (codes.length && row.first_dirty_at) {
+    const entries = await CourseAssignmentHistory.findAll({
+      where: {
+        period_id: periodId,
+        course_code: codes,
+        createdAt: { [Op.gte]: new Date(new Date(row.first_dirty_at).getTime() - HISTORY_MARGIN_MS) },
+      },
+      attributes: ['course_code', 'changed_by_account_id'],
+      order: [['id', 'ASC']],   // the newest wins
+    });
+    for (const e of entries) byCode.set(e.course_code, e.changed_by_account_id);
+  }
+  return items.map((i) => {
+    const fromHistory = i.target_type === 'assignment' && byCode.has(i.target_id);
+    return { ...i, actorId: (fromHistory ? byCode.get(i.target_id) : row.sent_by_account_id) || null };
+  });
+}
+
+/** The diff narrowed to these items, so the email says what the bell says. */
+function diffFor(items) {
+  const of = (kind) => items.filter((i) => i.kind === kind).map((i) => i.target_id);
+  return {
+    rolesAdded: of('role_added'),
+    rolesRemoved: of('role_removed'),
+    leadAdded: of('lead_added'),
+    contributorAdded: of('contributor_added'),
+    consultantAdded: of('consultant_added'),
+    consultantRemoved: of('consultant_removed'),
+    removed: of('course_removed'),
+  };
 }
 
 // --- The worker's tick ---------------------------------------------------------
@@ -387,22 +430,40 @@ export async function deliverDueNotices({ limit = 20, now = new Date(), accountI
         continue;
       }
 
-      const d = diff(toldOf(row), state);
-      if (isEmpty(d)) {
+      const fullDiff = diff(toldOf(row), state);
+      if (isEmpty(fullDiff)) {
         await row.update({ ...toldFields(state), first_dirty_at: null });
         out.silent += 1;
         continue;
       }
 
-      const period = await AcademicPeriod.findByPk(periodId, { attributes: ['id', 'label', 'midterm_deadline', 'finals_deadline'] });
+      const period = await AcademicPeriod.findByPk(periodId, { attributes: ['id', 'label'] });
       const roleLabels = await roleLabelsFor(account, periodId);
-      const items = notificationsFor(d, { state, period, roleLabels, remainingRoles: state.roles });
-      const written = await writeNotifications(account.id, periodId, row.sent_by_account_id, items);
+      const all = await withActors(notificationsFor(fullDiff, { state, period, roleLabels, remainingRoles: state.roles }), row, periodId);
+
+      // Nobody is told about their own actions: no bell, no email. Course changes
+      // stay in course_assignment_history, the audit log.
+      const items = all.filter((i) => Number(i.actorId) !== Number(account.id));
+      if (items.length < all.length) {
+        console.log(`[notices] account ${account.id}: ${all.length - items.length} of their own change(s) not notified`);
+      }
+      if (!items.length) {
+        await row.update({ ...toldFields(state), first_dirty_at: null });
+        out.silent += 1;
+        continue;
+      }
+
+      const d = diffFor(items);
+      const written = await writeNotifications(account.id, periodId, items);
+      // Signs the email: the burst's latest actor unless that was the recipient.
+      const signerId = Number(row.sent_by_account_id) !== Number(account.id) && row.sent_by_account_id
+        ? row.sent_by_account_id
+        : (items.find((i) => i.actorId) || {}).actorId || null;
 
       if (!account.must_change_password) {
         // Signed in: the update email.
         const sender = await senderFor({
-          sent_by_account_id: row.sent_by_account_id, period_id: periodId, source_entity: 'notice',
+          sent_by_account_id: signerId, period_id: periodId, source_entity: 'notice',
           display_name: account.display_name, email: account.email,
         });
         const mail = updateEmail({
@@ -415,7 +476,6 @@ export async function deliverDueNotices({ limit = 20, now = new Date(), accountI
           consultant: withNames(state, d.consultantAdded),
           consultantRemoved: d.consultantRemoved,
           removed: d.removed,
-          deadlines: { midterm: period && period.midterm_deadline, finals: period && period.finals_deadline },
           link: appBaseUrl() + '/login',
           sender,
         });
@@ -438,7 +498,7 @@ export async function deliverDueNotices({ limit = 20, now = new Date(), accountI
 
       // Their first invitation, carrying the news.
       const invitation = await createInvitation(account, {
-        source: 'notice', emailSource: 'manual', periodId, senderId: row.sent_by_account_id, supersede: true, immediate: true,
+        source: 'notice', emailSource: 'manual', periodId, senderId: signerId, supersede: true, immediate: true,
       });
       const result = await sendInvitation(invitation, { state });
       // The bell is written; the invitation's own retries carry the email.
@@ -508,84 +568,9 @@ export async function baselineNotices({ periodId = null } = {}) {
 }
 
 const DAY_MS = 24 * 60 * 60 * 1000;
-const dateOnly = (d) => { const x = new Date(d); return Date.UTC(x.getUTCFullYear(), x.getUTCMonth(), x.getUTCDate()); };
-const daysUntil = (deadline, now) => {
-  if (!deadline) return null;
-  const target = Date.parse(String(deadline).slice(0, 10) + 'T00:00:00Z');
-  if (Number.isNaN(target)) return null;
-  return Math.round((target - dateOnly(now)) / DAY_MS);
-};
-
-export const DEADLINE_DAYS = [7, 1];
-
-/**
- * Once a day: when a deadline of the active term is 7 days or 1 day away, a
- * `deadline` notification for every Lead and Contributor with courses — once
- * per (deadline, days). Signed-in people also get it by email.
- */
-export async function deadlineNotifications({ now = new Date(), periodId = null } = {}) {
-  const pid = await periodOr(periodId);
-  if (!pid) return { created: 0, emailed: 0 };
-  const period = await AcademicPeriod.findByPk(pid, { attributes: ['id', 'label', 'midterm_deadline', 'finals_deadline'] });
-  if (!period) return { created: 0, emailed: 0 };
-  const due = [];
-  for (const [which, value] of [['midterm', period.midterm_deadline], ['finals', period.finals_deadline]]) {
-    const days = daysUntil(value, now);
-    if (DEADLINE_DAYS.includes(days)) due.push({ which, days, date: value });
-  }
-  const out = { created: 0, emailed: 0 };
-  if (!due.length) return out;
-
-  const ids = await accountsInvolved(pid);
-  for (const id of ids) {
-    const account = await UserAccount.findByPk(id);
-    if (!account || account.status !== 'Active') continue;
-    const state = await currentState(account, pid);
-    if (!state.lead.length && !state.contributor.length) continue;
-    const fresh = [];
-    for (const { which, days, date } of due) {
-      const dedupe_key = `deadline:${pid}:${which}:${days}`;
-      const exists = await Notification.count({ where: { user_account_id: id, dedupe_key } });
-      if (exists) continue;
-      const label = which === 'midterm' ? 'Midterm' : 'Finals';
-      const n = await Notification.create({
-        user_account_id: id, period_id: pid, kind: 'deadline', dedupe_key,
-        title: short(`${label} deadline in ${days} ${days === 1 ? 'day' : 'days'}`, 150),
-        body: short([formatDate(date), termLabelOf(period)].filter(Boolean).join(' · '), 255),
-        link: ASSIGNED_COURSES_LINK,
-      });
-      fresh.push({ n, which, days, date, label });
-      out.created += 1;
-    }
-    if (fresh.length && !account.must_change_password) {
-      const mail = updateEmail({
-        name: account.display_name,
-        termLabel: termLabelOf(period),
-        deadlineReminders: fresh.map((f) => ({ label: f.label, days: f.days, date: f.date })),
-        deadlines: { midterm: period.midterm_deadline, finals: period.finals_deadline },
-        link: appBaseUrl() + '/login',
-        sender: null,
-      });
-      const r = await sendMail({ ...mail, to: account.email });
-      if (r.status === 'sent' || r.status === 'captured') {
-        out.emailed += 1;
-        await Notification.update({ emailed_at: now }, { where: { id: fresh.map((f) => f.n.id) } });
-      }
-    }
-  }
-  return out;
-}
-
 /** Read notifications older than 90 days go. */
 export async function cleanupNotifications({ now = new Date() } = {}) {
   return Notification.destroy({ where: { read_at: { [Op.lt]: new Date(now.getTime() - 90 * DAY_MS) } } });
-}
-
-export function formatDate(value) {
-  if (!value) return null;
-  const d = new Date(String(value).slice(0, 10) + 'T00:00:00Z');
-  if (Number.isNaN(d.getTime())) return String(value);
-  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
 }
 
 // --- Faculty leaving -------------------------------------------------------------

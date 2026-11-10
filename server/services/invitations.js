@@ -28,7 +28,7 @@ import { UNDO_WINDOW_MS } from '../utils/importUndo.js';
 import { isAllowedEmail, isAllowedEmailForRoles, isRole, normalizeEmail, sortRoles } from '../utils/roles.js';
 import { schoolEmail, samePerson } from '../utils/schoolEmail.js';
 import { newToken, hashToken, looksLikeToken, unusablePassword } from '../utils/tokens.js';
-import { currentState, recordTold, deadlinesFor } from './notices.js';
+import { currentState, recordTold } from './notices.js';
 
 const { AccountInvitation, UserAccount, Faculty, Department, Program } = db;
 
@@ -209,8 +209,8 @@ const nextRetry = (attempts) => RETRY_DELAYS_MS[attempts - 1];
 
 /**
  * Deliver one invitation now. Generates the token, stores only its hash,
- * renders the email with the account's real name, roles, courses and the
- * term's deadlines, sends it, and records the outcome:
+ * renders the email with the account's real name, roles and courses, sends
+ * it, and records the outcome:
  *   captured/sent → 'sent'   (older outstanding invitations are cancelled)
  *   skipped       → 'held'   (MAIL_MODE=off, or not on the dev allowlist)
  *   failed        → 'scheduled' again for the next retry, or 'failed' when out of retries
@@ -239,14 +239,13 @@ export async function sendInvitation(invitation, { subjectPrefix = '', note, sta
   let now = state;
   try {
     if (!now) now = await currentState(account, periodId);
-    const [roles, sender, deadlines] = await Promise.all([
-      describeRoles(account, periodId), senderFor(invitation), deadlinesFor(periodId),
+    const [roles, sender] = await Promise.all([
+      describeRoles(account, periodId), senderFor(invitation),
     ]);
     const mail = invitationEmail({
       name: account.display_name,
       roles,
       courses: { lead: now.lead, contributor: now.contributor, consultant: now.consultant },
-      deadlines,
       link: appBaseUrl() + '/set-password?token=' + encodeURIComponent(token),
       sender,
       expiresInDays: INVITE_TTL_DAYS,

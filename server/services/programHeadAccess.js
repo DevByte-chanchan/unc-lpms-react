@@ -25,7 +25,7 @@
  * restart and combines with everything else that changed.
  */
 import db from '../models/index.js';
-import { scheduleUploadInvitations, UPLOAD_SEND_DELAY_MS, WAITING } from './invitations.js';
+import { scheduleUploadInvitations, facultyRowFor, UPLOAD_SEND_DELAY_MS, WAITING } from './invitations.js';
 import { markDirty } from './notices.js';
 import { isAllowedEmail, normalizeEmail } from '../utils/roles.js';
 import { schoolEmail, samePerson } from '../utils/schoolEmail.js';
@@ -37,6 +37,20 @@ const HIDDEN = new Set(['Unlisted', 'Archived']);
 
 export const unmatchedHeadMessage = (name) =>
   `Program Head '${name}' isn't in this term's faculty list. Upload the faculty list first, or fix the name.`;
+
+export const OWN_PROGRAM_HEAD_MESSAGE = "You can't give yourself the Program Head role or remove your own. Ask another Dean or the VPAA.";
+
+/**
+ * Heading a program is what grants Program Head, so nobody may change whether
+ * THEY head one. The ids are faculty ids, before and after the write. The
+ * caller's faculty row is found by email.
+ */
+export async function changesOwnHeadship(account, periodId, beforeIds, afterIds) {
+  const me = await facultyRowFor(periodId, { email: account && account.email });
+  if (!me) return false;
+  const count = (ids) => ids.filter((id) => Number(id) === Number(me.id)).length;
+  return count(beforeIds) !== count(afterIds);
+}
 
 /**
  * { byFaculty: Map(facultyId → [code]), unmatched: [name] } for the period.

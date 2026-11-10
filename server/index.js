@@ -171,7 +171,6 @@ const PORT = Number(process.env.PORT || 4000);
     // count as already told, so a deploy never emails about old data.
     await baselineNotices().catch((err) => console.error('[notices] baseline failed:', err.message));
 
-
     console.log('[boot] no auto-seed (periods are user-managed).');
   } catch (err) {
     console.error('[db] boot failed.');
