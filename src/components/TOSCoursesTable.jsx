@@ -1,7 +1,7 @@
 import React, {useState, useEffect} from 'react';
 import {Link, useLocation} from 'react-router-dom'
 import styles from '../styles/CoursesTable.module.sass';
-import { ChevronRight, Download, AlertTriangle } from 'react-feather';
+import { ChevronRight, Download, AlertTriangle, Lock } from 'react-feather';
 import { fetchCourses } from '../services/api.js';
 const OverdueBadge = () => (
     <span
@@ -197,8 +197,12 @@ const TOSCoursesTable = () => {
                                     )}
                                     {row.status === 'draft' ? (
                                         (examType === 'Midterm' ? row.midtermLock?.locked : row.finalsLock?.locked) ? (
-                                            <div style={{ color: '#9CA3AF', fontSize: 13, fontStyle: 'italic', cursor: 'not-allowed' }}>
-                                                {examType === 'Midterm' ? row.midtermLock.reason : row.finalsLock.reason}
+                                            <div
+                                                style={{ display: 'inline-flex', alignItems: 'center', gap: 5, color: '#9CA3AF', fontSize: 13, fontStyle: 'italic', cursor: 'not-allowed' }}
+                                                title={examType === 'Midterm' ? row.midtermLock?.reason : row.finalsLock?.reason}
+                                            >
+                                                <Lock size={13} aria-hidden="true" />
+                                                <span>{((examType === 'Midterm' ? row.midtermLock?.reason : row.finalsLock?.reason) || '').replace(/^Locked:\s*/i, '')}</span>
                                             </div>
                                         ) : (
                                         <Link className="actionLink" to={`/tos/${row.code}`} state={{ tosStatus: row.status, courseName: row.name, examType, schoolYear, semester }}>
