@@ -17,6 +17,8 @@ const positiveSafeInteger = (value) => {
 
 function isStructurallyValidScryptHash(stored) {
     if (typeof stored !== 'string') return false;
+    // bcrypt (the current hash, utils/password.js) is valid as written.
+    if (/^\$2[aby]\$\d{2}\$[./A-Za-z0-9]{53}$/.test(stored)) return true;
     const parts = stored.split('$');
     if (parts.length !== 6 || parts[0] !== 'scrypt') return false;
 
@@ -53,6 +55,8 @@ async function seedDemoUsers({ queryInterface, demoUsers, demoPassword, hashPass
         if (!existing) {
             inserts.push({
                 ...demo,
+                // Multi-role accounts: the list of roles, the primary one first.
+                roles: JSON.stringify(demo.roles || [demo.role]),
                 password_hash: await hashPassword(demoPassword),
                 is_active: true,
                 createdAt: new Date(),

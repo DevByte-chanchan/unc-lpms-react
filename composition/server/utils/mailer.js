@@ -82,6 +82,33 @@ const resetEmail = ({ name, email, token }) => ({
     ].join('\n')
 });
 
+// The set-password invitation of feature/course-assignment: a link instead of a temporary password.
+const invitationEmail = ({ name, roles = [], token, expiresAt }) => ({
+    subject: 'You have been given access to LPMS',
+    text: [
+        `Hello ${name},`,
+        '',
+        `You have been given access to the UNC Learning Plan Management System${roles.length ? ` as ${roles.join(', ')}` : ''}.`,
+        'Use this link to set your password and sign in. It works once:',
+        `${appUrl()}/set-password?token=${encodeURIComponent(token)}`,
+        '',
+        `The link stops working on ${expiresAt.toUTCString()}. If it has, ask for a new one on the same page.`
+    ].join('\n')
+});
+
+// The one-hour reset link ("Forgot password?" and the administrator's "Send password reset").
+const resetLinkEmail = ({ name, token }) => ({
+    subject: 'Reset your LPMS password',
+    text: [
+        `Hello ${name},`,
+        '',
+        'Use this link to choose a new password. It expires in 1 hour and works once:',
+        `${appUrl()}/reset-password?token=${encodeURIComponent(token)}`,
+        '',
+        'If you did not ask for this, ignore this message.'
+    ].join('\n')
+});
+
 const mailer = createMailer();
 
-module.exports = { createMailer, smtpConfig, credentialsEmail, resetEmail, mailer };
+module.exports = { createMailer, smtpConfig, credentialsEmail, resetEmail, invitationEmail, resetLinkEmail, appUrl, mailer };

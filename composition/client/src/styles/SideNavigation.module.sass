@@ -344,3 +344,14 @@
   .accountText
     display: none
 
+// The role picker of a multi-role account (above the account card); hidden whenever the labels are.
+.roleSwitch
+  width: 100%
+  margin-bottom: 8px
+
+:global([data-nav-collapsed='true']) .roleSwitch
+  display: none
+
+@media (max-width: 1024px)
+  .roleSwitch
+    display: none

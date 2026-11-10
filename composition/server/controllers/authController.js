@@ -25,12 +25,15 @@
 //       postback problem this app does not have.
 
 const { User } = require('../models');
+const links = require('../utils/accountLinks');
 const { hashPassword, verifyPassword, needsRehash } = require('../utils/password');
-const { TTL_MS: RESET_TTL_MS, createToken, hashToken, expiryFrom, verifyReset } = require('../utils/resetToken');
-const { COOKIE_NAME, SESSION_TTL_MS, issueSession, revokeSession, revokeUserSessions, revokeOtherUserSessions, cookieValue } = require('../middleware/auth');
+const { hashToken, verifyReset } = require('../utils/resetToken');
+const RESET_TTL_MS = links.RESET_TTL_MS;
+const { COOKIE_NAME, SESSION_TTL_MS, issueSession, revokeSession, cookieValue } = require('../middleware/auth');
 const { sessionCookieOptions } = require('../utils/serverSecurity');
+const { rolesOf } = require('../utils/jwtSession');
 const { PRIVACY_NOTICE_VERSION, privacyNotice } = require('../config/privacy');
-const { mailer, resetEmail } = require('../utils/mailer');
+const { mailer } = require('../utils/mailer');
 
 const { record: audit } = require('../utils/audit');
 
@@ -80,6 +83,24 @@ const isLockedOut = (key, now = Date.now()) => {
 };
 
 const clearFailures = (key) => attempts.delete(key);
+
+// The account lockout of feature/course-assignment, kept on the account (Users.failed_attempts, locked_until),
+// so it survives a restart and follows the account whatever address the attempts come from.
+const ACCOUNT_LOCK = { max: 5, ms: 15 * 60 * 1000 };
+const accountLocked = (user, now = Date.now()) => Boolean(user?.locked_until) && new Date(user.locked_until).getTime() > now;
+// One more wrong password on `user`; locks it at the limit. Returns true when it is now locked.
+const recordAccountFailure = async (user, now = Date.now()) => {
+    if (user.locked_until && new Date(user.locked_until).getTime() <= now) user.failed_attempts = 0;
+    user.failed_attempts = (user.failed_attempts || 0) + 1;
+    const lockNow = user.failed_attempts >= ACCOUNT_LOCK.max;
+    user.locked_until = lockNow ? new Date(now + ACCOUNT_LOCK.ms) : null;
+    await user.save({ fields: ['failed_attempts', 'locked_until'] });
+    return lockNow;
+};
+const clearAccountFailures = (user) => {
+    user.failed_attempts = 0;
+    user.locked_until = null;
+};
 const clearFailuresForEmail = (email) => {
     const suffix = `\u0000${email}`;
     for (const key of attempts.keys()) {
@@ -294,10 +315,16 @@ exports.login = async (req, res, next) => {
 
         const user = await User.scope('withSecret').findOne({ where: { email } });
 
+        // A locked account answers before the password is looked at, and its count does not grow.
+        if (user && accountLocked(user)) {
+            auditAuth(req, 'LOGIN', 'denied', user, { reason: 'account-locked' });
+            return res.status(429).json({ error: 'Too many failed attempts. Wait a few minutes and try again.' });
+        }
+
         // Hash even when there is no such account, so a missing email and a
         // wrong password take the same amount of time. Without this the
         // response time alone reveals which emails are registered.
-        const storedHash = user ? user.password_hash : 'scrypt$16384$8$1$00$00';
+        const storedHash = user ? user.password_hash : '$2a$10$CwTycUXWue0Thq9StjUM0uJ8aJkcKfZcdpGTpJfhbjYbV2ivp2Y5u';
         const ok = await verifyPassword(password, storedHash);
 
         // The role check rides along with the password check so both failures
@@ -305,14 +332,15 @@ exports.login = async (req, res, next) => {
         // AFTER the hash comparison above, never as an early exit — an early
         // return would make a role mismatch measurably faster than a bad
         // password and give the difference away by timing.
-        const roleOk = !claimedRole || (user && user.role === claimedRole);
+        const roleOk = !claimedRole || (user && rolesOf(user).includes(claimedRole));
         const publishedDemoCredential =
             process.env.NODE_ENV === 'production' && password === PUBLISHED_DEMO_PASSWORD;
 
         if (!user || !ok || !roleOk || publishedDemoCredential) {
             recordFailure(attemptKey);
             recordSourceFailure(source);
-            auditAuth(req, 'LOGIN', 'failed', null, { email });
+            const lockedNow = user && !ok ? await recordAccountFailure(user) : false;
+            auditAuth(req, 'LOGIN', 'failed', null, { email, ...(lockedNow ? { locked: true } : {}) });
             return res.status(401).json({ error: GENERIC_CREDENTIAL_ERROR });
         }
 
@@ -330,8 +358,9 @@ exports.login = async (req, res, next) => {
         }
 
         clearFailures(attemptKey);
+        clearAccountFailures(user);
 
-        // Transparently upgrade a hash written with weaker parameters.
+        // Transparently upgrade an older hash (scrypt) to bcrypt.
         if (needsRehash(user.password_hash)) {
             user.password_hash = await hashPassword(password);
         }
@@ -340,7 +369,12 @@ exports.login = async (req, res, next) => {
 
         startSession(req, res, user);
         auditAuth(req, 'LOGIN', 'success', user, user.must_change_password ? { mustChangePassword: true } : undefined);
-        return res.json({ user: user.toPublic(), mustChangePassword: Boolean(user.must_change_password) });
+        // `roles`: every role the account holds; the browser picks the one to act as ("Continue as...") and names it
+        // on each request. A role chosen on the sign-in form comes back as `role`.
+        return res.json({
+            user: { ...user.toPublic(), role: claimedRole || user.role },
+            mustChangePassword: Boolean(user.must_change_password)
+        });
     } catch (err) {
         return next(err);
     }
@@ -384,83 +418,143 @@ exports.requestReset = async (req, res, next) => {
                 message: 'Password reset delivery is not configured. Contact the system administrator.'
             });
         }
-        // The same answer either way. Do not "helpfully" say the account was
-        // not found.
+        // The same answer either way. Do not "helpfully" say the account was not found.
         const sameAnswer = {
             ok: true,
             message: mailReady
-                ? 'If that email has an account, a reset link has been sent. It expires in 30 minutes.'
-                : 'If that email has an account, a reset link has been created. It expires in 30 minutes.'
+                ? 'If that email has an account, a reset link has been sent. It expires in 1 hour.'
+                : 'If that email has an account, a reset link has been created. It expires in 1 hour.'
         };
         if (!email) return res.json(sameAnswer);
 
-        const user = await User.scope('withSecret').findOne({ where: { email } });
+        const user = await User.findOne({ where: { email } });
         if (!user || !user.is_active) return res.json(sameAnswer);
 
-        const rawToken = createToken();
-        user.reset_token_hash = hashToken(rawToken);
-        user.reset_expires_at = expiryFrom(Date.now());
-        await user.save();
-
         if (mailReady) {
-            // Not awaited: a missing account answers instantly, so waiting on SMTP here would
-            // reveal which emails exist. The token only ever leaves in the email.
-            const message = resetEmail({ name: user.name, email: user.email, token: rawToken });
-            mailer.send({ to: user.email, ...message })
-                .then(sent => auditAuth(req, 'PASSWORD_RESET_REQUESTED', sent.ok ? 'success' : 'failed', user, { delivery: 'email' }));
+            // Not awaited: a missing account answers instantly, so waiting on SMTP here would reveal which
+            // emails exist. The link only ever leaves in the email.
+            links.sendPasswordReset(user, { ip: req.ip })
+                .then(sent => auditAuth(req, 'PASSWORD_RESET_REQUESTED', sent.delivered ? 'success' : 'failed', user, { delivery: 'email' }))
+                .catch(() => {});
             return res.json(sameAnswer);
         }
 
-        auditAuth(req, 'PASSWORD_RESET_REQUESTED', 'success', user, { delivery: 'shown-demo' });
-        return res.json({ ...sameAnswer, devToken: rawToken });
+        const sent = await links.sendPasswordReset(user, { ip: req.ip });
+        auditAuth(req, 'PASSWORD_RESET_REQUESTED', sent.limited ? 'denied' : 'success', user, { delivery: 'shown-demo' });
+        return res.json(sent.token ? { ...sameAnswer, devToken: sent.token } : sameAnswer);
     } catch (err) {
         return next(err);
     }
 };
 
+const LINK_GONE = 'This link has been replaced by a newer one or has expired. Ask for a new one.';
+
+// GET /api/auth/reset-password?token= : whom the link is for (the page shows it).
+exports.getReset = async (req, res, next) => {
+    try {
+        const live = await links.findLiveReset(String(req.query?.token || ''));
+        if (!live) return res.status(410).json({ error: LINK_GONE });
+        return res.json({ name: live.user.name, email: live.user.email });
+    } catch (err) {
+        return next(err);
+    }
+};
+
+// Sets the account's own password from a link (reset or invitation) and signs that account in.
+const setOwnPassword = async (req, res, userId, password, action) => {
+    const user = await User.scope('withSecret').findByPk(userId);
+    user.password_hash = await hashPassword(password);
+    user.must_change_password = false;
+    user.temp_password_expires_at = null;
+    user.password_changed_at = new Date();
+    user.reset_token_hash = null;
+    user.reset_expires_at = null;
+    clearAccountFailures(user);
+    await user.save();
+    clearFailuresForEmail(user.email);
+    startSession(req, res, user);
+    auditAuth(req, action, 'success', user);
+    return res.json({ user: user.toPublic() });
+};
+
 exports.resetPassword = async (req, res, next) => {
     try {
-        const email = normalizeEmail(req.body?.email);
         const token = String(req.body?.token || '').trim();
         const password = String(req.body?.password ?? '');
 
-        const invalid = { error: 'This reset link is invalid or has expired. Request a new one.' };
-        if (!email || !token) return res.status(400).json(invalid);
+        const live = await links.findLiveReset(token);
+        if (!live) return res.status(400).json({ error: 'This reset link is invalid or has expired. Request a new one.' });
 
         const passwordProblem = validatePassword(password);
         if (passwordProblem) return res.status(400).json({ error: passwordProblem });
 
-        const user = await User.scope('withSecret').findOne({ where: { email } });
-        // One call, one answer: no account, no outstanding reset, expired, or
-        // the wrong token all look identical from out here. verifyReset does
-        // the comparison in constant time — a plain === would leak, through
-        // timing, how much of a guessed token was right.
-        if (!verifyReset(token, user, Date.now())) {
-            return res.status(400).json(invalid);
+        // Single use, and every other outstanding link of the account dies with it.
+        if (!(await links.useReset(live.reset))) {
+            return res.status(400).json({ error: 'This reset link is invalid or has expired. Request a new one.' });
         }
-
-        user.password_hash = await hashPassword(password);
-        // Single use: consume the token so the same link cannot be replayed.
-        user.reset_token_hash = null;
-        user.reset_expires_at = null;
-        user.must_change_password = false;
-        user.temp_password_expires_at = null;
-        user.password_changed_at = new Date();
-        await user.save();
-
-        // A password reset is an account-recovery boundary. Remove every old
-        // browser session before issuing the new one below so a stolen cookie
-        // cannot survive the password change.
-        revokeUserSessions(user.user_id ?? user.id);
-
-        // Any lockout from the failed attempts that led here is cleared.
-        clearFailuresForEmail(email);
-
-        startSession(req, res, user);
-        auditAuth(req, 'PASSWORD_RESET', 'success', user);
-        return res.json({ user: user.toPublic() });
+        return setOwnPassword(req, res, live.user.user_id, password, 'PASSWORD_RESET');
     } catch (err) {
         return next(err);
+    }
+};
+
+// ------------------------------------------------------------ invitations ---
+//
+// "You have been given access, set your password" (feature/course-assignment). The administrator creates the
+// account and sends the invitation; the person opens the link, sets a password and is signed in.
+
+// GET /api/auth/invitation?token= : whom the invitation is for.
+exports.getInvitation = async (req, res, next) => {
+    try {
+        const live = await links.findLiveInvitation(String(req.query?.token || ''));
+        if (!live) return res.status(410).json({ error: LINK_GONE });
+        return res.json({ name: live.user.name, email: live.user.email, roles: live.user.roles });
+    } catch (err) {
+        return next(err);
+    }
+};
+
+// POST /api/auth/accept-invitation { token, password, privacy_consent_version }
+exports.acceptInvitation = async (req, res, next) => {
+    try {
+        const token = String(req.body?.token || '').trim();
+        const password = String(req.body?.password ?? '');
+        const live = await links.findLiveInvitation(token);
+        if (!live) return res.status(410).json({ error: LINK_GONE });
+
+        const passwordProblem = validatePassword(password);
+        if (passwordProblem) return res.status(400).json({ error: passwordProblem });
+        // Activating the account records that the person accepted the current Privacy Notice.
+        if (String(req.body?.privacy_consent_version ?? '') !== PRIVACY_NOTICE_VERSION) {
+            return res.status(400).json({
+                error: 'Read and accept the Privacy Notice to activate your account.',
+                code: 'CONSENT_REQUIRED',
+                version: PRIVACY_NOTICE_VERSION
+            });
+        }
+        // Claim it first, so the same link cannot be accepted twice by two racing requests.
+        if (!(await links.acceptInvitation(live.invitation))) return res.status(410).json({ error: LINK_GONE });
+        await User.update(
+            { privacy_consent_version: PRIVACY_NOTICE_VERSION, privacy_consent_at: new Date() },
+            { where: { user_id: live.user.user_id } }
+        );
+        return setOwnPassword(req, res, live.user.user_id, password, 'INVITATION_ACCEPTED');
+    } catch (err) {
+        return next(err);
+    }
+};
+
+// POST /api/auth/request-invitation { email } : "send me a new link" from a dead invitation link. The answer
+// never says whether the address has an account.
+exports.requestInvitation = async (req, res, next) => {
+    try {
+        const email = normalizeEmail(req.body?.email);
+        res.json({ ok: true, message: 'If that address has an LPMS account waiting to be set up, a new link has been sent.' });
+        links.requestInvitation(email).catch(() => {});
+        return undefined;
+    } catch (err) {
+        if (!res.headersSent) return next(err);
+        return undefined;
     }
 };
 
@@ -482,8 +576,13 @@ exports.changePassword = async (req, res, next) => {
         const user = await User.scope('withSecret').findByPk(req.user.id);
         if (!user) return res.status(401).json({ error: 'Authentication required.' });
 
+        if (accountLocked(user)) {
+            return res.status(429).json({ error: 'Too many failed attempts. Wait a few minutes and try again.' });
+        }
+
         if (!currentPassword || !(await verifyPassword(currentPassword, user.password_hash))) {
             recordFailure(attemptKey);
+            await recordAccountFailure(user);
             auditAuth(req, 'PASSWORD_CHANGE_FAILED', 'failed', user, { reason: 'wrong-current-password' });
             return res.status(401).json({ error: 'Your current password is incorrect.' });
         }
@@ -500,10 +599,12 @@ exports.changePassword = async (req, res, next) => {
         user.password_changed_at = new Date();
         user.reset_token_hash = null;
         user.reset_expires_at = null;
+        clearAccountFailures(user);
         await user.save();
 
-        // Other browsers signed in as this user are logged out; this one stays.
-        revokeOtherUserSessions(user.user_id, req.sessionToken);
+        // Other browsers signed in as this user are logged out (their token carries the old password-change
+        // time); this one gets a fresh session.
+        startSession(req, res, user);
         clearFailures(attemptKey);
         await auditAuth(req, 'PASSWORD_CHANGED', 'success', user);
         return res.json({ user: user.toPublic() });

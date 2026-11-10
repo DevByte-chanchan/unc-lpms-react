@@ -1044,9 +1044,9 @@ export function buildSyllabusHtml(syllabus, courseCode, workflow, logoBase64, op
   const REPAG_SCRIPT = `<script>
 (function(){
   function renumber(){
-    var all=document.querySelectorAll('.page');var tot=all.length;
+    var all=document.querySelectorAll('.page');var off=parseInt(document.body.getAttribute('data-page-offset')||'0',10)||0;var tot=all.length+off;
     for(var i=0;i<all.length;i++){
-      var n=all[i].querySelector('.pgno');if(n)n.textContent=(i+1);
+      var n=all[i].querySelector('.pgno');if(n)n.textContent=(i+1+off);
       var t=all[i].querySelector('.pgtot');if(t)t.textContent=tot;
     }
   }
@@ -1204,10 +1204,13 @@ export function buildSyllabusHtml(syllabus, courseCode, workflow, logoBase64, op
   const resChunks = computeResourceChunks(syllabus)
   const total = 4 + 1 + covChunks.length + resChunks.length + 1
 
+  const frontPdfPages = Number(options.frontPdfPages) || 0
   const allPages = [
-    page1(logo, total),
-    page2(logo, total, options.programAlignment),
-    page3(logo, total, options.programAlignment),
+    ...(frontPdfPages ? [] : [
+      page1(logo, total),
+      page2(logo, total, options.programAlignment),
+      page3(logo, total, options.programAlignment),
+    ]),
     page4(syllabus, logo, total),
     ...page5(syllabus, logo, 5, total),
     ...courseCoveragePages(syllabus, logo, 6, total),
@@ -1215,7 +1218,8 @@ export function buildSyllabusHtml(syllabus, courseCode, workflow, logoBase64, op
     ...page14(syllabus, workflow, logo, 6 + covChunks.length + resChunks.length, total),
   ]
 
-  const html = HEAD + allPages.join('\n') + FOOT
+  const head = frontPdfPages ? HEAD.replace(/<body>$/, `<body data-page-offset="${frontPdfPages}">`) : HEAD
+  const html = head + allPages.join('\n') + FOOT
   return options.pendingApproval ? markPendingDean(html) : html
 }
 

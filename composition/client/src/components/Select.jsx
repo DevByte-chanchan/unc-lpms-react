@@ -20,7 +20,7 @@ const collect = (children, found = []) => {
   return found
 }
 
-const Select = ({ value, onChange, children, disabled = false, id, name, block = false, size = 'md', title, placeholder = 'Select…', ...rest }) => {
+const Select = ({ value, onChange, children, disabled = false, id, name, block = false, size = 'md', variant = '', title, placeholder = 'Select…', ...rest }) => {
   const options = collect(children)
   const current = options.find(option => option.value === String(value ?? ''))
   const [open, setOpen] = useState(false)
@@ -100,7 +100,7 @@ const Select = ({ value, onChange, children, disabled = false, id, name, block =
   return (
     <>
       <button ref={trigger} id={id} type="button" title={title} disabled={disabled} onClick={() => (open ? close() : show())} onKeyDown={onKeyDown}
-        className={`${styles.trigger} ${size === 'lg' ? styles.lg : ''} ${block ? styles.block : ''}`}
+        className={`${styles.trigger} ${size === 'lg' ? styles.lg : ''} ${block ? styles.block : ''} ${variant === 'term' ? styles.term : ''} ${variant === 'inline' ? styles.inline : ''}`}
         aria-haspopup="listbox" aria-expanded={open} aria-controls={open ? listId : undefined} aria-label={rest['aria-label']}>
         <span className={current ? styles.value : styles.placeholder}>{current ? current.label : placeholder}</span>
         <ChevronDown size={16} aria-hidden="true" className={styles.chevron} />

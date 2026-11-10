@@ -23,6 +23,14 @@ const ROLE_KEYS = [
     'superuser'
 ];
 
+// The canonical order (the first role is the one an account opens as), no duplicates, unknown keys dropped.
+const sortRoles = (roles) => ROLE_KEYS.filter(key => (roles || []).includes(key));
+
+// At least one known role, no duplicates, and the superuser never combined with another role.
+const validRoles = (roles) => Array.isArray(roles) && roles.length > 0
+    && roles.every(role => ROLE_KEYS.includes(role)) && new Set(roles).size === roles.length
+    && (!roles.includes('superuser') || roles.length === 1);
+
 module.exports = (sequelize, DataTypes) => {
     const User = sequelize.define('User', {
         user_id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
@@ -87,7 +95,38 @@ module.exports = (sequelize, DataTypes) => {
         // be used to reset anyone's password. Single outstanding reset per
         // account: asking for a new link invalidates the previous one.
         reset_token_hash: { type: DataTypes.STRING(64), allowNull: true },
-        reset_expires_at: { type: DataTypes.DATE, allowNull: true }
+        reset_expires_at: { type: DataTypes.DATE, allowNull: true },
+
+        // One account, several roles (feature/course-assignment): a JSON list of role keys, in the order of
+        // ROLE_KEYS. `role` above is always the first of them, so code that reads one role keeps working; the
+        // role a request acts as is chosen per request (middleware/auth.js). The superuser role stands alone.
+        roles: {
+            type: DataTypes.TEXT,
+            allowNull: true,
+            get() {
+                const raw = this.getDataValue('roles');
+                let list = null;
+                try { list = raw ? JSON.parse(raw) : null; } catch { list = null; }
+                if (!Array.isArray(list) || list.length === 0) list = this.getDataValue('role') ? [this.getDataValue('role')] : [];
+                return list;
+            },
+            set(value) {
+                const list = sortRoles(Array.isArray(value) ? value : [value]);
+                this.setDataValue('roles', JSON.stringify(list));
+                if (list.length) this.setDataValue('role', list[0]);
+            },
+            validate: {
+                knownRoles(raw) {
+                    const list = raw ? JSON.parse(raw) : [];
+                    if (!validRoles(list)) {
+                        throw new Error(`roles must be one or more of: ${ROLE_KEYS.join(', ')} (superuser on its own)`);
+                    }
+                }
+            }
+        },
+        // Sign-in lockout, kept in the database: MAX_ATTEMPTS wrong passwords lock the account until locked_until.
+        failed_attempts: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
+        locked_until: { type: DataTypes.DATE, allowNull: true }
     }, {
         tableName: 'Users',
         hooks: {
@@ -97,6 +136,19 @@ module.exports = (sequelize, DataTypes) => {
                 }
                 if (typeof user.name === 'string') {
                     user.name = user.name.trim();
+                }
+                // An account written with only `role` (older code, the seeders) holds just that role; a changed
+                // single role replaces the list. `roles` always has the primary role first.
+                const raw = user.getDataValue('roles');
+                if ((!raw || (user.changed('role') && !user.changed('roles'))) && user.getDataValue('role')) {
+                    user.setDataValue('roles', JSON.stringify([user.getDataValue('role')]));
+                }
+            },
+            // save() fixes its field list before beforeValidate runs, so a `roles` synced there must be added to
+            // it, or `user.role = x; user.save()` would leave the old roles (and the old sessions) in place.
+            beforeSave(user, options) {
+                if (Array.isArray(options.fields) && user.changed('roles') && !options.fields.includes('roles')) {
+                    options.fields.push('roles');
                 }
             }
         },
@@ -113,6 +165,9 @@ module.exports = (sequelize, DataTypes) => {
     });
 
     User.ROLE_KEYS = ROLE_KEYS;
+    User.prototype.hasRole = function hasRole(...keys) {
+        return this.roles.some(role => keys.includes(role));
+    };
 
     // What is safe to send to a browser.
     User.prototype.toPublic = function toPublic() {
@@ -121,6 +176,7 @@ module.exports = (sequelize, DataTypes) => {
             name: this.name,
             email: this.email,
             role: this.role,
+            roles: this.roles,
             isActive: this.is_active,
             mustChangePassword: Boolean(this.must_change_password)
         };
@@ -130,3 +186,5 @@ module.exports = (sequelize, DataTypes) => {
 };
 
 module.exports.ROLE_KEYS = ROLE_KEYS;
+module.exports.sortRoles = sortRoles;
+module.exports.validRoles = validRoles;

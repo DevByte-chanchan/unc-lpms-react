@@ -26,7 +26,7 @@ async function getCandidates(req, res, next) {
              WHERE p.stakeholder_id = ?
              ORDER BY c.course_no ASC;`, [req.user.id]);
         const instructors = await select(
-            `SELECT user_id, name FROM Users WHERE role = 'instructor' AND (is_active IS NULL OR is_active != 0) ORDER BY name ASC;`);
+            `SELECT user_id, name FROM Users WHERE (role = 'instructor' OR roles LIKE '%"instructor"%') AND (is_active IS NULL OR is_active != 0) ORDER BY name ASC;`);
         return res.json({ courses, instructors, semesters: service.SEMESTERS });
     } catch (error) {
         return next(error);

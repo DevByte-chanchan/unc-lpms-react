@@ -8,6 +8,8 @@ import {
   Edit2,
   ChevronRight,
   Filter,
+  Grid,
+  List,
   Plus,
   RotateCcw,
   Search,
@@ -22,9 +24,10 @@ import EmptyState from '../../../components/EmptyState.jsx';
 import TableScrollRegion from '../../../components/TableScrollRegion.jsx';
 import SortableTh from '../../../components/SortableTh.jsx';
 import styles from '../../../styles/ReferenceLibrary.module.scss';
+import cards from '../../../styles/CoursesTable.module.sass';
 
 import ImportPreviewModal from '../../../components/ImportPreviewModal.jsx';
-import { loadLibrary, loadReferenceTypes, setArchived } from '../../../utils/referenceStore.js';
+import { loadLibrary, loadReferenceTypes, setArchived, serverId } from '../../../utils/referenceStore.js';
 import { Bone } from '../../../components/LoadingSkeleton.jsx';
 import { typeLabel, unavailableReason, getCatalogSettings, refreshCatalogSettings } from '../../../utils/referenceCatalog.js';
 import { healthSummary } from '../../../utils/referenceHealth.js';
@@ -75,6 +78,17 @@ const ReferenceLibrary = () => {
     typeof window === 'undefined' ? 0 : window.innerWidth
   ));
   const [filtersOpen, setFiltersOpen] = useState(false);
+  // References filed per course (server: /api/course-references). Sir wants them per course, not per department.
+  const [courseTree, setCourseTree] = useState([]);
+  const [openDept, setOpenDept] = useState('');
+  const [openProgram, setOpenProgram] = useState('');
+  const [filterCourse, setFilterCourse] = useState(null); // { id, code }
+  const [courseRefIds, setCourseRefIds] = useState(null); // Set of reference ids filed under filterCourse
+  const [previewCourses, setPreviewCourses] = useState(null);
+  const [courseToAdd, setCourseToAdd] = useState('');
+  const [filing, setFiling] = useState(false);
+  // 'list': the reference table; 'courses': the courses of the chosen department / program as cards.
+  const [layoutMode, setLayoutMode] = useState('list');
   const [rules, setRules] = useState(getCatalogSettings);
   useEffect(() => { let on = true; refreshCatalogSettings(fetchJson).then(latest => { if (on) setRules(latest); }); return () => { on = false; }; }, []);
   const activeRefs = useMemo(() => references.filter(r => !r.archived), [references]);
@@ -94,6 +108,33 @@ const ReferenceLibrary = () => {
   }, []);
 
   useEffect(() => { reload(); }, [reload]);
+
+  const loadCourseTree = React.useCallback(() => fetchJson('/api/course-references/tree')
+    .then(data => setCourseTree(data.departments || []))
+    .catch(() => setCourseTree([])), []);
+  useEffect(() => { loadCourseTree(); }, [loadCourseTree]);
+  const allCourses = useMemo(() => {
+    const byId = new Map();
+    courseTree.forEach(d => d.programs.forEach(p => p.courses.forEach(c => { if (!byId.has(c.id)) byId.set(c.id, c); })));
+    return [...byId.values()].sort((a, b) => a.code.localeCompare(b.code));
+  }, [courseTree]);
+  const gridCourses = useMemo(() => {
+    const dept = courseTree.find(d => String(d.id) === openDept);
+    const program = dept?.programs.find(p => String(p.id) === openProgram);
+    const list = program ? program.courses : dept ? [...new Map(dept.programs.flatMap(p => p.courses).map(c => [c.id, c])).values()] : allCourses;
+    const words = query.trim().toLowerCase();
+    return words ? list.filter(c => `${c.code} ${c.title}`.toLowerCase().includes(words)) : list;
+  }, [courseTree, openDept, openProgram, allCourses, query]);
+  const loadCourseRefs = React.useCallback(async (course) => {
+    if (!course) { setCourseRefIds(null); return; }
+    try {
+      const data = await fetchJson(`/api/course-references/${course.id}`);
+      setCourseRefIds(new Set((data.references || []).map(r => r.reference_id)));
+    } catch {
+      setCourseRefIds(new Set());
+    }
+  }, []);
+  useEffect(() => { loadCourseRefs(filterCourse); }, [filterCourse, loadCourseRefs]);
 
   useEffect(() => {
     let mounted = true;
@@ -170,9 +211,12 @@ const ReferenceLibrary = () => {
     () => getReferenceViewValue(currentViewCriteria),
     [currentViewCriteria],
   );
+  const recordIds = (record) => (record.sourceIds?.length ? record.sourceIds : [serverId(record.id)]).map(Number);
   const filtered = useMemo(() => {
-    return filterReferenceRecords(references, criteria);
-  }, [references, criteria]);
+    const rows = filterReferenceRecords(references, criteria);
+    if (!filterCourse || !courseRefIds) return rows;
+    return rows.filter(record => recordIds(record).some(id => courseRefIds.has(id)));
+  }, [references, criteria, filterCourse, courseRefIds]);
   const sortedReferences = useMemo(
     () => sortRows(filtered, REFERENCE_LIBRARY_COLUMNS, sort.sortKey, sort.sortDir),
     [filtered, sort]
@@ -185,8 +229,8 @@ const ReferenceLibrary = () => {
     () => getReferencePreview(viewRef, sortedReferences),
     [viewRef, sortedReferences]
   );
-  const appliedFilterCount = [filterDepartment, filterType, filterYear].filter(Boolean).length;
-  const hasDiscoveryCriteria = Boolean(query || filterDepartment || filterType || filterYear || recentOnly || tab !== 'active');
+  const appliedFilterCount = [filterDepartment, filterType, filterYear, filterCourse].filter(Boolean).length;
+  const hasDiscoveryCriteria = Boolean(query || filterDepartment || filterType || filterYear || filterCourse || recentOnly || tab !== 'active');
 
   useEffect(() => {
     const closePanels = (event) => {
@@ -206,7 +250,7 @@ const ReferenceLibrary = () => {
 
   useEffect(() => {
     setPage(1);
-  }, [query, searchField, filterDepartment, filterType, filterYear, tab, recentOnly, sort.sortKey, sort.sortDir, pageSize]);
+  }, [query, searchField, filterDepartment, filterType, filterYear, filterCourse, tab, recentOnly, sort.sortKey, sort.sortDir, pageSize]);
 
   const handleSort = (key) => setSort(current => nextSort(current, key));
 
@@ -244,6 +288,7 @@ const ReferenceLibrary = () => {
     setQuery('');
     setSearchField('all');
     setFilterDepartment('');
+    setFilterCourse(null);
     setFilterType('');
     setFilterYear('');
     setTab('active');
@@ -277,9 +322,38 @@ const ReferenceLibrary = () => {
 
   const activeFilterChips = [
     filterDepartment && { key: 'department', label: filterDepartment, remove: () => setFilterDepartment('') },
+    filterCourse && { key: 'course', label: `Course: ${filterCourse.code}`, remove: () => setFilterCourse(null) },
     filterType && { key: 'type', label: typeLabel(filterType), remove: () => setFilterType('') },
     filterYear && { key: 'year', label: YEAR_LABELS[filterYear] || filterYear, remove: () => setFilterYear('') },
   ].filter(Boolean);
+
+  const previewId = previewReference ? serverId(previewReference.id) : null;
+  const loadPreviewCourses = React.useCallback(async (id) => {
+    if (!id) { setPreviewCourses(null); return; }
+    try {
+      setPreviewCourses((await fetchJson(`/api/course-references/by-reference/${id}`)).courses || []);
+    } catch {
+      setPreviewCourses([]);
+    }
+  }, []);
+  useEffect(() => { loadPreviewCourses(previewId); }, [previewId, loadPreviewCourses]);
+  useEffect(() => { setCourseToAdd(filterCourse ? String(filterCourse.id) : ''); }, [previewId, filterCourse]);
+
+  const fileUnderCourse = async (courseId, remove = false) => {
+    if (!previewId || !courseId) return;
+    setFiling(true);
+    try {
+      await fetchJson(remove ? `/api/course-references/${courseId}/${previewId}` : `/api/course-references/${courseId}`, remove
+        ? { method: 'DELETE' }
+        : { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ reference_id: previewId }) });
+      await Promise.all([loadPreviewCourses(previewId), loadCourseTree(), loadCourseRefs(filterCourse)]);
+      if (!remove) setCourseToAdd('');
+    } catch (err) {
+      showPageToast(apiErrorMessage(err, 'The course was not updated.'), 'error');
+    } finally {
+      setFiling(false);
+    }
+  };
 
   const renderUsedInCourse = (courseCode) => {
     if (courseAssignments === null) {
@@ -361,7 +435,11 @@ const ReferenceLibrary = () => {
         </div>
       </form>
 
-          <div className={styles.savedViews} aria-label="Reference views">
+          <div className={styles.savedViews} aria-label="Reference views" style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+        <div className={cards.layoutToggles}>
+          <button type="button" className={`${cards.toggleBtn} ${layoutMode === 'list' ? cards.active : ''}`} onClick={() => setLayoutMode('list')} title="References" aria-pressed={layoutMode === 'list'}><List size={18} /></button>
+          <button type="button" className={`${cards.toggleBtn} ${layoutMode === 'courses' ? cards.active : ''}`} onClick={() => setLayoutMode('courses')} title="Courses" aria-pressed={layoutMode === 'courses'}><Grid size={18} /></button>
+        </div>
         <Select id="reference-library-view" aria-label="View" value={activeViewValue} onChange={changeView}>
           {activeViewValue === 'custom' && <option value="custom" disabled>Custom view</option>}
           <option value="active">All active · {activeRefs.length}</option>
@@ -392,8 +470,32 @@ const ReferenceLibrary = () => {
           </div>
 
           <div className={styles.facetGroup}>
-            <h3 className={styles.facetGroupTitle}>Department</h3>
-            {facets.departments.map(item => <button key={item.value} className={`${styles.facetOption} ${filterDepartment === item.value ? styles.facetOptionActive : ''}`} type="button" aria-pressed={filterDepartment === item.value} onClick={() => setFilterDepartment(current => current === item.value ? '' : item.value)}><span>{item.value}</span><span className={styles.facetCount}>{item.count}</span></button>)}
+            <h3 className={styles.facetGroupTitle}>Department · Program · Course</h3>
+            {courseTree.map(dept => (
+              <React.Fragment key={dept.id}>
+                <button className={`${styles.facetOption} ${openDept === String(dept.id) ? styles.facetOptionActive : ''}`} type="button" aria-expanded={openDept === String(dept.id)}
+                  onClick={() => setOpenDept(current => (current === String(dept.id) ? '' : String(dept.id)))}>
+                  <span>{dept.name}</span><span className={styles.facetCount}>{dept.programs.length}</span>
+                </button>
+                {openDept === String(dept.id) && dept.programs.map(program => (
+                  <React.Fragment key={program.id}>
+                    <button className={styles.facetOption} style={{ paddingLeft: 18 }} type="button" aria-expanded={openProgram === String(program.id)}
+                      onClick={() => setOpenProgram(current => (current === String(program.id) ? '' : String(program.id)))}>
+                      <span>{program.name}</span><span className={styles.facetCount}>{program.courses.length}</span>
+                    </button>
+                    {openProgram === String(program.id) && program.courses.map(course => {
+                      const on = filterCourse?.id === course.id;
+                      return (
+                        <button key={course.id} className={`${styles.facetOption} ${on ? styles.facetOptionActive : ''}`} style={{ paddingLeft: 32 }} type="button" aria-pressed={on}
+                          title={course.title} onClick={() => setFilterCourse(on ? null : { id: course.id, code: course.code })}>
+                          <span>{course.code}</span><span className={styles.facetCount}>{course.references}</span>
+                        </button>
+                      );
+                    })}
+                  </React.Fragment>
+                ))}
+              </React.Fragment>
+            ))}
           </div>
 
           <div className={styles.facetGroup}>
@@ -418,6 +520,30 @@ const ReferenceLibrary = () => {
             <button className={styles.mobileFilterButton} type="button" onClick={() => setFiltersOpen(true)}><Filter size={14} /> Filters {appliedFilterCount > 0 && `(${appliedFilterCount})`}</button>
             {hasDiscoveryCriteria && <button className={styles.resetButton} type="button" onClick={resetDiscovery}><RotateCcw size={12} /> Reset</button>}
           </div>
+          {layoutMode === 'courses' ? (
+            gridCourses.length === 0 ? <p style={{ color: 'var(--ink-muted)' }}>No course matches. Pick a department and a program on the left.</p> : (
+              <div className={cards.gridContainer} style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))' }}>
+                {gridCourses.map(c => (
+                  <div key={c.id} className={cards.gridCard}>
+                    <div className={cards.cardMain}>
+                      <div className={cards.cardHeader}>
+                        <span className={cards.cardCode}>{c.code}</span>
+                        <span className={cards.cardDate}>{c.references} reference{c.references === 1 ? '' : 's'}</span>
+                      </div>
+                      <div className={cards.cardTitle}>{c.title}</div>
+                      <div className={cards.cardFooter}>
+                        <div className={cards.cardActionsGroup}>
+                          <button type="button" className={cards.gridActionBtn} onClick={() => { setFilterCourse({ id: c.id, code: c.code }); setLayoutMode('list'); }}>
+                            References <ChevronRight size={16} />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )
+          ) : (<>
           {health.total > 0 && (
             <div role="status" style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center', margin: '0 0 8px', color: health.needAttention ? 'var(--warn)' : 'var(--good)' }}>
               <strong>{health.needAttention === 0 ? 'Every active reference is in good order.' : `${health.needAttention} of ${health.total} active references need attention`}</strong>
@@ -483,6 +609,7 @@ const ReferenceLibrary = () => {
               </button>
             </div>
           </div>
+          </>)}
         </section>
 
         <aside className={`${styles.previewPane} ${viewRef ? styles.previewSheet : ''}`} aria-label="Reference preview">
@@ -491,7 +618,27 @@ const ReferenceLibrary = () => {
               <div className={styles.previewHeader}><div><h2 className={styles.previewTitle}>{previewReference.title}</h2><div className={styles.previewId}><span>{previewReference.id} · {previewReference.archived ? 'Archived' : 'Active'}</span></div></div><button className={`${styles.previewClose} app-icon-close`} type="button" onClick={handleClose} aria-label="Close reference preview"><X size={15} /></button></div>
               {isReferenceDeprecated(previewReference, CURRENT_YEAR, rules.recencyYears) && <div className={styles.warningBanner}>{`This reference is ${rules.recencyYears} years old or older and may need review.`}</div>}
               <dl className={styles.previewMetadata}>
-                <dt>Author(s)</dt><dd>{previewReference.authors || 'Not provided'}</dd><dt>Type</dt><dd>{typeLabel(previewReference.type)}</dd><dt>ISBN</dt><dd>{previewReference.isbn || 'Not provided'}</dd><dt>Year</dt><dd>{previewReference.year || 'Not provided'}</dd><dt>Publisher</dt><dd>{previewReference.publisher || 'Not provided'}</dd><dt>Status</dt><dd>{(previewReference.status || 'available').charAt(0).toUpperCase() + (previewReference.status || 'available').slice(1)}</dd><dt>Copies</dt><dd>{previewReference.copies != null ? previewReference.copies : 'Not recorded'}</dd><dt>Category</dt><dd>{previewReference.category || 'Not provided'}</dd><dt>Date received</dt><dd>{previewReference.received || 'Not recorded'}</dd><dt>Department</dt><dd>{(previewReference.departments || []).join(', ') || 'Not assigned'}</dd><dt>Used in</dt><dd className={styles.courseLinks}>{(previewReference.usedInCourses || []).length ? previewReference.usedInCourses.map(renderUsedInCourse) : 'No courses recorded'}</dd>
+                <dt>Author(s)</dt><dd>{previewReference.authors || 'Not provided'}</dd><dt>Type</dt><dd>{typeLabel(previewReference.type)}</dd><dt>ISBN</dt><dd>{previewReference.isbn || 'Not provided'}</dd><dt>Year</dt><dd>{previewReference.year || 'Not provided'}</dd><dt>Publisher</dt><dd>{previewReference.publisher || 'Not provided'}</dd><dt>Status</dt><dd>{(previewReference.status || 'available').charAt(0).toUpperCase() + (previewReference.status || 'available').slice(1)}</dd><dt>Copies</dt><dd>{previewReference.copies != null ? previewReference.copies : 'Not recorded'}</dd><dt>Category</dt><dd>{previewReference.category || 'Not provided'}</dd><dt>Date received</dt><dd>{previewReference.received || 'Not recorded'}</dd><dt>Courses</dt><dd>
+                  <div className={styles.courseLinks}>
+                    {previewCourses === null ? 'Loading…' : previewCourses.length === 0 ? 'Not filed under a course' : previewCourses.map(c => (
+                      <span key={c.course_id} className={styles.courseChecking} title={c.course_title}>
+                        {c.course_no}{' '}
+                        <button type="button" className="app-icon-close" style={{ width: 18, height: 18, minHeight: 18, padding: 0 }} disabled={filing}
+                          onClick={() => fileUnderCourse(c.course_id, true)} aria-label={`Remove from ${c.course_no}`}><X size={11} /></button>
+                      </span>
+                    ))}
+                  </div>
+                  {!previewReference.archived && (
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 6, marginTop: 6 }}>
+                      <div style={{ width: '100%', minWidth: 0 }}>
+                        <Select block value={courseToAdd} onChange={(e) => setCourseToAdd(e.target.value)} placeholder="Add to course…" aria-label="Course to file this reference under">
+                          {allCourses.filter(c => !(previewCourses || []).some(f => f.course_id === c.id)).map(c => <option key={c.id} value={String(c.id)}>{`${c.code} — ${c.title}`}</option>)}
+                        </Select>
+                      </div>
+                      <button type="button" className="btn btn-secondary btn-sm" disabled={!courseToAdd || filing} onClick={() => fileUnderCourse(Number(courseToAdd))}>Add</button>
+                    </div>
+                  )}
+                </dd><dt>Used in</dt><dd className={styles.courseLinks}>{(previewReference.usedInCourses || []).length ? previewReference.usedInCourses.map(renderUsedInCourse) : 'No courses recorded'}</dd>
                 {sanitizeUrl(previewReference.link) && <><dt>Link</dt><dd><a href={sanitizeUrl(previewReference.link)} target="_blank" rel="noopener noreferrer" className={styles.modalLink}>Open resource</a></dd></>}
               </dl>
               <div className={styles.previewActions}>

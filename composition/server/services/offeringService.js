@@ -150,8 +150,10 @@ const assignInTransaction = async ({ courseId, programId, schoolYear, semester, 
     if (String(program.stakeholder_id) !== String(user.id)) {
         throw new ServiceError(403, 'Only the head of this program can assign its courses.');
     }
-    const [instructor] = await select('SELECT user_id, name, role, is_active FROM Users WHERE user_id = ?', [instructorUserId], transaction);
-    if (!instructor || instructor.role !== 'instructor' || instructor.is_active === 0) {
+    const [instructor] = await select('SELECT user_id, name, role, roles, is_active FROM Users WHERE user_id = ?', [instructorUserId], transaction);
+    // Multi-role accounts: an instructor role anywhere in the account's list will do.
+    const holdsInstructor = instructor && (instructor.role === 'instructor' || String(instructor.roles || '').includes('"instructor"'));
+    if (!instructor || !holdsInstructor || instructor.is_active === 0) {
         throw new ServiceError(400, 'The lead instructor must be an active instructor account.');
     }
 
@@ -268,4 +270,4 @@ const assignRevisionOnApproval = async (offeringId, now, transaction) => {
     return revision;
 };
 
-module.exports = { ServiceError, SEMESTERS, assignCourseForTerm, startRevision, assignRevisionOnApproval, cloneOfferingContent, latestApproved };
+module.exports = { ServiceError, SEMESTERS, validTerm, assignCourseForTerm, startRevision, assignRevisionOnApproval, cloneOfferingContent, latestApproved };

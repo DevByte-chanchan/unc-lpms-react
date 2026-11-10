@@ -29,7 +29,8 @@ const freshDb = async ({ withUsers = false, withResetColumns = true, withCredent
     if (withUsers) {
         const cols = (withResetColumns ? ', reset_token_hash TEXT, reset_expires_at DATETIME' : '')
             + (withCredentialColumns ? ', must_change_password BOOLEAN NOT NULL DEFAULT 0, password_changed_at DATETIME, temp_password_expires_at DATETIME'
-                + ', signature_path VARCHAR(80), signature_mime VARCHAR(20), signature_iv VARCHAR(32), signature_tag VARCHAR(32), signature_key_version INTEGER, signature_updated_at DATETIME' : '');
+                + ', signature_path VARCHAR(80), signature_mime VARCHAR(20), signature_iv VARCHAR(32), signature_tag VARCHAR(32), signature_key_version INTEGER, signature_updated_at DATETIME'
+                + ', roles TEXT, failed_attempts INTEGER NOT NULL DEFAULT 0, locked_until DATETIME' : '');
         await sequelize.query(`CREATE TABLE Users (
             user_id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, email TEXT UNIQUE,
             password_hash TEXT, role TEXT, is_active TINYINT DEFAULT 1, last_login_at DATETIME,

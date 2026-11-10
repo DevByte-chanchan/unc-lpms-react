@@ -4,7 +4,7 @@
 // `node server/utils/password.test.js` from composition/.
 // No database, no server, no dependencies.
 
-const { hashPassword, verifyPassword, needsRehash, PARAMS } = require('./password');
+const { hashPassword, hashPasswordScrypt, verifyPassword, needsRehash, isBcrypt, BCRYPT_COST } = require('./password');
 
 const test = async (name, fn) => {
     try { await fn(); console.log(`✓ ${name}`); }
@@ -32,17 +32,19 @@ const eq = (a, b, what) => { if (a !== b) throw new Error(`${what}: expected ${b
         eq(await verifyPassword('demo1234', b), true, 'second still verifies');
     });
 
-    await test('the stored format carries its own parameters', async () => {
+    await test('the stored format is bcrypt and carries its own cost', async () => {
         const hash = await hashPassword('demo1234');
-        const parts = hash.split('$');
-        eq(parts.length, 6, 'field count');
-        eq(parts[0], 'scrypt', 'algorithm is named in the hash');
-        eq(Number(parts[1]), PARAMS.N, 'cost is recorded');
-        // Reading the cost back out is what lets it be raised later without
-        // invalidating every existing password.
-        if (!/^[0-9a-f]+$/.test(parts[4])) throw new Error('salt should be hex');
-        if (!/^[0-9a-f]+$/.test(parts[5])) throw new Error('hash should be hex');
+        eq(isBcrypt(hash), true, 'bcrypt format');
+        eq(Number(hash.split('$')[2]), BCRYPT_COST, 'cost is recorded');
         if (hash.includes('demo1234')) throw new Error('the password must not appear in the hash');
+    });
+
+    await test('an older scrypt hash still verifies and is flagged for upgrade to bcrypt', async () => {
+        const legacy = await hashPasswordScrypt('demo1234');
+        eq(legacy.split('$')[0], 'scrypt', 'legacy format');
+        eq(await verifyPassword('demo1234', legacy), true, 'still verifies');
+        eq(await verifyPassword('demo1235', legacy), false, 'wrong password refused');
+        eq(needsRehash(legacy), true, 'upgraded at next sign-in');
     });
 
     await test('a malformed or hostile stored value is rejected, not crashed on', async () => {
@@ -53,7 +55,7 @@ const eq = (a, b, what) => { if (a !== b) throw new Error(`${what}: expected ${b
     });
 
     await test('a hash written with a weaker cost is flagged for upgrade', async () => {
-        const weak = await hashPassword('demo1234', { ...PARAMS, N: 1024 });
+        const weak = await require('bcryptjs').hash('demo1234', 4);
         eq(await verifyPassword('demo1234', weak), true, 'an old hash still verifies');
         eq(needsRehash(weak), true, 'and is flagged for rehashing');
 
@@ -63,14 +65,11 @@ const eq = (a, b, what) => { if (a !== b) throw new Error(`${what}: expected ${b
     });
 
     await test('the cost is high enough to be worth having', async () => {
-        // The point of scrypt over a plain digest is that it is deliberately
-        // slow. If this ever drops to ~0ms, someone has lowered N and the
-        // hashes are no longer worth much.
         const started = Date.now();
         await hashPassword('demo1234');
         const ms = Date.now() - started;
-        if (ms < 10) throw new Error(`hashing took ${ms}ms — cost parameters look too low`);
-        if (PARAMS.N < 16384) throw new Error('N must stay at or above 16384');
+        if (ms < 10) throw new Error(`hashing took ${ms}ms: cost parameters look too low`);
+        if (BCRYPT_COST < 10) throw new Error('the bcrypt cost must stay at or above 10');
     });
 
     console.log('\nAll password checks passed.');

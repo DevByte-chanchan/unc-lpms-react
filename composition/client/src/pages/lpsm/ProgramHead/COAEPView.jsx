@@ -5,6 +5,8 @@ import SkeletonA from '../../../layouts/SkeletonA.jsx';
 import HeaderA from '../../../components/HeaderA.jsx';
 import SideNavigation from '../../../components/SideNavigation.jsx';
 import PDFViewerModal from '../../../components/PDFViewerModal.jsx';
+import CourseDocumentBar from '../../../components/CourseDocumentBar.jsx';
+import { openCourseDocument } from '../../../utils/courseDocuments.js';
 import EmptyState from '../../../components/EmptyState.jsx';
 import HeadBodyTable from '../../../components/HeadBodyTable.jsx';
 import { Loading, TableSkeleton } from '../../../components/LoadingSkeleton.jsx';
@@ -20,13 +22,15 @@ import pageStyles from '../../../styles/ProgramHeadWorkspace.module.sass';
 import styles from '../../../styles/PoPeoAlignment.module.sass';
 
 
-const COAEPView = () => {
+// `tabs`: shown as the page header when this page is a tab of Program Documents.
+const COAEPView = ({ tabs = null }) => {
   const session = getSession();
   const [offeringId, setOfferingId] = useState('');
   const [courses, setCourses] = useState(null);
   const [serverCoaep, setServerCoaep] = useState(undefined);
   const [error, setError] = useState('');
   const [selectedFile, setSelectedFile] = useState(null);
+  const [uploaded, setUploaded] = useState(null);
 
   // The Program Head's assigned offerings, one entry per term and revision (like the CO and PO tab),
   // so the COAEP of an older term can be opened too.
@@ -83,6 +87,7 @@ const COAEPView = () => {
   });
 
   const viewGeneratedCoaep = async () => {
+    if (uploaded) { openCourseDocument(offeringId, 'coaep', uploaded).catch(() => setError('The uploaded file could not be opened.')); return; }
     if (!generatedRecord) return;
     const logoUrl = new URL(unclogo, window.location.origin).href;
     const formInfo = await fetchFormInfo();
@@ -112,8 +117,8 @@ const COAEPView = () => {
       content={(
         <div className={`${pageStyles.page} ${pageStyles.flowPage}`}>
           <div className={pageStyles.pageHeader}>
-            <h2 className="app-page-title">Course Assessment &amp; Evaluation Plan (COAEP)</h2>
-            {generatedRecord && (
+            {tabs || <h2 className="app-page-title">Course Assessment &amp; Evaluation Plan (COAEP)</h2>}
+            {(generatedRecord || uploaded) && (
               <div className={pageStyles.pageHeaderActions}>
                 <button type="button" className="btn btn-primary" onClick={viewGeneratedCoaep}>
                   <Eye size={16} /> Preview / Export
@@ -124,6 +129,7 @@ const COAEPView = () => {
 
           <div className={pageStyles.toolbarControls}>
             <Select
+              variant="term"
               value={offeringId}
               onChange={event => setOfferingId(event.target.value)}
               aria-label="Select course"
@@ -131,6 +137,8 @@ const COAEPView = () => {
               {(courses || []).map(item => <option key={item.id} value={item.id}>{item.label}</option>)}
             </Select>
           </div>
+
+          <CourseDocumentBar pcId={offeringId} kind="coaep" label="COAEP" onChange={setUploaded} />
 
           {error && <div role="alert" className={styles.alert}>{error}</div>}
 

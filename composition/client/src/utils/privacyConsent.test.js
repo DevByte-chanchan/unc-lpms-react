@@ -52,11 +52,12 @@ test('a server refusal for missing consent reaches the person as a message', asy
   assert.match(result.error, /Privacy Notice/)
 })
 
-test('the registration form needs the checkbox, and the notice page is reachable signed out', () => {
-  const login = read('pages/Login.jsx')
-  assert.match(login, /type="checkbox"[^>]*checked=\{accepted\}/)
-  assert.match(login, /mode === 'signup' && !accepted/)
-  assert.match(login, /consentVersion: privacy\?\.version/)
+test('setting up an invited account needs the checkbox, and the notice page is reachable signed out', () => {
+  // Accounts are created by the VPAA or superuser; consent is given when the invitation link is accepted.
+  const page = read('pages/AccountLinkPage.jsx')
+  assert.match(page, /type="checkbox"[^>]*checked=\{accepted\}/)
+  assert.match(page, /invite && !accepted/)
+  assert.match(page, /consentVersion: privacy\?\.version/)
   const app = read('App.jsx')
   assert.match(app, /location\.pathname === '\/privacy'\) return <Privacy \/>/)
   assert.ok(app.indexOf("'/privacy'") < app.indexOf('<Login />'), 'the notice is served before the sign-in gate')

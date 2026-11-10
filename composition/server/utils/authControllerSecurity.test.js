@@ -5,7 +5,7 @@ const assert = require('node:assert/strict');
 const { User } = require('../models');
 const auth = require('../controllers/authController');
 const { hashPassword } = require('./password');
-const { hashToken } = require('./resetToken');
+const links = require('./accountLinks');
 const { COOKIE_NAME, issueSession, createRequireAuth } = require('../middleware/auth');
 const { PRIVACY_NOTICE_VERSION } = require('../config/privacy');
 
@@ -235,8 +235,10 @@ test('an explicitly enabled production registration still creates an instructor 
     const previousFlag = process.env.LPMS_ALLOW_PUBLIC_REGISTRATION;
     const originalFindOne = User.findOne;
     const originalCreate = User.create;
+    const previousSecret = process.env.JWT_SECRET;
     process.env.NODE_ENV = 'production';
     process.env.LPMS_ALLOW_PUBLIC_REGISTRATION = '1';
+    process.env.JWT_SECRET = 'a-production-test-secret-of-enough-length';
     User.findOne = async () => null;
     User.create = async values => ({
         id: 17,
@@ -253,6 +255,8 @@ test('an explicitly enabled production registration still creates an instructor 
         assert.equal(res.record.statusCode, 201);
         assert.equal(res.record.body.user.role, 'instructor');
     } finally {
+        if (previousSecret === undefined) delete process.env.JWT_SECRET;
+        else process.env.JWT_SECRET = previousSecret;
         User.findOne = originalFindOne;
         User.create = originalCreate;
         if (previousEnvironment === undefined) delete process.env.NODE_ENV;
@@ -276,45 +280,34 @@ test('one source cannot submit unlimited registration attempts', async () => {
     assert.equal(statuses[5], 429);
 });
 
-test('a successful password reset starts a new server session', async () => {
-    const originalScope = User.scope;
-    const rawToken = 'reset-token-for-test';
-    const user = {
-        id: 10,
-        name: 'RESET, USER',
-        email: 'reset.user@example.test',
-        role: 'instructor',
-        is_active: true,
-        reset_token_hash: hashToken(rawToken),
-        reset_expires_at: new Date(Date.now() + 60_000),
-        password_hash: await hashPassword('oldpassword1'),
-        toPublic() { return { id: this.id, name: this.name, email: this.email, role: this.role }; },
-        async save() {}
-    };
-    User.scope = () => ({ findOne: async () => user });
+test('a successful password reset starts a new server session and voids the old one', async () => {
+    // Reset links live in PasswordResets (utils/accountLinks.js); the token is the only thing the link carries.
+    const user = await User.create({
+        name: 'RESET, USER', email: `reset.user.${Date.now()}@example.test`, role: 'instructor',
+        password_hash: await hashPassword('oldpassword1'), password_changed_at: new Date(Date.now() - 60_000)
+    });
     const oldToken = issueSession(user);
+    const { token } = await links.sendPasswordReset(user);
+    assert.ok(token, 'without SMTP the link token is handed back');
 
-    try {
-        const res = responseRecorder();
-        await auth.resetPassword({
-            body: { email: user.email, token: rawToken, password: 'newpassword1' }
-        }, res, error => { throw error; });
+    const res = responseRecorder();
+    await auth.resetPassword({ ip: '127.0.0.1', headers: {}, body: { token, password: 'newpassword1' } }, res, error => { throw error; });
+    assert.equal(res.record.statusCode, 200);
+    assert.equal(res.record.cookies[0]?.name, 'lpms_session');
+    assert.equal(res.record.cookies[0]?.options.httpOnly, true);
 
-        assert.equal(res.record.statusCode, 200);
-        assert.equal(res.record.cookies[0]?.name, 'lpms_session');
-        assert.equal(res.record.cookies[0]?.options.httpOnly, true);
+    const oldSessionResponse = responseRecorder();
+    const checkOldSession = createRequireAuth({ findUserById: async () => User.findByPk(user.user_id) });
+    await checkOldSession(
+        { headers: { cookie: `${COOKIE_NAME}=${oldToken}` } },
+        oldSessionResponse,
+        () => assert.fail('the pre-reset session remained usable')
+    );
+    assert.equal(oldSessionResponse.record.statusCode, 401);
 
-        const oldSessionResponse = responseRecorder();
-        const checkOldSession = createRequireAuth({ findUserById: async () => user });
-        await checkOldSession(
-            { headers: { cookie: `${COOKIE_NAME}=${oldToken}` } },
-            oldSessionResponse,
-            () => assert.fail('the pre-reset session remained usable')
-        );
-        assert.equal(oldSessionResponse.record.statusCode, 401);
-    } finally {
-        User.scope = originalScope;
-    }
+    const again = responseRecorder();
+    await auth.resetPassword({ ip: '127.0.0.1', headers: {}, body: { token, password: 'otherpassword2' } }, again, error => { throw error; });
+    assert.equal(again.record.statusCode, 400, 'a reset link works once');
 });
 
 test('password reset fails closed when no protected delivery channel is configured', async () => {
@@ -340,12 +333,13 @@ test('password reset fails closed when no protected delivery channel is configur
 });
 
 test('explicit local demo reset returns the token without writing it to logs', async () => {
-    const originalFindOne = User.findOne;
     const originalFlag = process.env.LPMS_EXPOSE_RESET_TOKEN;
     const originalLog = console.log;
     const logs = [];
-    const user = { email: 'reset.user@example.test', is_active: true, reset_token_hash: null, reset_expires_at: null, async save() {} };
-    User.findOne = async () => user;
+    const user = await User.create({
+        name: 'DEMO, RESET', email: `demo.reset.${Date.now()}@example.test`, role: 'instructor',
+        password_hash: await hashPassword('oldpassword1')
+    });
     process.env.LPMS_EXPOSE_RESET_TOKEN = '1';
     console.log = (...parts) => logs.push(parts.join(' '));
 
@@ -358,14 +352,13 @@ test('explicit local demo reset returns the token without writing it to logs', a
         assert.equal(logs.some(line => line.includes(res.record.body.devToken)), false);
         assert.equal(logs.some(line => line.includes('/reset-password?token=')), false);
     } finally {
-        User.findOne = originalFindOne;
         console.log = originalLog;
         if (originalFlag === undefined) delete process.env.LPMS_EXPOSE_RESET_TOKEN;
         else process.env.LPMS_EXPOSE_RESET_TOKEN = originalFlag;
     }
 });
 
-test('failed guesses from one source cannot lock the real user out from another source', async () => {
+test('five wrong passwords lock the account for every source (the account lockout of feature/course-assignment)', async () => {
     const originalCount = User.count;
     const originalScope = User.scope;
     const passwordHash = await hashPassword('correct123');
@@ -397,7 +390,9 @@ test('failed guesses from one source cannot lock the real user out from another 
             ip: '203.0.113.11',
             body: { email: user.email, password: 'correct123', role: 'instructor' }
         }, legitimate, error => { throw error; });
-        assert.equal(legitimate.record.statusCode, 200);
+        assert.equal(legitimate.record.statusCode, 429, 'locked for 15 minutes, even with the right password');
+        assert.equal(user.failed_attempts, 5);
+        assert.ok(new Date(user.locked_until) > new Date());
     } finally {
         User.count = originalCount;
         User.scope = originalScope;

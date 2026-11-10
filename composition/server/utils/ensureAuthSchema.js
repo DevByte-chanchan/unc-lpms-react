@@ -54,7 +54,11 @@ const CREDENTIAL_COLUMNS = [
     ['signature_iv', 'VARCHAR(32)'],
     ['signature_tag', 'VARCHAR(32)'],
     ['signature_key_version', 'INTEGER'],
-    ['signature_updated_at', 'DATETIME']
+    ['signature_updated_at', 'DATETIME'],
+    // multi-role accounts and the database lockout (migration 20261110000000)
+    ['roles', 'TEXT'],
+    ['failed_attempts', 'INTEGER NOT NULL DEFAULT 0'],
+    ['locked_until', 'DATETIME']
 ];
 
 // `models` is a parameter with a default rather than a top-level require, so

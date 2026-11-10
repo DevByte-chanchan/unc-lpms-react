@@ -136,8 +136,12 @@ app.use('/api/form-settings', require('./routes/formSettings'));
 app.use('/api/catalog-settings', require('./routes/catalogSettings'));
 app.use('/api/course-consultants', require('./routes/courseConsultants'));
 app.use('/api/offerings', require('./routes/offerings'));
+app.use('/api/course-assignments', require('./routes/courseAssignments'));
+app.use('/api/course-references', require('./routes/courseReferences'));
+app.use('/api/course-documents', require('./routes/courseDocuments'));
 app.use('/api/audit-logs', require('./routes/auditLogs'));
 app.use('/api/users', require('./routes/users'));
+app.use('/api/user-accounts', require('./routes/userAccounts'));
 app.use('/api/notifications', require('./routes/notifications'));
 app.use('/api/term-deadlines', require('./routes/termDeadlines'));
 app.use('/api/missing-submissions', require('./routes/missingSubmissions'));
@@ -158,6 +162,8 @@ app.use((err, req, res, next) => {
 // and the table is not there yet. It cannot throw; a database that will not
 // cooperate leaves sign-in degraded and everything else working.
 (async () => {
+    // The session tokens are signed with JWT_SECRET: required in production (the server will not start without it).
+    require('./utils/jwtSession').assertAuthConfig();
     await require('./utils/ensureAuthSchema').ensureAuthSchemaAndReport();
     app.listen(port, () => console.log(`Server listening on ${port}`));
     // Read notifications older than 90 days are removed at boot and then daily.

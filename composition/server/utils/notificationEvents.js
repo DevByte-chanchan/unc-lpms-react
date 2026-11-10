@@ -27,8 +27,8 @@ const peopleFor = async (offeringId) => {
              LEFT JOIN Departments d ON d.dept_id = pco.dept_id
          WHERE pco.pc_offering_id = ?;`, [offeringId]);
     if (!row) return null;
-    const librarians = await select(`SELECT user_id FROM Users WHERE role = 'director-of-libraries' AND is_active = 1;`);
-    const vpaa = await select(`SELECT user_id FROM Users WHERE role = 'vpaa' AND is_active = 1;`);
+    const librarians = await select(`SELECT user_id FROM Users WHERE (role = 'director-of-libraries' OR roles LIKE '%"director-of-libraries"%') AND is_active = 1;`);
+    const vpaa = await select(`SELECT user_id FROM Users WHERE (role = 'vpaa' OR roles LIKE '%"vpaa"%') AND is_active = 1;`);
     return {
         courseCode: row.course_no,
         assignmentId: row.co_assign_id,

@@ -1,12 +1,13 @@
 import styles from '../styles/SideNavigation.module.sass'
 import unclogo from '../assets/unclogo.png'
-import { BookOpen, Briefcase, CheckCircle, Clipboard, Clock, FileText, GitMerge, Layers, LogOut, Search, Settings, Sidebar, Target, Users } from 'react-feather'
+import { BookOpen, Briefcase, CheckCircle, Clipboard, Clock, FileText, GitMerge, Layers, LogOut, Search, Settings, Sidebar, Target, UserCheck, Users } from 'react-feather'
 import { useSearchParams, useNavigate, useLocation } from 'react-router-dom'
 import { useEffect, useRef, useState } from 'react'
-import { getSession, logout } from '../utils/session'
+import { getSession, logout, setActiveRole, homeRouteForRole, roleMeta } from '../utils/session'
 import { routes } from '../utils/routes.js';
 import SignOutDialog from './SignOutDialog.jsx'
 import NotificationBell from './NotificationBell.jsx'
+import Select from './Select.jsx'
 import SettingsModal from './SettingsModal.jsx'
 import { navigationIconName } from '../utils/navigationIcons.js'
 import { useNav } from '../layouts/NavContext.js'
@@ -22,6 +23,7 @@ const NAVIGATION_ICON_COMPONENTS = {
     GitMerge,
     Layers,
     Target,
+    UserCheck,
     Users,
 }
 
@@ -46,6 +48,12 @@ const SideNavigation = ({ mode = 'instructor' }) => {
     // LPSM Program Head pages
     if (location.pathname.startsWith(routes.coaepView())) {
         selected = 'COAEP';
+    }
+    if (location.pathname.startsWith('/role/program-head/course-assignment')) {
+        selected = 'Course Assignment';
+    }
+    if (location.pathname.startsWith('/role/program-head/program-documents')) {
+        selected = 'Program Documents';
     }
     if (location.pathname.startsWith('/role/program-head/outcomes-alignment')) {
         selected = 'Outcomes Alignment';
@@ -215,12 +223,12 @@ const SideNavigation = ({ mode = 'instructor' }) => {
 
                 {mode === 'program-head' && (
                     <>
-                        <div onClick={() => { navigate('/role/program-head/outcomes-alignment') }} className={`${styles.list} ${selected === 'Outcomes Alignment' ? styles.selected : ''}`} role="link" tabIndex={0} title="Outcomes Alignment" aria-label="Outcomes Alignment" onKeyDown={(event) => activateWithKeyboard(event, () => navigate('/role/program-head/outcomes-alignment'))}>
-                            <NavigationIcon label="Outcomes Alignment" /> <span className={styles.listText}>Outcomes Alignment</span>
+                        <div onClick={() => { navigate('/role/program-head/course-assignment') }} className={`${styles.list} ${selected === 'Course Assignment' ? styles.selected : ''}`} role="link" tabIndex={0} title="Course Assignment" aria-label="Course Assignment" onKeyDown={(event) => activateWithKeyboard(event, () => navigate('/role/program-head/course-assignment'))}>
+                            <NavigationIcon label="Course Assignment" /> <span className={styles.listText}>Course Assignment</span>
                         </div>
 
-                        <div onClick={() => { navigate(routes.coaepView()) }} className={`${styles.list} ${selected === 'COAEP' ? styles.selected : ''}`} role="link" tabIndex={0} title="COAEP" aria-label="COAEP" onKeyDown={(event) => activateWithKeyboard(event, () => navigate(routes.coaepView()))}>
-                            <NavigationIcon label="COAEP" /> <span className={styles.listText}>COAEP</span>
+                        <div onClick={() => { navigate('/role/program-head/program-documents') }} className={`${styles.list} ${selected === 'Program Documents' ? styles.selected : ''}`} role="link" tabIndex={0} title="Program Documents" aria-label="Program Documents" onKeyDown={(event) => activateWithKeyboard(event, () => navigate('/role/program-head/program-documents'))}>
+                            <NavigationIcon label="Program Documents" /> <span className={styles.listText}>Program Documents</span>
                         </div>
                     </>
                 )}
@@ -246,6 +254,9 @@ const SideNavigation = ({ mode = 'instructor' }) => {
                         <div onClick={() => { navigate('/role/vpaa?page=Approved%20Plans') }} className={`${styles.list} ${selected === 'Approved Plans' ? styles.selected : ''}`} role="link" tabIndex={0} title="Approved Plans" aria-label="Approved Plans" onKeyDown={(event) => activateWithKeyboard(event, () => navigate('/role/vpaa?page=Approved%20Plans'))}>
                             <NavigationIcon label="Approved Plans" /> <span className={styles.listText}>Approved Plans</span>
                         </div>
+                        <div onClick={() => { navigate('/role/vpaa?page=User%20Accounts') }} className={`${styles.list} ${selected === 'User Accounts' ? styles.selected : ''}`} role="link" tabIndex={0} title="User Accounts" aria-label="User Accounts" onKeyDown={(event) => activateWithKeyboard(event, () => navigate('/role/vpaa?page=User%20Accounts'))}>
+                            <NavigationIcon label="User Management" /> <span className={styles.listText}>User Accounts</span>
+                        </div>
                     </>
                 )}
 
@@ -263,6 +274,16 @@ const SideNavigation = ({ mode = 'instructor' }) => {
                             <LogOut size={20} /> <span className={styles.listText}>Log out</span>
                         </div>
                     </div>
+
+                    {/* Multi-role accounts: switch the role this session acts as (feature/course-assignment). */}
+                    {account?.roles?.length > 1 && (
+                        <div className={styles.roleSwitch}>
+                        <Select block aria-label="Switch role" value={account.role}
+                            onChange={(event) => { setActiveRole(event.target.value); navigate(homeRouteForRole(event.target.value)) }}>
+                            {account.roles.map(role => <option key={role} value={role}>{roleMeta(role)?.label || role}</option>)}
+                        </Select>
+                        </div>
+                    )}
 
                     <div className={styles.account} title={account?.email || undefined} role="button" tabIndex={0} aria-label="Account settings"
                         onClick={() => setSettingsOpen(true)} onKeyDown={(event) => activateWithKeyboard(event, () => setSettingsOpen(true))}>

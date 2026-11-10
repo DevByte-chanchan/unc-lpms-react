@@ -53,7 +53,7 @@ const remindApprovers = async ({ deps, clock, timeZone, programIds, result, now 
     const { models, notify } = deps;
     const { sequelize, ReminderLog, User } = models;
     const waiting = await findWaitingOnApprovers({ sequelize, today: clock.day, timeZone, programIds });
-    const directors = (await User.findAll({ where: { role: 'director-of-libraries', is_active: true }, attributes: ['user_id'], raw: true })).map(u => u.user_id);
+    const directors = (await User.findAll({ where: { is_active: true, [Op.or]: [{ role: 'director-of-libraries' }, { roles: { [Op.like]: '%"director-of-libraries"%' } }] }, attributes: ['user_id'], raw: true })).map(u => u.user_id);
     const perPerson = new Map();
     const entry = (id) => { if (!perPerson.has(id)) perPerson.set(id, { waiting: 0, long: 0, stalled: 0, stalledPlans: new Set(), plans: new Set(), trigger: false }); return perPerson.get(id); };
     for (const row of waiting) {
@@ -123,7 +123,7 @@ const remindDirectors = async ({ deps, clock, result, now = new Date() }) => {
     const refs = await Reference.findAll({ where: { archived: false }, raw: true });
     const counts = healthCounts(refs, { years: await yearsRule(models), currentYear: Number(clock.day.slice(0, 4)) });
     if (counts.needAttention === 0) return;
-    const directors = await User.findAll({ where: { role: 'director-of-libraries', is_active: true }, attributes: ['user_id'], raw: true });
+    const directors = await User.findAll({ where: { is_active: true, [Op.or]: [{ role: 'director-of-libraries' }, { roles: { [Op.like]: '%"director-of-libraries"%' } }] }, attributes: ['user_id'], raw: true });
     for (const { user_id: id } of directors) {
         if (!(await claim(ReminderLog, `refhealth:${id}`, 'digest', clock.day))) continue;
         await notify([id], 'reference_health', null, healthText(counts), null, now);

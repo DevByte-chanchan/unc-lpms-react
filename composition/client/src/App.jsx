@@ -1,5 +1,5 @@
 import './App.css'
-import {lazy, Suspense, useEffect, useState} from 'react'
+import {lazy, Suspense, useEffect, useLayoutEffect, useState} from 'react'
 import { PageSkeleton } from './components/LoadingSkeleton.jsx'
 import {BrowserRouter as Router, Routes, Route, Navigate, useLocation} from 'react-router-dom'
 import { LEGACY_REDIRECTS } from "./utils/routes.js";
@@ -9,7 +9,7 @@ import OverflowTooltip from "./components/OverflowTooltip.jsx";
 import Login from "./pages/Login.jsx";
 import Privacy from "./pages/Privacy.jsx";
 
-import { getSession, onSessionChange, reconcileSession, routeGuardRedirect } from './utils/session';
+import { getSession, onSessionChange, reconcileSession, routeGuardRedirect, roleToActivate, setActiveRole } from './utils/session';
 import { fetchJson } from './utils/api.js';
 import { refreshCatalogSettings } from './utils/referenceCatalog.js';
 // A plan's approval state lives in the server's workflow log. Drop the browser-side copy
@@ -31,8 +31,9 @@ const ApprovalCourses = lazy(() => import('./pages/ApprovalCourses.jsx'))
 const ProgramHead = lazy(() => import('./pages/ProgramHead.jsx'))
 const DirectorOfLibraries = lazy(() => import('./pages/DirectorOfLibraries.jsx'))
 const IndustryConsultant = lazy(() => import('./pages/IndustryConsultant.jsx'))
-const COAEPView = lazy(() => import('./pages/lpsm/ProgramHead/COAEPView.jsx'))
-const OutcomesAlignment = lazy(() => import('./pages/lpsm/ProgramHead/OutcomesAlignment.jsx'))
+// Program Documents (front pages, PO and PEO, CO and PO, COAEP); OutcomesAlignment.jsx holds the tabbed page.
+const ProgramDocuments = lazy(() => import('./pages/lpsm/ProgramHead/OutcomesAlignment.jsx'))
+const CourseAssignment = lazy(() => import('./pages/lpsm/ProgramHead/CourseAssignment.jsx'))
 const DirectorReferenceLibrary = lazy(() => import('./pages/lpsm/DirectorOfLibraries/ReferenceLibrary.jsx'))
 const DirectorAddReference = lazy(() => import('./pages/lpsm/DirectorOfLibraries/AddReference.jsx'))
 const DirectorViewReference = lazy(() => import('./pages/lpsm/DirectorOfLibraries/ViewReference.jsx'))
@@ -44,6 +45,11 @@ const VPAA = lazy(() => import('./pages/VPAA.jsx'))
 // identity for the whole flow instead of assuming a demo user. The /role/:role
 // pages take the acting role from the URL, so they are also held to the role
 // that signed in — otherwise one link is enough to switch accounts mid-flow.
+// Pages reached from an e-mailed link (or on the way to one): they work signed out.
+const AccountLinkPage = lazy(() => import('./pages/AccountLinkPage.jsx'))
+const ForgotPassword = lazy(() => import('./pages/ForgotPassword.jsx'))
+const PUBLIC_LINK_PAGES = { '/set-password': 'invitation', '/reset-password': 'reset' }
+
 function SessionGate({ children }) {
     const [session, setSession] = useState(() => getSession())
     const [checkingSession, setCheckingSession] = useState(true)
@@ -69,12 +75,23 @@ function SessionGate({ children }) {
     const signedIn = Boolean(session)
     useEffect(() => { if (signedIn) void refreshCatalogSettings(fetchJson) }, [signedIn])
 
+    // Opening a page of another role the account holds acts as that role (multi-role accounts). Switched before
+    // the page renders, so its requests already carry the right role.
+    const activate = session && !session.pendingRoleChoice ? roleToActivate(session, location.pathname) : ''
+    useLayoutEffect(() => { if (activate) setActiveRole(activate) }, [activate])
+
     if (checkingSession) return <div className="routeLoading" role="status">Checking session…</div>
 
     // The Privacy Notice must be readable before anyone has an account.
     if (location.pathname === '/privacy') return <Privacy />
+    const linkKind = PUBLIC_LINK_PAGES[location.pathname]
+    if (linkKind) return <Suspense fallback={<PageSkeleton />}><AccountLinkPage kind={linkKind} /></Suspense>
+    if (location.pathname === '/forgot-password') return <Suspense fallback={<PageSkeleton />}><ForgotPassword /></Suspense>
 
-    if (!session) return <Login />
+    // Signed out, or signed in with several roles and not yet chosen which to continue as.
+    if (!session || session.pendingRoleChoice) return <Login />
+
+    if (activate) return <div className="routeLoading" role="status">Switching role…</div>
 
     const redirect = routeGuardRedirect(session, location.pathname)
     if (redirect) return <Navigate to={redirect} replace />
@@ -120,12 +137,16 @@ function App() {
                         {/* --- ROLE-BASED APPROVER ROUTES --- */}
                         <Route path={'/role/industry-consultant'} element={<ErrorBoundary><IndustryConsultant /></ErrorBoundary>} />
                         <Route path={'/role/program-head'} element={<ErrorBoundary><ProgramHead /></ErrorBoundary>} />
-                        <Route path={'/role/program-head/coaep'} element={<ErrorBoundary><COAEPView /></ErrorBoundary>} />
-                        <Route path={'/role/program-head/outcomes-alignment'} element={<ErrorBoundary><OutcomesAlignment /></ErrorBoundary>} />
-                        <Route path={'/role/program-head/co-po-alignment'} element={<Navigate to="/role/program-head/outcomes-alignment?tab=course" replace />} />
-                        <Route path={'/role/program-head/po-peo-alignment'} element={<Navigate to="/role/program-head/outcomes-alignment" replace />} />
+                        <Route path={'/role/program-head/program-documents'} element={<ErrorBoundary><ProgramDocuments /></ErrorBoundary>} />
+                        {/* The pages Program Documents replaced: each opens its tab. */}
+                        <Route path={'/role/program-head/coaep'} element={<Navigate to="/role/program-head/program-documents?tab=coaep" replace />} />
+                        <Route path={'/role/program-head/outcomes-alignment'} element={<Navigate to="/role/program-head/program-documents?tab=program" replace />} />
+                        <Route path={'/role/program-head/course-assignment'} element={<ErrorBoundary><CourseAssignment /></ErrorBoundary>} />
+                        <Route path={'/role/program-head/co-po-alignment'} element={<Navigate to="/role/program-head/program-documents?tab=course" replace />} />
+                        <Route path={'/role/program-head/po-peo-alignment'} element={<Navigate to="/role/program-head/program-documents?tab=program" replace />} />
                         <Route path={'/role/director-of-libraries'} element={<ErrorBoundary><DirectorOfLibraries /></ErrorBoundary>} />
                         <Route path={'/role/director-of-libraries/reference-library'} element={<ErrorBoundary><DirectorReferenceLibrary /></ErrorBoundary>} />
+                        <Route path={'/role/director-of-libraries/course-references'} element={<Navigate to="/role/director-of-libraries/reference-library" replace />} />
                         <Route path={'/role/director-of-libraries/add-reference'} element={<ErrorBoundary><DirectorAddReference /></ErrorBoundary>} />
                         <Route path={'/role/director-of-libraries/view-reference/:refId'} element={<ErrorBoundary><DirectorViewReference /></ErrorBoundary>} />
                         <Route path={'/role/director-of-libraries/edit-reference/:refId'} element={<ErrorBoundary><DirectorAddReference /></ErrorBoundary>} />

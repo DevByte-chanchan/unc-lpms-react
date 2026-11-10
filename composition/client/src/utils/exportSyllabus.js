@@ -7,6 +7,7 @@ import { fetchProgramAlignment } from './programAlignment.js'
 import { workflowFromLogs } from './workflowFromLogs.js'
 import { exportEligibility } from './reviewGate.js'
 import { weekRowsOf } from './weeklyCoverage.js'
+import { fetchFrontPages, countPdfPages } from './frontPages.js'
 
 export const NOT_EXPORTABLE_MESSAGE =
   'The syllabus can be exported once the Director of Libraries and the Program Head have both accepted it.'
@@ -69,7 +70,10 @@ export async function buildSyllabusExportFile({ pcId, revNum, code, workflow = n
   }
 
   const programAlignment = await fetchProgramAlignment(pcId)
-  const html = buildSyllabusHtml(syllabus, code, workflow, logoUrl, { formInfo, programAlignment, pendingApproval: eligibility.pendingDean })
+  // The program's uploaded front pages replace the three generated ones; the PDF download joins them in front.
+  const frontPdf = await fetchFrontPages(programAlignment?.program?.id)
+  const frontPdfPages = frontPdf ? await countPdfPages(frontPdf) : 0
+  const html = buildSyllabusHtml(syllabus, code, workflow, logoUrl, { formInfo, programAlignment, pendingApproval: eligibility.pendingDean, frontPdfPages })
   const blob = new Blob([html], { type: 'text/html' })
   const url = URL.createObjectURL(blob)
 
@@ -81,6 +85,8 @@ export async function buildSyllabusExportFile({ pcId, revNum, code, workflow = n
     course_name: syllabus?.name || '',
     submission_date: syllabus?.update || '',
     period_label: (syllabus?.year || '') + ' — ' + (syllabus?.sem || ''),
+    front_pdf: frontPdf,
+    front_pages: frontPdfPages,
   }
 }
 

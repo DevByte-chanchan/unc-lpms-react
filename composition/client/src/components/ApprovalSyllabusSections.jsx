@@ -16,6 +16,7 @@ import ApprovalCommentBox from './ApprovalCommentBox.jsx'
 import { useServerWorkflow } from '../utils/useServerWorkflow.js'
 import { fetchFormInfo } from '../utils/formSettings.js'
 import { fetchProgramAlignment } from '../utils/programAlignment.js'
+import { fetchFrontPages, countPdfPages } from '../utils/frontPages.js'
 import { buildReviewRecordFile } from '../utils/exportSyllabus.js'
 import { getSuggestions, addSuggestion, acceptSuggestion, rejectSuggestion } from '../utils/suggestions.js'
 import { loadLibrary, serverId } from '../utils/referenceStore.js'
@@ -179,7 +180,10 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
       const logoUrl = new URL(unclogo, window.location.origin).href
       const formInfo = await fetchFormInfo()
       const programAlignment = await fetchProgramAlignment(validPcId)
-      const html = buildSyllabusHtml(syllabus, codeToUse, workflowState, logoUrl, { formInfo, programAlignment, pendingApproval: exportInfo.pendingDean })
+      // The program's uploaded front pages replace the three generated ones (utils/frontPages.js).
+      const frontPdf = await fetchFrontPages(programAlignment?.program?.id)
+      const frontPdfPages = frontPdf ? await countPdfPages(frontPdf) : 0
+      const html = buildSyllabusHtml(syllabus, codeToUse, workflowState, logoUrl, { formInfo, programAlignment, pendingApproval: exportInfo.pendingDean, frontPdfPages })
       const blob = new Blob([html], { type: 'text/html' })
       const url = URL.createObjectURL(blob)
       setPreviewFile({
@@ -190,6 +194,8 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
         course_name: syllabus?.name || '',
         submission_date: syllabus?.update || '',
         period_label: (syllabus?.year || '') + ' — ' + (syllabus?.sem || ''),
+        front_pdf: frontPdf,
+        front_pages: frontPdfPages,
       })
     } catch (err) {
       console.warn('Export generation failed:', err)

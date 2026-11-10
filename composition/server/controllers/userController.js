@@ -54,7 +54,8 @@ const newTemporaryCredential = async () => {
             password_hash: await hashPassword(password),
             must_change_password: true,
             temp_password_expires_at: expiresAt,
-            password_changed_at: null,
+            // A new password (even a temporary one) voids the account's signed-in sessions (utils/jwtSession.js).
+            password_changed_at: new Date(),
             reset_token_hash: null,
             reset_expires_at: null
         }
@@ -196,3 +197,6 @@ const setActive = (active) => async (req, res, next) => {
 };
 
 module.exports = { listUsers, createUser, changeRole, resetPassword, activateUser: setActive(true), deactivateUser: setActive(false) };
+
+// Shared with the User Accounts page (controllers/userAccountController.js).
+module.exports.helpers = { newTemporaryCredential, deliverCredentials, auditChange, activeSuperuserCountExcluding, TEMP_PASSWORD_TTL_MS };

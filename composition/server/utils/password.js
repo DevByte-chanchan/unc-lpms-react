@@ -35,7 +35,18 @@ const scrypt = (password, salt, { N, r, p, keylen }) =>
             (err, key) => (err ? reject(err) : resolve(key)));
     });
 
-async function hashPassword(password, params = PARAMS) {
+// BCRYPT (feature/course-assignment's account rules). New hashes are bcrypt, cost BCRYPT_COST, through bcryptjs
+// (pure JavaScript, so none of the native-addon build trouble described above). Existing scrypt hashes still
+// verify, and `needsRehash` upgrades each one to bcrypt at its next successful sign-in.
+const bcrypt = require('bcryptjs');
+const BCRYPT_COST = 10;
+const isBcrypt = (stored) => typeof stored === 'string' && /^\$2[aby]\$\d{2}\$/.test(stored);
+
+async function hashPassword(password) {
+    return bcrypt.hash(String(password), BCRYPT_COST);
+}
+
+async function hashPasswordScrypt(password, params = PARAMS) {
     const salt = crypto.randomBytes(params.saltBytes);
     const key = await scrypt(String(password), salt, params);
     return `scrypt$${params.N}$${params.r}$${params.p}$${salt.toString('hex')}$${key.toString('hex')}`;
@@ -43,6 +54,9 @@ async function hashPassword(password, params = PARAMS) {
 
 async function verifyPassword(password, stored) {
     if (typeof stored !== 'string') return false;
+    if (isBcrypt(stored)) {
+        try { return await bcrypt.compare(String(password), stored); } catch { return false; }
+    }
     const parts = stored.split('$');
     if (parts.length !== 6 || parts[0] !== 'scrypt') return false;
 
@@ -74,11 +88,9 @@ async function verifyPassword(password, stored) {
 
 // True when a stored hash was written with weaker parameters than we use now,
 // so the caller can transparently upgrade it during a successful login.
-function needsRehash(stored, params = PARAMS) {
-    if (typeof stored !== 'string') return true;
-    const parts = stored.split('$');
-    if (parts.length !== 6 || parts[0] !== 'scrypt') return true;
-    return Number(parts[1]) < params.N;
+function needsRehash(stored) {
+    if (!isBcrypt(stored)) return true;
+    return Number(stored.split('$')[2]) < BCRYPT_COST;
 }
 
-module.exports = { hashPassword, verifyPassword, needsRehash, PARAMS };
+module.exports = { hashPassword, hashPasswordScrypt, verifyPassword, needsRehash, isBcrypt, BCRYPT_COST, PARAMS };

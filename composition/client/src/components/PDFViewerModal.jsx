@@ -173,7 +173,18 @@ const PDFViewerModal = ({ file, kind, onClose, children, layer = 0 }) => {
         // never exceeds one sheet.
         pdf.addImage(imgData, 'PNG', 0, 0, PW, PH);
       }
-      pdf.save(downloadName());
+      if (file.front_pdf) {
+        // The program's uploaded front pages first, then the generated pages (utils/frontPages.js).
+        const { joinPdfs } = await import('../utils/frontPages.js');
+        const joined = await joinPdfs(file.front_pdf, pdf.output('arraybuffer'));
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(new Blob([joined], { type: 'application/pdf' }));
+        link.download = downloadName();
+        link.click();
+        setTimeout(() => URL.revokeObjectURL(link.href), 10000);
+      } else {
+        pdf.save(downloadName());
+      }
     } catch (err) {
       console.warn('PDF export failed, falling back to browser print:', err?.message || err);
       handlePrint();
@@ -265,6 +276,11 @@ const PDFViewerModal = ({ file, kind, onClose, children, layer = 0 }) => {
           </div>
         </div>
 
+        {file.front_pages > 0 && (
+          <div role="note" style={{ padding: '6px 16px', fontSize: 13, background: 'var(--accent-soft)', color: 'var(--ink-soft)' }}>
+            Download PDF starts with the program&rsquo;s uploaded front pages ({file.front_pages} page{file.front_pages === 1 ? '' : 's'}); the pages below follow them.
+          </div>
+        )}
         {/* Body: sidebar + preview */}
         <div className={styles.body}>
           <div ref={paneRef} className={styles.previewPane} style={{ background: SLATE_100, position: 'relative' }}>

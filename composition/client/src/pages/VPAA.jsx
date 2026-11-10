@@ -4,14 +4,19 @@ import HeaderA from '../components/HeaderA.jsx'
 import SideNavigation from '../components/SideNavigation.jsx'
 import ApprovalCoursesTable from '../components/ApprovalCoursesTable.jsx'
 import vpaaStyles from '../styles/VPAA.module.scss'
+import { useSearchParams } from 'react-router-dom'
+import { UserAccountsPanel } from './UserAccounts.jsx'
 
 const VPAA = () => {
+  const [params] = useSearchParams()
+  // ?page=User Accounts: the account administration (feature/course-assignment); otherwise the approved plans.
+  const accounts = params.get('page') === 'User Accounts'
   return (
     <>
       <SkeletonA
         header={<HeaderA role="VPAA" />}
         nav={<SideNavigation mode="vpaa" />}
-        content={
+        content={accounts ? <UserAccountsPanel /> : (
           <div className={vpaaStyles.container}>
             <ApprovalCoursesTable
               role="vpaa"
@@ -22,7 +27,7 @@ const VPAA = () => {
               }}
             />
           </div>
-        }
+        )}
       />
     </>
   )

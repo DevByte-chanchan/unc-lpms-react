@@ -26,7 +26,10 @@ export function fetchJson(endpoint, opts = {}) {
 async function requestJson(endpoint, opts = {}) {
     const url = endpoint.startsWith('http') ? endpoint : `${API_BASE}${endpoint}`;
 
-    const res = await fetch(url, { ...opts, credentials: 'include' });
+    // The role the signed-in person is acting as (multi-role accounts); the server checks the account holds it.
+    const role = getSession()?.role;
+    const headers = role ? { ...(opts.headers || {}), 'X-LPMS-Role': role } : opts.headers;
+    const res = await fetch(url, { ...opts, ...(headers ? { headers } : {}), credentials: 'include' });
     if (!res.ok) {
         if (res.status === 401) expireSession();
         const text = await res.text().catch(() => '');

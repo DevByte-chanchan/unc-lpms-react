@@ -4,6 +4,12 @@ const express = require('express');
 const router = express.Router();
 const auth = require('../controllers/authController');
 const { requireAuth } = require('../middleware/auth');
+const { rateLimit } = require('../utils/rateLimit');
+
+// The e-mailed links (feature/course-assignment): lookups and submits share one budget per address;
+// asking for an e-mail gets a tighter one.
+const linkLimit = rateLimit({ windowMs: 15 * 60 * 1000, max: 60 });
+const mailLimit = rateLimit({ windowMs: 15 * 60 * 1000, max: 10 });
 
 // GET /api/auth/privacy — the Privacy Notice and the Data Protection Officer's contact. Public: it has
 // to be readable before anyone has an account.
@@ -17,10 +23,16 @@ router.post('/login', auth.login);
 
 // POST /api/auth/forgot-password — create a reset token. Always answers the
 // same way, whether or not the email is registered.
-router.post('/forgot-password', auth.requestReset);
+router.post('/forgot-password', mailLimit, auth.requestReset);
 
-// POST /api/auth/reset-password — consume a token and set a new password
-router.post('/reset-password', auth.resetPassword);
+// GET /api/auth/reset-password?token= — whom a reset link is for; POST — use it to set a new password
+router.get('/reset-password', linkLimit, auth.getReset);
+router.post('/reset-password', linkLimit, auth.resetPassword);
+
+// The set-password invitation: who it is for, accept it (sets the password and signs in), or ask for a new link
+router.get('/invitation', linkLimit, auth.getInvitation);
+router.post('/accept-invitation', linkLimit, auth.acceptInvitation);
+router.post('/request-invitation', mailLimit, auth.requestInvitation);
 
 // POST /api/auth/change-password — signed-in user changes their own password (also the forced
 // first-sign-in change). Allowed while a temporary password is still in force.

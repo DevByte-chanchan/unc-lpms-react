@@ -6,7 +6,6 @@ const assert = require('node:assert/strict');
 const {
     COOKIE_NAME,
     issueSession,
-    revokeUserSessions,
     createRequireAuth
 } = require('../middleware/auth');
 
@@ -17,15 +16,15 @@ const responseRecorder = () => ({
     json(body) { this.body = body; return this; }
 });
 
-test('sessions use a Sequelize user_id and password reset revokes every session for that user', async () => {
-    const first = issueSession({ user_id: 42, name: 'USER, ONE', role: 'instructor' });
-    const second = issueSession({ user_id: 42, name: 'USER, ONE', role: 'instructor' });
-    revokeUserSessions(42);
+test('sessions use a Sequelize user_id, and a password reset voids every earlier session of that user', async () => {
+    const before = new Date(Date.now() - 60_000);
+    const first = issueSession({ user_id: 42, name: 'USER, ONE', role: 'instructor', password_changed_at: before });
+    const second = issueSession({ user_id: 42, name: 'USER, ONE', role: 'instructor', password_changed_at: before });
 
-    const requireAuth = createRequireAuth({ findUserById: async () => ({ user_id: 42, is_active: true }) });
+    const requireAuth = createRequireAuth({ findUserById: async () => ({ user_id: 42, role: 'instructor', is_active: true, password_changed_at: new Date() }) });
     for (const token of [first, second]) {
         const res = responseRecorder();
-        await requireAuth({ headers: { cookie: `${COOKIE_NAME}=${token}` } }, res, () => assert.fail('revoked session passed'));
+        await requireAuth({ headers: { cookie: `${COOKIE_NAME}=${token}` } }, res, () => assert.fail('a pre-reset session passed'));
         assert.equal(res.statusCode, 401);
     }
 });

@@ -1,15 +1,16 @@
 'use strict';
 
-// Step 5: sessions kept in the Sessions table, rotation on sign-in, security headers, the cookie's
-// Secure flag, and the trust-proxy setting. Runs against the test database (node run-tests.js).
+// Sessions as signed tokens (utils/jwtSession.js), security headers, the cookie's Secure flag, and the
+// trust-proxy setting. Runs against the test database (node run-tests.js).
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const crypto = require('node:crypto');
+const jwt = require('jsonwebtoken');
 const express = require('express');
-const { User, sequelize, Sequelize } = require('../models');
+const { User } = require('../models');
 const { hashPassword } = require('./password');
 const security = require('./serverSecurity');
 
+process.env.JWT_SECRET = process.env.JWT_SECRET || 'session-security-test-secret';
 const stamp = Date.now();
 let n = 0;
 const makeUser = async (role = 'instructor') => {
@@ -18,13 +19,11 @@ const makeUser = async (role = 'instructor') => {
     const user = await User.create({ name: `Sess ${n}`, email: `sess${n}.${stamp}@example.test`, role, password_hash: await hashPassword(password) });
     return { user, password };
 };
-const rows = (sql, replacements = []) => sequelize.query(sql, { replacements, type: Sequelize.QueryTypes.SELECT });
-const sha = (token) => crypto.createHash('sha256').update(token).digest('hex');
 
 // A fresh copy of the session modules, as a restarted server would load them.
 const reloadSessionModules = () => {
     for (const key of Object.keys(require.cache)) {
-        if (/[\\/](middleware[\\/]auth|utils[\\/]sessionStore)\.js$/.test(key)) delete require.cache[key];
+        if (/[\\/](middleware[\\/]auth|utils[\\/]jwtSession)\.js$/.test(key)) delete require.cache[key];
     }
     return require('../middleware/auth');
 };
@@ -36,33 +35,30 @@ const call = (middleware, headers = {}) => new Promise((resolve) => {
     middleware(req, res, () => resolve({ status: 200, user: req.user }));
 });
 
-// ------------------------------------------------------------------ the Sessions table
+// ------------------------------------------------------------------ the session token
 
-test('a session row holds only the token hash, user id, role and times; never the token', async () => {
+test('a session token carries only the account id, its roles and the password version; nothing secret', async () => {
     const { issueSession } = require('../middleware/auth');
     const { user } = await makeUser();
     const token = issueSession(user);
-    const columns = (await rows('PRAGMA table_info(Sessions)')).map(c => c.name).sort();
-    assert.deepEqual(columns, ['created_at', 'expires_at', 'role', 'token_hash', 'user_id']);
-    const [row] = await rows('SELECT * FROM Sessions WHERE token_hash = ?', [sha(token)]);
-    assert.ok(row, 'the hash is stored');
-    assert.equal(row.user_id, user.user_id);
-    assert.equal(row.role, 'instructor');
-    assert.ok(!JSON.stringify(await rows('SELECT * FROM Sessions')).includes(token), 'the token itself is stored nowhere');
+    const payload = jwt.decode(token);
+    assert.deepEqual(Object.keys(payload).sort(), ['exp', 'iat', 'pv', 'roles', 'sub']);
+    assert.equal(payload.sub, user.user_id);
+    assert.deepEqual(payload.roles, ['instructor']);
+    assert.ok(!token.includes(user.email) && !JSON.stringify(payload).includes(user.email));
 });
 
-test('the lifetime is 8 hours from sign-in, and an expired session is refused and removed', async () => {
+test('the lifetime is 8 hours from sign-in, and an expired or forged token is refused', async () => {
     const { issueSession, createRequireAuth, COOKIE_NAME } = require('../middleware/auth');
     const { user } = await makeUser();
-    const token = issueSession(user);
-    const [row] = await rows('SELECT created_at, expires_at FROM Sessions WHERE token_hash = ?', [sha(token)]);
-    assert.equal(Number(row.expires_at) - Number(row.created_at), SESSION_TTL);
+    const payload = jwt.decode(issueSession(user));
+    assert.equal((payload.exp - payload.iat) * 1000, SESSION_TTL);
 
-    const old = issueSession(user, Date.now() - SESSION_TTL - 1000);
     const check = createRequireAuth({ findUserById: async () => user });
-    const result = await call(check, { cookie: `${COOKIE_NAME}=${old}` });
-    assert.equal(result.status, 401);
-    assert.equal((await rows('SELECT 1 FROM Sessions WHERE token_hash = ?', [sha(old)])).length, 0);
+    const expired = jwt.sign({ sub: user.user_id, roles: user.roles, pv: payload.pv, exp: Math.floor(Date.now() / 1000) - 10 }, process.env.JWT_SECRET);
+    assert.equal((await call(check, { cookie: `${COOKIE_NAME}=${expired}` })).status, 401, 'expired');
+    const forged = jwt.sign({ sub: user.user_id, roles: user.roles, pv: payload.pv }, 'not-the-secret');
+    assert.equal((await call(check, { cookie: `${COOKIE_NAME}=${forged}` })).status, 401, 'wrong signature');
 });
 
 test('a session survives a server restart', async () => {
@@ -78,30 +74,13 @@ test('a session survives a server restart', async () => {
     assert.equal(result.user.id, user.user_id);
 });
 
-test('a session whose recorded role no longer matches the account is void', async () => {
+test('a session whose recorded roles no longer match the account is void', async () => {
     const { issueSession, createRequireAuth, COOKIE_NAME } = require('../middleware/auth');
     const { user } = await makeUser('instructor');
     const token = issueSession(user);
     const promoted = { user_id: user.user_id, name: user.name, email: user.email, role: 'dean', is_active: true };
     const result = await call(createRequireAuth({ findUserById: async () => promoted }), { cookie: `${COOKIE_NAME}=${token}` });
     assert.equal(result.status, 401);
-    assert.equal((await rows('SELECT 1 FROM Sessions WHERE token_hash = ?', [sha(token)])).length, 0);
-});
-
-test('issuing a session clears expired rows, and the revoke helpers act on the table', async () => {
-    const { issueSession, revokeUserSessions, revokeOtherUserSessions, revokeSession } = require('../middleware/auth');
-    const { user } = await makeUser();
-    const stale = issueSession(user, Date.now() - SESSION_TTL - 5000);
-    issueSession(user); // purges the stale one
-    assert.equal((await rows('SELECT 1 FROM Sessions WHERE token_hash = ?', [sha(stale)])).length, 0);
-
-    const keep = issueSession(user);
-    const other = issueSession(user);
-    assert.ok(revokeOtherUserSessions(user.user_id, keep) >= 1);
-    assert.equal((await rows('SELECT 1 FROM Sessions WHERE token_hash = ?', [sha(other)])).length, 0);
-    assert.equal((await rows('SELECT 1 FROM Sessions WHERE token_hash = ?', [sha(keep)])).length, 1);
-    assert.equal(revokeSession(keep), true);
-    assert.equal(revokeUserSessions(user.user_id), 0);
 });
 
 // --------------------------------------------------------------- the settings, as functions
@@ -214,30 +193,15 @@ test('security headers: strict CSP for the JSON API, nosniff, no framing, no x-p
     } finally { server.close(); }
 });
 
-test('rotation: signing in while holding a session revokes it and issues a different token', async () => {
-    const { server, base } = await startApp({});
-    try {
-        const { user, password } = await makeUser();
-        const first = await login(base, user, password);
-        const oldCookie = first.setCookie.split(';')[0];
-        assert.equal(await ping(base, oldCookie), 200);
-
-        const second = await login(base, user, password, { cookie: oldCookie });
-        const newCookie = second.setCookie.split(';')[0];
-        assert.notEqual(newCookie, oldCookie, 'a new token, never the old one');
-        assert.equal(await ping(base, oldCookie), 401, 'the old token is dead');
-        assert.equal(await ping(base, newCookie), 200);
-    } finally { server.close(); }
-});
-
-test('logout removes the session row, so the cookie stops working', async () => {
+test('logout clears the cookie', async () => {
     const { server, base } = await startApp({});
     try {
         const { user, password } = await makeUser();
         const signedIn = await login(base, user, password);
         const cookie = signedIn.setCookie.split(';')[0];
+        assert.equal(await ping(base, cookie), 200);
         const out = await fetch(`${base}/api/auth/logout`, { method: 'POST', headers: { cookie } });
         assert.equal(out.status, 200);
-        assert.equal(await ping(base, cookie), 401);
+        assert.match(out.headers.getSetCookie()[0] || '', /^lpms_session=;/);
     } finally { server.close(); }
 });

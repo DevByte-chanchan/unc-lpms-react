@@ -105,6 +105,7 @@ const publicUser = (account) => ({
   name: account.name,
   email: account.email,
   role: account.role,
+  roles: [account.role],
   roleLabel: roleMeta(account.role)?.label || account.role
 })
 
@@ -120,10 +121,28 @@ export const getSession = () => {
   try {
     const raw = localStorage.getItem(SESSION_KEY)
     const user = raw ? JSON.parse(raw) : null
-    return user && user.role ? user : null
+    if (!user || !user.role) return null
+    // Every role the account holds (multi-role accounts); a session saved before that holds its one role.
+    return Array.isArray(user.roles) && user.roles.length ? user : { ...user, roles: [user.role] }
   } catch {
     return null
   }
+}
+
+// MULTI-ROLE ACCOUNTS (feature/course-assignment). One account can hold several roles; the session's `role` is
+// the one it is acting as, and every request names it to the server (utils/api.js), which checks the account
+// holds it. Switching role keeps the person signed in.
+// The "Continue as..." choice after signing in with several roles: act as `roleKey` and open the app.
+export const chooseRole = (roleKey) => {
+  const session = getSession()
+  if (!session || !session.roles.includes(roleKey)) return session
+  return setSession({ ...session, role: roleKey, roleLabel: roleMeta(roleKey)?.label || roleKey, pendingRoleChoice: false })
+}
+
+export const setActiveRole = (roleKey) => {
+  const session = getSession()
+  if (!session || !session.roles.includes(roleKey) || session.role === roleKey) return session
+  return setSession({ ...session, role: roleKey, roleLabel: roleMeta(roleKey)?.label || roleKey })
 }
 
 export const setSession = (user) => {
@@ -227,15 +246,21 @@ const isServerAnswer = (res) => res.reachable && res.ok && !!res.data
 // answering with something the auth API would never send.
 const authUnavailable = (res) => !isRejection(res) && !isServerAnswer(res)
 
-const fromServer = (u) => ({
+// `preferredRole`: the role to act as when the account holds it (the one picked before a reload or on the form).
+const fromServer = (u, preferredRole = '') => {
+  const roles = Array.isArray(u.roles) && u.roles.length ? u.roles : [u.role]
+  const role = roles.includes(preferredRole) ? preferredRole : (roles.includes(u.role) ? u.role : roles[0])
+  return {
   id: u.id,
   name: u.name,
   email: u.email,
-  role: u.role,
-  roleLabel: roleMeta(u.role)?.label || u.role,
+  role,
+  roles,
+  roleLabel: roleMeta(role)?.label || role,
   // True while an administrator-issued temporary password is still in force.
   mustChangePassword: Boolean(u.mustChangePassword)
-})
+  }
+}
 
 // `opts.role` is the "Login as" selector. Optional — when given it has to
 // match the account, and a mismatch fails exactly like a wrong password so the
@@ -250,7 +275,11 @@ export const login = async (email, password, opts = {}) => {
   })
 
   if (isServerAnswer(res) && res.data.user) {
-    return { ok: true, user: setSession(fromServer(res.data.user)), source: 'server' }
+    const signedIn = fromServer(res.data.user, opts.role || '')
+    // Several roles and none chosen on the form: the sign-in screen asks which to continue as before the app opens.
+    const chooseRole = signedIn.roles.length > 1 && !opts.role
+    const user = setSession(chooseRole ? { ...signedIn, pendingRoleChoice: true } : signedIn)
+    return { ok: true, user, source: 'server', chooseRole }
   }
   // A REFUSAL FROM A SERVER WITH NO ACCOUNTS MEANS NOTHING.
   //
@@ -374,11 +403,11 @@ export const requestPasswordReset = async (email, opts = {}) => {
   return { ok: true, message: res.data?.message || '', devToken: res.data?.devToken || '' }
 }
 
-export const resetPassword = async ({ email, token, password } = {}) => {
+export const resetPassword = async ({ token, password } = {}) => {
   if (String(password || '').length < 8) {
     return { ok: false, error: 'Password must be at least 8 characters.' }
   }
-  const res = await postAuth('/reset-password', { email, token, password })
+  const res = await postAuth('/reset-password', { token, password })
   if (authUnavailable(res)) return { ok: false, error: RESET_NEEDS_SERVER }
   if (!res.ok || !res.data?.user) {
     return { ok: false, error: res.data?.error || 'This reset link is invalid or has expired.' }
@@ -386,6 +415,49 @@ export const resetPassword = async ({ email, token, password } = {}) => {
   // A completed reset signs the person straight in — they have just proved
   // they hold the token and chosen the password.
   return { ok: true, user: setSession(fromServer(res.data.user)) }
+}
+
+// ------------------------------------------------- e-mailed account links ---
+//
+// The links of feature/course-assignment: /set-password?token= (an invitation to a new account) and
+// /reset-password?token= (a reset). Server-only, like the reset above.
+
+const getAuth = async (path) => {
+  try {
+    const res = await fetch(`${authBase()}${path}`, { credentials: 'include' })
+    let data = null
+    try { data = await res.json() } catch { data = null }
+    return { reachable: true, ok: res.ok, status: res.status, data }
+  } catch {
+    return { reachable: false, ok: false, status: 0, data: null }
+  }
+}
+
+// Whom a link is for: { ok, name, email, roles? } or { ok: false, gone, error }.
+export const lookupAccountLink = async (kind, token) => {
+  const path = kind === 'invitation' ? '/invitation' : '/reset-password'
+  const res = await getAuth(`${path}?token=${encodeURIComponent(token || '')}`)
+  if (!res.reachable) return { ok: false, error: RESET_NEEDS_SERVER }
+  if (!res.ok) return { ok: false, gone: res.status === 410, error: res.data?.error || 'This link does not work.' }
+  return { ok: true, ...res.data }
+}
+
+// Sets the password from an invitation (with the Privacy Notice accepted) and signs that account in.
+export const acceptInvitation = async ({ token, password, consentVersion } = {}) => {
+  const res = await postAuth('/accept-invitation', { token, password, privacy_consent_version: consentVersion || '' })
+  if (!res.reachable) return { ok: false, error: RESET_NEEDS_SERVER }
+  if (!res.ok || !res.data?.user) return { ok: false, gone: res.status === 410, error: res.data?.error || 'Could not set the password.' }
+  const signedIn = fromServer(res.data.user)
+  const chooseRole = signedIn.roles.length > 1
+  const user = setSession(chooseRole ? { ...signedIn, pendingRoleChoice: true } : signedIn)
+  return { ok: true, user, chooseRole }
+}
+
+// "Send me a new link" from a dead invitation link; the answer never says whether the address has an account.
+export const requestInvitation = async (email) => {
+  const res = await postAuth('/request-invitation', { email })
+  if (!res.reachable) return { ok: false, error: RESET_NEEDS_SERVER }
+  return { ok: true, message: res.data?.message || 'If that address has an account waiting to be set up, a new link has been sent.' }
 }
 
 // Whether server-side accounts are available. The sign-in screen uses this to
@@ -427,7 +499,8 @@ export const reconcileSession = async () => {
   }
 
   if (response.ok && response.data?.user) {
-    return { status: 'server', user: setSession(fromServer(response.data.user)) }
+    // Keep acting as the role chosen before the reload, when the account still holds it.
+    return { status: 'server', user: setSession(fromServer(response.data.user, savedSession?.role || '')) }
   }
 
   if (response.reachable && (response.status === 401 || response.status === 403)) {
@@ -593,12 +666,24 @@ export const routeGuardRedirect = (session, pathname = '') => {
     // Not /role/-scoped: it is the instructor's, or it is neither (/login).
     if (!isInstructorPath(pathname)) return null
     if (normalizeRoleKey(session.role) === 'instructor') return null
+    if ((session.roles || []).includes('instructor')) return null
     return homeRouteForRole(session.role)
   }
 
   if (!roleMeta(urlRole)) return null
   if (normalizeRoleKey(urlRole) === normalizeRoleKey(session.role)) return null
+  // A page of another role this account holds: allowed; the app switches to that role (roleToActivate).
+  if ((session.roles || []).includes(urlRole)) return null
   return homeRouteForRole(session.role)
+}
+
+// The role a path needs when it is one of the account's OTHER roles, so opening it acts as that role (as
+// feature/course-assignment does): '' when nothing has to change.
+export const roleToActivate = (session, pathname = '') => {
+  if (!session?.role || !(session.roles || []).length) return ''
+  const urlRole = roleFromPath(pathname)
+  const needed = urlRole ? (roleMeta(urlRole) ? urlRole : '') : (isInstructorPath(pathname) ? 'instructor' : '')
+  return needed && needed !== session.role && session.roles.includes(needed) ? needed : ''
 }
 
 export const onSessionChange = (handler) => {

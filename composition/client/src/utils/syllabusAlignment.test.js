@@ -52,3 +52,13 @@ test('without programAlignment the built-in sample is unchanged (older callers)'
   assert.match(html, /Utilize competently the acquired technical/)
   assert.match(html, /DEPARTMENT NAME/)
 })
+
+test('uploaded front pages replace the three generated ones, and page numbers continue after them', () => {
+  const generated = plain(buildSyllabusHtml(syllabus, 'BCS101', workflow, '', { programAlignment: alignment }))
+  const withFront = plain(buildSyllabusHtml(syllabus, 'BCS101', workflow, '', { programAlignment: alignment, frontPdfPages: 3 }))
+  assert.match(generated, /VISION STATEMENT/)
+  assert.doesNotMatch(withFront, /VISION STATEMENT/, 'University and Program pages come from the uploaded PDF')
+  assert.doesNotMatch(withFront, /Outcome one/, 'the POs and PEOs page too')
+  assert.match(withFront, /<body data-page-offset="3">/)
+  assert.doesNotMatch(generated, /<body data-page-offset/)
+})

@@ -2,7 +2,7 @@ import Select from './Select.jsx'
 import React, { useCallback, useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import styles from '../styles/CoursesTable.module.sass';
-import { ChevronRight, XCircle, Download, Clock, RotateCcw, CheckCircle } from 'react-feather';
+import { ChevronRight, ChevronDown, ChevronUp, XCircle, Download, Clock, RotateCcw, CheckCircle, Search, List, Grid } from 'react-feather';
 import SortableTh from './SortableTh.jsx';
 import { sortRows, nextSort } from '../utils/tableSort.js';
 import { fetchJson } from "../utils/api.js";
@@ -14,11 +14,10 @@ import Spinner from "./Spinner.jsx";
 import { loadReviewAssignments } from '../utils/reviewAssignments.js';
 import unclogo from '../assets/unclogo.png';
 import TableScrollRegion from './TableScrollRegion.jsx';
-import { usePageSearch, matchesSearch } from '../utils/pageSearch.js';
-import PageSearch from './PageSearch.jsx';
+import { usePageSearch, matchesSearch, setPageSearch } from '../utils/pageSearch.js';
 import NotSubmittedPanel from './NotSubmittedPanel.jsx';
 import { Loading, TableSkeleton } from './LoadingSkeleton.jsx';
-import { buildApproverStatus, canExportRow, computeOverallStatus, isWithProgramHead } from '../utils/assignmentStatus.js';
+import { buildApproverStatus, canExportRow, computeOverallStatus, isWithProgramHead, latestSubmissionAt } from '../utils/assignmentStatus.js';
 import { filterAssignmentsByCourse, readAssignedCourseFilters } from '../utils/referenceCourseNavigation.js';
 
 // Roles that read the whole plan. The Director of Libraries sees References only, so a syllabus export would
@@ -64,6 +63,51 @@ const ApprovalProgress = ({ row, role }) => {
                     <span key={step.title} className={`${styles.seg} ${styles[SEG_CLASS[step.status]]}`} title={`${step.title}: ${step.status}${when(step)}`} />
                 ))}
             </div>
+        </div>
+    );
+};
+
+const ApprovalCard = ({ code, date, title, link, exportButton }) => {
+    const [expanded, setExpanded] = useState(false);
+    return (
+        <div className={styles.gridCard}>
+            <div className={styles.cardMain}>
+                <div className={styles.cardHeader}>
+                    <span className={styles.cardCode}>{code}</span>
+                    <span className={styles.cardDate}>{date}</span>
+                </div>
+                <div className={styles.cardTitle}>{title}</div>
+                <div className={styles.cardFooter}>
+                    <div className={styles.cardActionsGroup}>
+                        <Link className={styles.gridActionBtn} to={link.to}>View <ChevronRight size={16} /></Link>
+                        {exportButton}
+                    </div>
+                    <button type="button" className={styles.toggleDetailsBtn} onClick={() => setExpanded(!expanded)}
+                        title={expanded ? 'Hide details' : 'Show details'} aria-expanded={expanded}>
+                        {expanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                    </button>
+                </div>
+            </div>
+            {expanded && (
+                <div className={styles.cardDetails}>
+                    <div className={styles.detailsContent}>
+                        <div className={styles.detailRow}>
+                            <span style={{ fontWeight: 400 }}>Initial Submission</span>
+                            <span>{formatDate(link.submittedAt)}</span>
+                        </div>
+                        {link.steps.map(step => (
+                            <div key={step.title} className={styles.detailRowApprover}>
+                                <div className={styles.approverTitle}>{step.title}</div>
+                                <div className={styles.approverDates}>
+                                    {step.status === 'Accepted' && <div>Approved: {formatDate(step.acceptedAt)}</div>}
+                                    {step.status === 'Returned' && <div>Returned: {formatDate(step.returnedAt)}</div>}
+                                    {step.status !== 'Accepted' && step.status !== 'Returned' && <div className={styles.pendingText}>Pending</div>}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
@@ -136,6 +180,8 @@ const ApprovalCoursesTable = ({ role = 'approver', styleHooks = {} }) => {
     });
     const [exportFile, setExportFile] = useState(null);
     const [exporting, setExporting] = useState(false);
+    // Cards or rows, as on the instructor's Assigned Course Offerings.
+    const [layoutMode, setLayoutMode] = useState('grid');
 
     const closeExportModal = () => {
       if (exportFile) URL.revokeObjectURL(exportFile.file_url)
@@ -321,51 +367,97 @@ const ApprovalCoursesTable = ({ role = 'approver', styleHooks = {} }) => {
     return (
         <div className={`${styles['courses-table']} ${styleHooks.root || ''}`.trim()}>
             <div className={`${styles.header} ${styleHooks.header || ''}`.trim()}>
-                <div className={styles.titleRow}>
-                    <h2 className="app-page-title">{role === 'vpaa' ? 'Approved Learning Plans' : 'Assigned Course Offerings'}</h2>
-                    {role !== 'vpaa' && (
-                    <div className={styles['filter-container']}>
-                        <div className={styles.pillTabs}>
-                            {statuses.map((status) => (
-                                <button
-                                    key={status}
-                                    type="button"
-                                    className={`${styles.pillTab} ${selectedStatus === status ? styles.pillTabActive : ''}`}
-                                    onClick={() => updateStatus(status)}
-                                    aria-pressed={selectedStatus === status}
-                                >
-                                    {statusLabel(status)}
-                                    {status === 'NOT_SUBMITTED'
-                                        ? (notSubmittedCount !== null && <span className={styles.pillCount}>{notSubmittedCount}</span>)
-                                        : (!loading && <span className={styles.pillCount}>{rowsFor(status).length}</span>)}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-                    )}
-                </div>
-
-                <div className={`${styles.filterA} app-filter-bar ${styleHooks.filters || ''}`.trim()}>
-                    <PageSearch />
-                    <Select
-                      value={selectedYear}
-                      onChange={(e) => setSelectedYear(e.target.value)}
-                    >
+                <h2>{role === 'vpaa' ? 'APPROVED LEARNING PLANS' : 'ASSIGNED COURSE OFFERINGS'}</h2>
+                <div className={`${styles.filterA} ${styleHooks.filters || ''}`.trim()}>
+                    <Select variant="inline" value={selectedYear} onChange={(e) => setSelectedYear(e.target.value)} aria-label="School year">
                         {yearOptions}
                     </Select>
-                    <Select
-                      value={selectedSem}
-                      onChange={(e) => setSelectedSem(e.target.value)}
-                    >
-                        {semOptions.map(sem => (
-                            <option key={sem} value={sem}>{sem}</option>
-                        ))}
+                    <Select variant="inline" value={selectedSem} onChange={(e) => setSelectedSem(e.target.value)} aria-label="Semester">
+                        {semOptions.map(sem => <option key={sem} value={sem}>{sem}</option>)}
                     </Select>
                 </div>
 
+                <div className={styles.fill}></div>
+
+                {role !== 'vpaa' && (
+                    <div className={styles['filter-container']}>
+                        <div className={styles['segmented-control']}>
+                            {statuses.map((status) => {
+                                const count = status === 'NOT_SUBMITTED' ? notSubmittedCount : (loading ? null : rowsFor(status).length);
+                                return (
+                                    <button
+                                        key={status}
+                                        type="button"
+                                        className={`${styles['control-item']} ${selectedStatus === status ? styles['active'] : ''}`}
+                                        onClick={() => updateStatus(status)}
+                                        aria-pressed={selectedStatus === status}
+                                    >
+                                        {statusLabel(status)}
+                                        {count !== null && <span className={styles.segCount}>{count}</span>}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </div>
+                )}
             </div>
 
-            {!notSubmitted && <TableScrollRegion
+            <div className={styles.tableControlsOuter}>
+                <div className={styles.searchContainer}>
+                    <Search color="#A4A9AF" size={18} />
+                    <input
+                        type="text"
+                        placeholder="Search course code or name..."
+                        value={query}
+                        onChange={(e) => setPageSearch(e.target.value)}
+                        aria-label="Search course code or name"
+                    />
+                </div>
+                {!notSubmitted && (
+                    <div className={styles.layoutToggles}>
+                        <button type="button" className={`${styles.toggleBtn} ${layoutMode === 'list' ? styles.active : ''}`}
+                            onClick={() => setLayoutMode('list')} title="List view" aria-pressed={layoutMode === 'list'}>
+                            <List size={18} />
+                        </button>
+                        <button type="button" className={`${styles.toggleBtn} ${layoutMode === 'grid' ? styles.active : ''}`}
+                            onClick={() => setLayoutMode('grid')} title="Grid view" aria-pressed={layoutMode === 'grid'}>
+                            <Grid size={18} />
+                        </button>
+                    </div>
+                )}
+            </div>
+
+            {!notSubmitted && layoutMode === 'grid' && (
+                loading
+                    ? <Loading label="Loading course offerings…"><TableSkeleton rows={3} cols={['1fr', '1fr', '1fr']} /></Loading>
+                    : loadError
+                        ? <table><tbody><EmptyState colSpan={1} icon={<XCircle size={22} strokeWidth={1.6} />} title="Could not load assigned course offerings"
+                            hint="The course list could not be loaded. Try again; no sample records have been substituted for your assignments."
+                            action={<button type="button" className="btn btn-secondary btn-sm" onClick={loadAssignments}>Try again</button>} /></tbody></table>
+                        : sortedRows.length === 0
+                            ? <table><tbody>{emptyRow(1)}</tbody></table>
+                            : (
+                                <div className={styles.gridContainer}>
+                                    {sortedRows.map((row) => (
+                                        <ApprovalCard
+                                            key={`${getOfferingID(row)}-${(row.ProgramCourseOffering || {}).revision_number || 0}`}
+                                            code={getCode(row)}
+                                            date={formatDate(selectedStatus === 'APPROVED' ? row.date_approved : row.date_assigned)}
+                                            title={getName(row)}
+                                            link={{ to: getCourseLink(row), submittedAt: latestSubmissionAt(row), steps: buildApproverStatus(row) }}
+                                            exportButton={(selectedStatus === 'APPROVED' || canExportRow(row)) && EXPORT_ROLES.includes(role) && (
+                                                <button type="button" className={styles.gridExportBtn} disabled={exporting}
+                                                    onClick={() => !exporting && handleExport(row)}>
+                                                    {exporting ? 'Exporting…' : 'Export'} <Download size={14} />
+                                                </button>
+                                            )}
+                                        />
+                                    ))}
+                                </div>
+                            )
+            )}
+
+            {!notSubmitted && layoutMode === 'list' && <TableScrollRegion
                 label="Assigned Course Offerings"
                 minWidth={760}
                 className={`${styles['table-container']} ${styles.approvalRegion}`}

@@ -35,6 +35,8 @@ services:
       # lets server.js accept the loopback origin the browser sends.
       # Set LPMS_NODE_ENV=production only for a deployment with real accounts.
       NODE_ENV: "${LPMS_NODE_ENV:-development}"
+      # Signs the session cookie (utils/jwtSession.js). Required when NODE_ENV is production; set your own.
+      JWT_SECRET: "${LPMS_JWT_SECRET:-}"
       # The sign-in screen lists the demo accounts (email + shared password). Never in production.
       LPMS_SHOW_DEMO_ACCOUNTS: "${LPMS_SHOW_DEMO_ACCOUNTS:-1}"
       # An empty database (a fresh clone) is filled with the demo data on first start. Never in

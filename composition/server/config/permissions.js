@@ -29,7 +29,8 @@ const ROLE_PERMISSIONS = Object.freeze({
     'industry-consultant': ['plan:comment'],
     // The Dean oversees the due dates of the department's programs; the Program Head sets them.
     dean: ['plan:review', 'plan:comment', 'plan:view-approved', 'deadline:view'],
-    vpaa: ['plan:view-approved']
+    // The VPAA manages the accounts (feature/course-assignment): creates them, sets their roles, invites them.
+    vpaa: ['plan:view-approved', 'users:manage']
 });
 
 // Object.freeze above is shallow: freeze each role's list too, so the matrix really cannot change.

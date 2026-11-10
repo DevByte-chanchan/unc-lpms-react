@@ -167,7 +167,9 @@ test('forced change: login flags it, only change-password / session / logout wor
     const changed = await api('POST', '/api/auth/change-password', { cookie: signedIn.cookie, body: { currentPassword: 'Temp-pass1', newPassword: 'Brand-new-9' } });
     assert.equal(changed.status, 200);
     assert.equal(changed.data.user.mustChangePassword, false);
-    assert.equal((await api('GET', '/api/ping', { cookie: signedIn.cookie })).status, 200, 'same session works after the change');
+    // The session token is reissued with the change, so this browser stays signed in.
+    assert.ok(changed.cookie, 'a new session cookie');
+    assert.equal((await api('GET', '/api/ping', { cookie: changed.cookie })).status, 200, 'this browser works after the change');
 
     const fresh = await User.findByPk(user.user_id);
     assert.equal(fresh.must_change_password, false);
@@ -206,8 +208,9 @@ test('change-password: rules, lockout, other sessions revoked, audited without s
     assert.equal(same.status, 400);
     assert.match(same.data.error, /different/);
 
-    assert.equal((await change({ currentPassword: 'Old-pass-1', newPassword: 'New-pass-22' })).status, 200);
-    assert.equal((await api('GET', '/api/ping', { cookie: mine.cookie })).status, 200, 'current session kept');
+    const changed = await change({ currentPassword: 'Old-pass-1', newPassword: 'New-pass-22' });
+    assert.equal(changed.status, 200);
+    assert.equal((await api('GET', '/api/ping', { cookie: changed.cookie })).status, 200, 'current browser kept (new cookie)');
     assert.equal((await api('GET', '/api/ping', { cookie: other.cookie })).status, 401, 'other session revoked');
     assert.equal((await login(user, 'Old-pass-1')).status, 401);
     assert.equal((await login(user, 'New-pass-22')).status, 200);
@@ -267,9 +270,9 @@ test('forgot-password sends the link through the mailer; no token in the respons
         for (let i = 0; i < 50 && transport.sent.length === 0; i += 1) await new Promise(r => setTimeout(r, 20));
         assert.equal(transport.sent.length, 1, 'one email, for the real account only');
         assert.equal(transport.sent[0].to, user.email);
-        const token = decodeURIComponent(/reset=([^&\s]+)/.exec(transport.sent[0].text)[1]);
+        const token = decodeURIComponent(/token=([^&\s]+)/.exec(transport.sent[0].text)[1]);
 
-        const done = await api('POST', '/api/auth/reset-password', { body: { email: user.email, token, password: 'Fresh-pass-3' } });
+        const done = await api('POST', '/api/auth/reset-password', { body: { token, password: 'Fresh-pass-3' } });
         assert.equal(done.status, 200);
         const stored = await User.findByPk(user.user_id);
         assert.equal(stored.must_change_password, false, 'a reset replaces the temporary password');

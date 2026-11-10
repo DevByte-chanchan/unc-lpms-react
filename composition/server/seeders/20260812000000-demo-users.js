@@ -19,7 +19,8 @@ const DEMO_PASSWORD = 'demo1234';
 
 const DEMO_USERS = [
     { name: 'NORTON, MONICA', email: 'monica.norton@unc.edu.ph', role: 'instructor' },
-    { name: 'DANILA, JUNAR', email: 'junar.danila@unc.edu.ph', role: 'program-head' },
+    // Also teaches: one account, two roles ("Continue as..." on sign-in).
+    { name: 'DANILA, JUNAR', email: 'junar.danila@unc.edu.ph', role: 'program-head', roles: ['program-head', 'instructor'] },
     { name: 'SANTOS, MARIA', email: 'maria.santos@unc.edu.ph', role: 'director-of-libraries' },
     { name: 'CRUZ, ROBERTO', email: 'roberto.cruz@unc.edu.ph', role: 'industry-consultant' },
     { name: 'REYES, AGNES', email: 'agnes.reyes@unc.edu.ph', role: 'dean' },

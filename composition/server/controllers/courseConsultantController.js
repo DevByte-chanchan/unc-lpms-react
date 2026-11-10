@@ -52,7 +52,7 @@ async function getCandidates(req, res, next) {
                  INNER JOIN Programs p ON p.program_id = pco.program_id
              WHERE p.stakeholder_id = ? ORDER BY c.course_no ASC;`, [req.user.id]);
         const consultants = await select(
-            `SELECT user_id, name FROM Users WHERE role = 'industry-consultant' AND (is_active IS NULL OR is_active != 0) ORDER BY name ASC;`);
+            `SELECT user_id, name FROM Users WHERE (role = 'industry-consultant' OR roles LIKE '%"industry-consultant"%') AND (is_active IS NULL OR is_active != 0) ORDER BY name ASC;`);
         return res.json({ courses, consultants });
     } catch (err) {
         return next(err);
@@ -71,7 +71,7 @@ async function assignConsultant(req, res, next) {
         if (!course) return res.status(404).json({ message: 'Course not found.' });
         if (!(await headsProgramOffering(courseId, req.user.id))) return res.status(403).json({ message: 'Only the head of a program that offers this course can assign its consultant.' });
         const consultant = await User.findByPk(consultantId);
-        if (!consultant || consultant.role !== 'industry-consultant' || consultant.is_active === false) {
+        if (!consultant || !consultant.roles.includes('industry-consultant') || consultant.is_active === false) {
             return res.status(400).json({ message: 'That account is not an active industry consultant.' });
         }
 

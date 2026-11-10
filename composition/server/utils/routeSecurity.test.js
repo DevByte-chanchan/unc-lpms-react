@@ -18,7 +18,7 @@ const courseOutcomeAlignmentRoutes = require('../routes/courseOutcomeAlignment')
 const revisionRoutes = require('../routes/revisionRoutes');
 const courseReferenceRoutes = require('../routes/courseReferenceRoutes');
 const coaepRoutes = require('../routes/coaepRoutes');
-const { issueSession, requireAuth, requireRole, revokeSession } = require('../middleware/auth');
+const { issueSession, requireAuth, requireRole } = require('../middleware/auth');
 const db = require('../models');
 
 const activeTestUsers = new Map();
@@ -176,24 +176,26 @@ test('the current-session endpoint returns the identity behind the cookie', asyn
         });
 
         assert.equal(response.status, 200);
-        assert.deepEqual(await response.json(), { user: { ...user, mustChangePassword: false } });
+        assert.deepEqual(await response.json(), { user: { ...user, roles: [user.role], mustChangePassword: false } });
     } finally {
         await server.close();
     }
 });
 
-test('revoking a session makes the same cookie unusable', async () => {
-    const token = issueActiveSession({ id: 11, name: 'SIGNED, OUT', role: 'instructor' });
+test('a password change makes an earlier cookie unusable', async () => {
+    // Sessions are signed tokens carrying the password-change time; a newer one on the account voids them.
+    const user = { id: 11, name: 'SIGNED, OUT', role: 'instructor', password_changed_at: new Date(Date.now() - 60_000) };
+    const token = issueActiveSession(user);
     const request = { headers: { cookie: `lpms_session=${token}` } };
     const first = { statusCode: 200, status(code) { this.statusCode = code; return this; }, json() { return this; } };
     let passed = false;
     await requireAuth(request, first, () => { passed = true; });
     assert.equal(passed, true);
 
-    revokeSession(token);
+    activeTestUsers.get('11').password_changed_at = new Date();
 
     const second = { statusCode: 200, body: null, status(code) { this.statusCode = code; return this; }, json(body) { this.body = body; return this; } };
-    await requireAuth({ headers: { cookie: `lpms_session=${token}` } }, second, () => assert.fail('revoked session passed'));
+    await requireAuth({ headers: { cookie: `lpms_session=${token}` } }, second, () => assert.fail('a pre-change session passed'));
     assert.equal(second.statusCode, 401);
     assert.deepEqual(second.body, { error: 'Authentication required.' });
 });
@@ -211,7 +213,7 @@ test('role middleware rejects an authenticated user outside the allowed roles', 
     assert.deepEqual(res.body, { error: 'You do not have permission to perform this action.' });
 });
 
-test('the logout endpoint revokes the current cookie and clears it in the browser', async () => {
+test('the logout endpoint clears the cookie in the browser', async () => {
     const server = await start();
     try {
         const token = issueActiveSession({ id: 12, name: 'LOGOUT, USER', role: 'instructor' });
@@ -224,12 +226,14 @@ test('the logout endpoint revokes the current cookie and clears it in the browse
         assert.equal(logout.status, 200);
         assert.match(logout.headers.get('set-cookie') || '', /^lpms_session=;/);
 
-        const replay = await fetch(`${server.baseUrl}/api/assignments/action`, {
+        // ponytail: a signed token is not revoked server-side; a copy taken before logout works until it
+        // expires (8 hours) or the password changes. Add a token denylist if that matters.
+        const after = await fetch(`${server.baseUrl}/api/assignments/action`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', Cookie: cookie },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ actor_role: 'INSTRUCTOR', action_type: 'SUBMITTED' })
         });
-        assert.equal(replay.status, 401);
+        assert.equal(after.status, 401, 'the browser no longer sends a session');
     } finally {
         await server.close();
     }

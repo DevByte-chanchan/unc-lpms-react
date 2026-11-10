@@ -5,6 +5,8 @@ import SkeletonA from '../../../layouts/SkeletonA.jsx';
 import HeaderA from '../../../components/HeaderA.jsx';
 import SideNavigation from '../../../components/SideNavigation.jsx';
 import PDFViewerModal from '../../../components/PDFViewerModal.jsx';
+import CourseDocumentBar from '../../../components/CourseDocumentBar.jsx';
+import { openCourseDocument } from '../../../utils/courseDocuments.js';
 import { buildCoPoHtml } from '../../../utils/syllabusPdfHtml.js';
 import { fetchJson, apiErrorMessage } from '../../../utils/api.js';
 import { computeOverallStatus } from '../../../utils/assignmentStatus.js';
@@ -41,6 +43,7 @@ const CoPoAlignment = ({ tabs = null }) => {
   const [data, setData] = useState(null);
   const [error, setError] = useState('');
   const [selectedFile, setSelectedFile] = useState(null);
+  const [uploaded, setUploaded] = useState(null);
 
   useEffect(() => {
     let live = true;
@@ -73,6 +76,7 @@ const CoPoAlignment = ({ tabs = null }) => {
   const programOutcomes = data?.programOutcomes || [];
 
   const handleView = () => {
+    if (uploaded) { openCourseDocument(offeringId, 'co-po', uploaded).catch(() => setError('The uploaded file could not be opened.')); return; }
     if (!outcomes.length || !current) return;
     const logoUrl = new URL(unclogo, window.location.origin).href;
     const cos = outcomes.map((outcome, index) => ({ description: `CO${index + 1}: ${withoutNumber(outcome.description)}`, poMappings: outcome.poMappings }));
@@ -86,17 +90,19 @@ const CoPoAlignment = ({ tabs = null }) => {
       <div className={pageStyles.pageHeader}>
         {tabs || <h2 className="app-page-title">Course Outcomes &amp; PO Alignment</h2>}
         <div className={pageStyles.pageHeaderActions}>
-          <button type="button" className="btn btn-primary" onClick={handleView} disabled={!outcomes.length}>
+          <button type="button" className="btn btn-primary" onClick={handleView} disabled={!outcomes.length && !uploaded}>
             <Eye size={16} /> Preview / Export
           </button>
         </div>
       </div>
 
       <div className={pageStyles.toolbarControls}>
-        <Select value={offeringId} onChange={event => setOfferingId(event.target.value)} aria-label="Select course">
+        <Select variant="term" value={offeringId} onChange={event => setOfferingId(event.target.value)} aria-label="Select course">
             {(offerings || []).map(item => <option key={item.id} value={item.id}>{item.label}</option>)}
           </Select>
       </div>
+
+      <CourseDocumentBar pcId={offeringId} kind="co-po" label="CO and PO alignment" onChange={setUploaded} />
 
       {error && <div role="alert" className={styles.alert}>{error}</div>}
 

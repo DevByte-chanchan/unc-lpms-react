@@ -1,12 +1,14 @@
 import Select from '../../../components/Select.jsx'
-import { useState, useEffect, useCallback } from 'react';
-import { Eye, Edit3, Check, X, Plus, Trash2 } from 'react-feather';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { Eye, Edit3, Check, X, Plus, Trash2, Upload, Download, FileText } from 'react-feather';
 import SkeletonA from '../../../layouts/SkeletonA.jsx';
 import HeaderA from '../../../components/HeaderA.jsx';
 import SideNavigation from '../../../components/SideNavigation.jsx';
 import PDFViewerModal from '../../../components/PDFViewerModal.jsx';
 import { buildPoPeoHtml } from '../../../utils/syllabusPdfHtml.js';
-import { fetchJson, apiErrorMessage } from '../../../utils/api.js';
+import { fetchJson, apiErrorMessage, API_BASE } from '../../../utils/api.js';
+import { fetchFrontPages, countPdfPages } from '../../../utils/frontPages.js';
+import { getSession } from '../../../utils/session.js';
 import unclogo from '../../../assets/unclogo.png';
 import cc from '../../../styles/SyllabusPreview.module.sass';
 import tbl from '../../../styles/AlignmentTables.module.sass';
@@ -22,13 +24,26 @@ const copyData = (data) => ({
   outcomes: data.outcomes.map(o => ({ id: o.id, text: o.text, peos: [...o.peos], gas: [...o.gas] }))
 })
 
+// The uploaded front pages, shown in the page (the browser's own PDF viewer).
+const FrontPreview = ({ bytes }) => {
+  const [url, setUrl] = useState('')
+  useEffect(() => {
+    const next = URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' }))
+    setUrl(next)
+    return () => URL.revokeObjectURL(next)
+  }, [bytes])
+  return url ? <iframe title="Uploaded front pages" src={url} style={{ width: '100%', height: '70vh', border: '1px solid var(--line)', borderRadius: 8 }} /> : null
+}
+
 const toggle = (list, value) => (list.includes(value) ? list.filter(v => v !== value) : [...list, value].sort((a, b) => a - b))
 
 // The program's master data, kept by its Program Head and read from the database: the program
 // educational objectives (PEOs) with their relationship to the UNC mission statement, and the
 // program outcomes (POs) with the PEOs and graduate attributes each supports.
 // `tabs`: shown as the page header when this page is a tab of Outcomes Alignment.
-const PoPeoAlignment = ({ tabs = null }) => {
+// `view`: 'front' for the Front pages tab (the uploaded first three syllabus pages), else the PO / PEO tables.
+const PoPeoAlignment = ({ tabs = null, view = 'outcomes' }) => {
+  const frontView = view === 'front'
   const [programs, setPrograms] = useState(null)
   const [programId, setProgramId] = useState('')
   const [data, setData] = useState(null)
@@ -38,6 +53,10 @@ const PoPeoAlignment = ({ tabs = null }) => {
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
   const [selectedFile, setSelectedFile] = useState(null)
+  // The program's uploaded front pages (first three syllabus pages): { pages } or null; undefined while loading.
+  const [front, setFront] = useState(undefined)
+  const importRef = useRef(null)
+  const frontRef = useRef(null)
 
   useEffect(() => {
     let live = true
@@ -67,6 +86,94 @@ const PoPeoAlignment = ({ tabs = null }) => {
   useEffect(() => {
     if (programId) load(programId)
   }, [programId, load])
+
+  const loadFront = useCallback(async (id) => {
+    setFront(undefined)
+    try {
+      const bytes = await fetchFrontPages(id)
+      setFront(bytes ? { bytes, pages: await countPdfPages(bytes) } : null)
+    } catch {
+      setFront(null)
+    }
+  }, [])
+  useEffect(() => { if (programId) loadFront(programId) }, [programId, loadFront])
+
+  // A file as raw bytes to one of the program's document endpoints (controllers/programDocumentsController.js).
+  const sendFile = (path, method, file) => fetchJson(`/api/program-outcomes/${programId}/${path}`, {
+    method, headers: { 'Content-Type': 'application/octet-stream', 'X-File-Name': encodeURIComponent(file.name) }, body: file,
+  })
+
+  const uploadFront = async (file) => {
+    if (!file) return
+    setBusy(true); setError(''); setNotice('')
+    try {
+      const pages = await countPdfPages(await file.arrayBuffer()).catch(() => 0)
+      if (!pages) throw new Error('This file is not a readable PDF.')
+      await sendFile('front-pages', 'PUT', file)
+      setNotice(`Front pages uploaded (${pages} page${pages === 1 ? '' : 's'}). Learning plan exports of ${programName} now start with them.`)
+      await loadFront(programId)
+    } catch (err) {
+      setError(apiErrorMessage(err, err?.message || 'The front pages were not uploaded.'))
+    } finally {
+      setBusy(false)
+      if (frontRef.current) frontRef.current.value = ''
+    }
+  }
+
+  const removeFront = async () => {
+    if (!window.confirm(`Remove the uploaded front pages of ${programName}? Exports go back to the generated pages.`)) return
+    setBusy(true); setError(''); setNotice('')
+    try {
+      await fetchJson(`/api/program-outcomes/${programId}/front-pages`, { method: 'DELETE' })
+      setNotice('Front pages removed. Exports use the generated pages again.')
+      await loadFront(programId)
+    } catch (err) {
+      setError(apiErrorMessage(err, 'The front pages were not removed.'))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const viewFront = () => {
+    if (!front?.bytes) return
+    window.open(URL.createObjectURL(new Blob([front.bytes], { type: 'application/pdf' })), '_blank', 'noopener')
+  }
+
+  // The PO / PEO spreadsheet goes into the editor, not straight into the database: check it, then Save.
+  const importSheet = async (file) => {
+    if (!file) return
+    setBusy(true); setError(''); setNotice('')
+    try {
+      const result = await sendFile('import', 'POST', file)
+      setDraft({
+        peos: result.peos,
+        // Existing outcomes keep their ids by position, so course alignments to PO1, PO2... stay attached.
+        outcomes: result.outcomes.map((o, i) => ({ id: data?.outcomes?.[i]?.id ?? null, text: o.text, peos: o.peos, gas: o.gas })),
+      })
+      setEditing(true)
+      setNotice(`Read ${result.peos.length} PEOs and ${result.outcomes.length} program outcomes from ${file.name}. Check them, then Save.`)
+    } catch (err) {
+      setError(apiErrorMessage(err, 'The spreadsheet could not be read.'))
+    } finally {
+      setBusy(false)
+      if (importRef.current) importRef.current.value = ''
+    }
+  }
+
+  const downloadTemplate = async () => {
+    try {
+      const role = getSession()?.role
+      const res = await fetch(`${API_BASE}/api/program-outcomes/template.xlsx`, { credentials: 'include', headers: role ? { 'X-LPMS-Role': role } : {} })
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      const link = document.createElement('a')
+      link.href = URL.createObjectURL(await res.blob())
+      link.download = 'PO-PEO-template.xlsx'
+      link.click()
+      setTimeout(() => URL.revokeObjectURL(link.href), 10000)
+    } catch {
+      setError('The template could not be downloaded.')
+    }
+  }
 
   const rows = editing ? draft : data
   const peos = rows?.peos || []
@@ -123,13 +230,22 @@ const PoPeoAlignment = ({ tabs = null }) => {
     <div className={`${pageStyles.page} ${pageStyles.flowPage}`}>
       <div className={pageStyles.pageHeader}>
         {tabs || <h2 className="app-page-title">Program Outcomes &amp; PEO Alignment</h2>}
-        <div className={pageStyles.pageHeaderActions}>
+        {!frontView && <div className={pageStyles.pageHeaderActions}>
           {!editing ? (
             <>
               {data?.canEdit && (
-                <button type="button" className="btn btn-secondary" onClick={startEdit}>
-                  <Edit3 size={16} /> Edit
-                </button>
+                <>
+                  <input ref={importRef} type="file" accept=".xlsx,.xls" hidden aria-label="PO and PEO spreadsheet" onChange={e => importSheet(e.target.files?.[0])} />
+                  <button type="button" className="btn btn-secondary" onClick={downloadTemplate} title="The spreadsheet layout to fill in">
+                    <Download size={16} /> Template
+                  </button>
+                  <button type="button" className="btn btn-secondary" onClick={() => importRef.current?.click()} disabled={busy}>
+                    <Upload size={16} /> Import spreadsheet
+                  </button>
+                  <button type="button" className="btn btn-secondary" onClick={startEdit}>
+                    <Edit3 size={16} /> Edit
+                  </button>
+                </>
               )}
               <button type="button" className="btn btn-primary" onClick={handleView} disabled={!data}>
                 <Eye size={16} /> Preview / Export
@@ -145,14 +261,34 @@ const PoPeoAlignment = ({ tabs = null }) => {
               </button>
             </>
           )}
-        </div>
+        </div>}
       </div>
 
       <div className={pageStyles.toolbarControls}>
-        <Select value={programId} onChange={event => { setNotice(''); setProgramId(event.target.value) }} disabled={editing} aria-label="Select program">
+        <Select variant="term" value={programId} onChange={event => { setNotice(''); setProgramId(event.target.value) }} disabled={editing} aria-label="Select program">
             {(programs || []).map(program => <option key={program.id} value={program.id}>{program.name}</option>)}
           </Select>
       </div>
+
+      {data && frontView && (
+        <div className={pageStyles.contextBar} style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+          <FileText size={16} aria-hidden="true" />
+          <span>
+            Front pages (University, Program and PEOs, POs and PEOs):{' '}
+            {front === undefined ? 'checking…' : front ? `uploaded PDF, ${front.pages} page${front.pages === 1 ? '' : 's'} — learning plan exports start with it.` : 'none uploaded — exports use the generated pages.'}
+          </span>
+          {front && <button type="button" className="btn btn-secondary btn-sm" onClick={viewFront}>View</button>}
+          {data.canEdit && (
+            <>
+              <input ref={frontRef} type="file" accept="application/pdf,.pdf" hidden aria-label="Front pages PDF" onChange={e => uploadFront(e.target.files?.[0])} />
+              <button type="button" className="btn btn-secondary btn-sm" disabled={busy || editing} onClick={() => frontRef.current?.click()}>
+                <Upload size={14} /> {front ? 'Replace PDF' : 'Upload PDF'}
+              </button>
+              {front && <button type="button" className="btn btn-danger-outline btn-sm" disabled={busy || editing} onClick={removeFront}>Remove</button>}
+            </>
+          )}
+        </div>
+      )}
 
       {error && <div role="alert" className={styles.alert}>{error}</div>}
       {notice && <div role="status" className={styles.ok}>{notice}</div>}
@@ -161,7 +297,9 @@ const PoPeoAlignment = ({ tabs = null }) => {
         <div className={pageStyles.contextBar}><span>No program is assigned to you yet. Ask the Dean to assign one.</span></div>
       )}
 
-      {data && (
+      {frontView && front?.bytes && <FrontPreview bytes={front.bytes} />}
+
+      {data && !frontView && (
         <>
           {editing && <p className={pageStyles.contextLine}>Save or cancel these changes before switching programs.</p>}
 

@@ -33,7 +33,7 @@ test('an unknown role has no permissions, including names that are members of Ob
 
 test('the approvers hold the permissions their part of the chain needs, and nothing more', () => {
     assert.deepEqual([...permissionsOf('industry-consultant')], ['plan:comment'], 'the consultant only comments');
-    assert.deepEqual([...permissionsOf('vpaa')], ['plan:view-approved'], 'the VPAA only reads approved plans');
+    assert.deepEqual([...permissionsOf('vpaa')], ['plan:view-approved', 'users:manage'], 'the VPAA reads approved plans and manages the user accounts');
     for (const role of ['program-head', 'director-of-libraries', 'dean']) {
         assert.equal(hasPermission(role, 'plan:review'), true, `${role} reviews`);
         assert.equal(hasPermission(role, 'plan:comment'), true, `${role} comments`);
@@ -44,9 +44,9 @@ test('the approvers hold the permissions their part of the chain needs, and noth
     assert.equal(hasPermission('instructor', 'plan:review'), false, 'the instructor does not review');
 });
 
-test('only the superuser manages users and reads the audit trail', () => {
+test('only the superuser and the VPAA manage users; only the superuser reads the audit trail', () => {
     for (const role of Object.keys(ROLE_PERMISSIONS)) {
-        assert.equal(hasPermission(role, 'users:manage'), role === 'superuser', role);
+        assert.equal(hasPermission(role, 'users:manage'), role === 'superuser' || role === 'vpaa', role);
         assert.equal(hasPermission(role, 'audit:read'), role === 'superuser', role);
     }
 });

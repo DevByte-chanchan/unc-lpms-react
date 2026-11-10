@@ -34,12 +34,12 @@ const call = (as, method, path = '', body) => fetch(base + path, {
     body: body ? JSON.stringify(body) : undefined
 });
 
-test('permission matrix: every role has an entry, only the superuser manages users, all names are defined', () => {
+test('permission matrix: every role has an entry, only the superuser and VPAA manage users, all names are defined', () => {
     for (const role of User.ROLE_KEYS) assert.ok(ROLE_PERMISSIONS[role], `no matrix entry for ${role}`);
     for (const [role, list] of Object.entries(ROLE_PERMISSIONS)) {
         for (const permission of list) assert.ok(PERMISSIONS[permission], `${role}: unknown permission ${permission}`);
     }
-    assert.deepEqual(User.ROLE_KEYS.filter(r => hasPermission(r, 'users:manage')), ['superuser']);
+    assert.deepEqual(User.ROLE_KEYS.filter(r => hasPermission(r, 'users:manage')), ['vpaa', 'superuser']);
     assert.deepEqual(User.ROLE_KEYS.filter(r => hasPermission(r, 'audit:read')), ['superuser']);
     assert.equal(hasPermission('nobody', 'users:manage'), false);
 });
@@ -55,10 +55,11 @@ test('generated passwords are random, long enough and pass the sign-in rules', (
     assert.equal(seen.size, 50);
 });
 
-test('every users route refuses a non-superuser', async () => {
+test('every users route refuses a non-superuser, the VPAA included (it uses /api/user-accounts)', async () => {
     const dean = await make('Dean', 'dean');
-    for (const [method, path, body] of [['GET', ''], ['POST', '', { name: 'A', email: 'a@b.co', role: 'dean' }], ['PUT', `/${dean.user_id}/role`, { role: 'vpaa' }], ['PUT', `/${dean.user_id}/deactivate`], ['PUT', `/${dean.user_id}/activate`]]) {
-        assert.equal((await call(dean, method, path, body)).status, 403, `${method} ${path}`);
+    const vpaa = await make('Vpaa', 'vpaa');
+    for (const as of [dean, vpaa]) for (const [method, path, body] of [['GET', ''], ['POST', '', { name: 'A', email: 'a@b.co', role: 'dean' }], ['PUT', `/${dean.user_id}/role`, { role: 'vpaa' }], ['PUT', `/${dean.user_id}/deactivate`], ['PUT', `/${dean.user_id}/activate`]]) {
+        assert.equal((await call(as, method, path, body)).status, 403, `${as.role} ${method} ${path}`);
     }
 });
 
