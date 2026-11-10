@@ -4,7 +4,7 @@ import { structureTopics } from './topics.js';
 
 const newCourses = [
     { code: 'BSCS221L', name: 'Object-Oriented Programming',        status: 'pending',  assessmentName: 'Practical Exam', instructor: 'NORTON, MONICA', learningPlanApproved: true, examPeriod: 'Midterm' },
-    { code: 'BSCS222L', name: 'Discrete Structures 2',              status: 'returned', assessmentName: 'Written Exam',  instructor: 'NORTON, MONICA', learningPlanApproved: false, examPeriod: 'Midterm' },
+    { code: 'BSCS222L', name: 'Discrete Structures 2',              status: 'returned', assessmentName: 'Written Exam',  instructor: 'NORTON, MONICA', learningPlanApproved: true, examPeriod: 'Midterm' },
     { code: 'BSCS312L', name: 'Information Management',             status: 'pending',  assessmentName: 'Midterm Exam',  instructor: 'DIAZ, ROSA', learningPlanApproved: true, examPeriod: 'Midterm' },
     { code: 'BSCS324L', name: 'Advanced Software Engineering',       status: 'returned', assessmentName: 'Periodic Exam', instructor: 'DIAZ, ROSA', learningPlanApproved: true, examPeriod: 'Midterm' },
     { code: 'BSCS342L', name: 'Machine Learning Fundamentals',       status: 'pending',  assessmentName: 'Practical Exam', instructor: 'NORTON, MONICA', learningPlanApproved: true, examPeriod: 'Midterm' },
@@ -253,15 +253,7 @@ async function seedNewCourses() {
         else if (c.status === 'approved') { s.submittedAt = new Date('2026-10-09'); s.approvedAt = new Date('2026-10-16'); }
         statusesToCreate.push(s);
         
-        if (c.code === 'BSCS342L') {
-            statusesToCreate.push({
-                courseCode: c.code,
-                examPeriod: 'Midterm',
-                status: 'approved',
-                submittedAt: new Date('2026-10-10'),
-                approvedAt: new Date('2026-10-15')
-            });
-        }
+
     }
     await TosStatus.bulkCreate(statusesToCreate);
 

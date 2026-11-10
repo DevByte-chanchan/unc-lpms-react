@@ -63,14 +63,17 @@ const TOSCoursesTable = () => {
 
         const displayedCourses = courses.map(c => {
         const tos = examType === 'Midterm' ? c.midtermTos : c.finalsTos;
+        const deadline = examType === 'Midterm' ? c.midtermDeadline : c.finalsDeadline;
+        const isOverdue = tos ? (tos.status !== 'approved' && deadline && new Date(deadline) < new Date()) : (deadline && new Date(deadline) < new Date());
         const fmt = (ts) => ts ? new Date(ts).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }) : '';
         return {
             ...c,
             status: tos ? tos.status : 'draft',
+            isOverdue,
             dateAssigned: fmt(c.created_at) || '',
             update: fmt(c.updated_at) || '',
             dateSubmitted: tos ? fmt(tos.submittedAt) : '',
-            dateStatus: tos ? fmt(tos.returnedAt || tos.approvedAt) : ''
+            dateStatus: tos ? fmt(tos.status === 'approved' ? tos.approvedAt : tos.returnedAt) : ''
         };
     }).filter(c => {
         if (selectedStatus === 'draft' && c.status !== 'draft') return false;
@@ -82,6 +85,22 @@ const TOSCoursesTable = () => {
 
     const nonDraft = selectedStatus === 'pending' || selectedStatus === 'approved' || selectedStatus === 'returned';
     const statusHeader = selectedStatus === 'returned' ? 'DATE RETURNED' : selectedStatus === 'approved' ? 'DATE APPROVED' : '';
+
+    // Demo-only: approved-course Export buttons download a placeholder PDF (no server call)
+    // Same logic as handleExportDemoPdf in TosSections.jsx
+    const handleExportDemoPdf = (courseCode, courseName) => {
+        try {
+            const safeName = String(courseCode || courseName || 'TOS').replace(/[\\/:*?"<>|]/g, '').trim() || 'TOS';
+            const link = document.createElement('a');
+            link.href = '/tos-sample.pdf';
+            link.download = `TOS - ${safeName}.pdf`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        } catch {
+            // demo placeholder download: nothing to recover
+        }
+    };
 
     return (
         <div className={styles['courses-table']}>
@@ -146,7 +165,7 @@ const TOSCoursesTable = () => {
                                 {!nonDraft && <td width={200}>{row.update}</td>}
                                 <td className={styles.fill}>
                                     {selectedStatus === 'approved' && (
-                                        <button className={styles.exportBtn} onClick={() => console.log('Export', row.code)}>
+                                        <button className={styles.exportBtn} onClick={() => handleExportDemoPdf(row.code, row.name)}>
                                             Export <Download size={16} />
                                         </button>
                                     )}

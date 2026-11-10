@@ -3,7 +3,7 @@ import {ChevronLeft, ChevronUp, Loader, Trash2, CheckCircle, RotateCcw, Download
 import React, {useCallback, useEffect, useRef, useState} from "react";
 import {useNavigate, useSearchParams, useLocation, useParams} from "react-router-dom";
 import layout from "../styles/TosSections.module.sass";
-import previewLayout from "../styles/TOSPreview.module.sass";
+import previewLayout from "../styles/TosPreview.module.sass";
 import TOSPreview from "../pages/TosPreview.jsx";
 import TOSSummary from "../pages/TosSummary.jsx";
 import AssessmentsStep, { AutoResizeTextarea } from "../pages/AssessmentsStep.jsx";
@@ -33,9 +33,11 @@ const TosSections = ({role = 'instructor'}) => {
     const location = useLocation();
     const { code: courseCode } = useParams();
     const [effectiveStatus, setEffectiveStatus] = useState(location.state?.tosStatus || 'draft');
+    const [deadline, setDeadline] = useState(null);
     const readOnly = !isProgramHead && (effectiveStatus === 'pending' || effectiveStatus === 'approved');
     const isReturnedView = isProgramHead && effectiveStatus === 'returned';
     const isInstructorReturned = !isProgramHead && effectiveStatus === 'returned';
+    const isOverdue = effectiveStatus !== 'approved' && deadline && new Date(deadline) < new Date();
     const defaultSection = isProgramHead || effectiveStatus === 'pending' || effectiveStatus === 'approved' ? 'Table of Specifications Report' : 'Outcome Overview';
     const selectedSection = isProgramHead ? phSection : (searchParams.get('section') || defaultSection);
     const getDefaultOutlines = () => [
@@ -139,7 +141,11 @@ const TosSections = ({role = 'instructor'}) => {
         fetchCourse(courseCode).then(course => {
             if (course?.name && !courseNameState) setCourseName(course.name);
             if (course?.assessmentName) setAssessmentName(course.assessmentName);
-            if (course?.tosStatus?.status) setEffectiveStatus(course.tosStatus.status);
+            const periodTos = fromExamType === 'Finals' ? course?.finalsTos : course?.midtermTos;
+            if (periodTos?.status) setEffectiveStatus(periodTos.status);
+            else if (course?.tosStatus?.status) setEffectiveStatus(course.tosStatus.status);
+            const d = fromExamType === 'Finals' ? course?.finalsDeadline : course?.midtermDeadline;
+            if (d) setDeadline(d);
         }).catch(() => {});
 
         fetchOutcomes(courseCode).then(data => {
@@ -219,6 +225,8 @@ const TosSections = ({role = 'instructor'}) => {
         }).catch(() => {});
         fetchStatus(courseCode, fromExamType).then(s => {
             if (s) {
+                if (s.status) setEffectiveStatus(s.status);
+                if (s.deadline) setDeadline(s.deadline);
                 setReturnCount(s.returnCount || 0);
                 try { setReturnDates(JSON.parse(s.returnDates || '[]')); } catch { /* ignore */ }
             }
@@ -819,6 +827,8 @@ const TosSections = ({role = 'instructor'}) => {
     };
 
     const handleStartReturn = () => {
+        const hasCurrentRoundComments = comments.some(c => (c.scope?.returnNumber || c.returnNumber) === returnCount + 1);
+        if (!hasCurrentRoundComments) return;
         setReturnLoading(true);
         preReturnTimerRef.current = setTimeout(() => {
             setReturnLoading(false);
@@ -986,6 +996,11 @@ const TosSections = ({role = 'instructor'}) => {
                                 )}
                             </select>
                         </div>
+                        {isOverdue && (
+                            <span style={{ display: 'inline-flex', alignItems: 'center', padding: '4px 8px', fontSize: 12, fontWeight: 600, color: '#DC2626', background: '#FEE2E2', border: '1px solid #FCA5A5', borderRadius: 4, marginLeft: 8 }}>
+                                Overdue
+                            </span>
+                        )}
 
                         {isReturnedView ? (
                             <span className={styles.draft} style={{ color: '#999', cursor: 'default' }}>View Only</span>
@@ -1005,7 +1020,7 @@ const TosSections = ({role = 'instructor'}) => {
                                         <Download size={16} /> Export
                                     </button>
                                 </>
-                            ) : (
+                            ) : effectiveStatus === 'pending' ? (
                                 <>
                                     <div ref={commentBtnRef} className={`${styles.draft} ${layout.commentBtn} ${showComment ? layout.commentBtnActive : ''}`} onClick={toggleCommentPanel}>
                                         Add Comment
@@ -1015,6 +1030,8 @@ const TosSections = ({role = 'instructor'}) => {
                                         {approveLoading ? 'Approving…' : 'Approve'}
                                     </button>
                                 </>
+                            ) : (
+                                <span className={styles.draft} style={{ color: '#999', cursor: 'default' }}>Draft (Not Submitted)</span>
                             )
                         ) : readOnly ? (
                             effectiveStatus === 'approved' && historyData[courseCode] ? (
@@ -1343,7 +1360,7 @@ const items = aggregatedData[co.co][ilo.id][level];
                                     )}
                                 </div>
                                 {!isReturnedView && !showResolvedPH && <div className={layout.commentPanelFooter}>
-                                    <button className={layout.commentReturnBtn} disabled={comments.length === 0 || returnLoading} onClick={handleStartReturn}>
+                                    <button className={layout.commentReturnBtn} disabled={!comments.some(c => (c.scope?.returnNumber || c.returnNumber) === returnCount + 1) || returnLoading} onClick={handleStartReturn}>
                                         {returnLoading ? <Loader size={16} className={layout.spinner} /> : null}
                                         {returnLoading ? 'Returning…' : 'Return'}
                                     </button>

@@ -27,7 +27,7 @@ const ProgramHeadTOSCoursesTable = () => {
                 
                 if (navUpdate) {
                     result = result.map(c => {
-                        if (c.name === navUpdate.courseName) {
+                        if (c.code === navUpdate.courseCode || c.name === navUpdate.courseName) {
                             const newTos = { ...c.midtermTos, status: navUpdate.newStatus };
                             return { ...c, midtermTos: newTos };
                         }
@@ -52,17 +52,36 @@ const ProgramHeadTOSCoursesTable = () => {
         const displayedCourses = courses
         .map(row => {
             const tos = examType === 'Midterm' ? row.midtermTos : row.finalsTos;
+            const deadline = examType === 'Midterm' ? row.midtermDeadline : row.finalsDeadline;
+            const isOverdue = tos ? (tos.status !== 'approved' && deadline && new Date(deadline) < new Date()) : (deadline && new Date(deadline) < new Date());
             const fmt = (ts) => ts ? new Date(ts).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }) : '';
             return {
                 ...row,
                 status: tos ? tos.status : 'draft',
+                isOverdue,
                 dateSubmitted: tos ? fmt(tos.submittedAt) : '',
-                dateStatus: tos ? fmt(tos.returnedAt || tos.approvedAt) : ''
+                dateStatus: tos ? fmt(tos.status === 'approved' ? tos.approvedAt : tos.returnedAt) : ''
             };
         })
         .filter(row => row.status === selectedStatus);
 
     const statusHeader = selectedStatus === 'returned' ? 'DATE RETURNED' : selectedStatus === 'approved' ? 'DATE APPROVED' : 'DATE SUBMITTED';
+
+    // Demo-only: approved-course Export buttons download a placeholder PDF (no server call)
+    // Same logic as handleExportDemoPdf in TosSections.jsx
+    const handleExportDemoPdf = (courseCode, courseName) => {
+        try {
+            const safeName = String(courseCode || courseName || 'TOS').replace(/[\\/:*?"<>|]/g, '').trim() || 'TOS';
+            const link = document.createElement('a');
+            link.href = '/tos-sample.pdf';
+            link.download = `TOS - ${safeName}.pdf`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        } catch {
+            // demo placeholder download: nothing to recover
+        }
+    };
 
     return (
         <div className={styles['courses-table']}>
@@ -119,12 +138,19 @@ const ProgramHeadTOSCoursesTable = () => {
                         .map((row, index) => (
                             <tr key={index}>
                                 <td width={200}>{selectedStatus === 'pending' ? row.dateSubmitted : row.dateStatus}</td>
-                                <td width={130}>{row.code}</td>
+                                <td width={130}>
+                                    {row.code}
+                                    {row.isOverdue && (
+                                        <span style={{ marginLeft: 8, padding: '2px 6px', fontSize: 11, fontWeight: 600, color: '#DC2626', background: '#FEE2E2', borderRadius: 4 }}>
+                                            Overdue
+                                        </span>
+                                    )}
+                                </td>
                                 <td width={300}>{row.name}</td>
                                 <td width={200}>{row.instructor}</td>
                                 <td className={styles.fill}>
                                     {selectedStatus === 'approved' && (
-                                        <button className={styles.exportBtn} onClick={() => console.log('Export', row.code)}>
+                                        <button className={styles.exportBtn} onClick={() => handleExportDemoPdf(row.code, row.name)}>
                                             Export <Download size={16} />
                                         </button>
                                     )}

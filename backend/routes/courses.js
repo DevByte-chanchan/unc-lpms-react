@@ -1,6 +1,7 @@
 ﻿import { Router } from 'express';
 import { Course, TosStatus, sequelize } from '../models/index.js';
-import { getSeasonConfig, isLocked } from '../config/season.js';
+import { getSeasonConfig, isLocked, getCourseDeadline } from '../config/season.js';
+import { lockGuard } from '../middleware/lockGuard.js';
 
 const router = Router();
 
@@ -28,7 +29,9 @@ router.get('/', async (req, res) => {
             finalsLock,
             currentSeason: season,
             midtermTos: midtermStatus || null,
-            finalsTos: finalsStatus || null
+            finalsTos: finalsStatus || null,
+            midtermDeadline: getCourseDeadline(course.code, 'Midterm'),
+            finalsDeadline: getCourseDeadline(course.code, 'Finals')
         };
     });
     
@@ -62,7 +65,7 @@ router.get('/:code', async (req, res) => {
     res.json(payload);
 });
 
-router.put('/:code', async (req, res) => {
+router.put('/:code', lockGuard, async (req, res) => {
     const course = await Course.findByPk(req.params.code);
     if (!course) return res.status(404).json({ error: 'Course not found' });
     await sequelize.query(

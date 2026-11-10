@@ -29,3 +29,6 @@ backend/uploads/*
 
 lpms_backup.sql
 lpms_backup*.sql
+
+# Environment files
+.env*
