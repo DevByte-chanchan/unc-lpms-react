@@ -104,6 +104,7 @@ export async function fetchItems(courseCode, period) {
 
 export async function saveItems(courseCode, period, items) {
     const body = items.map(item => ({
+        ...(typeof item.id === 'number' && Number.isInteger(item.id) && item.id > 0 ? { id: item.id } : {}),
         iloId: item.iloId || null,
         attachmentId: item.attachmentId,
         instruction: item.instruction || item.question || '',

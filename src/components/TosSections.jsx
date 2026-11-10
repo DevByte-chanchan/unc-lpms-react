@@ -811,6 +811,14 @@ const TosSections = ({role = 'instructor'}) => {
                     saveItems(courseCode, fromExamType, questions),
                     updateCourse(courseCode, { assessmentName })
                 ]);
+                const data = await fetchItems(courseCode, fromExamType);
+                if (data) {
+                    const lookup = iloLookupRef.current;
+                    setQuestions(data.map(q => {
+                        const info = lookup[q.iloId] || {};
+                        return { ...q, co: info.co || q.iloItem?.outcome?.co || '', ilo: info.iloLabel || '' };
+                    }));
+                }
             } catch (err) {
                 console.error('Save failed:', err);
             }
@@ -1092,7 +1100,25 @@ const TosSections = ({role = 'instructor'}) => {
                                                 saveOutcomes(courseCode, outcomesPayload),
                                                 saveItems(courseCode, fromExamType, questions),
                                                 updateCourse(courseCode, { assessmentName })
-                                            ]).then(() => { setSubmitLoading(false); submitGuardRef.current = false; setIsPreviewOpen(true); }).catch(() => { setSubmitLoading(false); submitGuardRef.current = false; setIsPreviewOpen(true); });
+                                            ]).then(async () => {
+                                                try {
+                                                    const data = await fetchItems(courseCode, fromExamType);
+                                                    if (data) {
+                                                        const lookup = iloLookupRef.current;
+                                                        setQuestions(data.map(q => {
+                                                            const info = lookup[q.iloId] || {};
+                                                            return { ...q, co: info.co || q.iloItem?.outcome?.co || '', ilo: info.iloLabel || '' };
+                                                        }));
+                                                    }
+                                                } catch { /* ignore */ }
+                                                setSubmitLoading(false);
+                                                submitGuardRef.current = false;
+                                                setIsPreviewOpen(true);
+                                            }).catch(() => {
+                                                setSubmitLoading(false);
+                                                submitGuardRef.current = false;
+                                                setIsPreviewOpen(true);
+                                            });
                                         } else {
                                             submitGuardRef.current = false;
                                             setIsPreviewOpen(true);
