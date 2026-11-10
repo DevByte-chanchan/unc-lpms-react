@@ -161,3 +161,289 @@
 
 
 
+.ctToolbar
+  height: auto
+  min-height: 40px
+  justify-content: space-between
+  flex-wrap: wrap
+  gap: 16px
+  margin-bottom: 12px
+
+.ctToolbarLeft
+  display: flex
+  align-items: center
+  gap: 16px
+  flex-wrap: wrap
+
+.ctTitle
+  margin: 0
+  font-size: 20px
+  font-weight: 700
+  color: #111827
+  letter-spacing: -0.01em
+
+.ctSelectorsPill
+  border-radius: 8px
+  border: 1px solid #E5E7EB
+  padding: 6px 14px
+  gap: 16px
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05)
+
+  select:focus-visible
+    outline: 2px solid #DC2626
+    outline-offset: 2px
+    border-radius: 4px
+
+.ctStatusTabs
+  display: inline-flex
+  align-items: center
+  background: #F3F4F6
+  padding: 4px
+  border-radius: 8px
+  gap: 4px
+
+.ctStatusTab
+  border: none
+  background: transparent
+  color: #6B7280
+  font-size: 13px
+  font-weight: 500
+  padding: 6px 16px
+  border-radius: 6px
+  cursor: pointer
+  font-family: inherit
+  line-height: 1.4
+  transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease
+
+  &:hover
+    color: #111827
+
+  &:focus-visible
+    outline: 2px solid #DC2626
+    outline-offset: 1px
+
+.ctStatusTabActive
+  background: #FFFFFF
+  color: #111827
+  font-weight: 600
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1)
+
+.ctControlsRow
+  display: flex
+  align-items: center
+  gap: 12px
+  width: 100%
+  margin-bottom: 16px
+
+.ctSearchBox
+  display: flex
+  align-items: center
+  flex: 1
+  gap: 10px
+  height: 40px
+  padding: 0 16px
+  background: #FFFFFF
+  border: 1px solid #D1D5DB
+  border-radius: 9999px
+  transition: border-color 0.15s ease, box-shadow 0.15s ease
+
+  &:focus-within
+    border-color: #DC2626
+    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.12)
+
+.ctSearchIcon
+  color: #9CA3AF
+  flex-shrink: 0
+
+.ctSearchInput
+  flex: 1
+  width: 100%
+  height: 100%
+  border: none
+  outline: none
+  background: transparent
+  font-size: 13px
+  color: #111827
+  font-family: inherit
+
+  &::placeholder
+    color: #9CA3AF
+
+.ctViewToggle
+  display: inline-flex
+  align-items: center
+  background: #F3F4F6
+  padding: 4px
+  border-radius: 8px
+  gap: 4px
+  flex-shrink: 0
+
+.ctViewBtn
+  display: inline-flex
+  align-items: center
+  justify-content: center
+  width: 32px
+  height: 32px
+  padding: 0
+  border: none
+  border-radius: 6px
+  background: transparent
+  color: #6B7280
+  cursor: pointer
+  transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease
+
+  &:hover
+    color: #111827
+
+  &:focus-visible
+    outline: 2px solid #DC2626
+    outline-offset: 1px
+
+.ctViewBtnActive
+  background: #FFFFFF
+  color: #111827
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1)
+
+.ctCardGrid
+  display: grid
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr))
+  gap: 20px
+  width: 100%
+  padding: 4px 2px 24px 2px
+  align-content: start
+
+.ctCard
+  display: flex
+  flex-direction: column
+  justify-content: space-between
+  background: #FFFFFF
+  border: 1px solid #E5E7EB
+  border-radius: 12px
+  padding: 20px
+  gap: 12px
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05)
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease
+
+  &:hover
+    transform: translateY(-2px)
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08)
+    border-color: #D1D5DB
+
+.ctCardHeader
+  display: flex
+  align-items: center
+  justify-content: space-between
+  gap: 8px
+
+.ctCodePill
+  display: inline-flex
+  align-items: center
+  padding: 4px 10px
+  border-radius: 9999px
+  background: #FEE2E2
+  color: #DC2626
+  font-size: 11px
+  font-weight: 700
+  letter-spacing: 0.02em
+  white-space: nowrap
+
+.ctCardDate
+  font-size: 12px
+  color: #6B7280
+  font-weight: 400
+  white-space: nowrap
+
+.ctCardDateLabel
+  color: #9CA3AF
+  margin-right: 4px
+
+.ctCardBody
+  display: flex
+  flex-direction: column
+  gap: 4px
+  flex: 1
+
+.ctCardTitle
+  margin: 0
+  font-size: 15px
+  font-weight: 600
+  color: #111827
+  line-height: 1.4
+  display: -webkit-box
+  -webkit-line-clamp: 2
+  -webkit-box-orient: vertical
+  overflow: hidden
+
+.ctCardMeta
+  margin: 0
+  font-size: 12px
+  color: #6B7280
+  line-height: 1.4
+
+.ctCardFooter
+  display: flex
+  align-items: center
+  justify-content: flex-start
+  gap: 8px
+  flex-wrap: wrap
+  margin-top: 4px
+
+.ctCardActions
+  display: inline-flex
+  align-items: center
+  gap: 8px
+  flex-wrap: wrap
+
+.ctActionPill
+  display: inline-flex
+  color: #1F2937
+
+  a
+    display: inline-flex
+    align-items: center
+    gap: 4px
+    padding: 6px 14px
+    border-radius: 9999px
+    background: #F3F4F6
+    font-size: 13px
+    font-weight: 500
+    line-height: 1.4
+    transition: background 0.15s ease
+
+    &:hover
+      background: #E5E7EB
+
+    &:focus-visible
+      outline: 2px solid #DC2626
+      outline-offset: 2px
+
+.ctExportPill
+  padding: 6px 14px
+  border-radius: 9999px
+  background: #F3F4F6
+  font-size: 13px
+  font-weight: 500
+  color: #1F2937
+  line-height: 1.4
+  transition: background 0.15s ease
+
+  &:hover
+    background: #E5E7EB
+    opacity: 1
+
+  &:focus-visible
+    outline: 2px solid #DC2626
+    outline-offset: 2px
+
+.ctLockPill
+  display: inline-flex
+  align-items: center
+  gap: 6px
+  padding: 6px 12px
+  border-radius: 9999px
+  background: #F9FAFB
+  border: 1px solid #E5E7EB
+  color: #6B7280
+  font-size: 12px
+  font-style: italic
+  cursor: not-allowed

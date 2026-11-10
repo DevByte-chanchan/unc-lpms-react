@@ -1,7 +1,7 @@
 import React, {useState, useEffect} from 'react';
 import {Link, useLocation} from 'react-router-dom'
 import styles from '../styles/CoursesTable.module.sass';
-import { ChevronRight, Download, AlertTriangle, Lock } from 'react-feather';
+import { ChevronRight, Download, AlertTriangle, Lock, Search, List, Grid } from 'react-feather';
 import { fetchCourses } from '../services/api.js';
 const OverdueBadge = () => (
     <span
@@ -77,6 +77,8 @@ const TOSCoursesTable = () => {
     const [examType, setExamType] = useState('Midterm');
     const [schoolYear, setSchoolYear] = useState(String(currentYear));
     const [semester, setSemester] = useState('1st Semester');
+    const [searchQuery, setSearchQuery] = useState('');
+    const [viewMode, setViewMode] = useState('cards');
     const handleStatusChange = (e) => {
         setSelectedStatus(e.target.value)
     }
@@ -85,7 +87,11 @@ const TOSCoursesTable = () => {
         const tos = examType === 'Midterm' ? c.midtermTos : c.finalsTos;
         const deadline = examType === 'Midterm' ? c.midtermDeadline : c.finalsDeadline;
         const isOverdue = tos ? (tos.status !== 'approved' && deadline && new Date(deadline) < new Date()) : (deadline && new Date(deadline) < new Date());
-        const fmt = (ts) => ts ? new Date(ts).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }) : '';
+        const fmt = (ts) => {
+            if (!ts) return '';
+            const d = new Date(ts);
+            return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        };
         return {
             ...c,
             status: tos ? tos.status : 'draft',
@@ -102,6 +108,14 @@ const TOSCoursesTable = () => {
         if (selectedStatus === 'approved' && c.status !== 'approved') return false;
         return true;
     });
+
+    const normalizedSearch = searchQuery.trim().toLowerCase();
+    const filteredCourses = normalizedSearch
+        ? displayedCourses.filter(c =>
+            (c.code || '').toLowerCase().includes(normalizedSearch) ||
+            (c.name || '').toLowerCase().includes(normalizedSearch)
+        )
+        : displayedCourses;
 
     const nonDraft = selectedStatus === 'pending' || selectedStatus === 'approved' || selectedStatus === 'returned';
     const statusHeader = selectedStatus === 'returned' ? 'DATE RETURNED' : selectedStatus === 'approved' ? 'DATE APPROVED' : '';
@@ -122,35 +136,90 @@ const TOSCoursesTable = () => {
         }
     };
 
+    const statusTabs = [
+        { value: 'draft', label: 'Draft' },
+        { value: 'pending', label: 'Pending' },
+        { value: 'returned', label: 'Returned' },
+        { value: 'approved', label: 'Approved' }
+    ];
+
+    const dateLabel = selectedStatus === 'returned'
+        ? 'Returned'
+        : selectedStatus === 'approved'
+        ? 'Approved'
+        : selectedStatus === 'pending'
+        ? 'Submitted'
+        : 'Assigned';
+
     return (
         <div className={styles['courses-table']}>
 
-            <div className={styles.header}>
-                <h2>ASSIGNED TABLE OF SPECIFICATIONS</h2>
-                <div className={styles.filterA}>
-                    <select className={styles['header-select']} value={schoolYear} onChange={e => setSchoolYear(e.target.value)}>
-                        {yearOptions}
-                    </select>
-                    <select className={styles['header-select']} value={semester} onChange={e => setSemester(e.target.value)}>
-                        {semOptions.map(sem => (
-                            <option key={sem} value={sem}>{sem}</option>
-                        ))}
-                    </select>
-                    <select className={styles['header-select']} value={examType} onChange={e => setExamType(e.target.value)}>
-                        <option key="Midterm" value="Midterm">Midterm</option>
-                        <option key="Finals" value="Finals" disabled title="Not available yet">Finals</option>
-                    </select>
+            <div className={`${styles.header} ${styles.ctToolbar}`}>
+                <div className={styles.ctToolbarLeft}>
+                    <h2 className={styles.ctTitle}>ASSIGNED TABLE OF SPECIFICATIONS</h2>
+                    <div className={`${styles.filterA} ${styles.ctSelectorsPill}`}>
+                        <select className={styles['header-select']} value={schoolYear} onChange={e => setSchoolYear(e.target.value)}>
+                            {yearOptions}
+                        </select>
+                        <select className={styles['header-select']} value={semester} onChange={e => setSemester(e.target.value)}>
+                            {semOptions.map(sem => (
+                                <option key={sem} value={sem}>{sem}</option>
+                            ))}
+                        </select>
+                        <select className={styles['header-select']} value={examType} onChange={e => setExamType(e.target.value)}>
+                            <option key="Midterm" value="Midterm">Midterm</option>
+                            <option key="Finals" value="Finals" disabled title="Not available yet">Finals</option>
+                        </select>
+                    </div>
                 </div>
-                <div className={styles.fill}></div>
 
-                <div className={'filter-container'}>
-                    <p>Filter by <strong>Status</strong>:</p>
-                    <select onChange={handleStatusChange} value={selectedStatus}>
-                        <option value="draft">Draft</option>
-                        <option value="pending">Pending</option>
-                        <option value="returned">Returned</option>
-                        <option value="approved">Approved</option>
-                    </select>
+                <div className={styles.ctStatusTabs} role="tablist" aria-label="Filter by status">
+                    {statusTabs.map(tab => (
+                        <button
+                            key={tab.value}
+                            type="button"
+                            role="tab"
+                            aria-selected={selectedStatus === tab.value}
+                            className={`${styles.ctStatusTab} ${selectedStatus === tab.value ? styles.ctStatusTabActive : ''}`}
+                            onClick={() => handleStatusChange({ target: { value: tab.value } })}
+                        >
+                            {tab.label}
+                        </button>
+                    ))}
+                </div>
+            </div>
+
+            <div className={styles.ctControlsRow}>
+                <div className={styles.ctSearchBox}>
+                    <Search size={16} className={styles.ctSearchIcon} aria-hidden="true" />
+                    <input
+                        type="text"
+                        className={styles.ctSearchInput}
+                        placeholder="Search course code or name..."
+                        aria-label="Search course code or name"
+                        value={searchQuery}
+                        onChange={e => setSearchQuery(e.target.value)}
+                    />
+                </div>
+                <div className={styles.ctViewToggle} role="group" aria-label="View mode">
+                    <button
+                        type="button"
+                        className={`${styles.ctViewBtn} ${viewMode === 'list' ? styles.ctViewBtnActive : ''}`}
+                        aria-label="List view"
+                        aria-pressed={viewMode === 'list'}
+                        onClick={() => setViewMode('list')}
+                    >
+                        <List size={16} aria-hidden="true" />
+                    </button>
+                    <button
+                        type="button"
+                        className={`${styles.ctViewBtn} ${viewMode === 'cards' ? styles.ctViewBtnActive : ''}`}
+                        aria-label="Card view"
+                        aria-pressed={viewMode === 'cards'}
+                        onClick={() => setViewMode('cards')}
+                    >
+                        <Grid size={16} aria-hidden="true" />
+                    </button>
                 </div>
             </div>
 
@@ -161,6 +230,80 @@ const TOSCoursesTable = () => {
                     <div className={styles.loadingCell} style={{color: 'red'}}>{errorMsg}</div>
                 ) : displayedCourses.length === 0 ? (
                     <div className={styles.loadingCell} style={{color: '#6B7280'}}>No courses in this status.</div>
+                ) : filteredCourses.length === 0 ? (
+                    <div className={styles.loadingCell} style={{color: '#6B7280'}}>No courses found</div>
+                ) : viewMode === 'cards' ? (
+                <div className={styles.ctCardGrid}>
+                    {filteredCourses.map((row, index) => {
+                        const cardDate = !nonDraft
+                            ? row.dateAssigned
+                            : selectedStatus === 'pending'
+                            ? row.dateSubmitted
+                            : (row.dateStatus || row.dateSubmitted);
+                        return (
+                            <div key={index} className={styles.ctCard}>
+                                <div className={styles.ctCardHeader}>
+                                    <span className={styles.ctCodePill}>{row.code}</span>
+                                    <span className={styles.ctCardDate} title={`${dateLabel}: ${cardDate}`}>
+                                        <span className={styles.ctCardDateLabel}>{dateLabel}:</span>
+                                        {cardDate}
+                                    </span>
+                                </div>
+                                <div className={styles.ctCardBody}>
+                                    <h3 className={styles.ctCardTitle} title={row.name}>{row.name}</h3>
+                                    {!nonDraft && row.update && (
+                                        <p className={styles.ctCardMeta} title={`Last Updated: ${row.update}`}>Updated: {row.update}</p>
+                                    )}
+                                    {nonDraft && selectedStatus !== 'pending' && row.dateSubmitted && (
+                                        <p className={styles.ctCardMeta} title={`Date Submitted: ${row.dateSubmitted}`}>Submitted: {row.dateSubmitted}</p>
+                                    )}
+                                </div>
+                                <div className={styles.ctCardFooter}>
+                                    <div className={styles.ctCardActions}>
+                                        {row.isOverdue && <OverdueBadge />}
+                                        {selectedStatus === 'approved' && (
+                                            <button type="button" className={`${styles.exportBtn} ${styles.ctExportPill}`} onClick={() => handleExportDemoPdf(row.code, row.name)}>
+                                                Export <Download size={16} />
+                                            </button>
+                                        )}
+                                        {row.status === 'draft' ? (
+                                            (examType === 'Midterm' ? row.midtermLock?.locked : row.finalsLock?.locked) ? (
+                                                <div
+                                                    className={styles.ctLockPill}
+                                                    title={examType === 'Midterm' ? row.midtermLock?.reason : row.finalsLock?.reason}
+                                                >
+                                                    <Lock size={13} aria-hidden="true" />
+                                                    <span>{((examType === 'Midterm' ? row.midtermLock?.reason : row.finalsLock?.reason) || '').replace(/^Locked:\s*/i, '')}</span>
+                                                </div>
+                                            ) : (
+                                                <span className={styles.ctActionPill}>
+                                                    <Link className="actionLink" to={`/tos/${row.code}`} state={{ tosStatus: row.status, courseName: row.name, examType, schoolYear, semester }}>
+                                                        Compose
+                                                        <ChevronRight size={18} />
+                                                    </Link>
+                                                </span>
+                                            )
+                                        ) : row.status === 'returned' ? (
+                                            <span className={styles.ctActionPill}>
+                                                <Link className="actionLink" to={`/tos/${row.code}`} state={{ tosStatus: row.status, courseName: row.name, examType, schoolYear, semester }}>
+                                                    Revise
+                                                    <ChevronRight size={18} />
+                                                </Link>
+                                            </span>
+                                        ) : (
+                                            <span className={styles.ctActionPill}>
+                                                <Link className="actionLink" to={`/tos/${row.code}`} state={{ tosStatus: row.status, courseName: row.name, examType, schoolYear, semester }}>
+                                                    View
+                                                    <ChevronRight size={18} />
+                                                </Link>
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
                 ) : (
                 <table>
                     <thead>
@@ -175,7 +318,7 @@ const TOSCoursesTable = () => {
                     </thead>
 
                     <tbody>
-                    {displayedCourses
+                    {filteredCourses
                         .map((row, index) => (
                             <tr key={index}>
                                 <td width={170}>{nonDraft ? row.dateSubmitted : row.dateAssigned}</td>
@@ -228,6 +371,3 @@ const TOSCoursesTable = () => {
 };
 
 export default TOSCoursesTable;
-
-
-
