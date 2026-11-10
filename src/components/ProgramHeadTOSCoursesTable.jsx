@@ -232,7 +232,6 @@ const ProgramHeadTOSCoursesTable = () => {
                                 </div>
                                 <div className={styles.ctCardFooter}>
                                     <div className={styles.ctCardActions}>
-                                        {row.isOverdue && <OverdueBadge />}
                                         {selectedStatus === 'approved' && (
                                             <button type="button" className={`${styles.exportBtn} ${styles.ctExportPill}`} onClick={() => handleExportDemoPdf(row.code, row.name)}>
                                                 Export <Download size={16} />
@@ -254,6 +253,7 @@ const ProgramHeadTOSCoursesTable = () => {
                                             </span>
                                         )}
                                     </div>
+                                    {row.isOverdue && <OverdueBadge />}
                                 </div>
                             </div>
                         );
