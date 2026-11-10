@@ -1,8 +1,28 @@
 import React, {useState, useEffect} from 'react';
 import {Link, useLocation} from 'react-router-dom'
 import styles from '../styles/CoursesTable.module.sass';
-import { ChevronRight, Download } from 'react-feather';
+import { ChevronRight, Download, AlertTriangle, Lock } from 'react-feather';
 import { fetchCourses } from '../services/api.js';
+const OverdueBadge = () => (
+    <span
+        style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 4,
+            padding: '2px 6px',
+            fontSize: 11,
+            fontWeight: 600,
+            color: '#DC2626',
+            background: '#FEE2E2',
+            borderRadius: 4,
+            whiteSpace: 'nowrap'
+        }}
+    >
+        <AlertTriangle size={11} color="#DC2626" aria-hidden="true" />
+        Overdue
+    </span>
+);
+
 const TOSCoursesTable = () => {
 
     const currentYear = new Date().getFullYear();
@@ -163,7 +183,8 @@ const TOSCoursesTable = () => {
                                 <td width={320}>{row.name}</td>
                                 {nonDraft && selectedStatus !== 'pending' && <td width={200}>{row.dateStatus || row.dateSubmitted}</td>}
                                 {!nonDraft && <td width={200}>{row.update}</td>}
-                                <td className={styles.fill}>
+                                <td className={styles.fill} style={{ gap: 20 }}>
+                                    {row.isOverdue && <OverdueBadge />}
                                     {selectedStatus === 'approved' && (
                                         <button className={styles.exportBtn} onClick={() => handleExportDemoPdf(row.code, row.name)}>
                                             Export <Download size={16} />
@@ -171,8 +192,12 @@ const TOSCoursesTable = () => {
                                     )}
                                     {row.status === 'draft' ? (
                                         (examType === 'Midterm' ? row.midtermLock?.locked : row.finalsLock?.locked) ? (
-                                            <div style={{ color: '#9CA3AF', fontSize: 13, fontStyle: 'italic', cursor: 'not-allowed' }}>
-                                                {examType === 'Midterm' ? row.midtermLock.reason : row.finalsLock.reason}
+                                            <div
+                                                style={{ display: 'inline-flex', alignItems: 'center', gap: 5, color: '#9CA3AF', fontSize: 13, fontStyle: 'italic', cursor: 'not-allowed' }}
+                                                title={examType === 'Midterm' ? row.midtermLock?.reason : row.finalsLock?.reason}
+                                            >
+                                                <Lock size={13} aria-hidden="true" />
+                                                <span>{((examType === 'Midterm' ? row.midtermLock?.reason : row.finalsLock?.reason) || '').replace(/^Locked:\s*/i, '')}</span>
                                             </div>
                                         ) : (
                                         <Link className="actionLink" to={`/tos/${row.code}`} state={{ tosStatus: row.status, courseName: row.name, examType, schoolYear, semester }}>
