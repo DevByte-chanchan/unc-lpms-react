@@ -189,8 +189,11 @@
   gap: 16px
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05)
 
+  select:focus
+    outline: none
+
   select:focus-visible
-    outline: 2px solid #DC2626
+    outline: 2px solid #9CA3AF
     outline-offset: 2px
     border-radius: 4px
 
@@ -248,8 +251,12 @@
   transition: border-color 0.15s ease, box-shadow 0.15s ease
 
   &:focus-within
-    border-color: #DC2626
-    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.12)
+    border-color: #D1D5DB
+    box-shadow: none
+
+  &:has(:focus-visible)
+    outline: 2px solid #9CA3AF
+    outline-offset: 2px
 
 .ctSearchIcon
   color: #9CA3AF

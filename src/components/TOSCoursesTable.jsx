@@ -251,12 +251,6 @@ const TOSCoursesTable = () => {
                                 </div>
                                 <div className={styles.ctCardBody}>
                                     <h3 className={styles.ctCardTitle} title={row.name}>{row.name}</h3>
-                                    {!nonDraft && row.update && (
-                                        <p className={styles.ctCardMeta} title={`Last Updated: ${row.update}`}>Updated: {row.update}</p>
-                                    )}
-                                    {nonDraft && selectedStatus !== 'pending' && row.dateSubmitted && (
-                                        <p className={styles.ctCardMeta} title={`Date Submitted: ${row.dateSubmitted}`}>Submitted: {row.dateSubmitted}</p>
-                                    )}
                                 </div>
                                 <div className={styles.ctCardFooter}>
                                     <div className={styles.ctCardActions}>
