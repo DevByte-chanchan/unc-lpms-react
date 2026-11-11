@@ -269,7 +269,11 @@ async function seedNewCourses() {
             });
             if (outcome.ilos && outcome.ilos.length) {
                 await IloItem.bulkCreate(
-                    outcome.ilos.map(ilo => ({ ...ilo, coId: created.id }))
+                    outcome.ilos.map((ilo, idx) => ({
+                        ...ilo,
+                        coId: created.id,
+                        assessmentTool: (idx + 1) % 2 === 1 ? 'Objective-Type Assessment' : 'Modular Programming'
+                    }))
                 );
             }
         }
