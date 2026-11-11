@@ -163,6 +163,7 @@ const TopicSubForm = forwardRef(({
     iloId,
     previousWeekId,
     weekNumber = 1,
+    weekIndexInCo = 0,
     isOrientation = false,
     status,
     setUnresolvedCount,
@@ -464,6 +465,7 @@ const TopicSubForm = forwardRef(({
                 iloId={iloId}
                 courseCode={courseCode}
                 weekNumber={isOrientation ? 1 : weekNumber}
+                weekIndexInCo={isOrientation ? 0 : weekIndexInCo}
                 previousWeekTopics={isOrientation ? [] : previousWeekTopics}
                 onOpenAiSuggest={onOpenAiSuggest}
             />
@@ -780,20 +782,11 @@ const TopicForm = () => {
     const activeWeekHours = activeWeekObj?.hours
         ? Number(activeWeekObj.hours)
         : (isOrientation ? 2 : (weekContext.totalWeeklyHours || 5));
-    let previousWeekId = null;
-    if (!isOrientation) {
-        if (activeWeekIndex > 0) {
-            previousWeekId = weekContext.weeks[activeWeekIndex - 1]?.week_id;
-        } else if (activeWeekIndex === 0 && Number(weekContext.coNumber) > 1 && Array.isArray(weekContext.courseOutcomes)) {
-            const currentCoNum = Number(weekContext.coNumber);
-            const prevCo = weekContext.courseOutcomes.find(
-                c => !c.isOrientation && Number(c.coNumber) === currentCoNum - 1
-            );
-            if (prevCo && Array.isArray(prevCo.weeks) && prevCo.weeks.length > 0) {
-                previousWeekId = prevCo.weeks[prevCo.weeks.length - 1]?.week_id;
-            }
-        }
-    }
+    // Only allow previous week lookup within the SAME Course Outcome (activeWeekIndex > 0).
+    // Instructors cannot continue topics from other Course Outcomes.
+    const previousWeekId = (!isOrientation && activeWeekIndex > 0)
+        ? weekContext.weeks[activeWeekIndex - 1]?.week_id
+        : null;
 
     // Frontend-cached topics for the current week and previous weeks (used directly without needing DB save first)
     const currentWeekCachedTopics = weekTopicsMap[getWeekCacheKey(effectiveWeekId, isOrientation)];
@@ -1297,7 +1290,8 @@ const TopicForm = () => {
                                          ref={topicRef}
                                          iloId={effectiveWeekId}
                                          previousWeekId={previousWeekId}
-                                         weekNumber={activeWeekNumber}
+                                          weekNumber={activeWeekNumber}
+                                          weekIndexInCo={activeWeekIndex >= 0 ? activeWeekIndex : 0}
                                          isOrientation={isOrientation}
                                          status={status}
                                          setUnresolvedCount={handleTopicUnresolved}

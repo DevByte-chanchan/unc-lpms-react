@@ -12,6 +12,7 @@ const TopicSelector = ({
     error,
     disabled,
     weekNumber = 1,
+    weekIndexInCo = 0,
     previousWeekTopics = [],
     onOpenAiSuggest
 }) => {
@@ -22,8 +23,10 @@ const TopicSelector = ({
     const wrapperRef = useRef(null);
     const scrollContainerRef = useRef(null);
 
-    const canContinueTopic = Number(weekNumber) > 1;
-    const prevWeekDisplay = Number(weekNumber) === 10 ? 8 : (Number(weekNumber) > 1 ? Number(weekNumber) - 1 : 1);
+    // Topics can only be continued starting from the 2nd week within the same Course Outcome (weekIndexInCo >= 1).
+    // Instructors cannot continue topics across different Course Outcomes.
+    const canContinueTopic = Number(weekIndexInCo) >= 1 && (previousWeekTopics || []).length > 0;
+    const prevWeekDisplay = Number(weekNumber) > 1 ? Number(weekNumber) - 1 : 1;
     const currentContinuedTopic = useMemo(
         () => value.find(t => Boolean(t.isContinuation)),
         [value]
@@ -149,7 +152,7 @@ const TopicSelector = ({
             ]
         };
 
-        // Allow only ONE continued topic from the previous week: replace any existing continuation or same-title topic
+        // Allow only ONE continued topic from the previous week within the same Course Outcome: replace any existing continuation or same-title topic
         const remainingTopics = value.filter(
             t =>
                 !t.isContinuation &&
