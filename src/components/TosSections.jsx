@@ -770,7 +770,8 @@ const TosSections = ({role = 'instructor'}) => {
     }));
     const relevantQuestions = questions.filter(q => rows.some(co => co.co === q.co));
     const allItemsHavePoints = relevantQuestions.every(q => q.points && Number(q.points) > 0);
-    const canSubmit = allIlosComplete && allItemsHavePoints && relevantQuestions.length > 0 && comments.every(c => c.resolved);
+    const allItemsHaveBloom = relevantQuestions.every(q => !!q.cognitiveLevel);
+    const canSubmit = allIlosComplete && allItemsHavePoints && allItemsHaveBloom && relevantQuestions.length > 0 && comments.every(c => c.resolved);
 
     const getSubmitTooltipText = () => {
         if (canSubmit) return '';
@@ -1526,6 +1527,12 @@ const items = aggregatedData[co.co][ilo.id][level];
                                                 <label style={{ fontWeight: 600, fontSize: 15, color: '#1A1A1A', display: 'block', marginBottom: 2 }}>TOS Total Points</label>
                                                 <div style={{ fontSize: 13, color: '#666' }}>Enter the total points of the exam. Points per CO and ILO are calculated automatically.</div>
                                                 {tosTotalError && <div style={{ color: '#ef4444', fontSize: 12, marginTop: 4 }}>{tosTotalError}</div>}
+                                                {!allIlosComplete && (
+                                                    <div className={layout.tosAllocationWarning}>
+                                                        <AlertTriangle size={15} />
+                                                        <span>Points are not fully allocated yet. Allocate assessment points so each ILO matches its target.</span>
+                                                    </div>
+                                                )}
                                             </div>
                                             <input
                                                 className={layout.input}
@@ -1994,6 +2001,12 @@ const items = aggregatedData[co.co][ilo.id][level];
                                                 <label style={{ fontWeight: 600, fontSize: 15, color: '#1A1A1A', display: 'block', marginBottom: 2 }}>TOS Total Points</label>
                                                 <div style={{ fontSize: 13, color: '#666' }}>Enter the total points of the exam. Points per CO and ILO are calculated automatically.</div>
                                                 {tosTotalError && <div style={{ color: '#ef4444', fontSize: 12, marginTop: 4 }}>{tosTotalError}</div>}
+                                                {!allIlosComplete && (
+                                                    <div className={layout.tosAllocationWarning}>
+                                                        <AlertTriangle size={15} />
+                                                        <span>Points are not fully allocated yet. Allocate assessment points so each ILO matches its target.</span>
+                                                    </div>
+                                                )}
                                             </div>
                                             <input
                                                 className={layout.input}
