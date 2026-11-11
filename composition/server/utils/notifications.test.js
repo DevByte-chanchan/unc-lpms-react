@@ -606,6 +606,25 @@ test('older comment notifications learn their comment: the one written just befo
     assert.equal(await linked(resolvedNotice), second, "the recipient's own comment resolved then");
 });
 
+test("a plan's course outcomes align only to its own program's POs, never to another program's", async () => {
+    const { updateCourseProgramOutcomeAlignment } = require('../controllers/courseOutcomeAlignmentController');
+    const f = await fixture();
+    const other = await fixture();
+    const now = new Date();
+    const coId = await insert('CourseOutcomes', { pc_offering_id: f.offeringId, co_description: 'CO1: Explain.', createdAt: now, updatedAt: now });
+    const [ownPo] = await q('SELECT po_id FROM ProgramOutcomes WHERE program_id = ?', [f.programId]);
+    const [otherPo] = await q('SELECT po_id FROM ProgramOutcomes WHERE program_id = ?', [other.programId]);
+    const save = async (poId) => {
+        const res = { code: 200, body: null, status(c) { this.code = c; return this; }, json(b) { this.body = b; return this; } };
+        await updateCourseProgramOutcomeAlignment({ params: { pcId: String(f.offeringId), revNum: '0' }, body: { courseOutcomes: [{ id: coId, poMappings: ['E'] }], programOutcomes: [{ po_id: poId }] } }, res);
+        return res;
+    };
+    assert.equal((await save(otherPo.po_id)).code, 403, "another program's PO is refused");
+    assert.equal((await q('SELECT COUNT(*) AS n FROM ProgramOutcomeAlignments WHERE co_id = ?', [coId]))[0].n, 0);
+    assert.equal((await save(ownPo.po_id)).code, 200);
+    assert.equal((await q('SELECT attainment_level FROM ProgramOutcomeAlignments WHERE co_id = ? AND po_id = ?', [coId, ownPo.po_id]))[0].attainment_level, 'E');
+});
+
 test('workflow logs are read in real time order even when their offsets differ', async () => {
     const f = await fixture();
     // 16:05 UTC written as local +08:00 text, then 16:06 UTC written as +00:00 text.

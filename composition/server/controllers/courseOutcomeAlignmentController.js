@@ -96,6 +96,12 @@ async function updateCourseProgramOutcomeAlignment(req, res) {
         if (courseOutcomes.some(co => co.poMappings.some((level, i) => (level && !['I', 'E', 'D'].includes(level)) || !programOutcomes[i]?.po_id))) {
             return res.status(400).json({ message: 'Each alignment is I, E, D or empty, against a listed program outcome.' });
         }
+        // Only the POs of this plan's own program (a BSCS plan aligns to BSCS's outcomes, never to BSIT's).
+        const offering = await ProgramCourseOffering.findByPk(pcId, { attributes: ['program_id'], raw: true });
+        const ownPoIds = new Set((await ProgramOutcome.findAll({ where: { program_id: offering?.program_id ?? -1 }, attributes: ['po_id'], raw: true })).map(po => Number(po.po_id)));
+        if (programOutcomes.some(po => !ownPoIds.has(Number(po?.po_id)))) {
+            return res.status(403).json({ message: "A program outcome in this request is not one of this plan's program." });
+        }
 
         // Iterate through all courseOutcomes and perform an upsert on ProgramOutcomeAlignment
         for (const co of courseOutcomes) {
