@@ -139,6 +139,11 @@ const CourseAssignment = () => {
           ? `Official list (registrar's Subject Offerings): ${data.official.sections} sections, imported ${new Date(data.official.importedAt).toLocaleString()}.`
           : 'No official list for this term yet. Pre-assign the courses now; import the Subject Offerings (.xls) at the end of enrollment to compare.'}
       </p>
+      {data?.notReady?.map(p => (
+        <div key={p.programId} role="status" style={{ margin: '0 0 12px', color: 'var(--danger)' }}>
+          {p.name}: complete its Program Documents before assigning courses. Missing: {p.missing.join('; ')}.
+        </div>
+      ))}
       {error && <div role="alert" style={{ margin: '0 0 12px', color: 'var(--danger)' }}>{error}</div>}
       {notice && <div role="status" style={{ margin: '0 0 12px', color: 'var(--good)' }}>{notice}</div>}
 

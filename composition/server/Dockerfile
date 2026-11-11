@@ -25,14 +25,24 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 
 # Install scripts have to run: the SQLite drivers unpack or compile their
-# binding during `npm ci`.
+# binding during `npm ci`. Puppeteer's own Chrome download is skipped: the
+# runtime image uses Debian's chromium (below).
+ENV PUPPETEER_SKIP_DOWNLOAD=true
 RUN npm ci --omit=dev
 
 
 FROM node:22-bookworm-slim AS runtime
 
+# Headless Chromium for the PDF exports (utils/pdfRenderer.js), with Liberation
+# fonts (metric-compatible with Arial, the exports' font) so pages lay out the
+# same as in a browser.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends chromium fonts-liberation \
+    && rm -rf /var/lib/apt/lists/*
+
 ENV NODE_ENV=production \
     PORT=5000 \
+    LPMS_CHROME_PATH=/usr/bin/chromium \
     LPMS_DATA_DIR=/app/data \
     LPMS_SEED_DIR=/app/seed-data \
     NPM_CONFIG_UPDATE_NOTIFIER=false

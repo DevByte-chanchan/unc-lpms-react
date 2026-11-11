@@ -11,6 +11,7 @@
 
 const { sequelize, Program, Department, ProgramCourseOffering, ProgramOutcome, ProgramOutcomeAlignment, ProgramEducationalObjective } = require('../models');
 const { record: audit } = require('../utils/audit');
+const { programReadiness } = require('../utils/programReadiness');
 
 const GRADUATE_ATTRIBUTES = Object.freeze(['EC', 'CL', 'ERC', 'LL']);
 const MAX_ITEMS = 25;
@@ -28,7 +29,9 @@ const load = async (programId) => {
     return {
         peos: peos.map(p => ({ id: p.peo_id, statement: p.statement, missionAligned: !!p.mission_aligned })),
         outcomes: outcomes.map(o => ({ id: o.po_id, text: o.description, peos: parseNumbers(o.peo_numbers), gas: parseNumbers(o.ga_numbers) })),
-        graduateAttributes: GRADUATE_ATTRIBUTES
+        graduateAttributes: GRADUATE_ATTRIBUTES,
+        // ready for learning plans? (utils/programReadiness.js)
+        readiness: await programReadiness(sequelize, programId)
     };
 };
 

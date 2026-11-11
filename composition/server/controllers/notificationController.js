@@ -49,6 +49,7 @@ const toApi = (n, described, offeringId = n.offering_id) => ({
     createdAt: n.created_at,
     readAt: n.read_at,
     offeringId,
+    commentId: n.comment_id ?? null,
     ...(described.get(offeringId) || {})
 });
 

@@ -129,7 +129,7 @@ const onWorkflowAction = guarded(async ({ offeringId, actorUserId, actorRole, ac
 
 // A comment was added. A reviewer's (or consultant's) comment goes to the instructor; the
 // instructor's goes to the reviewers with a pending item.
-const onComment = guarded(async ({ offeringId, actorUserId, commenterRole, assignmentId }) => {
+const onComment = guarded(async ({ offeringId, actorUserId, commenterRole, assignmentId, commentId = null }) => {
     const people = await peopleFor(offeringId);
     if (!people) return 0;
     // The Dean's comments reach the instructor through the Program Head (who forwards a Dean return or sends it
@@ -139,24 +139,27 @@ const onComment = guarded(async ({ offeringId, actorUserId, commenterRole, assig
         : commenterRole === 'DEAN'
             ? usersForRole(people, 'PROGRAM_HEAD')
             : usersForRole(people, 'INSTRUCTOR');
-    return notify(withoutActor(recipients, actorUserId), 'comment_added', offeringId, eventMessage(people.courseCode, 'comment added', commenterRole), commenterRole);
+    return notify(withoutActor(recipients, actorUserId), 'comment_added', offeringId, eventMessage(people.courseCode, 'comment added', commenterRole), commenterRole, null, commentId);
 });
 
 // Comments were marked resolved: tell each comment's author once per offering.
-// resolved: [{ authorUserId, offeringId }]
+// resolved: [{ authorUserId, offeringId, comment_id }]; each author's notice opens their first resolved comment.
 const onCommentsResolved = guarded(async ({ resolved, actorUserId, actorRole }) => {
     const byOffering = new Map();
-    for (const { authorUserId, offeringId } of resolved) {
+    for (const { authorUserId, offeringId, comment_id: commentId } of resolved) {
         if (!authorUserId || !offeringId) continue;
-        if (!byOffering.has(offeringId)) byOffering.set(offeringId, new Set());
-        byOffering.get(offeringId).add(authorUserId);
+        if (!byOffering.has(offeringId)) byOffering.set(offeringId, new Map());
+        const authors = byOffering.get(offeringId);
+        if (!authors.has(authorUserId)) authors.set(authorUserId, commentId || null);
     }
     let written = 0;
     for (const [offeringId, authors] of byOffering) {
         const people = await peopleFor(offeringId);
         if (!people) continue;
-        written += await notify(withoutActor([...authors], actorUserId), 'comment_resolved', offeringId,
-            eventMessage(people.courseCode, 'comments marked resolved', actorRole), actorRole);
+        const message = eventMessage(people.courseCode, 'comments marked resolved', actorRole);
+        for (const [author, commentId] of authors) {
+            written += await notify(withoutActor([author], actorUserId), 'comment_resolved', offeringId, message, actorRole, null, commentId);
+        }
     }
     return written;
 });

@@ -456,9 +456,11 @@ function computeCoverageChunks(syllabus) {
       coId,
       showCo: isFirst || !coId,
       coSpan,
-      iloText: safe(ilo.intendedLearningOutcome || ilo.description),
+      // each "ILOn:" on its own line (the plan stores a week's ILOs as one text)
+      iloText: safe(ilo.intendedLearningOutcome || ilo.description).replace(/\s+(?=ILO\s*\d+\s*:)/g, '<br>'),
       topics: buildTopicsHtml(ilo),
-      period: escapeHtml((ilo.deliveryWeek + ' (' + (ilo.allocatedTime || '') + ')').trim()),
+      // the stored time may already read "(5 hrs)": one pair of parentheses only
+      period: escapeHtml((ilo.deliveryWeek + (ilo.allocatedTime ? ' (' + String(ilo.allocatedTime).replace(/^\s*\(|\)\s*$/g, '').trim() + ')' : '')).trim()),
       tlaHtml: tlaParts.join(''),
       tlaParts,
       assHtml: buildAssessmentsHtml(ilo),
@@ -603,6 +605,7 @@ function computeCoverageChunks(syllabus) {
   const partH = (p) => cellHeight(p, 46, 62)
   const atoms = []
   for (const row of rows) {
+    if (row.t === 'row') row._iloKey = row.iloText
     if (row.t !== 'row' || !row.tlaParts || row.tlaParts.length <= 1 || estRowH(row) <= MAX_ROW_H) {
       atoms.push(row); continue
     }
@@ -648,6 +651,12 @@ function computeCoverageChunks(syllabus) {
     a._mCoTop = !!(pv && pv._cg === a._cg); a._mCoBot = !!(nx && nx._cg === a._cg)
     a._mTkTop = !!(pv && pv._tk === a._tk); a._mTkBot = !!(nx && nx._tk === a._tk)
     a._mIgTop = !!(pv && pv._ig === a._ig); a._mIgBot = !!(nx && nx._ig === a._ig)
+    // The ILOs: a week usually repeats its CO's ILOs, so the column is merged like the CO label (same CO, same
+    // text: shown once). Split pieces of one row carry the row's text in _iloKey.
+    a._iloKey = a._iloKey || a.iloText
+    const sameIlo = (o) => !!(o && o._cg === a._cg && (o._iloKey || o.iloText) === a._iloKey)
+    a._showIlo = !sameIlo(pv)
+    a._mIlTop = sameIlo(pv); a._mIlBot = sameIlo(nx)
   })
 
   // Estimate-based packing of the atoms — this is only the FALLBACK layout used if
@@ -711,10 +720,12 @@ function courseCoveragePages(syllabus, logo, startPageNum, total) {
       // label and its bullets) sit tight together, like one continuous cell.
       const igPad = (row._mIgTop ? 'padding-top:0;' : '') + (row._mIgBot ? 'padding-bottom:0;' : '')
       const igStyle = igBm + igPad
-      const attrs = ' data-cg="' + (row._cg || '') + '" data-tk="' + (row._tk || '') + '" data-ig="' + (row._ig || '') + '"'
+      // data-co / data-ilo: what a continuation page repeats at its top (REPAG_SCRIPT)
+      const attrs = ' data-cg="' + (row._cg || '') + '" data-tk="' + (row._tk || '') + '" data-ig="' + (row._ig || '') + '"' +
+        ' data-co="' + escapeHtml(row.coId || '') + '" data-ilo="' + escapeHtml(row._iloKey || '') + '"'
       return '<tr' + attrs + '>' +
         '<td data-c="co" style="width:' + COLS_W.co + '; ' + CELL + coBm + 'font-weight:bold; text-align:center;">' + (row._showCo ? (row.coId || '') : '') + '</td>' +
-        '<td data-c="ilo" style="width:' + COLS_W.ilo + '; ' + CELL + igStyle + '">' + row.iloText + '</td>' +
+        '<td data-c="ilo" style="width:' + COLS_W.ilo + '; ' + CELL + mb(row._mIlTop, row._mIlBot) + '">' + (row._showIlo ? (row._iloKey || '') : '') + '</td>' +
         '<td data-c="topic" style="width:' + COLS_W.topic + '; ' + CELL + tkBm + '">' + (row._showTk ? row.topics : '') + '</td>' +
         '<td data-c="period" style="width:' + COLS_W.period + '; ' + CELL + igStyle + '">' + row.period + '</td>' +
         '<td data-c="tla" style="width:' + COLS_W.tla + '; ' + CELL + igStyle + '">' + row.tlaHtml + '</td>' +
@@ -738,15 +749,15 @@ function courseCoveragePages(syllabus, logo, startPageNum, total) {
       (ci === 0 ? '<h3 class="cov-h3">COURSE COVERAGE</h3>\n' : '') +
       '<table class="cov-table" style="width:100%; border-collapse:collapse; border:1px solid #000; table-layout:fixed;">\n' +
       colgroup +
-      (ci === 0 ? '<thead><tr>\n' +
+      '<thead><tr>\n' +
       '<th style="width:' + COLS_W.co + '; ' + TH_STYLE + '">CO</th>\n' +
       '<th style="width:' + COLS_W.ilo + '; ' + TH_STYLE + '">Intended Learning Outcomes (ILOs)</th>\n' +
       '<th style="width:' + COLS_W.topic + '; ' + TH_STYLE + '">Topic</th>\n' +
       '<th style="width:' + COLS_W.period + '; ' + TH_STYLE + '">PERIOD<br>(hours)</th>\n' +
       '<th style="width:' + COLS_W.tla + '; ' + TH_STYLE + '">Teaching &amp; Learning Activities (TLA)</th>\n' +
       '<th style="width:' + COLS_W.assess + '; ' + TH_STYLE + '">Assessment</th>\n' +
-      '<th style="width:' + COLS_W.ref + '; ' + TH_STYLE + '">Text/References</th>\n' +
-      '</tr></thead>\n' : '') +
+      '<th style="width:' + COLS_W.ref + '; ' + TH_STYLE + '">Text / References</th>\n' +
+      '</tr></thead>\n' +
       '<tbody>\n' + tbodyRows + '\n</tbody>\n' +
       '</table>\n' +
       pageFooter(pageNum, total) + '\n' +
@@ -1011,6 +1022,11 @@ export function buildSyllabusHtml(syllabus, courseCode, workflow, logoBase64, op
     tr, td, th { page-break-inside: avoid; break-inside: avoid; }
     thead { display: table-header-group; }
     img { page-break-inside: avoid; }
+    /* A 1px line is a hairline on paper: print previews, LibreOffice and low-zoom viewers drop it, so tables lost
+       their inner lines. Widen every drawn border; a hidden one (border-top:none) keeps its 'none' style. */
+    table, th, td { border-width: 0.35mm !important; }
+    /* keep the grey header bars: browsers leave out backgrounds when printing unless told */
+    * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   }
   @page { size: 330mm 216mm; margin: 0; }
   .page-break { page-break-after: always; }
@@ -1070,7 +1086,8 @@ export function buildSyllabusHtml(syllabus, courseCode, workflow, logoBase64, op
     var lastRow=tb.lastElementChild;
     if(lastRow)for(var c=0;c<lastRow.children.length;c++)lastRow.children[c].style.borderBottom='none';
     var tr=document.createElement('tr');
-    for(var k=0;k<7;k++){var td=document.createElement('td');td.style.cssText='border:1px solid black;border-top:none;padding:0;';tr.appendChild(td);}
+    var cells=lastRow&&lastRow.getAttribute('data-div')?1:7;
+    for(var k=0;k<cells;k++){var td=document.createElement('td');td.style.cssText='border:1px solid black;border-top:none;padding:0;';if(cells===1)td.colSpan=7;tr.appendChild(td);}
     tr.style.height=gap+'px';
     tb.appendChild(tr);
   }
@@ -1105,34 +1122,40 @@ export function buildSyllabusHtml(syllabus, courseCode, workflow, logoBase64, op
     }
     return false;
   }
-  // Split a too-tall row at the footer line by trimming ONLY the TLA column (the
-  // list of activities, which naturally continues across pages). The ILO's context
-  // — Topic, ILO text, Assessment, References — always stays WHOLE on the head, so
-  // a topic never gets stranded on the continuation page. If the row still doesn't
-  // fit after trimming TLA down to its first item (e.g. the Topic alone is too tall
-  // for the space left), we give up and move the WHOLE ILO to the next page. Returns
-  // the continuation row, or null to move the whole row down.
+  // Split a too-tall row at the footer line. The columns that are lists (topic and its subtopics, activities,
+  // assessments, references) give up their last items, tallest column first, until the row fits; those items
+  // continue at the top of the next page, so a long week flows on instead of leaving most of a page empty.
+  // The CO, ILO and period stay on the head (the next page repeats the CO and ILOs, see headRow). Returns the
+  // continuation row, or null when nothing can be trimmed (the whole row then moves to the next page).
+  var LIST_COLS=['topic','tla','assess','ref'];
+  function contentBottom(cell){var last=cell.lastElementChild;return last?last.getBoundingClientRect().bottom:0;}
   function splitRowToFit(tr,limit){
-    var tla=tr.querySelector('td[data-c="tla"]');
-    if(!tla)return null;
     var orig=tr.cloneNode(true);
-    var removed=0,g=0;
-    while(tr.getBoundingClientRect().bottom>limit && unitCount(tla)>1 && g++<1500){
-      if(popLastUnit(tla))removed++; else break;
+    var removed={},any=false,g=0;
+    LIST_COLS.forEach(function(c){removed[c]=0;});
+    while(tr.getBoundingClientRect().bottom>limit && g++<3000){
+      var best=null,bottom=-1;
+      LIST_COLS.forEach(function(c){
+        var cell=tr.querySelector('td[data-c="'+c+'"]');
+        if(!cell||unitCount(cell)<=1)return;
+        var b=contentBottom(cell); if(b>bottom){bottom=b;best=cell;}
+      });
+      if(!best||!popLastUnit(best))break;
+      removed[best.getAttribute('data-c')]++;any=true;
     }
-    if(removed===0 || tr.getBoundingClientRect().bottom>limit){
-      // couldn't fit even with TLA trimmed — restore and move the whole row down
+    if(!any || tr.getBoundingClientRect().bottom>limit){
       while(tr.firstChild)tr.removeChild(tr.firstChild);
       while(orig.firstChild)tr.appendChild(orig.firstChild);
       return null;
     }
-    // continuation carries only the leftover TLA items; all context stays on head
+    // the continuation carries only what was trimmed from each list column
     var cont=orig.cloneNode(true);
-    ['co','ilo','period','topic','assess','ref'].forEach(function(c){
-      var cell=cont.querySelector('td[data-c="'+c+'"]'); if(cell)cell.innerHTML='';
+    ['co','ilo','period'].forEach(function(c){var cell=cont.querySelector('td[data-c="'+c+'"]'); if(cell)cell.innerHTML='';});
+    LIST_COLS.forEach(function(c){
+      var cell=cont.querySelector('td[data-c="'+c+'"]'); if(!cell)return;
+      if(!removed[c]){cell.innerHTML='';return;}
+      var g2=0; while(unitCount(cell)>removed[c] && g2++<3000){ if(!removeFirstUnit(cell))break; }
     });
-    var ctla=cont.querySelector('td[data-c="tla"]');
-    if(ctla){ var g2=0; while(unitCount(ctla)>removed && g2++<3000){ if(!removeFirstUnit(ctla))break; } }
     return cont;
   }
   function repaginate(){
@@ -1164,12 +1187,25 @@ export function buildSyllabusHtml(syllabus, courseCode, workflow, logoBase64, op
       pages.forEach(function(p){if(p.parentNode)p.parentNode.removeChild(p);});
       var built=[];
       function newPageForRow(tr){
+        var carry=tb.lastElementChild&&tb.lastElementChild.getAttribute('data-div')&&tb.children.length>1?tb.lastElementChild:null;
+        if(carry)tb.removeChild(carry);
         addFiller(cur);            // top the finished page off to the shared line
         built.push(cur);
         cur=makePage(false);parent.insertBefore(cur,anchor);
         tb=cur.querySelector('table.cov-table tbody');limit=footLimit(cur);
+        if(carry)tb.appendChild(carry);
         if(tr)tb.appendChild(tr);
+        startPage=true;
       }
+      // the first row of a continuation page repeats its CO label and ILOs, and draws its own top border
+      function headRow(tr){
+        if(!tr||tr.getAttribute('data-div'))return;
+        var co=tr.querySelector('td[data-c="co"]'),il=tr.querySelector('td[data-c="ilo"]');
+        if(co&&!co.textContent.trim())co.textContent=tr.getAttribute('data-co')||'';
+        if(il&&!il.textContent.trim())il.innerHTML=tr.getAttribute('data-ilo')||'';
+        for(var c=0;c<tr.children.length;c++)tr.children[c].style.borderTop='1px solid black';
+      }
+      var startPage=false;
       var cur=makePage(true);parent.insertBefore(cur,anchor);
       var tb=cur.querySelector('table.cov-table tbody');
       var limit=footLimit(cur); // fixed designated line for this page
@@ -1177,15 +1213,18 @@ export function buildSyllabusHtml(syllabus, courseCode, workflow, logoBase64, op
       while(i<atomTrs.length&&guard++<100000){
         var tr=atomTrs[i];
         tb.appendChild(tr);
+        if(startPage){headRow(tr);startPage=false;}
         // measure the ACTUAL rendered bottom of this row (survives flex/clip)
-        if(tb.children.length>1 && tr.getBoundingClientRect().bottom>limit){
+        // a row past the footer line splits (even the only row of a page: one taller than a page is never cut off)
+        if(tr.getBoundingClientRect().bottom>limit){
           var cont=splitRowToFit(tr,limit);
           if(cont){
             atomTrs.splice(i+1,0,cont); // leftover continues on the next page
             newPageForRow(null);        // head fills this page
-          }else{
+          }else if(tb.children.length>1){
             tb.removeChild(tr);
             newPageForRow(tr);          // whole row moves to a fresh page
+            headRow(tr);startPage=false;
           }
         }
         i++;
@@ -1246,6 +1285,11 @@ const alignmentHead = `<!DOCTYPE html>
     tr, td, th { page-break-inside: avoid; break-inside: avoid; }
     thead { display: table-header-group; }
     img { page-break-inside: avoid; }
+    /* A 1px line is a hairline on paper: print previews, LibreOffice and low-zoom viewers drop it, so tables lost
+       their inner lines. Widen every drawn border; a hidden one (border-top:none) keeps its 'none' style. */
+    table, th, td { border-width: 0.35mm !important; }
+    /* keep the grey header bars: browsers leave out backgrounds when printing unless told */
+    * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   }
   @page { size: 330mm 216mm; margin: 0; }
   .page-break { page-break-after: always; }

@@ -1,6 +1,6 @@
 import Select from '../../../components/Select.jsx'
 import { useEffect, useState } from 'react';
-import { Download, Eye, FileText } from 'react-feather';
+import { Download, FileText } from 'react-feather';
 import SkeletonA from '../../../layouts/SkeletonA.jsx';
 import HeaderA from '../../../components/HeaderA.jsx';
 import SideNavigation from '../../../components/SideNavigation.jsx';
@@ -142,7 +142,7 @@ const COAEPView = ({ tabs = null }) => {
                   </button>
                 )}
                 <button type="button" className="btn btn-primary" onClick={viewGeneratedCoaep}>
-                  <Eye size={16} /> Preview / Export
+                  <Download size={16} /> Export
                 </button>
               </div>
             )}

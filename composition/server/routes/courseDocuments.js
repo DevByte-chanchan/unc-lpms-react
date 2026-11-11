@@ -12,6 +12,8 @@ router.post('/export/coaep', express.json({ limit: '2mb' }), controller.exportCo
 router.get('/:pcId', requireOfferingAccess, controller.info);
 router.get('/:pcId/:kind', requireOfferingAccess, controller.download);
 router.put('/:pcId/:kind', requireRole('program-head'), express.raw({ type: () => true, limit: '12mb' }), controller.upload);
+router.post('/:pcId/:kind/scan', requireRole('program-head'), express.raw({ type: () => true, limit: '13mb' }), controller.scan);
+router.put('/:pcId/:kind/scanned', requireRole('program-head'), express.json({ limit: '2mb' }), controller.saveScanned);
 router.delete('/:pcId/:kind', requireRole('program-head'), controller.remove);
 
 module.exports = router;

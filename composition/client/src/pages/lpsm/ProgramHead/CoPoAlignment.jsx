@@ -1,6 +1,6 @@
 import Select from '../../../components/Select.jsx'
 import { useEffect, useMemo, useState } from 'react';
-import { Eye } from 'react-feather';
+import { Download } from 'react-feather';
 import SkeletonA from '../../../layouts/SkeletonA.jsx';
 import HeaderA from '../../../components/HeaderA.jsx';
 import SideNavigation from '../../../components/SideNavigation.jsx';
@@ -97,7 +97,7 @@ const CoPoAlignment = ({ tabs = null }) => {
         {tabs || <h2 className="app-page-title">Course Outcomes &amp; PO Alignment</h2>}
         <div className={pageStyles.pageHeaderActions}>
           <button type="button" className="btn btn-primary" onClick={handleView} disabled={!outcomes.length && !uploaded}>
-            <Eye size={16} /> Preview / Export
+            <Download size={16} /> Export
           </button>
         </div>
       </div>

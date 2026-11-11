@@ -13,6 +13,7 @@ import { buildReviewRecordFile, buildSyllabusExportFile } from '../utils/exportS
 import { validateSubmission } from '../utils/submissionGate'
 import { toPanelComments } from '../utils/serverComments.js'
 import CommentsSidebar from './CommentsSidebar.jsx'
+import { useCommentFocus, useCommentFromLink, useWeekCommentsLink, sectionOfComment } from '../utils/useCommentFocus.js'
 import PDFViewerModal from './PDFViewerModal'
 import unclogo from '../assets/unclogo.png'
 
@@ -69,6 +70,15 @@ const SyllabusSections = () => {
             .catch(err => { if (!cancelled) { console.warn('Could not load the comments for this plan:', err); setPlanComments([]) } })
         return () => { cancelled = true }
     }, [offeringID, revisionNum, resolvedCode])
+    // The comments the instructor sees (one for the Program Head that is still open stays with them), and
+    // "Show in plan" for each: the section opens at the item the comment names, flashed yellow
+    // (utils/useCommentFocus.js). A notification about a comment opens it the same way (?comment=<id>).
+    const sidebarComments = planComments.filter(c => !(c.recipientRole === 'program_head' && !c.resolved))
+    const openSection = useCallback((section) => setSearchParams(p => { const next = new URLSearchParams(p); next.set('section', section); next.delete('comment'); return next }, { replace: true }), [setSearchParams])
+    const showCommentInPlan = useCommentFocus({ selectedSection, openSection })
+    const openCommentsPanel = useCallback(() => setCommentsCollapsed(false), [])
+    useCommentFromLink({ comments: sidebarComments, openPanel: openCommentsPanel, showCommentInPlan })
+    useWeekCommentsLink({ comments: sidebarComments, openPanel: openCommentsPanel })
     // The instructor marks a comment resolved while the plan is back with them; the server records it at once.
     const resolvePlanComment = (id) => {
         const serverId = Number(String(id).replace('server-', ''))
@@ -373,12 +383,14 @@ const SyllabusSections = () => {
             </div>
             <CommentsSidebar
                 panelId="plan-comments-panel"
-                comments={planComments.filter(c => !(c.recipientRole === 'program_head' && !c.resolved))}
+                comments={sidebarComments}
                 collapsed={commentsCollapsed}
                 onToggle={() => setCommentsCollapsed(value => !value)}
                 emptyHint="Comments from your reviewers will appear here once they have looked at your plan."
                 canResolve={(comment) => status === 'returned' && comment.recipientRole === 'instructor'}
                 onResolve={resolvePlanComment}
+                canShowInPlan={(comment) => Boolean(sectionOfComment(comment))}
+                onShowInPlan={showCommentInPlan}
             />
             </div>
 

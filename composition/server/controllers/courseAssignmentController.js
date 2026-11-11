@@ -18,6 +18,7 @@ const { sequelize, Sequelize } = require('../models');
 const service = require('../services/offeringService');
 const offerings = require('../utils/subjectOfferings');
 const { onCourseAssigned } = require('../utils/notificationEvents');
+const { programReadiness } = require('../utils/programReadiness');
 
 const select = (sql, replacements = []) => sequelize.query(sql, { replacements, type: Sequelize.QueryTypes.SELECT });
 const asInt = (value) => (Number.isSafeInteger(Number(value)) && Number(value) > 0 ? Number(value) : null);
@@ -62,8 +63,15 @@ async function listAssignments(req, res, next) {
             [programIds, schoolYear, semester]) : [];
         const sections = stored.map(s => ({ courseNo: s.course_no, section: s.section, faculty: JSON.parse(s.faculty || '[]') }));
         const rows = offerings.compare({ courses, assignments, sections, users, hasOfficial: stored.length > 0 });
+        // Programs whose documents are not complete yet: none of their courses can be assigned (offeringService).
+        const notReady = [];
+        for (const program of programIds.length ? await select('SELECT program_id, name FROM Programs WHERE program_id IN (?) ORDER BY name', [programIds]) : []) {
+            const readiness = await programReadiness(sequelize, program.program_id);
+            if (!readiness.complete) notReady.push({ programId: program.program_id, name: program.name, missing: readiness.missing });
+        }
         return res.json({
             rows,
+            notReady,
             instructors: users,
             official: stored.length ? { sections: stored.length, importedAt: stored[0].createdAt } : null,
         });

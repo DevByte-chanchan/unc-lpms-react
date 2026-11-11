@@ -105,7 +105,7 @@ const Header = ({ department }) => {
           )}
         </div>
       )}
-      {session && session.role !== 'superuser' && <NotificationBell variant="icon" />}
+      {session && session.role !== 'superuser' && <NotificationBell />}
       <SettingsModal open={settings !== null} initialTab={settings || 'account'} onClose={() => setSettings(null)} />
     </div>
   )

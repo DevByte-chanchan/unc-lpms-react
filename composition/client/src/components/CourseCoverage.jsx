@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { WEEK_COMMENTS_EVENT } from '../utils/useCommentFocus.js'
 import { offeringKey } from '../utils/offeringKey.js'
 import HeadBodyTable from './HeadBodyTable.jsx';
 import { AlertTriangle } from 'react-feather';
@@ -330,7 +331,14 @@ const CourseCoverage = ({ offeringID, revisionNum, status, selectedSection, styl
                                                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
                                                             <span className={stylesB.boldText}>{week.deliveryWeek}</span>
                                                             {status === 'returned' && totalWeekUnresolved > 0 && (
-                                                                <span className={styles['comment-badge']}>
+                                                                // Open comments on this week: a click opens the comments panel at them (utils/useCommentFocus.js).
+                                                                // A plain badge that also acts as a button (a <button> would take the app's button sizing).
+                                                                <span className={styles['comment-badge']} role="button" tabIndex={0}
+                                                                    style={{ cursor: 'pointer' }}
+                                                                    title={`${totalWeekUnresolved} open comment${totalWeekUnresolved === 1 ? '' : 's'} on this week: show ${totalWeekUnresolved === 1 ? 'it' : 'them'}`}
+                                                                    aria-label={`Show the ${totalWeekUnresolved} open comment${totalWeekUnresolved === 1 ? '' : 's'} on ${week.deliveryWeek}`}
+                                                                    onClick={() => window.dispatchEvent(new CustomEvent(WEEK_COMMENTS_EVENT, { detail: { week: `CO${co.coNumber}-W${wIdx + 1}` } }))}
+                                                                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.currentTarget.click() } }}>
                                                                     {totalWeekUnresolved}
                                                                 </span>
                                                             )}

@@ -6,6 +6,8 @@ module.exports = (sequelize, DataTypes) => {
         recipient_user_id: { type: DataTypes.INTEGER, allowNull: false },
         type: { type: DataTypes.STRING(30), allowNull: false },
         offering_id: { type: DataTypes.INTEGER, allowNull: true },
+        // the comment a comment notification is about (opening it jumps there)
+        comment_id: { type: DataTypes.INTEGER, allowNull: true },
         message: { type: DataTypes.STRING(200), allowNull: false },
         actor_role: { type: DataTypes.STRING(30), allowNull: true },
         is_read: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },

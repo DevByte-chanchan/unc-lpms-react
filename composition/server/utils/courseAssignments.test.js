@@ -44,6 +44,9 @@ test.before(async () => {
     const now = new Date();
     await sequelize.getQueryInterface().bulkInsert('Programs', [{ dept_id: 3, name: `Test Program ${stamp}`, stakeholder_id: head.user_id, createdAt: now, updatedAt: now }]);
     const [program] = await select('SELECT program_id FROM Programs WHERE stakeholder_id = ?', [head.user_id]);
+    // complete program documents: plans are only started for such a program (utils/programReadiness.js)
+    await sequelize.getQueryInterface().bulkInsert('ProgramEducationalObjectives', [{ program_id: program.program_id, statement: 'PEO', mission_aligned: true, createdAt: now, updatedAt: now }]);
+    await sequelize.getQueryInterface().bulkInsert('ProgramOutcomes', [{ program_id: program.program_id, description: 'PO', peo_numbers: '[1]', ga_numbers: '[]', createdAt: now, updatedAt: now }]);
     const course = async (no) => (await select('SELECT course_id FROM Courses WHERE course_no = ?', [no]))[0].course_id;
     const user = { id: head.user_id, name: head.name };
     // BIT311L pre-assigned to Ana for 2026-2027 1st; MATH311L only known from an earlier term (so not pre-assigned).

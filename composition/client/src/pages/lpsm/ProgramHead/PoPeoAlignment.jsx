@@ -1,6 +1,7 @@
 import Select from '../../../components/Select.jsx'
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Eye, Edit3, Check, X, Plus, Trash2, Upload } from 'react-feather';
+import { Edit3, Check, X, Plus, Trash2, Upload, Zap, Download } from 'react-feather';
+import { SOURCE_LABEL } from '../../../utils/scanSource.js';
 import { DocumentBar, TemplateButton } from '../../../components/CourseDocumentBar.jsx';
 import SkeletonA from '../../../layouts/SkeletonA.jsx';
 import HeaderA from '../../../components/HeaderA.jsx';
@@ -56,7 +57,10 @@ const PoPeoAlignment = ({ tabs = null, view = 'outcomes' }) => {
   // The program's uploaded front pages (first three syllabus pages): { pages } or null; undefined while loading.
   const [front, setFront] = useState(undefined)
   const importRef = useRef(null)
+  const scanRef = useRef(null)
   const frontRef = useRef(null)
+  // The front pages read and checked against this program's PEOs and POs (null until checked)
+  const [frontCheck, setFrontCheck] = useState(null)
 
   useEffect(() => {
     let live = true
@@ -142,6 +146,11 @@ const PoPeoAlignment = ({ tabs = null, view = 'outcomes' }) => {
   // The PO / PEO spreadsheet goes into the editor, not straight into the database: check it, then Save.
   const importSheet = async (file) => {
     if (!file) return
+    // A PDF has no spreadsheet to import: it is read like a scan (its text exactly) into the same editor.
+    if (/\.pdf$/i.test(file.name) || file.type === 'application/pdf') {
+      if (importRef.current) importRef.current.value = ''
+      return scanSheets([file])
+    }
     setBusy(true); setError(''); setNotice('')
     try {
       const result = await sendFile('import', 'POST', file)
@@ -159,6 +168,61 @@ const PoPeoAlignment = ({ tabs = null, view = 'outcomes' }) => {
       if (importRef.current) importRef.current.value = ''
     }
   }
+
+  // Scan photos or PDFs of the PEO / PO tables (one page per photo is fine): what is read goes into the editor,
+  // like the spreadsheet import. Pages are read in order; PEOs and POs found on any of them are kept, once each.
+  const scanSheets = async (fileList) => {
+    const files = Array.from(fileList || [])
+    if (!files.length) return
+    setBusy(true); setError(''); setNotice('')
+    try {
+      const seen = (list, key, text) => list.some(x => x[key].toLowerCase().replace(/[^a-z0-9]/g, '') === text.toLowerCase().replace(/[^a-z0-9]/g, ''))
+      const peosRead = []
+      const outcomesRead = []
+      const sources = new Set()
+      const warnings = new Set()
+      for (const file of files) {
+        const result = await fetchJson(`/api/program-outcomes/${programId}/scan`, {
+          method: 'POST', headers: { 'Content-Type': 'application/octet-stream' }, body: file,
+        })
+        sources.add(SOURCE_LABEL[result.source] || 'Scanned')
+        ;(result.warnings || []).forEach(w => warnings.add(w))
+        result.peos.forEach(p => { if (!seen(peosRead, 'statement', p.statement)) peosRead.push(p) })
+        result.outcomes.forEach(o => { if (!seen(outcomesRead, 'text', o.text)) outcomesRead.push(o) })
+      }
+      const current = data || { peos: [], outcomes: [] }
+      const peosNext = peosRead.length ? peosRead : current.peos
+      setDraft({
+        peos: peosNext,
+        // Existing outcomes keep their ids by position, so course alignments to PO1, PO2... stay attached; a page
+        // with only PEOs (or only POs) leaves the other table as it was.
+        outcomes: (outcomesRead.length ? outcomesRead : current.outcomes).map((o, i) => ({
+          id: current.outcomes?.[i]?.id ?? null, text: o.text,
+          peos: (o.peos || []).filter(n => n <= peosNext.length), gas: o.gas || [],
+        })),
+      })
+      setEditing(true)
+      setNotice(`${[...sources].join(', ')}: ${peosRead.length} PEOs and ${outcomesRead.length} program outcomes from ${files.length === 1 ? files[0].name : `${files.length} files`}. ${[...warnings].join(' ')} Check them, then Save.`.replace(/\s+/g, ' '))
+    } catch (err) {
+      setError(apiErrorMessage(err, 'The file could not be scanned.'))
+    } finally {
+      setBusy(false)
+      if (scanRef.current) scanRef.current.value = ''
+    }
+  }
+
+  // Read the uploaded front pages and say whether this program's vision, mission, PEOs and POs are in them.
+  const checkFront = async () => {
+    setBusy(true); setError(''); setNotice(''); setFrontCheck(null)
+    try {
+      setFrontCheck(await fetchJson(`/api/program-outcomes/${programId}/front-pages/check`, { method: 'POST' }))
+    } catch (err) {
+      setError(apiErrorMessage(err, 'The front pages could not be read.'))
+    } finally {
+      setBusy(false)
+    }
+  }
+  useEffect(() => { setFrontCheck(null) }, [programId, front])
 
   const rows = editing ? draft : data
   const peos = rows?.peos || []
@@ -224,7 +288,7 @@ const PoPeoAlignment = ({ tabs = null, view = 'outcomes' }) => {
                 </button>
               )}
               <button type="button" className="btn btn-primary" onClick={handleView} disabled={!data}>
-                <Eye size={16} /> Preview / Export
+                <Download size={16} /> Export
               </button>
             </>
           ) : (
@@ -247,11 +311,15 @@ const PoPeoAlignment = ({ tabs = null, view = 'outcomes' }) => {
       </div>
 
       {data && !frontView && data.canEdit && (
-        <DocumentBar label="PO and PEO spreadsheet" status={editing ? 'read into the editor — check it, then Save.' : 'import an Excel file to fill the tables below, then check and Save.'}>
+        <DocumentBar label="PO and PEO spreadsheet" status={editing ? 'read into the editor — check it, then Save.' : 'import an Excel file or a PDF to fill the tables below, then check and Save.'}>
           <TemplateButton path="/api/program-outcomes/template.xlsx" name="PO-PEO-template.xlsx" onError={setError} />
-          <input ref={importRef} type="file" accept=".xlsx,.xls" hidden aria-label="PO and PEO spreadsheet" onChange={e => importSheet(e.target.files?.[0])} />
+          <input ref={importRef} type="file" accept=".xlsx,.xls,.pdf,application/pdf" hidden aria-label="PO and PEO spreadsheet" onChange={e => importSheet(e.target.files?.[0])} />
           <button type="button" className="btn btn-secondary btn-sm" onClick={() => importRef.current?.click()} disabled={busy || editing}>
-            <Upload size={14} /> Upload Excel
+            <Upload size={14} /> Upload Excel or PDF
+          </button>
+          <input ref={scanRef} type="file" accept="image/png,image/jpeg,image/webp,application/pdf,.pdf" multiple hidden aria-label="Scan PO and PEO pages" onChange={e => scanSheets(e.target.files)} />
+          <button type="button" className="btn btn-secondary btn-sm" title="Read photos or a PDF of the PEO / PO tables, then check them" onClick={() => scanRef.current?.click()} disabled={busy || editing}>
+            <Zap size={14} /> {busy ? 'Reading…' : 'Scan'}
           </button>
         </DocumentBar>
       )}
@@ -267,12 +335,39 @@ const PoPeoAlignment = ({ tabs = null, view = 'outcomes' }) => {
               <button type="button" className="btn btn-secondary btn-sm" disabled={busy || editing} onClick={() => frontRef.current?.click()}>
                 <Upload size={14} /> {front ? 'Replace PDF' : 'Upload PDF'}
               </button>
+              {front && <button type="button" className="btn btn-secondary btn-sm" disabled={busy || editing} title="Read the front pages and check them against this program's PEOs and POs" onClick={checkFront}>
+                <Zap size={14} /> {busy ? 'Reading…' : 'Check'}
+              </button>}
               {front && <button type="button" className="btn btn-danger-outline btn-sm" disabled={busy || editing} onClick={removeFront}>Remove</button>}
             </>
           )}
         </DocumentBar>
       )}
 
+      {frontView && frontCheck && (() => {
+        const missing = [
+          !frontCheck.vision && 'the vision statement',
+          !frontCheck.mission && 'the mission statement',
+          ...frontCheck.peos.filter(x => !x.found).map(x => x.label),
+          ...frontCheck.outcomes.filter(x => !x.found).map(x => x.label),
+        ].filter(Boolean)
+        const found = frontCheck.peos.filter(x => x.found).length + frontCheck.outcomes.filter(x => x.found).length
+        return (
+          <div role="status" className={missing.length ? styles.alert : styles.ok}>
+            {SOURCE_LABEL[frontCheck.source] || 'Read'}: {found} of {frontCheck.peos.length + frontCheck.outcomes.length} PEO and PO statements found.
+            {missing.length ? ` Not found: ${missing.join(', ')}. Update the front pages or the PO and PEO tab so they match.` : ' The vision, the mission and every PEO and PO are in the front pages.'}
+          </div>
+        )
+      })()}
+
+      {/* Ready for learning plans? Courses of this program cannot be assigned until it is (server: utils/programReadiness.js). */}
+      {data?.readiness && (
+        <div role="status" className={data.readiness.complete ? styles.ok : styles.alert}>
+          {data.readiness.complete
+            ? `Ready for learning plans: ${data.readiness.pos} POs, ${data.readiness.peos} PEOs, each PO linked to a PEO.`
+            : `Not ready for learning plans; its courses cannot be assigned yet. Missing: ${data.readiness.missing.join('; ')}.`}
+        </div>
+      )}
       {error && <div role="alert" className={styles.alert}>{error}</div>}
       {notice && <div role="status" className={styles.ok}>{notice}</div>}
 

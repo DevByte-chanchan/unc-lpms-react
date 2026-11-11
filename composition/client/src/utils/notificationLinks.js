@@ -14,18 +14,20 @@ const pageFor = (role, type) => {
 }
 
 export const notificationPath = (role, notification = {}) => {
-  const { offeringId, courseCode, revisionNumber, state, type } = notification
+  const { offeringId, courseCode, revisionNumber, state, type, commentId } = notification
   if (!offeringId || !courseCode) return pageFor(role, type)
   const status = String(state || 'pending').toLowerCase()
+  // A notification about a comment opens that comment (utils/useCommentFocus.js).
+  const comment = commentId ? `comment=${encodeURIComponent(commentId)}` : ''
   if (role === 'instructor') {
-    return revisionNumber
+    return (revisionNumber
       ? `/courses/${offeringId}/${revisionNumber}/${status}`
-      : `/offerings/${offeringId}/${status}`
+      : `/offerings/${offeringId}/${status}`) + (comment ? `?${comment}` : '')
   }
   // The VPAA reads approved plans only, through the same course view.
   if (APPROVER_ROLES.includes(role) || (role === 'vpaa' && status === 'approved')) {
     const rev = revisionNumber ? `&revNum=${revisionNumber}` : ''
-    return `/role/${role}/courses/${encodeURIComponent(courseCode)}?status=${status}&fromStatus=${status}&pcId=${offeringId}${rev}`
+    return `/role/${role}/courses/${encodeURIComponent(courseCode)}?status=${status}&fromStatus=${status}&pcId=${offeringId}${rev}${comment ? `&${comment}` : ''}`
   }
   return null
 }

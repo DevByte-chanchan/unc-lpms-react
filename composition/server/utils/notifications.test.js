@@ -43,6 +43,9 @@ const fixture = async () => {
     const stamps = { createdAt: now, updatedAt: now };
     const deptId = await insert('Departments', { stakeholder_id: dean.user_id, name: `Dept ${counter}.${stamp}`, code: `D${counter}`, ...stamps });
     const programId = await insert('Programs', { dept_id: deptId, name: `Program ${counter}.${stamp}`, stakeholder_id: ph.user_id, ...stamps });
+    // complete program documents: plans are only started for such a program (utils/programReadiness.js)
+    await insert('ProgramEducationalObjectives', { program_id: programId, statement: 'PEO', mission_aligned: 1, ...stamps });
+    await insert('ProgramOutcomes', { program_id: programId, description: 'PO', peo_numbers: '[1]', ga_numbers: '[]', ...stamps });
     const code = `NT${counter}${String(stamp).slice(-4)}`;
     const courseId = await insert('Courses', { course_no: code, course_title: 'Notification Test', credit: 3, contact_hrs: 3, classification: 'Core', cmo: 'CMO', year_lvl: 1, term: '1st', ...stamps });
     const offeringId = await insert('ProgramCourseOfferings', {
@@ -314,9 +317,10 @@ test('comments, resolved comments, assignments and revisions reach the right per
     const author = await makeUser('program-head');
 
     // A reviewer's comment goes to the instructor; the comment text is never in the message.
-    await onComment({ offeringId: f.offeringId, actorUserId: f.ph.user_id, commenterRole: 'PROGRAM_HEAD' });
+    await onComment({ offeringId: f.offeringId, actorUserId: f.ph.user_id, commenterRole: 'PROGRAM_HEAD', commentId: 4242 });
     const [comment] = await inbox(f.instructor, 'comment_added');
     assert.equal(comment.message, `${f.code} — comment added by Program Head`);
+    assert.equal(comment.comment_id, 4242, 'it remembers which comment, so opening it jumps there');
     assert.equal((await inbox(f.ph, 'comment_added')).length, 0);
 
     // A Dean comment goes to the Program Head: the instructor reads it only once the Program Head forwards it.
@@ -326,12 +330,13 @@ test('comments, resolved comments, assignments and revisions reach the right per
 
     // The instructor resolves two of the author's comments on one plan: one notification, to the author.
     await onCommentsResolved({
-        resolved: [{ authorUserId: author.user_id, offeringId: f.offeringId }, { authorUserId: author.user_id, offeringId: f.offeringId }, { authorUserId: null, offeringId: f.offeringId }],
+        resolved: [{ authorUserId: author.user_id, offeringId: f.offeringId, comment_id: 7001 }, { authorUserId: author.user_id, offeringId: f.offeringId, comment_id: 7002 }, { authorUserId: null, offeringId: f.offeringId }],
         actorUserId: f.instructor.user_id, actorRole: 'instructor'
     });
     const resolved = await inbox(author, 'comment_resolved');
     assert.equal(resolved.length, 1);
     assert.equal(resolved[0].message, `${f.code} — comments marked resolved by Instructor`);
+    assert.equal(resolved[0].comment_id, 7001, 'it opens the first of the resolved comments');
 
     await onCourseAssigned({ offeringId: f.offeringId, instructorUserId: f.instructor.user_id, actorUserId: f.ph.user_id });
     assert.equal((await inbox(f.instructor, 'course_assigned'))[0].message, `${f.code} — course assigned to you by Program Head`);
@@ -380,7 +385,7 @@ test('endpoints are scoped to the signed-in user: list, count, paging, mark read
     assert.equal(list.unread, 5);
     assert.equal(list.rows.length, 5);
     assert.deepEqual(list.rows.map(r => r.message), ['T4 — x', 'T3 — x', 'T2 — x', 'T1 — x', 'T0 — x'], 'newest first');
-    assert.deepEqual(Object.keys(list.rows[0]).sort(), ['actorRole', 'createdAt', 'id', 'isRead', 'message', 'offeringId', 'readAt', 'type']);
+    assert.deepEqual(Object.keys(list.rows[0]).sort(), ['actorRole', 'commentId', 'createdAt', 'id', 'isRead', 'message', 'offeringId', 'readAt', 'type']);
     const page = await (await call(a, 'GET', '?limit=2&offset=2')).json();
     assert.deepEqual(page.rows.map(r => r.message), ['T2 — x', 'T1 — x']);
     assert.equal(page.total, 5);
@@ -554,6 +559,51 @@ test('the final approval closes every comment still open on that plan, and only 
     const [{ dated }] = await q('SELECT COUNT(*) AS dated FROM Comments WHERE co_assign_id = ? AND resolved_date IS NOT NULL', [f.assignmentId]);
     assert.equal(dated, 2, 'closed with the approval time');
     assert.equal(await stillOpen(other), 1, 'another plan is untouched');
+});
+
+test('no plan is started for a program whose documents are incomplete: assigning is refused, and nothing is created', async () => {
+    const f = await fixture();
+    const assign = () => assignCourseForTerm({ courseId: f.courseId, programId: f.programId, schoolYear: '2097-2098', semester: '1st', instructorUserId: f.instructor.user_id, user: { id: f.ph.user_id, name: 'PH' } });
+    await sequelize.query("UPDATE ProgramOutcomes SET peo_numbers = '[]' WHERE program_id = ?", { replacements: [f.programId] });
+    await assert.rejects(assign(), /Program Documents first\. Missing: a PEO for PO1/);
+    await sequelize.query('DELETE FROM ProgramEducationalObjectives WHERE program_id = ?', { replacements: [f.programId] });
+    await sequelize.query('DELETE FROM ProgramOutcomes WHERE program_id = ?', { replacements: [f.programId] });
+    await assert.rejects(assign(), /Missing: program outcomes \(POs\); program educational objectives \(PEOs\)/);
+    const [{ n }] = await q('SELECT COUNT(*) AS n FROM ProgramCourseOfferings WHERE program_id = ? AND school_year = ?', [f.programId, '2097-2098']);
+    assert.equal(n, 0, 'nothing was created');
+});
+
+test('an instructor cannot start a revision while the program documents are incomplete, and is told who can fix it', async () => {
+    const f = await fixture();
+    for (const [who, role, action] of [['instructor', 'INSTRUCTOR', 'SUBMITTED'], ['ph', 'PROGRAM_HEAD', 'ACCEPTED'], ['ld', 'LIBRARY_DIRECTOR', 'ACCEPTED'], ['dean', 'DEAN', 'ACCEPTED']]) {
+        assert.equal((await act(f, who, role, action)).code, 201, `${role} ${action}`);
+    }
+    // a plan carried over to a new term (revisions start from those), so the one-revision-per-term rule does not answer first
+    const earlier = await fixture();
+    await sequelize.query('UPDATE ProgramCourseOfferings SET carried_from_offering_id = ? WHERE pc_offering_id = ?', { replacements: [earlier.offeringId, f.offeringId] });
+    await sequelize.query('DELETE FROM ProgramEducationalObjectives WHERE program_id = ?', { replacements: [f.programId] });
+    await assert.rejects(startRevision({ offeringId: f.offeringId, user: { id: f.instructor.user_id, name: 'I' } }),
+        /not complete yet \(missing: program educational objectives \(PEOs\)\)\. Ask your Program Head/);
+    const [{ n }] = await q('SELECT COUNT(*) AS n FROM ProgramCourseOfferings WHERE base_offering_id = ?', [f.offeringId]);
+    assert.equal(n, 0, 'no working copy was created');
+});
+
+test('older comment notifications learn their comment: the one written just before, not one a moment after', async () => {
+    const f = await fixture();
+    const t0 = Date.now();
+    const at = (ms) => new Date(t0 + ms);
+    const comment = (ms, extra = {}) => insert('Comments', { co_assign_id: f.assignmentId, commenter_role: 'PROGRAM_HEAD', commenter_user_id: f.ph.user_id, message: 'x', resolved_status: 0, comment_for: 'topics', createdAt: at(ms), updatedAt: at(ms), ...extra });
+    const first = await comment(0);
+    const second = await comment(60, { resolved_status: 1, resolved_date: at(500) });
+    const notice = (type, ms, recipient, role) => insert('Notifications', { recipient_user_id: recipient, type, offering_id: f.offeringId, message: 'm', actor_role: role, is_read: 0, created_at: at(ms) });
+    const forFirst = await notice('comment_added', 1, f.instructor.user_id, 'PROGRAM_HEAD');
+    const forSecond = await notice('comment_added', 61, f.instructor.user_id, 'PROGRAM_HEAD');
+    const resolvedNotice = await notice('comment_resolved', 501, f.ph.user_id, 'instructor');
+    await require('../migrations/20261118000001-backfill-notification-comment.js').up(sequelize.getQueryInterface());
+    const linked = async (id) => (await q('SELECT comment_id FROM Notifications WHERE id = ?', [id]))[0].comment_id;
+    assert.equal(await linked(forFirst), first);
+    assert.equal(await linked(forSecond), second, 'a comment written 60 ms later is not taken for the first notice');
+    assert.equal(await linked(resolvedNotice), second, "the recipient's own comment resolved then");
 });
 
 test('workflow logs are read in real time order even when their offsets differ', async () => {

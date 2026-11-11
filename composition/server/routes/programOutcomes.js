@@ -14,6 +14,8 @@ router.get('/:programId/front-pages', docs.getFrontPages);
 router.put('/:programId/front-pages', requirePermission('alignment:manage'), raw, docs.putFrontPages);
 router.delete('/:programId/front-pages', requirePermission('alignment:manage'), docs.deleteFrontPages);
 router.post('/:programId/import', requirePermission('alignment:manage'), raw, docs.importProgramOutcomes);
+router.post('/:programId/scan', requirePermission('alignment:manage'), express.raw({ type: () => true, limit: '13mb' }), docs.scanProgramOutcomes);
+router.post('/:programId/front-pages/check', requirePermission('alignment:manage'), docs.checkFrontPages);
 router.get('/offering/:pcId', requireOfferingAccess, controller.getForOffering);
 router.get('/:programId', controller.getProgram);
 router.put('/:programId', requirePermission('alignment:manage'), controller.saveProgram);

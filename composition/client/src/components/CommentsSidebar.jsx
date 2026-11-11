@@ -171,6 +171,7 @@ const CommentsSidebar = ({
                   return (
                     <article
                       key={comment.id}
+                      data-comment-id={comment.id}
                       className={`${styles.commentCard} ${comment.resolved ? styles.commentCardResolved : ''}`}
                     >
                       {/* Who wrote it, and whether it is still open. */}

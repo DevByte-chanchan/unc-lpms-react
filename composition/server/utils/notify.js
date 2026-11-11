@@ -35,7 +35,8 @@ const lazyModel = () => require('../models').Notification;
 const createNotifier = ({ getModel = lazyModel, log = (...args) => console.error(...args) } = {}) => {
     // Resolves to the number of notifications written (0 on any failure). `at` is when it happened; the reminder job
     // passes its own clock, so a run at a given time sees its own notifications at that time. Default: now.
-    const notify = async (recipientIds, type, offeringId, message, actorRole, at = null) => {
+    // commentId: the comment a comment notification is about.
+    const notify = async (recipientIds, type, offeringId, message, actorRole, at = null, commentId = null) => {
         try {
             if (!TYPES.includes(type)) throw new Error(`unknown notification type "${type}"`);
             const ids = [...new Set((recipientIds || []).map(Number).filter(id => Number.isSafeInteger(id) && id > 0))];
@@ -46,6 +47,7 @@ const createNotifier = ({ getModel = lazyModel, log = (...args) => console.error
                 offering_id: offeringId ?? null,
                 message: String(message).slice(0, MAX_MESSAGE),
                 actor_role: actorRole ?? null,
+                ...(commentId ? { comment_id: commentId } : {}),
                 is_read: false,
                 ...(at ? { created_at: at } : {})
             })));

@@ -65,6 +65,10 @@ services:
       LPMS_SIGNATURE_DIR: "/app/storage/signatures"
       LPMS_SIGNATURE_KEY: "${LPMS_SIGNATURE_KEY:-}"
       LPMS_SIGNATURE_KEY_VERSION: "${LPMS_SIGNATURE_KEY_VERSION:-}"
+      # Scanning Program Documents: empty = OCR on the server; gemini = Gemini with GEMINI_API_KEY (see .env.example).
+      LPMS_SCAN_AI: "${LPMS_SCAN_AI:-}"
+      GEMINI_API_KEY: "${GEMINI_API_KEY:-}"
+      GEMINI_MODEL: "${GEMINI_MODEL:-}"
       # Outgoing mail for credentials and password-reset links. Leave LPMS_SMTP_HOST or
       # LPMS_SMTP_FROM empty and the temporary password is shown once to the superuser instead.
       LPMS_SMTP_HOST: "${LPMS_SMTP_HOST:-}"

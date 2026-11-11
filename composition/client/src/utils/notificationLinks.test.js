@@ -38,3 +38,11 @@ test('a notification about no single course opens the page it is about', () => {
   assert.equal(notificationPath('instructor', { type: 'missing_digest' }), null)
   assert.equal(notificationPath('program-head', { type: 'reminder' }), null)
 })
+
+test('a notification about a comment opens that comment', () => {
+  const n = { offeringId: 15, courseCode: 'BIT312L', state: 'pending', type: 'comment_added', commentId: 42 }
+  assert.equal(notificationPath('instructor', n), '/offerings/15/pending?comment=42')
+  assert.equal(notificationPath('instructor', { ...n, revisionNumber: 2 }), '/courses/15/2/pending?comment=42')
+  assert.match(notificationPath('program-head', n), /&pcId=15&comment=42$/)
+  assert.equal(notificationPath('instructor', { ...n, commentId: null }), '/offerings/15/pending')
+})

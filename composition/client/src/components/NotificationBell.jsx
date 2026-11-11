@@ -1,41 +1,72 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
-import { Bell, BookOpen, ChevronRight, Clock, Maximize, Minimize2, X } from 'react-feather'
+import { Bell, ChevronRight } from 'react-feather'
 import { getSession } from '../utils/session.js'
-import useDialogFocus from '../utils/useDialogFocus.js'
 import { POLL_MS, loadUnreadCount, loadNotifications, markRead, markAllRead } from '../utils/notificationsApi.js'
 import { notificationPath, timeAgo } from '../utils/notificationLinks.js'
-import navStyles from '../styles/SideNavigation.module.sass'
 import headerStyles from '../styles/Header.module.sass'
 import styles from '../styles/NotificationPanel.module.sass'
 
-// Notifications: an item of the left navigation bar (a bell with an unread badge, polled every 45 s while the tab
-// is visible) that opens a window like the app's other large windows: a header with Mark all read, maximise and
-// close, an All / Unread switch, and the latest items. An item opens the page it is about (a course, the list of
-// plans not yet submitted, the Reference library) and is marked read on the way. Escape leaves full screen first,
-// then closes the window.
+// Notifications: the round bell of the top bar (unread badge, polled every 45 s while the tab is visible) opening a
+// drop-down under it: "Notifications · N New" and Mark all as read, an All / Unread switch with counts, then the
+// latest items. Each item has a coloured tag for what happened, its time, a title ("Plan Returned: BIT313L"), the
+// sentence, and a link to what it is about; unread ones are tinted with a dot. Opening one marks it read.
+// Escape or a click outside closes it.
+
+// What happened, by notification type: the tag, its colour and the title's first words.
 const KIND = {
-  reminder: { Icon: Clock, tone: 'warn' },
-  missing_digest: { Icon: Clock, tone: 'warn' },
-  approval_waiting: { Icon: Clock, tone: 'warn' },
-  returned_waiting: { Icon: Clock, tone: 'warn' },
-  reference_health: { Icon: BookOpen, tone: 'info' },
-  reference_flags: { Icon: BookOpen, tone: 'info' },
-  reference_unavailable: { Icon: BookOpen, tone: 'info' }
+  course_assigned: { tag: 'Assigned', tone: 'blue', title: 'New Assignment' },
+  course_unassigned: { tag: 'Unassigned', tone: 'grey', title: 'Assignment Removed' },
+  plan_submitted: { tag: 'Submitted', tone: 'blue', title: 'Plan Submitted' },
+  plan_returned: { tag: 'Returned', tone: 'red', title: 'Plan Returned' },
+  plan_ready_for_dean: { tag: 'Endorsed', tone: 'teal', title: 'Ready for the Dean' },
+  plan_approved: { tag: 'Approved', tone: 'green', title: 'Learning Plan Approved' },
+  comment_added: { tag: 'Comment', tone: 'violet', title: 'New Comment' },
+  comment_resolved: { tag: 'Resolved', tone: 'green', title: 'Comments Resolved' },
+  revision_started: { tag: 'Revision', tone: 'blue', title: 'Revision Started' },
+  poke: { tag: 'Reminder', tone: 'amber', title: 'Reminder' },
+  reminder: { tag: 'Reminder', tone: 'amber', title: 'Reminder' },
+  missing_digest: { tag: 'Reminder', tone: 'amber', title: 'Plans Not Submitted' },
+  approval_waiting: { tag: 'Waiting', tone: 'amber', title: 'Waiting for Your Review' },
+  returned_waiting: { tag: 'Waiting', tone: 'amber', title: 'Returned Plan Waiting' },
+  reference_health: { tag: 'Library', tone: 'teal', title: 'Reference Check' },
+  reference_flags: { tag: 'Library', tone: 'teal', title: 'References Flagged' },
+  reference_unavailable: { tag: 'Library', tone: 'teal', title: 'Reference Unavailable' },
 }
 
-// variant 'icon': the round bell of the top bar (components/Header.jsx); otherwise a row of the sidebar.
-const NotificationBell = ({ variant = 'row' }) => {
+// "BIT321L — submitted for review by Instructor" -> title "Plan Submitted: BIT321L", sentence "Submitted for review by
+// Instructor." A message without a course code stays whole as the sentence.
+const describe = (item) => {
+  const kind = KIND[item.type] || { tag: 'Update', tone: 'grey', title: 'Update' }
+  const [code, ...rest] = String(item.message || '').split(' — ')
+  const hasCode = rest.length > 0 && /^[A-Za-z0-9 ._-]{2,30}$/.test(code)
+  const text = hasCode ? rest.join(' — ') : String(item.message || '')
+  const sentence = text ? text.charAt(0).toUpperCase() + text.slice(1) + (/[.!?]$/.test(text) ? '' : '.') : ''
+  return { ...kind, heading: hasCode ? `${kind.title}: ${code}` : kind.title, sentence }
+}
+
+// "5 min ago" for the last week, the date after that ("Jun 28, 2026").
+const when = (iso) => (Date.now() - new Date(iso).getTime() < 7 * 86400000
+  ? timeAgo(iso)
+  : new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }))
+
+// Where the link goes, in words.
+const linkLabel = (target) => (/reference/i.test(target) ? 'View References'
+  : /status=not-submitted|missing/i.test(target) ? 'View List'
+    : /\/(courses|offerings)\/|pcId=/.test(target) ? 'View Learning Plan' : 'Open')
+
+const NotificationBell = () => {
   const navigate = useNavigate()
   const role = getSession()?.role
   const [count, setCount] = useState(0)
   const [open, setOpen] = useState(false)
-  const [expanded, setExpanded] = useState(false)
   const [filter, setFilter] = useState('all')
   const [items, setItems] = useState([])
   const [failed, setFailed] = useState(false)
+  const [pos, setPos] = useState({ top: 0, right: 0 })
   const trigger = useRef(null)
+  const panel = useRef(null)
 
   const refreshCount = useCallback(async () => {
     try { setCount(await loadUnreadCount()); setFailed(false) } catch { setFailed(true) }
@@ -59,39 +90,48 @@ const NotificationBell = ({ variant = 'row' }) => {
     return () => clearInterval(timer)
   }, [open, refreshCount, refreshList])
 
-  const windowRef = useRef(null)
-  useDialogFocus(windowRef, open)
-
-  const close = useCallback(() => {
+  const close = useCallback((refocus = true) => {
     setOpen(false)
-    setExpanded(false)
-    trigger.current?.focus()
+    if (refocus) trigger.current?.focus()
   }, [])
+
+  // Under the bell, right edges aligned.
+  useLayoutEffect(() => {
+    if (!open) return undefined
+    const place = () => {
+      const r = trigger.current?.getBoundingClientRect()
+      if (r) setPos({ top: r.bottom + 8, right: Math.max(8, window.innerWidth - r.right) })
+    }
+    place()
+    window.addEventListener('resize', place)
+    return () => window.removeEventListener('resize', place)
+  }, [open])
 
   useEffect(() => {
     if (!open) return undefined
-    const onKey = (event) => {
-      if (event.key !== 'Escape') return
-      if (expanded) setExpanded(false)
-      else close()
+    const onKey = (event) => { if (event.key === 'Escape') close() }
+    const onDown = (event) => {
+      if (panel.current?.contains(event.target) || trigger.current?.contains(event.target)) return
+      close(false)
     }
     document.addEventListener('keydown', onKey)
-    return () => document.removeEventListener('keydown', onKey)
-  }, [open, expanded, close])
+    document.addEventListener('mousedown', onDown)
+    return () => { document.removeEventListener('keydown', onKey); document.removeEventListener('mousedown', onDown) }
+  }, [open, close])
 
   const toggle = () => {
     if (!open) { setFilter('all'); refreshList() }
     setOpen(!open)
   }
 
-  const openItem = async (item) => {
+  const openItem = (item) => {
     if (!item.isRead) {
       setItems(list => list.map(n => (n.id === item.id ? { ...n, isRead: true } : n)))
       setCount(c => Math.max(0, c - 1))
       markRead(item.id).catch(refreshCount)
     }
     const target = notificationPath(role, item)
-    if (target) { close(); navigate(target) }
+    if (target) { close(false); navigate(target) }
   }
 
   const readAll = async () => {
@@ -105,91 +145,55 @@ const NotificationBell = ({ variant = 'row' }) => {
 
   return (
     <div>
-      {variant === 'icon' ? (
-        <button ref={trigger} type="button" className={`${headerStyles.bell} ${open ? headerStyles.bellOpen : ''}`}
-          title="Notifications" aria-label={label} aria-haspopup="dialog" aria-expanded={open} onClick={toggle}>
-          <Bell size={20} />
-          {count > 0 && <span className={headerStyles.badge} aria-hidden="true">{count > 9 ? '9+' : count}</span>}
-        </button>
-      ) : (
-      <div
-        ref={trigger}
-        className={navStyles.list}
-        role="button"
-        tabIndex={0}
-        title="Notifications"
-        aria-label={label}
-        aria-haspopup="dialog"
-        aria-expanded={open}
-        onClick={toggle}
-        onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); toggle() } }}
-      >
+      <button ref={trigger} type="button" className={`${headerStyles.bell} ${open ? headerStyles.bellOpen : ''}`}
+        title="Notifications" aria-label={label} aria-haspopup="dialog" aria-expanded={open} onClick={toggle}>
         <Bell size={20} />
-        <span className={navStyles.listText}>Notifications</span>
-        {count > 0 && (
-          <span aria-hidden="true" className={navStyles.listText} style={{ marginLeft: 'auto', minWidth: 20, height: 20, padding: '0 6px', borderRadius: 10, background: 'var(--danger-solid)', color: '#fff', fontSize: 11, fontWeight: 600, lineHeight: '20px', textAlign: 'center', boxSizing: 'border-box' }}>
-            {count > 99 ? '99+' : count}
-          </span>
-        )}
-      </div>
-      )}
+        {count > 0 && <span className={headerStyles.badge} aria-hidden="true">{count > 9 ? '9+' : count}</span>}
+      </button>
 
       {open && createPortal(
-        <>
-          <div className={styles.backdrop} onClick={close} />
-          <div ref={windowRef} role="dialog" aria-modal="true" aria-label="Notifications" className={`${styles.window} ${expanded ? styles.expanded : ''}`}>
-            <div className="app-window-header">
-              <div>
-                <h2 className="app-window-title">Notifications</h2>
-                <div className={styles.sub}>{count > 0 ? `${count} unread` : items.length > 0 ? 'No unread notifications' : 'You are all caught up'}</div>
-              </div>
-              <div className="app-window-actions">
-                <button type="button" className="btn btn-secondary btn-sm" onClick={readAll} disabled={count === 0}>Mark all read</button>
-                <button type="button" className="app-icon-btn" onClick={() => setExpanded(value => !value)}
-                  title={expanded ? 'Exit full screen' : 'Full screen'} aria-label={expanded ? 'Exit full screen' : 'Full screen'}>
-                  {expanded ? <Minimize2 size={16} /> : <Maximize size={16} />}
-                </button>
-                <button type="button" className="app-icon-close" onClick={close} aria-label="Close notifications">
-                  <X size={16} strokeWidth={2.5} color="currentColor" />
-                </button>
-              </div>
-            </div>
-
-            <div className={styles.tabs} role="tablist" aria-label="Show">
-              <button type="button" role="tab" aria-selected={filter === 'all'} className={`${styles.tab} ${filter === 'all' ? styles.tabOn : ''}`} onClick={() => setFilter('all')}>All</button>
-              <button type="button" role="tab" aria-selected={filter === 'unread'} className={`${styles.tab} ${filter === 'unread' ? styles.tabOn : ''}`} onClick={() => setFilter('unread')}>
-                Unread{count > 0 && <span className={styles.tabCount}>{count}</span>}
-              </button>
-            </div>
-
-            <div className={styles.list}>
-              {failed && <div role="alert" className={styles.note} style={{ color: 'var(--danger)' }}>Notifications could not be loaded.</div>}
-              {!failed && shown.length === 0 && (
-                <div className={styles.empty}>
-                  <Bell size={22} strokeWidth={1.6} aria-hidden="true" />
-                  <strong>{filter === 'unread' ? 'Nothing unread' : 'No notifications yet'}</strong>
-                  <span>{filter === 'unread' ? 'Everything has been read.' : 'Reminders and updates about your plans appear here.'}</span>
-                </div>
-              )}
-              {shown.map(item => {
-                const kind = KIND[item.type] || { Icon: Bell, tone: 'plain' }
-                const target = notificationPath(role, item)
-                return (
-                  <button key={item.id} type="button" className={`${styles.item} ${item.isRead ? '' : styles.unread}`} onClick={() => openItem(item)}
-                    title={target ? 'Open' : undefined}>
-                    <span className={`${styles.kind} ${styles[kind.tone]}`}><kind.Icon size={16} aria-hidden="true" /></span>
-                    <span className={styles.body}>
-                      <span className={styles.message}>{item.message}</span>
-                      <span className={styles.time}>{timeAgo(item.createdAt)}</span>
-                    </span>
-                    {!item.isRead && <span className={styles.dot} aria-label="unread" />}
-                    {target && <span className={styles.open}>Open <ChevronRight size={14} aria-hidden="true" /></span>}
-                  </button>
-                )
-              })}
-            </div>
+        <div ref={panel} role="dialog" aria-label="Notifications" className={styles.panel} style={{ top: pos.top, right: pos.right }}>
+          <div className={styles.head}>
+            <h2 className={styles.title}>Notifications</h2>
+            {count > 0 && <span className={styles.newCount}>{count} New</span>}
+            <button type="button" className={styles.markAll} onClick={readAll} disabled={count === 0}>Mark all as read</button>
           </div>
-        </>,
+
+          <div className={styles.tabs} role="tablist" aria-label="Show">
+            <button type="button" role="tab" aria-selected={filter === 'all'} className={`${styles.tab} ${filter === 'all' ? styles.tabOn : ''}`} onClick={() => setFilter('all')}>
+              All ({items.length})
+            </button>
+            <button type="button" role="tab" aria-selected={filter === 'unread'} className={`${styles.tab} ${filter === 'unread' ? styles.tabOn : ''}`} onClick={() => setFilter('unread')}>
+              Unread ({count})
+            </button>
+          </div>
+
+          <div className={styles.list}>
+            {failed && <div role="alert" className={styles.note}>Notifications could not be loaded.</div>}
+            {!failed && shown.length === 0 && (
+              <div className={styles.empty}>
+                <Bell size={22} strokeWidth={1.6} aria-hidden="true" />
+                <strong>{filter === 'unread' ? 'Nothing unread' : 'No notifications yet'}</strong>
+              </div>
+            )}
+            {shown.map(item => {
+              const info = describe(item)
+              const target = notificationPath(role, item)
+              return (
+                <button key={item.id} type="button" className={`${styles.item} ${item.isRead ? '' : styles.unread}`} onClick={() => openItem(item)}>
+                  <span className={styles.itemTop}>
+                    {!item.isRead && <span className={styles.dot} aria-label="unread" />}
+                    <span className={`${styles.tag} ${styles[info.tone]}`}>{info.tag}</span>
+                    <time className={styles.time} dateTime={item.createdAt} title={new Date(item.createdAt).toLocaleString()}>{when(item.createdAt)}</time>
+                  </span>
+                  <span className={styles.heading}>{info.heading}</span>
+                  {info.sentence && <span className={styles.sentence}>{info.sentence}</span>}
+                  {target && <span className={styles.link}>{linkLabel(target)} <ChevronRight size={14} aria-hidden="true" /></span>}
+                </button>
+              )
+            })}
+          </div>
+        </div>,
         document.body
       )}
     </div>

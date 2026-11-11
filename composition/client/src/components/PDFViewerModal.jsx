@@ -141,8 +141,33 @@ const PDFViewerModal = ({ file, kind, onClose, children, layer = 0 }) => {
   const handleExportPDF = async () => {
     if (exporting) return;
     setExporting(true);
+    const save = (bytes) => {
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' }));
+      link.download = downloadName();
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(link.href), 10000);
+    };
+    // First choice: the server's headless Chrome makes a real PDF (sharp lines, selectable text, small file).
+    // When it cannot (server without Chrome, offline), the page pictures below are the fallback.
+    if (file?.file_url && /\.html?$/i.test(file.file_name || '')) {
+      try {
+        const html = await (await fetch(file.file_url)).text();
+        const { renderPdfOnServer } = await import('../utils/serverPdf.js');
+        let bytes = await renderPdfOnServer(html);
+        if (file.front_pdf) {
+          const { joinPdfs } = await import('../utils/frontPages.js');
+          bytes = await joinPdfs(file.front_pdf, bytes);
+        }
+        save(bytes);
+        setExporting(false);
+        return;
+      } catch (err) {
+        console.warn('Server PDF failed, using page pictures instead:', err?.message || err);
+      }
+    }
     try {
-      // Generate the PDF entirely in the browser. The server-side HTML renderer
+      // Fallback: generate the PDF in the browser from page pictures. The server-side HTML renderer
       // is intentionally disabled, so load these large libraries only when the
       // user actually chooses Export PDF.
       //    Each `.page` becomes exactly one fixed-size sheet — no scaling, no blanks.
@@ -171,7 +196,8 @@ const PDFViewerModal = ({ file, kind, onClose, children, layer = 0 }) => {
         // Each .page is already a fixed sheet-height box; render it 1:1 at the fixed
         // paper size (no scaling/shrinking). The paginator splits content so a page
         // never exceeds one sheet.
-        pdf.addImage(imgData, 'PNG', 0, 0, PW, PH);
+        // 'FAST' deflates the image: without it jsPDF stores raw pixels (~27 MB a page at scale 3).
+        pdf.addImage(imgData, 'PNG', 0, 0, PW, PH, undefined, 'FAST');
       }
       if (file.front_pdf) {
         // The program's uploaded front pages first, then the generated pages (utils/frontPages.js).

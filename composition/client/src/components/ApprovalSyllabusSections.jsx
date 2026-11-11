@@ -5,6 +5,7 @@ import { Link, useSearchParams, useParams, useNavigate, useLocation } from 'reac
 import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, MessageSquare, Download, MoreVertical, Check, Clock, FileText, UserPlus, Lock, AlertTriangle, X } from 'react-feather'
 import EmptyState from './EmptyState.jsx'
 import CommentsSidebar from './CommentsSidebar.jsx'
+import { useCommentFocus, useCommentFromLink, useWeekCommentsLink, sectionOfComment } from '../utils/useCommentFocus.js'
 import Spinner from './Spinner.jsx'
 import TableScrollRegion from './TableScrollRegion.jsx'
 import styles from '../styles/ApprovalSyllabusSections.module.sass'
@@ -537,52 +538,12 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
     }
   }, [selectedSection, externalSelectedSection])
 
-  // "Show in plan": open the section, then scroll to the exact row the comment is about and flash it.
-  const [focusTarget, setFocusTarget] = useState(null)
-  const showCommentInPlan = (comment) => {
-    const section = sectionOfComment(comment)
-    if (!section) return
-    setSelectedSection(section)
-    const details = Array.isArray(comment.coverageDetail) ? comment.coverageDetail : (comment.coverageDetail ? [comment.coverageDetail] : [])
-    setFocusTarget({ section, ilo: comment.ilo, details, nonce: Date.now() })
-  }
-  useEffect(() => {
-    if (!focusTarget || selectedSection !== focusTarget.section) return undefined
-    let tries = 0
-    let timer
-    // The exact items the comment names (a topic, a TLA, a reference), in the comment's own ILO row when it is
-    // there; the ILO row itself when the items are not found.
-    const find = () => {
-      const iloRow = document.querySelector(`[data-ilo-id="${CSS.escape(String(focusTarget.ilo || ''))}"]`)
-      const wanted = focusTarget.details.map(detail => String(detail).trim()).filter(Boolean)
-      const match = (scope) => wanted.flatMap(detail => [...scope.querySelectorAll('[data-target]')]
-        .filter(el => el.dataset.target === detail || detail.includes(el.dataset.target)))
-      const inRow = iloRow ? match(iloRow) : []
-      const exact = inRow.length ? inRow : match(document)
-      if (exact.length) return exact
-      return iloRow ? [iloRow] : []
-    }
-    const attempt = () => {
-      const found = find()
-      if (found.length) {
-        // Instant: a smooth scroll here is cancelled by the section's own smooth scroll still running.
-        found[0].scrollIntoView({ block: 'center', inline: 'center' })
-        found.forEach(el => {
-          el.removeAttribute('data-flash')
-          void el.offsetWidth // restart the animation if it is the same item again
-          el.setAttribute('data-flash', '')
-          window.setTimeout(() => el.removeAttribute('data-flash'), 4000)
-        })
-        setFocusTarget(null)
-      } else if (tries++ < 15) {
-        timer = window.setTimeout(attempt, 120) // the section is still loading its rows
-      } else {
-        setFocusTarget(null) // no row to point at: the section itself is already open
-      }
-    }
-    timer = window.setTimeout(attempt, 350) // after the section's own scroll has started
-    return () => window.clearTimeout(timer)
-  }, [focusTarget, selectedSection])
+  // "Show in plan": open the comment's section, scroll to the item it names and flash it (utils/useCommentFocus.js);
+  // a notification about a comment opens it the same way (?comment=<id>).
+  const showCommentInPlan = useCommentFocus({ selectedSection, openSection: setSelectedSection })
+  const openCommentsPanel = React.useCallback(() => setSidebarCollapsed(false), [])
+  useCommentFromLink({ comments: visibleComments, openPanel: openCommentsPanel, showCommentInPlan })
+  useWeekCommentsLink({ comments: visibleComments, openPanel: openCommentsPanel })
 
   const openComment = () => setShowCommentModal(true)
   const closeComment = () => setShowCommentModal(false)
@@ -913,7 +874,6 @@ ${suggestionLine}` : text,
   </>)
 
   // The section a comment is about, for its "Show in plan" link.
-  const sectionOfComment = (comment) => (comment.coverageType === 'References' ? 'References Summary' : comment.coverageType ? 'Course Coverage' : null)
 
   // No offering, or the log could not be read: say so in a window instead of showing the plan as a draft. The only way
   // out is back to the course list.

@@ -107,4 +107,35 @@ const templateBook = (kind) => {
     return xlsx.write(book, { type: 'buffer', bookType: 'xlsx' });
 };
 
-module.exports = { parseCourseSheet, templateBook, sheetsOf };
+// A reviewed scan (the shapes above) as a workbook in the template's layout, so it is stored and read back exactly like
+// an uploaded spreadsheet. Answers { error } when there is nothing to save.
+const bookFromData = (kind, data) => {
+    const cos = Array.isArray(data?.cos) ? data.cos : [];
+    let rows;
+    if (kind === 'co-po') {
+        const width = Math.min(30, Math.max(0, ...cos.map(c => (Array.isArray(c.poMappings) ? c.poMappings.length : 0))));
+        rows = [['After completion of the course, the student should be able to:', ...Array.from({ length: width }, (_, i) => `PO${i + 1}`)]];
+        for (const c of cos) {
+            const description = clean(c.description);
+            if (!description) continue;
+            rows.push([description, ...Array.from({ length: width }, (_, i) => (/^[IED]$/i.test(clean((c.poMappings || [])[i])) ? clean(c.poMappings[i]).toUpperCase() : ''))]);
+        }
+    } else if (kind === 'coaep') {
+        rows = [TEMPLATES.coaep[0]];
+        for (const c of cos) {
+            const statement = clean(c.statement);
+            const ilos = (Array.isArray(c.ilos) ? c.ilos : []).filter(i => clean(i.outcome) || clean(i.performanceTarget));
+            if (!statement && !ilos.length) continue;
+            if (!ilos.length) { rows.push([statement, '', '', '']); continue; }
+            ilos.forEach((i, k) => rows.push([k === 0 ? statement : '', clean(i.outcome),
+                (Array.isArray(i.assessments) ? i.assessments : []).map(a => clean(a?.name ?? a)).filter(Boolean).join('; '),
+                clean(i.performanceTarget)]));
+        }
+    } else return { error: 'Unknown course document.' };
+    if (rows.length < 2) return { error: 'There is nothing to save.' };
+    const book = xlsx.utils.book_new();
+    xlsx.utils.book_append_sheet(book, xlsx.utils.aoa_to_sheet(rows), kind === 'coaep' ? 'COAEP' : 'CO-PO');
+    return { bytes: xlsx.write(book, { type: 'buffer', bookType: 'xlsx' }) };
+};
+
+module.exports = { parseCourseSheet, templateBook, sheetsOf, bookFromData };

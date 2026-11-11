@@ -19,6 +19,7 @@ const { sequelize } = require('../models');
 const { effectiveLogs } = require('../utils/effectiveLogs');
 const { planEditState } = require('../utils/workflowRules');
 const { closeApprovedComments } = require('../utils/closeApprovedComments');
+const { programReadiness } = require('../utils/programReadiness');
 
 const SEMESTERS = ['1st', '2nd', 'Summer'];
 
@@ -126,6 +127,19 @@ const termLabel = (offering) => `${offering.school_year} ${offering.semester} se
 
 // ---- Program Head: assign a course for a term -----------------------------------------
 
+// A plan aligns to its program's POs and PEOs (utils/programReadiness.js): none is started before they are complete.
+// byInstructor: the instructor cannot edit Program Documents, so the refusal points them to their Program Head.
+const requireReadyProgram = async (program, transaction, byInstructor = false) => {
+    if (!program) throw new ServiceError(404, 'Program not found.');
+    const readiness = await programReadiness(sequelize, program.program_id, transaction);
+    if (!readiness.complete) {
+        const missing = readiness.missing.join('; ');
+        throw new ServiceError(409, byInstructor
+            ? `${program.name}'s Program Documents are not complete yet (missing: ${missing}). Ask your Program Head to complete them first.`
+            : `Complete ${program.name}'s Program Documents first. Missing: ${missing}.`);
+    }
+};
+
 const assignCourseForTerm = async ({ courseId, programId, schoolYear, semester, instructorUserId, user }) => {
     validTerm(schoolYear, semester);
     const now = new Date();
@@ -151,6 +165,7 @@ const assignInTransaction = async ({ courseId, programId, schoolYear, semester, 
     if (String(program.stakeholder_id) !== String(user.id)) {
         throw new ServiceError(403, 'Only the head of this program can assign its courses.');
     }
+    await requireReadyProgram(program, transaction);
     const [instructor] = await select('SELECT user_id, name, role, roles, is_active FROM Users WHERE user_id = ?', [instructorUserId], transaction);
     // Multi-role accounts: an instructor role anywhere in the account's list will do.
     const holdsInstructor = instructor && (instructor.role === 'instructor' || String(instructor.roles || '').includes('"instructor"'));
@@ -238,6 +253,8 @@ const startRevisionInTransaction = async ({ offeringId, user, now, transaction }
     if (approvedThisTerm) {
         throw new ServiceError(409, `A new revision was already approved for ${termLabel(source)}; the next one can start in a later term.`);
     }
+    const [program] = await select('SELECT * FROM Programs WHERE program_id = ?', [source.program_id], transaction);
+    await requireReadyProgram(program, transaction, true);
 
     const newOfferingId = await insert('ProgramCourseOfferings', {
         revision_number: 0,

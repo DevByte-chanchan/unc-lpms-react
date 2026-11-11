@@ -11,7 +11,8 @@
 // Only the Program Head of the offering's program uploads or removes; reading follows the offering access rules.
 
 const { sequelize, Sequelize } = require('../models');
-const { parseCourseSheet, templateBook } = require('../utils/courseDocumentSheets');
+const { parseCourseSheet, templateBook, bookFromData } = require('../utils/courseDocumentSheets');
+const { scanDocument, ScanError } = require('../utils/documentScan');
 const { buildCoaepWorkbook } = require('../utils/coaepWorkbook');
 
 const KINDS = ['co-po', 'coaep'];
@@ -87,14 +88,45 @@ const upload = async (req, res, next) => {
         }
         const sent = req.get('X-File-Name') ? decodeURIComponent(req.get('X-File-Name')) : '';
         const fileName = (sent.replace(/\.[^.]*$/, '') || p.kind).slice(0, 180) + '.' + kind.ext;
-        await sequelize.transaction(async (transaction) => {
-            await sequelize.query('DELETE FROM CourseDocuments WHERE pc_offering_id = ? AND kind = ?', { replacements: [p.pcId, p.kind], transaction });
-            await sequelize.getQueryInterface().bulkInsert('CourseDocuments', [{
-                pc_offering_id: p.pcId, kind: p.kind, file_name: fileName, content_type: kind.type, data: bytes,
-                uploaded_by: req.user.id, updatedAt: new Date(),
-            }], { transaction });
-        });
+        await store(req, p, bytes, kind.type, fileName);
         return res.status(201).json({ fileName, contentType: kind.type });
+    } catch (err) { return next(err); }
+};
+
+// The course's file of this kind, replacing the one before.
+const store = (req, p, bytes, contentType, fileName) => sequelize.transaction(async (transaction) => {
+    await sequelize.query('DELETE FROM CourseDocuments WHERE pc_offering_id = ? AND kind = ?', { replacements: [p.pcId, p.kind], transaction });
+    await sequelize.getQueryInterface().bulkInsert('CourseDocuments', [{
+        pc_offering_id: p.pcId, kind: p.kind, file_name: fileName, content_type: contentType, data: bytes,
+        uploaded_by: req.user.id, updatedAt: new Date(),
+    }], { transaction });
+});
+
+// POST /:pcId/:kind/scan   body: a picture or PDF of the form   answers { data, source, warnings } (nothing saved)
+const scan = async (req, res, next) => {
+    try {
+        const p = params(req, res);
+        if (!p || !(await headsOffering(req, res, p.pcId))) return undefined;
+        const result = await scanDocument(req.body, p.kind);
+        return res.json(result);
+    } catch (err) {
+        if (err instanceof ScanError) return res.status(err.status).json({ error: err.message });
+        return next(err);
+    }
+};
+
+// PUT /:pcId/:kind/scanned   body: { data } as reviewed   stores it as the course's spreadsheet (template layout)
+const saveScanned = async (req, res, next) => {
+    try {
+        const p = params(req, res);
+        if (!p || !(await headsOffering(req, res, p.pcId))) return undefined;
+        const built = bookFromData(p.kind, req.body?.data);
+        if (built.error) return res.status(400).json({ error: built.error });
+        const parsed = parseCourseSheet(p.kind, built.bytes);
+        if (parsed.error) return res.status(400).json({ error: parsed.error });
+        const fileName = `${p.kind === 'coaep' ? 'COAEP' : 'CO-PO'}-scanned.xlsx`;
+        await store(req, p, built.bytes, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', fileName);
+        return res.status(201).json({ fileName, parsed });
     } catch (err) { return next(err); }
 };
 
@@ -128,4 +160,4 @@ const exportCoaep = async (req, res, next) => {
     } catch (err) { return next(err); }
 };
 
-module.exports = { info, download, upload, remove, template, exportCoaep };
+module.exports = { info, download, upload, remove, template, exportCoaep, scan, saveScanned };

@@ -13,6 +13,7 @@
 const xlsx = require('xlsx');
 const { sequelize, Sequelize, Program } = require('../models');
 const { GRADUATE_ATTRIBUTES } = require('./programOutcomeController');
+const { scanDocument, frontPageCheck, ScanError } = require('../utils/documentScan');
 
 const asInt = (value) => (/^\d+$/.test(String(value ?? '')) ? Number(value) : null);
 const select = (sql, r = []) => sequelize.query(sql, { replacements: r, type: Sequelize.QueryTypes.SELECT });
@@ -151,4 +152,38 @@ const template = (req, res) => {
     return res.send(xlsx.write(book, { type: 'buffer', bookType: 'xlsx' }));
 };
 
-module.exports = { getFrontPages, putFrontPages, deleteFrontPages, importProgramOutcomes, template, parseProgramOutcomes };
+// POST /:programId/scan   body: a picture or PDF of the program's PEO / PO tables
+// answers { peos, outcomes, source, warnings }: the import's shape, shown in the editor to check before Save.
+const scanProgramOutcomes = async (req, res, next) => {
+    try {
+        const program = await ownProgram(req, res);
+        if (!program) return undefined;
+        const { data, source, warnings } = await scanDocument(req.body, 'po-peo');
+        return res.json({ ...data, source, warnings });
+    } catch (err) {
+        if (err instanceof ScanError) return res.status(err.status).json({ error: err.message });
+        return next(err);
+    }
+};
+
+// POST /:programId/front-pages/check   reads the uploaded front pages and says whether the vision, the mission and
+// each of the program's PEO and PO statements are in them.
+const checkFrontPages = async (req, res, next) => {
+    try {
+        const program = await ownProgram(req, res);
+        if (!program) return undefined;
+        const [row] = await select('SELECT pdf FROM ProgramFrontPages WHERE program_id = ?', [program.program_id]);
+        if (!row) return res.status(404).json({ error: 'No front pages are uploaded.' });
+        const { data, source, warnings } = await scanDocument(Buffer.from(row.pdf), 'front');
+        const [peos, outcomes] = await Promise.all([
+            select('SELECT statement FROM ProgramEducationalObjectives WHERE program_id = ? ORDER BY peo_id', [program.program_id]),
+            select('SELECT description AS text FROM ProgramOutcomes WHERE program_id = ? ORDER BY po_id', [program.program_id]),
+        ]);
+        return res.json({ ...frontPageCheck(data.text, { peos, outcomes }), source, warnings });
+    } catch (err) {
+        if (err instanceof ScanError) return res.status(err.status).json({ error: err.message });
+        return next(err);
+    }
+};
+
+module.exports = { getFrontPages, putFrontPages, deleteFrontPages, importProgramOutcomes, template, parseProgramOutcomes, scanProgramOutcomes, checkFrontPages };

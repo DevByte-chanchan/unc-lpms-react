@@ -139,6 +139,7 @@ app.use('/api/offerings', require('./routes/offerings'));
 app.use('/api/course-assignments', require('./routes/courseAssignments'));
 app.use('/api/course-references', require('./routes/courseReferences'));
 app.use('/api/course-documents', require('./routes/courseDocuments'));
+app.use('/api/export', require('./routes/exportPdf'));
 app.use('/api/profile', require('./routes/profile'));
 app.use('/api/audit-logs', require('./routes/auditLogs'));
 app.use('/api/user-accounts', require('./routes/userAccounts'));

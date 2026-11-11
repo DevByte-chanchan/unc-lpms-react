@@ -67,7 +67,7 @@ test('an empty database is seeded through the command line, and the six accounts
 
     const run = cli(file);
     assert.equal(run.status, 0, run.stderr);
-    assert.equal((run.stdout.match(/^Seeded /gm) || []).length, 16, 'all 16 seeders');
+    assert.equal((run.stdout.match(/^Seeded /gm) || []).length, 17, 'all 17 seeders');
     const order = ['20260512030000', '20260811000000', '20260812000000', '20260813000000', '20260901000000'].map(prefix => run.stdout.indexOf(`Seeded ${prefix}`));
     assert.ok(order.every((position, i) => position >= 0 && (i === 0 || order[i - 1] < position)), 'in filename order');
     assert.match(run.stdout, /password "demo1234"/);

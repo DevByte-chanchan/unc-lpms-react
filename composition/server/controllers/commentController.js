@@ -505,7 +505,7 @@ exports.createCourseComment = async (req, res) => {
 
         // Tell the other side (the instructor, or the reviewers with a pending item). Never fails the comment.
         await onComment({
-            offeringId: pcId, actorUserId: req.user?.id, commenterRole: commenter_role, assignmentId: coAssignId
+            offeringId: pcId, actorUserId: req.user?.id, commenterRole: commenter_role, assignmentId: coAssignId, commentId
         });
 
         return res.status(201).json({ comment_id: commentId, week_id: weekId, ilo_id: weekId, comment_for: normalizedFor, target_ids: targetIds });
