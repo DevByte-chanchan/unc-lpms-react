@@ -8,7 +8,7 @@ import TOSPreview from "../pages/TosPreview.jsx";
 import TOSSummary from "../pages/TosSummary.jsx";
 import AssessmentsStep, { AutoResizeTextarea } from "../pages/AssessmentsStep.jsx";
 import AssessmentOutput from "./AssessmentOutput.jsx";
-import { fetchOutcomes, fetchItems, saveOutcomes, saveItems, fetchCourse, updateCourse, updateStatus, fetchStatus, fetchComments, createComment, deleteComment, resolveComment, ACTIVE_PERIOD } from '../services/api.js';
+import { fetchOutcomes, fetchItems, saveOutcomes, saveItems, fetchCourse, updateCourse, updateStatus, fetchStatus, fetchComments, createComment, deleteComment, resolveComment, fetchAttachments, ACTIVE_PERIOD } from '../services/api.js';
 import { PROGRAM_HEAD, INSTRUCTOR } from '../constants/users.js';
 
 const BLOOM_LEVELS = [
@@ -19,6 +19,7 @@ const BLOOM_LEVELS = [
 const TosSections = ({role = 'instructor'}) => {
 
     const [questions, setQuestions] = useState([]);
+    const [attachments, setAttachments] = useState([]);
     const [isPreviewOpen, setIsPreviewOpen] = useState(false);
     const [assessmentMode] = useState("question");
     const [expandedCOs, setExpandedCOs] = useState(new Set());
@@ -233,6 +234,11 @@ const TosSections = ({role = 'instructor'}) => {
                 try { setReturnDates(JSON.parse(s.returnDates || '[]')); } catch { /* ignore */ }
             }
         }).catch(() => {});
+        fetchAttachments(courseCode, fromExamType).then(data => {
+            setAttachments(data || []);
+        }).catch(() => {
+            setAttachments([]);
+        });
     }, [courseCode, dataLoaded]);
 
     // re-derive item co/ilo when outcomes load after items
@@ -817,7 +823,10 @@ const TosSections = ({role = 'instructor'}) => {
     const relevantQuestions = questions.filter(q => rows.some(co => co.co === q.co));
     const allItemsHavePoints = relevantQuestions.every(q => q.points && Number(q.points) > 0);
     const allItemsHaveBloom = relevantQuestions.every(q => !!q.cognitiveLevel);
-    const canSubmit = allIlosComplete && allItemsHavePoints && allItemsHaveBloom && relevantQuestions.length > 0 && comments.every(c => c.resolved);
+    const relevantIloDbIds = new Set(rows.flatMap(co => (co.ilos || []).map(ilo => ilo.iloDbId || ilo.id)));
+    const relevantAtts = attachments.filter(a => relevantIloDbIds.has(a.iloId));
+    const allFilesHaveRows = relevantAtts.every(a => relevantQuestions.some(q => String(q.attachmentId) === String(a.id)));
+    const canSubmit = allIlosComplete && allItemsHavePoints && allItemsHaveBloom && allFilesHaveRows && relevantQuestions.length > 0 && comments.every(c => c.resolved);
 
     const getSubmitTooltipText = () => {
         if (canSubmit) return '';
@@ -860,6 +869,26 @@ const TosSections = ({role = 'instructor'}) => {
                 lines.push(`${noRowItems.slice(0, 2).join(', ')}, +${noRowItems.length - 2} more`);
             } else {
                 lines.push(noRowItems.join(', '));
+            }
+        }
+
+        // (b.1) empty file: "ILO1 has a file with no rows" (up to 2 ILOs, "+N more")
+        const emptyFileItems = [];
+        rows.forEach(co => {
+            (co.ilos || []).forEach(ilo => {
+                const iloDbId = ilo.iloDbId || ilo.id;
+                const iloAtts = attachments.filter(a => a.iloId === iloDbId);
+                if (iloAtts.length > 0 && iloAtts.some(a => !questions.some(q => String(q.attachmentId) === String(a.id)))) {
+                    emptyFileItems.push(`${ilo.id} has a file with no rows`);
+                }
+            });
+        });
+
+        if (emptyFileItems.length > 0) {
+            if (emptyFileItems.length > 2) {
+                lines.push(`${emptyFileItems.slice(0, 2).join(', ')}, +${emptyFileItems.length - 2} more`);
+            } else {
+                lines.push(emptyFileItems.join(', '));
             }
         }
 
@@ -1686,6 +1715,7 @@ const items = aggregatedData[co.co][ilo.id][level];
                                             onAssessmentNameChange={setAssessmentName}
                                             readOnly={readOnly}
                                             showComments
+                                            onAttachmentsChange={setAttachments}
                                         />
                                     </section>
                                 )}
@@ -2159,6 +2189,7 @@ const items = aggregatedData[co.co][ilo.id][level];
                                         assessmentName={assessmentName}
                                         onAssessmentNameChange={setAssessmentName}
                                         readOnly={readOnly}
+                                        onAttachmentsChange={setAttachments}
                                     />
                                 </section>
                             )}

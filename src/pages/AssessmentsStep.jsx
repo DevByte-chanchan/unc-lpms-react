@@ -164,7 +164,8 @@ const AssessmentsStep = ({
     setQuestions,
     courseCode,
     examType = ACTIVE_PERIOD,
-    readOnly = false
+    readOnly = false,
+    onAttachmentsChange = () => {}
 }) => {
     const [, setSearchParams] = useSearchParams();
     const [attachments, setAttachments] = useState([]);
@@ -189,7 +190,11 @@ const AssessmentsStep = ({
 
     useEffect(() => {
         if (courseCode) {
-            fetchAttachments(courseCode, examType).then(data => setAttachments(data)).catch(console.error);
+            fetchAttachments(courseCode, examType).then(data => {
+                const list = data || [];
+                setAttachments(list);
+                onAttachmentsChange(list);
+            }).catch(console.error);
         }
     }, [courseCode, examType]);
 
@@ -207,7 +212,9 @@ const AssessmentsStep = ({
         setLoading(true);
         try {
             const att = await uploadAttachment(courseCode, examType, activeIloData.iloDbId, file);
-            setAttachments(prev => [...prev, att]);
+            const nextAtts = [...attachments, att];
+            setAttachments(nextAtts);
+            onAttachmentsChange(nextAtts);
             addPointRow(att.id);
             setShowUpload(false);
         } catch (err) {
@@ -222,7 +229,9 @@ const AssessmentsStep = ({
         if (!window.confirm("Are you sure? Point rows for this file will also be deleted.")) return;
         try {
             await deleteAttachment(courseCode, examType, id);
-            setAttachments(prev => prev.filter(a => a.id !== id));
+            const nextAtts = attachments.filter(a => a.id !== id);
+            setAttachments(nextAtts);
+            onAttachmentsChange(nextAtts);
             setQuestions(prev => prev.filter(q => q.attachmentId !== id));
         } catch {
             alert('Failed to delete attachment');
