@@ -1,0 +1,574 @@
+.dashboardPage
+  display: flex
+  flex-direction: column
+  width: 100%
+  height: 100%
+  flex: 1
+  min-height: 0
+  box-sizing: border-box
+  padding: 24px 30px
+  background: #FFFFFF
+  overflow: hidden
+
+.dashboardHeader
+  display: flex
+  flex-direction: column
+  margin-bottom: 16px
+  flex-shrink: 0
+
+  h2
+    margin: 0
+    font-size: 22px
+    font-weight: 700
+    color: #1e293b
+    letter-spacing: -0.01em
+
+  .subtitle
+    margin-top: 4px
+    font-size: 13px
+    color: #64748b
+
+.twoColumns
+  display: grid
+  grid-template-columns: minmax(340px, 1fr) minmax(0, 1.8fr)
+  gap: 20px
+  flex: 1
+  min-height: 0
+  height: 100%
+  align-items: stretch
+  width: 100%
+
+.leftColumn
+  height: 100%
+  min-height: 0
+  display: flex
+  flex-direction: column
+
+@media (max-width: 1024px)
+  .dashboardPage
+    overflow-y: auto
+  .twoColumns
+    grid-template-columns: 1fr
+    height: auto
+    flex: none
+  .leftColumn
+    height: auto
+    min-height: 380px
+
+// ───── Current Term Card ─────
+.termCard
+  background: #FFFFFF
+  border: 1px solid #E2E8F0
+  border-radius: 12px
+  padding: 20px 24px
+  display: flex
+  flex-direction: column
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 1px 3px rgba(15, 23, 42, 0.04)
+  position: relative
+  overflow: hidden
+  height: 100%
+  flex: 1
+  min-height: 0
+
+.eyebrow
+  font-size: 13px
+  font-weight: 500
+  color: #64748B
+  letter-spacing: 0
+  margin-bottom: 4px
+  flex-shrink: 0
+
+.collapsedHero
+  flex: 1
+  display: flex
+  flex-direction: column
+  align-items: center
+  justify-content: center
+  text-align: center
+  padding: 16px 0
+  gap: 10px
+
+.yearText
+  font-size: 64px
+  font-weight: 800
+  color: #0F172A
+  letter-spacing: -0.02em
+  line-height: 1
+
+.semesterText
+  font-size: 22px
+  font-weight: 500
+  color: #334155
+  line-height: 1.2
+
+.nextDateLine
+  font-size: 13px
+  color: #64748B
+  line-height: 1.4
+  margin-top: 6px
+
+  strong
+    color: #334155
+    font-weight: 600
+
+  span
+    color: #94A3B8
+
+.expandBtn
+  align-self: center
+  margin-top: auto
+  margin-bottom: 8px
+  background: transparent
+  border: none
+  color: #0F172A
+  cursor: pointer
+  padding: 4px
+  border-radius: 9999px
+  display: inline-flex
+  align-items: center
+  justify-content: center
+  animation: dashArrowBob 1.6s ease-in-out infinite
+  transition: transform 0.2s ease, background 0.15s ease
+  flex-shrink: 0
+
+  &:hover
+    background: rgba(15, 23, 42, 0.06)
+    transform: scale(1.1)
+
+.collapseBtn
+  align-self: center
+  margin-bottom: 8px
+  background: transparent
+  border: none
+  color: #0F172A
+  cursor: pointer
+  padding: 4px
+  border-radius: 9999px
+  display: inline-flex
+  align-items: center
+  justify-content: center
+  transition: transform 0.2s ease, background 0.15s ease
+  flex-shrink: 0
+
+  &:hover
+    background: rgba(15, 23, 42, 0.06)
+    transform: scale(1.1)
+
+.divider
+  border-top: 1px solid #E2E8F0
+  margin: 0 0 12px
+  flex-shrink: 0
+
+.expandedScrollContent
+  flex: 1
+  min-height: 0
+  overflow-y: auto
+  padding-right: 4px
+
+  &::-webkit-scrollbar
+    display: none
+
+.progressBlock
+  margin-bottom: 14px
+
+.progressHeader
+  font-size: 13px
+  color: #475569
+
+  strong
+    color: #0F172A
+    font-weight: 600
+
+.progressBarOuter
+  margin-top: 6px
+  height: 6px
+  border-radius: 9999px
+  background: #E2E8F0
+  overflow: hidden
+
+.progressBarInner
+  height: 100%
+  border-radius: 9999px
+  background: #0F172A
+  transition: width 0.3s ease
+
+.detailRowGroup
+  margin-bottom: 12px
+
+.detailLabel
+  display: inline-flex
+  align-items: center
+  gap: 6px
+  color: #64748B
+  font-size: 13px
+  font-weight: 500
+
+.detailValue
+  margin-top: 4px
+  font-size: 14px
+  font-weight: 500
+  color: #0F172A
+
+  span
+    color: #64748B
+    font-weight: 400
+
+.timelineList
+  list-style: none
+  margin: 8px 0 0
+  padding: 0
+
+.timelineItem
+  position: relative
+  display: flex
+  align-items: flex-start
+  gap: 10px
+  padding: 5px 0
+
+.timelineConnector
+  position: absolute
+  left: 3.5px
+  top: 18px
+  bottom: -6px
+  width: 1px
+  background: #E2E8F0
+
+.timelineDot
+  flex-shrink: 0
+  width: 8px
+  height: 8px
+  margin-top: 6px
+  border-radius: 50%
+  position: relative
+
+.timelineItemContent
+  flex: 1
+  min-width: 0
+  display: flex
+  flex-wrap: wrap
+  align-items: baseline
+  column-gap: 10px
+  row-gap: 0
+
+.timelineLabel
+  flex: 1 1 110px
+  font-size: 13px
+  font-weight: 500
+
+.nextChip
+  margin-left: 6px
+  padding: 1px 7px
+  border-radius: 9999px
+  background: #0F172A
+  color: #FFFFFF
+  font-size: 10.5px
+  font-weight: 600
+  vertical-align: 1px
+
+.timelineDateText
+  display: inline-flex
+  align-items: baseline
+  gap: 8px
+  font-size: 13px
+
+.timelineHint
+  font-size: 12px
+  color: #64748B
+
+.timelineUnset
+  font-size: 13px
+  color: #94A3B8
+  font-style: italic
+
+.calendarChecksNote
+  margin-top: 14px
+  padding: 8px 12px
+  border-radius: 10px
+  background: #FFFBEB
+  border: 1px solid #FDE68A
+  color: #92400E
+  font-size: 12.5px
+  line-height: 1.45
+  display: flex
+  gap: 8px
+
+@keyframes dashArrowBob
+  0%, 100%
+    transform: translateY(0)
+  50%
+    transform: translateY(4px)
+
+// ───── Column 2 (Rows) ─────
+.rightColumn
+  display: flex
+  flex-direction: column
+  gap: 20px
+  height: 100%
+  min-height: 0
+  flex: 1
+
+.blockCard
+  background: #FFFFFF
+  border: 1px solid #E2E8F0
+  border-radius: 12px
+  padding: 20px
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 1px 3px rgba(15, 23, 42, 0.04)
+  display: flex
+  flex-direction: column
+  gap: 14px
+  flex: 1
+  min-height: 0
+
+.blockHeader
+  display: flex
+  justify-content: space-between
+  align-items: center
+  flex-wrap: wrap
+  gap: 12px
+  flex-shrink: 0
+
+.blockTitleGroup
+  display: flex
+  align-items: center
+  gap: 12px
+
+  h3
+    margin: 0
+    font-size: 16px
+    font-weight: 700
+    color: #1e293b
+    letter-spacing: -0.01em
+
+.totalBadge
+  background: #f1f5f9
+  color: #475569
+  font-size: 12px
+  font-weight: 600
+  padding: 3px 10px
+  border-radius: 20px
+  border: 1px solid #e2e8f0
+
+.headerActions
+  display: flex
+  align-items: center
+  gap: 12px
+  flex-wrap: wrap
+
+.segmentedControl
+  display: flex
+  background-color: #f1f5f9
+  padding: 3px
+  border-radius: 8px
+  gap: 3px
+
+.controlItem
+  border: none
+  outline: none
+  padding: 5px 12px
+  cursor: pointer
+  background: transparent
+  color: #64748b
+  font-weight: 500
+  border-radius: 6px
+  transition: all 0.2s ease
+  font-size: 13px
+  display: inline-flex
+  align-items: center
+  gap: 6px
+
+  &:hover
+    color: #334155
+    background: rgba(0, 0, 0, 0.03)
+
+  &.active
+    background-color: #ffffff
+    color: #0f172a
+    box-shadow: 0px 1px 3px rgba(0, 0, 0, 0.08)
+    font-weight: 600
+
+.itemBadge
+  font-size: 11px
+  padding: 1px 6px
+  border-radius: 10px
+  background: #f1f5f9
+  color: #64748b
+
+.goToIconBtn
+  background: transparent !important
+  border: none !important
+  border-radius: 0 !important
+  padding: 0 !important
+  margin: 0 !important
+  width: 24px !important
+  height: 24px !important
+  min-width: 24px !important
+  min-height: 24px !important
+  box-shadow: none !important
+  outline: none !important
+  color: #334155 !important
+  cursor: pointer
+  display: inline-flex !important
+  align-items: center
+  justify-content: center
+  line-height: 1
+  transition: transform 0.2s ease, color 0.2s ease
+
+  svg
+    display: block !important
+    width: 20px !important
+    height: 20px !important
+    stroke: currentColor !important
+    stroke-width: 2.2 !important
+
+  &:hover
+    background: transparent !important
+    border: none !important
+    border-color: transparent !important
+    color: #0f172a !important
+    transform: translate(2px, -2px)
+
+// ───── Mini Course Grid ─────
+.miniGridContainer
+  display: grid
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr))
+  grid-auto-rows: 124px
+  align-content: start
+  gap: 12px
+  flex: 1
+  min-height: 0
+  overflow-y: auto
+  padding: 2px 4px 2px 2px
+
+  &::-webkit-scrollbar
+    width: 5px
+    display: block
+
+  &::-webkit-scrollbar-track
+    background: transparent
+
+  &::-webkit-scrollbar-thumb
+    background: #cbd5e1
+    border-radius: 4px
+
+  &::-webkit-scrollbar-thumb:hover
+    background: #94a3b8
+
+.miniCard
+  display: flex
+  flex-direction: column
+  background: #FFFFFF
+  border-radius: 8px
+  border: 1px solid #ebebeb
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03)
+  transition: box-shadow 0.2s, transform 0.2s
+  overflow: hidden
+  height: 124px
+  box-sizing: border-box
+
+  &:hover
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.06)
+    transform: translateY(-1px)
+
+.miniCardMain
+  padding: 12px 14px
+  display: flex
+  flex-direction: column
+  justify-content: space-between
+  height: 100%
+  box-sizing: border-box
+
+.miniCardHeader
+  display: flex
+  justify-content: space-between
+  align-items: center
+
+.miniCardCode
+  font-size: 12px
+  font-weight: 600
+  color: #DC2626
+  background: rgba(220, 38, 38, 0.08)
+  padding: 3px 8px
+  border-radius: 20px
+
+.miniCardDate
+  font-size: 12px
+  color: #888
+  font-weight: 300
+
+.miniCardTitle
+  font-size: 13.5px
+  font-weight: 500
+  color: #222
+  line-height: 1.3
+  overflow: hidden
+  display: -webkit-box
+  -webkit-line-clamp: 2
+  -webkit-box-orient: vertical
+  margin: 2px 0
+
+.miniCardFooter
+  display: flex
+  justify-content: space-between
+  align-items: center
+  margin-top: auto
+
+.miniActionBtn
+  display: inline-flex
+  align-items: center
+  gap: 4px
+  background: #f8f9fa
+  border: 1px solid #e9ecef
+  padding: 4px 12px
+  border-radius: 20px
+  font-size: 12px
+  font-weight: 500
+  color: #444 !important
+  text-decoration: none
+  transition: all 0.2s
+  cursor: pointer
+  outline: none
+
+  &:hover
+    background: #e9ecef
+    color: #000 !important
+
+.emptyState
+  flex: 1
+  min-height: 0
+  display: flex
+  align-items: center
+  justify-content: center
+  padding: 24px 16px
+  color: #94a3b8
+  font-size: 13px
+  text-align: center
+  background: #f8fafc
+  border: 1px dashed #e2e8f0
+  border-radius: 8px
+
+// ───── Empty Assigned TOS Block ─────
+.emptyTosCard
+  background: #FFFFFF
+  border: 1px solid #E2E8F0
+  border-radius: 12px
+  padding: 20px
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 1px 3px rgba(15, 23, 42, 0.04)
+  display: flex
+  flex-direction: column
+  gap: 14px
+  flex: 1
+  min-height: 0
+
+.emptyTosPlaceholder
+  flex: 1
+  min-height: 70px
+  display: flex
+  flex-direction: column
+  align-items: center
+  justify-content: center
+  background: #F8FAFC
+  border: 1px dashed #E2E8F0
+  border-radius: 8px
+  color: #94A3B8
+  font-size: 13px
+  gap: 6px

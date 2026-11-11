@@ -5,7 +5,11 @@ module.exports = (sequelize, DataTypes) => {
         co_assign_id: { type: DataTypes.INTEGER, allowNull: false },
         stakeholder_id: { type: DataTypes.STRING(20), allowNull: true },
         actor_role: { type: DataTypes.STRING(30), allowNull: false },
-        action_type: { type: DataTypes.ENUM('ASSIGNED', 'SUBMITTED', 'RETURNED', 'ACCEPTED'), allowNull: false }
+        action_type: {
+            type: DataTypes.ENUM('ASSIGNED', 'SUBMITTED', 'RETURNED', 'ACCEPTED'),
+            allowNull: false
+        },
+        is_viewed: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false }
     }, {
         tableName: 'AssignmentWorkflowLogs'
     });

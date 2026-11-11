@@ -26,6 +26,11 @@ module.exports = {
                 type: Sequelize.ENUM('ASSIGNED', 'SUBMITTED', 'RETURNED', 'ACCEPTED'),
                 allowNull: false
             },
+            is_viewed: {
+                type: Sequelize.BOOLEAN,
+                allowNull: false,
+                defaultValue: false
+            },
 
             createdAt: {
                 type: Sequelize.DATE,

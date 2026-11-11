@@ -71,8 +71,8 @@ module.exports = {
         );
         if (sysarchAssign.length > 0) {
             await queryInterface.bulkInsert('AssignmentWorkflowLogs', [
-                { co_assign_id: sysarchAssign[0].co_assign_id, stakeholder_id: '2', actor_role: 'PROGRAM_HEAD', action_type: 'ASSIGNED', createdAt: new Date('2026-06-01 09:00:00'), updatedAt: new Date('2026-06-01 09:00:00') },
-                { co_assign_id: sysarchAssign[0].co_assign_id, stakeholder_id: '1', actor_role: 'INSTRUCTOR', action_type: 'SUBMITTED', createdAt: new Date('2026-06-15 10:00:00'), updatedAt: new Date('2026-06-15 10:00:00') }
+                { co_assign_id: sysarchAssign[0].co_assign_id, stakeholder_id: '2', actor_role: 'PROGRAM_HEAD', action_type: 'ASSIGNED', is_viewed: true, createdAt: new Date('2026-06-01 09:00:00'), updatedAt: new Date('2026-06-01 09:00:00') },
+                { co_assign_id: sysarchAssign[0].co_assign_id, stakeholder_id: '1', actor_role: 'INSTRUCTOR', action_type: 'SUBMITTED', is_viewed: true, createdAt: new Date('2026-06-15 10:00:00'), updatedAt: new Date('2026-06-15 10:00:00') }
             ], {});
         }
 

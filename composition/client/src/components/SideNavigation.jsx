@@ -1,6 +1,6 @@
 import styles from '../styles/SideNavigation.module.sass'
 import unclogo from '../assets/unclogo.png'
-import { FileText, LogOut, Users, BookOpen } from 'react-feather'
+import { FileText, LogOut, Users, BookOpen, Grid } from 'react-feather'
 import { useSearchParams, useNavigate, useLocation } from 'react-router-dom'
 import { useEffect, useRef, useState } from 'react'
 import { useCurrentUser } from '../services/currentUser.jsx'
@@ -13,10 +13,18 @@ const SideNavigation = ({ mode = 'instructor' }) => {
     const { user, logout } = useCurrentUser()
 
     // --- MERGED SELECTION LOGIC ---
-    let selected = searchParams.get('page') || 'Syllabus';
+    let selected = searchParams.get('page');
 
-    if (location.pathname.startsWith('/assignedtos') || location.pathname.startsWith('/tos')) {
-        selected = 'TOS';
+    if (!selected) {
+        if (location.pathname === '/' || location.pathname === '/dashboard') {
+            selected = 'Dashboard';
+        } else if (location.pathname.startsWith('/assignedtos') || location.pathname.startsWith('/tos')) {
+            selected = 'TOS';
+        } else if (location.pathname.startsWith('/assigned-courses') || location.pathname.startsWith('/courses')) {
+            selected = 'Syllabus';
+        } else {
+            selected = mode === 'instructor' ? 'Dashboard' : 'Syllabus';
+        }
     }
 
     const [confirmLogoutOpen, setConfirmLogoutOpen] = useState(false)
@@ -26,10 +34,13 @@ const SideNavigation = ({ mode = 'instructor' }) => {
     const [pinned, setPinned] = useState(false)
 
     const handlePageChange = (page) => {
-        if (page === 'Syllabus') {
+        if (page === 'Dashboard') {
+            navigate('/');
+        }
+        else if (page === 'Syllabus') {
             if (mode === 'program-head') navigate('/role/program-head/approval-course-table?page=Syllabus');
             else if (mode === 'dean') navigate('/role/dean?page=Syllabus');
-            else navigate('/');
+            else navigate('/assigned-courses');
         }
         else if (page === 'TOS') {
             navigate('/assignedtos');
@@ -112,6 +123,16 @@ const SideNavigation = ({ mode = 'instructor' }) => {
             </div>
 
             <div className={styles['nav-list']}>
+                {mode === 'instructor' && (
+                    <div
+                        onClick={() => handlePageChange('Dashboard')}
+                        className={`${styles.list} ${selected === 'Dashboard' ? styles.selected : ''}`}
+                    >
+                        <Grid size={24} />
+                        <span className={styles.listText}>Dashboard</span>
+                    </div>
+                )}
+
                 {mode !== 'hr-staff' && (
                     <div
                         onClick={() => handlePageChange('Syllabus')}

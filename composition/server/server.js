@@ -1,37 +1,14 @@
-// Load .env file automatically if present
-const fs = require('fs');
-const path = require('path');
-const envPath = path.join(__dirname, '.env');
-if (fs.existsSync(envPath)) {
-    try {
-        const envLines = fs.readFileSync(envPath, 'utf8').split('\n');
-        for (const line of envLines) {
-            const trimmed = line.trim();
-            if (trimmed && !trimmed.startsWith('#')) {
-                const eqIdx = trimmed.indexOf('=');
-                if (eqIdx > 0) {
-                    const key = trimmed.slice(0, eqIdx).trim();
-                    const val = trimmed.slice(eqIdx + 1).trim().replace(/^["']|["']$/g, '');
-                    if (!process.env[key]) {
-                        process.env[key] = val;
-                    }
-                }
-            }
-        }
-    } catch (e) {
-        console.warn('Could not parse .env file:', e.message);
-    }
-}
-
 const express = require('express');
-const cookieParser = require('cookie-parser');
-const app = express();
-const port = process.env.PORT || 5000;
 const cors = require('cors');
+const cookieParser = require('cookie-parser');
 const { attachUser } = require('./middleware/auth');
+const app = express();
+const port = 5000;
 
 app.use(cors({
     origin: [
+        'http://localhost:5174',
+        'http://localhost:8080',
         'http://localhost:8081',
         'http://localhost:5173',
         'http://192.168.254.107:8081',
@@ -47,6 +24,12 @@ app.use(attachUser);
 // routes
 const authRoutes = require('./routes/auth');
 app.use('/api/auth', authRoutes);
+
+const dashboardRoutes = require('./routes/dashboard');
+app.use('/api/dashboard', dashboardRoutes);
+
+const academicPeriodsRoutes = require('./routes/academicPeriods');
+app.use('/api/academic-periods', academicPeriodsRoutes);
 
 const assignmentRoutes = require('./routes/assignments');
 app.use('/api/assignments', assignmentRoutes);
@@ -72,6 +55,7 @@ const courseCoverageRoutes = require('./routes/courseCoverage');
 const courseReferenceRoutes = require('./routes/courseReferenceRoutes');
 const revisionRoutes = require('./routes/revisionRoutes');
 const submissionRoutes = require('./routes/submissionRoutes');
+const notificationRoutes = require('./routes/notifications');
 
 app.use('/api/revisions', revisionRoutes);
 app.use('/api/references', referencesRoutes);
@@ -82,6 +66,7 @@ app.use('/api/comments', commentRoutes);
 app.use('/api/course-coverage', courseCoverageRoutes);
 app.use('/api', courseReferenceRoutes);
 app.use('/api/submit-learning-plan', submissionRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // global error handler
 app.use((err, req, res, next) => {
@@ -89,4 +74,7 @@ app.use((err, req, res, next) => {
     res.status(err.status || 500).json({ error: err.message || 'Internal Server Error' });
 });
 
-app.listen(port, () => console.log(`Server listening on ${port}`));
+if (require.main === module) {
+    app.listen(port, () => console.log(`Server listening on ${port}`));
+}
+module.exports = app;

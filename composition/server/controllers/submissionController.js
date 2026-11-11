@@ -55,6 +55,7 @@ async function submitLearningPlan(req, res) {
             stakeholder_id: stakeholderId,
             actor_role: actorRole,
             action_type: 'SUBMITTED',
+            is_viewed: true,
             createdAt: now,
             updatedAt: now
         });

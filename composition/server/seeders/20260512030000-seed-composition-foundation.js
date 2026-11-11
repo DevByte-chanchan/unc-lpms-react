@@ -237,6 +237,7 @@ Through lectures, hands-on projects, and usability testing, learners will develo
                     stakeholder_id: '2',
                     actor_role: 'PROGRAM_HEAD',
                     action_type: 'ASSIGNED',
+                    is_viewed: true,
                     createdAt: now,
                     updatedAt: now
                 }
@@ -1131,6 +1132,7 @@ Through lectures, hands-on projects, and usability testing, learners will develo
 
     async down(queryInterface, Sequelize) {
         // Delete in reverse order to avoid FK constraint issues
+        await queryInterface.bulkDelete('AssignmentWorkflowLogs', null, {});
         await queryInterface.bulkDelete('TLAAssessments', null, {});
         await queryInterface.bulkDelete('TeachingAndLearningActivities', null, {});
         await queryInterface.bulkDelete('Subtopics', null, {});

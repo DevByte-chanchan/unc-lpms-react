@@ -1,5 +1,6 @@
 import './App.css'
 import {BrowserRouter as Router, Routes, Route, Navigate} from 'react-router-dom'
+import Dashboard from "./pages/Dashboard.jsx";
 import AssignedCourses from "./pages/AssignedCourses.jsx";
 import Syllabus from "./pages/Syllabus.jsx";
 import ReferenceForm from "./pages/ReferenceForm.jsx";
@@ -31,6 +32,30 @@ function App() {
                         />
                         <Route
                             path={'/'}
+                            element={
+                                <RequireAuth>
+                                    <Dashboard />
+                                </RequireAuth>
+                            }
+                        />
+                        <Route
+                            path={'/dashboard'}
+                            element={
+                                <RequireAuth>
+                                    <Dashboard />
+                                </RequireAuth>
+                            }
+                        />
+                        <Route
+                            path={'/assigned-courses'}
+                            element={
+                                <RequireAuth>
+                                    <AssignedCourses />
+                                </RequireAuth>
+                            }
+                        />
+                        <Route
+                            path={'/courses'}
                             element={
                                 <RequireAuth>
                                     <AssignedCourses />

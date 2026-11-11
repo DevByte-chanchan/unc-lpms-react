@@ -59,6 +59,7 @@ module.exports = {
                 stakeholder_id: '2',
                 actor_role: 'PROGRAM_HEAD',
                 action_type: 'ASSIGNED',
+                is_viewed: true,
                 createdAt: new Date('2026-06-01 09:00:00'),
                 updatedAt: new Date('2026-06-01 09:00:00')
             }

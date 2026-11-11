@@ -1,6 +1,7 @@
 import styles from '../styles/Header.module.sass';
 import { useCurrentUser } from '../services/currentUser.jsx';
 import { ROLE_DISPLAY } from '../services/roles.js';
+import NotificationBell from './NotificationBell.jsx';
 
 const Header = ({ department, name: propName, role: propRole }) => {
     const { user, activeRole } = useCurrentUser();
@@ -19,9 +20,12 @@ const Header = ({ department, name: propName, role: propRole }) => {
             <div className={styles.department}>
                 {department}
             </div>
-            <div className={styles.info}>
-                <div className={styles.name}> {displayName} </div>
-                <div className={styles.role}> {displayRole} </div>
+            <div className={styles.userSection}>
+                <div className={styles.info}>
+                    <div className={styles.name}> {displayName} </div>
+                    <div className={styles.role}> {displayRole} </div>
+                </div>
+                <NotificationBell />
             </div>
         </div>
     );
