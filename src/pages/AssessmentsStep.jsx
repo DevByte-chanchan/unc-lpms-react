@@ -208,6 +208,7 @@ const AssessmentsStep = ({
         try {
             const att = await uploadAttachment(courseCode, examType, activeIloData.iloDbId, file);
             setAttachments(prev => [...prev, att]);
+            addPointRow(att.id);
             setShowUpload(false);
         } catch (err) {
             alert(err.message || 'Upload failed');
@@ -228,8 +229,16 @@ const AssessmentsStep = ({
         }
     };
 
+    const getCognitiveLevelsForIlo = (iloId) => {
+        if (iloId === 'ILO1') return ['Remembering', 'Understanding'];
+        if (iloId === 'ILO2') return ['Applying', 'Analyzing'];
+        if (iloId === 'ILO3') return ['Evaluating', 'Creating'];
+        return ['Remembering', 'Understanding', 'Applying', 'Analyzing', 'Evaluating', 'Creating'];
+    };
+
     const addPointRow = (attachmentId) => {
         if (readOnly || !activeCoData || !activeIloData) return;
+        const defaultLevel = getCognitiveLevelsForIlo(activeIloData.id)[0] || '';
         setQuestions(prev => [...prev, {
             id: uid(),
             co: activeCoData.co,
@@ -237,7 +246,7 @@ const AssessmentsStep = ({
             iloId: activeIloData.iloDbId,
             instruction: '',
             points: '',
-            cognitiveLevel: '',
+            cognitiveLevel: defaultLevel,
             span: 1,
             attachmentId
         }]);
@@ -251,13 +260,6 @@ const AssessmentsStep = ({
     const deletePointRow = (id) => {
         if (readOnly) return;
         setQuestions(prev => prev.filter(q => q.id !== id));
-    };
-
-    const getCognitiveLevelsForIlo = (iloId) => {
-        if (iloId === 'ILO1') return ['Remembering', 'Understanding'];
-        if (iloId === 'ILO2') return ['Applying', 'Analyzing'];
-        if (iloId === 'ILO3') return ['Evaluating', 'Creating'];
-        return ['Remembering', 'Understanding', 'Applying', 'Analyzing', 'Evaluating', 'Creating'];
     };
 
     const currentCounts = {};
