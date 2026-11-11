@@ -621,7 +621,7 @@ const AssessmentsStep = ({
                                         <div style={{ padding: '4px 16px 14px' }}>
                                             <div className={layout.pointTable} role="table" aria-label="Point rows">
                                                 <div className={layout.pointHeadRow} role="row">
-                                                    <span className={layout.pointTh} role="columnheader">Item / part</span>
+                                                    <span className={layout.pointTh} role="columnheader">Item/Part</span>
                                                     <span className={layout.pointTh} role="columnheader">Points</span>
                                                     <span className={layout.pointTh} role="columnheader">Bloom's level</span>
                                                     <span className={layout.pointTh} role="columnheader"></span>
@@ -629,13 +629,13 @@ const AssessmentsStep = ({
                                                 {rows.map(row => (
                                                     <div key={row.id} className={layout.pointRow} role="row">
                                                         <div className={layout.pointField} role="cell">
-                                                            <span className={layout.pointFieldLabel}>Item / part</span>
+                                                            <span className={layout.pointFieldLabel}>Item/Part</span>
                                                             <input
                                                                 type="text"
                                                                 value={row.instruction || row.question || ''}
                                                                 onChange={e => updatePointRow(row.id, 'instruction', e.target.value)}
                                                                 placeholder="e.g. Items 1-5 or Part II"
-                                                                aria-label="Item / part"
+                                                                aria-label="Item/Part"
                                                                 className={layout.pointCell}
                                                                 readOnly={readOnly}
                                                             />
