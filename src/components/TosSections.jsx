@@ -1,5 +1,5 @@
 import styles from '../styles/SyllabusSections.module.sass'
-import {ChevronLeft, ChevronUp, Loader, Trash2, CheckCircle, RotateCcw, Download, Clock, AlertTriangle} from 'react-feather';
+import {ChevronLeft, ChevronRight, ChevronUp, Loader, Trash2, CheckCircle, RotateCcw, Download, Clock, AlertTriangle, Send} from 'react-feather';
 import React, {useCallback, useEffect, useRef, useState} from "react";
 import {useNavigate, useSearchParams, useLocation, useParams} from "react-router-dom";
 import layout from "../styles/TosSections.module.sass";
@@ -46,26 +46,26 @@ const TosSections = ({role = 'instructor'}) => {
             co: "CO1",
             description: "Course Outcome 1",
             topics: [],
-            totalHours: 10.5,
+            totalHours: 20,
             totalPercentage: 100,
             totalPoints: 20,
             ilos: [
-                { id: "ILO1", description: "ILO1", hours: 1.5, percentage: 20, items: 4 },
-                { id: "ILO2", description: "ILO2", hours: 3, percentage: 30, items: 6 },
-                { id: "ILO3", description: "ILO3", hours: 6, percentage: 50, items: 10 }
+                { id: "ILO1", description: "ILO1", hours: 4, percentage: 20, items: 4 },
+                { id: "ILO2", description: "ILO2", hours: 6, percentage: 30, items: 6 },
+                { id: "ILO3", description: "ILO3", hours: 10, percentage: 50, items: 10 }
             ]
         },
         {
             co: "CO2",
             description: "Course Outcome 2",
             topics: [],
-            totalHours: 12,
+            totalHours: 20,
             totalPercentage: 100,
             totalPoints: 30,
             ilos: [
-                { id: "ILO1", description: "ILO1", hours: 2, percentage: 20, items: 6 },
-                { id: "ILO2", description: "ILO2", hours: 4, percentage: 30, items: 9 },
-                { id: "ILO3", description: "ILO3", hours: 6, percentage: 50, items: 15 }
+                { id: "ILO1", description: "ILO1", hours: 4, percentage: 20, items: 6 },
+                { id: "ILO2", description: "ILO2", hours: 6, percentage: 30, items: 9 },
+                { id: "ILO3", description: "ILO3", hours: 10, percentage: 50, items: 15 }
             ]
         }
     ];
@@ -415,15 +415,39 @@ const TosSections = ({role = 'instructor'}) => {
         return () => clearTimeout(timer);
     }, [viewMode, lastClickedItemId]);
 
-    const handleSectionChange = (e) => {
+    const handleSectionChange = (eOrValue) => {
         if (!confirmDiscard()) return;
+        const val = typeof eOrValue === 'string' ? eOrValue : (eOrValue?.target?.value || eOrValue);
         setAddingComment(false);
         setActiveScope(null);
         setCommentBody('');
         if (isProgramHead) {
-            setPhSection(e.target.value);
+            setPhSection(val);
         } else {
-            setSearchParams({ section: e.target.value });
+            setSearchParams({ section: val });
+        }
+    };
+
+    const isReviewMode = isReturnedView || isProgramHead || effectiveStatus === 'pending' || effectiveStatus === 'approved';
+    const sectionSteps = isReviewMode ? [
+        { id: 'Table of Specifications Report', label: 'Table of Specifications Report' },
+        { id: 'Assessments', label: 'Assessments' }
+    ] : [
+        { id: 'Outcome Overview', label: 'Outcome Overview' },
+        { id: 'Assessments', label: 'Assessments' },
+        { id: 'TOS Summary', label: 'TOS Summary' }
+    ];
+    const currentStepIndex = Math.max(0, sectionSteps.findIndex(s => s.id === selectedSection));
+
+    const handlePrevStep = () => {
+        if (currentStepIndex > 0) {
+            handleSectionChange(sectionSteps[currentStepIndex - 1].id);
+        }
+    };
+
+    const handleNextStep = () => {
+        if (currentStepIndex < sectionSteps.length - 1) {
+            handleSectionChange(sectionSteps[currentStepIndex + 1].id);
         }
     };
 
@@ -989,21 +1013,51 @@ const TosSections = ({role = 'instructor'}) => {
                             <ChevronLeft size={22}/>
                         </div>
 
-                        <div className={styles['section-select']}>
-                            <select value={selectedSection} onChange={handleSectionChange}>
-                                {isReturnedView || isProgramHead || effectiveStatus === 'pending' || effectiveStatus === 'approved' ? (
-                                    <>
-                                        <option value="Table of Specifications Report">Table of Specifications Report</option>
-                                        <option value="Assessments">Assessments</option>
-                                    </>
-                                ) : (
-                                    <>
-                                        <option value="Outcome Overview">Outcome Overview</option>
-                                        <option value="Assessments">Assessments</option>
-                                        <option value="TOS Summary">TOS Summary</option>
-                                    </>
-                                )}
-                            </select>
+                        <div className={styles.stepperNav}>
+                            <button
+                                type="button"
+                                className={styles.stepperArrow}
+                                onClick={handlePrevStep}
+                                disabled={currentStepIndex === 0}
+                                title="Previous section"
+                                aria-label="Previous section"
+                            >
+                                <ChevronLeft size={16} />
+                            </button>
+
+                            <div className={styles.stepperCapsule} role="tablist" aria-label="TOS sections">
+                                {sectionSteps.map((step, idx) => {
+                                    const isCurrent = idx === currentStepIndex;
+                                    const isCompleted = idx < currentStepIndex;
+                                    return (
+                                        <React.Fragment key={step.id}>
+                                            {idx > 0 && <span className={styles.stepperDivider} aria-hidden="true">—</span>}
+                                            <button
+                                                type="button"
+                                                role="tab"
+                                                aria-selected={isCurrent}
+                                                className={`${styles.stepperStep} ${
+                                                    isCurrent ? styles.stepActive : isCompleted ? styles.stepCompleted : styles.stepUpcoming
+                                                }`}
+                                                onClick={() => handleSectionChange(step.id)}
+                                            >
+                                                {step.label}
+                                            </button>
+                                        </React.Fragment>
+                                    );
+                                })}
+                            </div>
+
+                            <button
+                                type="button"
+                                className={styles.stepperArrow}
+                                onClick={handleNextStep}
+                                disabled={currentStepIndex === sectionSteps.length - 1}
+                                title="Next section"
+                                aria-label="Next section"
+                            >
+                                <ChevronRight size={16} />
+                            </button>
                         </div>
                         {isOverdue && (
                             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '4px 8px', fontSize: 12, fontWeight: 600, color: '#DC2626', background: '#FEE2E2', border: '1px solid #FCA5A5', borderRadius: 4, marginLeft: 8 }}>
@@ -1036,7 +1090,7 @@ const TosSections = ({role = 'instructor'}) => {
                                         Add Comment
                                     </div>
                                     <button className={styles.submit} onClick={handleStartApprove} disabled={approveLoading}>
-                                        {approveLoading ? <Loader size={16} className={layout.spinner} /> : null}
+                                        {approveLoading ? <Loader size={16} className={layout.spinner} /> : <CheckCircle size={15} />}
                                         {approveLoading ? 'Approving…' : 'Approve'}
                                     </button>
                                 </>
@@ -1065,7 +1119,7 @@ const TosSections = ({role = 'instructor'}) => {
                         ) : (
                         <>
                         <div className={styles.draft} onClick={handleNavigateBack}>
-                            Save as Draft
+                            <CheckCircle size={15} /> Save as Draft
                         </div>
 
                         <div style={{ position: 'relative' }}>
@@ -1126,7 +1180,7 @@ const TosSections = ({role = 'instructor'}) => {
                                         }
                                     }}
                             >
-                                {submitLoading ? <Loader size={16} className={layout.spinner} /> : null}
+                                {submitLoading ? <Loader size={16} className={layout.spinner} /> : <Send size={15} />}
                                 {submitLoading ? 'Submitting…' : 'Submit'}
                             </button>
                             <span className={styles.submitTooltip}>{!allIlosComplete ? 'Some ILOs do not match their allocated points' : !allItemsHavePoints ? 'A row is missing points' : 'Unresolved comments'}</span>
@@ -1216,7 +1270,7 @@ const TosSections = ({role = 'instructor'}) => {
 const items = aggregatedData[co.co][ilo.id][level];
                                                                           return (
                                                                                  <td key={level} className={`${addingComment ? `${layout.cellSelectableTable}${isActiveCell(co.co, ilo.id, level) ? ` ${layout.cellActiveTable}` : ''}` : `${layout.cellClickable}${isTargetCell(co.co, ilo.id, level) ? ` ${layout.cellTargeted}` : ''}`}`} onClick={e => addingComment ? handleCellClick(co.co, ilo.id, level, undefined, { courseOutcomeId: co.dbId }) : (() => { const r = e.currentTarget.getBoundingClientRect(); setViewItemsTarget({ co: co.co, ilo: ilo.id, cognitiveLevel: level, top: r.bottom, left: r.left, width: r.width, isEmpty: items.length === 0 }); })()}>                                                                                  <div className={previewLayout.cellBox} style={{ flexDirection: 'column', gap: 2 }}>
-                                                                                      {(() => { const pts = items.reduce((s, item) => s + (Number(item.points) || 0), 0); return pts > 0 ? pts : '\u2014'; })()}
+                                                                                      {(() => { const pts = items.reduce((s, item) => s + (Number(item.points) || 0), 0); return pts > 0 ? <span className={previewLayout.pointValue}>{pts}</span> : <span className={previewLayout.emptyDash}>{'\u2014'}</span>; })()}
 
 
 
@@ -1724,7 +1778,7 @@ const items = aggregatedData[co.co][ilo.id][level];
                                                                          const items = aggregatedData[co.co][ilo.id][level];
                                                                          return (
                                                                              <td key={level} className={`${addingComment ? `${layout.cellSelectableTable}${isActiveCell(co.co, ilo.id, level) ? ` ${layout.cellActiveTable}` : ''}` : `${layout.cellClickable}${isTargetCell(co.co, ilo.id, level) ? ` ${layout.cellTargeted}` : ''}`}`} onClick={e => addingComment ? handleCellClick(co.co, ilo.id, level, undefined, { courseOutcomeId: co.dbId }) : (() => { const r = e.currentTarget.getBoundingClientRect(); setViewItemsTarget({ co: co.co, ilo: ilo.id, cognitiveLevel: level, top: r.bottom, left: r.left, width: r.width, isEmpty: items.length === 0 }); })()}>                                                                                  <div className={previewLayout.cellBox} style={{ flexDirection: 'column', gap: 2 }}>
-                                                                                      {(() => { const pts = items.reduce((s, item) => s + (Number(item.points) || 0), 0); return pts > 0 ? pts : '\u2014'; })()}
+                                                                                      {(() => { const pts = items.reduce((s, item) => s + (Number(item.points) || 0), 0); return pts > 0 ? <span className={previewLayout.pointValue}>{pts}</span> : <span className={previewLayout.emptyDash}>{'\u2014'}</span>; })()}
 
 
 

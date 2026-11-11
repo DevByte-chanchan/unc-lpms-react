@@ -224,7 +224,11 @@ const TOSPreview = ({ isOpen, onClose, outcomeData = [], questions = [], courseN
                                             <div className={layout.cellBox}>
                                                 {(() => {
                                                     const pts = items.reduce((s, item) => s + (Number(item.points) || 0), 0);
-                                                    return pts > 0 ? pts : '—';
+                                                    return pts > 0 ? (
+                                                        <span className={layout.pointValue}>{pts}</span>
+                                                    ) : (
+                                                        <span className={layout.emptyDash}>—</span>
+                                                    );
                                                 })()}
                                             </div>
                                         </td>

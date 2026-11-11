@@ -11,46 +11,132 @@
   width: 100%
   background: white
   display: flex
-  padding: 10px 10px 10px 10px
-  gap: 8px
-
+  padding: 10px
+  gap: 12px
+  align-items: center
 
 .return
-  padding: 10px 20px
-  border-radius: 5px
-  //border: 1px solid #8B999D
-  display: flex
-  background: #8B999D
+  padding: 8px 14px
+  border-radius: 6px
+  display: inline-flex
+  background: #E2E8F0
   align-items: center
+  justify-content: center
   font-size: 14px
   font-weight: 500
   gap: 5px
   cursor: pointer
-  color: white
-
-.section-select
-  border-radius: 5px
-  flex-grow: 1
-
-.navi select
-  border: 0
-  border-radius: 5px
-  width: 100%
-  height: 100%
+  color: #1F2937
+  border: none
   outline: none
-  padding: 0 28px 0 10px
-  background: #F2F3F4
-  font-size: 14px
-  font-weight: 500
-  appearance: none
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")
-  background-repeat: no-repeat
-  background-position: right 10px center
-  background-size: 14px
+  transition: background 0.15s ease, color 0.15s ease
 
-.navi select option
-  background: #F2F3F4
-  font-size: 14px
+  &:focus, &:focus-visible, &:active
+    outline: none
+
+  &:hover
+    background: #CBD5E1
+    color: #0F172A
+
+.stepperNav
+  display: flex
+  align-items: center
+  justify-content: center
+  flex-grow: 1
+  gap: 8px
+  min-width: 0
+
+.stepperArrow
+  display: inline-flex
+  align-items: center
+  justify-content: center
+  background: transparent
+  border: none
+  outline: none
+  padding: 6px
+  color: #64748B
+  cursor: pointer
+  border-radius: 6px
+  transition: all 0.15s ease
+
+  &:focus, &:focus-visible, &:active
+    outline: none
+
+  &:hover:not(:disabled)
+    color: #0F172A
+    background: #F1F5F9
+
+  &:disabled
+    color: #CBD5E1
+    cursor: not-allowed
+    opacity: 0.35
+
+.stepperCapsule
+  display: inline-flex
+  align-items: center
+  gap: 10px
+  padding: 6px
+  border-radius: 9999px
+  border: 1px solid #E2E8F0
+  background: #FAFAFA
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04)
+  max-width: 100%
+  outline: none
+
+.stepperStep
+  border: none
+  outline: none
+  background: transparent
+  padding: 6px 14px
+  font-size: 13px
+  font-family: inherit
+  cursor: pointer
+  display: inline-flex
+  align-items: center
+  justify-content: center
+  white-space: nowrap
+  transition: all 0.15s ease
+  line-height: 1.4
+  border-radius: 9999px
+  user-select: none
+
+  &:focus, &:focus-visible, &:active
+    outline: none
+
+.stepCompleted
+  color: #0D9488
+  font-weight: 600
+
+  &:hover
+    color: #047857
+
+.stepActive
+  background: #E2E8F0
+  color: #0F172A
+  font-weight: 600
+  padding: 6px 14px
+  cursor: default
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05)
+  outline: none
+
+  &:focus, &:focus-visible, &:active
+    outline: none
+
+.stepUpcoming
+  color: #94A3B8
+  font-weight: 500
+
+  &:hover
+    color: #475569
+
+.stepperDivider
+  color: #CBD5E1
+  user-select: none
+  font-size: 13px
+  display: inline-flex
+  align-items: center
+  justify-content: center
+  line-height: 1
 
 
 .dynamic-sections
@@ -95,11 +181,14 @@ section
 .draft
   padding: 10px 15px
   border-radius: 5px
-  //border: 1px solid #8B999D
   font-size: 14px
   font-weight: 500
   background: #F2F3F4
   cursor: pointer
+  display: inline-flex
+  align-items: center
+  gap: 6px
+  transition: all 0.12s ease
 
 .submit
   padding: 10px 15px

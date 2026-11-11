@@ -120,6 +120,7 @@ const TOSCoursesTable = () => {
 
     const nonDraft = selectedStatus === 'pending' || selectedStatus === 'approved' || selectedStatus === 'returned';
     const statusHeader = selectedStatus === 'returned' ? 'DATE RETURNED' : selectedStatus === 'approved' ? 'DATE APPROVED' : '';
+    const reviewerHeader = selectedStatus === 'returned' ? 'RETURNED BY' : selectedStatus === 'approved' ? 'APPROVED BY' : '';
 
     // Demo-only: approved-course Export buttons download a placeholder PDF (no server call)
     // Same logic as handleExportDemoPdf in TosSections.jsx
@@ -308,10 +309,11 @@ const TOSCoursesTable = () => {
                 <table>
                     <thead>
                     <tr>
-                        <th width={170}>{nonDraft ? 'DATE SUBMITTED' : 'DATE ASSIGNED'}</th>
+                        <th width={200}>{nonDraft ? 'DATE SUBMITTED' : 'DATE ASSIGNED'}</th>
                         <th width={130}>CODE</th>
                         <th width={320}>COURSE NAME</th>
                         {nonDraft && selectedStatus !== 'pending' && <th width={200}>{statusHeader}</th>}
+                        {nonDraft && selectedStatus !== 'pending' && <th width={180} style={{ whiteSpace: 'nowrap' }}>{reviewerHeader}</th>}
                         {!nonDraft && <th width={200}>LAST UPDATED</th>}
                         <th className={styles.fill}></th>
                     </tr>
@@ -321,17 +323,15 @@ const TOSCoursesTable = () => {
                     {filteredCourses
                         .map((row, index) => (
                             <tr key={index}>
-                                <td width={170}>{nonDraft ? row.dateSubmitted : row.dateAssigned}</td>
+                                <td width={200}>{nonDraft ? row.dateSubmitted : row.dateAssigned}</td>
                                 <td width={130}>{row.code}</td>
                                 <td width={320}>{row.name}</td>
                                 {nonDraft && selectedStatus !== 'pending' && (
-                                    <td width={200}>
-                                        <div>{row.dateStatus || row.dateSubmitted}</div>
-                                        {(selectedStatus === 'returned' || selectedStatus === 'approved') && (
-                                            <div style={{ fontSize: 12, color: '#6B7280', marginTop: 2 }}>
-                                                {selectedStatus === 'returned' ? `Returned by ${PROGRAM_HEAD.display}` : `Approved by ${PROGRAM_HEAD.display}`}
-                                            </div>
-                                        )}
+                                    <td width={200}>{row.dateStatus || row.dateSubmitted}</td>
+                                )}
+                                {nonDraft && selectedStatus !== 'pending' && (
+                                    <td width={180} style={{ whiteSpace: 'nowrap' }}>
+                                        {PROGRAM_HEAD.display}
                                     </td>
                                 )}
                                 {!nonDraft && <td width={200}>{row.update}</td>}
