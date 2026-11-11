@@ -320,10 +320,6 @@ const AssessmentsStep = ({
         }
     };
 
-    const typeBadge = (type) => type === 'objective'
-        ? { label: 'Objective', bg: '#F1F3F5', color: '#4B5563' }
-        : { label: 'Non-objective', bg: '#F1F3F5', color: '#4B5563' };
-
     const topicsList = normalizeTopics(activeCoData?.topics);
 
     return (
@@ -542,7 +538,7 @@ const AssessmentsStep = ({
                     ) : (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 18, marginBottom: 24 }}>
                             {activeAttachments.map(att => {
-                                const badge = typeBadge(att.type);
+                                const tool = activeIloData?.assessmentTool?.trim();
                                 const rows = (questions || []).filter(q => Number(q.attachmentId) === Number(att.id));
                                 const attPoints = rows.reduce((s, r) => s + (Number(r.points) || 0), 0);
                                 const sizeStr = att.size ? (att.size > 1048576 ? `${(att.size / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(att.size / 1024))} KB`) : '';
@@ -555,9 +551,26 @@ const AssessmentsStep = ({
                                                 <span style={{ fontWeight: 500, fontSize: 14, color: '#1F2937', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                                     {att.filename}
                                                 </span>
-                                                <span style={{ fontSize: 12, padding: '2px 8px', borderRadius: 10, background: badge.bg, color: badge.color, fontWeight: 500, flexShrink: 0 }}>
-                                                    {badge.label}
-                                                </span>
+                                                {tool && (
+                                                    <span
+                                                        title={tool}
+                                                        style={{
+                                                            fontSize: 12,
+                                                            padding: '2px 8px',
+                                                            borderRadius: 10,
+                                                            background: '#F1F3F5',
+                                                            color: '#4B5563',
+                                                            fontWeight: 500,
+                                                            flexShrink: 0,
+                                                            maxWidth: 180,
+                                                            overflow: 'hidden',
+                                                            textOverflow: 'ellipsis',
+                                                            whiteSpace: 'nowrap'
+                                                        }}
+                                                    >
+                                                        {tool}
+                                                    </span>
+                                                )}
                                                 {sizeStr && (
                                                     <span style={{ fontSize: 12, color: '#9CA3AF', flexShrink: 0 }}>
                                                         {sizeStr}
