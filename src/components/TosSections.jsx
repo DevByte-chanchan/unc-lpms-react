@@ -772,6 +772,68 @@ const TosSections = ({role = 'instructor'}) => {
     const allItemsHavePoints = relevantQuestions.every(q => q.points && Number(q.points) > 0);
     const canSubmit = allIlosComplete && allItemsHavePoints && relevantQuestions.length > 0 && comments.every(c => c.resolved);
 
+    const getSubmitTooltipText = () => {
+        if (canSubmit) return '';
+        const lines = [];
+
+        // (a) mismatch: "ILO1 needs 3 more points, ILO2 is 1 over" (up to 2 ILOs, then "+N more")
+        const mismatchItems = [];
+        // (b) an ILO with no rows: "ILOn has no file or points" (up to 2 ILOs, "+N more")
+        const noRowItems = [];
+
+        rows.forEach(co => {
+            (co.ilos || []).forEach(ilo => {
+                const iloRows = questions.filter(q => q.co === co.co && q.ilo === ilo.id);
+                const target = ilo.items || 0;
+                if (iloRows.length === 0) {
+                    noRowItems.push(`${ilo.id} has no file or points`);
+                } else {
+                    const allocated = iloRows.reduce((s, q) => s + (Number(q.points) || 0), 0);
+                    if (allocated < target) {
+                        const diff = target - allocated;
+                        mismatchItems.push(`${ilo.id} needs ${diff} more point${diff === 1 ? '' : 's'}`);
+                    } else if (allocated > target) {
+                        const diff = allocated - target;
+                        mismatchItems.push(`${ilo.id} is ${diff} over`);
+                    }
+                }
+            });
+        });
+
+        if (mismatchItems.length > 0) {
+            if (mismatchItems.length > 2) {
+                lines.push(`${mismatchItems.slice(0, 2).join(', ')}, +${mismatchItems.length - 2} more`);
+            } else {
+                lines.push(mismatchItems.join(', '));
+            }
+        }
+
+        if (noRowItems.length > 0) {
+            if (noRowItems.length > 2) {
+                lines.push(`${noRowItems.slice(0, 2).join(', ')}, +${noRowItems.length - 2} more`);
+            } else {
+                lines.push(noRowItems.join(', '));
+            }
+        }
+
+        // (c) "Some rows have no points or Bloom's level"
+        if (relevantQuestions.some(q => !q.points || Number(q.points) <= 0 || !q.cognitiveLevel)) {
+            lines.push("Some rows have no points or Bloom's level");
+        }
+
+        // (d) "Resolve all comments"
+        if (comments.some(c => !c.resolved)) {
+            lines.push("Resolve all comments");
+        }
+
+        // (e) "Add at least one assessment row"
+        if (relevantQuestions.length === 0) {
+            lines.push("Add at least one assessment row");
+        }
+
+        return lines.slice(0, 3).join('\n');
+    };
+
     useEffect(() => {
         setIsLoading(true);
         const timer = setTimeout(() => { setIsLoading(false); }, 500);
@@ -1184,7 +1246,9 @@ const TosSections = ({role = 'instructor'}) => {
                                 {submitLoading ? <Loader size={16} className={layout.spinner} /> : <Send size={15} />}
                                 {submitLoading ? 'Submitting…' : 'Submit'}
                             </button>
-                            <span className={styles.submitTooltip}>{!allIlosComplete ? 'Some ILOs do not match their allocated points' : !allItemsHavePoints ? 'A row is missing points' : 'Unresolved comments'}</span>
+                            {!canSubmit && (
+                                <span className={layout.tosSubmitTooltip}>{getSubmitTooltipText()}</span>
+                            )}
                         </div>
                         </>
                         )}
