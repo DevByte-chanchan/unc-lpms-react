@@ -10,7 +10,7 @@ import { openCourseDocument } from '../../../utils/courseDocuments.js';
 import { buildCoPoHtml } from '../../../utils/syllabusPdfHtml.js';
 import { fetchJson, apiErrorMessage } from '../../../utils/api.js';
 import { computeOverallStatus } from '../../../utils/assignmentStatus.js';
-import { revisionLabel, termLabel } from '../../../utils/offeringLabels.js';
+import { revisionLabel, termLabel, programShort } from '../../../utils/offeringLabels.js';
 import unclogo from '../../../assets/unclogo.png';
 import cc from '../../../styles/SyllabusPreview.module.sass';
 import tbl from '../../../styles/AlignmentTables.module.sass';
@@ -27,12 +27,14 @@ const describe = (row) => {
   const offering = row.ProgramCourseOffering || {};
   const course = offering.Course || {};
   const parts = [termLabel(offering), revisionLabel(offering)].filter(Boolean);
+  // the program too: one course can be offered by two programs in the same term
+  const program = programShort(offering.Program?.name);
   return {
     id: String(offering.pc_offering_id),
     code: course.course_no || '',
     name: course.course_title || '',
     status: computeOverallStatus(row),
-    label: `${course.course_no || '?'} — ${course.course_title || ''}${parts.length ? ` (${parts.join(', ')})` : ''}`
+    label: `${course.course_no || '?'} — ${course.course_title || ''}${program ? ` · ${program}` : ''}${parts.length ? ` (${parts.join(', ')})` : ''}`
   };
 };
 

@@ -19,3 +19,9 @@ export const historyRevisionLabel = (entry = {}) => {
   if (entry.carriedOver) return `Carried over (Rev ${entry.revNum ?? '?'})`
   return entry.revNum ? `Revision ${entry.revNum}` : 'Working copy'
 }
+
+// A program's short name from its words' initials, as the university writes them:
+// "Bachelor of Science in Computer Science" -> "BSCS", "Associate in Computer Technology" -> "ACT".
+export const programShort = (name = '') => String(name)
+  .split(/\s+/).filter(word => word && !/^(of|in|and|the|for)$/i.test(word))
+  .map(word => word[0].toUpperCase()).join('')

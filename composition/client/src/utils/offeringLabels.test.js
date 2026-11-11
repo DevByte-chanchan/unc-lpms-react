@@ -21,3 +21,12 @@ test('the term reads school year and semester, and is blank when unknown', () =>
   assert.equal(termLabel({ school_year: '2027-2028', semester: '1st' }), '2027-2028 · 1st sem')
   assert.equal(termLabel({}), '')
 })
+
+test('a program is named by its initials, as the university writes them', async () => {
+  const { programShort } = await import('./offeringLabels.js')
+  assert.equal(programShort('Bachelor of Science in Information Technology'), 'BSIT')
+  assert.equal(programShort('Bachelor of Science in Computer Science'), 'BSCS')
+  assert.equal(programShort('Associate in Computer Technology'), 'ACT')
+  assert.equal(programShort('Bachelor of Library and Information Science'), 'BLIS')
+  assert.equal(programShort(''), '')
+})

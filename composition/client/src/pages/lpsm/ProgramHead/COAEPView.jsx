@@ -11,7 +11,7 @@ import EmptyState from '../../../components/EmptyState.jsx';
 import HeadBodyTable from '../../../components/HeadBodyTable.jsx';
 import { Loading, TableSkeleton } from '../../../components/LoadingSkeleton.jsx';
 import { buildCoaepHtml } from '../../../utils/syllabusPdfHtml.js';
-import { revisionLabel, termLabel } from '../../../utils/offeringLabels.js';
+import { revisionLabel, termLabel, programShort } from '../../../utils/offeringLabels.js';
 import { fetchJson, apiErrorMessage } from '../../../utils/api.js';
 import { getSession } from '../../../utils/session.js';
 import { fetchFormInfo } from '../../../utils/formSettings.js';
@@ -46,11 +46,13 @@ const COAEPView = ({ tabs = null }) => {
           const course = offering?.Course;
           if (!course?.course_no || !offering.pc_offering_id || byOffering.has(offering.pc_offering_id)) return;
           const parts = [termLabel(offering), revisionLabel(offering)].filter(Boolean);
+          // the program too: one course can be offered by two programs in the same term
+          const program = programShort(offering.Program?.name);
           byOffering.set(offering.pc_offering_id, {
             id: String(offering.pc_offering_id),
             code: course.course_no,
             name: course.course_title || '',
-            label: `${course.course_no} — ${course.course_title || ''}${parts.length ? ` (${parts.join(', ')})` : ''}`,
+            label: `${course.course_no} — ${course.course_title || ''}${program ? ` · ${program}` : ''}${parts.length ? ` (${parts.join(', ')})` : ''}`,
           });
         });
         const list = [...byOffering.values()].sort((left, right) => left.code.localeCompare(right.code) || left.label.localeCompare(right.label));

@@ -222,7 +222,11 @@ const linesOf = (words) => {
         const cells = [];
         for (const w of ws) {
             const cell = cells[cells.length - 1];
-            if (cell && w.x0 - cell.x1 <= h * 1.1) { cell.text += ' ' + w.text; cell.x1 = Math.max(cell.x1, w.x1); }
+            const gap = cell ? w.x0 - cell.x1 : Infinity;
+            // Some PDFs (Google Docs exports) give one piece per letter: pieces that touch are one word, a small gap
+            // is a space, a wide one starts the next cell.
+            if (cell && gap <= h * 0.12) { cell.text += w.text; cell.x1 = Math.max(cell.x1, w.x1); }
+            else if (cell && gap <= h * 1.1) { cell.text += ' ' + w.text; cell.x1 = Math.max(cell.x1, w.x1); }
             else cells.push({ text: w.text, x0: w.x0, x1: w.x1 });
         }
         cells.forEach(c => { c.text = c.text.replace(/\s+/g, ' ').trim(); c.xc = (c.x0 + c.x1) / 2; });
@@ -232,7 +236,7 @@ const linesOf = (words) => {
 
 const norm = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
 // The form's header and footer, repeated on every page: never part of a statement.
-const PAGE_CHROME = /^(UNIVERSITY OF NUEVA CACERES|COURSE SYLLABUS|COURSE ASSESSMENT|FORM|OFFICE OF THE VICE PRESIDENT|DOC\.? CONTROL|UNC-FM-|EFFECTIVITY|REVISION NO|PAGE NO|COURSE OUTCOMES ASSESSMENT AND EVALUATION PLAN|DRAFT)/i;
+const PAGE_CHROME = /^(UNIVERSITY OF NUEVA CACERES|COURSE SYLLABUS|COURSE ASSESSMENT|FORM(?![A-Za-z])|OFFICE OF THE VICE PRESIDENT|DOC\.? CONTROL|UNC-FM-|EFFECTIVITY|REVISION NO|PAGE NO|COURSE OUTCOMES ASSESSMENT AND EVALUATION PLAN|DRAFT(?![A-Za-z]))/i;
 const withoutChrome = (lines) => lines
     .map(l => ({ ...l, cells: l.cells.filter(c => !PAGE_CHROME.test(c.text)) }))
     .map(l => ({ ...l, text: l.cells.map(c => c.text).join(' ') }))
@@ -309,6 +313,15 @@ const readPoPeo = (lines) => {
             if (lastPo && line.cells.length && !/^(PEOS?|GRADUATE|ATTRIBUTES|EFFECTIVITY|PAGE NO)/.test(up)) {
                 const ticks = line.cells.filter(c => isTick(c.text) && c.x1 < lastPo.x);
                 const text = line.cells.filter(c => !isTick(c.text) && !GRADUATE_ATTRIBUTES.includes(c.text.toUpperCase())).map(c => c.text).join(' ').replace(/^[|\s]+|[|\s]+$/g, '').trim();
+                // ticks on a line of their own (a form that centres them in a tall row) belong to the PO above
+                if (!text && line.cells.some(c => isTick(c.text))) {
+                    if (peoCols.length) lastPo.peos = [...new Set([...lastPo.peos, ...ticks.flatMap(tickXs).map(x => nearest(peoCols, x).n)])].sort((a, b) => a - b);
+                    if (gaCols.length) {
+                        const gaZone = Math.min(...gaCols.map(g => g.x)) - 30;
+                        lastPo.gas = [...new Set([...lastPo.gas, ...line.cells.filter(c => isTick(c.text) && c.xc >= gaZone).flatMap(tickXs).map(x => nearest(gaCols, x).n)])].sort((a, b) => a - b);
+                    }
+                    continue;
+                }
                 if (!text || /^(effectivity|revision no|page no)/i.test(text)) continue;
                 if (/[.;]$/.test(lastPo.text.trim()) && /^[A-Z]/.test(text)) {
                     lastPo = { text, peos: peoCols.length ? [...new Set(ticks.flatMap(tickXs).map(x => nearest(peoCols, x).n))].sort((a, b) => a - b) : [], gas: [], x: lastPo.x };

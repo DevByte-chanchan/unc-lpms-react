@@ -125,3 +125,14 @@ test('front pages are checked against the program: vision, mission, each PEO and
     assert.deepEqual(r.peos.map(p => p.found), [true, false]);
     assert.deepEqual(r.outcomes.map(o => o.found), [true]);
 });
+
+test('a PDF that gives one piece per letter (Google Docs) reads as words, and "Formulate" is not the form header', () => {
+    const letters = (text, x, y) => [...text].map((ch, i) => ({ text: ch, x0: x + i * 5, x1: x + i * 5 + 5, y, h: 10 }));
+    const lines = linesOf([
+        ...letters('PROGRAM', 0, 0), ...letters('OUTCOMES', 45, 0),
+        ...letters('1', 0, 20), ...letters('2', 20, 20), ...letters('By', 100, 20),
+        ...letters('✔', 0, 40), ...letters('PO1', 60, 40), ...letters('Formulate', 100, 40), ...letters('solutions.', 152, 40),
+    ]);
+    assert.ok(lines.some(l => l.text === 'PROGRAM OUTCOMES'));
+    assert.deepEqual(readPoPeo(lines).outcomes, [{ text: 'Formulate solutions.', peos: [1], gas: [] }]);
+});
