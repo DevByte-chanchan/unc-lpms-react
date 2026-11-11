@@ -95,7 +95,6 @@ const TopicsPanel = ({ co, topics }) => {
 
 const UploadModal = ({ co, ilo, loading, onClose, onUpload }) => {
     const [file, setFile] = useState(null);
-    const [type, setType] = useState(null);
     const [dragOver, setDragOver] = useState(false);
     const inputRef = useRef(null);
     const valid = (f) => f && /\.(pdf|docx)$/i.test(f.name);
@@ -105,10 +104,6 @@ const UploadModal = ({ co, ilo, loading, onClose, onUpload }) => {
         setFile(f);
     };
     const sizeLabel = file ? (file.size > 1048576 ? `${(file.size / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(file.size / 1024))} KB`) : '';
-    const options = [
-        { value: 'objective', title: 'Objective', desc: 'Multiple choice, true/false, identification' },
-        { value: 'non-objective', title: 'Non-objective', desc: 'Essay, problem solving, rubric-based' }
-    ];
     return (
         <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
             <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 8, width: 480, maxWidth: '92%', boxShadow: '0 8px 32px rgba(0,0,0,0.2)' }}>
@@ -145,33 +140,15 @@ const UploadModal = ({ co, ilo, loading, onClose, onUpload }) => {
                             </>
                         )}
                     </div>
-
-                    <div>
-                        <div style={{ fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 8 }}>This file is…</div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                            {options.map(o => {
-                                const selected = type === o.value;
-                                return (
-                                    <label key={o.value} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '10px 14px', border: `1px solid ${selected ? '#19282C' : '#DDDFDF'}`, background: selected ? '#F3F4F6' : '#fff', borderRadius: 6, cursor: 'pointer' }}>
-                                        <input type="radio" name="attachment-type" checked={selected} onChange={() => setType(o.value)} style={{ marginTop: 3, accentColor: '#19282C' }} />
-                                        <span>
-                                            <span style={{ display: 'block', fontSize: 14, fontWeight: 500, color: '#1A1A1A' }}>{o.title}</span>
-                                            <span style={{ display: 'block', fontSize: 12, color: '#6B7280' }}>{o.desc}</span>
-                                        </span>
-                                    </label>
-                                );
-                            })}
-                        </div>
-                    </div>
                 </div>
 
                 <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, padding: '14px 20px', borderTop: '1px solid #E5E7EB' }}>
                     <button type="button" onClick={onClose} disabled={loading} style={{ padding: '8px 18px', borderRadius: 6, border: '1px solid #DDDFDF', background: '#fff', color: '#374151', fontSize: 14, fontWeight: 500, cursor: 'pointer' }}>Cancel</button>
                     <button
                         type="button"
-                        onClick={() => onUpload(file, type)}
-                        disabled={!file || !type || loading}
-                        style={{ padding: '8px 22px', borderRadius: 6, border: '1px solid #19282C', background: '#19282C', color: '#fff', fontSize: 14, fontWeight: 500, cursor: (!file || !type || loading) ? 'not-allowed' : 'pointer', opacity: (!file || !type || loading) ? 0.5 : 1 }}
+                        onClick={() => onUpload(file)}
+                        disabled={!file || loading}
+                        style={{ padding: '8px 22px', borderRadius: 6, border: '1px solid #19282C', background: '#19282C', color: '#fff', fontSize: 14, fontWeight: 500, cursor: (!file || loading) ? 'not-allowed' : 'pointer', opacity: (!file || loading) ? 0.5 : 1 }}
                     >
                         {loading ? 'Uploading…' : 'Upload'}
                     </button>
@@ -221,15 +198,15 @@ const AssessmentsStep = ({
 
     const [showUpload, setShowUpload] = useState(false);
 
-    const handleUpload = async (file, type) => {
-        if (!file || !type || !activeIloData) return;
+    const handleUpload = async (file) => {
+        if (!file || !activeIloData) return;
         if (!activeIloData.iloDbId) {
             alert("Couldn't upload. Select an ILO and try again.");
             return;
         }
         setLoading(true);
         try {
-            const att = await uploadAttachment(courseCode, examType, activeIloData.iloDbId, file, type);
+            const att = await uploadAttachment(courseCode, examType, activeIloData.iloDbId, file);
             setAttachments(prev => [...prev, att]);
             setShowUpload(false);
         } catch (err) {
