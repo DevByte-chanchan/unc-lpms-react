@@ -285,6 +285,36 @@ const TosSections = ({role = 'instructor'}) => {
                     }
                 });
             }
+
+            // ONLY when it would produce a target below 1, apply adjustment so every target is >= 1 and sum stays exact
+            const hasBelowOne = newIlos.some(ilo => ilo.items < 1);
+            if (hasBelowOne && total >= newIlos.length) {
+                newIlos.forEach(ilo => {
+                    if (ilo.items < 1) ilo.items = 1;
+                });
+                let diff = total - newIlos.reduce((s, ilo) => s + (ilo.items || 0), 0);
+                while (diff !== 0) {
+                    if (diff > 0) {
+                        newIlos[newIlos.length - 1].items += 1;
+                        diff--;
+                    } else {
+                        let maxIdx = -1;
+                        let maxVal = 1;
+                        newIlos.forEach((ilo, idx) => {
+                            if (ilo.items > maxVal) {
+                                maxVal = ilo.items;
+                                maxIdx = idx;
+                            }
+                        });
+                        if (maxIdx >= 0) {
+                            newIlos[maxIdx].items -= 1;
+                            diff++;
+                        } else {
+                            break;
+                        }
+                    }
+                }
+            }
         } else {
             newIlos.forEach(ilo => { ilo.items = 0; });
         }
@@ -292,10 +322,26 @@ const TosSections = ({role = 'instructor'}) => {
     };
 
     // The total is split equally between the COs of the current exam period.
-        const handleTotalPointsChange = (value) => {
+    const handleTotalPointsChange = (value) => {
         const cleaned = value.replace(/[^0-9]/g, '');
+        const numCos = rows.length || 1;
+        const maxAllowed = 300 * numCos;
+        let minTotal = 0;
+        while (minTotal < maxAllowed) {
+            const b = Math.floor(minTotal / numCos);
+            const r = minTotal % numCos;
+            if (rows.every((co, idx) => (b + (idx < r ? 1 : 0)) >= (co.ilos || []).length)) {
+                break;
+            }
+            minTotal++;
+        }
+
         if (value !== cleaned || (cleaned !== '' && Number(cleaned) <= 0)) {
             setTosTotalError('Must be a positive whole number');
+        } else if (cleaned !== '' && Number(cleaned) > maxAllowed) {
+            setTosTotalError(`Total points cannot exceed ${maxAllowed} (maximum 300 points per CO)`);
+        } else if (cleaned !== '' && Number(cleaned) < minTotal) {
+            setTosTotalError(`Total points must be at least ${minTotal} to give each ILO at least 1 point`);
         } else {
             setTosTotalError('');
         }
@@ -338,15 +384,15 @@ const TosSections = ({role = 'instructor'}) => {
 
         const ooSet = new Set();
         rows.forEach((co, coIndex) => {
-            if (Number(co.totalPoints) > 100 || Number(co.totalPoints) === 0) {
+            if (Number(co.totalPoints) > 300 || Number(co.totalPoints) === 0) {
                 fieldKeys[`oo-totalPoints-${coIndex}`] = true;
             }
             co.ilos.forEach((ilo, iloIndex) => {
                 if (Number(ilo.items) === 0) {
                     ooSet.add('Some ILOs have zero points');
                     fieldKeys[`oo-items-${coIndex}-${iloIndex}`] = true;
-                } else if (Number(ilo.items) > 100) {
-                    ooSet.add('Some ILOs exceed the maximum of 100 points');
+                } else if (Number(ilo.items) > 300) {
+                    ooSet.add('Some ILOs exceed the maximum of 300 points');
                     fieldKeys[`oo-items-${coIndex}-${iloIndex}`] = true;
                 }
             });
