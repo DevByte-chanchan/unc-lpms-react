@@ -562,7 +562,7 @@ const AssessmentsStep = ({
                                                             color: '#4B5563',
                                                             fontWeight: 500,
                                                             flexShrink: 0,
-                                                            maxWidth: 180,
+                                                            maxWidth: 400,
                                                             overflow: 'hidden',
                                                             textOverflow: 'ellipsis',
                                                             whiteSpace: 'nowrap'
