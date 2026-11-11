@@ -9,6 +9,7 @@ import TOSSummary from "../pages/TosSummary.jsx";
 import AssessmentsStep, { AutoResizeTextarea } from "../pages/AssessmentsStep.jsx";
 import AssessmentOutput from "./AssessmentOutput.jsx";
 import { fetchOutcomes, fetchItems, saveOutcomes, saveItems, fetchCourse, updateCourse, updateStatus, fetchStatus, fetchComments, createComment, deleteComment, resolveComment, ACTIVE_PERIOD } from '../services/api.js';
+import { PROGRAM_HEAD, INSTRUCTOR } from '../constants/users.js';
 
 const BLOOM_LEVELS = [
     'Remembering', 'Understanding', 'Applying',
@@ -2350,7 +2351,9 @@ const items = aggregatedData[co.co][ilo.id][level];
                                                 <div key={i} className={layout.hlEvent}>
                                                     <div className={`${layout.hlDot} ${dotModifier}`} />
                                                     <div className={layout.hlEventBody}>
-                                                        <p><strong className={layout.hlRole}>{a.role}</strong> {a.action} on <span className={layout.hlDatePill}>{a.date}</span></p>
+                                                        <div className={layout.hlEventName}>{a.role === 'Program Head' ? PROGRAM_HEAD.display : a.role === 'Instructor' ? INSTRUCTOR.display : a.role}</div>
+                                                        <div className={layout.hlEventRole}>{a.role}</div>
+                                                        <div className={layout.hlEventAction}>{a.action} on <span className={layout.hlDatePill}>{a.date}</span></div>
                                                         {a.comments?.map((c, ci) => (
                                                             <div key={ci} className={layout.hlComment}>
                                                                 <div className={layout.hlCommentScope}>{formatScopeText(c.scope)}</div>
