@@ -26,6 +26,11 @@ const IloItem = sequelize.define('IloItem', {
     items: {
         type: DataTypes.INTEGER,
         defaultValue: 0
+    },
+    assessmentTool: {
+        type: DataTypes.STRING(255),
+        allowNull: true,
+        field: 'assessment_tool'
     }
 }, {
     tableName: 'ilo_items',

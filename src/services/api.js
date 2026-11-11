@@ -175,11 +175,10 @@ export async function resolveComment(courseCode, period, id, resolved) {
     return await res.json();
 }
 
-export const uploadAttachment = async (courseCode, period, iloId, file, type) => {
+export const uploadAttachment = async (courseCode, period, iloId, file) => {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('iloId', iloId);
-    formData.append('type', type);
 
     const res = await fetch(`${BASE}/${courseCode}/${period}/attachments`, {
         method: 'POST',
