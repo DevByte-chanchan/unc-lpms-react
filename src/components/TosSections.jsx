@@ -165,7 +165,8 @@ const TosSections = ({role = 'instructor'}) => {
                     description: ilo.description || '',
                     hours: ilo.hours || 0,
                     percentage: ilo.percentage || 0,
-                    items: ilo.items || 0
+                    items: ilo.items || 0,
+                    assessmentTool: ilo.assessmentTool || ilo.assessment_tool || ''
                 }))
             }));
             // sync COs to a single TOS total
