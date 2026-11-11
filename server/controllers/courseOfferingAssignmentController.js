@@ -27,7 +27,7 @@ import {
   yearLevelFromCode,
 } from '../utils/teachingAssignmentParser.js';
 import {
-  buildOfficialCourses, compareWithOfficial, sectionsOf, nameMatches, samePeople,
+  buildOfficialCourses, compareWithOfficial, sectionsOf, nameMatches, samePeople, matchFacultyName,
 } from '../utils/officialMatch.js';
 import { programCoursePrefixes, programKeyFromPrefixes } from '../utils/courseCodeRules.js';
 import { getPeriodId, safeWhereForPeriod } from '../utils/periodScope.js';
@@ -111,7 +111,10 @@ async function loadMasterLists(period_id) {
   // one course code maps to as many offerings as there are programs offering it.
   const offerings = await offeringIndexForPeriod(period_id);
 
-  return { courseByCode, facultyByName, facultyByNorm, offerings };
+  // Registrar exports write names SURNAME first ("ARCILLA JOENHEL C."); the faculty
+  // list writes them first-name first. findFaculty() falls back to an order- and
+  // initial-insensitive match over facultyList.
+  return { courseByCode, facultyByName, facultyByNorm, facultyList, offerings };
 }
 
 /**
@@ -146,7 +149,7 @@ function normalizeContributors(raw, leadName, leadId, lists) {
     const norm = normalizeName(name);
     // Resolve against the master list so the stored id stays authoritative;
     // fall back to a caller-supplied id only when the name is unmatched.
-    const match = facultyByName.get(name.toLowerCase()) || facultyByNorm.get(norm) || null;
+    const match = findFaculty(name, lists);
     const fid = match ? match.id : ((c && c.faculty_id) || null);
 
     // Drop the lead (can't be its own contributor) — match by id or by name.
@@ -175,6 +178,16 @@ function normalizeContributors(raw, leadName, leadId, lists) {
  *                   (or no faculty set yet). Stays visible so it can be fixed.
  *   <faculty.status> — both matched: the faculty's own status verbatim.
  */
+/** The faculty row a name means: exact, then honorifics stripped, then any word order / initials. */
+function findFaculty(name, lists) {
+  if (!name) return null;
+  const { facultyByName, facultyByNorm, facultyList } = lists;
+  return facultyByName.get(String(name).trim().toLowerCase())
+    || facultyByNorm.get(normalizeName(name))
+    || (facultyList ? matchFacultyName(name, facultyList) : null)
+    || null;
+}
+
 function resolveAssignment(courseCode, facultyName, lists, programId = null) {
   const { courseByCode, facultyByName, facultyByNorm, offerings } = lists;
 
@@ -184,9 +197,7 @@ function resolveAssignment(courseCode, facultyName, lists, programId = null) {
 
   let faculty = null;
   if (facultyName) {
-    faculty = facultyByName.get(String(facultyName).trim().toLowerCase())
-      || facultyByNorm.get(normalizeName(facultyName))
-      || null;
+    faculty = findFaculty(facultyName, lists);
   }
 
   let status;
@@ -511,9 +522,10 @@ export async function uploadCourseOfferingAssignments(req, res) {
       // "SUBJECT OFFERINGS" (grouped by course, one block per section). Neither
       // is a flat table and neither has a lead column. Flatten it, keep only
       // THIS program's courses (BSIT → BIT, plus shared GEE / MATH blocks whose
-      // SECTION says BSIT), and bring each course's faculty in as CONTRIBUTORS
-      // with the lead left empty — the Program Head designates the lead
-      // afterwards, in the system.
+      // SECTION says BSIT), ONE row per course (its sections and schedules are
+      // not separate rows). The teacher named in the export is the LEAD FACULTY;
+      // if several teach its sections, the one with the most sections leads and
+      // the others are Contributors (the Program Head can change it in Edit).
       const program = program_id ? await Program.findByPk(program_id, { attributes: ['code'] }) : null;
       const prefixes = programCoursePrefixes(program && program.code);
       const programKey = programKeyFromPrefixes(prefixes);
@@ -522,14 +534,14 @@ export async function uploadCourseOfferingAssignments(req, res) {
         : parseSubjectOfferings(req.file.path);
       const extracted = extractProgramAssignments(parsed, prefixes, { programKey });
       rows = extracted.map((e) => ({
-        // Canonical keys the row loop reads via pick(); omitting a leadfaculty
-        // key is what leaves Lead Faculty unset.
+        // Canonical keys the row loop reads via pick().
         coursecode:   e.course_code,
         coursename:   e.course_name,
-        contributors: e.contributor_names.join('; '),
+        leadfaculty:  e.lead_name || '',
+        contributors: e.other_names.join('; '),
         yearlevel:    e.year_level,
         // Derived, never stored — drives the rule 2 / rule 3 preview warnings.
-        _meta: { semester: e.semester, shared: e.shared, sections: e.sections },
+        _meta: { semester: e.semester, shared: e.shared, sections: e.sections, sectionsByName: e.sections_by_name, leadChosen: e.other_names.length > 0 },
       }));
       headers = ['Course Code', 'Course Name', 'Lead Faculty', 'Contributors', 'Year Level'];
       extraction = {
@@ -648,6 +660,14 @@ export async function uploadCourseOfferingAssignments(req, res) {
         // Same reason, same wording — a row that isn't cleanly Active still
         // imports, so it is a warning, never an error.
         issues.push({ field: 'Status', message });
+      }
+
+      // Several teachers share the course's sections: one leads (most sections),
+      // the rest contribute. Say so, so the Program Head can confirm or change it.
+      if (meta && meta.leadChosen && faculty_name) {
+        const counts = Object.entries(meta.sectionsByName || {})
+          .map(([n, secs]) => n + ' (' + secs.length + ' section' + (secs.length === 1 ? '' : 's') + ')').join(', ');
+        issues.push({ field: 'Lead Faculty', message: 'Taught by ' + counts + '. Lead set to ' + String(faculty_name).trim() + ' (most sections); change it in Edit if needed.' });
       }
 
       // Rule 2 — the semester digit is derived for validation only. A code that

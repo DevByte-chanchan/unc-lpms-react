@@ -441,6 +441,9 @@ function groupByBaseCourse(offerings) {
         schedules: [],
         shared: o.shared,
         codes: [],
+        // name → sections that person handles (a course repeats once per section
+        // and schedule; that's how the Lead is chosen, not more rows).
+        sectionsByName: new Map(),
       };
       groups.set(key, g);
     }
@@ -451,6 +454,10 @@ function groupByBaseCourse(offerings) {
     for (const n of o.facultyNames || []) {
       const c = clean(n);                            // never an empty name
       if (c && !g.names.includes(c)) g.names.push(c);
+      if (c) {
+        if (!g.sectionsByName.has(c)) g.sectionsByName.set(c, new Set());
+        g.sectionsByName.get(c).add(o.block || o.courseNo || String(o.code || ''));
+      }
     }
     for (const s of o.schedules || []) g.schedules.push(s);
   }
@@ -472,17 +479,29 @@ function groupByBaseCourse(offerings) {
  */
 export function extractProgramAssignments(parsed, prefixes, options = {}) {
   const kept = filterOfferingsForProgram(parsed.offerings, { ...options, prefixes });
-  return groupByBaseCourse(kept).map((g) => ({
+  return groupByBaseCourse(kept).map((g) => {
+    // ONE row per course: the sections/schedules are not separate assignments.
+    // The teacher in the export is the course's Lead Faculty; when several teach
+    // sections of it, the one with the most sections leads (first in the file on
+    // a tie) and the rest are Contributors — the Program Head can change it.
+    const ranked = [...g.names].sort((a, b) =>
+      ((g.sectionsByName.get(b) || new Set()).size - (g.sectionsByName.get(a) || new Set()).size)
+      || (g.names.indexOf(a) - g.names.indexOf(b)));
+    return {
     course_code: g.course_code,
     course_name: g.course_name,
     contributor_names: g.names,
+    lead_name: ranked[0] || null,
+    other_names: ranked.slice(1),
+    sections_by_name: Object.fromEntries([...g.sectionsByName].map(([n, set]) => [n, [...set]])),
     year_level: yearLevelFromCode(g.course_code) || null,
     sections: [...g.sections],
     // ---- derived for validation / preview only; nothing below is stored ----
     semester: semesterFromCode(g.course_code),
     shared: g.shared,
     schedules: g.schedules,
-  }));
+    };
+  });
 }
 
 /**
