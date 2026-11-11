@@ -3,6 +3,7 @@ import {Link, useLocation} from 'react-router-dom'
 import styles from '../styles/CoursesTable.module.sass';
 import { ChevronRight, Download, AlertTriangle, Lock, Search, List, Grid } from 'react-feather';
 import { fetchCourses } from '../services/api.js';
+import { PROGRAM_HEAD } from '../constants/users.js';
 const OverdueBadge = () => (
     <span
         style={{
@@ -251,6 +252,11 @@ const TOSCoursesTable = () => {
                                 </div>
                                 <div className={styles.ctCardBody}>
                                     <h3 className={styles.ctCardTitle} title={row.name}>{row.name}</h3>
+                                    {(selectedStatus === 'returned' || selectedStatus === 'approved') && (
+                                        <div style={{ fontSize: 12, color: '#6B7280', marginTop: 4 }}>
+                                            {selectedStatus === 'returned' ? `Returned by ${PROGRAM_HEAD.display}` : `Approved by ${PROGRAM_HEAD.display}`}
+                                        </div>
+                                    )}
                                 </div>
                                 <div className={styles.ctCardFooter}>
                                     <div className={styles.ctCardActions}>
@@ -318,7 +324,16 @@ const TOSCoursesTable = () => {
                                 <td width={170}>{nonDraft ? row.dateSubmitted : row.dateAssigned}</td>
                                 <td width={130}>{row.code}</td>
                                 <td width={320}>{row.name}</td>
-                                {nonDraft && selectedStatus !== 'pending' && <td width={200}>{row.dateStatus || row.dateSubmitted}</td>}
+                                {nonDraft && selectedStatus !== 'pending' && (
+                                    <td width={200}>
+                                        <div>{row.dateStatus || row.dateSubmitted}</div>
+                                        {(selectedStatus === 'returned' || selectedStatus === 'approved') && (
+                                            <div style={{ fontSize: 12, color: '#6B7280', marginTop: 2 }}>
+                                                {selectedStatus === 'returned' ? `Returned by ${PROGRAM_HEAD.display}` : `Approved by ${PROGRAM_HEAD.display}`}
+                                            </div>
+                                        )}
+                                    </td>
+                                )}
                                 {!nonDraft && <td width={200}>{row.update}</td>}
                                 <td className={styles.fill} style={{ gap: 20 }}>
                                     {row.isOverdue && <OverdueBadge />}
