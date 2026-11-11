@@ -286,9 +286,7 @@ const AssessmentsStep = ({
     const isOverflow = totalCurrent > totalRequired;
 
     const activeAttachments = attachments.filter(a => a.iloId === activeIloData?.iloDbId);
-    const activeUsed = currentCounts[activeCoData?.co]?.ilos[activeIloData?.id] || 0;
     const activeRequired = activeIloData?.items || 0;
-    const activeRemaining = activeRequired - activeUsed;
 
     const handleIloKeyDown = (e, coName, iloName) => {
         if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
@@ -447,37 +445,7 @@ const AssessmentsStep = ({
                         </div>
                     </div>
 
-                    {/* 2. Strip card */}
-                    <div style={{ border: '1px solid #E5E7EB', borderRadius: 8, background: '#fff', padding: '12px 16px', marginBottom: 16 }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 13, fontWeight: 500, marginBottom: 8 }}>
-                            <span style={{ color: '#1F2937' }}>
-                                <strong>{activeUsed}</strong> of <strong>{activeRequired}</strong> points allocated
-                            </span>
-                            {activeRemaining < 0 ? (
-                                <span className={`${layout.stripPill} ${layout.stripPillOver}`}>
-                                    {Math.abs(activeRemaining)} over
-                                </span>
-                            ) : activeRemaining === 0 ? (
-                                <span className={`${layout.stripPill} ${layout.stripPillOk}`}>
-                                    0 remaining
-                                </span>
-                            ) : (
-                                <span className={`${layout.stripPill} ${layout.stripPillMuted}`}>
-                                    {activeRemaining} remaining
-                                </span>
-                            )}
-                        </div>
-                        <div className={layout.stripTrack}>
-                            <div
-                                className={`${layout.stripFill} ${activeUsed > activeRequired ? layout.stripFillOver : activeUsed === activeRequired ? layout.stripFillOk : layout.stripFillUnder}`}
-                                style={{
-                                    width: `${activeRequired > 0 ? Math.min(100, (activeUsed / activeRequired) * 100) : 0}%`
-                                }}
-                            />
-                        </div>
-                    </div>
-
-                    {/* 3. Collapsed Reference row */}
+                    {/* 2. Collapsed Reference row */}
                     {activeCoData && activeIloData && (
                         <div style={{ border: '1px solid #E5E7EB', borderRadius: 8, background: '#F9FAFB', marginBottom: 20, overflow: 'hidden' }}>
                             <button
