@@ -162,7 +162,7 @@ export default function AssessmentOutput({ outcomeData = [], questions = [], cou
                                                         const fileRows = questions.filter(q => Number(q.attachmentId) === Number(att.id));
                                                         const filePoints = fileRows.reduce((sum, r) => sum + (Number(r.points) || 0), 0);
                                                         const sizeStr = formatFileSize(att.size);
-                                                        const typeLabel = att.type === 'objective' ? 'Objective' : 'Non-objective';
+                                                        const tool = (ilo.assessmentTool || '').trim();
                                                         const isPdf = (att.filepath || '').toLowerCase().endsWith('.pdf');
 
                                                         const isFileActive = activeScope && (
@@ -192,7 +192,9 @@ export default function AssessmentOutput({ outcomeData = [], questions = [], cou
                                                                             <polyline points="14 2 14 8 20 8"/>
                                                                         </svg>
                                                                         <span className={layout.fileName}>{att.filename}</span>
-                                                                        <span className={layout.fileTypeChip}>{typeLabel}</span>
+                                                                        {tool && (
+                                                                            <span className={layout.fileTypeChip} title={tool}>{tool}</span>
+                                                                        )}
                                                                         {sizeStr && <span className={layout.fileSize}>{sizeStr}</span>}
                                                                     </div>
                                                                     <div className={layout.fileCardRight}>
