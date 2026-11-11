@@ -126,7 +126,9 @@ const PDFViewerModal = ({ file, kind, onClose, children, layer = 0 }) => {
   const zoomOut = () => setZoom(z => Math.max(0.15, +(z / 1.2).toFixed(2)));
   const toggleFitMode = () => setFitMode(f => f === 'width' ? 'page' : 'width');
   const toggleFullscreen = () => setIsFullscreen(f => !f);
-  const handlePrint = () => {
+  // The browser printing the page itself drops table lines (Firefox most of all), so Print prints the server's PDF,
+  // the same file as Download PDF; the page itself is printed only when the server cannot make it.
+  const printPage = () => {
     const iframe = iframeRef.current;
     if (iframe && iframe.contentWindow) {
       iframe.contentWindow.focus();
@@ -137,6 +139,40 @@ const PDFViewerModal = ({ file, kind, onClose, children, layer = 0 }) => {
   // Generate a real, downloadable PDF entirely in the browser — no backend, no print
   // dialog. Each `.page` in the preview iframe becomes exactly one PDF page (330×216mm),
   // which also guarantees no extra/blank pages from print reflow.
+  // The server's PDF (front pages first when uploaded), or null when it cannot be made here.
+  const serverPdf = async () => {
+    if (!file?.file_url || !/\.html?$/i.test(file.file_name || '')) return null;
+    try {
+      const html = await (await fetch(file.file_url)).text();
+      const { renderPdfOnServer } = await import('../utils/serverPdf.js');
+      let bytes = await renderPdfOnServer(html);
+      if (file.front_pdf) {
+        const { joinPdfs } = await import('../utils/frontPages.js');
+        bytes = await joinPdfs(file.front_pdf, bytes);
+      }
+      return bytes;
+    } catch (err) {
+      console.warn('Server PDF failed:', err?.message || err);
+      return null;
+    }
+  };
+
+  const handlePrint = async () => {
+    if (exporting) return;
+    setExporting(true);
+    try {
+      const bytes = await serverPdf();
+      if (!bytes) { printPage(); return; }
+      const { printPdf } = await import('../utils/printPdf.js');
+      await printPdf(bytes);
+    } catch (err) {
+      console.warn('Printing the PDF failed, printing the page instead:', err?.message || err);
+      printPage();
+    } finally {
+      setExporting(false);
+    }
+  };
+
   const downloadName = () => (file?.file_name ? file.file_name.replace(/\.html?$/i, '') + '.pdf' : 'syllabus.pdf');
   const handleExportPDF = async () => {
     if (exporting) return;
@@ -150,22 +186,8 @@ const PDFViewerModal = ({ file, kind, onClose, children, layer = 0 }) => {
     };
     // First choice: the server's headless Chrome makes a real PDF (sharp lines, selectable text, small file).
     // When it cannot (server without Chrome, offline), the page pictures below are the fallback.
-    if (file?.file_url && /\.html?$/i.test(file.file_name || '')) {
-      try {
-        const html = await (await fetch(file.file_url)).text();
-        const { renderPdfOnServer } = await import('../utils/serverPdf.js');
-        let bytes = await renderPdfOnServer(html);
-        if (file.front_pdf) {
-          const { joinPdfs } = await import('../utils/frontPages.js');
-          bytes = await joinPdfs(file.front_pdf, bytes);
-        }
-        save(bytes);
-        setExporting(false);
-        return;
-      } catch (err) {
-        console.warn('Server PDF failed, using page pictures instead:', err?.message || err);
-      }
-    }
+    const bytes = await serverPdf();
+    if (bytes) { save(bytes); setExporting(false); return; }
     try {
       // Fallback: generate the PDF in the browser from page pictures. The server-side HTML renderer
       // is intentionally disabled, so load these large libraries only when the
@@ -173,7 +195,7 @@ const PDFViewerModal = ({ file, kind, onClose, children, layer = 0 }) => {
       //    Each `.page` becomes exactly one fixed-size sheet — no scaling, no blanks.
       const idoc = iframeRef.current?.contentDocument;
       const pageEls = idoc ? Array.from(idoc.querySelectorAll('.page')) : [];
-      if (!pageEls.length) { handlePrint(); return; }
+      if (!pageEls.length) { printPage(); return; }
 
       const [{ jsPDF }, { default: html2canvas }] = await Promise.all([
         import('jspdf'),
@@ -213,7 +235,7 @@ const PDFViewerModal = ({ file, kind, onClose, children, layer = 0 }) => {
       }
     } catch (err) {
       console.warn('PDF export failed, falling back to browser print:', err?.message || err);
-      handlePrint();
+      printPage();
     } finally {
       setExporting(false);
     }
@@ -288,7 +310,7 @@ const PDFViewerModal = ({ file, kind, onClose, children, layer = 0 }) => {
           )}
 
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0 }}>
-            <button type="button" className="app-icon-btn" onClick={handlePrint} title="Print"><Printer size={16} /></button>
+            <button type="button" className="app-icon-btn" onClick={handlePrint} disabled={exporting} title="Print"><Printer size={16} /></button>
             <button type="button" className="btn btn-primary" onClick={handleExportPDF} disabled={exporting}
               style={{ padding: '0 14px', fontSize: 13 }}>
               <Download size={16} /> {exporting ? 'Exporting…' : 'Download PDF'}

@@ -1,0 +1,96 @@
+// The app's own PDF viewer (components/PdfViewer.jsx), laid out like the export preview (PDFViewerModal).
+
+.viewer
+  display: flex
+  flex-direction: column
+  min-height: 320px
+  border: 1px solid var(--line)
+  border-radius: 10px
+  background: #fff
+  overflow: hidden
+
+// Full screen: the whole window, above everything.
+.full
+  position: fixed
+  inset: 0
+  z-index: 1400
+  border-radius: 0
+
+.header
+  display: flex
+  align-items: center
+  justify-content: space-between
+  flex-wrap: wrap
+  gap: 12px
+  padding: 16px 24px
+  border-bottom: 1px solid #e5e7eb
+
+.titles
+  flex: 1
+  min-width: 0
+
+.kind
+  color: var(--ink-muted)
+  font-size: 10px
+  font-weight: 600
+  letter-spacing: 0.04em
+  text-transform: uppercase
+
+.title, .detail
+  margin-top: 1px
+  overflow: hidden
+  white-space: nowrap
+  text-overflow: ellipsis
+
+.title
+  color: #111827
+  font-size: 16px
+  font-weight: 600
+
+.detail
+  color: var(--ink-muted)
+  font-size: 12px
+
+.group
+  display: flex
+  flex-shrink: 0
+  align-items: center
+  gap: 8px
+
+.label
+  min-width: 44px
+  color: #334155
+  font-size: 12px
+  font-weight: 600
+  font-variant-numeric: tabular-nums
+  text-align: center
+  white-space: nowrap
+
+.download
+  padding: 0 14px
+  font-size: 13px
+
+.pages
+  display: flex
+  flex: 1
+  flex-direction: column
+  gap: 16px
+  min-height: 0
+  padding: 24px
+  background: #f1f5f9
+  overflow: auto
+
+// centred by margins, so a page zoomed wider than the viewer still scrolls to its left edge
+.page
+  flex-shrink: 0
+  margin: 0 auto
+  background: #fff
+  box-shadow: 0 2px 10px rgba(15, 23, 42, 0.14)
+
+  canvas
+    display: block
+
+.note
+  padding: 24px
+  color: var(--ink-muted)
+  font-size: 13px

@@ -4,6 +4,7 @@ import { Plus, Trash2, X, Zap } from 'react-feather'
 import useDialogFocus from '../utils/useDialogFocus.js'
 import styles from '../styles/ScanReviewModal.module.sass'
 import { SOURCE_LABEL } from '../utils/scanSource.js'
+import PdfViewer from './PdfViewer.jsx'
 
 // "Scan · Check what was read": the scanned file on the left, what was read from it on the right, every value
 // editable. Nothing is saved until "Use these" (server: utils/documentScan.js reads; the course document's
@@ -56,7 +57,7 @@ const ScanReviewModal = ({ kind, file, result, onUse, onCancel, busy = false, er
 
         <div className={styles.body}>
           <div className={styles.preview}>
-            {isPdf ? <iframe title="Scanned file" src={url} /> : <img src={url} alt="Scanned file" />}
+            {isPdf ? <PdfViewer bytes={file} fileName={file.name} kind="Scanned file" title={file.name} height="100%" /> : <img src={url} alt="Scanned file" />}
           </div>
 
           <div className={styles.fields}>

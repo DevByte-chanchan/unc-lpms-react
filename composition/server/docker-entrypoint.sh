@@ -69,7 +69,10 @@ if [ "$(id -u)" = "0" ]; then
     # A named volume starts out owned by root; the signature folder has to be writable by the app user.
     mkdir -p "$SIGNATURE_DIR"
     chown -R "$APP_USER":"$APP_USER" "$SIGNATURE_DIR"
-    # As the app user, so the database and its WAL files stay owned by it.
+    # As the app user, so the database and its WAL files stay owned by it. setpriv keeps root's HOME, which the
+    # app user cannot read (puppeteer looks there for its config, so the PDF exports failed): use the user's own.
+    HOME=$(getent passwd "$APP_USER" | cut -d: -f6)
+    export HOME
     migrate_or_stop setpriv --reuid="$APP_USER" --regid="$APP_USER" --init-groups --
     seed_demo_if_empty setpriv --reuid="$APP_USER" --regid="$APP_USER" --init-groups --
     exec setpriv --reuid="$APP_USER" --regid="$APP_USER" --init-groups -- "$@"

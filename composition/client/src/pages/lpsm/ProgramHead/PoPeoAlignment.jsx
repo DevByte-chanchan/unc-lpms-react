@@ -7,6 +7,7 @@ import SkeletonA from '../../../layouts/SkeletonA.jsx';
 import HeaderA from '../../../components/HeaderA.jsx';
 import SideNavigation from '../../../components/SideNavigation.jsx';
 import PDFViewerModal from '../../../components/PDFViewerModal.jsx';
+import PdfViewer from '../../../components/PdfViewer.jsx';
 import { buildPoPeoHtml } from '../../../utils/syllabusPdfHtml.js';
 import { fetchJson, apiErrorMessage } from '../../../utils/api.js';
 import { fetchFrontPages, countPdfPages } from '../../../utils/frontPages.js';
@@ -25,16 +26,6 @@ const copyData = (data) => ({
   outcomes: data.outcomes.map(o => ({ id: o.id, text: o.text, peos: [...o.peos], gas: [...o.gas] }))
 })
 
-// The uploaded front pages, shown in the page (the browser's own PDF viewer).
-const FrontPreview = ({ bytes }) => {
-  const [url, setUrl] = useState('')
-  useEffect(() => {
-    const next = URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' }))
-    setUrl(next)
-    return () => URL.revokeObjectURL(next)
-  }, [bytes])
-  return url ? <iframe title="Uploaded front pages" src={url} style={{ width: '100%', height: '70vh', border: '1px solid var(--line)', borderRadius: 8 }} /> : null
-}
 
 const toggle = (list, value) => (list.includes(value) ? list.filter(v => v !== value) : [...list, value].sort((a, b) => a - b))
 
@@ -375,7 +366,7 @@ const PoPeoAlignment = ({ tabs = null, view = 'outcomes' }) => {
         <div className={pageStyles.contextBar}><span>No program is assigned to you yet. Ask the Dean to assign one.</span></div>
       )}
 
-      {frontView && front?.bytes && <FrontPreview bytes={front.bytes} />}
+      {frontView && front?.bytes && <PdfViewer bytes={front.bytes} fileName={`${programName || 'Program'} front pages.pdf`} kind="Front pages" title={programName} detail="University, Program and PEOs, POs and PEOs" />}
 
       {data && !frontView && (
         <>
