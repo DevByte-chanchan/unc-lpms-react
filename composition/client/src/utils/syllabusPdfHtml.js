@@ -1,4 +1,4 @@
-import { escapeHtml, sanitizeUrl } from './sanitize.js'
+import { escapeHtml, sanitizeUrl, signatureImageSrc } from './sanitize.js'
 import { DEFAULT_FORM_INFO } from './formInfo.js'
 const safe = (v, fallback = '—') => (v === null || v === undefined || v === '') ? fallback : escapeHtml(String(v))
 
@@ -872,14 +872,17 @@ function page14(syllabus, workflow, logo, pageNum, total) {
     const accepted = node?.status === 'done'
     return {
       name: signature?.name || node?.reviewerName || '_____________',
-      date: accepted ? extractDate(signature?.signedAt || node?.completedAt) : extractDate(null)
+      date: accepted ? extractDate(signature?.signedAt || node?.completedAt) : extractDate(null),
+      // Their uploaded e-signature, only once they have accepted (the server checks the same).
+      image: accepted ? signatureImageSrc(workflow?.signatureImages?.[roleKey]) : ''
     }
   }
   const librarian = approval('director-of-libraries', workflow?.parallelReview?.library_director)
   const programHead = approval('program-head', workflow?.parallelReview?.program_head || workflow?.programHead)
   const dean = approval('dean', workflow?.dean)
   const signatories = [
-    { label: 'Prepared by:', name: extractInstructorName(), role: 'Faculty', date: extractDate(workflow?.submittedAt) },
+    { label: 'Prepared by:', name: extractInstructorName(), role: 'Faculty', date: extractDate(workflow?.submittedAt),
+      image: workflow?.submittedAt ? signatureImageSrc(workflow?.signatureImages?.instructor) : '' },
     // The industry consultant reviews as documentation only; this line is not part of the approval chain.
     { label: 'Reviewed by:', name: '_____________', role: 'Industry Expert/Consultant', date: extractDate(null) },
     { label: 'Resources Certified by:', name: safe(librarian.name), role: 'Director of Libraries', date: librarian.date, image: librarian.image },
@@ -958,7 +961,7 @@ function page14(syllabus, workflow, logo, pageNum, total) {
         ${signatories.map(s => '<td style="' + SIG_CELL + 'background:#d9d9d9; font-weight:bold;">' + s.label + '</td>').join('\n        ')}
       </tr>
       <tr>
-        ${signatories.map(s => '<td style="' + SIG_CELL + 'font-weight:bold; padding-top:20px;">' + s.name + '<br><span style="font-size:7.5pt; font-weight:normal;">' + s.role + '</span></td>').join('\n        ')}
+        ${signatories.map(s => '<td style="' + SIG_CELL + 'vertical-align:bottom; font-weight:bold; padding-top:' + (s.image ? '4px' : '20px') + ';">' + (s.image ? '<img src="' + s.image + '" alt="Signature" style="display:block; margin:0 auto 2px; max-height:14mm; max-width:90%;">' : '') + s.name + '<br><span style="font-size:7.5pt; font-weight:normal;">' + s.role + '</span></td>').join('\n        ')}
       </tr>
       <tr>
         ${signatories.map(s => '<td style="' + SIG_CELL + 'font-size:7.5pt;">Date: ' + s.date + '</td>').join('\n        ')}

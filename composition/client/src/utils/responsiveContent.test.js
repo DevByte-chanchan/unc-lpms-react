@@ -181,7 +181,8 @@ test('reference discovery workbench becomes drawers and sheets on compact screen
   assert.match(desktopWorkbench, /box-shadow:\s*none/)
   assert.match(compactWorkbench, /border-radius:\s*0/)
   assert.match(compactTop, /border-radius:\s*0/)
-  assert.match(pageHeader, /align-items:\s*center/)
+  // Top-aligned: the title starts 20px down, the same as on every list page.
+  assert.match(pageHeader, /align-items:\s*flex-start/)
   assert.match(searchForm, /width:\s*320px/)
   assert.match(searchForm, /justify-content:\s*start/)
   assert.match(searchForm, /gap:\s*10px/)
@@ -400,7 +401,7 @@ test('icon-only surface close controls share the outlined red treatment', () => 
   for (const file of [
     'components/AddReferenceModal.jsx',
     'components/ApprovalCommentBox.jsx',
-    'components/CoursesTable.jsx',
+    'components/ApprovalDetailsPopup.jsx',
     'components/PDFViewerModal.jsx',
     'components/Revisions.jsx',
     'components/SpellCheckArea.jsx',

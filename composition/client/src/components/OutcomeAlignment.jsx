@@ -113,7 +113,7 @@ const OutcomeAlignment = ({ offeringID, revisionNum, stylesB, fetchJson = defaul
             <EmptyState
                 icon={<Grid size={22} strokeWidth={1.6} />}
                 title="No outcome alignment recorded"
-                hint="Course outcomes mapped against the programme outcomes will appear here as a matrix once the instructor has filled them in."
+                hint="Appears once the instructor fills in the course outcomes."
             />
         );
     }

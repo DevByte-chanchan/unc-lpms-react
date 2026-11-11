@@ -570,15 +570,15 @@ input.app-input.app-input:focus-visible { outline: 2px solid var(--accent); outl
 
 /* "Show in plan": the item a comment points at flashes once after the page scrolls to it. */
 @keyframes row-flash {
-  0%, 60% { background-color: #fef3c7; box-shadow: inset 3px 0 0 #d97706; }
+  0%, 75% { background-color: #fef3c7; box-shadow: inset 3px 0 0 #d97706; }
   100% { background-color: transparent; box-shadow: inset 3px 0 0 transparent; }
 }
 @keyframes item-flash {
-  0%, 60% { background-color: #fde68a; outline: 2px solid #d97706; outline-offset: 3px; }
+  0%, 75% { background-color: #fde68a; outline: 2px solid #d97706; outline-offset: 3px; }
   100% { background-color: transparent; outline: 2px solid transparent; outline-offset: 3px; }
 }
-tr[data-flash] > td { animation: row-flash 2.6s ease-out; }
-div[data-flash], tr[data-target][data-flash] > td { border-radius: 4px; animation: item-flash 2.6s ease-out; }
+tr[data-flash] > td { animation: row-flash 4s ease-out; }
+div[data-flash], tr[data-target][data-flash] > td { border-radius: 4px; animation: item-flash 4s ease-out; }
 @media (prefers-reduced-motion: reduce) { [data-flash], [data-flash] > td { animation: none !important; background-color: #fde68a; } }
 
 /* One scrollbar everywhere: 8px, rounded, the same grey on the same light track, no arrow buttons. Set here only,
@@ -588,8 +588,6 @@ div[data-flash], tr[data-target][data-flash] > td { border-radius: 4px; animatio
    with arrows, which is exactly the mismatch this replaces. A part that must hide its bar still can. */
 :root {
   --scrollbar-thumb: #5f6f78;
-  --scrollbar-thumb-hover: #46555e;
-  --scrollbar-thumb-active: #34454f;
   --scrollbar-track: #e5e9ec;
 }
 *::-webkit-scrollbar {
@@ -601,21 +599,18 @@ div[data-flash], tr[data-target][data-flash] > td { border-radius: 4px; animatio
   width: 0;
   height: 0;
 }
+/* Literal colours, not var(), and ONE thumb colour with no :hover / :active rule: Chromium repaints a custom
+   thumb when its state changes, and mid-drag that repaint can drop it, so the bar vanished while dragged.
+   Keep these equal to the --scrollbar-* values above (Firefox uses those). */
 *::-webkit-scrollbar-track {
-  background: var(--scrollbar-track);
+  background-color: #e5e9ec;
   border-radius: 999px;
 }
 *::-webkit-scrollbar-thumb {
-  background: var(--scrollbar-thumb);
+  background-color: #5f6f78;
   border-radius: 999px;
-}
-/* Darker on hover and while dragged. Without these the pressed state can come out with no colour, so the bar
-   seemed to vanish while it was being dragged. */
-*::-webkit-scrollbar-thumb:hover {
-  background: var(--scrollbar-thumb-hover);
-}
-*::-webkit-scrollbar-thumb:active {
-  background: var(--scrollbar-thumb-active);
+  min-height: 32px;
+  min-width: 32px;
 }
 *::-webkit-scrollbar-corner {
   background: transparent;

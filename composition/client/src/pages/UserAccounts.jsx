@@ -2,6 +2,8 @@ import React from 'react'
 import { UserPlus, X } from 'react-feather'
 import Select from '../components/Select.jsx'
 import TableScrollRegion from '../components/TableScrollRegion.jsx'
+import SortableTh from '../components/SortableTh.jsx'
+import { sortRows, nextSort } from '../utils/tableSort.js'
 import { usePageSearch } from '../utils/pageSearch.js'
 import PageSearch from '../components/PageSearch.jsx'
 import styles from '../styles/CoursesTable.module.sass'
@@ -58,6 +60,7 @@ export const UserAccountsPanel = () => {
   const [error, setError] = React.useState('')
   const [notice, setNotice] = React.useState('')
   const [shown, setShown] = React.useState(null) // { title, label, value }: a password or link shown once
+  const [sort, setSort] = React.useState({ sortKey: 'name', sortDir: 'asc' })
   const search = usePageSearch('Search name or email')
   const [roleFilter, setRoleFilter] = React.useState('')
   const [form, setForm] = React.useState(null)
@@ -163,6 +166,20 @@ export const UserAccountsPanel = () => {
     }
   }
 
+  // The approver lists' table: uppercase headers that sort, and a fixed basis per column so the flex rows line up.
+  const statusOf = (a) => (a.status === 'Active' ? (a.locked ? 'Locked' : 'Active') : 'Disabled')
+  const headsOf = (a) => [...(a.heads?.programs || []), ...(a.heads?.departments || [])]
+  const COLUMNS = [
+    { key: 'name', label: 'NAME', width: 160 },
+    { key: 'email', label: 'EMAIL', grow: true },
+    { key: 'roles', label: 'ROLES', width: 180, sortValue: a => a.roles.map(roleLabel).join(', ') },
+    { key: 'status', label: 'STATUS', width: 90, sortValue: statusOf },
+    { key: 'invitation', label: 'INVITATION', width: 120, sortValue: a => invitationLabel(a.invitation) },
+    { key: 'actions', label: 'ACTIONS', width: 320, sortable: false },
+  ].map(col => ({ ...col, thStyle: col.grow ? { flex: '1 1 0', minWidth: 0 } : { flex: `0 0 ${col.width}px`, minWidth: 0 } }))
+  const cell = (key) => COLUMNS.find(c => c.key === key).thStyle
+  const rows = sortRows(visible, COLUMNS, sort.sortKey, sort.sortDir)
+
   return (
     <div className={pageStyles.managementPage}>
       <div className={pageStyles.pageHeader}>
@@ -188,20 +205,17 @@ export const UserAccountsPanel = () => {
       </div>
 
       {loading ? <p>Loading accounts…</p> : visible.length > 0 ? (
-        <TableScrollRegion label="User accounts" minWidth={1100} className={`${styles['table-container']} app-table`}>
+        <TableScrollRegion label="User accounts" minWidth={1000} className={styles['table-container']}>
           <table>
-            <thead style={{ position: 'sticky', top: 0, background: '#FFFFFF', zIndex: 1 }}>
+            <thead>
               <tr>
-                <th width={220}>Name</th>
-                <th width={240}>Email</th>
-                <th width={220}>Roles</th>
-                <th width={110}>Status</th>
-                <th width={180}>Invitation</th>
-                <th className={styles.fill}></th>
+                {COLUMNS.map(col => (
+                  <SortableTh key={col.key} col={col} sortKey={sort.sortKey} sortDir={sort.sortDir} onSort={(key) => setSort(cur => nextSort(cur, key))} fill />
+                ))}
               </tr>
             </thead>
             <tbody>
-              {visible.map(account => {
+              {rows.map(account => {
                 const isMe = String(account.id) === String(me?.id)
                 const busy = busyId === account.id
                 const active = account.status === 'Active'
@@ -209,19 +223,20 @@ export const UserAccountsPanel = () => {
                 const invitable = account.mustChangePassword || !account.lastLoginAt
                 return (
                   <tr key={account.id}>
-                    <td>{account.name}{isMe ? ' (you)' : ''}</td>
-                    <td>{account.email}</td>
-                    <td>
-                      {account.roles.map(roleLabel).join(', ')}
-                      {[...(account.heads?.programs || []), ...(account.heads?.departments || [])].length > 0 && (
-                        <div style={{ fontSize: 12, color: 'var(--ink-muted)' }}>
-                          Heads {[...(account.heads?.programs || []), ...(account.heads?.departments || [])].map(x => x.name).join(', ')}
-                        </div>
+                    <td style={cell('name')}>{account.name}{isMe ? ' (you)' : ''}</td>
+                    <td style={cell('email')} title={account.email}><span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{account.email}</span></td>
+                    <td style={{ ...cell('roles'), flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'center', gap: 2 }}>
+                      <span>{account.roles.map(roleLabel).join(', ')}</span>
+                      {headsOf(account).length > 0 && (
+                        // Several programs would stretch the row: two names at most, the rest as a count (all in the tooltip).
+                        <span style={{ fontSize: 12, color: 'var(--ink-muted)' }} title={headsOf(account).map(x => x.name).join('\n')}>
+                          Heads {headsOf(account).length <= 2 ? headsOf(account).map(x => x.name).join(', ') : `${headsOf(account).length} programs and departments`}
+                        </span>
                       )}
                     </td>
-                    <td>{active ? (account.locked ? 'Locked' : 'Active') : 'Disabled'}</td>
-                    <td>{invitationLabel(account.invitation)}</td>
-                    <td className={styles.fill} style={{ whiteSpace: 'nowrap' }}>
+                    <td style={cell('status')}>{statusOf(account)}</td>
+                    <td style={cell('invitation')}>{invitationLabel(account.invitation)}</td>
+                    <td style={{ ...cell('actions'), flexWrap: 'wrap' }}>
                       <button type="button" className="btn btn-secondary btn-sm" disabled={busy}
                         onClick={() => { setError(''); setForm({ id: account.id, name: account.name, email: account.email, roles: account.roles, programs: (account.heads?.programs || []).map(p => p.id), departments: (account.heads?.departments || []).map(d => d.id) }) }}>
                         Edit
@@ -301,7 +316,7 @@ export const UserAccountsPanel = () => {
               })}
             </fieldset>
           ))}
-          {!form.id && <div style={{ color: '#6B7280', fontSize: 13 }}>A temporary password is made, valid for 72 hours, and must be changed at first sign-in. It is e-mailed when mail is set up, otherwise shown once here. You can also send a set-password invitation afterwards.</div>}
+          {!form.id && <div style={{ color: '#6B7280', fontSize: 13 }}>A temporary password (valid 72 hours) is e-mailed, or shown once here if mail is not set up.</div>}
         </Dialog>
       )}
 

@@ -100,8 +100,7 @@ const routeSources = [
   'App.jsx',
   'utils/routes.js',
   'utils/session.js',
-  'components/SideNavigation.jsx',
-  'components/SyllabusRevisionsSections.jsx'
+  'components/SideNavigation.jsx'
 ].map(read).join('\n')
 
 for (const token of ['/assigned-tos', '/assignedtos', '/tos/:code', '/assessments/form', 'assignedTos', 'CriteriaForGradingForm.jsx']) {

@@ -38,6 +38,13 @@ module.exports = {
             `UPDATE Comments SET commenter_user_id = ?, commenter_name = COALESCE(commenter_name, ?)
              WHERE commenter_role = 'INDUSTRY_CONSULTANT' AND commenter_user_id IS NULL`,
             { replacements: [consultant.user_id, consultant.name] });
+        // And the Program Head's name on the comments that came with a converted consultant return (20260811).
+        if (head) {
+            await sequelize.query(
+                `UPDATE Comments SET commenter_user_id = ?, commenter_name = COALESCE(commenter_name, (SELECT name FROM Users WHERE user_id = ?))
+                 WHERE commenter_role = 'PROGRAM_HEAD' AND commenter_user_id IS NULL`,
+                { replacements: [head.user_id, head.user_id] });
+        }
     },
 
     async down() {

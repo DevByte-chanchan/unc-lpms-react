@@ -37,7 +37,7 @@ const makeUser = async (role, password, extra = {}) => {
 
 let server;
 let base;
-let adminCalls; // users routes with a fake superuser identity
+let adminCalls; // the User Accounts routes with a fake superuser identity
 let adminBase;
 test.before(async () => {
     const app = express();
@@ -50,10 +50,10 @@ test.before(async () => {
 
     const admin = express();
     admin.use(express.json());
-    admin.use((req, res, next) => { req.user = { id: Number(req.headers['x-id']), name: 'Admin', role: 'superuser' }; next(); });
-    admin.use('/api/users', require('../routes/users'));
+    admin.use((req, res, next) => { req.user = { id: Number(req.headers['x-id']), name: 'Admin', role: 'superuser', roles: ['superuser'] }; next(); });
+    admin.use('/api/user-accounts', require('../routes/userAccounts'));
     await new Promise(resolve => { adminCalls = admin.listen(0, resolve); });
-    adminBase = `http://127.0.0.1:${adminCalls.address().port}/api/users`;
+    adminBase = `http://127.0.0.1:${adminCalls.address().port}/api/user-accounts`;
 });
 test.after(() => { server.close(); adminCalls.close(); });
 
@@ -105,12 +105,12 @@ test('mailer: needs host and from, never throws, uses the injected transport', a
 
 test('creating a user without SMTP: forced change, 72h expiry, password shown once, audited without secrets', async () => {
     const boss = await makeUser('instructor', 'Boss-pass1');
-    const res = await admin(boss, 'POST', '', { name: 'Fresh, User', email: `fresh.${stamp}@example.test`, role: 'instructor' });
+    const res = await admin(boss, 'POST', '', { name: 'Fresh, User', email: `fresh.${stamp}@unc.edu.ph`, roles: ['instructor'] });
     assert.equal(res.status, 201);
     assert.equal(res.data.delivery, 'shown');
     assert.ok(res.data.temporaryPassword.length >= 16);
 
-    const stored = await User.findByPk(res.data.user.id);
+    const stored = await User.findByPk(res.data.account.id);
     assert.equal(stored.must_change_password, true);
     const hours = (new Date(stored.temp_password_expires_at) - Date.now()) / 3600000;
     assert.ok(hours > 71.9 && hours <= 72, `expiry in ${hours}h`);
@@ -126,14 +126,14 @@ test('creating a user with SMTP: emailed, password not in the response, failure 
     const boss = await makeUser('instructor', 'Boss-pass1');
     const transport = fakeTransport();
     await withSmtp(transport, async () => {
-        const res = await admin(boss, 'POST', '', { name: 'Mailed, User', email: `mailed.${stamp}@example.test`, role: 'dean' });
+        const res = await admin(boss, 'POST', '', { name: 'Mailed, User', email: `mailed.${stamp}@unc.edu.ph`, roles: ['dean'] });
         assert.equal(res.status, 201);
         assert.equal(res.data.delivery, 'emailed');
         assert.equal(res.data.temporaryPassword, undefined);
         assert.equal(transport.sent.length, 1);
-        assert.equal(transport.sent[0].to, `mailed.${stamp}@example.test`);
+        assert.equal(transport.sent[0].to, `mailed.${stamp}@unc.edu.ph`);
         const password = /Temporary password: (\S+)/.exec(transport.sent[0].text)[1];
-        const stored = await User.scope('withSecret').findByPk(res.data.user.id);
+        const stored = await User.scope('withSecret').findByPk(res.data.account.id);
         assert.equal(await verifyPassword(password, stored.password_hash), true);
         const sent = await auditFor('CREDENTIALS_SENT', stored.user_id);
         assert.equal(sent.length, 1);
@@ -141,11 +141,11 @@ test('creating a user with SMTP: emailed, password not in the response, failure 
     });
 
     await withSmtp(fakeTransport(true), async () => {
-        const res = await admin(boss, 'POST', '', { name: 'Unlucky, User', email: `unlucky.${stamp}@example.test`, role: 'dean' });
+        const res = await admin(boss, 'POST', '', { name: 'Unlucky, User', email: `unlucky.${stamp}@unc.edu.ph`, roles: ['dean'] });
         assert.equal(res.status, 201);
         assert.equal(res.data.delivery, 'shown');
         assert.ok(res.data.temporaryPassword);
-        assert.equal((await auditFor('CREDENTIALS_SHOWN', res.data.user.id)).length, 1);
+        assert.equal((await auditFor('CREDENTIALS_SHOWN', res.data.account.id)).length, 1);
     });
 });
 
@@ -235,13 +235,13 @@ test('superuser reset-password: new temporary password, forced change, sessions 
     const target = await makeUser('instructor', 'Old-pass-1');
     const session = await login(target, 'Old-pass-1');
 
-    assert.equal((await admin(boss, 'PUT', `/${boss.user_id}/reset-password`)).status, 409, 'not on yourself');
-    assert.equal((await admin(boss, 'PUT', '/999999/reset-password')).status, 404);
+    assert.equal((await admin(boss, 'POST', `/${boss.user_id}/reset-password`)).status, 409, 'not on yourself');
+    assert.equal((await admin(boss, 'POST', '/999999/reset-password')).status, 404);
 
-    const res = await admin(boss, 'PUT', `/${target.user_id}/reset-password`);
+    const res = await admin(boss, 'POST', `/${target.user_id}/reset-password`);
     assert.equal(res.status, 200);
     assert.equal(res.data.delivery, 'shown');
-    assert.equal(res.data.user.mustChangePassword, true);
+    assert.equal(res.data.account.mustChangePassword, true);
     assert.equal((await api('GET', '/api/auth/session', { cookie: session.cookie })).status, 401, 'old session revoked');
     assert.equal((await login(target, 'Old-pass-1')).status, 401, 'old password no longer works');
     const next = await login(target, res.data.temporaryPassword);
@@ -254,7 +254,7 @@ test('superuser reset-password: new temporary password, forced change, sessions 
     }
 
     await User.update({ is_active: false }, { where: { user_id: target.user_id } });
-    assert.equal((await admin(boss, 'PUT', `/${target.user_id}/reset-password`)).status, 409, 'not for deactivated accounts');
+    assert.equal((await admin(boss, 'POST', `/${target.user_id}/reset-password`)).status, 409, 'not for deactivated accounts');
 });
 
 test('forgot-password sends the link through the mailer; no token in the response; the link works', async () => {

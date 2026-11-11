@@ -18,7 +18,7 @@ const { purgeReadNotifications, startRetention } = require('./notificationRetent
 const { recordWorkflowAction } = require('../controllers/assignmentController');
 const { createCourseComment, getCourseCommentsByCode } = require('../controllers/commentController');
 const { submitLearningPlan } = require('../controllers/submissionController');
-const { cloneOfferingContent, assignCourseForTerm } = require('../services/offeringService');
+const { cloneOfferingContent, assignCourseForTerm, startRevision } = require('../services/offeringService');
 const { issueSession, createRequireAuth, COOKIE_NAME } = require('../middleware/auth');
 
 const stamp = Date.now();
@@ -150,7 +150,28 @@ test('submit route: a plan that fails the gates is refused and nobody is notifie
     assert.equal(res.code, 400);
     assert.ok(res.body.blockers.length > 0);
     assert.equal(await submittedLogs(f), 0);
-    assert.equal((await inbox(f.ph)).length + (await inbox(f.ld)).length, 0);
+    // About this plan only: the reminder tests run in parallel and remind every active Director about their own
+    // plans, so counting the whole inbox failed now and then.
+    const aboutThisPlan = async (user) => (await inbox(user)).filter(n => n.offering_id === f.offeringId).length;
+    assert.equal(await aboutThisPlan(f.ph) + await aboutThisPlan(f.ld), 0);
+});
+
+test('submit route: follows the approval rules (not while a Dean return is with the Program Head, not once approved)', async () => {
+    const f = await withValidPlan(await fixture());
+    const log = (actor_role, action_type) => insert('AssignmentWorkflowLogs', { co_assign_id: f.assignmentId, actor_role, action_type, createdAt: new Date(), updatedAt: new Date() });
+    for (const [role, action] of [['INSTRUCTOR', 'SUBMITTED'], ['LIBRARY_DIRECTOR', 'ACCEPTED'], ['PROGRAM_HEAD', 'ACCEPTED'], ['DEAN', 'RETURNED']]) {
+        await log(role, action);
+        await new Promise(r => setTimeout(r, 5)); // distinct instants: the log is ordered by time
+    }
+    const refused = await submit(f);
+    assert.equal(refused.code, 409);
+    assert.match(refused.body.error, /Program Head/);
+    assert.equal(await submittedLogs(f), 1, 'no second submission');
+
+    await log('PROGRAM_HEAD', 'FORWARDED');
+    await new Promise(r => setTimeout(r, 5));
+    assert.equal((await submit(f)).code, 200, 'once forwarded, the instructor resubmits');
+    assert.equal(await submittedLogs(f), 2);
 });
 
 test('submit route: a notification failure does not undo or fail the submission', async () => {
@@ -481,6 +502,26 @@ test('a refused course assignment commits its empty transaction instead of rolli
     assert.equal(threwInside, false, 'the refusal left the transaction without a rollback');
 });
 
+test('a refused start of a revision commits its empty transaction instead of rolling back the shared connection', async () => {
+    const f = await fixture(); // a plan that is not approved: a revision cannot start from it
+    const original = sequelize.transaction;
+    let threwInside = false;
+    sequelize.transaction = function (options, callback) {
+        return original.call(this, options, async t => {
+            try { return await callback(t); } catch (error) { threwInside = true; throw error; }
+        });
+    };
+    try {
+        await assert.rejects(startRevision({ offeringId: f.offeringId, user: { id: f.instructor.user_id, name: 'I' } }),
+            error => error.statusCode === 409);
+        await assert.rejects(startRevision({ offeringId: f.offeringId, user: { id: f.ph.user_id, name: 'PH' } }),
+            error => error.statusCode === 403, 'only the lead instructor');
+    } finally {
+        sequelize.transaction = original;
+    }
+    assert.equal(threwInside, false, 'the refusals left the transaction without a rollback');
+});
+
 test('an approved plan takes no new reviewer comments', async () => {
     const f = await fixture();
     for (const [who, role, action] of [['instructor', 'INSTRUCTOR', 'SUBMITTED'], ['ph', 'PROGRAM_HEAD', 'ACCEPTED'], ['ld', 'LIBRARY_DIRECTOR', 'ACCEPTED'], ['dean', 'DEAN', 'ACCEPTED']]) {
@@ -493,6 +534,26 @@ test('an approved plan takes no new reviewer comments', async () => {
     }, res);
     assert.equal(res.code, 409);
     assert.match(res.body.error, /already approved/);
+});
+
+test('the final approval closes every comment still open on that plan, and only on that plan', async () => {
+    const f = await fixture();
+    const other = await fixture();
+    const now = new Date();
+    const open = (fx, role, message) => insert('Comments', { co_assign_id: fx.assignmentId, commenter_role: role, message, resolved_status: 0, comment_for: 'topics', createdAt: now, updatedAt: now });
+    await open(f, 'PROGRAM_HEAD', '[Note] keep for next term');
+    await open(f, 'DEAN', '[Requested revision] state the target');
+    await open(other, 'PROGRAM_HEAD', '[Note] still under review');
+    for (const [who, role, action] of [['instructor', 'INSTRUCTOR', 'SUBMITTED'], ['ph', 'PROGRAM_HEAD', 'ACCEPTED'], ['ld', 'LIBRARY_DIRECTOR', 'ACCEPTED']]) {
+        assert.equal((await act(f, who, role, action)).code, 201, `${role} ${action}`);
+    }
+    const stillOpen = (fx) => q('SELECT COUNT(*) AS n FROM Comments WHERE co_assign_id = ? AND resolved_status = 0', [fx.assignmentId]).then(r => r[0].n);
+    assert.equal(await stillOpen(f), 2, 'accepting before the Dean leaves them open');
+    assert.equal((await act(f, 'dean', 'DEAN', 'ACCEPTED')).code, 201);
+    assert.equal(await stillOpen(f), 0, 'approved: none open');
+    const [{ dated }] = await q('SELECT COUNT(*) AS dated FROM Comments WHERE co_assign_id = ? AND resolved_date IS NOT NULL', [f.assignmentId]);
+    assert.equal(dated, 2, 'closed with the approval time');
+    assert.equal(await stillOpen(other), 1, 'another plan is untouched');
 });
 
 test('workflow logs are read in real time order even when their offsets differ', async () => {

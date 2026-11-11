@@ -32,5 +32,7 @@ const listTests = (dir) => fs.readdirSync(dir, { withFileTypes: true }).flatMap(
 });
 const files = process.argv.length > 2 ? process.argv.slice(2) : listTests(__dirname);
 
-const run = spawnSync(process.execPath, ['--test', ...files], { cwd: __dirname, env, stdio: 'inherit' });
+// One file at a time: every file shares this one test database, and in parallel one file's rows (a superuser, a
+// reminder) showed up in another file's checks now and then.
+const run = spawnSync(process.execPath, ['--test', '--test-concurrency=1', ...files], { cwd: __dirname, env, stdio: 'inherit' });
 process.exit(run.status ?? 1);

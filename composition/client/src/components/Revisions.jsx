@@ -181,7 +181,7 @@ const Revisions = ({ onClose, pcId: propPcId }) => {
                                 <EmptyState
                                     icon={<Clock size={22} strokeWidth={1.6} />}
                                     title="No revision history yet"
-                                    hint="Each time this learning plan is submitted, returned or approved, that step is recorded here."
+                                    hint="Submissions, returns and approvals appear here."
                                 />
 
                             ) : (

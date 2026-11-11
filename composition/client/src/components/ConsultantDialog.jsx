@@ -68,7 +68,7 @@ const ConsultantDialog = ({ open, onClose, courseCode }) => {
         </div>
 
         <div className={styles.body}>
-          {!course && !error && <div className={styles.hint}>Only the head of a program that offers this course can assign its consultant.</div>}
+          {!course && !error && <div className={styles.hint}>Only this course's Program Head can assign its consultant.</div>}
           {course && (
             <>
               <div className={styles.field}>

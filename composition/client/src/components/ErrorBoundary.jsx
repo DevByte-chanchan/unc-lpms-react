@@ -1,5 +1,4 @@
 import React from 'react'
-import { logError } from '../utils/auditLogger'
 import { planLazyImportRecovery } from '../utils/lazyImportRecovery'
 
 const LAZY_IMPORT_RECOVERY_KEY = 'lpms:lazy-import-recovery'
@@ -16,9 +15,7 @@ class ErrorBoundary extends React.Component {
 
   componentDidCatch(error, errorInfo) {
     this.setState({ errorInfo })
-    logError(this.props.fallbackName || 'ErrorBoundary', error, {
-      componentStack: errorInfo?.componentStack?.slice(0, 500)
-    })
+    console.error(`[${this.props.fallbackName || 'ErrorBoundary'}]`, error, errorInfo?.componentStack?.slice(0, 500))
     if (this.props.onError) {
       this.props.onError(error, errorInfo)
     }

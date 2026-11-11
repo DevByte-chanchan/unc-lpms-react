@@ -14,6 +14,8 @@
   padding: 10px 10px 10px 10px
   gap: 8px
   height: max-content
+  // never squeezed by the page column: when it wraps (narrow screens) it must keep its full height
+  flex-shrink: 0
   align-items: center
   z-index: 2
 
@@ -204,7 +206,7 @@
   min-height: 0
   overflow: auto
   padding: 12px
-  background: #f8fafc
+  background: #fff
   // Solid track and thumb that stay visible while dragged (a transparent track let the bar vanish under the pointer).
   scrollbar-gutter: stable
 
@@ -213,71 +215,127 @@
   flex-direction: column
   gap: 10px
 
+// One comment card; a resolved one is greyed a little.
 .commentCard
-  padding: 14px
-  border: 1px solid #dfe4ea
+  padding: 12px 14px
+  border: 1px solid var(--line)
   border-radius: 8px
   background: #fff
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04)
   color: #334155
 
-// A resolved comment steps back: lighter, and below the open ones.
 .commentCardResolved
-  background: #fbfdfb
-  border-color: #e3ece4
-  opacity: 0.72
+  background: #fafcfa
 
-  &:hover, &:focus-within
-    opacity: 1
+  .commentMessage p, .commentAbout
+    color: var(--ink-muted)
 
-.commentCardHeader
+// Who wrote it (initials, name, role and date) and its status.
+.commentWho
   display: flex
-  align-items: flex-start
-  justify-content: space-between
-  gap: 10px
-  margin-bottom: 10px
-
-.commentContext
-  display: inline-flex
   align-items: center
-  gap: 6px
-  min-height: 24px
-  color: #334155
-  font-size: 12px
+  gap: 10px
+  margin-bottom: 8px
+
+.commentAvatar
+  display: inline-flex
+  flex: 0 0 auto
+  align-items: center
+  justify-content: center
+  width: 28px
+  height: 28px
+  border-radius: 50%
+  background: #e6ecef
+  color: #19282c
+  font-size: 11px
   font-weight: 600
 
-  > span:not(.contextSeparator)
-    padding: 3px 7px
-    border-radius: 4px
-    background: #edf2f7
-
-.contextSeparator
-  color: #94a3b8
-  font-weight: 400
-
-.commentStatusArea
+.commentAuthor
   display: flex
-  align-items: center
-  justify-content: flex-end
-  gap: 6px
-  flex-wrap: wrap
+  flex: 1
+  flex-direction: column
+  min-width: 0
+  line-height: 1.3
+
+  strong
+    overflow: hidden
+    color: #1e293b
+    font-size: 13px
+    font-weight: 600
+    white-space: nowrap
+    text-overflow: ellipsis
+
+  small
+    color: var(--ink-muted)
+    font-size: 11px
 
 .commentStatus
   display: inline-flex
+  flex: 0 0 auto
   align-items: center
-  min-height: 22px
-  padding: 2px 8px
-  border-radius: 999px
+  gap: 5px
   font-size: 11px
   font-weight: 500
 
+.statusDot
+  width: 7px
+  height: 7px
+  border-radius: 50%
+  background: currentColor
+
 .statusPending
   color: var(--warn)
-  background: var(--warn-soft)
 
 .statusResolved
   color: var(--good)
-  background: var(--good-soft)
+
+// The comment's kind and where in the plan it sits, on one line.
+.commentTags
+  display: flex
+  align-items: center
+  flex-wrap: wrap
+  gap: 6px 8px
+  margin-bottom: 6px
+
+.commentKind
+  padding: 1px 7px
+  border-radius: 4px
+  background: #eef2f5
+  color: #475569
+  font-size: 11px
+  font-weight: 600
+
+.commentKindAsk
+  background: #fdecec
+  color: #b42318
+
+.commentWhere
+  color: var(--ink-muted)
+  font-size: 11px
+  font-weight: 500
+
+// The items the comment names, full length.
+.commentAbout
+  margin: 0 0 8px
+  color: #1e293b
+  font-size: 12px
+  line-height: 1.45
+
+.commentTargets
+  margin: 0
+  padding: 0
+  list-style: none
+
+  > li + li
+    margin-top: 4px
+
+  li
+    overflow-wrap: anywhere
+
+  ul
+    margin: 2px 0 0
+    padding-left: 14px
+    color: var(--ink-muted)
+    list-style: disc
 
 .resolveCommentButton
   display: inline-flex
@@ -285,49 +343,19 @@
   justify-content: center
   gap: 4px
   min-height: 28px
-  padding: 4px 8px
+  padding: 4px 10px
   border: 1px solid #cbd5e1
   border-radius: 5px
   background: #fff
   color: #334155
   font-family: inherit
-  font-size: 11px
+  font-size: 12px
   font-weight: 500
   cursor: pointer
 
   &:hover
     border-color: #94a3b8
     background: #f8fafc
-
-// What the comment is about, on one line: a small type tag, then the item names.
-.commentTarget
-  display: flex
-  align-items: center
-  gap: 8px
-  min-width: 0
-  margin-bottom: 10px
-
-.commentTargetLabel
-  flex: 0 0 auto
-  padding: 2px 6px
-  border-radius: 4px
-  background: var(--warn-soft)
-  color: var(--warn)
-  font-size: 10px
-  font-weight: 600
-  text-transform: uppercase
-
-.commentTargetValues
-  min-width: 0
-  overflow: hidden
-  color: #78350f
-  font-size: 12px
-  font-weight: var(--fw-medium)
-  white-space: nowrap
-  text-overflow: ellipsis
-
-  span + span::before
-    content: ', '
 
 .commentMessage
   margin-bottom: 12px
@@ -411,21 +439,19 @@
 .commentMeta
   display: flex
   align-items: center
-  gap: 5px
+  justify-content: flex-end
+  gap: 8px
   flex-wrap: wrap
-  padding-top: 10px
-  border-top: 1px solid #edf0f3
-  color: #64748b
+  margin-top: 4px
+  color: var(--ink-muted)
   font-size: 11px
-  line-height: 1.4
-
-  > span:first-child
-    color: #334155
-    font-weight: 500
 
 .resolvedDate
-  margin-left: auto
+  display: inline-flex
+  align-items: center
+  gap: 3px
   color: var(--good)
+  margin-right: auto
 
 @media (max-width: 1024px)
   .container
@@ -434,6 +460,7 @@
     overflow: visible
   .navi
     flex-wrap: wrap
+    height: auto
     padding: 8px
   .section-select
     order: 3
@@ -476,16 +503,6 @@
 
   .commentsScroller
     padding: 10px
-
-@media (max-width: 480px)
-  .commentCardHeader
-    flex-direction: column
-
-  .commentStatusArea
-    justify-content: flex-start
-
-  .commentTarget
-    gap: 6px
 
 .container section
   width: 100%
@@ -534,7 +551,8 @@
 // ponytail: direct copy of instructor's .more + dropdown from SyllabusSections.module.sass
 .divider
   width: 24px
-  height: 100%
+  // stretch to its row, not height: 100% of the header (circular once the header wraps on narrow screens)
+  align-self: stretch
   display: flex
   justify-content: center
   align-items: center
@@ -1274,8 +1292,9 @@
   align-items: center
   gap: 6px
   justify-content: center
-  // Sized to its label: a fixed 300px cut "Next: Course and Program Outcome Alignment" to "Next: Course and…".
-  width: auto
+  // One size for Back and Next on every section, wide enough for the longest label
+  // ("Back: Course and Program Outcome Alignment": 311px of text + arrow + padding). 300px cut it short.
+  width: 370px
   max-width: 100%
   height: 36px
   padding: 0 var(--sp-5)
@@ -1420,8 +1439,34 @@
 // The comments panel's All / Open / Resolved switch, under its title.
 .commentFilter
   display: flex
-  gap: 6px
-  padding: 10px 20px 0
+  flex-wrap: wrap
+  align-items: center
+  gap: 8px 6px
+  padding: 12px 20px 12px
+  border-bottom: 1px solid #edf0f3
+
+// Who wrote the comments (components/CommentsSidebar.jsx): the app's own drop-down, on its own row under the switch.
+.commentRoleFilter
+  flex: 1 0 100%
+
+// A review round's heading: "Return 2" above that round's comments, newest round first.
+.commentRound
+  display: flex
+  align-items: baseline
+  justify-content: space-between
+  margin: 6px 0 2px
+  padding-bottom: 4px
+  border-bottom: 1px solid var(--line)
+  color: var(--ink)
+  font: var(--fw-semibold) 12px var(--font-ui)
+  text-transform: uppercase
+  letter-spacing: 0.04em
+
+  span
+    color: var(--ink-muted)
+    font-weight: var(--fw-medium)
+    text-transform: none
+    letter-spacing: 0
 
 .commentFilterBtn
   height: 28px
@@ -1448,14 +1493,16 @@
 .commentJump
   display: inline-flex
   align-items: center
-  gap: 2px
-  margin-left: auto
-  padding: 0
-  border: 0
-  background: transparent
+  gap: 4px
+  min-height: 28px
+  padding: 4px 10px
+  border: 1px solid var(--line)
+  border-radius: 5px
+  background: #fff
   color: var(--ink)
-  font: var(--fw-medium) 11px var(--font-ui)
+  font: var(--fw-medium) 12px var(--font-ui)
   cursor: pointer
 
   &:hover
-    text-decoration: underline
+    border-color: #94a3b8
+    background: #f8fafc

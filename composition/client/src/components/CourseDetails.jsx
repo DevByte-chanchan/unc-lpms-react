@@ -115,7 +115,7 @@ const CourseDetails = ({ offeringID, revisionNum, stylesB, fetchJson = defaultFe
             <EmptyState
                 icon={<FileText size={22} strokeWidth={1.6} />}
                 title="No course details recorded"
-                hint="The course number, title, description, credit units and contact hours will appear here once the instructor has entered them."
+                hint="Appears once the instructor fills it in."
             />
         );
     }

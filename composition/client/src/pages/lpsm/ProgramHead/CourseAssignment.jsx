@@ -9,7 +9,8 @@ import { Loading, TableSkeleton } from '../../../components/LoadingSkeleton.jsx'
 import { fetchJson, apiErrorMessage } from '../../../utils/api.js'
 import { getSession } from '../../../utils/session.js'
 import table from '../../../styles/CoursesTable.module.sass'
-import pageStyles from '../../../styles/ProgramHeadWorkspace.module.sass'
+import SortableTh from '../../../components/SortableTh.jsx'
+import { sortRows, nextSort } from '../../../utils/tableSort.js'
 
 // Course Assignment (Program Head). Before enrollment the Program Head pre-assigns each course to an instructor, so
 // the learning plan, COAEP and syllabus can be written early. At the end of enrollment the registrar's Subject
@@ -32,6 +33,8 @@ const today = new Date()
 const currentYear = today.getMonth() >= 5 ? today.getFullYear() : today.getFullYear() - 1
 const YEARS = [currentYear + 1, currentYear, currentYear - 1].map(y => `${y}-${y + 1}`)
 
+const cellStyle = (col) => (col.grow ? { flex: '1 1 0', minWidth: 0 } : { flex: `0 0 ${col.width}px`, minWidth: 0 })
+
 // "CASIMERO DANNY BOY: OBa, OBb, OBc", one line per faculty (sections without one grouped under '').
 const officialByFaculty = (sections) => {
   const groups = new Map()
@@ -52,6 +55,7 @@ const CourseAssignment = () => {
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
   const [busy, setBusy] = useState('')
+  const [sort, setSort] = useState({ sortKey: 'course_no', sortDir: 'asc' })
   const fileRef = useRef(null)
   const term = `school_year=${schoolYear}&semester=${encodeURIComponent(semester)}`
 
@@ -99,6 +103,18 @@ const CourseAssignment = () => {
 
   const instructorName = (id) => data?.instructors.find(u => String(u.user_id) === String(id))?.name || ''
 
+  // Same header as the approver lists: uppercase, click to sort. The rows are flex rows (index.css), so every
+  // column gets a fixed basis, and the course name the rest from 0: header and rows line up whatever the text.
+  const COLUMNS = [
+    { key: 'course_no', label: 'CODE', width: 110 },
+    { key: 'course_title', label: 'COURSE NAME', grow: true },
+    { key: 'pre', label: 'PRE-ASSIGNED', width: 240, sortValue: r => instructorName(r.pre?.instructor_user_id) },
+    { key: 'official', label: 'OFFICIAL', width: 260, sortValue: r => officialByFaculty(r.official)[0]?.name || '' },
+    { key: 'status', label: 'STATUS', width: 190, sortValue: r => (STATUS[r.status] || STATUS.unassigned).label },
+  ].map(col => ({ ...col, thStyle: cellStyle(col) }))
+  const cell = (key) => cellStyle(COLUMNS.find(c => c.key === key))
+  const rows = sortRows(data?.rows || [], COLUMNS, sort.sortKey, sort.sortDir)
+
   const content = (
     <div className={`${table['courses-table']}`}>
       <div className={table.header}>
@@ -126,39 +142,37 @@ const CourseAssignment = () => {
       {error && <div role="alert" style={{ margin: '0 0 12px', color: 'var(--danger)' }}>{error}</div>}
       {notice && <div role="status" style={{ margin: '0 0 12px', color: 'var(--good)' }}>{notice}</div>}
 
-      <TableScrollRegion label="Course assignments" minWidth={900} className={`${table['table-container']} app-table`}>
+      <TableScrollRegion label="Course assignments" minWidth={900} className={table['table-container']}>
         {!data ? <Loading label="Loading course assignments…"><TableSkeleton rows={6} cols={[120, '1fr', 220, 260, 160]} /></Loading> : (
           <table>
             <thead>
               <tr>
-                <th width={110}>Code</th>
-                <th className={table.growCol}>Course</th>
-                <th width={240}>Pre-assigned</th>
-                <th width={260}>Official</th>
-                <th width={190}>Status</th>
+                {COLUMNS.map(col => (
+                  <SortableTh key={col.key} col={col} sortKey={sort.sortKey} sortDir={sort.sortDir} onSort={(key) => setSort(cur => nextSort(cur, key))} fill />
+                ))}
               </tr>
             </thead>
             <tbody>
               {data.rows.length === 0 && (
                 <tr><td colSpan={5} style={{ textAlign: 'center', color: 'var(--ink-muted)' }}>You do not head a program with courses yet.</td></tr>
               )}
-              {data.rows.map(row => {
+              {rows.map(row => {
                 const key = `row-${row.course_id}-${row.program_id}`
                 const status = STATUS[row.status] || STATUS.unassigned
                 const preId = row.pre?.instructor_user_id
                 const canUseOfficial = row.suggested && String(row.suggested.user_id) !== String(preId)
                 return (
                   <tr key={key}>
-                    <td width={110}>{row.course_no}</td>
-                    <td className={table.growCol}>{row.course_title}</td>
-                    <td width={240}>
+                    <td style={cell('course_no')}>{row.course_no}</td>
+                    <td style={cell('course_title')}>{row.course_title}</td>
+                    <td style={cell('pre')}>
                       <Select block value={preId ? String(preId) : ''} placeholder="Choose instructor…" disabled={busy === key}
                         aria-label={`Instructor of ${row.course_no}`}
                         onChange={(e) => e.target.value && e.target.value !== String(preId) && setInstructor(row, e.target.value, instructorName(e.target.value))}>
                         {data.instructors.map(u => <option key={u.user_id} value={String(u.user_id)}>{u.name}</option>)}
                       </Select>
                     </td>
-                    <td width={260}>
+                    <td style={cell('official')}>
                       {row.official.length === 0 ? <span style={{ color: 'var(--ink-faint)' }}>—</span> : (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 2, fontSize: 13 }}>
                           {officialByFaculty(row.official).map(g => (
@@ -171,7 +185,7 @@ const CourseAssignment = () => {
                         </div>
                       )}
                     </td>
-                    <td width={190}>
+                    <td style={{ ...cell('status'), flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'center' }}>
                       <div style={{ color: status.color, fontWeight: 500 }}>{status.label}</div>
                       {canUseOfficial && (
                         <button type="button" className="btn btn-secondary btn-sm" style={{ marginTop: 6 }} disabled={busy === key}
@@ -194,7 +208,7 @@ const CourseAssignment = () => {
     <SkeletonA
       header={<HeaderA role={session?.roleLabel || 'Program Head'} name={session?.name || ''} />}
       nav={<SideNavigation mode="program-head" />}
-      content={<div className={pageStyles.page}>{content}</div>}
+      content={content}
     />
   )
 }

@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { AlertCircle, CheckCircle, Maximize, Minimize2, X } from 'react-feather'
 import { changePassword, getSession } from '../utils/session.js'
 import styles from '../styles/SettingsModal.module.sass'
+import SignatureTab from './SignatureTab.jsx'
 
 // The account settings window, opened from the sidebar's Settings item and from the account card: who is signed in
 // (Account) and the password (Security). It is a window like the app's other large
@@ -11,7 +12,9 @@ import styles from '../styles/SettingsModal.module.sass'
 // else until it is done.
 const TABS = [
   { key: 'account', label: 'Account' },
-  { key: 'security', label: 'Security' }
+  { key: 'security', label: 'Security' },
+  // Only roles with a step on the plan's signature block (Prepared, Resources Certified, Approved, Noted by).
+  { key: 'signature', label: 'Signature', roles: ['instructor', 'program-head', 'director-of-libraries', 'dean'] }
 ]
 
 const Row = ({ label, hint, children }) => (
@@ -99,7 +102,7 @@ const SettingsModal = ({ open, onClose, initialTab = 'account' }) => {
         <div className="app-window-header">
           <div>
             <h2 className="app-window-title">Settings</h2>
-            <div className={styles.sub}>Your account details and password.</div>
+            <div className={styles.sub}>Your account details, password and signature.</div>
           </div>
           <div className="app-window-actions">
             <button type="button" className="app-icon-btn" onClick={() => setExpanded(value => !value)}
@@ -113,7 +116,7 @@ const SettingsModal = ({ open, onClose, initialTab = 'account' }) => {
         </div>
 
         <div className={styles.tabs} role="tablist" aria-label="Settings">
-          {TABS.map(item => (
+          {TABS.filter(item => !item.roles || (session?.roles || [session?.role]).some(role => item.roles.includes(role))).map(item => (
             <button key={item.key} type="button" role="tab" aria-selected={tab === item.key}
               className={`${styles.tab} ${tab === item.key ? styles.tabOn : ''}`} onClick={() => setTab(item.key)}>{item.label}</button>
           ))}
@@ -125,10 +128,11 @@ const SettingsModal = ({ open, onClose, initialTab = 'account' }) => {
               <Row label="Name">{session?.name || '—'}</Row>
               <Row label="E-mail">{session?.email || '—'}</Row>
               <Row label="Role">{session?.roleLabel || '—'}</Row>
-              <div className={styles.footnote}>These details are managed by an administrator. Ask a superuser to change them.</div>
+              <div className={styles.footnote}>Only a superuser can change these.</div>
             </>
           )}
           {tab === 'security' && <SecurityTab />}
+          {tab === 'signature' && <SignatureTab />}
         </div>
       </div>
     </>,

@@ -2,7 +2,7 @@ import Select from './Select.jsx'
 import React, { useCallback, useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import styles from '../styles/CoursesTable.module.sass';
-import { ChevronRight, ChevronDown, ChevronUp, XCircle, Download, Clock, RotateCcw, CheckCircle, Search, List, Grid } from 'react-feather';
+import { ChevronRight, ChevronDown, ChevronUp, XCircle, HelpCircle, Download, Clock, RotateCcw, CheckCircle, Search, List, Grid } from 'react-feather';
 import SortableTh from './SortableTh.jsx';
 import { sortRows, nextSort } from '../utils/tableSort.js';
 import { fetchJson } from "../utils/api.js";
@@ -16,8 +16,9 @@ import unclogo from '../assets/unclogo.png';
 import TableScrollRegion from './TableScrollRegion.jsx';
 import { usePageSearch, matchesSearch, setPageSearch } from '../utils/pageSearch.js';
 import NotSubmittedPanel from './NotSubmittedPanel.jsx';
+import ApprovalDetailsPopup from './ApprovalDetailsPopup.jsx';
 import { Loading, TableSkeleton } from './LoadingSkeleton.jsx';
-import { buildApproverStatus, canExportRow, computeOverallStatus, isWithProgramHead, latestSubmissionAt } from '../utils/assignmentStatus.js';
+import { buildApproverStatus, canExportRow, computeOverallStatus, latestSubmissionAt } from '../utils/assignmentStatus.js';
 import { filterAssignmentsByCourse, readAssignedCourseFilters } from '../utils/referenceCourseNavigation.js';
 
 // Roles that read the whole plan. The Director of Libraries sees References only, so a syllabus export would
@@ -31,42 +32,6 @@ const formatDate = (dateString) => {
     return d.toISOString().split('T')[0];
 };
 
-// Where a plan stands, in the row: a short line and one bar segment per approver in review order (Library
-// Director, Program Head, Dean). Green = accepted, yellow = waiting on that person now, red = returned, grey =
-// not their turn yet. Hovering a segment
-// gives the name and the date, so the old details window is not needed.
-const SEG_CLASS = { Accepted: 'segDone', Returned: 'segReturned', Pending: 'segPending', Waiting: 'segWaiting' };
-const ApprovalProgress = ({ row, role }) => {
-    // Under review: the Director and the Program Head work in parallel, then the Dean. Whoever is next is "waiting".
-    const under = computeOverallStatus(row) === 'Pending';
-    const base = buildApproverStatus(row);
-    const firstTwoDone = base.slice(0, 2).every(step => step.status === 'Accepted');
-    const steps = base.map((step, i) => (under && step.status === 'Pending' && (i < 2 || firstTwoDone) ? { ...step, status: 'Waiting' } : step));
-    const done = steps.filter(step => step.status === 'Accepted').length;
-    const returned = steps.find(step => step.status === 'Returned');
-    // The Dean's turn comes last: until then the row says whom the plan is waiting on, not just a count.
-    const deanWaitingOnOthers = role === 'dean' && under && !returned && steps[2]?.status === 'Pending';
-    const waitingOn = steps.filter(step => step.status === 'Waiting').map(step => step.title).join(' and ');
-    const label = done === steps.length ? 'Approved'
-        : isWithProgramHead(row) ? 'Returned by Dean · with the Program Head'
-        : returned ? `Returned by ${returned.title}`
-        : deanWaitingOnOthers && waitingOn ? `Waiting on ${waitingOn}` : `${done} of ${steps.length} approved`;
-    const when = (step) => {
-        const at = step.status === 'Accepted' ? step.acceptedAt : step.status === 'Returned' ? step.returnedAt : null;
-        return at ? ` · ${new Date(at).toLocaleString()}` : '';
-    };
-    return (
-        <div className={styles.progress}>
-            <div className={styles.progressLabel}>{label}</div>
-            <div className={styles.progressBar} role="img" aria-label={`${label}: ${steps.map(step => `${step.title} ${step.status.toLowerCase()}`).join(', ')}`}>
-                {steps.map(step => (
-                    <span key={step.title} className={`${styles.seg} ${styles[SEG_CLASS[step.status]]}`} title={`${step.title}: ${step.status}${when(step)}`} />
-                ))}
-            </div>
-        </div>
-    );
-};
-
 const ApprovalCard = ({ code, date, title, link, exportButton }) => {
     const [expanded, setExpanded] = useState(false);
     return (
@@ -76,7 +41,7 @@ const ApprovalCard = ({ code, date, title, link, exportButton }) => {
                     <span className={styles.cardCode}>{code}</span>
                     <span className={styles.cardDate}>{date}</span>
                 </div>
-                <div className={styles.cardTitle}>{title}</div>
+                <div className={styles.cardTitle} title={title}>{title}</div>
                 <div className={styles.cardFooter}>
                     <div className={styles.cardActionsGroup}>
                         <Link className={styles.gridActionBtn} to={link.to}>View <ChevronRight size={16} /></Link>
@@ -180,6 +145,8 @@ const ApprovalCoursesTable = ({ role = 'approver', styleHooks = {} }) => {
     });
     const [exportFile, setExportFile] = useState(null);
     const [exporting, setExporting] = useState(false);
+    // The ? of a row opens its approval details (components/ApprovalDetailsPopup.jsx), as in the instructor's list.
+    const [details, setDetails] = useState(null);
     // Cards or rows, as on the instructor's Assigned Course Offerings.
     const [layoutMode, setLayoutMode] = useState('grid');
 
@@ -281,7 +248,6 @@ const ApprovalCoursesTable = ({ role = 'approver', styleHooks = {} }) => {
         ...(selectedStatus === 'APPROVED'
             ? [{ key: 'date_approved', label: 'DATE APPROVED', width: 165, type: 'date' }]
             : []),
-        { key: 'approval', label: 'APPROVAL', width: 170, sortable: false },
         { key: 'actions', label: 'ACTIONS', className: styles.actionsCol, sortable: false }
     ];
 
@@ -313,6 +279,10 @@ const ApprovalCoursesTable = ({ role = 'approver', styleHooks = {} }) => {
                 </span>
             }
 
+            <button type="button" className={styles.info} aria-label="View approval details" title="View details"
+                onClick={() => setDetails({ submittedAt: latestSubmissionAt(row), approverStatuses: buildApproverStatus(row) })}>
+                <HelpCircle opacity={.8} size={18} />
+            </button>
         </div>
     );
 
@@ -344,12 +314,12 @@ const ApprovalCoursesTable = ({ role = 'approver', styleHooks = {} }) => {
                     colSpan={colSpan}
                     icon={<Clock size={22} strokeWidth={1.6} />}
                     title={`${targetCourse} is not available in this view`}
-                    hint="Its review status or academic term may have changed. Return to the Reference Library and open the course again."
+                    hint="Its status or term may have changed. Open it again from the Reference Library."
                 />
             );
         }
         if (query.trim()) {
-            return <EmptyState colSpan={colSpan} icon={<Clock size={22} strokeWidth={1.6} />} title="No course matches your search" hint="Change the search in the top bar, or clear it to see the whole list." />;
+            return <EmptyState colSpan={colSpan} icon={<Clock size={22} strokeWidth={1.6} />} title="No course matches your search" hint="Change or clear the search." />;
         }
         const meta = EMPTY_BY_STATUS[selectedStatus] || EMPTY_BY_STATUS.PENDING;
         return <EmptyState colSpan={colSpan} icon={meta.icon} title={meta.title} hint={meta.hint} />;
@@ -432,7 +402,7 @@ const ApprovalCoursesTable = ({ role = 'approver', styleHooks = {} }) => {
                     ? <Loading label="Loading course offerings…"><TableSkeleton rows={3} cols={['1fr', '1fr', '1fr']} /></Loading>
                     : loadError
                         ? <table><tbody><EmptyState colSpan={1} icon={<XCircle size={22} strokeWidth={1.6} />} title="Could not load assigned course offerings"
-                            hint="The course list could not be loaded. Try again; no sample records have been substituted for your assignments."
+                            hint="The course list could not be loaded. Try again."
                             action={<button type="button" className="btn btn-secondary btn-sm" onClick={loadAssignments}>Try again</button>} /></tbody></table>
                         : sortedRows.length === 0
                             ? <table><tbody>{emptyRow(1)}</tbody></table>
@@ -466,13 +436,13 @@ const ApprovalCoursesTable = ({ role = 'approver', styleHooks = {} }) => {
                     table meant the empty state ("No learning plans waiting for
                     you") was on screen at the same time as "Loading…", which
                     tells the reader two contradictory things. */}
-                {loading && <Loading label="Loading course offerings…"><TableSkeleton rows={6} cols={[165, 130, '1fr', 170, 190]} /></Loading>}
+                {loading && <Loading label="Loading course offerings…"><TableSkeleton rows={6} cols={[165, 130, '1fr', 165, 230]} /></Loading>}
 
                 {!loading && loadError && (
                     <EmptyState
                         icon={<XCircle size={22} strokeWidth={1.6} />}
                         title="Could not load assigned course offerings"
-                        hint="The course list could not be loaded. Try again; no sample records have been substituted for your assignments."
+                        hint="The course list could not be loaded. Try again."
                         action={<button type="button" className="btn btn-secondary btn-sm" onClick={loadAssignments}>Try again</button>}
                     />
                 )}
@@ -497,11 +467,10 @@ const ApprovalCoursesTable = ({ role = 'approver', styleHooks = {} }) => {
                                     the only way to read a long name in full. */}
                                 <td width={200} className={styles.growCol} title={getName(row)}><span>{getName(row)}</span></td>
                                 <td width={165}>{formatDate(row.date_approved)}</td>
-                                <td width={170}><ApprovalProgress row={row} role={role} /></td>
                                 <td className={styles.actionsCol}>{rowActions(row)}</td>
                             </tr>
                         ))}
-                        {!loading && sortedRows.length === 0 && emptyRow(6)}
+                        {!loading && sortedRows.length === 0 && emptyRow(5)}
                         </tbody>
                     </table>
                 }
@@ -521,11 +490,10 @@ const ApprovalCoursesTable = ({ role = 'approver', styleHooks = {} }) => {
                                 <td width={165}>{formatDate(row.date_assigned)}</td>
                                 <td width={130} title={getCode(row)}><span>{getCode(row)}</span></td>
                                 <td width={200} className={styles.growCol} title={getName(row)}><span>{getName(row)}</span></td>
-                                <td width={170}><ApprovalProgress row={row} role={role} /></td>
                                 <td className={styles.actionsCol}>{rowActions(row)}</td>
                             </tr>
                         ))}
-                        {!loading && sortedRows.length === 0 && emptyRow(5)}
+                        {!loading && sortedRows.length === 0 && emptyRow(4)}
                         </tbody>
                     </table>
                 }
@@ -541,6 +509,8 @@ const ApprovalCoursesTable = ({ role = 'approver', styleHooks = {} }) => {
                 />
             )}
 
+
+            {details && <ApprovalDetailsPopup data={details} onClose={() => setDetails(null)} />}
 
             {exportFile && (
               <PDFViewerModal

@@ -11,6 +11,7 @@ const {
 const { canViewComment, canViewSection, sectionOfComment } = require('../config/sectionAccess');
 const { COMMENT_ROLE_BY_ACCOUNT, isApprover, seesEveryComment, filterComments, withoutHeldDeanComments } = require('../utils/commentVisibility');
 const { earlierConsultantComments } = require('../utils/earlierConsultantComments');
+const { withReviewRounds } = require('../utils/reviewRounds');
 const { effectiveLogs } = require('../utils/effectiveLogs');
 const { planEditState, deriveReviewState } = require('../utils/workflowRules');
 
@@ -22,6 +23,14 @@ const visibleComments = (req, rows) => filterComments(req.user, rows).map(({ com
 
 // For the instructor, a Dean return still with the Program Head keeps its new Dean comments back (see
 // commentVisibility.withoutHeldDeanComments). Everyone else is unaffected.
+// Each comment's review round (utils/reviewRounds.js), from the plan's effective workflow log.
+const withRounds = async (rows, offeringId) => {
+    if (!offeringId || !rows.length) return rows;
+    const [assignment] = await sequelize.query('SELECT co_assign_id FROM CourseOfferingAssignments WHERE pc_offering_id = ? ORDER BY co_assign_id DESC LIMIT 1;',
+        { replacements: [offeringId], type: Sequelize.QueryTypes.SELECT });
+    return assignment ? withReviewRounds(await effectiveLogs(sequelize, assignment.co_assign_id), rows) : rows;
+};
+
 const forInstructorTiming = async (req, rows, offeringId) => {
     if (req.user?.role !== 'instructor' || !offeringId) return rows;
     const [assignment] = await sequelize.query('SELECT co_assign_id FROM CourseOfferingAssignments WHERE pc_offering_id = ? ORDER BY co_assign_id DESC LIMIT 1;',
@@ -538,6 +547,7 @@ exports.getCourseCommentsByCode = async (req, res) => {
                  c.commenter_name,
                  c.message,
                  c.resolved_status,
+                 c.resolved_date,
                  c.week_id,
                  c.week_id AS ilo_id,
                  c.comment_for,
@@ -581,7 +591,8 @@ exports.getCourseCommentsByCode = async (req, res) => {
             }
         );
 
-        return res.status(200).json(visibleComments(req, await forInstructorTiming(req, comments, accessRows[0].pc_offering_id)));
+        const offeringId = accessRows[0].pc_offering_id;
+        return res.status(200).json(visibleComments(req, await withRounds(await forInstructorTiming(req, comments, offeringId), offeringId)));
     } catch (error) {
         console.error('Error fetching course comments by code:', error);
         return res.status(500).json({ message: 'Internal server error fetching course comments.' });
@@ -608,6 +619,7 @@ exports.getCourseComments = async (req, res) => {
                  c.commenter_name,
                  c.message,
                  c.resolved_status,
+                 c.resolved_date,
                  c.week_id,
                  c.week_id AS ilo_id,
                  c.comment_for,
@@ -651,7 +663,7 @@ exports.getCourseComments = async (req, res) => {
             }
         );
 
-        return res.status(200).json(visibleComments(req, await forInstructorTiming(req, comments, Number(pcId))));
+        return res.status(200).json(visibleComments(req, await withRounds(await forInstructorTiming(req, comments, Number(pcId)), Number(pcId))));
     } catch (error) {
         console.error('Error fetching course comments:', error);
         return res.status(500).json({ message: 'Internal server error fetching course comments.' });

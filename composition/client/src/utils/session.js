@@ -184,7 +184,7 @@ export const logout = () => {
 // below when the server is not running.
 //
 // The fallback is not a second security model — it is the demo build's
-// offline mode, the same idea as `demoAssignments.withDemoFallback`. When the
+// offline mode. When the
 // server answers, the server decides; the local store is never consulted.
 
 // Read the API base defensively rather than importing `utils/api.js`: that

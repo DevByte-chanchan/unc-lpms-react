@@ -8,6 +8,21 @@ const roleHeaders = () => {
   return role ? { 'X-LPMS-Role': role } : {}
 }
 
+// Saves a file the API answers (a template, an export) under `name`. With `body`, it is POSTed as JSON.
+export const downloadFromApi = async (path, name, body) => {
+  const res = await fetch(`${API_BASE}${path}`, {
+    credentials: 'include',
+    ...(body ? { method: 'POST', body: JSON.stringify(body) } : {}),
+    headers: { ...roleHeaders(), ...(body ? { 'Content-Type': 'application/json' } : {}) },
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  const link = document.createElement('a')
+  link.href = URL.createObjectURL(await res.blob())
+  link.download = name
+  link.click()
+  setTimeout(() => URL.revokeObjectURL(link.href), 10000)
+}
+
 // Opens a PDF in a new tab, downloads a spreadsheet.
 export const openCourseDocument = async (pcId, kind, doc) => {
   const res = await fetch(`${API_BASE}/api/course-documents/${pcId}/${kind}`, { credentials: 'include', headers: roleHeaders() })

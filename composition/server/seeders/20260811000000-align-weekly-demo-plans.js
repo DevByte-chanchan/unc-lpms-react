@@ -8,7 +8,7 @@
 //   - a plan the Dean never approved is a working copy (revision 0) and every plan has its term
 //   - the workflow log is the source of a plan's status: an assignment with none gets its
 //     ASSIGNED (and SUBMITTED) rows, and the Industry Consultant, who is not in the approval
-//     chain, records no workflow action (a consultant return becomes the Program Head's)
+//     chain, records no workflow action (a consultant return, and its comments, become the Program Head's)
 // Runs before 20260812000000-demo-users, which links the demo accounts and backfills the rest.
 
 const { IED_LEVELS } = require('../utils/iedRule');
@@ -62,6 +62,9 @@ module.exports = {
                 await run('DELETE FROM AssignmentWorkflowLogs WHERE log_id = ?', [entry.log_id]);
             } else {
                 await run("UPDATE AssignmentWorkflowLogs SET actor_role = 'PROGRAM_HEAD' WHERE log_id = ?", [entry.log_id]);
+                // The comments behind that return become the Program Head's too, or the returner has none to show.
+                await run(`UPDATE Comments SET commenter_role = 'PROGRAM_HEAD', commenter_user_id = NULL, commenter_name = NULL
+                           WHERE co_assign_id = ? AND commenter_role = 'INDUSTRY_CONSULTANT'`, [entry.co_assign_id]);
             }
         }
 

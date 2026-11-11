@@ -12,11 +12,9 @@ const issueSession = (user) => {
     return signSession(user);
 };
 
-// Kept for callers written for server-side sessions: with signed tokens there is nothing to delete. Voiding a
-// user's other sessions is done by the password-change time the token carries.
+// Kept for the sign-out code written for server-side sessions: with signed tokens there is nothing to delete.
+// Voiding a user's other sessions is done by the password-change time the token carries.
 const revokeSession = () => {};
-const revokeUserSessions = () => {};
-const revokeOtherUserSessions = () => {};
 
 // The role a request acts as: one account can hold several (multi-role accounts). The browser names the role it
 // is using in this header; it must be one the account holds, otherwise the account's first role is used.
@@ -106,10 +104,10 @@ const requirePermission = (permission) => (req, res, next) => {
     return next();
 };
 
-// The superuser administers accounts and reads the audit trail; they have no business in
+// The superuser administers accounts, reads the audit trail and has their own profile; they have no business in
 // learning-plan data, so every other business API is closed to them (/api/auth is mounted
 // before this and is unaffected).
-const SUPERUSER_PATHS = /^\/(users|user-accounts|audit-logs)(\/|$)/;
+const SUPERUSER_PATHS = /^\/(user-accounts|audit-logs|profile)(\/|$)/;
 const restrictSuperuser = (req, res, next) => {
     if (req.user?.role === 'superuser' && !SUPERUSER_PATHS.test(req.path)) {
         return res.status(403).json({ error: 'You do not have permission to perform this action.' });
@@ -131,8 +129,6 @@ module.exports = {
     issueSession,
     cookieValue,
     revokeSession,
-    revokeUserSessions,
-    revokeOtherUserSessions,
     createRequireAuth,
     requireAuth,
     requireRole,

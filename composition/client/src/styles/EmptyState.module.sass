@@ -80,10 +80,11 @@
 .row
   display: flex !important
   // The table canvas can be wider than the screen (900px on the course
-  // lists). Centre against the part the user can actually see, then move with
-  // scrollLeft so the message stays centred at either end of the table.
+  // lists). Centre against the part the user can actually see, and stick to
+  // its left edge so the message stays centred at either end of the table.
   width: var(--table-viewport-width, 100%) !important
-  transform: translateX(var(--table-scroll-left, 0px))
+  position: sticky
+  left: 0
   flex: 1 1 auto !important
   min-height: 0
   align-items: center !important

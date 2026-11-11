@@ -7,6 +7,7 @@ import useDialogFocus from '../utils/useDialogFocus.js'
 import { POLL_MS, loadUnreadCount, loadNotifications, markRead, markAllRead } from '../utils/notificationsApi.js'
 import { notificationPath, timeAgo } from '../utils/notificationLinks.js'
 import navStyles from '../styles/SideNavigation.module.sass'
+import headerStyles from '../styles/Header.module.sass'
 import styles from '../styles/NotificationPanel.module.sass'
 
 // Notifications: an item of the left navigation bar (a bell with an unread badge, polled every 45 s while the tab
@@ -24,7 +25,8 @@ const KIND = {
   reference_unavailable: { Icon: BookOpen, tone: 'info' }
 }
 
-const NotificationBell = () => {
+// variant 'icon': the round bell of the top bar (components/Header.jsx); otherwise a row of the sidebar.
+const NotificationBell = ({ variant = 'row' }) => {
   const navigate = useNavigate()
   const role = getSession()?.role
   const [count, setCount] = useState(0)
@@ -103,6 +105,13 @@ const NotificationBell = () => {
 
   return (
     <div>
+      {variant === 'icon' ? (
+        <button ref={trigger} type="button" className={`${headerStyles.bell} ${open ? headerStyles.bellOpen : ''}`}
+          title="Notifications" aria-label={label} aria-haspopup="dialog" aria-expanded={open} onClick={toggle}>
+          <Bell size={20} />
+          {count > 0 && <span className={headerStyles.badge} aria-hidden="true">{count > 9 ? '9+' : count}</span>}
+        </button>
+      ) : (
       <div
         ref={trigger}
         className={navStyles.list}
@@ -123,6 +132,7 @@ const NotificationBell = () => {
           </span>
         )}
       </div>
+      )}
 
       {open && createPortal(
         <>

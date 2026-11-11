@@ -9,15 +9,11 @@ import Revisions from "./Revisions.jsx";
 import {fetchJson, apiErrorMessage} from "../utils/api";
 import { useServerWorkflow } from '../utils/useServerWorkflow.js'
 import { exportEligibility } from '../utils/reviewGate.js'
-import { fetchFormInfo } from '../utils/formSettings.js'
-import { fetchProgramAlignment } from '../utils/programAlignment.js'
-import { buildReviewRecordFile } from '../utils/exportSyllabus.js'
+import { buildReviewRecordFile, buildSyllabusExportFile } from '../utils/exportSyllabus.js'
 import { validateSubmission } from '../utils/submissionGate'
-import { weekRowsOf } from '../utils/weeklyCoverage.js'
 import { toPanelComments } from '../utils/serverComments.js'
 import CommentsSidebar from './CommentsSidebar.jsx'
 import PDFViewerModal from './PDFViewerModal'
-import { buildSyllabusHtml } from '../utils/syllabusPdfHtml.js'
 import unclogo from '../assets/unclogo.png'
 
 import CourseDetails from "./CourseDetails";
@@ -110,54 +106,13 @@ const SyllabusSections = () => {
         }
     }
 
+    // The same export as the approvers' (utils/exportSyllabus.js), so it also starts with the Program Head's
+    // uploaded front pages when there are any.
     const handleExport = async () => {
         setExportingPdf(true)
         try {
-            const [courseRes, coaRes, covRes, critRes, refRes] = await Promise.all([
-                fetchJson(`/api/course-details/${offeringKey(offeringID, revisionNum)}`).catch(() => null),
-                fetchJson(`/api/course-outcome-alignment/${offeringKey(offeringID, revisionNum)}`).catch(() => null),
-                fetchJson(`/api/course-coverage/${offeringKey(offeringID, revisionNum)}`).catch(() => null),
-                fetchJson(`/api/course-criteria/${offeringKey(offeringID, revisionNum)}`).catch(() => null),
-                fetchJson(`/api/courses/${offeringKey(offeringID, revisionNum)}/references`).catch(() => null),
-            ])
-            const refs = (() => {
-                if (!refRes) return []
-                if (Array.isArray(refRes)) return refRes
-                if (refRes.data) {
-                    if (Array.isArray(refRes.data)) return refRes.data
-                    const m = [...(refRes.data.Textbook || []), ...(refRes.data['Open Educational Resources'] || []), ...(refRes.data['Online Resources'] || []), ...(refRes.data['Online Subscriptions'] || [])]
-                    if (m.length) return m
-                    return refRes.data.references || []
-                }
-                return refRes.references || []
-            })()
-            const syllabus = {
-                ...(courseRes || {}),
-                courseOutcomes: coaRes?.courseOutcomes || [],
-                ilos: weekRowsOf(covRes),
-                topics: covRes?.topics || [],
-                assessments: covRes?.assessments || [],
-                gradingSystem: critRes?.gradingSystem || [],
-                references: refs,
-                code: resolvedCode,
-                course_no: courseRes?.code || '',
-                course_title: courseRes?.name || '',
-            }
             const logoUrl = new URL(unclogo, window.location.origin).href
-            const formInfo = await fetchFormInfo()
-            const programAlignment = await fetchProgramAlignment(offeringID)
-            const html = buildSyllabusHtml(syllabus, resolvedCode, workflow, logoUrl, { formInfo, programAlignment, pendingApproval: exportInfo.pendingDean })
-            const blob = new Blob([html], { type: 'text/html' })
-            const url = URL.createObjectURL(blob)
-            setPreviewFile({
-                file_url: url,
-                file_name: `Syllabus_${resolvedCode}${exportInfo.pendingDean ? '_PENDING_DEAN_APPROVAL' : ''}.html`,
-                instructor_name: syllabus?.instructor || '—',
-                course_id: resolvedCode,
-                course_name: syllabus?.name || '',
-                submission_date: syllabus?.update || '',
-                period_label: (syllabus?.year || '') + ' — ' + (syllabus?.sem || ''),
-            })
+            setPreviewFile(await buildSyllabusExportFile({ pcId: offeringID, revNum: revisionNum, code: resolvedCode, workflow, logoUrl }))
         } catch (err) {
             console.warn('Export generation failed:', err)
             alert('Failed to generate export: ' + (err?.message || err))

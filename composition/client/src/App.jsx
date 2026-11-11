@@ -26,7 +26,6 @@ const ReferenceForm = lazy(() => import('./pages/ReferenceForm.jsx'))
 const TopicForm = lazy(() => import('./pages/TopicForm.jsx'))
 const TLAForm = lazy(() => import('./pages/TLAForm.jsx'))
 const ILOForm = lazy(() => import('./pages/ILOForm.jsx'))
-const SyllabusRevisions = lazy(() => import('./pages/SyllabusRevisions.jsx'))
 const ApprovalCourses = lazy(() => import('./pages/ApprovalCourses.jsx'))
 const ProgramHead = lazy(() => import('./pages/ProgramHead.jsx'))
 const DirectorOfLibraries = lazy(() => import('./pages/DirectorOfLibraries.jsx'))
@@ -122,7 +121,6 @@ function App() {
                         <Route path={'/offerings/:pcId/:status'} element={<ErrorBoundary><Syllabus /></ErrorBoundary>} />
                         <Route path={'/courses/:code'} element={<ErrorBoundary><Syllabus /></ErrorBoundary>} />
                         <Route path={'/courses/:code/:status'} element={<ErrorBoundary><Syllabus /></ErrorBoundary>} />
-                        <Route path={'/revisions/:code'} element={<ErrorBoundary><SyllabusRevisions /></ErrorBoundary>} />
 
                         {/* --- FORMS --- */}
                         <Route path={'/references/form/:iloId/:status'} element={<ErrorBoundary><ReferenceForm /></ErrorBoundary>} />

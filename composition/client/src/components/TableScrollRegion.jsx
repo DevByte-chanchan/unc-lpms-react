@@ -4,9 +4,10 @@ import styles from '../styles/TableScrollRegion.module.sass'
 const TableScrollRegion = ({ label, minWidth = 720, className = '', children }) => {
   const regionRef = useRef(null)
 
+  // The visible width, for a centred empty-state row (EmptyState.module.sass). Only on resize: writing a style on
+  // the scroller while it scrolls restyles it mid-drag, and Chromium then drops its scrollbar thumb.
   const syncViewport = useCallback((node = regionRef.current) => {
     if (!node) return
-    node.style.setProperty('--table-scroll-left', `${node.scrollLeft}px`)
     node.style.setProperty('--table-viewport-width', `${node.clientWidth}px`)
   }, [])
 
@@ -28,7 +29,6 @@ const TableScrollRegion = ({ label, minWidth = 720, className = '', children }) 
       role="region"
       aria-label={label}
       tabIndex={0}
-      onScroll={(event) => syncViewport(event.currentTarget)}
     >
       <div className={styles.canvas} style={{ minWidth }}>
         {children}

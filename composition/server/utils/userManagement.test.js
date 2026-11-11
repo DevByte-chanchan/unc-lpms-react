@@ -13,7 +13,7 @@ const { verifyPassword } = require('./password');
 const authController = require('../controllers/authController');
 
 const stamp = Date.now();
-const make = (name, role) => User.create({ name, email: `${name.toLowerCase()}.${stamp}@example.test`, role, password_hash: 'x' });
+const make = (name, role) => User.create({ name, email: `${name.toLowerCase()}.${stamp}@unc.edu.ph`, role, roles: [role], password_hash: 'x' });
 
 let server;
 let base;
@@ -21,10 +21,10 @@ test.before(async () => {
     const app = express();
     app.use(express.json());
     // Stand-in for requireAuth: identify the caller by headers.
-    app.use((req, res, next) => { req.user = { id: Number(req.headers['x-id']), name: 'T', role: req.headers['x-role'] }; next(); });
-    app.use('/api/users', require('../routes/users'));
+    app.use((req, res, next) => { req.user = { id: Number(req.headers['x-id']), name: 'T', role: req.headers['x-role'], roles: [req.headers['x-role']] }; next(); });
+    app.use('/api/user-accounts', require('../routes/userAccounts'));
     await new Promise(resolve => { server = app.listen(0, resolve); });
-    base = `http://127.0.0.1:${server.address().port}/api/users`;
+    base = `http://127.0.0.1:${server.address().port}/api/user-accounts`;
 });
 test.after(() => server.close());
 
@@ -33,6 +33,15 @@ const call = (as, method, path = '', body) => fetch(base + path, {
     headers: { 'Content-Type': 'application/json', 'x-id': String(as.user_id ?? as.id), 'x-role': as.role },
     body: body ? JSON.stringify(body) : undefined
 });
+const sessionProbe = (user) => {
+    const token = issueSession(user);
+    return async () => {
+        const r = { code: 200, status(c) { this.code = c; return this; }, json() { return this; } };
+        let passed = false;
+        await createRequireAuth()({ headers: { cookie: `${COOKIE_NAME}=${token}` } }, r, () => { passed = true; });
+        return passed;
+    };
+};
 
 test('permission matrix: every role has an entry, only the superuser and VPAA manage users, all names are defined', () => {
     for (const role of User.ROLE_KEYS) assert.ok(ROLE_PERMISSIONS[role], `no matrix entry for ${role}`);
@@ -55,117 +64,104 @@ test('generated passwords are random, long enough and pass the sign-in rules', (
     assert.equal(seen.size, 50);
 });
 
-test('every users route refuses a non-superuser, the VPAA included (it uses /api/user-accounts)', async () => {
+test('only the superuser and the VPAA manage accounts', async () => {
     const dean = await make('Dean', 'dean');
-    const vpaa = await make('Vpaa', 'vpaa');
-    for (const as of [dean, vpaa]) for (const [method, path, body] of [['GET', ''], ['POST', '', { name: 'A', email: 'a@b.co', role: 'dean' }], ['PUT', `/${dean.user_id}/role`, { role: 'vpaa' }], ['PUT', `/${dean.user_id}/deactivate`], ['PUT', `/${dean.user_id}/activate`]]) {
-        assert.equal((await call(as, method, path, body)).status, 403, `${as.role} ${method} ${path}`);
+    for (const [method, path, body] of [['GET', ''], ['POST', '', { name: 'A', email: `a.${stamp}@unc.edu.ph`, roles: ['dean'] }], ['PATCH', `/${dean.user_id}`, { roles: ['vpaa'] }]]) {
+        assert.equal((await call(dean, method, path, body)).status, 403, `dean ${method} ${path}`);
     }
 });
 
-test('superuser lists with search, role and status filters; no hashes in the response', async () => {
+test('the list has no password or token hashes, and shows disabled accounts', async () => {
     const admin = await make('Lister', 'superuser');
     const inactive = await make('Zed', 'instructor');
     inactive.is_active = false;
     await inactive.save();
-
     const all = await (await call(admin, 'GET')).json();
-    assert.ok(all.users.length >= 2 && all.roles.includes('superuser'));
-    assert.ok(all.users.every(u => !('password_hash' in u) && !('reset_token_hash' in u)));
-
-    const byName = await (await call(admin, 'GET', `?q=zed.${stamp}`)).json();
-    assert.deepEqual(byName.users.map(u => u.id), [inactive.user_id]);
-    const byStatus = await (await call(admin, 'GET', '?status=inactive&role=instructor')).json();
-    assert.ok(byStatus.users.every(u => u.role === 'instructor' && u.isActive === false));
-    assert.ok(byStatus.users.some(u => u.id === inactive.user_id));
+    assert.ok(all.accounts.some(a => a.id === inactive.user_id && a.status === 'Disabled'));
+    assert.ok(all.accounts.every(a => !('password_hash' in a) && !('reset_token_hash' in a)));
 });
 
 test('create: validates, returns a one-time password, stores only its hash, audits without secrets', async () => {
     const admin = await make('Creator', 'superuser');
-    assert.equal((await call(admin, 'POST', '', { name: '', email: 'x@y.co', role: 'dean' })).status, 400);
-    assert.equal((await call(admin, 'POST', '', { name: 'N', email: 'not-an-email', role: 'dean' })).status, 400);
-    assert.equal((await call(admin, 'POST', '', { name: 'N', email: 'n@y.co', role: 'wizard' })).status, 400);
+    assert.equal((await call(admin, 'POST', '', { name: '', email: `x.${stamp}@unc.edu.ph`, roles: ['dean'] })).status, 400);
+    assert.equal((await call(admin, 'POST', '', { name: 'N', email: 'not-an-email', roles: ['dean'] })).status, 400);
+    assert.equal((await call(admin, 'POST', '', { name: 'N', email: `n.${stamp}@unc.edu.ph`, roles: ['wizard'] })).status, 400);
 
-    const email = `created.${stamp}@example.test`;
-    const res = await call(admin, 'POST', '', { name: 'Created, User', email: email.toUpperCase(), role: 'program-head' });
+    const email = `created.${stamp}@unc.edu.ph`;
+    const res = await call(admin, 'POST', '', { name: 'Created, User', email: email.toUpperCase(), roles: ['program-head'] });
     assert.equal(res.status, 201);
     const body = await res.json();
-    assert.equal(body.user.email, email);
+    assert.equal(body.account.email, email);
     assert.ok(body.temporaryPassword.length >= 16);
-    assert.ok(!('password_hash' in body.user));
+    assert.ok(!('password_hash' in body.account));
 
-    const stored = await User.scope('withSecret').findByPk(body.user.id);
+    const stored = await User.scope('withSecret').findByPk(body.account.id);
     assert.notEqual(stored.password_hash, body.temporaryPassword);
     assert.equal(await verifyPassword(body.temporaryPassword, stored.password_hash), true);
 
-    assert.equal((await call(admin, 'POST', '', { name: 'Dup', email, role: 'dean' })).status, 409);
+    assert.equal((await call(admin, 'POST', '', { name: 'Dup', email, roles: ['dean'] })).status, 409);
 
-    const entry = await AuditLog.findOne({ where: { action: 'USER_CREATED', entity_id: String(body.user.id) } });
+    const entry = await AuditLog.findOne({ where: { action: 'USER_CREATED', entity_id: String(body.account.id) } });
     assert.equal(entry.actor_user_id, admin.user_id);
-    assert.deepEqual(JSON.parse(entry.details), { target_user_id: body.user.id, new_role: 'program-head' });
+    assert.deepEqual(JSON.parse(entry.details).new_roles, ['program-head']);
     assert.ok(!entry.details.includes(body.temporaryPassword));
 });
 
-test('role change: audited with old and new role, and revokes the target sessions', async () => {
+test('role change: audited with old and new roles, and revokes the target sessions', async () => {
     const admin = await make('RoleAdmin', 'superuser');
     const target = await make('Target', 'instructor');
-    const token = issueSession(target);
-    const requireAuth = createRequireAuth();
-    const probe = async () => { const r = { code: 200, status(c) { this.code = c; return this; }, json() { return this; } }; let passed = false; await requireAuth({ headers: { cookie: `${COOKIE_NAME}=${token}` } }, r, () => { passed = true; }); return passed; };
+    const probe = sessionProbe(target);
     assert.equal(await probe(), true);
 
-    assert.equal((await call(admin, 'PUT', `/${target.user_id}/role`, { role: 'wizard' })).status, 400);
-    assert.equal((await call(admin, 'PUT', '/999999/role', { role: 'dean' })).status, 404);
-    assert.equal((await call(admin, 'PUT', `/${target.user_id}/role`, { role: 'dean' })).status, 200);
-    assert.equal((await User.findByPk(target.user_id)).role, 'dean');
+    assert.equal((await call(admin, 'PATCH', `/${target.user_id}`, { roles: ['wizard'] })).status, 400);
+    assert.equal((await call(admin, 'PATCH', '/999999', { roles: ['dean'] })).status, 404);
+    assert.equal((await call(admin, 'PATCH', `/${target.user_id}`, { roles: ['dean'] })).status, 200);
+    assert.deepEqual((await User.findByPk(target.user_id)).roles, ['dean']);
     assert.equal(await probe(), false, 'old session must be revoked');
 
-    const entry = await AuditLog.findOne({ where: { action: 'USER_ROLE_CHANGED', entity_id: String(target.user_id) } });
-    assert.deepEqual(JSON.parse(entry.details), { target_user_id: target.user_id, old_role: 'instructor', new_role: 'dean' });
+    const entry = await AuditLog.findOne({ where: { action: 'USER_UPDATED', entity_id: String(target.user_id) } });
+    const details = JSON.parse(entry.details);
+    assert.deepEqual([details.old_roles, details.new_roles], [['instructor'], ['dean']]);
 });
 
-test('deactivate / activate: revokes sessions, is audited, and a deactivated user cannot sign in', async () => {
+test('disable / enable: revokes sessions, is audited', async () => {
     const admin = await make('ActAdmin', 'superuser');
     const target = await make('Sleeper', 'instructor');
-    const token = issueSession(target);
+    const probe = sessionProbe(target);
 
-    assert.equal((await call(admin, 'PUT', `/${target.user_id}/deactivate`)).status, 200);
+    assert.equal((await call(admin, 'PATCH', `/${target.user_id}`, { status: 'Disabled' })).status, 200);
     assert.equal((await User.findByPk(target.user_id)).is_active, false);
-    const r = { code: 200, status(c) { this.code = c; return this; }, json() { return this; } };
-    await createRequireAuth()({ headers: { cookie: `${COOKIE_NAME}=${token}` } }, r, () => assert.fail('revoked session passed'));
-    assert.equal(r.code, 401);
+    assert.equal(await probe(), false, 'a disabled account loses its session');
+    const off = await AuditLog.findOne({ where: { action: 'USER_UPDATED', entity_id: String(target.user_id) } });
+    assert.deepEqual([JSON.parse(off.details).old_status, JSON.parse(off.details).new_status], ['Active', 'Disabled']);
 
-    const off = await AuditLog.findOne({ where: { action: 'USER_DEACTIVATED', entity_id: String(target.user_id) } });
-    assert.deepEqual(JSON.parse(off.details), { target_user_id: target.user_id, old_active: true, new_active: false });
-
-    assert.equal((await call(admin, 'PUT', `/${target.user_id}/activate`)).status, 200);
+    assert.equal((await call(admin, 'PATCH', `/${target.user_id}`, { status: 'Active' })).status, 200);
     assert.equal((await User.findByPk(target.user_id)).is_active, true);
-    assert.ok(await AuditLog.findOne({ where: { action: 'USER_ACTIVATED', entity_id: String(target.user_id) } }));
 });
 
-test('safety: no self-deactivation, no self role change, the last active superuser is protected', async () => {
+test('safety: no self-disable, no dropping your own management role, the last active superuser is protected', async () => {
     // Make this test's superusers the only active ones.
     await User.update({ is_active: false }, { where: { role: 'superuser' } });
     const only = await make('OnlyAdmin', 'superuser');
     const ghost = { user_id: 999999, role: 'superuser' }; // an acting superuser who is not the target
 
-    assert.equal((await call(only, 'PUT', `/${only.user_id}/deactivate`)).status, 409, 'self-deactivate');
-    assert.equal((await call(only, 'PUT', `/${only.user_id}/role`, { role: 'dean' })).status, 409, 'self role change');
-    const lastOff = await call(ghost, 'PUT', `/${only.user_id}/deactivate`);
+    assert.equal((await call(only, 'PATCH', `/${only.user_id}`, { status: 'Disabled' })).status, 400, 'self-disable');
+    assert.equal((await call(only, 'PATCH', `/${only.user_id}`, { roles: ['dean'] })).status, 400, 'self role change');
+    const lastOff = await call(ghost, 'PATCH', `/${only.user_id}`, { status: 'Disabled' });
     assert.equal(lastOff.status, 409);
     assert.match((await lastOff.json()).error, /last active superuser/);
-    assert.equal((await call(ghost, 'PUT', `/${only.user_id}/role`, { role: 'dean' })).status, 409, 'demote last');
+    assert.equal((await call(ghost, 'PATCH', `/${only.user_id}`, { roles: ['dean'] })).status, 409, 'demote last');
     assert.equal((await User.findByPk(only.user_id)).is_active, true);
 
     // With a second active superuser, one may go, and the other becomes the last.
     const other = await make('OtherAdmin', 'superuser');
-    assert.equal((await call(other, 'PUT', `/${other.user_id}/deactivate`)).status, 409, 'self-deactivate with a peer');
-    assert.equal((await call(other, 'PUT', `/${only.user_id}/deactivate`)).status, 200);
-    assert.equal((await call(ghost, 'PUT', `/${other.user_id}/deactivate`)).status, 409);
-    assert.equal((await call(ghost, 'PUT', `/${other.user_id}/role`, { role: 'dean' })).status, 409);
+    assert.equal((await call(other, 'PATCH', `/${other.user_id}`, { status: 'Disabled' })).status, 400, 'self-disable with a peer');
+    assert.equal((await call(other, 'PATCH', `/${only.user_id}`, { status: 'Disabled' })).status, 200);
+    assert.equal((await call(ghost, 'PATCH', `/${other.user_id}`, { status: 'Disabled' })).status, 409);
+    assert.equal((await call(ghost, 'PATCH', `/${other.user_id}`, { roles: ['dean'] })).status, 409);
 });
 
-test('the superuser is closed out of every API except users and the audit trail', () => {
+test('the superuser is closed out of every API except user accounts and the audit trail', () => {
     const { restrictSuperuser } = require('../middleware/auth');
     const outcome = (role, path) => {
         let passed = false;
@@ -173,10 +169,11 @@ test('the superuser is closed out of every API except users and the audit trail'
         restrictSuperuser({ user: { role }, path }, res, () => { passed = true; });
         return passed ? 'pass' : res.code;
     };
-    assert.equal(outcome('superuser', '/users'), 'pass');
-    assert.equal(outcome('superuser', '/users/3/role'), 'pass');
+    assert.equal(outcome('superuser', '/user-accounts'), 'pass');
+    assert.equal(outcome('superuser', '/user-accounts/3'), 'pass');
+    assert.equal(outcome('superuser', '/users'), 403, 'the old users API is gone');
     assert.equal(outcome('superuser', '/audit-logs'), 'pass');
-    assert.equal(outcome('superuser', '/profile'), 403, 'there is no profile page any more');
+    assert.equal(outcome('superuser', '/profile'), 'pass', 'their own profile and e-signature');
     for (const path of ['/assignments', '/ilos/1', '/references', '/coaep/1', '/usersX']) assert.equal(outcome('superuser', path), 403, path);
     assert.equal(outcome('dean', '/assignments'), 'pass');
 });

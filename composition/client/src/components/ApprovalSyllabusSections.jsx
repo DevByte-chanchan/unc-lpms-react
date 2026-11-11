@@ -43,6 +43,8 @@ import { buildSyllabusHtml } from "../utils/syllabusPdfHtml.js"
 import unclogo from '../assets/unclogo.png'
 import CourseCoverage from './CourseCoverage'
 import ReferenceSummary from './ReferenceSummary'
+import PlanChecks from './PlanChecks.jsx'
+import VersionHistory from './VersionHistory.jsx'
 import EarlierConsultantNotes from './EarlierConsultantNotes'
 import OutcomeAlignment from './OutcomeAlignment'
 import CriteriaForGrading from './CriteriaForGrading'
@@ -183,7 +185,9 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
       // The program's uploaded front pages replace the three generated ones (utils/frontPages.js).
       const frontPdf = await fetchFrontPages(programAlignment?.program?.id)
       const frontPdfPages = frontPdf ? await countPdfPages(frontPdf) : 0
-      const html = buildSyllabusHtml(syllabus, codeToUse, workflowState, logoUrl, { formInfo, programAlignment, pendingApproval: exportInfo.pendingDean, frontPdfPages })
+      // E-signature images, only for the steps each person performed (server-checked); none is never an error.
+      const signatureImages = (await fetchJson(`/api/assignments/offering/${validPcId}/signatures`).catch(() => null))?.signatures || {}
+      const html = buildSyllabusHtml(syllabus, codeToUse, { ...workflowState, signatureImages }, logoUrl, { formInfo, programAlignment, pendingApproval: exportInfo.pendingDean, frontPdfPages })
       const blob = new Blob([html], { type: 'text/html' })
       const url = URL.createObjectURL(blob)
       setPreviewFile({
@@ -553,19 +557,21 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
       const wanted = focusTarget.details.map(detail => String(detail).trim()).filter(Boolean)
       const match = (scope) => wanted.flatMap(detail => [...scope.querySelectorAll('[data-target]')]
         .filter(el => el.dataset.target === detail || detail.includes(el.dataset.target)))
-      const exact = (iloRow && match(iloRow)).length ? match(iloRow) : match(document)
+      const inRow = iloRow ? match(iloRow) : []
+      const exact = inRow.length ? inRow : match(document)
       if (exact.length) return exact
       return iloRow ? [iloRow] : []
     }
     const attempt = () => {
       const found = find()
       if (found.length) {
-        found[0].scrollIntoView({ behavior: 'smooth', block: 'center' })
+        // Instant: a smooth scroll here is cancelled by the section's own smooth scroll still running.
+        found[0].scrollIntoView({ block: 'center', inline: 'center' })
         found.forEach(el => {
           el.removeAttribute('data-flash')
           void el.offsetWidth // restart the animation if it is the same item again
           el.setAttribute('data-flash', '')
-          window.setTimeout(() => el.removeAttribute('data-flash'), 2600)
+          window.setTimeout(() => el.removeAttribute('data-flash'), 4000)
         })
         setFocusTarget(null)
       } else if (tries++ < 15) {
@@ -1080,7 +1086,7 @@ ${suggestionLine}` : text,
             }}
           />
           {waitingNotice && <p className={styles.waitingNotice} role="status"><Clock size={14} /> {waitingNotice}</p>}
-          {deanReturnWithMe && <p className={styles.waitingNotice} role="status"><Clock size={14} /> The Dean returned this plan to you. Read the Dean&apos;s comments, then forward it to the instructor or send it back to the Dean.</p>}
+          {deanReturnWithMe && <p className={styles.waitingNotice} role="status"><Clock size={14} /> Returned by the Dean. Forward it to the instructor or send it back.</p>}
           {roleKey === 'dean' && workflowState.counterNote && workflowState.currentStage !== 'approved' && (
             <p className={styles.waitingNotice} role="status"><Clock size={14} /> Sent back by the Program Head: &ldquo;{workflowState.counterNote}&rdquo;</p>
           )}
@@ -1094,6 +1100,8 @@ ${suggestionLine}` : text,
               <Spinner label="Loading learning plan…" minHeight={320} />
             ) : (
             <>
+            {roleKey === 'program-head' && <PlanChecks pcId={validPcId} />}
+            {roleKey !== 'instructor' && <VersionHistory pcId={validPcId} />}
             {(roleKey === 'program-head' || roleKey === 'industry-consultant') && <EarlierConsultantNotes pcId={validPcId} />}
             {/* A table of blank rows is the worst of both worlds — it looks
                 like the screen loaded but lost the data. Say plainly that

@@ -18,6 +18,7 @@
 const { sequelize } = require('../models');
 const { effectiveLogs } = require('../utils/effectiveLogs');
 const { planEditState } = require('../utils/workflowRules');
+const { closeApprovedComments } = require('../utils/closeApprovedComments');
 
 const SEMESTERS = ['1st', '2nd', 'Summer'];
 
@@ -195,55 +196,69 @@ const assignInTransaction = async ({ courseId, programId, schoolYear, semester, 
 
 const startRevision = async ({ offeringId, user }) => {
     const now = new Date();
-    return sequelize.transaction({ type: 'IMMEDIATE' }, async (transaction) => {
-        const [source] = await select('SELECT * FROM ProgramCourseOfferings WHERE pc_offering_id = ?', [offeringId], transaction);
-        if (!source) throw new ServiceError(404, 'Offering not found.');
-        const [assignment] = await select('SELECT * FROM CourseOfferingAssignments WHERE pc_offering_id = ?', [offeringId], transaction);
-        if (!assignment || String(assignment.stakeholder_id) !== String(user.id)) {
-            throw new ServiceError(403, 'Only the lead instructor assigned to this course can start a revision.');
+    // As in assignCourseForTerm: a refusal commits the (still empty) transaction and is thrown after it, so it
+    // cannot roll back another request's write on the shared SQLite connection. Every refusal comes before the
+    // first insert.
+    const outcome = await sequelize.transaction({ type: 'IMMEDIATE' }, async (transaction) => {
+        try {
+            return { value: await startRevisionInTransaction({ offeringId, user, now, transaction }) };
+        } catch (error) {
+            if (error instanceof ServiceError) return { refused: error };
+            throw error;
         }
-        const logs = await effectiveLogs(sequelize, assignment.co_assign_id, transaction);
-        if (planEditState(logs).state !== 'Approved') {
-            throw new ServiceError(409, 'Only an approved syllabus can be revised.');
-        }
-
-        const latest = await latestApproved(source.course_id, source.program_id, transaction);
-        if (latest && latest.revision_number > source.revision_number) {
-            throw new ServiceError(409, `Revise from the latest approved revision (Rev ${latest.revision_number}), not Rev ${source.revision_number}.`);
-        }
-        const working = await workingCopyOf(source.course_id, source.program_id, transaction);
-        if (working) throw new ServiceError(409, `This course already has a working copy (offering ${working.pc_offering_id}); only one at a time.`);
-
-        const [approvedThisTerm] = await select(
-            `SELECT pc_offering_id FROM ProgramCourseOfferings
-             WHERE course_id = ? AND program_id = ? AND school_year IS ? AND semester IS ?
-               AND approved_at IS NOT NULL AND carried_from_offering_id IS NULL`,
-            [source.course_id, source.program_id, source.school_year, source.semester], transaction);
-        if (approvedThisTerm) {
-            throw new ServiceError(409, `A new revision was already approved for ${termLabel(source)}; the next one can start in a later term.`);
-        }
-
-        const newOfferingId = await insert('ProgramCourseOfferings', {
-            revision_number: 0,
-            course_id: source.course_id,
-            program_id: source.program_id,
-            dept_id: source.dept_id,
-            course_description: source.course_description,
-            school_year: source.school_year,
-            semester: source.semester,
-            base_offering_id: source.pc_offering_id,
-            createdAt: now, updatedAt: now,
-        }, transaction);
-        const assignmentId = await insert('CourseOfferingAssignments', {
-            pc_offering_id: newOfferingId, stakeholder_id: assignment.stakeholder_id, date_assigned: now, createdAt: now, updatedAt: now,
-        }, transaction);
-        await insert('AssignmentWorkflowLogs', {
-            co_assign_id: assignmentId, actor_role: 'INSTRUCTOR', actor_name: user.name || null, action_type: 'ASSIGNED', createdAt: now, updatedAt: now,
-        }, transaction);
-        await cloneOfferingContent(source.pc_offering_id, newOfferingId, now, transaction);
-
-        return { offeringId: newOfferingId, assignmentId, baseOfferingId: source.pc_offering_id, baseRevision: source.revision_number };
     });
+    if (outcome.refused) throw outcome.refused;
+    return outcome.value;
+};
+
+const startRevisionInTransaction = async ({ offeringId, user, now, transaction }) => {
+    const [source] = await select('SELECT * FROM ProgramCourseOfferings WHERE pc_offering_id = ?', [offeringId], transaction);
+    if (!source) throw new ServiceError(404, 'Offering not found.');
+    const [assignment] = await select('SELECT * FROM CourseOfferingAssignments WHERE pc_offering_id = ?', [offeringId], transaction);
+    if (!assignment || String(assignment.stakeholder_id) !== String(user.id)) {
+        throw new ServiceError(403, 'Only the lead instructor assigned to this course can start a revision.');
+    }
+    const logs = await effectiveLogs(sequelize, assignment.co_assign_id, transaction);
+    if (planEditState(logs).state !== 'Approved') {
+        throw new ServiceError(409, 'Only an approved syllabus can be revised.');
+    }
+
+    const latest = await latestApproved(source.course_id, source.program_id, transaction);
+    if (latest && latest.revision_number > source.revision_number) {
+        throw new ServiceError(409, `Revise from the latest approved revision (Rev ${latest.revision_number}), not Rev ${source.revision_number}.`);
+    }
+    const working = await workingCopyOf(source.course_id, source.program_id, transaction);
+    if (working) throw new ServiceError(409, `This course already has a working copy (offering ${working.pc_offering_id}); only one at a time.`);
+
+    const [approvedThisTerm] = await select(
+        `SELECT pc_offering_id FROM ProgramCourseOfferings
+         WHERE course_id = ? AND program_id = ? AND school_year IS ? AND semester IS ?
+           AND approved_at IS NOT NULL AND carried_from_offering_id IS NULL`,
+        [source.course_id, source.program_id, source.school_year, source.semester], transaction);
+    if (approvedThisTerm) {
+        throw new ServiceError(409, `A new revision was already approved for ${termLabel(source)}; the next one can start in a later term.`);
+    }
+
+    const newOfferingId = await insert('ProgramCourseOfferings', {
+        revision_number: 0,
+        course_id: source.course_id,
+        program_id: source.program_id,
+        dept_id: source.dept_id,
+        course_description: source.course_description,
+        school_year: source.school_year,
+        semester: source.semester,
+        base_offering_id: source.pc_offering_id,
+        createdAt: now, updatedAt: now,
+    }, transaction);
+    const assignmentId = await insert('CourseOfferingAssignments', {
+        pc_offering_id: newOfferingId, stakeholder_id: assignment.stakeholder_id, date_assigned: now, createdAt: now, updatedAt: now,
+    }, transaction);
+    await insert('AssignmentWorkflowLogs', {
+        co_assign_id: assignmentId, actor_role: 'INSTRUCTOR', actor_name: user.name || null, action_type: 'ASSIGNED', createdAt: now, updatedAt: now,
+    }, transaction);
+    await cloneOfferingContent(source.pc_offering_id, newOfferingId, now, transaction);
+
+    return { offeringId: newOfferingId, assignmentId, baseOfferingId: source.pc_offering_id, baseRevision: source.revision_number };
 };
 
 // ---- Dean accepts: the revision number is assigned now ------------------------------------
@@ -267,6 +282,8 @@ const assignRevisionOnApproval = async (offeringId, now, transaction) => {
     const revision = maxRevision + 1;
     await sequelize.query('UPDATE ProgramCourseOfferings SET revision_number = ?, approved_at = ?, updatedAt = ? WHERE pc_offering_id = ?',
         { replacements: [revision, now, now, offeringId], transaction });
+    // Approved: nothing on the plan stays open.
+    await closeApprovedComments(sequelize, { offeringId, now, transaction });
     return revision;
 };
 

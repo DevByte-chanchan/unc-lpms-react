@@ -195,7 +195,7 @@ const NotSubmittedPanel = ({ active, schoolYear, semester, query = '', onCount }
                 <label className={styles.label} htmlFor="syllabus-due-date">Submit by</label>
                 <DatePicker id="syllabus-due-date" value={dueText} onChange={setDueText} />
               </div>
-              <div className={styles.hint}>Set it earlier than 2 weeks before classes start, so there is time to review and return plans.</div>
+              <div className={styles.hint}>Set it at least 2 weeks before classes start.</div>
 
               <div className={styles.schedule} aria-live="polite">
                 <div className={styles.scheduleTitle}>Automatic reminders</div>

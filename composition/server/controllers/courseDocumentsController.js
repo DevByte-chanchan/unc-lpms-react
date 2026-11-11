@@ -2,13 +2,17 @@
 
 // A Program Head's uploaded CO-PO or COAEP file for one course offering (migrations/20261113000000-course-documents).
 //
-//   GET    /api/course-documents/:pcId               { 'co-po': { fileName, contentType, updatedAt } | null, coaep: … }
+//   GET    /api/course-documents/template/:kind      the spreadsheet layout to fill in (kind co-po or coaep)
+//   GET    /api/course-documents/:pcId               { 'co-po': { fileName, contentType, updatedAt, parsed? } | null, coaep: … }
+//                                                    parsed: an Excel file read into the generated table's shape
 //   GET    /api/course-documents/:pcId/:kind         the file
 //   PUT    /api/course-documents/:pcId/:kind         body: the file as raw bytes (PDF, XLSX or XLS); X-File-Name header
 //   DELETE /api/course-documents/:pcId/:kind
 // Only the Program Head of the offering's program uploads or removes; reading follows the offering access rules.
 
 const { sequelize, Sequelize } = require('../models');
+const { parseCourseSheet, templateBook } = require('../utils/courseDocumentSheets');
+const { buildCoaepWorkbook } = require('../utils/coaepWorkbook');
 
 const KINDS = ['co-po', 'coaep'];
 const MAX_BYTES = 10 * 1024 * 1024;
@@ -45,9 +49,12 @@ const headsOffering = async (req, res, pcId) => {
 const info = async (req, res, next) => {
     try {
         const pcId = asInt(req.params.pcId);
-        const rows = await select('SELECT kind, file_name, content_type, updatedAt FROM CourseDocuments WHERE pc_offering_id = ?', [pcId]);
+        const rows = await select('SELECT kind, file_name, content_type, data, updatedAt FROM CourseDocuments WHERE pc_offering_id = ?', [pcId]);
         const out = Object.fromEntries(KINDS.map(k => [k, null]));
-        for (const r of rows) out[r.kind] = { fileName: r.file_name, contentType: r.content_type, updatedAt: r.updatedAt };
+        for (const r of rows) {
+            const parsed = r.content_type === 'application/pdf' ? null : parseCourseSheet(r.kind, Buffer.from(r.data));
+            out[r.kind] = { fileName: r.file_name, contentType: r.content_type, updatedAt: r.updatedAt, parsed: parsed && !parsed.error ? parsed : null };
+        }
         return res.json(out);
     } catch (err) { return next(err); }
 };
@@ -73,6 +80,11 @@ const upload = async (req, res, next) => {
         if (bytes.length > MAX_BYTES) return res.status(400).json({ error: 'The file is larger than 10 MB.' });
         const kind = sniff(bytes);
         if (!kind) return res.status(400).json({ error: 'Upload a PDF or an Excel file (.xlsx or .xls).' });
+        // An Excel file has to be readable: it replaces the generated table on the page and in the export.
+        if (kind.ext !== 'pdf') {
+            const parsed = parseCourseSheet(p.kind, bytes);
+            if (parsed.error) return res.status(400).json({ error: parsed.error });
+        }
         const sent = req.get('X-File-Name') ? decodeURIComponent(req.get('X-File-Name')) : '';
         const fileName = (sent.replace(/\.[^.]*$/, '') || p.kind).slice(0, 180) + '.' + kind.ext;
         await sequelize.transaction(async (transaction) => {
@@ -95,4 +107,25 @@ const remove = async (req, res, next) => {
     } catch (err) { return next(err); }
 };
 
-module.exports = { info, download, upload, remove };
+const template = (req, res) => {
+    const kind = String(req.params.kind || '').replace(/\.xlsx$/, '');
+    if (!KINDS.includes(kind)) return res.status(404).json({ error: 'Unknown template.' });
+    res.set('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.set('Content-Disposition', `attachment; filename="${kind === 'coaep' ? 'COAEP' : 'CO-PO'}-template.xlsx"`);
+    return res.send(templateBook(kind));
+};
+
+// POST /api/course-documents/export/coaep   body: { record } as the page shows it   answers the form as .xlsx
+const exportCoaep = async (req, res, next) => {
+    try {
+        const record = req.body?.record;
+        if (!record || !Array.isArray(record.cos) || !record.cos.length) return res.status(400).json({ error: 'There is no COAEP to export.' });
+        const bytes = await buildCoaepWorkbook(record);
+        const name = String(req.body?.fileName || 'COAEP').replace(/[^\w.\- ]/g, '_').slice(0, 120);
+        res.set('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.set('Content-Disposition', `attachment; filename="${name}.xlsx"`);
+        return res.send(bytes);
+    } catch (err) { return next(err); }
+};
+
+module.exports = { info, download, upload, remove, template, exportCoaep };

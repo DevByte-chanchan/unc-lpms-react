@@ -1,3 +1,5 @@
+// The top bar (components/Header.jsx), in the layout of feature/course-assignment's HeaderA: the department on
+// the left, the account button and the bell on the right.
 .header
   width: 100%
   box-sizing: border-box
@@ -7,10 +9,7 @@
   align-items: center
   flex-wrap: wrap
   gap: 12px
-  // 10px on the left and 30px on the right meant the bar's contents started
-  // 20px inside the rail every page below it uses (the page padding is
-  // `20px 30px`), so the department name did not line up with the page
-  // heading under it. Both sides now sit on that rail.
+  // Both sides on the rail the page below uses (`20px 30px`).
   padding: 10px 30px
   color: var(--ink)
   font-family: var(--font-ui)
@@ -18,105 +17,243 @@
 .department
   flex: 1 1 40px
   min-width: 0
+  overflow-wrap: anywhere
 
-.info
-  flex: 0 1 auto
-  min-width: 0
-  height: auto
+.userMenu
+  position: relative
   display: flex
-  flex-direction: column
-  align-items: flex-end
-  justify-content: center
-  gap: 0
+  align-items: center
+  min-width: 0
 
-.name
-  font-weight: var(--fw-semibold)
-  font-size: var(--fs-lg)
-  max-width: 100%
-  text-align: right
-  overflow-wrap: anywhere
+// Trigger: avatar · name / role · chevron
+.info
+  display: flex
+  align-items: center
+  gap: 10px
+  min-width: 0
+  padding: 6px 10px 6px 6px
+  border: 1px solid transparent
+  border-radius: 12px
+  background: transparent
+  font-family: inherit
+  color: inherit
+  cursor: pointer
+  transition: background 0.15s ease, border-color 0.15s ease
 
-.role
-  font-weight: var(--fw-normal)
-  font-size: var(--fs-md)
-  color: var(--danger)
-  max-width: 100%
-  text-align: right
-  overflow-wrap: anywhere
+  &:hover, &:focus-visible
+    background: #F3F4F6
+    outline: none
 
-.signOut
-  flex: 0 0 auto
-  min-height: 0
-  padding: 4px 10px
-  border: 1px solid var(--line)
-  border-radius: var(--radius-md)
-  color: var(--ink-soft)
-  background: var(--surface)
-  font-size: 12px
+.infoOpen
+  background: #F3F4F6
+  border-color: #E5E7EB
 
-  &:hover
-    border-color: var(--ink-faint)
-    color: var(--ink)
-    background: var(--surface-muted)
-
-  &:focus-visible
-    outline: 3px solid rgba(37, 99, 235, 0.28)
-    outline-offset: 2px
-
-@media (max-width: 720px)
-  .header
-    min-height: 58px
-    padding: 8px 12px
-
-  .department
-    display: none
-
-  .info
-    flex: 1 1 160px
-    align-items: flex-start
-
-  .name, .role
-    text-align: left
-    font-size: var(--fs-md)
-
-// ---- the top bar's sidebar button, search box, notifications and avatar ----
-
-.iconButton
-  flex: 0 0 auto
+.avatar
+  flex-shrink: 0
   width: 36px
   height: 36px
+  border-radius: 50%
+  background: #1F2937
+  color: #FFFFFF
+  font-size: 14px
+  font-weight: 600
   display: inline-flex
   align-items: center
   justify-content: center
-  padding: 0
-  border: 1px solid var(--line)
-  border-radius: var(--radius-md)
-  background: var(--surface)
-  color: var(--ink-soft)
-  cursor: pointer
+  letter-spacing: 0.5px
 
-  &:hover
-    background: var(--surface-muted)
-    color: var(--ink)
+.avatarLg
+  width: 44px
+  height: 44px
+  font-size: 16px
 
-  &:focus-visible
-    outline: 2px solid var(--accent)
-    outline-offset: 2px
+.text
+  display: flex
+  flex-direction: column
+  align-items: flex-start
+  min-width: 0
+  line-height: 1.25
+  text-align: left
 
-.welcome
-  flex: 0 1 auto
+.name
+  font-weight: 600
+  font-size: 15px
+  color: #18191A
+  overflow-wrap: anywhere
+
+// Neutral, not red: red is kept for Log Out.
+.role
+  font-weight: 500
+  font-size: 13px
+  color: #6B7280
+
+.chevron
+  flex-shrink: 0
+  color: #6B7280
+  transition: transform 0.15s ease
+
+.chevronOpen
+  transform: rotate(180deg)
+
+// Menu
+.menu
+  position: absolute
+  top: calc(100% + 6px)
+  right: 0
+  width: 300px
+  max-width: calc(100vw - 32px)
+  box-sizing: border-box
+  padding: 6px
+  background: #FFFFFF
+  border: 1px solid #E5E7EB
+  border-radius: 12px
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12)
+  z-index: 20
+  display: flex
+  flex-direction: column
+
+.menuHead
+  display: flex
+  align-items: center
+  gap: 12px
+  padding: 10px 10px 12px
+
+.menuWho
   min-width: 0
   display: flex
   flex-direction: column
   align-items: flex-start
-  line-height: 1.3
+  gap: 2px
 
-.welcomeLabel
-  font-size: var(--fs-xs)
-  color: var(--ink-muted)
+.menuName
+  font-size: 15px
+  font-weight: 600
+  color: #18191A
 
-.welcomeName
-  font-size: var(--fs-md)
-  font-weight: var(--fw-semibold)
-  color: var(--ink)
-  overflow-wrap: anywhere
+.menuEmail
+  font-size: 12px
+  color: #6B7280
+  word-break: break-all
+
+.roleChip
+  margin-top: 4px
+  padding: 2px 8px
+  border-radius: 9999px
+  background: #F3F4F6
+  border: 1px solid #E5E7EB
+  font-size: 11.5px
+  font-weight: 500
+  color: #374151
+
+.section
+  display: flex
+  flex-direction: column
+  gap: 2px
+  padding: 6px 0
+  border-top: 1px solid #F3F4F6
+
+.sectionLabel
+  padding: 4px 10px 6px
+  font-size: 11px
+  font-weight: 600
+  letter-spacing: 0.6px
+  text-transform: uppercase
+  color: #9CA3AF
+
+.roleItem, .menuItem
+  display: flex
+  align-items: center
+  gap: 10px
+  width: 100%
+  padding: 8px 10px
+  border: none
+  border-radius: 8px
+  background: transparent
+  font-family: inherit
+  text-align: left
+  cursor: pointer
+
+  &:hover, &:focus-visible
+    background: #F3F4F6
+    outline: none
+
+.roleItemActive
+  background: #F3F4F6
+
+.roleItemText
+  flex: 1
+  min-width: 0
+  display: flex
+  flex-direction: column
+  gap: 1px
+
+.roleItemName
+  font-size: 14px
+  font-weight: 600
+  color: #18191A
+
+.roleItemDesc
+  font-size: 12px
+  line-height: 1.35
+  color: #6B7280
+
+.roleCheck
+  flex-shrink: 0
+  width: 16px
+  color: #18191A
+  display: inline-flex
+
+.menuItem
+  font-size: 14px
+  color: #374151
+
+// The bell (components/NotificationBell.jsx, variant "icon")
+.bell
+  position: relative
+  width: 40px
+  height: 40px
+  padding: 0
+  border: none
+  border-radius: 50%
+  background: transparent
+  color: #374151
+  display: inline-flex
+  align-items: center
+  justify-content: center
+  cursor: pointer
+  transition: background 0.15s ease
+
+  svg
+    flex: none
+    width: 20px
+    height: 20px
+
+  &:hover, &:focus-visible
+    background: #F3F4F6
+    outline: none
+
+.bellOpen
+  background: #F3F4F6
+
+.badge
+  position: absolute
+  top: 4px
+  right: 4px
+  min-width: 18px
+  height: 18px
+  padding: 0 5px
+  box-sizing: border-box
+  border-radius: 9px
+  border: 2px solid #FFFFFF
+  background: var(--danger-solid)
+  color: #FFFFFF
+  font-size: 10px
+  font-weight: 700
+  line-height: 14px
+  text-align: center
+
+@media (max-width: 600px)
+  .header
+    padding: 10px 16px
+  .text
+    display: none

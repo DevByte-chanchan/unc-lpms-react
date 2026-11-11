@@ -51,7 +51,11 @@ export const toPanelComments = (rows = [], courseCode = '') => {
       targets: r.target_title ? [r.target_title] : [],
       suggestedRefs: [],
       status: r.resolved_status ? 'resolved' : 'pending',
-      resolved: Boolean(r.resolved_status)
+      resolved: Boolean(r.resolved_status),
+      resolvedAt: r.resolved_status ? r.resolved_date || null : null,
+      // The review round it was written in (server: utils/reviewRounds.js), and whether that round ended in a return.
+      round: r.review_round || 1,
+      roundReturned: Boolean(r.review_returned)
     })
   }
   return [...byId.values()].map(({ targets, ...card }) => ({

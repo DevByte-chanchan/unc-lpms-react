@@ -1,10 +1,12 @@
 // The weekly planner's course coverage ({ orientation, courseOutcomes: [{ ilos, weeks }], topics, assessments })
 // as one row per week (plus the orientation), the shape the approver screens, the comment form and the PDF export
 // read: { id, label, coNumber, courseOutcome, intendedLearningOutcome, deliveryWeek, allocatedTime, topics: [title],
-// tlas: [name], references: ['TB1 - Title'] }.
+// tlas: [name], references: ['TB1 - Title'], subtopics: { 'Topic title': ['Subtopic'] } }.
 //
 // Row ids say where a comment goes: 'CO2-W3' is the third week of CO2, 'CO1-O' the course orientation (week 1).
 // An older coverage (one row per ILO) passes through unchanged.
+
+import { subtopicsByTopic } from './commentTargets.js'
 
 const titles = (items) => (items || []).map(item => item?.title).filter(Boolean)
 const tlaNames = (items) => (items || []).map(item => item?.tlaName).filter(Boolean)
@@ -25,6 +27,7 @@ export const weekRowsOf = (coverage) => {
       deliveryWeek: o.deliveryWeek || 'Week 1',
       allocatedTime: o.allocatedTime || '',
       topics: titles(o.topics),
+      subtopics: subtopicsByTopic(o.topics),
       tlas: tlaNames(o.tlas),
       references: o.references || []
     })
@@ -44,6 +47,7 @@ export const weekRowsOf = (coverage) => {
         deliveryWeek: week.deliveryWeek || `Week ${week.computedWeekNumber ?? ''}`,
         allocatedTime: week.allocatedTime || '',
         topics: titles(week.topics),
+        subtopics: subtopicsByTopic(week.topics),
         tlas: tlaNames(week.tlas),
         references: week.references || []
       })

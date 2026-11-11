@@ -35,7 +35,6 @@ export const PATTERNS = {
     syllabusByOffering: '/offerings/:pcId/:status',
     syllabusByCode: '/courses/:code',
     syllabusByCodeStatus: '/courses/:code/:status',
-    revisions: '/revisions/:code',
 
     referenceFormByIlo: '/references/form/:iloId/:status',
     referenceFormById: '/references/form/:refId',
@@ -80,7 +79,6 @@ export const routes = {
     // A working copy (no revision number yet) is addressed by its offering id alone.
     syllabusByOffering: (pcId, status) => `/offerings/${enc(pcId)}/${enc(status)}`,
     syllabusByCode: (code, status) => (status ? `/courses/${enc(code)}/${enc(status)}` : `/courses/${enc(code)}`),
-    revisions: (code) => `/revisions/${enc(code)}`,
 
     referenceFormByIlo: (iloId, status) => `/references/form/${enc(iloId)}/${enc(status)}`,
     referenceFormById: (refId) => `/references/form/${enc(refId)}`,

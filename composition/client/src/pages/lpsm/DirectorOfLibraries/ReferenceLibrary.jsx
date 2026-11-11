@@ -118,13 +118,14 @@ const ReferenceLibrary = () => {
     courseTree.forEach(d => d.programs.forEach(p => p.courses.forEach(c => { if (!byId.has(c.id)) byId.set(c.id, c); })));
     return [...byId.values()].sort((a, b) => a.code.localeCompare(b.code));
   }, [courseTree]);
-  const gridCourses = useMemo(() => {
-    const dept = courseTree.find(d => String(d.id) === openDept);
-    const program = dept?.programs.find(p => String(p.id) === openProgram);
-    const list = program ? program.courses : dept ? [...new Map(dept.programs.flatMap(p => p.courses).map(c => [c.id, c])).values()] : allCourses;
+  // Course view: every course, grouped by program; the search box narrows them.
+  const gridPrograms = useMemo(() => {
     const words = query.trim().toLowerCase();
-    return words ? list.filter(c => `${c.code} ${c.title}`.toLowerCase().includes(words)) : list;
-  }, [courseTree, openDept, openProgram, allCourses, query]);
+    return courseTree.flatMap(d => d.programs).map(program => ({
+      ...program,
+      courses: words ? program.courses.filter(c => `${c.code} ${c.title}`.toLowerCase().includes(words)) : program.courses,
+    })).filter(program => program.courses.length > 0);
+  }, [courseTree, query]);
   const loadCourseRefs = React.useCallback(async (course) => {
     if (!course) { setCourseRefIds(null); return; }
     try {
@@ -440,14 +441,17 @@ const ReferenceLibrary = () => {
           <button type="button" className={`${cards.toggleBtn} ${layoutMode === 'list' ? cards.active : ''}`} onClick={() => setLayoutMode('list')} title="References" aria-pressed={layoutMode === 'list'}><List size={18} /></button>
           <button type="button" className={`${cards.toggleBtn} ${layoutMode === 'courses' ? cards.active : ''}`} onClick={() => setLayoutMode('courses')} title="Courses" aria-pressed={layoutMode === 'courses'}><Grid size={18} /></button>
         </div>
+        {/* Active / recent / archived narrows the reference list; the course cards do not use it. */}
+        {layoutMode !== 'courses' && (
         <Select id="reference-library-view" aria-label="View" value={activeViewValue} onChange={changeView}>
           {activeViewValue === 'custom' && <option value="custom" disabled>Custom view</option>}
           <option value="active">All active · {activeRefs.length}</option>
           <option value="recent">Recent additions · {recentCount}</option>
           <option value="archived">Archived · {archivedRefs.length}</option>
         </Select>
+        )}
           </div>
-          {activeFilterChips.length > 0 && (
+          {layoutMode !== 'courses' && activeFilterChips.length > 0 && (
             <div className={styles.activeFilters} aria-label="Active filters">
               <span className={styles.activeFiltersLabel}>Active filters</span>
               {activeFilterChips.map(filter => (
@@ -463,7 +467,7 @@ const ReferenceLibrary = () => {
       {filtersOpen && <button type="button" className={styles.filterBackdrop} onClick={() => setFiltersOpen(false)} aria-label="Close filters" />}
       {viewRef && <button type="button" className={styles.previewBackdrop} onClick={handleClose} aria-label="Close reference preview" />}
 
-        <div className={styles.discoveryLayout}>
+        <div className={`${styles.discoveryLayout} ${layoutMode === 'courses' ? styles.coursesMode : ''}`}>
         <aside className={`${styles.facetRail} ${filtersOpen ? styles.filterDrawer : ''}`} aria-label="Reference filters">
           <div className={styles.facetHeader}>
             {filtersOpen && <button className={`${styles.drawerClose} app-icon-close`} type="button" onClick={() => setFiltersOpen(false)} aria-label="Close filters"><X size={15} /></button>}
@@ -521,25 +525,30 @@ const ReferenceLibrary = () => {
             {hasDiscoveryCriteria && <button className={styles.resetButton} type="button" onClick={resetDiscovery}><RotateCcw size={12} /> Reset</button>}
           </div>
           {layoutMode === 'courses' ? (
-            gridCourses.length === 0 ? <p style={{ color: 'var(--ink-muted)' }}>No course matches. Pick a department and a program on the left.</p> : (
-              <div className={cards.gridContainer} style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))' }}>
-                {gridCourses.map(c => (
-                  <div key={c.id} className={cards.gridCard}>
-                    <div className={cards.cardMain}>
-                      <div className={cards.cardHeader}>
-                        <span className={cards.cardCode}>{c.code}</span>
-                        <span className={cards.cardDate}>{c.references} reference{c.references === 1 ? '' : 's'}</span>
-                      </div>
-                      <div className={cards.cardTitle}>{c.title}</div>
-                      <div className={cards.cardFooter}>
-                        <div className={cards.cardActionsGroup}>
-                          <button type="button" className={cards.gridActionBtn} onClick={() => { setFilterCourse({ id: c.id, code: c.code }); setLayoutMode('list'); }}>
-                            References <ChevronRight size={16} />
-                          </button>
-                        </div>
-                      </div>
+            gridPrograms.length === 0 ? <p style={{ color: 'var(--ink-muted)' }}>{query.trim() ? 'No course matches the search.' : 'No course has a learning plan yet.'}</p> : (
+              <div className={styles.courseSections}>
+                <p className={styles.courseIntro}>
+                  A course's references are the titles its learning plans use, plus any you file under it. Open a course
+                  to see and manage them.
+                </p>
+                {gridPrograms.map(program => (
+                  <section key={program.id} aria-label={program.name}>
+                    <h3 className={styles.courseProgram}>{program.name} <span>{program.courses.length} course{program.courses.length === 1 ? '' : 's'}</span></h3>
+                    <div className={styles.courseGrid}>
+                      {program.courses.map(c => (
+                        <button key={c.id} type="button" className={styles.courseCard} onClick={() => { setFilterCourse({ id: c.id, code: c.code }); setLayoutMode('list'); }}
+                          aria-label={`${c.code} ${c.title}: ${c.references} references`}>
+                          <span className={styles.courseCardTop}>
+                            <span className={cards.cardCode}>{c.code}</span>
+                            <ChevronRight size={16} aria-hidden="true" />
+                          </span>
+                          <span className={styles.courseCardTitle} title={c.title}>{c.title}</span>
+                          <span className={styles.courseCardCount}><strong>{c.references}</strong> reference{c.references === 1 ? '' : 's'}</span>
+                          <span className={styles.courseCardSplit}>{c.used} used in plans · {c.filed} filed by you</span>
+                        </button>
+                      ))}
                     </div>
-                  </div>
+                  </section>
                 ))}
               </div>
             )
@@ -618,9 +627,9 @@ const ReferenceLibrary = () => {
               <div className={styles.previewHeader}><div><h2 className={styles.previewTitle}>{previewReference.title}</h2><div className={styles.previewId}><span>{previewReference.id} · {previewReference.archived ? 'Archived' : 'Active'}</span></div></div><button className={`${styles.previewClose} app-icon-close`} type="button" onClick={handleClose} aria-label="Close reference preview"><X size={15} /></button></div>
               {isReferenceDeprecated(previewReference, CURRENT_YEAR, rules.recencyYears) && <div className={styles.warningBanner}>{`This reference is ${rules.recencyYears} years old or older and may need review.`}</div>}
               <dl className={styles.previewMetadata}>
-                <dt>Author(s)</dt><dd>{previewReference.authors || 'Not provided'}</dd><dt>Type</dt><dd>{typeLabel(previewReference.type)}</dd><dt>ISBN</dt><dd>{previewReference.isbn || 'Not provided'}</dd><dt>Year</dt><dd>{previewReference.year || 'Not provided'}</dd><dt>Publisher</dt><dd>{previewReference.publisher || 'Not provided'}</dd><dt>Status</dt><dd>{(previewReference.status || 'available').charAt(0).toUpperCase() + (previewReference.status || 'available').slice(1)}</dd><dt>Copies</dt><dd>{previewReference.copies != null ? previewReference.copies : 'Not recorded'}</dd><dt>Category</dt><dd>{previewReference.category || 'Not provided'}</dd><dt>Date received</dt><dd>{previewReference.received || 'Not recorded'}</dd><dt>Courses</dt><dd>
+                <dt>Author(s)</dt><dd>{previewReference.authors || 'Not provided'}</dd><dt>Type</dt><dd>{typeLabel(previewReference.type)}</dd><dt>ISBN</dt><dd>{previewReference.isbn || 'Not provided'}</dd><dt>Year</dt><dd>{previewReference.year || 'Not provided'}</dd><dt>Publisher</dt><dd>{previewReference.publisher || 'Not provided'}</dd><dt>Status</dt><dd>{(previewReference.status || 'available').charAt(0).toUpperCase() + (previewReference.status || 'available').slice(1)}</dd><dt>Copies</dt><dd>{previewReference.copies != null ? previewReference.copies : 'Not recorded'}</dd><dt>Category</dt><dd>{previewReference.category || 'Not provided'}</dd><dt>Date received</dt><dd>{previewReference.received || 'Not recorded'}</dd><dt>Filed under</dt><dd>
                   <div className={styles.courseLinks}>
-                    {previewCourses === null ? 'Loading…' : previewCourses.length === 0 ? 'Not filed under a course' : previewCourses.map(c => (
+                    {previewCourses === null ? 'Loading…' : previewCourses.length === 0 ? 'No course yet' : previewCourses.map(c => (
                       <span key={c.course_id} className={styles.courseChecking} title={c.course_title}>
                         {c.course_no}{' '}
                         <button type="button" className="app-icon-close" style={{ width: 18, height: 18, minHeight: 18, padding: 0 }} disabled={filing}
@@ -629,16 +638,16 @@ const ReferenceLibrary = () => {
                     ))}
                   </div>
                   {!previewReference.archived && (
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 6, marginTop: 6 }}>
-                      <div style={{ width: '100%', minWidth: 0 }}>
-                        <Select block value={courseToAdd} onChange={(e) => setCourseToAdd(e.target.value)} placeholder="Add to course…" aria-label="Course to file this reference under">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6 }}>
+                      <div style={{ flex: '1 1 auto', minWidth: 0 }}>
+                        <Select block value={courseToAdd} onChange={(e) => setCourseToAdd(e.target.value)} placeholder="File under a course…" aria-label="Course to file this reference under">
                           {allCourses.filter(c => !(previewCourses || []).some(f => f.course_id === c.id)).map(c => <option key={c.id} value={String(c.id)}>{`${c.code} — ${c.title}`}</option>)}
                         </Select>
                       </div>
                       <button type="button" className="btn btn-secondary btn-sm" disabled={!courseToAdd || filing} onClick={() => fileUnderCourse(Number(courseToAdd))}>Add</button>
                     </div>
                   )}
-                </dd><dt>Used in</dt><dd className={styles.courseLinks}>{(previewReference.usedInCourses || []).length ? previewReference.usedInCourses.map(renderUsedInCourse) : 'No courses recorded'}</dd>
+                </dd><dt>Used in plans</dt><dd className={styles.courseLinks}>{(previewReference.usedInCourses || []).length ? previewReference.usedInCourses.map(renderUsedInCourse) : 'No plan uses it yet'}</dd>
                 {sanitizeUrl(previewReference.link) && <><dt>Link</dt><dd><a href={sanitizeUrl(previewReference.link)} target="_blank" rel="noopener noreferrer" className={styles.modalLink}>Open resource</a></dd></>}
               </dl>
               <div className={styles.previewActions}>
@@ -650,7 +659,7 @@ const ReferenceLibrary = () => {
                 )}
               </div>
             </>
-          ) : <div className={styles.previewEmpty}><BookOpen size={30} /><p>Select a reference to preview its details without leaving the result list.</p></div>}
+          ) : <div className={styles.previewEmpty}><BookOpen size={30} /><p>Select a reference to preview it.</p></div>}
         </aside>
         </div>
       </div>
@@ -665,7 +674,7 @@ const ReferenceLibrary = () => {
               </svg>
             </div>
             <h3 className={styles.deleteTitle}>Archive Reference</h3>
-            <p className={styles.deleteText}>Are you sure you want to archive <strong>"{archiveRef.title}"</strong>? Archived references will only be visible to the Director of Libraries.</p>
+            <p className={styles.deleteText}>Are you sure you want to archive <strong>"{archiveRef.title}"</strong>? Only the Director of Libraries sees archived references.</p>
             <div className={styles.deleteActions}>
               <button className="btn btn-secondary" onClick={() => setArchiveRef(null)}>Cancel</button>
               <button className="btn btn-primary" onClick={confirmArchive}>Archive</button>

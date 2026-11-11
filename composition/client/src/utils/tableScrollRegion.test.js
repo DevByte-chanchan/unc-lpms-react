@@ -18,7 +18,6 @@ const tableConsumers = [
   'components/OutcomeAlignment.jsx',
   'components/CriteriaForGrading.jsx',
   'components/ReferenceSummary.jsx',
-  'components/SyllabusRevisionsSections.jsx',
   'components/ApprovalSyllabusSections.jsx',
   'pages/lpsm/DirectorOfLibraries/ReferenceLibrary.jsx',
   'pages/lpsm/ProgramHead/CoPoAlignment.jsx',
@@ -49,7 +48,10 @@ test('every scrollbar is the same thin bar, set once in index.css', () => {
   assert.match(css, /--scrollbar-thumb:\s*#5f6f78/)
   assert.match(css, /--scrollbar-track:\s*#e5e9ec/)
   assert.match(css, /\*::-webkit-scrollbar-button\s*\{\s*display:\s*none/, 'no arrow buttons')
-  assert.match(css, /\*::-webkit-scrollbar-thumb:active\s*\{\s*background:\s*var\(--scrollbar-thumb-active\)/, 'the bar stays visible while dragged')
+  // Literal colours on the bar's parts, and no state rule on the thumb: either made it vanish while dragged.
+  assert.match(css, /\*::-webkit-scrollbar-thumb\s*\{\s*background-color:\s*#5f6f78/)
+  assert.doesNotMatch(css, /scrollbar-thumb:(hover|active)/, 'the bar stays visible while dragged')
+  assert.doesNotMatch(css.match(/\*::-webkit-scrollbar-thumb[\s\S]*?\*::-webkit-scrollbar-corner/)[0], /var\(/)
   // The standard properties only for Firefox: in Chrome they would replace the 8px bar with a wider one with arrows.
   assert.match(css, /@supports \(-moz-appearance: none\)\s*\{\s*\*\s*\{\s*scrollbar-width:\s*thin;\s*scrollbar-color:\s*var\(--scrollbar-thumb\) var\(--scrollbar-track\)/)
   assert.doesNotMatch(css.replace(/@supports \(-moz-appearance: none\)[\s\S]*$/, ''), /scrollbar-(width|color)\s*:/)
@@ -79,12 +81,13 @@ test('table empty states stay centered in the visible horizontal scrollport', ()
   const region = read('components/TableScrollRegion.jsx')
 
   // At the compact layout the scrollport is 709px while the table canvas is
-  // 900px. The empty row must use the live scrollport width and compensate for
-  // scrollLeft; otherwise its centre sits 95.5px offscreen at either edge.
+  // 900px. The empty row must use the scrollport width and stick to its left
+  // edge; otherwise its centre sits 95.5px offscreen at either edge.
   assert.match(emptyCss, /width:\s*var\(--table-viewport-width(?:,\s*100%)?\)\s*!important/)
-  assert.match(emptyCss, /translateX\(var\(--table-scroll-left/)
+  assert.match(emptyCss, /position:\s*sticky[\s\S]*left:\s*0/)
   assert.match(region, /--table-viewport-width/)
-  assert.match(region, /--table-scroll-left/)
+  // nothing is written on the scroller while it scrolls (that drops the dragged scrollbar thumb)
+  assert.doesNotMatch(region, /onScroll/)
 })
 
 test('empty-state sentences share one centered wrapping line box', () => {

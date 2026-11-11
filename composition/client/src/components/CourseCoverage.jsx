@@ -278,7 +278,7 @@ const CourseCoverage = ({ offeringID, revisionNum, status, selectedSection, styl
                                             const totalWeekUnresolved = getWeekUnresolvedTotal(week.week_id);
 
                                             return (
-                                                <tr key={`co-${co.co_id}-week-${week.week_id}`} data-week-id={week.week_id}>
+                                                <tr key={`co-${co.co_id}-week-${week.week_id}`} data-week-id={week.week_id} data-ilo-id={`CO${co.coNumber}-W${wIdx + 1}`}>
                                                     {/* TALL 1-ROW CO COLUMN */}
                                                     {wIdx === 0 && (
                                                         <td

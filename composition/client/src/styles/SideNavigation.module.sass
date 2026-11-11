@@ -1,3 +1,6 @@
+// The sidebar (components/SideNavigation.jsx), in the look of feature/course-assignment: the logo with the
+// system's name under it, the page links, and Log Out at the bottom. Who is signed in, the role switch,
+// Settings and the bell are in the top bar (components/Header.jsx).
 .container
   width: 100%
   height: 100%
@@ -7,220 +10,131 @@
   background: var(--surface)
   color: var(--ink)
 
-// The brand card: logo, system name and the open / collapse button together in one container.
 .logo
-  margin: 14px 14px 12px
-  padding: 10px
+  width: 100%
   box-sizing: border-box
+  padding: 10px 14px 10px 20px
   display: flex
   align-items: center
+  justify-content: space-between
   gap: 10px
-  border: 1px solid var(--line)
-  border-radius: var(--radius-md)
-  background: var(--surface)
 
 .logo img
   flex: 0 0 auto
-  width: 32px
+  width: 50px
   display: block
 
-.brand
-  flex: 1 1 auto
-  min-width: 0
-  display: flex
-  flex-direction: column
-  font-size: 12px
-  font-weight: var(--fw-semibold)
-  color: var(--ink)
-  line-height: 1.3
-
-  span
-    white-space: nowrap
-    overflow: hidden
-    text-overflow: ellipsis
-
-.searchWrap
-  position: relative
-  flex: 0 0 auto
-  margin: 0 14px 16px
-
-  .search
-    margin: 0
-
-.searchResults
-  position: absolute
-  z-index: 50
-  top: calc(100% + 4px)
-  left: 0
-  right: 0
-  margin: 0
-  padding: 4px
-  list-style: none
-  background: #fff
-  border: 1px solid #e5e7eb
-  border-radius: var(--control-radius)
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18)
-
-  button
-    width: 100%
-    height: 36px
-    padding: 0 10px
-    border: 0
-    border-radius: 6px
-    background: transparent
-    color: var(--ink)
-    font: var(--fw-normal) var(--fs-sm) var(--font-ui)
-    text-align: left
-    cursor: pointer
-
-    &:hover, &:focus-visible
-      background: var(--hover-tint)
-
-  li[aria-selected='true'] button
-    background: var(--hover-tint)
-
-.searchEmpty
-  padding: 8px 10px
-  color: var(--ink-muted)
-  font-size: var(--fs-sm)
-
-// Search box of the sidebar.
-.search
-  margin: 0
-  flex: 0 0 auto
-  height: 36px
-  padding: 0 12px
-  box-sizing: border-box
-  display: flex
-  align-items: center
-  gap: 8px
-  border: 1px solid var(--control-border)
-  border-radius: var(--control-radius)
-  background: var(--surface)
-  color: var(--ink-muted)
-
-  input
-    flex: 1
-    min-width: 0
-    border: 0
-    outline: none
-    background: transparent
-    color: var(--ink)
-    font: var(--fw-normal) var(--fs-sm) var(--font-ui)
-
-.menuLabel
-  margin: 0 26px 6px
-  font-size: 11px
-  font-weight: var(--fw-medium)
-  letter-spacing: 0.08em
-  text-transform: uppercase
-  color: var(--ink-faint)
+.lpms
+  font-weight: 700
+  font-size: 16px
+  padding: 0 20px 30px 23px
+  margin-top: 10px
+  color: #374151
+  line-height: 1.4
+  min-height: 24px
 
 .nav-list
-  margin: 0 14px
+  margin: 10px 20px 0
   height: 100%
   overflow: hidden
   display: flex
   flex-direction: column
-  gap: 4px
+  gap: 10px
 
-.list
-  height: 36px
-  padding: 0 12px
+.list, .listB
+  padding: 10px 12px
   box-sizing: border-box
-  border-radius: var(--radius-md)
+  border-radius: 10px
   display: flex
   align-items: center
-  gap: 12px
+  gap: 16px
   cursor: pointer
-  font-size: var(--fs-sm)
-  font-weight: var(--fw-medium)
-  color: var(--ink-muted)
+  font-size: 15px
+  font-weight: 500
   white-space: nowrap
-  transition: background var(--t-fast), color var(--t-fast), box-shadow var(--t-fast)
+  transition: background 0.2s ease, color 0.2s ease
+
+  svg
+    flex-shrink: 0
+
+.list
+  color: #4B5563
 
   &:hover
-    background: var(--surface-sunken)
-    color: var(--ink)
+    background: #F3F4F6
+    color: #18191A
 
   &:focus-visible
     outline: 3px solid rgba(37, 99, 235, 0.28)
     outline-offset: 2px
 
   &.selected
-    background: var(--surface-sunken)
-    color: var(--ink)
-    font-weight: var(--fw-semibold)
+    background: #E5E7EB
+    color: #18191A
+    font-weight: 600
 
-.list svg
-  flex-shrink: 0
-
-.listText
-  white-space: nowrap
-
+// Log Out keeps its red: signing out is the one control that should stop the eye.
 .listB
-  height: 36px
-  padding: 0 12px
-  box-sizing: border-box
-  border-radius: var(--radius-md)
-  display: flex
-  align-items: center
-  gap: 12px
-  cursor: pointer
-  font-size: var(--fs-sm)
-  font-weight: var(--fw-medium)
-  color: var(--danger)
-  white-space: nowrap
-
-  svg
-    flex-shrink: 0
+  color: #F94545
 
   &:hover
-    background: var(--danger-soft)
+    background: #FEF2F2
 
   &:focus-visible
     outline: 3px solid rgba(232, 17, 35, 0.24)
     outline-offset: 2px
 
-// The bottom group: smaller, tighter rows than the main links, like a footer menu.
-.dock
-  display: flex
-  flex-direction: column
-  gap: 4px
-
-.dockItem
-  font-size: var(--fs-sm)
-
-  &[aria-disabled='true']
-    cursor: default
-    background: transparent
+.listText
+  white-space: nowrap
 
 .logoutWrapper
-  position: relative
-  margin: auto 0 0
+  margin-top: auto
   display: flex
   flex-direction: column
-  gap: 10px
-  padding-bottom: 24px
+  padding-bottom: 30px
 
-@media (max-width: 1024px)
+// The sidebar's open / collapse button, beside the logo (under it when collapsed).
+.navToggle
+  flex: 0 0 auto
+  width: 36px
+  height: 36px
+  display: inline-flex
+  align-items: center
+  justify-content: center
+  padding: 0
+  border: 0
+  border-radius: 10px
+  background: transparent
+  color: #6B7280
+  cursor: pointer
+
+  &:hover
+    background: #F3F4F6
+    color: #18191A
+
+  &:focus-visible
+    outline: 2px solid var(--accent)
+    outline-offset: 2px
+
+// Icons only: narrow screens always, and wider ones when the person collapses it.
+@mixin icons-only
   .logo
-    margin: 12px 8px
-    padding: 8px 0
+    padding: 12px 8px
     flex-direction: column
     justify-content: center
-    border: 0
-    background: transparent
 
-  .brand, .searchWrap, .menuLabel
+  .logo img
+    width: 40px
+
+  .lpms
     display: none
 
   .nav-list
     margin: 8px 8px 0
 
   .list, .listB
-    width: 36px
-    height: 36px
+    width: 44px
+    height: 44px
     margin-left: auto
     margin-right: auto
     justify-content: center
@@ -230,128 +144,8 @@
   .listText
     display: none
 
-// Collapsed to icons by the top bar's button (the layout sets data-nav-collapsed on the sidebar).
-:global([data-nav-collapsed='true']) .logo
-  margin: 12px 8px
-  padding: 8px 0
-  flex-direction: column
-  justify-content: center
-  gap: 10px
-  border: 0
-  background: transparent
-
-:global([data-nav-collapsed='true']) .brand, :global([data-nav-collapsed='true']) .searchWrap, :global([data-nav-collapsed='true']) .menuLabel
-  display: none
-
-:global([data-nav-collapsed='true']) .nav-list
-  margin: 8px 8px 0
-
-:global([data-nav-collapsed='true']) .list, :global([data-nav-collapsed='true']) .listB
-  // a 36px square, centred, like the collapse button above it
-  width: 36px
-  height: 36px
-  margin-left: auto
-  margin-right: auto
-  justify-content: center
-  padding: 0
-  gap: 0
-
-:global([data-nav-collapsed='true']) .listText
-  display: none
-
-// The sidebar's own open / collapse button, beside the logo (under it when collapsed).
-.navToggle
-  flex: 0 0 auto
-  width: 36px
-  height: 36px
-  display: inline-flex
-  align-items: center
-  justify-content: center
-  padding: 0
-  border: 1px solid var(--line)
-  border-radius: var(--radius-md)
-  background: var(--surface)
-  color: var(--ink-muted)
-  cursor: pointer
-
-  &:hover
-    background: var(--surface-muted)
-    color: var(--ink)
-
-  &:focus-visible
-    outline: 2px solid var(--accent)
-    outline-offset: 2px
-
-// Who is signed in: an avatar with the name, role and e-mail, at the bottom of the sidebar.
-.account
-  cursor: pointer
-  display: flex
-  align-items: center
-  gap: 10px
-  margin-top: 6px
-  padding: 10px
-  border: 1px solid var(--line)
-  border-radius: var(--radius-md)
-  background: var(--surface)
-  min-width: 0
-
-.avatar
-  flex: 0 0 auto
-  width: 36px
-  height: 36px
-  display: inline-flex
-  align-items: center
-  justify-content: center
-  border-radius: 50%
-  background: var(--primary)
-  color: var(--primary-ink)
-  font-size: var(--fs-sm)
-  font-weight: var(--fw-semibold)
-
-.accountText
-  min-width: 0
-  display: flex
-  flex-direction: column
-  line-height: 1.3
-
-.accountName
-  font-size: var(--fs-sm)
-  font-weight: var(--fw-semibold)
-  color: var(--ink)
-  overflow-wrap: anywhere
-
-.accountRole
-  font-size: var(--fs-xs)
-  color: var(--danger)
-
-
-:global([data-nav-collapsed='true']) .account
-  justify-content: center
-  padding: 8px 0
-  border: 0
-  background: transparent
-
-:global([data-nav-collapsed='true']) .accountText
-  display: none
-
 @media (max-width: 1024px)
-  .account
-    justify-content: center
-    padding: 8px 0
-    border: 0
-    background: transparent
+  @include icons-only
 
-  .accountText
-    display: none
-
-// The role picker of a multi-role account (above the account card); hidden whenever the labels are.
-.roleSwitch
-  width: 100%
-  margin-bottom: 8px
-
-:global([data-nav-collapsed='true']) .roleSwitch
-  display: none
-
-@media (max-width: 1024px)
-  .roleSwitch
-    display: none
+:global([data-nav-collapsed='true'])
+  @include icons-only

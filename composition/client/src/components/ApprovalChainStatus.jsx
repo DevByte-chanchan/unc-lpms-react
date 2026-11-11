@@ -47,17 +47,15 @@ const ApprovalChainStatus = ({ workflow, compact = false, activeRole = null, onA
     const summary = status.isFullyApproved
         ? `Approved${status.dateApproved ? ` on ${shortDate(status.dateApproved)}` : ''}`
         : status.stage === 'with_program_head'
-            ? 'Returned by the Dean — with the Program Head, to forward to the instructor or send back'
+            ? 'Returned by the Dean — with the Program Head'
         : status.stage === 'returned'
-            ? `Returned${returnedBy.length ? ` by ${returnedBy.join(', ')}` : ''} — waiting for the instructor to resubmit`
+            ? `Returned${returnedBy.length ? ` by ${returnedBy.join(', ')}` : ''} — with the instructor`
             : status.stage === 'draft'
-                ? 'Not submitted yet — waiting for the instructor'
-                : `${status.approvedCount}/${status.approvedCount + status.pendingCount} approved — waiting on ${status.waitingNow.join(' and ')}`
+                ? 'Not submitted yet'
+                : `${status.approvedCount}/${status.approvedCount + status.pendingCount} approved — with ${status.waitingNow.join(' and ')}`
 
     return (
         <div className={`${styles.strip} ${compact ? styles.compact : ''}`}>
-            {!compact && <span className={styles.legend}>Approval status</span>}
-
             {status.steps.map(step => {
                 const signed = step.signature && verifySignature(step.signature)
                 const mine = !!activeRole && normalizeKey(step.role) === normalizeKey(activeRole)

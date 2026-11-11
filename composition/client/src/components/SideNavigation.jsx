@@ -1,17 +1,13 @@
 import styles from '../styles/SideNavigation.module.sass'
 import unclogo from '../assets/unclogo.png'
-import { BookOpen, Briefcase, CheckCircle, Clipboard, Clock, FileText, GitMerge, Layers, LogOut, Search, Settings, Sidebar, Target, UserCheck, Users } from 'react-feather'
+import { BookOpen, Briefcase, CheckCircle, Clipboard, Clock, FileText, GitMerge, Layers, LogOut, Sidebar, Target, UserCheck, Users } from 'react-feather'
 import { useSearchParams, useNavigate, useLocation } from 'react-router-dom'
 import { useEffect, useRef, useState } from 'react'
-import { getSession, logout, setActiveRole, homeRouteForRole, roleMeta } from '../utils/session'
+import { logout } from '../utils/session'
 import { routes } from '../utils/routes.js';
 import SignOutDialog from './SignOutDialog.jsx'
-import NotificationBell from './NotificationBell.jsx'
-import Select from './Select.jsx'
-import SettingsModal from './SettingsModal.jsx'
 import { navigationIconName } from '../utils/navigationIcons.js'
 import { useNav } from '../layouts/NavContext.js'
-import { initialsOf } from '../utils/userInitials.js'
 
 const NAVIGATION_ICON_COMPONENTS = {
     BookOpen,
@@ -29,7 +25,7 @@ const NAVIGATION_ICON_COMPONENTS = {
 
 const NavigationIcon = ({ label }) => {
     const Icon = NAVIGATION_ICON_COMPONENTS[navigationIconName(label)] || FileText
-    return <Icon size={20} />
+    return <Icon size={24} />
 }
 
 const SideNavigation = ({ mode = 'instructor' }) => {
@@ -71,16 +67,9 @@ const SideNavigation = ({ mode = 'instructor' }) => {
     }
 
     const [showPopup, setShowPopup] = useState(false)
-    // Account settings (name, password, appearance) open in a window instead of taking sidebar rows.
-    const [settingsOpen, setSettingsOpen] = useState(false)
-    // "Search anything": finds a menu item by name (pages, Notifications, Settings) and opens it. `/` jumps here.
-    const [query, setQuery] = useState('')
-    const [matches, setMatches] = useState([])
-    const searchRef = useRef(null)
     const [isExpanded, setIsExpanded] = useState(false)
     const navRef = useRef(null)
     const nav = useNav()
-    const account = getSession()
 
     const handlePageChange = (page) => {
         if (page === 'Syllabus') {
@@ -117,37 +106,6 @@ const SideNavigation = ({ mode = 'instructor' }) => {
         setShowPopup(false)
     }, [selected])
 
-    const menuItems = () => [...(navRef.current?.querySelectorAll('[role="link"], [role="button"]') || [])]
-        .filter(el => el.getAttribute('aria-label') && el.getAttribute('aria-label') !== 'Log out')
-    const findMatches = (text) => {
-        const term = text.trim().toLowerCase()
-        if (!term) return []
-        const seen = new Set()
-        return menuItems().filter(el => {
-            const label = el.getAttribute('aria-label')
-            if (seen.has(label) || !label.toLowerCase().includes(term)) return false
-            seen.add(label)
-            return true
-        }).map(el => ({ label: el.getAttribute('aria-label'), el }))
-    }
-    const openMatch = (match) => { setQuery(''); setMatches([]); match?.el.click() }
-    const onSearchKey = (event) => {
-        if (event.key === 'Enter') { event.preventDefault(); openMatch(matches[0]) }
-        else if (event.key === 'Escape') { setQuery(''); setMatches([]); event.currentTarget.blur() }
-    }
-
-    useEffect(() => {
-        const onKey = (event) => {
-            if (event.key !== '/' || event.ctrlKey || event.metaKey || event.altKey) return
-            const tag = document.activeElement?.tagName
-            if (tag === 'INPUT' || tag === 'TEXTAREA' || document.activeElement?.isContentEditable) return
-            event.preventDefault()
-            searchRef.current?.focus()
-        }
-        document.addEventListener('keydown', onKey)
-        return () => document.removeEventListener('keydown', onKey)
-    }, [])
-
     useEffect(() => {
         const navElement = navRef.current
         if (!navElement) return
@@ -168,12 +126,6 @@ const SideNavigation = ({ mode = 'instructor' }) => {
         <div ref={navRef} className={styles.container}>
             <div className={styles.logo}>
                 <img src={unclogo} alt="University Of Nueva Caceres Logo" />
-                {isExpanded && (
-                    <div className={styles.brand}>
-                        <span>Learning Plan</span>
-                        <span>Management System</span>
-                    </div>
-                )}
                 {nav.available && (
                     <button type="button" className={styles.navToggle} onClick={nav.toggle}
                         aria-label={nav.collapsed ? 'Expand sidebar' : 'Collapse sidebar'} aria-expanded={!nav.collapsed}
@@ -182,28 +134,11 @@ const SideNavigation = ({ mode = 'instructor' }) => {
                     </button>
                 )}
             </div>
-
-            <div className={styles.searchWrap}>
-                <div className={styles.search}>
-                    <Search size={16} aria-hidden="true" />
-                    <input ref={searchRef} value={query} placeholder="Search anything" aria-label="Search the menu (press / to jump here)"
-                        onChange={(event) => { setQuery(event.target.value); setMatches(findMatches(event.target.value)) }}
-                        onKeyDown={onSearchKey} onBlur={() => setTimeout(() => setMatches([]), 150)} />
-                </div>
-                {query.trim() && (
-                    <ul className={styles.searchResults} role="listbox" aria-label="Menu items">
-                        {matches.length === 0 ? <li className={styles.searchEmpty}>No page called that</li> : matches.map((match, index) => (
-                            <li key={match.label} role="option" aria-selected={index === 0}>
-                                <button type="button" onMouseDown={(event) => event.preventDefault()} onClick={() => openMatch(match)}>{match.label}</button>
-                            </li>
-                        ))}
-                    </ul>
-                )}
-            </div>
-
+            {isExpanded && (
+                <div className={styles.lpms}>Learning Plan<br />Management System</div>
+            )}
 
             <div className={styles['nav-list']}>
-                {account && account.role !== 'superuser' && <NotificationBell />}
                 {mode !== 'vpaa' && mode !== 'superuser' && (
                     <div
                         onClick={() => handlePageChange('Syllabus')}
@@ -261,41 +196,10 @@ const SideNavigation = ({ mode = 'instructor' }) => {
                 )}
 
                 <div className={styles.logoutWrapper}>
-                    <div className={styles.dock}>
-                        <div
-                            onClick={() => setSettingsOpen(true)}
-                            className={`${styles.list} ${styles.dockItem}`}
-                            role="button" tabIndex={0} title="Settings" aria-label="Settings" aria-haspopup="dialog"
-                            onKeyDown={(event) => activateWithKeyboard(event, () => setSettingsOpen(true))}
-                        >
-                            <Settings size={20} /> <span className={styles.listText}>Settings</span>
-                        </div>
-                        <div className={`${styles.listB} ${styles.dockItem}`} onClick={onLogoutClick} role="button" tabIndex={0} title="Log out" aria-label="Log out" onKeyDown={(event) => activateWithKeyboard(event, onLogoutClick)}>
-                            <LogOut size={20} /> <span className={styles.listText}>Log out</span>
-                        </div>
-                    </div>
-
-                    {/* Multi-role accounts: switch the role this session acts as (feature/course-assignment). */}
-                    {account?.roles?.length > 1 && (
-                        <div className={styles.roleSwitch}>
-                        <Select block aria-label="Switch role" value={account.role}
-                            onChange={(event) => { setActiveRole(event.target.value); navigate(homeRouteForRole(event.target.value)) }}>
-                            {account.roles.map(role => <option key={role} value={role}>{roleMeta(role)?.label || role}</option>)}
-                        </Select>
-                        </div>
-                    )}
-
-                    <div className={styles.account} title={account?.email || undefined} role="button" tabIndex={0} aria-label="Account settings"
-                        onClick={() => setSettingsOpen(true)} onKeyDown={(event) => activateWithKeyboard(event, () => setSettingsOpen(true))}>
-                    <div className={styles.avatar} aria-hidden="true">{initialsOf(account?.name)}</div>
-                    <div className={styles.accountText}>
-                        <div className={styles.accountName}>{account?.name}</div>
-                        <div className={styles.accountRole}>{account?.roleLabel}</div>
-                    </div>
+                    <div className={styles.listB} onClick={onLogoutClick} role="button" tabIndex={0} title="Log Out" aria-label="Log Out" onKeyDown={(event) => activateWithKeyboard(event, onLogoutClick)}>
+                        <LogOut size={24} /> <span className={styles.listText}>Log Out</span>
                     </div>
                 </div>
-
-                <SettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} />
 
                 <SignOutDialog
                     open={showPopup}

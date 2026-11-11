@@ -86,7 +86,7 @@ const ImportPreviewModal = ({ source, onClose, onImported }) => {
                 </tbody>
               </table>
             )}
-            {result && result.invalid > 0 && <p style={{ color: '#6b7280', fontSize: 13 }}>Fix the invalid rows in the source and import again; rows already imported are skipped as duplicates.</p>}
+            {result && result.invalid > 0 && <p style={{ color: '#6b7280', fontSize: 13 }}>Fix the invalid rows and import again. Duplicates are skipped.</p>}
           </>
         )}
 

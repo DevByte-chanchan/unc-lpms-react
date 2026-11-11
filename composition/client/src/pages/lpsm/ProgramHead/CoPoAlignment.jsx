@@ -72,11 +72,17 @@ const CoPoAlignment = ({ tabs = null }) => {
   }, [offeringId]);
 
   const current = useMemo(() => (offerings || []).find(item => item.id === offeringId), [offerings, offeringId]);
-  const outcomes = data?.courseOutcomes || [];
-  const programOutcomes = data?.programOutcomes || [];
+  // An uploaded Excel file, read by the server, stands in for the outcomes from the plan.
+  const sheet = uploaded?.parsed?.cos || null;
+  const outcomes = sheet ? sheet.map((co, i) => ({ id: `sheet-${i}`, description: co.description, poMappings: co.poMappings })) : (data?.courseOutcomes || []);
+  const planPos = data?.programOutcomes || [];
+  const sheetWidth = sheet ? Math.max(0, ...sheet.map(co => co.poMappings.length)) : 0;
+  const programOutcomes = sheetWidth > planPos.length
+    ? [...planPos, ...Array.from({ length: sheetWidth - planPos.length }, (_, i) => ({ key: `PO${planPos.length + i + 1}`, description: '' }))]
+    : planPos;
 
   const handleView = () => {
-    if (uploaded) { openCourseDocument(offeringId, 'co-po', uploaded).catch(() => setError('The uploaded file could not be opened.')); return; }
+    if (uploaded && !sheet) { openCourseDocument(offeringId, 'co-po', uploaded).catch(() => setError('The uploaded file could not be opened.')); return; }
     if (!outcomes.length || !current) return;
     const logoUrl = new URL(unclogo, window.location.origin).href;
     const cos = outcomes.map((outcome, index) => ({ description: `CO${index + 1}: ${withoutNumber(outcome.description)}`, poMappings: outcome.poMappings }));

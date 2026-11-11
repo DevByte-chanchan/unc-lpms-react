@@ -3,8 +3,12 @@
 // The Director of Libraries files library references under each course: Department > Program > Course > its
 // references (sir: per course, not per department).
 //
-//   GET    /api/course-references/tree                    departments, their programs and courses, with a count each
-//   GET    /api/course-references/:courseId               the references filed under a course
+//   GET    /api/course-references/tree                    departments, their programs and courses, with counts each
+//   GET    /api/course-references/:courseId               a course's references: filed under it, used in its plans, or both
+//
+// A course's references are the ones the Director filed under it (CourseReferences) and the ones its learning plans
+// use (WeeklyReferences on its offerings' weeks). Counting only the filed ones showed 0 for courses whose plans
+// already cite titles from the library.
 //   GET    /api/course-references/by-reference/:referenceId  the courses a reference is filed under
 //   POST   /api/course-references/:courseId               { reference_id }      file one (Director)
 //   DELETE /api/course-references/:courseId/:referenceId  take it off (Director)
@@ -14,12 +18,25 @@ const { sequelize, Sequelize } = require('../models');
 const select = (sql, r = []) => sequelize.query(sql, { replacements: r, type: Sequelize.QueryTypes.SELECT });
 const asInt = (value) => (/^\d+$/.test(String(value ?? '')) ? Number(value) : null);
 
+// Every (course, reference) pair with how it is linked: filed, used in a plan, or both.
+const COURSE_REFERENCE_LINKS = `
+    SELECT course_id, reference_id, MAX(filed) AS filed, MAX(used) AS used FROM (
+        SELECT cr.course_id, cr.reference_id, 1 AS filed, 0 AS used FROM CourseReferences cr
+        UNION ALL
+        SELECT pco.course_id, wr.reference_id, 0 AS filed, 1 AS used FROM WeeklyReferences wr
+            INNER JOIN Weeks w ON w.week_id = wr.week_id
+            INNER JOIN CourseOutcomes co ON co.co_id = w.co_id
+            INNER JOIN ProgramCourseOfferings pco ON pco.pc_offering_id = co.pc_offering_id
+    ) GROUP BY course_id, reference_id`;
+
 const tree = async (req, res, next) => {
     try {
         const rows = await select(
             `SELECT DISTINCT d.dept_id, d.name AS dept_name, p.program_id, p.name AS program_name,
                     c.course_id, c.course_no, c.course_title,
-                    (SELECT COUNT(*) FROM CourseReferences cr WHERE cr.course_id = c.course_id) AS reference_count
+                    (SELECT COUNT(*) FROM (${COURSE_REFERENCE_LINKS}) l WHERE l.course_id = c.course_id) AS reference_count,
+                    (SELECT COUNT(*) FROM (${COURSE_REFERENCE_LINKS}) l WHERE l.course_id = c.course_id AND l.filed = 1) AS filed_count,
+                    (SELECT COUNT(*) FROM (${COURSE_REFERENCE_LINKS}) l WHERE l.course_id = c.course_id AND l.used = 1) AS used_count
              FROM ProgramCourseOfferings pco
                  INNER JOIN Programs p ON p.program_id = pco.program_id
                  INNER JOIN Departments d ON d.dept_id = p.dept_id
@@ -32,7 +49,10 @@ const tree = async (req, res, next) => {
             let program = dept.programs.find(p => p.id === r.program_id);
             if (!program) dept.programs.push(program = { id: r.program_id, name: r.program_name, courses: [] });
             if (!program.courses.some(c => c.id === r.course_id)) {
-                program.courses.push({ id: r.course_id, code: r.course_no, title: r.course_title, references: Number(r.reference_count) || 0 });
+                program.courses.push({
+                    id: r.course_id, code: r.course_no, title: r.course_title,
+                    references: Number(r.reference_count) || 0, filed: Number(r.filed_count) || 0, used: Number(r.used_count) || 0,
+                });
             }
         }
         return res.json({ departments });
@@ -44,9 +64,12 @@ const list = async (req, res, next) => {
         const courseId = asInt(req.params.courseId);
         if (!courseId) return res.status(400).json({ error: 'A course is required.' });
         const references = await select(
-            `SELECT r.reference_id, r.title, r.author, r.type, r.publication_year, r.status, r.archived, cr.createdAt AS added_at
-             FROM CourseReferences cr INNER JOIN \`References\` r ON r.reference_id = cr.reference_id
-             WHERE cr.course_id = ? ORDER BY r.title;`, [courseId]);
+            `SELECT r.reference_id, r.title, r.author, r.type, r.publication_year, r.status, r.archived,
+                    l.filed, l.used, cr.createdAt AS added_at
+             FROM (${COURSE_REFERENCE_LINKS}) l
+                 INNER JOIN \`References\` r ON r.reference_id = l.reference_id
+                 LEFT JOIN CourseReferences cr ON cr.course_id = l.course_id AND cr.reference_id = l.reference_id
+             WHERE l.course_id = ? ORDER BY r.title;`, [courseId]);
         return res.json({ references });
     } catch (err) { return next(err); }
 };

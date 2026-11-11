@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { FileText, Upload } from 'react-feather'
+import { Download, FileText, Upload } from 'react-feather'
 import { fetchJson, apiErrorMessage } from '../utils/api.js'
-import { openCourseDocument } from '../utils/courseDocuments.js'
+import { downloadFromApi, openCourseDocument } from '../utils/courseDocuments.js'
 import { getSession } from '../utils/session.js'
 import pageStyles from '../styles/ProgramHeadWorkspace.module.sass'
 
@@ -9,7 +9,26 @@ import pageStyles from '../styles/ProgramHeadWorkspace.module.sass'
 // kind 'co-po' or 'coaep' (server: /api/course-documents). When one is uploaded, the page's Preview / Export opens it
 // instead of the generated table; the instructor's plan is never changed.
 
-// `onChange(doc)`: the uploaded file's { fileName, contentType, updatedAt }, or null when there is none.
+// The bar every Program Documents tab uses: what is uploaded, then its buttons (Template, Upload, View, Remove).
+export const DocumentBar = ({ label, status, error, children }) => (
+  <div className={pageStyles.contextBar} style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+    <FileText size={16} aria-hidden="true" />
+    <span style={{ flex: '1 1 240px', minWidth: 0 }}><strong>{label}:</strong> {status}</span>
+    {/* Buttons sit at the right edge on every tab, wherever the sentence ends. */}
+    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end', marginLeft: 'auto' }}>{children}</div>
+    {error && <span role="alert" style={{ color: 'var(--danger)', flexBasis: '100%' }}>{error}</span>}
+  </div>
+)
+
+export const TemplateButton = ({ path, name, onError }) => (
+  <button type="button" className="btn btn-secondary btn-sm" title="The spreadsheet layout to fill in"
+    onClick={() => downloadFromApi(path, name).catch(() => onError?.('The template could not be downloaded.'))}>
+    <Download size={14} /> Template
+  </button>
+)
+
+// `onChange(doc)`: the uploaded file's { fileName, contentType, updatedAt, parsed }, or null when there is none.
+// parsed: an Excel file read into the generated table's shape (server: utils/courseDocumentSheets.js).
 const CourseDocumentBar = ({ pcId, kind, label, onChange }) => {
   const [doc, setDoc] = useState(undefined)
   const [busy, setBusy] = useState(false)
@@ -45,24 +64,24 @@ const CourseDocumentBar = ({ pcId, kind, label, onChange }) => {
 
   if (!pcId) return null
   return (
-    <div className={pageStyles.contextBar} style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-      <FileText size={16} aria-hidden="true" />
-      <span>
-        Uploaded {label}:{' '}
-        {doc === undefined ? 'checking…' : doc ? `${doc.fileName} — Preview / Export opens this file instead of the generated table.` : 'none — Preview / Export uses the table generated from the plan.'}
-      </span>
+    <DocumentBar label={label} error={error} status={
+      doc === undefined ? 'checking…'
+        : !doc ? 'none uploaded — the table is generated from the plan.'
+          : doc.parsed ? `${doc.fileName} — read into the table below; Preview / Export uses it.`
+            : `${doc.fileName} — Preview / Export opens this file instead of the generated table.`
+    }>
+      {canEdit && <TemplateButton path={`/api/course-documents/template/${kind}`} name={`${kind === 'coaep' ? 'COAEP' : 'CO-PO'}-template.xlsx`} onError={setError} />}
       {doc && <button type="button" className="btn btn-secondary btn-sm" onClick={() => openCourseDocument(pcId, kind, doc).catch(() => setError('The file could not be opened.'))}>View</button>}
       {canEdit && (
         <>
           <input ref={fileRef} type="file" accept=".pdf,.xlsx,.xls,application/pdf" hidden aria-label={`${label} file`} onChange={(e) => upload(e.target.files?.[0])} />
           <button type="button" className="btn btn-secondary btn-sm" disabled={busy} onClick={() => fileRef.current?.click()}>
-            <Upload size={14} /> {doc ? 'Replace' : 'Upload PDF or Excel'}
+            <Upload size={14} /> {doc ? 'Replace' : 'Upload Excel or PDF'}
           </button>
           {doc && <button type="button" className="btn btn-danger-outline btn-sm" disabled={busy} onClick={remove}>Remove</button>}
         </>
       )}
-      {error && <span role="alert" style={{ color: 'var(--danger)' }}>{error}</span>}
-    </div>
+    </DocumentBar>
   )
 }
 

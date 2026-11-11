@@ -282,45 +282,6 @@ select option
 
 // The approver lists: the course name takes the spare width, the actions column is a fixed block whose
 // header and buttons both start at the same left edge.
-// The approval progress in a row: a line and a bar of one segment per approver.
-.progress
-  display: flex
-  flex-direction: column
-  gap: 4px
-  width: 100%
-  min-width: 0
-
-.progressLabel
-  font-size: 11px
-  color: var(--ink-soft)
-  white-space: nowrap
-  overflow: hidden
-  text-overflow: ellipsis
-
-.progressBar
-  display: flex
-  gap: 3px
-  width: 120px
-  max-width: 100%
-
-.seg
-  flex: 1 1 0
-  height: 4px
-  border-radius: 2px
-  background: #e5e7eb
-
-.segDone
-  background: var(--good-solid)
-
-.segReturned
-  background: var(--danger-solid)
-
-.segWaiting
-  background: var(--warn-solid)
-
-.segPending
-  background: #e5e7eb
-
 // View and Export in a row: hovering gives a tint tile like the sort headers, not an underline. The negative
 // left margin keeps the text on the column's edge, so the header above still lines up.
 .rowAction.rowAction
@@ -336,10 +297,10 @@ select option
 .growCol
   flex-grow: 1
 
-// 190px: View + Export measure 152px plus the cell inset. The spare 20px goes to the course name.
+// 230px: View + Export + the ? (details) measure about 190px, plus the cell inset.
 .actionsCol
-  flex: 0 0 190px
-  width: 190px
+  flex: 0 0 230px
+  width: 230px
   box-sizing: border-box
   display: flex
   align-items: center
@@ -489,7 +450,7 @@ table.approvalTable
 
 // The approvers' course lists at phone width. The desktop columns add up to about 1,090px, so on a phone only the
 // date and the code showed and View / Export sat off-screen. Here each row becomes a small card: code and actions on
-// top, then the name, then the approval bar. The header row goes (sorting stays on wider screens) and the date
+// top, then the name. The header row goes (sorting stays on wider screens) and the date
 // columns go, since the list is already in date order.
 @media (max-width: 600px)
   // TableScrollRegion sets the 760px desktop width inline; the card rows do not need it.
@@ -531,11 +492,6 @@ table.approvalTable
 
       > span
         white-space: normal
-
-    td:nth-last-child(2)
-      order: 4
-      flex: 1 0 100%
-      padding-top: 0
 
   table.approvedTable
     td:nth-child(4)
@@ -592,6 +548,8 @@ table.approvalTable
     transform: translateY(-2px)
 
 .cardMain
+  // Fills the card, so the footer (margin-top: auto) sits at the bottom of every card in a row.
+  flex: 1 1 auto
   padding: 16px
   display: flex
   flex-direction: column
@@ -620,6 +578,12 @@ table.approvalTable
   font-weight: 400
   color: #222
   line-height: 1.4
+  // Always two lines tall (longer names end in …, the full name is the tooltip), so what follows lines up.
+  min-height: calc(2 * 1.4em)
+  display: -webkit-box
+  -webkit-line-clamp: 2
+  -webkit-box-orient: vertical
+  overflow: hidden
 
 .cardFooter
   display: flex

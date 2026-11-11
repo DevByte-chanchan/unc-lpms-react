@@ -67,7 +67,7 @@ test('an empty database is seeded through the command line, and the six accounts
 
     const run = cli(file);
     assert.equal(run.status, 0, run.stderr);
-    assert.equal((run.stdout.match(/^Seeded /gm) || []).length, 14, 'all 14 seeders');
+    assert.equal((run.stdout.match(/^Seeded /gm) || []).length, 16, 'all 16 seeders');
     const order = ['20260512030000', '20260811000000', '20260812000000', '20260813000000', '20260901000000'].map(prefix => run.stdout.indexOf(`Seeded ${prefix}`));
     assert.ok(order.every((position, i) => position >= 0 && (i === 0 || order[i - 1] < position)), 'in filename order');
     assert.match(run.stdout, /password "demo1234"/);
@@ -77,7 +77,8 @@ test('an empty database is seeded through the command line, and the six accounts
 
     const rows = dataRows(file);
     // The weekly-planner demo data (feature/learning-plan-composition) plus the six accounts.
-    assert.deepEqual([rows.Departments, rows.Programs, rows.Courses, rows.Users], [5, 6, 13, 6]);
+    // SCIS only (title defense scope): one department, its four programs.
+    assert.deepEqual([rows.Departments, rows.Programs, rows.Courses, rows.Users], [1, 4, 13, 6]);
     for (const table of ['ProgramCourseOfferings', 'IntendedLearningOutcomes', 'References', 'Comments', 'AssignmentWorkflowLogs']) {
         assert.ok(rows[table] > 0, `${table} has demo rows`);
     }
@@ -99,7 +100,7 @@ test('a populated database is refused and not one row changes', () => {
     assert.equal(run.status, 1);
     assert.match(run.stderr, /already has data/);
     assert.match(run.stderr, /Nothing was changed/);
-    assert.match(run.stderr, /Departments \(5\)/);
+    assert.match(run.stderr, /Departments \(1\)/);
     assert.match(run.stderr, /docker compose down -v/, 'it says how to start over');
     assert.equal(run.stdout, '', 'no seeder ran');
 

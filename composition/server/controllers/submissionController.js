@@ -3,6 +3,9 @@ const { findIedProblems } = require('../utils/iedRule');
 const { findWeightProblems } = require('../utils/assessmentWeights');
 const { loadOfferingAssessments } = require('../utils/offeringAssessments');
 const { onWorkflowAction } = require('../utils/notificationEvents');
+const { sequelize } = require('../models');
+const { effectiveLogs } = require('../utils/effectiveLogs');
+const { validateWorkflowTransition } = require('../utils/workflowRules');
 
 async function submitLearningPlan(req, res) {
     try {
@@ -29,16 +32,21 @@ async function submitLearningPlan(req, res) {
         if (!assignment) return res.status(404).json({ message: 'Course Assignment not found for this offering.' });
 
         // --- Idempotency Check (Prevents Double Creation) ---
-        const latestLog = await AssignmentWorkflowLog.findOne({
-            where: { co_assign_id: assignment.co_assign_id },
-            order: [['createdAt', 'DESC']]
-        });
+        // The effective log (a carried-over plan includes its source's), in the real order of events.
+        const logs = await effectiveLogs(sequelize, assignment.co_assign_id);
+        const latestLog = logs[logs.length - 1];
 
         if (latestLog && latestLog.action_type === 'SUBMITTED') {
             return res.status(200).json({
                 message: 'Learning plan was already submitted.',
                 status: 'success'
             });
+        }
+        // The same approval rules as every other workflow step (utils/workflowRules.js): no submitting an approved
+        // plan, one under review, or one the Dean returned that is still with the Program Head.
+        const transition = validateWorkflowTransition(logs, actorRole, 'SUBMITTED');
+        if (!transition.allowed) {
+            return res.status(409).json({ message: transition.error, error: transition.error });
         }
         // ----------------------------------------------------
 

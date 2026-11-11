@@ -287,6 +287,9 @@ const resetPassword = async (req, res, next) => {
     try {
         const target = await loadTarget(req, res);
         if (!target) return undefined;
+        // The page greys these out; the API refuses them too.
+        if (target.user_id === req.user.id) return res.status(409).json({ error: 'Use Change password for your own account.' });
+        if (!target.is_active) return res.status(409).json({ error: 'This account is disabled. Enable it first.' });
         const credential = await newTemporaryCredential();
         await target.update({ ...credential.fields, failed_attempts: 0, locked_until: null });
         await auditChange(req, 'USER_PASSWORD_RESET', target, {});

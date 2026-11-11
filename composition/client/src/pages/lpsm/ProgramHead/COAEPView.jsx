@@ -1,12 +1,12 @@
 import Select from '../../../components/Select.jsx'
 import { useEffect, useState } from 'react';
-import { Eye, FileText } from 'react-feather';
+import { Download, Eye, FileText } from 'react-feather';
 import SkeletonA from '../../../layouts/SkeletonA.jsx';
 import HeaderA from '../../../components/HeaderA.jsx';
 import SideNavigation from '../../../components/SideNavigation.jsx';
 import PDFViewerModal from '../../../components/PDFViewerModal.jsx';
 import CourseDocumentBar from '../../../components/CourseDocumentBar.jsx';
-import { openCourseDocument } from '../../../utils/courseDocuments.js';
+import { downloadFromApi, openCourseDocument } from '../../../utils/courseDocuments.js';
 import EmptyState from '../../../components/EmptyState.jsx';
 import HeadBodyTable from '../../../components/HeadBodyTable.jsx';
 import { Loading, TableSkeleton } from '../../../components/LoadingSkeleton.jsx';
@@ -80,14 +80,30 @@ const COAEPView = ({ tabs = null }) => {
     return () => { active = false; };
   }, [courseCode, offeringId]);
 
+  // An uploaded Excel file, read by the server, stands in for the outcomes from the plan (the plan's status stays).
+  const sheet = uploaded?.parsed?.cos || null;
   const generatedRecord = buildGeneratedCoaepRecord({
     courseCode,
     courseName: course?.name,
-    payload: serverCoaep || null,
+    payload: sheet ? { ...(serverCoaep || {}), cos: sheet } : (serverCoaep || null),
   });
 
+  // The same COAEP as the PDF, as an Excel file in the form's layout (server: utils/coaepWorkbook.js).
+  const exportExcel = async () => {
+    if (!generatedRecord) return;
+    setError('');
+    try {
+      const formInfo = await fetchFormInfo();
+      const fileName = `${courseCode}_COAEP${generatedRecord.approved ? '' : '_DRAFT'}`;
+      await downloadFromApi('/api/course-documents/export/coaep', `${fileName}.xlsx`,
+        { record: { ...generatedRecord, docControlNo: formInfo?.coaep?.docControlNo }, fileName });
+    } catch {
+      setError('The Excel file could not be made.');
+    }
+  };
+
   const viewGeneratedCoaep = async () => {
-    if (uploaded) { openCourseDocument(offeringId, 'coaep', uploaded).catch(() => setError('The uploaded file could not be opened.')); return; }
+    if (uploaded && !sheet) { openCourseDocument(offeringId, 'coaep', uploaded).catch(() => setError('The uploaded file could not be opened.')); return; }
     if (!generatedRecord) return;
     const logoUrl = new URL(unclogo, window.location.origin).href;
     const formInfo = await fetchFormInfo();
@@ -120,6 +136,11 @@ const COAEPView = ({ tabs = null }) => {
             {tabs || <h2 className="app-page-title">Course Assessment &amp; Evaluation Plan (COAEP)</h2>}
             {(generatedRecord || uploaded) && (
               <div className={pageStyles.pageHeaderActions}>
+                {generatedRecord && (
+                  <button type="button" className="btn btn-secondary" onClick={exportExcel}>
+                    <Download size={16} /> Export Excel
+                  </button>
+                )}
                 <button type="button" className="btn btn-primary" onClick={viewGeneratedCoaep}>
                   <Eye size={16} /> Preview / Export
                 </button>
@@ -185,13 +206,13 @@ const COAEPView = ({ tabs = null }) => {
             <EmptyState
               icon={<FileText size={22} strokeWidth={1.6} />}
               title="No course is assigned in your program yet"
-              hint="Its COAEP appears here once an assigned course has a learning plan with course outcomes."
+              hint="Appears once a learning plan has course outcomes."
             />
           ) : (
             <EmptyState
               icon={<FileText size={22} strokeWidth={1.6} />}
               title="No generated COAEP for this course yet"
-              hint="COAEP is generated from the course learning plan after it contains course outcomes, intended learning outcomes, and assessment tools."
+              hint="Appears once the learning plan has course outcomes, ILOs and assessments."
             />
           )}
 

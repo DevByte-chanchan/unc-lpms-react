@@ -1,18 +1,40 @@
 import React, { useState } from 'react'
-import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, MessageSquare, Check } from 'react-feather'
+import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, MessageSquare, Check, Crosshair } from 'react-feather'
 import EmptyState from './EmptyState.jsx'
+import Select from './Select.jsx'
 import styles from '../styles/ApprovalSyllabusSections.module.sass'
-import { parseApprovalCommentDisplay, compactCommentIlo, reviewerRoleLabel } from '../utils/reviewGate.js'
+import { parseApprovalCommentDisplay, compactCommentIlo, reviewerRoleLabel, commentTypeMeta } from '../utils/reviewGate.js'
+
+// 'REYES, AGNES' or 'Agnes Reyes' -> 'AR'.
+const initials = (name = '') => {
+  const [last, first] = String(name).split(',').map(p => p.trim())
+  const parts = first ? [first, last] : String(name).trim().split(/\s+/)
+  return parts.filter(Boolean).slice(0, 2).map(p => p[0].toUpperCase()).join('')
+}
 
 // The comments panel beside a learning plan: the approvers' review page and the instructor's plan page share it.
 // It shows exactly the comments it is given (the server decides who may read which), open ones first, with an
-// All / Open / Resolved switch, and folds away to a thin rail.
+// All / Open / Resolved switch and a who-wrote-it filter, and folds away to a thin rail. A plan reviewed more than
+// once groups its comments by review round, newest first ("Return 2" before "Return 1", as on
+// feature/learning-plan-composition), so the latest asks are read first.
 //
 //   comments       panel comments (utils/serverComments.js toPanelComments)
 //   iloLabels      optional { 'CO2-W3': 'CO2 · Week 7' } from the plan's coverage; a comment's own label is used otherwise
 //   emptyHint      what to say when there are no comments yet
 //   canResolve     (comment) => whether this viewer may mark it resolved; onResolve(id) does it
 //   canShowInPlan  (comment) => whether "Show in plan" applies; onShowInPlan(comment) does it
+// The server names a topic target "Topic: Subtopic", one per subtopic; show each topic once with its subtopics under it.
+const groupTopicTargets = (details) => {
+  const groups = []
+  for (const detail of details) {
+    const at = detail.indexOf(': ')
+    const [head, sub] = at > 0 ? [detail.slice(0, at), detail.slice(at + 2)] : [detail, null]
+    const group = groups.find(g => g.head === head)
+    if (group) { if (sub) group.subs.push(sub) } else groups.push({ head, subs: sub ? [sub] : [] })
+  }
+  return groups
+}
+
 const CommentsSidebar = ({
   comments = [],
   iloLabels = {},
@@ -26,6 +48,7 @@ const CommentsSidebar = ({
   panelId = 'comments-panel'
 }) => {
   const [commentFilter, setCommentFilter] = useState('all')
+  const [roleFilter, setRoleFilter] = useState('all')
   const [expandedComments, setExpandedComments] = useState(() => new Set())
   const toggleComment = (id) => setExpandedComments(prev => {
     const next = new Set(prev)
@@ -35,11 +58,24 @@ const CommentsSidebar = ({
 
   // Open ones first (newest first within each group), filtered by the switch.
   const resolvedCount = comments.filter(c => c.resolved).length
+  // Who wrote them, with how many (and how many still open) each.
+  const roles = [...new Set(comments.map(c => c.role).filter(Boolean))].map(role => ({
+    role, total: comments.filter(c => c.role === role).length, open: comments.filter(c => c.role === role && !c.resolved).length
+  }))
   const listedComments = comments
     .filter(c => commentFilter === 'all' || (commentFilter === 'open' ? !c.resolved : c.resolved))
+    .filter(c => roleFilter === 'all' || c.role === roleFilter)
     .slice()
     .sort((a, b) => (Number(Boolean(a.resolved)) - Number(Boolean(b.resolved)))
       || (new Date(b.createdAt || b.submittedAt || 0) - new Date(a.createdAt || a.submittedAt || 0)))
+  // By review round, newest first; one group without a heading when the plan has had a single review.
+  const roundOf = (c) => c.round || 1
+  const groups = [...new Set(listedComments.map(roundOf))].sort((a, b) => b - a).map(round => ({
+    round,
+    returned: listedComments.some(c => roundOf(c) === round && c.roundReturned),
+    items: listedComments.filter(c => roundOf(c) === round),
+  }))
+  const showRounds = new Set(comments.map(roundOf)).size > 1
 
   return (
     <div className={styles['comments-shell']} data-collapsed={collapsed}>
@@ -67,7 +103,7 @@ const CommentsSidebar = ({
           <div style={{
             display: 'flex', alignItems: 'center', gap: 10,
             padding: '16px 20px',
-            background: '#f8fafc',
+            background: '#fff',
             borderBottom: '1px solid #e0e4ec'
           }}>
             <MessageSquare size={18} color="#475569" />
@@ -86,6 +122,16 @@ const CommentsSidebar = ({
                   className={`${styles.commentFilterBtn} ${commentFilter === key ? styles.commentFilterOn : ''}`}
                   onClick={() => setCommentFilter(key)}>{label}</button>
               ))}
+              {roles.length > 1 && (
+                <div className={styles.commentRoleFilter}>
+                <Select block value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)} aria-label="Comments from">
+                  <option value="all">Everyone ({comments.length})</option>
+                  {roles.map(r => (
+                    <option key={r.role} value={r.role}>{reviewerRoleLabel(r.role)} ({r.total}{r.open ? `, ${r.open} open` : ''})</option>
+                  ))}
+                </Select>
+                </div>
+              )}
             </div>
           )}
 
@@ -100,13 +146,23 @@ const CommentsSidebar = ({
               />
             ) : (
               <div className={styles.commentsList}>
-                {listedComments.map((comment) => {
+                {groups.map(group => (
+                <React.Fragment key={group.round}>
+                {showRounds && (
+                  <div className={styles.commentRound}>
+                    {group.returned ? `Review ${group.round} · sent back` : `Review ${group.round} · current`}
+                    <span>{group.items.length} comment{group.items.length === 1 ? '' : 's'}</span>
+                  </div>
+                )}
+                {group.items.map((comment) => {
                   const coverageType = comment.coverageType || ''
                   const details = Array.isArray(comment.coverageDetail)
                     ? comment.coverageDetail.filter(Boolean)
                     : (comment.coverageDetail ? [comment.coverageDetail] : [])
                   const display = parseApprovalCommentDisplay(comment.comment, comment.suggestedRefs)
                   const compactIlo = compactCommentIlo(iloLabels[comment.ilo] || comment.iloLabel || comment.ilo, comment.courseOutcome)
+                  const where = [comment.courseOutcome, compactIlo].filter(Boolean).join(' · ')
+                  const type = comment.commentType ? commentTypeMeta(comment.commentType) : {}
                   const roleLabel = reviewerRoleLabel(comment.role)
                   const submittedAt = comment.createdAt || comment.submittedAt
                   const text = display.body || 'No written comment provided.'
@@ -117,34 +173,43 @@ const CommentsSidebar = ({
                       key={comment.id}
                       className={`${styles.commentCard} ${comment.resolved ? styles.commentCardResolved : ''}`}
                     >
-                      <header className={styles.commentCardHeader}>
-                        <div className={styles.commentContext} aria-label="Comment context">
-                          {comment.courseOutcome && <span>{comment.courseOutcome}</span>}
-                          {comment.courseOutcome && compactIlo && <span className={styles.contextSeparator}>›</span>}
-                          {compactIlo && <span>{compactIlo}</span>}
+                      {/* Who wrote it, and whether it is still open. */}
+                      <header className={styles.commentWho}>
+                        <span className={styles.commentAvatar} aria-hidden="true">{initials(comment.reviewer || roleLabel)}</span>
+                        <div className={styles.commentAuthor}>
+                          <strong>{comment.reviewer || 'Reviewer'}</strong>
+                          <small>
+                            {roleLabel}
+                            {submittedAt && <> · <time dateTime={submittedAt} title={new Date(submittedAt).toLocaleString()}>{new Date(submittedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</time></>}
+                          </small>
                         </div>
-                        <div className={styles.commentStatusArea}>
-                          <span className={`${styles.commentStatus} ${comment.resolved ? styles.statusResolved : styles.statusPending}`}>
-                            {comment.resolved ? 'Resolved' : 'Open'}
-                          </span>
-                          {!comment.resolved && canResolve(comment) && (
-                            <button type="button" className={styles.resolveCommentButton} onClick={() => onResolve(comment.id)}>
-                              <Check size={13} /> Mark resolved
-                            </button>
-                          )}
-                        </div>
+                        <span className={`${styles.commentStatus} ${comment.resolved ? styles.statusResolved : styles.statusPending}`}>
+                          {comment.resolved ? <Check size={12} aria-hidden="true" /> : <span className={styles.statusDot} aria-hidden="true" />}
+                          {comment.resolved ? 'Resolved' : 'Open'}
+                        </span>
                       </header>
 
-                      {(coverageType || details.length > 0) && (
-                        <div className={styles.commentTarget}>
-                          <span className={styles.commentTargetLabel}>{coverageType || 'Target'}</span>
-                          <div className={styles.commentTargetValues}>
-                            {details.length > 0
-                              ? details.map((detail, index) => (
-                                  <span key={`${detail}-${index}`} title={detail}>{detail}</span>
-                                ))
-                              : <span>{coverageType}</span>}
-                          </div>
+                      {/* What kind of comment, and exactly what in the plan it is about. */}
+                      {(type.label || where) && (
+                        <div className={styles.commentTags}>
+                          {type.label && <span className={`${styles.commentKind} ${type.actionable ? styles.commentKindAsk : ''}`}>{type.label}</span>}
+                          {where && <span className={styles.commentWhere}>{where}{coverageType && ` · ${coverageType}`}</span>}
+                        </div>
+                      )}
+                      {details.length > 0 && (
+                        <div className={styles.commentAbout}>
+                          {details.length > 0 && (
+                            <ul className={styles.commentTargets}>
+                              {coverageType === 'Topic'
+                                ? groupTopicTargets(details).map(g => (
+                                    <li key={g.head}>
+                                      {g.head}
+                                      {g.subs.length > 0 && <ul>{g.subs.map(sub => <li key={sub}>{sub}</li>)}</ul>}
+                                    </li>
+                                  ))
+                                : details.map((detail, index) => <li key={`${detail}-${index}`}>{detail}</li>)}
+                            </ul>
+                          )}
                         </div>
                       )}
 
@@ -171,32 +236,30 @@ const CommentsSidebar = ({
                         </div>
                       )}
 
-                      <footer className={styles.commentMeta}>
-                        <span>{roleLabel}</span>
-                        <span aria-hidden="true">·</span>
-                        <span>{comment.reviewer || 'Reviewer'}</span>
-                        {submittedAt && (
-                          <>
-                            <span aria-hidden="true">·</span>
-                            <time dateTime={submittedAt}>
-                              {new Date(submittedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                            </time>
-                          </>
-                        )}
-                        {comment.resolvedAt && (
-                          <span className={styles.resolvedDate}>
-                            Fixed {new Date(comment.resolvedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-                          </span>
-                        )}
-                        {canShowInPlan(comment) && (
-                          <button type="button" className={styles.commentJump} onClick={() => onShowInPlan(comment)}>
-                            Show in plan <ChevronRight size={13} aria-hidden="true" />
-                          </button>
-                        )}
-                      </footer>
+                      {(comment.resolvedAt || canResolve(comment) || canShowInPlan(comment)) && (
+                        <footer className={styles.commentMeta}>
+                          {comment.resolvedAt && (
+                            <span className={styles.resolvedDate}>
+                              <Check size={12} aria-hidden="true" /> Resolved {new Date(comment.resolvedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                            </span>
+                          )}
+                          {!comment.resolved && canResolve(comment) && (
+                            <button type="button" className={styles.resolveCommentButton} onClick={() => onResolve(comment.id)}>
+                              <Check size={13} /> Mark resolved
+                            </button>
+                          )}
+                          {canShowInPlan(comment) && (
+                            <button type="button" className={styles.commentJump} onClick={() => onShowInPlan(comment)}>
+                              <Crosshair size={13} aria-hidden="true" /> Show in plan
+                            </button>
+                          )}
+                        </footer>
+                      )}
                     </article>
                   )
                 })}
+                </React.Fragment>
+                ))}
               </div>
             )}
           </div>

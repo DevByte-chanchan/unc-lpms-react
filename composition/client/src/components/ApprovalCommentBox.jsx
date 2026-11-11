@@ -10,6 +10,7 @@ import { isReferenceDeprecated } from '../utils/referenceDiscovery.js'
 import { getCatalogSettings } from '../utils/referenceCatalog.js'
 import { COMMENT_TYPES, commentTypeMeta } from '../utils/reviewGate.js'
 import DropdownMultiSelect from './DropdownMultiSelect.jsx'
+import { subtopicChoices, topicTargets } from '../utils/commentTargets.js'
 import useDialogFocus from '../utils/useDialogFocus.js'
 
 // coverageDetail may be an array (multi-select) or a legacy string — this reports whether anything is selected
@@ -34,6 +35,8 @@ const defaultComment = (mode) => ({
   courseOutcome: '',
   ilo: '',
   coverageDetail: [],
+  // Topic comments: the picked topics' subtopics this comment narrows to (none: the whole topics).
+  subtopics: [],
   commentedRefId: '',
   // "pwede syang mag-suggest ng TLA... ng topic... ng AI tools" [48:30] — the
   // instructor gets a labelled, actionable suggestion, not free text only.
@@ -88,6 +91,10 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
 
   const resolvedIlos = (ilos && ilos.length) ? ilos : []
   const iloLabel = (id) => iloLabels[id] || id
+
+  // The chosen week's subtopics, by topic title.
+  const weekSubtopics = (c) => coverageEntries.find(e => e.id === c.ilo)?.subtopics || {}
+  const pickedTopics = (c) => (Array.isArray(c.coverageDetail) ? c.coverageDetail : (c.coverageDetail ? [c.coverageDetail] : []))
 
   // What a comment can target: only the topics, TLAs or references of the chosen week (all of the plan's when the
   // week's own list is not known).
@@ -191,17 +198,26 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
         if (c.id !== commentId) return c
         const allowedIlos = coToIlos[courseOutcome] || resolvedIlos
         const nextIlo = allowedIlos.includes(c.ilo) ? c.ilo : ''
-        return { ...c, courseOutcome, ilo: nextIlo, coverageType: '', coverageDetail: [] }
+        return { ...c, courseOutcome, ilo: nextIlo, coverageType: '', coverageDetail: [], subtopics: [] }
       })
     )
   }
 
   const updateCommentCoverageType = (commentId, coverageType) => {
-    setComments((prev) => prev.map((c) => (c.id === commentId ? { ...c, coverageType, coverageDetail: [] } : c)))
+    setComments((prev) => prev.map((c) => (c.id === commentId ? { ...c, coverageType, coverageDetail: [], subtopics: [] } : c)))
   }
 
   const updateCommentCoverageDetail = (commentId, coverageDetail) => {
-    setComments((prev) => prev.map((c) => (c.id === commentId ? { ...c, coverageDetail } : c)))
+    setComments((prev) => prev.map((c) => {
+      if (c.id !== commentId) return c
+      // A subtopic stays picked only while its topic is.
+      const still = subtopicChoices(weekSubtopics(c), Array.isArray(coverageDetail) ? coverageDetail : [coverageDetail])
+      return { ...c, coverageDetail, subtopics: (c.subtopics || []).filter(sub => still.includes(sub)) }
+    }))
+  }
+
+  const updateCommentSubtopics = (commentId, subtopics) => {
+    setComments((prev) => prev.map((c) => (c.id === commentId ? { ...c, subtopics } : c)))
   }
 
   const updateCommentIlo = (commentId, ilo) => {
@@ -374,7 +390,10 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
     submitComments({
       courseOutcome: filledComments.find((c) => c.courseOutcome)?.courseOutcome || null,
       ilo: filledComments.find((c) => c.ilo)?.ilo || null,
-      comments: filledComments,
+      // A topic comment with subtopics picked targets those subtopics instead of the whole topics.
+      comments: filledComments.map(c => (c.coverageType === 'Topic' && c.subtopics?.length
+        ? { ...c, coverageDetail: topicTargets(pickedTopics(c), c.subtopics, weekSubtopics(c)) }
+        : c)),
       commentedReferences: commentedRefIds,
       suggestedReferences: selectedRefs,
       createdAt: new Date().toISOString()
@@ -461,7 +480,7 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
               <EmptyState
                 icon={<MessageSquare size={22} strokeWidth={1.6} />}
                 title="No comments recorded"
-                hint="Nothing has been raised on this learning plan yet. Comments left by reviewers appear here in the order they were made."
+                hint="Reviewer comments appear here."
               />
             )
           ) : isDirector ? (
@@ -623,6 +642,20 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
                             />
                             {!c.coverageType && <span className={styles.fieldHint}>Pick a coverage type first.</span>}
                           </div>
+
+                          {c.coverageType === 'Topic' && subtopicChoices(weekSubtopics(c), pickedTopics(c)).length > 0 && (
+                            <div className={styles.field}>
+                              <label className={styles.label}>Subtopics (optional)</label>
+                              <DropdownMultiSelect
+                                style={{ padding: 0, width: '100%' }}
+                                placeholder="The whole topic"
+                                value={c.subtopics || []}
+                                onChange={(vals) => updateCommentSubtopics(c.id, vals)}
+                                options={subtopicChoices(weekSubtopics(c), pickedTopics(c))}
+                              />
+                              <span className={styles.fieldHint}>Leave empty for the whole topic.</span>
+                            </div>
+                          )}
                         </div>
 
                         <div className={styles.field} style={{ marginBottom: 14 }}>

@@ -17,6 +17,7 @@ const SECTIONS = Object.freeze([
         items: [
             'Your name, institutional e-mail address and role.',
             'Your password, stored only as a salted one-way hash. Nobody, including administrators, can read it.',
+            'If you upload one, your e-signature image, stored encrypted. It is shown back only to you, and printed only on exports of learning plans you prepared or approved.',
             'Records of what you do: signing in and out, password changes, account changes made by an administrator, the learning plans you submit, review, approve or return, and the comments you write, each with your name, role and the time.',
             'Notifications addressed to you.'
         ]

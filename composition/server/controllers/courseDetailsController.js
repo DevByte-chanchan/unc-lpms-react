@@ -64,7 +64,11 @@ async function getCourseDetailsByPcOffering(req, res) {
             semester: pco.semester,
             carriedOver: !!pco.carried_from_offering_id,
             year: course ? course.year_lvl : '',
-            sem: course ? course.term : ''
+            // The plan's own term ("1st Semester SY 2026-2027"); the catalog's fixed text only for an offering without one.
+            // course.term is one text for every term of the course, so every plan showed the same school year.
+            sem: pco.school_year
+                ? `${pco.semester === 'Summer' ? 'Summer' : `${pco.semester} Semester`} SY ${pco.school_year}`
+                : (course ? course.term : '')
         };
 
         return res.json(response);

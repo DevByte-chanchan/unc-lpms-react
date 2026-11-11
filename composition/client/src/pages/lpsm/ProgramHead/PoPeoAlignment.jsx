@@ -1,14 +1,14 @@
 import Select from '../../../components/Select.jsx'
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Eye, Edit3, Check, X, Plus, Trash2, Upload, Download, FileText } from 'react-feather';
+import { Eye, Edit3, Check, X, Plus, Trash2, Upload } from 'react-feather';
+import { DocumentBar, TemplateButton } from '../../../components/CourseDocumentBar.jsx';
 import SkeletonA from '../../../layouts/SkeletonA.jsx';
 import HeaderA from '../../../components/HeaderA.jsx';
 import SideNavigation from '../../../components/SideNavigation.jsx';
 import PDFViewerModal from '../../../components/PDFViewerModal.jsx';
 import { buildPoPeoHtml } from '../../../utils/syllabusPdfHtml.js';
-import { fetchJson, apiErrorMessage, API_BASE } from '../../../utils/api.js';
+import { fetchJson, apiErrorMessage } from '../../../utils/api.js';
 import { fetchFrontPages, countPdfPages } from '../../../utils/frontPages.js';
-import { actingRole } from '../../../utils/session.js';
 import unclogo from '../../../assets/unclogo.png';
 import cc from '../../../styles/SyllabusPreview.module.sass';
 import tbl from '../../../styles/AlignmentTables.module.sass';
@@ -160,21 +160,6 @@ const PoPeoAlignment = ({ tabs = null, view = 'outcomes' }) => {
     }
   }
 
-  const downloadTemplate = async () => {
-    try {
-      const role = actingRole()
-      const res = await fetch(`${API_BASE}/api/program-outcomes/template.xlsx`, { credentials: 'include', headers: role ? { 'X-LPMS-Role': role } : {} })
-      if (!res.ok) throw new Error(`HTTP ${res.status}`)
-      const link = document.createElement('a')
-      link.href = URL.createObjectURL(await res.blob())
-      link.download = 'PO-PEO-template.xlsx'
-      link.click()
-      setTimeout(() => URL.revokeObjectURL(link.href), 10000)
-    } catch {
-      setError('The template could not be downloaded.')
-    }
-  }
-
   const rows = editing ? draft : data
   const peos = rows?.peos || []
   const outcomes = rows?.outcomes || []
@@ -234,18 +219,9 @@ const PoPeoAlignment = ({ tabs = null, view = 'outcomes' }) => {
           {!editing ? (
             <>
               {data?.canEdit && (
-                <>
-                  <input ref={importRef} type="file" accept=".xlsx,.xls" hidden aria-label="PO and PEO spreadsheet" onChange={e => importSheet(e.target.files?.[0])} />
-                  <button type="button" className="btn btn-secondary" onClick={downloadTemplate} title="The spreadsheet layout to fill in">
-                    <Download size={16} /> Template
-                  </button>
-                  <button type="button" className="btn btn-secondary" onClick={() => importRef.current?.click()} disabled={busy}>
-                    <Upload size={16} /> Import spreadsheet
-                  </button>
-                  <button type="button" className="btn btn-secondary" onClick={startEdit}>
-                    <Edit3 size={16} /> Edit
-                  </button>
-                </>
+                <button type="button" className="btn btn-secondary" onClick={startEdit}>
+                  <Edit3 size={16} /> Edit
+                </button>
               )}
               <button type="button" className="btn btn-primary" onClick={handleView} disabled={!data}>
                 <Eye size={16} /> Preview / Export
@@ -270,13 +246,20 @@ const PoPeoAlignment = ({ tabs = null, view = 'outcomes' }) => {
           </Select>
       </div>
 
+      {data && !frontView && data.canEdit && (
+        <DocumentBar label="PO and PEO spreadsheet" status={editing ? 'read into the editor — check it, then Save.' : 'import an Excel file to fill the tables below, then check and Save.'}>
+          <TemplateButton path="/api/program-outcomes/template.xlsx" name="PO-PEO-template.xlsx" onError={setError} />
+          <input ref={importRef} type="file" accept=".xlsx,.xls" hidden aria-label="PO and PEO spreadsheet" onChange={e => importSheet(e.target.files?.[0])} />
+          <button type="button" className="btn btn-secondary btn-sm" onClick={() => importRef.current?.click()} disabled={busy || editing}>
+            <Upload size={14} /> Upload Excel
+          </button>
+        </DocumentBar>
+      )}
+
       {data && frontView && (
-        <div className={pageStyles.contextBar} style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-          <FileText size={16} aria-hidden="true" />
-          <span>
-            Front pages (University, Program and PEOs, POs and PEOs):{' '}
-            {front === undefined ? 'checking…' : front ? `uploaded PDF, ${front.pages} page${front.pages === 1 ? '' : 's'} — learning plan exports start with it.` : 'none uploaded — exports use the generated pages.'}
-          </span>
+        <DocumentBar label="Front pages (University, Program and PEOs, POs and PEOs)" status={
+          front === undefined ? 'checking…' : front ? `uploaded PDF, ${front.pages} page${front.pages === 1 ? '' : 's'} — learning plan exports start with it.` : 'none uploaded — exports use the generated pages.'
+        }>
           {front && <button type="button" className="btn btn-secondary btn-sm" onClick={viewFront}>View</button>}
           {data.canEdit && (
             <>
@@ -287,7 +270,7 @@ const PoPeoAlignment = ({ tabs = null, view = 'outcomes' }) => {
               {front && <button type="button" className="btn btn-danger-outline btn-sm" disabled={busy || editing} onClick={removeFront}>Remove</button>}
             </>
           )}
-        </div>
+        </DocumentBar>
       )}
 
       {error && <div role="alert" className={styles.alert}>{error}</div>}
