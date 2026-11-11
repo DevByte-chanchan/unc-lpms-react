@@ -50,7 +50,8 @@ test('official courses carry each person and their sections', () => {
   ]);
   const unmatched = buildOfficialCourses(COURSES, OFFERINGS, FACULTY)[2].people[0];
   assert.equal(unmatched.matched, false);
-  assert.equal(unmatched.faculty_name, 'REYES AGNES');
+  assert.equal(unmatched.faculty_name, 'Reyes Agnes');      // shown in normal case
+  assert.equal(unmatched.registrar_name, 'REYES AGNES');
 });
 
 const pre = (code, lead, contributors = []) => ({
@@ -82,7 +83,7 @@ test('the five cases', () => {
 
   assert.equal(by.BIT999L.case, 'new');
   assert.equal(by.BIT999L.proposed.lead, null);
-  assert.deepEqual(by.BIT999L.proposed.contributors.map((p) => p.faculty_name), ['REYES AGNES']);
+  assert.deepEqual(by.BIT999L.proposed.contributors.map((p) => p.faculty_name), ['Reyes Agnes']);
 });
 
 test('extra official people → differs, add as Contributors, Lead kept', () => {

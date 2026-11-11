@@ -21,6 +21,7 @@
  *   new          in the official list, not pre-assigned
  */
 import { samePerson } from './schoolEmail.js';
+import { displayName } from './nameCase.js';
 
 const HONORIFICS = new Set(['dr', 'engr', 'mr', 'ms', 'mrs', 'prof', 'atty', 'sir', 'maam']);
 const cleanWord = (w) => String(w).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z]/g, '');
@@ -110,7 +111,7 @@ export function buildOfficialCourses(courses, offerings, faculty) {
       const f = matchFacultyName(raw, faculty);
       const entry = {
         faculty_id: f ? f.id : null,
-        faculty_name: f ? f.name : raw,
+        faculty_name: f ? f.name : displayName(raw),
         registrar_name: raw,
         matched: !!f,
         sections: [...(m.get(raw) || [])].sort(),

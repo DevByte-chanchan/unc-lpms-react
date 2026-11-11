@@ -18,6 +18,7 @@ import React from 'react';
 import { Upload, AlertTriangle, CheckCircle } from 'react-feather';
 import DialogShell from './DialogShell.jsx';
 import { CourseOfferingAssignmentsAPI } from '../services/api.js';
+import { displayName } from '../utils/nameCase.js';
 
 const GROUPS = [
   { key: 'differs',     title: 'Differs',     hint: 'The official list has different people.' },
@@ -26,7 +27,7 @@ const GROUPS = [
   { key: 'confirmed',   title: 'Confirmed',   hint: 'Matches the official list — marked Confirmed (official) on Apply.' },
 ];
 
-const names = (list) => (list || []).map((p) => p.faculty_name).filter(Boolean).join(', ');
+const names = (list) => (list || []).map((p) => displayName(p.faculty_name)).filter(Boolean).join(', ');
 const defaultAction = (row) => {
   if (row.case === 'not_offered') return 'keep';
   if (row.no_official_faculty) return 'skip';
@@ -61,7 +62,7 @@ function suggestion(row) {
   if (row.add.length) parts.push('Add as Contributors: ' + names(row.add) + '.');
   const removedOthers = row.remove.filter((p) => !(row.lead_removed && row.current.lead && p.faculty_name === row.current.lead.faculty_name));
   if (removedOthers.length) parts.push('Remove: ' + names(removedOthers) + '.');
-  if (row.lead_removed) parts.push('The Lead, ' + row.current.lead.faculty_name + ", isn't in the official list — pick a new Lead.");
+  if (row.lead_removed) parts.push('The Lead, ' + displayName(row.current.lead.faculty_name) + ", isn't in the official list — pick a new Lead.");
   else if (!row.current.lead) parts.push('No Lead yet — pick one from the official faculty.');
   return parts.join(' ');
 }
@@ -80,7 +81,7 @@ function CourseRow({ row, decision, onChange }) {
           </div>
           {row.case !== 'new' && (
             <div style={{ fontSize: 12, color: '#374151', marginTop: 2 }}>
-              <span style={{ color: '#6B7280' }}>Pre-assigned:</span> Lead {row.current.lead ? row.current.lead.faculty_name : '—'}
+              <span style={{ color: '#6B7280' }}>Pre-assigned:</span> Lead {row.current.lead ? displayName(row.current.lead.faculty_name) : '—'}
               {row.current.contributors.length > 0 && <> · Contributors {names(row.current.contributors)}</>}
             </div>
           )}
@@ -90,7 +91,7 @@ function CourseRow({ row, decision, onChange }) {
               {row.official.map((p, i) => (
                 <span key={p.registrar_name || i}>
                   {i > 0 && ', '}
-                  <span title={p.matched ? '' : 'Not in this term’s faculty list'} style={{ color: p.matched ? undefined : '#B45309' }}>{p.faculty_name}</span>
+                  <span title={p.matched ? '' : 'Not in this term’s faculty list'} style={{ color: p.matched ? undefined : '#B45309' }}>{displayName(p.faculty_name)}</span>
                   {p.sections.length > 0 && <span style={{ color: '#9CA3AF' }}> ({p.sections.join(', ')})</span>}
                 </span>
               ))}
@@ -108,7 +109,7 @@ function CourseRow({ row, decision, onChange }) {
                 onChange={(e) => onChange({ ...decision, lead_name: e.target.value || null, action: e.target.value ? 'accept' : action })}
                 style={{ height: 30, fontSize: 12.5, borderRadius: 6, border: '1px solid ' + (missingLead ? '#DC2626' : '#D1D5DB'), padding: '0 6px', width: '100%' }}>
                 <option value="">{needsPick ? 'Pick a Lead…' : 'No Lead yet'}</option>
-                {row.official.map((p) => <option key={p.faculty_name} value={p.faculty_name}>{p.faculty_name}</option>)}
+                {row.official.map((p) => <option key={p.faculty_name} value={p.faculty_name}>{displayName(p.faculty_name)}</option>)}
               </select>
             )}
             {missingLead && <span style={{ fontSize: 11, color: '#DC2626' }}>Pick a Lead to accept</span>}
@@ -223,7 +224,7 @@ export default function OfficialCompareModal({ open, onClose, periodId, programI
               <button type="button" onClick={() => setShowUnmatched((v) => !v)} style={{ background: 'none', border: 'none', padding: 0, color: '#92400E', textDecoration: 'underline', fontSize: 12.5, cursor: 'pointer' }}>
                 {showUnmatched ? 'Hide names' : 'Show names'}
               </button>
-              {showUnmatched && <span style={{ display: 'block', marginTop: 4 }}>{result.unmatched.join(', ')}</span>}
+              {showUnmatched && <span style={{ display: 'block', marginTop: 4 }}>{result.unmatched.map(displayName).join(', ')}</span>}
             </span>
           </div>
         )}

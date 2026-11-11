@@ -5,9 +5,10 @@
 import React from 'react';
 import { CourseOfferingAssignmentsAPI } from '../services/api.js';
 import { fmtDayTime } from '../services/assignmentTracking.js';
+import { displayName } from '../utils/nameCase.js';
 
 const SOURCE_LABEL = { manual: 'manual', upload: 'upload', undo: 'undo', official_match: 'official match' };
-const nameOf = (p) => (p && p.faculty_name) || null;
+const nameOf = (p) => (p && displayName(p.faculty_name)) || null;
 const personKey = (p) => String((p && p.faculty_name) || (p && p.faculty_id) || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 
 function describeEntry(e) {
@@ -58,7 +59,7 @@ const deltaChip = (c, added) => (
     background: added ? '#DCFCE7' : '#FEE2E2', color: added ? '#166534' : '#991B1B',
     border: '1px solid ' + (added ? '#BBF7D0' : '#FECACA'), textDecoration: added ? 'none' : 'line-through',
   }}>
-    {added ? '+ ' : '− '}{c.faculty_name}
+    {added ? '+ ' : '− '}{displayName(c.faculty_name)}
   </span>
 );
 

@@ -412,7 +412,7 @@ const PDFViewerModal = ({ file, kind, onClose, eyebrow, details, actions, initia
         className={styles.modal + ' ' + (fullscreen ? styles.fullscreen : styles.windowed)}
         style={{ zIndex: 101 }}
       >
-        <div className={styles.header}>
+        <div className={styles.header + (docs.length > 1 ? ' ' + styles.headerTabs : '')}>
           <div className={styles.titleBlock}>
             <div className={styles.kicker}>{kicker}</div>
             <div className={styles.title} title={title}>{title}</div>

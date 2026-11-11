@@ -27,6 +27,7 @@ import EditEntityModal from "../components/EditEntityModal.jsx";
 import ConfirmModal from "../components/ConfirmModal.jsx";
 import ViewArchivedButton from "../components/ViewArchivedButton.jsx";
 import UndoUploadButton from "../components/UndoUploadButton.jsx";
+import { displayName } from "../utils/nameCase.js";
 import UploadPreviewFlow from "../components/UploadPreviewFlow.jsx";
 import DialogShell from "../components/DialogShell.jsx";
 import RowActionsMenu from "../components/RowActionsMenu.jsx";
@@ -551,8 +552,8 @@ const ProgramHeadCourseAssignment = () => {
                   <td width={170} style={{ flex: '1 1 auto', minWidth: 140 }}>
                     {row.faculty_name ? (
                       <span style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'flex-start', minWidth: 0, maxWidth: '100%' }}>
-                        <span title={row.faculty_name} style={{ display: 'inline-flex', alignItems: 'center', maxWidth: '100%', padding: '2px 9px', borderRadius: 9999, fontSize: 12, color: '#0F172A', background: '#F1F5F9', border: '1px solid #E2E8F0' }}>
-                          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.faculty_name}</span>
+                        <span title={displayName(row.faculty_name)} style={{ display: 'inline-flex', alignItems: 'center', maxWidth: '100%', padding: '2px 9px', borderRadius: 9999, fontSize: 12, color: '#0F172A', background: '#F1F5F9', border: '1px solid #E2E8F0' }}>
+                          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{displayName(row.faculty_name)}</span>
                         </span>
                         <SectionsLine sections={sectionsFor(row, { faculty_id: row.faculty_id, faculty_name: row.faculty_name })} />
                       </span>
@@ -571,14 +572,14 @@ const ProgramHeadCourseAssignment = () => {
                         <span style={{ display: 'inline-flex', flexWrap: 'wrap', gap: 4, alignItems: 'center' }}>
                           {shown.map((c, i) => (
                             <span key={(c && c.faculty_id) || c.faculty_name || i} style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'flex-start', minWidth: 0, maxWidth: 130 }}>
-                              <span title={c.faculty_name} style={chip}>
-                                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.faculty_name}</span>
+                              <span title={displayName(c.faculty_name)} style={chip}>
+                                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{displayName(c.faculty_name)}</span>
                               </span>
                               <SectionsLine sections={sectionsFor(row, c)} />
                             </span>
                           ))}
                           {extra > 0 && (
-                            <span title={list.slice(2).map((c) => c.faculty_name).join(', ')} style={{ ...chip, fontWeight: 600, color: '#475569' }}>+{extra}</span>
+                            <span title={list.slice(2).map((c) => displayName(c.faculty_name)).join(', ')} style={{ ...chip, fontWeight: 600, color: '#475569' }}>+{extra}</span>
                           )}
                         </span>
                       );
@@ -726,7 +727,7 @@ const ProgramHeadCourseAssignment = () => {
               {uploadReview.warnings.map((w, i) => (
                 <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, padding: '10px 0', borderBottom: '1px solid #F3F4F6' }}>
                   <div style={{ fontSize: 14, color: '#18191A' }}>
-                    <strong>Row {w.row}</strong> — {w.course_code}{w.faculty_name ? ' / ' + w.faculty_name : ''}
+                    <strong>Row {w.row}</strong> — {w.course_code}{w.faculty_name ? ' / ' + displayName(w.faculty_name) : ''}
                     <div style={{ fontSize: 12, color: '#6B7280', marginTop: 2 }}>{w.message}</div>
                   </div>
                   <span style={{ ...statusPillStyle('courseassign', w.status), padding: '4px 10px', borderRadius: 4, fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap' }}>{w.status}</span>

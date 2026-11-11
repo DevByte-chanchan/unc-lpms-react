@@ -29,6 +29,7 @@ import { rebuildOfferings, ensureOfferingConstraints, repairCrossPeriodAssignmen
 import { renameAssignmentsTable } from './utils/renameAssignmentsTable.js';
 import { renameIdColumns } from './utils/renameIdColumns.js';
 import { backfillProgramHeadIds, reconcileProgramHeads } from './controllers/programController.js';
+import { fixAllCapsAssignmentNames } from './utils/fixNameCase.js';
 import { assertAuthConfig } from './utils/session.js';
 import { startEmailWorker } from './workers/emailWorker.js';
 import { baselineNotices } from './services/notices.js';
@@ -169,6 +170,14 @@ const PORT = Number(process.env.PORT || 4000);
       if (activeId) await reconcileProgramHeads(activeId);
     } catch (err) {
       console.error('[program-head] boot reconcile skipped:', err.message);
+    }
+
+    // Older uploads stored registrar names in ALL CAPS; show them in normal case.
+    try {
+      const n = await fixAllCapsAssignmentNames();
+      if (n) console.log('[names] ' + n + ' course assignment(s) changed from ALL CAPS to normal case');
+    } catch (err) {
+      console.error('[names] ALL CAPS fix skipped:', err.message);
     }
 
     // One-time (idempotent) backfill: sync course_offerings/course_offering_assignments

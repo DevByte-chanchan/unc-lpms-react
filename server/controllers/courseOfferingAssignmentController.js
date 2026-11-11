@@ -36,6 +36,7 @@ import {
 import { programCoursePrefixes, programKeyFromPrefixes } from '../utils/courseCodeRules.js';
 import { hasPdfMagic } from '../middleware/upload.js';
 import { PdfTableError } from '../utils/pdfTable.js';
+import { displayName } from '../utils/nameCase.js';
 import { getPeriodId, safeWhereForPeriod } from '../utils/periodScope.js';
 import { filterOneToExistingColumns, safeDestroyByPeriod, safeWhere } from '../utils/dbHelpers.js';
 import { describeSequelizeError } from '../utils/uploadHelpers.js';
@@ -165,7 +166,8 @@ function normalizeContributors(raw, leadName, leadId, lists) {
     if (fid != null) { if (seenIds.has(fid)) continue; seenIds.add(fid); }
     else { if (seenNames.has(norm)) continue; seenNames.add(norm); }
 
-    out.push({ faculty_id: fid, faculty_name: name });
+    // The faculty list's own spelling when matched; otherwise normal case, not ALL CAPS.
+    out.push({ faculty_id: fid, faculty_name: match ? match.name : displayName(name) });
   }
   return out;
 }
@@ -589,11 +591,15 @@ export async function uploadCourseOfferingAssignments(req, res) {
       const course_name  = pick(row, 'coursename', 'courseoffering', 'coursetitle', 'coursedescription', 'description', 'title', 'subjectname', 'name');
       // LEAD FACULTY is the assignment's lead (signatory); accept the older
       // "Assigned Faculty" wording too so legacy sheets still import.
-      const faculty_name = pick(row, 'leadfaculty', 'leadfacultyname', 'lead', 'facultyname', 'facultynames', 'assignedfacultyname', 'assignedfacultynames', 'assignedfaculty', 'faculty', 'faculties', 'facultymember', 'instructorname', 'instructor', 'professor', 'teacher');
+      const rawLead = pick(row, 'leadfaculty', 'leadfacultyname', 'lead', 'facultyname', 'facultynames', 'assignedfacultyname', 'assignedfacultynames', 'assignedfaculty', 'faculty', 'faculties', 'facultymember', 'instructorname', 'instructor', 'professor', 'teacher');
       // CONTRIBUTORS — co-teachers, semicolon/comma-separated (may be blank).
       const contributorsRaw = pick(row, 'contributors', 'contributor', 'coteachers', 'coteacher', 'cofaculty', 'contributingfaculty');
+      // Names as the Faculty list spells them; an unmatched registrar name in
+      // normal case ("DANNY B. CASIMERO" → "Danny B. Casimero").
+      const asListed = (n) => { const m = findFaculty(n, lists); return m ? m.name : displayName(String(n).trim()); };
+      const faculty_name = rawLead ? asListed(rawLead) : rawLead;
       const contributorNames = contributorsRaw
-        ? String(contributorsRaw).split(/[;,]/).map((s) => s.trim()).filter(Boolean)
+        ? String(contributorsRaw).split(/[;,]/).map((s) => s.trim()).filter(Boolean).map(asListed)
         : [];
       const year_level   = pick(row, 'yearlevel', 'yearlvl', 'yearlevelofcourse', 'year', 'level', 'yr');
 
