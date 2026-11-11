@@ -7,7 +7,7 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "dev": "node --watch index.js",
+    "dev": "nodemon --legacy-watch --ext js,cjs,json --ignore tests/ --ignore storage/ --ignore uploads/ --delay 1 index.js",
     "test": "node --test \"tests/*.test.js\"",
     "db:seed:users": "node scripts/seedUsers.js",
     "db:fresh": "node scripts/purge.js",
@@ -41,6 +41,7 @@
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
+    "nodemon": "^3.1.10",
     "sequelize-cli": "^6.6.2"
   }
 }
