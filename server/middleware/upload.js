@@ -87,6 +87,24 @@ export const uploadCourseFiles = multer({
   },
 }).array('file', 4);
 
+/**
+ * One spreadsheet OR one PDF (the registrar's Subject Offerings in either
+ * form), field `file`. The PDF's `%PDF-` magic is checked once it is on disk.
+ */
+export const uploadSheetOrPdf = multer({
+  storage,
+  limits: { fileSize: 10 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (['.xlsx', '.xls', '.csv', '.pdf'].includes(ext) || ALLOWED.has(file.mimetype) || file.mimetype === 'application/pdf') {
+      return cb(null, true);
+    }
+    const err = new Error(`Unsupported file type: ${file.originalname}`);
+    err.status = 400;
+    cb(err);
+  },
+});
+
 /** True when the file on disk starts with the PDF signature `%PDF-`. */
 export function hasPdfMagic(filePath) {
   const fd = fs.openSync(filePath, 'r');

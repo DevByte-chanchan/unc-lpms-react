@@ -48,6 +48,7 @@
  */
 import xlsx from 'xlsx';
 import { canonicalize } from './excelParser.js';
+import { readPdfTable } from './pdfTable.js';
 import { semFromText } from './courseSemester.js';
 import {
   OWNED_PREFIXES,
@@ -375,6 +376,25 @@ export function parseSubjectOfferingsMatrix(matrix) {
 
 export function parseSubjectOfferings(filePath) {
   return parseSubjectOfferingsMatrix(readMatrix(filePath));
+}
+
+/**
+ * The same SUBJECT OFFERINGS export, printed or saved as a (text) PDF, read
+ * into the matrix the spreadsheet path produces. Throws PdfTableError for a
+ * scanned or unreadable PDF.
+ */
+export function readSubjectOfferingsPdf(filePath) {
+  const isHeader = (canon) => canon.some((c) => COLUMN_ALIASES.code.includes(c))
+    && canon.some((c) => COLUMN_ALIASES.courseNo.includes(c));
+  const keyColumns = (labels) => {
+    const canon = labels.map((l) => canonicalize(l));
+    return [
+      canon.findIndex((c) => COLUMN_ALIASES.code.includes(c)),
+      canon.findIndex((c) => COLUMN_ALIASES.courseNo.includes(c)),
+    ].filter((i) => i >= 0);
+  };
+  const labels = new Set(Object.values(COLUMN_ALIASES).flat());
+  return readPdfTable(filePath, isHeader, { keyColumns, labels });
 }
 
 /* ------------------------------------------------------------------ *

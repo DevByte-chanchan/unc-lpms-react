@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { requireRole } from '../middleware/auth.js';
-import { uploadExcel } from '../middleware/upload.js';
+import { uploadExcel, uploadSheetOrPdf } from '../middleware/upload.js';
 import {
   listCourseOfferingAssignments,
   getCourseOfferingAssignment,
@@ -17,7 +17,7 @@ const router = Router();
 router.get('/',           listCourseOfferingAssignments);
 router.post('/revalidate', requireRole('Program Head'), revalidateCourseOfferingAssignments);
 // The registrar's Subject Offerings vs. the pre-assignment (?preview=1 = dry run).
-router.post('/compare-official', requireRole('Program Head'), uploadExcel.single('file'), compareOfficialOfferings);
+router.post('/compare-official', requireRole('Program Head'), uploadSheetOrPdf.single('file'), compareOfficialOfferings);
 router.get('/:id/history', requireRole('Program Head', 'Dean', 'VPAA'), getCourseOfferingAssignmentHistory);
 router.get('/:id',        getCourseOfferingAssignment);
 router.post('/',          requireRole('Program Head', 'Dean'), createCourseOfferingAssignment);

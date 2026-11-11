@@ -134,8 +134,8 @@ export default function OfficialCompareModal({ open, onClose, periodId, programI
   }, [open]);
 
   const runPreview = async (f) => {
-    if (/\.pdf$/i.test(f.name)) {
-      setError('This looks like the Program of Study PDF — upload it in Course Offerings. Here, use the Registrar\'s Subject Offerings file (.xls).');
+    if (!/\.(xlsx|xls|csv|pdf)$/i.test(f.name)) {
+      setError('Use the Registrar\'s Subject Offerings as a PDF, Excel (.xls, .xlsx) or CSV file.');
       return;
     }
     setFile(f); setBusy(true); setError(null); setResult(null);
@@ -202,8 +202,8 @@ export default function OfficialCompareModal({ open, onClose, periodId, programI
             style={{ border: '2px dashed #D1D5DB', borderRadius: 8, padding: 28, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, cursor: busy ? 'wait' : 'pointer' }}>
             <Upload size={36} color="#9CA3AF" />
             <div style={{ fontWeight: 600, color: '#18191A' }}>{busy ? 'Reading ' + (file ? file.name : 'file') + '…' : 'Drag & drop the Registrar\'s Subject Offerings file here'}</div>
-            <div style={{ color: '#6B7280', fontSize: 13, textAlign: 'center' }}>.xls, .xlsx or .csv — the file with sections and faculty (e.g. CS_26271-Course-Offerings.xls)</div>
-            <input type="file" ref={inputRef} accept=".csv,.xlsx,.xls" style={{ display: 'none' }}
+            <div style={{ color: '#6B7280', fontSize: 13, textAlign: 'center' }}>PDF, .xls, .xlsx or .csv — the list with sections and faculty (e.g. CS_26271-Course-Offerings.pdf)</div>
+            <input type="file" ref={inputRef} accept=".pdf,.csv,.xlsx,.xls" style={{ display: 'none' }}
               onChange={(e) => { const f = e.target.files && e.target.files[0]; e.target.value = ''; if (f) runPreview(f); }} />
           </div>
         )}

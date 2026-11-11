@@ -22,6 +22,10 @@ import {
   parseTeachingAssignment,
   looksLikeSubjectOfferings,
   parseSubjectOfferings,
+  readMatrix,
+  readSubjectOfferingsPdf,
+  looksLikeSubjectOfferingsMatrix,
+  parseSubjectOfferingsMatrix,
   extractProgramAssignments,
   filterOfferingsForProgram,
   yearLevelFromCode,
@@ -30,6 +34,8 @@ import {
   buildOfficialCourses, compareWithOfficial, sectionsOf, nameMatches, samePeople, matchFacultyName,
 } from '../utils/officialMatch.js';
 import { programCoursePrefixes, programKeyFromPrefixes } from '../utils/courseCodeRules.js';
+import { hasPdfMagic } from '../middleware/upload.js';
+import { PdfTableError } from '../utils/pdfTable.js';
 import { getPeriodId, safeWhereForPeriod } from '../utils/periodScope.js';
 import { filterOneToExistingColumns, safeDestroyByPeriod, safeWhere } from '../utils/dbHelpers.js';
 import { describeSequelizeError } from '../utils/uploadHelpers.js';
@@ -135,7 +141,6 @@ async function loadMasterLists(period_id) {
  */
 function normalizeContributors(raw, leadName, leadId, lists) {
   if (!Array.isArray(raw)) return [];
-  const { facultyByName, facultyByNorm } = lists;
   const leadKey = leadName ? normalizeName(leadName) : null;
 
   const seenIds = new Set();
@@ -189,7 +194,7 @@ function findFaculty(name, lists) {
 }
 
 function resolveAssignment(courseCode, facultyName, lists, programId = null) {
-  const { courseByCode, facultyByName, facultyByNorm, offerings } = lists;
+  const { courseByCode, offerings } = lists;
 
   const course = courseCode
     ? courseByCode.get(String(courseCode).trim().toLowerCase())
@@ -836,14 +841,27 @@ export async function compareOfficialOfferings(req, res) {
     const program_id = req.body && req.body.program_id ? Number(req.body.program_id) : null;
     const program = program_id ? await Program.findByPk(program_id, { attributes: ['id', 'code'] }) : null;
     if (!program) return res.status(400).json({ message: 'Pick the program to compare (program_id).' });
-    if (!looksLikeSubjectOfferings(req.file.path)) {
-      return res.status(400).json({ message: "This isn't the registrar's SUBJECT OFFERINGS export (CODE | COURSE NO | … | FACULTY). Download it from the registrar and try again." });
+    // A spreadsheet, or the same export as a PDF: both become one matrix.
+    const isPdf = hasPdfMagic(req.file.path);
+    if (!isPdf && /\.pdf$/i.test(req.file.originalname || '')) {
+      return res.status(400).json({ message: "This file is named .pdf but isn't a PDF." });
+    }
+    const matrix = isPdf ? await readSubjectOfferingsPdf(req.file.path) : readMatrix(req.file.path);
+    if (!looksLikeSubjectOfferingsMatrix(matrix)) {
+      return res.status(400).json({
+        message: isPdf
+          ? "This PDF isn't the registrar's SUBJECT OFFERINGS (a table with CODE | COURSE NO | … | FACULTY). If it's the Program of Study, upload it in Course Offerings instead."
+          : "This isn't the registrar's SUBJECT OFFERINGS export (CODE | COURSE NO | … | FACULTY). Download it from the registrar and try again.",
+      });
     }
 
     // The same reading the Course Assignment upload uses, filtered to the program.
     const prefixes = programCoursePrefixes(program.code);
     const progKey = programKeyFromPrefixes(prefixes);
-    const parsed = parseSubjectOfferings(req.file.path);
+    const parsed = parseSubjectOfferingsMatrix(matrix);
+    if (isPdf && parsed.offerings.length && !parsed.faculty.length) {
+      return res.status(400).json({ message: "This PDF has no FACULTY names in the table. If its columns were cut off onto another page, print it again with \"Fit to page width\" (landscape) and upload that." });
+    }
     const extracted = extractProgramAssignments(parsed, prefixes, { programKey: progKey });
     const offerings = filterOfferingsForProgram(parsed.offerings, { prefixes, programKey: progKey });
     const facultyList = await Faculty.findAll({ where: await safeWhere(Faculty, { period_id }), attributes: ['id', 'name', 'status'] });
@@ -862,7 +880,7 @@ export async function compareOfficialOfferings(req, res) {
       // A file for the other semester would make every course "not offered".
       const period = await AcademicPeriod.findByPk(period_id, { attributes: ['label', 'semester'] });
       const termSem = period ? periodSemesterOf(period) : null;
-      const term_mismatch = !!(parsed.termSemester && termSem && Number(parsed.termSemester) !== termSem)
+      const term_mismatch = (parsed.termSemester && termSem && Number(parsed.termSemester) !== termSem)
         ? 'This file is for "' + parsed.term + '" but the current term is ' + period.label + '.'
         : null;
       return res.json({
@@ -1003,6 +1021,7 @@ export async function compareOfficialOfferings(req, res) {
     await tell(touched, period_id, req);
     return res.status(201).json({ applied, skipped: comparison.length - plan.length, counts });
   } catch (err) {
+    if (err instanceof PdfTableError) return res.status(err.status).json({ message: err.message });
     return res.status(400).json({ message: describeSequelizeError(err) });
   } finally {
     safeUnlink(req.file && req.file.path);
