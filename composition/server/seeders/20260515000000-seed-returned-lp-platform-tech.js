@@ -179,22 +179,39 @@ module.exports = {
         // 8. REFERENCES & WEEKLY REFERENCES (2 per Week = 32 WeeklyReferences)
         // ============================================================================
         const referencesData = [
-            { title: 'UNC Student Handbook & SCIS VMO Guidelines', author: 'University of Nueva Caceres', isbn: null, link: 'https://unc.edu.ph/student-handbook', publication_year: new Date('2024-06-01'), type: 'ONLINE' },
-            { title: 'Operating System Concepts (10th Edition)', author: 'Abraham Silberschatz, Peter B. Galvin & Greg Gagne', isbn: '978-1119320913', link: null, publication_year: new Date('2018-01-01'), type: 'TEXTBOOK' },
-            { title: 'Modern Operating Systems (5th Edition)', author: 'Andrew S. Tanenbaum & Herbert Bos', isbn: '978-0137618880', link: null, publication_year: new Date('2022-01-01'), type: 'TEXTBOOK' },
-            { title: 'Systems Performance: Enterprise and the Cloud (2nd Edition)', author: 'Brendan Gregg', isbn: '978-0136820154', link: null, publication_year: new Date('2020-01-01'), type: 'TEXTBOOK' },
-            { title: 'UNIX and Linux System Administration Handbook (5th Edition)', author: 'Evi Nemeth, Garth Snyder, Trent R. Hein, Ben Whaley & Dan Mackin', isbn: '978-0134277554', link: null, publication_year: new Date('2017-01-01'), type: 'TEXTBOOK' },
-            { title: 'The Linux Programming Interface', author: 'Michael Kerrisk', isbn: '978-1593272203', link: null, publication_year: new Date('2010-01-01'), type: 'TEXTBOOK' },
-            { title: 'Terraform: Up and Running: Writing Infrastructure as Code (3rd Edition)', author: 'Yevgeniy Brikman', isbn: '978-1098116743', link: null, publication_year: new Date('2022-01-01'), type: 'TEXTBOOK' },
-            { title: 'Site Reliability Engineering: How Google Runs Production Systems', author: 'Betsy Beyer, Chris Jones, Jennifer Petoff & Niall Richard Murphy', isbn: '978-1491929124', link: null, publication_year: new Date('2016-01-01'), type: 'OER' },
-            { title: 'ARM64 vs. x86_64 Server Architecture Reference Manual', author: 'ARM & Intel Developer Documentation', isbn: null, link: 'https://developer.arm.com/documentation', publication_year: new Date('2024-01-01'), type: 'ONLINE' },
-            { title: 'The Linux Kernel Documentation (cgroups v2, Namespaces, eBPF)', author: 'The Linux Kernel Organization', isbn: null, link: 'https://docs.kernel.org/', publication_year: new Date('2024-01-01'), type: 'OER' },
-            { title: 'Red Hat Enterprise Linux 9 Security & SELinux Administration Guide', author: 'Red Hat Documentation', isbn: null, link: 'https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/9', publication_year: new Date('2024-01-01'), type: 'ONLINE' },
-            { title: 'Ansible Automation Platform & Playbook Best Practices', author: 'Red Hat Ansible Community', isbn: null, link: 'https://docs.ansible.com/', publication_year: new Date('2024-01-01'), type: 'ONLINE' },
-            { title: 'KVM / QEMU & Proxmox VE Virtualization Administration Guide', author: 'Proxmox Server Solutions', isbn: null, link: 'https://pve.proxmox.com/pve-docs/', publication_year: new Date('2024-01-01'), type: 'ONLINE' },
-            { title: 'Open Container Initiative (OCI) Runtime & Image Specifications', author: 'Linux Foundation OCI Project', isbn: null, link: 'https://opencontainers.org/', publication_year: new Date('2024-01-01'), type: 'OER' },
-            { title: 'AWS Well-Architected Framework & Cloud Security Pillar', author: 'Amazon Web Services', isbn: null, link: 'https://docs.aws.amazon.com/wellarchitected/latest/framework/', publication_year: new Date('2024-01-01'), type: 'ONLINE' },
-            { title: 'Prometheus Monitoring & Grafana Loki Observability Documentation', author: 'Cloud Native Computing Foundation', isbn: null, link: 'https://prometheus.io/docs/introduction/overview/', publication_year: new Date('2024-01-01'), type: 'OER' }
+            // ONLINE RESOURCES (Title, Author, Link; no ISBN, no publication year)
+            { course_id: courseId, course_no: 'BIT311L', title: 'UNC Student Handbook & SCIS VMO Guidelines', author: 'University of Nueva Caceres', isbn: null, link: 'https://unc.edu.ph/student-handbook', publication_year: null, type: 'Online Resources' },
+            
+            // TEXTBOOKS (Title, Author, ISBN, Publication Year; no link)
+            { course_id: courseId, course_no: 'BIT311L', title: 'Operating System Concepts (10th Edition)', author: 'Abraham Silberschatz, Peter B. Galvin & Greg Gagne', isbn: '978-1119320913', link: null, publication_year: new Date('2018-01-01'), type: 'Textbook' },
+            { course_id: courseId, course_no: 'BIT311L', title: 'Modern Operating Systems (5th Edition)', author: 'Andrew S. Tanenbaum & Herbert Bos', isbn: '978-0137618880', link: null, publication_year: new Date('2022-01-01'), type: 'Textbook' },
+            { course_id: courseId, course_no: 'BIT311L', title: 'Systems Performance: Enterprise and the Cloud (2nd Edition)', author: 'Brendan Gregg', isbn: '978-0136820154', link: null, publication_year: new Date('2020-01-01'), type: 'Textbook' },
+            { course_id: courseId, course_no: 'BIT311L', title: 'UNIX and Linux System Administration Handbook (5th Edition)', author: 'Evi Nemeth, Garth Snyder, Trent R. Hein, Ben Whaley & Dan Mackin', isbn: '978-0134277554', link: null, publication_year: new Date('2017-01-01'), type: 'Textbook' },
+            { course_id: courseId, course_no: 'BIT311L', title: 'The Linux Programming Interface: A Linux and UNIX System Programming Handbook', author: 'Michael Kerrisk', isbn: '978-1593272203', link: null, publication_year: new Date('2010-01-01'), type: 'Textbook' },
+            { course_id: courseId, course_no: 'BIT311L', title: 'Terraform: Up and Running: Writing Infrastructure as Code (3rd Edition)', author: 'Yevgeniy Brikman', isbn: '978-1098116743', link: null, publication_year: new Date('2022-01-01'), type: 'Textbook' },
+            
+            // OPEN EDUCATIONAL RESOURCES (Title, Author, Link, optional ISBN & Year with values)
+            { course_id: courseId, course_no: 'BIT311L', title: 'Site Reliability Engineering: How Google Runs Production Systems', author: 'Betsy Beyer, Chris Jones, Jennifer Petoff & Niall Richard Murphy', isbn: '978-1491929124', link: 'https://sre.google/sre-book/table-of-contents/', publication_year: new Date('2016-01-01'), type: 'Open Educational Resources' },
+            
+            // ONLINE RESOURCES
+            { course_id: courseId, course_no: 'BIT311L', title: 'ARM64 vs. x86_64 Server Architecture Reference Manual', author: 'ARM & Intel Developer Documentation', isbn: null, link: 'https://developer.arm.com/documentation', publication_year: null, type: 'Online Resources' },
+            
+            // OPEN EDUCATIONAL RESOURCES
+            { course_id: courseId, course_no: 'BIT311L', title: 'The Linux Kernel Documentation (cgroups v2, Namespaces, eBPF)', author: 'The Linux Kernel Organization', isbn: '978-1935824008', link: 'https://docs.kernel.org/', publication_year: new Date('2024-01-01'), type: 'Open Educational Resources' },
+            
+            // ONLINE RESOURCES
+            { course_id: courseId, course_no: 'BIT311L', title: 'Red Hat Enterprise Linux 9 Security & SELinux Administration Guide', author: 'Red Hat Documentation', isbn: null, link: 'https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/9', publication_year: null, type: 'Online Resources' },
+            { course_id: courseId, course_no: 'BIT311L', title: 'Ansible Automation Platform & Playbook Best Practices', author: 'Red Hat Ansible Community', isbn: null, link: 'https://docs.ansible.com/', publication_year: null, type: 'Online Resources' },
+            { course_id: courseId, course_no: 'BIT311L', title: 'KVM / QEMU & Proxmox VE Virtualization Administration Guide', author: 'Proxmox Server Solutions', isbn: null, link: 'https://pve.proxmox.com/pve-docs/', publication_year: null, type: 'Online Resources' },
+            
+            // OPEN EDUCATIONAL RESOURCES
+            { course_id: courseId, course_no: 'BIT311L', title: 'Open Container Initiative (OCI) Runtime & Image Specifications', author: 'Linux Foundation OCI Project', isbn: '978-1492046530', link: 'https://opencontainers.org/', publication_year: new Date('2024-01-01'), type: 'Open Educational Resources' },
+            
+            // ONLINE RESOURCES
+            { course_id: courseId, course_no: 'BIT311L', title: 'AWS Well-Architected Framework & Cloud Security Pillar', author: 'Amazon Web Services', isbn: null, link: 'https://docs.aws.amazon.com/wellarchitected/latest/framework/', publication_year: null, type: 'Online Resources' },
+            
+            // OPEN EDUCATIONAL RESOURCES
+            { course_id: courseId, course_no: 'BIT311L', title: 'Prometheus Monitoring & Grafana Loki Observability Documentation', author: 'Cloud Native Computing Foundation', isbn: '978-1492034148', link: 'https://prometheus.io/docs/introduction/overview/', publication_year: new Date('2024-01-01'), type: 'Open Educational Resources' }
         ];
 
         await queryInterface.bulkInsert('References', referencesData.map(r => ({ ...r, createdAt: now, updatedAt: now })), {});

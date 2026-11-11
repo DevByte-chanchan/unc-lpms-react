@@ -78,7 +78,7 @@ function computeOverallStatus(row) {
  * GET /api/dashboard/summary
  * Returns the latest academic period and the logged-in instructor's
  * assigned learning plans for that latest period, strictly following
- * assignmentController.js logic.
+ * assignmentController.js logic and matching academic term.
  */
 async function getDashboardSummary(req, res, next) {
     try {
@@ -143,14 +143,28 @@ async function getDashboardSummary(req, res, next) {
             };
         }
 
+        // Filter Course.term matching the current academic period
+        const whereCourse = {};
+        if (currentTerm?.school_year) {
+            whereCourse.term = {
+                [Op.like]: `%${currentTerm.school_year}%`,
+            };
+        }
+
         // 4. Query assignments identically to assignmentController.js listAssignments
         const assignments = await CourseOfferingAssignment.findAndCountAll({
             where: whereAssignment,
             include: [
                 {
                     model: ProgramCourseOffering,
+                    required: true,
                     include: [
-                        { model: Course, attributes: ['course_id', 'course_no', 'course_title'] },
+                        {
+                            model: Course,
+                            attributes: ['course_id', 'course_no', 'course_title', 'term'],
+                            where: Object.keys(whereCourse).length > 0 ? whereCourse : undefined,
+                            required: true,
+                        },
                         { model: Program, attributes: ['program_id', 'name'] },
                         { model: Department, attributes: ['dept_id', 'name'] },
                     ],
@@ -173,10 +187,21 @@ async function getDashboardSummary(req, res, next) {
             order: [['date_assigned', 'DESC']],
         });
 
-        // 5. Format assignments and compute overall status
-        const counts = { total: assignments.rows.length, draft: 0, pending: 0, returned: 0, approved: 0 };
+        // 5. Deduplicate by pc_offering_id so duplicates never inflate counts
+        const seenOfferings = new Set();
+        const uniqueAssignments = [];
+        for (const a of assignments.rows) {
+            const pcoId = a.pc_offering_id || a.ProgramCourseOffering?.pc_offering_id;
+            if (pcoId && !seenOfferings.has(pcoId)) {
+                seenOfferings.add(pcoId);
+                uniqueAssignments.push(a);
+            }
+        }
 
-        const formatted = assignments.rows.map((a) => {
+        // 6. Format assignments and compute overall status
+        const counts = { total: uniqueAssignments.length, draft: 0, pending: 0, returned: 0, approved: 0 };
+
+        const formatted = uniqueAssignments.map((a) => {
             const data = a.toJSON();
             data.logs = data.workflowLogs || [];
 

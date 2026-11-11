@@ -170,22 +170,41 @@ module.exports = {
         // 8. REFERENCES & WEEKLY REFERENCES (2 per Week = 32 WeeklyReferences)
         // ============================================================================
         const referencesData = [
-            { title: 'UNC Student Handbook & SCIS Academic Policies', author: 'University of Nueva Caceres', isbn: null, link: 'https://unc.edu.ph/student-handbook', publication_year: new Date('2024-06-01'), type: 'ONLINE' },
-            { title: 'Programming Language Pragmatics (4th Edition)', author: 'Michael L. Scott', isbn: '978-0124104099', link: null, publication_year: new Date('2015-01-01'), type: 'TEXTBOOK' },
-            { title: 'Fluent Python: Clear, Concise, and Effective Programming (2nd Edition)', author: 'Luciano Ramalho', isbn: '978-1492056355', link: null, publication_year: new Date('2022-01-01'), type: 'TEXTBOOK' },
-            { title: 'Node.js Design Patterns (3rd Edition)', author: 'Mario Casciaro & Luciano Mammino', isbn: '978-1839214110', link: null, publication_year: new Date('2020-01-01'), type: 'TEXTBOOK' },
-            { title: 'The Design of Web APIs', author: 'Arnaud Lauret', isbn: '978-1617295102', link: null, publication_year: new Date('2019-01-01'), type: 'TEXTBOOK' },
-            { title: 'OAuth 2 in Action', author: 'Justin Richer & Antonio Sanso', isbn: '978-1617293276', link: null, publication_year: new Date('2017-01-01'), type: 'TEXTBOOK' },
-            { title: 'Docker Deep Dive', author: 'Nigel Poulton', isbn: '978-1916585256', link: null, publication_year: new Date('2023-01-01'), type: 'TEXTBOOK' },
-            { title: 'JSON Schema Specification & Validation Reference', author: 'JSON Schema Organization', isbn: null, link: 'https://json-schema.org/specification', publication_year: new Date('2024-01-01'), type: 'ONLINE' },
-            { title: 'W3C XML Schema (XSD), XPath, and XSLT Standards', author: 'World Wide Web Consortium (W3C)', isbn: null, link: 'https://www.w3.org/XML/Schema', publication_year: new Date('2023-01-01'), type: 'OER' },
-            { title: 'Protocol Buffers & FlatBuffers Developer Guide', author: 'Google Open Source', isbn: null, link: 'https://protobuf.dev/', publication_year: new Date('2024-01-01'), type: 'ONLINE' },
-            { title: 'GraphQL Foundation Official Specification & Learn Portal', author: 'GraphQL Foundation', isbn: null, link: 'https://graphql.org/learn/', publication_year: new Date('2024-01-01'), type: 'OER' },
-            { title: 'Stripe & GitHub Webhook Security Best Practices', author: 'Stripe Developer Engineering', isbn: null, link: 'https://docs.stripe.com/webhooks', publication_year: new Date('2024-01-01'), type: 'ONLINE' },
-            { title: 'Celery Distributed Task Queue & Redis Broker Documentation', author: 'Celery Project', isbn: null, link: 'https://docs.celeryq.dev/', publication_year: new Date('2024-01-01'), type: 'OER' },
-            { title: 'AWS SDK & Cloud Storage Integration Developer Guide', author: 'Amazon Web Services', isbn: null, link: 'https://docs.aws.amazon.com/sdkref/latest/guide/', publication_year: new Date('2024-01-01'), type: 'ONLINE' },
-            { title: 'NGINX Reverse Proxy & API Gateway Configuration Guide', author: 'F5 NGINX Documentation', isbn: null, link: 'https://docs.nginx.com/', publication_year: new Date('2024-01-01'), type: 'ONLINE' },
-            { title: 'OWASP API Security & Polyglot Dependency Auditing Guide', author: 'OWASP Foundation', isbn: null, link: 'https://owasp.org/www-project-api-security/', publication_year: new Date('2024-01-01'), type: 'OER' }
+            // ONLINE RESOURCES (Title, Author, Link; no ISBN, no publication year)
+            { course_id: courseId, course_no: 'BIT312L', title: 'UNC Student Handbook & SCIS Academic Policies', author: 'University of Nueva Caceres', isbn: null, link: 'https://unc.edu.ph/student-handbook', publication_year: null, type: 'Online Resources' },
+            
+            // TEXTBOOKS (Title, Author, ISBN, Publication Year; no link)
+            { course_id: courseId, course_no: 'BIT312L', title: 'Programming Language Pragmatics (4th Edition)', author: 'Michael L. Scott', isbn: '978-0124104099', link: null, publication_year: new Date('2015-01-01'), type: 'Textbook' },
+            { course_id: courseId, course_no: 'BIT312L', title: 'Fluent Python: Clear, Concise, and Effective Programming (2nd Edition)', author: 'Luciano Ramalho', isbn: '978-1492056355', link: null, publication_year: new Date('2022-01-01'), type: 'Textbook' },
+            { course_id: courseId, course_no: 'BIT312L', title: 'Node.js Design Patterns (3rd Edition)', author: 'Mario Casciaro & Luciano Mammino', isbn: '978-1839214110', link: null, publication_year: new Date('2020-01-01'), type: 'Textbook' },
+            { course_id: courseId, course_no: 'BIT312L', title: 'The Design of Web APIs', author: 'Arnaud Lauret', isbn: '978-1617295102', link: null, publication_year: new Date('2019-01-01'), type: 'Textbook' },
+            { course_id: courseId, course_no: 'BIT312L', title: 'OAuth 2 in Action', author: 'Justin Richer & Antonio Sanso', isbn: '978-1617293276', link: null, publication_year: new Date('2017-01-01'), type: 'Textbook' },
+            { course_id: courseId, course_no: 'BIT312L', title: 'Docker Deep Dive: Zero to Docker in a Single Book', author: 'Nigel Poulton', isbn: '978-1916585256', link: null, publication_year: new Date('2023-01-01'), type: 'Textbook' },
+            
+            // ONLINE RESOURCES
+            { course_id: courseId, course_no: 'BIT312L', title: 'JSON Schema Specification & Validation Reference', author: 'JSON Schema Organization', isbn: null, link: 'https://json-schema.org/specification', publication_year: null, type: 'Online Resources' },
+            
+            // OPEN EDUCATIONAL RESOURCES (Title, Author, Link, optional ISBN & Year with values)
+            { course_id: courseId, course_no: 'BIT312L', title: 'W3C XML Schema (XSD), XPath, and XSLT Standards', author: 'World Wide Web Consortium (W3C)', isbn: '978-1583482346', link: 'https://www.w3.org/XML/Schema', publication_year: new Date('2023-01-01'), type: 'Open Educational Resources' },
+            
+            // ONLINE RESOURCES
+            { course_id: courseId, course_no: 'BIT312L', title: 'Protocol Buffers & FlatBuffers Developer Guide', author: 'Google Open Source', isbn: null, link: 'https://protobuf.dev/', publication_year: null, type: 'Online Resources' },
+            
+            // OPEN EDUCATIONAL RESOURCES
+            { course_id: courseId, course_no: 'BIT312L', title: 'GraphQL Foundation Official Specification & Learn Portal', author: 'GraphQL Foundation', isbn: '978-1492030713', link: 'https://graphql.org/learn/', publication_year: new Date('2024-01-01'), type: 'Open Educational Resources' },
+            
+            // ONLINE RESOURCES
+            { course_id: courseId, course_no: 'BIT312L', title: 'Stripe & GitHub Webhook Security Best Practices', author: 'Stripe Developer Engineering', isbn: null, link: 'https://docs.stripe.com/webhooks', publication_year: null, type: 'Online Resources' },
+            
+            // OPEN EDUCATIONAL RESOURCES
+            { course_id: courseId, course_no: 'BIT312L', title: 'Celery Distributed Task Queue & Redis Broker Documentation', author: 'Celery Project', isbn: '978-1491953284', link: 'https://docs.celeryq.dev/', publication_year: new Date('2024-01-01'), type: 'Open Educational Resources' },
+            
+            // ONLINE RESOURCES
+            { course_id: courseId, course_no: 'BIT312L', title: 'AWS SDK & Cloud Storage Integration Developer Guide', author: 'Amazon Web Services', isbn: null, link: 'https://docs.aws.amazon.com/sdkref/latest/guide/', publication_year: null, type: 'Online Resources' },
+            { course_id: courseId, course_no: 'BIT312L', title: 'NGINX Reverse Proxy & API Gateway Configuration Guide', author: 'F5 NGINX Documentation', isbn: null, link: 'https://docs.nginx.com/', publication_year: null, type: 'Online Resources' },
+            
+            // OPEN EDUCATIONAL RESOURCES
+            { course_id: courseId, course_no: 'BIT312L', title: 'OWASP API Security & Polyglot Dependency Auditing Guide', author: 'OWASP Foundation', isbn: '978-1951554125', link: 'https://owasp.org/www-project-api-security/', publication_year: new Date('2024-01-01'), type: 'Open Educational Resources' }
         ];
 
         await queryInterface.bulkInsert('References', referencesData.map(r => ({ ...r, createdAt: now, updatedAt: now })), {});

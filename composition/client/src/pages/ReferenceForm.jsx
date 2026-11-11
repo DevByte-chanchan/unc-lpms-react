@@ -25,7 +25,15 @@ export function InlineModal({ isOpen, title, onClose, children, actions }) {
     );
 }
 
-const ReferenceForm = forwardRef(({ iloId, isOrientation = false, status, setUnresolvedCount, onCommentsChange }, ref) => {
+const ReferenceForm = forwardRef(({
+    iloId,
+    isOrientation = false,
+    status,
+    setUnresolvedCount,
+    onCommentsChange,
+    courseCode,
+    pcOfferingId
+}, ref) => {
     const [allReferences, setAllReferences] = useState([]);
     const [selectedRefs, setSelectedRefs] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -34,9 +42,18 @@ const ReferenceForm = forwardRef(({ iloId, isOrientation = false, status, setUnr
     // Context-Targeted Comments Checklist Tracking States
     const [reviewComments, setReviewComments] = useState([]);
 
-    const [isAddOpen, setIsAddOpen] = useState(false);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isEditing, setIsEditing] = useState(false);
+    const [editingRef, setEditingRef] = useState(null);
     const [newRefDraft, setNewRefDraft] = useState({
-        title: '', type: 'Textbook', author: '', isbn: '', link: '', publication_year: ''
+        reference_id: null,
+        _temp_id: null,
+        title: '',
+        type: 'Textbook',
+        author: '',
+        isbn: '',
+        link: '',
+        publication_year: ''
     });
     const [refSpellWarnings, setRefSpellWarnings] = useState([]);
     const [showRefSpellModal, setShowRefSpellModal] = useState(false);
@@ -49,7 +66,12 @@ const ReferenceForm = forwardRef(({ iloId, isOrientation = false, status, setUnr
         async function load() {
             try {
                 const orientParam = isOrientation ? 'true' : 'false';
-                const refsUrl = `/api/references`;
+                const queryParams = new URLSearchParams();
+                if (iloId) queryParams.set('weekId', iloId);
+                if (courseCode) queryParams.set('courseCode', courseCode);
+                if (pcOfferingId) queryParams.set('pcOfferingId', pcOfferingId);
+
+                const refsUrl = `/api/references?${queryParams.toString()}`;
                 const assignedUrl = `/api/ilo-references/${encodeURIComponent(iloId)}?isOrientation=${orientParam}`;
                 const commentsUrl = `/api/comments/filter/${encodeURIComponent(iloId)}/references`;
 
@@ -104,7 +126,7 @@ const ReferenceForm = forwardRef(({ iloId, isOrientation = false, status, setUnr
 
         load();
         return () => { mounted = false; };
-    }, [iloId, isOrientation, status]);
+    }, [iloId, isOrientation, status, courseCode, pcOfferingId]);
 
     // Update unresolved count and sync comment list for Master layout
     useEffect(() => {
@@ -116,15 +138,64 @@ const ReferenceForm = forwardRef(({ iloId, isOrientation = false, status, setUnr
         }
     }, [reviewComments, setUnresolvedCount, onCommentsChange]);
 
-    const handleOpenAdd = () => {
-        setNewRefDraft({ title: '', type: 'Textbook', author: '', isbn: '', link: '', publication_year: '' });
+    const handleOpenAdd = (defaultTab = 'Textbook') => {
+        let initialType = 'Textbook';
+        const t = String(defaultTab).toLowerCase();
+        if (t.includes('open') || t.includes('oer')) {
+            initialType = 'Open Educational Resources';
+        } else if (t.includes('online')) {
+            initialType = 'Online Resources';
+        }
+
+        setIsEditing(false);
+        setEditingRef(null);
+        setNewRefDraft({
+            reference_id: null,
+            _temp_id: null,
+            title: '',
+            type: initialType,
+            author: '',
+            isbn: '',
+            link: '',
+            publication_year: ''
+        });
         setValidationError(null);
         setRefSpellWarnings([]);
         setShowRefSpellModal(false);
-        setIsAddOpen(true);
+        setIsModalOpen(true);
     };
 
-    const getDraftSpellWarnings = (draft, labelPrefix = 'New Reference') => {
+    const handleOpenEdit = (reference) => {
+        if (!reference) return;
+        setIsEditing(true);
+        setEditingRef(reference);
+
+        let cleanYear = '';
+        if (reference.publication_year) {
+            const d = new Date(reference.publication_year);
+            cleanYear = !isNaN(d.getFullYear()) ? String(d.getFullYear()) : String(reference.publication_year).slice(0, 4);
+        } else if (reference.year) {
+            cleanYear = String(reference.year);
+        }
+
+        setNewRefDraft({
+            reference_id: reference.reference_id || null,
+            _temp_id: reference._temp_id || null,
+            title: reference.title || '',
+            type: reference.type || 'Open Educational Resources',
+            author: reference.author || reference.authors || '',
+            isbn: reference.isbn || '',
+            link: reference.link || '',
+            publication_year: cleanYear
+        });
+        setValidationError(null);
+        setRefSpellWarnings([]);
+        setShowRefSpellModal(false);
+        setIsModalOpen(true);
+    };
+
+    // Spell check ability strictly applies to Reference Title
+    const getDraftSpellWarnings = (draft, labelPrefix = 'Reference') => {
         const warnings = [];
         const titleWords = checkSpelling(draft.title || '');
         if (titleWords.length > 0) {
@@ -134,72 +205,149 @@ const ReferenceForm = forwardRef(({ iloId, isOrientation = false, status, setUnr
                 words: titleWords
             });
         }
-
-        const authorLabel =
-            draft.type === 'Open Educational Resources'
-                ? 'Author / Source'
-                : draft.type === 'Online Resources'
-                    ? 'Author / Publisher'
-                    : 'Author(s)';
-        const authorWords = checkSpelling(draft.author || '');
-        if (authorWords.length > 0) {
-            warnings.push({
-                section: 'References',
-                field: `${labelPrefix} — ${authorLabel}`,
-                words: authorWords
-            });
-        }
-
         return warnings;
     };
 
-    const commitNewRefLocal = () => {
-        const tempId = `temp-${Date.now()}`;
-        const newOption = {
-            reference_id: null,
-            _temp_id: tempId,
-            title: newRefDraft.title,
-            type: newRefDraft.type,
-            author: newRefDraft.author,
-            isbn: newRefDraft.isbn,
-            link: newRefDraft.link,
-            publication_year: newRefDraft.publication_year || null
-        };
+    const validateDraft = (draft) => {
+        if (!draft.title || !draft.title.trim()) {
+            return 'Title is required.';
+        }
+        if (!draft.author || !draft.author.trim()) {
+            return 'Author is required.';
+        }
 
-        setAllReferences(prev => [newOption, ...prev]);
-        setSelectedRefs(prev => [newOption, ...prev]);
+        const type = draft.type;
+        if (type === 'Textbook') {
+            if (!draft.isbn || !draft.isbn.trim()) {
+                return 'ISBN is required for Textbooks.';
+            }
+            if (!draft.publication_year || !String(draft.publication_year).trim()) {
+                return 'Publication Year is required for Textbooks.';
+            }
+            const yearStr = String(draft.publication_year).trim();
+            const yearNum = Number(yearStr);
+            if (isNaN(yearNum) || yearNum < 1900 || yearNum > 2100) {
+                return 'Please enter a valid 4-digit Publication Year (e.g. 2024).';
+            }
+        } else if (type === 'Open Educational Resources') {
+            if (!draft.link || !draft.link.trim()) {
+                return 'Link is required for Open Educational Resources.';
+            }
+            if (draft.publication_year && String(draft.publication_year).trim()) {
+                const yearNum = Number(String(draft.publication_year).trim());
+                if (isNaN(yearNum) || yearNum < 1900 || yearNum > 2100) {
+                    return 'Please enter a valid 4-digit Publication Year (e.g. 2024).';
+                }
+            }
+        } else if (type === 'Online Resources') {
+            if (!draft.link || !draft.link.trim()) {
+                return 'Link is required for Online Resources.';
+            }
+        }
+        return null;
+    };
+
+    const commitDraftLocal = async () => {
+        const type = newRefDraft.type;
+        const sanitizedYear = type === 'Online Resources'
+            ? null
+            : (newRefDraft.publication_year ? String(newRefDraft.publication_year).trim() : null);
+
+        if (isEditing && editingRef) {
+            // Updating existing reference
+            if (editingRef.reference_id) {
+                try {
+                    const payload = {
+                        title: newRefDraft.title.trim(),
+                        type,
+                        author: newRefDraft.author.trim(),
+                        isbn: type === 'Online Resources' ? null : (newRefDraft.isbn ? newRefDraft.isbn.trim() : null),
+                        link: type === 'Textbook' ? null : (newRefDraft.link ? newRefDraft.link.trim() : null),
+                        publication_year: sanitizedYear
+                    };
+
+                    const updated = await fetchJson(`/api/references/${editingRef.reference_id}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    const merged = { ...editingRef, ...updated };
+                    setAllReferences(prev => prev.map(r => (r.reference_id === editingRef.reference_id ? merged : r)));
+                    setSelectedRefs(prev => prev.map(r => (r.reference_id === editingRef.reference_id ? merged : r)));
+                } catch (err) {
+                    console.error('Failed to update reference:', err);
+                    setValidationError(err.message || 'Failed to update reference.');
+                    return;
+                }
+            } else {
+                // Updating unpersisted temp reference
+                const updatedDraft = {
+                    ...editingRef,
+                    title: newRefDraft.title.trim(),
+                    type,
+                    author: newRefDraft.author.trim(),
+                    isbn: type === 'Online Resources' ? null : (newRefDraft.isbn ? newRefDraft.isbn.trim() : null),
+                    link: type === 'Textbook' ? null : (newRefDraft.link ? newRefDraft.link.trim() : null),
+                    publication_year: sanitizedYear
+                };
+                setAllReferences(prev => prev.map(r => (r._temp_id === editingRef._temp_id ? updatedDraft : r)));
+                setSelectedRefs(prev => prev.map(r => (r._temp_id === editingRef._temp_id ? updatedDraft : r)));
+            }
+        } else {
+            // Adding new reference
+            const tempId = `temp-${Date.now()}`;
+            const newOption = {
+                reference_id: null,
+                _temp_id: tempId,
+                title: newRefDraft.title.trim(),
+                type,
+                author: newRefDraft.author.trim(),
+                isbn: type === 'Online Resources' ? null : (newRefDraft.isbn ? newRefDraft.isbn.trim() : null),
+                link: type === 'Textbook' ? null : (newRefDraft.link ? newRefDraft.link.trim() : null),
+                publication_year: sanitizedYear
+            };
+
+            setAllReferences(prev => [newOption, ...prev]);
+            setSelectedRefs(prev => [newOption, ...prev]);
+        }
+
         setShowRefSpellModal(false);
-        setIsAddOpen(false);
+        setIsModalOpen(false);
+        setIsEditing(false);
+        setEditingRef(null);
         setValidationError(null);
     };
 
-    const handleSaveNewRefLocal = () => {
-        if (!newRefDraft.title || !newRefDraft.type) {
-            setValidationError('Title and Type are required for the new reference.');
+    const handleSaveDraft = () => {
+        const error = validateDraft(newRefDraft);
+        if (error) {
+            setValidationError(error);
             return;
         }
 
-        const warnings = getDraftSpellWarnings(newRefDraft, 'Reference Pop-up');
+        const prefix = isEditing ? 'Edit Reference' : 'Add Reference';
+        const warnings = getDraftSpellWarnings(newRefDraft, prefix);
         if (warnings.length > 0) {
             setRefSpellWarnings(warnings);
             setShowRefSpellModal(true);
             return;
         }
 
-        commitNewRefLocal();
+        commitDraftLocal();
     };
 
     const collectSpellWarnings = () => {
         const warnings = [];
-        // Check any newly added references in selectedRefs
+        // Check newly added references in selectedRefs (Title only)
         const newlyAddedRefs = selectedRefs.filter(r => !r.reference_id);
         newlyAddedRefs.forEach((r, idx) => {
             const prefix = `Added Reference #${idx + 1}${r.title ? ` (${r.title})` : ''}`;
             warnings.push(...getDraftSpellWarnings(r, prefix));
         });
 
-        // Also include draft if the Add Reference modal happens to be open
-        if (isAddOpen && (newRefDraft.title || newRefDraft.author)) {
+        // Also include draft if the modal happens to be open
+        if (isModalOpen && newRefDraft.title) {
             warnings.push(...getDraftSpellWarnings(newRefDraft, 'Reference Pop-up Draft'));
         }
 
@@ -239,8 +387,15 @@ const ReferenceForm = forwardRef(({ iloId, isOrientation = false, status, setUnr
 
             for (const r of toCreate) {
                 const payload = {
-                    title: r.title, type: r.type, author: r.author || null,
-                    isbn: r.isbn || null, link: r.link || null, publication_year: r.publication_year || null
+                    title: r.title,
+                    type: r.type,
+                    author: r.author || null,
+                    isbn: r.isbn || null,
+                    link: r.link || null,
+                    publication_year: r.publication_year || null,
+                    course_no: courseCode || null,
+                    pc_offering_id: pcOfferingId || null,
+                    week_id: Number(iloId)
                 };
 
                 const created = await fetchJson(`/api/references`, {
@@ -282,25 +437,72 @@ const ReferenceForm = forwardRef(({ iloId, isOrientation = false, status, setUnr
         const type = newRefDraft.type;
         return (
             <>
-                <TextField label="Title" value={newRefDraft.title} onChange={(v) => setNewRefDraft(prev => ({ ...prev, title: v }))} />
+                <TextField
+                    label="Title"
+                    value={newRefDraft.title}
+                    onChange={(v) => setNewRefDraft(prev => ({ ...prev, title: v }))}
+                    spellCheckEnabled={true}
+                    placeholder="Enter reference title..."
+                />
+                <TextField
+                    label="Author"
+                    value={newRefDraft.author}
+                    onChange={(v) => setNewRefDraft(prev => ({ ...prev, author: v }))}
+                    spellCheckEnabled={false}
+                    placeholder="e.g. John Doe"
+                />
                 {type === 'Textbook' && (
                     <>
-                        <TextField label="Author(s)" value={newRefDraft.author} onChange={(v) => setNewRefDraft(prev => ({ ...prev, author: v }))} />
-                        <TextField label="ISBN" value={newRefDraft.isbn} onChange={(v) => setNewRefDraft(prev => ({ ...prev, isbn: v }))} spellCheckEnabled={false} />
-                        <TextField label="Publication Year" value={newRefDraft.publication_year} onChange={(v) => setNewRefDraft(prev => ({ ...prev, publication_year: v }))} spellCheckEnabled={false} />
-                        <TextField label="Link (optional)" value={newRefDraft.link} onChange={(v) => setNewRefDraft(prev => ({ ...prev, link: v }))} spellCheckEnabled={false} />
+                        <TextField
+                            label="ISBN"
+                            value={newRefDraft.isbn}
+                            onChange={(v) => setNewRefDraft(prev => ({ ...prev, isbn: v }))}
+                            spellCheckEnabled={false}
+                            placeholder="e.g. 978-0-123456-47-2"
+                        />
+                        <TextField
+                            label="Publication Year"
+                            value={newRefDraft.publication_year}
+                            onChange={(v) => setNewRefDraft(prev => ({ ...prev, publication_year: v }))}
+                            spellCheckEnabled={false}
+                            placeholder="e.g. 2024"
+                        />
                     </>
                 )}
                 {type === 'Open Educational Resources' && (
                     <>
-                        <TextField label="Author / Source" value={newRefDraft.author} onChange={(v) => setNewRefDraft(prev => ({ ...prev, author: v }))} />
-                        <TextField label="Link" value={newRefDraft.link} onChange={(v) => setNewRefDraft(prev => ({ ...prev, link: v }))} spellCheckEnabled={false} />
+                        <TextField
+                            label="ISBN (optional)"
+                            value={newRefDraft.isbn}
+                            onChange={(v) => setNewRefDraft(prev => ({ ...prev, isbn: v }))}
+                            spellCheckEnabled={false}
+                            placeholder="e.g. 978-0-123456-47-2 (optional)"
+                        />
+                        <TextField
+                            label="Publication Year (optional)"
+                            value={newRefDraft.publication_year}
+                            onChange={(v) => setNewRefDraft(prev => ({ ...prev, publication_year: v }))}
+                            spellCheckEnabled={false}
+                            placeholder="e.g. 2024 (optional)"
+                        />
+                        <TextField
+                            label="Link"
+                            value={newRefDraft.link}
+                            onChange={(v) => setNewRefDraft(prev => ({ ...prev, link: v }))}
+                            spellCheckEnabled={false}
+                            placeholder="https://..."
+                        />
                     </>
                 )}
                 {type === 'Online Resources' && (
                     <>
-                        <TextField label="Author / Publisher" value={newRefDraft.author} onChange={(v) => setNewRefDraft(prev => ({ ...prev, author: v }))} />
-                        <TextField label="Link" value={newRefDraft.link} onChange={(v) => setNewRefDraft(prev => ({ ...prev, link: v }))} spellCheckEnabled={false} />
+                        <TextField
+                            label="Link"
+                            value={newRefDraft.link}
+                            onChange={(v) => setNewRefDraft(prev => ({ ...prev, link: v }))}
+                            spellCheckEnabled={false}
+                            placeholder="https://..."
+                        />
                     </>
                 )}
             </>
@@ -318,16 +520,37 @@ const ReferenceForm = forwardRef(({ iloId, isOrientation = false, status, setUnr
                 error={validationError}
                 disabled={loading}
                 onAddReference={handleOpenAdd}
+                onEditReference={handleOpenEdit}
             />
 
             <InlineModal
-                isOpen={isAddOpen}
-                title="Add Reference"
-                onClose={() => setIsAddOpen(false)}
+                isOpen={isModalOpen}
+                title={isEditing ? "Edit Reference" : "Add Reference"}
+                onClose={() => {
+                    setIsModalOpen(false);
+                    setIsEditing(false);
+                    setEditingRef(null);
+                }}
                 actions={
                     <>
-                        <button type="button" className={styles.cancelBtn} onClick={() => setIsAddOpen(false)}>Cancel</button>
-                        <button type="button" className={styles.confirmBtn} onClick={handleSaveNewRefLocal}>Add</button>
+                        <button
+                            type="button"
+                            className={styles.cancelBtn}
+                            onClick={() => {
+                                setIsModalOpen(false);
+                                setIsEditing(false);
+                                setEditingRef(null);
+                            }}
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            type="button"
+                            className={styles.confirmBtn}
+                            onClick={handleSaveDraft}
+                        >
+                            {isEditing ? "Save Changes" : "Add"}
+                        </button>
                     </>
                 }
             >
@@ -343,7 +566,7 @@ const ReferenceForm = forwardRef(({ iloId, isOrientation = false, status, setUnr
                 </div>
             </InlineModal>
 
-            {/* Soft-Warning Pre-Save Spell Check Modal for Reference Pop-up */}
+            {/* Soft-Warning Pre-Save Spell Check Modal for Reference Pop-up Title */}
             <InlineModal
                 isOpen={showRefSpellModal}
                 title="Spelling Check Warning"
@@ -353,7 +576,7 @@ const ReferenceForm = forwardRef(({ iloId, isOrientation = false, status, setUnr
                         <button type="button" className={styles.modalCancelBtn} onClick={() => setShowRefSpellModal(false)}>
                             Review & Edit
                         </button>
-                        <button type="button" className={styles.modalConfirmBtn} onClick={commitNewRefLocal}>
+                        <button type="button" className={styles.modalConfirmBtn} onClick={commitDraftLocal}>
                             Save Anyway
                         </button>
                     </>
@@ -363,10 +586,10 @@ const ReferenceForm = forwardRef(({ iloId, isOrientation = false, status, setUnr
                     <AlertCircle size={22} color="#D97706" style={{ flexShrink: 0, marginTop: '2px' }} />
                     <div style={{ flex: 1, minWidth: 0 }}>
                         <p style={{ margin: '0 0 6px 0', fontSize: '13.5px', fontWeight: 600, color: '#1E293B' }}>
-                            Potential Misspellings Detected
+                            Potential Misspellings Detected in Title
                         </p>
                         <p style={{ margin: '0 0 10px 0', fontSize: '12.5px', color: '#64748B', lineHeight: 1.45 }}>
-                            The following words were flagged by the spell checker. You can right-click underlined words to replace or whitelist them, or proceed anyway:
+                            The following words in the reference title were flagged by the spell checker. You can right-click underlined words to replace or whitelist them, or proceed anyway:
                         </p>
                         <div className={styles.spellWarningList}>
                             {refSpellWarnings.map((item, idx) => (

@@ -178,22 +178,41 @@ module.exports = {
         // 8. REFERENCES & WEEKLY REFERENCES (2 per Week = 32 WeeklyReferences)
         // ============================================================================
         const referencesData = [
-            { title: 'UNC Student Handbook & SCIS VMO Guidelines', author: 'University of Nueva Caceres', isbn: null, link: 'https://unc.edu.ph/student-handbook', publication_year: new Date('2024-06-01'), type: 'ONLINE' },
-            { title: 'Applied Statistics and Probability for Engineers (7th Edition)', author: 'Douglas C. Montgomery & George C. Runger', isbn: '978-1119400363', link: null, publication_year: new Date('2018-01-01'), type: 'TEXTBOOK' },
-            { title: 'Mathematical Statistics with Applications (7th Edition)', author: 'Dennis Wackerly, William Mendenhall & Richard L. Scheaffer', isbn: '978-0495110811', link: null, publication_year: new Date('2008-01-01'), type: 'TEXTBOOK' },
-            { title: 'Probability and Statistics for Computer Scientists (3rd Edition)', author: 'Michael Baron', isbn: '978-1138044487', link: null, publication_year: new Date('2019-01-01'), type: 'TEXTBOOK' },
-            { title: 'An Introduction to Statistical Learning: with Applications in Python/R', author: 'Gareth James, Daniela Witten, Trevor Hastie & Robert Tibshirani', isbn: '978-3031387463', link: null, publication_year: new Date('2023-01-01'), type: 'OER' },
-            { title: 'Applied Linear Statistical Models (5th Edition)', author: 'Michael H. Kutner, Christopher J. Nachtsheim, John Neter & William Li', isbn: '978-0073108742', link: null, publication_year: new Date('2005-01-01'), type: 'TEXTBOOK' },
-            { title: 'Applied Logistic Regression (3rd Edition)', author: 'David W. Hosmer Jr., Stanley Lemeshow & Rodney X. Sturdivant', isbn: '978-0470582473', link: null, publication_year: new Date('2013-01-01'), type: 'TEXTBOOK' },
-            { title: 'R for Data Science: Import, Tidy, Transform, Visualize, and Model Data (2nd Ed)', author: 'Hadley Wickham, Mine Çetinkaya-Rundel & Garrett Grolemund', isbn: '978-1492097402', link: null, publication_year: new Date('2023-01-01'), type: 'OER' },
-            { title: 'Python for Data Analysis: Data Wrangling with pandas, NumPy, and Jupyter (3rd Ed)', author: 'Wes McKinney', isbn: '978-1098104030', link: null, publication_year: new Date('2022-01-01'), type: 'TEXTBOOK' },
-            { title: 'OpenIntro Statistics (4th Edition)', author: 'David Diez, Mine Çetinkaya-Rundel & Christopher Barr', isbn: null, link: 'https://www.openintro.org/book/os/', publication_year: new Date('2019-01-01'), type: 'OER' },
-            { title: 'Seeing Theory: A Visual Introduction to Probability and Statistics', author: 'Brown University (Daniel Kunin et al.)', isbn: null, link: 'https://seeing-theory.brown.edu/', publication_year: new Date('2023-01-01'), type: 'ONLINE' },
-            { title: 'SciPy & Statsmodels Official Statistical Computing Documentation', author: 'SciPy & Statsmodels Developers', isbn: null, link: 'https://www.statsmodels.org/stable/index.html', publication_year: new Date('2024-01-01'), type: 'ONLINE' },
-            { title: 'Computer Age Statistical Inference: Algorithms, Evidence, and Data Science', author: 'Bradley Efron & Trevor Hastie', isbn: '978-1107149892', link: null, publication_year: new Date('2021-01-01'), type: 'OER' },
-            { title: 'Fundamentals of Data Visualization', author: 'Claus O. Wilke', isbn: null, link: 'https://clauswilke.com/dataviz/', publication_year: new Date('2019-01-01'), type: 'OER' },
-            { title: 'Quarto & Jupyter Reproducible Scientific Publishing Documentation', author: 'Posit / Project Jupyter', isbn: null, link: 'https://quarto.org/docs/guide/', publication_year: new Date('2024-01-01'), type: 'ONLINE' },
-            { title: 'American Statistical Association (ASA) Ethical Guidelines for Statistical Practice', author: 'American Statistical Association', isbn: null, link: 'https://www.amstat.org/your-career/ethical-guidelines-for-statistical-practice', publication_year: new Date('2022-01-01'), type: 'ONLINE' }
+            // ONLINE RESOURCES (Title, Author, Link; no ISBN, no publication year)
+            { course_id: courseId, course_no: 'MATH311L', title: 'UNC Student Handbook & SCIS VMO Guidelines', author: 'University of Nueva Caceres', isbn: null, link: 'https://unc.edu.ph/student-handbook', publication_year: null, type: 'Online Resources' },
+            
+            // TEXTBOOKS (Title, Author, ISBN, Publication Year; no link)
+            { course_id: courseId, course_no: 'MATH311L', title: 'Applied Statistics and Probability for Engineers (7th Edition)', author: 'Douglas C. Montgomery & George C. Runger', isbn: '978-1119400363', link: null, publication_year: new Date('2018-01-01'), type: 'Textbook' },
+            { course_id: courseId, course_no: 'MATH311L', title: 'Mathematical Statistics with Applications (7th Edition)', author: 'Dennis Wackerly, William Mendenhall & Richard L. Scheaffer', isbn: '978-0495110811', link: null, publication_year: new Date('2008-01-01'), type: 'Textbook' },
+            { course_id: courseId, course_no: 'MATH311L', title: 'Probability and Statistics for Computer Scientists (3rd Edition)', author: 'Michael Baron', isbn: '978-1138044487', link: null, publication_year: new Date('2019-01-01'), type: 'Textbook' },
+            
+            // OPEN EDUCATIONAL RESOURCES (Title, Author, Link, optional ISBN & Year with values)
+            { course_id: courseId, course_no: 'MATH311L', title: 'An Introduction to Statistical Learning: with Applications in Python/R', author: 'Gareth James, Daniela Witten, Trevor Hastie & Robert Tibshirani', isbn: '978-3031387463', link: 'https://www.statlearning.com/', publication_year: new Date('2023-01-01'), type: 'Open Educational Resources' },
+            
+            // TEXTBOOKS
+            { course_id: courseId, course_no: 'MATH311L', title: 'Applied Linear Statistical Models (5th Edition)', author: 'Michael H. Kutner, Christopher J. Nachtsheim, John Neter & William Li', isbn: '978-0073108742', link: null, publication_year: new Date('2005-01-01'), type: 'Textbook' },
+            { course_id: courseId, course_no: 'MATH311L', title: 'Applied Logistic Regression (3rd Edition)', author: 'David W. Hosmer Jr., Stanley Lemeshow & Rodney X. Sturdivant', isbn: '978-0470582473', link: null, publication_year: new Date('2013-01-01'), type: 'Textbook' },
+            
+            // OPEN EDUCATIONAL RESOURCES
+            { course_id: courseId, course_no: 'MATH311L', title: 'R for Data Science: Import, Tidy, Transform, Visualize, and Model Data (2nd Ed)', author: 'Hadley Wickham, Mine Çetinkaya-Rundel & Garrett Grolemund', isbn: '978-1492097402', link: 'https://r4ds.hadley.nz/', publication_year: new Date('2023-01-01'), type: 'Open Educational Resources' },
+            
+            // TEXTBOOKS
+            { course_id: courseId, course_no: 'MATH311L', title: 'Python for Data Analysis: Data Wrangling with pandas, NumPy, and Jupyter (3rd Ed)', author: 'Wes McKinney', isbn: '978-1098104030', link: null, publication_year: new Date('2022-01-01'), type: 'Textbook' },
+            
+            // OPEN EDUCATIONAL RESOURCES
+            { course_id: courseId, course_no: 'MATH311L', title: 'OpenIntro Statistics (4th Edition)', author: 'David Diez, Mine Çetinkaya-Rundel & Christopher Barr', isbn: '978-1943450145', link: 'https://www.openintro.org/book/os/', publication_year: new Date('2019-01-01'), type: 'Open Educational Resources' },
+            
+            // ONLINE RESOURCES
+            { course_id: courseId, course_no: 'MATH311L', title: 'Seeing Theory: A Visual Introduction to Probability and Statistics', author: 'Brown University (Daniel Kunin et al.)', isbn: null, link: 'https://seeing-theory.brown.edu/', publication_year: null, type: 'Online Resources' },
+            { course_id: courseId, course_no: 'MATH311L', title: 'SciPy & Statsmodels Official Statistical Computing Documentation', author: 'SciPy & Statsmodels Developers', isbn: null, link: 'https://www.statsmodels.org/stable/index.html', publication_year: null, type: 'Online Resources' },
+            
+            // OPEN EDUCATIONAL RESOURCES
+            { course_id: courseId, course_no: 'MATH311L', title: 'Computer Age Statistical Inference: Algorithms, Evidence, and Data Science', author: 'Bradley Efron & Trevor Hastie', isbn: '978-1107149892', link: 'https://hastie.su.domains/CASI/', publication_year: new Date('2021-01-01'), type: 'Open Educational Resources' },
+            { course_id: courseId, course_no: 'MATH311L', title: 'Fundamentals of Data Visualization', author: 'Claus O. Wilke', isbn: '978-1492031086', link: 'https://clauswilke.com/dataviz/', publication_year: new Date('2019-01-01'), type: 'Open Educational Resources' },
+            
+            // ONLINE RESOURCES
+            { course_id: courseId, course_no: 'MATH311L', title: 'Quarto & Jupyter Reproducible Scientific Publishing Documentation', author: 'Posit / Project Jupyter', isbn: null, link: 'https://quarto.org/docs/guide/', publication_year: null, type: 'Online Resources' },
+            { course_id: courseId, course_no: 'MATH311L', title: 'American Statistical Association (ASA) Ethical Guidelines for Statistical Practice', author: 'American Statistical Association', isbn: null, link: 'https://www.amstat.org/your-career/ethical-guidelines-for-statistical-practice', publication_year: null, type: 'Online Resources' }
         ];
 
         await queryInterface.bulkInsert('References', referencesData.map(r => ({ ...r, createdAt: now, updatedAt: now })), {});

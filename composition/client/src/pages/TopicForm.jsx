@@ -780,9 +780,20 @@ const TopicForm = () => {
     const activeWeekHours = activeWeekObj?.hours
         ? Number(activeWeekObj.hours)
         : (isOrientation ? 2 : (weekContext.totalWeeklyHours || 5));
-    const previousWeekId = (!isOrientation && activeWeekIndex > 0)
-        ? weekContext.weeks[activeWeekIndex - 1]?.week_id
-        : null;
+    let previousWeekId = null;
+    if (!isOrientation) {
+        if (activeWeekIndex > 0) {
+            previousWeekId = weekContext.weeks[activeWeekIndex - 1]?.week_id;
+        } else if (activeWeekIndex === 0 && Number(weekContext.coNumber) > 1 && Array.isArray(weekContext.courseOutcomes)) {
+            const currentCoNum = Number(weekContext.coNumber);
+            const prevCo = weekContext.courseOutcomes.find(
+                c => !c.isOrientation && Number(c.coNumber) === currentCoNum - 1
+            );
+            if (prevCo && Array.isArray(prevCo.weeks) && prevCo.weeks.length > 0) {
+                previousWeekId = prevCo.weeks[prevCo.weeks.length - 1]?.week_id;
+            }
+        }
+    }
 
     // Frontend-cached topics for the current week and previous weeks (used directly without needing DB save first)
     const currentWeekCachedTopics = weekTopicsMap[getWeekCacheKey(effectiveWeekId, isOrientation)];
@@ -1315,7 +1326,9 @@ const TopicForm = () => {
                                          isOrientation={isOrientation}
                                          status={status}
                                          setUnresolvedCount={handleRefUnresolved}
-                                         onCommentsChange={handleRefCommentsChange}
+                                         courseCode={courseCode || weekContext.courseNo}
+                                        pcOfferingId={weekContext.pc_offering_id}
+                                        onCommentsChange={handleRefCommentsChange}
                                      />
                                  </div>
                              </div>

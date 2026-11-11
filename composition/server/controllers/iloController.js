@@ -67,17 +67,17 @@ async function getILOsByPcOffering(req, res) {
         const [weeks, ilos] = await Promise.all([
             coIds.length > 0
                 ? Week.findAll({
-                      where: { co_id: coIds },
-                      attributes: ['week_id', 'co_id', 'hours'],
-                      order: [['co_id', 'ASC'], ['week_id', 'ASC']]
-                  })
+                    where: { co_id: coIds },
+                    attributes: ['week_id', 'co_id', 'hours'],
+                    order: [['co_id', 'ASC'], ['week_id', 'ASC']]
+                })
                 : [],
             coIds.length > 0
                 ? IntendedLearningOutcome.findAll({
-                      where: { co_id: coIds },
-                      attributes: ['ilo_id', 'co_id', 'description', 'is_orientation', 'hours', 'weeks'],
-                      order: [['co_id', 'ASC'], ['ilo_id', 'ASC']]
-                  })
+                    where: { co_id: coIds },
+                    attributes: ['ilo_id', 'co_id', 'description', 'is_orientation', 'hours', 'weeks'],
+                    order: [['co_id', 'ASC'], ['ilo_id', 'ASC']]
+                })
                 : []
         ]);
 

@@ -63,6 +63,7 @@ exports.getReferenceSummary = async (req, res, next) => {
         const oer = [];
         const onlineResources = [];
         const allReferences = [];
+        const currentYear = new Date().getFullYear();
 
         rawReferences.forEach(item => {
             const ref = item.Reference || item.reference;
@@ -81,6 +82,14 @@ exports.getReferenceSummary = async (req, res, next) => {
                     cleanYear = ref.year;
                 }
 
+                const parsedYearNum = Number(cleanYear);
+                const isDeprecated = Boolean(
+                    (ref.type || '').toLowerCase().includes('textbook') &&
+                    cleanYear !== '-' &&
+                    !isNaN(parsedYearNum) &&
+                    (currentYear - parsedYearNum >= 5)
+                );
+
                 const structuredRef = {
                     id: refId,
                     weekId: item.week_id,
@@ -90,7 +99,8 @@ exports.getReferenceSummary = async (req, res, next) => {
                     isbn: ref.isbn || ref.isbn_no || '-',
                     link: ref.link || ref.url || '#',
                     year: cleanYear,
-                    type: ref.type || 'Textbook'
+                    type: ref.type || 'Textbook',
+                    is_deprecated: isDeprecated
                 };
 
                 const typeKey = (ref.type || '').toLowerCase();

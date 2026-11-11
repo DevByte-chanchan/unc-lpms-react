@@ -130,12 +130,34 @@ const ReferenceSummary = ({ offeringID, revisionNum, status, selectedSection, st
                         <tbody>
                         {getDataByType('Textbook').map((ref, i) => {
                             const unresolvedCount = referenceCommentCounts[ref.id] || 0;
+                            const currentYear = new Date().getFullYear();
+                            const yearNum = Number(ref.year);
+                            const isDeprecated = Boolean(
+                                ref.is_deprecated ||
+                                (ref.year && !isNaN(yearNum) && (currentYear - yearNum >= 5))
+                            );
                             return (
                                 <tr key={ref.id || i}>
                                     <td>TB{i + 1}</td>
                                     <td>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                            {ref.title}
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                                            <span>{ref.title}</span>
+                                            {isDeprecated && (
+                                                <span style={{
+                                                    fontSize: '10px',
+                                                    textTransform: 'uppercase',
+                                                    background: '#FEE2E2',
+                                                    border: '1px solid #FCA5A5',
+                                                    padding: '2px 7px',
+                                                    borderRadius: '4px',
+                                                    color: '#B91C1C',
+                                                    fontWeight: 700,
+                                                    letterSpacing: '0.02em',
+                                                    whiteSpace: 'nowrap'
+                                                }}>
+                                                    Deprecated
+                                                </span>
+                                            )}
                                             {status === 'returned' && unresolvedCount > 0 && (
                                                 <span className={styles['comment-badge']}>{unresolvedCount}</span>
                                             )}

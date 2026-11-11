@@ -1,7 +1,7 @@
 // src/components/ReferencePicker.jsx
 import React, { useState, useMemo, useCallback } from 'react';
 import styles from '../styles/ReferencePicker.module.sass';
-import { Search, Book, Globe, Unlock, ExternalLink, Plus } from 'react-feather';
+import { Search, Book, Globe, Unlock, ExternalLink, Plus, Edit2 } from 'react-feather';
 
 /**
  * ReferencePicker
@@ -11,9 +11,10 @@ import { Search, Book, Globe, Unlock, ExternalLink, Plus } from 'react-feather';
  * - onChange: (newArray) => void
  * - error: string
  * - disabled: boolean
- * - onAddReference: () => void
+ * - onAddReference: (defaultType) => void
+ * - onEditReference: (ref) => void
  */
-const ReferencePicker = ({ options = [], value = [], onChange, error, disabled, onAddReference }) => {
+const ReferencePicker = ({ options = [], value = [], onChange, error, disabled, onAddReference, onEditReference }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [activeFilter, setActiveFilter] = useState('Textbook');
 
@@ -33,11 +34,39 @@ const ReferencePicker = ({ options = [], value = [], onChange, error, disabled, 
         return t;
     };
 
+    const getRefYear = (ref) => {
+        if (!ref) return null;
+        const raw = ref.publication_year || ref.year;
+        if (!raw) return null;
+        if (typeof raw === 'number') return raw;
+        const d = new Date(raw);
+        if (!isNaN(d.getFullYear())) return d.getFullYear();
+        const match = String(raw).match(/\b(19\d\d|20\d\d)\b/);
+        return match ? parseInt(match[1], 10) : null;
+    };
+
+    const isDeprecated = (ref) => {
+        const rawType = (ref.type || ref.typeKey || '').toLowerCase();
+        if (!rawType.includes('textbook')) return false;
+        const year = getRefYear(ref);
+        if (!year) return false;
+        const currentYear = new Date().getFullYear();
+        return (currentYear - year) >= 5;
+    };
+
     // Normalize incoming options so fields are predictable and include a normalized type key
     const normalizedOptions = useMemo(() => {
         return (options || []).map(r => {
             const rawType = r.type || r.Type || '';
             const typeKey = normalizeTypeKey(rawType);
+            let displayYear = null;
+            if (r.publication_year) {
+                const d = new Date(r.publication_year);
+                displayYear = !isNaN(d.getFullYear()) ? d.getFullYear() : String(r.publication_year).slice(0, 4);
+            } else if (r.year) {
+                displayYear = r.year;
+            }
+
             return {
                 reference_id: r.reference_id != null ? Number(r.reference_id) : null,
                 title: r.title || '',
@@ -47,6 +76,7 @@ const ReferencePicker = ({ options = [], value = [], onChange, error, disabled, 
                 isbn: r.isbn || '',
                 link: r.link || '',
                 publication_year: r.publication_year || r.year || null,
+                displayYear,
                 _temp_id: r._temp_id || null,
                 ...r
             };
@@ -159,7 +189,7 @@ const ReferencePicker = ({ options = [], value = [], onChange, error, disabled, 
                     <button
                         className={styles.mainAddBtn}
                         type="button"
-                        onClick={() => onAddReference && onAddReference()}
+                        onClick={() => onAddReference && onAddReference(activeFilter)}
                         disabled={disabled}
                     >
                         <Plus size={16} />
@@ -172,6 +202,13 @@ const ReferencePicker = ({ options = [], value = [], onChange, error, disabled, 
                     {filteredOptions.length > 0 ? (
                         filteredOptions.map((ref, index) => {
                             const selected = isRefSelected(ref);
+                            const canEdit = Boolean(
+                                onEditReference && (
+                                    ref.typeKey === 'open educational resources' ||
+                                    ref.typeKey === 'online resources'
+                                )
+                            );
+                            const deprecated = isDeprecated(ref);
 
                             return (
                                 <div
@@ -192,14 +229,15 @@ const ReferencePicker = ({ options = [], value = [], onChange, error, disabled, 
                                         <div className={styles.details}>
                                             <div className={styles.title}>{ref.title}</div>
                                             <div className={styles.meta}>
-                                                <span>{ref.author || 'N/A'}</span> • <span>{ref.publication_year || 'N/A'}</span>
+                                                <span>{ref.author || 'N/A'}</span>
+                                                {ref.displayYear && <span> • {ref.displayYear}</span>}
                                                 {ref.isbn && <span className={styles.isbn}> • ISBN: {ref.isbn}</span>}
                                             </div>
                                         </div>
                                     </div>
 
-                                    {/* Right: view link and type tag (stopPropagation so clicking view doesn't toggle) */}
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                                    {/* Right: view link, edit button, and deprecated tag (replaces type tag) */}
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                                         {ref.link && (
                                             <a
                                                 href={ref.link}
@@ -212,7 +250,24 @@ const ReferencePicker = ({ options = [], value = [], onChange, error, disabled, 
                                                 View <ExternalLink size={14} />
                                             </a>
                                         )}
-                                        <div className={styles.typeTag}>{ref.type}</div>
+                                        {canEdit && (
+                                            <button
+                                                type="button"
+                                                className={styles.editBtn}
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    onEditReference && onEditReference(ref);
+                                                }}
+                                                title="Edit reference"
+                                                disabled={disabled}
+                                            >
+                                                <Edit2 size={12} />
+                                                <span>Edit</span>
+                                            </button>
+                                        )}
+                                        {deprecated && (
+                                            <div className={styles.deprecatedTag}>Deprecated</div>
+                                        )}
                                     </div>
                                 </div>
                             );

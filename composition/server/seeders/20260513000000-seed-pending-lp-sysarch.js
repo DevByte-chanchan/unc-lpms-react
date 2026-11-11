@@ -171,22 +171,35 @@ module.exports = {
         // 8. REFERENCES & WEEKLY REFERENCES (2 per Week = 32 WeeklyReferences)
         // ============================================================================
         const referencesData = [
-            { title: 'UNC Student Handbook & Institutional VMO Guide', author: 'University of Nueva Caceres', isbn: null, link: 'https://unc.edu.ph/student-handbook', publication_year: new Date('2024-06-01'), type: 'ONLINE' },
-            { title: 'Fundamentals of Software Architecture: An Engineering Approach', author: 'Mark Richards & Neal Ford', isbn: '978-1492043454', link: null, publication_year: new Date('2020-01-01'), type: 'TEXTBOOK' },
-            { title: 'Enterprise Integration Patterns: Designing, Building, and Deploying Messaging Solutions', author: 'Gregor Hohpe & Bobby Woolf', isbn: '978-0321200686', link: null, publication_year: new Date('2003-01-01'), type: 'TEXTBOOK' },
-            { title: 'Building Microservices: Designing Fine-Grained Systems (2nd Edition)', author: 'Sam Newman', isbn: '978-1492034025', link: null, publication_year: new Date('2021-01-01'), type: 'TEXTBOOK' },
-            { title: 'Designing Data-Intensive Applications', author: 'Martin Kleppmann', isbn: '978-1449373320', link: null, publication_year: new Date('2017-01-01'), type: 'TEXTBOOK' },
-            { title: 'Microservices Patterns: With Examples in Java', author: 'Chris Richardson', isbn: '978-1617294549', link: null, publication_year: new Date('2018-01-01'), type: 'TEXTBOOK' },
-            { title: 'Software Architecture: The Hard Parts', author: 'Neal Ford, Mark Richards, Pramod Sadalage & Zhamak Dehghani', isbn: '978-1492086895', link: null, publication_year: new Date('2021-01-01'), type: 'TEXTBOOK' },
-            { title: 'RESTful Web APIs: Services for a Changing World', author: 'Leonard Richardson & Mike Amundsen', isbn: '978-1449358068', link: null, publication_year: new Date('2013-01-01'), type: 'TEXTBOOK' },
-            { title: 'The TOGAF Standard, 10th Edition Architecture Development Method', author: 'The Open Group', isbn: null, link: 'https://pubs.opengroup.org/togaf-standard/', publication_year: new Date('2022-01-01'), type: 'ONLINE' },
-            { title: 'The C4 Model for Visualizing Software Architecture', author: 'Simon Brown', isbn: null, link: 'https://c4model.com/', publication_year: new Date('2023-01-01'), type: 'OER' },
-            { title: 'OpenAPI 3.1 Specification & Contract-First Design Guide', author: 'OpenAPI Initiative', isbn: null, link: 'https://spec.openapis.org/oas/latest.html', publication_year: new Date('2024-01-01'), type: 'ONLINE' },
-            { title: 'gRPC & Protocol Buffers Official Engineering Documentation', author: 'Cloud Native Computing Foundation', isbn: null, link: 'https://grpc.io/docs/', publication_year: new Date('2024-01-01'), type: 'ONLINE' },
-            { title: 'RabbitMQ AMQP 0-9-1 Messaging Broker Tutorials', author: 'VMware Tanzu / RabbitMQ Team', isbn: null, link: 'https://www.rabbitmq.com/tutorials', publication_year: new Date('2024-01-01'), type: 'ONLINE' },
-            { title: 'Apache Kafka Event Streaming Platform Documentation', author: 'Apache Software Foundation', isbn: null, link: 'https://kafka.apache.org/documentation/', publication_year: new Date('2024-01-01'), type: 'OER' },
-            { title: 'OpenTelemetry Distributed Tracing & Observability Framework', author: 'CNCF OpenTelemetry Project', isbn: null, link: 'https://opentelemetry.io/docs/', publication_year: new Date('2024-01-01'), type: 'OER' },
-            { title: 'Kubernetes Production Orchestration & Zero-Trust OAuth2 Security', author: 'Kubernetes & OAuth Working Group', isbn: null, link: 'https://kubernetes.io/docs/home/', publication_year: new Date('2025-01-01'), type: 'ONLINE' }
+            // ONLINE RESOURCES (Title, Author, Link; no ISBN, no publication year)
+            { course_id: courseId, course_no: 'BIT321L', title: 'UNC Student Handbook & Institutional VMO Guide', author: 'University of Nueva Caceres', isbn: null, link: 'https://unc.edu.ph/student-handbook', publication_year: null, type: 'Online Resources' },
+            
+            // TEXTBOOKS (Title, Author, ISBN, Publication Year; no link)
+            { course_id: courseId, course_no: 'BIT321L', title: 'Fundamentals of Software Architecture: An Engineering Approach', author: 'Mark Richards & Neal Ford', isbn: '978-1492043454', link: null, publication_year: new Date('2020-01-01'), type: 'Textbook' },
+            { course_id: courseId, course_no: 'BIT321L', title: 'Enterprise Integration Patterns: Designing, Building, and Deploying Messaging Solutions', author: 'Gregor Hohpe & Bobby Woolf', isbn: '978-0321200686', link: null, publication_year: new Date('2003-01-01'), type: 'Textbook' },
+            { course_id: courseId, course_no: 'BIT321L', title: 'Building Microservices: Designing Fine-Grained Systems (2nd Edition)', author: 'Sam Newman', isbn: '978-1492034025', link: null, publication_year: new Date('2021-01-01'), type: 'Textbook' },
+            { course_id: courseId, course_no: 'BIT321L', title: 'Designing Data-Intensive Applications: The Big Ideas Behind Reliable Systems', author: 'Martin Kleppmann', isbn: '978-1449373320', link: null, publication_year: new Date('2017-01-01'), type: 'Textbook' },
+            { course_id: courseId, course_no: 'BIT321L', title: 'Microservices Patterns: With Examples in Java', author: 'Chris Richardson', isbn: '978-1617294549', link: null, publication_year: new Date('2018-01-01'), type: 'Textbook' },
+            { course_id: courseId, course_no: 'BIT321L', title: 'Software Architecture: The Hard Parts', author: 'Neal Ford, Mark Richards, Pramod Sadalage & Zhamak Dehghani', isbn: '978-1492086895', link: null, publication_year: new Date('2021-01-01'), type: 'Textbook' },
+            { course_id: courseId, course_no: 'BIT321L', title: 'RESTful Web APIs: Services for a Changing World', author: 'Leonard Richardson & Mike Amundsen', isbn: '978-1449358068', link: null, publication_year: new Date('2013-01-01'), type: 'Textbook' },
+            
+            // ONLINE RESOURCES
+            { course_id: courseId, course_no: 'BIT321L', title: 'The TOGAF Standard, 10th Edition Architecture Development Method', author: 'The Open Group', isbn: null, link: 'https://pubs.opengroup.org/togaf-standard/', publication_year: null, type: 'Online Resources' },
+            
+            // OPEN EDUCATIONAL RESOURCES (Title, Author, Link, optional ISBN & Year with values)
+            { course_id: courseId, course_no: 'BIT321L', title: 'The C4 Model for Visualizing Software Architecture', author: 'Simon Brown', isbn: '978-1449323112', link: 'https://c4model.com/', publication_year: new Date('2023-01-01'), type: 'Open Educational Resources' },
+            
+            // ONLINE RESOURCES
+            { course_id: courseId, course_no: 'BIT321L', title: 'OpenAPI 3.1 Specification & Contract-First Design Guide', author: 'OpenAPI Initiative', isbn: null, link: 'https://spec.openapis.org/oas/latest.html', publication_year: null, type: 'Online Resources' },
+            { course_id: courseId, course_no: 'BIT321L', title: 'gRPC & Protocol Buffers Official Engineering Documentation', author: 'Cloud Native Computing Foundation', isbn: null, link: 'https://grpc.io/docs/', publication_year: null, type: 'Online Resources' },
+            { course_id: courseId, course_no: 'BIT321L', title: 'RabbitMQ AMQP 0-9-1 Messaging Broker Tutorials', author: 'VMware Tanzu / RabbitMQ Team', isbn: null, link: 'https://www.rabbitmq.com/tutorials', publication_year: null, type: 'Online Resources' },
+            
+            // OPEN EDUCATIONAL RESOURCES
+            { course_id: courseId, course_no: 'BIT321L', title: 'Apache Kafka Event Streaming Platform Documentation', author: 'Apache Software Foundation', isbn: '978-1492056218', link: 'https://kafka.apache.org/documentation/', publication_year: new Date('2024-01-01'), type: 'Open Educational Resources' },
+            { course_id: courseId, course_no: 'BIT321L', title: 'OpenTelemetry Distributed Tracing & Observability Framework', author: 'CNCF OpenTelemetry Project', isbn: '978-1492067122', link: 'https://opentelemetry.io/docs/', publication_year: new Date('2024-01-01'), type: 'Open Educational Resources' },
+            
+            // ONLINE RESOURCES
+            { course_id: courseId, course_no: 'BIT321L', title: 'Kubernetes Production Orchestration & Zero-Trust OAuth2 Security', author: 'Kubernetes & OAuth Working Group', isbn: null, link: 'https://kubernetes.io/docs/home/', publication_year: null, type: 'Online Resources' }
         ];
 
         await queryInterface.bulkInsert('References', referencesData.map(r => ({ ...r, createdAt: now, updatedAt: now })), {});

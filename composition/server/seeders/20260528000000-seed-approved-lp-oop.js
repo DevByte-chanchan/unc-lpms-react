@@ -182,18 +182,29 @@ module.exports = {
         // 8) References & WeeklyReferences (2 per Week = 32 WeeklyReferences)
         // ============================================================================
         const references = [
-            { title: 'UNC Student Handbook', author: 'University of Nueva Caceres', isbn: null, link: 'https://unc.edu.ph/student-handbook', publication_year: new Date('2024-06-01'), type: 'ONLINE', createdAt: now, updatedAt: now },
-            { title: 'CCS VMO Curated Materials', author: 'CCS Dean\'s Office', isbn: null, link: 'https://unc.edu.ph/ccs-vmo', publication_year: new Date('2024-06-01'), type: 'OER', createdAt: now, updatedAt: now },
-            { title: 'Clean Code: A Handbook of Agile Software Craftsmanship', author: 'Robert C. Martin', isbn: '978-0132350884', link: null, publication_year: new Date('2008-01-01'), type: 'TEXTBOOK', createdAt: now, updatedAt: now },
-            { title: 'Effective Java (3rd Edition)', author: 'Joshua Bloch', isbn: '978-0134685991', link: null, publication_year: new Date('2018-01-01'), type: 'TEXTBOOK', createdAt: now, updatedAt: now },
-            { title: 'Head First Object-Oriented Analysis and Design', author: 'Brett D. McLaughlin, Gary Pollice & David West', isbn: '978-0596008673', link: null, publication_year: new Date('2006-01-01'), type: 'TEXTBOOK', createdAt: now, updatedAt: now },
-            { title: 'Head First Design Patterns', author: 'Eric Freeman & Elisabeth Robson', isbn: '978-0596007126', link: null, publication_year: new Date('2004-01-01'), type: 'TEXTBOOK', createdAt: now, updatedAt: now },
-            { title: 'Core Java Volume I: Fundamentals (12th Edition)', author: 'Cay S. Horstmann', isbn: '978-0137673629', link: null, publication_year: new Date('2021-01-01'), type: 'TEXTBOOK', createdAt: now, updatedAt: now },
-            { title: 'Oracle Java Platform Standard Edition Documentation', author: 'Oracle Corporation', isbn: null, link: 'https://docs.oracle.com/en/java/', publication_year: new Date('2025-01-01'), type: 'ONLINE', createdAt: now, updatedAt: now },
-            { title: 'Microsoft C# Object-Oriented Programming Guide', author: 'Microsoft Developer Network', isbn: null, link: 'https://learn.microsoft.com/en-us/dotnet/csharp/fundamentals/object-oriented/', publication_year: new Date('2025-01-01'), type: 'ONLINE', createdAt: now, updatedAt: now },
-            { title: 'Refactoring.Guru: OOP Principles & Design Patterns', author: 'Alexander Shvets', isbn: null, link: 'https://refactoring.guru/', publication_year: new Date('2024-01-01'), type: 'OER', createdAt: now, updatedAt: now },
-            { title: 'Object-Oriented Programming with Java (MOOC.fi)', author: 'University of Helsinki', isbn: null, link: 'https://java-programming.mooc.fi/', publication_year: new Date('2023-01-01'), type: 'OER', createdAt: now, updatedAt: now },
-            { title: 'JavaFX & Swing Desktop GUI Architecture Guide', author: 'OpenJFX / Oracle', isbn: null, link: 'https://openjfx.io/', publication_year: new Date('2024-01-01'), type: 'ONLINE', createdAt: now, updatedAt: now }
+            // ONLINE RESOURCES (Title, Author, Link; no ISBN, no publication year)
+            { course_id: courseId, course_no: 'BIT213L', title: 'UNC Student Handbook & SCIS Policies', author: 'University of Nueva Caceres', isbn: null, link: 'https://unc.edu.ph/student-handbook', publication_year: null, type: 'Online Resources', createdAt: now, updatedAt: now },
+            
+            // OPEN EDUCATIONAL RESOURCES (Title, Author, Link, optional ISBN & Year with values)
+            { course_id: courseId, course_no: 'BIT213L', title: 'CCS VMO Curated Institutional Materials', author: 'CCS Dean's Office', isbn: '978-971-0000-02-8', link: 'https://unc.edu.ph/ccs-vmo', publication_year: new Date('2024-06-01'), type: 'Open Educational Resources', createdAt: now, updatedAt: now },
+            
+            // TEXTBOOKS (Title, Author, ISBN, Publication Year; no link)
+            { course_id: courseId, course_no: 'BIT213L', title: 'Clean Code: A Handbook of Agile Software Craftsmanship', author: 'Robert C. Martin', isbn: '978-0132350884', link: null, publication_year: new Date('2008-01-01'), type: 'Textbook', createdAt: now, updatedAt: now },
+            { course_id: courseId, course_no: 'BIT213L', title: 'Effective Java (3rd Edition)', author: 'Joshua Bloch', isbn: '978-0134685991', link: null, publication_year: new Date('2018-01-01'), type: 'Textbook', createdAt: now, updatedAt: now },
+            { course_id: courseId, course_no: 'BIT213L', title: 'Head First Object-Oriented Analysis and Design', author: 'Brett D. McLaughlin, Gary Pollice & David West', isbn: '978-0596008673', link: null, publication_year: new Date('2006-01-01'), type: 'Textbook', createdAt: now, updatedAt: now },
+            { course_id: courseId, course_no: 'BIT213L', title: 'Head First Design Patterns: Building Extensible and Maintainable Software', author: 'Eric Freeman & Elisabeth Robson', isbn: '978-0596007126', link: null, publication_year: new Date('2004-01-01'), type: 'Textbook', createdAt: now, updatedAt: now },
+            { course_id: courseId, course_no: 'BIT213L', title: 'Core Java Volume I: Fundamentals (12th Edition)', author: 'Cay S. Horstmann', isbn: '978-0137673629', link: null, publication_year: new Date('2021-01-01'), type: 'Textbook', createdAt: now, updatedAt: now },
+            
+            // ONLINE RESOURCES
+            { course_id: courseId, course_no: 'BIT213L', title: 'Oracle Java Platform Standard Edition Documentation', author: 'Oracle Corporation', isbn: null, link: 'https://docs.oracle.com/en/java/', publication_year: null, type: 'Online Resources', createdAt: now, updatedAt: now },
+            { course_id: courseId, course_no: 'BIT213L', title: 'Microsoft C# Object-Oriented Programming Guide', author: 'Microsoft Developer Network', isbn: null, link: 'https://learn.microsoft.com/en-us/dotnet/csharp/fundamentals/object-oriented/', publication_year: null, type: 'Online Resources', createdAt: now, updatedAt: now },
+            
+            // OPEN EDUCATIONAL RESOURCES
+            { course_id: courseId, course_no: 'BIT213L', title: 'Refactoring.Guru: OOP Principles & Design Patterns Catalog', author: 'Alexander Shvets', isbn: '978-0999123449', link: 'https://refactoring.guru/', publication_year: new Date('2024-01-01'), type: 'Open Educational Resources', createdAt: now, updatedAt: now },
+            { course_id: courseId, course_no: 'BIT213L', title: 'Object-Oriented Programming with Java (MOOC.fi Open Course)', author: 'University of Helsinki', isbn: '978-9526038124', link: 'https://java-programming.mooc.fi/', publication_year: new Date('2023-01-01'), type: 'Open Educational Resources', createdAt: now, updatedAt: now },
+            
+            // ONLINE RESOURCES
+            { course_id: courseId, course_no: 'BIT213L', title: 'JavaFX & Swing Desktop GUI Architecture Guide', author: 'OpenJFX / Oracle', isbn: null, link: 'https://openjfx.io/', publication_year: null, type: 'Online Resources', createdAt: now, updatedAt: now }
         ];
 
         await queryInterface.bulkInsert('References', references, {});

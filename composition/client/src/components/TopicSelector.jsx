@@ -23,6 +23,7 @@ const TopicSelector = ({
     const scrollContainerRef = useRef(null);
 
     const canContinueTopic = Number(weekNumber) > 1;
+    const prevWeekDisplay = Number(weekNumber) === 10 ? 8 : (Number(weekNumber) > 1 ? Number(weekNumber) - 1 : 1);
     const currentContinuedTopic = useMemo(
         () => value.find(t => Boolean(t.isContinuation)),
         [value]
@@ -287,7 +288,7 @@ const TopicSelector = ({
                                         setIsContinueOpen(!isContinueOpen);
                                         setIsPickerOpen(false);
                                     }}
-                                    title={`Continue one topic from Week ${weekNumber - 1} with new subtopics for Week ${weekNumber}`}
+                                    title={`Continue one topic from Week ${prevWeekDisplay} with new subtopics for Week ${weekNumber}`}
                                 >
                                     <CornerDownRight size={15} className={styles.btnIcon} />
                                     <span>Continue Previous Topic</span>
@@ -297,7 +298,7 @@ const TopicSelector = ({
                                 {isContinueOpen && (
                                     <div className={styles.continueDropdown}>
                                         <div className={styles.continueDropdownHeader}>
-                                            <span>Select 1 Topic from Week {weekNumber - 1} to Continue</span>
+                                            <span>Select 1 Topic from Week {prevWeekDisplay} to Continue</span>
                                         </div>
                                         <div className={styles.continueOptionsList}>
                                             {previousWeekTopics && previousWeekTopics.length > 0 ? (
@@ -316,7 +317,7 @@ const TopicSelector = ({
                                                             <div className={styles.continueOptText}>
                                                                 <span className={styles.continueOptTitle}>{prevTopic.title}</span>
                                                                 <span className={styles.continueOptMeta}>
-                                                                    {(prevTopic.subtopics || []).length} subtopics in Week {weekNumber - 1}
+                                                                    {(prevTopic.subtopics || []).length} subtopics in Week {prevWeekDisplay}
                                                                 </span>
                                                             </div>
                                                         </div>
@@ -324,7 +325,7 @@ const TopicSelector = ({
                                                 })
                                             ) : (
                                                 <div className={styles.noResults}>
-                                                    No topics mapped in Week {weekNumber - 1} yet.
+                                                    No topics mapped in Week {prevWeekDisplay} yet.
                                                 </div>
                                             )}
                                         </div>

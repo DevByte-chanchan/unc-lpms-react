@@ -183,32 +183,48 @@ async function getWeekContext(req, res) {
         const coIndex = allCos.findIndex(c => c.co_id === currentCo.co_id);
         const coNumber = isOrientation ? 0 : (coIndex >= 0 ? coIndex + 1 : 1);
 
-        // Build structured weeks and ILOs per Course Outcome
-        let globalCounter = 1;
+        // Build structured weeks and ILOs per Course Outcome matching 18-week academic term:
+        // CO 1: Weeks 1-4 (Week 1 shares Course Orientation)
+        // CO 2: Weeks 5-8
+        // Week 9: Midterm Exam (buffer week)
+        // CO 3: Weeks 10-13
+        // CO 4: Weeks 14-17
+        // Week 18: Final Exam (buffer week)
+        let currentWeekCounter = 1;
         const weeksByCo = {};
-        for (const w of allWeeks) {
-            const globalWeekNumber = globalCounter++;
-            const cid = Number(w.co_id);
-            if (!weeksByCo[cid]) weeksByCo[cid] = [];
-            const weekNumberInCo = weeksByCo[cid].length + 1;
-            const rawWeekHours = Number(w.hours) || totalWeeklyHours;
-            const cIdx = allCos.findIndex(c => Number(c.co_id) === cid);
-            const cNum = cIdx >= 0 ? cIdx + 1 : 1;
+        for (let cIdx = 0; cIdx < allCos.length; cIdx++) {
+            const co = allCos[cIdx];
+            const cid = Number(co.co_id);
+            weeksByCo[cid] = [];
 
-            const effectiveHours = (cNum === 1 && weekNumberInCo === 1)
-                ? Math.max(1, rawWeekHours - orientationHours)
-                : rawWeekHours;
+            // After CO 2 (or when week counter reaches 9), skip Week 9 because it is dedicated to Midterm Exam
+            if (cIdx === 2 || currentWeekCounter === 9) {
+                if (currentWeekCounter <= 9) currentWeekCounter = 10;
+            }
 
-            const weekComments = commentCountsByWeek[Number(w.week_id)] || { topics: 0, tlas: 0, references: 0, total: 0 };
+            const coWeeksList = allWeeks.filter(w => Number(w.co_id) === cid);
+            for (let wIdx = 0; wIdx < coWeeksList.length; wIdx++) {
+                const w = coWeeksList[wIdx];
+                const seqWeekNumber = currentWeekCounter++;
+                const rawWeekHours = Number(w.hours) || totalWeeklyHours;
+                const cNum = cIdx + 1;
 
-            weeksByCo[cid].push({
-                week_id: w.week_id,
-                co_id: w.co_id,
-                weekNumber: weekNumberInCo,
-                globalWeekNumber,
-                hours: effectiveHours,
-                unresolvedComments: weekComments
-            });
+                const effectiveHours = (cNum === 1 && wIdx === 0)
+                    ? Math.max(1, rawWeekHours - orientationHours)
+                    : rawWeekHours;
+
+                const weekComments = commentCountsByWeek[Number(w.week_id)] || { topics: 0, tlas: 0, references: 0, total: 0 };
+
+                weeksByCo[cid].push({
+                    week_id: w.week_id,
+                    co_id: w.co_id,
+                    weekNumber: seqWeekNumber,
+                    weekIndexInCo: wIdx + 1,
+                    globalWeekNumber: seqWeekNumber,
+                    hours: effectiveHours,
+                    unresolvedComments: weekComments
+                });
+            }
         }
 
         const ilosByCo = {};
@@ -237,6 +253,8 @@ async function getWeekContext(req, res) {
         const orientationWeeks = firstCoWeeks.length > 0
             ? [{
                 ...firstCoWeeks[0],
+                weekNumber: 1,
+                globalWeekNumber: 1,
                 hours: orientationHours
             }]
             : [];

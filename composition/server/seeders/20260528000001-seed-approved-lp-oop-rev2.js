@@ -176,22 +176,38 @@ module.exports = {
         // 8. REFERENCES & WEEKLY REFERENCES (2 per Week = 32 WeeklyReferences)
         // ============================================================================
         const referenceData = [
-            { title: 'UNC Student Handbook & Institutional VMO', author: 'University of Nueva Caceres', isbn: null, link: 'https://unc.edu.ph/student-handbook', publication_year: new Date('2024-06-01'), type: 'ONLINE', createdAt: now, updatedAt: now },
-            { title: 'Modern Java in Action: Lambdas, streams, functional and reactive programming', author: 'Raoul-Gabriel Urma', isbn: '978-1617293566', link: null, publication_year: new Date('2019-01-01'), type: 'TEXTBOOK', createdAt: now, updatedAt: now },
-            { title: 'Head First Design Patterns, 2nd Edition', author: 'Eric Freeman & Elisabeth Robson', isbn: '978-1492078005', link: null, publication_year: new Date('2021-01-01'), type: 'TEXTBOOK', createdAt: now, updatedAt: now },
-            { title: 'Clean Architecture: A Craftsman\'s Guide to Software Structure and Design', author: 'Robert C. Martin', isbn: '978-0134494166', link: null, publication_year: new Date('2017-01-01'), type: 'TEXTBOOK', createdAt: now, updatedAt: now },
-            { title: 'Test-Driven Development: By Example', author: 'Kent Beck', isbn: '978-0321146533', link: null, publication_year: new Date('2002-01-01'), type: 'TEXTBOOK', createdAt: now, updatedAt: now },
-            { title: 'Refactoring: Improving the Design of Existing Code (2nd Edition)', author: 'Martin Fowler', isbn: '978-0134757599', link: null, publication_year: new Date('2018-01-01'), type: 'TEXTBOOK', createdAt: now, updatedAt: now },
-            { title: 'Design Patterns: Elements of Reusable Object-Oriented Software (GoF)', author: 'Erich Gamma, Richard Helm, Ralph Johnson & John Vlissides', isbn: '978-0201633610', link: null, publication_year: new Date('1994-01-01'), type: 'TEXTBOOK', createdAt: now, updatedAt: now },
-            { title: 'Effective Java, 3rd Edition', author: 'Joshua Bloch', isbn: '978-0134685991', link: null, publication_year: new Date('2018-01-01'), type: 'TEXTBOOK', createdAt: now, updatedAt: now },
-            { title: 'Domain-Driven Design: Tackling Complexity in the Heart of Software', author: 'Eric Evans', isbn: '978-0321125217', link: null, publication_year: new Date('2003-01-01'), type: 'TEXTBOOK', createdAt: now, updatedAt: now },
-            { title: 'Oracle Java 21 LTS Documentation & Stream API Guide', author: 'Oracle Corporation', isbn: null, link: 'https://docs.oracle.com/en/java/javase/21/', publication_year: new Date('2025-01-01'), type: 'ONLINE', createdAt: now, updatedAt: now },
-            { title: 'Microsoft .NET 8 C# Advanced Programming Guide', author: 'Microsoft', isbn: null, link: 'https://learn.microsoft.com/en-us/dotnet/csharp/', publication_year: new Date('2025-01-01'), type: 'ONLINE', createdAt: now, updatedAt: now },
-            { title: 'Refactoring.Guru: GoF Design Patterns & SOLID Catalog', author: 'Alexander Shvets', isbn: null, link: 'https://refactoring.guru/design-patterns', publication_year: new Date('2024-01-01'), type: 'OER', createdAt: now, updatedAt: now },
-            { title: 'Baeldung: Guide to Java 8+ Streams & Functional Interfaces', author: 'Eugen Paraschiv', isbn: null, link: 'https://www.baeldung.com/java-8-streams', publication_year: new Date('2025-01-01'), type: 'ONLINE', createdAt: now, updatedAt: now },
-            { title: 'JUnit 5 User Guide & Parameterized Testing Reference', author: 'JUnit Team', isbn: null, link: 'https://junit.org/junit5/docs/current/user-guide/', publication_year: new Date('2025-01-01'), type: 'OER', createdAt: now, updatedAt: now },
-            { title: 'Mockito Framework Official Documentation', author: 'Mockito Team', isbn: null, link: 'https://site.mockito.org/', publication_year: new Date('2025-01-01'), type: 'OER', createdAt: now, updatedAt: now },
-            { title: 'Software Design Patterns (MIT OpenCourseWare)', author: 'MIT Press', isbn: null, link: 'https://ocw.mit.edu/', publication_year: new Date('2022-01-01'), type: 'OER', createdAt: now, updatedAt: now }
+            // 0: ONLINE RESOURCES
+            { course_id: courseId, course_no: 'BIT213L', title: 'UNC Student Handbook & Institutional VMO', author: 'University of Nueva Caceres', isbn: null, link: 'https://unc.edu.ph/student-handbook', publication_year: null, type: 'Online Resources', createdAt: now, updatedAt: now },
+            // 1: TEXTBOOK (Active, 2024)
+            { course_id: courseId, course_no: 'BIT213L', title: 'Modern Java in Action: Lambdas, Streams, and Functional Architecture', author: 'Raoul-Gabriel Urma', isbn: '978-1617293566', link: null, publication_year: new Date('2024-01-01'), type: 'Textbook', createdAt: now, updatedAt: now },
+            // 2: TEXTBOOK (Deprecated, 2021)
+            { course_id: courseId, course_no: 'BIT213L', title: 'Head First Design Patterns, 2nd Edition', author: 'Eric Freeman & Elisabeth Robson', isbn: '978-1492078005', link: null, publication_year: new Date('2021-01-01'), type: 'Textbook', createdAt: now, updatedAt: now },
+            // 3: TEXTBOOK (Deprecated, 2017)
+            { course_id: courseId, course_no: 'BIT213L', title: 'Clean Architecture: A Craftsman\'s Guide to Software Structure and Design', author: 'Robert C. Martin', isbn: '978-0134494166', link: null, publication_year: new Date('2017-01-01'), type: 'Textbook', createdAt: now, updatedAt: now },
+            // 4: TEXTBOOK (Deprecated, 2002)
+            { course_id: courseId, course_no: 'BIT213L', title: 'Test-Driven Development: By Example', author: 'Kent Beck', isbn: '978-0321146533', link: null, publication_year: new Date('2002-01-01'), type: 'Textbook', createdAt: now, updatedAt: now },
+            // 5: TEXTBOOK (Deprecated, 2018)
+            { course_id: courseId, course_no: 'BIT213L', title: 'Refactoring: Improving the Design of Existing Code (2nd Edition)', author: 'Martin Fowler', isbn: '978-0134757599', link: null, publication_year: new Date('2018-01-01'), type: 'Textbook', createdAt: now, updatedAt: now },
+            // 6: TEXTBOOK (Deprecated, 1994)
+            { course_id: courseId, course_no: 'BIT213L', title: 'Design Patterns: Elements of Reusable Object-Oriented Software (GoF)', author: 'Erich Gamma, Richard Helm, Ralph Johnson & John Vlissides', isbn: '978-0201633610', link: null, publication_year: new Date('1994-01-01'), type: 'Textbook', createdAt: now, updatedAt: now },
+            // 7: TEXTBOOK (Deprecated, 2018)
+            { course_id: courseId, course_no: 'BIT213L', title: 'Effective Java, 3rd Edition', author: 'Joshua Bloch', isbn: '978-0134685991', link: null, publication_year: new Date('2018-01-01'), type: 'Textbook', createdAt: now, updatedAt: now },
+            // 8: TEXTBOOK (Deprecated, 2003)
+            { course_id: courseId, course_no: 'BIT213L', title: 'Domain-Driven Design: Tackling Complexity in the Heart of Software', author: 'Eric Evans', isbn: '978-0321125217', link: null, publication_year: new Date('2003-01-01'), type: 'Textbook', createdAt: now, updatedAt: now },
+            // 9: ONLINE RESOURCES
+            { course_id: courseId, course_no: 'BIT213L', title: 'Oracle Java 21 LTS Documentation & Stream API Guide', author: 'Oracle Corporation', isbn: null, link: 'https://docs.oracle.com/en/java/javase/21/', publication_year: null, type: 'Online Resources', createdAt: now, updatedAt: now },
+            // 10: ONLINE RESOURCES
+            { course_id: courseId, course_no: 'BIT213L', title: 'Microsoft .NET 8 C# Advanced Programming Guide', author: 'Microsoft', isbn: null, link: 'https://learn.microsoft.com/en-us/dotnet/csharp/', publication_year: null, type: 'Online Resources', createdAt: now, updatedAt: now },
+            // 11: OPEN EDUCATIONAL RESOURCES
+            { course_id: courseId, course_no: 'BIT213L', title: 'Refactoring.Guru: GoF Design Patterns & SOLID Catalog', author: 'Alexander Shvets', isbn: '978-0999123449', link: 'https://refactoring.guru/design-patterns', publication_year: new Date('2024-01-01'), type: 'Open Educational Resources', createdAt: now, updatedAt: now },
+            // 12: ONLINE RESOURCES
+            { course_id: courseId, course_no: 'BIT213L', title: 'Baeldung: Guide to Java 8+ Streams & Functional Interfaces', author: 'Eugen Paraschiv', isbn: null, link: 'https://www.baeldung.com/java-8-streams', publication_year: null, type: 'Online Resources', createdAt: now, updatedAt: now },
+            // 13: OPEN EDUCATIONAL RESOURCES
+            { course_id: courseId, course_no: 'BIT213L', title: 'JUnit 5 User Guide & Parameterized Testing Reference', author: 'JUnit Team', isbn: '978-1449370770', link: 'https://junit.org/junit5/docs/current/user-guide/', publication_year: new Date('2025-01-01'), type: 'Open Educational Resources', createdAt: now, updatedAt: now },
+            // 14: OPEN EDUCATIONAL RESOURCES
+            { course_id: courseId, course_no: 'BIT213L', title: 'Mockito Framework Official Documentation', author: 'Mockito Team', isbn: '978-1783982745', link: 'https://site.mockito.org/', publication_year: new Date('2025-01-01'), type: 'Open Educational Resources', createdAt: now, updatedAt: now },
+            // 15: OPEN EDUCATIONAL RESOURCES
+            { course_id: courseId, course_no: 'BIT213L', title: 'Software Design Patterns (MIT OpenCourseWare)', author: 'MIT Press', isbn: '978-0262033848', link: 'https://ocw.mit.edu/', publication_year: new Date('2022-01-01'), type: 'Open Educational Resources', createdAt: now, updatedAt: now }
         ];
 
         await queryInterface.bulkInsert('References', referenceData, {});

@@ -8,6 +8,20 @@ module.exports = {
                 primaryKey: true,
                 autoIncrement: true
             },
+            course_id: {
+                type: Sequelize.INTEGER,
+                allowNull: true,
+                references: {
+                    model: 'Courses',
+                    key: 'course_id'
+                },
+                onUpdate: 'CASCADE',
+                onDelete: 'SET NULL'
+            },
+            course_no: {
+                type: Sequelize.STRING(20),
+                allowNull: true
+            },
             title: {
                 type: Sequelize.STRING(200),
                 allowNull: false

@@ -4,6 +4,7 @@ import Header from '../components/Header.jsx';
 import SideNavigation from '../components/SideNavigation.jsx';
 import CurrentTermCard from '../components/CurrentTermCard.jsx';
 import MiniAssignedCourses from '../components/MiniAssignedCourses.jsx';
+import MiniAssignedTOS from '../components/MiniAssignedTOS.jsx';
 import styles from '../styles/Dashboard.module.sass';
 import { fetchJson } from '../utils/api.js';
 import { useCurrentUser } from '../services/currentUser.jsx';
@@ -68,17 +69,8 @@ const DashboardContent = () => {
                         loading={loading}
                     />
 
-                    {/* Row 2: Assigned TOS (Temporary Empty Block) */}
-                    <div className={styles.emptyTosCard}>
-                        <div className={styles.blockHeader}>
-                            <div className={styles.blockTitleGroup}>
-                                <h3>Assigned TOS</h3>
-                            </div>
-                        </div>
-                        <div className={styles.emptyTosPlaceholder}>
-                            <span>No assigned Table of Specifications yet.</span>
-                        </div>
-                    </div>
+                    {/* Row 2: Assigned Table of Specifications (Assigned TOS) */}
+                    <MiniAssignedTOS />
                 </div>
             </div>
         </div>
