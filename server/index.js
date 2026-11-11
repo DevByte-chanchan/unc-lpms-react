@@ -28,7 +28,7 @@ import { seedCurriculumIfEmpty, backfillYearLevelsFromCatalog } from './controll
 import { rebuildOfferings, ensureOfferingConstraints, repairCrossPeriodAssignments } from './utils/rebuildOfferings.js';
 import { renameAssignmentsTable } from './utils/renameAssignmentsTable.js';
 import { renameIdColumns } from './utils/renameIdColumns.js';
-import { backfillProgramHeadIds } from './controllers/programController.js';
+import { backfillProgramHeadIds, reconcileProgramHeads } from './controllers/programController.js';
 import { assertAuthConfig } from './utils/session.js';
 import { startEmailWorker } from './workers/emailWorker.js';
 import { baselineNotices } from './services/notices.js';
@@ -162,6 +162,14 @@ const PORT = Number(process.env.PORT || 4000);
     // One-time (idempotent) backfill: resolve programs.program_head_id from
     // the existing program_head name + period faculty list.
     await backfillProgramHeadIds();
+    // Every head named in the active term's programs list has the Program Head role.
+    try {
+      const { getActiveTermId } = await import('./utils/latestPeriod.js');
+      const activeId = await getActiveTermId();
+      if (activeId) await reconcileProgramHeads(activeId);
+    } catch (err) {
+      console.error('[program-head] boot reconcile skipped:', err.message);
+    }
 
     // One-time (idempotent) backfill: sync course_offerings/course_offering_assignments
     // year_level from the catalog so moved courses reflect everywhere.

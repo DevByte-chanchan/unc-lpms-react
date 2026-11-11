@@ -66,6 +66,15 @@ export const OWNED_PREFIXES = Object.freeze([
   ]),
 ]);
 
+/**
+ * Semester length, from the Program Head interview: "it should be always 18
+ * weeks", with the midterm and final exam weeks set aside from teaching
+ * (5 hrs × 16 = 80 instructional hours). utils/courseNumbers.js is the only
+ * place that does arithmetic with these.
+ */
+export const WEEKS_PER_SEMESTER = 18;
+export const EXAM_WEEKS = 2;
+
 /** Trim a cell. School exports pad ROOM and FACULTY with trailing spaces. */
 export const clean = (v) => String(v == null ? '' : v).trim();
 

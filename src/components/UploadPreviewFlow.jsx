@@ -94,6 +94,13 @@ const UploadPreviewFlow = ({
   // Optional: (result) => string | null — one extra line under the success
   // toast, from the commit's own response (e.g. "3 accounts ready…").
   toastNote,
+  // Optional: (previewPayload) => node — page-specific sections shown above
+  // and below the rows (the Program of Study's files, summary and "Not in the
+  // Program of Study" list). They scroll with the table.
+  renderBefore,
+  renderAfter,
+  // What the dry run accepts, for the "couldn't read your file" line.
+  fileKindHint = 'Check that the file is a .xlsx, .xls or .csv spreadsheet, then try again.',
 }) => {
   // ---- State 1: preview ----
   const [data, setData]         = React.useState(null);
@@ -433,9 +440,11 @@ const UploadPreviewFlow = ({
             {!loading && parseFailed && (
               <div className={styles.empty}>
                 <div className={styles.reasonError} style={{ justifyContent: 'center', marginBottom: 8 }}>{error}</div>
-                Check that the file is a .xlsx, .xls or .csv spreadsheet, then try again.
+                {fileKindHint}
               </div>
             )}
+
+            {!loading && data && renderBefore && renderBefore(data)}
 
             {!loading && !parseFailed && !error && rows.length === 0 && (
               <div className={styles.empty}>
@@ -513,6 +522,8 @@ const UploadPreviewFlow = ({
                 </tbody>
               </table>
             )}
+
+            {!loading && data && renderAfter && renderAfter(data)}
           </div>
 
           <div className={styles.footer}>

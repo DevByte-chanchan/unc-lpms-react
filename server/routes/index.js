@@ -25,6 +25,8 @@ import imports           from './imports.js';
 import universityStatements from './universityStatements.js';
 import departmentStatements from './departmentStatements.js';
 import notifications     from './notifications.js';
+import curriculumDocuments from './curriculumDocuments.js';
+import schoolCalendars   from './schoolCalendars.js';
 
 const router = Router();
 
@@ -57,5 +59,9 @@ router.use('/university-statements', universityStatements);
 router.use('/department-statements', departmentStatements);
 // The bell: each user sees only their own rows (the controller scopes by req.user).
 router.use('/notifications',       notifications);
+// Kept Program of Study PDFs: any signed-in role may read them (faculty write syllabi from them).
+router.use('/curriculum-documents', curriculumDocuments);
+// The uploaded school calendar fills the VPAA's term form; only the VPAA sees it.
+router.use('/school-calendars',    requireRole('VPAA'), schoolCalendars);
 
 export default router;

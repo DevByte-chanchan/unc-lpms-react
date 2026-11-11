@@ -5,9 +5,6 @@ import {getSyllabusByCode, syllabiData} from "../data/syllabiData.js";
 
 
 const SyllabusPreview = ({ isOpen, onClose }) => {
-    // 1. Guard clause for modal visibility
-    if (!isOpen) return null;
-
     // 2. Use local state for tabs instead of URL params for a cleaner modal experience
     const [selectedSection, setSelectedSection] = useState('Course Details');
     const { code } = useParams();
@@ -47,6 +44,10 @@ const SyllabusPreview = ({ isOpen, onClose }) => {
 
 // --- STATE ---
     const [viewType, setViewType] = useState('Textbook');
+
+    // 1. Guard clause for modal visibility — after every hook, so the hook order
+    //    never changes between a closed and an open render.
+    if (!isOpen) return null;
 
     // --- DATA FETCHING ---
     // Ensure safe access to data

@@ -308,3 +308,34 @@ input.dashDateInput:focus-visible {
     background: #94A3B8;
 }
 
+
+
+/* Dashboard — Current Term card: open/close the details smoothly. */
+@keyframes termPaneIn {
+    from { opacity: 0; transform: translateY(8px) scale(0.985); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes termPaneOut {
+    from { opacity: 1; transform: translateY(0) scale(1); }
+    to   { opacity: 0; transform: translateY(-6px) scale(0.985); }
+}
+/* `backwards`, not `both`: once it has played, no transform stays on the pane —
+   a transformed ancestor would trap fixed-position dialogs opened from inside it. */
+.termCardPane { animation: termPaneIn 0.28s cubic-bezier(0.2, 0.8, 0.2, 1) backwards; transform-origin: top center; }
+.termCardPaneOut { animation: termPaneOut 0.18s ease-in both; pointer-events: none; }
+
+/* Dashboard — the dim + blur over the other panels fades in. */
+@keyframes dashDimIn {
+    from { opacity: 0; backdrop-filter: blur(0); -webkit-backdrop-filter: blur(0); }
+    to   { opacity: 1; backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px); }
+}
+.dashDimIn { animation: dashDimIn 0.3s ease both; }
+
+@media (prefers-reduced-motion: reduce) {
+    .termCardPane, .termCardPaneOut, .dashDimIn { animation: none; }
+}
+
+/* Dashboard — "Fill from school calendar": the reading spinner. */
+@keyframes calSpin { to { transform: rotate(360deg); } }
+.calSpin { animation: calSpin 0.9s linear infinite; }
+@media (prefers-reduced-motion: reduce) { .calSpin { animation-duration: 2.4s; } }

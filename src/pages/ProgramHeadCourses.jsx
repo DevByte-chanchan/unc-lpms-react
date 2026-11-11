@@ -24,7 +24,10 @@ import EditEntityModal from "../components/EditEntityModal.jsx";
 import UndoUploadButton from "../components/UndoUploadButton.jsx";
 import UploadPreviewFlow from "../components/UploadPreviewFlow.jsx";
 import DialogShell from "../components/DialogShell.jsx";
-import { Search, ArrowUp, ArrowDown, ArrowRight, ArrowLeft, Link2, Clipboard, Eye, Edit2, FileText, Upload, X, ChevronDown, Check, Layers, AlertTriangle, Archive, RotateCcw } from "react-feather";
+import { ProgramOfStudyChip, ProgramOfStudyViewer } from "../components/ProgramOfStudy.jsx";
+import { useProgramOfStudy } from "../services/programOfStudy.js";
+import { ProgramOfStudyFiles, ProgramOfStudyReconcile } from "../components/ProgramOfStudyPreview.jsx";
+import { Search, ArrowUp, ArrowDown, ArrowRight, ArrowLeft, Link2, Clipboard, Eye, Edit2, FileText, Upload, X, ChevronDown, Check, Layers, AlertTriangle, Archive, RotateCcw, Clock } from "react-feather";
 import syllabusStyles from '../styles/SyllabusSections.module.sass';
 import { CoursesAPI, ProgramsAPI } from '../services/api.js';
 import { usePeriod } from '../services/period.jsx';
@@ -109,11 +112,24 @@ const sumLecLab = (parts) => (Number(parts.lec) || 0) + (Number(parts.lab) || 0)
 // Credit / units metadata pill — deliberately quieter than the colour-coded
 // classification tag (plain outline + a small units icon) so the two don't
 // read as the same kind of thing.
-const CreditPill = ({ children }) => (
+const CreditPill = ({ children, icon }) => (
   <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 8, background: '#FFFFFF', border: '1px solid ' + SLATE3, color: SLATE7, fontSize: 12.5, fontWeight: 500, whiteSpace: 'nowrap' }}>
-    <Layers size={12} color={SLATE5} /> {children}
+    {icon || <Layers size={12} color={SLATE5} />} {children}
   </span>
 );
+
+// The course's worked-out numbers (server: utils/courseNumbers.js), each with
+// the one line that says where it comes from. Nothing here is stored.
+// Per-semester lecture/lab hours and instructional hours are left out on
+// purpose: the first only repeats hrs/week × 18, and instructional hours is
+// the COAP/syllabus module's hour budget (still returned by the API).
+const numberRows = (n) => [
+  { label: 'Credit units', value: n.credit_units, how: n.non_credit ? 'Non-credit course: its units don\'t count, its hours do' : n.lec + ' lecture + ' + n.lab + ' lab units' },
+  { label: 'Lecture hrs / week', value: n.lec_hrs_week, how: n.lab > 0 ? '1 lecture unit = 1 hour a week' : 'No lab, so every weekly hour is lecture' },
+  { label: 'Lab hrs / week', value: n.lab_hrs_week, how: n.lab > 0 ? n.hrs_per_week + ' hrs/week − ' + n.lec_hrs_week + ' lecture hours' : 'No lab units' },
+  { label: 'Hrs per lab unit', value: n.hrs_per_lab_unit ?? '—', how: n.lab > 0 ? n.lab_hrs_week + ' lab hrs ÷ ' + n.lab + ' lab unit' + (n.lab === 1 ? '' : 's') + ' (expected 3)' : 'No lab units' },
+  { label: 'Contact hrs / semester', value: n.contact_hrs_semester, how: n.hrs_per_week + ' hrs/week × ' + n.weeks_per_semester + ' weeks' },
+];
 
 const MetaLabel = ({ label, value }) => (
   <div style={{ display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0 }}>
@@ -160,8 +176,14 @@ const CourseCard = ({ course, onOpen }) => {
         </div>
       </div>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, minWidth: 0 }}>
           {course.credit && <CreditPill>{course.credit}</CreditPill>}
+          {/* Worked out by the server from the credit / hours strings. */}
+          {course.numbers && (
+            <CreditPill icon={<Clock size={12} color={SLATE5} />}>
+              {course.numbers.credit_units} unit{course.numbers.credit_units === 1 ? '' : 's'} · {course.numbers.hrs_per_week} hrs/wk
+            </CreditPill>
+          )}
         </div>
         <button
           type="button"
@@ -199,8 +221,8 @@ const YearCard = ({ label, count, summary, onOpen }) => {
   const stats = [
     { label: 'Courses', value: count },
     { label: 'Units', value: summary.lec + summary.lab },
-    { label: 'Lecture Units', value: summary.lec },
-    { label: 'Lab Units', value: summary.lab },
+    { label: 'Hrs / Week', value: summary.hrs },
+    { label: 'Lec / Lab Units', value: summary.lec + ' / ' + summary.lab },
   ];
   return (
     <div
@@ -284,12 +306,21 @@ const ProgramHeadCourses = () => {
   const [editing, setEditing] = React.useState(null); // course being edited (hours/credit) — also hosts Archive
 
   // The signed-in Program Head (stubbed in CurrentUser until real auth).
-  const { facultyId, facultyLoaded } = useCurrentUser();
+  const { name: userName, facultyId, facultyLoaded } = useCurrentUser();
 
   // Bumped on every successful upload so the Undo button re-reads its batch.
   const [uploadCount, setUploadCount]         = React.useState(0);
+  // Program of Study upload: Archive / Keep per course under "Not in the Program
+  // of Study" (course_id → 'archive' | 'keep'; unset = the server's suggestion).
+  const [posDecisions, setPosDecisions] = React.useState({});
+  // The kept Program of Study viewer: null, or { part } to open on that part.
+  const [posViewer, setPosViewer] = React.useState(null);
 
+  // Bumped by every refresh (upload, undo from either button) so the Program of
+  // Study chip re-reads the kept PDFs too.
+  const [refreshTick, setRefreshTick] = React.useState(0);
   const refresh = React.useCallback(() => {
+    setRefreshTick((n) => n + 1);
     if (!periodId) { setCourses([]); setArchivedCourses([]); return; }
     CoursesAPI.list(periodId).then((rows) => setCourses(Array.isArray(rows) ? rows : [])).catch(() => setCourses([]));
     CoursesAPI.listArchived(periodId).then((rows) => setArchivedCourses(Array.isArray(rows) ? rows : [])).catch(() => setArchivedCourses([]));
@@ -318,11 +349,11 @@ const ProgramHeadCourses = () => {
     if (!periodId || !facultyLoaded) { setMyPrograms([]); setProgramsLoaded(false); return undefined; }
     let cancelled = false;
     setProgramsLoaded(false);
-    ProgramsAPI.listForHead(periodId, { headId: facultyId })
+    ProgramsAPI.listForHead(periodId, { headId: facultyId, headName: userName })
       .then((rows) => { if (!cancelled) { setMyPrograms(Array.isArray(rows) ? rows : []); setProgramsLoaded(true); } })
       .catch(() => { if (!cancelled) { setMyPrograms([]); setProgramsLoaded(true); } });
     return () => { cancelled = true; };
-  }, [periodId, facultyLoaded, facultyId]);
+  }, [periodId, facultyLoaded, facultyId, userName]);
 
   // Keep a valid selection as the program set changes (default to the first).
   React.useEffect(() => {
@@ -334,6 +365,8 @@ const ProgramHeadCourses = () => {
     [myPrograms, selectedProgramId],
   );
   const hasMultiplePrograms = myPrograms.length > 1;
+  // The program's kept Program of Study PDFs (header chip, viewer, Source line).
+  const posState = useProgramOfStudy({ programId: selectedProgramId }, refreshTick);
   // Settled with zero assignments → the "not assigned" blocked state.
   const noProgramAssigned = !!periodId && facultyLoaded && programsLoaded && myPrograms.length === 0;
 
@@ -420,7 +453,28 @@ const ProgramHeadCourses = () => {
     setShowUpload(false);
     setUploadError(null);
     setUploadResult(null);
+    setPosDecisions({});
     setPendingFile(pickedFile);
+  };
+
+  // What the file picker / drop zone hands over: one spreadsheet, or the
+  // Program of Study PDFs together as { name, files, isPdf } (both halves at once).
+  const pickFiles = (list) => {
+    const files = Array.from(list || []);
+    if (!files.length) return;
+    const pdfs = files.filter((f) => /\.pdf$/i.test(f.name));
+    setUploadError(null);
+    if (pdfs.length && pdfs.length !== files.length) {
+      setUploadError('Pick either the Program of Study PDFs or one spreadsheet, not both.');
+      return;
+    }
+    if (pdfs.length) {
+      if (pdfs.length > 4) { setUploadError('Pick at most 4 PDFs.'); return; }
+      setPickedFile({ name: pdfs.map((f) => f.name).join(' + '), files: pdfs, isPdf: true });
+      return;
+    }
+    if (files.length > 1) { setUploadError('Pick one spreadsheet at a time.'); return; }
+    setPickedFile(files[0]);
   };
 
   // Bridges the year-level popup, which is user-driven and lives in JSX, back to
@@ -435,6 +489,15 @@ const ProgramHeadCourses = () => {
   // Returning a promise is the whole trick: the overlay awaits it, so "commit"
   // can legitimately mean "ask the user some more questions, THEN write".
   const commitCourses = (f, preview) => new Promise((resolve, reject) => {
+    // Program of Study PDFs: no year-level popup (the PDF names every year);
+    // send the Archive / Keep choices made under "Not in the Program of Study".
+    if (preview && preview.programOfStudy) {
+      const archive = (preview.programOfStudy.reconcile || [])
+        .filter((r) => (posDecisions[r.course_id] || r.decision) === 'archive')
+        .map((r) => r.course_id);
+      CoursesAPI.uploadCommit(f, periodId, { programId: selectedProgramId, archive }).then(resolve, reject);
+      return;
+    }
     const unresolved = (preview && Array.isArray(preview.unassigned)) ? preview.unassigned : [];
 
     // Every year level recognized — nothing left to ask, so write.
@@ -571,14 +634,17 @@ const ProgramHeadCourses = () => {
     termCourses.forEach((c) => { const y = yearLevelNum(c.year_lvl) ?? 0; m[y].push(c); });
     return m;
   }, [termCourses]);
+  // Units come from the credit string ("(2) LEC" — non-credit — reads as 0 units);
+  // weekly hours from the server's worked-out numbers, which count non-credit hours.
   const summarizeYear = (list) => {
-    let lec = 0, lab = 0;
+    let lec = 0, lab = 0, hrs = 0;
     list.forEach((c) => {
       const parts = splitLecLab(c.credit);
       lec += Number(parts.lec) || 0;
       lab += Number(parts.lab) || 0;
+      hrs += (c.numbers && Number(c.numbers.hrs_per_week)) || 0;
     });
-    return { lec, lab };
+    return { lec, lab, hrs };
   };
 
   // Year-detail list: courses in the selected year, narrowed by search,
@@ -674,6 +740,15 @@ const ProgramHeadCourses = () => {
             </div>
             {programName && (
               <div style={{ fontSize: 13, color: SLATE5, marginTop: 4 }}>{programName}</div>
+            )}
+            {selectedProgramId && (
+              <div style={{ marginTop: 8 }}>
+                <ProgramOfStudyChip
+                  state={posState}
+                  onView={() => setPosViewer({ part: null })}
+                  onUpload={isCurrentTermActive && periodId ? () => setShowUpload(true) : null}
+                />
+              </div>
             )}
           </div>
         </div>
@@ -921,7 +996,38 @@ const ProgramHeadCourses = () => {
           <MetaLabel label="Year Level" value={headerCourse.year_lvl} />
           <MetaLabel label="Term" value={headerCourse.term} />
         </div>
+        {/* Where this course's numbers came from — only for courses a kept
+            Program of Study lists (not hand- or spreadsheet-added ones). */}
+        {detail && detail.source && (
+          <div style={{ marginTop: 16, paddingTop: 12, borderTop: '1px solid ' + SLATE2, fontSize: 13, color: SLATE7, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+            <FileText size={14} color={SLATE5} />
+            <span>Source: Program of Study{detail.source.revision ? ' Rev ' + detail.source.revision : ''}</span>
+            {detail.source.part_label && <span>· <strong style={{ color: SLATE9 }}>{detail.source.part_label}</strong></span>}
+            <span>·</span>
+            <button type="button" onClick={() => setPosViewer({ part: detail.source.part_label })}
+              disabled={!posState.data}
+              style={{ padding: 0, border: 'none', background: 'transparent', font: 'inherit', fontWeight: 700, color: SLATE9, textDecoration: 'underline', cursor: posState.data ? 'pointer' : 'default' }}>
+              View
+            </button>
+          </div>
+        )}
       </div>
+
+      {/* Numbers — every value implied by LEC / LAB / Hrs per week. */}
+      {detail && detail.numbers && (
+        <div style={{ marginTop: 24 }}>
+          <SectionTitle>Numbers</SectionTitle>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 240px), 1fr))', gap: 10 }}>
+            {numberRows(detail.numbers).map((r) => (
+              <div key={r.label} style={{ border: '1px solid ' + SLATE2, borderRadius: 10, padding: '10px 12px', background: SLATE05, minWidth: 0 }}>
+                <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase', color: SLATE5 }}>{r.label}</div>
+                <div style={{ fontSize: 18, fontWeight: 700, color: SLATE9, marginTop: 2 }}>{r.value}</div>
+                <div style={{ fontSize: 12, color: SLATE5, marginTop: 2, lineHeight: 1.4 }}>{r.how}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Prerequisites */}
       <div style={{ marginTop: 24 }}>
@@ -1010,16 +1116,19 @@ const ProgramHeadCourses = () => {
                 <div
                   onClick={() => uploadInputRef.current && uploadInputRef.current.click()}
                   onDragOver={(e) => e.preventDefault()}
-                  onDrop={(e) => { e.preventDefault(); const f = e.dataTransfer.files && e.dataTransfer.files[0]; if (f) setPickedFile(f); }}
-                  style={{ border: '2px dashed #D1D5DB', borderRadius: 8, padding: 28, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, cursor: 'pointer' }}
+                  onDrop={(e) => { e.preventDefault(); pickFiles(e.dataTransfer.files); }}
+                  style={{ border: '2px dashed #D1D5DB', borderRadius: 8, padding: 28, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, cursor: 'pointer', textAlign: 'center' }}
                 >
                   <Upload size={36} color="#9CA3AF" />
-                  <div style={{ fontWeight: 600, color: '#18191A' }}>{pickedFile ? pickedFile.name : 'Drag & drop file here'}</div>
-                  <div style={{ color: SLATE5, fontSize: 13 }}>Upload .xlsx, .xls or .csv</div>
-                  <input type="file" ref={uploadInputRef} accept=".csv,.xlsx,.xls" onChange={(e) => { const f = e.target.files && e.target.files[0]; if (f) setPickedFile(f); }} style={{ display: 'none' }} />
+                  <div style={{ fontWeight: 600, color: '#18191A', overflowWrap: 'anywhere' }}>{pickedFile ? pickedFile.name : 'Drag & drop file(s) here'}</div>
+                  <div style={{ color: SLATE5, fontSize: 13 }}>The Program of Study PDFs (pick both at once), or one .xlsx, .xls or .csv</div>
+                  <input type="file" multiple ref={uploadInputRef} accept=".pdf,.csv,.xlsx,.xls" onChange={(e) => pickFiles(e.target.files)} style={{ display: 'none' }} />
                 </div>
                 <div style={{ fontSize: 12, color: SLATE5, lineHeight: 1.5, background: SLATE05, border: '1px solid ' + SLATE2, borderRadius: 8, padding: '10px 12px' }}>
-                  Columns are detected automatically — just include a <strong>Course No.</strong> column (e.g. “Course No.”, “Code”, “Subject Code”) and a <strong>Course Title</strong> column (e.g. “Course Title”, “Description”). Optional: Credit/Units, Contact Hours, Classification, CMO, <strong>Year Level</strong>, Term, and <strong>Prerequisites</strong> (other course codes, comma-separated). <strong>Year Level</strong> values are matched automatically — “1”, “Year 3”, “IV”, “senior”, etc. all route to the right year; anything we can’t recognise, you’ll be prompted to set (or skip) before importing — nothing lands as “Unassigned” silently. One file can populate all four year levels at once. The semester is taken from the selected academic term. A row whose Course No. already exists is updated.
+                  <strong>Program of Study PDF</strong> (recommended): select all the registrar’s files (1st–2nd Year, 3rd–4th Year). Only this term’s semester is imported.
+                </div>
+                <div style={{ fontSize: 12, color: SLATE5, lineHeight: 1.5, background: SLATE05, border: '1px solid ' + SLATE2, borderRadius: 8, padding: '10px 12px' }}>
+                  <strong>Spreadsheet:</strong> needs a <strong>Course No.</strong> and <strong>Course Title</strong> column. Optional: Units, Contact Hours, Classification, CMO, Year Level, Prerequisites. Existing courses are updated.
                 </div>
                 {uploadError && <div style={{ color: '#B91C1C', fontSize: 13 }}>{uploadError}</div>}
                 <div style={{ display: 'flex', gap: 12 }}>
@@ -1122,6 +1231,40 @@ const ProgramHeadCourses = () => {
                       {Array.isArray(uploadResult.unresolvedPrograms) && uploadResult.unresolvedPrograms.length > 0 && (
                         <div style={{ marginTop: 6, fontSize: 11.5, color: '#92400E' }}>
                           Program{uploadResult.unresolvedPrograms.length === 1 ? '' : 's'} not found in this term (left Unassigned): {uploadResult.unresolvedPrograms.join(', ')}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Program of Study import: what was archived (and where its
+                      links went), and the kept PDFs. */}
+                  {uploadResult.programOfStudy && (
+                    <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid ' + SLATE2 }}>
+                      <div style={{ fontSize: 12, fontWeight: 600, color: SLATE7, marginBottom: 6 }}>
+                        Program of Study · {uploadResult.programOfStudy.semesterLabel}
+                      </div>
+                      {uploadResult.programOfStudy.archived.length > 0 ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12.5 }}>
+                          <div>Archived <strong>{uploadResult.programOfStudy.archived.length}</strong> (restore from View Archived):</div>
+                          {uploadResult.programOfStudy.archived.map((a) => {
+                            const m = uploadResult.programOfStudy.merged.find((x) => x.from === a.code);
+                            const moved = m ? [m.assignments && m.assignments + ' assignment(s)', m.consultants && m.consultants + ' consultant link(s)'].filter(Boolean) : [];
+                            return (
+                              <div key={a.code} style={{ display: 'flex', gap: 8, alignItems: 'baseline', flexWrap: 'wrap' }}>
+                                <span style={{ fontWeight: 700, color: SLATE9, minWidth: 70 }}>{a.code}</span>
+                                <span style={{ color: SLATE7 }}>{a.reason}{moved.length ? ' · moved ' + moved.join(', ') + ' to ' + m.to : ''}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <div style={{ fontSize: 12.5, color: SLATE5 }}>No courses archived.</div>
+                      )}
+                      {uploadResult.programOfStudy.documents && (
+                        <div style={{ marginTop: 6, fontSize: 12.5, color: SLATE5 }}>
+                          PDFs kept: {uploadResult.programOfStudy.documents.stored}
+                          {uploadResult.programOfStudy.documents.superseded > 0 && ' · ' + uploadResult.programOfStudy.documents.superseded + ' older file(s) moved to Previous versions'}
+                          {' · '}open them from “Program of Study · View” under the title.
                         </div>
                       )}
                     </div>
@@ -1347,6 +1490,11 @@ const ProgramHeadCourses = () => {
         </>
       )}
 
+      {/* The kept Program of Study, one tab per part ("1st–2nd Year", …). */}
+      {posViewer && posState.data && (
+        <ProgramOfStudyViewer data={posState.data} initialPart={posViewer.part} page={posViewer.part ? 1 : undefined} onClose={() => setPosViewer(null)} />
+      )}
+
       {/* Preview & Confirm → year-level popup → commit → undo toast.
           `commit` here is the handoff: it opens the existing reconciliation popup
           and only writes once the user has resolved every year level. Re-keyed on
@@ -1361,6 +1509,12 @@ const ProgramHeadCourses = () => {
         title="Upload Course Offerings"
         preview={(f) => CoursesAPI.uploadPreview(f, periodId, selectedProgramId)}
         commit={commitCourses}
+        fileKindHint="Check that the files are the Program of Study PDFs, or a .xlsx, .xls or .csv spreadsheet, then try again."
+        renderBefore={(data) => <ProgramOfStudyFiles data={data} files={pendingFile && pendingFile.files} />}
+        renderAfter={(data) => (
+          <ProgramOfStudyReconcile data={data} decisions={posDecisions}
+            onDecide={(id, d) => setPosDecisions((p) => ({ ...p, [id]: d }))} />
+        )}
         onBack={() => { setPendingFile(null); setShowUpload(true); }}
         onCancel={() => { setPendingFile(null); setPickedFile(null); if (uploadInputRef.current) uploadInputRef.current.value = ''; }}
         onCommitted={onUploadCommitted}

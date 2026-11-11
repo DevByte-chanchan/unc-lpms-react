@@ -41,7 +41,9 @@ import { ChevronLeft, FileText, Inbox } from 'react-feather';
 import PeriodSelector from '../components/PeriodSelector.jsx';
 import DepartmentRepositoryGrid from '../components/DepartmentRepositoryGrid.jsx';
 import ApprovedFileTable from '../components/ApprovedFileTable.jsx';
-import PDFViewerModal from '../components/PDFViewerModal.jsx';
+import DocumentViewerModal from '../components/DocumentViewerModal.jsx';
+import { buildTosExportFiles, revokeExportFiles } from '../utils/exportTos.js';
+import { buildLearningPlanExportFile } from '../utils/exportLearningPlan.js';
 import LogoUploadModal from '../components/LogoUploadModal.jsx';
 import { DepartmentsAPI } from '../services/api.js';
 import { usePeriod } from '../services/period.jsx';
@@ -120,8 +122,55 @@ const OVPAARepository = ({ kind, dataset }) => {
   const [logoDept, setLogoDept] = React.useState(null);
   const [logoBump, setLogoBump] = React.useState(0);  // refresh key for cards after a logo change
 
-  // ── PDF viewer modal ───────────────────────────────────────────────
-  const [viewingFile, setViewingFile] = React.useState(null);
+  // ── Document viewer ────────────────────────────────────────────────
+  // Every row's document is generated on demand in the official UNC form layout
+  // and opens in DocumentViewerModal; its blob URLs are revoked on close.
+  //   Learning Plan → the approved syllabus (utils/exportLearningPlan.js)
+  //   TOS           → the TOS Report (utils/exportTos.js)
+  const isTos = kind === 'Table of Specifications';
+  const [docFile, setDocFile] = React.useState(null);
+  const [buildingId, setBuildingId] = React.useState(null);
+  const [toast, setToast] = React.useState('');
+  const openSeq = React.useRef(0);
+  // The row's View button: it is disabled while the document builds (so it loses focus),
+  // and gets focus back when the viewer closes.
+  const openerRef = React.useRef(null);
+
+  const openRow = async (row) => {
+    if (buildingId) return;
+    openerRef.current = document.activeElement;
+    const seq = ++openSeq.current;
+    setBuildingId(row.id);
+    setToast('');
+    try {
+      const file = isTos ? await buildTosExportFiles({ row }) : await buildLearningPlanExportFile(row);
+      if (seq !== openSeq.current) { revokeExportFiles(file); return; }
+      setDocFile(file);
+    } catch (err) {
+      if (seq === openSeq.current) setToast((err && err.message) || ('The ' + (isTos ? 'TOS' : 'Learning Plan') + ' could not be opened.'));
+    } finally {
+      if (seq === openSeq.current) setBuildingId(null);
+    }
+  };
+
+  const closeDoc = React.useCallback(() => {
+    setDocFile((f) => { revokeExportFiles(f); return null; });
+    const opener = openerRef.current;
+    requestAnimationFrame(() => {
+      if (opener && typeof opener.focus === 'function' && document.contains(opener)) opener.focus();
+    });
+  }, []);
+
+  // Leaving the page with a document open (or mid-build) still frees it.
+  const docFileRef = React.useRef(null);
+  docFileRef.current = docFile;
+  React.useEffect(() => () => { openSeq.current += 1; revokeExportFiles(docFileRef.current); }, []);
+
+  React.useEffect(() => {
+    if (!toast) return undefined;
+    const t = setTimeout(() => setToast(''), 6000);
+    return () => clearTimeout(t);
+  }, [toast]);
 
   // Per-department rows for the active period only.
   // Uses the period-synthesised dataset so the table label column
@@ -215,7 +264,8 @@ const OVPAARepository = ({ kind, dataset }) => {
           <ApprovedFileTable
             rows={deptRows}
             programs={PROGRAMS_BY_DEPT[selectedDept.code] || []}
-            onView={(r) => setViewingFile(r)}
+            onView={openRow}
+            busyId={buildingId}
           />
         )}
       </div>
@@ -230,20 +280,36 @@ const OVPAARepository = ({ kind, dataset }) => {
         />
       )}
 
-      {viewingFile && (
-        <PDFViewerModal
-          file={viewingFile}
+      {docFile && (
+        <DocumentViewerModal
+          file={docFile}
           kind={kind}
-          onClose={() => setViewingFile(null)}
+          onClose={closeDoc}
         />
       )}
 
-      {/* Keyframes for the grid/table cross-fade */}
+      {toast && (
+        <div role="alert" style={{
+          position: 'fixed', left: '50%', bottom: 24, transform: 'translateX(-50%)', zIndex: 120,
+          maxWidth: 'calc(100vw - 32px)', display: 'flex', alignItems: 'center', gap: 12,
+          background: '#7F1D1D', color: '#FFFFFF', borderRadius: 10, padding: '10px 14px',
+          fontSize: 13, fontWeight: 500, boxShadow: '0 12px 28px rgba(15,23,42,0.25)',
+        }}>
+          <span>{toast}</span>
+          <button type="button" onClick={() => setToast('')} aria-label="Dismiss"
+            style={{ background: 'transparent', border: 'none', color: '#FFFFFF', cursor: 'pointer', fontSize: 16, lineHeight: 1, padding: 2 }}>
+            ×
+          </button>
+        </div>
+      )}
+
+      {/* Keyframes for the grid/table cross-fade and the View button spinner */}
       <style>{
         '@keyframes ovpaaRepoFade {' +
         '  from { opacity: 0; transform: translateY(6px); }' +
         '  to   { opacity: 1; transform: translateY(0);   }' +
-        '}'
+        '}' +
+        '@keyframes aftSpin { to { transform: rotate(360deg); } }'
       }</style>
     </div>
   );

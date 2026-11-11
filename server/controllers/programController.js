@@ -11,6 +11,8 @@ import {
   headsOf, syncProgramHeadRoles, unmatchedHeadMessage, changesOwnHeadship, OWN_PROGRAM_HEAD_MESSAGE,
 } from '../services/programHeadAccess.js';
 
+import { samePerson } from '../utils/schoolEmail.js';
+
 const { Program, Faculty } = db;
 
 // Faculty ids heading a program in the period — taken BEFORE a change, so the
@@ -81,6 +83,31 @@ async function syncProgramHeadIds(period_id) {
   return changed;
 }
 
+/**
+ * Bring Program Head access in line with the period's programs AND faculty, from
+ * scratch: re-resolve every program_head name to this period's faculty row, then
+ * give 'Program Head' to every head that lacks it (idempotent; never removes).
+ *
+ * Needed beyond the programs upload because the head's faculty row can arrive or
+ * change later — programs uploaded before the faculty list, a faculty re-upload,
+ * an undo, a new term — and none of those went through syncProgramHeadRoles, so
+ * a head could stay without the role. Never throws.
+ */
+export async function reconcileProgramHeads(period_id, senderId = null) {
+  if (!period_id) return null;
+  try {
+    const fixedIds = await syncProgramHeadIds(period_id);
+    const out = await syncProgramHeadRoles({ periodId: period_id, before: [], senderId });
+    if (fixedIds || (out && (out.granted.length || (out.invited && out.invited.scheduled)))) {
+      console.log(`[program-head] reconcile period ${period_id}: ${fixedIds} head id(s) fixed, ${out.granted.length} role(s) granted`);
+    }
+    return { fixedIds, ...out };
+  } catch (err) {
+    console.error('[program-head] reconcile failed:', err.message);
+    return null;
+  }
+}
+
 // One-time (idempotent) boot backfill: resolve program_head_id for every
 // period that has programs. Safe to run on every boot — it only writes when a
 // row's resolved id actually changes. Never throws (boot must not fail here).
@@ -125,7 +152,8 @@ export async function listPrograms(req, res, next) {
     if (headId || headNameKey) {
       rows = rows.filter((r) => {
         const idMatch = headId && r.program_head_id != null && Number(r.program_head_id) === headId;
-        const nameMatch = headNameKey && normalizeFacultyName(r.program_head) === headNameKey;
+        // Same person even with a middle initial or a title ("Kristine A. San Lorenzo").
+        const nameMatch = headNameKey && (normalizeFacultyName(r.program_head) === headNameKey || samePerson(r.program_head, req.query.head_name));
         return idMatch || nameMatch;
       });
     }

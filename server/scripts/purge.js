@@ -9,7 +9,9 @@
  *   1. TRUNCATEs every data table (built from the models, see utils/freshStart.js):
  *      uploads, academic terms, import batches, invitations, password resets and
  *      user accounts. SequelizeMeta is left alone; nothing is dropped.
- *   2. Empties ./uploads/ (keeps .gitkeep). sample-uploads/ is never touched.
+ *   2. Empties ./uploads/, ./storage/calendars/ (uploaded school calendars) and
+ *      ./storage/curriculum/ (the kept Program of Study
+ *      PDFs), keeping .gitkeep. sample-uploads/ is never touched.
  *   3. Seeds the admin and the six demo logins again (utils/seedUsers.js).
  *      People who got their account from an upload (e.g. the Deans and
  *      Program Heads) have none until the next upload invites them.
@@ -28,6 +30,10 @@ dotenv.config();
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const UPLOADS_DIR = path.resolve(__dirname, '..', 'uploads');
+// Kept Program of Study PDFs. Their table is wiped above, so the files go too.
+const CURRICULUM_DIR = path.resolve(__dirname, '..', 'storage', 'curriculum');
+// Uploaded school calendars. Their table is wiped too.
+const CALENDARS_DIR = path.resolve(__dirname, '..', 'storage', 'calendars');
 const keepVmgo = process.argv.includes('--keep-vmgo');
 
 const { sequelize, ...models } = db;
@@ -38,8 +44,8 @@ try {
 
   const known = planTables(models).wipe;
   const extra = await extraTables(sequelize, known);
-  const { wiped, kept, removedUploads, seeded } = await freshStart({
-    sequelize, models, env: process.env, keepVmgo, extra, uploadsDir: UPLOADS_DIR,
+  const { wiped, kept, removedUploads, removedCurriculum, removedCalendars, seeded } = await freshStart({
+    sequelize, models, env: process.env, keepVmgo, extra, uploadsDir: UPLOADS_DIR, curriculumDir: CURRICULUM_DIR, calendarsDir: CALENDARS_DIR,
   });
 
   const width = Math.max(...wiped.map((w) => w.table.length));
@@ -47,6 +53,8 @@ try {
   wiped.forEach((w) => console.log('  ' + w.table.padEnd(width) + '  ' + w.rows));
   if (kept.length) console.log('[fresh] kept (--keep-vmgo): ' + kept.join(', '));
   console.log('[fresh] uploads/: ' + (removedUploads.length ? removedUploads.length + ' file(s) removed' : 'already empty'));
+  console.log('[fresh] storage/calendars/ (school calendars): ' + (removedCalendars.length ? removedCalendars.length + ' file(s) removed' : 'already empty'));
+  console.log('[fresh] storage/curriculum/ (Program of Study PDFs): ' + (removedCurriculum.length ? removedCurriculum.length + ' file(s) removed' : 'already empty'));
 
   seeded.notes.forEach((n) => console.log('[fresh] note: ' + n));
   console.log('[fresh] accounts recreated:');

@@ -1,11 +1,13 @@
+import { blankIfZero } from '../utils/tosMath.js';
 import React from "react";
-import layout from "../styles/TOSPreview.module.sass";
+import layout from "../styles/TosPreview.module.sass";
 import { useNavigate } from "react-router-dom";
 
 const TOSPreview = ({ isOpen, onClose, outcomeData, questions, courseName = "Human & Computer Interaction", semester = "1st Sem", schoolYear = "2024 - 2025" }) => {
-    if (!isOpen) return null;
-
+    // Hooks first, then the early return: calling a hook only when the modal is open
+    // changes the hook order between renders and crashes React when it opens.
     const navigate = useNavigate();
+    if (!isOpen) return null;
 
     const cognitiveLevels = [
         'Remembering',
@@ -121,13 +123,13 @@ const TOSPreview = ({ isOpen, onClose, outcomeData, questions, courseName = "Hum
                                     <div className={layout.cellBox} style={{fontSize: '16px', fontWeight: "bold"}}>{co.co}</div>
                                 </td>
                                 <td>
-                                    <div className={layout.cellBox} style={{fontSize: '16px'}}>{co.totalHours || 0}</div>
+                                    <div className={layout.cellBox} style={{fontSize: '16px'}}>{blankIfZero(co.totalHours)}</div>
                                 </td>
                                 <td>
-                                    <div className={layout.cellBox} style={{fontSize: '16px'}}>{co.totalPercentage || 0}</div>
+                                    <div className={layout.cellBox} style={{fontSize: '16px'}}>{blankIfZero(co.totalPercentage)}</div>
                                 </td>
                                 <td>
-                                    <div className={layout.cellBox} style={{fontSize: '16px'}}>{co.totalItems || 0}</div>
+                                    <div className={layout.cellBox} style={{fontSize: '16px'}}>{blankIfZero(co.totalItems)}</div>
                                 </td>
                                 {cognitiveLevels.map(level => (
                                     <td key={level}>
@@ -141,13 +143,13 @@ const TOSPreview = ({ isOpen, onClose, outcomeData, questions, courseName = "Hum
                                         <div className={layout.cellBox}>{ilo.id}</div>
                                     </td>
                                     <td>
-                                        <div className={layout.cellBox}>{ilo.hours || 0}</div>
+                                        <div className={layout.cellBox}>{blankIfZero(ilo.hours)}</div>
                                     </td>
                                     <td>
-                                        <div className={layout.cellBox}>{ilo.percentage || 0}</div>
+                                        <div className={layout.cellBox}>{blankIfZero(ilo.percentage)}</div>
                                     </td>
                                     <td>
-                                        <div className={layout.cellBox}>{ilo.items || 0}</div>
+                                        <div className={layout.cellBox}>{blankIfZero(ilo.items)}</div>
                                     </td>
                                     {cognitiveLevels.map(level => (
                                         <td key={level}>
@@ -169,17 +171,17 @@ const TOSPreview = ({ isOpen, onClose, outcomeData, questions, courseName = "Hum
                             <div className={layout.cellBox}>Total</div>
                         </td>
                         <td>
-                            <div className={layout.cellBox}>{totalHours}</div>
+                            <div className={layout.cellBox}>{blankIfZero(totalHours)}</div>
                         </td>
                         <td>
-                            <div className={layout.cellBox}>{totalPercentage}</div>
+                            <div className={layout.cellBox}>{blankIfZero(totalPercentage)}</div>
                         </td>
                         <td>
-                            <div className={layout.cellBox}>{totalItems}</div>
+                            <div className={layout.cellBox}>{blankIfZero(totalItems)}</div>
                         </td>
                         {totalCognitive.map((total, index) => (
                             <td key={index}>
-                                <div className={layout.cellBox}>{total}</div>
+                                <div className={layout.cellBox}>{blankIfZero(total)}</div>
                             </td>
                         ))}
                     </tr>

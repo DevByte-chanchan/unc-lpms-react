@@ -8,12 +8,14 @@
   "scripts": {
     "start": "node index.js",
     "dev": "node --watch index.js",
-    "test": "node --test tests/",
+    "test": "node --test \"tests/*.test.js\"",
     "db:seed:users": "node scripts/seedUsers.js",
     "db:fresh": "node scripts/purge.js",
     "db:purge": "node scripts/purge.js",
     "samples": "node scripts/make-sample-uploads.js",
+    "courses:dedupe": "node scripts/dedupeCourses.js",
     "mail:test": "node scripts/sendTestEmail.js",
+    "access:check": "node scripts/checkAccess.js",
     "db:migrate": "sequelize-cli db:migrate",
     "db:migrate:undo": "sequelize-cli db:migrate:undo",
     "db:seed": "sequelize-cli db:seed:all",
@@ -21,6 +23,7 @@
     "db:reset": "sequelize-cli db:migrate:undo:all && sequelize-cli db:migrate && sequelize-cli db:seed:all"
   },
   "dependencies": {
+    "@tesseract.js-data/eng": "^1.0.0",
     "bcryptjs": "^2.4.3",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
@@ -33,6 +36,8 @@
     "nodemailer": "^10.1.0",
     "pdfjs-dist": "^4.10.38",
     "sequelize": "^6.37.3",
+    "sharp": "^0.33.5",
+    "tesseract.js": "^5.1.1",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {

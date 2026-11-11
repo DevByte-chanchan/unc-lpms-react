@@ -31,3 +31,7 @@ _tmpverify/
 
 # Database exports (contain personal data), never committed
 backups/
+
+# Local only: files set aside for removal, and Claude settings
+_to_delete/
+.claude/

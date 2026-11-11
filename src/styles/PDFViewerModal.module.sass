@@ -1,0 +1,368 @@
+// PDF viewer (look ported from the Learning Plan module's PDFViewerModal,
+// feature/learning-plan-submissions-management-v2)
+$ink: #0F172A
+$slate7: #334155
+$slate5: #64748B
+$slate3: #CBD5E1
+$slate2: #E2E8F0
+$slate1: #F1F5F9
+$slate50: #F8FAFC
+$primary: #19282C
+$red: #B91C1C
+
+.backdrop
+  position: fixed
+  inset: 0
+  background: rgba(15, 23, 42, 0.6)
+
+.modal
+  position: fixed
+  background: #FFFFFF
+  display: flex
+  flex-direction: column
+  overflow: hidden
+
+.windowed
+  top: 50%
+  left: 50%
+  transform: translate(-50%, -50%)
+  width: min(1100px, 96vw)
+  height: min(90vh, calc(100dvh - 24px))
+  border-radius: 12px
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.3)
+
+.fullscreen
+  inset: 0
+
+// ── header ──
+.header
+  display: flex
+  align-items: center
+  justify-content: space-between
+  flex-wrap: wrap
+  gap: 10px 14px
+  padding: 14px 18px
+  border-bottom: 1px solid $slate2
+  flex-shrink: 0
+
+.titleBlock
+  min-width: 0
+  flex: 1 1 280px
+
+.kicker
+  font-size: 11px
+  font-weight: 600
+  color: $slate5
+  letter-spacing: 0.06em
+  text-transform: uppercase
+
+.title
+  font-size: 16px
+  font-weight: 600
+  color: $ink
+  margin-top: 2px
+
+.line
+  font-size: 12.5px
+  color: $slate5
+  margin-top: 2px
+
+.title, .line
+  white-space: nowrap
+  overflow: hidden
+  text-overflow: ellipsis
+
+// ── toolbar ──
+.toolbar
+  display: flex
+  align-items: center
+  gap: 8px
+  flex-wrap: wrap
+  justify-content: flex-end
+  min-width: 0
+
+.group
+  display: flex
+  align-items: center
+  gap: 6px
+
+.iconBtn
+  width: 34px
+  height: 34px
+  border-radius: 8px
+  border: 1px solid $slate2
+  background: #FFFFFF
+  color: $slate7
+  display: inline-flex
+  align-items: center
+  justify-content: center
+  padding: 0
+  cursor: pointer
+  flex-shrink: 0
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease
+  &:hover:not(:disabled)
+    background: $slate50
+    border-color: $slate3
+  &:disabled
+    opacity: 0.4
+    cursor: default
+  &:focus-visible
+    outline: 2px solid $primary
+    outline-offset: 1px
+
+.on
+  border-color: $primary
+  background: $slate1
+
+.closeBtn
+  composes: iconBtn
+  border-color: #FCA5A5
+  color: $red
+  &:hover:not(:disabled)
+    background: #FEF2F2
+    border-color: $red
+
+.zoomPct
+  min-width: 48px
+  height: 34px
+  border: none
+  background: transparent
+  font-size: 12.5px
+  font-weight: 600
+  color: $slate7
+  font-variant-numeric: tabular-nums
+  cursor: pointer
+  border-radius: 6px
+  &:hover
+    background: $slate1
+  &:focus-visible
+    outline: 2px solid $primary
+
+.pageBox
+  display: inline-flex
+  align-items: center
+  gap: 4px
+  font-size: 12.5px
+  font-weight: 600
+  color: $slate7
+  font-variant-numeric: tabular-nums
+  white-space: nowrap
+
+.pageInput
+  width: 38px
+  height: 28px
+  border: 1px solid $slate2
+  border-radius: 6px
+  text-align: center
+  font: inherit
+  color: $ink
+  &:focus
+    outline: 2px solid $primary
+    outline-offset: 0
+    border-color: transparent
+
+.primaryBtn
+  height: 34px
+  padding: 0 14px
+  border-radius: 8px
+  border: 1px solid $primary
+  background: $primary
+  color: #FFFFFF
+  font-size: 13px
+  font-weight: 600
+  display: inline-flex
+  align-items: center
+  gap: 6px
+  cursor: pointer
+  white-space: nowrap
+  flex-shrink: 0
+  &:hover
+    background: #0F1A1D
+  &:focus-visible
+    outline: 2px solid #94A3B8
+    outline-offset: 1px
+
+// Tabs (several documents), in the TOS module's pill style
+.pills
+  display: inline-flex
+  background: #F3F4F6
+  border-radius: 8px
+  padding: 3px
+  gap: 2px
+  max-width: 100%
+  overflow-x: auto
+  flex-shrink: 1
+
+.pill
+  padding: 6px 14px
+  border: none
+  border-radius: 6px
+  font-size: 13px
+  font-weight: 500
+  color: #6B7280
+  background: transparent
+  cursor: pointer
+  white-space: nowrap
+  &:focus-visible
+    outline: 2px solid $primary
+    outline-offset: 1px
+
+.pillOn
+  color: #111827
+  font-weight: 600
+  background: #FFFFFF
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.1)
+
+// ── body ──
+.pane
+  flex: 1
+  min-height: 0
+  overflow: auto
+  background: $slate1
+  position: relative
+  outline: none
+
+.stack
+  display: flex
+  flex-direction: column
+  align-items: center
+  gap: 24px
+  padding: 24px 16px
+  width: max-content
+  min-width: 100%
+  box-sizing: border-box
+
+.sheet
+  position: relative
+  background: #FFFFFF
+  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.12)
+  flex-shrink: 0
+
+.canvas
+  position: absolute
+  inset: 0
+  display: block
+
+.center
+  position: absolute
+  inset: 0
+  display: flex
+  align-items: center
+  justify-content: center
+  padding: 24px
+  text-align: center
+
+.message
+  display: flex
+  flex-direction: column
+  align-items: center
+  gap: 12px
+  font-size: 14px
+  color: $slate7
+
+.spinner
+  animation: pvSpin 0.9s linear infinite
+  color: $slate5
+
+@keyframes pvSpin
+  to
+    transform: rotate(360deg)
+
+.linkBtn
+  border: none
+  background: none
+  padding: 0
+  font: inherit
+  font-weight: 600
+  color: $primary
+  text-decoration: underline
+  cursor: pointer
+
+.card
+  width: min(560px, 100%)
+  background: #FFFFFF
+  border: 1px solid $slate2
+  border-radius: 12px
+  padding: 28px
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06)
+  text-align: left
+
+.cardTitle
+  font-size: 16px
+  font-weight: 700
+  color: $ink
+  margin: 10px 0 4px
+
+.cardNote
+  font-size: 13px
+  color: $slate5
+  margin-bottom: 14px
+
+.cardRow
+  display: grid
+  grid-template-columns: 130px minmax(0, 1fr)
+  gap: 10px
+  padding: 7px 0
+  border-top: 1px solid $slate1
+  font-size: 13px
+  dt
+    color: $slate5
+    font-weight: 600
+  dd
+    margin: 0
+    color: $ink
+    overflow-wrap: anywhere
+    white-space: pre-line
+
+// pdf.js text layer (from pdfjs-dist/web/pdf_viewer.css): transparent text over the
+// canvas so the document can be selected and found with Ctrl+F.
+.sheet :global(.textLayer)
+  position: absolute
+  text-align: initial
+  inset: 0
+  overflow: clip
+  opacity: 1
+  line-height: 1
+  -webkit-text-size-adjust: none
+  text-size-adjust: none
+  forced-color-adjust: none
+  transform-origin: 0 0
+  caret-color: CanvasText
+  z-index: 0
+  :global(span), :global(br)
+    color: transparent
+    position: absolute
+    white-space: pre
+    cursor: text
+    transform-origin: 0% 0%
+  > :not(:global(.markedContent)), :global(.markedContent) :global(span):not(:global(.markedContent))
+    z-index: 1
+  :global(span.markedContent)
+    top: 0
+    height: 0
+  ::selection
+    background: rgba(0, 0, 255, 0.25)
+  :global(br)::selection
+    background: transparent
+
+// ── phone ──
+@media (max-width: 720px)
+  .windowed
+    width: 100vw
+    height: 100dvh
+    border-radius: 0
+  .header
+    padding: 10px 12px
+  .titleBlock
+    flex-basis: 100%
+  .toolbar
+    width: 100%
+    justify-content: space-between
+  .zoomPct, .fitBtn
+    display: none
+  .actions
+    width: 100%
+    justify-content: flex-end
+  .stack
+    padding: 12px 8px
+    gap: 12px

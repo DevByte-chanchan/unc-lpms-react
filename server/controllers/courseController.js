@@ -20,6 +20,10 @@ import {
   offeringRowsFromSubjectOfferings,
 } from '../utils/teachingAssignmentParser.js';
 import { programCoursePrefixes, programKeyFromPrefixes } from '../utils/courseCodeRules.js';
+import { uploadProgramOfStudy } from './programOfStudyController.js';
+import { fromCourse } from '../utils/courseNumbers.js';
+import { normTitle } from '../utils/courseReconcile.js';
+import { sourceForCourse } from '../services/curriculumDocuments.js';
 
 const { Course, Prerequisite, ProgramCourseOffering, AcademicPeriod, CourseOfferingAssignment, Program } = db;
 // (curriculum schema realigned to lpms_composition sample)
@@ -182,7 +186,9 @@ export async function listCourses(req, res, next) {
       }
     }
 
-    res.json(rows);
+    // Every value implied by the stored credit / contact-hours strings, worked
+    // out here (utils/courseNumbers.js) — never stored. null when they don't parse.
+    res.json(rows.map((r) => ({ ...r.get({ plain: true }), numbers: fromCourse(r) })));
   } catch (err) { next(err); }
 }
 
@@ -242,7 +248,14 @@ export async function getCourse(req, res, next) {
       order: [[{ model: ProgramCourseOffering, as: 'offerings' }, 'pc_offering_id', 'ASC']],
     });
     if (!row) return res.status(404).json({ message: 'Course not found' });
-    res.json(row);
+    const plain = row.get({ plain: true });
+    let source = null;
+    try {
+      source = await sourceForCourse(plain, (plain.offerings || []).map((o) => o.program_id));
+    } catch (err) {
+      console.warn('[courses] source lookup skipped: ' + err.message);
+    }
+    res.json({ ...plain, numbers: fromCourse(row), source });
   } catch (err) { next(err); }
 }
 
@@ -297,6 +310,32 @@ export async function createCourse(req, res) {
     const period = period_id ? await AcademicPeriod.findByPk(period_id, { attributes: ['semester', 'label', 'school_year'] }) : null;
     const semester = semesterOfPeriod(period);
     const resolvedTerm = (term && String(term).trim()) || termOfPeriod(period);
+
+    // One course per code in a term (compared trimmed and upper-cased): an
+    // existing row is updated, never duplicated.
+    const inTerm = period_id ? await Course.findAll({ where: { period_id } }) : [];
+    const sameCode = inTerm.find((c) => String(c.course_no).trim().toUpperCase() === String(course_no).trim().toUpperCase());
+    if (sameCode) {
+      await sameCode.update({
+        course_title, credit: credit || sameCode.credit, contact_hrs: contact_hrs ?? sameCode.contact_hrs,
+        classification: classification ?? sameCode.classification, cmo: cmo ?? sameCode.cmo,
+        year_lvl: year_lvl !== undefined ? normalizeYearLevel(year_lvl) : sameCode.year_lvl, archived: false,
+      });
+      if (req.body.prerequisites !== undefined) {
+        await sameCode.update({ prerequisites_text: prereqTextOf(req.body.prerequisites) });
+        await setCoursePrerequisites(sameCode, parsePrereqCodes(req.body.prerequisites));
+      }
+      return res.status(200).json({ ...sameCode.get({ plain: true }), updated_existing: true });
+    }
+    // Same title as another active course in the term: ask first ("Add anyway?").
+    const sameTitle = inTerm.find((c) => !c.archived && normTitle(c.course_title) && normTitle(c.course_title) === normTitle(course_title));
+    if (sameTitle && !req.body.confirm_duplicate) {
+      return res.status(409).json({
+        code: 'DUPLICATE_TITLE',
+        message: sameTitle.course_no + ' — ' + sameTitle.course_title + ' already exists. Add anyway?',
+        existing: { course_id: sameTitle.course_id, course_no: sameTitle.course_no, course_title: sameTitle.course_title },
+      });
+    }
     const created = await Course.create({ course_no, course_title, credit: credit || null, contact_hrs, classification, cmo, year_lvl: normalizeYearLevel(year_lvl), prerequisites_text: prereqTextOf(req.body.prerequisites), term: resolvedTerm, semester, period_id });
     if (req.body.prerequisites !== undefined) await setCoursePrerequisites(created, parsePrereqCodes(req.body.prerequisites));
     res.status(201).json(created);
@@ -434,6 +473,22 @@ function parseCourseRows(rows) {
 }
 
 export async function uploadCourses(req, res) {
+  // The route takes up to 4 files. PDFs are the registrar's Program of Study and
+  // take their own path; otherwise exactly one spreadsheet, as before.
+  const files = Array.isArray(req.files) ? req.files : (req.file ? [req.file] : []);
+  const pdfs = files.filter((f) => /\.pdf$/i.test(f.originalname || ''));
+  if (pdfs.length > 0) {
+    if (pdfs.length !== files.length) {
+      files.forEach((f) => safeUnlink(f.path));
+      return res.status(400).json({ message: 'Pick either the Program of Study PDFs or one spreadsheet, not both.' });
+    }
+    return uploadProgramOfStudy(req, res, pdfs);
+  }
+  if (files.length > 1) {
+    files.forEach((f) => safeUnlink(f.path));
+    return res.status(400).json({ message: 'Pick one spreadsheet at a time.' });
+  }
+  req.file = files[0] || null;
   if (!req.file) return res.status(400).json({ message: 'No file uploaded.' });
   try {
     const period_id = getPeriodId(req);

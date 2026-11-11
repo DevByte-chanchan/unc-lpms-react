@@ -35,11 +35,11 @@ export function useHeadProgram(periodId) {
     if (!periodId || !facultyLoaded) { setMyPrograms([]); setProgramsLoaded(false); return undefined; }
     let cancelled = false;
     setProgramsLoaded(false);
-    ProgramsAPI.listForHead(periodId, { headId: facultyId })
+    ProgramsAPI.listForHead(periodId, { headId: facultyId, headName: userName })
       .then((rows) => { if (!cancelled) { setMyPrograms(Array.isArray(rows) ? rows : []); setProgramsLoaded(true); } })
       .catch(() => { if (!cancelled) { setMyPrograms([]); setProgramsLoaded(true); } });
     return () => { cancelled = true; };
-  }, [periodId, facultyLoaded, facultyId]);
+  }, [periodId, facultyLoaded, facultyId, userName]);
 
   // Keep a valid selection as the program set changes (default to the first).
   React.useEffect(() => {

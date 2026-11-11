@@ -108,14 +108,20 @@ export async function emptyUploads(dir) {
 /**
  * @param models      the model registry (needs UserAccount for the seed)
  * @param extra       further table names to wipe (see extraTables)
- * @returns { wiped: [{ table, rows }], kept: [table], removedUploads: [name], seeded }
+ * @param curriculumDir  the kept Program of Study PDFs (storage/curriculum/); its
+ *                    table is wiped with the rest, so the files go too
+ * @param calendarsDir   the uploaded school calendars (storage/calendars/), likewise
+ * @returns { wiped: [{ table, rows }], kept: [table], removedUploads: [name],
+ *            removedCurriculum: [name], removedCalendars: [name], seeded }
  *          seeded is seedUsers()'s result: { created, existing, demo, notes }.
  */
-export async function freshStart({ sequelize, models, env = process.env, keepVmgo = false, extra = [], uploadsDir = null }) {
+export async function freshStart({ sequelize, models, env = process.env, keepVmgo = false, extra = [], uploadsDir = null, curriculumDir = null, calendarsDir = null }) {
   assertNotProduction(env);
   const { wipe, keep } = planTables(models, { keepVmgo, extra });
   const wiped = await wipeTables(sequelize, wipe);
   const removedUploads = uploadsDir ? await emptyUploads(uploadsDir) : [];
+  const removedCurriculum = curriculumDir ? await emptyUploads(curriculumDir) : [];
+  const removedCalendars = calendarsDir ? await emptyUploads(calendarsDir) : [];
   const seeded = await seedUsers({ Model: models.UserAccount, env });
-  return { wiped, kept: keep, removedUploads, seeded };
+  return { wiped, kept: keep, removedUploads, removedCurriculum, removedCalendars, seeded };
 }

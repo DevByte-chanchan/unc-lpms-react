@@ -29,6 +29,8 @@ import PasswordResetFactory   from './passwordReset.js';
 import AccountNoticeFactory   from './accountNotice.js';
 import NotificationFactory    from './notification.js';
 import CourseAssignmentHistoryFactory from './courseAssignmentHistory.js';
+import CurriculumDocumentFactory from './curriculumDocument.js';
+import SchoolCalendarFactory from './schoolCalendar.js';
 
 // --- Mirror tables (data sourced from other modules) ---
 // Faculty and Department records that originate from the HR / Dean
@@ -69,6 +71,10 @@ const db = {
   // Course Assignment history, keyed by (period, program, course_code) so it
   // survives re-uploads (row ids don't). No FKs and outside every undo snapshot.
   CourseAssignmentHistory: CourseAssignmentHistoryFactory(sequelize, DataTypes),
+  // Kept Program of Study PDFs (file on disk under storage/curriculum/). No FKs.
+  CurriculumDocument:     CurriculumDocumentFactory(sequelize, DataTypes),
+  // Uploaded official school calendars (file on disk under storage/calendars/). No FKs.
+  SchoolCalendar:         SchoolCalendarFactory(sequelize, DataTypes),
   sequelize,
 };
 

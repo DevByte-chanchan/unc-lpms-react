@@ -133,9 +133,13 @@ export const CoursesAPI = {
   // unassigned[] } so the UI can resolve unrecognized year levels before
   // committing. `programId` is the program the uploader is viewing — used as the
   // default for rows whose sheet has no Program column. Persists nothing.
+  //
+  // `file` is one spreadsheet, or { name, files: [File, …] } — the Program of
+  // Study PDFs (both halves at once). The PDF preview adds `programOfStudy`
+  // (documents, checks, summary, and the "Not in the Program of Study" list).
   uploadPreview: (file, periodId, programId) => {
     const fd = new FormData();
-    fd.append('file', file);
+    filesOf(file).forEach((f) => fd.append('file', f));
     if (periodId) fd.append('period_id', String(periodId));
     if (programId) fd.append('programId', String(programId));
     return request('/courses/upload', { method: 'POST', body: fd, query: { preview: 1 } });
@@ -144,23 +148,63 @@ export const CoursesAPI = {
   //   yearLevelOverrides — { "<course_no>": "FIRST YEAR" | … } for resolved rows
   //   skipCodes          — ["<course_no>", …] rows to NOT import
   //   programId          — default program for rows with no Program column
-  uploadCommit: (file, periodId, { yearLevelOverrides, skipCodes, programId } = {}) => {
+  //   archive            — PDF path: course ids ticked "Archive" under "Not in the Program of Study"
+  uploadCommit: (file, periodId, { yearLevelOverrides, skipCodes, programId, archive } = {}) => {
     const fd = new FormData();
-    fd.append('file', file);
+    filesOf(file).forEach((f) => fd.append('file', f));
     if (periodId) fd.append('period_id', String(periodId));
     if (programId) fd.append('programId', String(programId));
     if (yearLevelOverrides && Object.keys(yearLevelOverrides).length) fd.append('yearLevelOverrides', JSON.stringify(yearLevelOverrides));
     if (skipCodes && skipCodes.length) fd.append('skipCodes', JSON.stringify(skipCodes));
+    if (Array.isArray(archive)) fd.append('reconcile', JSON.stringify({ archive }));
     return request('/courses/upload', { method: 'POST', body: fd });
   },
+};
+
+// One upload "file" is a File, or { name, files } for several picked at once.
+const filesOf = (file) => (file && Array.isArray(file.files) ? file.files : [file]);
+
+// The kept Program of Study PDFs (server/routes/curriculumDocuments.js). The
+// file URLs are on the API's origin and use the session cookie, so the viewer's
+// iframe can load them directly — no token in the URL.
+export const CurriculumDocumentsAPI = {
+  // { active: [...], previous: [...] } — by program, or by a course code in a term.
+  list: (programId) => request('/curriculum-documents', { query: { program_id: programId } }),
+  forCourse: (courseCode, periodId) => request('/curriculum-documents', { query: { course_code: courseCode, period_id: periodId } }),
+  // Absolute URL of a document's file; `download` → attachment, `page` → #page=N.
+  fileUrl: (doc, { download = false, page } = {}) => {
+    const url = new URL(BASE_URL + '/curriculum-documents/' + doc.id + '/file', window.location.origin);
+    if (download) url.searchParams.set('download', '1');
+    return url.toString() + (page ? '#page=' + page : '');
+  },
+};
+
+// The official school calendar the VPAA uploads to fill the term form
+// (server/routes/schoolCalendars.js). Nothing here saves a term: the form's own
+// Save does that.
+const calendarQuery = ({ semester, school_year, purpose } = {}) => ({ semester, school_year, purpose });
+export const SchoolCalendarsAPI = {
+  // → the kept calendar with { fields, sources, alternatives, events, warnings, missing,
+  //   notInCalendar, block, blocksFound } for `semester`; `message` when it has no such block.
+  upload: (file, opts = {}) => {
+    const fd = new FormData();
+    fd.append('file', file);
+    Object.entries(calendarQuery(opts)).forEach(([k, v]) => { if (v) fd.append(k, String(v)); });
+    return request('/school-calendars', { method: 'POST', body: fd });
+  },
+  // → { calendar: <same shape> | null }: the latest calendar kept for a school year.
+  latest: (schoolYear, opts = {}) => request('/school-calendars', { query: { ...calendarQuery(opts), school_year: schoolYear } }),
+  fileUrl: (cal) => new URL(BASE_URL + '/school-calendars/' + cal.id + '/file', window.location.origin).toString(),
 };
 
 export const ProgramsAPI = {
   list:   (periodId) => request('/programs', { query: { period_id: periodId } }),
   // "My program(s)" for a Program Head, by the faculty row their email links to.
   // No link means no programs: without head_id the route returns all of them.
-  listForHead: (periodId, { headId } = {}) => (headId
-    ? request('/programs', { query: { period_id: periodId, head_id: headId } })
+  // By the resolved faculty id OR the head's name (the server ORs them), so a head
+  // whose faculty row isn't linked in this term still finds their program.
+  listForHead: (periodId, { headId, headName } = {}) => ((headId || headName)
+    ? request('/programs', { query: { period_id: periodId, ...(headId ? { head_id: headId } : {}), ...(headName ? { head_name: headName } : {}) } })
     : Promise.resolve([])),
   get:    (id) => request(idPath('/programs', id)),
   create: (data, periodId) => request('/programs', { method: 'POST', body: { ...data, period_id: periodId } }),

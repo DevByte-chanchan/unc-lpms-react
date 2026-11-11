@@ -1,0 +1,10 @@
+# Store text files with LF line endings in the repo, whatever the editor saved
+# (Windows editors were turning whole files into CRLF, which showed every line as changed).
+* text=auto
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.pdf binary
+*.xlsx binary
+*.xls binary
+*.docx binary

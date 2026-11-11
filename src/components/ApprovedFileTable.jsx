@@ -15,7 +15,7 @@
  * fragile `<table tableLayout: fixed>` + `<colgroup>` juggling.
  */
 import React from 'react';
-import { Search, ArrowUp, ArrowDown, Eye, FileText, Layers, ChevronDown, Check } from 'react-feather';
+import { Search, ArrowUp, ArrowDown, Eye, FileText, Layers, ChevronDown, Check, Loader } from 'react-feather';
 
 const ACCENT       = '#18191A';   // solid actions (Export) — black, not the error red
 const ACCENT_HOVER = '#33353A';   // lighter on hover: ACCENT is already near-black
@@ -90,7 +90,7 @@ const HeaderRow = ({ sort, onSort }) => (
 );
 
 // ────────────────────────────── row buttons ────────────────────────────
-const RowActionButton = ({ onClick, icon, label, variant = 'outline' }) => {
+const RowActionButton = ({ onClick, icon, label, variant = 'outline', disabled = false }) => {
   const [hover, setHover] = React.useState(false);
   const styles = variant === 'solid'
     ? {
@@ -104,13 +104,15 @@ const RowActionButton = ({ onClick, icon, label, variant = 'outline' }) => {
   return (
     <button
       type="button"
-      onClick={(e) => { e.stopPropagation(); onClick(); }}
+      disabled={disabled}
+      aria-busy={disabled || undefined}
+      onClick={(e) => { e.stopPropagation(); if (!disabled) onClick(); }}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       style={{
         ...styles,
         height: 30, padding: '0 10px', borderRadius: 7,
-        fontSize: 12, fontWeight: 500, cursor: 'pointer',
+        fontSize: 12, fontWeight: 500, cursor: disabled ? 'progress' : 'pointer',
         display: 'inline-flex', alignItems: 'center', gap: 5,
         whiteSpace: 'nowrap',
         transition: 'background 0.15s ease, border-color 0.15s ease',
@@ -123,7 +125,7 @@ const RowActionButton = ({ onClick, icon, label, variant = 'outline' }) => {
 };
 
 // ─────────────────────────────── data row ──────────────────────────────
-const DataRow = ({ row, onView }) => {
+const DataRow = ({ row, onView, busy = false }) => {
   const [hover, setHover] = React.useState(false);
 
   const cell = (extra = {}) => ({
@@ -182,7 +184,13 @@ const DataRow = ({ row, onView }) => {
 
       {/* Actions — centered under the centered header */}
       <div style={cell({ justifyContent: 'center', gap: 6 })}>
-        <RowActionButton onClick={() => onView(row)} icon={<Eye size={12} />} label="View" variant="solid" />
+        <RowActionButton
+          onClick={() => onView(row)}
+          icon={busy ? <Loader size={12} style={{ animation: 'aftSpin 0.9s linear infinite' }} /> : <Eye size={12} />}
+          label={busy ? 'Opening…' : 'View'}
+          variant="solid"
+          disabled={busy}
+        />
       </div>
     </div>
   );
@@ -279,7 +287,8 @@ const DropdownItem = ({ label, selected, onClick }) => {
 };
 
 // ──────────────────────────────── main ─────────────────────────────────
-const ApprovedFileTable = ({ rows, programs, onView }) => {
+// busyId: the row whose document is being prepared — its View button shows a spinner.
+const ApprovedFileTable = ({ rows, programs, onView, busyId = null }) => {
   const [query, setQuery]                     = React.useState('');
   const [sort, setSort]                       = React.useState({ key: 'approved_date', dir: 'desc' });
   const [selectedProgram, setSelectedProgram] = React.useState(null);
@@ -393,7 +402,7 @@ const ApprovedFileTable = ({ rows, programs, onView }) => {
               </div>
             ) : (
               filtered.map((r) => (
-                <DataRow key={r.id} row={r} onView={onView} />
+                <DataRow key={r.id} row={r} onView={onView} busy={busyId === r.id} />
               ))
             )}
           </div>

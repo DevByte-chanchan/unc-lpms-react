@@ -36,6 +36,7 @@ import {
 import {
   calendarChecks, calendarRows, manilaToday, nextCalendarDate, progressText, termProgress, termWeeks,
 } from '../services/termCalendar.js';
+import SchoolCalendarFill, { SchoolCalendarLink } from '../components/SchoolCalendarFill.jsx';
 
 const thisYear = new Date().getFullYear();
 const YEARS = Array.from({ length: 16 }, (_, i) => thisYear - 5 + i);
@@ -172,8 +173,9 @@ const chartTitleStyle = { margin: 0, fontSize: 14, fontWeight: 600, color: SLATE
 
 // Soft dim overlay — slate tint + backdrop blur. Sits inside its panel
 // to fade just that one out without affecting the rest of the screen.
-const DimOverlay = () => (
-  <div style={{
+const DimOverlay = ({ onClick }) => (
+  <div onClick={onClick} className="dashDimIn" style={{
+    cursor: onClick ? 'pointer' : 'default',
     position: 'absolute', inset: 0, borderRadius: 'inherit',
     background: 'rgba(15, 23, 42, 0.10)',
     backdropFilter: 'blur(2px)', WebkitBackdropFilter: 'blur(2px)',
@@ -315,7 +317,20 @@ const SelectField = ({ label, value, onChange, disabled, children, hideLabel }) 
 // Field body is always white with black text + light color scheme so the
 // native calendar picker pops up in a clean light theme regardless of
 // the surrounding card surface.
-const DateField = ({ label, value, onChange, disabled, surface = 'light', min, max, invalid, hint }) => {
+// The small "from calendar" tag under a date filled from the uploaded school
+// calendar; it goes as soon as the date is changed by hand. (Under the field,
+// not beside the label: there a long label would wrap and push its input down.)
+const FromCalendarTag = () => (
+  <span style={{
+    alignSelf: 'flex-start', marginTop: 2, padding: '0 7px', borderRadius: 9999, background: SLATE_100, border: '1px solid ' + SLATE_200,
+    color: SLATE_600, fontSize: 10.5, fontWeight: 600, lineHeight: '16px', whiteSpace: 'nowrap',
+    display: 'inline-flex', alignItems: 'center', gap: 3,
+  }}>
+    <Check size={10} aria-hidden="true" /> from calendar
+  </span>
+);
+
+const DateField = ({ label, value, onChange, disabled, surface = 'light', min, max, invalid, hint, fromCalendar }) => {
   const isRed  = surface === 'red';
   const isEdit = surface === 'edit';
   const [focused, setFocused] = React.useState(false);
@@ -407,6 +422,7 @@ const DateField = ({ label, value, onChange, disabled, surface = 'light', min, m
           <AlertTriangle size={12} /> {hint}
         </span>
       )}
+      {fromCalendar && <FromCalendarTag />}
     </label>
   );
 };
@@ -418,9 +434,11 @@ const DateField = ({ label, value, onChange, disabled, surface = 'light', min, m
  *   buf / setBuf  the form buffer (BLANK_TERM_DATES keys)
  *   checks        fieldChecks(buf) — carries the order issue
  *   min / max     the school-year window for the pickers
+ *   fromCalendar  the keys filled from the school calendar (tagged); onManual(key)
+ *                 is called when one is changed by hand
  */
-const TermCalendarFields = ({ buf, setBuf, checks, min, max, disabled }) => {
-  const set = (key) => (v) => setBuf((b) => ({ ...b, [key]: v }));
+const TermCalendarFields = ({ buf, setBuf, checks, min, max, disabled, fromCalendar, onManual }) => {
+  const set = (key) => (v) => { setBuf((b) => ({ ...b, [key]: v })); if (onManual) onManual(key); };
   const issue = checks.orderIssue;
   const orderHint = (key) => (issue && issue.key === key ? issue.message : undefined);
   const field = (key, label) => (
@@ -431,6 +449,7 @@ const TermCalendarFields = ({ buf, setBuf, checks, min, max, disabled }) => {
       invalid={!!orderHint(key)}
       hint={orderHint(key)}
       onChange={set(key)}
+      fromCalendar={!!(fromCalendar && fromCalendar.has(key))}
       disabled={disabled} />
   );
   return (
@@ -679,6 +698,22 @@ const AcademicTerms = () => {
 
   // Collapsed/expanded toggle for the Current Term card's details panel.
   const [isExpanded, setIsExpanded] = React.useState(false);
+  // Opening/closing the details animates: the pane fades and slides out (termClosing),
+  // then the other pane fades in. While the details are open, the other panels dim + blur.
+  const [termClosing, setTermClosing] = React.useState(false);
+  const termToggleTimer = React.useRef(null);
+  const toggleTermDetails = React.useCallback((open) => {
+    if (termToggleTimer.current) return;
+    const reduce = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduce) { setIsExpanded(open); return; }
+    setTermClosing(true);
+    termToggleTimer.current = setTimeout(() => {
+      termToggleTimer.current = null;
+      setTermClosing(false);
+      setIsExpanded(open);
+    }, 180);
+  }, []);
+  React.useEffect(() => () => { if (termToggleTimer.current) clearTimeout(termToggleTimer.current); }, []);
   // Past terms whose calendar is shown (the Show calendar toggle).
   const [pastCalendars, setPastCalendars] = React.useState(() => new Set());
   const togglePastCalendar = (id) => setPastCalendars((s) => {
@@ -703,6 +738,21 @@ const AcademicTerms = () => {
   const [pastEditBuf, setPastEditBuf] = React.useState({ semester: '1', ...BLANK_TERM_DATES });
   const [saving, setSaving] = React.useState(false);
   const [error,  setError]  = React.useState(null);
+  // Dates filled from the uploaded school calendar ("from calendar" tags), per form.
+  const [editFromCal,   setEditFromCal]   = React.useState(() => new Set());
+  const [updateFromCal, setUpdateFromCal] = React.useState(() => new Set());
+  const dropTag = (setTags) => (key) => setTags((s) => {
+    if (!s.has(key)) return s;
+    const n = new Set(s);
+    n.delete(key);
+    return n;
+  });
+  // "Use these dates": fill the form (found dates only) and tag them.
+  const applyCalendar = (setBuf, setTags) => (values) => {
+    setBuf((b) => ({ ...b, ...values }));
+    setTags(new Set(Object.keys(values)));
+    setError(null);
+  };
 
   // Date-range validity; lexicographic compare works on YYYY-MM-DD.
   const fieldChecks = (buf) => {
@@ -774,6 +824,7 @@ const AcademicTerms = () => {
   const startEdit = () => {
     if (!currentTerm) return;
     setEditBuf({ semester: currentTerm.semester || '1', ...termDatesOf(currentTerm) });
+    setEditFromCal(new Set());
     setError(null);
     setFocus('current-edit');
   };
@@ -813,6 +864,7 @@ const AcademicTerms = () => {
       else { semester = '1'; }
     }
     setUpdateBuf({ mode, year_from: yFrom, year_to: yTo, semester, ...BLANK_TERM_DATES });
+    setUpdateFromCal(new Set());
     setError(null);
     setFocus('current-update');
   };
@@ -891,8 +943,10 @@ const AcademicTerms = () => {
 
   // Dim helpers per panel.
   const dimCurrent = anyFocus && !(isFocused('current-edit') || isFocused('current-update'));
-  const dimPast    = anyFocus && !(focus && focus.startsWith('past-'));
-  const dimCharts  = anyFocus;
+  // The open Current Term details also dim + blur the other panels (click one to close).
+  const detailsOpen = isExpanded && !termClosing && !anyFocus;
+  const dimPast    = (anyFocus && !(focus && focus.startsWith('past-'))) || detailsOpen;
+  const dimCharts  = anyFocus || detailsOpen;
 
   // ─────────────────────────── render ───────────────────────────
   return (
@@ -931,7 +985,7 @@ const AcademicTerms = () => {
         // always shows its buttons. The second has a fixed floor rather than a
         // content one: Past Terms scrolls its own list, however long it gets.
         gridTemplateRows: isNarrow ? 'none'
-                        : isFocused('current-edit') ? 'minmax(max-content, 1.55fr) minmax(200px, 0.45fr)'
+                        : (isFocused('current-edit') || isFocused('current-update')) ? 'minmax(max-content, auto) minmax(200px, 1fr)'
                         : (focus && focus.startsWith('past-view-')) ? 'minmax(max-content, 0.55fr) minmax(280px, 1.45fr)'
                         : 'minmax(max-content, 1fr) minmax(240px, 1fr)',
         gap: 14,
@@ -948,7 +1002,6 @@ const AcademicTerms = () => {
           ...(isFocused('current-edit') || isFocused('current-update') ? formCard : displayCard),
           // Update New Term still spans both rows (lots of fields).
           // Edit form stays in row 1 — the row ratio above expands it.
-          ...(isFocused('current-update') ? { gridRow: '1 / span 2' } : null),
           // Hide the Current Term card while the user is editing a past
           // term — the Past Academic Terms card expands to fill both rows.
           ...(focus && focus.startsWith('past-edit-') ? { display: 'none' } : null),
@@ -975,7 +1028,7 @@ const AcademicTerms = () => {
             <>
               {/* ── COLLAPSED state ── Only eyebrow + big year + semester + down arrow */}
               {!isExpanded && (
-                <>
+                <div key="collapsed" className={'termCardPane' + (termClosing ? ' termCardPaneOut' : '')} style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
                   <div style={{ ...eyebrow(SLATE_500), textAlign: 'left' }}>
                     Current Term
                   </div>
@@ -1010,7 +1063,7 @@ const AcademicTerms = () => {
                   </div>
                   <button
                     type="button"
-                    onClick={() => setIsExpanded(true)}
+                    onClick={() => toggleTermDetails(true)}
                     title="Show details"
                     aria-label="Expand term details"
                     style={{
@@ -1027,16 +1080,16 @@ const AcademicTerms = () => {
                   >
                     <ChevronDown size={22} color={SLATE_900} strokeWidth={2.5} />
                   </button>
-                </>
+                </div>
               )}
 
               {/* ── EXPANDED state ── Up arrow + details + action buttons */}
               {isExpanded && (
-                <>
+                <div key="expanded" className={'termCardPane termCardPaneExpand' + (termClosing ? ' termCardPaneOut' : '')} style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
                   {/* Up arrow at the top — collapses back to year/semester view */}
                   <button
                     type="button"
-                    onClick={() => setIsExpanded(false)}
+                    onClick={() => toggleTermDetails(false)}
                     title="Hide details"
                     aria-label="Collapse term details"
                     style={{
@@ -1076,6 +1129,7 @@ const AcademicTerms = () => {
                     <div style={{ marginBottom: 4 }}>
                       <DetailLabel>School Calendar</DetailLabel>
                       <CalendarTimeline term={currentTerm} today={today} onAdd={startEdit} />
+                      <SchoolCalendarLink schoolYear={currentTerm.school_year} />
                     </div>
 
                     <CalendarChecks term={currentTerm} />
@@ -1133,13 +1187,13 @@ const AcademicTerms = () => {
                       <RefreshCw size={13} /> {nextAction === 'sem' ? 'Update Sem' : 'Update Term'}
                     </button>
                   </div>
-                </>
+                </div>
               )}
             </>
           )}
 
           {currentTerm && isFocused('current-edit') && (
-            <>
+            <div className="termCardPane" style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
                 <div>
                   <div style={{ ...eyebrow(SLATE_500), textAlign: 'left' }}>Edit Current Sem</div>
@@ -1148,12 +1202,20 @@ const AcademicTerms = () => {
                   </div>
                 </div>
 
+                <SchoolCalendarFill
+                  schoolYear={currentTerm.school_year}
+                  semester={currentTerm.semester}
+                  purpose="edit"
+                  disabled={saving}
+                  onApply={applyCalendar(setEditBuf, setEditFromCal)} />
+
                 <div style={FIELD_GRID}>
                   <DateField surface="edit" label="Start of Semester"
                     value={editBuf.start_date}
                     min={editYearBounds.min}
                     max={editBuf.end_date || editYearBounds.max}
-                    onChange={(v) => setEditBuf((b) => ({ ...b, start_date: v }))}
+                    fromCalendar={editFromCal.has('start_date')}
+                    onChange={(v) => { setEditBuf((b) => ({ ...b, start_date: v })); dropTag(setEditFromCal)('start_date'); }}
                     disabled={saving} />
                   <DateField surface="edit" label="End of Semester"
                     value={editBuf.end_date}
@@ -1161,12 +1223,14 @@ const AcademicTerms = () => {
                     max={editYearBounds.max}
                     invalid={editChecks.endBadOrder || endOrderHint(editChecks) != null}
                     hint={editChecks.endBadOrder ? 'End date must be on or after start date' : endOrderHint(editChecks)}
-                    onChange={(v) => setEditBuf((b) => ({ ...b, end_date: v }))}
+                    fromCalendar={editFromCal.has('end_date')}
+                    onChange={(v) => { setEditBuf((b) => ({ ...b, end_date: v })); dropTag(setEditFromCal)('end_date'); }}
                     disabled={saving} />
                 </div>
 
                 <TermCalendarFields buf={editBuf} setBuf={setEditBuf} checks={editChecks}
-                  min={editYearBounds.min} max={editYearBounds.max} disabled={saving} />
+                  min={editYearBounds.min} max={editYearBounds.max} disabled={saving}
+                  fromCalendar={editFromCal} onManual={dropTag(setEditFromCal)} />
 
                 {error && (
                   <div style={{ fontSize: 12, color: ACCENT, background: '#F9FAFB', border: '1px solid #E5E7EB', padding: '10px 12px', borderRadius: 10, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
@@ -1205,7 +1269,7 @@ const AcademicTerms = () => {
                   <Save size={14} /> {saving ? 'Saving…' : 'Save'}
                 </button>
               </div>
-            </>
+            </div>
           )}
 
           {isFocused('current-update') && (() => {
@@ -1216,8 +1280,8 @@ const AcademicTerms = () => {
               : 'Term details';
             const primaryLabel  = isSemMode ? 'Save Sem' : 'Save New Term';
             return (
-              <>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
+              <div className="termCardPane" style={{ display: 'flex', flexDirection: 'column' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                   <div>
                     <div style={{ ...eyebrow(SLATE_500), textAlign: 'left' }}>{headerEyebrow}</div>
                     <div style={{ marginTop: 6, fontSize: 20, fontWeight: 700, color: SLATE_900, letterSpacing: '-0.01em' }}>
@@ -1231,7 +1295,7 @@ const AcademicTerms = () => {
                       <SelectField
                         label="School Year"
                         value={updateBuf.year_from}
-                        onChange={(v) => setUpdateBuf((b) => ({ ...b, year_from: Number(v), year_to: Number(v) + 1, ...BLANK_TERM_DATES }))}
+                        onChange={(v) => { setUpdateBuf((b) => ({ ...b, year_from: Number(v), year_to: Number(v) + 1, ...BLANK_TERM_DATES })); setUpdateFromCal(new Set()); }}
                         disabled={saving}
                       >
                         {YEARS.map((y) => <option key={y} value={y}>{y}</option>)}
@@ -1241,7 +1305,7 @@ const AcademicTerms = () => {
                         label="School Year"
                         hideLabel
                         value={updateBuf.year_to}
-                        onChange={(v) => setUpdateBuf((b) => ({ ...b, year_to: Number(v), ...BLANK_TERM_DATES }))}
+                        onChange={(v) => { setUpdateBuf((b) => ({ ...b, year_to: Number(v), ...BLANK_TERM_DATES })); setUpdateFromCal(new Set()); }}
                         disabled={saving}
                       >
                         {YEARS.filter((y) => y > updateBuf.year_from).map((y) => <option key={y} value={y}>{y}</option>)}
@@ -1253,24 +1317,36 @@ const AcademicTerms = () => {
                   <SelectField
                     label="Semester"
                     value={updateBuf.semester}
-                    onChange={(v) => setUpdateBuf((b) => (
-                      v === b.semester
-                        ? b
-                        : { ...b, semester: v, ...BLANK_TERM_DATES }
-                    ))}
+                    onChange={(v) => {
+                      if (v !== updateBuf.semester) setUpdateFromCal(new Set());
+                      setUpdateBuf((b) => (
+                        v === b.semester
+                          ? b
+                          : { ...b, semester: v, ...BLANK_TERM_DATES }
+                      ));
+                    }}
                     disabled={saving}
                   >
                     <option value="1">1st Semester</option>
                     <option value="2">2nd Semester</option>
                   </SelectField>
 
-                  {/* 2. Start + End — strictly bounded by the school year window */}
+                  {/* 2. Fill the dates from the uploaded school calendar (reviewed first) */}
+                  <SchoolCalendarFill
+                    schoolYear={updateBuf.year_from + '-' + updateBuf.year_to}
+                    semester={updateBuf.semester}
+                    purpose="create"
+                    disabled={saving}
+                    onApply={applyCalendar(setUpdateBuf, setUpdateFromCal)} />
+
+                  {/* 3. Start + End — strictly bounded by the school year window */}
                   <div style={FIELD_GRID}>
                     <DateField surface="edit" label="Start of Semester"
                       value={updateBuf.start_date}
                       min={yearBounds.min}
                       max={updateBuf.end_date || yearBounds.max}
-                      onChange={(v) => setUpdateBuf((b) => ({ ...b, start_date: v }))}
+                      fromCalendar={updateFromCal.has('start_date')}
+                      onChange={(v) => { setUpdateBuf((b) => ({ ...b, start_date: v })); dropTag(setUpdateFromCal)('start_date'); }}
                       disabled={saving} />
                     <DateField surface="edit" label="End of Semester"
                       value={updateBuf.end_date}
@@ -1278,13 +1354,15 @@ const AcademicTerms = () => {
                       max={yearBounds.max}
                       invalid={updateChecks.endBadOrder || endOrderHint(updateChecks) != null}
                       hint={updateChecks.endBadOrder ? 'End date must be on or after start date' : endOrderHint(updateChecks)}
-                      onChange={(v) => setUpdateBuf((b) => ({ ...b, end_date: v }))}
+                      fromCalendar={updateFromCal.has('end_date')}
+                      onChange={(v) => { setUpdateBuf((b) => ({ ...b, end_date: v })); dropTag(setUpdateFromCal)('end_date'); }}
                       disabled={saving} />
                   </div>
 
-                  {/* 3. School calendar — bounded by the picked semester window */}
+                  {/* 4. School calendar — bounded by the picked semester window */}
                   <TermCalendarFields buf={updateBuf} setBuf={setUpdateBuf} checks={updateChecks}
-                    min={yearBounds.min} max={yearBounds.max} disabled={saving} />
+                    min={yearBounds.min} max={yearBounds.max} disabled={saving}
+                    fromCalendar={updateFromCal} onManual={dropTag(setUpdateFromCal)} />
 
                   {error && (
                     <div style={{ fontSize: 12, color: ACCENT, background: '#F9FAFB', border: '1px solid #E5E7EB', padding: '10px 12px', borderRadius: 10, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
@@ -1293,8 +1371,7 @@ const AcademicTerms = () => {
                   )}
                 </div>
 
-                <div style={{ flex: 1 }} />
-                <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 18, marginTop: 24, paddingTop: 16, borderTop: '1px solid ' + SLATE_100 }}>
+                <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 18, marginTop: 16, paddingTop: 12, borderTop: '1px solid ' + SLATE_100 }}>
                   <button
                     onClick={cancelFocus} disabled={saving}
                     style={{
@@ -1323,7 +1400,7 @@ const AcademicTerms = () => {
                     <Save size={14} /> {saving ? 'Saving…' : primaryLabel}
                   </button>
                 </div>
-              </>
+              </div>
             );
           })()}
 
@@ -1333,7 +1410,7 @@ const AcademicTerms = () => {
         {/* ───── Syllabus chart ───── */}
         <div style={whiteCard}>
           <MockChart title="Submitted Learning Plan" data={MOCK_LEARNING_PLAN} />
-          {dimCharts && <DimOverlay />}
+          {dimCharts && <DimOverlay onClick={detailsOpen ? () => toggleTermDetails(false) : undefined} />}
         </div>
 
         {/* ───── Past terms (white) ─────
@@ -1344,7 +1421,6 @@ const AcademicTerms = () => {
           ...whiteCard,
           // Past Terms stays visible during current-edit (just smaller).
           // It only hides when the Update New Term form takes both rows.
-          ...(isFocused('current-update') ? { display: 'none' } : null),
           ...(focus && focus.startsWith('past-edit-') ? { gridRow: '1 / span 2' } : null),
         }}>
           <div style={eyebrow(SLATE_400)}>History</div>
@@ -1578,13 +1654,13 @@ const AcademicTerms = () => {
           </div>
           </>)}
 
-          {dimPast && <DimOverlay />}
+          {dimPast && <DimOverlay onClick={detailsOpen ? () => toggleTermDetails(false) : undefined} />}
         </div>
 
         {/* ───── TOS chart ───── */}
         <div style={whiteCard}>
           <MockChart title="Table of Specification" data={MOCK_TOS} />
-          {dimCharts && <DimOverlay />}
+          {dimCharts && <DimOverlay onClick={detailsOpen ? () => toggleTermDetails(false) : undefined} />}
         </div>
       </div>
 

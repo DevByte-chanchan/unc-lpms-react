@@ -29,7 +29,7 @@
  *   program                 // → joins with Programs (via pc_offering)
  *   instructor_name         // → joins with Faculty (via stakeholder_id)
  *   course_id, course_name  // → joins with Course Offering (via pc_offering_id)
- *   file_name, file_url     // → stored alongside the repository record
+ *   file_name               // → the downloaded PDF's name
  *   submission_date         // alias  = date_submitted        (LP)
  *                           //        = tos_date_submitted    (TOS)
  *   approved_date           // alias  = d_date_accepted       (LP — Dean finalises)
@@ -38,9 +38,14 @@
  *                           //   render time by OVPAARepository so the
  *                           //   demo always reflects the active term
  *
- * One row per dataset uses a real sample PDF (Mozilla's PDF.js demo)
- * so the OVPAA can verify the in-app iframe viewer end-to-end.
+ * Nothing here points at a file: the OVPAA viewer generates each document in the
+ * official UNC form layout — a Learning Plan from its `syllabus` (data/mockSyllabus.js,
+ * utils/exportLearningPlan.js), a TOS from its `tos` (data/mockTosContent.js,
+ * utils/exportTos.js). No row loads an outside URL.
  */
+
+import { buildMockTos } from './mockTosContent.js';
+import { buildMockSyllabus } from './mockSyllabus.js';
 
 const TODAY = new Date();
 const daysAgo = (n) => {
@@ -52,16 +57,10 @@ const daysAgo = (n) => {
 // Runtime-overridden placeholders.
 const P_LABEL = '—';
 const P_TYPE  = '1st-2526';   // ≤10 chars per §11.1.15 / §12.1.10
-const SAMPLE_PDF = 'https://mozilla.github.io/pdf.js/web/compressed.tracemonkey-pldi-09.pdf';
 
-// A submitted TOS is two documents — the assessment paper and its report.
-// Served from /public so the in-app viewer loads them inline. Every TOS row
-// carries both (see tosRow), shown as the viewer's two tabs.
-const TOS_ASSESSMENT_PDF = '/tos-assessment-sample.pdf';
-const TOS_REPORT_PDF     = '/tos-report-sample.pdf';
+// A submitted TOS is two documents — its report and its assessment — generated
+// from the row's `tos` content (see tosRow and data/mockTosContent.js).
 
-// Every submitted Learning Plan shows this same sample document.
-const LEARNING_PLAN_PDF  = '/learning-plan-sample.pdf';
 
 // ─────────────────────────────── Programs ───────────────────────────────
 // Dummy program master list per department. The OVPAA dropdown above
@@ -74,6 +73,7 @@ export const PROGRAMS_BY_DEPT = {
   SAS:   ['BA English', 'BS Psychology', 'BA History', 'BS Sociology'],
   SNAHS: ['BS Nursing', 'BS Medical Technology'],
   SSNS:  ['BS Biology', 'BS Chemistry'],
+  SCIS:  ['BS Information Technology', 'BS Computer Science', 'Associate in Computer Technology'],
 };
 
 const PROGRAM_BY_PREFIX = {
@@ -112,7 +112,7 @@ const stakeholderIdFor = (dept, instructor) => {
  *                  (= "Approved Date"); approval workflow steps stack
  *                  in between (PH → IC → LD → Dean)
  *   opts.program — override the auto-derived program
- *   opts.file_url, opts.period_type, opts.returns — overrides
+ *   opts.period_type, opts.returns — overrides
  */
 const lpRow = (
   coAssignId, pcOfferingId, dept, instructor,
@@ -153,8 +153,13 @@ const lpRow = (
     course_id:        courseId,
     course_name:      courseName,
     file_name:        fileName,
-    // Every submitted Learning Plan opens the same sample syllabus template.
-    file_url:         LEARNING_PLAN_PDF,
+    // The approved plan itself (syllabus, approval workflow, program alignment),
+    // generated from this row's course; the viewer builds the syllabus from it.
+    ...buildMockSyllabus({
+      courseId, courseName, dept, instructor, coAssignId,
+      program: opts.program || programFor(courseId),
+      submitted: dateSubmitted, phAccepted, ldAccepted, dAccepted,
+    }),
 
     // ─── aliases consumed by ApprovedFileTable ──────────────────────
     submission_date:  dateSubmitted,
@@ -199,13 +204,12 @@ const tosRow = (
     course_id:         courseId,
     course_name:       courseName,
     file_name:         fileName,
-    // Every submitted TOS shows the same two sample documents, as two tabs.
-    // Report first (the default tab), then the assessment paper.
-    file_url:          TOS_REPORT_PDF,
-    documents:         [
-      { label: 'TOS Report',     url: TOS_REPORT_PDF },
-      { label: 'TOS Assessment', url: TOS_ASSESSMENT_PDF },
-    ],
+    // The TOS itself (COs, ILOs, items, attachments, signatories). The OVPAA
+    // viewer generates the TOS Report from it (utils/exportTos.js).
+    tos:               buildMockTos({
+      courseId, courseName, dept, instructor, coAssignId,
+      submitted: dateSubmitted, phAccepted, dAccepted,
+    }),
 
     // ─── aliases consumed by ApprovedFileTable ──────────────────────
     submission_date:   dateSubmitted,
@@ -218,14 +222,14 @@ const tosRow = (
 // co_assign_id 12001+, pc_offering_id 30001+ — sequential per dictionary.
 export const mockLearningPlans = [
   // COE
-  lpRow(12001, 30001, 'COE',  'DELA CRUZ, JUAN',   'CE 211',  'Statics of Rigid Bodies',     8,  'LP-CE211-DELACRUZ.pdf',  { file_url: SAMPLE_PDF, gap: 5 }),
+  lpRow(12001, 30001, 'COE',  'DELA CRUZ, JUAN',   'CE 211',  'Statics of Rigid Bodies',     8,  'LP-CE211-DELACRUZ.pdf',  { gap: 5 }),
   lpRow(12002, 30002, 'COE',  'REYES, MARIA',      'CE 314',  'Hydraulics',                  12, 'LP-CE314-REYES.pdf',     { gap: 5 }),
   lpRow(12003, 30003, 'COE',  'SANTOS, PAOLO',     'EE 201',  'Electrical Circuits 1',       17, 'LP-EE201-SANTOS.pdf',    { gap: 5 }),
   lpRow(12004, 30004, 'COE',  'CRUZ, ANDREA',      'ME 102',  'Engineering Drawing',         22, 'LP-ME102-CRUZ.pdf',      { gap: 4 }),
   lpRow(12005, 30005, 'COE',  'LIM, JOSHUA',       'CE 401',  'Geotechnical Engineering',    27, 'LP-CE401-LIM.pdf',       { gap: 5 }),
 
   // CEA
-  lpRow(12010, 30010, 'CEA',  'TORRES, ANGELA',    'ARCH 301', 'Architectural Design 3',     10, 'LP-ARCH301-TORRES.pdf',  { file_url: SAMPLE_PDF, gap: 5 }),
+  lpRow(12010, 30010, 'CEA',  'TORRES, ANGELA',    'ARCH 301', 'Architectural Design 3',     10, 'LP-ARCH301-TORRES.pdf',  { gap: 5 }),
   lpRow(12011, 30011, 'CEA',  'GARCIA, BENJAMIN',  'ARCH 205', 'Building Materials',         13, 'LP-ARCH205-GARCIA.pdf',  { gap: 5 }),
   lpRow(12012, 30012, 'CEA',  'YANSON, BEATRICE',  'ARCH 410', 'Building Systems Design',    22, 'LP-ARCH410-YANSON.pdf',  { gap: 5 }),
 
@@ -235,7 +239,7 @@ export const mockLearningPlans = [
   lpRow(12022, 30022, 'CJE',  'GUZMAN, ARTHUR',    'CRIM 320', 'Forensic Science',           24, 'LP-CRIM320-GUZMAN.pdf',  { gap: 5, program: 'BS Forensic Science' }),
 
   // SBA
-  lpRow(12030, 30030, 'SBA',  'NAVARRO, LUIS',     'ACC 101',  'Fundamentals of Accounting', 9,  'LP-ACC101-NAVARRO.pdf',  { file_url: SAMPLE_PDF, gap: 5 }),
+  lpRow(12030, 30030, 'SBA',  'NAVARRO, LUIS',     'ACC 101',  'Fundamentals of Accounting', 9,  'LP-ACC101-NAVARRO.pdf',  { gap: 5 }),
   lpRow(12031, 30031, 'SBA',  'VILLEGAS, KATHLYN', 'MGT 220',  'Principles of Management',   14, 'LP-MGT220-VILLEGAS.pdf', { gap: 5 }),
   lpRow(12032, 30032, 'SBA',  'AQUINO, RODEL',     'FIN 305',  'Corporate Finance',          19, 'LP-FIN305-AQUINO.pdf',   { gap: 5 }),
   lpRow(12033, 30033, 'SBA',  'DOMINGO, CLAIRE',   'MKT 210',  'Principles of Marketing',    23, 'LP-MKT210-DOMINGO.pdf',  { gap: 5 }),
@@ -249,7 +253,7 @@ export const mockLearningPlans = [
   lpRow(12043, 30043, 'SAS',  'SISON, GRACE',      'SOC 101',  'Introduction to Sociology',  29, 'LP-SOC101-SISON.pdf',    { gap: 5 }),
 
   // SNAHS
-  lpRow(12050, 30050, 'SNAHS','CASTILLO, NORMA',   'NUR 201',  'Health Assessment',          6,  'LP-NUR201-CASTILLO.pdf', { file_url: SAMPLE_PDF, gap: 5 }),
+  lpRow(12050, 30050, 'SNAHS','CASTILLO, NORMA',   'NUR 201',  'Health Assessment',          6,  'LP-NUR201-CASTILLO.pdf', { gap: 5 }),
   lpRow(12051, 30051, 'SNAHS','AGUILAR, REYNALDO', 'NUR 305',  'Pharmacology',               15, 'LP-NUR305-AGUILAR.pdf',  { gap: 5 }),
   lpRow(12052, 30052, 'SNAHS','MENDOZA, OLIVIA',   'NUR 210',  'Anatomy & Physiology',       21, 'LP-NUR210-MENDOZA.pdf',  { gap: 5 }),
 
@@ -263,7 +267,7 @@ export const mockLearningPlans = [
 // IDs don't visually collide when both repos are in front of a developer.
 export const mockTOS = [
   // COE
-  tosRow(22001, 40001, 'COE', 'DELA CRUZ, JUAN',   'CE 211',  'Statics of Rigid Bodies',     7,  'TOS-CE211-DELACRUZ.pdf', { file_url: SAMPLE_PDF, gap: 5 }),
+  tosRow(22001, 40001, 'COE', 'DELA CRUZ, JUAN',   'CE 211',  'Statics of Rigid Bodies',     7,  'TOS-CE211-DELACRUZ.pdf', { gap: 5 }),
   tosRow(22002, 40002, 'COE', 'SANTOS, PAOLO',     'EE 201',  'Electrical Circuits 1',       14, 'TOS-EE201-SANTOS.pdf',   { gap: 5 }),
   tosRow(22003, 40003, 'COE', 'CRUZ, ANDREA',      'ME 102',  'Engineering Drawing',         25, 'TOS-ME102-CRUZ.pdf',     { gap: 5 }),
 
@@ -272,7 +276,7 @@ export const mockTOS = [
   tosRow(22011, 40011, 'CEA', 'YANSON, BEATRICE',  'ARCH 410', 'Building Systems Design',    24, 'TOS-ARCH410-YANSON.pdf', { gap: 5 }),
 
   // CJE
-  tosRow(22020, 40020, 'CJE', 'RAMOS, FERNANDO',   'CRIM 101', 'Introduction to Criminology', 9,  'TOS-CRIM101-RAMOS.pdf', { file_url: SAMPLE_PDF, gap: 5 }),
+  tosRow(22020, 40020, 'CJE', 'RAMOS, FERNANDO',   'CRIM 101', 'Introduction to Criminology', 9,  'TOS-CRIM101-RAMOS.pdf', { gap: 5 }),
   tosRow(22021, 40021, 'CJE', 'MERCADO, IRENE',    'CRIM 202', 'Criminal Law 1',             17, 'TOS-CRIM202-MERCADO.pdf',{ gap: 5 }),
   tosRow(22022, 40022, 'CJE', 'GUZMAN, ARTHUR',    'CRIM 320', 'Forensic Science',           27, 'TOS-CRIM320-GUZMAN.pdf', { gap: 5, program: 'BS Forensic Science' }),
 
@@ -288,13 +292,16 @@ export const mockTOS = [
   tosRow(22042, 40042, 'SAS', 'ROXAS, DANIEL',     'HIST 120', 'Readings in Philippine History', 26, 'TOS-HIST120-ROXAS.pdf', { gap: 5 }),
 
   // SNAHS
-  tosRow(22050, 40050, 'SNAHS','CASTILLO, NORMA',  'NUR 201',  'Health Assessment',          10, 'TOS-NUR201-CASTILLO.pdf',{ file_url: SAMPLE_PDF, gap: 5 }),
+  tosRow(22050, 40050, 'SNAHS','CASTILLO, NORMA',  'NUR 201',  'Health Assessment',          10, 'TOS-NUR201-CASTILLO.pdf',{ gap: 5 }),
   tosRow(22051, 40051, 'SNAHS','AGUILAR, REYNALDO','NUR 305',  'Pharmacology',               16, 'TOS-NUR305-AGUILAR.pdf', { gap: 5 }),
   tosRow(22052, 40052, 'SNAHS','MENDOZA, OLIVIA',  'NUR 210',  'Anatomy & Physiology',       23, 'TOS-NUR210-MENDOZA.pdf', { gap: 5 }),
 
   // SSNS
   tosRow(22060, 40060, 'SSNS','PEREZ, NATHANIEL',  'BIO 101',  'General Biology',            19, 'TOS-BIO101-PEREZ.pdf',   { gap: 5 }),
   tosRow(22061, 40061, 'SSNS','IBANEZ, RACHEL',    'CHEM 110', 'General Chemistry',          31, 'TOS-CHEM110-IBANEZ.pdf', { gap: 5 }),
+
+  // SCIS — the Registrar's filled TOS form (data/tosFixtures.js)
+  tosRow(22070, 40070, 'SCIS','CASIMERO, DANNY BOY M.', 'ACT222L', 'Web Development II',     12, 'TOS-ACT222L-CASIMERO.pdf', { gap: 5, program: 'Associate in Computer Technology' }),
 ];
 
 // Helper: count submissions per department code. If periodLabel is

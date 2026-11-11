@@ -1,3 +1,4 @@
+import { blankIfZero } from '../utils/tosMath.js';
 import React from "react";
 import layout from "../styles/QuestionCognitiveMapping.module.sass";
 
@@ -102,7 +103,7 @@ const TOSSummary = ({ outcomeData, questions }) => {
                                     {cognitiveLevels.map(level => (
                                         <td key={level}>
                                             <div className={layout.cellBox}>
-                                                {aggregatedData[co.co][ilo.id][level].count}
+                                                {blankIfZero(aggregatedData[co.co][ilo.id][level].count)}
                                             </div>
                                         </td>
                                     ))}
@@ -115,7 +116,7 @@ const TOSSummary = ({ outcomeData, questions }) => {
                                     {cognitiveLevels.map(level => (
                                         <td key={level}>
                                             <div className={layout.cellBox}>
-                                                {aggregatedData[co.co][ilo.id][level].sumPoints}
+                                                {blankIfZero(aggregatedData[co.co][ilo.id][level].sumPoints)}
                                             </div>
                                         </td>
                                     ))}
@@ -128,7 +129,7 @@ const TOSSummary = ({ outcomeData, questions }) => {
                                     {cognitiveLevels.map(level => (
                                         <td key={level}>
                                             <div className={layout.cellBox} style={{ fontWeight: '500' }}>  {/* Bold text for data */}
-                                                {aggregatedData[co.co][ilo.id][level].sumPoints}
+                                                {blankIfZero(aggregatedData[co.co][ilo.id][level].sumPoints)}
                                             </div>
                                         </td>
                                     ))}

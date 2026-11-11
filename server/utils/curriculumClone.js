@@ -55,12 +55,24 @@ export async function cloneCurriculumFromPriorPeriod(currentPeriodId) {
     .sort((a, b) => rankPeriod(b) - rankPeriod(a));
 
   for (const p of candidates) {
-    const priorCourses = await Course.findAll({ where: { period_id: p.id }, raw: true });
+    // Archived courses are leftovers someone already took out (old codes,
+    // duplicates): cloning them is how they kept coming back every term.
+    const priorCourses = await Course.findAll({ where: { period_id: p.id, archived: false }, raw: true });
     if (priorCourses.length === 0) continue;
+
+    // One course per code in a term: never add a code the target already has,
+    // nor the same code twice from a source that (wrongly) holds it twice.
+    const targetCodes = new Set(
+      (await Course.findAll({ where: { period_id: currentPeriodId }, attributes: ['course_no'], raw: true }))
+        .map((c) => String(c.course_no).trim().toUpperCase()),
+    );
 
     // 1. Clone the courses, recording old course_id → new course_id.
     const idMap = new Map();
     for (const c of priorCourses) {
+      const code = String(c.course_no).trim().toUpperCase();
+      if (targetCodes.has(code)) continue;
+      targetCodes.add(code);
       const created = await Course.create({
         course_no: c.course_no, course_title: c.course_title,
         credit: c.credit, contact_hrs: c.contact_hrs,
@@ -120,7 +132,7 @@ export async function cloneCurriculumFromPriorPeriod(currentPeriodId) {
       });
     }
 
-    return { count: priorCourses.length, source: p.id };
+    return { count: idMap.size, source: p.id };
   }
 
   return null;

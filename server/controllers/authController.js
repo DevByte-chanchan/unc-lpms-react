@@ -116,7 +116,9 @@ async function linkRow(Model, periodId, account) {
       attributes: attrs,
       where: { period_id: periodId, [Op.and]: [sqlWhere(fn('LOWER', fn('TRIM', col('email'))), account.email)] },
     });
-    return pick(byEmail);
+    if (byEmail.length) return pick(byEmail);
+    // No row carries this email (blank or different in the uploaded list, or a
+    // row cloned into a new term): fall back to the name, as the rest of the app does.
   }
   const key = nameKey(account.display_name);
   if (!key) return null;

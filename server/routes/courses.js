@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { requireRole } from '../middleware/auth.js';
-import { uploadExcel } from '../middleware/upload.js';
+import { uploadCourseFiles } from '../middleware/upload.js';
 import {
   listCourses,
   getCourse,
@@ -15,7 +15,8 @@ const router = Router();
 
 router.get('/',        listCourses);
 router.get('/prereq-options', listPrereqOptions); // last sem's courses (all programs)
-router.post('/upload', requireRole('Program Head'), uploadExcel.single('file'), uploadCourses);
+// One spreadsheet, or the Program of Study PDFs (controllers/programOfStudyController.js).
+router.post('/upload', requireRole('Program Head'), uploadCourseFiles, uploadCourses);
 router.get('/:id',     getCourse);     // includes prerequisites + revisions
 router.post('/',       requireRole('Program Head'), createCourse);
 router.patch('/:id',   requireRole('Program Head'), updateCourse);

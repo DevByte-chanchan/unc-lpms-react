@@ -43,6 +43,18 @@ async function withAccess(rows) {
   return rows.map((r) => ({ ...r.toJSON(), access: access[r.id] || { account_id: null, status: 'none', label: 'No account' } }));
 }
 
+// A faculty change can make a program's head resolvable (programs uploaded before
+// the faculty list, a renamed or re-uploaded head): re-check Program Head access.
+// Imported lazily: programController imports importController, which this module imports too.
+async function reconcileHeadsLater(periodId, req) {
+  try {
+    const { reconcileProgramHeads } = await import('./programController.js');
+    await reconcileProgramHeads(periodId, req.user ? req.user.id : null);
+  } catch (err) {
+    console.error('[faculty] could not re-check Program Heads:', err.message);
+  }
+}
+
 export async function listFaculty(req, res, next) {
   try {
     const where = await safeWhereForPeriod(Faculty, req);
@@ -112,6 +124,7 @@ export async function createFaculty(req, res) {
       }));
     }
 
+    await reconcileHeadsLater(period_id, req);
     res.status(201).json(created);
   } catch (err) {
     res.status(400).json({ message: describeSequelizeError(err) });
@@ -161,6 +174,7 @@ export async function updateFaculty(req, res) {
         faculty: row, periodId: row.period_id, senderId: req.user ? req.user.id : null,
       }));
     }
+    await reconcileHeadsLater(row.period_id, req);
     res.json(row);
   } catch (err) {
     res.status(400).json({ message: describeSequelizeError(err) });
@@ -423,6 +437,8 @@ export async function uploadFaculty(req, res) {
     for (const f of left) {
       await safely('could not update access', () => facultyLeft({ faculty: { ...f, period_id }, periodId: period_id, senderId: req.user ? req.user.id : null }));
     }
+
+    await reconcileHeadsLater(period_id, req);
 
     const seenNames = new Set(records.map((r) => String(r.name).trim().toLowerCase()));
     const missing = existing.filter((r) => !seenNames.has(String(r.name).trim().toLowerCase()));

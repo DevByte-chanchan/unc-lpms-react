@@ -3,3 +3,12 @@ node_modules
 uploads/*
 !uploads/.gitkeep
 *.log
+# Kept Program of Study PDFs (services/curriculumDocuments.js) — data, not source.
+storage/*
+!storage/curriculum/
+storage/curriculum/*
+!storage/curriculum/.gitkeep
+# Uploaded school calendars (services/schoolCalendars.js) — data, not source.
+!storage/calendars/
+storage/calendars/*
+!storage/calendars/.gitkeep

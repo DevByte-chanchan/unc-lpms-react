@@ -23,6 +23,7 @@
  * scale animation would overwrite that transform and throw the dialog off-centre.
  */
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { useDialogBackdrop, dialogMotionMs } from '../services/dialogBackdrop.js';
 import motion from '../styles/DialogMotion.module.sass';
 
@@ -83,7 +84,10 @@ const DialogShell = ({
 
   if (!mounted) return null;
 
-  return (
+  // Rendered into <body>: a dialog opened from inside an animated or transformed
+  // card would otherwise be trapped in that card's stacking context, under the
+  // shared backdrop (the dialog showed dimmed, as if behind its own dim).
+  const layer = (
     <div className={motion.panelLayer}>
       <div
         role="dialog"
@@ -99,6 +103,7 @@ const DialogShell = ({
       </div>
     </div>
   );
+  return typeof document !== 'undefined' ? createPortal(layer, document.body) : layer;
 };
 
 export default DialogShell;

@@ -24,6 +24,7 @@ import {
   LABELS, UNDO_WINDOW_MS, primaryTable,
 } from '../utils/importUndo.js';
 import { recordListChanges } from '../services/assignmentHistory.js';
+import { undoBatchDocuments } from '../services/curriculumDocuments.js';
 
 const { ImportBatch, CourseOfferingAssignment } = db;
 
@@ -173,6 +174,18 @@ export async function undoBatch(req, res, next) {
     const { restored, removed } = await restoreSnapshot(batch.entity, batch.period_id, snapshot);
     await batch.update({ status: 'undone', undone_at: new Date() });
 
+    // A Program of Study import also kept its PDFs: take those back too (the
+    // superseded revision becomes current again). Not part of the snapshot —
+    // the documents aren't rows of the term.
+    let documents = null;
+    if (batch.entity === 'courses') {
+      try {
+        documents = await undoBatchDocuments(batch.id);
+      } catch (err) {
+        console.error('[import] undo could not take back the PDFs of batch ' + batch.id + ':', err.message);
+      }
+    }
+
     if (assignmentsBefore) {
       try {
         const assignmentsAfter = await CourseOfferingAssignment.findAll({ where: { period_id: batch.period_id } });
@@ -195,6 +208,15 @@ export async function undoBatch(req, res, next) {
     // Roles and courses may have changed back: everyone involved is marked
     // dirty. The undo lands inside the window, before any send_after, so the
     // notice worker compares, finds nothing new, and sends nothing.
+    // Undoing a faculty or programs change can put a head back: re-check access.
+    if (['faculty', 'programs'].includes(batch.entity)) {
+      try {
+        const { reconcileProgramHeads } = await import('./programController.js');
+        await reconcileProgramHeads(batch.period_id, req.user.id);
+      } catch (err) {
+        console.error('[import] undo could not re-check Program Heads for batch ' + batch.id + ':', err.message);
+      }
+    }
     if (['course_offering_assignments', 'industry_consultants', 'programs'].includes(batch.entity)) {
       try {
         await markDirty(await accountsInvolved(batch.period_id), { periodId: batch.period_id, senderId: req.user.id });
@@ -234,6 +256,7 @@ export async function undoBatch(req, res, next) {
       restored,
       removed,
       invitations,
+      documents,
       previous: (previous && !isExpired(previous)) ? present(previous) : null,
     });
   } catch (err) {

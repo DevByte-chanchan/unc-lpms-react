@@ -63,11 +63,16 @@ const GROUPS = {
   // A curriculum upload rewrites prerequisites/revisions for the courses it
   // touches, and re-stamps year_level onto matching course_offering_assignments
   // (see courseController.js). All four move together or undo is a half-undo.
+  // A Program of Study import also archives leftover courses after moving their
+  // consultant links to the kept course, so consultant_courses (scoped through
+  // this term's courses) is in the photograph too. Its kept PDFs are not rows of
+  // this term: importController undoes those through undoBatchDocuments().
   courses: [
     periodScoped('courses'),
     childOf('prerequisites',            'course_id', 'courses', 'course_id'),
     childOf('program_course_offerings', 'course_id', 'courses', 'course_id'),
     periodScoped('course_offering_assignments'),
+    childOf('consultant_courses',       'course_id', 'courses', 'course_id'),
   ],
 };
 

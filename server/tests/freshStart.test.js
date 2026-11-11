@@ -63,7 +63,7 @@ test('plan: every model table is wiped, SequelizeMeta never, VMGO only without -
     'academic_periods', 'departments', 'faculty', 'programs', 'courses', 'prerequisites',
     'program_course_offerings', 'course_offering_assignments', 'industry_consultants',
     'consultant_courses', 'import_batches', 'account_invitations', 'password_resets',
-    'user_accounts', 'university_statements', 'department_statements',
+    'user_accounts', 'university_statements', 'department_statements', 'curriculum_documents',
   ]) assert.ok(wipe.includes(t), t);
   assert.equal(wipe.length, Object.keys(models).length, 'one table per model');
   assert.deepEqual(keep, []);
@@ -117,8 +117,15 @@ const scratchUploads = async (t) => {
 test('fresh start: data tables empty, only admin + six demo logins, no uploaded people', { skip }, async (t) => {
   const models = await scratchModels(t);
   const uploadsDir = await scratchUploads(t);
+  // The kept Program of Study PDFs (storage/curriculum/): emptied too, .gitkeep stays.
+  const curriculumDir = await fs.mkdtemp(path.join(os.tmpdir(), 'fresh-curriculum-'));
+  await fs.writeFile(path.join(curriculumDir, '.gitkeep'), '');
+  await fs.writeFile(path.join(curriculumDir, 'a'.repeat(64) + '.pdf'), '%PDF-1.4');
+  t.after(() => fs.rm(curriculumDir, { recursive: true, force: true }));
 
-  const r = await freshStart({ sequelize, models, env: ENV, uploadsDir });
+  const r = await freshStart({ sequelize, models, env: ENV, uploadsDir, curriculumDir });
+  assert.deepEqual(r.removedCurriculum, ['a'.repeat(64) + '.pdf']);
+  assert.deepEqual(await fs.readdir(curriculumDir), ['.gitkeep']);
 
   assert.equal(await models.AcademicPeriod.count(), 0);
   assert.equal(await models.Department.count(), 0);

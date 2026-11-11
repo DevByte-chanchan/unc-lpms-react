@@ -11,6 +11,8 @@ import DialogShell from "../components/DialogShell.jsx";
 import { Search, ArrowUp, ArrowDown, Upload, Plus, Clipboard } from "react-feather";
 import syllabusStyles from '../styles/SyllabusSections.module.sass';
 import { ProgramsAPI, FacultyAPI } from '../services/api.js';
+import { ProgramOfStudyViewer } from "../components/ProgramOfStudy.jsx";
+import { useProgramOfStudy } from '../services/programOfStudy.js';
 import { usePeriod } from '../services/period.jsx';
 import { STATUS_OPTIONS, partitionByArchive } from '../services/statusPolicy.js';
 
@@ -37,6 +39,9 @@ const DeanPrograms = () => {
   const [showModal, setShowModal]       = React.useState(false);
   const [showAddModal, setShowAddModal] = React.useState(false);
   const [editingProgram, setEditingProgram] = React.useState(null);
+  // The program whose kept Program of Study is open (row menu → View Program of Study).
+  const [posProgram, setPosProgram] = React.useState(null);
+  const posState = useProgramOfStudy({ programId: posProgram && posProgram.id });
   const [confirmUpload, setConfirmUpload]     = React.useState(false);
   const [selectedFile, setSelectedFile] = React.useState(null);
   // The file under review in the Preview & Confirm overlay. Nothing is written
@@ -233,6 +238,7 @@ const DeanPrograms = () => {
           programs={visiblePrograms}
           onEdit={isCurrentTermActive ? (p) => setEditingProgram(p) : undefined}
           onArchive={isCurrentTermActive ? onArchiveRow : undefined}
+          onViewProgramOfStudy={(p) => setPosProgram(p)}
           facultyNameSet={facultyNameSet}
           normalizeFacultyName={normalizeFacultyName}
         />
@@ -352,6 +358,19 @@ const DeanPrograms = () => {
         onCancel={() => { setPendingFile(null); clearPicker(); }}
         onCommitted={onUploadCommitted}
         onUndone={onUploadUndone}
+      />
+
+      {/* The program's kept Program of Study — or, when none was imported yet, say so. */}
+      {posProgram && posState.data && posState.data.active.length > 0 && (
+        <ProgramOfStudyViewer data={posState.data} onClose={() => setPosProgram(null)} />
+      )}
+      <ConfirmModal
+        open={!!posProgram && !posState.loading && !!(posState.error || (posState.data && posState.data.active.length === 0))}
+        title="No Program of Study yet"
+        message={posState.error || ((posProgram ? posProgram.code : 'This program') + "'s Program Head hasn't imported the Program of Study PDFs yet. They're kept once the Program Head uploads them under Course Offerings.")}
+        confirmLabel="OK"
+        onConfirm={() => setPosProgram(null)}
+        onCancel={() => setPosProgram(null)}
       />
     </div>
   );

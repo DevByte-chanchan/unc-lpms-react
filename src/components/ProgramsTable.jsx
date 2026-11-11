@@ -1,5 +1,5 @@
 import React from 'react'
-import { Eye, Edit3, Archive } from 'react-feather'
+import { Eye, Edit3, Archive, FileText } from 'react-feather'
 import styles from '../styles/CoursesTable.module.sass'
 import { statusPillStyle } from '../services/statusPolicy.js'
 import { sortRows, statusRank, nextSort } from '../services/tableSort.js'
@@ -26,7 +26,7 @@ const COLUMNS = [
   { key: 'status',       label: 'STATUS',       width: 120, type: 'number', sortable: false, sortValue: (r) => statusRank('program', r.status || 'Active') },
 ];
 
-const ProgramsTable = ({ programs = [], onView, onEdit, facultyNameSet, normalizeFacultyName }) => {
+const ProgramsTable = ({ programs = [], onView, onEdit, onViewProgramOfStudy, facultyNameSet, normalizeFacultyName }) => {
   const isUnmatched = (head) => {
     if (!facultyNameSet || !normalizeFacultyName) return false;
     if (!head) return false;
@@ -77,6 +77,9 @@ const ProgramsTable = ({ programs = [], onView, onEdit, facultyNameSet, normaliz
                   inline={[
                     onView && { key: 'view', label: 'View', icon: <Eye size={16} />, onClick: onView },
                     onEdit && { key: 'edit', label: 'Edit', icon: <Edit3 size={16} />, onClick: onEdit },
+                  ].filter(Boolean)}
+                  actions={[
+                    onViewProgramOfStudy && { key: 'pos', label: 'View Program of Study', icon: <FileText size={16} />, onClick: onViewProgramOfStudy },
                   ].filter(Boolean)}
                 />
               </td>

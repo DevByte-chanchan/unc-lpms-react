@@ -67,6 +67,26 @@ export const uploadPdf = multer({
   },
 });
 
+/**
+ * Course Offerings upload: one spreadsheet, OR the registrar's Program of Study
+ * PDFs (usually two: 1st–2nd Year and 3rd–4th Year). Field name `file`, up to 4.
+ * uploadCourses sorts out which path a request takes; a PDF's `%PDF-` magic is
+ * checked there once it is on disk.
+ */
+export const uploadCourseFiles = multer({
+  storage,
+  limits: { fileSize: 10 * 1024 * 1024, files: 4 },
+  fileFilter: (_req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (['.xlsx', '.xls', '.csv', '.pdf'].includes(ext) || ALLOWED.has(file.mimetype) || file.mimetype === 'application/pdf') {
+      return cb(null, true);
+    }
+    const err = new Error(`Unsupported file type: ${file.originalname}`);
+    err.status = 400;
+    cb(err);
+  },
+}).array('file', 4);
+
 /** True when the file on disk starts with the PDF signature `%PDF-`. */
 export function hasPdfMagic(filePath) {
   const fd = fs.openSync(filePath, 'r');
@@ -78,3 +98,21 @@ export function hasPdfMagic(filePath) {
     fs.closeSync(fd);
   }
 }
+
+/**
+ * School calendar (VPAA): one picture (PNG, JPG, WEBP) or PDF, field `file`.
+ * The name only lets it through; the first bytes decide what it is
+ * (services/schoolCalendars.js), so a renamed file is refused there.
+ */
+export const CALENDAR_TYPES_MESSAGE = 'Upload a PNG, JPG or WEBP picture, or a PDF, of the school calendar.';
+export const uploadCalendar = multer({
+  storage,
+  limits: { fileSize: 10 * 1024 * 1024, files: 1 },
+  fileFilter: (_req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (['.png', '.jpg', '.jpeg', '.webp', '.pdf'].includes(ext)) return cb(null, true);
+    const err = new Error(CALENDAR_TYPES_MESSAGE);
+    err.status = 400;
+    return cb(err);
+  },
+}).single('file');
