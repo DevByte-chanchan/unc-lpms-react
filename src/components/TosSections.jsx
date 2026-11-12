@@ -92,12 +92,15 @@ const TosSections = ({role = 'instructor'}) => {
     const [showExportErrorModal, setShowExportErrorModal] = useState(false);
     const [showHistoryLog, setShowHistoryLog] = useState(false);
     const [selectedVersion, setSelectedVersion] = useState(1);
+    const [collapsedVersions, setCollapsedVersions] = useState({});
     const [historyPage, setHistoryPage] = useState('tosReport');
-    const [historyViewMode, setHistoryViewMode] = useState('normal');
+    const [courseInstructor, setCourseInstructor] = useState('');
+    const [statusTimestamps, setStatusTimestamps] = useState({ createdAt: null, submittedAt: null, returnedAt: null, approvedAt: null });
     const historyModalRef = useRef(null);
     const historyPrevFocusRef = useRef(null);
     useEffect(() => {
         if (!showHistoryLog) return;
+        setCollapsedVersions({});
         historyPrevFocusRef.current = document.activeElement;
         historyModalRef.current?.focus();
         return () => {
@@ -147,6 +150,7 @@ const TosSections = ({role = 'instructor'}) => {
         fetchCourse(courseCode).then(course => {
             if (course?.name && !courseNameState) setCourseName(course.name);
             if (course?.assessmentName) setAssessmentName(course.assessmentName);
+            if (course?.instructor) setCourseInstructor(course.instructor);
             const periodTos = fromExamType === 'Finals' ? course?.finalsTos : course?.midtermTos;
             if (periodTos?.status) setEffectiveStatus(periodTos.status);
             else if (course?.tosStatus?.status) setEffectiveStatus(course.tosStatus.status);
@@ -235,6 +239,12 @@ const TosSections = ({role = 'instructor'}) => {
                 if (s.status) setEffectiveStatus(s.status);
                 if (s.deadline) setDeadline(s.deadline);
                 setReturnCount(s.returnCount || 0);
+                setStatusTimestamps({
+                    createdAt: s.created_at || s.createdAt || null,
+                    submittedAt: s.submittedAt || s.submitted_at || null,
+                    returnedAt: s.returnedAt || s.returned_at || null,
+                    approvedAt: s.approvedAt || s.approved_at || null
+                });
                 try { setReturnDates(JSON.parse(s.returnDates || '[]')); } catch { /* ignore */ }
             }
         }).catch(() => {});
@@ -1293,17 +1303,11 @@ const TosSections = ({role = 'instructor'}) => {
                         {isReturnedView ? (
                             <span className={styles.draft} style={{ color: '#999', cursor: 'default' }}>View Only</span>
                         ) : isProgramHead ? (
-                            effectiveStatus === 'approved' && historyData[courseCode] ? (
+                            effectiveStatus === 'approved' ? (
                                 <>
                                     <button className={styles.historyBtn} onClick={() => { setShowHistoryLog(true); setSelectedVersion(1); }}>
                                         <Clock size={16} /> History Log
                                     </button>
-                                    <button className={styles.exportBtn} onClick={handleExportDemoPdf}>
-                                        <Download size={16} /> Export
-                                    </button>
-                                </>
-                            ) : effectiveStatus === 'approved' ? (
-                                <>
                                     <button className={styles.exportBtn} onClick={handleExportDemoPdf}>
                                         <Download size={16} /> Export
                                     </button>
@@ -1322,17 +1326,11 @@ const TosSections = ({role = 'instructor'}) => {
                                 <span className={styles.draft} style={{ color: '#999', cursor: 'default' }}>Draft (Not Submitted)</span>
                             )
                         ) : readOnly ? (
-                            effectiveStatus === 'approved' && historyData[courseCode] ? (
+                            effectiveStatus === 'approved' ? (
                                 <>
                                     <button className={styles.historyBtn} onClick={() => { setShowHistoryLog(true); setSelectedVersion(1); }}>
                                         <Clock size={16} /> History Log
                                     </button>
-                                    <button className={styles.exportBtn} onClick={handleExportDemoPdf}>
-                                        <Download size={16} /> Export
-                                    </button>
-                                </>
-                            ) : effectiveStatus === 'approved' ? (
-                                <>
                                     <button className={styles.exportBtn} onClick={handleExportDemoPdf}>
                                         <Download size={16} /> Export
                                     </button>
@@ -2437,8 +2435,220 @@ const items = aggregatedData[co.co][ilo.id][level];
             )}
 
             {showHistoryLog && (() => {
-                const data = historyData[courseCode];
-                const version = data?.versions?.find(v => v.version === selectedVersion);
+                const formatInstructorDisplay = (raw) => {
+                    if (!raw || typeof raw !== 'string') return INSTRUCTOR.display;
+                    const parts = raw.split(',').map(p => p.trim()).filter(Boolean);
+                    const toTitle = (str) => str.toLowerCase().replace(/\b\w/g, ch => ch.toUpperCase());
+                    if (parts.length === 2) return `${toTitle(parts[1])} ${toTitle(parts[0])}`;
+                    return toTitle(raw);
+                };
+                const formatHistoryDate = (d) => {
+                    if (!d) return '';
+                    const dt = new Date(d);
+                    if (Number.isNaN(dt.getTime())) return String(d);
+                    return dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                };
+                const addDaysIso = (base, deltaDays) => {
+                    const dt = base ? new Date(base) : new Date('2026-10-09T00:00:00.000Z');
+                    const valid = Number.isNaN(dt.getTime()) ? new Date('2026-10-09T00:00:00.000Z') : new Date(dt.getTime());
+                    valid.setDate(valid.getDate() + deltaDays);
+                    return valid.toISOString();
+                };
+
+                const instructorName = formatInstructorDisplay(courseInstructor);
+                const phName = PROGRAM_HEAD.display;
+                const resolvedList = comments.filter(c => c.resolved);
+                const maxCommentRound = resolvedList.reduce((m, c) => Math.max(m, Number(c.scope?.returnNumber) || 1), 0);
+                const rounds = Math.max(returnCount || 0, maxCommentRound);
+
+                let versions = [];
+                if (rounds > 0) {
+                    const firstRet = returnDates[0] || statusTimestamps.returnedAt || '2026-10-15T00:00:00.000Z';
+                    const firstSub = addDaysIso(firstRet, -5);
+                    const assignedDt = addDaysIso(firstSub, -7);
+                    const round1Comments = resolvedList.filter(c => (Number(c.scope?.returnNumber) || 1) === 1);
+
+                    versions.push({
+                        version: 1,
+                        actions: [
+                            {
+                                type: 'assigned',
+                                badge: 'ASSIGNED',
+                                name: phName,
+                                role: 'Program Head',
+                                desc: 'Assigned the course Table of Specifications for preparation and composition.',
+                                date: formatHistoryDate(assignedDt)
+                            },
+                            {
+                                type: 'submitted',
+                                badge: 'SUBMITTED',
+                                name: instructorName,
+                                role: 'Instructor',
+                                desc: 'Submitted the course Table of Specifications for review and evaluation.',
+                                date: formatHistoryDate(firstSub)
+                            },
+                            {
+                                type: 'returned',
+                                badge: 'RETURNED FOR REVISION',
+                                name: phName,
+                                role: 'Program Head',
+                                desc: 'Returned the course Table of Specifications with review comments requiring revision.',
+                                date: formatHistoryDate(firstRet),
+                                comments: round1Comments
+                            }
+                        ]
+                    });
+
+                    for (let r = 2; r <= rounds; r++) {
+                        const retDt = returnDates[r - 1] || statusTimestamps.returnedAt || addDaysIso(firstRet, (r - 1) * 7);
+                        const resubDt = addDaysIso(retDt, -3);
+                        const roundComments = resolvedList.filter(c => (Number(c.scope?.returnNumber) || 1) === r);
+                        versions.push({
+                            version: r,
+                            actions: [
+                                {
+                                    type: 'resubmitted',
+                                    badge: 'RESUBMITTED',
+                                    name: instructorName,
+                                    role: 'Instructor',
+                                    desc: 'Resubmitted the revised Table of Specifications for review and evaluation.',
+                                    date: formatHistoryDate(resubDt)
+                                },
+                                {
+                                    type: 'returned',
+                                    badge: 'RETURNED FOR REVISION',
+                                    name: phName,
+                                    role: 'Program Head',
+                                    desc: 'Returned the course Table of Specifications with review comments requiring revision.',
+                                    date: formatHistoryDate(retDt),
+                                    comments: roundComments
+                                }
+                            ]
+                        });
+                    }
+
+                    const lastRetDt = returnDates[rounds - 1] || statusTimestamps.returnedAt || firstRet;
+                    const finalSubDt = (statusTimestamps.submittedAt && new Date(statusTimestamps.submittedAt) > new Date(lastRetDt))
+                        ? statusTimestamps.submittedAt
+                        : addDaysIso(lastRetDt, 3);
+                    const finalAppDt = statusTimestamps.approvedAt || addDaysIso(finalSubDt, 2);
+
+                    versions.push({
+                        version: rounds + 1,
+                        actions: [
+                            {
+                                type: 'resubmitted',
+                                badge: 'RESUBMITTED',
+                                name: instructorName,
+                                role: 'Instructor',
+                                desc: 'Resubmitted the revised Table of Specifications for review and evaluation.',
+                                date: formatHistoryDate(finalSubDt)
+                            },
+                            {
+                                type: 'approved',
+                                badge: 'APPROVED',
+                                name: phName,
+                                role: 'Program Head',
+                                desc: 'Approved the course Table of Specifications.',
+                                date: formatHistoryDate(finalAppDt)
+                            }
+                        ]
+                    });
+                } else if (courseCode === 'BSCS314L' && historyData['BSCS314L']) {
+                    const seedV1 = historyData['BSCS314L'].versions[0];
+                    const seedV2 = historyData['BSCS314L'].versions[1];
+                    const retAction = seedV1?.actions?.find(a => a.action?.includes('returned'));
+                    versions = [
+                        {
+                            version: 1,
+                            actions: [
+                                {
+                                    type: 'assigned',
+                                    badge: 'ASSIGNED',
+                                    name: phName,
+                                    role: 'Program Head',
+                                    desc: 'Assigned the course Table of Specifications for preparation and composition.',
+                                    date: formatHistoryDate('2026-06-03')
+                                },
+                                {
+                                    type: 'submitted',
+                                    badge: 'SUBMITTED',
+                                    name: instructorName,
+                                    role: 'Instructor',
+                                    desc: 'Submitted the course Table of Specifications for review and evaluation.',
+                                    date: formatHistoryDate(seedV1?.actions?.[0]?.date || '2026-06-10')
+                                },
+                                {
+                                    type: 'returned',
+                                    badge: 'RETURNED FOR REVISION',
+                                    name: phName,
+                                    role: 'Program Head',
+                                    desc: 'Returned the course Table of Specifications with review comments requiring revision.',
+                                    date: formatHistoryDate(retAction?.date || '2026-06-15'),
+                                    comments: retAction?.comments || []
+                                }
+                            ]
+                        },
+                        {
+                            version: 2,
+                            actions: [
+                                {
+                                    type: 'resubmitted',
+                                    badge: 'RESUBMITTED',
+                                    name: instructorName,
+                                    role: 'Instructor',
+                                    desc: 'Resubmitted the revised Table of Specifications for review and evaluation.',
+                                    date: formatHistoryDate(seedV2?.actions?.[0]?.date || '2026-06-18')
+                                },
+                                {
+                                    type: 'approved',
+                                    badge: 'APPROVED',
+                                    name: phName,
+                                    role: 'Program Head',
+                                    desc: 'Approved the course Table of Specifications.',
+                                    date: formatHistoryDate(seedV2?.actions?.[1]?.date || '2026-06-20')
+                                }
+                            ]
+                        }
+                    ];
+                } else {
+                    const subDt = statusTimestamps.submittedAt || (courseCode === 'BSCS223L' ? '2026-06-12' : '2026-10-09');
+                    const assDt = addDaysIso(subDt, -7);
+                    const appDt = statusTimestamps.approvedAt || (courseCode === 'BSCS223L' ? '2026-06-16' : '2026-10-16');
+                    versions = [
+                        {
+                            version: 1,
+                            actions: [
+                                {
+                                    type: 'assigned',
+                                    badge: 'ASSIGNED',
+                                    name: phName,
+                                    role: 'Program Head',
+                                    desc: 'Assigned the course Table of Specifications for preparation and composition.',
+                                    date: formatHistoryDate(assDt)
+                                },
+                                {
+                                    type: 'submitted',
+                                    badge: 'SUBMITTED',
+                                    name: instructorName,
+                                    role: 'Instructor',
+                                    desc: 'Submitted the course Table of Specifications for review and evaluation.',
+                                    date: formatHistoryDate(subDt)
+                                },
+                                {
+                                    type: 'approved',
+                                    badge: 'APPROVED',
+                                    name: phName,
+                                    role: 'Program Head',
+                                    desc: 'Approved the course Table of Specifications.',
+                                    date: formatHistoryDate(appDt)
+                                }
+                            ]
+                        }
+                    ];
+                }
+
+                const orderedVersions = [...versions].reverse();
                 return (
                     <div className={layout.hlOverlay} onClick={() => setShowHistoryLog(false)}>
                         <div className={layout.hlModal} role="dialog" aria-modal="true" aria-labelledby="historyLogTitle" tabIndex={-1} ref={historyModalRef} onClick={e => e.stopPropagation()}>
@@ -2539,9 +2749,6 @@ const items = aggregatedData[co.co][ilo.id][level];
                                                                         return (
                                                                             <td key={level} className={items.length === 0 ? `${layout.hlTdNum} ${layout.hlTdEmpty}` : `${layout.hlTdNum} ${layout.hlTdFilled}`}>
                                                                                 {(() => { const pts = items.reduce((p, it) => p + (Number(it.points) || 0), 0); return pts > 0 ? pts : '\u2014'; })()}
-
-
-
                                                                             </td>
                                                                         );
                                                                     })}
@@ -2565,118 +2772,82 @@ const items = aggregatedData[co.co][ilo.id][level];
                                         );
                                     })()
                                     : (
-                                        <div className={previewLayout.tableWrapper}>
-                                            <div className={layout.viewToggleRow}>
-                                                <span className={layout.assessmentLabel}>Assessment: {assessmentName || 'Written Exam'}</span>
-                                                <div className={layout.viewToggleGroup}>
-                                                    <div className={layout.viewToggleSlider} style={{ transform: `translateX(${historyViewMode === 'normal' ? '0' : 'calc(100% + 2px)'})` }} />
-                                                    <button className={`${layout.viewToggleBtn} ${historyViewMode === 'normal' ? layout.viewToggleActive : ''}`} onClick={() => setHistoryViewMode('normal')}>List</button>
-                                                    <button className={`${layout.viewToggleBtn} ${historyViewMode === 'group' ? layout.viewToggleActive : ''}`} onClick={() => setHistoryViewMode('group')}>Grouped</button>
-                                                </div>
-                                            </div>
-                                            <div className={previewLayout.assessmentList}>
-                                                {questions.length === 0 ? (
-                                                    <div style={{ textAlign: 'center', color: '#9CA3AF', padding: '40px 0' }}>No assessment points yet</div>
-                                                ) : historyViewMode === 'normal' ? (
-                                                    (() => {
-                                                        let numCounter = 0;
-                                                        const numMap = {};
-                                                        questions.forEach(q => {
-                                                            numMap[q.id] = numCounter + 1;
-                                                            numCounter += (q.span || 1);
-                                                        });
-                                                        return questions.map(q => {
-                                                            const start = numMap[q.id];
-                                                            const end = start + (q.span || 1) - 1;
-                                                            const label = start === end ? String(start) : `${start}\u2013${end}`;
-                                                            return (
-                                                                <div key={q.id} className={`${previewLayout.assessmentItem} ${layout.assessmentCard}`}>
-                                                                    <div className={previewLayout.assessmentQuestion}>
-                                                                        <span className={previewLayout.questionNumber}>{label}.</span>
-                                                                        <span className={previewLayout.questionText}>{q.question || q.instruction || '(no question)'}</span>
-                                                                    </div>
-                                                                    
-                                                                    
-                                                                </div>
-                                                            );
-                                                        });
-                                                    })()
-                                                ) : (
-                                                    (() => {
-                                                        const g = {};
-                                                        questions.forEach(q => {
-                                                            const c = q.co || '?'; const l = q.ilo || '?'; const v = q.cognitiveLevel || '?';
-                                                            if (!g[c]) g[c] = {};
-                                                            if (!g[c][l]) g[c][l] = {};
-                                                            if (!g[c][l][v]) g[c][l][v] = [];
-                                                            g[c][l][v].push(q);
-                                                        });
-                                                        let num = 0;
-                                                        const nm = {};
-                                                        questions.forEach(q => { nm[q.id] = num + 1; num += (q.span || 1); });
-                                                        return Object.keys(g).map(coKey => (
-                                                            <div key={coKey} className={layout.coGroup}>
-                                                                <div className={layout.coHeader}><span className={layout.coTitle}>{coKey}</span></div>
-                                                                {Object.keys(g[coKey]).map(iloKey => (
-                                                                    <div key={iloKey} className={layout.iloGroup}>
-                                                                        <div className={layout.iloHeader}><span className={layout.iloTitle}>{iloKey}</span></div>
-                                                                        {Object.keys(g[coKey][iloKey]).map(cog => (
-                                                                            <div key={cog} className={layout.cogGroup}>
-                                                                                <div className={layout.cogHeader}><span>{cog}</span></div>
-                                                                                {g[coKey][iloKey][cog].map(q => {
-                                                                                    const s = nm[q.id];
-                                                                                    const e = s + (q.span || 1) - 1;
-                                                                                    const lb = s === e ? String(s) : `${s}\u2013${e}`;
-                                                                                    return (
-                                                                                        <div key={q.id} className={`${previewLayout.assessmentItem} ${layout.assessmentCard}`}>
-                                                                                            <div className={previewLayout.assessmentQuestion}>
-                                                                                                <span className={previewLayout.questionNumber}>{lb}.</span>
-                                                                                                <span className={previewLayout.questionText}>{q.question || q.instruction || '(no question)'}</span>
-                                                                                            </div>
-                                                                                            
-                                                                                        </div>
-                                                                                    );
-                                                                                })}
-                                                                            </div>
-                                                                        ))}
-                                                                    </div>
-                                                                ))}
-                                                            </div>
-                                                        ));
-                                                    })()
-                                                )}
-                                            </div>
-                                        </div>
+                                        <AssessmentOutput
+                                            outcomeData={rows}
+                                            questions={questions}
+                                            courseCode={courseCode}
+                                            period={fromExamType}
+                                        />
                                     )}
                                 </div>
                                 <div className={layout.hlRight}>
-                                    <div className={layout.hlVersions}>
-                                        {data?.versions?.map(v => (
-                                            <button key={v.version} className={`${layout.hlVersion} ${selectedVersion === v.version ? layout.hlVersionActive : ''}`} onClick={() => setSelectedVersion(v.version)}>
-                                                Version {v.version}
-                                            </button>
-                                        ))}
-                                    </div>
-                                    <div className={layout.hlTimeline}>
-                                        {version?.actions?.map((a, i) => {
-                                            const dotModifier = a.action?.includes('approved') ? layout.hlDotApproved
-                                                : a.action?.includes('returned') ? layout.hlDotReturned
-                                                : (a.action?.includes('submitted') || a.action?.includes('resubmitted')) ? layout.hlDotSubmitted
-                                                : '';
+                                    <div className={layout.hlVersionList}>
+                                        {orderedVersions.map(v => {
+                                            const isCollapsed = !!collapsedVersions[v.version];
                                             return (
-                                                <div key={i} className={layout.hlEvent}>
-                                                    <div className={`${layout.hlDot} ${dotModifier}`} />
-                                                    <div className={layout.hlEventBody}>
-                                                        <div className={layout.hlEventName}>{a.role === 'Program Head' ? PROGRAM_HEAD.display : a.role === 'Instructor' ? INSTRUCTOR.display : a.role}</div>
-                                                        <div className={layout.hlEventRole}>{a.role}</div>
-                                                        <div className={layout.hlEventAction}>{a.action} on <span className={layout.hlDatePill}>{a.date}</span></div>
-                                                        {a.comments?.map((c, ci) => (
-                                                            <div key={ci} className={layout.hlComment}>
-                                                                <div className={layout.hlCommentScope}>{formatScopeText(c.scope)}</div>
-                                                                <p>{c.body}</p>
+                                                <div key={v.version} className={layout.hlVersionBox}>
+                                                    <button
+                                                        type="button"
+                                                        className={`${layout.hlVersionHeader}${isCollapsed ? ` ${layout.hlVersionHeaderCollapsed}` : ''}`}
+                                                        onClick={() => setCollapsedVersions(prev => ({ ...prev, [v.version]: !prev[v.version] }))}
+                                                        aria-expanded={!isCollapsed}
+                                                    >
+                                                        <span>Version {v.version}</span>
+                                                        <span className={layout.hlVersionCaret}>{isCollapsed ? '▼' : '▲'}</span>
+                                                    </button>
+                                                    {!isCollapsed && (
+                                                        <div className={layout.hlVersionBody}>
+                                                            <div className={layout.hlTimeline}>
+                                                                {v.actions.map((a, i) => {
+                                                                    const dotMod = a.type === 'approved' ? layout.hlDotApproved
+                                                                        : a.type === 'returned' ? layout.hlDotReturned
+                                                                        : a.type === 'assigned' ? layout.hlDotAssigned
+                                                                        : layout.hlDotSubmitted;
+                                                                    const badgeMod = a.type === 'approved' ? layout.hlBadgeApproved
+                                                                        : a.type === 'returned' ? layout.hlBadgeReturned
+                                                                        : a.type === 'assigned' ? layout.hlBadgeAssigned
+                                                                        : layout.hlBadgeSubmitted;
+                                                                    return (
+                                                                        <div key={i} className={layout.hlEvent}>
+                                                                            <div className={`${layout.hlDot} ${dotMod}`} />
+                                                                            <div className={layout.hlEventCol}>
+                                                                                <div className={layout.hlEventCard}>
+                                                                                    <div className={layout.hlEventHeader}>
+                                                                                        <div style={{ minWidth: 0 }}>
+                                                                                            <div className={layout.hlEventName}>{a.name}</div>
+                                                                                            <div className={layout.hlEventRole}>{a.role}</div>
+                                                                                        </div>
+                                                                                        <span className={`${layout.hlStatusBadge} ${badgeMod}`}>{a.badge}</span>
+                                                                                    </div>
+                                                                                    <div className={layout.hlEventDesc}>{a.desc}</div>
+                                                                                    {a.date && <div className={layout.hlEventDate}>{a.date}</div>}
+                                                                                </div>
+                                                                                {a.comments && a.comments.length > 0 && (
+                                                                                    <div className={layout.hlCommentsBranch}>
+                                                                                        {a.comments.map((c, ci) => {
+                                                                                            const cog = c.scope?.cognitiveLevel;
+                                                                                            const tagLabel = BLOOM_LEVELS.includes(cog)
+                                                                                                ? cog
+                                                                                                : (c.scope?.filename || (cog && cog.endsWith('.pdf')) ? 'FILE' : 'TOS');
+                                                                                            return (
+                                                                                                <div key={ci} className={layout.hlCommentCard}>
+                                                                                                    <div className={layout.hlCommentTop}>
+                                                                                                        <div className={layout.hlCommentScope}>{formatScopeText(c.scope)}</div>
+                                                                                                        <span className={layout.hlCommentTag}>{tagLabel}</span>
+                                                                                                    </div>
+                                                                                                    <blockquote className={layout.hlCommentQuote}>&ldquo;{c.body}&rdquo;</blockquote>
+                                                                                                </div>
+                                                                                            );
+                                                                                        })}
+                                                                                    </div>
+                                                                                )}
+                                                                            </div>
+                                                                        </div>
+                                                                    );
+                                                                })}
                                                             </div>
-                                                        ))}
-                                                    </div>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             );
                                         })}
