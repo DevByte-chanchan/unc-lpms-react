@@ -292,19 +292,21 @@ const MiniAssignedCourses = ({ assignments = [], counts = {}, loading = false })
             </div>
 
             {/* Content Body */}
-            {loading ? (
-                <div className={styles.emptyState}>Loading assigned learning plans...</div>
-            ) : filteredRows.length === 0 ? (
-                <div className={styles.emptyState}>
-                    No {statusTabs.find((t) => t.key === selectedStatus)?.label || selectedStatus} learning plans found for the current term.
-                </div>
-            ) : (
-                <div className={styles.miniGridContainer}>
-                    {filteredRows.map((row, idx) => (
-                        <MiniCourseCard key={row.co_assign_id || idx} row={row} selectedStatus={selectedStatus} />
-                    ))}
-                </div>
-            )}
+            <div className={styles.blockBody}>
+                {loading ? (
+                    <div className={styles.emptyState}>Loading assigned learning plans...</div>
+                ) : filteredRows.length === 0 ? (
+                    <div className={styles.emptyState}>
+                        No {statusTabs.find((t) => t.key === selectedStatus)?.label || selectedStatus} learning plans found for the current term.
+                    </div>
+                ) : (
+                    <div className={styles.miniGridContainer}>
+                        {filteredRows.map((row, idx) => (
+                            <MiniCourseCard key={row.co_assign_id || idx} row={row} selectedStatus={selectedStatus} />
+                        ))}
+                    </div>
+                )}
+            </div>
         </div>
     );
 };
