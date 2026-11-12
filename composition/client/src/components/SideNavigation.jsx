@@ -1,6 +1,6 @@
 import styles from '../styles/SideNavigation.module.sass'
 import unclogo from '../assets/unclogo.png'
-import { FileText, LogOut, Users, BookOpen, Grid } from 'react-feather'
+import { LayoutDashboard, NotebookPen, TableProperties, Users, BookOpen, LogOut } from 'lucide-react'
 import { useSearchParams, useNavigate, useLocation } from 'react-router-dom'
 import { useEffect, useRef, useState } from 'react'
 import { useCurrentUser } from '../services/currentUser.jsx'
@@ -21,10 +21,12 @@ const SideNavigation = ({ mode = 'instructor' }) => {
         } else if (location.pathname.startsWith('/assignedtos') || location.pathname.startsWith('/tos')) {
             selected = 'TOS';
         } else if (location.pathname.startsWith('/assigned-courses') || location.pathname.startsWith('/courses')) {
-            selected = 'Syllabus';
+            selected = 'Learning Plans';
         } else {
-            selected = mode === 'instructor' ? 'Dashboard' : 'Syllabus';
+            selected = mode === 'instructor' ? 'Dashboard' : 'Learning Plans';
         }
+    } else if (selected === 'Syllabus') {
+        selected = 'Learning Plans';
     }
 
     const [confirmLogoutOpen, setConfirmLogoutOpen] = useState(false)
@@ -37,9 +39,9 @@ const SideNavigation = ({ mode = 'instructor' }) => {
         if (page === 'Dashboard') {
             navigate('/');
         }
-        else if (page === 'Syllabus') {
-            if (mode === 'program-head') navigate('/role/program-head/approval-course-table?page=Syllabus');
-            else if (mode === 'dean') navigate('/role/dean?page=Syllabus');
+        else if (page === 'Learning Plans' || page === 'Syllabus') {
+            if (mode === 'program-head') navigate('/role/program-head/approval-course-table?page=Learning%20Plans');
+            else if (mode === 'dean') navigate('/role/dean?page=Learning%20Plans');
             else navigate('/assigned-courses');
         }
         else if (page === 'TOS') {
@@ -126,68 +128,110 @@ const SideNavigation = ({ mode = 'instructor' }) => {
                 {mode === 'instructor' && (
                     <div
                         onClick={() => handlePageChange('Dashboard')}
-                        className={`${styles.list} ${selected === 'Dashboard' ? styles.selected : ''}`}
+                        className={`${styles.list} ${!isExpanded ? styles.collapsed : ''} ${selected === 'Dashboard' ? styles.selected : ''}`}
+                        title="Dashboard"
+                        aria-label="Dashboard"
                     >
-                        <Grid size={24} />
-                        <span className={styles.listText}>Dashboard</span>
+                        <LayoutDashboard size={20} strokeWidth={2} className={styles.navIcon} />
+                        {isExpanded && <span className={styles.listText}>Dashboard</span>}
                     </div>
                 )}
 
                 {mode !== 'hr-staff' && (
                     <div
-                        onClick={() => handlePageChange('Syllabus')}
-                        className={`${styles.list} ${selected === 'Syllabus' ? styles.selected : ''}`}
+                        onClick={() => handlePageChange('Learning Plans')}
+                        className={`${styles.list} ${!isExpanded ? styles.collapsed : ''} ${(selected === 'Learning Plans' || selected === 'Syllabus') ? styles.selected : ''}`}
+                        title="Learning Plans"
+                        aria-label="Learning Plans"
                     >
-                        <FileText size={24} />
-                        <span className={styles.listText}>Syllabus</span>
+                        <NotebookPen size={20} strokeWidth={2} className={styles.navIcon} />
+                        {isExpanded && <span className={styles.listText}>Learning Plans</span>}
                     </div>
                 )}
 
                 {mode === 'instructor' && (
                     <div
                         onClick={() => handlePageChange('TOS')}
-                        className={`${styles.list} ${selected === 'TOS' ? styles.selected : ''}`}
+                        className={`${styles.list} ${!isExpanded ? styles.collapsed : ''} ${selected === 'TOS' ? styles.selected : ''}`}
+                        title="TOS"
+                        aria-label="TOS"
                     >
-                        <FileText size={24} />
-                        <span className={styles.listText}>TOS</span>
+                        <TableProperties size={20} strokeWidth={2} className={styles.navIcon} />
+                        {isExpanded && <span className={styles.listText}>TOS</span>}
                     </div>
                 )}
 
                 {mode === 'program-head' && (
                     <>
-                        <div onClick={() => { navigate('/role/program-head/industry-consultant?page=Industry%20Consultant') }} className={`${styles.list} ${selected === 'Industry Consultant' ? styles.selected : ''}`}>
-                            <Users size={24} /> <span className={styles.listText}>Industry Consultant</span>
+                        <div
+                            onClick={() => { navigate('/role/program-head/industry-consultant?page=Industry%20Consultant') }}
+                            className={`${styles.list} ${!isExpanded ? styles.collapsed : ''} ${selected === 'Industry Consultant' ? styles.selected : ''}`}
+                            title="Industry Consultant"
+                            aria-label="Industry Consultant"
+                        >
+                            <Users size={20} strokeWidth={2} className={styles.navIcon} />
+                            {isExpanded && <span className={styles.listText}>Industry Consultant</span>}
                         </div>
 
-                        <div onClick={() => { navigate('/role/program-head/course-offerings?page=Course%20Offerings') }} className={`${styles.list} ${selected === 'Course Offerings' ? styles.selected : ''}`}>
-                            <BookOpen size={24} /> <span className={styles.listText}>Course Offerings</span>
+                        <div
+                            onClick={() => { navigate('/role/program-head/course-offerings?page=Course%20Offerings') }}
+                            className={`${styles.list} ${!isExpanded ? styles.collapsed : ''} ${selected === 'Course Offerings' ? styles.selected : ''}`}
+                            title="Course Offerings"
+                            aria-label="Course Offerings"
+                        >
+                            <BookOpen size={20} strokeWidth={2} className={styles.navIcon} />
+                            {isExpanded && <span className={styles.listText}>Course Offerings</span>}
                         </div>
                     </>
                 )}
 
                 {mode === 'dean' && (
                     <>
-                        <div onClick={() => { navigate('/role/dean?page=Faculty') }} className={`${styles.list} ${selected === 'Faculty' ? styles.selected : ''}`}>
-                            <Users size={24} /> <span className={styles.listText}>Faculty</span>
+                        <div
+                            onClick={() => { navigate('/role/dean?page=Faculty') }}
+                            className={`${styles.list} ${!isExpanded ? styles.collapsed : ''} ${selected === 'Faculty' ? styles.selected : ''}`}
+                            title="Faculty"
+                            aria-label="Faculty"
+                        >
+                            <Users size={20} strokeWidth={2} className={styles.navIcon} />
+                            {isExpanded && <span className={styles.listText}>Faculty</span>}
                         </div>
 
-                        <div onClick={() => { navigate('/role/dean?page=Programs') }} className={`${styles.list} ${selected === 'Programs' ? styles.selected : ''}`}>
-                            <BookOpen size={24} /> <span className={styles.listText}>Programs</span>
+                        <div
+                            onClick={() => { navigate('/role/dean?page=Programs') }}
+                            className={`${styles.list} ${!isExpanded ? styles.collapsed : ''} ${selected === 'Programs' ? styles.selected : ''}`}
+                            title="Programs"
+                            aria-label="Programs"
+                        >
+                            <BookOpen size={20} strokeWidth={2} className={styles.navIcon} />
+                            {isExpanded && <span className={styles.listText}>Programs</span>}
                         </div>
                     </>
                 )}
 
                 {mode === 'hr-staff' && (
                     <>
-                        <div onClick={() => { navigate('/role/hr-staff?page=Departments') }} className={`${styles.list} ${selected === 'Departments' ? styles.selected : ''}`}>
-                            <Users size={24} /> <span className={styles.listText}>Departments</span>
+                        <div
+                            onClick={() => { navigate('/role/hr-staff?page=Departments') }}
+                            className={`${styles.list} ${!isExpanded ? styles.collapsed : ''} ${selected === 'Departments' ? styles.selected : ''}`}
+                            title="Departments"
+                            aria-label="Departments"
+                        >
+                            <Users size={20} strokeWidth={2} className={styles.navIcon} />
+                            {isExpanded && <span className={styles.listText}>Departments</span>}
                         </div>
                     </>
                 )}
 
                 <div className={styles.logoutWrapper} ref={logoutRef}>
-                    <div className={styles.listB} onClick={onLogoutClick}>
-                        <LogOut size={24} color={'#F94545'} /> <span className={styles.listText}>Log Out</span>
+                    <div
+                        className={`${styles.listB} ${!isExpanded ? styles.collapsed : ''}`}
+                        onClick={onLogoutClick}
+                        title="Log Out"
+                        aria-label="Log Out"
+                    >
+                        <LogOut size={20} strokeWidth={2} color={'#F94545'} />
+                        {isExpanded && <span className={styles.listText}>Log Out</span>}
                     </div>
                 </div>
             </div>
