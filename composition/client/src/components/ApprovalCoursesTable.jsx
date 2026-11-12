@@ -1,5 +1,5 @@
 import Select from './Select.jsx'
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import styles from '../styles/CoursesTable.module.sass';
 import { ChevronRight, ChevronDown, ChevronUp, XCircle, HelpCircle, Download, Clock, RotateCcw, CheckCircle, Search, List, Grid } from 'react-feather';
@@ -102,13 +102,13 @@ const ApprovalCoursesTable = ({ role = 'approver', styleHooks = {} }) => {
     const [selectedSem, setSelectedSem] = useState(linkedCourseFilters.semester);
 
     // The Program Head's list also has the plans still waiting on their instructor, as its fourth tab.
-    const statuses = role === 'vpaa' ? ["APPROVED"] : role === 'program-head' ? ["PENDING", "RETURNED", "APPROVED", "NOT_SUBMITTED"] : ["PENDING", "RETURNED", "APPROVED"];
+    const statuses = role === 'vpaa' ? ["APPROVED"] : ['program-head', 'dean'].includes(role) ? ["PENDING", "RETURNED", "APPROVED", "NOT_SUBMITTED"] : ["PENDING", "RETURNED", "APPROVED"];
     const STATUS_LABEL = { NOT_SUBMITTED: 'Not submitted' };
     const statusLabel = (status) => STATUS_LABEL[status] || status.charAt(0) + status.slice(1).toLowerCase();
 
     const defaultStatus = role === 'vpaa' ? 'APPROVED' : 'PENDING';
     const [selectedStatus, setSelectedStatus] = useState(() => {
-        if (role === 'program-head' && searchParams.get('status') === 'not-submitted') return 'NOT_SUBMITTED';
+        if (['program-head', 'dean'].includes(role) && searchParams.get('status') === 'not-submitted') return 'NOT_SUBMITTED';
         if (statuses.includes(linkedCourseFilters.status)) {
             return linkedCourseFilters.status;
         }
@@ -120,7 +120,7 @@ const ApprovalCoursesTable = ({ role = 'approver', styleHooks = {} }) => {
     useEffect(() => {
         if (!urlStatus) return;
         const wanted = urlStatus === 'not-submitted' ? 'NOT_SUBMITTED' : urlStatus.toUpperCase();
-        const allowed = role === 'vpaa' ? ['APPROVED'] : role === 'program-head' ? ['PENDING', 'RETURNED', 'APPROVED', 'NOT_SUBMITTED'] : ['PENDING', 'RETURNED', 'APPROVED'];
+        const allowed = role === 'vpaa' ? ['APPROVED'] : ['program-head', 'dean'].includes(role) ? ['PENDING', 'RETURNED', 'APPROVED', 'NOT_SUBMITTED'] : ['PENDING', 'RETURNED', 'APPROVED'];
         if (allowed.includes(wanted)) setSelectedStatus(wanted);
     }, [urlStatus, role]);
     const updateStatus = (status) => {
@@ -178,6 +178,51 @@ const ApprovalCoursesTable = ({ role = 'approver', styleHooks = {} }) => {
         setExporting(false)
       }
     }
+
+    // Every approved plan of the term in view as one PDF: each plan's server PDF (its program's front pages first),
+    // joined in the order of the list. A plan that cannot be made is skipped and named at the end.
+    // The server renders one page at a time (up to a minute each), so a long term takes a while: progress shows,
+    // Stop ends it after the plan in hand and saves nothing.
+    const [termProgress, setTermProgress] = useState(null);
+    const stopTerm = useRef(false);
+    const exportTerm = async () => {
+      const rows = sortedRows;
+      if (!rows.length) return;
+      stopTerm.current = false;
+      setTermProgress(`0 / ${rows.length}`);
+      const [{ renderPdfOnServer }, { joinPdfs }] = await Promise.all([import('../utils/serverPdf.js'), import('../utils/frontPages.js')]);
+      const logoUrl = new URL(unclogo, window.location.origin).href;
+      const failed = [];
+      const parts = [];
+      for (let i = 0; i < rows.length; i++) {
+        if (stopTerm.current) { setTermProgress(null); return; }
+        setTermProgress(`${i + 1} / ${rows.length}`);
+        const row = rows[i];
+        const code = getCode(row);
+        try {
+          const file = await buildSyllabusExportFile({ pcId: getOfferingID(row), revNum: (row.ProgramCourseOffering || {}).revision_number || 1, code, workflow: null, logoUrl });
+          const html = await (await fetch(file.file_url)).text();
+          URL.revokeObjectURL(file.file_url);
+          if (file.front_pdf) parts.push(file.front_pdf);
+          parts.push(await renderPdfOnServer(html));
+        } catch (err) {
+          console.warn(`Term export skipped ${code}:`, err?.message || err);
+          failed.push(code);
+        }
+      }
+      if (stopTerm.current) { setTermProgress(null); return; }
+      setTermProgress('joining');
+      const all = parts.length ? await joinPdfs(...parts) : null;
+      setTermProgress(null);
+      if (all) {
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(new Blob([all], { type: 'application/pdf' }));
+        link.download = `Approved learning plans ${selectedYear}-${Number(selectedYear) + 1} ${selectedSem}.pdf`.replace(/\s+/g, ' ');
+        link.click();
+        setTimeout(() => URL.revokeObjectURL(link.href), 10000);
+      }
+      if (failed.length) alert(`${failed.length} plan${failed.length === 1 ? ' was' : 's were'} left out (the server could not make the PDF): ${failed.join(', ')}. Try again, or export ${failed.length === 1 ? 'it' : 'them'} one by one.`);
+    };
 
     const loadAssignments = useCallback(async () => {
         setLoading(true);
@@ -383,6 +428,16 @@ const ApprovalCoursesTable = ({ role = 'approver', styleHooks = {} }) => {
                         aria-label="Search course code or name"
                     />
                 </div>
+                {selectedStatus === 'APPROVED' && EXPORT_ROLES.includes(role) && role !== 'instructor' && sortedRows.length > 0 && (
+                    <button type="button" className="btn btn-secondary btn-sm" onClick={exportTerm} disabled={termProgress !== null}
+                        title="Every approved plan in this list as one PDF, each with its program's front pages">
+                        <Download size={14} /> {termProgress === 'stopping' ? 'Stopping after this plan…' : termProgress === 'joining' ? 'Joining into one PDF…' : termProgress ? `Exporting ${termProgress}…` : `Export all (${sortedRows.length}) as one PDF`}
+                    </button>
+                )}
+                {termProgress !== null && termProgress !== 'joining' && (
+                    <button type="button" className="btn btn-secondary btn-sm" onClick={() => { stopTerm.current = true; setTermProgress('stopping'); }}
+                        disabled={termProgress === 'stopping'}>Stop</button>
+                )}
                 {!notSubmitted && (
                     <div className={styles.layoutToggles}>
                         <button type="button" className={`${styles.toggleBtn} ${layoutMode === 'list' ? styles.active : ''}`}
@@ -499,8 +554,9 @@ const ApprovalCoursesTable = ({ role = 'approver', styleHooks = {} }) => {
                 }
             </TableScrollRegion>}
 
-            {role === 'program-head' && (
+            {['program-head', 'dean'].includes(role) && (
                 <NotSubmittedPanel
+                    readOnly={role !== 'program-head'}
                     active={notSubmitted}
                     schoolYear={`${selectedYear}-${Number(selectedYear) + 1}`}
                     semester={selectedSem === 'Summer' ? 'Summer' : String(selectedSem).startsWith('2') ? '2nd' : '1st'}

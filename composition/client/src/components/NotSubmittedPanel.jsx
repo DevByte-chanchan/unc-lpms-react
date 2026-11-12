@@ -29,7 +29,9 @@ const shiftDay =(iso, days) => {
 // days before the due date, on the day, then every third day overdue) once a due date is set for the program and
 // term; this panel sets that date and pauses the reminders of a plan. It stays mounted while another tab is shown, so
 // the tab's count is always known, and says how many plans it lists through `onCount`.
-const NotSubmittedPanel = ({ active, schoolYear, semester, query = '', onCount }) => {
+// readOnly: the Dean sees the due dates and who has not submitted, for the programs of their departments; only the
+// Program Head sets due dates or pauses reminders (server: deadline:manage).
+const NotSubmittedPanel = ({ active, schoolYear, semester, query = '', onCount, readOnly = false }) => {
   const [data, setData] = React.useState(null)
   const [deadlines, setDeadlines] = React.useState({ programs: [], deadlines: [] })
   const [loading, setLoading] = React.useState(true)
@@ -125,9 +127,9 @@ const NotSubmittedPanel = ({ active, schoolYear, semester, query = '', onCount }
               {warn ? <AlertTriangle size={16} aria-hidden="true" /> : <CheckCircle size={16} aria-hidden="true" />}
               <span>
                 {deadlines.programs.length === 0
-                  ? 'You do not head a program yet.'
+                  ? (readOnly ? 'No program is in your department yet.' : 'You do not head a program yet.')
                   : warn
-                    ? `${unset.length} of ${deadlines.programs.length} program${deadlines.programs.length === 1 ? ' has' : 's have'} no due date. Instructors are not reminded until you set one.`
+                    ? `${unset.length} of ${deadlines.programs.length} program${deadlines.programs.length === 1 ? ' has' : 's have'} no due date. Instructors are not reminded until ${readOnly ? 'their Program Head sets one' : 'you set one'}.`
                     : 'Every program has a due date. Instructors are reminded automatically.'}
               </span>
               <span className={dueStyles.note} role="status">
@@ -145,12 +147,14 @@ const NotSubmittedPanel = ({ active, schoolYear, semester, query = '', onCount }
                       key={program.program_id}
                       type="button"
                       className={`${dueStyles.chip} ${found ? dueStyles.chipSet : dueStyles.chipUnset}`}
-                      onClick={() => openDialog(program)}
-                      title={found ? `${program.name}: due ${dayLabel(found.syllabus_due)}${when ? ` (${when})` : ''}. Click to change.` : `${program.name}: no due date. Click to set one.`}
+                      onClick={readOnly ? undefined : () => openDialog(program)}
+                      aria-disabled={readOnly || undefined}
+                      style={readOnly ? { cursor: 'default' } : undefined}
+                      title={found ? `${program.name}: due ${dayLabel(found.syllabus_due)}${when ? ` (${when})` : ''}.${readOnly ? '' : ' Click to change.'}` : `${program.name}: no due date.${readOnly ? ' Its Program Head sets it.' : ' Click to set one.'}`}
                     >
-                      {found ? <Calendar size={14} aria-hidden="true" /> : <Plus size={14} aria-hidden="true" />}
+                      {found || readOnly ? <Calendar size={14} aria-hidden="true" /> : <Plus size={14} aria-hidden="true" />}
                       <strong>{programCode(program.name)}</strong>
-                      <span>{found ? `${dayLabel(found.syllabus_due)}${when ? ` · ${when}` : ''}` : 'Set due date'}</span>
+                      <span>{found ? `${dayLabel(found.syllabus_due)}${when ? ` · ${when}` : ''}` : (readOnly ? 'No due date' : 'Set due date')}</span>
                     </button>
                   )
                 })}
@@ -169,7 +173,7 @@ const NotSubmittedPanel = ({ active, schoolYear, semester, query = '', onCount }
           hint={rows.length === 0 ? 'Plans that are not submitted, or were returned and not resubmitted, appear here until the instructor submits them.' : 'Change the school year, the semester or the search.'}
         />
       ) : !error && (
-        <MissingSubmissionsTable rows={visible} onPause={pause} busyId={busyId} today={data?.today} />
+        <MissingSubmissionsTable rows={visible} onPause={readOnly ? null : pause} busyId={busyId} today={data?.today} />
       )}
 
       {dialog && (

@@ -65,7 +65,7 @@ const CourseCoverage = ({ offeringID, revisionNum, status, selectedSection, styl
     // 2. Fetch related workflow resolution badges per Week
     useEffect(() => {
         if (
-            status !== 'returned' ||
+            status === 'approved' ||
             selectedSection !== 'Course Coverage' ||
             !coverageData.courseOutcomes ||
             coverageData.courseOutcomes.length === 0
@@ -330,7 +330,7 @@ const CourseCoverage = ({ offeringID, revisionNum, status, selectedSection, styl
                                                     <td className={`${stylesB.ccCell} ${stylesB.centerText}`} style={{ width: colWidths.period }}>
                                                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
                                                             <span className={stylesB.boldText}>{week.deliveryWeek}</span>
-                                                            {status === 'returned' && totalWeekUnresolved > 0 && (
+                                                            {totalWeekUnresolved > 0 && (
                                                                 // Open comments on this week: a click opens the comments panel at them (utils/useCommentFocus.js).
                                                                 // A plain badge that also acts as a button (a <button> would take the app's button sizing).
                                                                 <span className={styles['comment-badge']} role="button" tabIndex={0}

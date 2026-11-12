@@ -146,6 +146,7 @@ app.use('/api/user-accounts', require('./routes/userAccounts'));
 app.use('/api/notifications', require('./routes/notifications'));
 app.use('/api/term-deadlines', require('./routes/termDeadlines'));
 app.use('/api/missing-submissions', require('./routes/missingSubmissions'));
+app.use('/api/plan-changes', require('./routes/planChanges'));
 
 // global error handler
 app.use((err, req, res, next) => {
@@ -165,6 +166,18 @@ app.use((err, req, res, next) => {
 (async () => {
     // The session tokens are signed with JWT_SECRET: required in production (the server will not start without it).
     require('./utils/jwtSession').assertAuthConfig();
+    // A copy of the database first (then daily, newest 7 kept: utils/dbBackup.js), then the schema is brought up
+    // to this code, as the Docker entrypoint does, so a dev database can no longer fall behind its migrations.
+    // A failed migration stops the server. Never in tests; LPMS_SKIP_MIGRATIONS=1 starts without migrating.
+    await require('./utils/dbBackup').startBackups({ raw: require('./models').__raw });
+    if (process.env.NODE_ENV !== 'test' && process.env.LPMS_SKIP_MIGRATIONS !== '1') {
+        try {
+            require('child_process').execFileSync(process.execPath, ['migrate.js'], { cwd: __dirname, stdio: 'inherit' });
+        } catch {
+            console.error('Database migration FAILED: the server was not started. Read the message above.');
+            process.exit(1);
+        }
+    }
     await require('./utils/ensureAuthSchema').ensureAuthSchemaAndReport();
     app.listen(port, () => console.log(`Server listening on ${port}`));
     // Read notifications older than 90 days are removed at boot and then daily.

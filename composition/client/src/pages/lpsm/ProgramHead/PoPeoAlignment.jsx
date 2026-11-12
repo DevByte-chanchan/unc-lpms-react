@@ -1,6 +1,6 @@
 import Select from '../../../components/Select.jsx'
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Edit3, Check, X, Plus, Trash2, Upload, Zap, Download } from 'react-feather';
+import { Edit3, Check, X, Plus, Trash2, Upload, Zap, Download, FileText } from 'react-feather';
 import { SOURCE_LABEL } from '../../../utils/scanSource.js';
 import { DocumentBar, TemplateButton } from '../../../components/CourseDocumentBar.jsx';
 import SkeletonA from '../../../layouts/SkeletonA.jsx';
@@ -105,7 +105,7 @@ const PoPeoAlignment = ({ tabs = null, view = 'outcomes' }) => {
       const pages = await countPdfPages(await file.arrayBuffer()).catch(() => 0)
       if (!pages) throw new Error('This file is not a readable PDF.')
       await sendFile('front-pages', 'PUT', file)
-      setNotice(`Front pages uploaded (${pages} page${pages === 1 ? '' : 's'}). Learning plan exports of ${programName} now start with them.`)
+      setNotice(`Front pages uploaded (${pages} page${pages === 1 ? '' : 's'}). Learning plan exports of ${programName} now start with them. To fill the PO and PEO tables from them, use From front pages on that tab.`)
       await loadFront(programId)
     } catch (err) {
       setError(apiErrorMessage(err, err?.message || 'The front pages were not uploaded.'))
@@ -312,6 +312,13 @@ const PoPeoAlignment = ({ tabs = null, view = 'outcomes' }) => {
           <button type="button" className="btn btn-secondary btn-sm" title="Read photos or a PDF of the PEO / PO tables, then check them" onClick={() => scanRef.current?.click()} disabled={busy || editing}>
             <Zap size={14} /> {busy ? 'Reading…' : 'Scan'}
           </button>
+          {/* The uploaded front pages already hold the PEO and PO tables: read them the same way, no second upload. */}
+          {front?.bytes && (
+            <button type="button" className="btn btn-secondary btn-sm" title="Read the PEOs, POs and their ticks from the uploaded front pages, then check them"
+              onClick={() => scanSheets([new File([front.bytes], `${programName || 'Program'} front pages.pdf`, { type: 'application/pdf' })])} disabled={busy || editing}>
+              <FileText size={14} /> From front pages
+            </button>
+          )}
         </DocumentBar>
       )}
 

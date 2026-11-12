@@ -81,7 +81,7 @@ const ILOs = ({ offeringID, revisionNum, status, styles, fetchJson }) => {
 
     // 2. Dynamic Badge Counter: Fetches unresolved comment counts per week
     useEffect(() => {
-        if (status !== 'returned' || !iloData.courseOutcomes || iloData.courseOutcomes.length === 0) return;
+        if (status === 'approved' || !iloData.courseOutcomes || iloData.courseOutcomes.length === 0) return;
         let mounted = true;
 
         async function gatherAllCommentCounts() {
@@ -254,7 +254,7 @@ const ILOs = ({ offeringID, revisionNum, status, styles, fetchJson }) => {
                                         <td className={styles.fill} style={{ width: 'auto', minWidth: '160px', flexShrink: 0, paddingRight: '15px' }}>
                                             <Link className={styles.mapContentsBtn} to={`/topics/form/${ilo.id}/${status}`}>
                                                 Map Contents
-                                                {status === 'returned' && totalBadges > 0 && (
+                                                {totalBadges > 0 && (
                                                     <span className={styles['comment-badge']}>{totalBadges}</span>
                                                 )}
                                                 <ChevronRight size={16} />
@@ -328,7 +328,7 @@ const ILOs = ({ offeringID, revisionNum, status, styles, fetchJson }) => {
                                             <div className={styles.iloGridBox_Footer}>
                                                 <Link className={styles.mapContentsBtn} to={`/topics/form/${orientationWeekId}/${status}?orientation=true&${offeringQuery}`}>
                                                     Map Weekly Content
-                                                    {status === 'returned' && totalBadges > 0 && (
+                                                    {totalBadges > 0 && (
                                                         <span className={styles['comment-badge']}>{totalBadges}</span>
                                                     )}
                                                     <ChevronRight size={16} />
@@ -439,7 +439,7 @@ const ILOs = ({ offeringID, revisionNum, status, styles, fetchJson }) => {
                                                 <div className={styles.coFooter}>
                                                     <Link className={styles.mapContentsBtn} to={`/topics/form/${targetWeekId}/${status}?${offeringQuery}`}>
                                                         Map Weekly Content
-                                                        {status === 'returned' && coTotalBadges > 0 && (
+                                                        {coTotalBadges > 0 && (
                                                             <span className={styles['comment-badge']}>{coTotalBadges}</span>
                                                         )}
                                                         <ChevronRight size={16} />

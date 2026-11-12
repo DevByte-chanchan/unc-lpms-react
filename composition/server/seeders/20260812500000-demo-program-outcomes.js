@@ -4,10 +4,10 @@
 // Sciences, "Program Educational Objectives" / "Program Outcomes"), in place of the foundation seeder's placeholder
 // BSIT outcomes, so every program's documents are complete before a plan is started (utils/programReadiness.js).
 //
-// DEMO ONLY: which PO supports which PEO is not published. The links below are a reading of the statements
-// (every PO serves PEO 1, practising the career; learning and current-practice outcomes also PEO 2, advancing;
-// teamwork, leadership, communication, ethics and society outcomes also PEO 3, leading globally). The Program
-// Head replaces them with the official mapping in Program Documents.
+// Which PO supports which PEO, and which graduate attributes (1 EC, 2 CL, 3 ERC, 4 LL) it builds, is not on the
+// website. BSIT and BSCS carry the official ticks (`links`, one [PEOs, GAs] per PO): BSIT from UNC's Syllabus
+// TEMPLATE.docx, BSCS from the Enhanced Syllabus [BSCS] MATH311L. ACT and BLIS have no source yet, so theirs are a
+// reading of the statements (DEMO ONLY, `peosFor` below, no GAs); the Program Head sets them in Program Documents.
 //
 // BSIT keeps its PO rows in order (po_id order is the PO number, and the demo plans' CO-PO marks point at them):
 // the first ten are reworded, the rest added.
@@ -36,6 +36,11 @@ const PROGRAMS = {
             'Apply appropriate professional, ethical, and legal practices in the utilization of information technology.',
             'Develop the skills needed to engage in independent and lifelong learning.',
         ],
+        links: [
+            [[1, 2], [2, 3, 4]], [[1, 2], [3, 4]], [[1, 2], [2, 3, 4]], [[1, 2], [2, 3, 4]], [[1, 2, 3], [2, 3]],
+            [[1, 2, 3], [2, 3, 4]], [[1, 3], [1, 2, 3, 4]], [[1, 3], [1, 2, 3]], [[1, 3], [1, 3]], [[1, 2, 3], [1, 2, 3, 4]],
+            [[2, 3], [2, 3, 4]], [[1, 2, 3], [1, 2, 3]], [[2, 3], [2, 4]],
+        ],
     },
     'Bachelor of Science in Computer Science': {
         peos: [
@@ -54,6 +59,10 @@ const PROGRAMS = {
             'Communicate effectively, both oral and written, with the computing community and society.',
             'Apply appropriate professional, ethical, and legal practices in the utilization of computer technology.',
             'Develop the skills needed to engage in independent and lifelong learning.',
+        ],
+        links: [
+            [[1, 2], [2, 3, 4]], [[1, 2], [2, 3, 4]], [[1, 2], [1, 2, 3, 4]], [[1, 2], [1, 3, 4]], [[1, 2, 3], [2, 3, 4]],
+            [[1, 2, 3], [1, 2, 3, 4]], [[1, 3], [1, 2, 3]], [[1, 3], [1, 2, 3]], [[1, 3], [1, 2, 3, 4]], [[1, 2, 3], [2, 3, 4]],
         ],
     },
     'Associate in Computer Technology': {
@@ -92,7 +101,7 @@ const PROGRAMS = {
     },
 };
 
-// The demo PO-to-PEO links (see the note at the top).
+// The demo PO-to-PEO links for programs without official ones (see the note at the top).
 const peosFor = (text) => [
     1,
     /lifelong|independent learning|continual|continuing education|best practices|current techniques|modern computing|research/i.test(text) && 2,
@@ -115,7 +124,8 @@ module.exports = {
 
             const existing = await select('SELECT po_id FROM ProgramOutcomes WHERE program_id = ? ORDER BY po_id', [id]);
             for (const [index, text] of data.pos.entries()) {
-                const fields = { description: text, peo_numbers: JSON.stringify(peosFor(text)), ga_numbers: '[]', updatedAt: now };
+                const [peos, gas] = data.links ? data.links[index] : [peosFor(text), []];
+                const fields = { description: text, peo_numbers: JSON.stringify(peos), ga_numbers: JSON.stringify(gas), updatedAt: now };
                 if (existing[index]) await queryInterface.bulkUpdate('ProgramOutcomes', fields, { po_id: existing[index].po_id });
                 else await queryInterface.bulkInsert('ProgramOutcomes', [{ program_id: id, ...fields, createdAt: now }], {});
             }

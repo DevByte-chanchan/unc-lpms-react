@@ -23,11 +23,11 @@ export const countPdfPages = async (bytes) => {
   return (await PDFDocument.load(bytes)).getPageCount()
 }
 
-// One PDF: every page of `first`, then every page of `second`.
-export const joinPdfs = async (first, second) => {
+// One PDF: every page of each, in order.
+export const joinPdfs = async (...parts) => {
   const { PDFDocument } = await pdfLib()
   const out = await PDFDocument.create()
-  for (const bytes of [first, second]) {
+  for (const bytes of parts) {
     const doc = await PDFDocument.load(bytes)
     for (const page of await out.copyPages(doc, doc.getPageIndices())) out.addPage(page)
   }

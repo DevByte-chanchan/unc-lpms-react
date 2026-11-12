@@ -63,7 +63,7 @@ const ReferenceSummary = ({ offeringID, revisionNum, status, selectedSection, st
     // target_id, and one comment yields one row per target, so the count is over
     // distinct comment_ids.
     useEffect(() => {
-        if (status !== 'returned' || selectedSection !== 'References Summary' || !referenceData) return;
+        if (status === 'approved' || selectedSection !== 'References Summary' || !referenceData) return;
         if (!offeringID) return;
         let mounted = true;
 
@@ -164,7 +164,7 @@ const ReferenceSummary = ({ offeringID, revisionNum, status, selectedSection, st
                                     <td>
                                         <div className={stylesB.refTitleCell}>
                                             <span>{ref.title}</span>
-                                            {status === 'returned' && unresolvedCount > 0 && (
+                                            {unresolvedCount > 0 && (
                                                 <span className={styles['comment-badge']}>{unresolvedCount}</span>
                                             )}
                                         </div>

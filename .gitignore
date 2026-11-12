@@ -35,6 +35,8 @@ vite.config.js
 !composition/
 # live database and its write-ahead log — never in git
 composition/server/data/*.sqlite
+# Automatic database copies (server/utils/dbBackup.js)
+composition/server/data/backups/
 composition/server/data/*.sqlite-shm
 composition/server/data/*.sqlite-wal
 composition/server/data/*.bak_*

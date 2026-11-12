@@ -68,7 +68,7 @@ const MissingSubmissionsTable = ({ rows = [], onPause, busyId = null, today = ''
               <td className={styles.fill}>
                 {row.status === 'no-deadline'
                   ? <span style={{ color: 'var(--ink-muted)', fontSize: 'var(--fs-xs)' }}>No due date</span>
-                  : <Switch on={!row.remindersPaused} disabled={busyId === row.offeringId} label={`Automatic reminders for ${row.courseCode}`} onClick={() => onPause(row)} />}
+                  : <Switch on={!row.remindersPaused} disabled={!onPause || busyId === row.offeringId} label={`Automatic reminders for ${row.courseCode}`} onClick={() => onPause(row)} />}
               </td>
             </tr>
           ))}

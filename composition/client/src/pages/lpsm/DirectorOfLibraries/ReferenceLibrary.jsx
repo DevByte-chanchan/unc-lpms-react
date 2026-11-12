@@ -13,6 +13,7 @@ import {
   Plus,
   RotateCcw,
   Search,
+  Sliders,
   Upload,
   X,
 } from 'react-feather';
@@ -20,6 +21,7 @@ import SkeletonA from '../../../layouts/SkeletonA.jsx';
 import HeaderA from '../../../components/HeaderA.jsx';
 import SideNavigation from '../../../components/SideNavigation.jsx';
 import AddReferenceModal from '../../../components/AddReferenceModal.jsx';
+import CatalogRulesDialog from '../../../components/CatalogRulesDialog.jsx';
 import EmptyState from '../../../components/EmptyState.jsx';
 import TableScrollRegion from '../../../components/TableScrollRegion.jsx';
 import SortableTh from '../../../components/SortableTh.jsx';
@@ -90,6 +92,7 @@ const ReferenceLibrary = () => {
   // 'list': the reference table; 'courses': the courses of the chosen department / program as cards.
   const [layoutMode, setLayoutMode] = useState('list');
   const [rules, setRules] = useState(getCatalogSettings);
+  const [rulesOpen, setRulesOpen] = useState(false);
   useEffect(() => { let on = true; refreshCatalogSettings(fetchJson).then(latest => { if (on) setRules(latest); }); return () => { on = false; }; }, []);
   const activeRefs = useMemo(() => references.filter(r => !r.archived), [references]);
   const health = useMemo(() => healthSummary(activeRefs, { years: rules.recencyYears, currentYear: CURRENT_YEAR }), [activeRefs, rules.recencyYears]);
@@ -404,7 +407,13 @@ const ReferenceLibrary = () => {
               <button className="btn btn-secondary" type="button" onClick={() => fileInputRef.current?.click()}>
                 <Upload size={15} /> Bulk Upload
               </button>
+              <button className="btn btn-secondary" type="button" onClick={() => setRulesOpen(true)}
+                title={`Recent = last ${rules.recencyYears} years. Change the rules for everyone`}>
+                <Sliders size={15} /> Rules
+              </button>
             </div>
+            <CatalogRulesDialog open={rulesOpen} onClose={() => setRulesOpen(false)}
+              onSaved={(saved) => { setRules(saved); showPageToast(`Reference rules saved for everyone: recent = last ${saved.recencyYears} years.`); }} />
           </div>
 
           {loadState.error && <div role="alert" style={{ color: 'var(--danger)', margin: '8px 0' }}>{loadState.error}</div>}

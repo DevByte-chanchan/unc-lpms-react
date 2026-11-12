@@ -25,6 +25,7 @@ import { normalizeRoleKey } from '../utils/approvalHelpers.js'
 import { getSession } from '../utils/session'
 import ApprovalChainStatus from './ApprovalChainStatus.jsx'
 import SendBackDialog from './SendBackDialog.jsx'
+import PlanChangesDialog from './PlanChangesDialog.jsx'
 import {
   validateReturn,
   canActOnStage,
@@ -137,6 +138,9 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
   const [approveTimeLeft, setApproveTimeLeft] = useState(5)
   const approveTimerRef = useRef(null)
   const [showSubmitModal, setShowSubmitModal] = useState(false)
+  // After a return and resubmission: what the instructor changed (server/utils/planChanges.js).
+  const [planChanges, setPlanChanges] = useState(null)
+  const [planChangesOpen, setPlanChangesOpen] = useState(false)
 
   const [globalComments, setGlobalComments] = useState([])
   const [suggestions, setSuggestions] = useState([])
@@ -630,6 +634,14 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
   const commentMode = roleKey === 'industry-consultant' ? 'suggest' : (['returned', 'with_program_head'].includes(workflowState.currentStage) || hasRoleApproved()) ? 'comment' : 'return'
   // A Dean return waiting on this Program Head: they forward it to the instructor or send it back to the Dean.
   const deanReturnWithMe = roleKey === 'program-head' && workflowState.currentStage === 'with_program_head'
+  useEffect(() => {
+    setPlanChanges(null)
+    if (!validPcId || ['draft', 'returned', 'approved', ''].includes(workflowState.currentStage || '')) return undefined
+    let live = true
+    fetchJson(`/api/plan-changes/${validPcId}`).then(data => { if (live && data?.since) setPlanChanges(data) }).catch(() => {})
+    return () => { live = false }
+  }, [validPcId, workflowState.currentStage])
+  const yourChanged = planChanges ? planChanges.changes.filter(c => c.yours).length : 0
   const forwardToInstructor = () => recordWorkflowAction('FORWARDED')
     .then(() => { reloadWorkflow(); setRefreshKey(k => k + 1); showToastMsg('Forwarded to the instructor, with the Dean’s comments.') })
     .catch(e => showToastMsg(apiErrorMessage(e, 'The plan could not be forwarded.'), 'error'))
@@ -1047,6 +1059,12 @@ ${suggestionLine}` : text,
           />
           {waitingNotice && <p className={styles.waitingNotice} role="status"><Clock size={14} /> {waitingNotice}</p>}
           {deanReturnWithMe && <p className={styles.waitingNotice} role="status"><Clock size={14} /> Returned by the Dean. Forward it to the instructor or send it back.</p>}
+          {planChanges && (
+            <p className={styles.waitingNotice} role="status">
+              <FileText size={14} /> Resubmitted after the return: {planChanges.changes.length} change{planChanges.changes.length === 1 ? '' : 's'}{yourChanged ? `, ${yourChanged} on your comments` : ''}.
+              <button type="button" className="app-link-button" onClick={() => setPlanChangesOpen(true)}>See what changed</button>
+            </p>
+          )}
           {roleKey === 'dean' && workflowState.counterNote && workflowState.currentStage !== 'approved' && (
             <p className={styles.waitingNotice} role="status"><Clock size={14} /> Sent back by the Program Head: &ldquo;{workflowState.counterNote}&rdquo;</p>
           )}
@@ -1359,6 +1377,8 @@ ${suggestionLine}` : text,
         </div>
         )
       })()}
+
+      <PlanChangesDialog open={planChangesOpen} onClose={() => setPlanChangesOpen(false)} data={planChanges} courseCode={codeToUse} />
 
       <ConsultantDialog open={isConsultantOpen} onClose={() => setIsConsultantOpen(false)} courseCode={codeToUse} />
 

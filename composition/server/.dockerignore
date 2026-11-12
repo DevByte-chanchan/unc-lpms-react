@@ -20,3 +20,4 @@ tmp-*.sqlite*
 
 # Sync-tool placeholders in server/data; they are not part of the database.
 .fuse_hidden*
+data/backups

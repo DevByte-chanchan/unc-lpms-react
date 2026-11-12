@@ -3,6 +3,7 @@ const { effectiveLogs } = require('../utils/effectiveLogs');
 const { assignRevisionOnApproval } = require('../services/offeringService');
 const { onWorkflowAction: notifyWorkflowAction } = require('../utils/notificationEvents');
 const { freezeReviewRecord } = require('../utils/reviewRecordInputs');
+const { snapshotOnReturn } = require('../utils/planChanges');
 const { Op, Transaction } = require('sequelize');
 const { REQUIRED_REVIEWERS, validateWorkflowTransition } = require('../utils/workflowRules');
 const {
@@ -332,6 +333,11 @@ const recordWorkflowAction = async (req, res, next) => {
             // The Dean's approval fixes the review record: keep a copy of what it is built from. Never fails the action.
             if (actor_role === 'DEAN' && action_type === 'ACCEPTED') {
                 try { await freezeReviewRecord(offeringId); } catch (error) { console.error(`Review record not frozen, the approval stands: ${error.message}`); }
+            }
+            // A return keeps a copy of the plan, so after the resubmission the approvers see only what changed
+            // (utils/planChanges.js). Never fails the action.
+            if (action_type === 'RETURNED') {
+                try { await snapshotOnReturn(offeringId, assignment.co_assign_id); } catch (error) { console.error(`Plan copy not kept, the return stands: ${error.message}`); }
             }
 
             return res.status(201).json({

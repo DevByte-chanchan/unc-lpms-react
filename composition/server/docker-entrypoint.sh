@@ -39,6 +39,9 @@ migrate_or_stop() {
         echo "LPMS_SKIP_MIGRATIONS=1: not running database migrations."
         return 0
     fi
+    # A copy of the database before anything changes it (utils/dbBackup.js); server.js then skips its own.
+    "$@" node utils/dbBackup.js || echo "The start-up backup did not run; continuing." >&2
+    export LPMS_BOOT_BACKUP_DONE=1
     echo "Applying database migrations (none pending is normal)..."
     if ! "$@" node migrate.js; then
         echo "Database migration FAILED. The server was not started. Read the message above, fix the data it names," >&2
