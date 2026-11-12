@@ -86,7 +86,7 @@ const CoPoAlignment = ({ tabs = null }) => {
       </div>
 
       <div className={pageStyles.toolbarControls}>
-        <Select variant="term" value={offeringId} onChange={event => setOfferingId(event.target.value)} aria-label="Select course">
+        <Select variant="pill" prefix="Course:" value={offeringId} onChange={event => setOfferingId(event.target.value)} aria-label="Select course">
             {(offerings || []).map(item => <option key={item.id} value={item.id}>{item.label}</option>)}
           </Select>
       </div>

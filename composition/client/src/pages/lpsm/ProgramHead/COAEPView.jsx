@@ -137,7 +137,8 @@ const COAEPView = ({ tabs = null }) => {
 
           <div className={pageStyles.toolbarControls}>
             <Select
-              variant="term"
+              variant="pill"
+              prefix="Course:"
               value={offeringId}
               onChange={event => setOfferingId(event.target.value)}
               aria-label="Select course"

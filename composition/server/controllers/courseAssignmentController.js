@@ -36,7 +36,7 @@ const termOf = (query) => {
 const headedPrograms = async (userId) => (await select('SELECT program_id FROM Programs WHERE stakeholder_id = ?', [userId])).map(p => p.program_id);
 
 const coursesOf = (programIds) => (programIds.length ? select(
-    `SELECT DISTINCT pco.course_id, pco.program_id, c.course_no, c.course_title
+    `SELECT DISTINCT pco.course_id, pco.program_id, c.course_no, c.course_title, c.year_lvl
      FROM ProgramCourseOfferings pco INNER JOIN Courses c ON c.course_id = pco.course_id
      WHERE pco.program_id IN (?) ORDER BY c.course_no ASC;`, [programIds]) : []);
 
@@ -65,13 +65,16 @@ async function listAssignments(req, res, next) {
         const rows = offerings.compare({ courses, assignments, sections, users, hasOfficial: stored.length > 0 });
         // Programs whose documents are not complete yet: none of their courses can be assigned (offeringService).
         const notReady = [];
-        for (const program of programIds.length ? await select('SELECT program_id, name FROM Programs WHERE program_id IN (?) ORDER BY name', [programIds]) : []) {
+        const programs = programIds.length ? await select('SELECT program_id, name FROM Programs WHERE program_id IN (?) ORDER BY name', [programIds]) : [];
+        for (const program of programs) {
             const readiness = await programReadiness(sequelize, program.program_id);
             if (!readiness.complete) notReady.push({ programId: program.program_id, name: program.name, missing: readiness.missing });
         }
         return res.json({
             rows,
             notReady,
+            // The programs this Program Head heads, for the page title ("BSIT: Course Assignment").
+            programs: programs.map(p => ({ programId: p.program_id, name: p.name })),
             instructors: users,
             official: stored.length ? { sections: stored.length, importedAt: stored[0].createdAt } : null,
         });

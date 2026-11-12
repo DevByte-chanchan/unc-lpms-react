@@ -20,7 +20,8 @@ const collect = (children, found = []) => {
   return found
 }
 
-const Select = ({ value, onChange, children, disabled = false, id, name, block = false, size = 'md', variant = '', title, placeholder = 'Select…', ...rest }) => {
+// variant 'pill': the rounded, bordered picker of the Course Assignment module; `prefix` is a label inside it ("Year Level:").
+const Select = ({ value, onChange, children, disabled = false, id, name, block = false, size = 'md', variant = '', title, placeholder = 'Select…', prefix = '', ...rest }) => {
   const options = collect(children)
   const current = options.find(option => option.value === String(value ?? ''))
   const [open, setOpen] = useState(false)
@@ -100,8 +101,9 @@ const Select = ({ value, onChange, children, disabled = false, id, name, block =
   return (
     <>
       <button ref={trigger} id={id} type="button" title={title} disabled={disabled} onClick={() => (open ? close() : show())} onKeyDown={onKeyDown}
-        className={`${styles.trigger} ${size === 'lg' ? styles.lg : ''} ${block ? styles.block : ''} ${variant === 'term' ? styles.term : ''} ${variant === 'inline' ? styles.inline : ''}`}
+        className={`${styles.trigger} ${size === 'lg' ? styles.lg : ''} ${block ? styles.block : ''} ${variant === 'term' ? styles.term : ''} ${variant === 'inline' ? styles.inline : ''} ${variant === 'pill' ? styles.pill : ''}`}
         aria-haspopup="listbox" aria-expanded={open} aria-controls={open ? listId : undefined} aria-label={rest['aria-label']}>
+        {prefix && <span className={styles.prefix}>{prefix}</span>}
         <span className={current ? styles.value : styles.placeholder}>{current ? current.label : placeholder}</span>
         <ChevronDown size={16} aria-hidden="true" className={styles.chevron} />
       </button>

@@ -86,17 +86,11 @@ const ApprovalCoursesTable = ({ role = 'approver', styleHooks = {} }) => {
     const [searchParams, setSearchParams] = useSearchParams();
     const linkedCourseFilters = readAssignedCourseFilters(searchParams, currentYear);
     const targetCourse = linkedCourseFilters.course;
-    const yearOptions = [];
-    // One school year ahead is listed too: a carried-over plan can already be in next year's list.
-    for (let i = currentYear + 1; i >= startYear; i--) {
-        const schoolYearLabel = `${i} - ${i + 1}`;
-        yearOptions.push(
-            <option key={i} value={i}>
-                {schoolYearLabel}
-            </option>
-        );
-    }
 
+    // School years, newest first (one ahead: a carried-over plan can already be in next year's list).
+    const SEM_NAME = { '1st Sem': '1st Semester', '2nd Sem': '2nd Semester', Summer: 'Summer' };
+    const schoolYears = [];
+    for (let i = currentYear + 1; i >= startYear; i--) schoolYears.push(i);
     const query = usePageSearch('Search course code or title');
     const [selectedYear, setSelectedYear] = useState(linkedCourseFilters.year);
     const [selectedSem, setSelectedSem] = useState(linkedCourseFilters.semester);
@@ -386,12 +380,13 @@ const ApprovalCoursesTable = ({ role = 'approver', styleHooks = {} }) => {
         <div className={`${styles['courses-table']} ${styleHooks.root || ''}`.trim()}>
             <div className={`${styles.header} ${styleHooks.header || ''}`.trim()}>
                 <h2>{approvedOnly ? 'APPROVED LEARNING PLANS' : 'ASSIGNED COURSE OFFERINGS'}</h2>
-                <div className={`${styles.filterA} ${styleHooks.filters || ''}`.trim()}>
-                    <Select variant="inline" value={selectedYear} onChange={(e) => setSelectedYear(e.target.value)} aria-label="School year">
-                        {yearOptions}
+                <div className={`${styles.filterA} ${styleHooks.filters || ''}`.trim()} style={{ background: 'transparent', boxShadow: 'none', padding: 0, gap: 10, alignItems: 'center' }}>
+                    {/* School year and semester, as the Course Assignment module's pickers. */}
+                    <Select variant="pill" value={String(selectedYear)} onChange={(e) => setSelectedYear(e.target.value)} aria-label="School year">
+                        {schoolYears.map(y => <option key={y} value={String(y)}>{y} - {y + 1}</option>)}
                     </Select>
-                    <Select variant="inline" value={selectedSem} onChange={(e) => setSelectedSem(e.target.value)} aria-label="Semester">
-                        {semOptions.map(sem => <option key={sem} value={sem}>{sem}</option>)}
+                    <Select variant="pill" value={selectedSem} onChange={(e) => setSelectedSem(e.target.value)} aria-label="Semester">
+                        {semOptions.map(sem => <option key={sem} value={sem}>{SEM_NAME[sem]}</option>)}
                     </Select>
                 </div>
 

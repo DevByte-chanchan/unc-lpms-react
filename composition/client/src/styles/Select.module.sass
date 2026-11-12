@@ -53,6 +53,8 @@
 
 .list
   position: fixed
+  // room for the scrollbar, so the widest option is not cut to "2026 - 20..."
+  scrollbar-gutter: stable
   z-index: 3100
   width: max-content
   max-height: 288px
@@ -121,3 +123,23 @@
 
   .value, .chevron
     color: inherit
+
+// The Course Assignment module's picker: rounded, bordered, dark text ("1st Semester 2026-2027", "Year Level: All Year Levels").
+.trigger.pill
+  height: 40px
+  padding: 0 12px 0 16px
+  border: 1px solid #D1D5DB
+  border-radius: 9999px
+  background: #fff
+  color: #18191A
+  font-size: 14px
+  font-weight: 600
+  gap: 6px
+
+  .value, .chevron
+    color: inherit
+
+.prefix
+  flex: 0 0 auto
+  font-weight: 400
+  color: #374151

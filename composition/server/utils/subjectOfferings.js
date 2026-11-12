@@ -153,6 +153,7 @@ const compare = ({ courses, assignments, sections, users, hasOfficial = true }) 
             program_id: course.program_id,
             course_no: course.course_no,
             course_title: course.course_title,
+            year_lvl: course.year_lvl || null,
             pre,
             official,
             // The account to switch to, when the official list names exactly one known instructor.

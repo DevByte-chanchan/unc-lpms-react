@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Upload } from 'react-feather'
+import { Upload, Calendar, Search } from 'react-feather'
 import SkeletonA from '../../../layouts/SkeletonA.jsx'
 import HeaderA from '../../../components/HeaderA.jsx'
 import SideNavigation from '../../../components/SideNavigation.jsx'
@@ -11,6 +11,7 @@ import { getSession } from '../../../utils/session.js'
 import table from '../../../styles/CoursesTable.module.sass'
 import SortableTh from '../../../components/SortableTh.jsx'
 import { sortRows, nextSort } from '../../../utils/tableSort.js'
+import { programShort } from '../../../utils/offeringLabels.js'
 
 // Course Assignment (Program Head). Before enrollment the Program Head pre-assigns each course to an instructor, so
 // the learning plan, COAEP and syllabus can be written early. At the end of enrollment the registrar's Subject
@@ -56,6 +57,9 @@ const CourseAssignment = () => {
   const [notice, setNotice] = useState('')
   const [busy, setBusy] = useState('')
   const [sort, setSort] = useState({ sortKey: 'course_no', sortDir: 'asc' })
+  const [query, setQuery] = useState('')
+  const [yearLevel, setYearLevel] = useState('')
+  const [programId, setProgramId] = useState('')
   const fileRef = useRef(null)
   const term = `school_year=${schoolYear}&semester=${encodeURIComponent(semester)}`
 
@@ -113,25 +117,69 @@ const CourseAssignment = () => {
     { key: 'status', label: 'STATUS', width: 190, sortValue: r => (STATUS[r.status] || STATUS.unassigned).label },
   ].map(col => ({ ...col, thStyle: cellStyle(col) }))
   const cell = (key) => cellStyle(COLUMNS.find(c => c.key === key))
-  const rows = sortRows(data?.rows || [], COLUMNS, sort.sortKey, sort.sortDir)
+  // Search (course no., name, pre-assigned or official faculty) and the year level, both on the rows already loaded.
+  const words = query.trim().toLowerCase()
+  const matches = (r) => !words || [r.course_no, r.course_title, instructorName(r.pre?.instructor_user_id), ...officialByFaculty(r.official).map(g => g.name)]
+    .some(v => String(v || '').toLowerCase().includes(words))
+  // One program at a time, as in the Course Assignment module: "BSIT: Course Assignment" over its full name, and a
+  // program picker beside it when this Program Head heads more than one. The first program with courses opens first.
+  const programs = data?.programs || []
+  const withCourses = programs.find(p => (data?.rows || []).some(r => String(r.program_id) === String(p.programId)))
+  const program = programs.find(p => String(p.programId) === programId) || withCourses || programs[0]
+  const titleCode = program ? programShort(program.name) : ''
+  const inProgram = (r) => !program || String(r.program_id) === String(program.programId)
+  const yearLevels = [...new Set((data?.rows || []).filter(inProgram).map(r => r.year_lvl).filter(Boolean))].sort()
+  const rows = sortRows((data?.rows || []).filter(r => inProgram(r) && matches(r) && (!yearLevel || r.year_lvl === yearLevel)), COLUMNS, sort.sortKey, sort.sortDir)
+  const pill = { display: 'flex', alignItems: 'center', gap: 8, height: 40, padding: '0 14px', border: '1px solid #D1D5DB', borderRadius: 9999, background: '#FFFFFF' }
 
   const content = (
     <div className={`${table['courses-table']}`}>
-      <div className={table.header}>
-        <h2>COURSE ASSIGNMENT</h2>
-        <div className={table.filterA}>
-          <Select variant="inline" value={schoolYear} onChange={(e) => setSchoolYear(e.target.value)} aria-label="School year">
-            {YEARS.map(y => <option key={y} value={y}>{y.replace('-', ' - ')}</option>)}
-          </Select>
-          <Select variant="inline" value={semester} onChange={(e) => setSemester(e.target.value)} aria-label="Semester">
-            {SEMESTERS.map(s => <option key={s} value={s}>{s === 'Summer' ? 'Summer' : `${s} Sem`}</option>)}
-          </Select>
+      {/* Program identity (as in the Course Assignment module): a dark bar, "BSIT: Course Assignment", the program's
+          full name; the action on the right; a hairline under it. */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: 12, minWidth: 0 }}>
+          <div style={{ width: 4, alignSelf: 'stretch', borderRadius: 2, background: '#18191A', flexShrink: 0 }} />
+          <div style={{ minWidth: 0 }}>
+            <h2 style={{ margin: 0, fontSize: 24, color: '#0F172A', letterSpacing: '-0.01em', lineHeight: 1.25, textTransform: 'none' }}>
+              {titleCode ? (<><span style={{ fontWeight: 800 }}>{titleCode}</span><span style={{ fontWeight: 600 }}>: Course Assignment</span></>) : <span style={{ fontWeight: 700 }}>Course Assignment</span>}
+            </h2>
+            {program && <div style={{ fontSize: 13, color: '#64748B', marginTop: 4 }}>{program.name}</div>}
+          </div>
+          {programs.length > 1 && (
+            <Select value={program ? String(program.programId) : ''} onChange={(e) => { setProgramId(e.target.value); setYearLevel('') }} aria-label="Program">
+              {programs.map(p => <option key={p.programId} value={String(p.programId)}>{programShort(p.name)}</option>)}
+            </Select>
+          )}
         </div>
-        <div className={table.fill}></div>
         <input ref={fileRef} type="file" aria-label="Subject Offerings file" accept=".xls,.xlsx" hidden onChange={(e) => importFile(e.target.files?.[0])} />
         <button type="button" className="btn btn-primary" disabled={busy === 'import'} onClick={() => fileRef.current?.click()}>
           <Upload size={16} /> {busy === 'import' ? 'Importing…' : 'Import official list'}
         </button>
+      </div>
+      <div style={{ height: 1, background: '#E5E7EB', margin: '14px 0 16px' }} />
+
+      {/* The term, then the search and the year level, above the table. */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 12 }}>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 600, color: '#18191A' }}><Calendar size={15} aria-hidden="true" /> Current Term:</span>
+        <Select variant="pill" value={`${schoolYear}|${semester}`} aria-label="Term"
+          onChange={(e) => { const [year, sem] = e.target.value.split('|'); setSchoolYear(year); setSemester(sem) }}>
+          {YEARS.flatMap(y => [...SEMESTERS].reverse().map(s => <option key={`${y}|${s}`} value={`${y}|${s}`}>{s === 'Summer' ? 'Summer' : `${s} Semester`} {y}</option>))}
+        </Select>
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
+        <label style={{ ...pill, flex: '0 1 360px', minWidth: 220 }}>
+          <Search size={16} aria-hidden="true" style={{ color: '#374151', flexShrink: 0 }} />
+          <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search by course no., name, or faculty" aria-label="Search courses"
+            style={{ border: 0, outline: 'none', background: 'transparent', width: '100%', fontSize: 14 }} />
+        </label>
+        {yearLevels.length > 1 && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <Select variant="pill" prefix="Year Level:" value={yearLevel} onChange={(e) => setYearLevel(e.target.value)} aria-label="Year level">
+              <option value="">All Year Levels</option>
+              {yearLevels.map(y => <option key={y} value={y}>{y.charAt(0) + y.slice(1).toLowerCase()}</option>)}
+            </Select>
+          </div>
+        )}
       </div>
 
       <p style={{ margin: '0 0 12px', color: 'var(--ink-muted)', fontSize: 13 }}>
@@ -139,7 +187,7 @@ const CourseAssignment = () => {
           ? `Official list (registrar's Subject Offerings): ${data.official.sections} sections, imported ${new Date(data.official.importedAt).toLocaleString()}.`
           : 'No official list for this term yet. Pre-assign the courses now; import the Subject Offerings (.xls) at the end of enrollment to compare.'}
       </p>
-      {data?.notReady?.map(p => (
+      {data?.notReady?.filter(p => !program || String(p.programId) === String(program.programId)).map(p => (
         <div key={p.programId} role="status" style={{ margin: '0 0 12px', color: 'var(--danger)' }}>
           {p.name}: complete its Program Documents before assigning courses. Missing: {p.missing.join('; ')}.
         </div>
@@ -158,8 +206,11 @@ const CourseAssignment = () => {
               </tr>
             </thead>
             <tbody>
-              {data.rows.length === 0 && (
-                <tr><td colSpan={5} style={{ textAlign: 'center', color: 'var(--ink-muted)' }}>You do not head a program with courses yet.</td></tr>
+              {data.rows.filter(inProgram).length === 0 && (
+                <tr><td colSpan={5} style={{ textAlign: 'center', color: 'var(--ink-muted)' }}>{data.rows.length ? 'This program has no courses yet.' : 'You do not head a program with courses yet.'}</td></tr>
+              )}
+              {data.rows.filter(inProgram).length > 0 && rows.length === 0 && (
+                <tr><td colSpan={5} style={{ textAlign: 'center', color: 'var(--ink-muted)' }}>No course matches the search or year level.</td></tr>
               )}
               {rows.map(row => {
                 const key = `row-${row.course_id}-${row.program_id}`

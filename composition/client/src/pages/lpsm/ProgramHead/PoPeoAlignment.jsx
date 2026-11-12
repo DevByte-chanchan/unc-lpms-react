@@ -296,7 +296,7 @@ const PoPeoAlignment = ({ tabs = null, view = 'outcomes' }) => {
       </div>
 
       <div className={pageStyles.toolbarControls}>
-        <Select variant="term" value={programId} onChange={event => { setNotice(''); setProgramId(event.target.value) }} disabled={editing} aria-label="Select program">
+        <Select variant="pill" prefix="Program:" value={programId} onChange={event => { setNotice(''); setProgramId(event.target.value) }} disabled={editing} aria-label="Select program">
             {(programs || []).map(program => <option key={program.id} value={program.id}>{program.name}</option>)}
           </Select>
       </div>
