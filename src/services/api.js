@@ -202,7 +202,16 @@ export const replaceAttachment = async (courseCode, period, id, file) => {
         method: 'PUT',
         body: formData
     });
-    if (!res.ok) throw new Error('Replace failed');
+    if (!res.ok) {
+        let errMsg = 'Replace failed';
+        try {
+            const errData = await res.json();
+            if (errData?.error) errMsg = errData.error;
+        } catch {
+            // ignore
+        }
+        throw new Error(errMsg);
+    }
     return res.json();
 };
 

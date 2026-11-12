@@ -103,8 +103,12 @@ router.put('/:code/:period/attachments/:id', lockGuard, upload.single('file'), a
 
         // Remove the previous file from disk only after the DB update succeeded
         const oldPath = path.join(uploadDir, oldFilepath);
-        if (oldFilepath !== req.file.filename && fs.existsSync(oldPath)) {
-            fs.unlinkSync(oldPath);
+        if (oldFilepath && oldFilepath !== req.file.filename && fs.existsSync(oldPath)) {
+            try {
+                fs.unlinkSync(oldPath);
+            } catch {
+                // Ignore if previous file is locked or already removed
+            }
         }
 
         res.json(attachment);
