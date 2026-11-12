@@ -49,6 +49,23 @@ async function request(path, { method = 'GET', body, headers = {}, query } = {})
   return payload;
 }
 
+/** A file download (GET): { blob, fileName } — the name from Content-Disposition. */
+async function requestFile(path, query) {
+  const url = new URL(BASE_URL + path, window.location.origin);
+  Object.entries(query || {}).forEach(([k, v]) => { if (v !== undefined && v !== null && v !== '') url.searchParams.set(k, v); });
+  const res = await fetch(url.toString(), { credentials: 'include' });
+  if (!res.ok) {
+    let message = 'Download failed (' + res.status + ')';
+    try { const j = await res.json(); if (j && j.message) message = j.message; } catch { /* not JSON */ }
+    const error = new Error(message);
+    error.status = res.status;
+    throw error;
+  }
+  const cd = res.headers.get('content-disposition') || '';
+  const m = cd.match(/filename="([^"]+)"/);
+  return { blob: await res.blob(), fileName: m ? m[1] : null };
+}
+
 function uploadFile(path, file, periodId) {
   const fd = new FormData();
   fd.append('file', file);
@@ -252,6 +269,9 @@ export const CourseOfferingAssignmentsAPI = {
   remove: (id) => request(idPath('/course-offering-assignments', id), { method: 'DELETE' }),
   // Teaching load per faculty member: { max_units, faculty: [...], course_units }
   load: (periodId, programId) => request('/course-offering-assignments/load', { query: { period_id: periodId, program_id: programId || undefined } }),
+  // The final list: Excel ({ blob, fileName }) or the rows for the PDF.
+  exportXlsx: (periodId, programId) => requestFile('/course-offering-assignments/export', { period_id: periodId, program_id: programId, format: 'xlsx' }),
+  exportRows: (periodId, programId) => request('/course-offering-assignments/export', { query: { period_id: periodId, program_id: programId, format: 'json' } }),
   // The program's course offerings this term: { offered, codes }
   offered: (periodId, programId) => request('/course-offering-assignments/offered', { query: { period_id: periodId, program_id: programId } }),
   // Send the course's notice / invitation again to one Lead or Contributor. { message }

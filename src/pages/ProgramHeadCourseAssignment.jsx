@@ -44,6 +44,7 @@ import OfficialCompareModal from "../components/OfficialCompareModal.jsx";
 import TeachingLoadDialog from "../components/TeachingLoadDialog.jsx";
 import { leadLoadWarning } from "../utils/teachingLoad.js";
 import { progressOf, matchesProgress } from "../utils/assignmentProgress.js";
+import { downloadAssignmentsXlsx, downloadAssignmentsPdf } from "../utils/exportAssignments.js";
 
 // The sections this person handles on the course, from the official list
 // (row.sections = [{ faculty_id, faculty_name, sections }]) — matched by id, else name.
@@ -62,7 +63,7 @@ const SectionsLine = ({ sections }) => (sections && sections.length ? (
     {sections.join(', ')}
   </span>
 ) : null);
-import { Search, Upload, Plus, Clipboard, Edit3, ChevronDown, Check, AlertTriangle, RefreshCw, GitPullRequest, BarChart2 } from "react-feather";
+import { Search, Upload, Plus, Clipboard, Edit3, ChevronDown, Check, AlertTriangle, RefreshCw, GitPullRequest, BarChart2, Download } from "react-feather";
 import styles from '../styles/CoursesTable.module.sass';
 import syllabusStyles from '../styles/SyllabusSections.module.sass';
 import { CourseOfferingAssignmentsAPI, CoursesAPI, FacultyAPI } from '../services/api.js';
@@ -139,6 +140,9 @@ const ProgramHeadCourseAssignment = () => {
   // Progress strip: the program's offerings this term, and the part clicked (a table filter).
   const [offered, setOffered]                 = React.useState(null);
   const [progressFilter, setProgressFilter]   = React.useState(null); // null | 'assigned' | 'notified' | 'not_notified'
+  // Download menu: open?, and which file is being made ('xlsx' | 'pdf').
+  const [downloadOpen, setDownloadOpen]       = React.useState(false);
+  const [downloading, setDownloading]         = React.useState(null);
 
   const refresh = React.useCallback(() => {
     if (!periodId) { setAssignments([]); setCourses([]); setFaculty([]); setAssignmentsPeriod(null); return; }
@@ -178,6 +182,20 @@ const ProgramHeadCourseAssignment = () => {
   }, [periodId, selectedProgramId]);
 
   const progress = React.useMemo(() => progressOf(assignments, { programId: selectedProgramId, offered }), [assignments, selectedProgramId, offered]);
+
+  const onDownload = async (format) => {
+    setDownloadOpen(false);
+    if (downloading || !periodId || !selectedProgramId) return;
+    setDownloading(format);
+    try {
+      if (format === 'xlsx') await downloadAssignmentsXlsx(periodId, selectedProgramId);
+      else await downloadAssignmentsPdf(periodId, selectedProgramId);
+    } catch (err) {
+      showToast(err.message || 'The download failed.');
+    } finally {
+      setDownloading(null);
+    }
+  };
 
   // Under Lead Faculty: a warning only, saving stays allowed.
   const loadHelper = (editingId) => (values) => {
@@ -522,6 +540,28 @@ const ProgramHeadCourseAssignment = () => {
                   <span style={{ background: '#FEE2E2', color: '#991B1B', borderRadius: 9999, padding: '1px 7px', fontSize: 12, fontWeight: 700 }}>{load.faculty.filter((f) => f.over_by > 0).length} over</span>
                 )}
               </button>
+            )}
+            {showTable && (
+              <div style={{ position: 'relative' }}>
+                <button type="button" onClick={() => setDownloadOpen((v) => !v)} disabled={!selectedProgramId || !!downloading}
+                  aria-haspopup="menu" aria-expanded={downloadOpen}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 40, padding: '0 14px', background: '#FFFFFF', border: '1px solid #D1D5DB', borderRadius: 6, color: '#374151', cursor: downloading ? 'wait' : 'pointer', whiteSpace: 'nowrap' }}>
+                  <Download size={18} /> {downloading ? 'Preparing…' : 'Download'} <ChevronDown size={15} />
+                </button>
+                {downloadOpen && (
+                  <>
+                    <div onClick={() => setDownloadOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 4 }} />
+                    <div role="menu" style={{ position: 'absolute', top: '110%', right: 0, background: '#FFFFFF', border: '1px solid #D1D5DB', borderRadius: 8, boxShadow: '0 8px 24px rgba(0,0,0,0.12)', minWidth: 200, padding: 6, zIndex: 5 }}>
+                      {[['xlsx', 'Excel (.xlsx)'], ['pdf', 'PDF']].map(([k, label]) => (
+                        <button key={k} type="button" role="menuitem" onClick={() => onDownload(k)}
+                          style={{ display: 'block', width: '100%', textAlign: 'left', background: 'transparent', border: 'none', padding: '8px 10px', borderRadius: 6, fontSize: 13, color: '#18191A', cursor: 'pointer' }}>
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
             )}
             {showTable && (
               <ActionBtn variant="white" onClick={() => setShowCompare(true)} disabled={!periodId || !isCurrentTermActive || !selectedProgramId}

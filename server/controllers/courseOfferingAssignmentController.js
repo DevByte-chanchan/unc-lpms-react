@@ -51,6 +51,7 @@ import { recordChange, recordEvent, recordListChanges, historyFor, latestChanges
 import { courseKey, sameLead, stateOf, programKey as programIdKey } from '../utils/assignmentDiff.js';
 import { computeTeachingLoad, maxTeachingUnits } from '../utils/teachingLoad.js';
 import { findScheduleConflicts } from '../utils/scheduleConflicts.js';
+import { exportRecords, exportBaseName, buildAssignmentsXlsx, EXPORT_COLUMNS } from '../utils/assignmentExport.js';
 
 const { CourseOfferingAssignment, Course, Faculty, AcademicPeriod, Program } = db;
 
@@ -392,6 +393,40 @@ export async function getOfferedCourses(req, res, next) {
     })).map((o) => Number(o.course_id)));
     const codes = courses.filter((c) => offered.has(Number(c.course_id))).map((c) => c.course_no).sort();
     return res.json({ period_id, program_id, offered: codes.length, codes });
+  } catch (err) { return next(err); }
+}
+
+/**
+ * GET /export?period_id=&program_id=&format=xlsx|json — the final course
+ * assignment list (utils/assignmentExport.js). xlsx: the Excel download.
+ * json: the same rows for the PDF, which the browser builds in the UNC form.
+ */
+export async function exportCourseOfferingAssignments(req, res, next) {
+  try {
+    const period_id = getPeriodId(req);
+    const program_id = Number(req.query.program_id) || null;
+    if (!period_id || !program_id) return res.status(400).json({ message: 'period_id and program_id are required' });
+    const format = String(req.query.format || 'xlsx').toLowerCase();
+    if (!['xlsx', 'json'].includes(format)) return res.status(400).json({ message: 'format must be xlsx or json' });
+    const [period, program] = await Promise.all([
+      AcademicPeriod.findByPk(period_id, { attributes: ['id', 'label'] }),
+      Program.findByPk(program_id, { attributes: ['id', 'code', 'name'] }),
+    ]);
+    if (!period || !program) return res.status(404).json({ message: 'No such term or program.' });
+    const rows = (await CourseOfferingAssignment.findAll({ where: { period_id } }))
+      .filter((r) => programIdKey(r.program_id) === programIdKey(program.id));
+    const delivery = await deliveryFor(rows, period_id).catch((err) => { console.error('[export] delivery failed:', err.message); return new Map(); });
+    const records = exportRecords(rows.map((r) => r.get({ plain: true })), delivery);
+    const meta = { programCode: program.code, programName: program.name, termLabel: period.label };
+    const base = exportBaseName(program.code, period.label);
+    if (format === 'json') return res.json({ ...meta, file_base: base, columns: EXPORT_COLUMNS, rows: records });
+    const buf = buildAssignmentsXlsx(records, meta);
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', 'attachment; filename="' + base + '.xlsx"');
+    res.setHeader('Cache-Control', 'private, no-store');
+    // The page is on another origin (Vite): let it read the file name.
+    res.setHeader('Access-Control-Expose-Headers', 'Content-Disposition');
+    return res.send(buf);
   } catch (err) { return next(err); }
 }
 
