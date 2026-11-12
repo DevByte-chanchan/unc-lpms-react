@@ -693,3 +693,26 @@ table.approvalTable
 .pendingText
   color: #f59e0b
   font-style: italic
+
+// The approver's "Export all as ZIP" and its Stop: as tall and round as the search box beside them
+// (under .tableControlsOuter so it outranks the global button.btn-sm.btn-sm in index.css).
+.tableControlsOuter button.termExport.termExport
+  display: inline-flex
+  align-items: center
+  gap: 6px
+  height: 40px
+  padding: 0 16px
+  margin-right: 20px
+  border-radius: 20px
+  white-space: nowrap
+
+// Phone width: the search takes its own line, Export and the view toggles share the next.
+@media (max-width: 640px)
+  .tableControlsOuter:has(.termExport)
+    flex-wrap: wrap
+    row-gap: 10px
+    .searchContainer
+      flex-basis: 100%
+      margin-right: 0
+    button.termExport.termExport
+      margin-right: auto

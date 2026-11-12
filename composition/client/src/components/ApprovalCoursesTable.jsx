@@ -179,8 +179,8 @@ const ApprovalCoursesTable = ({ role = 'approver', styleHooks = {} }) => {
       }
     }
 
-    // Every approved plan of the term in view as one PDF: each plan's server PDF (its program's front pages first),
-    // joined in the order of the list. A plan that cannot be made is skipped and named at the end.
+    // Every approved plan of the term in view as one ZIP: one PDF per plan (its program's front pages first), named
+    // by course code. A plan that cannot be made is skipped and named at the end.
     // The server renders one page at a time (up to a minute each), so a long term takes a while: progress shows,
     // Stop ends it after the plan in hand and saves nothing.
     const [termProgress, setTermProgress] = useState(null);
@@ -190,10 +190,12 @@ const ApprovalCoursesTable = ({ role = 'approver', styleHooks = {} }) => {
       if (!rows.length) return;
       stopTerm.current = false;
       setTermProgress(`0 / ${rows.length}`);
-      const [{ renderPdfOnServer }, { joinPdfs }] = await Promise.all([import('../utils/serverPdf.js'), import('../utils/frontPages.js')]);
+      const [{ renderPdfOnServer }, { joinPdfs }, { makeZip, uniqueName }] = await Promise.all([
+        import('../utils/serverPdf.js'), import('../utils/frontPages.js'), import('../utils/zip.js')]);
       const logoUrl = new URL(unclogo, window.location.origin).href;
       const failed = [];
-      const parts = [];
+      const files = [];
+      const names = new Set();
       for (let i = 0; i < rows.length; i++) {
         if (stopTerm.current) { setTermProgress(null); return; }
         setTermProgress(`${i + 1} / ${rows.length}`);
@@ -203,21 +205,20 @@ const ApprovalCoursesTable = ({ role = 'approver', styleHooks = {} }) => {
           const file = await buildSyllabusExportFile({ pcId: getOfferingID(row), revNum: (row.ProgramCourseOffering || {}).revision_number || 1, code, workflow: null, logoUrl });
           const html = await (await fetch(file.file_url)).text();
           URL.revokeObjectURL(file.file_url);
-          if (file.front_pdf) parts.push(file.front_pdf);
-          parts.push(await renderPdfOnServer(html));
+          const plan = await renderPdfOnServer(html);
+          const pdf = file.front_pdf ? await joinPdfs(file.front_pdf, plan) : plan;
+          files.push({ name: uniqueName(names, code, '.pdf'), bytes: new Uint8Array(pdf) });
         } catch (err) {
           console.warn(`Term export skipped ${code}:`, err?.message || err);
           failed.push(code);
         }
       }
-      if (stopTerm.current) { setTermProgress(null); return; }
-      setTermProgress('joining');
-      const all = parts.length ? await joinPdfs(...parts) : null;
       setTermProgress(null);
-      if (all) {
+      if (stopTerm.current) return;
+      if (files.length) {
         const link = document.createElement('a');
-        link.href = URL.createObjectURL(new Blob([all], { type: 'application/pdf' }));
-        link.download = `Approved learning plans ${selectedYear}-${Number(selectedYear) + 1} ${selectedSem}.pdf`.replace(/\s+/g, ' ');
+        link.href = URL.createObjectURL(new Blob([makeZip(files)], { type: 'application/zip' }));
+        link.download = `Approved learning plans ${selectedYear}-${Number(selectedYear) + 1} ${selectedSem}.zip`.replace(/\s+/g, ' ');
         link.click();
         setTimeout(() => URL.revokeObjectURL(link.href), 10000);
       }
@@ -428,14 +429,14 @@ const ApprovalCoursesTable = ({ role = 'approver', styleHooks = {} }) => {
                         aria-label="Search course code or name"
                     />
                 </div>
-                {selectedStatus === 'APPROVED' && EXPORT_ROLES.includes(role) && role !== 'instructor' && sortedRows.length > 0 && (
-                    <button type="button" className="btn btn-secondary btn-sm" onClick={exportTerm} disabled={termProgress !== null}
-                        title="Every approved plan in this list as one PDF, each with its program's front pages">
-                        <Download size={14} /> {termProgress === 'stopping' ? 'Stopping after this plan…' : termProgress === 'joining' ? 'Joining into one PDF…' : termProgress ? `Exporting ${termProgress}…` : `Export all (${sortedRows.length}) as one PDF`}
+                {selectedStatus === 'APPROVED' && EXPORT_ROLES.includes(role) && role !== 'instructor' && sortedRows.length >= 2 && (
+                    <button type="button" className={`btn btn-secondary btn-sm ${styles.termExport}`} onClick={exportTerm} disabled={termProgress !== null}
+                        title="Every approved plan in this list as a ZIP: one PDF per plan, each with its program's front pages">
+                        <Download size={14} /> {termProgress === 'stopping' ? 'Stopping after this plan…' : termProgress ? `Exporting ${termProgress}…` : `Export all (${sortedRows.length}) as ZIP`}
                     </button>
                 )}
-                {termProgress !== null && termProgress !== 'joining' && (
-                    <button type="button" className="btn btn-secondary btn-sm" onClick={() => { stopTerm.current = true; setTermProgress('stopping'); }}
+                {termProgress !== null && (
+                    <button type="button" className={`btn btn-secondary btn-sm ${styles.termExport}`} onClick={() => { stopTerm.current = true; setTermProgress('stopping'); }}
                         disabled={termProgress === 'stopping'}>Stop</button>
                 )}
                 {!notSubmitted && (
