@@ -229,6 +229,22 @@ export default function OfficialCompareModal({ open, onClose, periodId, programI
           </div>
         )}
 
+        {/* Information only: Apply never waits on these. */}
+        {result && Array.isArray(result.schedule_conflicts) && result.schedule_conflicts.length > 0 && (
+          <div role="note" aria-label="Schedule conflicts" style={{ padding: '10px 12px', margin: '4px 0 8px', background: '#FFF7ED', border: '1px solid #FED7AA', borderRadius: 8, color: '#9A3412', fontSize: 12.5 }}>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', fontWeight: 700 }}>
+              <AlertTriangle size={15} style={{ flexShrink: 0 }} />
+              Schedule conflicts ({result.schedule_conflicts.length})
+            </div>
+            <div style={{ marginTop: 2, color: '#9A3412' }}>The same teacher in two classes at once in the registrar&apos;s file. For your information; it doesn&apos;t stop Apply.</div>
+            <ul style={{ margin: '6px 0 0', paddingLeft: 22 }}>
+              {result.schedule_conflicts.map((c) => (
+                <li key={c.text} style={{ margin: '2px 0' }}>{c.text}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
         {result && rows.length === 0 && <div style={{ fontSize: 14, color: '#6B7280', padding: '20px 0' }}>No {result.program} courses in this file, and nothing pre-assigned.</div>}
 
         {result && GROUPS.map((g) => {

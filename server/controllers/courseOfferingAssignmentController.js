@@ -50,6 +50,7 @@ import { markDirty, accountsInvolved, accountsOnRow } from '../services/notices.
 import { recordChange, recordEvent, recordListChanges, historyFor, latestChanges } from '../services/assignmentHistory.js';
 import { courseKey, sameLead, stateOf, programKey as programIdKey } from '../utils/assignmentDiff.js';
 import { computeTeachingLoad, maxTeachingUnits } from '../utils/teachingLoad.js';
+import { findScheduleConflicts } from '../utils/scheduleConflicts.js';
 
 const { CourseOfferingAssignment, Course, Faculty, AcademicPeriod, Program } = db;
 
@@ -922,6 +923,20 @@ export async function compareOfficialOfferings(req, res) {
     const counts = { confirmed: 0, differs: 0, not_offered: 0, new: 0 };
     comparison.forEach((r) => { counts[r.case] += 1; });
 
+    // Same person, same day, overlapping times — across the WHOLE file (they may
+    // also teach in another program), reported when one side is this program's.
+    // Information only: never blocks Apply.
+    const programCourseNos = new Set(offerings.map((o) => o.courseNo));
+    let schedule_conflicts = [];
+    try {
+      schedule_conflicts = findScheduleConflicts(parsed.offerings, {
+        relevant: (o) => programCourseNos.has(o.courseNo),
+        nameOf: (n) => { const f = matchFacultyName(n, facultyList); return displayName(f ? f.name : n); },
+      });
+    } catch (err) {
+      console.error('[compare] schedule conflicts skipped:', err.message);
+    }
+
     if (isPreviewRequest(req)) {
       // A file for the other semester would make every course "not offered".
       const period = await AcademicPeriod.findByPk(period_id, { attributes: ['label', 'semester'] });
@@ -938,6 +953,7 @@ export async function compareOfficialOfferings(req, res) {
         counts,
         // Registrar names that matched no one in this term's faculty list.
         unmatched: [...new Set(official.flatMap((c) => c.people.filter((p) => !p.matched).map((p) => p.registrar_name)))],
+        schedule_conflicts,
         rows: comparison,
       });
     }
