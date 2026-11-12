@@ -3,7 +3,6 @@
  * React fetch layer can always read `error.message`.
  */
 export function errorHandler(err, _req, res, _next) {
-  // eslint-disable-next-line no-console
   console.error('[error]', err);
   const status = err.status || err.statusCode || 500;
   res.status(status).json({

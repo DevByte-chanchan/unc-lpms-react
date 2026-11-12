@@ -75,7 +75,7 @@ const SideNavigation = ({ mode: requestedMode = 'instructor' }) => {
                 }
             })
             ro.observe(navRef.current)
-        } catch (e) {}
+        } catch (e) { /* no ResizeObserver: the nav keeps its first size */ }
         return () => { if (ro && navRef.current) ro.disconnect() }
     }, [])
 
@@ -89,7 +89,7 @@ const SideNavigation = ({ mode: requestedMode = 'instructor' }) => {
                     const w = window.getComputedStyle(n).width
                     const num = parseFloat(w)
                     if (!isNaN(num) && num <= 110) return n
-                } catch (e) {}
+                } catch (e) { /* not an element with a style: keep walking up */ }
                 n = n.parentElement
             }
             return null

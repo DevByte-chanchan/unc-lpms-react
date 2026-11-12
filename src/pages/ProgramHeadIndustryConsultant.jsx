@@ -15,7 +15,6 @@ import UndoUploadButton from "../components/UndoUploadButton.jsx";
 import UploadPreviewFlow from "../components/UploadPreviewFlow.jsx";
 import DialogShell from "../components/DialogShell.jsx";
 import { RecordMeta } from "../components/RecordTimestamps.jsx";
-import styles from '../styles/CoursesTable.module.sass';
 import syllabusStyles from '../styles/SyllabusSections.module.sass';
 import dd from '../styles/DropdownMenu.module.sass';
 import { ConsultantsAPI, CoursesAPI, FacultyAPI, HealthAPI } from '../services/api.js';
@@ -502,7 +501,7 @@ const ProgramHeadIndustryConsultant = () => {
   };
 
 
-  const openAssign = (consultant) => {
+  const _openAssign = (consultant) => {
     setSelectedConsultant(consultant);
     setPickedCourseCodes(consultantCourseCodes(consultant));
     // Default to current status; "" means user hasn't chosen yet

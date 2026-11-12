@@ -89,7 +89,7 @@ const ReferenceForm = () => {
             if (!formData.link.trim()) {
                 newErrors.link = "Link URL is required.";
             } else {
-                const urlPattern = /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/;
+                const urlPattern = /^(https?:\/\/)?([\da-z.-]+)\.([a-z.]{2,6})([/\w .-]*)*\/?$/;
                 if (!urlPattern.test(formData.link)) {
                     newErrors.link = "Please enter a valid URL (e.g., https://example.com).";
                 }

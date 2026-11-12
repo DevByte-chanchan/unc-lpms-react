@@ -63,7 +63,7 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
   }
 
   // Get current approver identity based on approverRole or fallback
-  const getApproverIdentity = (index = 0) => {
+  const _getApproverIdentity = (index = 0) => {
     try {
       // If approverRole is provided, use its mapping
       if (approverRole) {
@@ -135,7 +135,7 @@ const ApprovalCommentBox = ({ show = false, onClose, onSubmit, courseOutcomes = 
     }
   }, [comments, approverRole])
 
-  const toggleCommentComponent = (commentId, key) => {
+  const _toggleCommentComponent = (commentId, key) => {
     setComments((prev) =>
       prev.map((c) => (c.id === commentId ? { ...c, components: { ...c.components, [key]: !c.components[key] } } : c))
     )

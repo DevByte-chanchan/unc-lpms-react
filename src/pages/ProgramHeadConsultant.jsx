@@ -32,7 +32,7 @@ const ProgramHeadConsultant = () => {
   const [selectedConsultantIndex, setSelectedConsultantIndex] = React.useState(null);
   const [selectedFile, setSelectedFile] = React.useState(null);
   const fileInputRef = React.useRef(null);
-  const programName = 'Bachelor of Science in Information Technology';
+  const _programName = 'Bachelor of Science in Information Technology';
   // Upload-first: no table initially
   const consultant = { name: 'Dennis Ignacio', department: 'School of Computer and Information Sciences' };
   const courses = [

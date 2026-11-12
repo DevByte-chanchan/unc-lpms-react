@@ -170,7 +170,7 @@ export async function getProgram(req, res, next) {
   } catch (err) { next(err); }
 }
 
-export async function createProgram(req, res, next) {
+export async function createProgram(req, res, _next) {
   try {
     const { code, name, program_head, status } = req.body;
     const period_id = getPeriodId(req);

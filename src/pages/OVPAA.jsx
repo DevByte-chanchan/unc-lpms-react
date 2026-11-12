@@ -40,6 +40,7 @@ const OVPAA = () => {
         return <OVPAAUniversityStatements key="university-vmgo" userName={name} />;
       case 'Dashboard':
       // Back-compat: old links may still say "Academic Term".
+      // falls through
       case 'Academic Term':
       default:
         return <AcademicTerms key="dashboard" />;

@@ -563,7 +563,10 @@ test('seed CLI fails fast with a non-UNC ADMIN_EMAIL', { skip }, () => {
 
 test.after(async () => { if (reachable) await sequelize.close(); });
 
-test('links: an account finds its faculty row by email, never by a shared name', { skip }, async (t) => {
+// The email wins over a shared name. With no row carrying the email at all (a
+// blank or different email in the uploaded list, a row cloned into a new term)
+// the account falls back to its name, like the rest of the app (61eaf91).
+test('links: an account finds its faculty row by email first, then by name', { skip }, async (t) => {
   const stamp = Date.now();
   const tag = 'link-test-' + stamp;
   const email = tag + '@unc.edu.ph';
@@ -573,10 +576,12 @@ test('links: an account finds its faculty row by email, never by a shared name',
     await period.destroy();
   });
   const mine = await db.Faculty.create({ name: 'Someone Else Entirely', role: 'Instructor', email, status: 'Active', period_id: period.id });
-  await db.Faculty.create({ name: 'Same Name', role: 'Instructor', email: tag + '-other@unc.edu.ph', status: 'Active', period_id: period.id });
+  const named = await db.Faculty.create({ name: 'Same Name', role: 'Instructor', email: tag + '-other@unc.edu.ph', status: 'Active', period_id: period.id });
 
   const linked = await resolveLinks({ email, display_name: 'Same Name' }, period.id);
   assert.equal(linked.facultyId, mine.id, 'the row with the email, whatever its name');
-  const unlinked = await resolveLinks({ email: tag + '-nobody@unc.edu.ph', display_name: 'Same Name' }, period.id);
-  assert.equal(unlinked.facultyId, null, 'a matching name alone links nothing');
+  const byName = await resolveLinks({ email: tag + '-nobody@unc.edu.ph', display_name: 'Same Name' }, period.id);
+  assert.equal(byName.facultyId, named.id, 'no row has the email: the name decides');
+  const nobody = await resolveLinks({ email: tag + '-nobody@unc.edu.ph', display_name: 'Nobody Here' }, period.id);
+  assert.equal(nobody.facultyId, null, 'neither email nor name: no link');
 });

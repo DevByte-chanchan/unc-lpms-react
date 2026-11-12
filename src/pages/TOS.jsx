@@ -3,7 +3,7 @@ import Header from "../components/HeaderA.jsx";
 import TosSections from "../components/TosSections.jsx";
 import SideNavigation from "../components/SideNavigation.jsx";
 
-const TOS = ({}) => {
+const TOS = () => {
     return (
         <Skeleton
             header={<Header />}

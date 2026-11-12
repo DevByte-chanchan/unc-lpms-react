@@ -248,7 +248,7 @@ test('course assignment tracking', { skip }, async (t) => {
     const by = Object.fromEntries(preview.json.rows.map((r) => [r.course_code, r]));
     assert.equal(by.BIT213L.case, 'confirmed');
     assert.equal(by.BIT112L.case, 'differs');
-    assert.deepEqual(by.BIT112L.add.map((p) => p.faculty_name), ['DIMACULANGAN MCLYN']);
+    assert.deepEqual(by.BIT112L.add.map((p) => p.faculty_name), ['Dimaculangan McLyn'], 'shown in normal case (displayName)');
     assert.equal(by.BIT112L.remove.length, 0);
     assert.equal(by.BIT112L.needs_lead, false);
     assert.equal((await db.CourseOfferingAssignment.count({ where: { period_id: HTTP_PERIOD, official_confirmed_at: { [Op.ne]: null } } })), 0, 'preview writes nothing');
@@ -264,7 +264,7 @@ test('course assignment tracking', { skip }, async (t) => {
     assert.ok(r213.official_confirmed_at && r112.official_confirmed_at);
     assert.deepEqual(r213.sections.map((s) => s.faculty_name), ['Danny B. Casimero']);
     assert.ok(r213.sections[0].sections.includes('BIT213L-OBa'));
-    assert.deepEqual(r112.contributors.map((c) => c.faculty_name), ['DIMACULANGAN MCLYN']);
+    assert.deepEqual(r112.contributors.map((c) => c.faculty_name), ['Dimaculangan McLyn']);
     const hist = await db.CourseAssignmentHistory.findAll({ where: { period_id: HTTP_PERIOD, source: 'official_match' }, order: [['id', 'ASC']] });
     assert.deepEqual(hist.map((h) => [h.course_code, h.action]), [['BIT112L', 'official_updated'], ['BIT213L', 'official_confirmed']]);
 

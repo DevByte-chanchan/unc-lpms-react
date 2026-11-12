@@ -13,7 +13,6 @@
  *   kind: 'pdf' | 'png' | 'jpg' | 'webp'  (from sniffKind — never the file name)
  *   ai:   an injected reader (image buffer → transcript), for the tests
  */
-/* global process, Buffer */ // Node globals: the root ESLint config lints server/ with browser globals.
 import path from 'node:path';
 import { createRequire } from 'node:module';
 import sharp from 'sharp';

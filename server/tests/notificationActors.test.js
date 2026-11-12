@@ -1,4 +1,3 @@
-/* global process */
 /**
  * Who a notification is from, who gets one, and who may change Program Head.
  *

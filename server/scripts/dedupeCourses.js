@@ -8,7 +8,6 @@
  * course — it archives, so View Archived can restore anything. See
  * utils/dedupeCourses.js for what it looks for.
  */
-/* global process */ // Node globals: the root ESLint config lints server/ with browser globals.
 import dotenv from 'dotenv';
 import db from '../models/index.js';
 import { planDedupe, applyDedupe, describeAction } from '../utils/dedupeCourses.js';

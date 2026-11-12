@@ -5,7 +5,6 @@
  * trap), the First Semester block in the middle, Second Semester and Summer
  * stacked on the right. Hand-written PDF operators, the standard Helvetica fonts.
  */
-/* global Buffer */
 import { CALENDAR_2026_ROWS } from './schoolCalendar2026Rows.js';
 
 const W = 792; // landscape letter

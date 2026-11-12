@@ -24,6 +24,9 @@ export default defineConfig([
     },
     rules: {
       'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]', argsIgnorePattern: '^_', caughtErrors: 'none' }],
+      // Fast refresh only: a file that also exports a helper still works, it
+      // just reloads fully in development. A warning, not a CI failure.
+      'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
     },
   },
   // The API, its scripts and tests run on Node, not in the browser.

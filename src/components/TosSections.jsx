@@ -7,7 +7,7 @@ import TOSPreview from "../pages/TosPreview.jsx";
 import TOSSummary from "../pages/TosSummary.jsx";
 import QuestionCognitiveMapping from "../pages/QuestionCognitiveMapping.jsx";
 
-const tosSections = ({status}) => {
+const TosSections = () => {
 
     const [questions, setQuestions] = useState([]);
     const [isPreviewOpen, setIsPreviewOpen] = useState(false);
@@ -429,4 +429,4 @@ const tosSections = ({status}) => {
     )
 }
 
-export default tosSections;
+export default TosSections;

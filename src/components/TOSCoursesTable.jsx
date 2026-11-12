@@ -2,7 +2,7 @@ import React, {useState} from 'react';
 import {Link} from 'react-router-dom'
 import styles from '../styles/CoursesTable.module.sass';
 import { ChevronRight } from 'react-feather';
-const TOSCoursesTable = ({}) => {
+const TOSCoursesTable = () => {
 
     const currentYear = new Date().getFullYear();
     const startYear = 2000;

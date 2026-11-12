@@ -5,12 +5,12 @@ import { Info } from 'react-feather';
 import React, {useEffect, useState} from "react";
 import TextField from "./TextField.jsx";
 import TextArea from "./TextArea.jsx";
-import {Link, useNavigate, useParams, useSearchParams} from "react-router-dom";
+import {Link, useParams, useSearchParams} from "react-router-dom";
 import {getSyllabusByCode} from "../data/syllabiData.js";
 import TOSPreview from "../pages/TosPreview.jsx";
 import SyllabusPreview from "./SyllabusPreview.jsx";
 
-const syllabusSections = ({status}) => {
+const SyllabusSections = () => {
 
     const [searchParams, setSearchParams] = useSearchParams();
     const selectedSection = searchParams.get('section') || 'Course Details';
@@ -59,7 +59,7 @@ const syllabusSections = ({status}) => {
         },
     ];
 
-    const programOutcomes = ['PO1', 'PO2', 'PO3', 'PO4', 'PO5', 'PO6', 'PO7', 'PO8', 'PO9'];
+    const _programOutcomes = ['PO1', 'PO2', 'PO3', 'PO4', 'PO5', 'PO6', 'PO7', 'PO8', 'PO9'];
 
     const CriteriaForm = React.lazy(() => import('../pages/CriteriaForGradingForm.jsx'));
 
@@ -229,7 +229,7 @@ const syllabusSections = ({status}) => {
 
                                         <tbody>
                                         {/* Loop over each item in the courseOutcomes array */}
-                                        {courseOutcomes.map((co, coIndex) => (
+                                        {courseOutcomes.map((co) => (
                                             <tr key={co.id}>
 
                                                 {/* Column 1: Course Outcome ID */}
@@ -518,4 +518,4 @@ const syllabusSections = ({status}) => {
     )
 }
 
-export default syllabusSections;
+export default SyllabusSections;

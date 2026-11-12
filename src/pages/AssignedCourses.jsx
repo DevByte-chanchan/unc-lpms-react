@@ -4,7 +4,7 @@ import HeaderA from "../components/HeaderA.jsx";
 import CoursesTable from "../components/CoursesTable.jsx";
 import SideNavigation from "../components/SideNavigation.jsx";
 
-const Syllabus = ({}) => {
+const Syllabus = () => {
 
     return (
         <SkeletonA

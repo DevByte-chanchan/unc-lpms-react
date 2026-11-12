@@ -9,7 +9,6 @@
  * same two calls POST /imports/:id/undo makes (restoreSnapshot +
  * undoBatchDocuments), because that route only undoes in the live active term.
  */
-/* global process, Buffer */ // Node globals: the root ESLint config lints server/ with browser globals.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';

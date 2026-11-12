@@ -2,9 +2,8 @@ import {useState} from 'react';
 import {Link} from 'react-router-dom'
 import styles from '../styles/CoursesTable.module.sass';
 import { ChevronRight, Edit, CheckCircle, Clock, XCircle, Download } from 'react-feather';
-import { syllabiData } from '../data/syllabiData';
 
-const CoursesTable = ({}) => {
+const CoursesTable = () => {
 
     const currentYear = new Date().getFullYear();
     const startYear = 2000;

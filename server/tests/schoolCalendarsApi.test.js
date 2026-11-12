@@ -7,7 +7,6 @@
  * is the sample re-encoded with a marker, so its sha256 is this run's own and
  * no calendar kept in the dev database is touched.
  */
-/* global process, Buffer */
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';

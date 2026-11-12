@@ -4,17 +4,17 @@ import { Info } from 'react-feather';
 import React, {useEffect, useState} from "react";
 import TextField from "./TextField.jsx";
 import TextArea from "./TextArea.jsx";
-import {Link, useNavigate, useParams, useSearchParams} from "react-router-dom";
+import {Link, useParams, useSearchParams} from "react-router-dom";
 import {getSyllabusByCode, syllabiData} from "../data/syllabiData.js";
 import SyllabusPreview from "./SyllabusPreview.jsx";
 
-const SyllabusRevisionsSections = ({status}) => {
+const SyllabusRevisionsSections = () => {
 
     const [searchParams, setSearchParams] = useSearchParams();
     const selectedSection = searchParams.get('section') || 'Course Details';
 
     // syllabus code from route (ensure this is available to effects that load/save comments)
-    const { code, approver } = useParams();
+    const { code } = useParams();
 
     // Loading State
     const [isLoading, setIsLoading] = useState(false);
@@ -87,7 +87,7 @@ const SyllabusRevisionsSections = ({status}) => {
         },
     ];
 
-    const programOutcomes = ['PO1', 'PO2', 'PO3', 'PO4', 'PO5', 'PO6', 'PO7', 'PO8', 'PO9'];
+    const _programOutcomes = ['PO1', 'PO2', 'PO3', 'PO4', 'PO5', 'PO6', 'PO7', 'PO8', 'PO9'];
 
     const CriteriaForm = React.lazy(() => import('../pages/CriteriaForGradingForm.jsx'));
 
@@ -101,7 +101,7 @@ const SyllabusRevisionsSections = ({status}) => {
     useEffect(() => { setEditableSyllabus(syllabus) }, [syllabus])
     
     // basic prompt-based editors
-    const editTopic = (topicId) => {
+    const _editTopic = (topicId) => {
         const topic = (editableSyllabus?.topics || []).find(t => t.id === topicId)
         if (!topic) return
         const newTitle = window.prompt('Edit topic title', topic.title || '')
@@ -113,7 +113,7 @@ const SyllabusRevisionsSections = ({status}) => {
         setEditableSyllabus({ ...editableSyllabus, topics: updatedTopics })
     }
 
-    const editAssessment = (assessmentId) => {
+    const _editAssessment = (assessmentId) => {
         const assess = (editableSyllabus?.assessments || []).find(a => a.id === assessmentId)
         if (!assess) return
         const newMethod = window.prompt('Edit assessment method for ' + (assess.tlaName || assessmentId), assess.assessmentMethod || '')
@@ -322,7 +322,7 @@ const SyllabusRevisionsSections = ({status}) => {
                                                 </thead>
 
                                                 <tbody>
-                                                {courseOutcomes.map((co, coIndex) => (
+                                                {courseOutcomes.map((co) => (
                                                     <tr key={co.id}>
                                                         <td className={styles.courseNo}>
                                                             {co.id}

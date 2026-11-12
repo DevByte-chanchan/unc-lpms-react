@@ -1,0 +1,81 @@
+# Build, lint and test on every push and pull request.
+#
+# The server's database tests skip with "database not reachable" when there is
+# no MySQL; here a mysql:8 service is always there, so they all run. The schema
+# is built the way the API builds it on boot (npm run db:sync), then the
+# migrations made since the move to sync({ alter: true }) are applied.
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    services:
+      mysql:
+        image: mysql:8
+        env:
+          MYSQL_ROOT_PASSWORD: ci_root_password
+          MYSQL_DATABASE: course_assignment
+          MYSQL_USER: ca_user
+          MYSQL_PASSWORD: ca_password
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -pci_root_password"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=30
+
+    env:
+      DB_HOST: 127.0.0.1
+      DB_PORT: 3306
+      DB_NAME: course_assignment
+      DB_USER: ca_user
+      DB_PASSWORD: ca_password
+      DB_DIALECT: mysql
+      JWT_SECRET: ci-only-secret-not-used-anywhere-else
+      ALLOWED_EMAIL_DOMAIN: unc.edu.ph
+      # Mail never leaves the runner: the tests count it in the mailer's sink.
+      MAIL_MODE: capture
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            server/package-lock.json
+
+      - name: Install (root)
+        run: npm ci
+
+      - name: Install (server)
+        working-directory: server
+        run: npm ci
+
+      - name: Build the schema
+        working-directory: server
+        run: |
+          npm run db:sync
+          npm run db:migrate -- --from 20261010000001-create-user-accounts.cjs
+
+      - name: Frontend tests
+        run: npm test
+
+      - name: Server tests
+        working-directory: server
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+      - name: Lint (warnings allowed, errors fail)
+        run: npx eslint .

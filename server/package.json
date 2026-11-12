@@ -8,7 +8,7 @@
   "scripts": {
     "start": "node index.js",
     "dev": "nodemon --legacy-watch --ext js,cjs,json --ignore tests/ --ignore storage/ --ignore uploads/ --delay 1 index.js",
-    "test": "node --test \"tests/*.test.js\"",
+    "test": "node --test --test-concurrency=1 tests/",
     "db:seed:users": "node scripts/seedUsers.js",
     "db:fresh": "node scripts/purge.js",
     "db:purge": "node scripts/purge.js",
@@ -18,6 +18,7 @@
     "access:check": "node scripts/checkAccess.js",
     "accounts:check": "node scripts/checkDeanAccounts.js",
     "db:migrate": "sequelize-cli db:migrate",
+    "db:sync": "node scripts/dbSync.js",
     "db:migrate:undo": "sequelize-cli db:migrate:undo",
     "db:seed": "sequelize-cli db:seed:all",
     "db:seed:undo": "sequelize-cli db:seed:undo:all",

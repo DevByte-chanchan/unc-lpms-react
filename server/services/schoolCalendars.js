@@ -13,7 +13,6 @@
  * `extracted` keeps the reader's transcript; presentFields() parses it on each
  * request, for whichever semester the form is on.
  */
-/* global process */ // Node globals: the root ESLint config lints server/ with browser globals.
 import fs from 'node:fs/promises';
 import fssync from 'node:fs';
 import path from 'node:path';

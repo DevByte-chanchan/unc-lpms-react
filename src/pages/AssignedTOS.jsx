@@ -4,7 +4,7 @@ import Header from "../components/HeaderA.jsx";
 import SideNavigation from "../components/SideNavigation.jsx";
 import TOSCoursesTable from "../components/TOSCoursesTable.jsx";
 
-const TOS = ({}) => {
+const TOS = () => {
 
     return (
         <Skeleton

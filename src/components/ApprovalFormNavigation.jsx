@@ -11,7 +11,7 @@ import { useNavigate } from 'react-router-dom';
 const ApprovalFormNavigation = ({ goBack }) => {
   const navigate = useNavigate();
 
-  const goBackHandler = (e) => {
+  const goBackHandler = () => {
     if (typeof goBack === 'function') return goBack();
     return navigate(-1);
   };

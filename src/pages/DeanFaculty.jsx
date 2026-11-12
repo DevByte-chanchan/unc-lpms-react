@@ -10,7 +10,6 @@ import UndoUploadButton from "../components/UndoUploadButton.jsx";
 import UploadPreviewFlow from "../components/UploadPreviewFlow.jsx";
 import DialogShell from "../components/DialogShell.jsx";
 import { Search, Upload, Plus, Clipboard, ChevronDown, Check, Users, Send, X } from "react-feather";
-import styles from '../styles/CoursesTable.module.sass';
 import syllabusStyles from '../styles/SyllabusSections.module.sass';
 import { FacultyAPI } from '../services/api.js';
 import { usePeriod } from '../services/period.jsx';

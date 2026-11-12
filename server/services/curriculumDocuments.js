@@ -21,7 +21,6 @@
  * superseded back to `active`, and deletes a stored file once no row that isn't
  * `removed` uses it.
  */
-/* global process */ // Node globals: the root ESLint config lints server/ with browser globals.
 import fs from 'node:fs/promises';
 import fssync from 'node:fs';
 import path from 'node:path';

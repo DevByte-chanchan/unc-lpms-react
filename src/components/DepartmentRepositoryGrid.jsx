@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import { Image as ImageIcon, ArrowRight, FileText } from 'react-feather';
-import { resolveDeptLogo, getAssignedLogoId } from '../services/deptLogos.js';
+import { resolveDeptLogo } from '../services/deptLogos.js';
 
 const ACCENT     = '#B91C1C';
 const SLATE_900  = '#0F172A';

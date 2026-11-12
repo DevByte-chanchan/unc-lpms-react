@@ -170,12 +170,26 @@ test('headerMatchScore: name overlap (& = AND) and code acronym', () => {
 const { default: db } = await import('../models/index.js');
 const { getActiveTermId } = await import('../utils/latestPeriod.js');
 let endpointSkip = false;
+// /extract looks the department up in the CURRENT term. A database without an
+// SCIS department there (an empty CI database, a fresh install) gets a scratch
+// one — and a scratch Active term when there is no current term — removed after.
+const scratch = { period: null, department: null };
 try {
   await db.sequelize.authenticate();
-  const termId = await getActiveTermId();
-  const scis = termId && await db.Department.findOne({ where: { period_id: termId, code: 'SCIS' } });
-  if (!scis) endpointSkip = 'no SCIS department in the current term';
+  let termId = await getActiveTermId();
+  if (!termId) {
+    scratch.period = await db.AcademicPeriod.create({ label: 'DSP test ' + process.pid, school_year: '1998-1999', semester: '1', status: 'Active' });
+    termId = scratch.period.id;
+  }
+  const scis = await db.Department.findOne({ where: { period_id: termId, code: 'SCIS' } });
+  if (!scis) {
+    scratch.department = await db.Department.create({ name: SCIS.departmentName, code: 'SCIS', status: 'Active', period_id: termId });
+  }
 } catch { endpointSkip = 'database not reachable'; }
+test.after(async () => {
+  if (scratch.department) await scratch.department.destroy().catch(() => {});
+  if (scratch.period) await scratch.period.destroy().catch(() => {});
+});
 
 async function withServer(fn) {
   const { default: router } = await import('../routes/departmentStatements.js');

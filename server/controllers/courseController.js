@@ -9,7 +9,7 @@
 import db from '../models/index.js';
 import { describeSequelizeError } from '../utils/uploadHelpers.js';
 import { parseSheet, safeUnlink, pick, canonicalize } from '../utils/excelParser.js';
-import { getPeriodId, safeWhereForPeriod, whereForPeriod } from '../utils/periodScope.js';
+import { getPeriodId, whereForPeriod } from '../utils/periodScope.js';
 import { safeWhere } from '../utils/dbHelpers.js';
 import { rankPeriod } from '../utils/periodClone.js';
 import { PreviewRows, previewResponse } from '../utils/importPreview.js';

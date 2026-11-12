@@ -19,7 +19,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
   const statusParam = searchParams.get('status')
   const effectiveStatus = (statusParam || status).toLowerCase()
   const params = useParams()
-  const navigate = useNavigate()
+  const _navigate = useNavigate()
 
   const [showCommentModal, setShowCommentModal] = useState(false)
 
@@ -166,7 +166,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
         : 'Department Head'
 
       const sectionToSave = externalSelectedSection || selectedSection
-      const prepared = (payload.comments || []).map((c, i) => ({
+      const prepared = (payload.comments || []).map((c) => ({
         id: `${submissionId}-${c.id}`,
         submissionId,
         submissionLabel,
@@ -204,7 +204,7 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
   }
 
   // Calculate total function
-  const calculateTotal = (period) => {
+  const _calculateTotal = (period) => {
     const gradingSystem = syllabus?.gradingSystem || []
     let total = 0
     gradingSystem.forEach(group => {

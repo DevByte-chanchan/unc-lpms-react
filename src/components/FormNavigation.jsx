@@ -5,7 +5,7 @@ import styles from "../styles/FormNavigation.module.sass";
 
 const FormNavigation = ({ goBack, onSave }) => { // 1. Add onSave prop
 
-    const goBackHandler = (e) => { goBack() }
+    const goBackHandler = () => { goBack() }
 
     return (
         <div className={styles.navi}>

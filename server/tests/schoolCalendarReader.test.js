@@ -11,7 +11,6 @@
  *  3. A generated text PDF with the same rows: all 7 fields exact.
  * Plus the table finder on the picture, and the file-type sniffing.
  */
-/* global Buffer */
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
