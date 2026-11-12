@@ -66,18 +66,25 @@ export const CurrentUserProvider = ({ children }) => {
     }
   }, []);
 
+  // Bumped on every sign-out. A /auth/me answer that left before the sign-out
+  // (the header's poll, a period change) can arrive after it; without this it
+  // would put the old user back and the Login page would bounce them home, so
+  // the first Log Out looked like it did nothing.
+  const sessionGen = React.useRef(0);
+
   // On start, and whenever the period changes.
   React.useEffect(() => {
     let cancelled = false;
+    const gen = sessionGen.current;
     setFacultyLoaded(false);
     AuthAPI.me(periodId)
       .then(({ user: u }) => {
-        if (cancelled) return;
+        if (cancelled || gen !== sessionGen.current) return;
         // A restored session (nobody signed in yet) announces itself once.
         if (!userRef.current) adopt(u);
         else setUser(u);
       })
-      .catch(() => { if (!cancelled) setUser(null); })
+      .catch(() => { if (!cancelled && gen === sessionGen.current) setUser(null); })
       .finally(() => { if (!cancelled) { setFacultyLoaded(true); setLoading(false); } });
     return () => { cancelled = true; };
   }, [periodId, adopt]);
@@ -92,25 +99,33 @@ export const CurrentUserProvider = ({ children }) => {
 
   // Roles can change while someone is signed in; the server is the only truth
   // for them. Resolves to the fresh user (null if the request failed).
-  const refreshUser = React.useCallback(() => (
-    AuthAPI.me(periodId)
-      .then(({ user: u }) => { setUser(u); return u; })
-      .catch(() => null)
-  ), [periodId]);
+  const refreshUser = React.useCallback(() => {
+    const gen = sessionGen.current;
+    return AuthAPI.me(periodId)
+      .then(({ user: u }) => {
+        if (gen !== sessionGen.current) return null;   // signed out meanwhile
+        setUser(u);
+        return u;
+      })
+      .catch(() => null);
+  }, [periodId]);
 
   const signIn = React.useCallback((u) => {
+    sessionGen.current += 1;   // answers from before this sign-in are stale too
     adopt(u);
     setFacultyLoaded(true);
     setLoading(false);
   }, [adopt]);
 
   const clear = React.useCallback(() => {
+    sessionGen.current += 1;
     setUser(null);
     storeRole(null);
     setStoredRole(null);
   }, []);
 
   const logout = React.useCallback(async () => {
+    sessionGen.current += 1;   // ignore anything already on its way back
     try { await AuthAPI.logout(); } catch { /* already signed out — clear anyway */ }
     clear();
   }, [clear]);
