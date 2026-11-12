@@ -204,7 +204,7 @@ const HeaderA = ({ department, name, role }) => {
                         aria-label="Toggle notifications"
                         title="Notifications"
                     >
-                        <Bell size={20} color="#2563EB" strokeWidth={2} />
+                        <Bell size={20} color="#475569" strokeWidth={2} />
                         {unreadCount > 0 && (
                             <span className={styles.bellBadge}>
                                 {unreadCount}

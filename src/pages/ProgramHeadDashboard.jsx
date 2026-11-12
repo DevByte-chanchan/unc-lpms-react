@@ -1,12 +1,13 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Skeleton from '../layouts/Skeleton.jsx';
 import Header from '../components/Header.jsx';
 import SideNavigation from '../components/SideNavigation.jsx';
+import CurrentTermCard from '../components/CurrentTermCard.jsx';
 import { PROGRAM_HEAD } from '../constants/users.js';
 import { fetchCourses } from '../services/api.js';
 import styles from '../styles/Dashboard.module.sass';
-import { ChevronDown, ChevronRight, ExternalLink, Calendar } from 'react-feather';
+import { ChevronRight, ExternalLink } from 'react-feather';
 
 // Program Head Learning Plans demo data (3 statuses: pending, returned, approved)
 const PH_DEMO_LEARNING_PLANS = {
@@ -26,50 +27,19 @@ const PH_DEMO_LEARNING_PLANS = {
     ]
 };
 
-// Reusable hook for mouse drag-to-swipe and touch swipe
-const useSwipeScroll = () => {
-    const rowRef = useRef(null);
-    const isDown = useRef(false);
-    const startX = useRef(0);
-    const scrollLeft = useRef(0);
-    const isDragging = useRef(false);
-
-    const onMouseDown = (e) => {
-        if (!rowRef.current) return;
-        isDown.current = true;
-        isDragging.current = false;
-        startX.current = e.pageX - rowRef.current.offsetLeft;
-        scrollLeft.current = rowRef.current.scrollLeft;
-    };
-
-    const onMouseLeave = () => {
-        isDown.current = false;
-    };
-
-    const onMouseUp = () => {
-        isDown.current = false;
-        setTimeout(() => {
-            isDragging.current = false;
-        }, 50);
-    };
-
-    const onMouseMove = (e) => {
-        if (!isDown.current || !rowRef.current) return;
-        const x = e.pageX - rowRef.current.offsetLeft;
-        const walk = (x - startX.current) * 1.5;
-        if (Math.abs(walk) > 4) {
-            isDragging.current = true;
-        }
-        rowRef.current.scrollLeft = scrollLeft.current - walk;
-    };
-
-    const resetScroll = () => {
-        if (rowRef.current) {
-            rowRef.current.scrollTo({ left: 0, behavior: 'smooth' });
-        }
-    };
-
-    return { rowRef, isDragging, onMouseDown, onMouseLeave, onMouseUp, onMouseMove, resetScroll };
+// Term setup for the interactive desk calendar
+const CURRENT_TERM = {
+    id: 1,
+    school_year: '2026–2027',
+    semester: '1st Semester',
+    status: 'Active',
+    start_date: '2026-08-01',
+    classes_start: '2026-08-17',
+    prelim_exam: '2026-09-21',
+    midterm_exam: '2026-10-26',
+    semifinal_exam: '2026-11-16',
+    final_exam: '2026-12-07',
+    end_date: '2026-12-18',
 };
 
 const ProgramHeadDashboardContent = () => {
@@ -77,11 +47,9 @@ const ProgramHeadDashboardContent = () => {
 
     // Learning plans filter state (3 statuses for Program Head, default pending)
     const [lpFilter, setLpFilter] = useState('pending');
-    const lpSwipe = useSwipeScroll();
 
     // Table of Specifications state (3 statuses for Program Head, default pending)
     const [tosFilter, setTosFilter] = useState('pending');
-    const tosSwipe = useSwipeScroll();
     const [courses, setCourses] = useState([]);
     const [loading, setLoading] = useState(true);
 
@@ -110,16 +78,6 @@ const ProgramHeadDashboardContent = () => {
             .finally(() => setLoading(false));
     }, []);
 
-    const handleLpFilterChange = (filter) => {
-        setLpFilter(filter);
-        lpSwipe.resetScroll();
-    };
-
-    const handleTosFilterChange = (filter) => {
-        setTosFilter(filter);
-        tosSwipe.resetScroll();
-    };
-
     // Counts for Program Head TOS (only submitted items: pending, returned, approved)
     const tosPendingCount = courses.filter(c => c.status === 'pending').length;
     const tosReturnedCount = courses.filter(c => c.status === 'returned').length;
@@ -137,7 +95,6 @@ const ProgramHeadDashboardContent = () => {
     const displayedLearningPlans = PH_DEMO_LEARNING_PLANS[lpFilter] || [];
 
     const handleTosCardClick = (course) => {
-        if (tosSwipe.isDragging.current) return;
         navigate(`/tos/${course.code}`, {
             state: {
                 tosStatus: course.status,
@@ -151,183 +108,165 @@ const ProgramHeadDashboardContent = () => {
     };
 
     return (
-        <div className={styles.pageContainer}>
-            <div className={styles.header}>
-                <h1 className={styles.title}>Dashboard</h1>
-                <p className={styles.subtitle}>Overview of the current academic term and department course offerings.</p>
+        <div className={styles.dashboardPage}>
+            <div className={styles.dashboardHeader}>
+                <h2>Dashboard</h2>
+                <div className={styles.subtitle}>
+                    Overview of the current academic term and department course offerings.
+                </div>
             </div>
 
-            <div className={styles.mainGrid}>
-                {/* Left Column: Current Term */}
-                <div className={styles.leftCol}>
-                    <div className={styles.currentTermCard}>
-                        <div className={styles.termLabel}>Current Term</div>
-                        <div className={styles.termCenter}>
-                            <div className={styles.termYear}>2026–2027</div>
-                            <div className={styles.termSem}>1st Semester</div>
-                            
-                            {/* Polished Academic Milestone Widget */}
-                            <div className={styles.termNextWidget}>
-                                <div className={styles.termNextBody}>
-                                    <Calendar size={14} className={styles.termNextIcon} />
-                                    <span className={styles.termNextEvent}>Final Exam</span>
-                                    <span className={styles.termNextDot}>·</span>
-                                    <span className={styles.termNextDate}>December 7, 2026</span>
-                                    <span className={styles.termNextBadge}>in 26 days</span>
-                                </div>
-                            </div>
-                        </div>
-                        <div className={styles.termBottom}>
-                            <ChevronDown size={20} color="#64748B" />
-                        </div>
-                    </div>
+            <div className={styles.twoColumns}>
+                {/* Column 1: Desk Calendar Current Term */}
+                <div className={styles.leftColumn}>
+                    <CurrentTermCard term={CURRENT_TERM} loading={false} />
                 </div>
 
-                {/* Right Column: Learning Plans and Table of Specifications */}
-                <div className={styles.rightCol}>
-                    {/* Top Card: Learning Plans */}
-                    <div className={styles.sectionCard}>
-                        <div className={styles.sectionHeader}>
-                            <div className={styles.titleGroup}>
-                                <h2 className={styles.sectionTitle}>Learning Plans</h2>
+                {/* Column 2: Learning Plans and Table of Specifications */}
+                <div className={styles.rightColumn}>
+                    {/* Row 1: Learning Plans */}
+                    <div className={styles.blockCard}>
+                        <div className={styles.blockHeader}>
+                            <div className={styles.blockTitleGroup}>
+                                <h3>Learning Plans</h3>
                                 <span className={styles.totalBadge}>Total: {lpTotalCount}</span>
                             </div>
 
-                            {/* 3 Status Filter Buttons for Program Head */}
-                            <div className={styles.controlsGroup}>
-                                <div className={styles.filterTabs}>
+                            <div className={styles.headerActions}>
+                                <div className={styles.segmentedControl}>
                                     <button
                                         type="button"
-                                        className={`${styles.filterTab} ${lpFilter === 'pending' ? styles.activeFilter : ''}`}
-                                        onClick={() => handleLpFilterChange('pending')}
+                                        className={`${styles.controlItem} ${lpFilter === 'pending' ? styles.active : ''}`}
+                                        onClick={() => setLpFilter('pending')}
                                     >
-                                        Pending <span className={styles.filterCount}>{lpPendingCount}</span>
+                                        <span>Pending</span>
+                                        <span className={styles.itemBadge}>{lpPendingCount}</span>
                                     </button>
                                     <button
                                         type="button"
-                                        className={`${styles.filterTab} ${lpFilter === 'returned' ? styles.activeFilter : ''}`}
-                                        onClick={() => handleLpFilterChange('returned')}
+                                        className={`${styles.controlItem} ${lpFilter === 'returned' ? styles.active : ''}`}
+                                        onClick={() => setLpFilter('returned')}
                                     >
-                                        Returned <span className={styles.filterCount}>{lpReturnedCount}</span>
+                                        <span>Returned</span>
+                                        <span className={styles.itemBadge}>{lpReturnedCount}</span>
                                     </button>
                                     <button
                                         type="button"
-                                        className={`${styles.filterTab} ${lpFilter === 'approved' ? styles.activeFilter : ''}`}
-                                        onClick={() => handleLpFilterChange('approved')}
+                                        className={`${styles.controlItem} ${lpFilter === 'approved' ? styles.active : ''}`}
+                                        onClick={() => setLpFilter('approved')}
                                     >
-                                        Approved <span className={styles.filterCount}>{lpApprovedCount}</span>
-                                    </button>
-                                </div>
-                                <span className={styles.extLinkDisabled} title="Syllabus access restricted (demo only)">
-                                    <ExternalLink size={16} />
-                                </span>
-                            </div>
-                        </div>
-
-                        {/* Swipeable Cards Row */}
-                        <div className={styles.cardsWrapper}>
-                            <div
-                                ref={lpSwipe.rowRef}
-                                className={styles.cardsRow}
-                                onMouseDown={lpSwipe.onMouseDown}
-                                onMouseLeave={lpSwipe.onMouseLeave}
-                                onMouseUp={lpSwipe.onMouseUp}
-                                onMouseMove={lpSwipe.onMouseMove}
-                            >
-                                {displayedLearningPlans.length === 0 ? (
-                                    <div className={styles.emptyCard}>
-                                        No {lpFilter} learning plans for review.
-                                    </div>
-                                ) : (
-                                    displayedLearningPlans.map(lp => (
-                                        <div key={lp.code} className={styles.courseCard}>
-                                            <div className={styles.cardHeader}>
-                                                <span className={styles.codePill}>{lp.code}</span>
-                                                <span className={styles.cardDate}>{lp.date}</span>
-                                            </div>
-                                            <div className={styles.cardTitle} title={lp.title}>
-                                                {lp.title}
-                                            </div>
-                                            <button
-                                                type="button"
-                                                className={styles.cardBtnDisabled}
-                                                disabled
-                                                title="Learning plan review is not available in demo mode"
-                                            >
-                                                {lpFilter === 'pending' ? 'Review' : 'View'} <ChevronRight size={14} />
-                                            </button>
-                                        </div>
-                                    ))
-                                )}
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Bottom Card: Table of Specifications */}
-                    <div className={styles.sectionCard}>
-                        <div className={styles.sectionHeader}>
-                            <div className={styles.titleGroup}>
-                                <h2 className={styles.sectionTitle}>Table of Specifications</h2>
-                                <span className={styles.totalBadge}>Total: {tosTotalCount}</span>
-                            </div>
-
-                            <div className={styles.controlsGroup}>
-                                {/* 3 Status Filter Buttons for Program Head */}
-                                <div className={styles.filterTabs}>
-                                    <button
-                                        type="button"
-                                        className={`${styles.filterTab} ${tosFilter === 'pending' ? styles.activeFilter : ''}`}
-                                        onClick={() => handleTosFilterChange('pending')}
-                                    >
-                                        Pending <span className={styles.filterCount}>{tosPendingCount}</span>
-                                    </button>
-                                    <button
-                                        type="button"
-                                        className={`${styles.filterTab} ${tosFilter === 'returned' ? styles.activeFilter : ''}`}
-                                        onClick={() => handleTosFilterChange('returned')}
-                                    >
-                                        Returned <span className={styles.filterCount}>{tosReturnedCount}</span>
-                                    </button>
-                                    <button
-                                        type="button"
-                                        className={`${styles.filterTab} ${tosFilter === 'approved' ? styles.activeFilter : ''}`}
-                                        onClick={() => handleTosFilterChange('approved')}
-                                    >
-                                        Approved <span className={styles.filterCount}>{tosApprovedCount}</span>
+                                        <span>Approved</span>
+                                        <span className={styles.itemBadge}>{lpApprovedCount}</span>
                                     </button>
                                 </div>
 
                                 <button
                                     type="button"
-                                    className={styles.extLinkBtn}
-                                    title="Open Table of Specifications"
-                                    onClick={() => navigate(`/role/program-head/tos?status=${tosFilter}`, { state: { initialStatus: tosFilter } })}
+                                    className={styles.goToIconBtn}
+                                    onClick={() => navigate('/role/program-head/approval-course-table?page=Learning%20Plans')}
+                                    title="Go to Learning Plans Approval Table"
+                                    aria-label="Go to Learning Plans Approval Table"
                                 >
-                                    <ExternalLink size={16} />
+                                    <ExternalLink size={18} color="#334155" />
                                 </button>
                             </div>
                         </div>
 
-                        {/* Swipeable Cards Row */}
-                        <div className={styles.cardsWrapper}>
-                            <div
-                                ref={tosSwipe.rowRef}
-                                className={styles.cardsRow}
-                                onMouseDown={tosSwipe.onMouseDown}
-                                onMouseLeave={tosSwipe.onMouseLeave}
-                                onMouseUp={tosSwipe.onMouseUp}
-                                onMouseMove={tosSwipe.onMouseMove}
-                            >
-                                {loading ? (
-                                    <div className={styles.emptyCard}>
-                                        Loading course offerings…
-                                    </div>
-                                ) : displayedTosCourses.length === 0 ? (
-                                    <div className={styles.emptyCard}>
-                                        No {tosFilter} Table of Specifications for review.
-                                    </div>
-                                ) : (
-                                    displayedTosCourses.map(course => {
+                        <div className={styles.blockBody}>
+                            {displayedLearningPlans.length === 0 ? (
+                                <div className={styles.emptyState}>
+                                    No {lpFilter} learning plans for review.
+                                </div>
+                            ) : (
+                                <div className={styles.miniGridContainer}>
+                                    {displayedLearningPlans.map(lp => (
+                                        <div key={lp.code} className={styles.miniCard}>
+                                            <div className={styles.miniCardMain}>
+                                                <div className={styles.miniCardHeader}>
+                                                    <span className={styles.miniCardCode}>{lp.code}</span>
+                                                    <span className={styles.miniCardDate}>{lp.date}</span>
+                                                </div>
+                                                <div className={styles.miniCardTitle} title={lp.title}>
+                                                    {lp.title}
+                                                </div>
+                                                <div className={styles.miniCardFooter}>
+                                                    <button
+                                                        type="button"
+                                                        className={styles.miniActionBtn}
+                                                        onClick={() => navigate('/role/program-head/approval-course-table?page=Learning%20Plans')}
+                                                        title="Review Learning Plan"
+                                                    >
+                                                        {lpFilter === 'pending' ? 'Review' : 'View'} <ChevronRight size={13} />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Row 2: Table of Specifications */}
+                    <div className={styles.blockCard}>
+                        <div className={styles.blockHeader}>
+                            <div className={styles.blockTitleGroup}>
+                                <h3>Table of Specifications</h3>
+                                <span className={styles.totalBadge}>Total: {tosTotalCount}</span>
+                            </div>
+
+                            <div className={styles.headerActions}>
+                                <div className={styles.segmentedControl}>
+                                    <button
+                                        type="button"
+                                        className={`${styles.controlItem} ${tosFilter === 'pending' ? styles.active : ''}`}
+                                        onClick={() => setTosFilter('pending')}
+                                    >
+                                        <span>Pending</span>
+                                        <span className={styles.itemBadge}>{tosPendingCount}</span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className={`${styles.controlItem} ${tosFilter === 'returned' ? styles.active : ''}`}
+                                        onClick={() => setTosFilter('returned')}
+                                    >
+                                        <span>Returned</span>
+                                        <span className={styles.itemBadge}>{tosReturnedCount}</span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className={`${styles.controlItem} ${tosFilter === 'approved' ? styles.active : ''}`}
+                                        onClick={() => setTosFilter('approved')}
+                                    >
+                                        <span>Approved</span>
+                                        <span className={styles.itemBadge}>{tosApprovedCount}</span>
+                                    </button>
+                                </div>
+
+                                <button
+                                    type="button"
+                                    className={styles.goToIconBtn}
+                                    onClick={() => navigate(`/role/program-head/tos?status=${tosFilter}`, { state: { initialStatus: tosFilter } })}
+                                    title="Go to Table of Specifications Table"
+                                    aria-label="Go to Table of Specifications Table"
+                                >
+                                    <ExternalLink size={18} color="#334155" />
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className={styles.blockBody}>
+                            {loading ? (
+                                <div className={styles.emptyState}>
+                                    Loading course offerings…
+                                </div>
+                            ) : displayedTosCourses.length === 0 ? (
+                                <div className={styles.emptyState}>
+                                    No {tosFilter} Table of Specifications for review.
+                                </div>
+                            ) : (
+                                <div className={styles.miniGridContainer}>
+                                    {displayedTosCourses.map(course => {
                                         const actionText = course.status === 'pending'
                                             ? 'Review'
                                             : course.status === 'returned'
@@ -335,29 +274,30 @@ const ProgramHeadDashboardContent = () => {
                                             : 'View';
 
                                         return (
-                                            <div
-                                                key={course.code}
-                                                className={styles.courseCard}
-                                            >
-                                                <div className={styles.cardHeader}>
-                                                    <span className={styles.codePill}>{course.code}</span>
-                                                    <span className={styles.cardDate}>{course.formattedDate}</span>
+                                            <div key={course.code} className={styles.miniCard}>
+                                                <div className={styles.miniCardMain}>
+                                                    <div className={styles.miniCardHeader}>
+                                                        <span className={styles.miniCardCode}>{course.code}</span>
+                                                        <span className={styles.miniCardDate}>{course.formattedDate}</span>
+                                                    </div>
+                                                    <div className={styles.miniCardTitle} title={course.name}>
+                                                        {course.name}
+                                                    </div>
+                                                    <div className={styles.miniCardFooter}>
+                                                        <button
+                                                            type="button"
+                                                            className={styles.miniActionBtn}
+                                                            onClick={() => handleTosCardClick(course)}
+                                                        >
+                                                            {actionText} <ChevronRight size={13} />
+                                                        </button>
+                                                    </div>
                                                 </div>
-                                                <div className={styles.cardTitle} title={course.name}>
-                                                    {course.name}
-                                                </div>
-                                                <button
-                                                    type="button"
-                                                    className={styles.cardBtn}
-                                                    onClick={() => handleTosCardClick(course)}
-                                                >
-                                                    {actionText} <ChevronRight size={14} />
-                                                </button>
                                             </div>
                                         );
-                                    })
-                                )}
-                            </div>
+                                    })}
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>

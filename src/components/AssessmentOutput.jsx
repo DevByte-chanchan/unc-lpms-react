@@ -16,9 +16,9 @@ const formatFileSize = (bytes) => {
     return `${Math.max(1, Math.round(bytes / 1024))} KB`;
 };
 
-export default function AssessmentOutput({ outcomeData = [], questions = [], courseCode, period = ACTIVE_PERIOD, examType, targetScope = null, addingComment = false, activeScope = null, onFileClick = null, onRowClick = null }) {
-    const [attachments, setAttachments] = useState([]);
-    const [attLoading, setAttLoading] = useState(false);
+export default function AssessmentOutput({ outcomeData = [], questions = [], courseCode, period = ACTIVE_PERIOD, examType, targetScope = null, addingComment = false, activeScope = null, onFileClick = null, onRowClick = null, attachments: propAttachments = null }) {
+    const [attachments, setAttachments] = useState(propAttachments || []);
+    const [attLoading, setAttLoading] = useState(propAttachments ? false : (!!courseCode));
     const [collapsedCOs, setCollapsedCOs] = useState(new Set());
     const [collapsedILOs, setCollapsedILOs] = useState(new Set());
 
@@ -77,6 +77,11 @@ export default function AssessmentOutput({ outcomeData = [], questions = [], cou
     const activePeriod = period || examType || ACTIVE_PERIOD;
 
     useEffect(() => {
+        if (propAttachments !== null && propAttachments !== undefined) {
+            setAttachments(Array.isArray(propAttachments) ? propAttachments : []);
+            setAttLoading(false);
+            return;
+        }
         if (courseCode) {
             setAttLoading(true);
             fetchAttachments(courseCode, activePeriod)
@@ -85,8 +90,9 @@ export default function AssessmentOutput({ outcomeData = [], questions = [], cou
                 .finally(() => setAttLoading(false));
         } else {
             setAttachments([]);
+            setAttLoading(false);
         }
-    }, [courseCode, activePeriod]);
+    }, [courseCode, activePeriod, propAttachments]);
 
     return (
         <div className={`${layout.assessmentBody} ${layout.tabContent}`}>

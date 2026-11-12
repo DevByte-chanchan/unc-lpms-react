@@ -3,6 +3,8 @@ import {Link, useLocation} from 'react-router-dom'
 import styles from '../styles/CoursesTable.module.sass';
 import { ChevronRight, Download, AlertTriangle, Search, List, Grid } from 'react-feather';
 import { fetchCourses } from '../services/api.js';
+import DocumentViewerModal from './DocumentViewerModal.jsx';
+import { buildTosExportFiles, revokeExportFiles } from '../utils/exportTos.js';
 
 const OverdueBadge = () => (
     <span
@@ -39,6 +41,15 @@ const ProgramHeadTOSCoursesTable = () => {
     const [loading, setLoading] = useState(true);
 
         const [errorMsg, setErrorMsg] = useState(null);
+    const [docFile, setDocFile] = useState(null);
+    const [exportingRowId, setExportingRowId] = useState(null);
+    const docFileRef = React.useRef(null);
+    docFileRef.current = docFile;
+    useEffect(() => () => { revokeExportFiles(docFileRef.current); }, []);
+
+    const closeDoc = React.useCallback(() => {
+        setDocFile((f) => { revokeExportFiles(f); return null; });
+    }, []);
 
     useEffect(() => {
         const navUpdate = location.state?.tosStatusUpdate;
@@ -111,19 +122,28 @@ const ProgramHeadTOSCoursesTable = () => {
 
     const statusHeader = selectedStatus === 'returned' ? 'DATE RETURNED' : selectedStatus === 'approved' ? 'DATE APPROVED' : 'DATE SUBMITTED';
 
-    // Demo-only: approved-course Export buttons download a placeholder PDF (no server call)
-    // Same logic as handleExportDemoPdf in TosSections.jsx
-    const handleExportDemoPdf = (courseCode, courseName) => {
+    // Opens the generated TOS document in DocumentViewerModal (matches OVPAA TOS layout)
+    const handleExportDemoPdf = async (rowOrCode, courseName) => {
+        const row = typeof rowOrCode === 'object' && rowOrCode !== null ? rowOrCode : null;
+        const code = row ? row.code : rowOrCode;
+        const name = row ? row.name : courseName;
+        if (exportingRowId) return;
+        setExportingRowId(code || 'export');
         try {
-            const safeName = String(courseCode || courseName || 'TOS').replace(/[\\/:*?"<>|]/g, '').trim() || 'TOS';
-            const link = document.createElement('a');
-            link.href = '/tos-sample.pdf';
-            link.download = `TOS - ${safeName}.pdf`;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        } catch {
-            // demo placeholder download: nothing to recover
+            const file = await buildTosExportFiles({
+                row,
+                courseCode: code,
+                courseName: name,
+                period: examType || 'Final',
+                semester: semester || '2nd Semester',
+                schoolYear: schoolYear || '2024-2025',
+                instructorName: row?.instructor,
+            });
+            setDocFile(file);
+        } catch (err) {
+            console.error('Failed to export TOS:', err);
+        } finally {
+            setExportingRowId(null);
         }
     };
 
@@ -242,7 +262,7 @@ const ProgramHeadTOSCoursesTable = () => {
                                 <div className={styles.ctCardFooter}>
                                     <div className={styles.ctCardActions}>
                                         {selectedStatus === 'approved' && (
-                                            <button type="button" className={`${styles.exportBtn} ${styles.ctExportPill}`} onClick={() => handleExportDemoPdf(row.code, row.name)}>
+                                            <button type="button" className={`${styles.exportBtn} ${styles.ctExportPill}`} onClick={() => handleExportDemoPdf(row)}>
                                                 Export <Download size={16} />
                                             </button>
                                         )}
@@ -291,7 +311,7 @@ const ProgramHeadTOSCoursesTable = () => {
                                 <td className={styles.fill} style={{ gap: 20 }}>
                                     {row.isOverdue && <OverdueBadge />}
                                     {selectedStatus === 'approved' && (
-                                        <button className={styles.exportBtn} onClick={() => handleExportDemoPdf(row.code, row.name)}>
+                                        <button className={styles.exportBtn} onClick={() => handleExportDemoPdf(row)}>
                                             Export <Download size={16} />
                                         </button>
                                     )}
@@ -313,6 +333,14 @@ const ProgramHeadTOSCoursesTable = () => {
                 </table>
                 )}
             </div>
+
+            {docFile && (
+                <DocumentViewerModal
+                    file={docFile}
+                    kind="Table of Specifications"
+                    onClose={closeDoc}
+                />
+            )}
         </div>
     );
 };

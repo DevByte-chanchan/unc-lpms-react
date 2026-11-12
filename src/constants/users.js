@@ -1,9 +1,9 @@
 export const PROGRAM_HEAD = {
-    header: 'PERALTA, JAKE',
+    header: 'JAKE PERALTA',
     display: 'Jake Peralta'
 };
 
 export const INSTRUCTOR = {
-    header: 'NORTON, MONICA',
+    header: 'MONICA NORTON',
     display: 'Monica Norton'
 };

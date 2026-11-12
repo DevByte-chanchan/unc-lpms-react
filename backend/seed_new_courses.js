@@ -3,16 +3,16 @@ import { createItemsForCourse } from './seed.js';
 import { structureTopics } from './topics.js';
 
 const newCourses = [
-    { code: 'BSCS221L', name: 'Object-Oriented Programming',        status: 'pending',  assessmentName: 'Practical Exam', instructor: 'NORTON, MONICA', learningPlanApproved: true, examPeriod: 'Midterm' },
-    { code: 'BSCS222L', name: 'Discrete Structures 2',              status: 'returned', assessmentName: 'Written Exam',  instructor: 'NORTON, MONICA', learningPlanApproved: true, examPeriod: 'Midterm' },
-    { code: 'BSCS312L', name: 'Information Management',             status: 'pending',  assessmentName: 'Midterm Exam',  instructor: 'DIAZ, ROSA', learningPlanApproved: true, examPeriod: 'Midterm' },
-    { code: 'BSCS324L', name: 'Advanced Software Engineering',       status: 'returned', assessmentName: 'Periodic Exam', instructor: 'DIAZ, ROSA', learningPlanApproved: true, examPeriod: 'Midterm' },
-    { code: 'BSCS342L', name: 'Machine Learning Fundamentals',       status: 'pending',  assessmentName: 'Practical Exam', instructor: 'NORTON, MONICA', learningPlanApproved: true, examPeriod: 'Midterm' },
-    { code: 'BSCS223L', name: 'Web Development II',                 status: 'approved', assessmentName: 'Midterm Exam',  instructor: 'NORTON, MONICA', learningPlanApproved: true, examPeriod: 'Midterm' },
-    { code: 'BSCS314L', name: 'Data Communications',                status: 'approved', assessmentName: 'Written Exam',  instructor: 'NORTON, MONICA', learningPlanApproved: true, examPeriod: 'Midterm' },
-    { code: 'BSCS323L', name: 'Systems Analysis and Design',        status: 'approved', assessmentName: 'Periodic Exam', instructor: 'NORTON, MONICA', learningPlanApproved: true, examPeriod: 'Midterm' },
-    { code: 'BSCS332L', name: 'Network Security',                   status: 'approved', assessmentName: 'Practical Exam', instructor: 'DIAZ, ROSA', learningPlanApproved: true, examPeriod: 'Midterm' },
-    { code: 'BSCS413L', name: 'Capstone Project 2',                 status: 'approved', assessmentName: 'Project',        instructor: 'JEFFORDS, TERRY', learningPlanApproved: true, examPeriod: 'Midterm' },
+    { code: 'BSCS221L', name: 'Object-Oriented Programming',        status: 'pending',  assessmentName: 'Practical Exam', instructor: 'Monica Norton', learningPlanApproved: true, examPeriod: 'Midterm' },
+    { code: 'BSCS222L', name: 'Discrete Structures 2',              status: 'returned', assessmentName: 'Written Exam',  instructor: 'Monica Norton', learningPlanApproved: true, examPeriod: 'Midterm' },
+    { code: 'BSCS312L', name: 'Information Management',             status: 'pending',  assessmentName: 'Midterm Exam',  instructor: 'Rosa Diaz', learningPlanApproved: true, examPeriod: 'Midterm' },
+    { code: 'BSCS324L', name: 'Advanced Software Engineering',       status: 'returned', assessmentName: 'Periodic Exam', instructor: 'Rosa Diaz', learningPlanApproved: true, examPeriod: 'Midterm' },
+    { code: 'BSCS342L', name: 'Machine Learning Fundamentals',       status: 'pending',  assessmentName: 'Practical Exam', instructor: 'Monica Norton', learningPlanApproved: true, examPeriod: 'Midterm' },
+    { code: 'BSCS223L', name: 'Web Development II',                 status: 'approved', assessmentName: 'Midterm Exam',  instructor: 'Monica Norton', learningPlanApproved: true, examPeriod: 'Midterm' },
+    { code: 'BSCS314L', name: 'Data Communications',                status: 'approved', assessmentName: 'Written Exam',  instructor: 'Monica Norton', learningPlanApproved: true, examPeriod: 'Midterm' },
+    { code: 'BSCS323L', name: 'Systems Analysis and Design',        status: 'approved', assessmentName: 'Periodic Exam', instructor: 'Monica Norton', learningPlanApproved: true, examPeriod: 'Midterm' },
+    { code: 'BSCS332L', name: 'Network Security',                   status: 'approved', assessmentName: 'Practical Exam', instructor: 'Rosa Diaz', learningPlanApproved: true, examPeriod: 'Midterm' },
+    { code: 'BSCS413L', name: 'Capstone Project 2',                 status: 'approved', assessmentName: 'Project',        instructor: 'Terry Jeffords', learningPlanApproved: true, examPeriod: 'Midterm' },
 ];
 
 const courseData = [

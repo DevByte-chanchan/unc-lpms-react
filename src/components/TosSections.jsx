@@ -8,6 +8,8 @@ import TOSPreview from "../pages/TosPreview.jsx";
 import TOSSummary from "../pages/TosSummary.jsx";
 import AssessmentsStep, { AutoResizeTextarea } from "../pages/AssessmentsStep.jsx";
 import AssessmentOutput from "./AssessmentOutput.jsx";
+import DocumentViewerModal from "./DocumentViewerModal.jsx";
+import { buildTosExportFiles, revokeExportFiles } from '../utils/exportTos.js';
 import { fetchOutcomes, fetchItems, saveOutcomes, saveItems, fetchCourse, updateCourse, updateStatus, fetchStatus, fetchComments, createComment, deleteComment, resolveComment, fetchAttachments, ACTIVE_PERIOD } from '../services/api.js';
 import { PROGRAM_HEAD, INSTRUCTOR } from '../constants/users.js';
 
@@ -21,6 +23,15 @@ const TosSections = ({role = 'instructor'}) => {
     const [questions, setQuestions] = useState([]);
     const [attachments, setAttachments] = useState([]);
     const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+    const [docFile, setDocFile] = useState(null);
+    const [exportingDoc, setExportingDoc] = useState(false);
+    const docFileRef = useRef(null);
+    docFileRef.current = docFile;
+    useEffect(() => () => { revokeExportFiles(docFileRef.current); }, []);
+
+    const closeDoc = useCallback(() => {
+        setDocFile((f) => { revokeExportFiles(f); return null; });
+    }, []);
     const [assessmentMode] = useState("question");
     const [expandedCOs, setExpandedCOs] = useState(new Set());
     const [expandedILOs, setExpandedILOs] = useState(new Set());
@@ -490,6 +501,7 @@ const TosSections = ({role = 'instructor'}) => {
     };
 
     const viewItemsNavRef = useRef(false);
+    const navScrollTimerRef = useRef(null);
 
     useEffect(() => {
         if (selectedSection !== 'Assessments') return;
@@ -751,7 +763,11 @@ const TosSections = ({role = 'instructor'}) => {
         const iloSet = t.ilo && t.ilo !== '\u2014' ? new Set([`${t.co}|${t.ilo}`]) : new Set();
         setExpandedCOs(coSet);
         setExpandedILOs(iloSet);
-        setTimeout(() => {
+        if (navScrollTimerRef.current) clearInterval(navScrollTimerRef.current);
+        let attempts = 0;
+        const maxAttempts = 30;
+        navScrollTimerRef.current = setInterval(() => {
+            attempts++;
             let scrollEl = null;
             let highlightEls = [];
             if (t.cognitiveLevel && t.cognitiveLevel !== 'Points') {
@@ -759,7 +775,7 @@ const TosSections = ({role = 'instructor'}) => {
                 if (rows.length > 0) {
                     scrollEl = rows[0];
                     highlightEls = Array.from(rows);
-                } else {
+                } else if (attempts >= 10) {
                     scrollEl = document.querySelector(`[data-ilo-header="${t.co}|${t.ilo}"]`) || document.getElementById(`co-header-${t.co}`);
                 }
             } else if (t.ilo && t.ilo !== '\u2014') {
@@ -767,7 +783,7 @@ const TosSections = ({role = 'instructor'}) => {
                 if (rows.length > 0) {
                     scrollEl = rows[0];
                     highlightEls = Array.from(rows);
-                } else {
+                } else if (attempts >= 10) {
                     scrollEl = document.querySelector(`[data-ilo-header="${t.co}|${t.ilo}"]`) || document.getElementById(`co-header-${t.co}`);
                 }
             } else {
@@ -778,15 +794,20 @@ const TosSections = ({role = 'instructor'}) => {
                 }
             }
             if (scrollEl) {
+                clearInterval(navScrollTimerRef.current);
+                navScrollTimerRef.current = null;
                 scrollEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                highlightEls.forEach(el => {
+                    if (previewLayout?.rowPulseHighlight) {
+                        el.classList.add(previewLayout.rowPulseHighlight);
+                        setTimeout(() => el.classList.remove(previewLayout.rowPulseHighlight), 2000);
+                    }
+                });
+            } else if (attempts >= maxAttempts) {
+                clearInterval(navScrollTimerRef.current);
+                navScrollTimerRef.current = null;
             }
-            highlightEls.forEach(el => {
-                if (previewLayout?.rowPulseHighlight) {
-                    el.classList.add(previewLayout.rowPulseHighlight);
-                    setTimeout(() => el.classList.remove(previewLayout.rowPulseHighlight), 2000);
-                }
-            });
-        }, 400);
+        }, 50);
     };
 
     const handleCellClick = (co, ilo, cognitiveLevel, itemNumber, fks = {}) => {
@@ -1036,18 +1057,26 @@ const TosSections = ({role = 'instructor'}) => {
         return data;
     };
 
-    // Demo-only: approved-course Export buttons download a placeholder PDF (no server call)
-    const handleExportDemoPdf = () => {
+    // Opens the generated TOS document in DocumentViewerModal (matches OVPAA TOS layout)
+    const handleExportDemoPdf = async () => {
+        if (exportingDoc) return;
+        setExportingDoc(true);
         try {
-            const safeName = String(courseCode || courseNameState || 'TOS').replace(/[\\/:*?"<>|]/g, '').trim() || 'TOS';
-            const link = document.createElement('a');
-            link.href = '/tos-sample.pdf';
-            link.download = `TOS - ${safeName}.pdf`;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        } catch {
-            // demo placeholder download: nothing to recover
+            const file = await buildTosExportFiles({
+                courseCode: courseCode || 'ACT222L',
+                courseName: courseNameState || courseName || 'Web Development II',
+                period: fromExamType || 'Final',
+                semester: fromSemester || '2nd Semester',
+                schoolYear: fromSchoolYear || '2024-2025',
+                outcomes: rows,
+                questions: questions,
+                instructorName: INSTRUCTOR.display || 'DANNY BOY M. CASIMERO',
+            });
+            setDocFile(file);
+        } catch (err) {
+            console.error('Failed to export TOS:', err);
+        } finally {
+            setExportingDoc(false);
         }
     };
 
@@ -1162,6 +1191,7 @@ const TosSections = ({role = 'instructor'}) => {
             if (resolveTimerRef.current) clearTimeout(resolveTimerRef.current);
             if (approveTimerRef.current) clearTimeout(approveTimerRef.current);
             if (returnTimerRef.current) clearTimeout(returnTimerRef.current);
+            if (navScrollTimerRef.current) clearInterval(navScrollTimerRef.current);
         };
     }, []);
 
@@ -1176,7 +1206,11 @@ const TosSections = ({role = 'instructor'}) => {
         setExpandedCOs(coSet);
         setExpandedILOs(iloSet);
         setNavTargetScope({ co: c.scope.co, ilo: c.scope.ilo, cognitiveLevel: c.scope.cognitiveLevel, itemId: c.scope.assessmentItemId || null, _ts: Date.now() });
-        setTimeout(() => {
+        if (navScrollTimerRef.current) clearInterval(navScrollTimerRef.current);
+        let attempts = 0;
+        const maxAttempts = 30;
+        navScrollTimerRef.current = setInterval(() => {
+            attempts++;
             const co = c.scope.co;
             const ilo = c.scope.ilo;
             const cog = c.scope.cognitiveLevel;
@@ -1214,27 +1248,32 @@ const TosSections = ({role = 'instructor'}) => {
                     highlightEls = Array.from(cogRows);
                 }
             }
-            if (!scrollEl && co && ilo) {
+            if (!scrollEl && co && ilo && !itemId && !c.scope.fileId && !filename) {
                 const fileCards = document.querySelectorAll(`[data-co="${co}"][data-ilo="${ilo}"][data-file-id]`);
                 if (fileCards.length > 0) {
                     scrollEl = fileCards[0];
                     highlightEls = Array.from(fileCards);
                 }
             }
-            if (!scrollEl) {
+            if (!scrollEl && (attempts >= 10 || (!itemId && !c.scope.fileId && !filename && (!cog || !BLOOM_LEVELS.includes(cog))))) {
                 scrollEl = document.querySelector(`[data-ilo-header="${co}|${ilo}"]`) || document.getElementById(`co-header-${co}`);
                 if (scrollEl) highlightEls = [scrollEl];
             }
             if (scrollEl) {
+                clearInterval(navScrollTimerRef.current);
+                navScrollTimerRef.current = null;
                 scrollEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                highlightEls.forEach(el => {
+                    if (previewLayout?.rowPulseHighlight) {
+                        el.classList.add(previewLayout.rowPulseHighlight);
+                        setTimeout(() => el.classList.remove(previewLayout.rowPulseHighlight), 2000);
+                    }
+                });
+            } else if (attempts >= maxAttempts) {
+                clearInterval(navScrollTimerRef.current);
+                navScrollTimerRef.current = null;
             }
-            highlightEls.forEach(el => {
-                if (previewLayout?.rowPulseHighlight) {
-                    el.classList.add(previewLayout.rowPulseHighlight);
-                    setTimeout(() => el.classList.remove(previewLayout.rowPulseHighlight), 2000);
-                }
-            });
-        }, 450);
+        }, 50);
     };
 
     const openComments = comments.filter(c => !c.resolved);
@@ -1567,6 +1606,7 @@ const items = aggregatedData[co.co][ilo.id][level];
                                         activeScope={activeScope}
                                         onFileClick={handleAssessmentFileClick}
                                         onRowClick={handleAssessmentRowClick}
+                                        attachments={attachments}
                                     />
                                 </section>
                             )}
@@ -2092,6 +2132,7 @@ const items = aggregatedData[co.co][ilo.id][level];
                                             courseCode={courseCode}
                                             period={fromExamType}
                                             targetScope={navTargetScope}
+                                            attachments={attachments}
                                         />
                                     </section>
                                 )}
@@ -2357,6 +2398,14 @@ const items = aggregatedData[co.co][ilo.id][level];
                 schoolYear={`${fromSchoolYear} - ${Number(fromSchoolYear) + 1}`}
             />
 
+            {docFile && (
+                <DocumentViewerModal
+                    file={docFile}
+                    kind="Table of Specifications"
+                    onClose={closeDoc}
+                />
+            )}
+
             {showExportErrorModal && (
                 <div className={layout.modalOverlay} onClick={() => setShowExportErrorModal(false)}>
                     <div className={layout.modal} onClick={e => e.stopPropagation()}>
@@ -2457,27 +2506,58 @@ const items = aggregatedData[co.co][ilo.id][level];
                 </div>
             )}
 
-            {showReturnConfirm && (
-                <div className={layout.modalOverlay} onClick={() => { setShowReturnConfirm(false); setReturnLoading(false); }}>
-                    <div className={layout.modal} onClick={e => e.stopPropagation()}>
-                        <div className={layout.modalHeader}>
-                            <h3>Return Table of Specifications</h3>
-                            <button type="button" className={layout.closeIcon} onClick={() => { setShowReturnConfirm(false); setReturnLoading(false); }} aria-label="Close">
-                                <X size={18} />
-                            </button>
-                        </div>
-                        <div className={layout.modalBody}>
-                            <p style={{ color: "#4B5563", fontSize: '14px', margin: 0 }}>Are you sure you want to return this Table of Specifications with review comments?</p>
-                        </div>
-                        <div className={layout.modalActions}>
-                            <button className={layout.cancelBtn} onClick={() => { setShowReturnConfirm(false); setReturnLoading(false); }}>Cancel</button>
-                            <button className={layout.returnConfirmBtn} onClick={handleConfirmReturn}>
-                                <RotateCcw size={15} /> Confirm Return
-                            </button>
+            {showReturnConfirm && (() => {
+                const returnCommentsList = openComments.filter(c => (c.scope?.returnNumber || c.returnNumber) === returnCount + 1);
+                const commentsToDisplay = returnCommentsList.length > 0 ? returnCommentsList : openComments;
+                return (
+                    <div className={layout.modalOverlay} onClick={() => { setShowReturnConfirm(false); setReturnLoading(false); }}>
+                        <div className={layout.modal} onClick={e => e.stopPropagation()}>
+                            <div className={layout.modalHeader}>
+                                <h3>Return Table of Specifications</h3>
+                                <button type="button" className={layout.closeIcon} onClick={() => { setShowReturnConfirm(false); setReturnLoading(false); }} aria-label="Close">
+                                    <X size={18} />
+                                </button>
+                            </div>
+                            <div className={layout.modalBody}>
+                                {commentsToDisplay.length > 0 ? (
+                                    <div style={{ textAlign: 'left' }}>
+                                        <p style={{ color: "#4B5563", margin: '0 0 14px 0', fontSize: '14px' }}>
+                                            The following {commentsToDisplay.length === 1 ? 'review comment' : `${commentsToDisplay.length} review comments`} will be sent with this return:
+                                        </p>
+                                        <div style={{ maxHeight: 200, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 8, paddingRight: 4 }}>
+                                            {commentsToDisplay.map(c => (
+                                                <div key={c.id} style={{ padding: '10px 12px', borderRadius: 6, border: '1px solid #E5E7EB', background: '#F9FAFB', textAlign: 'left' }}>
+                                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 3 }}>
+                                                        <div style={{ fontSize: 12, fontWeight: 700, color: '#111827', wordBreak: 'break-word' }}>
+                                                            {formatScopeText(c.scope)}
+                                                        </div>
+                                                        {c.scope?.itemNumber && c.type && (
+                                                            <span style={{ fontSize: 11, fontWeight: 600, color: '#2563EB', background: '#EFF6FF', padding: '1px 6px', borderRadius: 4 }}>
+                                                                {c.type}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <div style={{ fontSize: 13, color: '#4B5563', lineHeight: 1.4, wordBreak: 'break-word' }}>
+                                                        {c.body}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <p style={{ color: "#4B5563", fontSize: '14px', margin: 0 }}>Are you sure you want to return this Table of Specifications with review comments?</p>
+                                )}
+                            </div>
+                            <div className={layout.modalActions}>
+                                <button className={layout.cancelBtn} onClick={() => { setShowReturnConfirm(false); setReturnLoading(false); }}>Cancel</button>
+                                <button className={layout.returnConfirmBtn} onClick={handleConfirmReturn}>
+                                    <RotateCcw size={15} /> Confirm Return
+                                </button>
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
+                );
+            })()}
 
             {showReturnCountdown && (
                 <div className={layout.modalOverlay} onClick={() => { if (returnTimerRef.current) clearTimeout(returnTimerRef.current); setShowReturnCountdown(false); setReturnLoading(false); }}>
@@ -2841,6 +2921,7 @@ const items = aggregatedData[co.co][ilo.id][level];
                                             questions={questions}
                                             courseCode={courseCode}
                                             period={fromExamType}
+                                            attachments={attachments}
                                         />
                                     )}
                                     </div>

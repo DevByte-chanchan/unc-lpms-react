@@ -1,8 +1,10 @@
 import styles from '../styles/SideNavigation.module.sass'
 import unclogo from '../assets/unclogo.png'
-import { FileText, LogOut, Users, BookOpen, UserCheck, Grid } from 'react-feather'
+import { LayoutDashboard, NotebookPen, TableProperties, Users, BookOpen, LogOut, UserCheck } from 'lucide-react'
 import { useSearchParams, useNavigate, useLocation } from 'react-router-dom'
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
+import ConfirmModal from './ConfirmModal.jsx'
 
 const SideNavigation = ({ mode = 'instructor' }) => {
     const navigate = useNavigate()
@@ -21,6 +23,8 @@ const SideNavigation = ({ mode = 'instructor' }) => {
     }
 
     const [showPopup, setShowPopup] = useState(false)
+    const [confirmLogout, setConfirmLogout] = useState(false)
+    const [loggingOut, setLoggingOut] = useState(false)
     const [isExpanded, setIsExpanded] = useState(false)
     const logoutRef = useRef(null)
     const navRef = useRef(null)
@@ -51,7 +55,19 @@ const SideNavigation = ({ mode = 'instructor' }) => {
         }
     }
 
-    const onLogoutClick = () => setShowPopup((prev) => !prev)
+    const onLogoutClick = () => {
+        setShowPopup(false)
+        setConfirmLogout(true)
+    }
+
+    const handleConfirmLogout = () => {
+        setLoggingOut(true)
+        setTimeout(() => {
+            setLoggingOut(false)
+            setConfirmLogout(false)
+            navigate('/login', { replace: true })
+        }, 250)
+    }
 
     const gotoRole = (path) => {
         setShowPopup(false)
@@ -143,85 +159,109 @@ const SideNavigation = ({ mode = 'instructor' }) => {
                 {mode !== 'hr-staff' && mode !== 'ovpaa' && (
                     <div
                         onClick={() => handlePageChange('Dashboard')}
-                        className={`${styles.list} ${selected === 'Dashboard' ? styles.selected : ''}`}
+                        className={`${styles.list} ${!isExpanded ? styles.collapsed : ''} ${selected === 'Dashboard' ? styles.selected : ''}`}
+                        title="Dashboard"
+                        aria-label="Dashboard"
                     >
-                        <Grid size={24} />
-                        <span className={styles.listText}>Dashboard</span>
+                        <LayoutDashboard size={20} strokeWidth={2} className={styles.navIcon} />
+                        {isExpanded && <span className={styles.listText}>Dashboard</span>}
                     </div>
                 )}
 
                 {mode !== 'hr-staff' && mode !== 'ovpaa' && (
-                    <div className={`${styles.list} ${styles.disabled} ${selected === 'Syllabus' ? styles.selected : ''}`}>
-                        <FileText size={24} />
-                        <span className={styles.listText}>Syllabus</span>
+                    <div
+                        className={`${styles.list} ${!isExpanded ? styles.collapsed : ''} ${styles.disabled} ${selected === 'Syllabus' ? styles.selected : ''}`}
+                        title="Learning Plans"
+                        aria-label="Learning Plans"
+                    >
+                        <NotebookPen size={20} strokeWidth={2} className={styles.navIcon} />
+                        {isExpanded && <span className={styles.listText}>Learning Plans</span>}
                     </div>
                 )}
 
                 {mode === 'instructor' && (
                     <div
                         onClick={() => handlePageChange('TOS')}
-                        className={`${styles.list} ${selected === 'TOS' ? styles.selected : ''}`}
+                        className={`${styles.list} ${!isExpanded ? styles.collapsed : ''} ${selected === 'TOS' ? styles.selected : ''}`}
+                        title="TOS"
+                        aria-label="TOS"
                     >
-                        <FileText size={24} />
-                        <span className={styles.listText}>TOS</span>
+                        <TableProperties size={20} strokeWidth={2} className={styles.navIcon} />
+                        {isExpanded && <span className={styles.listText}>TOS</span>}
                     </div>
                 )}
 
                 {mode === 'program-head' && (
                     <>
-                        <div onClick={() => handlePageChange('TOS')} className={`${styles.list} ${selected === 'TOS' ? styles.selected : ''}`}>
-                            <FileText size={24} /> <span className={styles.listText}>TOS</span>
+                        <div
+                            onClick={() => handlePageChange('TOS')}
+                            className={`${styles.list} ${!isExpanded ? styles.collapsed : ''} ${selected === 'TOS' ? styles.selected : ''}`}
+                            title="TOS"
+                            aria-label="TOS"
+                        >
+                            <TableProperties size={20} strokeWidth={2} className={styles.navIcon} />
+                            {isExpanded && <span className={styles.listText}>TOS</span>}
                         </div>
 
-                        <div className={`${styles.list} ${styles.disabled}`}>
-                            <Users size={24} /> <span className={styles.listText}>Industry Consultant</span>
+                        <div className={`${styles.list} ${!isExpanded ? styles.collapsed : ''} ${styles.disabled}`} title="Industry Consultant">
+                            <Users size={20} strokeWidth={2} className={styles.navIcon} />
+                            {isExpanded && <span className={styles.listText}>Industry Consultant</span>}
                         </div>
 
-                        <div className={`${styles.list} ${styles.disabled}`}>
-                            <BookOpen size={24} /> <span className={styles.listText}>Course Offerings</span>
+                        <div className={`${styles.list} ${!isExpanded ? styles.collapsed : ''} ${styles.disabled}`} title="Course Offerings">
+                            <BookOpen size={20} strokeWidth={2} className={styles.navIcon} />
+                            {isExpanded && <span className={styles.listText}>Course Offerings</span>}
                         </div>
 
-                        <div className={`${styles.list} ${styles.disabled}`}>
-                            <UserCheck size={24} /> <span className={styles.listText}>Course Assignment</span>
+                        <div className={`${styles.list} ${!isExpanded ? styles.collapsed : ''} ${styles.disabled}`} title="Course Assignment">
+                            <UserCheck size={20} strokeWidth={2} className={styles.navIcon} />
+                            {isExpanded && <span className={styles.listText}>Course Assignment</span>}
                         </div>
                     </>
                 )}
 
                 {mode === 'dean' && (
                     <>
-                        <div className={`${styles.list} ${styles.disabled}`}>
-                            <Users size={24} /> <span className={styles.listText}>Faculty</span>
+                        <div className={`${styles.list} ${!isExpanded ? styles.collapsed : ''} ${styles.disabled}`}>
+                            <Users size={20} strokeWidth={2} className={styles.navIcon} />
+                            {isExpanded && <span className={styles.listText}>Faculty</span>}
                         </div>
 
-                        <div className={`${styles.list} ${styles.disabled}`}>
-                            <BookOpen size={24} /> <span className={styles.listText}>Programs</span>
+                        <div className={`${styles.list} ${!isExpanded ? styles.collapsed : ''} ${styles.disabled}`}>
+                            <BookOpen size={20} strokeWidth={2} className={styles.navIcon} />
+                            {isExpanded && <span className={styles.listText}>Programs</span>}
                         </div>
                     </>
                 )}
 
                 {(mode === 'ovpaa' || mode === 'hr-staff') && (
                     <>
-                        <div className={`${styles.list} ${styles.disabled}`}>
-                            <BookOpen size={24} /> <span className={styles.listText}>Dashboard</span>
+                        <div className={`${styles.list} ${!isExpanded ? styles.collapsed : ''} ${styles.disabled}`}>
+                            <BookOpen size={20} strokeWidth={2} className={styles.navIcon} />
+                            {isExpanded && <span className={styles.listText}>Dashboard</span>}
                         </div>
 
-                        <div className={`${styles.list} ${styles.disabled}`}>
-                            <Users size={24} /> <span className={styles.listText}>Department List</span>
+                        <div className={`${styles.list} ${!isExpanded ? styles.collapsed : ''} ${styles.disabled}`}>
+                            <Users size={20} strokeWidth={2} className={styles.navIcon} />
+                            {isExpanded && <span className={styles.listText}>Department List</span>}
                         </div>
 
-                        <div className={`${styles.list} ${styles.disabled}`}>
-                            <FileText size={24} /> <span className={styles.listText}>Learning Plan</span>
+                        <div className={`${styles.list} ${!isExpanded ? styles.collapsed : ''} ${styles.disabled}`}>
+                            <NotebookPen size={20} strokeWidth={2} className={styles.navIcon} />
+                            {isExpanded && <span className={styles.listText}>Learning Plan</span>}
                         </div>
 
-                        <div className={`${styles.list} ${styles.disabled}`}>
-                            <Grid size={24} /> <span className={styles.listText}>TOS</span>
+                        <div className={`${styles.list} ${!isExpanded ? styles.collapsed : ''} ${styles.disabled}`}>
+                            <TableProperties size={20} strokeWidth={2} className={styles.navIcon} />
+                            {isExpanded && <span className={styles.listText}>TOS</span>}
                         </div>
                     </>
                 )}
 
                 <div className={styles.logoutWrapper} ref={logoutRef}>
-                    <div className={styles.listB} onClick={onLogoutClick}>
-                        <LogOut size={24} color={'#F94545'} /> <span className={styles.listText}>Log Out</span>
+                    <div className={`${styles.listB} ${!isExpanded ? styles.collapsed : ''}`} onClick={onLogoutClick} title="Log Out" aria-label="Log Out">
+                        <LogOut size={20} strokeWidth={2} color={'#F94545'} />
+                        {isExpanded && <span className={styles.listText}>Log Out</span>}
                     </div>
 
                     {showPopup && (
@@ -237,6 +277,22 @@ const SideNavigation = ({ mode = 'instructor' }) => {
                     )}
                 </div>
             </div>
+
+            {createPortal(
+                <ConfirmModal
+                    open={confirmLogout}
+                    icon={LogOut}
+                    tone="destructive"
+                    title="Log out?"
+                    message="You'll need to sign in again to continue."
+                    confirmLabel="Log out"
+                    busyLabel="Logging out…"
+                    busy={loggingOut}
+                    onConfirm={handleConfirmLogout}
+                    onCancel={() => { if (!loggingOut) setConfirmLogout(false) }}
+                />,
+                document.body
+            )}
         </div>
     )
 }

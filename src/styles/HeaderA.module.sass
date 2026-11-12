@@ -51,19 +51,23 @@
   min-height: 40px !important
   padding: 0 !important
   border-radius: 50% !important
-  background: #EFF6FF !important
-  border: 1px solid #BFDBFE !important
+  background: #FFFFFF !important
+  border: 1px solid #E2E8F0 !important
   display: flex !important
   align-items: center !important
   justify-content: center !important
   cursor: pointer
   outline: none
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05)
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04) !important
   transition: all 0.2s ease
 
   &:hover
-    background: #DBEAFE !important
-    border-color: #93C5FD !important
+    background: #F8FAFC !important
+    border-color: #CBD5E1 !important
+
+    svg
+      color: #1E293B !important
+      stroke: #1E293B !important
 
   &:active
     transform: scale(0.96)
@@ -72,27 +76,28 @@
     display: block !important
     width: 20px !important
     height: 20px !important
-    color: #2563EB !important
-    stroke: #2563EB !important
+    color: #475569 !important
+    stroke: #475569 !important
     flex-shrink: 0
 
 .bellBadge
   position: absolute
-  top: -4px
-  right: -4px
+  top: -2px
+  right: -2px
   min-width: 18px
   height: 18px
   padding: 0 4px
-  border-radius: 9999px
-  background: #DC2626 !important
+  border-radius: 9px
+  background: #EF4444 !important
   color: #FFFFFF !important
   font-size: 11px
   font-weight: 700
   display: flex
   align-items: center
   justify-content: center
-  border: 2px solid #FFFFFF
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1)
+  border: 2px solid #FFFFFF !important
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15)
+  box-sizing: border-box
   pointer-events: none
 
 .notifPopover

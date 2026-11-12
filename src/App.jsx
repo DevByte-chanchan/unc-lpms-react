@@ -5,6 +5,7 @@ import TOS from "./pages/TOS.jsx";
 import ProgramHeadTOS from "./pages/ProgramHeadTOS.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
 import ProgramHeadDashboard from "./pages/ProgramHeadDashboard.jsx";
+import Login from "./pages/Login.jsx";
 
 function App() {
     return (
@@ -12,6 +13,7 @@ function App() {
             <div className="appPage">
                 <Routes>
                     <Route path={'/'} element={<Navigate to="/dashboard" replace />} />
+                    <Route path={'/login'} element={<Login />} />
                     <Route path={'/dashboard'} element={<Dashboard />} />
                     <Route path={'/assignedtos'} element={<AssignedTOS />} />
                     <Route path={'/tos/:code'} element={<TOS />} />

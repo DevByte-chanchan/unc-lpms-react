@@ -10,16 +10,16 @@ import { fileURLToPath } from 'url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const courses = [
-    { code: 'BSCS313L', name: 'Human & Computer Interaction', instructor: 'NORTON, MONICA' },
-    { code: 'BSCS212L', name: 'Web Development I', assessmentName: 'Written Exam', instructor: 'NORTON, MONICA' },
-    { code: 'BSCS111L', name: 'Fundamentals of Programming', assessmentName: 'Written Exam', instructor: 'NORTON, MONICA' },
-    { code: 'BSCS214L', name: 'Data Structures and Algorithms', assessmentName: 'Written Exam', instructor: 'NORTON, MONICA' },
-    { code: 'BSCS315L', name: 'Operating Systems', assessmentName: 'Periodic Exam', instructor: 'DIAZ, ROSA' },
-    { code: 'BSCS321L', name: 'Database Management Systems', instructor: 'NORTON, MONICA', learningPlanApproved: false },
-    { code: 'BSCS322L', name: 'Software Engineering', assessmentName: 'Midterm Exam', instructor: 'DIAZ, ROSA' },
-    { code: 'BSCS331L', name: 'Computer Networks', assessmentName: 'Periodic Exam', instructor: 'JEFFORDS, TERRY' },
-    { code: 'BSCS341L', name: 'Artificial Intelligence', assessmentName: 'Written Exam', instructor: 'NORTON, MONICA' },
-    { code: 'BSCS351L', name: 'Cybersecurity Fundamentals', assessmentName: 'Midterm Exam', instructor: 'DIAZ, ROSA' }
+    { code: 'BSCS313L', name: 'Human & Computer Interaction', instructor: 'Monica Norton' },
+    { code: 'BSCS212L', name: 'Web Development I', assessmentName: 'Written Exam', instructor: 'Monica Norton' },
+    { code: 'BSCS111L', name: 'Fundamentals of Programming', assessmentName: 'Written Exam', instructor: 'Monica Norton' },
+    { code: 'BSCS214L', name: 'Data Structures and Algorithms', assessmentName: 'Written Exam', instructor: 'Monica Norton' },
+    { code: 'BSCS315L', name: 'Operating Systems', assessmentName: 'Periodic Exam', instructor: 'Rosa Diaz' },
+    { code: 'BSCS321L', name: 'Database Management Systems', instructor: 'Monica Norton', learningPlanApproved: false },
+    { code: 'BSCS322L', name: 'Software Engineering', assessmentName: 'Midterm Exam', instructor: 'Rosa Diaz' },
+    { code: 'BSCS331L', name: 'Computer Networks', assessmentName: 'Periodic Exam', instructor: 'Terry Jeffords' },
+    { code: 'BSCS341L', name: 'Artificial Intelligence', assessmentName: 'Written Exam', instructor: 'Monica Norton' },
+    { code: 'BSCS351L', name: 'Cybersecurity Fundamentals', assessmentName: 'Midterm Exam', instructor: 'Rosa Diaz' }
 ];
 
 const statuses = [

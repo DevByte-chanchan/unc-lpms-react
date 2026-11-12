@@ -40,48 +40,72 @@
   border-radius: 10px
   display: flex
   align-items: center
-  gap: 16px
+  gap: 12px
   cursor: pointer
-  font-size: 15px
+  font-size: 14px
   font-weight: 500
-  color: #4B5563
+  color: #64748B
   white-space: nowrap
-  transition: background 0.2s ease
+  transition: background 0.2s ease, color 0.2s ease
+
+  &.collapsed
+    justify-content: center
+    padding: 10px 0
+    gap: 0
+
+  .navIcon
+    color: #64748B
+    flex-shrink: 0
+    transition: color 0.2s ease
 
   &:hover
-    background: #F3F4F6
-    color: #111827
+    background: #F1F5F9
+    color: #0F172A
+
+    .navIcon
+      color: #0F172A
 
   &.selected
-    background: #E5E7EB
-    color: #111827
+    background: #E2E8F0
+    color: #0F172A
     font-weight: 600
+
+    .navIcon
+      color: #0F172A
 
 .list svg
   flex-shrink: 0
 
 .listText
   white-space: nowrap
+  overflow: hidden
+  text-overflow: ellipsis
+
+.list.collapsed .listText,
+.listB.collapsed .listText
+  display: none !important
 
 .disabled
-  opacity: 0.45
-  pointer-events: none
-  cursor: default
-
-  &:hover
-    background: transparent
+  // Kept disabled (no navigation/onClick in JSX), but visually matches enabled items
+  opacity: 1
 
 .listB
   padding: 10px 12px
   border-radius: 10px
   display: flex
   align-items: center
-  gap: 16px
+  gap: 12px
   cursor: pointer
-  font-size: 15px
+  font-size: 14px
   font-weight: 500
   color: #F94545
   white-space: nowrap
+  transition: background 0.2s ease
+
+  &.collapsed
+    justify-content: center
+    padding: 10px 0
+    gap: 0
 
   svg
     flex-shrink: 0
