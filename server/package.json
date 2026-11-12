@@ -16,6 +16,7 @@
     "courses:dedupe": "node scripts/dedupeCourses.js",
     "mail:test": "node scripts/sendTestEmail.js",
     "access:check": "node scripts/checkAccess.js",
+    "accounts:check": "node scripts/checkDeanAccounts.js",
     "db:migrate": "sequelize-cli db:migrate",
     "db:migrate:undo": "sequelize-cli db:migrate:undo",
     "db:seed": "sequelize-cli db:seed:all",
