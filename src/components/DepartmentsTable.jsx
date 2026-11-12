@@ -19,7 +19,7 @@ const DepartmentsTable = ({ departments = [], onEdit, onInvite, invitingId = nul
             <th width={140} style={{ paddingLeft: 28 }}>CODE</th>
             <th width={260}>DEAN</th>
             <th width={120} style={{ paddingLeft: 24 }}>STATUS</th>
-            <th width={170}>ACCESS</th>
+            <th width={260}>ACCESS</th>
             <th className={styles.fill}></th>
           </tr>
         </thead>
@@ -41,13 +41,17 @@ const DepartmentsTable = ({ departments = [], onEdit, onInvite, invitingId = nul
                     {status}
                   </span>
                 </td>
-                <td width={170}>
-                  {d.dean ? <AccessChip access={d.access} /> : <span style={{ color: '#9CA3AF', fontSize: 12, fontStyle: 'italic' }}>No Dean</span>}
-                  {d.access && d.access.status === 'held' && (
-                    <div title={d.access.label} style={{ color: '#92400E', fontSize: 11, marginTop: 4, maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {d.access.reason || d.access.label}
-                    </div>
-                  )}
+                <td width={260}>
+                  {/* Chip on top, the reason under it (up to two lines), never squeezed beside it. */}
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 4, minWidth: 0, maxWidth: 240, padding: '4px 0' }}>
+                    {d.dean ? <AccessChip access={d.access} /> : <span style={{ color: '#9CA3AF', fontSize: 12, fontStyle: 'italic' }}>No Dean</span>}
+                    {d.access && d.access.status === 'held' && (
+                      <span title={d.access.reason || d.access.label}
+                        style={{ color: '#92400E', fontSize: 12, lineHeight: 1.35, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', whiteSpace: 'normal', overflowWrap: 'anywhere' }}>
+                        {d.access.reason || d.access.label}
+                      </span>
+                    )}
+                  </div>
                 </td>
                 <td className={styles.fill} style={{ paddingRight: 12, textAlign: 'right', whiteSpace: 'nowrap' }}>
                   <RowActionsMenu
