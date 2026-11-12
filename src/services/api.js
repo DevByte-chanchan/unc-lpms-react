@@ -194,6 +194,18 @@ export const fetchAttachments = async (courseCode, period) => {
     return res.json();
 };
 
+export const replaceAttachment = async (courseCode, period, id, file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const res = await fetch(`${BASE}/${courseCode}/${period}/attachments/${id}`, {
+        method: 'PUT',
+        body: formData
+    });
+    if (!res.ok) throw new Error('Replace failed');
+    return res.json();
+};
+
 export const deleteAttachment = async (courseCode, period, id) => {
     const res = await fetch(`${BASE}/${courseCode}/${period}/attachments/${id}`, {
         method: 'DELETE'

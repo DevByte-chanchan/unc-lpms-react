@@ -16,7 +16,7 @@ const formatFileSize = (bytes) => {
     return `${Math.max(1, Math.round(bytes / 1024))} KB`;
 };
 
-export default function AssessmentOutput({ outcomeData = [], questions = [], courseCode, period = ACTIVE_PERIOD, examType, targetScope = null, addingComment = false, activeScope = null, onFileClick = null }) {
+export default function AssessmentOutput({ outcomeData = [], questions = [], courseCode, period = ACTIVE_PERIOD, examType, targetScope = null, addingComment = false, activeScope = null, onFileClick = null, onRowClick = null }) {
     const [attachments, setAttachments] = useState([]);
     const [attLoading, setAttLoading] = useState(false);
     const [collapsedCOs, setCollapsedCOs] = useState(new Set());
@@ -236,20 +236,31 @@ export default function AssessmentOutput({ outcomeData = [], questions = [], cou
                                                                     {fileRows.length === 0 ? (
                                                                         <div className={layout.emptyPointRows}>No point rows for this file</div>
                                                                     ) : (
-                                                                        fileRows.map(row => (
+                                                                        fileRows.map(row => {
+                                                                            const isRowActive = !!activeScope && activeScope.rowId !== undefined && String(activeScope.rowId) === String(row.id);
+                                                                            const rowClass = `${layout.pointGridRow}${addingComment && onRowClick ? ` ${layout.aoRowSelectable}` : ''}${isRowActive ? ` ${layout.aoRowActiveComment}` : ''}`;
+                                                                            return (
                                                                             <div
                                                                                 key={row.id}
-                                                                                className={layout.pointGridRow}
+                                                                                className={rowClass}
                                                                                 data-item-id={row.id}
                                                                                 data-co={co.co}
                                                                                 data-ilo={ilo.id}
                                                                                 data-cog={row.cognitiveLevel}
+                                                                                onClick={e => {
+                                                                                    if (addingComment && onRowClick) {
+                                                                                        // Row comment wins over the surrounding file card's click
+                                                                                        e.stopPropagation();
+                                                                                        onRowClick(att, co, ilo, row);
+                                                                                    }
+                                                                                }}
                                                                             >
                                                                                 <span className={layout.pointColRef}>{row.instruction || row.question || '—'}</span>
                                                                                 <span className={layout.pointColPts}>{row.points || 0}</span>
                                                                                 <span className={layout.pointColBloom}>{row.cognitiveLevel || '—'}</span>
                                                                             </div>
-                                                                        ))
+                                                                            );
+                                                                        })
                                                                     )}
                                                                 </div>
                                                             </div>
