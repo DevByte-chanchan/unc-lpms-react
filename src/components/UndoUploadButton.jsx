@@ -46,7 +46,7 @@ import toastStyles from '../styles/UploadPreviewFlow.module.sass';
 // Round UP: with 400ms to go, "0s left" reads as already gone.
 const formatLeft = (ms) => Math.max(0, Math.ceil(ms / 1000)) + 's left';
 
-const UndoUploadButton = ({ entity, periodId, disabled, refreshKey, onUndone }) => {
+const UndoUploadButton = ({ entity, periodId, disabled, refreshKey, onUndone, hideWhenEmpty = false }) => {
   const [batch, setBatch]     = React.useState(null);
   const [msLeft, setMsLeft]   = React.useState(0);
   const [asking, setAsking]   = React.useState(false);
@@ -154,6 +154,9 @@ const UndoUploadButton = ({ entity, periodId, disabled, refreshKey, onUndone }) 
   const title = nothingToUndo
     ? 'Nothing to undo — a change can be reversed for 30 seconds after you make it.'
     : describe() + ' — ' + formatLeft(msLeft);
+
+  // Pages with a crowded header show Undo only while there is something to undo.
+  if (hideWhenEmpty && nothingToUndo && !asking && !busy) return null;
 
   return (
     <>

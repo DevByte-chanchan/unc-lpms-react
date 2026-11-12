@@ -41,8 +41,6 @@ import { REMOVED_MESSAGE } from '../services/notificationTarget.js';
 import { HistoryTimeline } from "../components/AssignmentTracking.jsx";
 import { lastUpdatedText, fmtDay } from "../services/assignmentTracking.js";
 import OfficialCompareModal from "../components/OfficialCompareModal.jsx";
-import TeachingLoadDialog from "../components/TeachingLoadDialog.jsx";
-import { leadLoadWarning } from "../utils/teachingLoad.js";
 import { progressOf, matchesProgress } from "../utils/assignmentProgress.js";
 import { downloadAssignmentsXlsx, downloadAssignmentsPdf } from "../utils/exportAssignments.js";
 
@@ -63,7 +61,7 @@ const SectionsLine = ({ sections }) => (sections && sections.length ? (
     {sections.join(', ')}
   </span>
 ) : null);
-import { Search, Upload, Plus, Clipboard, Edit3, ChevronDown, Check, AlertTriangle, RefreshCw, GitPullRequest, BarChart2, Download } from "react-feather";
+import { Search, Upload, Plus, Clipboard, Edit3, ChevronDown, Check, AlertTriangle, RefreshCw, GitPullRequest, Download, MoreHorizontal } from "react-feather";
 import styles from '../styles/CoursesTable.module.sass';
 import syllabusStyles from '../styles/SyllabusSections.module.sass';
 import { CourseOfferingAssignmentsAPI, CoursesAPI, FacultyAPI } from '../services/api.js';
@@ -76,7 +74,7 @@ import { courseMatchesPeriod } from '../services/courseTerm.js';
 import TermOpenNote from "../components/TermOpenNote.jsx";
 
 const ActionBtn = ({ onClick, icon, label, disabled, variant }) => (
-  <button onClick={onClick} disabled={disabled} style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '8px 18px', gap: 8, minWidth: 240, height: 40, background: variant === 'white' ? '#FFFFFF' : (disabled ? '#9CA3AF' : '#18191A'), borderRadius: 6, color: variant === 'white' ? '#374151' : '#fff', border: variant === 'white' ? '1px solid #D1D5DB' : 'none', cursor: disabled ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap', opacity: disabled ? (variant === 'white' ? 0.6 : 0.7) : 1 }}>
+  <button onClick={onClick} disabled={disabled} style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '8px 16px', gap: 6, height: 40, background: variant === 'white' ? '#FFFFFF' : (disabled ? '#9CA3AF' : '#18191A'), borderRadius: 6, color: variant === 'white' ? '#374151' : '#fff', border: variant === 'white' ? '1px solid #D1D5DB' : 'none', cursor: disabled ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap', opacity: disabled ? (variant === 'white' ? 0.6 : 0.7) : 1 }}>
     <span style={{ width: 22, height: 22, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{icon}</span>
     {label}
   </button>
@@ -133,15 +131,11 @@ const ProgramHeadCourseAssignment = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [assignmentsPeriod, setAssignmentsPeriod] = React.useState(null);
   const [highlightCode, setHighlightCode] = React.useState(null);
-  // Teaching load (GET /load): the Load dialog and the Lead Faculty warning.
-  const [load, setLoad]                       = React.useState(null);
-  const [loadError, setLoadError]             = React.useState(null);
-  const [showLoad, setShowLoad]               = React.useState(false);
   // Progress strip: the program's offerings this term, and the part clicked (a table filter).
   const [offered, setOffered]                 = React.useState(null);
   const [progressFilter, setProgressFilter]   = React.useState(null); // null | 'assigned' | 'notified' | 'not_notified'
-  // Download menu: open?, and which file is being made ('xlsx' | 'pdf').
-  const [downloadOpen, setDownloadOpen]       = React.useState(false);
+  // The ⋯ menu (Re-validate, Download), and which file is being made ('xlsx' | 'pdf').
+  const [moreOpen, setMoreOpen]               = React.useState(false);
   const [downloading, setDownloading]         = React.useState(null);
 
   const refresh = React.useCallback(() => {
@@ -161,16 +155,6 @@ const ProgramHeadCourseAssignment = () => {
 
   React.useEffect(() => { refresh(); }, [refresh]);
 
-  // Re-read the load whenever the rows change (an add, edit, upload or undo).
-  React.useEffect(() => {
-    if (!periodId || !selectedProgramId) { setLoad(null); return undefined; }
-    let cancelled = false;
-    CourseOfferingAssignmentsAPI.load(periodId, selectedProgramId)
-      .then((r) => { if (!cancelled) { setLoad(r); setLoadError(null); } })
-      .catch((err) => { if (!cancelled) { setLoad(null); setLoadError(err.message || 'Could not read the teaching load.'); } });
-    return () => { cancelled = true; };
-  }, [periodId, selectedProgramId, assignments]);
-
   React.useEffect(() => {
     setProgressFilter(null);
     if (!periodId || !selectedProgramId) { setOffered(null); return undefined; }
@@ -184,7 +168,6 @@ const ProgramHeadCourseAssignment = () => {
   const progress = React.useMemo(() => progressOf(assignments, { programId: selectedProgramId, offered }), [assignments, selectedProgramId, offered]);
 
   const onDownload = async (format) => {
-    setDownloadOpen(false);
     if (downloading || !periodId || !selectedProgramId) return;
     setDownloading(format);
     try {
@@ -195,12 +178,6 @@ const ProgramHeadCourseAssignment = () => {
     } finally {
       setDownloading(null);
     }
-  };
-
-  // Under Lead Faculty: a warning only, saving stays allowed.
-  const loadHelper = (editingId) => (values) => {
-    const text = leadLoadWarning(load, { name: values && values.faculty_name, courseCode: values && values.course_code, editingId });
-    return text ? <span role="status" style={{ color: '#B45309', display: 'inline-flex', alignItems: 'center', gap: 4 }}><AlertTriangle size={13} /> {text}</span> : null;
   };
 
   // Open what the link names, once this term's rows are in. Editing needs a
@@ -452,7 +429,7 @@ const ProgramHeadCourseAssignment = () => {
 
   const addFields = [
     courseOfferingField,
-    { key: 'faculty_name', label: 'Lead Faculty', type: 'searchable-select', options: facultyOptions, placeholder: 'Search faculty…', helper: loadHelper(null) },
+    { key: 'faculty_name', label: 'Lead Faculty', type: 'searchable-select', options: facultyOptions, placeholder: 'Search faculty…' },
     contributorsField,
   ];
 
@@ -521,41 +498,36 @@ const ProgramHeadCourseAssignment = () => {
         {!noProgramAssigned && (
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
             {showTable && (
-              <button
-                onClick={onRevalidate}
-                disabled={revalidating}
-                title={revalidating ? 'Validating…' : 'Re-validate — re-check every assignment against the current courses & faculty'}
-                aria-label="Re-validate"
-                style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 40, height: 40, padding: 0, background: '#FFFFFF', border: '1px solid #D1D5DB', borderRadius: 6, color: '#374151', cursor: revalidating ? 'not-allowed' : 'pointer', opacity: revalidating ? 0.7 : 1 }}
-              >
-                <RefreshCw size={18} />
-              </button>
+              <ActionBtn variant="white" onClick={() => setShowCompare(true)} disabled={!periodId || !isCurrentTermActive || !selectedProgramId}
+                icon={<GitPullRequest size={18} color="#374151" />} label="Compare with official" />
             )}
-            {showTable && (
-              <button type="button" onClick={() => setShowLoad(true)} disabled={!selectedProgramId}
-                title="Teaching load: units each faculty member leads this term"
-                style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 40, padding: '0 14px', background: '#FFFFFF', border: '1px solid ' + (load && load.faculty.some((f) => f.over_by > 0) ? '#FCA5A5' : '#D1D5DB'), borderRadius: 6, color: '#374151', cursor: selectedProgramId ? 'pointer' : 'not-allowed', whiteSpace: 'nowrap' }}>
-                <BarChart2 size={18} /> Load
-                {load && load.faculty.some((f) => f.over_by > 0) && (
-                  <span style={{ background: '#FEE2E2', color: '#991B1B', borderRadius: 9999, padding: '1px 7px', fontSize: 12, fontWeight: 700 }}>{load.faculty.filter((f) => f.over_by > 0).length} over</span>
-                )}
-              </button>
-            )}
+            <UndoUploadButton entity="course_offering_assignments" periodId={periodId} disabled={!periodId || !isCurrentTermActive} refreshKey={uploadCount} onUndone={refresh} hideWhenEmpty />
+            <ActionBtn variant="white" onClick={() => { if (assignments.length > 0) { setConfirmUpload(true); } else { setShowModal(true); } }} disabled={!periodId || !isCurrentTermActive} icon={<Upload size={18} color="#374151" />} label="Upload" />
+            {isCurrentTermActive && <ActionBtn onClick={() => setShowAddModal(true)} disabled={!periodId || !selectedProgramId} icon={<Plus size={18} color="#FFFFFF" />} label="Add Assignment" />}
             {showTable && (
               <div style={{ position: 'relative' }}>
-                <button type="button" onClick={() => setDownloadOpen((v) => !v)} disabled={!selectedProgramId || !!downloading}
-                  aria-haspopup="menu" aria-expanded={downloadOpen}
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 40, padding: '0 14px', background: '#FFFFFF', border: '1px solid #D1D5DB', borderRadius: 6, color: '#374151', cursor: downloading ? 'wait' : 'pointer', whiteSpace: 'nowrap' }}>
-                  <Download size={18} /> {downloading ? 'Preparing…' : 'Download'} <ChevronDown size={15} />
+                <button type="button" onClick={() => setMoreOpen((v) => !v)} aria-haspopup="menu" aria-expanded={moreOpen}
+                  aria-label="More actions" title="More actions"
+                  style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 40, height: 40, padding: 0, background: moreOpen ? '#F3F4F6' : '#FFFFFF', border: '1px solid #D1D5DB', borderRadius: 6, color: '#374151', cursor: 'pointer' }}>
+                  <MoreHorizontal size={18} />
                 </button>
-                {downloadOpen && (
+                {moreOpen && (
                   <>
-                    <div onClick={() => setDownloadOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 4 }} />
-                    <div role="menu" style={{ position: 'absolute', top: '110%', right: 0, background: '#FFFFFF', border: '1px solid #D1D5DB', borderRadius: 8, boxShadow: '0 8px 24px rgba(0,0,0,0.12)', minWidth: 200, padding: 6, zIndex: 5 }}>
-                      {[['xlsx', 'Excel (.xlsx)'], ['pdf', 'PDF']].map(([k, label]) => (
-                        <button key={k} type="button" role="menuitem" onClick={() => onDownload(k)}
-                          style={{ display: 'block', width: '100%', textAlign: 'left', background: 'transparent', border: 'none', padding: '8px 10px', borderRadius: 6, fontSize: 13, color: '#18191A', cursor: 'pointer' }}>
-                          {label}
+                    <div onClick={() => setMoreOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 4 }} />
+                    <div role="menu" style={{ position: 'absolute', top: 'calc(100% + 6px)', right: 0, background: '#FFFFFF', border: '1px solid #E5E7EB', borderRadius: 10, boxShadow: '0 10px 28px rgba(15,23,42,0.14)', minWidth: 240, padding: 4, zIndex: 5 }}>
+                      {[
+                        { key: 'reval', icon: <RefreshCw size={15} />, label: revalidating ? 'Re-validating…' : 'Re-validate', hint: 'Re-check courses & faculty', onClick: onRevalidate, disabled: revalidating },
+                        { key: 'xlsx', icon: <Download size={15} />, label: downloading === 'xlsx' ? 'Preparing…' : 'Download Excel', hint: '.xlsx', onClick: () => onDownload('xlsx'), disabled: !selectedProgramId || !!downloading },
+                        { key: 'pdf', icon: <Download size={15} />, label: downloading === 'pdf' ? 'Preparing…' : 'Download PDF', hint: 'UNC form', onClick: () => onDownload('pdf'), disabled: !selectedProgramId || !!downloading },
+                      ].map((it) => (
+                        <button key={it.key} type="button" role="menuitem" disabled={it.disabled}
+                          onClick={() => { setMoreOpen(false); it.onClick(); }}
+                          onMouseEnter={(e) => { e.currentTarget.style.background = '#F3F4F6'; }}
+                          onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+                          style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', textAlign: 'left', background: 'transparent', border: 'none', padding: '9px 10px', borderRadius: 6, fontFamily: 'inherit', fontSize: 13, color: '#18191A', cursor: it.disabled ? 'not-allowed' : 'pointer', opacity: it.disabled ? 0.5 : 1, whiteSpace: 'nowrap' }}>
+                          <span style={{ color: '#6B7280', display: 'inline-flex' }}>{it.icon}</span>
+                          <span style={{ flex: 1 }}>{it.label}</span>
+                          <span style={{ fontSize: 11.5, color: '#9CA3AF' }}>{it.hint}</span>
                         </button>
                       ))}
                     </div>
@@ -563,13 +535,6 @@ const ProgramHeadCourseAssignment = () => {
                 )}
               </div>
             )}
-            {showTable && (
-              <ActionBtn variant="white" onClick={() => setShowCompare(true)} disabled={!periodId || !isCurrentTermActive || !selectedProgramId}
-                icon={<GitPullRequest size={18} color="#374151" />} label="Compare with official offerings" />
-            )}
-            <UndoUploadButton entity="course_offering_assignments" periodId={periodId} disabled={!periodId || !isCurrentTermActive} refreshKey={uploadCount} onUndone={refresh} />
-            <ActionBtn variant="white" onClick={() => { if (assignments.length > 0) { setConfirmUpload(true); } else { setShowModal(true); } }} disabled={!periodId || !isCurrentTermActive} icon={<Upload size={18} color="#374151" />} label="Upload Course Assignment" />
-            {isCurrentTermActive && <ActionBtn onClick={() => setShowAddModal(true)} disabled={!periodId || !selectedProgramId} icon={<Plus size={18} color="#FFFFFF" />} label="Add Assignment" />}
           </div>
         )}
       </div>
@@ -806,7 +771,6 @@ const ProgramHeadCourseAssignment = () => {
               key: 'faculty_name', label: 'Lead Faculty', type: 'searchable-select',
               options: leadOptions, placeholder: 'Choose lead from contributors…', searchable: true,
               highlight: editingAssignment.status === 'Unassigned' && !editingAssignment.faculty_id,
-              helper: loadHelper(editingAssignment.id),
             },
             contributorsField,
           ]}
@@ -900,8 +864,6 @@ const ProgramHeadCourseAssignment = () => {
             </div>
       </DialogShell>
 
-      <TeachingLoadDialog open={showLoad} onClose={() => setShowLoad(false)} load={load} error={loadError}
-        title={[programCode, currentPeriod && currentPeriod.label].filter(Boolean).join(' · ')} />
 
       <OfficialCompareModal
         open={showCompare}
