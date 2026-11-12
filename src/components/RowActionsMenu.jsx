@@ -27,8 +27,11 @@
  *     scroll / resize.
  */
 import React from 'react';
+import { createPortal } from 'react-dom';
 
-const MENU_WIDTH = 184;
+const MENU_MIN_WIDTH = 184;
+const MENU_MAX_WIDTH = 300;
+const EDGE = 8;   // keep the menu this far from the window edges
 
 // Kebab glyph drawn as three plain HTML dots (coloured <span>s), NOT an SVG —
 // feather's stroke-only circles can render invisibly at small sizes, and a
@@ -58,18 +61,29 @@ const RowActionsMenu = ({ row, inline = [], actions = [], label = 'More actions'
   const menuItems = actions.filter(Boolean);
 
   const [open, setOpen] = React.useState(false);
-  const [coords, setCoords] = React.useState({ top: 0, left: 0 });
+  const [coords, setCoords] = React.useState(null);
   const btnRef = React.useRef(null);
   const menuRef = React.useRef(null);
 
+  // Right-align the menu to the ⋮ button, sized to its longest item; open
+  // upward when there's no room below, and never past a window edge.
   const place = React.useCallback(() => {
     const el = btnRef.current;
-    if (!el) return;
+    const menu = menuRef.current;
+    if (!el || !menu) return;
     const r = el.getBoundingClientRect();
-    setCoords({ top: Math.round(r.bottom + 6), left: Math.round(r.right - MENU_WIDTH) });
+    const w = menu.offsetWidth;
+    const h = menu.offsetHeight;
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    let left = r.right - w;
+    left = Math.max(EDGE, Math.min(left, vw - w - EDGE));
+    let top = r.bottom + 6;
+    if (top + h > vh - EDGE && r.top - 6 - h >= EDGE) top = r.top - 6 - h;
+    setCoords({ top: Math.round(top), left: Math.round(left) });
   }, []);
 
-  React.useLayoutEffect(() => { if (open) place(); }, [open, place]);
+  React.useLayoutEffect(() => { if (open) place(); else setCoords(null); }, [open, place]);
 
   React.useEffect(() => {
     if (!open) return undefined;
@@ -151,17 +165,22 @@ const RowActionsMenu = ({ row, inline = [], actions = [], label = 'More actions'
             <KebabIcon />
           </button>
 
-          {open && (
+          {open && createPortal(
             <div
               ref={menuRef}
               role="menu"
               aria-label={label}
               onKeyDown={onMenuKeyDown}
+              onMouseDown={(e) => e.stopPropagation()}
               style={{
-                position: 'fixed', top: coords.top, left: coords.left,
-                width: MENU_WIDTH, background: '#FFFFFF',
-                border: '1px solid #E5E7EB', borderRadius: 8,
-                boxShadow: '0 8px 24px rgba(0,0,0,0.12)', padding: 4, zIndex: 90,
+                // Portalled to <body> so no table overflow or transformed parent can clip it.
+                position: 'fixed', top: coords ? coords.top : -9999, left: coords ? coords.left : -9999,
+                visibility: coords ? 'visible' : 'hidden',
+                width: 'max-content', minWidth: MENU_MIN_WIDTH, maxWidth: MENU_MAX_WIDTH,
+                background: '#FFFFFF', boxSizing: 'border-box',
+                border: '1px solid #E5E7EB', borderRadius: 10,
+                boxShadow: '0 10px 28px rgba(15,23,42,0.14), 0 2px 6px rgba(15,23,42,0.06)',
+                padding: 4, zIndex: 1000,
               }}
             >
               {menuHeader && (
@@ -178,9 +197,9 @@ const RowActionsMenu = ({ row, inline = [], actions = [], label = 'More actions'
                   style={{
                     width: '100%', textAlign: 'left',
                     display: 'flex', alignItems: 'center', gap: 10,
-                    padding: '9px 10px', borderRadius: 6,
-                    background: 'transparent', border: 'none', cursor: 'pointer',
-                    fontSize: 13, fontWeight: 500,
+                    padding: '9px 12px 9px 10px', borderRadius: 6,
+                    background: 'transparent', border: 'none', outline: 'none', cursor: 'pointer',
+                    fontSize: 13, fontWeight: 500, whiteSpace: 'nowrap', fontFamily: 'inherit',
                     color: a.danger ? '#B91C1C' : '#18191A',
                   }}
                   onMouseEnter={(e) => { e.currentTarget.style.background = a.danger ? '#FEF2F2' : '#F3F4F6'; }}
@@ -192,7 +211,8 @@ const RowActionsMenu = ({ row, inline = [], actions = [], label = 'More actions'
                   <span>{a.label}</span>
                 </button>
               ))}
-            </div>
+            </div>,
+            document.body,
           )}
         </div>
       )}
