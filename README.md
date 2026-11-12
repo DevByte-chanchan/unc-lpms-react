@@ -7,6 +7,35 @@ Currently, two official plugins are available:
 - [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
 - [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
 
+## How to run, test and reset the demo
+
+**Run (Docker).** `docker compose up -d` starts MySQL (`ca-mysql`, host port 3307), the API (`ca-api`, http://localhost:4000), the web app (`ca-web`, http://localhost:5173), Mailpit (http://localhost:8025) and Adminer (http://localhost:8080). Settings live in `server/.env` (copy `server/.env.example`). There is no Node on the host needed: run the commands below inside the containers, as shown.
+
+**Test.**
+
+| What | Command |
+|---|---|
+| Frontend unit tests | `docker exec -w /app ca-web npm test` |
+| Server tests (needs MySQL; none are skipped when it is up) | `docker exec -w /app/server ca-api npm test` |
+| Build | `docker exec -w /app ca-web npm run build` |
+| Lint (warnings allowed, no errors) | `docker exec -w /app ca-web npx eslint .` |
+| End-to-end (Playwright, against the running app) | `npm run e2e` — see below |
+
+CI (`.github/workflows/ci.yml`) runs all of these except e2e on every push and pull request, against a `mysql:8` service, and fails if a server test is skipped. A fresh database is built with `npm run db:sync` (the API's own boot steps) followed by `npm run db:migrate -- --from 20261010000001-create-user-accounts.cjs`.
+
+**Reset the demo.** `docker exec -it ca-api npm run demo:reset` (add `-- --yes` to skip the question) **erases the database** and loads the demo: the admin and demo accounts, the term *1st Semester* of the current school year with the sample calendar's dates, then departments → faculty → programs → courses (the BSIT Program of Study) → course assignments, through the real upload routes. Running it twice gives the same data. It prints the sign-in emails, never the passwords (those are in `server/utils/seedUsers.js`, and the admin's in `server/.env`). Nothing it loads is emailed. It refuses to run with `NODE_ENV=production`.
+
+**End-to-end tests.** They upload, add and undo, so run them only against a demo database:
+
+```sh
+docker exec ca-api npm run -s demo:reset -- --yes
+E2E_ALLOW_WRITES=1 E2E_PH_PASSWORD=… E2E_VPAA_PASSWORD=… npm run e2e
+```
+
+Options: `E2E_BASE_URL` (default http://localhost:5173), `E2E_API_URL` (default http://localhost:4000/api), `E2E_PH_EMAIL` / `E2E_VPAA_EMAIL` (default: the demo accounts), `E2E_BROWSER_CHANNEL=msedge` to use an installed browser instead of `npx playwright install chromium`, and `E2E_RESET_CMD="docker exec ca-api npm run -s demo:reset -- --yes"` to reset before and after the run. Each test undoes its own change; the "fresh term" test leaves the lists it cloned into its (deleted) term behind, which the reset clears.
+
+**Checks.** `docker exec ca-api npm run access:check -- name.surname@unc.edu.ph [--fix]` explains why someone has (or lacks) a role. `docker exec ca-api npm run accounts:check -- dean.email@unc.edu.ph` shows which accounts a Dean sees on User Accounts, and why (their Faculty uploads and the rows those cover).
+
 ## React Compiler
 
 The React Compiler is not enabled on this template. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
