@@ -1042,10 +1042,10 @@ const AcademicTerms = () => {
                       fontSize: 64, fontWeight: 800, color: SLATE_900,
                       letterSpacing: '-0.02em', lineHeight: 1,
                     }}>
-                      {currentTerm.school_year}
+                      {String(currentTerm.school_year || '').replace('-', '–')}
                     </div>
                     <div style={{
-                      fontSize: 22, fontWeight: 500, color: SLATE_700,
+                      fontSize: 22, fontWeight: 600, color: SLATE_700,
                       lineHeight: 1.2,
                     }}>
                       {formatSemester(currentTerm.semester)}
@@ -1061,9 +1061,20 @@ const AcademicTerms = () => {
                       const next = nextCalendarDate(currentTerm, today);
                       if (!next) return null;
                       return (
-                        <div style={{ fontSize: 13, color: SLATE_500, lineHeight: 1.4 }}>
-                          Next: <strong style={{ color: SLATE_700, fontWeight: 600 }}>{next.label}</strong>
-                          {' · '}{fmtDate(next.day)} <span title={next.hint}>({next.hint})</span>
+                        <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: SLATE_500 }}>
+                            <Calendar size={13} color="#3B82F6" /> Upcoming milestone
+                          </div>
+                          <div style={{ display: 'inline-flex', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center', gap: 8, fontSize: 14, lineHeight: 1.4 }}>
+                            <strong style={{ color: SLATE_900, fontWeight: 600 }}>{next.label}</strong>
+                            <span style={{ color: SLATE_300 }} aria-hidden="true">·</span>
+                            <span style={{ color: SLATE_700 }}>{fmtDate(next.day)}</span>
+                            {next.hint && (
+                              <span style={{ padding: '2px 9px', borderRadius: 9999, background: '#EFF6FF', color: '#1D4ED8', fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap' }}>
+                                {next.hint}
+                              </span>
+                            )}
+                          </div>
                         </div>
                       );
                     })()}
