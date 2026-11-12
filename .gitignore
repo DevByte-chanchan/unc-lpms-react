@@ -35,3 +35,7 @@ backups/
 # Local only: files set aside for removal, and Claude settings
 _to_delete/
 .claude/
+
+# Playwright (npm run e2e)
+e2e/test-results/
+playwright-report/

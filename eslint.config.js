@@ -31,7 +31,7 @@ export default defineConfig([
   },
   // The API, its scripts and tests run on Node, not in the browser.
   {
-    files: ['server/**/*.{js,mjs}', '**/*.test.js', 'vite.config.js'],
+    files: ['server/**/*.{js,mjs}', '**/*.test.js', 'vite.config.js', 'e2e/**/*.js'],
     languageOptions: { globals: { ...globals.node } },
     rules: { 'react-refresh/only-export-components': 'off' },
   },
