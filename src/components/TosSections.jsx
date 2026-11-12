@@ -8,7 +8,7 @@ import TOSPreview from "../pages/TosPreview.jsx";
 import TOSSummary from "../pages/TosSummary.jsx";
 import AssessmentsStep, { AutoResizeTextarea } from "../pages/AssessmentsStep.jsx";
 import AssessmentOutput from "./AssessmentOutput.jsx";
-import { fetchOutcomes, fetchItems, saveOutcomes, saveItems, fetchCourse, updateCourse, updateStatus, fetchStatus, fetchComments, createComment, deleteComment, resolveComment, ACTIVE_PERIOD } from '../services/api.js';
+import { fetchOutcomes, fetchItems, saveOutcomes, saveItems, fetchCourse, updateCourse, updateStatus, fetchStatus, fetchComments, createComment, deleteComment, resolveComment, fetchAttachments, ACTIVE_PERIOD } from '../services/api.js';
 import { PROGRAM_HEAD, INSTRUCTOR } from '../constants/users.js';
 
 const BLOOM_LEVELS = [
@@ -19,6 +19,7 @@ const BLOOM_LEVELS = [
 const TosSections = ({role = 'instructor'}) => {
 
     const [questions, setQuestions] = useState([]);
+    const [attachments, setAttachments] = useState([]);
     const [isPreviewOpen, setIsPreviewOpen] = useState(false);
     const [assessmentMode] = useState("question");
     const [expandedCOs, setExpandedCOs] = useState(new Set());
@@ -233,6 +234,11 @@ const TosSections = ({role = 'instructor'}) => {
                 try { setReturnDates(JSON.parse(s.returnDates || '[]')); } catch { /* ignore */ }
             }
         }).catch(() => {});
+        fetchAttachments(courseCode, fromExamType).then(data => {
+            setAttachments(data || []);
+        }).catch(() => {
+            setAttachments([]);
+        });
     }, [courseCode, dataLoaded]);
 
     // re-derive item co/ilo when outcomes load after items
@@ -285,6 +291,36 @@ const TosSections = ({role = 'instructor'}) => {
                     }
                 });
             }
+
+            // ONLY when it would produce a target below 1, apply adjustment so every target is >= 1 and sum stays exact
+            const hasBelowOne = newIlos.some(ilo => ilo.items < 1);
+            if (hasBelowOne && total >= newIlos.length) {
+                newIlos.forEach(ilo => {
+                    if (ilo.items < 1) ilo.items = 1;
+                });
+                let diff = total - newIlos.reduce((s, ilo) => s + (ilo.items || 0), 0);
+                while (diff !== 0) {
+                    if (diff > 0) {
+                        newIlos[newIlos.length - 1].items += 1;
+                        diff--;
+                    } else {
+                        let maxIdx = -1;
+                        let maxVal = 1;
+                        newIlos.forEach((ilo, idx) => {
+                            if (ilo.items > maxVal) {
+                                maxVal = ilo.items;
+                                maxIdx = idx;
+                            }
+                        });
+                        if (maxIdx >= 0) {
+                            newIlos[maxIdx].items -= 1;
+                            diff++;
+                        } else {
+                            break;
+                        }
+                    }
+                }
+            }
         } else {
             newIlos.forEach(ilo => { ilo.items = 0; });
         }
@@ -292,10 +328,26 @@ const TosSections = ({role = 'instructor'}) => {
     };
 
     // The total is split equally between the COs of the current exam period.
-        const handleTotalPointsChange = (value) => {
+    const handleTotalPointsChange = (value) => {
         const cleaned = value.replace(/[^0-9]/g, '');
+        const numCos = rows.length || 1;
+        const maxAllowed = 300 * numCos;
+        let minTotal = 0;
+        while (minTotal < maxAllowed) {
+            const b = Math.floor(minTotal / numCos);
+            const r = minTotal % numCos;
+            if (rows.every((co, idx) => (b + (idx < r ? 1 : 0)) >= (co.ilos || []).length)) {
+                break;
+            }
+            minTotal++;
+        }
+
         if (value !== cleaned || (cleaned !== '' && Number(cleaned) <= 0)) {
             setTosTotalError('Must be a positive whole number');
+        } else if (cleaned !== '' && Number(cleaned) > maxAllowed) {
+            setTosTotalError(`Total points cannot exceed ${maxAllowed} (maximum 300 points per CO)`);
+        } else if (cleaned !== '' && Number(cleaned) < minTotal) {
+            setTosTotalError(`Total points must be at least ${minTotal} to give each ILO at least 1 point`);
         } else {
             setTosTotalError('');
         }
@@ -338,15 +390,15 @@ const TosSections = ({role = 'instructor'}) => {
 
         const ooSet = new Set();
         rows.forEach((co, coIndex) => {
-            if (Number(co.totalPoints) > 100 || Number(co.totalPoints) === 0) {
+            if (Number(co.totalPoints) > 300 || Number(co.totalPoints) === 0) {
                 fieldKeys[`oo-totalPoints-${coIndex}`] = true;
             }
             co.ilos.forEach((ilo, iloIndex) => {
                 if (Number(ilo.items) === 0) {
                     ooSet.add('Some ILOs have zero points');
                     fieldKeys[`oo-items-${coIndex}-${iloIndex}`] = true;
-                } else if (Number(ilo.items) > 100) {
-                    ooSet.add('Some ILOs exceed the maximum of 100 points');
+                } else if (Number(ilo.items) > 300) {
+                    ooSet.add('Some ILOs exceed the maximum of 300 points');
                     fieldKeys[`oo-items-${coIndex}-${iloIndex}`] = true;
                 }
             });
@@ -770,7 +822,93 @@ const TosSections = ({role = 'instructor'}) => {
     }));
     const relevantQuestions = questions.filter(q => rows.some(co => co.co === q.co));
     const allItemsHavePoints = relevantQuestions.every(q => q.points && Number(q.points) > 0);
-    const canSubmit = allIlosComplete && allItemsHavePoints && relevantQuestions.length > 0 && comments.every(c => c.resolved);
+    const allItemsHaveBloom = relevantQuestions.every(q => !!q.cognitiveLevel);
+    const relevantIloDbIds = new Set(rows.flatMap(co => (co.ilos || []).map(ilo => ilo.iloDbId || ilo.id)));
+    const relevantAtts = attachments.filter(a => relevantIloDbIds.has(a.iloId));
+    const allFilesHaveRows = relevantAtts.every(a => relevantQuestions.some(q => String(q.attachmentId) === String(a.id)));
+    const canSubmit = allIlosComplete && allItemsHavePoints && allItemsHaveBloom && allFilesHaveRows && relevantQuestions.length > 0 && comments.every(c => c.resolved);
+
+    const getSubmitTooltipText = () => {
+        if (canSubmit) return '';
+        const lines = [];
+
+        // (a) mismatch: "ILO1 needs 3 more points, ILO2 is 1 over" (up to 2 ILOs, then "+N more")
+        const mismatchItems = [];
+        // (b) an ILO with no rows: "ILOn has no file or points" (up to 2 ILOs, "+N more")
+        const noRowItems = [];
+
+        rows.forEach(co => {
+            (co.ilos || []).forEach(ilo => {
+                const iloRows = questions.filter(q => q.co === co.co && q.ilo === ilo.id);
+                const target = ilo.items || 0;
+                if (iloRows.length === 0) {
+                    noRowItems.push(`${ilo.id} has no file or points`);
+                } else {
+                    const allocated = iloRows.reduce((s, q) => s + (Number(q.points) || 0), 0);
+                    if (allocated < target) {
+                        const diff = target - allocated;
+                        mismatchItems.push(`${ilo.id} needs ${diff} more point${diff === 1 ? '' : 's'}`);
+                    } else if (allocated > target) {
+                        const diff = allocated - target;
+                        mismatchItems.push(`${ilo.id} is ${diff} over`);
+                    }
+                }
+            });
+        });
+
+        if (mismatchItems.length > 0) {
+            if (mismatchItems.length > 2) {
+                lines.push(`${mismatchItems.slice(0, 2).join(', ')}, +${mismatchItems.length - 2} more`);
+            } else {
+                lines.push(mismatchItems.join(', '));
+            }
+        }
+
+        if (noRowItems.length > 0) {
+            if (noRowItems.length > 2) {
+                lines.push(`${noRowItems.slice(0, 2).join(', ')}, +${noRowItems.length - 2} more`);
+            } else {
+                lines.push(noRowItems.join(', '));
+            }
+        }
+
+        // (b.1) empty file: "ILO1 has a file with no rows" (up to 2 ILOs, "+N more")
+        const emptyFileItems = [];
+        rows.forEach(co => {
+            (co.ilos || []).forEach(ilo => {
+                const iloDbId = ilo.iloDbId || ilo.id;
+                const iloAtts = attachments.filter(a => a.iloId === iloDbId);
+                if (iloAtts.length > 0 && iloAtts.some(a => !questions.some(q => String(q.attachmentId) === String(a.id)))) {
+                    emptyFileItems.push(`${ilo.id} has a file with no rows`);
+                }
+            });
+        });
+
+        if (emptyFileItems.length > 0) {
+            if (emptyFileItems.length > 2) {
+                lines.push(`${emptyFileItems.slice(0, 2).join(', ')}, +${emptyFileItems.length - 2} more`);
+            } else {
+                lines.push(emptyFileItems.join(', '));
+            }
+        }
+
+        // (c) "Some rows have no points or Bloom's level"
+        if (relevantQuestions.some(q => !q.points || Number(q.points) <= 0 || !q.cognitiveLevel)) {
+            lines.push("Some rows have no points or Bloom's level");
+        }
+
+        // (d) "Resolve all comments"
+        if (comments.some(c => !c.resolved)) {
+            lines.push("Resolve all comments");
+        }
+
+        // (e) "Add at least one assessment row"
+        if (relevantQuestions.length === 0) {
+            lines.push("Add at least one assessment row");
+        }
+
+        return lines.slice(0, 3).join('\n');
+    };
 
     useEffect(() => {
         setIsLoading(true);
@@ -1184,7 +1322,9 @@ const TosSections = ({role = 'instructor'}) => {
                                 {submitLoading ? <Loader size={16} className={layout.spinner} /> : <Send size={15} />}
                                 {submitLoading ? 'Submitting…' : 'Submit'}
                             </button>
-                            <span className={styles.submitTooltip}>{!allIlosComplete ? 'Some ILOs do not match their allocated points' : !allItemsHavePoints ? 'A row is missing points' : 'Unresolved comments'}</span>
+                            {!canSubmit && (
+                                <span className={layout.tosSubmitTooltip}>{getSubmitTooltipText()}</span>
+                            )}
                         </div>
                         </>
                         )}
@@ -1462,6 +1602,12 @@ const items = aggregatedData[co.co][ilo.id][level];
                                                 <label style={{ fontWeight: 600, fontSize: 15, color: '#1A1A1A', display: 'block', marginBottom: 2 }}>TOS Total Points</label>
                                                 <div style={{ fontSize: 13, color: '#666' }}>Enter the total points of the exam. Points per CO and ILO are calculated automatically.</div>
                                                 {tosTotalError && <div style={{ color: '#ef4444', fontSize: 12, marginTop: 4 }}>{tosTotalError}</div>}
+                                                {!allIlosComplete && (
+                                                    <div className={layout.tosAllocationWarning}>
+                                                        <AlertTriangle size={15} />
+                                                        <span>Points are not fully allocated yet. Allocate assessment points so each ILO matches its target.</span>
+                                                    </div>
+                                                )}
                                             </div>
                                             <input
                                                 className={layout.input}
@@ -1569,6 +1715,7 @@ const items = aggregatedData[co.co][ilo.id][level];
                                             onAssessmentNameChange={setAssessmentName}
                                             readOnly={readOnly}
                                             showComments
+                                            onAttachmentsChange={setAttachments}
                                         />
                                     </section>
                                 )}
@@ -1930,6 +2077,12 @@ const items = aggregatedData[co.co][ilo.id][level];
                                                 <label style={{ fontWeight: 600, fontSize: 15, color: '#1A1A1A', display: 'block', marginBottom: 2 }}>TOS Total Points</label>
                                                 <div style={{ fontSize: 13, color: '#666' }}>Enter the total points of the exam. Points per CO and ILO are calculated automatically.</div>
                                                 {tosTotalError && <div style={{ color: '#ef4444', fontSize: 12, marginTop: 4 }}>{tosTotalError}</div>}
+                                                {!allIlosComplete && (
+                                                    <div className={layout.tosAllocationWarning}>
+                                                        <AlertTriangle size={15} />
+                                                        <span>Points are not fully allocated yet. Allocate assessment points so each ILO matches its target.</span>
+                                                    </div>
+                                                )}
                                             </div>
                                             <input
                                                 className={layout.input}
@@ -2036,6 +2189,7 @@ const items = aggregatedData[co.co][ilo.id][level];
                                         assessmentName={assessmentName}
                                         onAssessmentNameChange={setAssessmentName}
                                         readOnly={readOnly}
+                                        onAttachmentsChange={setAttachments}
                                     />
                                 </section>
                             )}

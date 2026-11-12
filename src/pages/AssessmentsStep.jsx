@@ -164,7 +164,8 @@ const AssessmentsStep = ({
     setQuestions,
     courseCode,
     examType = ACTIVE_PERIOD,
-    readOnly = false
+    readOnly = false,
+    onAttachmentsChange = () => {}
 }) => {
     const [, setSearchParams] = useSearchParams();
     const [attachments, setAttachments] = useState([]);
@@ -189,7 +190,11 @@ const AssessmentsStep = ({
 
     useEffect(() => {
         if (courseCode) {
-            fetchAttachments(courseCode, examType).then(data => setAttachments(data)).catch(console.error);
+            fetchAttachments(courseCode, examType).then(data => {
+                const list = data || [];
+                setAttachments(list);
+                onAttachmentsChange(list);
+            }).catch(console.error);
         }
     }, [courseCode, examType]);
 
@@ -207,7 +212,10 @@ const AssessmentsStep = ({
         setLoading(true);
         try {
             const att = await uploadAttachment(courseCode, examType, activeIloData.iloDbId, file);
-            setAttachments(prev => [...prev, att]);
+            const nextAtts = [...attachments, att];
+            setAttachments(nextAtts);
+            onAttachmentsChange(nextAtts);
+            addPointRow(att.id);
             setShowUpload(false);
         } catch (err) {
             alert(err.message || 'Upload failed');
@@ -221,15 +229,25 @@ const AssessmentsStep = ({
         if (!window.confirm("Are you sure? Point rows for this file will also be deleted.")) return;
         try {
             await deleteAttachment(courseCode, examType, id);
-            setAttachments(prev => prev.filter(a => a.id !== id));
+            const nextAtts = attachments.filter(a => a.id !== id);
+            setAttachments(nextAtts);
+            onAttachmentsChange(nextAtts);
             setQuestions(prev => prev.filter(q => q.attachmentId !== id));
         } catch {
             alert('Failed to delete attachment');
         }
     };
 
+    const getCognitiveLevelsForIlo = (iloId) => {
+        if (iloId === 'ILO1') return ['Remembering', 'Understanding'];
+        if (iloId === 'ILO2') return ['Applying', 'Analyzing'];
+        if (iloId === 'ILO3') return ['Evaluating', 'Creating'];
+        return ['Remembering', 'Understanding', 'Applying', 'Analyzing', 'Evaluating', 'Creating'];
+    };
+
     const addPointRow = (attachmentId) => {
         if (readOnly || !activeCoData || !activeIloData) return;
+        const defaultLevel = getCognitiveLevelsForIlo(activeIloData.id)[0] || '';
         setQuestions(prev => [...prev, {
             id: uid(),
             co: activeCoData.co,
@@ -237,7 +255,7 @@ const AssessmentsStep = ({
             iloId: activeIloData.iloDbId,
             instruction: '',
             points: '',
-            cognitiveLevel: '',
+            cognitiveLevel: defaultLevel,
             span: 1,
             attachmentId
         }]);
@@ -251,13 +269,6 @@ const AssessmentsStep = ({
     const deletePointRow = (id) => {
         if (readOnly) return;
         setQuestions(prev => prev.filter(q => q.id !== id));
-    };
-
-    const getCognitiveLevelsForIlo = (iloId) => {
-        if (iloId === 'ILO1') return ['Remembering', 'Understanding'];
-        if (iloId === 'ILO2') return ['Applying', 'Analyzing'];
-        if (iloId === 'ILO3') return ['Evaluating', 'Creating'];
-        return ['Remembering', 'Understanding', 'Applying', 'Analyzing', 'Evaluating', 'Creating'];
     };
 
     const currentCounts = {};
@@ -284,9 +295,7 @@ const AssessmentsStep = ({
     const isOverflow = totalCurrent > totalRequired;
 
     const activeAttachments = attachments.filter(a => a.iloId === activeIloData?.iloDbId);
-    const activeUsed = currentCounts[activeCoData?.co]?.ilos[activeIloData?.id] || 0;
     const activeRequired = activeIloData?.items || 0;
-    const activeRemaining = activeRequired - activeUsed;
 
     const handleIloKeyDown = (e, coName, iloName) => {
         if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
@@ -445,37 +454,7 @@ const AssessmentsStep = ({
                         </div>
                     </div>
 
-                    {/* 2. Strip card */}
-                    <div style={{ border: '1px solid #E5E7EB', borderRadius: 8, background: '#fff', padding: '12px 16px', marginBottom: 16 }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 13, fontWeight: 500, marginBottom: 8 }}>
-                            <span style={{ color: '#1F2937' }}>
-                                <strong>{activeUsed}</strong> of <strong>{activeRequired}</strong> points allocated
-                            </span>
-                            {activeRemaining < 0 ? (
-                                <span className={`${layout.stripPill} ${layout.stripPillOver}`}>
-                                    {Math.abs(activeRemaining)} over
-                                </span>
-                            ) : activeRemaining === 0 ? (
-                                <span className={`${layout.stripPill} ${layout.stripPillOk}`}>
-                                    0 remaining
-                                </span>
-                            ) : (
-                                <span className={`${layout.stripPill} ${layout.stripPillMuted}`}>
-                                    {activeRemaining} remaining
-                                </span>
-                            )}
-                        </div>
-                        <div className={layout.stripTrack}>
-                            <div
-                                className={`${layout.stripFill} ${activeUsed > activeRequired ? layout.stripFillOver : activeUsed === activeRequired ? layout.stripFillOk : layout.stripFillUnder}`}
-                                style={{
-                                    width: `${activeRequired > 0 ? Math.min(100, (activeUsed / activeRequired) * 100) : 0}%`
-                                }}
-                            />
-                        </div>
-                    </div>
-
-                    {/* 3. Collapsed Reference row */}
+                    {/* 2. Collapsed Reference row */}
                     {activeCoData && activeIloData && (
                         <div style={{ border: '1px solid #E5E7EB', borderRadius: 8, background: '#F9FAFB', marginBottom: 20, overflow: 'hidden' }}>
                             <button
@@ -619,7 +598,7 @@ const AssessmentsStep = ({
                                         <div style={{ padding: '4px 16px 14px' }}>
                                             <div className={layout.pointTable} role="table" aria-label="Point rows">
                                                 <div className={layout.pointHeadRow} role="row">
-                                                    <span className={layout.pointTh} role="columnheader">Item reference</span>
+                                                    <span className={layout.pointTh} role="columnheader">Item/Part</span>
                                                     <span className={layout.pointTh} role="columnheader">Points</span>
                                                     <span className={layout.pointTh} role="columnheader">Bloom's level</span>
                                                     <span className={layout.pointTh} role="columnheader"></span>
@@ -627,13 +606,13 @@ const AssessmentsStep = ({
                                                 {rows.map(row => (
                                                     <div key={row.id} className={layout.pointRow} role="row">
                                                         <div className={layout.pointField} role="cell">
-                                                            <span className={layout.pointFieldLabel}>Item reference</span>
+                                                            <span className={layout.pointFieldLabel}>Item/Part</span>
                                                             <input
                                                                 type="text"
                                                                 value={row.instruction || row.question || ''}
                                                                 onChange={e => updatePointRow(row.id, 'instruction', e.target.value)}
-                                                                placeholder="e.g. Items 1-10"
-                                                                aria-label="Item reference"
+                                                                placeholder="e.g. Items 1-5 or Part II"
+                                                                aria-label="Item/Part"
                                                                 className={layout.pointCell}
                                                                 readOnly={readOnly}
                                                             />

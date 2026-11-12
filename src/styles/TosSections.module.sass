@@ -1600,4 +1600,48 @@
     border-left: none
     border-top: 1px solid #EEF0F3
 
+.tosSubmitTooltip
+  position: absolute
+  top: calc(100% + 6px)
+  right: 0
+  background: #1A1A1A
+  color: white
+  font-size: 13px
+  line-height: 1.4
+  padding: 8px 12px
+  border-radius: 4px
+  white-space: pre-line
+  text-align: left
+  max-width: 280px
+  width: max-content
+  pointer-events: none
+  opacity: 0
+  visibility: hidden
+  transition: opacity 0.2s
+  z-index: 100
+
+button:disabled:hover + .tosSubmitTooltip
+  opacity: 1
+  visibility: visible
+
+.tosAllocationWarning
+  display: inline-flex
+  align-items: center
+  gap: 8px
+  margin-top: 8px
+  padding: 6px 12px
+  background: #FFFBEB
+  border: 1px solid #FDE68A
+  border-radius: 4px
+  color: #B45309
+  font-size: 13px
+  font-weight: 500
+  line-height: 1.4
+
+  svg
+    flex-shrink: 0
+    color: #D97706
+
+
+
 

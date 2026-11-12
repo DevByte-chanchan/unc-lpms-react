@@ -229,7 +229,7 @@ export default function AssessmentOutput({ outcomeData = [], questions = [], cou
 
                                                                 <div className={layout.pointGrid}>
                                                                     <div className={layout.pointGridHeader}>
-                                                                        <span className={layout.pointColRef}>Item reference</span>
+                                                                        <span className={layout.pointColRef}>Item/Part</span>
                                                                         <span className={layout.pointColPts}>Points</span>
                                                                         <span className={layout.pointColBloom}>Bloom's level</span>
                                                                     </div>
