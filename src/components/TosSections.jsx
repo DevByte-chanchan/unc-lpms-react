@@ -717,7 +717,7 @@ const TosSections = ({role = 'instructor'}) => {
             const fn = s.filename || att?.filename || fallbackAtt?.filename || '';
             const rowCog = (BLOOM_LEVELS.includes(s.cognitiveLevel) ? s.cognitiveLevel : '') || item?.cognitiveLevel || '';
             if (fn) {
-                return `${coPart}${iloPart} → ${fn}${rowCog ? ` · ${rowCog}` : ''}`;
+                return `${coPart}${iloPart} → ${fn}${rowCog ? ` → ${rowCog}` : ''}`;
             }
             return `${coPart}${iloPart}${rowCog ? ` → ${rowCog}` : ''}`;
         }
@@ -2358,19 +2358,19 @@ const items = aggregatedData[co.co][ilo.id][level];
                         <div className={layout.modalBody}>
                             {openComments.length > 0 ? (
                                 <div style={{ textAlign: 'left' }}>
-                                    <p style={{ color: "#555", margin: '0 0 12px 0' }}>
+                                    <p style={{ color: "#555", margin: '0 0 16px 0', textAlign: 'left' }}>
                                         The following {openComments.length === 1 ? 'comment' : `${openComments.length} comments`} will be discarded. Proceed to approval?
                                     </p>
-                                    <div style={{ fontSize: 11, fontWeight: 700, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>
+                                    <div style={{ fontSize: 11, fontWeight: 700, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8, marginTop: 16, textAlign: 'left' }}>
                                         Comments to be discarded:
                                     </div>
                                     <div style={{ maxHeight: 220, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 8, paddingRight: 4 }}>
                                         {openComments.map(c => (
-                                            <div key={c.id} style={{ padding: '10px 12px', borderRadius: 6, border: '1px solid #E5E7EB', background: '#F9FAFB' }}>
-                                                <div style={{ fontSize: 12, fontWeight: 600, color: '#1F2937', marginBottom: 4 }}>
+                                            <div key={c.id} style={{ padding: '10px 14px', borderRadius: 6, border: '1px solid #E5E7EB', background: '#F9FAFB', textAlign: 'left' }}>
+                                                <div style={{ fontSize: 12, fontWeight: 600, color: '#1F2937', marginBottom: 4, wordBreak: 'break-word' }}>
                                                     {formatScopeText(c.scope)}
                                                 </div>
-                                                <div style={{ fontSize: 13, color: '#4B5563', lineHeight: 1.4 }}>
+                                                <div style={{ fontSize: 13, color: '#4B5563', lineHeight: 1.4, wordBreak: 'break-word' }}>
                                                     <span style={{ fontWeight: 600, color: '#374151' }}>Comment: </span>{c.body}
                                                 </div>
                                             </div>
