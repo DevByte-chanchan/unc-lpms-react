@@ -25,6 +25,51 @@ const SyllabusSections = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [isPreviewOpen, setIsPreviewOpen] = useState(false);
     const [isRevisionsOpen, setIsRevisionsOpen] = useState(false);
+    const [suggestionsModal, setSuggestionsModal] = useState({ isOpen: false, data: [] });
+    const [infoModal, setInfoModal] = useState({ isOpen: false, title: '', message: '' });
+
+    const handleRevisionsClick = (e) => {
+        e.stopPropagation();
+        setIsOpen(false);
+        const rev = Number(revisionNum || 1);
+        if (rev <= 1) {
+            setInfoModal({
+                isOpen: true,
+                title: 'Revisions',
+                message: 'This learning plan has no revisions yet. It is the first submission.'
+            });
+        } else {
+            setIsRevisionsOpen(true);
+        }
+    };
+
+    const handleSuggestionsClick = async (e) => {
+        e.stopPropagation();
+        setIsOpen(false);
+        try {
+            const res = await fetchJson(`/api/comments/suggestions/${offeringID}`);
+            const suggestions = Array.isArray(res?.suggestions) ? res.suggestions : [];
+            if (suggestions.length === 0) {
+                setInfoModal({
+                    isOpen: true,
+                    title: 'Future Suggestions',
+                    message: 'This learning plan has no suggestions yet.'
+                });
+            } else {
+                setSuggestionsModal({
+                    isOpen: true,
+                    data: suggestions
+                });
+            }
+        } catch (err) {
+            console.error('Failed to load suggestions:', err);
+            setInfoModal({
+                isOpen: true,
+                title: 'Future Suggestions',
+                message: 'This learning plan has no suggestions yet.'
+            });
+        }
+    };
 
     // Submission Modal States
     const [submitPhase, setSubmitPhase] = useState('IDLE');
@@ -156,30 +201,24 @@ const SyllabusSections = () => {
                     </>
                 }
 
-                {
-                    status === 'approved' &&
-                    <>
-                        <div className={styles.divider}>
-                            <div className={styles.line}></div>
-                        </div>
+                <div className={styles.divider}>
+                    <div className={styles.line}></div>
+                </div>
 
-                        <div onClick={toggleMenu} ref={dropdownRef} className={`${styles.more} ${isOpen ? styles.active : ''}`}>
-                            <div className={styles.moreIcon} >
-                                <MoreVertical strokeWidth={2} size={16} />
-                            </div>
+                <div onClick={toggleMenu} ref={dropdownRef} className={`${styles.more} ${isOpen ? styles.active : ''}`}>
+                    <div className={styles.moreIcon}>
+                        <MoreVertical strokeWidth={2} size={16} />
+                    </div>
 
-                            <div className={styles.dropdownMenu}>
-                                {
-                                    status === 'approved' &&
-                                    <button type="button" onClick={(e) => { e.stopPropagation(); setIsRevisionsOpen(true); setIsOpen(false); }}>
-                                        Revisions
-                                    </button>
-                                }
-
-                            </div>
-                        </div>
-                    </>
-                }
+                    <div className={styles.dropdownMenu}>
+                        <button type="button" onClick={handleSuggestionsClick}>
+                            Future Suggestion
+                        </button>
+                        <button type="button" onClick={handleRevisionsClick}>
+                            Revisions
+                        </button>
+                    </div>
+                </div>
 
             </div>
 
@@ -220,6 +259,85 @@ const SyllabusSections = () => {
                     </>
                 )}
             </div>
+
+
+            {/* Info / Notice Modal */}
+            {infoModal.isOpen && (
+                <div className={styles.submitOverlay} onClick={() => setInfoModal({ isOpen: false, title: '', message: '' })}>
+                    <div className={styles.submitModal} onClick={(e) => e.stopPropagation()}>
+                        <div className={styles.submitModalHeader}>
+                            {infoModal.title}
+                        </div>
+                        <div className={styles.submitModalBody}>
+                            {infoModal.message}
+                        </div>
+                        <div className={styles.submitModalActions}>
+                            <button
+                                className={styles.btnConfirmDark}
+                                onClick={() => setInfoModal({ isOpen: false, title: '', message: '' })}
+                            >
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Industry Consultant Future Suggestions Modal */}
+            {suggestionsModal.isOpen && (
+                <div className={styles.submitOverlay} onClick={() => setSuggestionsModal({ isOpen: false, data: [] })}>
+                    <div className={styles.suggestionModalBox} onClick={(e) => e.stopPropagation()}>
+                        <div className={styles.submitModalHeader} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span>Future Suggestions</span>
+                            <button
+                                onClick={() => setSuggestionsModal({ isOpen: false, data: [] })}
+                                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '20px', lineHeight: 1, color: '#6b7280' }}
+                            >
+                                &times;
+                            </button>
+                        </div>
+                        <div className={styles.suggestionModalBody}>
+                            <p style={{ margin: '0 0 12px 0', fontSize: '12.5px', color: '#6b7280' }}>
+                                Industry consultant recommendations for future use (to be applied next school year/term):
+                            </p>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '50vh', overflowY: 'auto' }}>
+                                {suggestionsModal.data.map(item => (
+                                    <div key={item.id} style={{
+                                        background: '#f8fafc',
+                                        border: '1px solid #e2e8f0',
+                                        borderRadius: '6px',
+                                        padding: '12px'
+                                    }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                <span style={{ fontWeight: 600, fontSize: '13px', color: '#1e293b' }}>{item.commenterName}</span>
+                                                <span style={{ fontSize: '11px', color: '#b45309', background: '#fef3c7', padding: '1px 6px', borderRadius: '4px', fontWeight: 500 }}>{item.commenterRole}</span>
+                                            </div>
+                                            <span style={{ fontSize: '11px', color: '#94a3b8' }}>
+                                                {new Date(item.date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
+                                            </span>
+                                        </div>
+                                        <div style={{ fontSize: '11.5px', color: '#475569', marginBottom: '6px' }}>
+                                            <strong>Target:</strong> {item.targetTitle} {item.weekNumber ? `(Week ${item.weekNumber})` : ''}
+                                        </div>
+                                        <div style={{ fontSize: '12.5px', color: '#1e293b', fontStyle: 'italic', background: '#ffffff', padding: '8px 10px', borderRadius: '4px', borderLeft: '3px solid #f59e0b' }}>
+                                            "{item.message}"
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                        <div className={styles.submitModalActions}>
+                            <button
+                                className={styles.btnConfirmDark}
+                                onClick={() => setSuggestionsModal({ isOpen: false, data: [] })}
+                            >
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* --- Custom Submission Modals --- */}
             {submitPhase !== 'IDLE' && (

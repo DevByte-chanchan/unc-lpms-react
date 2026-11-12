@@ -36,6 +36,7 @@ exports.getUnresolvedCommentCounts = async (req, res) => {
             WHERE pco.pc_offering_id = ? 
               AND pco.revision_number = ?
               AND c.resolved_status = 0
+              AND c.commenter_role != 'INDUSTRY_CONSULTANT'
             GROUP BY c.week_id, c.comment_for
         `, {
             replacements: [pcId, revNum]
@@ -91,7 +92,7 @@ exports.getCommentsByTarget = async (req, res) => {
             LEFT JOIN WeeklyReferences wr ON c.comment_for = 'references' AND wr.weekly_reference_id = ct.target_id
             LEFT JOIN \`References\` r_wr ON wr.reference_id = r_wr.reference_id
             LEFT JOIN \`References\` r_direct ON c.comment_for = 'references' AND wr.weekly_reference_id IS NULL AND r_direct.reference_id = ct.target_id
-            WHERE c.week_id = ? AND c.comment_for = ?
+            WHERE c.week_id = ? AND c.comment_for = ? AND c.commenter_role != 'INDUSTRY_CONSULTANT'
             ORDER BY c.createdAt ASC, c.comment_id ASC, ct.comment_target_id ASC
         `, {
             replacements: [weekId, commentFor]
@@ -445,3 +446,79 @@ exports.updateResolutionStatuses = async (req, res) => {
 };
 
 exports.updateCommentResolutions = exports.updateResolutionStatuses;
+
+
+// 4. Fetch suggestions submitted by Industry Consultant for a given course offering
+exports.getIndustrySuggestions = async (req, res) => {
+    const { pcId } = req.params;
+
+    try {
+        const [rows] = await sequelize.query(`
+            SELECT 
+                c.comment_id,
+                c.co_assign_id,
+                c.stakeholder_id,
+                c.commenter_role,
+                c.message,
+                c.resolved_status,
+                c.resolved_date,
+                c.week_id,
+                c.week_id AS ilo_id,
+                c.comment_for,
+                c.createdAt,
+                ct.comment_target_id,
+                ct.target_id,
+                                st.title AS subtopic_title,
+                t.title AS topic_title,
+                tla.tla_name,
+                r.title AS ref_title
+            FROM Comments c
+            JOIN CourseOfferingAssignments coa ON c.co_assign_id = coa.co_assign_id
+            LEFT JOIN CommentTargets ct ON c.comment_id = ct.comment_id
+            LEFT JOIN Weeks w ON c.week_id = w.week_id
+            LEFT JOIN Subtopics st ON c.comment_for = 'topics' AND st.subtopic_id = ct.target_id
+            LEFT JOIN Topics t ON st.topic_id = t.topic_id
+            LEFT JOIN TeachingAndLearningActivities tla ON c.comment_for = 'tlas' AND tla.tla_id = ct.target_id
+            LEFT JOIN WeeklyReferences wr ON c.comment_for = 'references' AND wr.weekly_reference_id = ct.target_id
+            LEFT JOIN \`References\` r ON wr.reference_id = r.reference_id
+            WHERE coa.pc_offering_id = ? AND c.commenter_role = 'INDUSTRY_CONSULTANT'
+            ORDER BY c.createdAt ASC, c.comment_id ASC
+        `, {
+            replacements: [pcId]
+        });
+
+        let consultantName = 'Roberto Cruz';
+        try {
+            if (UserAccount) {
+                const acc = await UserAccount.findOne({
+                    where: { active_role: 'Industry Consultant' },
+                    include: [IndustryConsultant ? { model: IndustryConsultant, as: 'consultant', required: false } : null].filter(Boolean)
+                });
+                if (acc) {
+                    consultantName = acc.full_name || acc.consultant?.name || consultantName;
+                }
+            }
+        } catch (e) {
+            // fallback
+        }
+
+        const suggestions = rows.map(r => {
+            const targetTitle = r.subtopic_title || r.topic_title || r.tla_name || r.ref_title || 'General Document';
+            return {
+                id: r.comment_id,
+                message: r.message,
+                commenterName: consultantName,
+                commenterRole: 'Industry Consultant',
+                targetType: r.comment_for ? r.comment_for.toUpperCase() : 'GENERAL',
+                targetTitle: targetTitle,
+                weekId: r.week_id,
+                date: r.createdAt
+            };
+        });
+
+        res.json({ suggestions });
+    } catch (err) {
+        console.error('Error fetching industry suggestions:', err);
+        res.status(500).json({ error: 'Database error fetching suggestions.' });
+    }
+};

@@ -71,16 +71,16 @@ module.exports = {
         await queryInterface.bulkInsert('AssignmentWorkflowLogs', [
             { co_assign_id: assignId, stakeholder_id: '2', actor_role: 'PROGRAM_HEAD', action_type: 'ASSIGNED', is_viewed: true, createdAt: new Date('2026-06-01 09:00:00'), updatedAt: new Date('2026-06-01 09:00:00') },
             { co_assign_id: assignId, stakeholder_id: '1', actor_role: 'INSTRUCTOR', action_type: 'SUBMITTED', is_viewed: true, createdAt: new Date('2026-06-12 10:00:00'), updatedAt: new Date('2026-06-12 10:00:00') },
-            // Returns
-            { co_assign_id: assignId, stakeholder_id: '4', actor_role: 'INDUSTRY_CONSULTANT', action_type: 'RETURNED', is_viewed: true, createdAt: new Date('2026-06-15 14:00:00'), updatedAt: new Date('2026-06-15 14:00:00') },
+            // Returns (Program Head)
             { co_assign_id: assignId, stakeholder_id: '2', actor_role: 'PROGRAM_HEAD', action_type: 'RETURNED', is_viewed: true, createdAt: new Date('2026-06-16 11:30:00'), updatedAt: new Date('2026-06-16 11:30:00') },
             // Revision Resubmitted
             { co_assign_id: assignId, stakeholder_id: '1', actor_role: 'INSTRUCTOR', action_type: 'SUBMITTED', is_viewed: true, createdAt: new Date('2026-06-22 09:00:00'), updatedAt: new Date('2026-06-22 09:00:00') },
             // Final Approvals
             { co_assign_id: assignId, stakeholder_id: '3', actor_role: 'LIBRARY_DIRECTOR', action_type: 'ACCEPTED', is_viewed: true, createdAt: new Date('2026-06-23 10:00:00'), updatedAt: new Date('2026-06-23 10:00:00') },
-            { co_assign_id: assignId, stakeholder_id: '4', actor_role: 'INDUSTRY_CONSULTANT', action_type: 'ACCEPTED', is_viewed: true, createdAt: new Date('2026-06-24 13:00:00'), updatedAt: new Date('2026-06-24 13:00:00') },
             { co_assign_id: assignId, stakeholder_id: '2', actor_role: 'PROGRAM_HEAD', action_type: 'ACCEPTED', is_viewed: true, createdAt: new Date('2026-06-25 09:45:00'), updatedAt: new Date('2026-06-25 09:45:00') },
-            { co_assign_id: assignId, stakeholder_id: '5', actor_role: 'DEAN', action_type: 'ACCEPTED', is_viewed: false, createdAt: new Date('2026-06-28 15:00:00'), updatedAt: new Date('2026-06-28 15:00:00') }
+            { co_assign_id: assignId, stakeholder_id: '5', actor_role: 'DEAN', action_type: 'ACCEPTED', is_viewed: false, createdAt: new Date('2026-06-28 15:00:00'), updatedAt: new Date('2026-06-28 15:00:00') },
+            // Industry Consultant Suggestion (Post-Approval recommendation for next term)
+            { co_assign_id: assignId, stakeholder_id: '4', actor_role: 'INDUSTRY_CONSULTANT', action_type: 'Suggest', is_viewed: true, createdAt: new Date('2026-07-02 14:00:00'), updatedAt: new Date('2026-07-02 14:00:00') }
         ], {});
 
         // ============================================================================
@@ -970,34 +970,34 @@ module.exports = {
             subtopicsByWeek.push(subs);
         }
 
-        const icReturnDate = new Date('2026-06-15 14:05:00');
         const phReturnDate = new Date('2026-06-16 11:35:00');
         const resolutionDate = new Date('2026-06-22 08:50:00');
+        const icSuggestDate = new Date('2026-07-02 14:00:00');
 
         const rawCommentsData = [
-            // Industry Consultant focusing on Topics (Subtopics)
+            // Program Head review comments (during revision cycle)
             {
                 co_assign_id: assignId,
-                commenter_role: 'INDUSTRY_CONSULTANT',
+                commenter_role: 'PROGRAM_HEAD',
                 message: "The topic outline for Lambda Expressions is missing critical coverage of side-effects and immutability. You must add a specific subtopic addressing state mutation and concurrency risks before this can be approved.",
                 resolved_status: true,
                 resolved_date: resolutionDate,
                 week_id: weeks[6].week_id, // Week 7: Lambda Expressions Syntax
                 comment_for: 'topics',
                 target_id: subtopicsByWeek[6][2].subtopic_id, // 'State Mutation Pitfalls, Side-Effects, Immutability, and Concurrency Risks in Lambdas'
-                createdAt: icReturnDate,
+                createdAt: phReturnDate,
                 updatedAt: resolutionDate
             },
             {
                 co_assign_id: assignId,
-                commenter_role: 'INDUSTRY_CONSULTANT',
+                commenter_role: 'PROGRAM_HEAD',
                 message: "Your current topic breakdown for the Singleton pattern is too basic for an advanced course. Please revise the syllabus topics to explicitly include thread-safety mechanisms, specifically double-checked locking, as required subtopics.",
                 resolved_status: true,
                 resolved_date: resolutionDate,
                 week_id: weeks[8].week_id, // Week 9: Creational Patterns: Singleton
                 comment_for: 'topics',
                 target_id: subtopicsByWeek[8][1].subtopic_id, // 'Thread-Safety Mechanisms: synchronized, Volatile Double-Checked Locking, and Bill Pugh Holder Idiom'
-                createdAt: icReturnDate,
+                createdAt: phReturnDate,
                 updatedAt: resolutionDate
             },
             // Program Head focusing on TLAs
@@ -1024,6 +1024,19 @@ module.exports = {
                 target_id: insertedTlasByWeek[10][3].tla_id, // 'Observer Pattern Event Wiring Lab & Strategy Pattern Algorithm Swap'
                 createdAt: phReturnDate,
                 updatedAt: resolutionDate
+            },
+            // Industry Consultant Suggestion (Post-Approval recommendation for next term)
+            {
+                co_assign_id: assignId,
+                commenter_role: 'INDUSTRY_CONSULTANT',
+                message: "For future offerings, consider introducing asynchronous reactive stream patterns to prepare students for distributed enterprise backends.",
+                resolved_status: false,
+                resolved_date: null,
+                week_id: weeks[6].week_id, // Week 7
+                comment_for: 'topics',
+                target_id: subtopicsByWeek[6][2].subtopic_id,
+                createdAt: icSuggestDate,
+                updatedAt: icSuggestDate
             }
         ];
 

@@ -9,6 +9,28 @@ import { fetchJson } from "../utils/api.js";
 import styles from "../styles/Form.module.sass";
 import tStyles from "../styles/TopicSelector.module.sass";
 
+// Serialization helpers for deep change detection
+const serializeTlas = (items) => {
+    if (!Array.isArray(items)) return '[]';
+    return JSON.stringify(items.map(t => ({
+        classPhase: t.classPhase || '',
+        performedBy: t.performedBy || '',
+        tlaName: (t.tlaName || '').trim(),
+        tlaDescription: (t.tlaDescription || '').trim(),
+        isLab: Boolean(t.isLab || t.laboratory),
+        assessmentType: (t.assessmentType || '').trim(),
+        assessmentDetail: (t.assessmentDetail || '').trim()
+    })));
+};
+
+const serializeComments = (comments) => {
+    if (!Array.isArray(comments)) return '[]';
+    return JSON.stringify(comments.map(c => ({
+        id: c.comment_id,
+        resolved: Boolean(c.resolved_status)
+    })));
+};
+
 const TLAForm = forwardRef(({ iloId, isOrientation = false, status, setUnresolvedCount, onCommentsChange, label }, ref) => {
     const ALL_PHASES = ['Asynchronous', 'Synchronous', 'Pre-class', 'In-class', 'Post-class'];
 
@@ -19,6 +41,8 @@ const TLAForm = forwardRef(({ iloId, isOrientation = false, status, setUnresolve
     const scrollContainerRef = useRef(null);
 
     const [reviewComments, setReviewComments] = useState([]);
+    const initialTlasRef = useRef(null);
+    const initialCommentsRef = useRef(null);
 
     const normalizeClassPhase = (val) => {
         if (!val) return '';
@@ -76,13 +100,17 @@ const TLAForm = forwardRef(({ iloId, isOrientation = false, status, setUnresolve
                 if (existingTlas && existingTlas.length > 0) {
                     const mappedTlas = existingTlas.map(mapDbToUi);
                     setTlas(mappedTlas);
+                    initialTlasRef.current = serializeTlas(mappedTlas);
                 } else {
-                    setTlas([{
+                    const defaultTlas = [{
                         id: Date.now(), classPhase: '', performedBy: '',
                         tlaName: '', tlaDescription: '', laboratory: false, isLab: false,
                         assessmentType: '', assessmentDetail: ''
-                    }]);
+                    }];
+                    setTlas(defaultTlas);
+                    initialTlasRef.current = serializeTlas(defaultTlas);
                 }
+                initialCommentsRef.current = serializeComments(initialComments);
             } catch (error) {
                 console.error("Error fetching TLA data components:", error);
             } finally {
@@ -138,21 +166,50 @@ const TLAForm = forwardRef(({ iloId, isOrientation = false, status, setUnresolve
     };
 
     const validateForm = () => {
+        if (!tlas || tlas.length === 0) {
+            return "At least one Teaching & Learning Activity is required.";
+        }
         let newErrors = {};
-        tlas.forEach((tla) => {
-            if (!tla.classPhase) newErrors[`tla_${tla.id}_classPhase`] = "Required";
-            if (!tla.performedBy) newErrors[`tla_${tla.id}_performedBy`] = "Required";
-            if (!tla.tlaName.trim()) newErrors[`tla_${tla.id}_tlaName`] = "TLA Name required";
-            if (!tla.tlaDescription.trim()) newErrors[`tla_${tla.id}_tlaDescription`] = "Description required";
+        const errorList = [];
 
-            const hasAssessment = Boolean(tla.assessmentType || tla.assessmentDetail);
+        tlas.forEach((tla, idx) => {
+            const tlaNum = idx + 1;
+            const missing = [];
+            if (!tla.classPhase) {
+                newErrors[`tla_${tla.id}_classPhase`] = "Required";
+                missing.push("Class Phase");
+            }
+            if (!tla.performedBy) {
+                newErrors[`tla_${tla.id}_performedBy`] = "Required";
+                missing.push("Performed By");
+            }
+            if (!tla.tlaName || !tla.tlaName.trim()) {
+                newErrors[`tla_${tla.id}_tlaName`] = "TLA Name required";
+                missing.push("TLA Name");
+            }
+            if (!tla.tlaDescription || !tla.tlaDescription.trim()) {
+                newErrors[`tla_${tla.id}_tlaDescription`] = "Description required";
+                missing.push("TLA Description");
+            }
+
+            const hasAssessment = Boolean((tla.assessmentType && tla.assessmentType.trim()) || (tla.assessmentDetail && tla.assessmentDetail.trim()));
             if (hasAssessment) {
-                if (!tla.assessmentType.trim()) newErrors[`tla_${tla.id}_assessmentType`] = "Required";
-                if (!tla.assessmentDetail.trim()) newErrors[`tla_${tla.id}_assessmentDetail`] = "Detail required";
+                if (!tla.assessmentType || !tla.assessmentType.trim()) {
+                    newErrors[`tla_${tla.id}_assessmentType`] = "Required";
+                    missing.push("Assessment Type");
+                }
+                if (!tla.assessmentDetail || !tla.assessmentDetail.trim()) {
+                    newErrors[`tla_${tla.id}_assessmentDetail`] = "Detail required";
+                    missing.push("Assessment Detail");
+                }
+            }
+
+            if (missing.length > 0) {
+                errorList.push(`TLA #${tlaNum}${tla.tlaName ? ` (${tla.tlaName})` : ''}: Missing ${missing.join(', ')}.`);
             }
         });
         setErrors(newErrors);
-        return Object.keys(newErrors).length === 0 ? null : "TLAs contain missing required fields.";
+        return errorList.length > 0 ? errorList : null;
     };
 
     const collectSpellWarnings = () => {
@@ -201,6 +258,16 @@ const TLAForm = forwardRef(({ iloId, isOrientation = false, status, setUnresolve
 
     useImperativeHandle(ref, () => ({
         validate: validateForm,
+        hasChanges: () => {
+            if (initialTlasRef.current === null) return false;
+            const tlasChanged = serializeTlas(tlas) !== initialTlasRef.current;
+            const commentsChanged = serializeComments(reviewComments) !== initialCommentsRef.current;
+            return tlasChanged || commentsChanged;
+        },
+        resetInitialState: () => {
+            initialTlasRef.current = serializeTlas(tlas);
+            initialCommentsRef.current = serializeComments(reviewComments);
+        },
         getSpellWarnings: collectSpellWarnings,
         getComments: () => reviewComments,
         toggleComment: (commentId) => {
@@ -232,6 +299,8 @@ const TLAForm = forwardRef(({ iloId, isOrientation = false, status, setUnresolve
                     tlas: payloadTlas
                 })
             });
+            initialTlasRef.current = serializeTlas(tlas);
+            initialCommentsRef.current = serializeComments(reviewComments);
         },
         getCommentTargetLabel: (comment) => {
             if (comment.target_title) return comment.target_title;

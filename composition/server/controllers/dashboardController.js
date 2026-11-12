@@ -44,8 +44,6 @@ async function autoCloseExpired() {
 // Compute overall status for a course offering assignment matching CoursesTable.jsx
 function computeOverallStatus(row) {
     const logs = row.logs || row.workflowLogs || [];
-    const sortedLogs = [...logs].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-    const latestLog = sortedLogs.length > 0 ? sortedLogs[0] : null;
 
     // 1. Is it Approved? Check if Dean accepted
     const deanApproval = logs.find(
@@ -57,21 +55,32 @@ function computeOverallStatus(row) {
         return 'Approved';
     }
 
-    // 2. If not approved, is it currently Returned?
-    if (latestLog && latestLog.action_type === 'RETURNED') {
+    // Has it ever been submitted?
+    const instructorSubmissions = logs.filter((l) => l.action_type === 'SUBMITTED');
+    const hasBeenSubmitted =
+        row.date_submitted !== null ||
+        instructorSubmissions.length > 0 ||
+        logs.some((log) => log.action_type === 'ACCEPTED');
+
+    if (!hasBeenSubmitted) {
+        return 'Draft';
+    }
+
+    const sortedSubmissions = [...instructorSubmissions].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    const latestSubmissionTime = sortedSubmissions.length > 0
+        ? new Date(sortedSubmissions[0].createdAt).getTime()
+        : (row.date_submitted ? new Date(row.date_submitted).getTime() : 0);
+
+    // 2. Is it Returned? Check if any approver returned it on or after latest submission
+    const hasActiveReturn = logs.some(
+        (l) => l.action_type === 'RETURNED' && new Date(l.createdAt).getTime() >= latestSubmissionTime
+    );
+    if (hasActiveReturn) {
         return 'Returned';
     }
 
-    // 3. If neither Approved nor Returned, is it currently Pending?
-    const hasBeenSubmitted =
-        row.date_submitted !== null ||
-        logs.some((log) => log.action_type === 'SUBMITTED' || log.action_type === 'ACCEPTED');
-
-    if (hasBeenSubmitted) {
-        return 'Pending';
-    }
-
-    return 'Draft';
+    // 3. Pending: submitted, not returned, and not yet approved by Dean
+    return 'Pending';
 }
 
 /**

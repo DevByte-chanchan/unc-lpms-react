@@ -57,6 +57,7 @@ const Revisions = ({ isOpen, onClose, pcId: propPcId, revNum: propRevNum }) => {
             case "RETURNED": return styles.returned;
             case "ACCEPTED": return styles.accepted;
             case "APPROVED": return styles.approved;
+            case "SUGGEST": return styles.suggest;
             default: return "";
         }
     };
@@ -189,7 +190,7 @@ const Revisions = ({ isOpen, onClose, pcId: propPcId, revNum: propRevNum }) => {
                                                                             <div key={`comment-${comment.id}`} className={styles.commentCardFrame}>
                                                                                 <div className={styles.commentCardMetaBar}>
                                                                                     <span className={styles.highContrastEntityText}>{comment.targetName}</span>
-                                                                                    <span className={`${styles.contextBadge} ${styles.warn}`}>
+                                                                                    <span className={`${styles.contextBadge} ${(event.type || '').toUpperCase() === 'SUGGEST' ? styles.suggestBadge : styles.warn}`}>
                                                                                         {comment.targetType}
                                                                                     </span>
                                                                                 </div>

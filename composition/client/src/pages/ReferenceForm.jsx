@@ -1,4 +1,4 @@
-import React, { useEffect, useState, forwardRef, useImperativeHandle } from 'react';
+import React, { useEffect, useState, useRef, forwardRef, useImperativeHandle } from 'react';
 import ReferencePicker from '../components/ReferencePicker.jsx';
 import TextField from '../components/TextField.jsx';
 import Dropdown from '../components/Dropdown.jsx';
@@ -25,6 +25,21 @@ export function InlineModal({ isOpen, title, onClose, children, actions }) {
     );
 }
 
+// Serialization helpers for deep change detection
+const serializeRefs = (items) => {
+    if (!Array.isArray(items)) return '[]';
+    const ids = items.map(r => String(r.reference_id || r._temp_id || r.title)).sort();
+    return JSON.stringify(ids);
+};
+
+const serializeComments = (comments) => {
+    if (!Array.isArray(comments)) return '[]';
+    return JSON.stringify(comments.map(c => ({
+        id: c.comment_id,
+        resolved: Boolean(c.resolved_status)
+    })));
+};
+
 const ReferenceForm = forwardRef(({
     iloId,
     isOrientation = false,
@@ -41,6 +56,8 @@ const ReferenceForm = forwardRef(({
 
     // Context-Targeted Comments Checklist Tracking States
     const [reviewComments, setReviewComments] = useState([]);
+    const initialRefsRef = useRef(null);
+    const initialCommentsRef = useRef(null);
 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
@@ -116,6 +133,8 @@ const ReferenceForm = forwardRef(({
                     });
 
                 setSelectedRefs(assignedRefObjects);
+                initialRefsRef.current = serializeRefs(assignedRefObjects);
+                initialCommentsRef.current = serializeComments(initialComments);
             } catch (err) {
                 console.error('Load initial targets failure: ', err);
                 if (mounted) setValidationError(err.message || 'Failed to initialize view data.');
@@ -361,6 +380,16 @@ const ReferenceForm = forwardRef(({
             }
             return null;
         },
+        hasChanges: () => {
+            if (initialRefsRef.current === null) return false;
+            const refsChanged = serializeRefs(selectedRefs) !== initialRefsRef.current;
+            const commentsChanged = serializeComments(reviewComments) !== initialCommentsRef.current;
+            return refsChanged || commentsChanged;
+        },
+        resetInitialState: () => {
+            initialRefsRef.current = serializeRefs(selectedRefs);
+            initialCommentsRef.current = serializeComments(reviewComments);
+        },
         getSpellWarnings: collectSpellWarnings,
         getComments: () => reviewComments,
         toggleComment: (commentId) => {
@@ -425,6 +454,8 @@ const ReferenceForm = forwardRef(({
                     reference_ids
                 })
             });
+            initialRefsRef.current = serializeRefs(selectedRefs);
+            initialCommentsRef.current = serializeComments(reviewComments);
         },
         getCommentTargetLabel: (comment) => {
             if (comment.target_title) return comment.target_title;

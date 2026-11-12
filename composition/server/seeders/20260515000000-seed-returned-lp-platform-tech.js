@@ -2,7 +2,7 @@
 
 /**
  * Seeder: Single Course Learning Plan - "Platform Technologies"
- * Status Target: RETURNED (By Industry Consultant)
+ * Status Target: RETURNED (By Program Head & Library Director)
  * Uses AssignmentWorkflowLogs, Weeks, and week_id-linked Comments & CommentTargets
  *
  * Run: npx sequelize-cli db:seed --seed 20260515000000-seed-returned-lp-platform-tech.js
@@ -79,7 +79,6 @@ module.exports = {
         await queryInterface.bulkInsert('AssignmentWorkflowLogs', [
             { co_assign_id: assignId, stakeholder_id: '2', actor_role: 'PROGRAM_HEAD', action_type: 'ASSIGNED', is_viewed: true, createdAt: new Date('2026-06-01 09:00:00'), updatedAt: new Date('2026-06-01 09:00:00') },
             { co_assign_id: assignId, stakeholder_id: '1', actor_role: 'INSTRUCTOR', action_type: 'SUBMITTED', is_viewed: true, createdAt: new Date('2026-06-10 14:30:00'), updatedAt: new Date('2026-06-10 14:30:00') },
-            { co_assign_id: assignId, stakeholder_id: '4', actor_role: 'INDUSTRY_CONSULTANT', action_type: 'RETURNED', is_viewed: false, createdAt: new Date('2026-06-15 10:15:00'), updatedAt: new Date('2026-06-15 10:15:00') },
             { co_assign_id: assignId, stakeholder_id: '2', actor_role: 'PROGRAM_HEAD', action_type: 'RETURNED', is_viewed: false, createdAt: new Date('2026-06-16 14:20:00'), updatedAt: new Date('2026-06-16 14:20:00') },
             { co_assign_id: assignId, stakeholder_id: '3', actor_role: 'LIBRARY_DIRECTOR', action_type: 'RETURNED', is_viewed: false, createdAt: new Date('2026-06-17 11:00:00'), updatedAt: new Date('2026-06-17 11:00:00') }
         ], {});
@@ -985,7 +984,7 @@ module.exports = {
             // Comment 1: Week 2 (CO1) - Subtopic on ARM64 vs x86_64
             {
                 co_assign_id: assignId,
-                commenter_role: 'INDUSTRY_CONSULTANT',
+                commenter_role: 'PROGRAM_HEAD',
                 resolved_status: false,
                 week_id: weeks[1].week_id,
                 comment_for: 'topics',
@@ -995,7 +994,7 @@ module.exports = {
             // Comment 2: Week 4 (CO1) - TLA on Platform Hardware & OS Benchmarking Studio
             {
                 co_assign_id: assignId,
-                commenter_role: 'INDUSTRY_CONSULTANT',
+                commenter_role: 'PROGRAM_HEAD',
                 resolved_status: false,
                 week_id: weeks[3].week_id,
                 comment_for: 'tlas',
@@ -1005,7 +1004,7 @@ module.exports = {
             // Comment 3: Week 6 (CO2) - Subtopic on SELinux & AppArmor
             {
                 co_assign_id: assignId,
-                commenter_role: 'INDUSTRY_CONSULTANT',
+                commenter_role: 'PROGRAM_HEAD',
                 resolved_status: false,
                 week_id: weeks[5].week_id,
                 comment_for: 'topics',
@@ -1015,7 +1014,7 @@ module.exports = {
             // Comment 4: Week 10 (CO3) - TLA on Hypervisor & Rootless Container Engine Practicum
             {
                 co_assign_id: assignId,
-                commenter_role: 'INDUSTRY_CONSULTANT',
+                commenter_role: 'PROGRAM_HEAD',
                 resolved_status: false,
                 week_id: weeks[9].week_id,
                 comment_for: 'tlas',
@@ -1025,7 +1024,7 @@ module.exports = {
             // Comment 5: Week 13 (CO4) - Subtopic on Workload Identity Federation (OIDC)
             {
                 co_assign_id: assignId,
-                commenter_role: 'INDUSTRY_CONSULTANT',
+                commenter_role: 'PROGRAM_HEAD',
                 resolved_status: false,
                 week_id: weeks[12].week_id,
                 comment_for: 'topics',
@@ -1035,7 +1034,7 @@ module.exports = {
             // Comment 6: Week 14 (CO4) - WeeklyReference on Terraform Up and Running
             {
                 co_assign_id: assignId,
-                commenter_role: 'INDUSTRY_CONSULTANT',
+                commenter_role: 'PROGRAM_HEAD',
                 resolved_status: false,
                 week_id: weeks[13].week_id,
                 comment_for: 'references',
@@ -1090,27 +1089,20 @@ module.exports = {
             }
         ];
 
+        const phReturnDate = new Date('2026-06-16 14:20:00');
+        const libReturnDate = new Date('2026-06-17 11:00:00');
         await queryInterface.bulkInsert('Comments', rawCommentsData.map(c => {
-            const roleDate = c.commenter_role === 'INDUSTRY_CONSULTANT'
-                ? new Date('2026-06-15 10:15:00')
-                : c.commenter_role === 'PROGRAM_HEAD'
-                    ? new Date('2026-06-16 14:20:00')
-                    : new Date('2026-06-17 11:00:00');
-            const stakeholderId = c.commenter_role === 'INDUSTRY_CONSULTANT'
-                ? '4'
-                : c.commenter_role === 'PROGRAM_HEAD'
-                    ? '2'
-                    : '3';
+            const isLib = c.commenter_role === 'LIBRARY_DIRECTOR';
             return {
                 co_assign_id: c.co_assign_id,
-                stakeholder_id: stakeholderId,
-                commenter_role: c.commenter_role,
+                stakeholder_id: isLib ? '3' : '2',
+                commenter_role: isLib ? 'LIBRARY_DIRECTOR' : 'PROGRAM_HEAD',
                 message: c.message,
                 resolved_status: c.resolved_status,
                 week_id: c.week_id,
                 comment_for: c.comment_for,
-                createdAt: roleDate,
-                updatedAt: roleDate
+                createdAt: isLib ? libReturnDate : phReturnDate,
+                updatedAt: isLib ? libReturnDate : phReturnDate
             };
         }), {});
 
@@ -1128,7 +1120,7 @@ module.exports = {
 
         await queryInterface.bulkInsert('CommentTargets', targetInserts, {});
 
-        console.log("Successfully seeded 'Platform Technologies' (BIT311L) with full 16-week structure and RETURNED Industry Consultant comments.");
+        console.log("Successfully seeded 'Platform Technologies' (BIT311L) with full 16-week structure and RETURNED Program Head and Library Director comments.");
     },
 
     async down(queryInterface, Sequelize) {

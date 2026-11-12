@@ -77,16 +77,16 @@ module.exports = {
         await queryInterface.bulkInsert('AssignmentWorkflowLogs', [
             { co_assign_id: assignId, stakeholder_id: '2', actor_role: 'PROGRAM_HEAD', action_type: 'ASSIGNED', is_viewed: true, createdAt: new Date('2025-06-01 09:00:00'), updatedAt: new Date('2025-06-01 09:00:00') },
             { co_assign_id: assignId, stakeholder_id: '1', actor_role: 'INSTRUCTOR', action_type: 'SUBMITTED', is_viewed: true, createdAt: new Date('2025-06-15 10:00:00'), updatedAt: new Date('2025-06-15 10:00:00') },
-            // Returns requiring revisions
-            { co_assign_id: assignId, stakeholder_id: '4', actor_role: 'INDUSTRY_CONSULTANT', action_type: 'RETURNED', is_viewed: true, createdAt: new Date('2025-06-18 14:00:00'), updatedAt: new Date('2025-06-18 14:00:00') },
+            // Returns requiring revisions (Program Head)
             { co_assign_id: assignId, stakeholder_id: '2', actor_role: 'PROGRAM_HEAD', action_type: 'RETURNED', is_viewed: true, createdAt: new Date('2025-06-19 11:30:00'), updatedAt: new Date('2025-06-19 11:30:00') },
             // Instructor fixes and resubmits
             { co_assign_id: assignId, stakeholder_id: '1', actor_role: 'INSTRUCTOR', action_type: 'SUBMITTED', is_viewed: true, createdAt: new Date('2025-06-25 09:00:00'), updatedAt: new Date('2025-06-25 09:00:00') },
             // Final Approvals
             { co_assign_id: assignId, stakeholder_id: '3', actor_role: 'LIBRARY_DIRECTOR', action_type: 'ACCEPTED', is_viewed: true, createdAt: new Date('2025-06-26 10:00:00'), updatedAt: new Date('2025-06-26 10:00:00') },
-            { co_assign_id: assignId, stakeholder_id: '4', actor_role: 'INDUSTRY_CONSULTANT', action_type: 'ACCEPTED', is_viewed: true, createdAt: new Date('2025-06-27 13:00:00'), updatedAt: new Date('2025-06-27 13:00:00') },
             { co_assign_id: assignId, stakeholder_id: '2', actor_role: 'PROGRAM_HEAD', action_type: 'ACCEPTED', is_viewed: true, createdAt: new Date('2025-06-28 09:45:00'), updatedAt: new Date('2025-06-28 09:45:00') },
-            { co_assign_id: assignId, stakeholder_id: '5', actor_role: 'DEAN', action_type: 'ACCEPTED', is_viewed: true, createdAt: new Date('2025-07-02 15:00:00'), updatedAt: new Date('2025-07-02 15:00:00') }
+            { co_assign_id: assignId, stakeholder_id: '5', actor_role: 'DEAN', action_type: 'ACCEPTED', is_viewed: true, createdAt: new Date('2025-07-02 15:00:00'), updatedAt: new Date('2025-07-02 15:00:00') },
+            // Industry Consultant Suggestion (After final Dean approval, for next term)
+            { co_assign_id: assignId, stakeholder_id: '4', actor_role: 'INDUSTRY_CONSULTANT', action_type: 'Suggest', is_viewed: true, createdAt: new Date('2025-07-05 10:00:00'), updatedAt: new Date('2025-07-05 10:00:00') }
         ], {});
 
         // ============================================================================
@@ -967,34 +967,34 @@ module.exports = {
             subtopicsByWeek.push(subs);
         }
 
-        const icReturnDate = new Date('2025-06-18 14:00:00');
         const phReturnDate = new Date('2025-06-19 11:30:00');
         const resolutionDate = new Date('2025-06-25 09:00:00');
+        const icSuggestDate = new Date('2025-07-05 10:00:00');
 
         const rawCommentsData = [
-            // Industry Consultant focusing on Topics (Subtopics)
+            // Program Head review comments (during revision cycle)
             {
                 co_assign_id: assignId,
-                commenter_role: 'INDUSTRY_CONSULTANT',
+                commenter_role: 'PROGRAM_HEAD',
                 message: "REVISION REQUIRED: The topic 'Interface Implementation and Polymorphism' is currently too theoretical. Update the subtopics to explicitly include 'Dependency Injection using Interfaces', as this is a strict requirement for modern OOP architectures before approval.",
                 resolved_status: true,
                 resolved_date: resolutionDate,
                 week_id: weeks[5].week_id, // Week 6: Interface Implementation and Polymorphism
                 comment_for: 'topics',
                 target_id: subtopicsByWeek[5][2].subtopic_id, // 'Dependency Injection using Interfaces'
-                createdAt: icReturnDate,
+                createdAt: phReturnDate,
                 updatedAt: resolutionDate
             },
             {
                 co_assign_id: assignId,
-                commenter_role: 'INDUSTRY_CONSULTANT',
+                commenter_role: 'PROGRAM_HEAD',
                 message: "SECURITY FLAW DETECTED: The topic 'Database Connectivity Fundamentals' needs revision. Please replace the generic 'CRUD Operations' subtopic with 'Connection Pooling and Prepared Statements' to prevent students from being taught SQL injection vulnerabilities by mistake.",
                 resolved_status: true,
                 resolved_date: resolutionDate,
                 week_id: weeks[14].week_id, // Week 15: Database Connectivity Fundamentals
                 comment_for: 'topics',
                 target_id: subtopicsByWeek[14][1].subtopic_id, // 'Connection Pooling and Prepared Statements'
-                createdAt: icReturnDate,
+                createdAt: phReturnDate,
                 updatedAt: resolutionDate
             },
             // Program Head focusing on TLAs
@@ -1021,6 +1021,19 @@ module.exports = {
                 target_id: insertedTlasByWeek[9][0].tla_id, // Pre-class TLA: GUI Layout Design Reading & UI Wireframe Drafting
                 createdAt: phReturnDate,
                 updatedAt: resolutionDate
+            },
+            // Industry Consultant Suggestion (Post-Approval recommendation for next term)
+            {
+                co_assign_id: assignId,
+                commenter_role: 'INDUSTRY_CONSULTANT',
+                message: "Consider incorporating design pattern implementations using modern cloud-native architectures in future syllabus revisions.",
+                resolved_status: false,
+                resolved_date: null,
+                week_id: weeks[5].week_id, // Week 6
+                comment_for: 'topics',
+                target_id: subtopicsByWeek[5][2].subtopic_id,
+                createdAt: icSuggestDate,
+                updatedAt: icSuggestDate
             }
         ];
 

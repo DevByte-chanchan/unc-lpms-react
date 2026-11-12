@@ -156,6 +156,26 @@ function RoleFilterDropdown({ options, value, onChange }) {
     );
 }
 
+// Serialization helpers for deep change detection
+const serializeTopics = (topics) => {
+    if (!Array.isArray(topics)) return '[]';
+    return JSON.stringify(topics.map(t => ({
+        title: (t.title || '').trim(),
+        isContinuation: Boolean(t.isContinuation),
+        subtopics: (t.subtopics || []).map(s => ({
+            title: (s.title || '').trim()
+        }))
+    })));
+};
+
+const serializeComments = (comments) => {
+    if (!Array.isArray(comments)) return '[]';
+    return JSON.stringify(comments.map(c => ({
+        id: c.comment_id,
+        resolved: Boolean(c.resolved_status)
+    })));
+};
+
 // ==========================================
 // 1. TOPICS SUB-FORM
 // ==========================================
@@ -179,6 +199,8 @@ const TopicSubForm = forwardRef(({
     const [previousWeekTopics, setPreviousWeekTopics] = useState([]);
     const [loading, setLoading] = useState(false);
     const [reviewComments, setReviewComments] = useState([]);
+    const initialTopicsStateRef = useRef(null);
+    const initialCommentsStateRef = useRef(null);
 
     const updateTopicsState = useCallback((nextTopics) => {
         setSelectedTopics(nextTopics);
@@ -222,6 +244,7 @@ const TopicSubForm = forwardRef(({
                     : (Array.isArray(resAssigned) ? resAssigned : []);
 
                 setSelectedTopics(initialTopics);
+                initialTopicsStateRef.current = serializeTopics(initialTopics);
                 if (onTopicsChangeForWeek) {
                     onTopicsChangeForWeek(iloId, isOrientation, initialTopics);
                 }
@@ -233,14 +256,17 @@ const TopicSubForm = forwardRef(({
                 );
 
                 if (status === 'returned' && Array.isArray(resComments)) {
-                    setReviewComments(resComments.map(c => ({
+                    const mappedComments = resComments.map(c => ({
                         ...c,
                         resolved_status: c.resolved_status === 1 || c.resolved_status === true,
                         return_number: Number(c.return_number) || 1,
                         return_date: c.return_date || c.createdAt
-                    })));
+                    }));
+                    setReviewComments(mappedComments);
+                    initialCommentsStateRef.current = serializeComments(mappedComments);
                 } else {
                     setReviewComments([]);
+                    initialCommentsStateRef.current = '[]';
                 }
             } catch (err) {
                 console.error("Failed to load initial topics configurations:", err);
@@ -391,9 +417,42 @@ const TopicSubForm = forwardRef(({
     useImperativeHandle(ref, () => ({
         validate: () => {
             if (!selectedTopics || selectedTopics.length === 0) {
-                return "Please select or create at least one mapping entry.";
+                return "Please select or create at least one topic.";
             }
-            return null;
+
+            const errList = [];
+            selectedTopics.forEach((topic, idx) => {
+                const topicNum = idx + 1;
+                const rawTitle = (topic.title || '').trim();
+
+                if (!rawTitle) {
+                    errList.push(`Topic #${topicNum}: Topic title cannot be empty.`);
+                } else if (rawTitle.toLowerCase() === 'new custom topic') {
+                    errList.push(`Topic #${topicNum}: Default title "New Custom Topic" must be changed to a specific topic title.`);
+                }
+
+                const subtopics = Array.isArray(topic.subtopics) ? topic.subtopics : [];
+                if (subtopics.length === 0) {
+                    errList.push(`Topic #${topicNum} (${rawTitle || 'Untitled'}): Must contain at least one subtopic.`);
+                } else {
+                    const emptySubs = subtopics.filter(s => !s.title || !s.title.trim());
+                    if (emptySubs.length > 0) {
+                        errList.push(`Topic #${topicNum} (${rawTitle || 'Untitled'}): Contains ${emptySubs.length} empty subtopic ${emptySubs.length === 1 ? 'entry' : 'entries'}. Each subtopic must have a title or be removed.`);
+                    }
+                }
+            });
+
+            return errList.length > 0 ? errList : null;
+        },
+        hasChanges: () => {
+            if (initialTopicsStateRef.current === null) return false;
+            const topicsChanged = serializeTopics(selectedTopics) !== initialTopicsStateRef.current;
+            const commentsChanged = serializeComments(reviewComments) !== initialCommentsStateRef.current;
+            return topicsChanged || commentsChanged;
+        },
+        resetInitialState: () => {
+            initialTopicsStateRef.current = serializeTopics(selectedTopics);
+            initialCommentsStateRef.current = serializeComments(reviewComments);
         },
         getSpellWarnings: collectTopicSpellWarnings,
         getSelectedTopics: () => selectedTopics,
@@ -436,6 +495,8 @@ const TopicSubForm = forwardRef(({
                     topics: selectedTopics
                 })
             });
+            initialTopicsStateRef.current = serializeTopics(selectedTopics);
+            initialCommentsStateRef.current = serializeComments(reviewComments);
         },
         getCommentTargetDetails: (comment) => resolveTopicGroupsForComment(comment),
         getCommentTargetLabel: (comment) => {
@@ -513,6 +574,7 @@ const TopicForm = () => {
     // Per-week cache of generated AI suggestions so reopening the modal skips regeneration
     const [weekAiCacheMap, setWeekAiCacheMap] = useState({});
     const [isAiModalOpen, setIsAiModalOpen] = useState(false);
+    const initialWeekTopicsMapRef = useRef({});
 
     const getWeekCacheKey = useCallback((wId, orientFlag) => {
         return `${orientFlag ? 'orient' : 'reg'}-${Number(wId)}`;
@@ -521,6 +583,9 @@ const TopicForm = () => {
     const handleTopicsChangeForWeek = useCallback((wId, orientFlag, nextTopics) => {
         if (!wId) return;
         const key = getWeekCacheKey(wId, orientFlag);
+        if (initialWeekTopicsMapRef.current[key] === undefined && Array.isArray(nextTopics)) {
+            initialWeekTopicsMapRef.current[key] = serializeTopics(nextTopics);
+        }
         setWeekTopicsMap(prev => ({
             ...prev,
             [key]: Array.isArray(nextTopics) ? nextTopics : []
@@ -708,6 +773,9 @@ const TopicForm = () => {
                             [key]: data
                         };
                     });
+                    if (initialWeekTopicsMapRef.current[key] === undefined) {
+                        initialWeekTopicsMapRef.current[key] = serializeTopics(data);
+                    }
                 })
                 .catch(() => {});
         });
@@ -749,8 +817,6 @@ const TopicForm = () => {
                                 byRole['LIBRARY_DIRECTOR'] = entry;
                             } else if (event.actorRole === 'Program Head') {
                                 byRole['PROGRAM_HEAD'] = entry;
-                            } else if (event.actorRole === 'Industry Consultant') {
-                                byRole['INDUSTRY_CONSULTANT'] = entry;
                             } else if (event.actorRole === 'Dean') {
                                 byRole['DEAN'] = entry;
                             }
@@ -902,29 +968,90 @@ const TopicForm = () => {
     };
 
     const handleSaveClick = async () => {
+        syncLiveTopicsToFrontendMap();
+
+        // 1. Detect if any changes exist across Topics, TLAs, References, or other weeks
+        const activeTopicHasChanges = topicRef.current?.hasChanges ? topicRef.current.hasChanges() : false;
+        const tlaHasChanges = tlaRef.current?.hasChanges ? tlaRef.current.hasChanges() : false;
+        const refHasChanges = refRef.current?.hasChanges ? refRef.current.hasChanges() : false;
+
+        let otherWeeksHaveChanges = false;
+        const savedActiveKey = getWeekCacheKey(effectiveWeekId, isOrientation);
+        for (const [key, topicsArr] of Object.entries(weekTopicsMap)) {
+            if (key === savedActiveKey) continue;
+            const initialForWeek = initialWeekTopicsMapRef.current[key] || '[]';
+            if (serializeTopics(topicsArr) !== initialForWeek) {
+                otherWeeksHaveChanges = true;
+                break;
+            }
+        }
+
+        const hasAnyChanges = activeTopicHasChanges || tlaHasChanges || refHasChanges || otherWeeksHaveChanges;
+
         const errors = {};
 
-        // 1. Pull Validations universally from all loaded refs
+        if (!hasAnyChanges) {
+            errors['Form'] = "No changes detected. There are no modifications to save.";
+        }
+
+        // 2. Validate Topic requirements for active week
         if (topicRef.current) {
             const err = topicRef.current.validate();
             if (err) errors['Topics'] = err;
         }
+
+        // Also validate any other modified weeks in weekTopicsMap
+        for (const [key, topicsArr] of Object.entries(weekTopicsMap)) {
+            if (key === savedActiveKey || !Array.isArray(topicsArr) || topicsArr.length === 0) continue;
+            const [, rawWid] = key.split('-');
+            const wid = Number(rawWid);
+            const wObj = weekContext.weeks?.find(w => Number(w.week_id) === wid);
+            const wLabel = wObj?.weekNumber ? `Week ${wObj.weekNumber}` : `Week ID ${wid}`;
+
+            const weekErrors = [];
+            topicsArr.forEach((t, idx) => {
+                const topicNum = idx + 1;
+                const title = (t.title || '').trim();
+                if (!title) {
+                    weekErrors.push(`Topic #${topicNum}: Topic title cannot be empty.`);
+                } else if (title.toLowerCase() === 'new custom topic') {
+                    weekErrors.push(`Topic #${topicNum}: Default title "New Custom Topic" must be changed.`);
+                }
+                const subs = Array.isArray(t.subtopics) ? t.subtopics : [];
+                if (subs.length === 0) {
+                    weekErrors.push(`Topic #${topicNum} (${title || 'Untitled'}): Must contain at least one subtopic.`);
+                } else {
+                    const emptySubs = subs.filter(s => !s.title || !s.title.trim());
+                    if (emptySubs.length > 0) {
+                        weekErrors.push(`Topic #${topicNum} (${title || 'Untitled'}): Contains ${emptySubs.length} empty subtopic ${emptySubs.length === 1 ? 'field' : 'fields'}.`);
+                    }
+                }
+            });
+            if (weekErrors.length > 0) {
+                errors[`${wLabel} Topics`] = weekErrors;
+            }
+        }
+
+        // 3. Validate TLAs requirements
         if (tlaRef.current) {
             const err = tlaRef.current.validate();
-            if (err) errors['TLAs'] = err;
+            if (err) errors['Teaching & Learning Activities'] = err;
         }
+
+        // 4. Validate Reference requirements
         if (refRef.current) {
             const err = refRef.current.validate();
             if (err) errors['References'] = err;
         }
 
+        // If hard validation errors or no changes, block save completely
         if (Object.keys(errors).length > 0) {
             setValidationErrors(errors);
             setShowValidationModal(true);
             return;
         }
 
-        // 2. Soft-Warning Pre-Save Spell Check across Topics, TLAs, and References
+        // 5. Soft-Warning Pre-Save Spell Check across Topics, TLAs, and References (Save Anyway is allowed only for spellings)
         const warnings = collectAllSpellWarnings();
         if (warnings.length > 0) {
             setSpellCheckWarnings(warnings);
@@ -932,18 +1059,7 @@ const TopicForm = () => {
             return;
         }
 
-        // 3. Clean Save
-        await executeGlobalSave();
-    };
-
-    const handleProceedFromValidation = async () => {
-        setShowValidationModal(false);
-        const warnings = collectAllSpellWarnings();
-        if (warnings.length > 0) {
-            setSpellCheckWarnings(warnings);
-            setShowSpellCheckModal(true);
-            return;
-        }
+        // 6. Clean Save
         await executeGlobalSave();
     };
 
@@ -952,10 +1068,8 @@ const TopicForm = () => {
         setShowSpellCheckModal(false);
         setIsSaving(true);
         try {
-            // Sync live topics to frontend cache first
             syncLiveTopicsToFrontendMap();
 
-            // Save all modified weeks in weekTopicsMap so topics added across multiple weeks in the session are persisted
             const savedActiveKey = getWeekCacheKey(effectiveWeekId, isOrientation);
             const entries = Object.entries(weekTopicsMap);
             for (const [key, topicsArr] of entries) {
@@ -973,23 +1087,31 @@ const TopicForm = () => {
                             topics: topicsArr
                         })
                     }).catch(() => {});
+                    initialWeekTopicsMapRef.current[key] = serializeTopics(topicsArr);
                 }
             }
 
-            // Execute physical batch savings on rendered forms explicitly
             if (topicRef.current) await topicRef.current.save();
             if (tlaRef.current) await tlaRef.current.save();
             if (refRef.current) await refRef.current.save();
 
+            // Reset initial clean state on saved forms
+            if (topicRef.current?.resetInitialState) topicRef.current.resetInitialState();
+            if (tlaRef.current?.resetInitialState) tlaRef.current.resetInitialState();
+            if (refRef.current?.resetInitialState) refRef.current.resetInitialState();
+            if (effectiveWeekId) {
+                const liveTopics = topicRef.current?.getSelectedTopics ? topicRef.current.getSelectedTopics() : weekTopicsMap[savedActiveKey];
+                initialWeekTopicsMapRef.current[savedActiveKey] = serializeTopics(liveTopics);
+            }
+
             setShowSuccessModal(true);
             setTimeout(() => {
                 setShowSuccessModal(false);
-                navigate(-1);
-            }, 1500);
+            }, 1800);
 
         } catch (err) {
             console.error("Consolidated save execution failed:", err);
-            alert("An error occurred synchronizing architecture metadata. Review console details.");
+            alert("An error occurred saving changes. Review console details.");
         } finally {
             setIsSaving(false);
         }
@@ -1016,8 +1138,7 @@ const TopicForm = () => {
         if (revMeta?.returnNumber) {
             returnNumber = revMeta.returnNumber;
         } else if (!comment.return_number || returnNumber <= 1) {
-            if (rawRole === 'INDUSTRY_CONSULTANT') returnNumber = 1;
-            else if (rawRole === 'PROGRAM_HEAD') returnNumber = 2;
+            if (rawRole === 'PROGRAM_HEAD') returnNumber = 2;
             else if (rawRole === 'LIBRARY_DIRECTOR') returnNumber = 3;
             else if (rawRole === 'DEAN') returnNumber = 4;
             else returnNumber = 1;
@@ -1042,7 +1163,6 @@ const TopicForm = () => {
         // Build Approver Role options (standard approver roles + any role dynamically present in comments)
         const roleOptionsMap = new Map([
             ['ALL', 'All Approver Roles'],
-            ['INDUSTRY_CONSULTANT', 'Industry Consultant'],
             ['PROGRAM_HEAD', 'Program Head'],
             ['LIBRARY_DIRECTOR', 'Director of Libraries'],
             ['DEAN', 'Dean']
@@ -1385,35 +1505,35 @@ const TopicForm = () => {
                         onUpdateWeekAiCache={handleUpdateWeekAiCache}
                     />
 
-                    {/* --- Validation Enforcement Core Logic Modal --- */}
+                    {/* --- Validation Requirements Modal (No Save Anyway for Hard Requirements) --- */}
                     <InlineModal
                         isOpen={showValidationModal}
-                        title="Validation Warning"
+                        title="Validation Notice"
                         onClose={() => setShowValidationModal(false)}
                         actions={
-                            <>
-                                <button type="button" className={styles.modalCancelBtn} onClick={() => setShowValidationModal(false)}>
-                                    Return to Form
-                                </button>
-                                <button type="button" className={styles.modalConfirmBtn} onClick={handleProceedFromValidation}>
-                                    Proceed Save Anyway
-                                </button>
-                            </>
+                            <button type="button" className={styles.modalCancelBtn} onClick={() => setShowValidationModal(false)}>
+                                Review & Edit
+                            </button>
                         }
                     >
                         <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
                             <AlertCircle size={22} color="#E53E3E" style={{ flexShrink: 0, marginTop: '2px' }} />
                             <div>
                                 <p style={{ margin: '0 0 8px 0', fontSize: '13.5px', fontWeight: 600, color: '#1E293B' }}>
-                                    Incomplete Fields Detected
+                                    Requirements Not Met
                                 </p>
                                 <p style={{ margin: 0, fontSize: '12.5px', color: '#64748B', lineHeight: 1.5 }}>
-                                    The following sections have missing or incomplete fields:
+                                    Please review and address the following requirements before saving:
                                 </p>
-                                <ul className={styles.errorList}>
-                                    {Object.entries(validationErrors).map(([section, msg]) => (
-                                        <li key={section}><strong>{section}:</strong> {msg}</li>
-                                    ))}
+                                <ul className={styles.errorList} style={{ maxHeight: '260px', overflowY: 'auto' }}>
+                                    {Object.entries(validationErrors).map(([section, msg]) => {
+                                        if (Array.isArray(msg)) {
+                                            return msg.map((m, idx) => (
+                                                <li key={`${section}-${idx}`}><strong>{section}:</strong> {m}</li>
+                                            ));
+                                        }
+                                        return <li key={section}><strong>{section}:</strong> {msg}</li>;
+                                    })}
                                 </ul>
                             </div>
                         </div>

@@ -23,7 +23,7 @@ module.exports = {
                 allowNull: false // e.g., 'PROGRAM_HEAD', 'DEAN', 'INSTRUCTOR'
             },
             action_type: {
-                type: Sequelize.ENUM('ASSIGNED', 'SUBMITTED', 'RETURNED', 'ACCEPTED'),
+                type: Sequelize.ENUM('ASSIGNED', 'SUBMITTED', 'RETURNED', 'ACCEPTED', 'Suggest'),
                 allowNull: false
             },
             is_viewed: {

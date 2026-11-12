@@ -6,7 +6,7 @@ module.exports = (sequelize, DataTypes) => {
         stakeholder_id: { type: DataTypes.STRING(20), allowNull: true },
         actor_role: { type: DataTypes.STRING(30), allowNull: false },
         action_type: {
-            type: DataTypes.ENUM('ASSIGNED', 'SUBMITTED', 'RETURNED', 'ACCEPTED'),
+            type: DataTypes.ENUM('ASSIGNED', 'SUBMITTED', 'RETURNED', 'ACCEPTED', 'Suggest'),
             allowNull: false
         },
         is_viewed: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false }

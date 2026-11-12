@@ -115,88 +115,122 @@ const CoursesTable = () => {
     };
 
     const computeOverallStatus = (row) => {
-        const logs = row.logs || [];
-        const sortedLogs = [...logs].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-        const latestLog = sortedLogs.length > 0 ? sortedLogs[0] : null;
+        const logs = row.logs || row.workflowLogs || [];
 
-        // 1. Is it Approved? Check if the Dean has EVER accepted it.
-        // This is the strongest state and overrides previous submissions/returns.
-        const deanApproval = logs.find(log => log.action_type === 'ACCEPTED' && log.actor_role === 'DEAN');
+        // 1. Is it Approved? Check if Dean accepted
+        const deanApproval = logs.find(
+            (log) =>
+                (log.action_type === 'ACCEPTED' || log.action_type === 'APPROVED') &&
+                log.actor_role === 'DEAN'
+        );
         if (deanApproval) {
             return 'Approved';
         }
 
-        // 2. If not approved, is it currently Returned?
-        if (latestLog && latestLog.action_type === 'RETURNED') {
+        const instructorSubmissions = logs.filter((l) => l.action_type === 'SUBMITTED');
+        const hasBeenSubmitted =
+            row.date_submitted !== null ||
+            instructorSubmissions.length > 0 ||
+            logs.some((log) => log.action_type === 'ACCEPTED');
+
+        if (!hasBeenSubmitted) {
+            return 'Draft';
+        }
+
+        const sortedSubmissions = [...instructorSubmissions].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        const latestSubmissionTime = sortedSubmissions.length > 0
+            ? new Date(sortedSubmissions[0].createdAt).getTime()
+            : (row.date_submitted ? new Date(row.date_submitted).getTime() : 0);
+
+        // 2. Is it Returned? Check if any approver returned it on or after latest submission
+        const hasActiveReturn = logs.some(
+            (l) => l.action_type === 'RETURNED' && new Date(l.createdAt).getTime() >= latestSubmissionTime
+        );
+        if (hasActiveReturn) {
             return 'Returned';
         }
 
-        // 3. If neither Approved nor Returned, is it currently Pending?
-        const hasBeenSubmitted =
-            row.date_submitted !== null ||
-            logs.some(log => log.action_type === 'SUBMITTED' || log.action_type === 'ACCEPTED');
-
-        if (hasBeenSubmitted) {
-            return 'Pending';
-        }
-
-        // 4. Default state
-        return 'Draft';
+        // 3. Pending
+        return 'Pending';
     };
 
-    const buildApproverStatus = (row) => {
-        const logs = row.logs || [];
+    const buildApproverStatus = (row, isApprovedOverride) => {
+        const logs = row.logs || row.workflowLogs || [];
 
         const getLatestActionForRole = (role) => {
-            const roleLogs = logs.filter(l => l.actor_role === role);
+            const roleLogs = logs.filter((l) => l.actor_role === role);
             if (roleLogs.length === 0) return null;
             return roleLogs.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0];
         };
 
-        const rolesToTrack = [
-            { label: 'Industry Consultant', roleKey: 'INDUSTRY_CONSULTANT' },
-            { label: 'Library Director', roleKey: 'LIBRARY_DIRECTOR' },
-            { label: 'Program Head', roleKey: 'PROGRAM_HEAD' },
-            { label: 'Dean', roleKey: 'DEAN' }
-        ];
+        const overall = computeOverallStatus(row);
+        const isApproved = isApprovedOverride !== undefined ? isApprovedOverride : (overall === 'Approved' || selectedStatus === 'APPROVED');
 
-        return rolesToTrack.map(r => {
-            const latestAction = getLatestActionForRole(r.roleKey);
+        const instructorSubmissions = logs.filter((l) => l.action_type === 'SUBMITTED');
+        const latestSubmission = instructorSubmissions.sort(
+            (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+        )[0];
+        const latestSubmissionAt = latestSubmission ? latestSubmission.createdAt : row.date_submitted;
 
+        const getStatusFor = (roleKey, label) => {
+            const latestAction = getLatestActionForRole(roleKey);
             if (!latestAction) {
-                return { title: r.label, status: 'Pending' };
+                return { title: label, roleKey, status: 'Pending' };
             }
-
-            if (latestAction.action_type === 'ACCEPTED') {
-                return { title: r.label, status: 'Accepted', acceptedAt: latestAction.createdAt };
+            if (latestAction.action_type === 'ACCEPTED' || latestAction.action_type === 'APPROVED') {
+                return { title: label, roleKey, status: 'Accepted', acceptedAt: latestAction.createdAt };
             }
-
+            if (latestAction.action_type === 'Suggest' || latestAction.action_type === 'SUGGEST') {
+                return { title: label, roleKey, status: 'Suggested', suggestedAt: latestAction.createdAt };
+            }
             if (latestAction.action_type === 'RETURNED') {
-                const instructorSubmissions = logs.filter(l => l.action_type === 'SUBMITTED');
-                const latestSubmission = instructorSubmissions.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0];
-
-                const details = { title: r.label, status: 'Returned', returnedAt: latestAction.createdAt };
-
+                const details = { title: label, roleKey, status: 'Returned', returnedAt: latestAction.createdAt };
                 if (latestSubmission && new Date(latestSubmission.createdAt) > new Date(latestAction.createdAt)) {
                     details.updatedAt = latestSubmission.createdAt;
                 }
                 return details;
             }
+            return { title: label, roleKey, status: 'Pending' };
+        };
 
-            return { title: r.label, status: 'Pending' };
-        });
+        const libStatus = getStatusFor('LIBRARY_DIRECTOR', 'Library Director');
+        const phStatus = getStatusFor('PROGRAM_HEAD', 'Program Head');
+        const deanStatus = getStatusFor('DEAN', 'Dean');
+
+        // Sequential rule: Dean receives submission only after BOTH Library Director and Program Head have accepted
+        const libAccepted = libStatus.status === 'Accepted' || libStatus.status === 'Suggested';
+        const phAccepted = phStatus.status === 'Accepted';
+        const bothApproved = libAccepted && phAccepted;
+
+        deanStatus.hasReachedDean = bothApproved || deanStatus.status === 'Accepted' || deanStatus.status === 'Returned';
+        if (bothApproved && deanStatus.status === 'Pending') {
+            const libDate = new Date(libStatus.acceptedAt || libStatus.suggestedAt || 0);
+            const phDate = new Date(phStatus.acceptedAt || 0);
+            deanStatus.submittedAt = libDate > phDate ? (libStatus.acceptedAt || libStatus.suggestedAt) : phStatus.acceptedAt;
+        }
+
+        const result = [libStatus, phStatus, deanStatus];
+
+        if (isApproved) {
+            const icStatus = getStatusFor('INDUSTRY_CONSULTANT', 'Industry Consultant');
+            result.unshift(icStatus);
+        }
+
+        return result;
     };
 
     const openPopup = (row) => {
-        const logs = row.logs || [];
+        const logs = row.logs || row.workflowLogs || [];
 
         const submissionLogs = logs.filter(l => l.action_type === 'SUBMITTED')
             .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
 
         const submittedAt = submissionLogs.length > 0 ? submissionLogs[0].createdAt : row.date_submitted;
-        const approverStatuses = buildApproverStatus(row);
+        const overall = computeOverallStatus(row);
+        const isApproved = overall === 'Approved' || selectedStatus === 'APPROVED';
+        const approverStatuses = buildApproverStatus(row, isApproved);
 
-        setPopup({ open: true, data: { submittedAt, approverStatuses } });
+        setPopup({ open: true, data: { submittedAt, approverStatuses, isApproved } });
     };
 
     const closePopup = () => setPopup({ open: false, data: null });
@@ -218,6 +252,13 @@ const CoursesTable = () => {
         
         return true;
     });
+
+    // Counts per status across all assignments for the current academic period
+    const statusCounts = assignments.reduce((acc, row) => {
+        const overall = (computeOverallStatus(row) || '').toUpperCase();
+        acc[overall] = (acc[overall] || 0) + 1;
+        return acc;
+    }, {});
 
     const DetailsPopup = ({ data, onClose }) => {
         if (!data) return null;
@@ -252,13 +293,24 @@ const CoursesTable = () => {
                             <div style={{ fontWeight: 600 }}>{a.title}</div>
                             <div style={{ fontSize: 13, color: '#333' }}>
                                 {a.status === 'Accepted' && <div>Accepted at: {formatDateTime(a.acceptedAt)}</div>}
+                                {a.status === 'Suggested' && <div>Suggested at: {formatDateTime(a.suggestedAt)}</div>}
                                 {a.status === 'Returned' && (
                                     <>
                                         <div>Returned at: {formatDateTime(a.returnedAt)}</div>
                                         {a.updatedAt && <div>Updated at: {formatDateTime(a.updatedAt)}</div>}
                                     </>
                                 )}
-                                {a.status === 'Pending' && <div>Pending</div>}
+                                {a.status === 'Pending' && (
+                                    a.roleKey === 'DEAN' ? (
+                                        a.hasReachedDean && a.submittedAt ? (
+                                            <div>Submitted at: {formatDateTime(a.submittedAt)}</div>
+                                        ) : (
+                                            <div>Pending</div>
+                                        )
+                                    ) : (
+                                        <div>Submitted at: {formatDateTime(submittedAt)}</div>
+                                    )
+                                )}
                             </div>
                         </div>
                     ))}
@@ -269,17 +321,16 @@ const CoursesTable = () => {
 
     const CourseCard = ({ row, overallStatus, selectedStatus }) => {
         const [expanded, setExpanded] = useState(false);
-        const logs = row.logs || [];
+        const logs = row.logs || row.workflowLogs || [];
         const submissionLogs = logs.filter(l => l.action_type === 'SUBMITTED')
             .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
         const latestSubmissionAt = submissionLogs.length > 0 ? submissionLogs[0].createdAt : row.date_submitted;
         const initialSubmissionLog = submissionLogs.length > 0 ? submissionLogs[submissionLogs.length - 1] : null;
         const initialSubmissionAt = initialSubmissionLog ? initialSubmissionLog.createdAt : row.date_submitted;
 
-        const approverStatuses = buildApproverStatus(row);
-        
         const isDraft = selectedStatus === 'DRAFT';
-        const isApproved = selectedStatus === 'APPROVED';
+        const isApproved = selectedStatus === 'APPROVED' || overallStatus === 'Approved';
+        const approverStatuses = buildApproverStatus(row, isApproved);
         const hasDetails = !isDraft; // Expandable if not draft
 
         let actionElement = null;
@@ -362,12 +413,16 @@ const CoursesTable = () => {
                                 if (isApproved) {
                                     if(a.status === 'Accepted') {
                                         dateDisplay = <div>Approved: {formatDate(a.acceptedAt)}</div>;
+                                    } else if (a.status === 'Suggested') {
+                                        dateDisplay = <div>Suggested: {formatDate(a.suggestedAt)}</div>;
                                     } else {
                                         dateDisplay = <div>Approved</div>;
                                     }
                                 } else {
                                     if (a.status === 'Accepted') {
                                         dateDisplay = <div>Approved: {formatDate(a.acceptedAt)}</div>;
+                                    } else if (a.status === 'Suggested') {
+                                        dateDisplay = <div>Suggested: {formatDate(a.suggestedAt)}</div>;
                                     } else if (a.status === 'Returned') {
                                         dateDisplay = (
                                             <>
@@ -376,11 +431,28 @@ const CoursesTable = () => {
                                             </>
                                         );
                                     } else {
-                                        dateDisplay = (
-                                            <div className={styles.pendingText}>
-                                                Submitted: {formatDate(latestSubmissionAt)}
-                                            </div>
-                                        );
+                                        // Pending
+                                        if (a.roleKey === 'DEAN') {
+                                            if (a.hasReachedDean && a.submittedAt) {
+                                                dateDisplay = (
+                                                    <div className={styles.pendingText}>
+                                                        Submitted: {formatDate(a.submittedAt)}
+                                                    </div>
+                                                );
+                                            } else {
+                                                dateDisplay = (
+                                                    <div className={styles.pendingText}>
+                                                        Pending
+                                                    </div>
+                                                );
+                                            }
+                                        } else {
+                                            dateDisplay = (
+                                                <div className={styles.pendingText}>
+                                                    Submitted: {formatDate(latestSubmissionAt)}
+                                                </div>
+                                            );
+                                        }
                                     }
                                 }
 
@@ -430,6 +502,7 @@ const CoursesTable = () => {
                     <div className={styles['filter-container']}>
                         <div className={styles['segmented-control']}>
                             {statuses.map((status) => {
+                                const count = statusCounts[status] || 0;
                                 return (
                                     <button
                                         key={status}
@@ -437,7 +510,8 @@ const CoursesTable = () => {
                                         className={`${styles['control-item']} ${selectedStatus === status ? styles['active'] : ''}`}
                                         onClick={() => handleStatusChange({ target: { value: status } })}
                                     >
-                                        {status.charAt(0) + status.slice(1).toLowerCase()}
+                                        <span>{status.charAt(0) + status.slice(1).toLowerCase()}</span>
+                                        <span className={styles.itemBadge}>{count}</span>
                                     </button>
                                 );
                             })}

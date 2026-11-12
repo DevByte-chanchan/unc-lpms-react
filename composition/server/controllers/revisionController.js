@@ -171,13 +171,18 @@ exports.getRevisionsByOffering = async (req, res) => {
                     actionMessage = `Returned the course learning plan with review comments requiring revision.`;
                     pendingReviewers.add(`${actorName} (${actorRole})`);
 
-                    // Check for comments by this role up to 5 minutes AFTER the log
+                    // Check for comments by this role up to 5 minutes AFTER the log (exclude consultant comments)
                     eventComments = unassignedComments.filter(c =>
-                        c.commenter_role === rawRole && new Date(c.createdAt).getTime() <= (logTime + 5 * 60000)
+                        c.commenter_role === rawRole &&
+                        c.commenter_role !== 'INDUSTRY_CONSULTANT' &&
+                        new Date(c.createdAt).getTime() <= (logTime + 5 * 60000)
                     );
 
                     if (eventComments.length === 0) {
-                        eventComments = unassignedComments.filter(c => c.commenter_role === rawRole);
+                        eventComments = unassignedComments.filter(c =>
+                            c.commenter_role === rawRole &&
+                            c.commenter_role !== 'INDUSTRY_CONSULTANT'
+                        );
                     }
 
                     unassignedComments = unassignedComments.filter(c => !eventComments.includes(c));
@@ -199,6 +204,11 @@ exports.getRevisionsByOffering = async (req, res) => {
                         actionLabel = 'Endorsed';
                         actionMessage = `Reviewed and endorsed the course learning plan for the next approval stage.`;
                     }
+                } else if (type === 'Suggest' || type === 'SUGGEST' || rawRole === 'INDUSTRY_CONSULTANT') {
+                    actionLabel = 'Future Suggestion';
+                    actionMessage = `Provided industry recommendations and future suggestions to be applied next school year/term.`;
+                    eventComments = unassignedComments.filter(c => c.commenter_role === 'INDUSTRY_CONSULTANT');
+                    unassignedComments = unassignedComments.filter(c => !eventComments.includes(c));
                 } else {
                     actionMessage = `Performed ${type}.`;
                 }
@@ -256,7 +266,7 @@ exports.getRevisionsByOffering = async (req, res) => {
 
                 timeline.push({
                     id: log.log_id,
-                    type: (type === 'ACCEPTED' && rawRole === 'DEAN') ? 'APPROVED' : type,
+                    type: (type === 'ACCEPTED' && rawRole === 'DEAN') ? 'APPROVED' : (type === 'Suggest' ? 'SUGGEST' : type),
                     date: log.createdAt,
                     stakeholderId,
                     actorName,
@@ -272,10 +282,11 @@ exports.getRevisionsByOffering = async (req, res) => {
             const latestLog = sortedLogsDesc.length > 0 ? sortedLogsDesc[0] : null;
 
             let computedStatus = 'Draft';
-            if (latestLog && latestLog.action_type === 'RETURNED') {
-                computedStatus = 'Returned';
-            } else if (latestLog && latestLog.action_type === 'ACCEPTED' && latestLog.actor_role === 'DEAN') {
+            const deanApproved = rawLogs.some(log => (log.action_type === 'ACCEPTED' || log.action_type === 'APPROVED') && log.actor_role === 'DEAN');
+            if (deanApproved) {
                 computedStatus = 'Approved';
+            } else if (latestLog && latestLog.action_type === 'RETURNED') {
+                computedStatus = 'Returned';
             } else {
                 const hasBeenSubmitted =
                     offering.date_submitted !== null ||
