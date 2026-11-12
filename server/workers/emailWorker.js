@@ -9,7 +9,9 @@
  *   2. deliverDueNotices      dirty account_notices past their send_after: the
  *                             bell + one update email or first invitation
  *   3. sendDueReminders       day-3 / day-6 reminders to people not signed in
- *   4. once a day             the clean-up of read notifications older than 90 days
+ *   4. once an hour           exam-date reminders (services/deadlineReminders.js):
+ *                             7 days and 1 day before the midterm and final
+ *   5. once a day             the clean-up of read notifications older than 90 days
  *
  * One tick at a time — a slow SMTP server never stacks ticks up — and each
  * row is claimed atomically, so a second API process can't send it twice.
@@ -17,12 +19,14 @@
  */
 import { deliverDueInvitations, sendDueReminders } from '../services/invitations.js';
 import { deliverDueNotices, cleanupNotifications } from '../services/notices.js';
+import { sendDeadlineReminders } from '../services/deadlineReminders.js';
 
 export const POLL_MS = 15 * 1000;
 
 let timer = null;
 let running = false;
 let lastDailyDate = null;
+let lastDeadlineHour = null;
 
 const dayKey = (d) => d.toISOString().slice(0, 10);
 
@@ -32,6 +36,12 @@ export async function runWorkerTick({ now = new Date() } = {}) {
   out.invitations = await deliverDueInvitations();
   out.notices = await deliverDueNotices({ now });
   out.reminders = await sendDueReminders({ now });
+  // Hourly: a failed send gives its claim back and is retried the next hour.
+  const hour = now.toISOString().slice(0, 13);
+  if (lastDeadlineHour !== hour) {
+    lastDeadlineHour = hour;
+    out.deadlines = await sendDeadlineReminders({ now }).catch((err) => { console.error('[deadlines] failed:', err.message); return null; });
+  }
   if (lastDailyDate !== dayKey(now)) {
     lastDailyDate = dayKey(now);
     out.daily = await runDailyTasks({ now });
@@ -62,7 +72,7 @@ export function startEmailWorker() {
   if (timer) return;
   timer = setInterval(tick, POLL_MS);
   if (timer.unref) timer.unref();
-  console.log('[email-worker] started — invitations, notices and reminders every ' + POLL_MS / 1000 + 's');
+  console.log('[email-worker] started — invitations, notices and reminders every ' + POLL_MS / 1000 + 's; exam-date reminders hourly (DEADLINE_REMINDERS=' + (String(process.env.DEADLINE_REMINDERS || 'on').toLowerCase() === 'off' ? 'off' : 'on') + ')');
   tick();
 }
 

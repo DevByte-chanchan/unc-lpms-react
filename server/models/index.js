@@ -31,6 +31,7 @@ import NotificationFactory    from './notification.js';
 import CourseAssignmentHistoryFactory from './courseAssignmentHistory.js';
 import CurriculumDocumentFactory from './curriculumDocument.js';
 import SchoolCalendarFactory from './schoolCalendar.js';
+import DeadlineReminderFactory from './deadlineReminder.js';
 
 // --- Mirror tables (data sourced from other modules) ---
 // Faculty and Department records that originate from the HR / Dean
@@ -75,6 +76,8 @@ const db = {
   CurriculumDocument:     CurriculumDocumentFactory(sequelize, DataTypes),
   // Uploaded official school calendars (file on disk under storage/calendars/). No FKs.
   SchoolCalendar:         SchoolCalendarFactory(sequelize, DataTypes),
+  // Exam-date reminders already sent (services/deadlineReminders.js). No FKs.
+  DeadlineReminder:       DeadlineReminderFactory(sequelize, DataTypes),
   sequelize,
 };
 

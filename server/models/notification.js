@@ -7,6 +7,7 @@
  * when the same news went out in an email.
  *
  * kind: role_added · role_removed · lead_added · contributor_added ·
+ *       deadline_reminder (services/deadlineReminders.js) ·
  *       course_removed · consultant_added · consultant_removed
  *
  * Deliberately no foreign keys (a record that outlives what it points at).
