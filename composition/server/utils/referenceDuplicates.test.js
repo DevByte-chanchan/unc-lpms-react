@@ -56,7 +56,8 @@ const send = async (method, path, body) => {
     return { status: res.status, body: await res.json() };
 };
 // A Textbook needs an ISBN. These are 13 digits that no other test or demo reference uses.
-const isbn13 = (n) => `978999${String(n).padStart(7, '0')}`;
+// A made-up ISBN-13 with a real check digit (the library checks it).
+const isbn13 = (n) => { const d = `978999${String(n).padStart(6, '0')}`; return d + (10 - [...d].reduce((s, c, i) => s + Number(c) * (i % 2 ? 3 : 1), 0) % 10) % 10; };
 const good = (n, extra = {}) => ({ type: 'Textbook', title: `${PREFIX}${n}`, authors: `Tester ${n}`, isbn: isbn13(typeof n === 'number' ? n : 99), year: '2024', publisher: 'Test Press', ...extra });
 const add = async (payload) => {
     const r = await send('POST', '/refs', payload);
@@ -74,8 +75,8 @@ test('adding the same title and authors twice is refused, naming the existing re
 });
 
 test('the same ISBN is refused even under a different title and with other hyphens', async () => {
-    assert.equal((await add(good(2, { isbn: '978-9990-000-0-02' }))).status, 201);
-    const other = await add(good(3, { isbn: '9789990000002' }));
+    assert.equal((await add(good(2, { isbn: '978-9990-000-0-09' }))).status, 201);
+    const other = await add(good(3, { isbn: '9789990000009' }));
     assert.equal(other.status, 409);
     assert.equal(other.body.code, 'DUPLICATE_REFERENCE');
 });
@@ -127,15 +128,15 @@ test('identical rows the library edits together can be renamed together, and onl
 });
 
 test('a bulk import marks a row with an existing ISBN as a duplicate', async () => {
-    const stored = await add(good(8, { isbn: '978-9990-000-0-08' }));
+    const stored = await add(good(8, { isbn: '978-9990-000-8-01' }));
     assert.equal(stored.status, 201);
-    const report = await send('POST', '/refs-import', { dryRun: true, rows: [good(9, { isbn: '9789990000008' }), good(10)] });
+    const report = await send('POST', '/refs-import', { dryRun: true, rows: [good(9, { isbn: '9789990000801' }), good(10)] });
     assert.equal(report.status, 200);
     assert.deepEqual(report.body.rows.map(r => r.status), ['duplicate', 'ok']);
     assert.equal(report.body.rows[0].reason, 'isbn', 'a row skipped for its ISBN says so');
 
     // The same title and authors is reported as that, whatever the ISBN.
-    const byTitle = await send('POST', '/refs-import', { dryRun: true, rows: [good(8, { isbn: '978-9990-000-9-99' })] });
+    const byTitle = await send('POST', '/refs-import', { dryRun: true, rows: [good(8, { isbn: '978-9990-000-9-93' })] });
     assert.equal(byTitle.body.rows[0].status, 'duplicate');
     assert.equal(byTitle.body.rows[0].reason, 'title');
 });

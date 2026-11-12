@@ -50,8 +50,10 @@ const canAccessCourseRows = (user, rows) => {
     if (user.role === 'dean') {
         return rows.some(row => normalizeId(row.dean_user_id) === userId);
     }
+    // The Industry Consultant reviews finished plans only: the Dean-approved ones (or their carry-overs) of their courses.
     if (user.role === 'industry-consultant') {
-        return rows.some(row => normalizeId(row.consultant_user_ids).split(',').includes(userId));
+        return rows.some(row => (row.approved_at != null || row.carried_from_offering_id != null)
+            && normalizeId(row.consultant_user_ids).split(',').includes(userId));
     }
     return false;
 };

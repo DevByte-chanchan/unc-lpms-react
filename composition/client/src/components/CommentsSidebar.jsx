@@ -45,8 +45,12 @@ const CommentsSidebar = ({
   onShowInPlan = () => {},
   collapsed,
   onToggle,
-  panelId = 'comments-panel'
+  panelId = 'comments-panel',
+  // What the notes are called: 'comment', or 'suggestion' for the Industry Consultant.
+  noun = 'comment'
 }) => {
+  const nouns = `${noun}s`
+  const Nouns = nouns.charAt(0).toUpperCase() + nouns.slice(1)
   const [commentFilter, setCommentFilter] = useState('all')
   const [roleFilter, setRoleFilter] = useState('all')
   const [expandedComments, setExpandedComments] = useState(() => new Set())
@@ -91,11 +95,11 @@ const CommentsSidebar = ({
         }}
         aria-expanded={!collapsed}
         aria-controls={panelId}
-        title={collapsed ? 'Show comments' : 'Hide comments'}
+        title={collapsed ? `Show ${nouns}` : `Hide ${nouns}`}
       >
         <span aria-hidden="true" className={styles['comments-toggle-icon']}>{collapsed ? <ChevronLeft size={16} /> : <ChevronRight size={16} />}</span>
         <span className={styles['comments-toggle-label']}>
-          {collapsed ? `Show comments (${comments.length})` : 'Hide comments'}
+          {collapsed ? `Show ${nouns} (${comments.length})` : `Hide ${nouns}`}
         </span>
       </button>
       <div className={styles['comments-viewport']} inert={collapsed} aria-hidden={collapsed}>
@@ -108,10 +112,10 @@ const CommentsSidebar = ({
           }}>
             <MessageSquare size={18} color="#475569" />
             <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600, color: '#1e293b', flex: 1 }}>
-              Comments
+              {Nouns}
             </h4>
             <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 500 }}>
-              {comments.length} {comments.length === 1 ? 'comment' : 'comments'}
+              {comments.length} {comments.length === 1 ? noun : nouns}
               {resolvedCount > 0 && ` · ${resolvedCount} resolved`}
             </span>
           </div>
@@ -137,11 +141,11 @@ const CommentsSidebar = ({
 
           <div className={styles.commentsScroller}>
             {comments.length === 0 ? (
-              <EmptyState icon={<MessageSquare size={22} strokeWidth={1.6} />} title="No comments yet" hint={emptyHint} />
+              <EmptyState icon={<MessageSquare size={22} strokeWidth={1.6} />} title={`No ${nouns} yet`} hint={emptyHint} />
             ) : listedComments.length === 0 ? (
               <EmptyState
                 icon={<Check size={22} strokeWidth={1.6} />}
-                title={commentFilter === 'open' ? 'No open comments' : 'No resolved comments'}
+                title={commentFilter === 'open' ? `No open ${nouns}` : `No resolved ${nouns}`}
                 hint="Change the switch above to see the others."
               />
             ) : (

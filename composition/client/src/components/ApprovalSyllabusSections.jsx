@@ -2,7 +2,7 @@ import Select from './Select.jsx'
 import React, { useEffect, useState, useRef } from 'react'
 import { offeringKey } from '../utils/offeringKey.js'
 import { Link, useSearchParams, useParams, useNavigate, useLocation } from 'react-router-dom'
-import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, MessageSquare, Download, MoreVertical, Check, Clock, FileText, UserPlus, Lock, AlertTriangle, X } from 'react-feather'
+import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, MessageSquare, Download, MoreVertical, Check, Clock, FileText, UserPlus, Lock, AlertTriangle, X, PenTool } from 'react-feather'
 import EmptyState from './EmptyState.jsx'
 import CommentsSidebar from './CommentsSidebar.jsx'
 import { useCommentFocus, useCommentFromLink, useWeekCommentsLink, sectionOfComment } from '../utils/useCommentFocus.js'
@@ -650,8 +650,37 @@ const ApprovalSyllabusSections = ({ status = 'pending', currentRole = '', course
     .catch(e => apiErrorMessage(e, 'The plan could not be sent back.'))
   // An approved plan takes no new comments (the server refuses them); changes go into a new revision.
   const planClosed = workflowState.currentStage === 'approved'
-  const canComment = !planClosed && (roleKey === 'industry-consultant' || isRoleActive() || hasRoleApproved())
-  const commentButtonLabel = commentMode === 'return' ? 'Return with comments' : commentMode === 'suggest' ? 'Add suggestion' : 'Add comment'
+  // The Industry Consultant suggests on Dean-approved plans only (the basis for the next revision); the reviewers
+  // comment only before the approval. The server holds the same rule (commentController.createCourseComment).
+  const canComment = roleKey === 'industry-consultant' ? planClosed : !planClosed && (isRoleActive() || hasRoleApproved())
+  const commentButtonLabel = commentMode === 'return' ? 'Return with comments' : commentMode === 'suggest' ? 'Suggest' : 'Add comment'
+
+  // The consultant's "reviewed" sign-off on an approved plan (server: courseConsultantController.signOff). It records
+  // the review only and never changes the approval. Everyone who opens the plan sees who signed it.
+  const [signoffs, setSignoffs] = useState([])
+  useEffect(() => {
+    if (!validPcId || !planClosed) { setSignoffs([]); return undefined }
+    let live = true
+    fetchJson(`/api/course-consultants/signoffs/${validPcId}`).then(rows => { if (live) setSignoffs(Array.isArray(rows) ? rows : []) }).catch(() => {})
+    return () => { live = false }
+  }, [validPcId, planClosed])
+  const signedByMe = signoffs.some(s => s.mine)
+  const signPlan = async () => {
+    if (!window.confirm('Sign this learning plan as reviewed? This records your review; it does not change the approval.')) return
+    try {
+      const row = await fetchJson(`/api/course-consultants/signoffs/${validPcId}`, { method: 'POST' })
+      setSignoffs(list => [...list, row])
+      showToastMsg('Signed as reviewed.')
+    } catch (err) {
+      showToastMsg(apiErrorMessage(err, 'The plan was not signed.'), 'warning')
+    }
+  }
+  const signedLine = signoffs.length > 0 && (
+    <div role="note" style={{ fontSize: 13, color: 'var(--ink-soft)', margin: '0 0 12px', display: 'flex', alignItems: 'center', gap: 6 }}>
+      <PenTool size={14} aria-hidden="true" />
+      Reviewed and signed by {signoffs.map(s => `${s.name} (${new Date(s.signedAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })})`).join(', ')}
+    </div>
+  )
 
   // Said on the page, not only in a toast after a click: why this approver cannot act on the plan yet.
   const isApprover = ['director-of-libraries', 'program-head', 'dean'].includes(roleKey)
@@ -868,7 +897,8 @@ ${suggestionLine}` : text,
             <Clock strokeWidth={2} size={14} /> Revisions
           </button>
         )}
-        {roleKey === 'program-head' && !approved && (
+        {/* A consultant reviews Dean-approved plans only, so they are assigned from an approved plan. */}
+        {roleKey === 'program-head' && approved && (
           <button type="button" onClick={(e) => { e.stopPropagation(); setIsOpen(false); setIsConsultantOpen(true); }}>
             <UserPlus strokeWidth={2} size={14} /> Industry consultant
           </button>
@@ -976,6 +1006,22 @@ ${suggestionLine}` : text,
                 <button type="button" className="btn btn-primary" onClick={forwardToInstructor}>Forward to instructor</button>
               </>)
             }
+            if (roleKey === 'industry-consultant') {
+              // The consultant suggests and signs; they never comment for a return or approve.
+              const blocked = !reviewRecordAvailable || !canComment
+              return (<>
+                <button type="button" className={`btn btn-secondary ${blocked ? styles['disabled-btn'] : ''}`} aria-disabled={blocked} onClick={() => {
+                  if (!reviewRecordAvailable) { showToastMsg('This course revision could not be loaded, so it cannot be reviewed.', 'warning'); return }
+                  if (!canComment) { showToastMsg('Suggestions open once the Dean approves this learning plan.', 'warning'); return }
+                  setReadOnlyCommentModal(false); openComment()
+                }}><MessageSquare size={16} /> {commentButtonLabel}</button>
+                <button type="button" className={`btn btn-primary ${(blocked || signedByMe) ? styles['disabled-btn'] : ''}`} aria-disabled={blocked || signedByMe} onClick={() => {
+                  if (signedByMe) { showToastMsg('You have already signed this learning plan.', 'warning'); return }
+                  if (blocked) { showToastMsg('You can sign once the Dean approves this learning plan.', 'warning'); return }
+                  signPlan()
+                }}><PenTool size={16} /> {signedByMe ? 'Signed' : 'Sign'}</button>
+              </>)
+            }
             if (effectiveStatus !== 'approved' && roleKey !== 'instructor') {
               return (<>
                 {/* The plan is with its instructor (not submitted, or returned): the Program Head can remind them. */}
@@ -1080,6 +1126,7 @@ ${suggestionLine}` : text,
             <>
             {roleKey === 'program-head' && <PlanChecks pcId={validPcId} />}
             {roleKey !== 'instructor' && <VersionHistory pcId={validPcId} />}
+            {signedLine}
             {(roleKey === 'program-head' || roleKey === 'industry-consultant') && <EarlierConsultantNotes pcId={validPcId} />}
             {/* A table of blank rows is the worst of both worlds — it looks
                 like the screen loaded but lost the data. Say plainly that
@@ -1278,6 +1325,7 @@ ${suggestionLine}` : text,
             was saved and then never shown. It belongs on every section. */}
         {!embedded && roleKey !== 'vpaa' && (
           <CommentsSidebar
+            noun={roleKey === 'industry-consultant' ? 'suggestion' : 'comment'}
             panelId="approval-comments-panel"
             comments={visibleComments}
             iloLabels={iloLabels}

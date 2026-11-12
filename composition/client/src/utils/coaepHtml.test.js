@@ -27,14 +27,30 @@ test('an approved COAEP has no draft banner or watermark and shows the Program H
   assert.match(html, /BIT313L - HCI \(Revision 2\)/)
 })
 
+const pagesOf = (html) => html.split('<div class="page">').slice(1)
+
 test('a draft COAEP carries a banner and a watermark on every page', () => {
-  const twoCos = record({ approved: false })
-  twoCos.cos.push({ statement: 'Evaluate interfaces', ilos: [ilo] })
-  const html = buildCoaepHtml(twoCos, null)
-  const pages = html.match(/<div class="page">/g).length
-  assert.equal(pages, 2)
+  const many = record({ approved: false })
+  many.cos = Array.from({ length: 6 }, (_, i) => ({ statement: `Outcome ${i + 1}`, ilos: [ilo, ilo, ilo] }))
+  const html = buildCoaepHtml(many, null)
+  const pages = pagesOf(html).length
+  assert.ok(pages >= 2)
   assert.equal(html.match(/DRAFT – NOT APPROVED\./g).length, pages)
   assert.equal(html.match(/rotate\(-28deg\)/g).length, pages)
+})
+
+test('short course outcomes share a page; every CO is shown once, in order, never split', () => {
+  const two = record({ approved: true })
+  two.cos.push({ statement: 'Evaluate interfaces', ilos: [ilo] })
+  assert.equal(pagesOf(buildCoaepHtml(two, null)).length, 1)
+
+  const many = record({ approved: true })
+  many.cos = Array.from({ length: 8 }, (_, i) => ({ statement: `Outcome ${i + 1}`, ilos: [ilo, ilo, ilo] }))
+  const pages = pagesOf(buildCoaepHtml(many, null))
+  assert.ok(pages.length > 1 && pages.length < 8)
+  const numbers = pages.flatMap(p => [...p.matchAll(/font-weight:bold;" rowspan="3">(\d+)</g)].map(m => Number(m[1])))
+  assert.deepEqual(numbers, [1, 2, 3, 4, 5, 6, 7, 8])
+  assert.match(pages.at(-1), /Prepared by:/)
 })
 
 test('a COAEP with no approval flag is never rendered as final', () => {

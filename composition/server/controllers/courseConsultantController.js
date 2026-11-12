@@ -5,6 +5,9 @@ const { notify, eventMessage } = require('../utils/notify');
 
 const asInt = (value) => (Number.isSafeInteger(Number(value)) && Number(value) > 0 ? Number(value) : null);
 
+// A consultant reviews Dean-approved plans only, so a course takes one only once it has such a plan.
+const APPROVED = '(pco.approved_at IS NOT NULL OR pco.carried_from_offering_id IS NOT NULL)';
+
 // Whether this user heads a program that offers the course: only they may assign or remove its consultant.
 async function headsProgramOffering(courseId, userId) {
     const [headed] = await sequelize.query(
@@ -41,16 +44,17 @@ async function listAssignments(req, res, next) {
 }
 
 // GET /api/course-consultants/candidates — what the Program Head can pick from: the courses of the
-// programs they head and the active consultant accounts.
+// programs they head (approved: 1 when the course has an approved plan, so it can take a consultant), and the
+// active consultant accounts.
 async function getCandidates(req, res, next) {
     try {
         const select = (sql, replacements = []) => sequelize.query(sql, { replacements, type: Sequelize.QueryTypes.SELECT });
         const courses = await select(
-            `SELECT DISTINCT c.course_id, c.course_no, c.course_title
+            `SELECT c.course_id, c.course_no, c.course_title, MAX(CASE WHEN ${APPROVED} THEN 1 ELSE 0 END) AS approved
              FROM ProgramCourseOfferings pco
                  INNER JOIN Courses c ON c.course_id = pco.course_id
                  INNER JOIN Programs p ON p.program_id = pco.program_id
-             WHERE p.stakeholder_id = ? ORDER BY c.course_no ASC;`, [req.user.id]);
+             WHERE p.stakeholder_id = ? GROUP BY c.course_id ORDER BY c.course_no ASC;`, [req.user.id]);
         const consultants = await select(
             `SELECT user_id, name FROM Users WHERE (role = 'industry-consultant' OR roles LIKE '%"industry-consultant"%') AND (is_active IS NULL OR is_active != 0) ORDER BY name ASC;`);
         return res.json({ courses, consultants });
@@ -70,6 +74,10 @@ async function assignConsultant(req, res, next) {
         const course = await Course.findByPk(courseId);
         if (!course) return res.status(404).json({ message: 'Course not found.' });
         if (!(await headsProgramOffering(courseId, req.user.id))) return res.status(403).json({ message: 'Only the head of a program that offers this course can assign its consultant.' });
+        const [approvedPlan] = await sequelize.query(
+            `SELECT 1 AS ok FROM ProgramCourseOfferings pco WHERE pco.course_id = ? AND ${APPROVED} LIMIT 1;`,
+            { replacements: [courseId], type: Sequelize.QueryTypes.SELECT });
+        if (!approvedPlan) return res.status(409).json({ message: 'This course has no approved learning plan yet. Assign a consultant once the Dean approves one.' });
         const consultant = await User.findByPk(consultantId);
         if (!consultant || !consultant.roles.includes('industry-consultant') || consultant.is_active === false) {
             return res.status(400).json({ message: 'That account is not an active industry consultant.' });
@@ -79,7 +87,7 @@ async function assignConsultant(req, res, next) {
         const tellConsultant = async () => {
             const [offering] = await sequelize.query(
                 `SELECT pco.pc_offering_id FROM ProgramCourseOfferings pco INNER JOIN Programs p ON p.program_id = pco.program_id
-                 WHERE pco.course_id = ? AND p.stakeholder_id = ? ORDER BY pco.revision_number DESC, pco.pc_offering_id DESC LIMIT 1;`,
+                 WHERE pco.course_id = ? AND p.stakeholder_id = ? AND ${APPROVED} ORDER BY pco.revision_number DESC, pco.pc_offering_id DESC LIMIT 1;`,
                 { replacements: [courseId, req.user.id], type: Sequelize.QueryTypes.SELECT });
             await notify([consultantId], 'course_assigned', offering?.pc_offering_id ?? null,
                 eventMessage(course.course_no, 'you were assigned as the industry consultant', 'program-head'), 'PROGRAM_HEAD');
@@ -122,4 +130,36 @@ async function deactivateAssignment(req, res, next) {
     }
 }
 
-module.exports = { listAssignments, getCandidates, assignConsultant, deactivateAssignment };
+// GET /api/course-consultants/signoffs/:pcId — who signed this plan as reviewed: [{ name, signedAt, mine }].
+// Anyone who can open the plan (requireOfferingAccess) may read it.
+async function listSignoffs(req, res, next) {
+    try {
+        const rows = await sequelize.query(
+            'SELECT consultant_user_id, consultant_name, signed_at FROM ConsultantSignoffs WHERE offering_id = ? ORDER BY signed_at ASC',
+            { replacements: [Number(req.params.pcId)], type: Sequelize.QueryTypes.SELECT });
+        // SQLite hands back '2026-11-12 20:38:13.626 +08:00', which not every browser parses: send ISO.
+        return res.json(rows.map(row => ({ name: row.consultant_name, signedAt: new Date(row.signed_at).toISOString(), mine: Number(row.consultant_user_id) === Number(req.user.id) })));
+    } catch (err) {
+        return next(err);
+    }
+}
+
+// POST /api/course-consultants/signoffs/:pcId — the assigned consultant signs the plan as reviewed. Only reachable on a
+// Dean-approved plan of their course (requireOfferingAccess); it never changes the approval. Once per consultant.
+async function signOff(req, res, next) {
+    try {
+        const offeringId = Number(req.params.pcId);
+        const [done] = await sequelize.query('SELECT 1 AS ok FROM ConsultantSignoffs WHERE offering_id = ? AND consultant_user_id = ?',
+            { replacements: [offeringId, req.user.id], type: Sequelize.QueryTypes.SELECT });
+        if (done) return res.status(409).json({ message: 'You have already signed this learning plan.' });
+        const user = await User.findByPk(req.user.id);
+        const signedAt = new Date();
+        await sequelize.query('INSERT INTO ConsultantSignoffs (offering_id, consultant_user_id, consultant_name, signed_at) VALUES (?, ?, ?, ?)',
+            { replacements: [offeringId, req.user.id, user?.name || 'Industry Consultant', signedAt] });
+        return res.status(201).json({ name: user?.name || 'Industry Consultant', signedAt, mine: true });
+    } catch (err) {
+        return next(err);
+    }
+}
+
+module.exports = { listAssignments, getCandidates, assignConsultant, deactivateAssignment, listSignoffs, signOff };

@@ -20,14 +20,15 @@ let counter = 0;
 const uniq = (label) => `${label} ${++counter} ${stamp}`;
 
 const GOOD = {
-    Textbook: { type: 'Textbook', title: 'Operating Systems', authors: 'Silberschatz', isbn: '978-1-119-80036-0', year: '2023' },
+    Textbook: { type: 'Textbook', title: 'Operating Systems', authors: 'Silberschatz', isbn: '978-1-119-80036-1', year: '2023' },
     OER: { type: 'OER', title: 'Open Algorithms', authors: 'Erickson', year: '2019', link: 'https://example.org/algorithms' },
     'Online Resource': { type: 'Online Resource', title: 'MDN Web Docs', authors: 'Mozilla', link: 'https://developer.mozilla.org/' },
     'Online Subscription': { type: 'Online Subscription', title: 'O’Reilly Learning', publisher: 'O’Reilly Media', link: 'https://learning.oreilly.com/' }
 };
 // A reference cannot repeat another one's title and authors or its ISBN, and these tests leave their rows
 // in the test database, so every reference they create gets a title and (when the type has one) an ISBN of its own.
-const uniqueIsbn = () => `978${String(Date.now()).slice(-8)}${String(counter).padStart(2, '0')}`;
+// A fresh ISBN-13 with a real check digit (the library checks it).
+const uniqueIsbn = () => { const d = `978${String(Date.now()).slice(-7)}${String(counter).padStart(2, '0')}`; return d + (10 - [...d].reduce((s, c, i) => s + Number(c) * (i % 2 ? 3 : 1), 0) % 10) % 10; };
 const withTitle = (type, extra = {}) => ({ ...GOOD[type], title: uniq(GOOD[type].title), ...(GOOD[type].isbn ? { isbn: uniqueIsbn() } : {}), ...extra });
 
 // ----------------------------------------------------------------------- config
@@ -92,6 +93,7 @@ test('field rules: ISBN, year, link, lengths; fields a type does not use are dro
     const textbook = (extra) => validateReference({ ...GOOD.Textbook, ...extra });
     assert.equal(textbook({ isbn: '0-306-40615-2' }).ok, true);
     assert.equal(textbook({ isbn: '12345' }).errors.isbn, 'ISBN must have 10 or 13 digits.');
+    assert.match(textbook({ isbn: '978-0-13-235088-5' }).errors.isbn, /check digit does not match/, 'a typo in an ISBN is caught');
     assert.match(textbook({ isbn: 'abc-def-ghi-jkl' }).errors.isbn, /only digits/);
     assert.match(textbook({ year: '23' }).errors.year, /4-digit/);
     assert.match(textbook({ year: '1850' }).errors.year, /between 1900/);
@@ -103,7 +105,7 @@ test('field rules: ISBN, year, link, lengths; fields a type does not use are dro
     assert.match(textbook({ link: 'not a url' }).errors.link, /http\(s\)/);
 
     // A subscription has no ISBN: anything sent for it is ignored.
-    const subscription = validateReference({ ...GOOD['Online Subscription'], isbn: '978-1-119-80036-0' });
+    const subscription = validateReference({ ...GOOD['Online Subscription'], isbn: '978-1-119-80036-1' });
     assert.equal(subscription.ok, true);
     assert.equal(subscription.values.isbn, null);
 

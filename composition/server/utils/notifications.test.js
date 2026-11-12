@@ -36,8 +36,9 @@ const makeUser = (role, label) => User.create({
     name: `${label || role} ${++counter}`, email: `n${counter}.${stamp}@example.test`, role, password_hash: 'x'
 });
 
-// One isolated course: its own dean, program head, instructor and a plan, with only an ASSIGNED log.
-const fixture = async () => {
+// One isolated course: its own dean, program head, instructor and a plan, with only an ASSIGNED log. The plan's content
+// is copied from the seeded demo plan, so it passes the submit gates; { empty: true } leaves it empty.
+const fixture = async ({ empty = false } = {}) => {
     const [instructor, ph, dean, ld, vpaa] = await Promise.all([makeUser('instructor'), makeUser('program-head'), makeUser('dean'), makeUser('director-of-libraries'), makeUser('vpaa')]);
     const now = new Date();
     const stamps = { createdAt: now, updatedAt: now };
@@ -54,6 +55,7 @@ const fixture = async () => {
     });
     const assignmentId = await insert('CourseOfferingAssignments', { pc_offering_id: offeringId, stakeholder_id: String(instructor.user_id), date_assigned: now, ...stamps });
     await insert('AssignmentWorkflowLogs', { co_assign_id: assignmentId, actor_role: 'PROGRAM_HEAD', action_type: 'ASSIGNED', ...stamps });
+    if (!empty) await sequelize.transaction(t => cloneOfferingContent(1, offeringId, now, t));
     return { instructor, ph, dean, ld, vpaa, offeringId, assignmentId, code, courseId, programId };
 };
 
@@ -109,11 +111,10 @@ test('planEvent: resubmission, return, partial acceptance, ready for Dean, appro
 
 // A fixture whose plan passes the real submit gates: the content (outcomes, ILOs with I/E/D levels,
 // assessments weighted 20/30/50) is copied from a seeded plan, which only reads the seed.
+// (fixture() already copies it; kept so the tests below still read as "a valid plan".)
 const withValidPlan = async (f) => {
     const [seed] = await q('SELECT pc_offering_id FROM ProgramCourseOfferings WHERE pc_offering_id = 1');
     assert.ok(seed, 'the seeded demo plan exists');
-    const now = new Date();
-    await sequelize.transaction(t => cloneOfferingContent(seed.pc_offering_id, f.offeringId, now, t));
     return f;
 };
 const submit = async (f) => {
@@ -148,7 +149,7 @@ test('submit route: a valid plan is submitted and the reviewers are notified, no
 });
 
 test('submit route: a plan that fails the gates is refused and nobody is notified', async () => {
-    const f = await fixture(); // no outcomes, no assessments
+    const f = await fixture({ empty: true }); // no outcomes, no assessments
     const res = await submit(f);
     assert.equal(res.code, 400);
     assert.ok(res.body.blockers.length > 0);
@@ -687,4 +688,12 @@ test('the migration keeps a plan the Dean returned under the old rule with its i
     assert.equal(planEditStateOf(logs).state, 'Returned', 'the instructor keeps it');
     await require('../migrations/20261108000000-dean-returns-through-program-head').up(sequelize.getQueryInterface());
     assert.equal((await logsOf(f)).filter(l => l.action_type === 'FORWARDED').length, 1, 'running it again adds nothing');
+});
+
+test('the workflow action route refuses to submit a plan that fails the submit gates (it used to take an empty plan)', async () => {
+    const f = await fixture({ empty: true });
+    const res = await act(f, 'instructor', 'INSTRUCTOR', 'SUBMITTED');
+    assert.equal(res.code, 400);
+    assert.match(res.body.error, /no course outcomes/);
+    assert.equal(await submittedLogs(f), 0, 'nothing recorded');
 });

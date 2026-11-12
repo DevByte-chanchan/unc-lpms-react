@@ -1,11 +1,12 @@
 import styles from '../styles/SyllabusSections.module.sass'
 import { offeringKey } from '../utils/offeringKey.js'
 import stylesB from '../styles/SyllabusPreview.module.sass'; // Ensure this has the new modal CSS classes
-import {ChevronLeft, ChevronRight, Plus, Search, Inbox, Play, Send, MoreVertical, Download, Clock} from 'react-feather';
+import {ChevronLeft, ChevronRight, Plus, Search, Inbox, Play, Send, MoreVertical, Download, Clock, MessageSquare} from 'react-feather';
 import React, {useCallback, useEffect, useRef, useState} from "react";
 import {Link, useNavigate, useParams, useSearchParams, useLocation} from "react-router-dom";
 import SyllabusPreview from "./SyllabusPreview.jsx";
 import Revisions from "./Revisions.jsx";
+import FutureSuggestions from "./FutureSuggestions.jsx";
 import {fetchJson, apiErrorMessage} from "../utils/api";
 import { useServerWorkflow } from '../utils/useServerWorkflow.js'
 import { exportEligibility } from '../utils/reviewGate.js'
@@ -152,6 +153,9 @@ const SyllabusSections = () => {
 
     const [isOpen, setIsOpen] = useState(false);
     const dropdownRef = useRef(null);
+    // The industry consultant's suggestions on this plan and its earlier versions (components/FutureSuggestions.jsx).
+    const [suggestionsOpen, setSuggestionsOpen] = useState(false);
+    const closeSuggestions = useCallback(() => setSuggestionsOpen(false), []);
 
     const toggleMenu = (event) => {
         event.stopPropagation();
@@ -323,6 +327,9 @@ const SyllabusSections = () => {
                                 <button type="button" disabled={exportingPdf} onClick={(e) => { e.stopPropagation(); setIsOpen(false); handleReviewRecord(); }}>
                                     <Download strokeWidth={2} size={14} /> Review record
                                 </button>
+                                <button type="button" onClick={(e) => { e.stopPropagation(); setIsOpen(false); setSuggestionsOpen(true); }}>
+                                    <MessageSquare strokeWidth={2} size={14} /> Future Suggestions
+                                </button>
 
                             </div>
                         </div>
@@ -362,6 +369,8 @@ const SyllabusSections = () => {
                         )}
 
                         <SyllabusPreview isOpen={isPreviewOpen} onClose={() => setIsPreviewOpen(false)} />
+
+                        {suggestionsOpen && <FutureSuggestions pcId={offeringID} onClose={closeSuggestions} />}
 
                         {isRevisionsOpen && (
                             <Revisions

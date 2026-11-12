@@ -6,6 +6,16 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const express = require('express');
 const { User, sequelize, Sequelize } = require('../models');
+const { textPdf } = require('./testPdf');
+
+// Small real PDFs: the uploads read them (utils/documentScan.js frontPagesProblem / courseDocumentProblem).
+const FRONT_PDF = textPdf([[[50, 780, 'UNIVERSITY VISION STATEMENT'], [50, 760, 'Our vision is to be the top university.'], [50, 730, 'MISSION STATEMENT'],
+    [50, 710, 'Our mission is to expand opportunities.'], [50, 680, 'PROGRAM EDUCATIONAL OBJECTIVES (PEOs)'], [50, 660, '1. Utilize competently the acquired skills.'],
+    [50, 630, 'PROGRAM OUTCOMES (POs)'], [50, 610, 'PO1 Apply knowledge of computing.']]]);
+const COAEP_PDF = textPdf([[[40, 780, 'Course Outcome Statement'], [200, 780, 'Intended Learning Outcome'], [360, 780, 'Assessment Tool'], [470, 780, 'Performance Target'],
+    [40, 750, '1 Explain the core concepts.'], [200, 750, 'Describe the parts.'], [360, 750, 'Quiz'], [470, 750, '70% get 70%'],
+    [200, 720, 'Apply the parts.'], [360, 720, 'Project'], [470, 720, '70% get 70%']]]);
+const OTHER_PDF = textPdf([[[50, 780, 'The United Nations: from the Atlantic Charter of 1941 to 2026.'], [50, 760, 'Group 2 report on non-state actors of globalization.']]]);
 
 const select = (sql, r = []) => sequelize.query(sql, { replacements: r, type: Sequelize.QueryTypes.SELECT });
 let server;
@@ -41,9 +51,14 @@ const call = (as, method, path, { json, raw } = {}) => fetch(base + path, {
 });
 
 test('front pages: only the program\'s head uploads, only a PDF, and anyone can read it back', async () => {
-    const pdf = Buffer.from('%PDF-1.4\n% a tiny stand-in\n');
+    const pdf = FRONT_PDF;
     assert.equal((await call(other, 'PUT', `/program-outcomes/${programId}/front-pages`, { raw: pdf })).status, 403);
     assert.equal((await call(head, 'PUT', `/program-outcomes/${programId}/front-pages`, { raw: Buffer.from('hello') })).status, 400);
+    const wrong = await call(head, 'PUT', `/program-outcomes/${programId}/front-pages`, { raw: OTHER_PDF });
+    assert.equal(wrong.status, 400, 'a PDF that is not the front pages');
+    assert.match((await wrong.json()).error, /does not look like the front pages: the vision statement/);
+    const long = textPdf(Array.from({ length: 7 }, () => [[50, 780, 'VISION MISSION PROGRAM EDUCATIONAL OBJECTIVES PROGRAM OUTCOMES and a few more words here']]));
+    assert.match((await (await call(head, 'PUT', `/program-outcomes/${programId}/front-pages`, { raw: long })).json()).error, /at most 6\. This PDF has 7 pages/);
     assert.equal((await call(head, 'PUT', `/program-outcomes/${programId}/front-pages`, { raw: pdf })).status, 201);
     const back = await call(other, 'GET', `/program-outcomes/${programId}/front-pages`);
     assert.equal(back.status, 200);
@@ -90,11 +105,15 @@ test('course documents: the program head uploads a PDF or Excel CO-PO / COAEP fi
         school_year: '2030-2031', semester: '1st', createdAt: now, updatedAt: now,
     }]);
     const [{ pc_offering_id: pcId }] = await select('SELECT pc_offering_id FROM ProgramCourseOfferings WHERE program_id = ?', [programId]);
-    const pdf = Buffer.from('%PDF-1.4\n%coaep\n');
+    const pdf = COAEP_PDF;
 
     assert.equal((await call(other, 'PUT', `/course-documents/${pcId}/coaep`, { raw: pdf })).status, 403, 'another program head');
     assert.equal((await call(head, 'PUT', `/course-documents/${pcId}/coaep`, { raw: Buffer.from('<html>') })).status, 400, 'not PDF or Excel');
     assert.equal((await call(head, 'PUT', `/course-documents/${pcId}/syllabus`, { raw: pdf })).status, 400, 'unknown kind');
+    const wrong = await call(head, 'PUT', `/course-documents/${pcId}/coaep`, { raw: OTHER_PDF });
+    assert.equal(wrong.status, 400, 'a PDF that is not a COAEP');
+    assert.match((await wrong.json()).error, /does not look like a COAEP/);
+    assert.equal((await call(head, 'PUT', `/course-documents/${pcId}/co-po`, { raw: COAEP_PDF })).status, 400, 'a COAEP is not a CO and PO alignment');
     const put = await call(head, 'PUT', `/course-documents/${pcId}/coaep`, { raw: pdf });
     assert.equal(put.status, 201);
     assert.equal((await put.json()).contentType, 'application/pdf');

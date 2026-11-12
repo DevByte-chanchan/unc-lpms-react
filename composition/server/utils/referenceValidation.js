@@ -7,6 +7,7 @@
 //   result : { ok, errors: { field: message }, values } where `values` are References columns.
 
 const { FIELDS, REFERENCE_TYPES, isReferenceType, THIS_YEAR } = require('../config/referenceTypes');
+const { normalizeIsbn } = require('./isbnLookup');
 
 const clean = (value) => String(value ?? '').replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim();
 
@@ -26,7 +27,9 @@ const checkers = {
     isbn: (value) => {
         if (!/^[0-9Xx][0-9Xx -]*$/.test(value)) return 'ISBN may contain only digits, hyphens, spaces and X.';
         const digits = value.replace(/[ -]/g, '');
-        return digits.length === 10 || digits.length === 13 ? null : 'ISBN must have 10 or 13 digits.';
+        if (digits.length !== 10 && digits.length !== 13) return 'ISBN must have 10 or 13 digits.';
+        // The last digit is a check digit: a typo in any digit is caught (utils/isbnLookup.js normalizeIsbn).
+        return normalizeIsbn(digits) ? null : 'This ISBN is not valid: its check digit does not match. Check the digits.';
     },
     year: (value) => {
         if (!/^\d{4}$/.test(value)) return 'Publication Year must be a 4-digit year (e.g., 2023).';

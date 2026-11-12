@@ -104,9 +104,9 @@ const CourseDocumentBar = ({ pcId, kind, label, onChange }) => {
   return (
     <DocumentBar label={label} error={error} status={
       doc === undefined ? 'checking…'
-        : !doc ? 'none uploaded — the table is generated from the plan.'
-          : doc.parsed ? `${doc.fileName} — read into the table below; Export uses it.`
-            : `${doc.fileName} — Export opens this file instead of the generated table.`
+        : !doc ? 'none, built from the plan.'
+          : doc.parsed ? `${doc.fileName}, shown below.`
+            : `${doc.fileName}, opened by Export.`
     }>
       {canEdit && <TemplateButton path={`/api/course-documents/template/${kind}`} name={`${kind === 'coaep' ? 'COAEP' : 'CO-PO'}-template.xlsx`} onError={setError} />}
       {doc && <button type="button" className="btn btn-secondary btn-sm" onClick={() => openCourseDocument(pcId, kind, doc).catch(() => setError('The file could not be opened.'))}>View</button>}
@@ -114,7 +114,7 @@ const CourseDocumentBar = ({ pcId, kind, label, onChange }) => {
         <>
           <input ref={fileRef} type="file" accept=".pdf,.xlsx,.xls,application/pdf" hidden aria-label={`${label} file`} onChange={(e) => upload(e.target.files?.[0])} />
           <button type="button" className="btn btn-secondary btn-sm" disabled={busy} onClick={() => fileRef.current?.click()}>
-            <Upload size={14} /> {doc ? 'Replace' : 'Upload Excel or PDF'}
+            <Upload size={14} /> {busy ? 'Checking…' : doc ? 'Replace' : 'Upload Excel or PDF'}
           </button>
           <input ref={scanRef} type="file" accept="image/png,image/jpeg,image/webp,application/pdf,.pdf" hidden aria-label={`Scan ${label}`} onChange={(e) => startScan(e.target.files?.[0])} />
           <button type="button" className="btn btn-secondary btn-sm" disabled={busy} title="Read a photo or PDF of the form, then check it" onClick={() => scanRef.current?.click()}>

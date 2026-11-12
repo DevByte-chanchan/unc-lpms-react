@@ -10,7 +10,8 @@ const { describeTypes, UNAVAILABLE_STATUSES } = require('../config/referenceType
 const { validateReference, changedFields } = require('./referenceValidation');
 const { createReference, updateReference, getReferenceLibrary } = require('../controllers/referenceController');
 
-const isbn13 = (n) => `978998${String(n).padStart(7, '0')}`;
+// A made-up ISBN-13 with a real check digit (the library checks it).
+const isbn13 = (n) => { const d = `978998${String(n).padStart(6, '0')}`; return d + (10 - [...d].reduce((s, c, i) => s + Number(c) * (i % 2 ? 3 : 1), 0) % 10) % 10; };
 const textbook = (extra = {}) => ({ type: 'Textbook', title: 'Fields test', authors: 'Tester', isbn: isbn13(1), year: '2024', ...extra });
 const problems = (extra) => validateReference(textbook(extra)).errors;
 
@@ -66,10 +67,10 @@ test('a field a type does not have is ignored for that type', () => {
 });
 
 test('changedFields reports the new fields when they change, and only then', () => {
-    const stored = { type: 'Textbook', title: 'T', author: 'A', isbn: '9789980000001', publication_year: '2024-01-01', link: null, publisher: null, copies: 3, status: 'available', category: null, date_received: null };
-    const same = validateReference(textbook({ title: 'T', authors: 'A', isbn: '9789980000001', copies: '3' })).values;
+    const stored = { type: 'Textbook', title: 'T', author: 'A', isbn: '9789980000002', publication_year: '2024-01-01', link: null, publisher: null, copies: 3, status: 'available', category: null, date_received: null };
+    const same = validateReference(textbook({ title: 'T', authors: 'A', isbn: '9789980000002', copies: '3' })).values;
     assert.deepEqual(changedFields(stored, same), []);
-    const changed = validateReference(textbook({ title: 'T', authors: 'A', isbn: '9789980000001', copies: '2', status: 'lost', category: 'AI', received: '2023-02-01' })).values;
+    const changed = validateReference(textbook({ title: 'T', authors: 'A', isbn: '9789980000002', copies: '2', status: 'lost', category: 'AI', received: '2023-02-01' })).values;
     assert.deepEqual(changedFields(stored, changed).sort(), ['category', 'copies', 'received', 'status']);
 });
 

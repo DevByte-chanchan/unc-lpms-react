@@ -169,7 +169,12 @@ const NotificationBell = () => {
           </div>
 
           <div className={styles.list}>
-            {failed && <div role="alert" className={styles.note}>Notifications could not be loaded.</div>}
+            {failed && (
+              <div role="alert" className={styles.note}>
+                Notifications could not be loaded.{' '}
+                <button type="button" className={styles.markAll} onClick={refreshList}>Try again</button>
+              </div>
+            )}
             {!failed && shown.length === 0 && (
               <div className={styles.empty}>
                 <Bell size={22} strokeWidth={1.6} aria-hidden="true" />

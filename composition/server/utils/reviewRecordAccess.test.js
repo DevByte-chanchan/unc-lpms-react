@@ -87,8 +87,7 @@ const OWNERS = [
     [`${ID.instructor}:instructor`, 'the course instructor'],
     [`${ID.programHead}:program-head`, "the program's Program Head"],
     [`${ID.dean}:dean`, "the department's Dean"],
-    [`${ID.director}:director-of-libraries`, 'the Director of Libraries (institution-wide)'],
-    [`${ID.consultant}:industry-consultant`, 'the consultant assigned to the course']
+    [`${ID.director}:director-of-libraries`, 'the Director of Libraries (institution-wide)']
 ];
 const OUTSIDERS = [
     [`${ID.otherInstructor}:instructor`, 'another instructor'],
@@ -105,9 +104,11 @@ test('the people on a plan can open its record, and outsiders get 403, whatever 
     }
 });
 
-test('the VPAA can open the record of an approved plan only', async () => {
-    assert.equal((await open(VPAA, approved)).status, 200);
-    assert.equal((await open(VPAA, pending)).status, 403);
+test('the VPAA and the assigned consultant can open the record of an approved plan only', async () => {
+    for (const who of [VPAA, `${ID.consultant}:industry-consultant`]) {
+        assert.equal((await open(who, approved)).status, 200, who);
+        assert.equal((await open(who, pending)).status, 403, who);
+    }
 });
 
 const ALL = ['consultant on topics', 'dean on activities', 'director on references', 'program head on topics'];
@@ -117,7 +118,6 @@ test('under review, an approver gets only their own comments; the Dean and the i
     assert.deepEqual((await open(`${ID.programHead}:program-head`, pending)).messages, ['program head on topics']);
     assert.deepEqual((await open(`${ID.dean}:dean`, pending)).messages, ALL, 'the Dean decides with every comment in view');
     assert.deepEqual((await open(`${ID.director}:director-of-libraries`, pending)).messages, ['director on references']);
-    assert.deepEqual((await open(`${ID.consultant}:industry-consultant`, pending)).messages, ['consultant on topics']);
 });
 
 test('once approved, the instructor, Program Head, Dean and VPAA get the whole record', async () => {

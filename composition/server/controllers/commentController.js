@@ -10,7 +10,7 @@ const {
 } = require('../middleware/courseAuthorization');
 const { canViewComment, canViewSection, sectionOfComment } = require('../config/sectionAccess');
 const { COMMENT_ROLE_BY_ACCOUNT, isApprover, seesEveryComment, filterComments, withoutHeldDeanComments } = require('../utils/commentVisibility');
-const { earlierConsultantComments } = require('../utils/earlierConsultantComments');
+const { earlierConsultantComments, consultantSuggestions } = require('../utils/earlierConsultantComments');
 const { withReviewRounds } = require('../utils/reviewRounds');
 const { effectiveLogs } = require('../utils/effectiveLogs');
 const { planEditState, deriveReviewState } = require('../utils/workflowRules');
@@ -98,6 +98,19 @@ exports.getEarlierConsultantComments = async (req, res, next) => {
     try {
         const versions = await earlierConsultantComments(sequelize, req.params.pcId, req.user);
         return res.status(200).json({ versions });
+    } catch (error) {
+        return next(error);
+    }
+};
+
+/**
+ * GET /api/comments/suggestions/:pcId
+ * The Industry Consultant's suggestions on this plan and its earlier versions ("Future Suggestions"): the instructor
+ * applies them in the next term or revision. Instructor and Program Head: all; consultant: own.
+ */
+exports.getConsultantSuggestions = async (req, res, next) => {
+    try {
+        return res.status(200).json({ suggestions: await consultantSuggestions(sequelize, req.params.pcId, req.user) });
     } catch (error) {
         return next(error);
     }
@@ -425,9 +438,14 @@ exports.createCourseComment = async (req, res) => {
         if (!coAssignId) {
             return res.status(409).json({ error: 'This learning plan has no instructor assigned yet, so it takes no comments.' });
         }
-        // An approved plan is closed: a new comment would sit open with nothing the instructor can do about it.
-        // Changes go through a new revision instead.
-        if (planEditState(await effectiveLogs(sequelize, coAssignId)).state === 'Approved') {
+        // An approved plan is closed to the reviewers: a new comment would sit open with nothing the instructor can do
+        // about it; changes go through a new revision. The Industry Consultant is the other way round: they suggest on
+        // Dean-approved plans only, and their suggestions are the basis for the next revision (earlier consultant notes).
+        const approved = planEditState(await effectiveLogs(sequelize, coAssignId)).state === 'Approved';
+        if (req.user?.role === 'industry-consultant' && !approved) {
+            return res.status(409).json({ error: 'The industry consultant suggests on approved learning plans only.' });
+        }
+        if (req.user?.role !== 'industry-consultant' && approved) {
             return res.status(409).json({ error: 'This learning plan is already approved, so it no longer takes comments. Changes go into a new revision.' });
         }
 

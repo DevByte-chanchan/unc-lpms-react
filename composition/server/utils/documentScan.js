@@ -619,4 +619,39 @@ const frontPageCheck = (text, { peos = [], outcomes = [] }) => {
     };
 };
 
-module.exports = { scanDocument, frontPageCheck, sniffKind, linesOf, readPoPeo, readCoPo, readCoaep, fromAi, configuredAi, closeOcr, ScanError, KINDS };
+// Whether an uploaded PDF really is a program's front pages (the first pages of the syllabus form: the University's
+// vision and mission, the Program and its PEOs, the POs and PEOs table). null when it is; else what is wrong, said to
+// the Program Head. A scanned PDF is read by OCR, so a very poor scan can be refused: the message says to upload a
+// clearer one. Spaced-out letters ("V I S I O N") still match: norm() drops everything but letters and digits.
+const FRONT_MAX_PAGES = 6;
+const FRONT_PARTS = [
+    [['vision'], 'the vision statement'],
+    [['mission'], 'the mission statement'],
+    [['programeducationalobjective', 'peos'], 'the program educational objectives (PEOs)'],
+    [['programoutcome'], 'the program outcomes (POs)'],
+];
+const frontPagesProblem = async (buffer) => {
+    let pages;
+    try { pages = await pdfWords(buffer); } catch { return 'This PDF could not be opened. It may be damaged or password-protected.'; }
+    if (pages.length > FRONT_MAX_PAGES) {
+        return `Front pages are only the first pages of the syllabus (University; Program and PEOs; POs and PEOs), at most ${FRONT_MAX_PAGES}. This PDF has ${pages.length} pages.`;
+    }
+    let text;
+    try { text = (await scanDocument(buffer, 'front')).data.text; } catch { return 'Nothing could be read from this PDF. Upload a clearer copy of the front pages.'; }
+    const hay = norm(text);
+    const missing = FRONT_PARTS.filter(([words]) => !words.some(w => hay.includes(w))).map(([, label]) => label);
+    return missing.length ? `This does not look like the front pages: ${missing.join(', ')} ${missing.length === 1 ? 'is' : 'are'} not in it.` : null;
+};
+
+// Whether an uploaded PDF really is a CO and PO alignment or a COAEP form: it must have course outcomes the scanner can
+// read (with their PO marks, or their ILOs). null when it does; else what is wrong.
+const courseDocumentProblem = async (buffer, kind) => {
+    try { await scanDocument(buffer, kind); return null; } catch (err) {
+        if (err instanceof ScanError && err.message !== UNREADABLE) return err.message;
+        return kind === 'co-po'
+            ? 'This does not look like a CO and PO alignment: no course outcomes with PO columns were found. Use the template, or a clearer PDF.'
+            : 'This does not look like a COAEP: no course outcomes with their ILOs and assessments were found. Use the template, or a clearer PDF.';
+    }
+};
+
+module.exports = { scanDocument, frontPageCheck, frontPagesProblem, courseDocumentProblem, sniffKind, linesOf, readPoPeo, readCoPo, readCoaep, fromAi, configuredAi, closeOcr, ScanError, KINDS };

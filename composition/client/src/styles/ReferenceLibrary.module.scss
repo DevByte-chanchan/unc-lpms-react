@@ -746,18 +746,18 @@ button.previewClose.previewClose {
     text-overflow: ellipsis;
   }
 
-  th:nth-child(1), td:nth-child(1) { width: 10%; }
-  th:nth-child(2), td:nth-child(2) { width: 40%; }
-  th:nth-child(3), td:nth-child(3) { width: 22%; }
-  th:nth-child(4), td:nth-child(4) { width: 17%; }
-  th:nth-child(5), td:nth-child(5) {
-    width: 11%;
+  /* Title, author(s), type, year: the record ID is not shown (it is in the preview header). */
+  th:nth-child(1), td:nth-child(1) { width: 46%; }
+  th:nth-child(2), td:nth-child(2) { width: 25%; }
+  th:nth-child(3), td:nth-child(3) { width: 17%; }
+  th:nth-child(4), td:nth-child(4) {
+    width: 12%;
     padding-right: 8px;
     padding-left: 8px;
     text-align: center;
   }
 
-  td:nth-child(5) { justify-content: center; }
+  td:nth-child(4) { justify-content: center; }
 
   td.yearCell {
     display: grid;
@@ -766,7 +766,7 @@ button.previewClose.previewClose {
     column-gap: 6px;
   }
 
-  th:nth-child(5) button {
+  th:nth-child(4) button {
     position: relative;
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
@@ -776,11 +776,11 @@ button.previewClose.previewClose {
     gap: 0;
   }
 
-  th:nth-child(5) button > span:first-child {
+  th:nth-child(4) button > span:first-child {
     grid-column: 2;
   }
 
-  th:nth-child(5) button > span:nth-child(2) {
+  th:nth-child(4) button > span:nth-child(2) {
     position: static;
     grid-column: 3;
     justify-self: end;
@@ -813,9 +813,24 @@ button.previewClose.previewClose {
   background: #f5f8f8;
 }
 
+/* The reference open in the side panel: a clear tint, a dark bar at the left, its title in bold. The cells are tinted too,
+   since a cell background would cover the row's. */
+.resultRowSelected,
+.resultRowSelected:hover,
+.resultRowSelected td {
+  background: #e3e9ec;
+}
+
 .resultRowSelected {
-  background: #f3f4f6;
   box-shadow: inset 3px 0 #19282C;
+}
+
+.resultRowSelected td:first-child {
+  box-shadow: inset 4px 0 #19282C;
+}
+
+.resultRowSelected .refTitle {
+  font-weight: 600;
 }
 
 .typeBadge {
@@ -1736,6 +1751,16 @@ button.previewClose.previewClose {
   gap: 22px;
   overflow-y: auto;
   padding-bottom: 14px;
+}
+
+/* A program's block of course cards. SyllabusSections / SyllabusPreview .module.sass carry a bare `section` rule (flex,
+   height 100%, overflow auto) that applies app-wide once a learning plan has been opened; undo it here, or the title
+   and the cards end up side by side and the cards squeezed. */
+.courseProgramSection {
+  display: block;
+  width: auto;
+  height: auto;
+  overflow: visible;
 }
 
 .courseIntro {

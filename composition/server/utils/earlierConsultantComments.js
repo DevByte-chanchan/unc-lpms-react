@@ -12,6 +12,8 @@ const { Sequelize } = require('sequelize');
 const MAX_DEPTH = 12;
 
 const select = (sequelize, sql, replacements = []) => sequelize.query(sql, { replacements, type: Sequelize.QueryTypes.SELECT });
+// SQLite hands back '2026-11-12 20:38:13.626 +08:00', which not every browser parses: send ISO.
+const iso = (value) => (value ? new Date(value).toISOString() : null);
 
 // The offerings this one came from, nearest first.
 const ancestorsOf = async (sequelize, offeringId) => {
@@ -51,9 +53,42 @@ const earlierConsultantComments = async (sequelize, offeringId, user) => {
     const byOffering = new Map();
     for (const row of rows) {
         if (!byOffering.has(row.offeringId)) byOffering.set(row.offeringId, { offeringId: row.offeringId, schoolYear: row.schoolYear, semester: row.semester, revision: row.revision, comments: [] });
-        byOffering.get(row.offeringId).comments.push({ id: row.comment_id, message: row.message, about: row.comment_for || null, at: row.createdAt });
+        byOffering.get(row.offeringId).comments.push({ id: row.comment_id, message: row.message, about: row.comment_for || null, at: iso(row.createdAt) });
     }
     return ancestors.filter(id => byOffering.has(id)).map(id => byOffering.get(id));
 };
 
-module.exports = { earlierConsultantComments, ancestorsOf };
+// The Industry Consultant's suggestions on this plan and the versions it came from, newest first: what the instructor
+// (and the Program Head) can apply in the next term or revision. Each with who, when, which plan and what it is about.
+// A consultant gets only their own. Returns [{ id, message, about, target, name, at, offeringId, schoolYear, semester,
+// revision, thisPlan }].
+const consultantSuggestions = async (sequelize, offeringId, user) => {
+    const ids = [Number(offeringId), ...await ancestorsOf(sequelize, offeringId)];
+    const marks = ids.map(() => '?').join(', ');
+    const own = user.role === 'industry-consultant' ? ' AND c.commenter_user_id = ?' : '';
+    const rows = await select(sequelize,
+        `SELECT c.comment_id, c.message, c.comment_for, c.commenter_name, c.createdAt, pco.pc_offering_id AS offeringId,
+                pco.school_year AS schoolYear, pco.semester, pco.revision_number AS revision,
+                (SELECT COALESCE(st.title, tla.tla_name, r.title)
+                   FROM CommentTargets ct
+                       LEFT JOIN Subtopics st ON c.comment_for = 'topics' AND st.subtopic_id = ct.target_id
+                       LEFT JOIN TeachingAndLearningActivities tla ON c.comment_for = 'tlas' AND tla.tla_id = ct.target_id
+                       LEFT JOIN WeeklyReferences wr ON c.comment_for = 'references' AND wr.weekly_reference_id = ct.target_id
+                       LEFT JOIN \`References\` r ON r.reference_id = wr.reference_id
+                   WHERE ct.comment_id = c.comment_id ORDER BY ct.comment_target_id LIMIT 1) AS target
+         FROM Comments c
+             LEFT JOIN Weeks w ON w.week_id = c.week_id
+             LEFT JOIN CourseOutcomes co ON co.co_id = w.co_id
+             LEFT JOIN CourseOfferingAssignments a ON a.co_assign_id = c.co_assign_id
+             INNER JOIN ProgramCourseOfferings pco ON pco.pc_offering_id = COALESCE(co.pc_offering_id, a.pc_offering_id)
+         WHERE c.commenter_role = 'INDUSTRY_CONSULTANT' AND pco.pc_offering_id IN (${marks})${own}
+         ORDER BY c.createdAt DESC, c.comment_id DESC`,
+        [...ids, ...(own ? [user.id] : [])]);
+    return rows.map(row => ({
+        id: row.comment_id, message: row.message, about: row.comment_for || null, target: row.target || null,
+        name: row.commenter_name || 'Industry Consultant', at: iso(row.createdAt), offeringId: row.offeringId,
+        schoolYear: row.schoolYear, semester: row.semester, revision: row.revision, thisPlan: row.offeringId === Number(offeringId),
+    }));
+};
+
+module.exports = { earlierConsultantComments, ancestorsOf, consultantSuggestions };

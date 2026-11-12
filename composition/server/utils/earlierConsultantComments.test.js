@@ -51,7 +51,8 @@ test.before(async () => {
     // 2025 (the first version) <- 2026 revision <- 2027 revision
     ids.v1 = await offering('2024-2025', { revision_number: 1 });
     ids.v2 = await offering('2025-2026', { revision_number: 2, base_offering_id: ids.v1.id });
-    ids.v3 = await offering('2026-2027', { revision_number: 3, base_offering_id: ids.v2.id });
+    // v3 is Dean-approved: the consultant opens approved plans only.
+    ids.v3 = await offering('2026-2027', { revision_number: 3, base_offering_id: ids.v2.id, approved_at: now() });
 
     const comment = (assignment, role, userId, message) => insert(
         'INSERT INTO Comments (co_assign_id, commenter_role, commenter_user_id, message, resolved_status, createdAt, updatedAt) VALUES (?, ?, ?, ?, 0, ?, ?)',
@@ -104,6 +105,7 @@ test('only consultant comments are included, never another role\'s', async () =>
 test('a consultant sees only their own earlier comments', async () => {
     assert.deepEqual(messages((await call(`${ids.consultantA}:industry-consultant`, ids.v3.id)).body), ['A: add cloud computing', 'A: revise the rubric']);
     assert.deepEqual(messages((await call(`${ids.consultantB}:industry-consultant`, ids.v3.id)).body), ['B: more on testing']);
+    assert.equal((await call(`${ids.consultantA}:industry-consultant`, ids.v2.id)).status, 403, 'a plan not approved yet is not theirs to open');
 });
 
 test('the first version has nothing before it', async () => {
@@ -117,4 +119,19 @@ test('no author id is sent, and other roles and another program\'s head are refu
         assert.equal((await call(`${ids.dean}:${role}`, ids.v3.id)).status, 403, role);
     }
     assert.equal((await call(`${ids.otherHead}:program-head`, ids.v3.id)).status, 403);
+});
+
+const suggestions = async (who, offeringId) => {
+    const res = await fetch(`${base}/suggestions/${offeringId}`, { headers: { 'x-user': who } });
+    return { status: res.status, body: await res.json().catch(() => ({})) };
+};
+
+test('Future Suggestions: the consultant suggestions on this plan and its earlier versions, for its instructor', async () => {
+    const { status, body } = await suggestions(`${ids.instructor}:instructor`, ids.v2.id);
+    assert.equal(status, 200);
+    assert.deepEqual(body.suggestions.map(s => s.message).sort(), ['A: add cloud computing', 'A: revise the rubric', 'B: more on testing']);
+    assert.deepEqual(body.suggestions.filter(s => s.thisPlan).map(s => s.message), ['A: revise the rubric']);
+    assert.ok(!JSON.stringify(body).includes('commenter_user_id'));
+    assert.deepEqual((await suggestions(`${ids.consultantB}:industry-consultant`, ids.v3.id)).body.suggestions.map(s => s.message), ['B: more on testing']);
+    assert.equal((await suggestions(`${ids.dean}:dean`, ids.v2.id)).status, 403);
 });

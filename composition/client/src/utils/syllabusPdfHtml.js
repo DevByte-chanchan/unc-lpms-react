@@ -1524,27 +1524,49 @@ export function buildCoaepHtml(coaepData, logoBase64, options = {}) {
   const draftOverlay = `<div style="border:2px solid #b45309; background:#fef3c7; color:#78350f; text-align:center; font-weight:bold; font-size:10pt; padding:4px 8px; margin-bottom:6px;">DRAFT – NOT APPROVED. This plan has not been fully approved; this COAEP is not final.</div>
     <div aria-hidden="true" style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%) rotate(-28deg); font-size:84pt; font-weight:bold; color:rgba(180,83,9,0.16); white-space:nowrap; pointer-events:none; z-index:10;">DRAFT – NOT APPROVED</div>`
 
-  // One CO per page: each ILO row now lists its topics, TLAs and assessments, and
-  // the page must still leave room for the signature + reminders block.
+  // As many COs per page as fit, by an estimate of each CO's height in px (9pt Arial, about 5px a character, 16px a
+  // line). A CO is never split; one taller than a page gets a page of its own. The estimate errs high, so a page can
+  // end with some space left but its table is never cut off. The last page keeps room for the signature + reminders.
+  // ponytail: estimated, not measured; measure in the browser if long words (URLs) ever overflow a page.
   const cos = coaepData.cos || []
-  const COS_PER_PAGE = 1
-  const chunks = []
-  for (let i = 0; i < cos.length; i += COS_PER_PAGE) chunks.push(cos.slice(i, i + COS_PER_PAGE))
-  if (chunks.length === 0) chunks.push([])
+  const lines = (text, chars) => Math.max(1, Math.ceil(String(text || '').length / chars))
+  const rowHeight = (ilo) => 12 + 16 * Math.max(lines(ilo.outcome, 60),
+    (ilo.assessments || []).reduce((n, a) => n + lines(a.name, 40), 0) || 1, lines(target(ilo), 40))
+  const coHeight = (co) => {
+    const ilos = (co.ilos || []).length ? co.ilos : [{}]
+    return Math.max(ilos.reduce((n, ilo) => n + rowHeight(ilo), 0), 12 + 16 * lines(co.statement, 42))
+  }
+  // 216mm page less padding (742px), header (90), footer (40), table head (28), draft banner when shown (34).
+  const room = 742 - 90 - 40 - 28 - (isDraft ? 34 : 0)
+  const META = 48
+  const SIGN = 140
+  const chunks = [[]]
+  let used = META
+  for (const co of cos) {
+    const height = coHeight(co)
+    if (chunks[chunks.length - 1].length && used + height > room) { chunks.push([]); used = 0 }
+    chunks[chunks.length - 1].push(co)
+    used += height
+  }
+  // No room left for the signature block: it goes on a page of its own.
+  if (cos.length && used + SIGN > room) chunks.push([])
   const totalPages = chunks.length
+  const firstIndex = chunks.map((_, i) => chunks.slice(0, i).reduce((n, c) => n + c.length, 0))
 
   const body = chunks.map((chunk, pi) => {
-    const rows = chunk.map((co, ci) => coBlock(co, pi * COS_PER_PAGE + ci)).join('\n      ')
+    const rows = chunk.map((co, ci) => coBlock(co, firstIndex[pi] + ci)).join('\n      ')
     const isFirst = pi === 0
     const isLast = pi === totalPages - 1
+    // A page holding only the signature block has no table.
+    const table = chunk.length || isFirst ? `<table style="width:100%; border-collapse:collapse; font-size:9.5pt;">
+      ${tableHead}
+      ${rows}
+    </table>` : ''
     return `<div class="page">
     ${isDraft ? draftOverlay : ''}
     ${coaepHeader}
     ${isFirst ? metaBlock : ''}
-    <table style="width:100%; border-collapse:collapse; font-size:9.5pt;">
-      ${tableHead}
-      ${rows}
-    </table>
+    ${table}
     ${isLast ? signBlock : ''}
     ${pageFooter(pi + 1, totalPages)}
   </div>`

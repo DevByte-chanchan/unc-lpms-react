@@ -40,7 +40,11 @@ test('other roles are unchanged by approval state', () => {
         assert.equal(canAccessCourseRows({ id: 99, role: 'instructor' }, [row(approved)]), false);
         assert.equal(canAccessCourseRows({ id: 2, role: 'program-head' }, [row(approved)]), true);
         assert.equal(canAccessCourseRows({ id: 5, role: 'dean' }, [row(approved)]), true);
-        assert.equal(canAccessCourseRows({ id: 4, role: 'industry-consultant' }, [row(approved)]), true);
-        assert.equal(canAccessCourseRows({ id: 9, role: 'industry-consultant' }, [row(approved)]), false);
     }
+});
+
+test('the industry consultant, like the VPAA, opens approved plans only (and only of their courses)', () => {
+    assert.equal(canAccessCourseRows({ id: 4, role: 'industry-consultant' }, [row('2026-01-01')]), true);
+    assert.equal(canAccessCourseRows({ id: 4, role: 'industry-consultant' }, [row(null)]), false);
+    assert.equal(canAccessCourseRows({ id: 9, role: 'industry-consultant' }, [row('2026-01-01')]), false);
 });

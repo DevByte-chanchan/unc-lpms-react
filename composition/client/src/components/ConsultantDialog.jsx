@@ -7,7 +7,8 @@ import styles from '../styles/DueDateDialog.module.sass'
 import useDialogFocus from '../utils/useDialogFocus.js'
 
 // The Program Head's window for this course's industry consultant: who is assigned, assign another, remove one.
-// The server allows it only for the head of a program that offers the course.
+// The server allows it only for the head of a program that offers the course, and assigning only once the course has a
+// Dean-approved plan (the consultant reviews approved plans only). An assigned consultant can always be removed.
 const ConsultantDialog = ({ open, onClose, courseCode }) => {
   const [course, setCourse] = useState(null)
   const [consultants, setConsultants] = useState([])
@@ -80,7 +81,8 @@ const ConsultantDialog = ({ open, onClose, courseCode }) => {
                   </div>
                 ))}
               </div>
-              <div className={styles.field}>
+              {!course.approved && <div className={styles.hint}>A consultant can be added once the Dean approves a learning plan of this course.</div>}
+              {Boolean(course.approved) && <div className={styles.field}>
                 <label className={styles.label} htmlFor="consultant-pick">Add a consultant</label>
                 <div style={{ display: 'flex', gap: 10 }}>
                   <div style={{ flex: 1, minWidth: 0 }}>
@@ -91,7 +93,7 @@ const ConsultantDialog = ({ open, onClose, courseCode }) => {
                   </div>
                   <button type="button" className="btn btn-primary" disabled={busy || !pick} onClick={assign}>Assign</button>
                 </div>
-              </div>
+              </div>}
             </>
           )}
           {error && <div role="alert" className={styles.error}>{error}</div>}

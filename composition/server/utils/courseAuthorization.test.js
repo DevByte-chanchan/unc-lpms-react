@@ -34,12 +34,15 @@ test('the Director of Libraries retains an institution-wide view, the VPAA only 
     assert.equal(canAccessCourseRows({ id: 500, role: 'vpaa' }, [{ ...rows[0], approved_at: '2026-01-01T00:00:00.000Z' }]), true);
 });
 
-test('an industry consultant reads only the courses they are actively assigned to', () => {
-    assert.equal(canAccessCourseRows({ id: 4, role: 'industry-consultant' }, rows), true);
-    assert.equal(canAccessCourseRows({ id: 7, role: 'industry-consultant' }, rows), true);
-    assert.equal(canAccessCourseRows({ id: 500, role: 'industry-consultant' }, rows), false, 'not assigned');
-    assert.equal(canAccessCourseRows({ id: 4, role: 'industry-consultant' }, [{ ...rows[0], consultant_user_ids: null }]), false, 'no active assignment');
-    assert.equal(canAccessCourseRows({ id: 4, role: 'industry-consultant' }, [{ ...rows[0], consultant_user_ids: '14' }]), false, 'ids are matched whole, not by substring');
+test('an industry consultant reads only the approved plans of the courses they are actively assigned to', () => {
+    const approved = rows.map(row => ({ ...row, approved_at: '2026-06-28' }));
+    assert.equal(canAccessCourseRows({ id: 4, role: 'industry-consultant' }, approved), true);
+    assert.equal(canAccessCourseRows({ id: 7, role: 'industry-consultant' }, approved), true);
+    assert.equal(canAccessCourseRows({ id: 4, role: 'industry-consultant' }, [{ ...rows[0], approved_at: null, carried_from_offering_id: 3 }]), true, 'a carry-over of an approved plan');
+    assert.equal(canAccessCourseRows({ id: 4, role: 'industry-consultant' }, rows.map(row => ({ ...row, approved_at: null }))), false, 'not approved yet');
+    assert.equal(canAccessCourseRows({ id: 500, role: 'industry-consultant' }, approved), false, 'not assigned');
+    assert.equal(canAccessCourseRows({ id: 4, role: 'industry-consultant' }, [{ ...approved[0], consultant_user_ids: null }]), false, 'no active assignment');
+    assert.equal(canAccessCourseRows({ id: 4, role: 'industry-consultant' }, [{ ...approved[0], consultant_user_ids: '14' }]), false, 'ids are matched whole, not by substring');
 });
 
 test('course access middleware rejects an authenticated user outside the course scope', async () => {

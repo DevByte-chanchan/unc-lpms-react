@@ -96,8 +96,8 @@ const listAssignments = async (req, res, next) => {
                 : { [Op.in]: assigned.length ? assigned : [0] };
         }
 
-        // The VPAA lists approved plans only: approved, or the carry-over of an approved plan.
-        if (req.user?.role === 'vpaa') {
+        // The VPAA and the Industry Consultant list approved plans only: approved, or the carry-over of an approved plan.
+        if (req.user?.role === 'vpaa' || req.user?.role === 'industry-consultant') {
             whereOffering[Op.or] = [{ approved_at: { [Op.ne]: null } }, { carried_from_offering_id: { [Op.ne]: null } }];
         }
 
@@ -304,6 +304,13 @@ const recordWorkflowAction = async (req, res, next) => {
             const transition = validateWorkflowTransition(history, actor_role, action_type);
             if (!transition.allowed) {
                 return res.status(409).json({ error: transition.error || 'This workflow action is not allowed right now.' });
+            }
+            // The same checks as the instructor's submit route (submissionController.planSubmissionBlockers): this
+            // route used to record SUBMITTED for any plan, an empty one included.
+            if (action_type === 'SUBMITTED') {
+                const { planSubmissionBlockers } = require('./submissionController');
+                const blockers = await planSubmissionBlockers(offeringId);
+                if (blockers.length) return res.status(400).json({ error: blockers.join(' '), message: blockers.join(' '), blockers });
             }
 
             const transactionOptions = sequelize.getDialect() === 'sqlite'

@@ -7,6 +7,22 @@ const { sequelize } = require('../models');
 const { effectiveLogs } = require('../utils/effectiveLogs');
 const { validateWorkflowTransition } = require('../utils/workflowRules');
 
+// What stops a plan from going to the reviewers: no course outcomes, an outcome without its Introductory, Enabling and
+// Demonstrative ILOs, or assessment weights that do not total 20 / 30 / 50. Empty = it may be submitted. Used by this
+// route and by the workflow action route (assignmentController), so no path submits a plan that fails them.
+async function planSubmissionBlockers(offeringId) {
+    const courseOutcomes = await CourseOutcome.findAll({ where: { pc_offering_id: offeringId }, attributes: ['co_id'], order: [['co_id', 'ASC']], raw: true });
+    const coIds = courseOutcomes.map(co => co.co_id);
+    const ilos = coIds.length
+        ? await IntendedLearningOutcome.findAll({ where: { co_id: coIds }, attributes: ['co_id', 'ied_level', 'is_orientation'], raw: true })
+        : [];
+    return [
+        ...(coIds.length ? [] : ['This learning plan has no course outcomes yet.']),
+        ...findIedProblems(coIds, ilos),
+        ...findWeightProblems(await loadOfferingAssessments(offeringId))
+    ];
+}
+
 async function submitLearningPlan(req, res) {
     try {
         const { pcId, revNum } = req.params;
@@ -50,27 +66,9 @@ async function submitLearningPlan(req, res) {
         }
         // ----------------------------------------------------
 
-        // Every course outcome needs an Introductory, Enabling and Demonstrative ILO.
-        const courseOutcomes = await CourseOutcome.findAll({
-            where: { pc_offering_id: offering.pc_offering_id },
-            attributes: ['co_id'],
-            order: [['co_id', 'ASC']],
-            raw: true
-        });
-        const coIds = courseOutcomes.map(co => co.co_id);
-        const ilos = coIds.length
-            ? await IntendedLearningOutcome.findAll({
-                where: { co_id: coIds },
-                attributes: ['co_id', 'ied_level', 'is_orientation'],
-                raw: true
-            })
-            : [];
-        // Assessment weights: faculty split each level's share however they like,
-        // but across the course I must total 20%, E 30% and D 50%.
-        const blockers = [
-            ...findIedProblems(coIds, ilos),
-            ...findWeightProblems(await loadOfferingAssessments(offering.pc_offering_id))
-        ];
+        // Every course outcome needs an Introductory, Enabling and Demonstrative ILO; the assessment weights total
+        // I 20%, E 30%, D 50% across the course (faculty split each level's share however they like).
+        const blockers = await planSubmissionBlockers(offering.pc_offering_id);
         if (blockers.length > 0) {
             return res.status(400).json({ message: blockers.join(' '), blockers });
         }
@@ -110,4 +108,4 @@ async function submitLearningPlan(req, res) {
     }
 }
 
-module.exports = { submitLearningPlan };
+module.exports = { submitLearningPlan, planSubmissionBlockers };

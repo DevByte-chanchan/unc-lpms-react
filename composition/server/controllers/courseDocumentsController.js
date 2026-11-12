@@ -12,7 +12,7 @@
 
 const { sequelize, Sequelize } = require('../models');
 const { parseCourseSheet, templateBook, bookFromData } = require('../utils/courseDocumentSheets');
-const { scanDocument, ScanError } = require('../utils/documentScan');
+const { scanDocument, courseDocumentProblem, ScanError } = require('../utils/documentScan');
 const { buildCoaepWorkbook } = require('../utils/coaepWorkbook');
 
 const KINDS = ['co-po', 'coaep'];
@@ -85,6 +85,10 @@ const upload = async (req, res, next) => {
         if (kind.ext !== 'pdf') {
             const parsed = parseCourseSheet(p.kind, bytes);
             if (parsed.error) return res.status(400).json({ error: parsed.error });
+        } else {
+            // A PDF is kept as it is, but it has to be this form (course outcomes with PO marks, or with ILOs), not any PDF.
+            const problem = await courseDocumentProblem(bytes, p.kind);
+            if (problem) return res.status(400).json({ error: problem });
         }
         const sent = req.get('X-File-Name') ? decodeURIComponent(req.get('X-File-Name')) : '';
         const fileName = (sent.replace(/\.[^.]*$/, '') || p.kind).slice(0, 180) + '.' + kind.ext;

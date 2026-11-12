@@ -51,7 +51,8 @@ import {
 
 const CURRENT_YEAR = new Date().getFullYear();
 
-const REFERENCE_LIBRARY_COLUMNS = referenceLibraryColumns().filter(column => column.key !== 'actions');
+// The record ID is not a column (it is in the preview header); the list is sorted by title by default.
+const REFERENCE_LIBRARY_COLUMNS = referenceLibraryColumns().filter(column => column.key !== 'actions' && column.key !== 'id');
 
 const YEAR_LABELS = {
   recent: 'Last 3 years',
@@ -59,6 +60,9 @@ const YEAR_LABELS = {
   older: 'Before 2020',
   unknown: 'Unknown year',
 };
+
+// The References / Courses switch: an icon and its word, so it does not read as a list / grid toggle of the same items.
+const SWITCH_BTN = { gap: 6, padding: '6px 10px', fontSize: 13, fontWeight: 500 };
 
 const ReferenceLibrary = () => {
   const [references, setReferencesState] = useState([]);
@@ -74,7 +78,7 @@ const ReferenceLibrary = () => {
   const [filterYear, setFilterYear] = useState('');
   const [tab, setTab] = useState('active');
   const [recentOnly, setRecentOnly] = useState(false);
-  const [sort, setSort] = useState({ sortKey: 'id', sortDir: 'asc' });
+  const [sort, setSort] = useState({ sortKey: 'title', sortDir: 'asc' });
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(() => referencePageSizeForWidth(
     typeof window === 'undefined' ? 0 : window.innerWidth
@@ -297,7 +301,7 @@ const ReferenceLibrary = () => {
     setFilterYear('');
     setTab('active');
     setRecentOnly(false);
-    setSort({ sortKey: 'id', sortDir: 'asc' });
+    setSort({ sortKey: 'title', sortDir: 'asc' });
     setFiltersOpen(false);
   };
 
@@ -309,7 +313,7 @@ const ReferenceLibrary = () => {
     setFilterYear('');
     setRecentOnly(view === 'recent');
     setTab(view === 'archived' ? 'archived' : 'active');
-    setSort({ sortKey: 'id', sortDir: 'asc' });
+    setSort({ sortKey: 'title', sortDir: 'asc' });
     setViewRef(null);
   };
 
@@ -446,9 +450,10 @@ const ReferenceLibrary = () => {
       </form>
 
           <div className={styles.savedViews} aria-label="Reference views" style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+        {/* Two different screens, so each button says which: the reference table, or one card per course. */}
         <div className={cards.layoutToggles}>
-          <button type="button" className={`${cards.toggleBtn} ${layoutMode === 'list' ? cards.active : ''}`} onClick={() => setLayoutMode('list')} title="References" aria-pressed={layoutMode === 'list'}><List size={18} /></button>
-          <button type="button" className={`${cards.toggleBtn} ${layoutMode === 'courses' ? cards.active : ''}`} onClick={() => setLayoutMode('courses')} title="Courses" aria-pressed={layoutMode === 'courses'}><Grid size={18} /></button>
+          <button type="button" className={`${cards.toggleBtn} ${layoutMode === 'list' ? cards.active : ''}`} onClick={() => setLayoutMode('list')} aria-pressed={layoutMode === 'list'} style={SWITCH_BTN}><List size={16} aria-hidden="true" /> References</button>
+          <button type="button" className={`${cards.toggleBtn} ${layoutMode === 'courses' ? cards.active : ''}`} onClick={() => setLayoutMode('courses')} aria-pressed={layoutMode === 'courses'} style={SWITCH_BTN}><Grid size={16} aria-hidden="true" /> Courses</button>
         </div>
         {/* Active / recent / archived narrows the reference list; the course cards do not use it. */}
         {layoutMode !== 'courses' && (
@@ -536,12 +541,9 @@ const ReferenceLibrary = () => {
           {layoutMode === 'courses' ? (
             gridPrograms.length === 0 ? <p style={{ color: 'var(--ink-muted)' }}>{query.trim() ? 'No course matches the search.' : 'No course has a learning plan yet.'}</p> : (
               <div className={styles.courseSections}>
-                <p className={styles.courseIntro}>
-                  A course's references are the titles its learning plans use, plus any you file under it. Open a course
-                  to see and manage them.
-                </p>
+                <p className={styles.courseIntro}>Open a course to see its references.</p>
                 {gridPrograms.map(program => (
-                  <section key={program.id} aria-label={program.name}>
+                  <section key={program.id} aria-label={program.name} className={styles.courseProgramSection}>
                     <h3 className={styles.courseProgram}>{program.name} <span>{program.courses.length} course{program.courses.length === 1 ? '' : 's'}</span></h3>
                     <div className={styles.courseGrid}>
                       {program.courses.map(c => (
@@ -584,7 +586,6 @@ const ReferenceLibrary = () => {
                     onClick={() => setViewRef(ref)}
                     onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setViewRef(ref); } }}
                   >
-                    <td className={styles.cellNowrap}>{ref.id}</td>
                     <td><div className={styles.titleCell}><div className={styles.titleLine}><span className={styles.refTitle} title={ref.title}>{ref.title}</span>{unavailableReason(ref) && <span className={styles.issueBadge} title="Cannot be attached to a new plan">{unavailableReason(ref) === 'no copies left' ? 'No copies' : unavailableReason(ref).charAt(0).toUpperCase() + unavailableReason(ref).slice(1)}</span>}</div>{ref.filename && <span className={styles.refFilename}>{ref.filename}</span>}</div></td>
                     <td><span className={styles.cellEllipsis} title={ref.authors || undefined}>{ref.authors || '—'}</span></td>
                     <td className={styles.cellNowrap}><span className={styles.typeBadge} title={typeLabel(ref.type)}>{typeLabel(ref.type)}</span></td>
@@ -593,11 +594,11 @@ const ReferenceLibrary = () => {
                 )) : loadState.loading ? (
                   Array.from({ length: 8 }, (_, row) => (
                     <tr key={`sk-${row}`} aria-hidden="true">
-                      {[70, 90, 60, 50, 40].map((w, col) => <td key={col}><Bone w={`${w}%`} h={14} /></td>)}
+                      {[90, 60, 50, 40].map((w, col) => <td key={col}><Bone w={`${w}%`} h={14} /></td>)}
                     </tr>
                   ))
                 ) : (
-                  <EmptyState colSpan={5} icon={<BookOpen size={22} strokeWidth={1.6} />} title={hasDiscoveryCriteria ? 'No references match this search' : tab === 'archived' ? 'Nothing has been archived' : loadState.loading ? 'Loading the library…' : 'No references in the library yet'} hint={hasDiscoveryCriteria ? 'Try a different search term, remove a filter, or reset the view.' : tab === 'archived' ? 'References you archive are kept here and can be restored later.' : 'Add a reference or use Bulk Upload to start the catalog.'} />
+                  <EmptyState colSpan={4} icon={<BookOpen size={22} strokeWidth={1.6} />} title={hasDiscoveryCriteria ? 'No references match this search' : tab === 'archived' ? 'Nothing has been archived' : loadState.loading ? 'Loading the library…' : 'No references in the library yet'} hint={hasDiscoveryCriteria ? 'Try a different search term, remove a filter, or reset the view.' : tab === 'archived' ? 'References you archive are kept here and can be restored later.' : 'Add a reference or use Bulk Upload to start the catalog.'} />
                 )}
               </tbody>
             </table>
@@ -633,7 +634,7 @@ const ReferenceLibrary = () => {
         <aside className={`${styles.previewPane} ${viewRef ? styles.previewSheet : ''}`} aria-label="Reference preview">
           {previewReference ? (
             <>
-              <div className={styles.previewHeader}><div><h2 className={styles.previewTitle}>{previewReference.title}</h2><div className={styles.previewId}><span>{previewReference.id} · {previewReference.archived ? 'Archived' : 'Active'}</span></div></div><button className={`${styles.previewClose} app-icon-close`} type="button" onClick={handleClose} aria-label="Close reference preview"><X size={15} /></button></div>
+              <div className={styles.previewHeader}><div><h2 className={styles.previewTitle}>{previewReference.title}</h2><div className={styles.previewId}><span>{previewReference.archived ? 'Archived' : 'Active'}</span></div></div><button className={`${styles.previewClose} app-icon-close`} type="button" onClick={handleClose} aria-label="Close reference preview"><X size={15} /></button></div>
               {isReferenceDeprecated(previewReference, CURRENT_YEAR, rules.recencyYears) && <div className={styles.warningBanner}>{`This reference is ${rules.recencyYears} years old or older and may need review.`}</div>}
               <dl className={styles.previewMetadata}>
                 <dt>Author(s)</dt><dd>{previewReference.authors || 'Not provided'}</dd><dt>Type</dt><dd>{typeLabel(previewReference.type)}</dd><dt>ISBN</dt><dd>{previewReference.isbn || 'Not provided'}</dd><dt>Year</dt><dd>{previewReference.year || 'Not provided'}</dd><dt>Publisher</dt><dd>{previewReference.publisher || 'Not provided'}</dd><dt>Status</dt><dd>{(previewReference.status || 'available').charAt(0).toUpperCase() + (previewReference.status || 'available').slice(1)}</dd><dt>Copies</dt><dd>{previewReference.copies != null ? previewReference.copies : 'Not recorded'}</dd><dt>Category</dt><dd>{previewReference.category || 'Not provided'}</dd><dt>Date received</dt><dd>{previewReference.received || 'Not recorded'}</dd><dt>Filed under</dt><dd>
@@ -647,9 +648,10 @@ const ReferenceLibrary = () => {
                     ))}
                   </div>
                   {!previewReference.archived && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6 }}>
-                      <div style={{ flex: '1 1 auto', minWidth: 0 }}>
-                        <Select block value={courseToAdd} onChange={(e) => setCourseToAdd(e.target.value)} placeholder="File under a course…" aria-label="Course to file this reference under">
+                    // The panel's value column is narrow: the course picker takes the whole row, Add goes under it.
+                    <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6, marginTop: 6 }}>
+                      <div style={{ flex: '1 1 100%', minWidth: 0 }}>
+                        <Select block value={courseToAdd} onChange={(e) => setCourseToAdd(e.target.value)} placeholder="Course…" aria-label="Course to file this reference under">
                           {allCourses.filter(c => !(previewCourses || []).some(f => f.course_id === c.id)).map(c => <option key={c.id} value={String(c.id)}>{`${c.code} — ${c.title}`}</option>)}
                         </Select>
                       </div>

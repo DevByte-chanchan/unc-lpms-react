@@ -101,12 +101,14 @@ const ApprovalCoursesTable = ({ role = 'approver', styleHooks = {} }) => {
     const [selectedYear, setSelectedYear] = useState(linkedCourseFilters.year);
     const [selectedSem, setSelectedSem] = useState(linkedCourseFilters.semester);
 
+    // The VPAA and the Industry Consultant see Dean-approved plans only (the server lists nothing else for them).
+    const approvedOnly = role === 'vpaa' || role === 'industry-consultant';
     // The Program Head's list also has the plans still waiting on their instructor, as its fourth tab.
-    const statuses = role === 'vpaa' ? ["APPROVED"] : ['program-head', 'dean'].includes(role) ? ["PENDING", "RETURNED", "APPROVED", "NOT_SUBMITTED"] : ["PENDING", "RETURNED", "APPROVED"];
+    const statuses = approvedOnly ? ["APPROVED"] : ['program-head', 'dean'].includes(role) ? ["PENDING", "RETURNED", "APPROVED", "NOT_SUBMITTED"] : ["PENDING", "RETURNED", "APPROVED"];
     const STATUS_LABEL = { NOT_SUBMITTED: 'Not submitted' };
     const statusLabel = (status) => STATUS_LABEL[status] || status.charAt(0) + status.slice(1).toLowerCase();
 
-    const defaultStatus = role === 'vpaa' ? 'APPROVED' : 'PENDING';
+    const defaultStatus = approvedOnly ? 'APPROVED' : 'PENDING';
     const [selectedStatus, setSelectedStatus] = useState(() => {
         if (['program-head', 'dean'].includes(role) && searchParams.get('status') === 'not-submitted') return 'NOT_SUBMITTED';
         if (statuses.includes(linkedCourseFilters.status)) {
@@ -120,9 +122,9 @@ const ApprovalCoursesTable = ({ role = 'approver', styleHooks = {} }) => {
     useEffect(() => {
         if (!urlStatus) return;
         const wanted = urlStatus === 'not-submitted' ? 'NOT_SUBMITTED' : urlStatus.toUpperCase();
-        const allowed = role === 'vpaa' ? ['APPROVED'] : ['program-head', 'dean'].includes(role) ? ['PENDING', 'RETURNED', 'APPROVED', 'NOT_SUBMITTED'] : ['PENDING', 'RETURNED', 'APPROVED'];
+        const allowed = approvedOnly ? ['APPROVED'] : ['program-head', 'dean'].includes(role) ? ['PENDING', 'RETURNED', 'APPROVED', 'NOT_SUBMITTED'] : ['PENDING', 'RETURNED', 'APPROVED'];
         if (allowed.includes(wanted)) setSelectedStatus(wanted);
-    }, [urlStatus, role]);
+    }, [urlStatus, role, approvedOnly]);
     const updateStatus = (status) => {
         setSelectedStatus(status);
         setSearchParams({ status: status.toLowerCase().replace('_', '-') }, { replace: true });
@@ -383,7 +385,7 @@ const ApprovalCoursesTable = ({ role = 'approver', styleHooks = {} }) => {
     return (
         <div className={`${styles['courses-table']} ${styleHooks.root || ''}`.trim()}>
             <div className={`${styles.header} ${styleHooks.header || ''}`.trim()}>
-                <h2>{role === 'vpaa' ? 'APPROVED LEARNING PLANS' : 'ASSIGNED COURSE OFFERINGS'}</h2>
+                <h2>{approvedOnly ? 'APPROVED LEARNING PLANS' : 'ASSIGNED COURSE OFFERINGS'}</h2>
                 <div className={`${styles.filterA} ${styleHooks.filters || ''}`.trim()}>
                     <Select variant="inline" value={selectedYear} onChange={(e) => setSelectedYear(e.target.value)} aria-label="School year">
                         {yearOptions}
@@ -395,7 +397,7 @@ const ApprovalCoursesTable = ({ role = 'approver', styleHooks = {} }) => {
 
                 <div className={styles.fill}></div>
 
-                {role !== 'vpaa' && (
+                {!approvedOnly && (
                     <div className={styles['filter-container']}>
                         <div className={styles['segmented-control']}>
                             {statuses.map((status) => {

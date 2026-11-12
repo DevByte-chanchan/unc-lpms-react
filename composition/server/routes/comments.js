@@ -10,6 +10,8 @@ router.get('/unresolved-counts/:pcId', requireOfferingAccess, commentController.
 
 // The consultant's comments on the earlier versions of this plan: the basis for the next one
 router.get('/earlier-consultant/:pcId', requireRole('program-head', 'industry-consultant'), requireOfferingAccess, commentController.getEarlierConsultantComments);
+// "Future Suggestions": the consultant's suggestions on this plan and its earlier versions
+router.get('/suggestions/:pcId', requireRole('instructor', 'program-head', 'industry-consultant'), requireOfferingAccess, commentController.getConsultantSuggestions);
 
 // REUSABLE: Target retrieval filter used by ReferenceForm, TopicForm, TLAForm
 router.get('/filter/:iloId/:commentFor', requireWeekParamAccess('iloId'), commentController.getCommentsByTarget);

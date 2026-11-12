@@ -13,7 +13,7 @@
 const xlsx = require('xlsx');
 const { sequelize, Sequelize, Program } = require('../models');
 const { GRADUATE_ATTRIBUTES } = require('./programOutcomeController');
-const { scanDocument, frontPageCheck, ScanError } = require('../utils/documentScan');
+const { scanDocument, frontPageCheck, frontPagesProblem, ScanError } = require('../utils/documentScan');
 
 const asInt = (value) => (/^\d+$/.test(String(value ?? '')) ? Number(value) : null);
 const select = (sql, r = []) => sequelize.query(sql, { replacements: r, type: Sequelize.QueryTypes.SELECT });
@@ -51,6 +51,9 @@ const putFrontPages = async (req, res, next) => {
         if (!Buffer.isBuffer(bytes) || !bytes.length) return res.status(400).json({ error: 'Choose a PDF file.' });
         if (bytes.length > MAX_PDF_BYTES) return res.status(400).json({ error: 'The PDF is larger than 10 MB.' });
         if (bytes.subarray(0, 5).toString('latin1') !== '%PDF-') return res.status(400).json({ error: 'This file is not a PDF.' });
+        // It has to be the front pages (vision, mission, PEOs, POs; at most a few pages), not any PDF.
+        const problem = await frontPagesProblem(bytes);
+        if (problem) return res.status(400).json({ error: problem });
         const fileName = String(req.get('X-File-Name') ? decodeURIComponent(req.get('X-File-Name')) : 'front-pages.pdf').slice(0, 200);
         await sequelize.query('DELETE FROM ProgramFrontPages WHERE program_id = ?', { replacements: [program.program_id] });
         await sequelize.getQueryInterface().bulkInsert('ProgramFrontPages', [{
@@ -161,6 +164,10 @@ const scanProgramOutcomes = async (req, res, next) => {
         const { data, source, warnings } = await scanDocument(req.body, 'po-peo');
         return res.json({ ...data, source, warnings });
     } catch (err) {
+        // Nothing read = not the PO and PEO table (any other PDF or picture): say so.
+        if (err instanceof ScanError && /^Nothing could be read/.test(err.message)) {
+            return res.status(err.status).json({ error: 'This does not look like the PO and PEO table: no PEOs or program outcomes were found. Upload that table, or use the Excel template.' });
+        }
         if (err instanceof ScanError) return res.status(err.status).json({ error: err.message });
         return next(err);
     }

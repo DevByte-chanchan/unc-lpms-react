@@ -66,6 +66,16 @@ const call = async (who, method, path, body) => {
 const HEAD_A = () => `${ids.headA}:program-head`;
 const HEAD_B = () => `${ids.headB}:program-head`;
 
+test('a consultant can be assigned only once the course has a Dean-approved plan', async () => {
+    const before = await call(HEAD_B(), 'POST', '/course-consultants', { course_id: ids.course, consultant_user_id: ids.consultant });
+    assert.equal(before.status, 409);
+    assert.match(before.body.message, /no approved learning plan/);
+    const listed = (await call(HEAD_B(), 'GET', '/course-consultants/candidates')).body.courses.find(c => c.course_id === ids.course);
+    assert.equal(listed.approved, 0, 'the dialog is told why it cannot assign');
+    await sequelize.query('UPDATE ProgramCourseOfferings SET approved_at = ? WHERE pc_offering_id = ?', { replacements: [now(), made.offerings[0]] });
+    assert.equal((await call(HEAD_B(), 'GET', '/course-consultants/candidates')).body.courses.find(c => c.course_id === ids.course).approved, 1);
+});
+
 test('another program head can neither see nor remove a consultant assignment', async () => {
     const assigned = await call(HEAD_B(), 'POST', '/course-consultants', { course_id: ids.course, consultant_user_id: ids.consultant });
     assert.equal(assigned.status, 201);
@@ -92,4 +102,20 @@ test('another program head can neither see nor remove a consultant assignment', 
     const gone = await Notification.findAll({ where: { recipient_user_id: ids.consultant, type: 'course_unassigned' }, raw: true });
     assert.equal(gone.length, 1, 'the consultant is told they were removed');
     assert.match(gone[0].message, /removed as the industry consultant/);
+});
+
+test('the assigned consultant signs an approved plan as reviewed, once; others cannot sign', async () => {
+    const consultant = `${ids.consultant}:industry-consultant`;
+    assert.equal((await call(HEAD_B(), 'POST', '/course-consultants', { course_id: ids.course, consultant_user_id: ids.consultant })).status, 200, 'reassigned');
+    const pc = made.offerings[0];
+    const signed = await call(consultant, 'POST', `/course-consultants/signoffs/${pc}`);
+    assert.equal(signed.status, 201);
+    assert.match(signed.body.name, /consultant/);
+    assert.equal((await call(consultant, 'POST', `/course-consultants/signoffs/${pc}`)).status, 409, 'only once');
+    assert.equal((await call(HEAD_B(), 'POST', `/course-consultants/signoffs/${pc}`)).status, 403, 'a Program Head does not sign');
+    const list = await call(HEAD_B(), 'GET', `/course-consultants/signoffs/${pc}`);
+    assert.equal(list.status, 200);
+    assert.deepEqual(list.body.map(s => s.mine), [false]);
+    assert.deepEqual((await call(consultant, 'GET', `/course-consultants/signoffs/${pc}`)).body.map(s => s.mine), [true]);
+    await sequelize.query('DELETE FROM ConsultantSignoffs WHERE offering_id = ?', { replacements: [pc] });
 });

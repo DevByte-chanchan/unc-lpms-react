@@ -105,7 +105,7 @@ const PoPeoAlignment = ({ tabs = null, view = 'outcomes' }) => {
       const pages = await countPdfPages(await file.arrayBuffer()).catch(() => 0)
       if (!pages) throw new Error('This file is not a readable PDF.')
       await sendFile('front-pages', 'PUT', file)
-      setNotice(`Front pages uploaded (${pages} page${pages === 1 ? '' : 's'}). Learning plan exports of ${programName} now start with them. To fill the PO and PEO tables from them, use From front pages on that tab.`)
+      setNotice(`Front pages uploaded (${pages} page${pages === 1 ? '' : 's'}).`)
       await loadFront(programId)
     } catch (err) {
       setError(apiErrorMessage(err, err?.message || 'The front pages were not uploaded.'))
@@ -120,7 +120,7 @@ const PoPeoAlignment = ({ tabs = null, view = 'outcomes' }) => {
     setBusy(true); setError(''); setNotice('')
     try {
       await fetchJson(`/api/program-outcomes/${programId}/front-pages`, { method: 'DELETE' })
-      setNotice('Front pages removed. Exports use the generated pages again.')
+      setNotice('Front pages removed.')
       await loadFront(programId)
     } catch (err) {
       setError(apiErrorMessage(err, 'The front pages were not removed.'))
@@ -151,7 +151,7 @@ const PoPeoAlignment = ({ tabs = null, view = 'outcomes' }) => {
         outcomes: result.outcomes.map((o, i) => ({ id: data?.outcomes?.[i]?.id ?? null, text: o.text, peos: o.peos, gas: o.gas })),
       })
       setEditing(true)
-      setNotice(`Read ${result.peos.length} PEOs and ${result.outcomes.length} program outcomes from ${file.name}. Check them, then Save.`)
+      setNotice(`Read ${result.peos.length} PEOs, ${result.outcomes.length} POs. Check, then Save.`)
     } catch (err) {
       setError(apiErrorMessage(err, 'The spreadsheet could not be read.'))
     } finally {
@@ -193,7 +193,7 @@ const PoPeoAlignment = ({ tabs = null, view = 'outcomes' }) => {
         })),
       })
       setEditing(true)
-      setNotice(`${[...sources].join(', ')}: ${peosRead.length} PEOs and ${outcomesRead.length} program outcomes from ${files.length === 1 ? files[0].name : `${files.length} files`}. ${[...warnings].join(' ')} Check them, then Save.`.replace(/\s+/g, ' '))
+      setNotice(`${[...sources].join(', ')}: ${peosRead.length} PEOs, ${outcomesRead.length} POs. ${[...warnings].join(' ')} Check, then Save.`.replace(/\s+/g, ' '))
     } catch (err) {
       setError(apiErrorMessage(err, 'The file could not be scanned.'))
     } finally {
@@ -244,7 +244,7 @@ const PoPeoAlignment = ({ tabs = null, view = 'outcomes' }) => {
       setData(result)
       setDraft(copyData(result))
       setEditing(false)
-      setNotice('Saved. Instructors see these outcomes in their syllabus.')
+      setNotice('Saved.')
     } catch (err) {
       setError(apiErrorMessage(err, 'Could not save.'))
     } finally {
@@ -302,7 +302,7 @@ const PoPeoAlignment = ({ tabs = null, view = 'outcomes' }) => {
       </div>
 
       {data && !frontView && data.canEdit && (
-        <DocumentBar label="PO and PEO spreadsheet" status={editing ? 'read into the editor — check it, then Save.' : 'import an Excel file or a PDF to fill the tables below, then check and Save.'}>
+        <DocumentBar label="Import" status={editing ? 'check, then Save.' : 'Excel or PDF fills the tables below.'}>
           <TemplateButton path="/api/program-outcomes/template.xlsx" name="PO-PEO-template.xlsx" onError={setError} />
           <input ref={importRef} type="file" accept=".xlsx,.xls,.pdf,application/pdf" hidden aria-label="PO and PEO spreadsheet" onChange={e => importSheet(e.target.files?.[0])} />
           <button type="button" className="btn btn-secondary btn-sm" onClick={() => importRef.current?.click()} disabled={busy || editing}>
@@ -323,15 +323,15 @@ const PoPeoAlignment = ({ tabs = null, view = 'outcomes' }) => {
       )}
 
       {data && frontView && (
-        <DocumentBar label="Front pages (University, Program and PEOs, POs and PEOs)" status={
-          front === undefined ? 'checking…' : front ? `uploaded PDF, ${front.pages} page${front.pages === 1 ? '' : 's'} — learning plan exports start with it.` : 'none uploaded — exports use the generated pages.'
+        <DocumentBar label="Front pages" status={
+          front === undefined ? 'checking…' : front ? `${front.pages}-page PDF, added to exports.` : 'none, generated pages are used.'
         }>
           {front && <button type="button" className="btn btn-secondary btn-sm" onClick={viewFront}>View</button>}
           {data.canEdit && (
             <>
               <input ref={frontRef} type="file" accept="application/pdf,.pdf" hidden aria-label="Front pages PDF" onChange={e => uploadFront(e.target.files?.[0])} />
               <button type="button" className="btn btn-secondary btn-sm" disabled={busy || editing} onClick={() => frontRef.current?.click()}>
-                <Upload size={14} /> {front ? 'Replace PDF' : 'Upload PDF'}
+                <Upload size={14} /> {busy ? 'Checking…' : front ? 'Replace PDF' : 'Upload PDF'}
               </button>
               {front && <button type="button" className="btn btn-secondary btn-sm" disabled={busy || editing} title="Read the front pages and check them against this program's PEOs and POs" onClick={checkFront}>
                 <Zap size={14} /> {busy ? 'Reading…' : 'Check'}
@@ -352,8 +352,8 @@ const PoPeoAlignment = ({ tabs = null, view = 'outcomes' }) => {
         const found = frontCheck.peos.filter(x => x.found).length + frontCheck.outcomes.filter(x => x.found).length
         return (
           <div role="status" className={missing.length ? styles.alert : styles.ok}>
-            {SOURCE_LABEL[frontCheck.source] || 'Read'}: {found} of {frontCheck.peos.length + frontCheck.outcomes.length} PEO and PO statements found.
-            {missing.length ? ` Not found: ${missing.join(', ')}. Update the front pages or the PO and PEO tab so they match.` : ' The vision, the mission and every PEO and PO are in the front pages.'}
+            {SOURCE_LABEL[frontCheck.source] || 'Read'}: {found} of {frontCheck.peos.length + frontCheck.outcomes.length} found.
+            {missing.length ? ` Missing: ${missing.join(', ')}.` : ' All match.'}
           </div>
         )
       })()}
@@ -362,8 +362,8 @@ const PoPeoAlignment = ({ tabs = null, view = 'outcomes' }) => {
       {data?.readiness && (
         <div role="status" className={data.readiness.complete ? styles.ok : styles.alert}>
           {data.readiness.complete
-            ? `Ready for learning plans: ${data.readiness.pos} POs, ${data.readiness.peos} PEOs, each PO linked to a PEO.`
-            : `Not ready for learning plans; its courses cannot be assigned yet. Missing: ${data.readiness.missing.join('; ')}.`}
+            ? `Ready: ${data.readiness.pos} POs, ${data.readiness.peos} PEOs.`
+            : `Not ready, courses can't be assigned. Missing: ${data.readiness.missing.join('; ')}.`}
         </div>
       )}
       {error && <div role="alert" className={styles.alert}>{error}</div>}
