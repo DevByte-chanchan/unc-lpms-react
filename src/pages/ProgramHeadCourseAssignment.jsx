@@ -41,6 +41,8 @@ import { REMOVED_MESSAGE } from '../services/notificationTarget.js';
 import { HistoryTimeline } from "../components/AssignmentTracking.jsx";
 import { lastUpdatedText, fmtDay } from "../services/assignmentTracking.js";
 import OfficialCompareModal from "../components/OfficialCompareModal.jsx";
+import TeachingLoadDialog from "../components/TeachingLoadDialog.jsx";
+import { leadLoadWarning } from "../utils/teachingLoad.js";
 
 // The sections this person handles on the course, from the official list
 // (row.sections = [{ faculty_id, faculty_name, sections }]) — matched by id, else name.
@@ -59,7 +61,7 @@ const SectionsLine = ({ sections }) => (sections && sections.length ? (
     {sections.join(', ')}
   </span>
 ) : null);
-import { Search, Upload, Plus, Clipboard, Edit3, ChevronDown, Check, AlertTriangle, RefreshCw, GitPullRequest } from "react-feather";
+import { Search, Upload, Plus, Clipboard, Edit3, ChevronDown, Check, AlertTriangle, RefreshCw, GitPullRequest, BarChart2 } from "react-feather";
 import styles from '../styles/CoursesTable.module.sass';
 import syllabusStyles from '../styles/SyllabusSections.module.sass';
 import { CourseOfferingAssignmentsAPI, CoursesAPI, FacultyAPI } from '../services/api.js';
@@ -129,6 +131,10 @@ const ProgramHeadCourseAssignment = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [assignmentsPeriod, setAssignmentsPeriod] = React.useState(null);
   const [highlightCode, setHighlightCode] = React.useState(null);
+  // Teaching load (GET /load): the Load dialog and the Lead Faculty warning.
+  const [load, setLoad]                       = React.useState(null);
+  const [loadError, setLoadError]             = React.useState(null);
+  const [showLoad, setShowLoad]               = React.useState(false);
 
   const refresh = React.useCallback(() => {
     if (!periodId) { setAssignments([]); setCourses([]); setFaculty([]); setAssignmentsPeriod(null); return; }
@@ -146,6 +152,22 @@ const ProgramHeadCourseAssignment = () => {
   }, [periodId, currentPeriod]);
 
   React.useEffect(() => { refresh(); }, [refresh]);
+
+  // Re-read the load whenever the rows change (an add, edit, upload or undo).
+  React.useEffect(() => {
+    if (!periodId || !selectedProgramId) { setLoad(null); return undefined; }
+    let cancelled = false;
+    CourseOfferingAssignmentsAPI.load(periodId, selectedProgramId)
+      .then((r) => { if (!cancelled) { setLoad(r); setLoadError(null); } })
+      .catch((err) => { if (!cancelled) { setLoad(null); setLoadError(err.message || 'Could not read the teaching load.'); } });
+    return () => { cancelled = true; };
+  }, [periodId, selectedProgramId, assignments]);
+
+  // Under Lead Faculty: a warning only, saving stays allowed.
+  const loadHelper = (editingId) => (values) => {
+    const text = leadLoadWarning(load, { name: values && values.faculty_name, courseCode: values && values.course_code, editingId });
+    return text ? <span role="status" style={{ color: '#B45309', display: 'inline-flex', alignItems: 'center', gap: 4 }}><AlertTriangle size={13} /> {text}</span> : null;
+  };
 
   // Open what the link names, once this term's rows are in. Editing needs a
   // writable term; a past term's row is only highlighted.
@@ -394,7 +416,7 @@ const ProgramHeadCourseAssignment = () => {
 
   const addFields = [
     courseOfferingField,
-    { key: 'faculty_name', label: 'Lead Faculty', type: 'searchable-select', options: facultyOptions, placeholder: 'Search faculty…' },
+    { key: 'faculty_name', label: 'Lead Faculty', type: 'searchable-select', options: facultyOptions, placeholder: 'Search faculty…', helper: loadHelper(null) },
     contributorsField,
   ];
 
@@ -471,6 +493,16 @@ const ProgramHeadCourseAssignment = () => {
                 style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 40, height: 40, padding: 0, background: '#FFFFFF', border: '1px solid #D1D5DB', borderRadius: 6, color: '#374151', cursor: revalidating ? 'not-allowed' : 'pointer', opacity: revalidating ? 0.7 : 1 }}
               >
                 <RefreshCw size={18} />
+              </button>
+            )}
+            {showTable && (
+              <button type="button" onClick={() => setShowLoad(true)} disabled={!selectedProgramId}
+                title="Teaching load: units each faculty member leads this term"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 40, padding: '0 14px', background: '#FFFFFF', border: '1px solid ' + (load && load.faculty.some((f) => f.over_by > 0) ? '#FCA5A5' : '#D1D5DB'), borderRadius: 6, color: '#374151', cursor: selectedProgramId ? 'pointer' : 'not-allowed', whiteSpace: 'nowrap' }}>
+                <BarChart2 size={18} /> Load
+                {load && load.faculty.some((f) => f.over_by > 0) && (
+                  <span style={{ background: '#FEE2E2', color: '#991B1B', borderRadius: 9999, padding: '1px 7px', fontSize: 12, fontWeight: 700 }}>{load.faculty.filter((f) => f.over_by > 0).length} over</span>
+                )}
               </button>
             )}
             {showTable && (
@@ -689,6 +721,7 @@ const ProgramHeadCourseAssignment = () => {
               key: 'faculty_name', label: 'Lead Faculty', type: 'searchable-select',
               options: leadOptions, placeholder: 'Choose lead from contributors…', searchable: true,
               highlight: editingAssignment.status === 'Unassigned' && !editingAssignment.faculty_id,
+              helper: loadHelper(editingAssignment.id),
             },
             contributorsField,
           ]}
@@ -781,6 +814,9 @@ const ProgramHeadCourseAssignment = () => {
               <button disabled={!selectedFile} onClick={handleReviewFile} style={{ flex: 1, height: 40, background: '#18191A', border: 'none', borderRadius: 8, color: '#FFFFFF', cursor: selectedFile ? 'pointer' : 'not-allowed', fontWeight: 500, opacity: selectedFile ? 1 : 0.6 }}>Review file</button>
             </div>
       </DialogShell>
+
+      <TeachingLoadDialog open={showLoad} onClose={() => setShowLoad(false)} load={load} error={loadError}
+        title={[programCode, currentPeriod && currentPeriod.label].filter(Boolean).join(' · ')} />
 
       <OfficialCompareModal
         open={showCompare}

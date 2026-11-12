@@ -157,7 +157,9 @@ const EditEntityModal = ({ title, termLabel, record, fields = [], onSave, onClos
   const renderHelp = (f) => {
     if (errors[f.key]) return <span style={{ color: C.danger }}>{errors[f.key]}</span>;
     if (f.locked) return <span>{f.lockedHelper || "Identifier — can't be changed after creation."}</span>;
-    return f.helper ? <span>{f.helper}</span> : null;
+    // A helper may be a function of the form's values (e.g. a live warning).
+    const helper = typeof f.helper === 'function' ? f.helper(values) : f.helper;
+    return helper ? <span>{helper}</span> : null;
   };
 
   const renderControl = (f) => {

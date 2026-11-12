@@ -127,6 +127,11 @@ const AddRecordModal = ({ title, fields, initial, onSubmit, onClose }) => {
                 onChange={(e) => setField(f.key, e.target.value)}
               />
             )}
+            {/* A helper may be a function of the form's values (e.g. a live warning). */}
+            {(() => {
+              const helper = typeof f.helper === 'function' ? f.helper(values) : f.helper;
+              return helper ? <div style={{ fontSize: 12, marginTop: 4 }}>{helper}</div> : null;
+            })()}
           </div>
         ))}
 

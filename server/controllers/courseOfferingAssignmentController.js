@@ -49,6 +49,7 @@ import { offeringIndexForPeriod } from '../utils/offeringLink.js';
 import { markDirty, accountsInvolved, accountsOnRow } from '../services/notices.js';
 import { recordChange, recordEvent, recordListChanges, historyFor, latestChanges } from '../services/assignmentHistory.js';
 import { courseKey, sameLead, stateOf, programKey as programIdKey } from '../utils/assignmentDiff.js';
+import { computeTeachingLoad, maxTeachingUnits } from '../utils/teachingLoad.js';
 
 const { CourseOfferingAssignment, Course, Faculty, AcademicPeriod, Program } = db;
 
@@ -346,6 +347,28 @@ export async function getCourseOfferingAssignmentHistory(req, res, next) {
     if (!row) return undefined;
     const entries = await historyFor({ periodId: row.period_id, programId: row.program_id, courseCode: row.course_code });
     return res.json({ course_code: row.course_code, entries });
+  } catch (err) { return next(err); }
+}
+
+/**
+ * GET /load?period_id=&program_id= — each faculty member on the program's
+ * Active / On Leave assignments, with the units they lead across the whole
+ * term (a person teaching in two programs carries both), their courses as
+ * Lead and Contributor, and their official sections. Warn-only: the limit
+ * (MAX_TEACHING_UNITS, default 24) never blocks a save.
+ */
+export async function getTeachingLoad(req, res, next) {
+  try {
+    const period_id = getPeriodId(req);
+    if (!period_id) return res.status(400).json({ message: 'period_id is required' });
+    const programId = Number(req.query.program_id) || null;
+    const [rows, courses] = await Promise.all([
+      CourseOfferingAssignment.findAll({ where: { period_id }, raw: true }),
+      Course.findAll({ where: { period_id }, attributes: ['course_id', 'course_no', 'course_title', 'credit'], raw: true }),
+    ]);
+    const parsed = rows.map((r) => ({ ...r, contributors: typeof r.contributors === 'string' ? JSON.parse(r.contributors) : r.contributors, sections: typeof r.sections === 'string' ? JSON.parse(r.sections) : r.sections }));
+    const load = computeTeachingLoad(parsed, courses, { programId, maxUnits: maxTeachingUnits() });
+    return res.json({ period_id, program_id: programId, ...load });
   } catch (err) { return next(err); }
 }
 

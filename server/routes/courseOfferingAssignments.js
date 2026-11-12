@@ -12,10 +12,13 @@ import {
   getCourseOfferingAssignmentHistory,
   compareOfficialOfferings,
   resendAssignmentNotice,
+  getTeachingLoad,
 } from '../controllers/courseOfferingAssignmentController.js';
 
 const router = Router();
 router.get('/',           listCourseOfferingAssignments);
+// Teaching load per faculty member (before '/:id', or "load" would be an id).
+router.get('/load',       requireRole('Program Head', 'Dean', 'VPAA'), getTeachingLoad);
 router.post('/revalidate', requireRole('Program Head'), revalidateCourseOfferingAssignments);
 // The registrar's Subject Offerings vs. the pre-assignment (?preview=1 = dry run).
 router.post('/compare-official', requireRole('Program Head'), uploadSheetOrPdf.single('file'), compareOfficialOfferings);
