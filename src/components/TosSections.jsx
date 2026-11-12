@@ -40,7 +40,11 @@ const TosSections = ({role = 'instructor'}) => {
     const isReturnedView = isProgramHead && effectiveStatus === 'returned';
     const isInstructorReturned = !isProgramHead && effectiveStatus === 'returned';
     const isOverdue = effectiveStatus !== 'approved' && deadline && new Date(deadline) < new Date();
-    const defaultSection = isProgramHead || effectiveStatus === 'pending' || effectiveStatus === 'approved' ? 'Table of Specifications Report' : 'Outcome Overview';
+    const defaultSection = isProgramHead || effectiveStatus === 'pending' || effectiveStatus === 'approved'
+        ? 'Table of Specifications Report'
+        : effectiveStatus === 'returned'
+            ? 'Assessments'
+            : 'Outcome Overview';
     const selectedSection = isProgramHead ? phSection : (searchParams.get('section') || defaultSection);
     const getDefaultOutlines = () => [
         {
@@ -121,11 +125,11 @@ const TosSections = ({role = 'instructor'}) => {
                 { version: 1, status: 'Returned', date: '2026-06-15', actions: [
                     { role: 'Instructor', action: 'submitted the Table of Specifications', date: '2026-06-10' },
                     { role: 'Program Head', action: 'returned the Table of Specifications for revision', date: '2026-06-15', comments: [
-                        { scope: { co: 'CO1', ilo: 'ILO1', cognitiveLevel: 'Applying' }, body: 'The modulation items cover amplitude and frequency but lack phase modulation examples. Add at least two items on PSK and QAM techniques.' },
+                        { scope: { co: 'CO1', ilo: 'ILO1', cognitiveLevel: 'Understanding' }, body: 'The modulation items cover amplitude and frequency but lack phase modulation examples. Add at least two items on PSK and QAM techniques.' },
                         { scope: { co: 'CO1', ilo: 'ILO2', cognitiveLevel: 'Analyzing' }, body: 'Clarify the comparison between OSPF and BGP routing protocols. Include a practical network topology scenario.' },
                         { scope: { co: 'CO1', ilo: 'ILO3', cognitiveLevel: 'Evaluating' }, body: 'The CRC section needs more depth. Add items on polynomial division and syndrome calculation.' },
-                        { scope: { co: 'CO2', ilo: 'ILO1', cognitiveLevel: 'Applying' }, body: 'IP addressing items should include VLSM subnetting problems. Currently only basic subnet masks are covered.' },
-                        { scope: { co: 'CO2', ilo: 'ILO2', cognitiveLevel: 'Creating' }, body: 'Network troubleshooting items lack practical scenarios. Add a lab-based item diagnosing connectivity from Wireshark captures.' }
+                        { scope: { co: 'CO2', ilo: 'ILO1', cognitiveLevel: 'Understanding' }, body: 'IP addressing items should include VLSM subnetting problems. Currently only basic subnet masks are covered.' },
+                        { scope: { co: 'CO2', ilo: 'ILO3', cognitiveLevel: 'Creating' }, body: 'Network troubleshooting items lack practical scenarios. Add a lab-based item diagnosing connectivity from Wireshark captures.' }
                     ]}
                 ]},
                 { version: 2, status: 'Approved', date: '2026-06-20', actions: [
@@ -584,7 +588,7 @@ const TosSections = ({role = 'instructor'}) => {
     const [showResolvedPH, setShowResolvedPH] = useState(false);
     const [returnFilter, setReturnFilter] = useState('all');
     const resolveTimerRef = useRef(null);
-    const isInstructorPendingWithComments = effectiveStatus === 'pending' && returnCount > 0;
+    const isInstructorPendingWithComments = effectiveStatus === 'pending' && returnCount >= 2;
     const pastReturnMax = (isReturnedView || isInstructorReturned) ? returnCount - 1 : returnCount;
     const resolvedReturnNumbers = [...new Set(comments.filter(c => c.resolved && c.scope.returnNumber > 0 && c.scope.returnNumber <= pastReturnMax).map(c => c.scope.returnNumber))];
     const defaultResolvedReturn = resolvedReturnNumbers.length > 0 ? String(Math.max(...resolvedReturnNumbers)) : 'all';
@@ -700,13 +704,29 @@ const TosSections = ({role = 'instructor'}) => {
         if (!s) return '';
         const coPart = s.co || '';
         const iloPart = s.ilo && s.ilo !== '—' && s.ilo !== '-' ? ` → ${s.ilo}` : '';
+        const rowId = s.assessmentItemId || s.rowId;
+        if (rowId) {
+            const item = questions.find(q => String(q.id) === String(rowId));
+            const att = item
+                ? attachments.find(a => Number(a.id) === Number(item.attachmentId))
+                : (s.fileId ? attachments.find(a => Number(a.id) === Number(s.fileId)) : null);
+            const iloObj = rows.find(r => r.co === s.co)?.ilos?.find(i => i.id === s.ilo);
+            const fallbackAtt = !att && iloObj
+                ? attachments.find(a => Number(a.iloId) === Number(iloObj.iloDbId))
+                : null;
+            const fn = s.filename || att?.filename || fallbackAtt?.filename || '';
+            const rowCog = (BLOOM_LEVELS.includes(s.cognitiveLevel) ? s.cognitiveLevel : '') || item?.cognitiveLevel || '';
+            if (fn) {
+                return `${coPart}${iloPart} → ${fn}${rowCog ? ` · ${rowCog}` : ''}`;
+            }
+            return `${coPart}${iloPart}${rowCog ? ` → ${rowCog}` : ''}`;
+        }
         const fn = s.filename || (!BLOOM_LEVELS.includes(s.cognitiveLevel) && s.cognitiveLevel !== 'Points' && s.cognitiveLevel !== 'Number of Items' && s.cognitiveLevel ? s.cognitiveLevel : null);
         if (fn) {
             return `${coPart}${iloPart} → ${fn}`;
         }
         const cogPart = s.cognitiveLevel === 'Number of Items' ? 'Points' : (s.cognitiveLevel || '');
-        const itemPart = s.itemNumber ? ` → Row ${s.itemNumber}` : (s.itemLabel ? ` → ${s.itemLabel}` : '');
-        return `${coPart}${iloPart}${cogPart ? ` → ${cogPart}` : ''}${itemPart}`;
+        return `${coPart}${iloPart}${cogPart ? ` → ${cogPart}` : ''}`;
     };
 
     const handleViewAssessmentsJump = (t) => {
@@ -769,9 +789,8 @@ const TosSections = ({role = 'instructor'}) => {
         setCommentBody('');
     };
 
-    const handleAssessmentFileClick = (att, co, ilo, fileRows = []) => {
+    const handleAssessmentFileClick = (att, co, ilo) => {
         if (!addingComment) return;
-        const firstItem = fileRows && fileRows.length > 0 ? fileRows[0] : null;
         setActiveScope({
             co: co.co || '\u2014',
             ilo: ilo.id || '\u2014',
@@ -780,7 +799,7 @@ const TosSections = ({role = 'instructor'}) => {
             fileId: att.id,
             itemNumber: '',
             courseOutcomeId: co.dbId || null,
-            assessmentItemId: firstItem?.id || null
+            assessmentItemId: null
         });
         setCommentType('');
         setCommentBody('');
@@ -792,9 +811,10 @@ const TosSections = ({role = 'instructor'}) => {
             co: co.co || '\u2014',
             ilo: ilo.id || '\u2014',
             cognitiveLevel: row.cognitiveLevel || '',
+            filename: att?.filename || '',
+            fileId: att?.id || null,
             itemNumber: '',
             rowId: row.id,
-            itemLabel: (row.instruction || row.question || '').trim(),
             courseOutcomeId: co.dbId || null,
             assessmentItemId: Number.isInteger(row.id) ? row.id : null
         });
@@ -1073,6 +1093,7 @@ const TosSections = ({role = 'instructor'}) => {
     const handleApprove = async () => {
         if (courseCode) {
             await updateStatus(courseCode, fromExamType, 'approved');
+            setComments(prev => prev.filter(c => c.resolved));
             navigate('/role/program-head/tos', { state: { tosStatusUpdate: { courseCode, newStatus: 'approved' }, initialStatus: 'approved' } });
         }
     };
@@ -1118,63 +1139,77 @@ const TosSections = ({role = 'instructor'}) => {
 
     const handleCommentNavigation = (c) => {
         const isFile = !!(c.scope.filename || c.scope.fileId || (c.scope.cognitiveLevel && !BLOOM_LEVELS.includes(c.scope.cognitiveLevel) && c.scope.cognitiveLevel !== 'Points' && c.scope.cognitiveLevel !== 'Number of Items'));
-        const isAssessmentComment = !!(c.scope.itemNumber || c.scope.assessmentItemId || isFile || (c.scope.cognitiveLevel && BLOOM_LEVELS.includes(c.scope.cognitiveLevel)));
-        if (isAssessmentComment) {
-            if (isProgramHead && phSection !== 'Assessments') setPhSection('Assessments');
-            else if (!isProgramHead && selectedSection !== 'Assessments') setSearchParams({ section: 'Assessments' });
-            viewItemsNavRef.current = true;
-            setViewMode('group');
-            const coSet = new Set(c.scope.ilo && c.scope.ilo !== '\u2014' ? questions.map(q => q.co).filter(Boolean) : [c.scope.co]);
-            const iloSet = c.scope.ilo && c.scope.ilo !== '\u2014' ? new Set([`${c.scope.co}|${c.scope.ilo}`]) : new Set();
-            setExpandedCOs(coSet);
-            setExpandedILOs(iloSet);
-            setNavTargetScope({ co: c.scope.co, ilo: c.scope.ilo, cognitiveLevel: c.scope.cognitiveLevel, itemId: c.scope.assessmentItemId || null, _ts: Date.now() });
-            setTimeout(() => {
-                const co = c.scope.co;
-                const ilo = c.scope.ilo;
-                const cog = c.scope.cognitiveLevel;
-                const itemId = c.scope.assessmentItemId;
-                const filename = c.scope.filename || (isFile ? cog : null);
-                let el = null;
-                if (c.scope.fileId) {
-                    el = document.querySelector(`[data-file-id="${c.scope.fileId}"]`);
-                }
-                if (!el && filename) {
-                    el = document.querySelector(`[data-filename="${filename}"][data-co="${co}"][data-ilo="${ilo}"]`) ||
-                         document.querySelector(`[data-filename="${filename}"]`);
-                }
-                if (!el && itemId) {
-                    el = document.querySelector(`[data-item-id="${itemId}"]`);
-                }
-                if (!el && co && ilo && cog && BLOOM_LEVELS.includes(cog)) {
-                    el = document.querySelector(`[data-co="${co}"][data-ilo="${ilo}"][data-cog="${cog}"]`);
-                }
-                if (!el) {
-                    el = document.querySelector(`[data-ilo-header="${co}|${ilo}"]`) || document.getElementById(`co-header-${co}`);
-                }
-                if (isFile && el?.closest) {
-                    const fileCard = el.closest('[data-file-id]');
-                    if (fileCard) el = fileCard;
-                }
-                if (el) {
-                    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    if (previewLayout?.rowPulseHighlight) {
-                        el.classList.add(previewLayout.rowPulseHighlight);
-                        setTimeout(() => el.classList.remove(previewLayout.rowPulseHighlight), 2000);
-                    }
-                }
-            }, 600);
-        } else {
-            if (isProgramHead && phSection !== 'Table of Specifications Report') setPhSection('Table of Specifications Report');
+        if (isProgramHead && phSection !== 'Assessments') setPhSection('Assessments');
+        else if (!isProgramHead && selectedSection !== 'Assessments') setSearchParams({ section: 'Assessments' });
+        viewItemsNavRef.current = true;
+        setViewMode('group');
+        const coSet = new Set(c.scope.ilo && c.scope.ilo !== '\u2014' ? questions.map(q => q.co).filter(Boolean) : [c.scope.co]);
+        const iloSet = c.scope.ilo && c.scope.ilo !== '\u2014' ? new Set([`${c.scope.co}|${c.scope.ilo}`]) : new Set();
+        setExpandedCOs(coSet);
+        setExpandedILOs(iloSet);
+        setNavTargetScope({ co: c.scope.co, ilo: c.scope.ilo, cognitiveLevel: c.scope.cognitiveLevel, itemId: c.scope.assessmentItemId || null, _ts: Date.now() });
+        setTimeout(() => {
             const co = c.scope.co;
             const ilo = c.scope.ilo;
-            const rowKey = ilo && ilo !== '\u2014' ? `${co}|${ilo}` : co;
-            setTimeout(() => {
-                const el = document.querySelector(`[data-tos-row="${rowKey}"]`);
-                if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }, 400);
-        }
+            const cog = c.scope.cognitiveLevel;
+            const itemId = c.scope.assessmentItemId || c.scope.rowId;
+            const filename = c.scope.filename || (!itemId && isFile ? cog : null);
+            let scrollEl = null;
+            let highlightEls = [];
+
+            if (itemId) {
+                const rowEl = document.querySelector(`[data-item-id="${itemId}"]`);
+                if (rowEl) {
+                    scrollEl = rowEl;
+                    highlightEls = [rowEl];
+                }
+            }
+            if (!scrollEl && c.scope.fileId && !itemId) {
+                const fileEl = document.querySelector(`[data-file-id="${c.scope.fileId}"]`);
+                if (fileEl) {
+                    scrollEl = fileEl;
+                    highlightEls = [fileEl];
+                }
+            }
+            if (!scrollEl && filename && !itemId) {
+                const fileEl = document.querySelector(`[data-filename="${filename}"][data-co="${co}"][data-ilo="${ilo}"]`) ||
+                               document.querySelector(`[data-filename="${filename}"]`);
+                if (fileEl) {
+                    scrollEl = fileEl;
+                    highlightEls = [fileEl];
+                }
+            }
+            if (!scrollEl && co && ilo && cog && BLOOM_LEVELS.includes(cog)) {
+                const cogRows = document.querySelectorAll(`[data-co="${co}"][data-ilo="${ilo}"][data-cog="${cog}"]`);
+                if (cogRows.length > 0) {
+                    scrollEl = cogRows[0];
+                    highlightEls = Array.from(cogRows);
+                }
+            }
+            if (!scrollEl && co && ilo) {
+                const fileCards = document.querySelectorAll(`[data-co="${co}"][data-ilo="${ilo}"][data-file-id]`);
+                if (fileCards.length > 0) {
+                    scrollEl = fileCards[0];
+                    highlightEls = Array.from(fileCards);
+                }
+            }
+            if (!scrollEl) {
+                scrollEl = document.querySelector(`[data-ilo-header="${co}|${ilo}"]`) || document.getElementById(`co-header-${co}`);
+                if (scrollEl) highlightEls = [scrollEl];
+            }
+            if (scrollEl) {
+                scrollEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+            highlightEls.forEach(el => {
+                if (previewLayout?.rowPulseHighlight) {
+                    el.classList.add(previewLayout.rowPulseHighlight);
+                    setTimeout(() => el.classList.remove(previewLayout.rowPulseHighlight), 2000);
+                }
+            });
+        }, 450);
     };
+
+    const openComments = comments.filter(c => !c.resolved);
 
     const InfoBadge = ({ text }) => (
         text ? (
@@ -1513,11 +1548,11 @@ const items = aggregatedData[co.co][ilo.id][level];
                                         <button className={layout.viewItemsBtn} disabled={viewItemsTarget?.isEmpty} onClick={() => handleViewAssessmentsJump(viewItemsTarget)}>View assessments</button>
                                 </div>
                             )}
-                            {(showComment || isReturnedView) && <div ref={commentRef} className={layout.commentPanel}>
+                            {(showComment || isReturnedView) && effectiveStatus !== 'approved' && <div ref={commentRef} className={layout.commentPanel}>
                                 <div className={layout.commentPanelHeader}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                                         <span className={layout.commentPanelTitle}>{showResolvedPH ? 'Past returns' : 'Comments'}</span>
-                                        {returnCount >= (isReturnedView ? 2 : 1) && resolvedReturnNumbers.length > 0 && <button className={`${layout.commentResolvedToggleBtn} ${showResolvedPH ? layout.active : ''}`} onClick={() => { setShowResolvedPH(p => !p); if (!showResolvedPH) { setReturnFilter(defaultResolvedReturn); setAddingComment(false); setActiveScope(null); } }}>
+                                        {returnCount >= 2 && resolvedReturnNumbers.length > 0 && <button className={`${layout.commentResolvedToggleBtn} ${showResolvedPH ? layout.active : ''}`} onClick={() => { setShowResolvedPH(p => !p); if (!showResolvedPH) { setReturnFilter(defaultResolvedReturn); setAddingComment(false); setActiveScope(null); } }}>
                                             {showResolvedPH ? 'See active comments' : 'See past returns'}
                                         </button>}
                                     </div>
@@ -1581,7 +1616,7 @@ const items = aggregatedData[co.co][ilo.id][level];
                                                 const filtered = comments.filter(c => c.scope.returnNumber > 0 && c.scope.returnNumber <= pastReturnMax && (returnFilter === 'all' || c.scope.returnNumber === Number(returnFilter)));
                                                 if (filtered.length === 0) return <div style={{ textAlign: 'center', color: '#9CA3AF', fontSize: 13, padding: '40px 0' }}>No comments from past returns</div>;
                                                 if (returnFilter !== 'all') return filtered.map(c => (
-                                                    <div key={c.id} className={layout.commentCard}>
+                                                    <div key={c.id} className={layout.commentCard} onClick={() => handleCommentNavigation(c)} style={{ cursor: 'pointer' }}>
                                                         <div className={layout.commentCardHeader}>
                                                             <div className={layout.commentCardScope}>{formatScopeText(c.scope)}</div>
                                                         </div>
@@ -1598,7 +1633,7 @@ const items = aggregatedData[co.co][ilo.id][level];
                                                             Return {r}{returnDates[r - 1] ? ` - ${new Date(returnDates[r - 1]).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}` : ''}
                                                         </div>
                                                         {groups[r].map(c => (
-                                                            <div key={c.id} className={layout.commentCard}>
+                                                            <div key={c.id} className={layout.commentCard} onClick={() => handleCommentNavigation(c)} style={{ cursor: 'pointer' }}>
                                                                 <div className={layout.commentCardHeader}>
                                                                     <div className={layout.commentCardScope}>{formatScopeText(c.scope)}</div>
                                                                 </div>
@@ -1765,6 +1800,7 @@ const items = aggregatedData[co.co][ilo.id][level];
                                             assessmentName={assessmentName}
                                             onAssessmentNameChange={setAssessmentName}
                                             readOnly={readOnly}
+                                            targetScope={navTargetScope}
                                             showComments
                                             onAttachmentsChange={setAttachments}
                                         />
@@ -1817,7 +1853,7 @@ const items = aggregatedData[co.co][ilo.id][level];
                                                 const filtered = comments.filter(c => c.scope.returnNumber > 0 && c.scope.returnNumber <= pastReturnMax && (returnFilter === 'all' || c.scope.returnNumber === Number(returnFilter)));
                                                 if (filtered.length === 0) return <div style={{ textAlign: 'center', color: '#9CA3AF', fontSize: 13, padding: '40px 0' }}>No comments from past returns</div>;
                                                 if (returnFilter !== 'all') return filtered.map(c => (
-                                                    <div key={c.id} className={layout.commentCard}>
+                                                    <div key={c.id} className={layout.commentCard} onClick={() => handleCommentNavigation(c)} style={{ cursor: 'pointer' }}>
                                                         <div className={layout.commentCardHeader}>
                                                             <div className={layout.commentCardScope}>{formatScopeText(c.scope)}</div>
                                                         </div>
@@ -1834,7 +1870,7 @@ const items = aggregatedData[co.co][ilo.id][level];
                                                             Return {r}{returnDates[r - 1] ? ` - ${new Date(returnDates[r - 1]).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}` : ''}
                                                         </div>
                                                         {groups[r].map(c => (
-                                                            <div key={c.id} className={layout.commentCard}>
+                                                            <div key={c.id} className={layout.commentCard} onClick={() => handleCommentNavigation(c)} style={{ cursor: 'pointer' }}>
                                                                 <div className={layout.commentCardHeader}>
                                                                     <div className={layout.commentCardScope}>{formatScopeText(c.scope)}</div>
                                                                 </div>
@@ -1854,7 +1890,10 @@ const items = aggregatedData[co.co][ilo.id][level];
                                         return (
                                             <>
                                                 {unresolved.length === 0 && (
-                                                    <div style={{ textAlign: 'center', color: '#9CA3AF', fontSize: 13, padding: '40px 0' }}>No comments yet</div>
+                                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, textAlign: 'center', color: '#9CA3AF', fontSize: 13, padding: '40px 16px' }}>
+                                                        <CheckCircle size={28} color={resolvedCurrentReturn.length > 0 ? '#10B981' : '#9CA3AF'} strokeWidth={1.75} />
+                                                        <span>{resolvedCurrentReturn.length > 0 ? 'All comments resolved' : 'No comments yet'}</span>
+                                                    </div>
                                                 )}
                                                 {unresolved.map(c => (
                                                     <div key={c.id} className={layout.commentCard} onClick={() => handleCommentNavigation(c)} style={{ cursor: 'pointer' }}>
@@ -2065,7 +2104,7 @@ const items = aggregatedData[co.co][ilo.id][level];
                                                 const filtered = comments.filter(c => c.scope.returnNumber > 0 && c.scope.returnNumber <= pastReturnMax && (returnFilter === 'all' || c.scope.returnNumber === Number(returnFilter)));
                                                 if (filtered.length === 0) return <div style={{ textAlign: 'center', color: '#9CA3AF', fontSize: 13, padding: '40px 0' }}>No comments from past returns</div>;
                                                 if (returnFilter !== 'all') return filtered.map(c => (
-                                                    <div key={c.id} className={layout.commentCard}>
+                                                    <div key={c.id} className={layout.commentCard} onClick={() => handleCommentNavigation(c)} style={{ cursor: 'pointer' }}>
                                                         <div className={layout.commentCardHeader}>
                                                             <div className={layout.commentCardScope}>{formatScopeText(c.scope)}</div>
                                                         </div>
@@ -2082,7 +2121,7 @@ const items = aggregatedData[co.co][ilo.id][level];
                                                             Return {r}{returnDates[r - 1] ? ` - ${new Date(returnDates[r - 1]).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}` : ''}
                                                         </div>
                                                         {groups[r].map(c => (
-                                                            <div key={c.id} className={layout.commentCard}>
+                                                            <div key={c.id} className={layout.commentCard} onClick={() => handleCommentNavigation(c)} style={{ cursor: 'pointer' }}>
                                                                 <div className={layout.commentCardHeader}>
                                                                     <div className={layout.commentCardScope}>{formatScopeText(c.scope)}</div>
                                                                 </div>
@@ -2240,6 +2279,7 @@ const items = aggregatedData[co.co][ilo.id][level];
                                         assessmentName={assessmentName}
                                         onAssessmentNameChange={setAssessmentName}
                                         readOnly={readOnly}
+                                        targetScope={navTargetScope}
                                         onAttachmentsChange={setAttachments}
                                     />
                                 </section>
@@ -2316,8 +2356,24 @@ const items = aggregatedData[co.co][ilo.id][level];
                             <span style={{ cursor: "pointer", fontSize: "20px", color: "#999" }} onClick={() => { setShowApproveConfirm(false); setApproveLoading(false); }}>×</span>
                         </div>
                         <div className={layout.modalBody}>
-                            {comments.length > 0 ? (
-                                <p style={{ color: "#555" }}>Comments will be discarded. Proceed to approval?</p>
+                            {openComments.length > 0 ? (
+                                <div style={{ textAlign: 'left' }}>
+                                    <p style={{ color: "#555", margin: '0 0 12px 0' }}>
+                                        The following {openComments.length === 1 ? 'comment' : `${openComments.length} comments`} will be discarded. Proceed to approval?
+                                    </p>
+                                    <div style={{ maxHeight: 220, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 8, paddingRight: 4 }}>
+                                        {openComments.map(c => (
+                                            <div key={c.id} style={{ padding: '10px 12px', borderRadius: 6, border: '1px solid #E5E7EB', background: '#F9FAFB' }}>
+                                                <div style={{ fontSize: 12, fontWeight: 600, color: '#1F2937', marginBottom: 4 }}>
+                                                    {formatScopeText(c.scope)}
+                                                </div>
+                                                <div style={{ fontSize: 13, color: '#4B5563', lineHeight: 1.4 }}>
+                                                    {c.body}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
                             ) : (
                                 <p style={{ color: "#555" }}>Approve this TOS?</p>
                             )}
@@ -2325,7 +2381,7 @@ const items = aggregatedData[co.co][ilo.id][level];
                         <div className={layout.modalActions}>
                             <button className={layout.cancelBtn} onClick={() => { setShowApproveConfirm(false); setApproveLoading(false); }}>Cancel</button>
                             <button className={layout.confirmBtn} onClick={handleConfirmApprove}>
-                                {comments.length > 0 ? 'Proceed to approval' : 'Confirm'}
+                                {openComments.length > 0 ? 'Proceed to approval' : 'Confirm'}
                             </button>
                         </div>
                     </div>
@@ -2337,7 +2393,7 @@ const items = aggregatedData[co.co][ilo.id][level];
                     <div className={previewLayout.confirmPopup} onClick={e => e.stopPropagation()}>
                         <div className={previewLayout.confirmTextRow}>
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#19282C" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-                            <p className={previewLayout.confirmText}>{comments.length > 0 ? 'Approving TOS (comments will be discarded)' : 'Approving TOS'}</p>
+                            <p className={previewLayout.confirmText}>{openComments.length > 0 ? 'Approving TOS (comments will be discarded)' : 'Approving TOS'}</p>
                         </div>
                         <div className={previewLayout.spinner} />
                         <span className={previewLayout.countdown}>{approveCountdown}s</span>

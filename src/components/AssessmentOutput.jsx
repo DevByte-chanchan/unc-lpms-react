@@ -165,7 +165,7 @@ export default function AssessmentOutput({ outcomeData = [], questions = [], cou
                                                         const tool = (ilo.assessmentTool || '').trim();
                                                         const isPdf = (att.filepath || '').toLowerCase().endsWith('.pdf');
 
-                                                        const isFileActive = activeScope && (
+                                                        const isFileActive = activeScope && !activeScope.rowId && !activeScope.assessmentItemId && (
                                                             (activeScope.fileId && Number(activeScope.fileId) === Number(att.id)) ||
                                                             (activeScope.filename && activeScope.filename === att.filename && activeScope.co === co.co && activeScope.ilo === ilo.id)
                                                         );
