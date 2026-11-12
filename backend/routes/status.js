@@ -90,6 +90,28 @@ router.put('/:code/:period/status', lockGuard, async (req, res) => {
                 return res.status(400).json({ error: 'Cannot submit TOS: every point row needs points greater than 0' });
             }
         }
+        const unresolvedCount = await Comment.count({
+            where: {
+                courseCode: req.params.code,
+                examPeriod: req.params.period,
+                resolved: false
+            }
+        });
+        if (unresolvedCount > 0) {
+            return res.status(400).json({ error: 'Cannot submit TOS while there are unresolved comments' });
+        }
+    }
+
+    if (newStatus === 'approved') {
+        // Discard any open (unresolved) comments added during the current review round
+        // while keeping resolved comments from past returns intact for the History Log.
+        await Comment.destroy({
+            where: {
+                courseCode: req.params.code,
+                examPeriod: req.params.period,
+                resolved: false
+            }
+        });
     }
 
     if (newStatus === 'returned') {

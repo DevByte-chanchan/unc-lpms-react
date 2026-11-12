@@ -165,6 +165,7 @@ const AssessmentsStep = ({
     courseCode,
     examType = ACTIVE_PERIOD,
     readOnly = false,
+    targetScope = null,
     onAttachmentsChange = () => {}
 }) => {
     const [, setSearchParams] = useSearchParams();
@@ -188,6 +189,22 @@ const AssessmentsStep = ({
             }
         }
     }, [outcomeData, selectedIlo]);
+
+    useEffect(() => {
+        if (!targetScope) return;
+        let targetCo = targetScope.co;
+        let targetIlo = targetScope.ilo;
+        if ((!targetCo || !targetIlo) && targetScope.itemId && (questions || []).length > 0) {
+            const match = questions.find(q => String(q.id) === String(targetScope.itemId));
+            if (match) {
+                targetCo = targetCo || match.co;
+                targetIlo = targetIlo || match.ilo;
+            }
+        }
+        if (targetCo && targetIlo && targetIlo !== '\u2014') {
+            setSelectedIlo({ co: targetCo, ilo: targetIlo });
+        }
+    }, [targetScope]);
 
     useEffect(() => {
         if (courseCode) {
@@ -473,7 +490,7 @@ const AssessmentsStep = ({
                 {/* Right content area */}
                 <div className={layout.rightContent}>
                     {/* 1. Title with Bloom's Chips */}
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10, marginBottom: 12 }}>
+                    <div data-ilo-header={`${activeCoData?.co}|${activeIloData?.id}`} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10, marginBottom: 12 }}>
                         <h3 style={{ fontSize: 20, fontWeight: 600, color: '#1A1A1A', margin: 0 }}>
                             {activeCoData?.co} · {activeIloData?.id}
                         </h3>
@@ -570,7 +587,14 @@ const AssessmentsStep = ({
                                 const sizeStr = att.size ? (att.size > 1048576 ? `${(att.size / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(att.size / 1024))} KB`) : '';
                                 const isPdf = (att.filepath || '').toLowerCase().endsWith('.pdf');
                                 return (
-                                    <div key={att.id} style={{ border: '1px solid #E5E7EB', borderRadius: 8, background: '#fff', overflow: 'hidden' }}>
+                                    <div
+                                        key={att.id}
+                                        data-file-id={att.id}
+                                        data-filename={att.filename}
+                                        data-co={activeCoData?.co}
+                                        data-ilo={activeIloData?.id}
+                                        style={{ border: '1px solid #E5E7EB', borderRadius: 8, background: '#fff', overflow: 'hidden' }}
+                                    >
                                         <div className={layout.fileCardHeader}>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
                                                 <FileText size={18} color="#4B5563" style={{ flexShrink: 0 }} />
@@ -662,7 +686,15 @@ const AssessmentsStep = ({
                                                     <span className={layout.pointTh} role="columnheader"></span>
                                                 </div>
                                                 {rows.map(row => (
-                                                    <div key={row.id} className={layout.pointRow} role="row">
+                                                    <div
+                                                        key={row.id}
+                                                        className={layout.pointRow}
+                                                        role="row"
+                                                        data-item-id={row.id}
+                                                        data-co={activeCoData?.co}
+                                                        data-ilo={activeIloData?.id}
+                                                        data-cog={row.cognitiveLevel}
+                                                    >
                                                         <div className={layout.pointField} role="cell">
                                                             <span className={layout.pointFieldLabel}>Item/Part</span>
                                                             <input
