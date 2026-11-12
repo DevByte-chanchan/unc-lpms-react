@@ -19,6 +19,7 @@
     "accounts:check": "node scripts/checkDeanAccounts.js",
     "db:migrate": "sequelize-cli db:migrate",
     "db:sync": "node scripts/dbSync.js",
+    "demo:reset": "node scripts/demoReset.js",
     "db:migrate:undo": "sequelize-cli db:migrate:undo",
     "db:seed": "sequelize-cli db:seed:all",
     "db:seed:undo": "sequelize-cli db:seed:undo:all",
