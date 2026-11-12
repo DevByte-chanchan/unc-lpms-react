@@ -28,6 +28,7 @@ import ConfirmModal from "../components/ConfirmModal.jsx";
 import ViewArchivedButton from "../components/ViewArchivedButton.jsx";
 import UndoUploadButton from "../components/UndoUploadButton.jsx";
 import { displayName } from "../utils/nameCase.js";
+import { DeliveryIcon, DeliveryLine, DeliveryPanel } from "../components/AssignmentDelivery.jsx";
 import UploadPreviewFlow from "../components/UploadPreviewFlow.jsx";
 import DialogShell from "../components/DialogShell.jsx";
 import RowActionsMenu from "../components/RowActionsMenu.jsx";
@@ -558,6 +559,7 @@ const ProgramHeadCourseAssignment = () => {
                           <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{displayName(row.faculty_name)}</span>
                         </span>
                         <SectionsLine sections={sectionsFor(row, { faculty_id: row.faculty_id, faculty_name: row.faculty_name })} />
+                        <DeliveryLine status={row.delivery && row.delivery.lead} />
                       </span>
                     ) : (
                       <span style={{ color: '#9CA3AF' }}>— Unassigned —</span>
@@ -575,6 +577,7 @@ const ProgramHeadCourseAssignment = () => {
                           {shown.map((c, i) => (
                             <span key={(c && c.faculty_id) || c.faculty_name || i} style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'flex-start', minWidth: 0, maxWidth: 130 }}>
                               <span title={displayName(c.faculty_name)} style={chip}>
+                                <DeliveryIcon status={row.delivery && row.delivery.contributors ? row.delivery.contributors[c.faculty_id || c.faculty_name] : null} />
                                 <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{displayName(c.faculty_name)}</span>
                               </span>
                               <SectionsLine sections={sectionsFor(row, c)} />
@@ -703,6 +706,13 @@ const ProgramHeadCourseAssignment = () => {
           removeLabel="Remove"
           width="min(620px, 94vw)"
           tabs={[
+            {
+              key: 'notifications', label: 'Notifications',
+              render: () => (
+                <DeliveryPanel row={editingAssignment} readOnly={!isCurrentTermActive}
+                  onResend={async (facultyId) => { const r = await CourseOfferingAssignmentsAPI.notify(editingAssignment.id, facultyId); refresh(); return r; }} />
+              ),
+            },
             {
               key: 'history', label: 'History',
               render: () => <HistoryTimeline assignmentId={editingAssignment.id} periodId={periodId} />,

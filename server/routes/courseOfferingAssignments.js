@@ -11,6 +11,7 @@ import {
   revalidateCourseOfferingAssignments,
   getCourseOfferingAssignmentHistory,
   compareOfficialOfferings,
+  resendAssignmentNotice,
 } from '../controllers/courseOfferingAssignmentController.js';
 
 const router = Router();
@@ -18,6 +19,7 @@ router.get('/',           listCourseOfferingAssignments);
 router.post('/revalidate', requireRole('Program Head'), revalidateCourseOfferingAssignments);
 // The registrar's Subject Offerings vs. the pre-assignment (?preview=1 = dry run).
 router.post('/compare-official', requireRole('Program Head'), uploadSheetOrPdf.single('file'), compareOfficialOfferings);
+router.post('/:id/notify', requireRole('Program Head'), resendAssignmentNotice);
 router.get('/:id/history', requireRole('Program Head', 'Dean', 'VPAA'), getCourseOfferingAssignmentHistory);
 router.get('/:id',        getCourseOfferingAssignment);
 router.post('/',          requireRole('Program Head', 'Dean'), createCourseOfferingAssignment);

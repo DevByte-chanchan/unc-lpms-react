@@ -37,6 +37,7 @@ import { programCoursePrefixes, programKeyFromPrefixes } from '../utils/courseCo
 import { hasPdfMagic } from '../middleware/upload.js';
 import { PdfTableError } from '../utils/pdfTable.js';
 import { displayName } from '../utils/nameCase.js';
+import { deliveryFor, resendFor } from '../services/assignmentDelivery.js';
 import { getPeriodId, safeWhereForPeriod } from '../utils/periodScope.js';
 import { filterOneToExistingColumns, safeDestroyByPeriod, safeWhere } from '../utils/dbHelpers.js';
 import { describeSequelizeError } from '../utils/uploadHelpers.js';
@@ -297,9 +298,11 @@ export async function listCourseOfferingAssignments(req, res, next) {
     if (!period_id) return res.json(rows);
     // Each row also carries the newest history entry ("Last updated").
     const latest = await latestChanges(period_id).catch((err) => { console.error('[history] latest failed:', err.message); return new Map(); });
+    // Was each Lead / Contributor told about the course? (services/assignmentDelivery.js)
+    const delivery = await deliveryFor(rows, period_id).catch((err) => { console.error('[delivery] failed:', err.message); return new Map(); });
     res.json(rows.map((r) => {
       const plain = typeof r.get === 'function' ? r.get({ plain: true }) : { ...r };
-      return { ...plain, last_change: latest.get(courseKey(plain)) || null };
+      return { ...plain, last_change: latest.get(courseKey(plain)) || null, delivery: delivery.get(r.id) || null };
     }));
   } catch (err) { next(err); }
 }
@@ -320,6 +323,20 @@ async function rowForRequest(req, res, { writable }) {
   }
   if (writable && !(await enforceLatestPeriod(res, row.period_id || callerPeriod))) return null;
   return row;
+}
+
+/** POST /:id/notify { faculty_id } — send this course's notice / invitation again to one person. */
+export async function resendAssignmentNotice(req, res, next) {
+  try {
+    const row = await rowForRequest(req, res, { writable: true });
+    if (!row) return undefined;
+    const facultyId = Number(req.body && req.body.faculty_id);
+    const onRow = Number(row.faculty_id) === facultyId
+      || (Array.isArray(row.contributors) ? row.contributors : []).some((c) => c && Number(c.faculty_id) === facultyId);
+    if (!facultyId || !onRow) return res.status(400).json({ message: 'That person is not on this course.' });
+    const r = await resendFor(row, facultyId, { senderId: req.user ? req.user.id : null });
+    return res.status(r.status).json({ message: r.message });
+  } catch (err) { return next(err); }
 }
 
 /** GET /:id/history — every change to this course this term, newest first. */

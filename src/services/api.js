@@ -248,6 +248,8 @@ export const CourseOfferingAssignmentsAPI = {
   }),
   update: (id, patch) => request(idPath('/course-offering-assignments', id), { method: 'PATCH', body: patch }),
   remove: (id) => request(idPath('/course-offering-assignments', id), { method: 'DELETE' }),
+  // Send the course's notice / invitation again to one Lead or Contributor. { message }
+  notify: (id, facultyId) => request(idPath('/course-offering-assignments', id) + '/notify', { method: 'POST', body: { faculty_id: facultyId } }),
   upload: (file, periodId, programId) => {
     const fd = new FormData();
     fd.append('file', file);
