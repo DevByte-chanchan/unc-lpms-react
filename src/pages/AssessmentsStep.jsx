@@ -1,8 +1,8 @@
 import React, { useEffect, useLayoutEffect, useRef, useState, useMemo } from "react";
-import { X, FileText, Plus, ChevronDown, ChevronUp, ChevronRight, Upload, Trash2, Download, Eye } from "react-feather";
+import { X, FileText, Plus, ChevronDown, ChevronUp, ChevronRight, Upload, Trash2, Download, Eye, RefreshCw } from "react-feather";
 import { useSearchParams } from "react-router-dom";
 import layout from "../styles/QuestionCognitiveMapping.module.sass";
-import { uploadAttachment, fetchAttachments, deleteAttachment, ACTIVE_PERIOD } from '../services/api.js';
+import { uploadAttachment, replaceAttachment, fetchAttachments, deleteAttachment, ACTIVE_PERIOD } from '../services/api.js';
 
 let _uid = 0;
 const uid = () => `${++_uid}_${Math.random().toString(36).slice(2, 6)}`;
@@ -93,7 +93,7 @@ const TopicsPanel = ({ co, topics }) => {
     );
 };
 
-const UploadModal = ({ co, ilo, loading, onClose, onUpload }) => {
+const UploadModal = ({ co, ilo, loading, onClose, onUpload, title = 'Upload file', actionLabel = 'Upload', busyLabel = 'Uploading…', subtitle = null }) => {
     const [file, setFile] = useState(null);
     const [dragOver, setDragOver] = useState(false);
     const inputRef = useRef(null);
@@ -109,8 +109,8 @@ const UploadModal = ({ co, ilo, loading, onClose, onUpload }) => {
             <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 8, width: 480, maxWidth: '92%', boxShadow: '0 8px 32px rgba(0,0,0,0.2)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', borderBottom: '1px solid #E5E7EB' }}>
                     <div>
-                        <div style={{ fontSize: 16, fontWeight: 600, color: '#1A1A1A' }}>Upload file</div>
-                        <div style={{ fontSize: 13, color: '#6B7280' }}>{co} · {ilo}</div>
+                        <div style={{ fontSize: 16, fontWeight: 600, color: '#1A1A1A' }}>{title}</div>
+                        <div style={{ fontSize: 13, color: '#6B7280' }}>{subtitle || `${co} · ${ilo}`}</div>
                     </div>
                     <button type="button" onClick={onClose} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#6B7280', display: 'flex' }}><X size={20} /></button>
                 </div>
@@ -150,7 +150,7 @@ const UploadModal = ({ co, ilo, loading, onClose, onUpload }) => {
                         disabled={!file || loading}
                         style={{ padding: '8px 22px', borderRadius: 6, border: '1px solid #19282C', background: '#19282C', color: '#fff', fontSize: 14, fontWeight: 500, cursor: (!file || loading) ? 'not-allowed' : 'pointer', opacity: (!file || loading) ? 0.5 : 1 }}
                     >
-                        {loading ? 'Uploading…' : 'Upload'}
+                        {loading ? busyLabel : actionLabel}
                     </button>
                 </div>
             </div>
@@ -169,6 +169,7 @@ const AssessmentsStep = ({
 }) => {
     const [, setSearchParams] = useSearchParams();
     const [attachments, setAttachments] = useState([]);
+    const [attsLoaded, setAttsLoaded] = useState(false);
     const [selectedIlo, setSelectedIlo] = useState(null);
     const [loading, setLoading] = useState(false);
     const [refOpen, setRefOpen] = useState(false);
@@ -193,6 +194,7 @@ const AssessmentsStep = ({
             fetchAttachments(courseCode, examType).then(data => {
                 const list = data || [];
                 setAttachments(list);
+                setAttsLoaded(true);
                 onAttachmentsChange(list);
             }).catch(console.error);
         }
@@ -202,6 +204,7 @@ const AssessmentsStep = ({
     const activeIloData = activeCoData?.ilos?.find(i => i.id === selectedIlo?.ilo);
 
     const [showUpload, setShowUpload] = useState(false);
+    const [replaceTarget, setReplaceTarget] = useState(null);
 
     const handleUpload = async (file) => {
         if (!file || !activeIloData) return;
@@ -212,13 +215,39 @@ const AssessmentsStep = ({
         setLoading(true);
         try {
             const att = await uploadAttachment(courseCode, examType, activeIloData.iloDbId, file);
+            const knownIds = new Set(attachments.map(a => Number(a.id)));
             const nextAtts = [...attachments, att];
             setAttachments(nextAtts);
             onAttachmentsChange(nextAtts);
-            addPointRow(att.id);
+            // Rows of this ILO that point at no existing file are attached to the new file
+            // instead of adding a blank row.
+            const isOrphan = q => Number(q.iloId) === Number(activeIloData.iloDbId) && !knownIds.has(Number(q.attachmentId));
+            const hasOrphans = (questions || []).some(isOrphan);
+            if (hasOrphans) {
+                setQuestions(prev => prev.map(q => isOrphan(q) ? { ...q, attachmentId: att.id } : q));
+            } else {
+                addPointRow(att.id);
+            }
             setShowUpload(false);
         } catch (err) {
             alert(err.message || 'Upload failed');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleReplace = async (file) => {
+        if (!file || !replaceTarget || readOnly) return;
+        setLoading(true);
+        try {
+            const updated = await replaceAttachment(courseCode, examType, replaceTarget.id, file);
+            // Same attachment id: point rows stay linked, only the file details change.
+            const nextAtts = attachments.map(a => Number(a.id) === Number(updated.id) ? { ...a, ...updated } : a);
+            setAttachments(nextAtts);
+            onAttachmentsChange(nextAtts);
+            setReplaceTarget(null);
+        } catch (err) {
+            alert(err.message || 'Replace failed');
         } finally {
             setLoading(false);
         }
@@ -229,10 +258,11 @@ const AssessmentsStep = ({
         if (!window.confirm("Are you sure? Point rows for this file will also be deleted.")) return;
         try {
             await deleteAttachment(courseCode, examType, id);
+            // Drop the file's rows first so they are never seen as unattached rows.
+            setQuestions(prev => prev.filter(q => Number(q.attachmentId) !== Number(id)));
             const nextAtts = attachments.filter(a => a.id !== id);
             setAttachments(nextAtts);
             onAttachmentsChange(nextAtts);
-            setQuestions(prev => prev.filter(q => q.attachmentId !== id));
         } catch {
             alert('Failed to delete attachment');
         }
@@ -247,18 +277,28 @@ const AssessmentsStep = ({
 
     const addPointRow = (attachmentId) => {
         if (readOnly || !activeCoData || !activeIloData) return;
-        const defaultLevel = getCognitiveLevelsForIlo(activeIloData.id)[0] || '';
-        setQuestions(prev => [...prev, {
-            id: uid(),
-            co: activeCoData.co,
-            ilo: activeIloData.id,
-            iloId: activeIloData.iloDbId,
-            instruction: '',
-            points: '',
-            cognitiveLevel: defaultLevel,
-            span: 1,
-            attachmentId
-        }]);
+        const coName = activeCoData.co;
+        const iloName = activeIloData.id;
+        const iloTarget = Number(activeIloData.items) || 0;
+        const defaultLevel = getCognitiveLevelsForIlo(iloName)[0] || '';
+        setQuestions(prev => {
+            // Default the new row to whatever is still unallocated for this ILO (sum across all its files)
+            const allocated = prev
+                .filter(q => q.co === coName && q.ilo === iloName)
+                .reduce((s, q) => s + (Number(q.points) || 0), 0);
+            const unallocated = Math.max(0, iloTarget - allocated);
+            return [...prev, {
+                id: uid(),
+                co: coName,
+                ilo: iloName,
+                iloId: activeIloData.iloDbId,
+                instruction: '',
+                points: unallocated > 0 ? String(unallocated) : '',
+                cognitiveLevel: defaultLevel,
+                span: 1,
+                attachmentId
+            }];
+        });
     };
 
     const updatePointRow = (id, field, value) => {
@@ -295,6 +335,8 @@ const AssessmentsStep = ({
     const isOverflow = totalCurrent > totalRequired;
 
     const activeAttachments = attachments.filter(a => a.iloId === activeIloData?.iloDbId);
+    const attachmentIdSet = new Set(attachments.map(a => Number(a.id)));
+    const orphanRowCount = !attsLoaded ? 0 : (questions || []).filter(q => Number(q.iloId) === Number(activeIloData?.iloDbId) && !attachmentIdSet.has(Number(q.attachmentId))).length;
     const activeRequired = activeIloData?.items || 0;
 
     const handleIloKeyDown = (e, coName, iloName) => {
@@ -504,6 +546,11 @@ const AssessmentsStep = ({
                             <div style={{ fontSize: 13, color: '#6B7280', marginBottom: readOnly ? 0 : 16 }}>
                                 1. Upload a file &nbsp;·&nbsp; 2. Add its point rows
                             </div>
+                            {orphanRowCount > 0 && (
+                                <div style={{ fontSize: 13, color: '#B45309', marginBottom: readOnly ? 0 : 16 }}>
+                                    {orphanRowCount} point row{orphanRowCount === 1 ? '' : 's'} for this ILO {orphanRowCount === 1 ? 'is' : 'are'} not linked to a file. Upload a file to attach {orphanRowCount === 1 ? 'it' : 'them'}.
+                                </div>
+                            )}
                             {!readOnly && (
                                 <button
                                     type="button"
@@ -581,6 +628,17 @@ const AssessmentsStep = ({
                                                 >
                                                     <Download size={16} />
                                                 </a>
+                                                {!readOnly && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setReplaceTarget(att)}
+                                                        title="Replace file"
+                                                        aria-label="Replace file"
+                                                        className={layout.iconBtn}
+                                                    >
+                                                        <RefreshCw size={16} />
+                                                    </button>
+                                                )}
                                                 {!readOnly && (
                                                     <button
                                                         type="button"
@@ -712,6 +770,20 @@ const AssessmentsStep = ({
                     loading={loading}
                     onClose={() => !loading && setShowUpload(false)}
                     onUpload={handleUpload}
+                />
+            )}
+
+            {replaceTarget && (
+                <UploadModal
+                    ilo={activeIloData?.id}
+                    co={activeCoData?.co}
+                    loading={loading}
+                    title="Replace file"
+                    subtitle={`${activeCoData?.co} · ${activeIloData?.id} · replacing ${replaceTarget.filename}`}
+                    actionLabel="Replace"
+                    busyLabel="Replacing…"
+                    onClose={() => !loading && setReplaceTarget(null)}
+                    onUpload={handleReplace}
                 />
             )}
         </div>

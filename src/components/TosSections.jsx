@@ -252,6 +252,29 @@ const TosSections = ({role = 'instructor'}) => {
         }));
     }, [rows]);
 
+    // Every point row belongs to a file: rows whose file is missing are attached to the first
+    // file of their ILO. (If the ILO has no file yet, the row stays unattached until one is uploaded.)
+    useEffect(() => {
+        if (!attachments.length) return;
+        const attIds = new Set(attachments.map(a => Number(a.id)));
+        const firstAttByIlo = new Map();
+        attachments.forEach(a => {
+            const key = Number(a.iloId);
+            if (!firstAttByIlo.has(key)) firstAttByIlo.set(key, a.id);
+        });
+        setQuestions(prev => {
+            let changed = false;
+            const next = prev.map(q => {
+                if (q.attachmentId != null && attIds.has(Number(q.attachmentId))) return q;
+                const target = firstAttByIlo.get(Number(q.iloId));
+                if (target === undefined) return q;
+                changed = true;
+                return { ...q, attachmentId: target };
+            });
+            return changed ? next : prev;
+        });
+    }, [attachments, questions]);
+
     useEffect(() => {
         if (isReturnedView || isInstructorReturned) setShowComment(true);
     }, [isReturnedView, isInstructorReturned]);
@@ -413,6 +436,13 @@ const TosSections = ({role = 'instructor'}) => {
             if (!q.ilo) { mapSet.add('Some items have no ILO selected'); fieldKeys[`map-ilo-${q.id}`] = true; }
             if (!q.points || Number(q.points) <= 0) { mapSet.add('A row is missing points'); fieldKeys[`map-points-${q.id}`] = true; }
             if (!q.cognitiveLevel) { mapSet.add("A row has no Bloom's level selected"); fieldKeys[`map-cognitiveLevel-${q.id}`] = true; } else if (!allowed.includes(q.cognitiveLevel)) { mapSet.add("A row has an invalid Bloom's level for its ILO"); fieldKeys[`map-cognitiveLevel-${q.id}`] = true; }
+        });
+        rows.forEach(co => {
+            co.ilos.forEach(ilo => {
+                if (!attachments.some(a => Number(a.iloId) === Number(ilo.iloDbId || ilo.id))) {
+                    mapSet.add('Some ILOs have no file uploaded');
+                }
+            });
         });
         // Only show allocation mismatch if there are no other mapping issues (redundancy guard)
         let hasAllocMismatch = false;
@@ -675,7 +705,7 @@ const TosSections = ({role = 'instructor'}) => {
             return `${coPart}${iloPart} → ${fn}`;
         }
         const cogPart = s.cognitiveLevel === 'Number of Items' ? 'Points' : (s.cognitiveLevel || '');
-        const itemPart = s.itemNumber ? ` → Row ${s.itemNumber}` : '';
+        const itemPart = s.itemNumber ? ` → Row ${s.itemNumber}` : (s.itemLabel ? ` → ${s.itemLabel}` : '');
         return `${coPart}${iloPart}${cogPart ? ` → ${cogPart}` : ''}${itemPart}`;
     };
 
@@ -756,6 +786,22 @@ const TosSections = ({role = 'instructor'}) => {
         setCommentBody('');
     };
 
+    const handleAssessmentRowClick = (att, co, ilo, row) => {
+        if (!addingComment || !row) return;
+        setActiveScope({
+            co: co.co || '\u2014',
+            ilo: ilo.id || '\u2014',
+            cognitiveLevel: row.cognitiveLevel || '',
+            itemNumber: '',
+            rowId: row.id,
+            itemLabel: (row.instruction || row.question || '').trim(),
+            courseOutcomeId: co.dbId || null,
+            assessmentItemId: Number.isInteger(row.id) ? row.id : null
+        });
+        setCommentType('');
+        setCommentBody('');
+    };
+
     const handleAddComment = async () => {
         if (!activeScope || !commentBody.trim()) return;
         const payload = {
@@ -826,7 +872,9 @@ const TosSections = ({role = 'instructor'}) => {
     const relevantIloDbIds = new Set(rows.flatMap(co => (co.ilos || []).map(ilo => ilo.iloDbId || ilo.id)));
     const relevantAtts = attachments.filter(a => relevantIloDbIds.has(a.iloId));
     const allFilesHaveRows = relevantAtts.every(a => relevantQuestions.some(q => String(q.attachmentId) === String(a.id)));
-    const canSubmit = allIlosComplete && allItemsHavePoints && allItemsHaveBloom && allFilesHaveRows && relevantQuestions.length > 0 && comments.every(c => c.resolved);
+    const iloHasFile = (ilo) => attachments.some(a => Number(a.iloId) === Number(ilo.iloDbId || ilo.id));
+    const allIlosHaveFile = rows.every(co => (co.ilos || []).every(iloHasFile));
+    const canSubmit = allIlosComplete && allItemsHavePoints && allItemsHaveBloom && allFilesHaveRows && allIlosHaveFile && relevantQuestions.length > 0 && comments.every(c => c.resolved);
 
     const getSubmitTooltipText = () => {
         if (canSubmit) return '';
@@ -834,16 +882,18 @@ const TosSections = ({role = 'instructor'}) => {
 
         // (a) mismatch: "ILO1 needs 3 more points, ILO2 is 1 over" (up to 2 ILOs, then "+N more")
         const mismatchItems = [];
-        // (b) an ILO with no rows: "ILOn has no file or points" (up to 2 ILOs, "+N more")
+        // (b) an ILO with no file: "ILOn has no file uploaded" (up to 2 ILOs, "+N more")
         const noRowItems = [];
 
         rows.forEach(co => {
             (co.ilos || []).forEach(ilo => {
                 const iloRows = questions.filter(q => q.co === co.co && q.ilo === ilo.id);
                 const target = ilo.items || 0;
-                if (iloRows.length === 0) {
-                    noRowItems.push(`${ilo.id} has no file or points`);
-                } else {
+                if (!iloHasFile(ilo)) {
+                    noRowItems.push(`${ilo.id} has no file uploaded`);
+                }
+                // An ILO that has a file but no rows is reported by (b.1) below
+                if (iloRows.length > 0) {
                     const allocated = iloRows.reduce((s, q) => s + (Number(q.points) || 0), 0);
                     if (allocated < target) {
                         const diff = target - allocated;
@@ -1450,6 +1500,7 @@ const items = aggregatedData[co.co][ilo.id][level];
                                         addingComment={addingComment}
                                         activeScope={activeScope}
                                         onFileClick={handleAssessmentFileClick}
+                                        onRowClick={handleAssessmentRowClick}
                                     />
                                 </section>
                             )}
@@ -1497,7 +1548,7 @@ const items = aggregatedData[co.co][ilo.id][level];
                                     ) : addingComment && !showResolvedPH ? (
                                         <div className={layout.commentFormCard}>
                                             <div className={layout.selectionCard} style={{ marginBottom: 0 }}>
-                                                <div className={layout.selectionPrompt}>{phSection === 'Assessments' ? 'Select a file to comment on...' : 'Select a cell to comment on...'}</div>
+                                                <div className={layout.selectionPrompt}>{phSection === 'Assessments' ? 'Select a file or point row to comment on...' : 'Select a cell to comment on...'}</div>
                                                 <button className={layout.selectionCancel} onClick={handleCancelComment}>Cancel</button>
                                             </div>
                                         </div>

@@ -24,6 +24,15 @@ router.put('/:code/:period/items', lockGuard, async (req, res) => {
     for (const item of items) {
         const itemData = item;
         const ilo = item.ilo;
+        // Drafts may still hold a blank (0) row, so 0 is tolerated here and enforced on
+        // submit (frontend canSubmit + status route). Negative / fractional / non-numeric
+        // points are never valid.
+        if (item.points !== undefined && item.points !== null) {
+            const pts = Number(item.points);
+            if (!Number.isInteger(pts) || pts < 0) {
+                return res.status(400).json({ error: `Invalid points value: ${item.points}` });
+            }
+        }
         if (ilo === 'ILO1' && !['Remembering', 'Understanding'].includes(itemData.cognitiveLevel)) {
             return res.status(400).json({ error: `Invalid cognitive level for ILO1: ${itemData.cognitiveLevel}` });
         }

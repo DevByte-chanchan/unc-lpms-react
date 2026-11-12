@@ -1,5 +1,6 @@
 import { Router } from 'express';
-import { TosStatus, Comment } from '../models/index.js';
+import { Op } from 'sequelize';
+import { TosStatus, Comment, CourseOutcome, IloItem, IloAttachment, AssessmentItem } from '../models/index.js';
 import { lockGuard } from '../middleware/lockGuard.js';
 import { getCourseDeadline } from '../config/season.js';
 
@@ -53,6 +54,41 @@ router.put('/:code/:period/status', lockGuard, async (req, res) => {
             return res.status(400).json({
                 error: `Invalid status transition from ${currentStatus} to ${newStatus}`
             });
+        }
+    }
+
+    if (newStatus === 'pending') {
+        // Server-side mirror of the frontend Submit rules: every ILO in this TOS needs at
+        // least one file, and every point row needs points > 0.
+        const coFilter = req.params.period === 'Midterm' ? ['CO1', 'CO2'] : req.params.period === 'Finals' ? ['CO3', 'CO4'] : null;
+        let outcomes = await CourseOutcome.findAll({
+            where: { courseCode: req.params.code },
+            include: [{ model: IloItem, as: 'ilos' }]
+        });
+        if (coFilter) {
+            const scoped = outcomes.filter(o => coFilter.includes(o.co));
+            if (scoped.length > 0) outcomes = scoped;
+        }
+        const iloIds = outcomes.flatMap(o => (o.ilos || []).map(i => i.id));
+        if (iloIds.length > 0) {
+            const attachments = await IloAttachment.findAll({
+                where: { courseCode: req.params.code, examPeriod: req.params.period, iloId: iloIds }
+            });
+            const filedIlos = new Set(attachments.map(a => a.iloId));
+            if (iloIds.some(id => !filedIlos.has(id))) {
+                return res.status(400).json({ error: 'Cannot submit TOS: every ILO needs at least one uploaded file' });
+            }
+            const rowsMissingPoints = await AssessmentItem.count({
+                where: {
+                    courseCode: req.params.code,
+                    examPeriod: req.params.period,
+                    iloId: iloIds,
+                    points: { [Op.or]: [{ [Op.lte]: 0 }, { [Op.is]: null }] }
+                }
+            });
+            if (rowsMissingPoints > 0) {
+                return res.status(400).json({ error: 'Cannot submit TOS: every point row needs points greater than 0' });
+            }
         }
     }
 

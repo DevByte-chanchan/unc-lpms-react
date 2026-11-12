@@ -72,6 +72,52 @@ router.get('/:code/:period/attachments', async (req, res) => {
     }
 });
 
+// Replace the file of an existing attachment in place. The attachment id (and therefore
+// every point row linked to it via attachmentId) is preserved.
+router.put('/:code/:period/attachments/:id', lockGuard, upload.single('file'), async (req, res) => {
+    const newFilename = req.file ? req.file.filename : null;
+    const discardNewFile = () => {
+        if (newFilename) {
+            const p = path.join(uploadDir, newFilename);
+            if (fs.existsSync(p)) fs.unlinkSync(p);
+        }
+    };
+    try {
+        const { id, code, period } = req.params;
+        if (!req.file) {
+            return res.status(400).json({ error: 'No file uploaded' });
+        }
+        const attachment = await IloAttachment.findOne({
+            where: { id, courseCode: code, examPeriod: period }
+        });
+        if (!attachment) {
+            discardNewFile();
+            return res.status(404).json({ error: 'Attachment not found' });
+        }
+
+        const oldFilepath = attachment.filepath;
+        attachment.filename = req.file.originalname;
+        attachment.filepath = req.file.filename;
+        attachment.size = req.file.size;
+        await attachment.save();
+
+        // Remove the previous file from disk only after the DB update succeeded
+        const oldPath = path.join(uploadDir, oldFilepath);
+        if (oldFilepath && oldFilepath !== req.file.filename && fs.existsSync(oldPath)) {
+            try {
+                fs.unlinkSync(oldPath);
+            } catch {
+                // Ignore if previous file is locked or already removed
+            }
+        }
+
+        res.json(attachment);
+    } catch (err) {
+        discardNewFile();
+        res.status(500).json({ error: err.message });
+    }
+});
+
 router.delete('/:code/:period/attachments/:id', lockGuard, async (req, res) => {
     try {
         const { id, code, period } = req.params;
